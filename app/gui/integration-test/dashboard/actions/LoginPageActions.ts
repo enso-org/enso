@@ -14,13 +14,15 @@ export default class LoginPageActions<Context> extends BaseActions<Context> {
   get goToPage() {
     return {
       register: (): RegisterPageActions<Context> =>
-        this.step("Go to 'register' page", async (page) =>
-          page.getByRole('link', { name: TEXT.dontHaveAnAccount, exact: true }).click(),
-        ).into(RegisterPageActions<Context>),
+        this.step("Go to 'register' page", async (page) => {
+          await page.getByRole('link', { name: TEXT.dontHaveAnAccount, exact: true }).click()
+          await expect(page.getByText(TEXT.register)).toBeVisible()
+        }).into(RegisterPageActions<Context>),
       forgotPassword: (): ForgotPasswordPageActions<Context> =>
-        this.step("Go to 'forgot password' page", async (page) =>
-          page.getByRole('link', { name: TEXT.forgotYourPassword, exact: true }).click(),
-        ).into(ForgotPasswordPageActions<Context>),
+        this.step("Go to 'forgot password' page", async (page) => {
+          await page.getByRole('link', { name: TEXT.forgotYourPassword, exact: true }).click()
+          await expect(page.getByText(TEXT.forgotYourPassword)).toBeVisible()
+        }).into(ForgotPasswordPageActions<Context>),
     }
   }
 

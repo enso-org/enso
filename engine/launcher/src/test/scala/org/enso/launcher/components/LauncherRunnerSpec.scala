@@ -64,6 +64,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
 
       val runSettings = RunSettings(
         SemVer.of(0, 0, 0),
+        jvmMode = true,
         Seq("arg1", "--flag2"),
         workingDirectory         = None,
         connectLoggerIfAvailable = true
@@ -126,6 +127,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           path                = projectPath,
           name                = "ProjectName",
           engineVersion       = defaultEngineVersion,
+          jvmMode             = false,
           normalizedName      = None,
           projectTemplate     = None,
           authorName          = Some(authorName),
@@ -154,6 +156,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           path                = projectPath,
           name                = "ProjectName",
           engineVersion       = defaultEngineVersion,
+          jvmMode             = false,
           normalizedName      = Some(normalizedName),
           projectTemplate     = None,
           authorName          = None,
@@ -184,6 +187,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
             path                = projectPath,
             name                = "ProjectName2",
             engineVersion       = nightlyVersion,
+            jvmMode             = false,
             normalizedName      = None,
             projectTemplate     = None,
             authorName          = None,
@@ -216,7 +220,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = None,
           additionalArguments = Seq("arg", "--flag"),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          jvmMode             = false
         )
         .get
 
@@ -242,7 +247,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = None,
           additionalArguments = Seq(),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          jvmMode             = false
         )
         .get
 
@@ -258,7 +264,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = None,
           additionalArguments = Seq(),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          jvmMode             = false
         )
         .get
 
@@ -274,7 +281,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = Some(overridden),
           additionalArguments = Seq(),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          jvmMode             = false
         )
         .get
 
@@ -297,7 +305,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         rpcPort        = 1234,
         secureRpcPort  = None,
         dataPort       = 4321,
-        secureDataPort = None
+        secureDataPort = None,
+        jvmMode        = false
       )
       val runSettings = runner
         .languageServer(
@@ -349,7 +358,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = None,
           additionalArguments = Seq(),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          jvmMode             = false
         )
         .get
 
@@ -365,7 +375,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = None,
           additionalArguments = Seq(),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          jvmMode             = false
         )
         .get
 
@@ -380,7 +391,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = Some(overridden),
           additionalArguments = Seq(),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          jvmMode             = false
         )
         .get
 
@@ -395,7 +407,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
             versionOverride     = None,
             additionalArguments = Seq(),
             logLevel            = Level.INFO,
-            logMasking          = true
+            logMasking          = true,
+            jvmMode             = false
           )
           .isFailure,
         "Running outside project without providing any paths should be an error"
@@ -422,7 +435,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = None,
           additionalArguments = Seq(),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          jvmMode             = false
         )
         .get
 
@@ -447,7 +461,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = None,
           additionalArguments = Seq(),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          jvmMode             = false
         )
         .get
 

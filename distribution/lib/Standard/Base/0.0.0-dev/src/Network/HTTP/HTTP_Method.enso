@@ -4,7 +4,6 @@ import project.Metadata.Widget
 from project.Data.Text.Extensions import all
 from project.Metadata import make_single_choice
 
-
 type HTTP_Method
     ## The HTTP method "OPTIONS".
     Options
@@ -62,13 +61,15 @@ type HTTP_Method
        Widget for get operations
     default_fetch_widget : Widget
     default_fetch_widget =
-        make_single_choice ["..Get", "..Head", "..Options", "..Trace"]
+        values = ["..Get", "..Head", "..Options", "..Trace"].map v-> [v, v]
+        make_single_choice values
 
     ## PRIVATE
        Widget for get operations
     default_post_widget : Widget
     default_post_widget =
-        make_single_choice ["..Post", "..Put", "..Patch", "..Delete"]
+        values = ["..Post", "..Put", "..Patch", "..Delete"].map v-> [v, v]
+        make_single_choice values
 
 ## PRIVATE
    Converts from Text to an HTTP_Method.

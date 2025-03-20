@@ -31,6 +31,7 @@ export default function AssetNameColumn(props: AssetNameColumnProps) {
     case backendModule.AssetType.secret: {
       return <SecretNameColumn {...props} item={item} />
     }
+    case backendModule.AssetType.specialUp:
     case backendModule.AssetType.specialLoading:
     case backendModule.AssetType.specialEmpty:
     case backendModule.AssetType.specialError: {

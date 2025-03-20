@@ -173,7 +173,7 @@ function lockColumnSize(e: ColumnResizedEvent) {
   // on a resize.
   if (e.source !== 'autosizeColumns') {
     for (const column of e.columns ?? []) {
-      const id = column.getColDef().colId
+      const id = column.getColId()
       if (id) widths.set(id, column.getActualWidth())
     }
   }
@@ -352,7 +352,7 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       :processCellForClipboard="processCellForClipboard"
       :sendToClipboard="sendToClipboard"
       :suppressFieldDotNotation="true"
-      :enableRangeSelection="true"
+      :cellSelection="true"
       :popupParent="popupParent"
       :components="mappedComponents"
       :singleClickEdit="singleClickEdit"
@@ -361,6 +361,7 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       :suppressMoveWhenColumnDragging="suppressMoveWhenColumnDragging"
       :processDataFromClipboard="processDataFromClipboard"
       :allowContextMenuWithControlKey="true"
+      :cacheBlockSize="1000"
       @gridReady="onGridReady"
       @firstDataRendered="updateColumnWidths"
       @rowDataUpdated="(updateColumnWidths($event), emit('rowDataUpdated', $event))"

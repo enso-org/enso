@@ -1,7 +1,6 @@
 /** @file A modal opened when uploaded assets. */
 import * as React from 'react'
 
-import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -11,9 +10,31 @@ import Modal from '#/components/Modal'
 
 import * as backendModule from '#/services/Backend'
 
+import {
+  Button,
+  Dialog,
+  Form,
+  Input,
+  Menu,
+  Popover,
+  Separator,
+  Text,
+} from '#/components/AriaComponents'
+import { Icon } from '#/components/Icon'
+import { listDirectoryQueryOptions, unsafe_assetFromCacheQueryOptions } from '#/hooks/backendHooks'
+import { useMount } from '#/hooks/mountHooks'
+import { useCategory } from '#/layouts/Drive/Categories/categoriesHooks'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
-import { useMutation } from '@tanstack/react-query'
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQueries,
+  useSuspenseQuery,
+} from '@tanstack/react-query'
+import { Fragment } from 'react'
+import invariant from 'tiny-invariant'
 
 // =============
 // === Types ===
@@ -51,14 +72,16 @@ export interface DuplicateAssetsModalProps {
   readonly doUpdateConflicting: (toUpdate: ConflictingAsset[]) => Promise<void> | void
 }
 
-/** A modal for creating a new label. */
+/**
+ * A modal for creating a new label.
+ * @deprecated Use {@link resolveDuplications} instead.
+ */
 export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const { conflictingFiles: conflictingFilesRaw } = props
   const { conflictingProjects: conflictingProjectsRaw, doUpdateConflicting } = props
   const { siblingFileNames: siblingFileNamesRaw } = props
   const { siblingProjectNames: siblingProjectNamesRaw } = props
   const { nonConflictingFileCount, nonConflictingProjectCount, doUploadNonConflicting } = props
-  const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const [conflictingFiles, setConflictingFiles] = React.useState(conflictingFilesRaw)
   const [conflictingProjects, setConflictingProjects] = React.useState(conflictingProjectsRaw)
@@ -315,4 +338,366 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
       </form>
     </Modal>
   )
+}
+
+/**
+ * The conclusion of a resolved duplication.
+ */
+export type Conclusion = 'rename' | 'replace' | 'skip'
+
+/**
+ * A resolved duplication.
+ */
+export type ResolvedDuplication = RenameDuplication | ReplaceDuplication | SkipDuplication
+
+/**
+ * A resolved duplication that was skipped.
+ */
+export interface SkipDuplication {
+  readonly assetId: backendModule.AssetId
+  readonly conclusion: 'skip'
+}
+
+/**
+ * A resolved duplication that was renamed.
+ */
+export interface RenameDuplication {
+  readonly assetId: backendModule.AssetId
+  readonly conclusion: 'rename'
+  readonly newName: string
+}
+
+/**
+ * A resolved duplication that was replaced.
+ */
+export interface ReplaceDuplication {
+  readonly assetId: backendModule.AssetId
+  /**
+   * Requires backend to support that.
+   */
+  readonly conclusion: 'replace'
+}
+
+/**
+ * Props for a {@link ResolveDuplicationsModal}.
+ */
+export interface ResolveDuplicationsProps {
+  readonly targetId: backendModule.DirectoryId
+  readonly conflictingIds: readonly backendModule.AssetId[]
+  readonly onSubmit: (assets: readonly ResolvedDuplication[]) => Promise<void> | void
+  readonly onCancel: () => void
+}
+
+/**
+ * A modal for resolving duplicates.
+ */
+export function ResolveDuplicationsModal(props: ResolveDuplicationsProps) {
+  const { conflictingIds } = props
+  const { getText } = textProvider.useText()
+
+  return (
+    <Dialog
+      size="xxlarge"
+      onDismiss={props.onCancel}
+      title={
+        conflictingIds.length === 1 ?
+          getText('resolveDuplicatesTitleOne')
+        : getText('resolveDuplicatesTitleMany', conflictingIds.length)
+      }
+    >
+      <ResolveDuplicationsModalInner {...props} />
+    </Dialog>
+  )
+}
+
+const NEW_TITLE_SUFFIX = ' (copy)'
+
+/**
+ * The inner component of a {@link ResolveDuplicationsModal}.
+ */
+function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
+  const { targetId, conflictingIds } = props
+
+  const { category, associatedBackend } = useCategory()
+
+  const { getText } = textProvider.useText()
+
+  const queryClient = useQueryClient()
+
+  const { data: siblingFiles } = useSuspenseQuery({
+    ...listDirectoryQueryOptions({
+      category,
+      backend: associatedBackend,
+      parentId: targetId,
+    }),
+    select: (data) => {
+      // We use titles as keys, because they are always unique, and we want to find duplicates by title.
+      const map = new Map(data.map((asset) => [asset.title, asset]))
+      return { map, siblings: data }
+    },
+  })
+
+  const conflictingAssets = useSuspenseQueries({
+    queries: conflictingIds.map((id) =>
+      unsafe_assetFromCacheQueryOptions({ backend: associatedBackend, assetId: id, queryClient }),
+    ),
+    combine: (queries) => queries.map((query) => query.data).filter((asset) => asset != null),
+  })
+
+  useMount(() => {
+    const onlyExistingConflicts = conflictingAssets.filter(
+      (asset) => siblingFiles.map.get(asset.title) != null,
+    )
+
+    // If there are no conflicts, we can just skip the modal and return nothing.
+    if (onlyExistingConflicts.length === 0) {
+      void props.onSubmit([])
+    }
+  })
+
+  return (
+    <Form
+      defaultValues={Object.fromEntries(
+        conflictingAssets.map((asset) => [asset.id, { assetId: asset.id, type: asset.type }]),
+      )}
+      method="dialog"
+      className="pb-20"
+      schema={(schema) =>
+        schema.object(
+          Object.fromEntries(
+            conflictingAssets.map((asset) => [
+              asset.id,
+              schema
+                .object({
+                  assetId: schema.custom<backendModule.AssetId>(),
+                  type: schema.nativeEnum(backendModule.AssetType),
+                  newName: schema.string().trim(),
+                  conclusion: schema.literal('rename', { message: getText('invalidConclusion') }),
+                })
+                .or(
+                  schema.object({
+                    assetId: schema.custom<backendModule.AssetId>(),
+                    type: schema.nativeEnum(backendModule.AssetType),
+                    conclusion: schema.literal('skip', { message: getText('invalidConclusion') }),
+                  }),
+                )
+                .or(
+                  schema.object({
+                    assetId: schema.custom<backendModule.AssetId>(),
+                    type: schema.nativeEnum(backendModule.ReplaceableAssetType, {
+                      message: getText('invalidConclusion'),
+                    }),
+                    conclusion: schema.literal('replace', {
+                      message: getText('invalidConclusion'),
+                    }),
+                  }),
+                ),
+            ]),
+          ),
+        )
+      }
+      onSubmit={(data) => props.onSubmit(Object.values(data))}
+    >
+      {({ form }) => (
+        <>
+          <Text elementType="p">
+            {conflictingIds.length === 1 ?
+              getText('resolveDuplicatesDescriptionOne')
+            : getText('resolveDuplicatesDescriptionMany', conflictingIds.length)}
+          </Text>
+
+          {conflictingAssets.map((asset, index, array) => {
+            const isLast = index === array.length - 1
+            const sibling = siblingFiles.map.get(asset.title)
+
+            invariant(sibling != null, 'Sibling was not found, this should never happen.')
+
+            return (
+              <Fragment key={asset.id}>
+                <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] grid-rows-[auto_auto_auto] gap-2">
+                  <AssetSummary asset={asset} new />
+
+                  <Icon icon="arrow_right" size="medium" className="self-center" />
+
+                  <AssetSummary asset={sibling} />
+
+                  <Button.Group className="col-span-full row-span-2 mt-1">
+                    <Form.Controller
+                      control={form.control}
+                      name={`${asset.id}.conclusion`}
+                      render={({ field, fieldState }) => {
+                        if (fieldState.isDirty) {
+                          return (
+                            <div className="flex items-center gap-2">
+                              {field.value === 'skip' && (
+                                <Text>{getText('assetWillBeSkipped')}</Text>
+                              )}
+
+                              {field.value === 'rename' && (
+                                <Form.FieldValue name={`${asset.id}.newName`}>
+                                  {(value: string) => (
+                                    <Text>{getText('assetWillBeRenamed', value)}</Text>
+                                  )}
+                                </Form.FieldValue>
+                              )}
+
+                              {field.value === 'replace' && (
+                                <Text>{getText('assetWillBeReplaced')}</Text>
+                              )}
+
+                              <Button
+                                variant="link"
+                                onPress={() => {
+                                  form.resetField(`${asset.id}.conclusion`)
+                                }}
+                              >
+                                {getText('change')}
+                              </Button>
+                            </div>
+                          )
+                        }
+
+                        return (
+                          <Button.Group buttonVariants={{ size: 'xsmall' }}>
+                            <Button
+                              variant="outline"
+                              className="min-w-16"
+                              onPress={() => {
+                                field.onChange('skip')
+                              }}
+                            >
+                              {getText('skip')}
+                            </Button>
+
+                            <Popover.Trigger>
+                              <Button variant="primary" className="min-w-16">
+                                {getText('rename')}
+                              </Button>
+
+                              <Popover placement="bottom start">
+                                <Form
+                                  method="dialog"
+                                  defaultValues={{ newName: asset.title + NEW_TITLE_SUFFIX }}
+                                  schema={(schema) =>
+                                    schema.object({
+                                      newName: backendModule.titleSchema({
+                                        asset,
+                                        siblings: siblingFiles.siblings,
+                                      }),
+                                    })
+                                  }
+                                  onSubmit={(value) => {
+                                    field.onChange('rename')
+                                    form.setValue(`${asset.id}.newName`, value.newName)
+                                  }}
+                                >
+                                  <Text>{getText('newNameDescription')}</Text>
+
+                                  <Input
+                                    label={getText('newName')}
+                                    name="newName"
+                                    autoFocus="select"
+                                  />
+
+                                  <Form.Submit>{getText('apply')}</Form.Submit>
+
+                                  <Form.FormError />
+                                </Form>
+                              </Popover>
+                            </Popover.Trigger>
+                          </Button.Group>
+                        )
+                      }}
+                    />
+                  </Button.Group>
+
+                  <Form.FieldError
+                    form={form}
+                    className="col-span-full row-span-3"
+                    name={`${asset.id}.conclusion`}
+                  />
+                </div>
+
+                {!isLast && <Separator className="my-2" />}
+              </Fragment>
+            )
+          })}
+
+          <Button.Group
+            className={
+              'fixed bottom-0 left-0 right-0 border-t-0.5 border-primary/20 bg-background/90 px-3 py-4 backdrop-blur-md'
+            }
+          >
+            <Dialog.Close variant="ghost" onPress={props.onCancel} className="mr-auto">
+              {getText('cancel')}
+            </Dialog.Close>
+
+            <Button.GroupJoin className="grow-0">
+              <Button
+                variant="outline"
+                className="min-w-20"
+                onPress={() => {
+                  for (const asset of conflictingAssets) {
+                    form.setValue(`${asset.id}.conclusion`, 'skip', { shouldDirty: true })
+                  }
+                }}
+              >
+                {getText('skipAll')}
+              </Button>
+
+              <Menu.Trigger>
+                <Button variant="outline" icon="folder_opened" />
+
+                <Menu>
+                  <Menu.Item
+                    onAction={() => {
+                      for (const asset of conflictingAssets) {
+                        const conclusion = form.getValues(`${asset.id}.conclusion`)
+
+                        // The value COULD be `null` or `undefined`, might be unset by the moment
+                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                        if (conclusion == null) {
+                          form.setValue(`${asset.id}.conclusion`, 'skip', { shouldDirty: true })
+                        }
+                      }
+                    }}
+                  >
+                    {getText('skipRest')}
+                  </Menu.Item>
+                </Menu>
+              </Menu.Trigger>
+            </Button.GroupJoin>
+
+            <Form.Submit className="min-w-20">{getText('apply')}</Form.Submit>
+          </Button.Group>
+
+          <Form.FormError />
+        </>
+      )}
+    </Form>
+  )
+}
+
+/**
+ * Options for resolving duplicates.
+ */
+export interface ResolveDuplicationsOptions
+  extends Pick<ResolveDuplicationsProps, 'conflictingIds' | 'targetId'> {}
+
+/**
+ * Function for resolving duplicates.
+ */
+export async function resolveDuplications(props: ResolveDuplicationsOptions) {
+  const { targetId, conflictingIds } = props
+
+  return new Promise<readonly ResolvedDuplication[]>((resolve, reject) => {
+    setModal(
+      <ResolveDuplicationsModal
+        targetId={targetId}
+        conflictingIds={conflictingIds}
+        onSubmit={resolve}
+        onCancel={reject}
+      />,
+    )
+  }).finally(unsetModal)
 }

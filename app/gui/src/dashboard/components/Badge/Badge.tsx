@@ -19,7 +19,7 @@ export const BADGE_STYLES = tv({
   variants: {
     variant: {
       solid: 'border-transparent bg-[var(--badge-bg-color)] text-[var(--badge-text-color)]',
-      outline: 'border-[var(--badge-border-color)] bg-transparent text-[var(--badge-text-color)]',
+      outline: 'border-[var(--badge-border-color)] bg-transparent text-primary',
     },
     color: {
       primary:
@@ -49,6 +49,7 @@ export const BADGE_STYLES = tv({
       variant: 'body-sm',
       color: 'current',
       className: '',
+      truncate: true,
     }),
   },
   defaultVariants: {

@@ -42,14 +42,14 @@ from project.Internal.Storage import enso_to_java, java_to_enso
 from project.Table import from_java_table
 
 polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.table.data.column.operation.BinaryCoalescingOperation
 polyglot java import org.enso.table.data.column.operation.cast.CastOperation
+polyglot java import org.enso.table.data.column.operation.comparators.Comparators
 polyglot java import org.enso.table.data.column.operation.CountNonTrivialWhitespace
 polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.CountUntrimmed
 polyglot java import org.enso.table.data.column.operation.RequiresNumberFormatting
 polyglot java import org.enso.table.data.column.operation.SampleOperation
-polyglot java import org.enso.table.data.column.operation.BinaryCoalescingOperation
-polyglot java import org.enso.table.data.column.operation.comparators.Comparators
 polyglot java import org.enso.table.data.column.operation.text.TextPartOperation
 polyglot java import org.enso.table.data.column.operation.text.TextPredicates
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
@@ -2210,15 +2210,15 @@ type Column
             CountUntrimmed.apply self.java_column sample_size
 
     ## PRIVATE
-      indicates if a numeric column requires formatting in table viz
+       Indicates if a numeric column requires formatting in table viz
     requires_numeric_formatter_check : Boolean
     requires_numeric_formatter_check self =
         if (self.value_type.is_numeric).not then False else
             RequiresNumberFormatting.apply self.java_column
 
     ## PRIVATE
-      Counts the number of text values with non trivial whitespace.
-      Used for data quality indicator in Table Viz.
+       Counts the number of text values with non trivial whitespace.
+       Used for data quality indicator in Table Viz.
     count_non_trivial_whitespace : Integer -> Integer | Nothing
     count_non_trivial_whitespace self sample_size:Integer=Column.default_sample_size =
         if (Column.can_contain_text self.value_type).not then Nothing else
