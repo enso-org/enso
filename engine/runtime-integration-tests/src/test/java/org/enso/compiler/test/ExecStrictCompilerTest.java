@@ -156,10 +156,10 @@ public class ExecStrictCompilerTest {
   public void noDuplicateImportWarning() {
     var code =
         """
-        from Standard.Table.Column import apply_unary_operation, naming_helper
+        from Standard.Table.Column import naming_helper
 
         main =
-            [apply_unary_operation, naming_helper]
+            naming_helper
         """;
     var res = ContextUtils.evalModule(ctx, code);
     assertThat(res, is(notNullValue()));
