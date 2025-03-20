@@ -189,7 +189,7 @@ export function clipboardNodeData(nodes: CopiedNode[]): MimeData {
 /** TODO: Add docs */
 export function nodesToClipboardData(nodes: Node[]): MimeData {
   return {
-    ...clipboardNodeData(nodes.map(nodeStructuredData).filter((data) => data)),
+    ...clipboardNodeData(nodes.map(nodeStructuredData).filter<CopiedNode>((data) => data != null)),
     'text/plain': nodes.map((node) => node.outerAst.code()).join('\n'),
   }
 }
