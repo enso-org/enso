@@ -77,11 +77,11 @@ function nestedChoiceTagToSubmenu(tag: NestedChoiceTag, target: HTMLElement): Su
   }
 }
 
-function onClick(entry: DropdownEntry, keepOpen: boolean, target: HTMLElement) {
+function onClick(entry: DropdownEntry, keepOpen: boolean, htmlElement: HTMLElement) {
   if (!isEntry(entry)) return
   const tag = entry.tag
   if (tag instanceof NestedChoiceTag) {
-    submenu.value = nestedChoiceTagToSubmenu(tag, target)
+    submenu.value = nestedChoiceTagToSubmenu(tag, htmlElement)
   } else {
     emit('clickedEntry', entry, keepOpen)
   }

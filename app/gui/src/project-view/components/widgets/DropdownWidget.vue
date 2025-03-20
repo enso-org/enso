@@ -12,7 +12,7 @@ enum SortDirection {
 
 const props = defineProps<{ color: string; backgroundColor: string; entries: Entry[] }>()
 const emit = defineEmits<{
-  clickEntry: [entry: Entry, keepOpen: boolean, target: HTMLElement]
+  clickEntry: [entry: Entry, keepOpen: boolean, htmlElement: HTMLElement]
   scroll: []
 }>()
 
@@ -67,22 +67,8 @@ const styleVars = computed(() => {
   }
 })
 
-/**
- * Recursively find the nearest <li> element among ancestors of the event target.
- * It is used to guarantee a stable target no matter the exact location of the click.
- */
-function findTargetLiElement(target: EventTarget | null): HTMLElement | null {
-  if (!(target instanceof HTMLElement)) return null
-  let targetLiElement = target
-  while (!(targetLiElement instanceof HTMLLIElement)) {
-    targetLiElement = targetLiElement.parentElement as HTMLElement
-  }
-  return targetLiElement
-}
-
-function handleClick(entry: Entry, altKey: boolean, target: EventTarget | null) {
-  const targetLiElement = findTargetLiElement(target)
-  if (targetLiElement != null) emit('clickEntry', entry, altKey, targetLiElement)
+function handleClick(entry: Entry, altKey: boolean, htmlElement: EventTarget | null) {
+  if (htmlElement instanceof HTMLElement) emit('clickEntry', entry, altKey, htmlElement)
 }
 </script>
 
@@ -101,7 +87,7 @@ export interface DropdownEntry {
         :key="entry.value"
         :class="{ selected: entry.selected }"
         class="item clickable"
-        @click.stop="handleClick(entry, $event.altKey, $event.target)"
+        @click.stop="handleClick(entry, $event.altKey, $event.currentTarget)"
       >
         <div class="itemContent" v-text="entry.value"></div>
       </li>
