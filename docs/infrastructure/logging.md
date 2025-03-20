@@ -293,6 +293,10 @@ dispatches the received logging event to all the appenders in
 
 ## Telemetry
 
+Telemetry gathers anonymized, yet still useful information about the environment
+Enso IDE operates at. Such metadata (not user data) are send to the Enso cloud
+to improve planning and further help to optimize Enso user experience.
+
 Telemetry events are just logging messages in a special format. Using logging
 infrastructure makes it easy to collect telemetry from all possible sources -
 engine, standard libraries, language server and project manager. All the
