@@ -3,7 +3,7 @@ use crate::prelude::*;
 use crate::syntax::token;
 use crate::syntax::tree;
 use crate::syntax::Finish;
-use crate::syntax::GroupHierarchyConsumer;
+use crate::syntax::Flush;
 use crate::syntax::Token;
 use crate::syntax::TokenConsumer;
 use crate::syntax::Tree;
@@ -11,7 +11,10 @@ use crate::syntax::TreeConsumer;
 
 
 
-#[derive(Debug, Default)]
+/// Parses numbers. Assembles number tokens into numbers, and implements precedence of negation
+/// operator.
+#[derive(Debug, Default, GroupHierarchyConsumer, OperatorConsumer)]
+#[operator_consumer(FlushAndForward)]
 pub struct ParseNumbers<'s, Inner> {
     state: State<'s>,
     inner: Inner,
@@ -30,8 +33,8 @@ enum Number<'s> {
     Fractional { digits: token::Digits<'s>, dot: Option<token::DotOperator<'s>> },
 }
 
-impl<'s, Inner: TokenConsumer<'s> + TreeConsumer<'s>> TokenConsumer<'s>
-    for ParseNumbers<'s, Inner>
+impl<'s, Inner> TokenConsumer<'s> for ParseNumbers<'s, Inner>
+where Inner: TokenConsumer<'s> + TreeConsumer<'s>
 {
     fn push_token(&mut self, token: Token<'s>) {
         match (token.variant, &mut self.state) {
@@ -111,7 +114,9 @@ impl<'s, Inner: TokenConsumer<'s> + TreeConsumer<'s>> TokenConsumer<'s>
     }
 }
 
-impl<'s, Inner: TokenConsumer<'s> + TreeConsumer<'s>> TreeConsumer<'s> for ParseNumbers<'s, Inner> {
+impl<'s, Inner> TreeConsumer<'s> for ParseNumbers<'s, Inner>
+where Inner: TokenConsumer<'s> + TreeConsumer<'s>
+{
     fn push_tree(&mut self, tree: Tree<'s>) {
         self.flush();
         self.inner.push_tree(tree);
@@ -119,7 +124,9 @@ impl<'s, Inner: TokenConsumer<'s> + TreeConsumer<'s>> TreeConsumer<'s> for Parse
     }
 }
 
-impl<'s, Inner: TokenConsumer<'s> + TreeConsumer<'s>> ParseNumbers<'s, Inner> {
+impl<'s, Inner> Flush for ParseNumbers<'s, Inner>
+where Inner: TokenConsumer<'s> + TreeConsumer<'s>
+{
     fn flush(&mut self) {
         let State { negation, number, prev_item_in_expression: _ } = &mut self.state;
         flush(&mut self.inner, negation, number);
@@ -153,26 +160,16 @@ fn maybe_negated<'s>(minus: Option<Token<'s>>, tree: Tree<'s>) -> Tree<'s> {
     }
 }
 
-impl<'s, Inner: TokenConsumer<'s> + TreeConsumer<'s> + Finish> Finish for ParseNumbers<'s, Inner> {
+impl<'s, Inner> Finish for ParseNumbers<'s, Inner>
+where
+    Self: Flush,
+    Inner: Finish,
+{
     type Result = Inner::Result;
 
     fn finish(&mut self) -> Self::Result {
         self.flush();
-        self.state.prev_item_in_expression = false;
+        self.state.prev_item_in_expression = true;
         self.inner.finish()
-    }
-}
-
-impl<'s, Inner> GroupHierarchyConsumer<'s> for ParseNumbers<'s, Inner>
-where Inner: TokenConsumer<'s> + TreeConsumer<'s> + GroupHierarchyConsumer<'s>
-{
-    fn start_group(&mut self, open: token::OpenSymbol<'s>) {
-        self.flush();
-        self.inner.start_group(open);
-    }
-
-    fn end_group(&mut self, close: token::CloseSymbol<'s>) {
-        self.flush();
-        self.inner.end_group(close);
     }
 }

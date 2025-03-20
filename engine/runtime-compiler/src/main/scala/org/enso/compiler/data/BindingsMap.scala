@@ -12,7 +12,7 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.resolve.MethodDefinitions
 import org.enso.editions.LibraryName
-import org.enso.pkg.QualifiedName
+import org.enso.pkg.{Config, QualifiedName}
 
 import java.io.ObjectOutputStream
 import scala.annotation.unused
@@ -260,6 +260,7 @@ case class BindingsMap(
   }
 
   /** Resolves a qualified name to a symbol in the context of this module.
+    * The name may be imported from a different project.
     *
     * @param name the name to resolve
     * @return a resolution for `name`
@@ -267,7 +268,23 @@ case class BindingsMap(
     */
   def resolveQualifiedName(
     name: List[String]
-  ): Either[ResolutionError, List[ResolvedName]] =
+  ): Either[ResolutionError, List[ResolvedName]] = {
+    if (fqnHasNamespace(name)) {
+      val resolution = resolveQualifiedNameFromDifferentProject(name)
+      resolution match {
+        case Right(resolved) => Right(resolved)
+        case Left(_)         =>
+          // If not found from different project, fallback to resolution from this project.
+          resolveQualifiedNameFromThisProject(name)
+      }
+    } else {
+      resolveQualifiedNameFromThisProject(name)
+    }
+  }
+
+  private def resolveQualifiedNameFromThisProject(
+    name: List[String]
+  ): Either[ResolutionError, List[ResolvedName]] = {
     name match {
       case List()     => Left(ResolutionNotFound)
       case List(item) => resolveName(item)
@@ -300,6 +317,116 @@ case class BindingsMap(
             }
         }
     }
+  }
+
+  /** Resolves a qualified name that is "absolute" - its first parts are namespace and project name.
+    * This is a special case because we first need to decide whether the project is imported at all.
+    * The name may be located in different project, hence the name.
+    * @param name Fully qualified name, with at least 3 parts: namespace, project name, module name.
+    * @return
+    */
+  private def resolveQualifiedNameFromDifferentProject(
+    name: List[String]
+  ): Either[ResolutionError, List[ResolvedName]] = {
+    assert(
+      name.size > 2,
+      "Expected to have at least namespace and project name"
+    )
+    val namespace = name(0)
+    val projName  = name(1)
+    if (shouldSearchInCurrentModule(name)) {
+      return resolveName(name.last)
+    }
+    val matchingImportsFromProject = resolvedImports.flatMap { imp =>
+      val hasMatchingTarget = imp.targets.exists { target =>
+        isTargetFromProject(target, namespace, projName)
+      }
+      if (hasMatchingTarget) {
+        Some(imp)
+      } else {
+        None
+      }
+    }
+    val matchingModulesFromProject = matchingImportsFromProject.flatMap { imp =>
+      imp.targets.map(_.module)
+    }.distinct
+
+    val modName = name(2)
+    val matchingModules = matchingModulesFromProject.flatMap { mod =>
+      val importedModName = mod.getName.item
+      if (importedModName == modName) {
+        Some(mod)
+      } else {
+        None
+      }
+    }
+    if (matchingModules.isEmpty) {
+      // Traverse BindingsMap of matchingModulesFromProject
+      val matchingConcreteModules = matchingModulesFromProject.collect {
+        case ModuleReference.Concrete(concreteMod) => concreteMod
+      }
+      val importedBindingMaps = matchingConcreteModules.map(_.getBindingsMap)
+      importedBindingMaps.foreach { bm =>
+        val resolution = bm.resolveQualifiedName(name)
+        resolution match {
+          case Left(err)  => return Left(err)
+          case Right(res) => return Right(res)
+        }
+      }
+    }
+
+    val restOfFQN                                 = name.drop(3)
+    val allResolutions: ArrayBuffer[ResolvedName] = ArrayBuffer.empty
+    matchingModules.foreach { mod =>
+      val resolution = resolveQualifiedNameIn(
+        ResolvedModule(mod),
+        restOfFQN.init,
+        restOfFQN.last
+      )
+      resolution match {
+        case Left(err) =>
+          return Left(err)
+        case Right(res) =>
+          allResolutions.addAll(res)
+      }
+    }
+    if (allResolutions.isEmpty) {
+      Left(ResolutionNotFound)
+    } else {
+      handleAmbiguity(allResolutions.toList)
+    }
+  }
+
+  private def fqnHasNamespace(name: List[String]): Boolean = {
+    name.size > 2 && (name.head == Config.DefaultNamespace || name.head == "Standard")
+  }
+
+  private def isTargetFromProject(
+    importTarget: ImportTarget,
+    namespace: String,
+    projName: String
+  ): Boolean = {
+    val modName = importTarget.module.getName.fullPath()
+    if (modName.size > 2) {
+      modName(0) == namespace && modName(1) == projName
+    } else {
+      false
+    }
+  }
+
+  /** Returns true iff the given fully qualified name should be resolved in current
+    * module and no other imports should be considered.
+    */
+  private def shouldSearchInCurrentModule(
+    name: List[String]
+  ): Boolean = {
+    val curModName = currentModule.getName
+    if (curModName.item == "Main") {
+      curModName.path == name.dropRight(1)
+    } else {
+      curModName.fullPath() == name.dropRight(1)
+    }
+  }
 
   private def resolveLocalName(
     name: List[String]

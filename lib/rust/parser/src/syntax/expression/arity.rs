@@ -1,16 +1,15 @@
-use crate::syntax::operator::apply::*;
-use crate::syntax::operator::types::*;
-use enso_prelude::*;
+use crate::prelude::*;
+use crate::syntax::expression::apply::*;
+use crate::syntax::expression::types::*;
 
+use crate::syntax::expression::whitespace::Spacing;
+use crate::syntax::expression::whitespace::SpacingLookaheadTokenConsumer;
 use crate::syntax::token;
 use crate::syntax::token::OperatorProperties;
 use crate::syntax::token::TokenOperatorProperties;
 use crate::syntax::tree;
-use crate::syntax::treebuilding::Spacing;
-use crate::syntax::treebuilding::SpacingLookaheadTokenConsumer;
-use crate::syntax::Finish;
+use crate::syntax::Flush;
 use crate::syntax::GroupHierarchyConsumer;
-use crate::syntax::ScopeHierarchyConsumer;
 use crate::syntax::Token;
 
 
@@ -20,7 +19,8 @@ use crate::syntax::Token;
 // ======================
 
 /// Determines the number of operands consumed by each term.
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Finish, ScopeHierarchyConsumer)]
+#[scope_hierarchy_consumer(FlushAndForward)]
 pub struct ClassifyArity<'s, Inner> {
     /// Next item that will be emitted. If it is an operator, it may still be extended with
     /// additional operators to become a multiple-operator error.
@@ -49,26 +49,11 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
     }
 }
 
-impl<'s, Inner> Finish for ClassifyArity<'s, Inner>
-where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s> + Finish
-{
-    type Result = Inner::Result;
-
-    fn finish(&mut self) -> Self::Result {
-        self.flush();
-        self.inner.finish()
-    }
-}
-
 impl<'s, Inner> ClassifyArity<'s, Inner>
 where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
 {
     fn emit<T: Into<MaybeOperator<'s>>>(&mut self, item: T) {
         self.step(Some(item.into()));
-    }
-
-    fn flush(&mut self) {
-        self.step(None);
     }
 
     fn step(&mut self, item: Option<MaybeOperator<'s>>) {
@@ -117,7 +102,8 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
                 Spacing::Unspaced,
                 precedence,
                 is_value_operation,
-            ),
+            )
+            .into(),
             associativity,
             arity: Arity::Unary(token.with_variant(token::variant::UnaryOperator())),
         });
@@ -163,11 +149,8 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
         self.emit(Operator {
             left_precedence: lhs
                 .map(|spacing| ModifiedPrecedence::new(spacing, precedence, is_value_operation)),
-            right_precedence: ModifiedPrecedence::new(
-                rhs.or(lhs).unwrap(),
-                precedence,
-                is_value_operation,
-            ),
+            right_precedence: rhs
+                .map(|spacing| ModifiedPrecedence::new(spacing, precedence, is_value_operation)),
             associativity,
             arity: Arity::Binary { tokens: vec![token], missing, reify_rhs_section },
         });
@@ -199,19 +182,11 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
     }
 }
 
-impl<'s, Inner> ScopeHierarchyConsumer for ClassifyArity<'s, Inner>
-where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s> + ScopeHierarchyConsumer
+impl<'s, Inner> Flush for ClassifyArity<'s, Inner>
+where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
 {
-    type Result = Inner::Result;
-
-    fn start_scope(&mut self) {
-        self.flush();
-        self.inner.start_scope()
-    }
-
-    fn end_scope(&mut self) -> Self::Result {
-        self.flush();
-        self.inner.end_scope()
+    fn flush(&mut self) {
+        self.step(None);
     }
 }
 
@@ -223,7 +198,7 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s> + GroupHierarchyCon
         self.inner.start_group(open);
     }
 
-    fn end_group(&mut self, close: token::CloseSymbol<'s>) {
+    fn end_group(&mut self, close: Option<token::CloseSymbol<'s>>) {
         self.emit(MaybeOperator::Operand);
         self.inner.end_group(close);
     }
@@ -256,7 +231,7 @@ impl<'s> MaybeOperator<'s> {
     fn expects_rhs(&self) -> bool {
         match self {
             MaybeOperator::Operand => false,
-            MaybeOperator::Operator(op) => op.arity.expects_rhs(),
+            MaybeOperator::Operator(op) => op.right_precedence.is_some(),
         }
     }
 }

@@ -55,6 +55,10 @@ interface DriveStore {
   readonly pasteData: PasteData<DrivePastePayload> | null
   readonly setPasteData: (pasteData: PasteData<DrivePastePayload> | null) => void
   readonly selectedIds: ReadonlySet<AssetId>
+  readonly setSelectedIds: (selectedIds: ReadonlySet<AssetId>) => void
+  /**
+   * @deprecated Use `selectedIds` instead.
+   */
   readonly selectedAssets: readonly SelectedAssetInfo[]
   readonly setSelectedAssets: (selectedAssets: readonly SelectedAssetInfo[]) => void
   readonly visuallySelectedKeys: ReadonlySet<AssetId> | null
@@ -111,7 +115,7 @@ export default function DriveProvider(props: ProjectsProviderProps) {
   const [store] = React.useState(() =>
     createStore<DriveStore>((set, get) => ({
       removeSelection: () => {
-        set({ selectedIds: EMPTY_SET, visuallySelectedKeys: null })
+        set({ selectedIds: new Set(), visuallySelectedKeys: null, selectedAssets: [] })
       },
       newestFolderId: null,
       setNewestFolderId: (newestFolderId) => {
@@ -132,6 +136,9 @@ export default function DriveProvider(props: ProjectsProviderProps) {
         }
       },
       selectedIds: EMPTY_SET,
+      setSelectedIds: (selectedIds) => {
+        set({ selectedIds })
+      },
       selectedAssets: EMPTY_ARRAY,
       setSelectedAssets: (selectedAssets) => {
         if (selectedAssets.length === 0) {
@@ -239,18 +246,30 @@ export function useSetPasteData() {
 }
 
 /** The selected keys in the Asset Table. */
-export function useSelectedKeys() {
+export function useSelectedIds() {
   const store = useDriveStore()
   return useStore(store, (state) => state.selectedIds)
 }
 
-/** The selected assets in the Asset Table. */
+/** A function to set the selected keys in the Asset Table. */
+export function useSetSelectedIds() {
+  const store = useDriveStore()
+  return useStore(store, (state) => state.setSelectedIds)
+}
+
+/**
+ * The selected assets in the Asset Table.
+ * @deprecated Use `useSelectedIds` instead.
+ */
 export function useSelectedAssets() {
   const store = useDriveStore()
   return useStore(store, (state) => state.selectedAssets)
 }
 
-/** A function to set the selected assets in the Asset Table. */
+/**
+ * A function to set the selected assets in the Asset Table.
+ * @deprecated Use `useSetSelectedIds` instead.
+ */
 export function useSetSelectedAssets() {
   const store = useDriveStore()
   return useStore(store, (state) => state.setSelectedAssets)

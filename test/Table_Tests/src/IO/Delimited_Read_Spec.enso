@@ -3,7 +3,7 @@ import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Delimited_Format
+from Standard.Table import Table, Column, Data_Formatter, Delimited_Format
 from Standard.Table.Extensions.Table_Conversions import all
 from Standard.Table.Errors import all
 
@@ -529,16 +529,16 @@ add_specs suite_builder =
         group_builder.specify "should allow to build the Delimited configuration using builders" <|
             Delimited_Format.Delimited "," . clone . should_equal (Delimited_Format.Delimited ",")
             Delimited_Format.Delimited "," encoding=Encoding.ascii skip_rows=123 row_limit=100 headers=False value_formatter=Nothing . clone . should_equal (Delimited_Format.Delimited "," headers=False value_formatter=Nothing skip_rows=123 row_limit=100 encoding=Encoding.ascii)
-            Delimited_Format.Delimited "," . clone quote_style=Quote_Style.No_Quotes headers=False value_formatter=Nothing . should_equal (Delimited_Format.Delimited "," headers=False value_formatter=Nothing quote_style=Quote_Style.No_Quotes)
+            Delimited_Format.Delimited "," . clone quote_style=..No_Quotes headers=False value_formatter=Nothing . should_equal (Delimited_Format.Delimited "," headers=False value_formatter=Nothing quote_style=..No_Quotes)
 
-            Delimited_Format.Delimited '\t' . with_quotes "|" . should_equal (Delimited_Format.Delimited '\t' quote_style=(Quote_Style.With_Quotes quote='|' quote_escape='|'))
-            Delimited_Format.Delimited '\t' . with_quotes "-" '\\' True . should_equal (Delimited_Format.Delimited '\t' quote_style=(Quote_Style.With_Quotes always_quote=True quote='-' quote_escape='\\'))
-            Delimited_Format.Delimited '\t' . without_quotes . should_equal (Delimited_Format.Delimited '\t' quote_style=Quote_Style.No_Quotes)
+            Delimited_Format.Delimited '\t' . with_quotes "|" . should_equal (Delimited_Format.Delimited '\t' quote_style=(..With_Quotes quote='|' quote_escape='|'))
+            Delimited_Format.Delimited '\t' . with_quotes "-" '\\' True . should_equal (Delimited_Format.Delimited '\t' quote_style=(..Always_Quote quote='-' quote_escape='\\'))
+            Delimited_Format.Delimited '\t' . without_quotes . should_equal (Delimited_Format.Delimited '\t' quote_style=..No_Quotes)
 
             Delimited_Format.Delimited ',' . with_headers . should_equal (Delimited_Format.Delimited ',' headers=True)
             Delimited_Format.Delimited ',' . without_headers . should_equal (Delimited_Format.Delimited ',' headers=False)
-            Delimited_Format.Delimited "," skip_rows=123 headers=False value_formatter=Nothing quote_style=Quote_Style.No_Quotes . with_headers . should_equal (Delimited_Format.Delimited "," skip_rows=123 value_formatter=Nothing quote_style=Quote_Style.No_Quotes headers=True)
-            Delimited_Format.Delimited "," skip_rows=123 headers=True value_formatter=Nothing quote_style=Quote_Style.No_Quotes . without_headers . should_equal (Delimited_Format.Delimited "," skip_rows=123 value_formatter=Nothing quote_style=Quote_Style.No_Quotes headers=False)
+            Delimited_Format.Delimited "," skip_rows=123 headers=False value_formatter=Nothing quote_style=..No_Quotes . with_headers . should_equal (Delimited_Format.Delimited "," skip_rows=123 value_formatter=Nothing quote_style=..No_Quotes headers=True)
+            Delimited_Format.Delimited "," skip_rows=123 headers=True value_formatter=Nothing quote_style=..No_Quotes . without_headers . should_equal (Delimited_Format.Delimited "," skip_rows=123 value_formatter=Nothing quote_style=..No_Quotes headers=False)
 
             Delimited_Format.Delimited ',' . with_parsing . should_equal (Delimited_Format.Delimited ',')
             Delimited_Format.Delimited ',' . without_parsing . should_equal (Delimited_Format.Delimited ',' value_formatter=Nothing)

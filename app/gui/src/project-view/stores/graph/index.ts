@@ -151,10 +151,16 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       if (ast.ok) lastKnownResolvedMethodAstId.value = ast.value.id
       else console.log('immediateMethodAst', ast.error)
     })
+    watch(
+      () => proj.executionContext.getStackTop(),
+      () => {
+        lastKnownResolvedMethodAstId.value = undefined
+      },
+    )
 
     const fallbackMethodAst = computed(() => {
       const id = lastKnownResolvedMethodAstId.value
-      const ast = id != null ? syncModule.value?.get(id) : undefined
+      const ast = id != null ? syncModule.value?.tryGet(id) : undefined
       if (ast instanceof Ast.FunctionDef) return ast
       return undefined
     })

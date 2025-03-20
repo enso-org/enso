@@ -1,8 +1,8 @@
 use crate::prelude::*;
-use crate::syntax::operator::apply::*;
-use crate::syntax::operator::types::*;
+use crate::syntax::expression::apply::*;
+use crate::syntax::expression::types::*;
 
-use crate::syntax::operator::section::MaybeSection;
+use crate::syntax::expression::section::MaybeSection;
 use crate::syntax::token;
 use crate::syntax::tree::apply;
 use crate::syntax::Finish;
@@ -44,22 +44,20 @@ impl<'s> OperatorConsumer<'s> for Reduce<'s> {
         } else {
             Default::default()
         };
-        // Eagerly reduce postfix operators. This does not affect the result of reduction, but is
-        // slightly more efficient and can simplify debugging.
-        if !arity.expects_rhs() {
+        if let Some(right_precedence) = right_precedence {
+            self.operator_stack.push(StackOperator {
+                right_precedence,
+                associativity,
+                arity,
+                warnings,
+            });
+        } else {
             let lhs = self.output.pop();
             debug_assert!(lhs.is_some());
             let mut applied = reduce_step(arity, lhs, &mut self.output);
             warnings.apply(&mut applied.value);
             self.push_operand(applied);
-            return;
         }
-        self.operator_stack.push(StackOperator {
-            right_precedence,
-            associativity,
-            arity,
-            warnings,
-        });
     }
 }
 
@@ -192,6 +190,7 @@ fn reduce_step<'s>(
         }
         Arity::NamedApp(app) => app.apply_to_operand(operand),
         Arity::Annotation(annotation) => annotation.apply_to_operand(operand),
+        Arity::UnappliedBlock(block) => block.apply_to_operand(operand),
     }
 }
 

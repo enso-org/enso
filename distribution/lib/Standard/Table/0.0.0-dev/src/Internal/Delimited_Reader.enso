@@ -112,11 +112,12 @@ prepare_reader format:Delimited_Format max_columns on_problems:Problem_Behavior 
     row_limit = format.row_limit.rows_to_read.if_nothing -1
     quote_characters = case format.quote_style of
         Quote_Style.No_Quotes -> Pair.new Nothing Nothing
-        Quote_Style.With_Quotes _ quote quote_escape -> Pair.new quote quote_escape
+        Quote_Style.With_Quotes quote quote_escape -> Pair.new quote quote_escape
+        Quote_Style.Always_Quote quote quote_escape -> Pair.new quote quote_escape
     base_parser = case format.quote_style of
         Quote_Style.No_Quotes -> IdentityParser.new
-        Quote_Style.With_Quotes _ quote _ ->
-            QuoteStrippingParser.new quote
+        Quote_Style.With_Quotes quote _ -> QuoteStrippingParser.new quote
+        Quote_Style.Always_Quote quote _ -> QuoteStrippingParser.new quote
     value_parser = if format.value_formatter.is_nothing then base_parser else
         wrapped = format.value_formatter.wrap_base_parser base_parser
         TypeInferringParser.new format.value_formatter.get_specific_type_parsers wrapped

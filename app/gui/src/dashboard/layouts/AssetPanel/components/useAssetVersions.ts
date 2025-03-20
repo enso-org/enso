@@ -4,6 +4,9 @@ import { queryOptions, useQuery } from '@tanstack/react-query'
 import type Backend from '#/services/Backend'
 import type { AssetId } from '#/services/Backend'
 
+/** The interval at which the asset versions are refreshed. */
+const REFRESH_INTERVAL = 3000 // 3 seconds
+
 /** Options for {@link useAssetVersions}. */
 export interface AssetVersionsQueryOptions {
   readonly assetId: AssetId
@@ -24,8 +27,11 @@ export function assetVersionsQueryOptions(options: AssetVersionsQueryOptions) {
   const { enabled = true, assetId, backend, onError } = options
 
   return queryOptions({
-    queryKey: [backend.type, 'listAssetVersions', { assetId }] as const,
     enabled,
+    queryKey: [backend.type, 'listAssetVersions', { assetId }] as const,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: 'always',
+    refetchInterval: REFRESH_INTERVAL,
     queryFn: ({ queryKey: [, , props] }) =>
       backend
         .listAssetVersions(props.assetId)

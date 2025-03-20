@@ -1,21 +1,25 @@
 use crate::prelude::*;
 
-use crate::syntax::operator::reducer::ApplyToOperand;
-use crate::syntax::operator::section::MaybeSection;
-use crate::syntax::operator::types::NamedOperandConsumer;
-use crate::syntax::operator::types::OperandMaybeNamed;
-use crate::syntax::operator::types::Operator;
-use crate::syntax::operator::types::OperatorConsumer;
+use crate::syntax::expression::reducer::ApplyToOperand;
+use crate::syntax::expression::section::MaybeSection;
+use crate::syntax::expression::types::Arity;
+use crate::syntax::expression::types::ModifiedPrecedence;
+use crate::syntax::expression::types::NamedOperandConsumer;
+use crate::syntax::expression::types::Operand;
+use crate::syntax::expression::types::OperandMaybeNamed;
+use crate::syntax::expression::types::Operator;
+use crate::syntax::expression::types::OperatorConsumer;
+use crate::syntax::expression::whitespace::Spacing;
+use crate::syntax::expression::whitespace::SpacingLookaheadTokenConsumer;
+use crate::syntax::expression::whitespace::SpacingLookaheadTreeConsumer;
+use crate::syntax::maybe_with_error;
 use crate::syntax::token;
-use crate::syntax::treebuilding::Spacing;
-use crate::syntax::treebuilding::SpacingLookaheadTokenConsumer;
-use crate::syntax::treebuilding::SpacingLookaheadTreeConsumer;
-use crate::syntax::Finish;
+use crate::syntax::tree::SyntaxError;
+use crate::syntax::Flush;
 use crate::syntax::GroupHierarchyConsumer;
 use crate::syntax::ScopeHierarchyConsumer;
 use crate::syntax::Token;
 use crate::syntax::Tree;
-
 
 
 // ========================
@@ -23,7 +27,7 @@ use crate::syntax::Tree;
 // ========================
 
 /// Parses named-application syntax.
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Finish)]
 pub struct ParseAppNames<'s, Inner> {
     inner:   Inner,
     partial: Option<Partial<'s>>,
@@ -32,21 +36,61 @@ pub struct ParseAppNames<'s, Inner> {
 
 #[derive(Debug)]
 pub struct NamedApp<'s> {
-    pub parens:     Option<(token::OpenSymbol<'s>, Option<token::CloseSymbol<'s>>)>,
-    pub name:       token::Ident<'s>,
-    pub equals:     token::AssignmentOperator<'s>,
-    pub expression: Tree<'s>,
+    parens:     Option<(token::OpenSymbol<'s>, Option<token::CloseSymbol<'s>>)>,
+    name:       token::Ident<'s>,
+    equals:     token::AssignmentOperator<'s>,
+    expression: Tree<'s>,
+}
+
+impl<'s> NamedApp<'s> {
+    fn apply(self, func: Tree<'s>) -> Tree<'s> {
+        let NamedApp { parens, name, equals, expression } = self;
+        let (open, close, error) = match parens {
+            None => (None, None, None),
+            Some((open, Some(close))) => (Some(open), Some(close), None),
+            Some((open, None)) => (Some(open), None, Some(SyntaxError::ExprUnclosedParen)),
+        };
+        maybe_with_error(Tree::named_app(func, open, name, equals, expression, close), error)
+    }
+}
+
+impl<'s> From<NamedApp<'s>> for Operator<'s> {
+    fn from(value: NamedApp<'s>) -> Self {
+        let NamedApp { parens, name, equals, expression } = value;
+        let spacing = if let Some((open, _)) = &parens {
+            Spacing::of_token(open)
+        } else {
+            Spacing::of_token(&name)
+        };
+        let precedence = ModifiedPrecedence::new(spacing, token::Precedence::Application, false);
+        Operator {
+            left_precedence:  Some(precedence),
+            right_precedence: None,
+            associativity:    token::Associativity::Left,
+            arity:            Arity::NamedApp(NamedApp { parens, name, equals, expression }.into()),
+        }
+    }
+}
+
+impl<'s> From<NamedApp<'s>> for Operand<'s> {
+    fn from(value: NamedApp<'s>) -> Self {
+        let NamedApp { parens, name, equals, expression } = value;
+        let mut tree = Tree::opr_app(
+            Tree::ident(name).into(),
+            Ok(equals.with_variant(token::variant::Operator())),
+            expression.into(),
+        );
+        if let Some((open, close)) = parens {
+            tree = Tree::group(Some(open), tree.into(), close);
+        }
+        // After removing support for old lambdas, we can make this an error.
+        tree.into()
+    }
 }
 
 impl<'s> ApplyToOperand<'s> for NamedApp<'s> {
     fn apply_to_operand(self, operand: Option<MaybeSection<Tree<'s>>>) -> MaybeSection<Tree<'s>> {
-        let NamedApp { parens, name, equals, expression } = self;
-        let func = operand.unwrap();
-        let (open, close) = match parens {
-            None => (None, None),
-            Some((open, close)) => (Some(open), close),
-        };
-        func.map(|func| Tree::named_app(func, open, name, equals, expression, close))
+        operand.unwrap().map(|func| self.apply(func))
     }
 }
 
@@ -56,7 +100,7 @@ enum Partial<'s> {
     ExpectingEquals { open: Option<token::OpenSymbol<'s>>, name: token::Ident<'s> },
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct AppName<'s> {
     open:         Option<token::OpenSymbol<'s>>,
     name:         token::Ident<'s>,
@@ -66,21 +110,29 @@ struct AppName<'s> {
 }
 
 impl<'s> AppName<'s> {
+    fn new(
+        open: Option<token::OpenSymbol<'s>>,
+        name: token::Ident<'s>,
+        equals: token::AssignmentOperator<'s>,
+        // This is not used; it is required to ensure an `AppName` is only constructed when
+        // spacing-lookahead has indicated that an expression follows the `=` (`finish` relies on
+        // this).
+        _following_expression: Spacing,
+    ) -> Self {
+        Self { open, name, equals, spaceproof: false, inner_parens: 0 }
+    }
+
     fn finish(
         self,
-        expression: Option<Tree<'s>>,
+        inner: &mut impl ScopeHierarchyConsumer<Result = Option<Tree<'s>>>,
         close: &mut Option<token::CloseSymbol<'s>>,
     ) -> OperandMaybeNamed<'s> {
         let Self { open, name, equals, inner_parens: _, spaceproof: _ } = self;
-        // An `OuterAppName` is only constructed when lookahead indicates there's a
-        // token after the `=`.
+        let expression = inner.end_scope();
+        // An `AppName` is only pushed to the stack when lookahead indicates there's an expression
+        // after the `=`.
         let expression = expression.unwrap();
-        OperandMaybeNamed::Named {
-            parens: open.map(|open| (open, close.take())),
-            name,
-            equals,
-            expression,
-        }
+        NamedApp { parens: open.map(|open| (open, close.take())), name, equals, expression }.into()
     }
 }
 
@@ -139,10 +191,9 @@ where Inner: NamedOperandConsumer<'s>
     }
 
     fn flush_complete(&mut self, mut close: Option<token::CloseSymbol<'s>>) {
-        let expression = self.inner.end_scope();
-        let operand = self.stack.pop().unwrap().finish(expression, &mut close);
+        let operand = self.stack.pop().unwrap().finish(&mut self.inner, &mut close);
         self.inner.push_maybe_named_operand(operand);
-        if let Some(close) = close {
+        if close.is_some() {
             self.inner.end_group(close);
         }
     }
@@ -172,17 +223,17 @@ where Inner: SpacingLookaheadTokenConsumer<'s>
                 }
                 (
                     token::Variant::AssignmentOperator(variant),
-                    (Some(Partial::ExpectingEquals { open, name }), Some(Spacing::Unspaced))
-                    | (Some(Partial::ExpectingEquals { open: open @ Some(_), name }), _),
+                    (
+                        Some(Partial::ExpectingEquals { open, name }),
+                        Some(following @ Spacing::Unspaced),
+                    )
+                    | (
+                        Some(Partial::ExpectingEquals { open: open @ Some(_), name }),
+                        Some(following),
+                    ),
                 ) => {
                     let equals = token.with_variant(variant);
-                    self.stack.push(AppName {
-                        open,
-                        name,
-                        equals,
-                        inner_parens: 0,
-                        spaceproof: false,
-                    });
+                    self.stack.push(AppName::new(open, name, equals, following));
                     self.inner.start_scope();
                     None
                 }
@@ -239,14 +290,14 @@ where Inner: GroupHierarchyConsumer<'s>
         }
     }
 
-    fn end_group(&mut self, close: token::CloseSymbol<'s>) {
-        self.flush_partial(|| Spacing::of_token(&close).into());
+    fn end_group(&mut self, close: Option<token::CloseSymbol<'s>>) {
+        self.flush_partial(|| close.as_ref().map(Spacing::of_token));
         if let Some(last) = self.stack.last_mut() {
             if last.inner_parens > 0 {
                 self.inner.end_group(close);
                 last.inner_parens -= 1;
             } else {
-                self.flush_complete(close.into());
+                self.flush_complete(close);
             }
         } else {
             self.inner.end_group(close);
@@ -254,21 +305,17 @@ where Inner: GroupHierarchyConsumer<'s>
     }
 }
 
-impl<'s, Inner: Finish> Finish for ParseAppNames<'s, Inner>
-where Inner: Finish
-        + SpacingLookaheadTokenConsumer<'s>
+impl<'s, Inner> Flush for ParseAppNames<'s, Inner>
+where Inner: SpacingLookaheadTokenConsumer<'s>
         + NamedOperandConsumer<'s>
         + ScopeHierarchyConsumer<Result = Option<Tree<'s>>>
         + GroupHierarchyConsumer<'s>
 {
-    type Result = <Inner as Finish>::Result;
-
-    fn finish(&mut self) -> Self::Result {
+    fn flush(&mut self) {
         self.flush_partial(|| None);
         while !self.stack.is_empty() {
             self.flush_complete(None);
         }
-        self.inner.finish()
     }
 }
 

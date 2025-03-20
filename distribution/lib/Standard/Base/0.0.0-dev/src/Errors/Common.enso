@@ -502,7 +502,7 @@ type Missing_Argument
 
     ## PRIVATE
        Throws an error saying that a required argument has not been provided.
-    throw : Text -> Text | Nothing -> Nothing ! Missing_Argument
+    throw : Text -> Text|Nothing -> Nothing ! Missing_Argument
     throw argument_name:Text message_override:Text|Nothing=Nothing =
         stack_trace = Runtime.get_stack_trace
         function_frame = stack_trace . at 1

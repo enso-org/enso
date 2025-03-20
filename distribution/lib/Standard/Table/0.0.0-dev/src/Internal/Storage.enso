@@ -11,7 +11,6 @@ import project.Value_Type.Value_Type
 from project.Errors import Inexact_Type_Coercion
 
 polyglot java import java.math.BigDecimal
-
 polyglot java import org.enso.table.data.column.builder.Builder as Java_Builder
 polyglot java import org.enso.table.data.column.storage.type.AnyObjectType
 polyglot java import org.enso.table.data.column.storage.type.BigDecimalType
