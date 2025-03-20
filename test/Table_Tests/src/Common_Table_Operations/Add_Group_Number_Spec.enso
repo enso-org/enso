@@ -171,7 +171,7 @@ add_group_number_specs suite_builder setup =
             t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
 
             g0 = t.add_group_number (..Unique on=['x', 'y'])
-            g0.at 'Group' . to_vector . sort . should_equal [0, 1, 2, 1, 0, 2]
+            g0.at 'Group' . to_vector . sort . should_equal [0, 0, 1, 1, 2, 2]
 
         group_builder.specify "must specify group_by with Unique" <|
             t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
