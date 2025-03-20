@@ -304,6 +304,10 @@ telemetry events are visible in our OpenSearch dashboard. To properly send
 telemetry logs to the cloud, the used logger and the log message must conform to
 the specification described below.
 
+Note that the telemetry is collected only when running Enso via
+[Project Manager](#project-manager). In CLI mode, when running via
+[Engine runner](#engine-runner), no telemetry is collected.
+
 ### Logger namespace
 
 To send telemetry data to our cloud endpoint, a logger inside
