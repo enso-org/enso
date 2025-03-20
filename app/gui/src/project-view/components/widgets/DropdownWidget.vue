@@ -121,7 +121,8 @@ export interface DropdownEntry {
   color: var(--dropdown-fg);
 }
 
-/** Optional class that extends the dropdown upwards, so that it nicely merges with the node’s port.
+/** 
+ * Optional class that extends the dropdown upwards, so that it nicely merges with the node’s port.
  * Normally, only dropdowns that directly attached to a port are extended. 
  */
 .ExtendUpwards {
