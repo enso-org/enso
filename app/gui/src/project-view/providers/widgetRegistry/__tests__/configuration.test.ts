@@ -73,7 +73,7 @@ const expectedPossibleFunctions = new Map([
   ],
 ])
 
-test('Configuration of the inner widget for single choice', () => {
+test('Configuration of the inner widget', () => {
   const singleChoiceInnerConfig = singleChoiceConfiguration({
     kind: 'Single_Choice',
     ...dynamicConfig(),
