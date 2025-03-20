@@ -21,6 +21,8 @@ architecture, see [Logging server](#logging-server).
 - [Configuration](#configuration)
   - [Custom Log Levels](#custom-log-levels)
   - [Appenders](#appenders)
+    - [Project Manager](#project-manager)
+    - [Engine runner](#engine-runner)
     - [Format](#format)
     - [File](#file-appender)
     - [Network](#socket-appender)
@@ -155,20 +157,25 @@ The appenders are defined by the `logging-service.appenders`. Currently only a
 single appender can be selected at a time, although additional
 [logging to file](#logging-to-file) is supported. The selection may also be done
 via an environmental variable but it depends on which component we are
-executing.
+executing:
 
-- `project-manager` - project manager by default starts a centralized logging
-  server that collects logs (as defined in `logging-service.server` config key)
-  and the logs output can be overwritten by `ENSO_LOGSERVER_APPENDER` env
-  variable
-- `ensoup` or `enso` - the default log output can be overwritten by defining the
-  `ENSO_APPENDER_DEFAULT` env variable
+#### Project Manager
+
+Project manager by default starts a centralized logging server that collects
+logs (as defined in `logging-service.server` config key) and the logs output can
+be overwritten by `ENSO_LOGSERVER_APPENDER` env variable
 
 For example, for the project manager to output to `console` one simply executes
 
 ```
 ENSO_LOGSERVER_APPENDER=console ./project-manager
 ```
+
+#### Engine runner
+
+When executing the engine runner component, i.e., CLI usage, via `ensoup` or
+`enso`, the default log output can be overwritten by defining the
+`ENSO_APPENDER_DEFAULT` env variable
 
 #### Format
 
@@ -266,6 +273,10 @@ trace information of the logging process itself.
 
 ## Logging server
 
+The following section describes the _logging server_ architecture when user
+opens a project from IDE. In CLI mode (i.e. running `enso --run script.enso`),
+there is no _logging server_ - see [Engine runner appender](#engine-runner).
+
 The centralized logging service is implemented as a logging server started by
 the
 [Project Manager](https://github.com/enso-org/enso/blob/c47dba1d108e0d52e401333d1b6f6f4182436aa7/lib/scala/project-manager/src/main/scala/org/enso/projectmanager/boot/ProjectManager.scala#L326-L345).
@@ -282,8 +293,8 @@ dispatches the received logging event to all the appenders in
 
 ## Telemetry
 
-Telemetry events are just logging messages in a special format. 
-Using logging infrastructure makes it easy to collect telemetry from all possible sources -
+Telemetry events are just logging messages in a special format. Using logging
+infrastructure makes it easy to collect telemetry from all possible sources -
 engine, standard libraries, language server and project manager. All the
 telemetry events are visible in our OpenSearch dashboard. To properly send
 telemetry logs to the cloud, the used logger and the log message must conform to
