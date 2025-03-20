@@ -1,8 +1,10 @@
 import { defineKeybinds } from '@/util/shortcuts'
+import { isMacLike } from './composables/events'
 
 export const undoBindings = defineKeybinds('undo', {
   undo: ['Mod+Z'],
-  redo: ['Mod+Y', 'Mod+Shift+Z'],
+  // On Mac, `Mod+Shift+Z` takes priority and will be displayed in the tooltip.
+  redo: isMacLike ? ['Mod+Shift+Z', 'Mod+Y'] : ['Mod+Y', 'Mod+Shift+Z'],
 })
 
 export const codeEditorBindings = defineKeybinds('code-editor', {

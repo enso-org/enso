@@ -14,7 +14,6 @@ import project.Test_Result.Test_Result
 
 polyglot java import java.lang.Thread
 
-
 ## Contains only static methods
 type Test
     ## Construct a Test Suite object

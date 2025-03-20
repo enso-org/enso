@@ -628,6 +628,7 @@ left = Base_Generator.lift_binary_op "LEFT" str-> n->
 right = Base_Generator.lift_binary_op "RIGHT" str-> n->
     SQL_Builder.code "right(" ++ str ++ ", CAST(" ++ n ++ " AS INT))"
 
+## PRIVATE
 _build_partition_sql grouping:SQL_Builder ordering:SQL_Builder -> SQL_Builder =
     group_part = if grouping.is_empty then "" else
         SQL_Builder.code "PARTITION BY " ++ grouping

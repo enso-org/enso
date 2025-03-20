@@ -215,25 +215,6 @@ export default function App(props: AppProps) {
   const { getText } = textProvider.useText()
   const queryClient = reactQuery.useQueryClient()
 
-  // Force all queries to be stale
-  // We don't use the `staleTime` option because it's not performant
-  // and triggers unnecessary setTimeouts.
-  reactQuery.useQuery({
-    queryKey: ['refresh'],
-    queryFn: () => {
-      queryClient
-        .getQueryCache()
-        .getAll()
-        .forEach((query) => {
-          query.isStale = () => true
-        })
-
-      return null
-    },
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    refetchInterval: 2 * 60 * 1000,
-  })
-
   const { mutate: executeBackgroundUpdate } = useMutation({
     mutationKey: ['refetch-queries', { isOffline }],
     scope: { id: 'refetch-queries' },

@@ -38,6 +38,7 @@ export default function AssetIcon(props: AssetIconProps) {
     case backend.AssetType.secret: {
       return <SvgMask src={KeyIcon} className={className} />
     }
+    case backend.AssetType.specialUp:
     case backend.AssetType.specialLoading:
     case backend.AssetType.specialEmpty:
     case backend.AssetType.specialError: {

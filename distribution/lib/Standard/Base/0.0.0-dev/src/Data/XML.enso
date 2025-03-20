@@ -229,7 +229,7 @@ type XML_Document
         XML_Error.handle_java_exceptions <|
             XML_Utils.innerXML self.java_document
 
-    ## ALIAS export, save, output, to_file
+    ## ALIAS export, output, save, to_file
        GROUP Output
        ICON data_output
        Writes (or appends) the xml to the specified file using the supplied
@@ -592,7 +592,7 @@ type XML_Element
         XML_Error.handle_java_exceptions <|
             XML_Utils.innerXML self.java_element
 
-    ## ALIAS export, save, output, to_file
+    ## ALIAS export, output, save, to_file
        GROUP Output
        ICON data_output
        Writes (or appends) the xml to the specified file using the supplied
