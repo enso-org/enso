@@ -173,7 +173,7 @@ function lockColumnSize(e: ColumnResizedEvent) {
   // on a resize.
   if (e.source !== 'autosizeColumns') {
     for (const column of e.columns ?? []) {
-      const id = column.getColDef().colId
+      const id = column.getColId()
       if (id) widths.set(id, column.getActualWidth())
     }
   }
