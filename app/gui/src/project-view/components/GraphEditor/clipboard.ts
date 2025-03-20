@@ -170,12 +170,14 @@ export function writeClipboard(data: MimeData) {
 // === Serializing nodes ===
 
 function nodeStructuredData(node: Node): CopiedNode | undefined {
-  return node.type === 'input' ? undefined : {
-    expression: node.innerExpr.code(),
-    documentation: nodeDocumentationText(node) || undefined,
-    metadata: node.rootExpr.serializeMetadata(),
-    ...(node.pattern ? { binding: node.pattern.code() } : {}),
-  }
+  return node.type === 'input' ?
+      undefined
+    : {
+        expression: node.innerExpr.code(),
+        documentation: nodeDocumentationText(node) || undefined,
+        metadata: node.rootExpr.serializeMetadata(),
+        ...(node.pattern ? { binding: node.pattern.code() } : {}),
+      }
 }
 
 /** TODO: Add docs */
@@ -187,7 +189,7 @@ export function clipboardNodeData(nodes: CopiedNode[]): MimeData {
 /** TODO: Add docs */
 export function nodesToClipboardData(nodes: Node[]): MimeData {
   return {
-    ...clipboardNodeData(nodes.map(nodeStructuredData).filter(data => data)),
+    ...clipboardNodeData(nodes.map(nodeStructuredData).filter((data) => data)),
     'text/plain': nodes.map((node) => node.outerAst.code()).join('\n'),
   }
 }
