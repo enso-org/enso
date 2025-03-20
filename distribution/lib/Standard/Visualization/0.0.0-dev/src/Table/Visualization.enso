@@ -9,8 +9,6 @@ import Standard.Database.DB_Table.DB_Table
 
 import project.Helpers
 
-## TODO add an initial offset to fully support lazy visualizations
-
 ## PRIVATE
 
    Prepares a table or column for visualization.
