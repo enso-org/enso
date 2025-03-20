@@ -1,5 +1,6 @@
 /** @file A Markdown viewer component. */
-import { MarkdownEditor } from '#/components/MarkdownViewer/defaultRenderer'
+import * as React from 'react'
+
 import { useLogger } from '#/providers/LoggerProvider'
 import { useText } from '#/providers/TextProvider'
 import { type UrlTransformer } from '@/components/MarkdownEditor/imageUrlTransformer'
@@ -12,6 +13,13 @@ export interface MarkdownViewerProps extends TestIdProps {
   readonly text: string
   readonly imgUrlResolver: (relativePath: string) => Promise<string>
 }
+
+const LazyMarkdownEditor = React.lazy(() =>
+  import('#/components/MarkdownViewer/defaultRenderer').then(
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    ({ MarkdownEditor }) => MarkdownEditor,
+  ),
+)
 
 /**
  * Markdown viewer component.
@@ -35,11 +43,12 @@ export function MarkdownViewer(props: MarkdownViewerProps) {
       )
 
   return (
-    <MarkdownEditor
+    <LazyMarkdownEditor
       content={text}
       transformImageUrl={transformImageUrl}
       toolbar={false}
       data-testid={testId}
+      contentTestId="cmContent"
     />
   )
 }

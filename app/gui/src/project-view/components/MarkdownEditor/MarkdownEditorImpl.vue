@@ -16,9 +16,10 @@ import { minimalSetup } from 'codemirror'
 import { computed, onMounted, ref, useCssModule, useTemplateRef, type ComponentInstance } from 'vue'
 import * as Y from 'yjs'
 
-const { content, toolbar } = defineProps<{
+const { content, toolbar, contentTestId } = defineProps<{
   content: Y.Text | string
   toolbar: boolean
+  contentTestId?: string | undefined
 }>()
 defineOptions({
   inheritAttrs: false,
@@ -39,6 +40,7 @@ const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
     ensoMarkdown(),
   ],
   vueHost: () => vueHost,
+  contentTestId,
 })
 const { italic, bold, insertLink, blockType, insertCodeBlock } = useMarkdownFormatting(editorView)
 

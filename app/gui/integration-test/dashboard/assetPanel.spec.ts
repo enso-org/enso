@@ -21,7 +21,7 @@ function locateAssetPanelDescription(page: Page) {
 
 /** Find the contents of the Markdown editor within the given {@link Locator}. */
 function locateMarkdownContent(locator: Locator) {
-  return locator.locator('.cm-content')
+  return locator.getByTestId('cmContent')
 }
 
 /** An example description for the asset selected in the asset panel. */

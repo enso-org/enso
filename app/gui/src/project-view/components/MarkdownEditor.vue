@@ -13,6 +13,8 @@ const props = withDefaults(
     // eslint-disable-next-line vue/require-default-prop
     transformImageUrl?: UrlTransformer | undefined
     toolbar?: boolean
+    // eslint-disable-next-line vue/require-default-prop
+    contentTestId?: string | undefined
   }>(),
   { toolbar: true },
 )
@@ -46,6 +48,7 @@ defineExpose({
       v-bind="$attrs"
       :content="props.content"
       :toolbar="props.toolbar"
+      :contentTestId="props.contentTestId"
     >
       <template #toolbarLeft>
         <slot name="toolbarLeft" />

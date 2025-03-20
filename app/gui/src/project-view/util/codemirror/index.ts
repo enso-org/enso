@@ -29,6 +29,7 @@ export function useCodeMirror(
     content,
     extensions,
     vueHost,
+    contentTestId,
   }: {
     /** If a value is provided, the editor state will be synchronized with it. */
     content?: ToValue<string | Y.Text>
@@ -38,9 +39,12 @@ export function useCodeMirror(
      * If a value is provided, it will be made available to extensions that render Vue components.
      */
     vueHost?: WatchSource<VueHost | undefined>
+    /** If provided, the element with class `cm-content` will also have the given `data-testid`. */
+    contentTestId?: string | undefined
   },
 ) {
   const editorView = new EditorView()
+  if (contentTestId != null) editorView.contentDOM.dataset['testid'] = contentTestId
   const readonly = computed(() => !!content && typeof toValue(content) === 'string')
   const readonlyExt = useCompartment(editorView, () =>
     toValue(readonly) ? [EditorState.readOnly.of(true), EditorView.editable.of(false)] : [],
