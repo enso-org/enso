@@ -1,8 +1,8 @@
 import project.Any.Any
 import project.Data.Color.Color
 import project.Data.Json.JS_Object
-import project.Data.Ordering.Vector_Lexicographic_Order
 import project.Data.Numbers.Integer
+import project.Data.Ordering.Vector_Lexicographic_Order
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
@@ -50,6 +50,9 @@ from project.Enso_Cloud.Public_Utils import get_required_field
 from project.System.File import find_extension_from_name
 from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
 from project.System.File.Generic.File_Write_Strategy import generic_copy
+
+polyglot java import java.nio.file.Path
+polyglot java import org.enso.base.file_system.File_Utils
 
 type Enso_File
     ## ICON data_input
@@ -295,7 +298,7 @@ type Enso_File
     ## GROUP Metadata
        ICON metadata
        Checks if this is a regular file.
-       
+
        ? Data Links
          If the file is a data link, this checks whether the target of the data 
          link is a regular file.
@@ -406,7 +409,7 @@ type Enso_File
                         Error.throw (Illegal_Argument.Error "Only files can be opened as a stream.")
                 response.if_not_error <| response.body.with_stream action
 
-    ## ALIAS load, open, import
+    ## ALIAS import, load, open
        GROUP Input
        ICON data_input
        Read a file using the specified file format
@@ -484,16 +487,20 @@ type Enso_File
     list : Text -> Boolean -> Vector Enso_File
     list self (name_filter:Text="") recursive:Boolean=False =
         if self.is_data_link then Data_Link_Helpers.interpret_data_link_target_as_file self . list name_filter=name_filter recursive=recursive else
-            if name_filter != "" then Error.throw (Illegal_Argument.Error "Filtering by name is currently not supported in Enso_File.") else
-                if recursive then Error.throw (Illegal_Argument.Error "Recursive listing is currently not supported in Enso_File.") else
-                    if self.is_directory.not then Error.throw (Illegal_Argument.Error "Cannot `list` a non-directory.") else
-                        # Remove secrets from the list - they are handled separately in `Enso_Secret.list`.
-                        assets = list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
-                        results = assets.map asset->
-                            file = Enso_File.Value (self.enso_path.resolve asset.name)
-                            Asset_Cache.update file asset
-                            file
-                        results.sort on=.path
+            if recursive then Error.throw (Illegal_Argument.Error "Recursive listing is currently not supported in Enso_File.") else
+                if self.is_directory.not then Error.throw (Illegal_Argument.Error "Cannot `list` a non-directory.") else
+                    # Remove secrets from the list - they are handled separately in `Enso_Secret.list`.
+                    assets = list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
+                    filtered_assets = if name_filter == "" then assets else
+                        used_filter = if recursive.not || name_filter.contains "**" then name_filter else
+                            (if name_filter.starts_with "*" then "*" else "{**/,}") + name_filter
+                        matcher = File_Utils.matchPath "glob:"+used_filter
+                        assets.filter a-> matcher.matches (Path.of (a.name.drop Enso_Path.protocol_prefix.length))
+                    results = filtered_assets.map asset->
+                        file = Enso_File.Value (self.enso_path.resolve asset.name)
+                        Asset_Cache.update file asset
+                        file
+                    results.sort on=.path
 
     ## GROUP Output
        ICON folder_add
@@ -577,7 +584,7 @@ type Enso_File
     ## GROUP Operators
        ICON folder
        Resolves a file or directory within this directory.
-    / : Text -> Enso_File ! Not_Found
+    / : Text -> Enso_File | Any ! Not_Found
     / self (name : Text) -> Enso_File | Any ! Not_Found =
         Path_Helpers.resolve_many_parts self name
 

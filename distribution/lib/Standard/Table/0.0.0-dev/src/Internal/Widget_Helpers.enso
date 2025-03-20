@@ -4,7 +4,7 @@ import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Multiple_Choice, Numeric_Input, Single_Choice, Text_Input, Vector_Editor
 from Standard.Base.System.File_Format import format_types
-from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser
+from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser, make_separator_selector
 
 import project.Aggregate_Column.Aggregate_Column
 import project.Expression.Expression
@@ -42,7 +42,7 @@ make_aggregate_column_selector table display:Display=..Always =
     ## Should be a list of Text columns only
     count_not_empty = Option "..Count_Not_Empty" "..Count_Not_Empty" [column_widget]
     count_empty = Option "..Count_Empty" "..Count_Empty" [column_widget]
-    concatenate = Option "..Concatenate" "..Concatenate" [column_widget]
+    concatenate = Option "..Concatenate" "..Concatenate" [column_widget, ["separator", make_separator_selector]]
     shortest = Option "..Shortest" "..Shortest" [column_widget]
     longest = Option "..Longest" "..Longest" [column_widget]
 

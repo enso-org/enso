@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
 
 import Standard.Table.Row.Row
-from Standard.Table import Column, Excel_Workbook, Table, Value_Type, Sort_Column
+from Standard.Table import Column, Excel_Workbook, Sort_Column, Table, Value_Type
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
@@ -289,7 +289,7 @@ apply_filter_to_table table i filter_col filter_action filter_val =
    Arguments:
    - start_number: the start index of the next 100 rows to get
 
-get_rows_for_table : Any -> Integer -> Vector | Nothing -> Vector | Nothing -> Vector | Nothing -> Vector | Nothing -> Vector | Nothing-> JS_Object
+get_rows_for_table : Any -> Integer -> Vector | Nothing -> Vector | Nothing -> Vector | Nothing -> Vector | Nothing -> Vector | Nothing -> JS_Object
 get_rows_for_table table start_number sort_col_index_list=Nothing sort_direction_list=Nothing filter_col=Nothing filter_action=Nothing filter_val=Nothing =
     max_rows=1000
     col_name = table.make_temp_column_name

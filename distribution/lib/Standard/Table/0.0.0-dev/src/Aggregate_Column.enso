@@ -33,9 +33,7 @@ type Aggregate_Column
        - ignore_nothing: if all values are Nothing won't be included.
     Count_Distinct (columns:(Text | Integer | Regex | Vector (Integer | Text | Regex | Any))=0) (as:Text="") (ignore_nothing:Boolean=False) # Any needed because of 6866
 
-    ## ALIAS Count_Not_Null
-
-       Creates a new column with the count of not `Nothing` (null) values of the
+    ## Creates a new column with the count of not `Nothing` (null) values of the
        specified column within each group. If no rows, evaluates to 0.
 
        Arguments:
@@ -43,9 +41,7 @@ type Aggregate_Column
        - as: name of new column.
     Count_Not_Nothing (column:Text|Integer|Any=0) (as:Text="") # Any needed because of 6866
 
-    ## ALIAS Count_Null, Count_Missing
-
-       Creates a new column with the count of `Nothing` (null) values of the
+    ## Creates a new column with the count of `Nothing` (null) values of the
        specified column within each group. If no rows, evaluates to 0.
 
        Arguments:

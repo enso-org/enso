@@ -8,15 +8,15 @@ import project.Errors.Common.Assertion_Error
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.Common.Type_Error
 import project.Function.Function
-import project.IO
+import project.Internal.Context_Helpers.Context_Helpers
 import project.Internal.Meta_Helpers
+import project.Internal.Runtime_Helpers
+import project.IO
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Polyglot.Polyglot
 import project.Runtime.Source_Location.Source_Location
 import project.System
-import project.Internal.Runtime_Helpers
-import project.Internal.Context_Helpers.Context_Helpers
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Runtime.Context import Dataflow_Stack_Trace, Input, Output
@@ -141,8 +141,7 @@ type Stack_Trace_Element
 ## PRIVATE
    ADVANCED
 
-    Type indicating allowed execution context.
-
+   Type indicating allowed execution context.
 @Builtin_Type
 type Context
     ## PRIVATE
