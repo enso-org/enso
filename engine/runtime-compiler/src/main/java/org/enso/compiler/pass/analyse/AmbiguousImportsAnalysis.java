@@ -236,6 +236,9 @@ public final class AmbiguousImportsAnalysis implements MiniPassFactory {
       } else {
         var encounteredFullName = encounteredSymbols.getPathForSymbol(symbolName);
         var originalImport = encounteredSymbols.getOriginalImportForSymbol(symbolName);
+        if (originalImport == currentImport) {
+          return;
+        }
         if (symbolPath.equals(encounteredFullName)) {
           // symbolName is already imported with the same symbolPath --> attach warning.
           var warn = createWarningForDuplicatedImport(originalImport, currentImport, symbolName);
