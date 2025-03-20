@@ -3,7 +3,7 @@ import { WidgetInput } from '@/providers/widgetRegistry'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import { DisplayMode } from '@/providers/widgetRegistry/configuration'
-import { type MethodCallInfo } from '@/stores/graph/graphDatabase'
+import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
 import {
   isRequiredArgument,
   type CallableSuggestionEntry,
@@ -14,9 +14,6 @@ import type { AstId } from '@/util/ast/abstract'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 import { assert } from './assert'
-// For documentation link.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { GraphDb } from '@/stores/graph/graphDatabase'
 
 export const enum ApplicationKind {
   Prefix,
