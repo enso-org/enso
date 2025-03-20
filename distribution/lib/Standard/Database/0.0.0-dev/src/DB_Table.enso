@@ -1001,45 +1001,47 @@ type DB_Table
             problem_builder = Problem_Builder.new error_on_missing_columns=True
             case grouping_method of
                 Grouping_Method.Unique group_by ->
-                    _illegal_if group_by.is_empty "..Unique requires a non-empty 'group_by'" <|
-                        grouping_columns = _resolve_grouping_columns self.columns_helper group_by problem_builder
-                        problem_builder.attach_problems_before on_problems <|
-                            grouping_expressions = (grouping_columns.map _.as_internal).map .expression
+                    if group_by.is_empty then
+                        Error.throw (Illegal_Argument.Error "..Unique requires a non-empty 'group_by'")
+                    grouping_columns = _resolve_grouping_columns self.columns_helper group_by problem_builder
+                    problem_builder.attach_problems_before on_problems <|
+                        grouping_expressions = (grouping_columns.map _.as_internal).map .expression
 
-                            new_expr = Group_Number_Helpers.make_group_number from step grouping_expressions
+                        new_expr = Group_Number_Helpers.make_group_number from step grouping_expressions
 
-                            type_mapping = self.connection.dialect.get_type_mapping
-                            infer_from_database_callback expression =
-                                SQL_Type_Reference.new self.connection self.context expression
-                            new_type_ref = type_mapping.infer_return_type infer_from_database_callback "GROUP_NUMBER" [] new_expr
+                        type_mapping = self.connection.dialect.get_type_mapping
+                        infer_from_database_callback expression =
+                            SQL_Type_Reference.new self.connection self.context expression
+                        new_type_ref = type_mapping.infer_return_type infer_from_database_callback "GROUP_NUMBER" [] new_expr
 
-                            new_column = Internal_Column.Value name new_type_ref new_expr
+                        new_column = Internal_Column.Value name new_type_ref new_expr
 
-                            rebuild_table columns =
-                                self.updated_columns (columns.map .as_internal)
-                            renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
-                            updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
-                            updated_table.as_subquery
+                        rebuild_table columns =
+                            self.updated_columns (columns.map .as_internal)
+                        renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
+                        updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
+                        updated_table.as_subquery
                 Grouping_Method.Equal_Count group_count order_by ->
-                    _illegal_if (group_count < 1) "group_count must be at least 1" <|
-                        ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
-                        problem_builder.attach_problems_before on_problems <|
-                            order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering "add_group_number"
+                    if group_count < 1 then
+                        (Illegal_Argument.Error "group_count must be at least 1")
+                    ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
+                    problem_builder.attach_problems_before on_problems <|
+                        order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering "add_group_number"
 
-                            new_expr = Group_Number_Helpers.make_group_number_equal_count from step group_count order_descriptors
+                        new_expr = Group_Number_Helpers.make_group_number_equal_count from step group_count order_descriptors
 
-                            type_mapping = self.connection.dialect.get_type_mapping
-                            infer_from_database_callback expression =
-                                SQL_Type_Reference.new self.connection self.context expression
-                            new_type_ref = type_mapping.infer_return_type infer_from_database_callback "GROUP_NUMBER_EQUAL_COUNT" [] new_expr
+                        type_mapping = self.connection.dialect.get_type_mapping
+                        infer_from_database_callback expression =
+                            SQL_Type_Reference.new self.connection self.context expression
+                        new_type_ref = type_mapping.infer_return_type infer_from_database_callback "GROUP_NUMBER_EQUAL_COUNT" [] new_expr
 
-                            new_column = Internal_Column.Value name new_type_ref new_expr
+                        new_column = Internal_Column.Value name new_type_ref new_expr
 
-                            rebuild_table columns =
-                                self.updated_columns (columns.map .as_internal)
-                            renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
-                            updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
-                            updated_table.as_subquery
+                        rebuild_table columns =
+                            self.updated_columns (columns.map .as_internal)
+                        renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
+                        updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
+                        updated_table.as_subquery
 
 
     ## GROUP Standard.Base.Selections
@@ -3339,6 +3341,3 @@ private _resolve_order_descriptors dialect ordering default_ordering operation_n
 Many_Files_List.from (that : DB_Table) =
     _ = that
     Error.throw (Illegal_Argument.Error "`read_many` cannot be used with Database tables. Materialize the table into memory using `.read` first.")
-
-## PRVIATE
-_illegal_if b msg ~cont = if b then Error.throw (Illegal_Argument.Error msg) else cont

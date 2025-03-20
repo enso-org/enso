@@ -564,6 +564,12 @@ make_group_number (arguments : Vector) = if arguments.length < 3 then Error.thro
 
     grouping = arguments.drop 2
 
+    ## ORDER BY is used here because DENSE_RANK() over an empty partition list
+       treats the entire table as a single partition. Within that partition,
+       rank values are assigned to each unique group, where a group is defined
+       as the set of rows that have the same values for the ORDER BY fields. The
+       output is also ordered by the ORDER BY fields, but that is a side-effect
+       unrelated to the ranking.
     group_part = if grouping.length == 0 then "" else
         SQL_Builder.code "ORDER BY " ++ SQL_Builder.join ", " grouping
     SQL_Builder.code "(dense_rank() OVER (" ++ group_part ++  ") * " ++ step.paren ++ " + " ++ offset.paren ++ ")"
@@ -579,7 +585,9 @@ make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 the
 
     ordering_part = if ordering.length == 0 then "" else
         SQL_Builder.code "ORDER BY " ++ SQL_Builder.join ", " ordering
-    SQL_Builder.code "(((((row_number() over (" ++ ordering_part ++ ")) - 1) / (((count(*) over ()) + (" ++ group_count ++ " - 1)) / " ++ group_count ++ ") + 1) * " ++ step.paren ++ ") + " ++ offset.paren ++ ")"
+    row_number_minus_1 = SQL_Builder.code "((row_number() over (" ++ ordering_part ++ ")) - 1)"
+    group_size = SQL_Builder.code "(((count(*) over ()) + (" ++ group_count.paren ++ " - 1)) / " ++ group_count.paren ++ ")"
+    SQL_Builder.code "(((" ++ row_number_minus_1 ++ " / " ++ group_size ++ " + 1) * " ++ step.paren ++ ") + " ++ offset.paren ++ ")"
 
 ## PRIVATE
    A helper for `lookup_and_replace`, and perhaps other operation.
