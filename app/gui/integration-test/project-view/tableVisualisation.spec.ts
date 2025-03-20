@@ -5,6 +5,7 @@ import { mockExpressionUpdate, mockMethodCallInfo } from './expressionUpdates'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
+import { mockVisualizationDataUpdate } from './visualizationUpdates'
 
 /** Prepare the graph for the tests. We add the table type to the `aggregated` node. */
 async function initGraph(page: Page) {
@@ -32,6 +33,60 @@ test('Load Table Visualisation', async ({ page }) => {
   await expect(tableVisualization).toContainText('2,0')
   await expect(tableVisualization).toContainText('3,0')
 })
+
+test('Column size can be set and is retained', async ({ page }) => {
+  await initGraph(page)
+
+  const aggregatedNode = graphNodeByBinding(page, 'aggregated')
+  await aggregatedNode.click()
+  await page.keyboard.press('Space')
+  await page.waitForTimeout(1000)
+  const tableVisualization = locate.tableVisualization(page)
+  await expect(tableVisualization).toExist()
+  await expect(tableVisualization).toContainText('Total Row Count: 10')
+
+  const col = tableVisualization.getByRole('columnheader', { name: /^0/ })
+  const colManualSize = await resizeCol(col)
+
+  // A data update causes column autosizing to run
+  await mockVisualizationDataUpdate(
+    page,
+    'Standard.Visualization.Table.Visualization.prepare_visualization',
+    {
+      type: 'Matrix',
+      // eslint-disable-next-line camelcase
+      column_count: 5,
+      // eslint-disable-next-line camelcase
+      all_rows_count: 10,
+      json: Array.from({ length: 10 }, (_, i) => Array.from({ length: 5 }, (_, j) => `${i},${j}b`)),
+    },
+  )
+  await expect(tableVisualization).toContainText('0,0b')
+
+  const colSizeAfterDataUpdate = await getElWidth(col)
+  expect(colSizeAfterDataUpdate).toBe(colManualSize)
+})
+
+async function getElWidth(col: Locator): Promise<number> {
+  await col.elementHandle().then((el) => el!.waitForElementState('stable'))
+  const bbox = await col.boundingBox()
+  expect(bbox).toBeDefined()
+  return bbox!.width
+}
+
+async function resizeCol(col: Locator): Promise<number> {
+  await expect(col).toExist()
+  const widthBeforeResize = await getElWidth(col)
+  const resizeHandle = col.locator('[data-ref="eResize"]')
+  await resizeHandle.dragTo(resizeHandle, {
+    sourcePosition: { x: 0, y: 0 },
+    targetPosition: { x: 50, y: 0 },
+    force: true,
+  })
+  const widthAfterResize = await getElWidth(col)
+  expect(widthAfterResize).toBeGreaterThan(widthBeforeResize)
+  return widthAfterResize
+}
 
 test('Copy/paste from Table Visualization', async ({ page, context }) => {
   const expectClipboard = expect.poll(() =>
