@@ -6,7 +6,6 @@ import {
   useTableInputArgument,
   type RowData,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
-import ResizeHandles from '@/components/ResizeHandles.vue'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
@@ -30,6 +29,7 @@ import type {
 import { ComponentInstance, computed, ComputedRef, proxyRefs, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
+import ResizableWidget from '../ResizableWidget.vue'
 import TableHeader, { HeaderParams } from './WidgetTableEditor/TableHeader.vue'
 import { useTableEditHandler } from './WidgetTableEditor/editHandler'
 
@@ -99,38 +99,6 @@ watch(
 )
 
 // === Resizing ===
-
-const graphNav = injectGraphNavigator()
-
-const size = computed(() => Vec2.FromXY(config.value.size))
-
-const clientBounds = computed({
-  get() {
-    return new Rect(Vec2.Zero, size.value.scale(graphNav.scale))
-  },
-  set(value) {
-    props.onUpdate({
-      portUpdate: {
-        origin: props.input.portId,
-        metadataKey: 'WidgetTableEditor',
-        metadata: {
-          size: {
-            x: value.width / graphNav.scale,
-            y: value.height / graphNav.scale,
-          },
-        },
-      },
-      directInteraction: false,
-    })
-  },
-})
-
-const widgetStyle = computed(() => {
-  return {
-    width: `${size.value.x}px`,
-    height: `${size.value.y}px`,
-  }
-})
 
 // === Column and Row Dragging ===
 
@@ -208,36 +176,37 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetTableEditor" :style="widgetStyle">
-    <Suspense>
-      <AgGridTableView
-        ref="grid"
-        class="inner"
-        :defaultColDef="defaultColDef"
-        :columnDefs="columnDefsTyped"
-        :rowData="rowData"
-        :getRowId="(row) => `${row.data.index}`"
-        :components="{
-          agColumnHeader: TableHeader,
-        }"
-        :stopEditingWhenCellsLoseFocus="true"
-        :suppressDragLeaveHidesColumns="true"
-        :suppressMoveWhenColumnDragging="true"
-        :processDataFromClipboard="processDataFromClipboard"
-        v-on="gridEventHandlers"
-        @keydown.arrow-left.stop
-        @keydown.arrow-right.stop
-        @keydown.arrow-up.stop
-        @keydown.arrow-down.stop
-        @keydown.backspace.stop
-        @keydown.delete.stop
-        @pointerdown.stop
-        @click.stop
-        @columnMoved="onColumnMoved"
-        @rowDragEnd="onRowDragEnd"
-      />
-    </Suspense>
-    <ResizeHandles v-model="clientBounds" bottom right />
+  <div class="WidgetTableEditor">
+    <ResizableWidget :input="input" :config="config" @update="onUpdate">
+      <Suspense>
+        <AgGridTableView
+          ref="grid"
+          class="inner"
+          :defaultColDef="defaultColDef"
+          :columnDefs="columnDefsTyped"
+          :rowData="rowData"
+          :getRowId="(row) => `${row.data.index}`"
+          :components="{
+            agColumnHeader: TableHeader,
+          }"
+          :stopEditingWhenCellsLoseFocus="true"
+          :suppressDragLeaveHidesColumns="true"
+          :suppressMoveWhenColumnDragging="true"
+          :processDataFromClipboard="processDataFromClipboard"
+          v-on="gridEventHandlers"
+          @keydown.arrow-left.stop
+          @keydown.arrow-right.stop
+          @keydown.arrow-up.stop
+          @keydown.arrow-down.stop
+          @keydown.backspace.stop
+          @keydown.delete.stop
+          @pointerdown.stop
+          @click.stop
+          @columnMoved="onColumnMoved"
+          @rowDragEnd="onRowDragEnd"
+        />
+      </Suspense>
+    </ResizableWidget>
   </div>
 </template>
 
