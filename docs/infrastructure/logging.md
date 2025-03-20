@@ -353,7 +353,8 @@ event_bldr.log
 ```
 
 The reason for that is that the `trace` method accepts vararg and there is no
-way to pass a vararg arguments from Enso to Java.
+way to pass a vararg arguments from Enso to Java. Note that this is a Truffle
+API limitation, not something that could be fixed on Enso side.
 
 ### Transforming LogEvent to HTTP POST request
 
