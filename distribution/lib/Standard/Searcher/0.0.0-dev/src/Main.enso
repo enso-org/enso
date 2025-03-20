@@ -6,7 +6,6 @@
    simple mechanism for placing documentation for these categories within the
    suggestions database.
 
-
 from Standard.Base import all
 import Standard.Base.Errors.Unimplemented.Unimplemented
 

@@ -165,7 +165,6 @@ type XML_Document
          of children. If `Text`, then if starts with `"@"`, returns the
          attribute with the given name otherwise returns the first child element
          with the given name.
-
     @key child_selector
     get_child_element : Text | Integer -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
     get_child_element self key:(Text | Integer)="." =
