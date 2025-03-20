@@ -48,6 +48,8 @@
   become semi-transparent on port hover and pass all mouse interactions.
 - [For some types, Component Browser display special "suggestions" group][12477]
 - [Native Image mode is now on by default][12515]
+- [Output port ‘plus’ button is hidden if there are existing outgoing
+  connections][12576]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -79,6 +81,7 @@
 [12482]: https://github.com/enso-org/enso/pull/12482
 [12477]: https://github.com/enso-org/enso/pull/12477
 [12515]: https://github.com/enso-org/enso/pull/12515
+[12576]: https://github.com/enso-org/enso/pull/12576
 
 #### Enso Standard Library
 
