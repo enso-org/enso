@@ -1023,7 +1023,7 @@ type DB_Table
                         updated_table.as_subquery
                 Grouping_Method.Equal_Count group_count order_by ->
                     if group_count < 1 then
-                        (Illegal_Argument.Error "group_count must be at least 1")
+                        Error.throw (Illegal_Argument.Error "group_count must be at least 1")
                     ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
                     problem_builder.attach_problems_before on_problems <|
                         order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering "add_group_number"
