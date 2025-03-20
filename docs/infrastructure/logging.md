@@ -302,9 +302,7 @@ infrastructure makes it easy to collect telemetry from all possible sources -
 engine, standard libraries, language server and project manager. All the
 telemetry events are visible in our OpenSearch dashboard. To properly send
 telemetry logs to the cloud, the used logger and the log message must conform to
-the specification described below. The original proposal of the specification is
-in
-[#12464](https://github.com/enso-org/enso/issues/12464#issuecomment-2713545076).
+the specification described below.
 
 ### Logger namespace
 
