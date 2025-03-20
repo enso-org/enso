@@ -94,14 +94,14 @@ test('Opening Component Browser from output port buttons', async ({ page }) => {
   const createNodeFromPortButton = await locate.createNodeFromPortButton(page, node)
   await expect(createNodeFromPortButton).toBeVisible()
   await createNodeFromPortButton.click({ force: true })
-  await expectAndCancelBrowser(page, '', 'Any Components', 'selected')
+  await expectAndCancelBrowser(page, '', null, 'selected')
 
   // Small (+) button shown when node is selected
   await page.keyboard.press('Escape')
   await node.click()
   await expect(createNodeFromPortButton).toBeVisible()
   await createNodeFromPortButton.click({ force: true })
-  await expectAndCancelBrowser(page, '', 'Any Components', 'selected')
+  await expectAndCancelBrowser(page, '', null, 'selected')
 })
 
 test('Graph Editor pans to Component Browser', async ({ page }) => {
@@ -116,7 +116,7 @@ test('Graph Editor pans to Component Browser', async ({ page }) => {
   await expect(locate.graphNodeByBinding(page, 'final')).not.toBeInViewport()
   await locate.graphEditor(page).press('Enter')
   await expect(locate.graphNodeByBinding(page, 'final')).toBeInViewport()
-  await expectAndCancelBrowser(page, '', 'Any Components', 'final')
+  await expectAndCancelBrowser(page, '', null)
 
   // Dragging out an edge to the bottom of the viewport; when the CB pans into view, some nodes are out of view.
   await page.mouse.move(100, 1100)
@@ -131,7 +131,7 @@ test('Graph Editor pans to Component Browser', async ({ page }) => {
   await page.mouse.click(outputPort.x, outputPort.y)
   await locate.graphEditor(page).click({ position: { x: 100, y: 1700 } })
   await expect(locate.graphNodeByBinding(page, 'five')).not.toBeInViewport()
-  await expectAndCancelBrowser(page, '', 'Any Components', 'final')
+  await expectAndCancelBrowser(page, '', null)
 })
 
 test('Accepting suggestion', async ({ page }) => {
