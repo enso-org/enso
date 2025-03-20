@@ -388,6 +388,10 @@ use `DEBUG` level, it will, by default, be also send to the FileAppender. If you
 use `INFO` level, it will, by default, be also send to the FileAppender and
 ConsoleAppender.
 
+Note that changing the log level for the `org.enso.telemetry` namespace, either
+via `application.conf` or via system property, will not affect the Telemetry
+Appender. The Telemetry Appender is always enabled for all log levels.
+
 ## JVM Architecture
 
 Enso's logging makes use of two logging APIs - `java.util.logging` and
