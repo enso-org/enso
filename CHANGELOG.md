@@ -108,6 +108,7 @@
 - [Added Table.generate_rows][12413]
 - [Added Regex_match to filter. Added Column.regex_match. Support for
   regex_match in the expression language][12492]
+- [Added `add_group_number` for Postgres and SQLite.][12574]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
@@ -127,6 +128,7 @@
 [12345]: https://github.com/enso-org/enso/pull/12345
 [12413]: https://github.com/enso-org/enso/pull/12413
 [12492]: https://github.com/enso-org/enso/pull/12492
+[12574]: https://github.com/enso-org/enso/pull/12574
 
 #### Enso Language & Runtime
 
