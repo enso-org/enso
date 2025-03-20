@@ -19,6 +19,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.enso.interpreter.node.callable.InteropApplicationNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -292,7 +294,10 @@ public abstract class Atom extends EnsoObject {
    */
   @ExportMessage
   @ExplodeLoop
-  final Object readMember(String member, @CachedLibrary(limit = "3") StructsLibrary structs)
+  final Object readMember(
+      String member,
+      @CachedLibrary(limit = "3") StructsLibrary structs,
+      @Cached InteropApplicationNode applySelf)
       throws UnknownIdentifierException, UnsupportedMessageException {
     if (!isMemberReadable(member)) {
       throw UnknownIdentifierException.create(member);
@@ -304,7 +309,9 @@ public abstract class Atom extends EnsoObject {
     }
     var method = findMethod(member);
     if (method != null) {
-      return method;
+      var ctx = EnsoContext.get(applySelf);
+      var state = ctx.currentState();
+      return applySelf.execute(method, state, new Object[] {this});
     }
     throw UnknownIdentifierException.create(member);
   }
