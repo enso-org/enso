@@ -47,6 +47,7 @@
 - [Warning and Error messages does not obstruct output port][12482] - they
   become semi-transparent on port hover and pass all mouse interactions.
 - [For some types, Component Browser display special "suggestions" group][12477]
+- [Nested dropdowns are supported for Selection widget.][12548]
 - [Native Image mode is now on by default][12515]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
@@ -78,6 +79,7 @@
 [12496]: https://github.com/enso-org/enso/pull/12496
 [12482]: https://github.com/enso-org/enso/pull/12482
 [12477]: https://github.com/enso-org/enso/pull/12477
+[12548]: https://github.com/enso-org/enso/pull/12548
 [12515]: https://github.com/enso-org/enso/pull/12515
 
 #### Enso Standard Library
