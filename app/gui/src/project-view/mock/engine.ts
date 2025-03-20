@@ -16,7 +16,6 @@ import { ErrorCode } from 'ydoc-shared/languageServer'
 import type {
   ContextId,
   ExpressionId,
-  LSMethodPointer,
   LibraryComponentGroup,
   Path,
   Uuid,

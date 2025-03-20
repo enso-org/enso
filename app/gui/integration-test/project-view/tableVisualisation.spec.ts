@@ -88,25 +88,6 @@ async function resizeCol(col: Locator): Promise<number> {
   return widthAfterResize
 }
 
-async function resizeViz(viz: Locator, page: Page): Promise<void> {
-  await expect(viz).toExist()
-  const widthBeforeResize = await getElWidth(viz)
-  const resizeHandle = viz.locator('.ResizeHandle.right:not(.corner)')
-  /*
-  await resizeHandle.hover()
-  await page.mouse.down()
-  await page.mouse.move(1150, 0, { steps: 30 })
-  await page.mouse.up()
-   */
-  await resizeHandle.dragTo(resizeHandle, {
-    sourcePosition: { x: 0, y: 0 },
-    targetPosition: { x: 400, y: 0 },
-    force: true,
-  })
-  const widthAfterResize = await getElWidth(viz)
-  expect(widthAfterResize).toBeGreaterThan(widthBeforeResize)
-}
-
 test('Copy/paste from Table Visualization', async ({ page, context }) => {
   const expectClipboard = expect.poll(() =>
     page.evaluate(() => window.navigator.clipboard.readText()),
