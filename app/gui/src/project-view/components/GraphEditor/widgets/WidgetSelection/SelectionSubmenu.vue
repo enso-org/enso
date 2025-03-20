@@ -20,16 +20,10 @@ const emit = defineEmits<{
   clickedEntry: [Entry, boolean]
 }>()
 
-const dropdownElement = useTemplateRef('dropdownElement')
-const floatReference = computed(() => props.floatReference)
-const rootElement = computed(() => props.rootElement)
-
-const { floatingStyles } = submenuDropdownStyles(
-  floatReference,
-  dropdownElement,
-  props.topLevel,
-  rootElement,
-)
+export interface Submenu {
+  entries: ComputedRef<Entry[]>
+  relativeTo: HTMLElement
+}
 
 /** Referring to the type of the component in the current file is hard, so we define a helper type. */
 interface SubmenuComponent {
@@ -44,35 +38,29 @@ function isSubmenuComponent(component: unknown): component is SubmenuComponent {
   )
 }
 
-/** Check if the event target is outside the current submenu and any of its descendants. */
-function isTargetOutside(event: Event) {
-  const isOutsideCurrent = targetIsOutside(event, unrefElement(dropdownElement))
-  const isOutsideSubmenu =
-    isSubmenuComponent(submenuRef.value) ? submenuRef.value.isTargetOutside(event) : true
-  return isOutsideCurrent && isOutsideSubmenu
-}
-
-defineExpose({
-  isTargetOutside,
-})
-
-export interface Submenu {
-  entries: ComputedRef<Entry[]>
-  relativeTo: HTMLElement
-}
-
 const submenu = ref<Submenu | null>(null)
 const submenuEntries = computed(() => submenu.value?.entries ?? [])
 const submenuRef = useTemplateRef('submenuRef')
+
+const dropdownElement = useTemplateRef('dropdownElement')
+const floatReference = computed(() => props.floatReference)
+const rootElement = computed(() => props.rootElement)
+
+const { floatingStyles } = submenuDropdownStyles(
+  floatReference,
+  dropdownElement,
+  props.topLevel,
+  rootElement,
+)
+
+const nestedEntriesPresent = computed(() =>
+  props.entries.some((entry) => isEntry(entry) && entry.tag instanceof NestedChoiceTag),
+)
 
 function resetSubmenu() {
   submenu.value = null
 }
 watch([() => props.show, () => props.entries], resetSubmenu)
-
-const nestedEntriesPresent = computed(() =>
-  props.entries.some((entry) => isEntry(entry) && entry.tag instanceof NestedChoiceTag),
-)
 
 function nestedChoiceTagToSubmenu(tag: NestedChoiceTag, target: HTMLElement): Submenu {
   const isSelected = (tag: ExpressionTag | NestedChoiceTag) =>
@@ -102,6 +90,18 @@ function onClick(entry: DropdownEntry, keepOpen: boolean, target: HTMLElement) {
 function onScroll() {
   submenu.value = null
 }
+
+/** Check if the event target is outside the current submenu and any of its descendants. */
+function isTargetOutside(event: Event) {
+  const isOutsideCurrent = targetIsOutside(event, unrefElement(dropdownElement))
+  const isOutsideSubmenu =
+    isSubmenuComponent(submenuRef.value) ? submenuRef.value.isTargetOutside(event) : true
+  return isOutsideCurrent && isOutsideSubmenu
+}
+
+defineExpose({
+  isTargetOutside,
+})
 </script>
 
 <template>
