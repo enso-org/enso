@@ -423,7 +423,7 @@ add_specs suite_builder =
 
         cloud_setup = Cloud_Tests_Setup.prepare
 
-        group_builder.specify "Should work with secrets in the URI" pending=pending_has_url <| Test.with_retries <|
+        group_builder.specify "Should work with secrets in the URI" pending="https://github.com/enso-org/enso/issues/12575" <| Test.with_retries <|
             cloud_setup.with_prepared_environment <|
                 secret1 = Enso_Secret.create "http-cache-secret-1-"+Random.uuid "My Value"
                 secret2 = Enso_Secret.create "http-cache-secret-2-"+Random.uuid "Some Value"
@@ -444,7 +444,7 @@ add_specs suite_builder =
                     HTTP.fetch uri2 . decode_as_text . should_succeed
                     get_num_response_cache_entries . should_equal 2
 
-        group_builder.specify "Should work with secrets in the headers" pending=pending_has_url <| Test.with_retries <|
+        group_builder.specify "Should work with secrets in the headers" pending="https://github.com/enso-org/enso/issues/12575" <| Test.with_retries <|
             cloud_setup.with_prepared_environment <|
                 secret1 = Enso_Secret.create "http-cache-secret-1-"+Random.uuid "My Value"
                 secret2 = Enso_Secret.create "http-cache-secret-2-"+Random.uuid "Some Value"
