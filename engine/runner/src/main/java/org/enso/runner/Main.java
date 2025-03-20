@@ -811,8 +811,15 @@ public class Main {
     if (projectPath == null || projectPath.isEmpty()) {
       throw exitFail("Specify path to a project with --in-project option");
     }
+    if (!fileExists(projectPath)) {
+      throw exitFail("Project specified in --in-project option does not exist: " + projectPath);
+    }
     generateDocsFrom(docsFormat, projectPath, logLevel, logMasking, enableIrCaches);
     throw exitSuccess();
+  }
+
+  private static boolean fileExists(String path) {
+    return new File(path).exists();
   }
 
   /**
