@@ -102,7 +102,13 @@ test('move to trash', ({ page }) =>
     .driveTable.expectPlaceholderRow()
     .goToCategory.trash()
     .driveTable.withRows(async (rows) => {
-      await expect(rows).toHaveText([/^New Folder 1/, /^New Folder 2/])
+      // NOTE: the order of the rows is not guaranteed, because it depends on the modification time,
+      // and requests may be executed in arbitrary order.
+      const folder1 = rows.filter({ hasText: /New Folder 1/ })
+      const folder2 = rows.filter({ hasText: /New Folder 2/ })
+
+      expect(folder1).toBeVisible()
+      expect(folder2).toBeVisible()
     }))
 
 test('move (keyboard)', ({ page }) =>
@@ -150,7 +156,11 @@ test('duplicate', ({ page }) =>
     .contextMenu.duplicate()
     .driveTable.withRows(async (rows) => {
       // Assets: [0: New Project 1, 1: New Project 1 (copy)]
-      await expect(rows).toHaveText([/^New Project 1/, /^New Project 1 [(]copy[)]/])
+      const project1 = rows.filter({ hasText: /New Project 1/, hasNotText: /\(copy\)/ })
+      const project1Copy = rows.filter({ hasText: /New Project 1 \(copy\)/ })
+
+      expect(project1).toBeVisible()
+      expect(project1Copy).toBeVisible()
     }))
 
 test('duplicate (keyboard)', ({ page }) =>
@@ -164,5 +174,9 @@ test('duplicate (keyboard)', ({ page }) =>
     .press('Mod+D')
     .driveTable.withRows(async (rows) => {
       // Assets: [0: New Project 1 (copy), 1: New Project 1]
-      await expect(rows).toHaveText([/^New Project 1/, /^New Project 1 [(]copy[)]/])
+      const project1 = rows.filter({ hasText: /New Project 1/, hasNotText: /\(copy\)/ })
+      const project1Copy = rows.filter({ hasText: /New Project 1 \(copy\)/ })
+
+      expect(project1).toBeVisible()
+      expect(project1Copy).toBeVisible()
     }))

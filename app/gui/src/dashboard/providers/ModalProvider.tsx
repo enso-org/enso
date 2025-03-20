@@ -2,9 +2,9 @@
  * @file The React provider for modals, along with hooks to use the provider via
  * the shared React context.
  */
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useSyncRef } from '#/hooks/syncRefHooks'
 import * as React from 'react'
+import { createStore } from 'zustand'
+import { useStore } from '../hooks/storeHooks'
 
 // =====================
 // === ModalProvider ===
@@ -12,6 +12,14 @@ import * as React from 'react'
 
 /** The type of a modal. */
 export type Modal = React.JSX.Element
+
+/**
+ * A modal or a function that returns a modal.
+ *
+ * If a function is provided, it will be called with the previous modal as an argument,
+ * and the return value will become the new modal.
+ */
+export type ModalOrCallback = Modal | ((prevModal: Modal | null) => Modal | null)
 
 /** State contained in a `ModalStaticContext`. */
 interface ModalStaticContextType {
@@ -25,14 +33,86 @@ interface ModalContextType {
   readonly modal: Modal | null
 }
 
+const ModalsStore = createStore<{
+  readonly key: number
+  readonly modal: Modal | null
+  readonly setModal: (modal: ModalOrCallback | null) => void
+  readonly updateModal: (modal: ModalOrCallback) => void
+}>((set, get) => ({
+  key: 0,
+  modal: null,
+  setModal: (modal) => {
+    const existingModal = get().modal
+
+    const nextKey = get().key + 1
+
+    if (typeof modal === 'function') {
+      set({ modal: modal(existingModal), key: nextKey })
+    } else {
+      set({ modal, key: nextKey })
+    }
+  },
+  updateModal: (modal) => {
+    const existingModal = get().modal
+
+    if (existingModal == null) {
+      throw new Error('Calling updateModal while no modal is set is forbidden.')
+    }
+
+    if (typeof modal === 'function') {
+      set({ modal: modal(existingModal) })
+    } else {
+      set({ modal })
+    }
+  },
+}))
+
+/**
+ * Set the currently active modal.
+ * @throws An error if a modal is already set.
+ */
+export function setModal(modal: ModalOrCallback) {
+  const modalsStore = ModalsStore.getState()
+  modalsStore.setModal(modal)
+}
+
+/**
+ * Update the currently active modal.
+ * @throws An error if no modal is set.
+ */
+export function updateModal(modal: ModalOrCallback) {
+  const modalsStore = ModalsStore.getState()
+  modalsStore.updateModal(modal)
+}
+
+/**
+ * Unset the currently active modal.
+ */
+export function unsetModal() {
+  const modalsStore = ModalsStore.getState()
+  modalsStore.setModal(null)
+}
+
+/**
+ * Get the currently active modal.
+ */
+export function getModal() {
+  const modalsStore = ModalsStore.getState()
+  return modalsStore.modal
+}
+
 const ModalContext = React.createContext<ModalContextType>({ modal: null, key: 0 })
 
 const ModalStaticContext = React.createContext<ModalStaticContextType>({
-  setModal: () => {
-    // Ignored. This default value will never be used as `ModalProvider` always provides
-    // its own value.
+  setModal: ModalsStore.getState().setModal,
+  modalRef: {
+    /**
+     * Get the currently active modal.
+     */
+    get current() {
+      return ModalsStore.getState().modal
+    },
   },
-  modalRef: { current: null },
 })
 
 /** Props for a {@link ModalProvider}. */
@@ -41,46 +121,38 @@ export type ModalProviderProps = Readonly<React.PropsWithChildren>
 /** A React provider containing the currently active modal. */
 export default function ModalProvider(props: ModalProviderProps) {
   const { children } = props
-  const [modal, setModal] = React.useState<Modal | null>(null)
-  // We use keys to tell react to invalidate the DialogTrigger when we change the modal.
-  const [key, setKey] = React.useState(0)
-  const modalRef = useSyncRef(modal)
 
-  const setModalStableCallback = useEventCallback(
-    (nextModal: React.SetStateAction<React.JSX.Element | null>) => {
-      React.startTransition(() => {
-        setModal(nextModal)
-        setKey((currentKey) => currentKey + 1)
-      })
-    },
+  const modalState = useStore(ModalsStore, (state) => state, {
+    areEqual: 'never',
+    unsafeEnableTransition: true,
+  })
+
+  return (
+    <ModalContext.Provider value={{ modal: modalState.modal, key: modalState.key }}>
+      <ModalStaticProvider>{children}</ModalStaticProvider>
+    </ModalContext.Provider>
   )
-
-  // This is NOT for optimization purposes - this is for debugging purposes,
-  // so that a change of `modal` does not trigger VDOM changes everywhere in the page.
-  const setModalProvider = React.useMemo(
-    () => (
-      <ModalStaticProvider setModal={setModalStableCallback} modalRef={modalRef}>
-        {children}
-      </ModalStaticProvider>
-    ),
-    [children, modalRef, setModalStableCallback],
-  )
-
-  return <ModalContext.Provider value={{ modal, key }}>{setModalProvider}</ModalContext.Provider>
 }
 
 /** Props for a {@link ModalStaticProvider}. */
-interface InternalModalStaticProviderProps extends Readonly<React.PropsWithChildren> {
-  readonly setModal: React.Dispatch<React.SetStateAction<Modal | null>>
-  readonly modalRef: React.RefObject<Modal>
-}
+interface InternalModalStaticProviderProps extends Readonly<React.PropsWithChildren> {}
 
 /** A React provider containing a function to set the currently active modal. */
 function ModalStaticProvider(props: InternalModalStaticProviderProps) {
-  const { setModal, modalRef, children } = props
+  const { children } = props
+
+  const modalState = useStore(ModalsStore, (state) => ({ setModal: state.setModal }), {
+    areEqual: 'always',
+    unsafeEnableTransition: true,
+  })
+
+  const modalRef = useStore(ModalsStore, (state) => ({ current: state.modal }), {
+    areEqual: 'object',
+    unsafeEnableTransition: true,
+  })
 
   return (
-    <ModalStaticContext.Provider value={{ setModal, modalRef }}>
+    <ModalStaticContext.Provider value={{ setModal: modalState.setModal, modalRef }}>
       {children}
     </ModalStaticContext.Provider>
   )
@@ -110,16 +182,10 @@ export function useModalRef() {
 // === useSetModal ===
 // ===================
 
-/** A React context hook exposing functions to set and unset the currently active modal. */
+/**
+ * A React context hook exposing functions to set and unset the currently active modal.
+ * @deprecated Use directly imported `setModal`, `updateModal`, and `unsetModal` functions instead.
+ */
 export function useSetModal() {
-  const { setModal: setModalRaw } = React.useContext(ModalStaticContext)
-
-  const setModal = useEventCallback(setModalRaw)
-  const updateModal = useEventCallback(setModalRaw)
-
-  const unsetModal = useEventCallback(() => {
-    setModalRaw(null)
-  })
-
   return { setModal, updateModal, unsetModal } as const
 }

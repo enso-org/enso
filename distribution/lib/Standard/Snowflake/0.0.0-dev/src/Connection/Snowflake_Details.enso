@@ -16,8 +16,8 @@ import project.Connection.Key_Pair_Credentials.Key_Pair_Credentials
 import project.Connection.Widgets
 import project.Snowflake_Connection.Snowflake_Connection
 
-polyglot java import org.enso.base.enso_cloud.InterpretAsPrivateKey
 polyglot java import net.snowflake.client.jdbc.SnowflakeDriver
+polyglot java import org.enso.base.enso_cloud.InterpretAsPrivateKey
 
 type Snowflake_Details
     ## Connect to a Snowflake database.

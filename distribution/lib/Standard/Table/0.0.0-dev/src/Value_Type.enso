@@ -157,7 +157,7 @@ type Value_Type
        It can be used when a column does not have any values, so no proper type 
        could be inferred for it. Columns of this type cannot hold any values 
        other than `Nothing`. 
-       
+
        Because the column with type `Null` contains no values, it can be used in 
        any operation.
 
@@ -243,6 +243,14 @@ type Value_Type
     is_time : Boolean
     is_time self = case self of
         Value_Type.Time -> True
+        _ -> False
+
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Checks if the `Value_Type` represents a Mixed type.
+    is_mixed : Boolean
+    is_mixed self = case self of
+        Value_Type.Mixed -> True
         _ -> False
 
     ## GROUP Standard.Base.Metadata

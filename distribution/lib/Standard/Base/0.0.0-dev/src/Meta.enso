@@ -12,9 +12,9 @@ import project.Data.Vector.Vector
 import project.Error.Error as Base_Error
 import project.Errors.Common.Not_Found
 import project.Function.Function
+import project.Internal.Meta_Helpers
 import project.Nothing.Nothing
 import project.Polyglot.Java
-import project.Internal.Meta_Helpers
 from project.Data.Boolean import Boolean, False, True
 from project.Runtime.Managed_Resource import Managed_Resource
 
@@ -388,8 +388,7 @@ is_type value -> Boolean = 6 == Meta_Helpers.get_kind_builtin value
    - value: The value to check.
 is_polyglot value -> Boolean = 3 == Meta_Helpers.get_kind_builtin value
 
-##
-   Converts any value to its `Meta.Type`. Useful for querying various
+## Converts any value to its `Meta.Type`. Useful for querying various
    type properties like `.name` or `.qualified_name`.
 
    Arguments:

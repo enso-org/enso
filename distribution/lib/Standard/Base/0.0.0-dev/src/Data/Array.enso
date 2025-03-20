@@ -149,7 +149,7 @@ type Array
     sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_problems:Problem_Behavior=..Ignore =
         Array_Like_Helpers.sort self order on by on_problems
 
-    ## ALIAS first, head, last, limit, sample, slice, tail, top, keep
+    ## ALIAS first, head, keep, last, limit, sample, slice, tail, top
        GROUP Selections
        ICON parse3
        Creates a new `Vector` with only the specified range of elements from the
@@ -165,7 +165,7 @@ type Array
     take self range:(Index_Sub_Range | Range | Integer)=..First =
         Array_Like_Helpers.take self range
 
-    ## ALIAS skip, remove
+    ## ALIAS remove, skip
        GROUP Selections
        ICON parse3
        Creates a new `Vector`, removing any elements from the specified range.

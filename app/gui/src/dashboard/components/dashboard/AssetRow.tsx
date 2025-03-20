@@ -2,7 +2,7 @@
 import * as React from 'react'
 
 import { useStore } from '#/utilities/zustand'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 
 import BlankIcon from '#/assets/blank.svg'
@@ -38,11 +38,7 @@ import {
   useMoveAssetsMutationState,
   useRestoreAssetsMutationState,
 } from '#/hooks/backendBatchedHooks'
-import {
-  backendMutationOptions,
-  useBackendMutationState,
-  useBackendQuery,
-} from '#/hooks/backendHooks'
+import { useBackendMutationState, useBackendQuery } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useCutAndPaste } from '#/hooks/cutAndPasteHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
@@ -113,7 +109,8 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   switch (type) {
     case backendModule.AssetType.specialLoading:
     case backendModule.AssetType.specialEmpty:
-    case backendModule.AssetType.specialError: {
+    case backendModule.AssetType.specialError:
+    case backendModule.AssetType.specialUp: {
       return <AssetSpecialRow columnsLength={columns.length} type={type} />
     }
     case backendModule.AssetType.project:
@@ -142,6 +139,12 @@ const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialR
   const { getText } = textProvider.useText()
 
   switch (type) {
+    case backendModule.AssetType.specialUp: {
+      // TODO: Implement this.
+      // @MrFlashAccount [Cloud v2 #1810](https://github.com/enso-org/cloud-v2/issues/1810)
+      return null
+    }
+
     case backendModule.AssetType.specialLoading: {
       return (
         <tr>
@@ -236,7 +239,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   const { grabKeyboardFocus } = props
   const { category, backend, currentDirectoryId, doCopy, doCut, doPaste } = state
 
-  const [, startTransition] = useTransition()
+  const [isNavigating, startNavigation] = useTransition()
 
   const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
 
@@ -249,7 +252,8 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   )
   const isSoleSelected = useStore(
     driveStore,
-    ({ selectedIds }) => selected && selectedIds.size === 1,
+    ({ selectedIds, visuallySelectedKeys }) =>
+      selected && (visuallySelectedKeys ?? selectedIds).size === 1,
   )
   const allowContextMenu = useStore(
     driveStore,
@@ -309,6 +313,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
       predicate: ({ state: { variables: [assetIds = []] = [] } }) => assetIds.includes(asset.id),
       select: () => null,
     }).length !== 0
+
   const isUpdating = isUpdatingSingleAsset || isMovingMultipleAssets
 
   const { data: projectState } = useQuery({
@@ -324,29 +329,14 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   })
 
   const uploadFiles = useUploadFiles(backend, category)
-  const createPermissionMutation = useMutation(
-    backendMutationOptions(backend, 'createPermission', {
-      meta: {
-        invalidates: [[backend.type, 'listDirectory', asset.parentId]],
-        awaitInvalidates: true,
-      },
-    }),
-  )
 
   const insertionVisibility = useStore(driveStore, (driveState) =>
     driveState.pasteData?.type === 'move' && driveState.pasteData.data.ids.has(id) ?
       Visibility.faded
     : Visibility.visible,
   )
-  const createPermissionVariables = createPermissionMutation.variables?.[0]
-  const isRemovingSelf =
-    createPermissionVariables?.actorsIds[0] === user.userId &&
-    createPermissionVariables.action == null
   const visibility =
-    isDeleting || isRestoring || isUpdating ? Visibility.faded
-    : isRemovingSelf ? Visibility.hidden
-    : insertionVisibility
-  const hidden = visibility === Visibility.hidden
+    isDeleting || isRestoring || isUpdating ? Visibility.faded : insertionVisibility
 
   const setSelected = useEventCallback((newSelected: boolean) => {
     const { selectedAssets } = driveStore.getState()
@@ -430,10 +420,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
         setRowState,
       }
 
-      if (hidden) {
-        return null
-      }
-
       return (
         <>
           <tr
@@ -443,7 +429,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
             data-id={asset.id}
             onDoubleClick={() => {
               if (asset.type === backendModule.AssetType.directory) {
-                startTransition(() => {
+                startNavigation(() => {
                   setCurrentDirectoryId({
                     current: asset.id,
                     parent: parentId,
@@ -584,6 +570,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
               return (
                 <td key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
                   <Render
+                    isNavigating={isNavigating}
                     isPlaceholder={isPlaceholder}
                     isOpened={isOpened}
                     backendType={backend.type}
@@ -599,7 +586,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
             })}
           </tr>
 
-          {selected && allowContextMenu && (
+          {isSoleSelected && allowContextMenu && (
             // This is a copy of the context menu, since the context menu registers keyboard
             // shortcut handlers. This is a bit of a hack, however it is preferable to duplicating
             // the entire context menu (once for the keyboard actions, once for the JSX).
@@ -618,6 +605,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
         </>
       )
     }
+    case backendModule.AssetType.specialUp:
     case backendModule.AssetType.specialLoading:
     case backendModule.AssetType.specialEmpty:
     case backendModule.AssetType.specialError:

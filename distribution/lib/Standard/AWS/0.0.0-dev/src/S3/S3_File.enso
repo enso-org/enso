@@ -116,7 +116,7 @@ type S3_File
                 response_body = _translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
                 response_body.with_stream action
 
-    ## ALIAS load, open, import
+    ## ALIAS import, load, open
        GROUP Standard.Base.Input
        ICON data_input
 
@@ -612,7 +612,7 @@ type S3_File
 
          The trailing slash determines if the given path is treated as a
          directory or as a regular file.
-       
+
        ? Data Links
          If the file is a data link, this checks whether the target of the data 
          link is a regular file.
