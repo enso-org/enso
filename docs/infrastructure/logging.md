@@ -14,7 +14,7 @@ one of the main components, allowing other components to connect to it. The
 service aggregates all logs in one place for easier analysis of the interaction
 between components. Components can also log to console or files directly without
 involving the centralized logging service. For more information about this
-architecture, see [Logging server](#logging-server)
+architecture, see [Logging server](#logging-server).
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -266,7 +266,7 @@ trace information of the logging process itself.
 
 ## Logging server
 
-The centralised logging service is implemented as a logging server started by
+The centralized logging service is implemented as a logging server started by
 the
 [Project Manager](https://github.com/enso-org/enso/blob/c47dba1d108e0d52e401333d1b6f6f4182436aa7/lib/scala/project-manager/src/main/scala/org/enso/projectmanager/boot/ProjectManager.scala#L326-L345).
 The implementation of logging server is in
@@ -282,8 +282,8 @@ dispatches the received logging event to all the appenders in
 
 ## Telemetry
 
-Collection of telemetry events is implemented via logging. The motivation for
-that is that we want to be able to collect telemetry from all possible sources -
+Telemetry events are just logging messages in a special format. 
+Using logging infrastructure makes it easy to collect telemetry from all possible sources -
 engine, standard libraries, language server and project manager. All the
 telemetry events are visible in our OpenSearch dashboard. To properly send
 telemetry logs to the cloud, the used logger and the log message must conform to
@@ -363,7 +363,7 @@ like this:
 The actual format expected by the cloud is defined at
 [logs/endpoints/remote.rs](https://github.com/enso-org/cloud-v2/blob/main/src/lambdas/src/lambdas/logs/endpoints/remote.rs#L169).
 
-If the format of the LogEvent does not follow the specification, there will be a
+If the format of the LogEvent violates the specification, a warning will be ...
 warning in the logs, and nothing will be sent.
 
 ### Log level
