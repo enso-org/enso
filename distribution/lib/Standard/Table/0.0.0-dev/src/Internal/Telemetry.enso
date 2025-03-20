@@ -1,12 +1,11 @@
 private
 
 import Standard.Base.Data.Dictionary.Dictionary
-import Standard.Base.Nothing.Nothing
 import Standard.Base.Data.Text.Text
 import Standard.Base.Data.Vector.Vector
+import Standard.Base.Nothing.Nothing
 
 polyglot java import org.slf4j.LoggerFactory
-
 
 ## Schedules a single telemetry message for sending.
 
