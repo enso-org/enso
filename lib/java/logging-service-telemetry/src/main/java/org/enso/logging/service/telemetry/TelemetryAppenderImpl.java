@@ -1,7 +1,6 @@
-package org.enso.logging.service.logback.telemetry;
+package org.enso.logging.service.telemetry;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.AppenderBase;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -20,6 +19,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.enso.logging.service.logback.TelemetryAppender;
 
 /**
  * Background job processing inspired by {@code org.enso.base.enso_cloud.logging.LogApiAccess}.
@@ -27,11 +27,11 @@ import org.slf4j.LoggerFactory;
  *
  * <p>This appender is supposed to be started by the project manager, within {@link
  * org.enso.logging.service.logback.LoggingServer}. The logging events that are received in this
- * {@link TelemetryAppender#append(ILoggingEvent)} method are received from a socket and
+ * {@link TelemetryAppenderImpl#append(ILoggingEvent)} method are received from a socket and
  * deserialized by the logback framework. Thus, the {@link ILoggingEvent#getArgumentArray() log
  * event arguments} are most likely strings.
  */
-public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
+public final class TelemetryAppenderImpl extends TelemetryAppender {
   private static final String CREDENTIALS_FILE_ENV = "ENSO_CLOUD_CREDENTIALS_FILE";
 
   /**
@@ -42,12 +42,9 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
 
   private static final int MAX_RETRIES = 5;
   private static final Logger LOGGER = LoggerFactory.getLogger(TelemetryAppender.class.getName());
-  private static TelemetryAppender instance;
 
   private Credentials credentials;
   private final LogJobsQueue logQueue = new LogJobsQueue();
-  private final ThreadPoolExecutor backgroundThreadService;
-  private final URI endpoint;
 
   private HttpClient httpClient;
 
@@ -58,26 +55,6 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
    */
   private boolean requestSendingFailure;
 
-  private TelemetryAppender(ThreadPoolExecutor backgroundThreadService, URI endpoint) {
-    this.backgroundThreadService = backgroundThreadService;
-    this.endpoint = endpoint;
-  }
-
-  public static TelemetryAppender getInstance() {
-    if (instance == null) {
-      instance = create();
-    }
-    return instance;
-  }
-
-  private static TelemetryAppender create() {
-    // We set-up a thread 'pool' that will contain at most one thread.
-    // If the thread is idle for 60 seconds, it will be shut down.
-    var executor = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
-
-    var endpoint = URI.create(getCloudLogsAPIEndpoint());
-    return new TelemetryAppender(executor, endpoint);
-  }
 
   @Override
   protected void append(ILoggingEvent eventObject) {
@@ -98,14 +75,6 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
     assert file.toFile().exists();
     var objectMapper = new ObjectMapper();
     return objectMapper.readValue(file.toFile(), Credentials.class);
-  }
-
-  private static String getCloudLogsAPIEndpoint() {
-    var envUri = System.getenv("ENSO_CLOUD_API_URI");
-    var effectiveUri =
-        envUri == null ? "https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com/" : envUri;
-    var uriWithSlash = effectiveUri.endsWith("/") ? effectiveUri : effectiveUri + "/";
-    return uriWithSlash + "logs";
   }
 
   private void enqueueJob(ILoggingEvent logEvent) {
