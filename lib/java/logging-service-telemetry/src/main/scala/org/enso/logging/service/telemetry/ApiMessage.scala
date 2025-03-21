@@ -20,23 +20,7 @@ object ApiMessage {
         in: JsonReader,
         default: Any
       ): Any = {
-        val str = in.readString("")
-        if (str.equalsIgnoreCase("true")) {
-          true
-        } else if (str.equalsIgnoreCase("false")) {
-          false
-        } else {
-          try {
-            java.lang.Long.parseLong(str)
-          } catch {
-            case _: NumberFormatException =>
-              try {
-                java.lang.Double.parseDouble(str)
-              } catch {
-                case _: NumberFormatException => str
-              }
-          }
-        }
+        throw new IllegalStateException("Should not be used for decoding")
       }
 
       override def encodeValue(
@@ -48,7 +32,32 @@ object ApiMessage {
           case l: java.lang.Long    => out.writeVal(l)
           case d: java.lang.Double  => out.writeVal(d)
           case b: java.lang.Boolean => out.writeVal(b)
-          case _                    => out.writeVal(obj.toString)
+          case _                    => encodeString(obj.toString, out)
+        }
+      }
+
+      private def encodeString(
+        str: String,
+        out: JsonWriter
+      ): Unit = {
+        if (str.equalsIgnoreCase("true")) {
+          out.writeVal(true)
+        } else if (str.equalsIgnoreCase("false")) {
+          out.writeVal(false)
+        } else {
+          try {
+            val l = java.lang.Long.parseLong(str)
+            out.writeVal(l)
+          } catch {
+            case _: NumberFormatException =>
+              try {
+                val d = java.lang.Double.parseDouble(str)
+                out.writeVal(d)
+              } catch {
+                case _: NumberFormatException =>
+                  out.writeVal(str)
+              }
+          }
         }
       }
 
