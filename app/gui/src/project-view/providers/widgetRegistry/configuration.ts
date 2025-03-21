@@ -53,11 +53,13 @@ export type Choice = {
   value: ChoiceValue
   label: string | null
   parameters: ArgsWidgetConfiguration
+  icon: string | null
 }
 export type FlattenedChoice = {
   value: string
   label: string | null
   parameters: ArgsWidgetConfiguration
+  icon: string | null
 }
 
 /**

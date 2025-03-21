@@ -10,6 +10,7 @@ import {
 } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { Opt } from '@/util/data/opt'
+import { Icon, isIconName } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { ToValue } from '@/util/reactivity'
@@ -24,11 +25,13 @@ export class ExpressionTag {
   /**
    * @param expression - The expression to insert when this item is clicked.
    * @param explicitLabel - If provided, this label will be used instead of the stringified expression.
+   * @param explicitIcon - If provided, this icon will be displayed with the label
    * @param requiredImports - The imports required by the expression, will be added to the code when the item is clicked.
    */
   constructor(
     readonly expression: string,
     readonly explicitLabel?: Opt<string>,
+    private explicitIcon?: Opt<Icon>,
     readonly requiredImports?: RequiredImport[],
   ) {}
 
@@ -53,6 +56,7 @@ export class ExpressionTag {
     projectNames: ProjectNameStore,
     expression: string,
     label?: Opt<string>,
+    icon?: Opt<string>,
   ): ExpressionTag {
     const qn = tryQualifiedName(expression)
     if (qn.ok) {
@@ -61,9 +65,9 @@ export class ExpressionTag {
         const fromProjPath = ExpressionTag.FromProjectPath(suggestions, projectPath.value, label)
         if (fromProjPath) return fromProjPath
       }
-      return new ExpressionTag(qn.value, label ?? qnLastSegment(qn.value))
+      return new ExpressionTag(qn.value, label ?? qnLastSegment(qn.value), icon && isIconName(icon) ? (icon as Icon) : undefined)
     }
-    return new ExpressionTag(expression, label)
+    return new ExpressionTag(expression, label, icon && isIconName(icon) ? (icon as Icon) : undefined)
   }
 
   /**
@@ -81,6 +85,7 @@ export class ExpressionTag {
     return new ExpressionTag(
       expression,
       label ?? entry.name,
+      undefined,
       requiredImports(suggestions.entries, entry),
     )
   }
@@ -90,6 +95,13 @@ export class ExpressionTag {
    */
   get label() {
     return this.explicitLabel ?? this.expression
+  }
+
+  /**
+  * Get the displayed icon for this tag.
+  */
+  get icon() {
+    return this.explicitIcon ?? undefined
   }
 
   /**

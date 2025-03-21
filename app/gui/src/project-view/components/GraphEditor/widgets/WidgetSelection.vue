@@ -98,6 +98,7 @@ const dynamicTags = computed<(ExpressionTag | NestedChoiceTag)[]>(() => {
         projectNames,
         choice.value,
         choice.label,
+        choice.icon,
       )
       return tag
     }
