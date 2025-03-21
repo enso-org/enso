@@ -55,6 +55,7 @@ final class IRNodeClassGenerator {
           "org.enso.compiler.core.ir.DiagnosticStorage$",
           "org.enso.compiler.core.ir.Expression",
           "org.enso.compiler.core.ir.IdentifiedLocation",
+          "org.enso.compiler.core.ir.Name",
           "org.enso.compiler.core.ir.MetadataStorage",
           "scala.Option");
 
