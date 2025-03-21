@@ -741,6 +741,38 @@ public class TestIRProcessorInline {
   }
 
   @Test
+  public void fieldCanBeScalaList_NotRequired() {
+    var src =
+        generatedClass(
+            "JName",
+            """
+        import org.enso.runtime.parser.dsl.GenerateIR;
+        import org.enso.runtime.parser.dsl.GenerateFields;
+        import org.enso.runtime.parser.dsl.IRChild;
+        import org.enso.compiler.core.IR;
+        import scala.collection.immutable.List;
+
+        @GenerateIR
+        public final class JName extends JNameGen {
+          @GenerateFields
+          public JName(@IRChild(required = false) List<IR> expressions) {
+            super(expressions);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
+        }
+        """);
+    assertThat(src, containsString("class JNameGen"));
+    assertThat(src, containsString("List<IR> expressions"));
+    // expressions child is not required, so there must be somewhere a check
+    // that it is not null.
+    assertThat(src, containsString("expressions != null"));
+  }
+
+  @Test
   public void fieldCanBeScalaOption() {
     var src =
         generatedClass(
