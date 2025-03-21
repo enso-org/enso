@@ -1,19 +1,20 @@
 from Standard.Base import all
-import project.Internal.Widget_Helpers
 import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Deprecated.Deprecated
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
 from Standard.Table import Value_Type
 
-import project.Column_Ref.Column_Ref
 import project.Column.Column
+import project.Column_Ref.Column_Ref
 import project.Expression.Expression
 import project.Internal.Table_Ref.Table_Ref
+import project.Internal.Widget_Helpers
 
 type Generate_Rows_Range
     ## A integer range
@@ -25,7 +26,7 @@ type Generate_Rows_Range
     ## An existing range that will be used for each row
     Range value
 
-    ## An existing colummn of integers that will be used to to create a 0 to n range for each row
+    ## An existing column of integers that will be used to to create a 0 to n range for each row
     Integer_Column value:Column
 
     ## PRIVATE
@@ -57,7 +58,7 @@ type Generate_Rows_Range
                 table.make_constant_column value
             Generate_Rows_Range.Integer_Column column ->
                 column.map t->(0.up_to t)
-   
+
     ## PRIVATE
        Create a widget for operation
     default_widget table:Table_Ref display:Display=..Always -> Widget =
@@ -67,14 +68,18 @@ type Generate_Rows_Range
         date_range = Option "..Date_Range" "..Date_Range" [["from", date_input_column], ["to", date_input_column]]
         Single_Choice [integer_range, date_range] display=display
 
+## Convert an integer to a Generate_Rows_Range
 Generate_Rows_Range.from (that:Integer) =
     Generate_Rows_Range.Integer_Range 0 that
 
+## Convert from an integer range to a Generate_Rows_Range
 Generate_Rows_Range.from (that:Range) =
     Generate_Rows_Range.Range that
 
+## Convert from a date range to a Generate_Rows_Range
 Generate_Rows_Range.from (that:Date_Range) =
     Generate_Rows_Range.Range that
 
+## Convert from a column of integers to a Generate_Rows_Range
 Generate_Rows_Range.from (that:Column) =
     Generate_Rows_Range.Integer_Column that

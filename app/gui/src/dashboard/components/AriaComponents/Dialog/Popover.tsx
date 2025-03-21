@@ -14,6 +14,7 @@ import * as twv from '#/utilities/tailwindVariants'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { ResetButtonGroupContext } from '../Button'
+import type { Placement } from '../types'
 import { Close } from './Close'
 import * as dialogProvider from './DialogProvider'
 import * as dialogStackProvider from './DialogStackProvider'
@@ -23,12 +24,13 @@ import * as variants from './variants'
 
 /** Props for a {@link Popover}. */
 export interface PopoverProps
-  extends Omit<aria.PopoverProps, 'children'>,
+  extends Omit<aria.PopoverProps, 'children' | 'placement'>,
     twv.VariantProps<typeof POPOVER_STYLES> {
   readonly children:
     | React.ReactNode
     | ((opts: aria.PopoverRenderProps & { readonly close: () => void }) => React.ReactNode)
   readonly isDismissable?: boolean
+  readonly placement?: Placement | undefined
 }
 
 export const POPOVER_STYLES = twv.tv({
@@ -87,6 +89,7 @@ export function Popover(props: PopoverProps) {
     size,
     rounded,
     variant,
+    placement,
     isDismissable = true,
     ...ariaPopoverProps
   } = props
@@ -96,6 +99,7 @@ export function Popover(props: PopoverProps) {
   const popoverStyle = { zIndex: '' }
 
   return (
+    // @ts-expect-error placement is optional, but destructure it to make it either value or undefined, and ts complains
     <aria.Popover
       ref={popoverRef}
       className={(values) =>
@@ -112,6 +116,7 @@ export function Popover(props: PopoverProps) {
       UNSTABLE_portalContainer={root}
       style={popoverStyle}
       shouldCloseOnInteractOutside={() => false}
+      placement={placement}
       {...ariaPopoverProps}
     >
       {(opts) => (

@@ -2,7 +2,6 @@ from Standard.Base import all
 
 import project.Spec_Result.Spec_Result
 
-
 ## A wrapper for `Spec_Result` that contains also name of the group and name of the spec.
 type Test_Result
     ## PRIVATE
@@ -24,4 +23,4 @@ type Test_Result
     ## Was the test a failure?
     is_fail self =
         self.spec_result.is_fail
-    
+

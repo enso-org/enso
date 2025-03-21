@@ -57,7 +57,7 @@ declare module '@tanstack/query-core' {
 /** Query Client type suitable for shared use in React and Vue. */
 export type QueryClient = vueQuery.QueryClient
 
-const DEFAULT_QUERY_STALE_TIME_MS = Infinity
+const DEFAULT_QUERY_STALE_TIME_MS = 0
 const DEFAULT_QUERY_PERSIST_TIME_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
 
 const DEFAULT_BUSTER = 'v1.2'

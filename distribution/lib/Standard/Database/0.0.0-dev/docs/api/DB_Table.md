@@ -1,7 +1,7 @@
 ## Enso Signatures 1.0
 ## module Standard.Database.DB_Table
 - type DB_Table
-    - add_group_number self grouping_method:Standard.Table.Grouping_Method.Grouping_Method= name:Standard.Base.Data.Text.Text= from:Standard.Base.Data.Numbers.Integer= step:Standard.Base.Data.Numbers.Integer= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
+    - add_group_number self grouping_method:Standard.Table.Grouping_Method.Grouping_Method= name:Standard.Base.Data.Text.Text= from:Standard.Base.Data.Numbers.Integer= step:Standard.Base.Data.Numbers.Integer= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Database.DB_Table.DB_Table
     - add_row_number self name:Standard.Base.Data.Text.Text= from:Standard.Base.Data.Numbers.Integer= step:Standard.Base.Data.Numbers.Integer= group_by:(Standard.Base.Any.Any|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Text.Regex.Regex)= order_by:(Standard.Base.Any.Any|Standard.Base.Data.Text.Text)= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Database.DB_Table.DB_Table
     - aggregate self group_by:(Standard.Base.Any.Any|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Text.Regex.Regex)= columns:(Standard.Base.Data.Vector.Vector Standard.Table.Aggregate_Column.Aggregate_Column)= error_on_missing_columns:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
     - as_subquery self -> Standard.Base.Any.Any
