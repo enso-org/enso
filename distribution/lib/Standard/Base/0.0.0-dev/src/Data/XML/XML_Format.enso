@@ -62,7 +62,8 @@ type XML_Format
     read self file:File on_problems:Problem_Behavior =
         _ = [on_problems]
         result = XML_Document.from_file file
-        Telemetry.log "File_Format.read" "Read file: format={}, output={}" ["XML_Format", "XML_Document"]
+        result.if_not_error <|
+            Telemetry.log "File_Format.read" "Read file: format={}, output={}" ["XML_Format", "XML_Document"]
         result
 
     ## PRIVATE
