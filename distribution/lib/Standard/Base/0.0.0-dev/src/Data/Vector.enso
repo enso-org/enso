@@ -1050,8 +1050,24 @@ type Vector a
 
              [1, 2, 3].zip [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
     zip self that:Vector (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = False) (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
-        len = self.length.min that.length
-        Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i)) on_problems
+        left_len = self.length
+        right_len = that.length
+
+        keep_unmatched_bool = case keep_unmatched of
+            Report_Unmatched -> True
+            b : Boolean -> b
+        report_mismatch = keep_unmatched == Report_Unmatched
+
+        f i =
+            left_value = if keep_unmatched_bool then (if i >= left_len then Nothing else self.at i) else self.at i
+            right_value = if keep_unmatched_bool then (if i >= right_len then Nothing else right.at i) else right.at i
+            if skip_nothing && left_value.is_nothing && right_value.is_nothing then Nothing else funciton left_value right_value
+        len = if keep_unmatched_bool then left_len.max right_len else left_len.min right_len
+
+        problems = if (left_len == right_len) || report_mismatch.not then [] else
+            [Row_Count_Mismatch.Error left_len right_len]
+        on_problems.attach_problems_before problems <|
+            Array_Like_Helpers.vector_from_function len f on_problems
 
     ## GROUP Calculations
        ICON union
