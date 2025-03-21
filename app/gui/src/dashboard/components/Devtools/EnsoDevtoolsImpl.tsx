@@ -10,8 +10,6 @@ import * as reactQuery from '@tanstack/react-query'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 
 import CrossIcon from '#/assets/cross.svg'
-import DevtoolsLogo from '#/assets/enso_logo.svg'
-import TrashIcon from '#/assets/trash.svg'
 
 import { SETUP_PATH } from '#/appUtils'
 
@@ -34,12 +32,14 @@ import Portal from '#/components/Portal'
 
 import {
   Button,
+  Dialog,
   Form,
   Popover,
   Radio,
   RadioGroup,
   Separator,
   Text,
+  VisualTooltip,
 } from '#/components/AriaComponents'
 import {
   FEATURE_FLAGS_SCHEMA,
@@ -50,6 +50,9 @@ import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import * as backend from '#/services/Backend'
 import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
 import { unsafeKeys } from '#/utilities/object'
+import { safeJsonParse } from '#/utilities/safeJsonParse'
+import { toast } from 'react-toastify'
+import { Icon } from '../Icon'
 
 /** A component that provides a UI for toggling paywall features. */
 export function EnsoDevtools() {
@@ -81,7 +84,7 @@ export function EnsoDevtools() {
       <ariaComponents.DialogTrigger>
         <ariaComponents.Underlay className="fixed bottom-3 left-3 z-50 rounded-full">
           <ariaComponents.Button
-            icon={DevtoolsLogo}
+            icon="enso_logo"
             aria-label={getText('ensoDevtoolsButtonLabel')}
             variant="icon"
             rounded="full"
@@ -164,8 +167,11 @@ export function EnsoDevtools() {
           </ariaComponents.Text>
 
           <ariaComponents.Form
-            schema={(z) =>
-              z.object({ enableVersionChecker: z.boolean(), disableAnimations: z.boolean() })
+            schema={(schema) =>
+              schema.object({
+                enableVersionChecker: schema.boolean(),
+                disableAnimations: schema.boolean(),
+              })
             }
             defaultValues={{
               enableVersionChecker: enableVersionChecker ?? !IS_DEV_MODE,
@@ -302,8 +308,10 @@ export function EnsoDevtools() {
 
           <ariaComponents.Form
             gap="small"
-            schema={(z) =>
-              z.object(Object.fromEntries(Object.keys(features).map((key) => [key, z.boolean()])))
+            schema={(schema) =>
+              schema.object(
+                Object.fromEntries(Object.keys(features).map((key) => [key, schema.boolean()])),
+              )
             }
             defaultValues={Object.fromEntries(
               Object.keys(features).map((feature) => {
@@ -334,14 +342,40 @@ export function EnsoDevtools() {
 
           <Separator orientation="horizontal" className="my-3" />
 
-          <div className="mb-2 flex w-full items-center justify-between">
+          <div className="mb-2 flex w-full items-center justify-between gap-3">
             <Text variant="subtitle">{getText('localStorage')}</Text>
+
+            <ariaComponents.TooltipTrigger>
+              <ariaComponents.CopyButton
+                className="ml-auto"
+                copyText={JSON.stringify(localStorageState, null, 2)}
+              />
+
+              <ariaComponents.Tooltip>
+                <ariaComponents.Text>Copy everything to clipboard</ariaComponents.Text>
+              </ariaComponents.Tooltip>
+            </ariaComponents.TooltipTrigger>
+
+            <ariaComponents.TooltipTrigger>
+              <Button
+                variant="icon"
+                size="small"
+                icon="paste"
+                onPress={async () => {
+                  const text = await navigator.clipboard.readText()
+                  localStorage.setManyFromUntrustedSource(safeJsonParse(text, null))
+                  toast.success('State pasted')
+                }}
+              />
+
+              <ariaComponents.Tooltip>Paste state from clipboard</ariaComponents.Tooltip>
+            </ariaComponents.TooltipTrigger>
 
             <Button
               aria-label={getText('deleteAll')}
               size="small"
               variant="icon"
-              icon={TrashIcon}
+              icon="trash2"
               onPress={() => {
                 for (const key of LocalStorage.getAllKeys()) {
                   localStorage.delete(key)
@@ -350,27 +384,85 @@ export function EnsoDevtools() {
             />
           </div>
 
-          <div className="flex flex-col gap-0.5">
-            {LocalStorage.getAllKeys().map((key) => (
-              <div key={key} className="flex w-full items-center justify-between gap-1">
-                <Text variant="body">
-                  {key
-                    .replace(/[A-Z]/g, (m) => ' ' + m.toLowerCase())
-                    .replace(/^./, (m) => m.toUpperCase())}
-                </Text>
+          <div className="flex flex-col gap-1.5">
+            {LocalStorage.getAllKeys().map((key) => {
+              const metadata = LocalStorage.getKeyMetadata(key)
+              const title = key
+                .replace(/[A-Z]/g, (m) => ' ' + m.toLowerCase())
+                .replace(/^./, (m) => m.toUpperCase())
 
-                <Button
-                  variant="icon"
-                  size="small"
-                  isDisabled={localStorageState[key] == null}
-                  aria-label={getText('delete')}
-                  icon={CrossIcon}
-                  onPress={() => {
-                    localStorage.delete(key)
-                  }}
-                />
-              </div>
-            ))}
+              return (
+                <div key={key} className="flex w-full items-center justify-between gap-1">
+                  <div className="flex items-center gap-1">
+                    <Text variant="body">{title}</Text>
+
+                    {metadata.isUserSpecific === true && (
+                      <VisualTooltip tooltip="User specific storage item">
+                        <Icon icon="default_user" size="small" />
+                      </VisualTooltip>
+                    )}
+                  </div>
+
+                  <Button.Group
+                    align="end"
+                    buttonVariants={{ size: 'small', variant: 'icon', extraClickZone: 'small' }}
+                  >
+                    <Dialog.Trigger>
+                      <Button aria-label="Edit" icon="edit" />
+
+                      <Dialog title={`Edit ${title}`}>
+                        <Form
+                          method="dialog"
+                          schema={(schema) =>
+                            schema.object({
+                              value: schema
+                                .any()
+                                .transform((value) => {
+                                  if (typeof value === 'string') {
+                                    return safeJsonParse(value, null)
+                                  }
+
+                                  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+                                  return value
+                                })
+                                .refine(
+                                  (value) => metadata.schema.safeParse(value).success,
+                                  'Invalid JSON or value does not match schema',
+                                )
+                                // Piping the value only for type inference.
+                                .pipe(metadata.schema),
+                            })
+                          }
+                          defaultValues={{ value: JSON.stringify(localStorageState[key], null, 2) }}
+                          onSubmit={(data) => {
+                            localStorage.set(key, data.value)
+                          }}
+                        >
+                          <ariaComponents.Input
+                            name="value"
+                            label="Enter valid JSON"
+                            addonStart={<Icon icon="braces" />}
+                          />
+
+                          <Form.Submit />
+
+                          <Form.FormError />
+                        </Form>
+                      </Dialog>
+                    </Dialog.Trigger>
+
+                    <Button
+                      isDisabled={localStorageState[key] == null}
+                      aria-label={getText('delete')}
+                      icon={CrossIcon}
+                      onPress={() => {
+                        localStorage.delete(key)
+                      }}
+                    />
+                  </Button.Group>
+                </div>
+              )
+            })}
           </div>
         </Popover>
       </ariaComponents.DialogTrigger>

@@ -3,9 +3,11 @@ package org.enso.interpreter.test.hash;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsAndInfo;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
@@ -43,7 +45,13 @@ public class HashCodeTest {
           hashCodeNode = HashCodeNode.build();
           equalsNode = EqualsNode.create();
           hostValueToEnsoNode = HostValueToEnsoNode.build();
-          testRootNode = new TestRootNode();
+          testRootNode =
+              new TestRootNode(
+                  (frame) -> {
+                    @SuppressWarnings("unchecked")
+                    var fn = (Function<VirtualFrame, Object>) frame.getArguments()[0];
+                    return fn.apply(frame);
+                  });
           testRootNode.insertChildren(hashCodeNode, equalsNode, hostValueToEnsoNode);
           return null;
         });
@@ -101,12 +109,12 @@ public class HashCodeTest {
   @Theory
   public void hashCodeContractTheory(Object firstValue, Object secondValue) {
     InteropLibrary interop = InteropLibrary.getUncached();
-    ContextUtils.executeInContext(
+    executeInContextWithNode(
         context,
-        () -> {
+        (frame) -> {
           var firstHash = hashCodeNode.execute(firstValue);
           var secondHash = hashCodeNode.execute(secondValue);
-          var valuesAreEqual = equalsNode.execute(null, firstValue, secondValue);
+          var valuesAreEqual = equalsNode.execute(frame, firstValue, secondValue);
           // if o1 == o2 then hash(o1) == hash(o2)
           if (isTrue(valuesAreEqual)) {
             assertEquals(
@@ -170,5 +178,10 @@ public class HashCodeTest {
 
   private static boolean isNothing(Object obj) {
     return obj == EnsoContext.get(null).getNothing();
+  }
+
+  private static Object executeInContextWithNode(Context ctx, Function<VirtualFrame, Object> fn) {
+    var ret = ContextUtils.executeInContext(ctx, () -> testRootNode.getCallTarget().call(fn));
+    return ret;
   }
 }

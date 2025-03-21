@@ -32,12 +32,14 @@ import project.Constants.Previous_Value
 import project.Constants.Report_Unmatched
 import project.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
+import project.Delimited.Quote_Style.Quote_Style
 import project.Expression.Expression
 import project.Expression.Expression_Error
 import project.Extensions.Table_Conversions
 import project.Fill_With.Fill_With
 import project.Generate_Rows_Range.Generate_Rows_Range
 import project.Grouping_Method.Grouping_Method
+import project.Headers.Headers
 import project.Internal.Add_Group_Number
 import project.Internal.Add_Row_Number
 import project.Internal.Add_Running
@@ -2038,7 +2040,7 @@ type Table
     expand_to_rows self (column : Text | Integer) at_least_one_row:Boolean=False -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
         Expand_Objects_Helpers.expand_to_rows self column at_least_one_row sequences_only=False
 
-    ## ALIAS filter rows, where, regex
+    ## ALIAS filter rows, regex, where
        GROUP Standard.Base.Selections
        ICON preparation
        SUGGESTED 2
@@ -2323,10 +2325,12 @@ type Table
 
        ? Ordering of rows
 
-         Note that the ordering of rows from the original table is preserved in
-         all cases. The grouping and ordering settings can affect how the group
-         numbers are assigned, depending on the grouping method.  The order of
-         the rows itself is not changed by this operation.
+         In the in-memory database, the ordering of rows from the original table
+         is preserved in all cases. The grouping and ordering settings can
+         affect how the group numbers are assigned, depending on the grouping
+         method.  The order of the rows itself is not changed by this operation.
+
+         In the database backends, the ordering of rows is backend-dependent.
 
        ! Error Conditions
 
@@ -2361,8 +2365,8 @@ type Table
                 0 | 1 | 0 | 1
                 1 | 2 | 0 | 2
                 0 | 1 | 1 | 1
-                1 | 0 | 1 | 2
-                1 | 2 | 1 | 0
+                1 | 0 | 1 | 0
+                1 | 2 | 1 | 2
 
        > Example
          Divide rows into three groups.
@@ -2389,8 +2393,6 @@ type Table
     @grouping_method (Widget_Helpers.make_grouping_method_selector display=..Always)
     @name (Widget.Text_Input display=..Always)
     @from (Widget.Numeric_Input display=..Always)
-    @group_by (Widget_Helpers.make_column_name_multi_selector display=..When_Modified)
-    @order_by (Widget_Helpers.make_order_by_selector display=..When_Modified)
     add_group_number self (grouping_method : Grouping_Method = Missing_Argument.throw "grouping_method") name:Text="Group" from:Integer=0 step:Integer=1 on_problems:Problem_Behavior=..Report_Warning -> Table =
         Incomparable_Values.handle_errors <| Add_Group_Number.add_group_number self grouping_method name from step on_problems
 
@@ -3931,8 +3933,14 @@ type Table
        Arguments:
        - format: Allows to customize the delimiter and other settings of the
          format. Defaults to tab-separated values.
-    to_delimited self (format : Delimited_Format = ..Delimited '\t') -> Text =
-        Delimited_Writer.write_text self format
+    @delimiter make_delimiter_selector
+    to_delimited self (delimiter:(Delimited_Format|Text)='\t') quote_style:Quote_Style=..With_Quotes headers:Headers=..Detect_Headers (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value) (line_endings:Line_Ending_Style|Infer=Infer) -> Text =
+        format = case delimiter of
+            _ : Delimited_Format -> delimiter
+            _ : Text -> Delimited_Format.Delimited delimiter quote_style=quote_style headers=headers value_formatter=value_formatter line_endings=line_endings
+        result = Delimited_Writer.write_text self format
+        if delimiter.is_a Text then result else
+            Warning.attach (Deprecated.Warning "Standard.Table.Table" "to_delimited" "Deprecated: specify the arguments separately rather than using a `Delimited_Format`.") result
 
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
