@@ -32,7 +32,6 @@ import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/co
 import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { ActionName, registerHandlers, toggledAction } from '@/providers/action'
-import { injectActionContext } from '@/providers/actionContext'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
