@@ -430,7 +430,7 @@ make_dialect_operations =
         other = [["day_of_year", Base_Generator.make_function "DAYOFYEAR"], ["day_of_week", Base_Generator.make_function "DAYOFWEEKISO"]]
         operations = [["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
         trivial + fractional + other + operations
-    other = [["IIF", make_iif], ["RUNTIME_ERROR", make_runtime_error_op], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group]]
+    other = [["IIF", make_iif], ["RUNTIME_ERROR", make_runtime_error_op], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
     my_mappings = arith + text + counts + stats + arith_extensions + bool + date_ops + other + first_last_aggregators
     Base_Generator.base_dialect_operations . extend_with my_mappings
 
@@ -559,6 +559,23 @@ make_row_number_in_group arguments =
         Panic.throw <| Illegal_State.Error "The operation ROW_NUMBER_IN_GROUP requires at least one argument."
     SQL_Builder.code "ROW_NUMBER() OVER (PARTITION BY " ++ (SQL_Builder.join ", " arguments) ++ " ORDER BY 1)"
 
+## PRIVATE
+make_group_number_equal_count : Vector SQL_Builder -> SQL_Builder
+make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_EQUAL_COUNT IR. This is a bug in the Database library.") else
+    offset = arguments.at 0
+    step = arguments.at 1
+    group_count = arguments.at 2
+
+    ordering = arguments.drop 3
+
+    ordering_part = if ordering.length == 0 then "" else
+        SQL_Builder.code "ORDER BY " ++ SQL_Builder.join ", " ordering
+    row_number_minus_1 = SQL_Builder.code "((row_number() over (" ++ ordering_part ++ ")) - 1)"
+    group_size_f = SQL_Builder.code "(((count(*) over ()) + (" ++ group_count.paren ++ " - 1)) / " ++ group_count.paren ++ ")"
+    group_size = SQL_Builder.code "FLOOR(" ++ group_size_f.paren ++ ")"
+    base_value_f = SQL_Builder.code "(" ++ row_number_minus_1 ++ " / " ++ group_size ++ " + 1)"
+    base_value = SQL_Builder.code "FLOOR(" ++ base_value_f.paren ++ ")"
+    SQL_Builder.code "((" ++ base_value.paren ++ " * " ++ step.paren ++ ") + " ++ offset.paren ++ ")"
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_sql_function "STARTS_WITH" "STARTSWITH"
