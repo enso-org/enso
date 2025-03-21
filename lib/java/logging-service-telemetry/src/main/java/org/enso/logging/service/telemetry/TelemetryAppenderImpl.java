@@ -178,7 +178,7 @@ public final class TelemetryAppenderImpl extends TelemetryAppender {
     if (logs.isEmpty()) {
       return null;
     } else {
-      var payload = new ApiMessage.Payload(logs);
+      var payload = ApiMessage.createPayload(logs);
       return ApiMessage.serializePayload(payload);
     }
   }

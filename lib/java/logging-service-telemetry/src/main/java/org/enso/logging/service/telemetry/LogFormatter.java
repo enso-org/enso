@@ -62,7 +62,7 @@ public final class LogFormatter {
       return null;
     }
     var metadata = constructMetadata(logMessage.arguments(), arguments, logMessage);
-    var payload = new ApiMessage.Log(msg, KIND, metadata);
+    var payload = ApiMessage.createLog(msg, metadata);
     return payload;
   }
 
