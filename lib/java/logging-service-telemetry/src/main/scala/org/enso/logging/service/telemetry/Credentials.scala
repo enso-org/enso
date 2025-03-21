@@ -21,9 +21,11 @@ case class Credentials(
 
 object Credentials {
   implicit val fileCodec: JsonValueCodec[Credentials] = {
-    JsonCodecMaker.make[Credentials](CodecMakerConfig.withAllowRecursiveTypes(true))
+    JsonCodecMaker.make[Credentials](
+      CodecMakerConfig.withAllowRecursiveTypes(true)
+    )
   }
-  
+
   def parseFromFile(file: File): Credentials = {
     val bytes = Files.readAllBytes(file.toPath)
     readFromArray[Credentials](bytes)

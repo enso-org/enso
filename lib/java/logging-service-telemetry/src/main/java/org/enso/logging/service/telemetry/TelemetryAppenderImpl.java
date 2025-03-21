@@ -9,9 +9,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.logging.service.logback.TelemetryAppender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.enso.logging.service.logback.TelemetryAppender;
 
 /**
  * Background job processing inspired by {@code org.enso.base.enso_cloud.logging.LogApiAccess}.
@@ -46,7 +46,6 @@ public final class TelemetryAppenderImpl extends TelemetryAppender {
    * background thread.
    */
   private boolean requestSendingFailure;
-
 
   @Override
   protected void append(ILoggingEvent eventObject) {
