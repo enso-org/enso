@@ -622,3 +622,15 @@ type Failed_To_Load
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self = "Failed to load file at path: "+self.path.to_display_text+": "+self.cause.to_display_text
+
+type Length_Mismatch
+    ## PRIVATE
+       Indicates that the lengths of zipped Vectors do not match.
+    Error (left_length : Integer) (right_length : Integer)
+
+    ## PRIVATE
+
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "The Vector lengths do not match: "+self.left_length.to_text+" does not equal "+self.right_length.to_text+"."

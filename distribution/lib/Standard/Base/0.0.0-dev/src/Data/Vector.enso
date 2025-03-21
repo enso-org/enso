@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Constants.Report_Unmatched
 import project.Data.Array.Array
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Index_Sub_Range.Index_Sub_Range
@@ -11,6 +12,7 @@ import project.Data.Text.Text
 import project.Error.Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Length_Mismatch
 import project.Errors.Common.No_Such_Method
 import project.Errors.Common.Not_Found
 import project.Errors.Common.Type_Error
@@ -1049,7 +1051,7 @@ type Vector a
          of both elements.
 
              [1, 2, 3].zip [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
-    zip self that:Vector (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = False) (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
+    zip self that:Vector (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = False) (keep_unmatched : Boolean | Report_Unmatched = False) on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
         left_len = self.length
         right_len = that.length
 
@@ -1060,13 +1062,17 @@ type Vector a
 
         f i =
             left_value = if keep_unmatched_bool then (if i >= left_len then Nothing else self.at i) else self.at i
-            right_value = if keep_unmatched_bool then (if i >= right_len then Nothing else right.at i) else right.at i
-            if skip_nothing && left_value.is_nothing && right_value.is_nothing then Nothing else funciton left_value right_value
+            right_value = if keep_unmatched_bool then (if i >= right_len then Nothing else that.at i) else that.at i
+            if skip_nothing && left_value.is_nothing && right_value.is_nothing then Nothing else function left_value right_value
         len = if keep_unmatched_bool then left_len.max right_len else left_len.min right_len
 
-        problems = if (left_len == right_len) || report_mismatch.not then [] else
-            [Row_Count_Mismatch.Error left_len right_len]
-        on_problems.attach_problems_before problems <|
+        # If on_problems == No_Wrap, then don't try to attach anything
+        problem_attacher = if on_problems == No_Wrap.Value then (x->x) else
+            x->
+                problems = if (left_len == right_len) || report_mismatch.not then [] else [Length_Mismatch.Error left_len right_len]
+                on_problems.attach_problems_before problems x
+
+        problem_attacher <|
             Array_Like_Helpers.vector_from_function len f on_problems
 
     ## GROUP Calculations
