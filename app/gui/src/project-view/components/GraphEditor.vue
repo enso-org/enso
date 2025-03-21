@@ -676,9 +676,9 @@ const contextMenuActions: ActionName[] = [
     @drop.prevent="handleFileDrop($event)"
   >
     <div class="vertical">
-      <div ref="viewportNode" class="viewport" @click="handleClick">
+      <div ref="viewportNode" class="viewport">
         <GraphMissingView v-if="graphMissing" />
-        <ContextMenuTrigger v-else :actions="contextMenuActions">
+        <ContextMenuTrigger v-else :actions="contextMenuActions" @click="handleClick">
           <GraphNodes
             @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
             @enterNode="(id) => stackNavigator.enterNode(id)"
