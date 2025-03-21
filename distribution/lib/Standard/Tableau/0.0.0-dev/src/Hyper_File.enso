@@ -9,6 +9,7 @@ from Standard.Table import Table
 
 import project.Hyper_Errors.Hyper_Table_Not_Found
 import project.Hyper_Table.Hyper_Table
+import project.Internal.Telemetry
 
 polyglot java import org.enso.tableau.HyperReader
 
