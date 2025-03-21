@@ -48,9 +48,27 @@ class RuntimeAsyncCommandsTest
 
   }
 
+  class MonitoredByteArrayOutputStream extends ByteArrayOutputStream {
+    val monitor = new Object
+    override def write(b: Array[Byte], off: Int, len: Int): Unit = {
+      monitor.synchronized {
+        super.write(b, off, len)
+        monitor.notifyAll()
+      }
+    }
+
+    override def write(b: Int): Unit = {
+      monitor.synchronized {
+        super.write(b)
+        monitor.notifyAll()
+      }
+    }
+  }
+
   class TestContext(packageName: String)
       extends InstrumentTestContext(packageName) {
-    val out: ByteArrayOutputStream = new ByteArrayOutputStream()
+    val out: MonitoredByteArrayOutputStream =
+      new MonitoredByteArrayOutputStream()
     val context =
       Context
         .newBuilder(LanguageInfo.ID)
@@ -180,13 +198,14 @@ class RuntimeAsyncCommandsTest
         |polyglot java import java.lang.Thread
         |
         |loop n s=0 =
-        |    if (s > n) then s else
+        |    if s > n then s else
         |        Thread.sleep 100
         |        loop n s+1
         |
         |main =
         |    IO.println "started"
         |    loop 200
+        |    IO.println "done"
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -221,11 +240,14 @@ class RuntimeAsyncCommandsTest
     )
 
     // wait for program to start
-    var isProgramStarted = false
-    var iteration        = 0
+    var isProgramStarted  = false
+    var iteration         = 0
+    var out: List[String] = Nil
     while (!isProgramStarted && iteration < 100) {
-      val out = context.consumeOut
-      Thread.sleep(100)
+      context.out.monitor.synchronized {
+        context.out.monitor.wait(1000)
+        out = context.consumeOut
+      }
       isProgramStarted = out == List("started")
       iteration += 1
     }
@@ -245,17 +267,14 @@ class RuntimeAsyncCommandsTest
       Api.Response(requestId, Api.InterruptContextResponse(contextId))
     )
 
-    val failures = responses.filter(_.payload.isInstanceOf[Api.ExecutionFailed])
+    val failures =
+      responses.filter(_.payload.isInstanceOf[Api.ExecutionComplete])
     failures.length shouldEqual 1
 
-    val failure = failures.head.payload.asInstanceOf[Api.ExecutionFailed]
-    failure.contextId shouldEqual contextId
-    failure.result shouldBe a[Api.ExecutionResult.Diagnostic]
-
-    val diagnostic = failure.result.asInstanceOf[Api.ExecutionResult.Diagnostic]
-    diagnostic.kind shouldEqual Api.DiagnosticType.Error
-    diagnostic.message shouldEqual Some("sleep interrupted")
-    diagnostic.stack should not be empty
+    context.out.monitor.synchronized {
+      out = context.consumeOut
+    }
+    out shouldEqual Nil
   }
 
   it should "recompute expression in context after interruption" in {
@@ -273,7 +292,7 @@ class RuntimeAsyncCommandsTest
         |
         |main =
         |    IO.println "started"
-        |    loop 50
+        |    loop 10
         |    out = Output.is_enabled
         |    IO.println out
         |
@@ -352,18 +371,23 @@ class RuntimeAsyncCommandsTest
     )
 
     // wait for program to start and interrupt
-    var isProgramStarted = false
-    var iteration        = 0
+    var isProgramStarted  = false
+    var iteration         = 0
+    var out: List[String] = Nil
     while (!isProgramStarted && iteration < 100) {
-      val out = context.consumeOut
-      Thread.sleep(100)
+      context.out.monitor.synchronized {
+        context.out.monitor.wait(1000)
+        out = context.consumeOut
+      }
       isProgramStarted = out == List("started")
       iteration += 1
     }
     if (!isProgramStarted) {
       fail("Program start timed out")
     }
-    context.consumeOut shouldEqual List()
+    context.out.monitor.synchronized {
+      context.consumeOut shouldEqual List()
+    }
 
     // trigger re-computation
     context.send(
@@ -406,9 +430,12 @@ class RuntimeAsyncCommandsTest
     // If that's the case, then there might be a race in the output produced by the program.
     var reallyFinished = false
     iteration = 0
+    out       = Nil
     while (!reallyFinished && iteration < 50) {
-      val out = context.consumeOut
-      Thread.sleep(100)
+      context.out.monitor.synchronized {
+        context.out.monitor.wait(1000)
+        out = context.consumeOut
+      }
       reallyFinished = out.contains("True")
       iteration += 1
     }
@@ -422,13 +449,13 @@ class RuntimeAsyncCommandsTest
     val requestId  = UUID.randomUUID()
 
     val metadata = new Metadata
-    val vId      = metadata.addItem(194, 7)
+    val vId      = metadata.addItem(192, 7)
     val code =
       """from Standard.Base import all
         |polyglot java import java.lang.Thread
         |
         |loop n s=0 =
-        |    if (s > n) then s else
+        |    if s > n then s else
         |        Thread.sleep 100
         |        loop n s+1
         |
@@ -470,11 +497,14 @@ class RuntimeAsyncCommandsTest
     )
 
     // wait for program to start
-    var isProgramStarted = false
-    var iteration        = 0
+    var isProgramStarted  = false
+    var iteration         = 0
+    var out: List[String] = Nil
     while (!isProgramStarted && iteration < 100) {
-      val out = context.consumeOut
-      Thread.sleep(100)
+      context.out.monitor.synchronized {
+        context.out.monitor.wait(100)
+        out = context.consumeOut
+      }
       isProgramStarted = out == List("started")
       iteration += 1
     }
@@ -490,20 +520,22 @@ class RuntimeAsyncCommandsTest
       )
     )
     val responses = context.receiveNIgnoreStdLib(
-      3
+      4
     )
 
     responses should contain theSameElementsAs Seq(
+      context.executionComplete(contextId),
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      TestMessages.pendingInterrupted(
+      TestMessages.update(
         contextId,
+        vId,
+        "Standard.Base.Data.Numbers.Integer",
         methodCall = Some(
           MethodCall(
             MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "loop"),
             Vector(1)
           )
-        ),
-        vId
+        )
       ),
       context.executionComplete(contextId)
     )
@@ -529,12 +561,12 @@ class RuntimeAsyncCommandsTest
         |
         |loop n s=0 =
         |    if (s > n) then s else
-        |        Thread.sleep 200
+        |        Thread.sleep 100
         |        loop n s+1
         |
         |main =
         |    IO.println "started"
-        |    operator1 = loop 50
+        |    operator1 = loop 10
         |    operator2 = operator1 + 1
         |    operator2
         |
@@ -580,6 +612,20 @@ class RuntimeAsyncCommandsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
+    var isProgramStarted  = false
+    var iteration         = 0
+    var out: List[String] = Nil
+    while (!isProgramStarted && iteration < 100) {
+      context.out.monitor.synchronized {
+        context.out.monitor.wait(100)
+        out = context.consumeOut
+      }
+      isProgramStarted = out == List("started")
+      iteration += 1
+    }
+    if (!isProgramStarted) {
+      fail("Program start timed out")
+    }
 
     // attach visualizations to both expressions
     context.send(
@@ -628,7 +674,6 @@ class RuntimeAsyncCommandsTest
       Api.Response(requestId, Api.VisualizationAttached()),
       context.executionComplete(contextId)
     )
-    context.consumeOut
     response1
       .map(_.payload)
       .count(_.isInstanceOf[Api.VisualizationAttached]) should be(2)
@@ -647,11 +692,14 @@ class RuntimeAsyncCommandsTest
         )
       )
     )
-    var isProgramStarted = false
-    var iteration        = 0
+    isProgramStarted = false
+    iteration        = 0
+    out              = Nil
     while (!isProgramStarted && iteration < 100) {
-      val out = context.consumeOut
-      Thread.sleep(100)
+      context.out.monitor.synchronized {
+        context.out.monitor.wait(100)
+        out = context.consumeOut
+      }
       isProgramStarted = out == List("started")
       iteration += 1
     }
