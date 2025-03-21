@@ -335,6 +335,7 @@ lazy val enso = (project in file("."))
     `logging-config`,
     `logging-service`,
     `logging-service-logback`,
+    `logging-service-telemetry`,
     `logging-truffle-connector`,
     `logging-utils`,
     `logging-utils-akka`,
