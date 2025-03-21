@@ -1132,6 +1132,25 @@ lazy val `logging-service-logback` = project
   .dependsOn(`logging-config`)
   .dependsOn(`logging-service`)
 
+
+lazy val `logging-service-telemetry` = project
+  .in(file("lib/java/logging-service-telemetry"))
+  .enablePlugins(JPMSPlugin)
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.slf4j"        % "slf4j-api"               % slf4jVersion,
+    ),
+    Compile / javaModuleName := "org.enso.logging.service.telemetry",
+    Compile / internalModuleDependencies ++= Seq(
+      (`logging-service-logback` / Compile / exportedModule).value
+    )
+  )
+  .dependsOn(`logging-service-logback`)
+
+
 lazy val `logging-utils-akka` = project
   .in(file("lib/scala/logging-utils-akka"))
   .enablePlugins(JPMSPlugin)
