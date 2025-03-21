@@ -5,7 +5,7 @@
  */
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
-import * as devtools from '#/components/Devtools'
+import { usePaywallDevtools } from '#/components/Devtools/EnsoDevtoolsProvider'
 
 import type * as backend from '#/services/Backend'
 
@@ -22,7 +22,7 @@ export function usePaywall(props: UsePaywallProps) {
   const { plan } = props
 
   const { getFeature } = paywallFeatures.usePaywallFeatures()
-  const { features } = devtools.usePaywallDevtools()
+  const { features } = usePaywallDevtools()
   const paywallLevel = paywallConfiguration.mapPlanOnPaywall(plan)
 
   const getPaywallLevel = eventCallbackHooks.useEventCallback(

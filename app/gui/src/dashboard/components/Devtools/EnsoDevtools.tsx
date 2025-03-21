@@ -1,11 +1,7 @@
-/**
- * @file
- *
- * A component that provides a UI for toggling paywall features.
- */
+/** @file A component that provides a UI for toggling paywall features. */
 import * as React from 'react'
 
-import * as authProvider from '#/providers/AuthProvider'
+import { useUser } from '#/providers/AuthProvider/hooks'
 import { useEffect } from 'react'
 import { ensoDevtoolsStore, useShowEnsoDevtools } from './EnsoDevtoolsProvider'
 
@@ -15,7 +11,7 @@ const EnsoDevtoolsImpl = React.lazy(() =>
 
 /** A component that provides a UI for toggling paywall features. */
 export function EnsoDevtools() {
-  const { isEnsoTeamMember } = authProvider.useUser()
+  const { isEnsoTeamMember } = useUser()
 
   const showEnsoDevtools = useShowEnsoDevtools()
 

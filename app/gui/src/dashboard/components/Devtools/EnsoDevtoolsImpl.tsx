@@ -1,8 +1,4 @@
-/**
- * @file
- *
- * A component that provides a UI for toggling paywall features.
- */
+/** @file A component that provides a UI for toggling paywall features. */
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
@@ -17,8 +13,8 @@ import { SETUP_PATH } from '#/appUtils'
 
 import * as billing from '#/hooks/billing'
 
-import * as authProvider from '#/providers/AuthProvider'
-import { UserSessionType } from '#/providers/AuthProvider'
+import { UserSessionType } from '#/providers/AuthProvider/constants'
+import { useAuth } from '#/providers/AuthProvider/hooks'
 import * as textProvider from '#/providers/TextProvider'
 import {
   useAnimationsDisabled,
@@ -55,7 +51,7 @@ import { unsafeKeys } from '#/utilities/object'
 export function EnsoDevtools() {
   const { getText } = textProvider.useText()
 
-  const { authQueryKey, session } = authProvider.useAuth()
+  const { authQueryKey, session } = useAuth()
   const queryClient = reactQuery.useQueryClient()
   const { getFeature } = billing.usePaywallFeatures()
   const toggleEnsoDevtools = useToggleEnsoDevtools()

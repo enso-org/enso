@@ -12,7 +12,7 @@ import FolderArrowIcon from '#/assets/folder_arrow.svg'
 import * as gtagHooks from '#/hooks/gtagHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as authProvider from '#/providers/AuthProvider'
+import { useFullUserSession } from '#/providers/AuthProvider/hooks'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -356,7 +356,7 @@ export interface ChatProps {
 /** Chat sidebar. */
 export default function Chat(props: ChatProps) {
   const { isOpen, doClose, endpoint } = props
-  const { accessToken: rawAccessToken } = authProvider.useFullUserSession()
+  const { accessToken: rawAccessToken } = useFullUserSession()
   const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()
   const toastAndLog = toastAndLogHooks.useToastAndLog()

@@ -8,10 +8,6 @@ import InfoMenu from '#/layouts/InfoMenu'
 import { useText } from '#/providers/TextProvider'
 import { memo } from 'react'
 
-// ===============
-// === InfoBar ===
-// ===============
-
 /** Props for a {@link InfoBar}. */
 export interface InfoBarProps {
   readonly isHelpChatOpen: boolean

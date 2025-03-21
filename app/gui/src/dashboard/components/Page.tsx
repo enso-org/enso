@@ -4,7 +4,8 @@ import Portal from '#/components/Portal'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import InfoBar from '#/layouts/InfoBar'
-import { UserSessionType, useUserSession } from '#/providers/AuthProvider'
+import { UserSessionType } from '#/providers/AuthProvider/constants'
+import { useUserSession } from '#/providers/AuthProvider/hooks'
 import { useState, type PropsWithChildren } from 'react'
 
 /** Props for a {@link Page}. */
