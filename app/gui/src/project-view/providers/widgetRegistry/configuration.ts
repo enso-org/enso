@@ -48,18 +48,19 @@ const choiceSchema: z.ZodType<Choice> = z.object({
   label: z.string().nullable(),
   parameters: z.lazy(() => z.array(argumentSchema)),
   icon: z.string().nullable().optional(),
+
 })
 export type Choice = {
   value: ChoiceValue
   label: string | null
   parameters: ArgsWidgetConfiguration
-  icon?: string | null
+  icon?: string | null | undefined
 }
 export type FlattenedChoice = {
   value: string
   label: string | null
   parameters: ArgsWidgetConfiguration
-  icon?: string | null
+  icon?: string | null | undefined
 }
 
 /**
