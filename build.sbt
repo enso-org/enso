@@ -1134,7 +1134,6 @@ lazy val `logging-service-logback` = project
   .dependsOn(`logging-config`)
   .dependsOn(`logging-service`)
 
-
 lazy val `logging-service-telemetry` = project
   .in(file("lib/java/logging-service-telemetry"))
   .enablePlugins(JPMSPlugin)
@@ -1145,18 +1144,20 @@ lazy val `logging-service-telemetry` = project
     mixedJavaScalaProjectSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "org.slf4j"        % "slf4j-api"               % slf4jVersion,
+      "org.slf4j"                              % "slf4j-api"             % slf4jVersion,
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
-      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion,
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion
     ),
     Compile / javaModuleName := "org.enso.logging.service.telemetry",
+    Compile / moduleDependencies ++= logbackPkg ++ Seq(
+      "org.slf4j" % "slf4j-api" % slf4jVersion
+    ),
     Compile / internalModuleDependencies ++= Seq(
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`logging-service-logback` / Compile / exportedModule).value
     )
   )
   .dependsOn(`logging-service-logback`)
-
 
 lazy val `logging-utils-akka` = project
   .in(file("lib/scala/logging-utils-akka"))
