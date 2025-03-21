@@ -194,11 +194,14 @@ const visParams = computed(() => {
     executeExpression,
   }
 })
+
+const { visResizeHandleEvents } = injectResizableWidgetRegistry()
 </script>
 
 <script lang="ts">
 import VisualizationHost from '@/components/visualizations/VisualizationHost.vue'
 import { defineCustomElement } from 'vue'
+import { injectResizableWidgetRegistry } from './ResizableWidget.vue'
 
 // ==========================
 // === Visualization Host ===
@@ -267,6 +270,7 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
       left
       right
       bottom
+      v-on="visResizeHandleEvents"
       @update:resizing="resizing = $event"
     />
   </div>

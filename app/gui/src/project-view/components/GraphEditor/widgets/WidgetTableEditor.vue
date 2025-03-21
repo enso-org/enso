@@ -7,14 +7,11 @@ import {
   type RowData,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
-import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { useGraphStore } from '@/stores/graph'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { targetIsOutside } from '@/util/autoBlur'
-import { Rect } from '@/util/data/rect'
-import { Vec2 } from '@/util/data/vec2'
 import { ProjectPath } from '@/util/projectPath'
 import { type IdentifierOrOperatorIdentifier, type QualifiedName } from '@/util/qualifiedName'
 import { useToast } from '@/util/toast'
@@ -177,7 +174,12 @@ export const widgetDefinition = defineWidget(
 
 <template>
   <div class="WidgetTableEditor">
-    <ResizableWidget :input="input" :config="config" @update="onUpdate">
+    <ResizableWidget
+      :input="input"
+      metadataKey="WidgetTableEditor"
+      :config="config"
+      @update="onUpdate"
+    >
       <Suspense>
         <AgGridTableView
           ref="grid"
