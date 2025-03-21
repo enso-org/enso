@@ -69,7 +69,7 @@ export function useNavigator(
     viewportRect.value = elemRect(viewportNode.value)
   }
 
-  const dragPredicate = (e: PointerEvent) => e.target === e.currentTarget && predicate(e)
+  const dragPredicate = (e: PointerEvent) => predicate(e)
 
   function eventIsTouch(e: Event) {
     return e.type.startsWith('touch') || (e instanceof PointerEvent && e.pointerType === 'touch')
@@ -94,6 +94,7 @@ export function useNavigator(
   }
 
   function handleDragZooming(state: DragState) {
+    if (state.delta[1] != 0) preventContextMenu = true
     const prevScale = scale.value
     updateScale((oldValue) => oldValue * Math.exp(-state.delta[1] / 100))
     scrollTo(center.value.scaleAround(prevScale / scale.value, gesturePivot))
@@ -124,6 +125,15 @@ export function useNavigator(
     longpressTimer = null
   }
 
+  useEventListener(viewportNode, 'contextmenu', contextMenuHandler, { capture: true })
+  let preventContextMenu = false
+  function contextMenuHandler(event: MouseEvent) {
+    if (preventContextMenu) {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+    }
+  }
+
   useGesture(
     {
       onMove(state) {
@@ -149,6 +159,7 @@ export function useNavigator(
 
         if (state.last && longpressTimer) cancelLongpress()
         if (state.last && holdDragStarted) holdDragStarted = false
+        if (state.last && preventContextMenu) setTimeout(() => (preventContextMenu = false), 10)
       },
       onPinch(state) {
         // A started longpress touch can transform into pinch without warning, make sure to clear the timeout.
