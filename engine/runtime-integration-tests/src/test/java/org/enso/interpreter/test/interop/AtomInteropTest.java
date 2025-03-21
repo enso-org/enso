@@ -484,8 +484,6 @@ public class AtomInteropTest {
         type Generator
             Value n ~next
 
-            get_next self = self.next
-
         natural =
             gen n = Generator.Value n (gen n+1)
             gen 2
