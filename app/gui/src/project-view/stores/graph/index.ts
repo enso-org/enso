@@ -767,8 +767,8 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       }
     }
 
-    function isConnectedSource(portId: PortId): boolean {
-      return isAstId(portId) && db.connections.lookup(portId).size > 0
+    function isConnectedSource(portId: AstId): boolean {
+      return db.connections.lookup(portId).size > 0
     }
 
     function isConnectedTarget(portId: PortId): boolean {
