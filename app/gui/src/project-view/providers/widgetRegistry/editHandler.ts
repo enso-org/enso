@@ -29,7 +29,7 @@ export abstract class WidgetEditHandlerParent {
   }
 
   protected onStart(origin: PortId) {
-    if (this.parent && this.parent.activeChild.value === this) return
+    if (this.isActive()) return
     this.hooks.start?.(origin)
     this.parent?.setActiveChild(this, origin)
   }
