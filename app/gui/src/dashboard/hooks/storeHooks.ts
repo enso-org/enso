@@ -21,9 +21,11 @@ export type EqualityFunction<T> = (a: T, b: T) => boolean
 /**
  * Equality function name from a list of predefined ones.
  */
-export type EqualityFunctionName = 'object' | 'shallow' | 'strict'
+export type EqualityFunctionName = 'always' | 'never' | 'object' | 'shallow' | 'strict'
 
 const EQUALITY_FUNCTIONS: Record<EqualityFunctionName, (a: unknown, b: unknown) => boolean> = {
+  always: () => true,
+  never: () => false,
   object: objectEquality,
   shallow: shallowEquality,
   strict: refEquality,

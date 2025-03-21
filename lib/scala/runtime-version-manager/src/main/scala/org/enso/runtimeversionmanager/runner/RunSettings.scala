@@ -11,12 +11,14 @@ import java.nio.file.Path
   * @param runnerArguments arguments that should be passed to the runner
   * @param workingDirectory the working directory override
   * @param connectLoggerIfAvailable specifies if the ran component should
-  *                                 connect to launcher's logging service
+  * connect to launcher's logging service
+  * @param extraEnv extra environment variables
   */
 case class RunSettings(
   engineVersion: SemVer,
   jvmMode: Boolean,
   runnerArguments: Seq[String],
   workingDirectory: Option[Path],
-  connectLoggerIfAvailable: Boolean
+  connectLoggerIfAvailable: Boolean,
+  extraEnv: Seq[(String, String)] = Seq()
 )

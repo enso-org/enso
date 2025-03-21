@@ -41,7 +41,7 @@ import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
-import { provideKeyboard } from '@/providers/keyboard'
+import { injectKeyboard } from '@/providers/keyboard'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import type { Node, NodeId } from '@/stores/graph'
 import { provideGraphStore } from '@/stores/graph'
@@ -77,7 +77,7 @@ import {
   type ComponentInstance,
 } from 'vue'
 
-const keyboard = provideKeyboard()
+const keyboard = injectKeyboard()
 const projectStore = useProjectStore()
 const projectNames = injectProjectNames()
 const suggestionDb = provideSuggestionDbStore(projectStore, projectNames)

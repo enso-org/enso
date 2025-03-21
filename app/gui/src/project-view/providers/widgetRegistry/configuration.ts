@@ -39,13 +39,25 @@ const displaySchema = withKindSchema.pipe(
 const withDisplay = z.object({ display: displaySchema })
 export type WithDisplay = z.infer<typeof withDisplay>
 
-/** A choosable item in SingleChoice widget. */
-const choiceSchema = z.object({
-  value: z.string(),
+const choiceValueSchema = z.lazy(() => z.union([z.string(), z.array(choiceSchema)]))
+export type ChoiceValue = z.infer<typeof choiceValueSchema>
+
+/** A choosable item in SingleChoice and MultipleChoice widgets. */
+const choiceSchema: z.ZodType<Choice> = z.object({
+  value: choiceValueSchema,
   label: z.string().nullable(),
   parameters: z.lazy(() => z.array(argumentSchema)),
 })
-export type Choice = z.infer<typeof choiceSchema>
+export type Choice = {
+  value: ChoiceValue
+  label: string | null
+  parameters: ArgsWidgetConfiguration
+}
+export type FlattenedChoice = {
+  value: string
+  label: string | null
+  parameters: ArgsWidgetConfiguration
+}
 
 /**
  * An external configuration for a widget retreived from the language server.
@@ -217,22 +229,32 @@ export function functionCallConfiguration(
   }
 }
 
+/** Flatten possibly nested choice. */
+export function flattenChoice(choice: Choice): FlattenedChoice[] {
+  if (typeof choice.value === 'string') {
+    return [choice as FlattenedChoice]
+  }
+  return choice.value.flatMap(flattenChoice)
+}
+
 /** A configuration for the inner widget of a single-choice selection widget. */
 export function singleChoiceConfiguration(config: SingleChoice): OneOfFunctionCalls {
+  const possibleChoices = config.values.flatMap(flattenChoice)
   return {
     kind: 'OneOfFunctionCalls',
     possibleFunctions: new Map(
-      config.values.map((value) => [value.value, functionCallConfiguration(value.parameters)]),
+      possibleChoices.map((choice) => [choice.value, functionCallConfiguration(choice.parameters)]),
     ),
   }
 }
 
 /** A configuration for the inner widget of a multiple-choice selection widget. */
 export function multipleChoiceConfiguration(config: MultipleChoice): SomeOfFunctionCalls {
+  const possibleChoices = config.values.flatMap(flattenChoice)
   return {
     kind: 'SomeOfFunctionCalls',
     possibleFunctions: new Map(
-      config.values.map((value) => [value.value, functionCallConfiguration(value.parameters)]),
+      possibleChoices.map((choice) => [choice.value, functionCallConfiguration(choice.parameters)]),
     ),
   }
 }

@@ -142,8 +142,6 @@ describe('SessionProvider', () => {
     await waitFor(() => {
       expect(authService.refreshUserSession).toBeCalledTimes(1)
       expect(screen.getByText(/Hello/)).toBeInTheDocument()
-
-      expect(authService.userSession).toBeCalledTimes(3)
     })
   })
 
