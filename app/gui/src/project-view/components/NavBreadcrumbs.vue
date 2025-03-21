@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ActionButton from '@/components/ActionButton.vue'
 import NavBreadcrumb from '@/components/NavBreadcrumb.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import { injectStackNavigator } from '@/providers/graphStackNavigator'
@@ -31,10 +32,11 @@ async function renameBreadcrumb(index: number, newName: string) {
 <template>
   <div class="NavBar">
     <div class="NavBreadcrumbs">
+      <ActionButton action="graph.navigateUp" />
       <template v-for="(breadcrumb, index) in stackNavigator.breadcrumbLabels.value" :key="index">
         <SvgButton
           v-if="index > 0"
-          name="arrow_right_head_only"
+          name="navigate_breadcrumb"
           :disabled="!breadcrumb.active"
           :class="{ nonInteractive: breadcrumb.isCurrentTop }"
           class="arrow"

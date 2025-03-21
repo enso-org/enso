@@ -1,6 +1,8 @@
-/** @file Logger capable of displaying nicely formatted logs in the browser and in the console.
+/**
+ * @file Logger capable of displaying nicely formatted logs in the browser and in the console.
  * Also, it allows redirecting logs to different outputs, so you can plug in external sinks for the
- * logs. */
+ * logs.
+ */
 
 const browser = typeof window !== 'undefined'
 
@@ -8,8 +10,10 @@ const browser = typeof window !== 'undefined'
 // === Utils ===
 // =============
 
-/** Checks whether the provided value is an Object. It is used to determine whether the value should
- * be printed using `JSON.stringify`. */
+/**
+ * Checks whether the provided value is an Object. It is used to determine whether the value should
+ * be printed using `JSON.stringify`.
+ */
 function isObject(value: any): boolean {
   return typeof value === 'object' && !Array.isArray(value) && value !== null
 }
@@ -91,8 +95,10 @@ export abstract class Consumer {
   /** Log a message and end the last opened group. */
   abstract groupEnd(...args: unknown[]): void
 
-  /** The width of the terminal in columns. In case there is no terminal, e.g. when the output
-   * stream is redirected to a file, this results in a `undefined`. */
+  /**
+   * The width of the terminal in columns. In case there is no terminal, e.g. when the output
+   * stream is redirected to a file, this results in a `undefined`.
+   */
   terminalWidth(): number | undefined {
     return process.stdout.columns
   }
@@ -125,8 +131,10 @@ export abstract class Consumer {
     return out
   }
 
-  /** Start a collapsed group, log a message, evaluate the provided function, and end the
-   * group. */
+  /**
+   * Start a collapsed group, log a message, evaluate the provided function, and end the
+   * group.
+   */
   groupCollapsed<T>(message: string, f: () => T): T {
     this.startGroupCollapsed(message)
     const out = f()
@@ -142,8 +150,10 @@ export abstract class Consumer {
     return out
   }
 
-  /** Start a collapsed group, log a message, evaluate the provided async function, and end the
-   * group. */
+  /**
+   * Start a collapsed group, log a message, evaluate the provided async function, and end the
+   * group.
+   */
   async asyncGroupCollapsed<T>(message: string, f: () => Promise<T>): Promise<T> {
     this.startGroupCollapsed(message)
     const out = await f()
@@ -151,14 +161,18 @@ export abstract class Consumer {
     return out
   }
 
-  /** Start a group, log a message, evaluate the provided function, end the group, and log the
-   * total operation time. */
+  /**
+   * Start a group, log a message, evaluate the provided function, end the group, and log the
+   * total operation time.
+   */
   groupMeasured<T>(message: string, f: () => T): T {
     return Task.run(message, f)
   }
 
-  /** Start a group, log a message, evaluate the provided async function, end the group, and log
-   * the total operation time. */
+  /**
+   * Start a group, log a message, evaluate the provided async function, end the group, and log
+   * the total operation time.
+   */
   async asyncGroupMeasured<T>(message: string, f: () => Promise<T>): Promise<T> {
     return await Task.asyncRun(message, f)
   }
@@ -222,11 +236,14 @@ function replacer(key: string, value: unknown): unknown {
   }
 }
 
-/** The console log consumer. If attached to `Logger`, it prints the incoming logs to the
- * console. */
+/**
+ * The console log consumer. If attached to `Logger`, it prints the incoming logs to the
+ * console.
+ */
 export class Console extends Consumer {
   private indentLvl = 0
 
+  /** Log a message. */
   message(fn: LogLevel, ...args: unknown[]) {
     const strArgs = args.map((arg) => {
       if (isObject(arg)) {
@@ -262,6 +279,7 @@ export class Console extends Consumer {
     }
   }
 
+  /** Start an indented group. */
   startGroup(...args: unknown[]) {
     if (browser) {
       console.group(...args)
@@ -272,6 +290,7 @@ export class Console extends Consumer {
     this.indentLvl += 1
   }
 
+  /** Start a collapsed indented group. */
   startGroupCollapsed(...args: unknown[]) {
     if (browser) {
       console.groupCollapsed(...args)
@@ -281,6 +300,7 @@ export class Console extends Consumer {
     }
   }
 
+  /** End the last indented group. */
   groupEnd(...args: unknown[]) {
     if (this.indentLvl > 0) {
       this.indentLvl -= 1
@@ -316,14 +336,21 @@ export class Console extends Consumer {
 // === Task ===
 // ============
 
-/** A logging utility which groups subsequent operations in nicely formatted groups and logs their
- * evaluation time. */
+/**
+ * A logging utility which groups subsequent operations in nicely formatted groups and logs their
+ * evaluation time.
+ */
 export class Task {
   startTime = 0
   endTime = 0
 
+  /**
+   * Create a new task.
+   * @param message - The message to display when the task is started.
+   */
   constructor(public message: string) {}
 
+  /** Start the task. */
   private startBody() {
     this.startTime = performance.now()
   }
@@ -341,23 +368,29 @@ export class Task {
     return [ms, msRounded]
   }
 
-  /** Start the task. You have to explicitly call the `end` method to finish this task. If
-   * possible, use the `with` method instead. */
+  /**
+   * Start the task. You have to explicitly call the `end` method to finish this task. If
+   * possible, use the `with` method instead.
+   */
   start() {
     logger.startGroup(`${this.message}`)
     this.startBody()
   }
 
-  /** Start the task and display subsequent logs in a collapsed group. You have to explicitly call
-   * the `end` method to finish this task. If possible, use the `withCollapsed` method instead. */
+  /**
+   * Start the task and display subsequent logs in a collapsed group. You have to explicitly call
+   * the `end` method to finish this task. If possible, use the `withCollapsed` method instead.
+   */
   startCollapsed() {
     logger.startGroupCollapsed(`${this.message}`)
     this.startBody()
   }
 
-  /** Start the task but do not group subsequent logs. You have to explicitly call the
+  /**
+   * Start the task but do not group subsequent logs. You have to explicitly call the
    * `endNoGroup` method to finish this task. If possible, use the `withNoGroup` method
-   * instead. */
+   * instead.
+   */
   startNoGroup() {
     logger.log(`Started ${this.message}.`)
     this.startBody()
@@ -370,33 +403,41 @@ export class Task {
     return ms
   }
 
-  /** End the previously started no-group task. If possible use the `with*` function family
-   * instead. */
+  /**
+   * End the previously started no-group task. If possible use the `with*` function family
+   * instead.
+   */
   endNoGroup(): number {
     const [ms, msRounded] = this.endBody()
     logger.log(`Finished ${this.message} in ${msRounded} ms.`)
     return ms
   }
 
-  /** Start the task. You have to explicitly call the `end` method to finish this task. If
-   * possible, use the `with` method instead. */
+  /**
+   * Start the task. You have to explicitly call the `end` method to finish this task. If
+   * possible, use the `with` method instead.
+   */
   static start(message: string): Task {
     const task = new Task(message)
     task.start()
     return task
   }
 
-  /** Start the task and display subsequent logs in a collapsed group. You have to explicitly call
-   * the `end` method to finish this task. If possible, use the `withCollapsed` method instead. */
+  /**
+   * Start the task and display subsequent logs in a collapsed group. You have to explicitly call
+   * the `end` method to finish this task. If possible, use the `withCollapsed` method instead.
+   */
   static startCollapsed(message: string): Task {
     const task = new Task(message)
     task.startCollapsed()
     return task
   }
 
-  /** Start the task but do not group subsequent logs. You have to explicitly call the
+  /**
+   * Start the task but do not group subsequent logs. You have to explicitly call the
    * `endNoGroup` method to finish this task. If possible, use the `withNoGroup` method
-   * instead. */
+   * instead.
+   */
   static startNoGroup(message: string): Task {
     const task = new Task(message)
     task.startNoGroup()
@@ -411,8 +452,10 @@ export class Task {
     return out
   }
 
-  /** Start the task, hide all subsequent logs in a collapsed group, evaluate the provided
-   * function, and end the task. */
+  /**
+   * Start the task, hide all subsequent logs in a collapsed group, evaluate the provided
+   * function, and end the task.
+   */
   static runCollapsed<T>(message: string, f: () => T): T {
     const task = Task.startCollapsed(message)
     const out = f()
@@ -428,8 +471,10 @@ export class Task {
     return out
   }
 
-  /** Start the task, hide all subsequent logs in a collapsed group, evaluate the provided
-   * async function, and end the task. */
+  /**
+   * Start the task, hide all subsequent logs in a collapsed group, evaluate the provided
+   * async function, and end the task.
+   */
   static async asyncRunCollapsed<T>(message: string, f: () => Promise<T>): Promise<T> {
     const task = Task.startCollapsed(message)
     const out = await f()
@@ -437,8 +482,10 @@ export class Task {
     return out
   }
 
-  /** Start the task, evaluate the provided async function, and end the task. Do not group
-   * subsequent logs. */
+  /**
+   * Start the task, evaluate the provided async function, and end the task. Do not group
+   * subsequent logs.
+   */
   static async asyncRunNoGroup<T>(message: string, f: () => Promise<T>): Promise<T> {
     const task = Task.startNoGroup(message)
     const out = await f()
@@ -446,8 +493,10 @@ export class Task {
     return out
   }
 
-  /** Start the task, evaluate the provided function, and end the task. Return the function result
-   * together with the time information. */
+  /**
+   * Start the task, evaluate the provided function, and end the task. Return the function result
+   * together with the time information.
+   */
   static runTimed<T>(message: string, f: () => T): [number, T] {
     const task = Task.start(message)
     const out = f()
@@ -455,8 +504,10 @@ export class Task {
     return [ms, out]
   }
 
-  /** Start the task, hide all subsequent logs in a collapsed group, evaluate the provided
-   * function, and end the task. Return the function result together with the time information. */
+  /**
+   * Start the task, hide all subsequent logs in a collapsed group, evaluate the provided
+   * function, and end the task. Return the function result together with the time information.
+   */
   static runCollapsedTimed<T>(message: string, f: () => T): [number, T] {
     const task = Task.startCollapsed(message)
     const out = f()
@@ -464,8 +515,10 @@ export class Task {
     return [ms, out]
   }
 
-  /** Start the task, evaluate the provided async function, and end the task. Return the function
-   * result together with the time information. */
+  /**
+   * Start the task, evaluate the provided async function, and end the task. Return the function
+   * result together with the time information.
+   */
   static async asyncRunTimed<T>(message: string, f: () => Promise<T>): Promise<[number, T]> {
     const task = Task.start(message)
     const out = await f()
@@ -473,8 +526,10 @@ export class Task {
     return [ms, out]
   }
 
-  /** Start the task, hide all subsequent logs in a collapsed group, evaluate the provided async
-   * function, and end the task. Return the function result together with the time information. */
+  /**
+   * Start the task, hide all subsequent logs in a collapsed group, evaluate the provided async
+   * function, and end the task. Return the function result together with the time information.
+   */
   static async asyncRunCollapsedTimed<T>(
     message: string,
     f: () => Promise<T>,

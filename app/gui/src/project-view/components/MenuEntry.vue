@@ -10,6 +10,7 @@ const action = computed(() => resolveAction(actionOrName))
 
 <template>
   <MenuButton
+    v-if="!toValue(action.hidden)"
     :data-testid="action.testid"
     :disabled="toValue(action.disabled)"
     class="ContextMenuEntry"

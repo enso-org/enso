@@ -69,6 +69,11 @@
  */
 .define-node-colors {
   --color-node-text: white;
+  --color-node-text-selected: color-mix(
+    in oklab,
+    var(--color-node-primary) 70%,
+    black 30%
+  );
   --color-node-background: var(--node-group-color);
   --color-node-primary: var(--node-group-color);
   --color-node-edge: color-mix(
@@ -110,11 +115,7 @@
       var(--color-node-background) 40%,
       white 60%
     );
-    --color-node-text: color-mix(
-      in oklab,
-      var(--color-node-primary) 70%,
-      black 30%
-    );
+    --color-node-text: var(--color-node-text-selected);
     --color-edge-from-node: color-mix(
       in oklab,
       var(--color-node-primary) 40%,
