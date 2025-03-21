@@ -71,6 +71,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Telemetry
 import project.Internal.Type_Refinements.DB_Table_Refinements
 import project.SQL_Query.SQL_Query
 import project.SQL_Statement.SQL_Statement
@@ -2725,7 +2726,10 @@ type DB_Table
                         warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
 
             result = max_rows.attach_warning materialized_table
-            Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result
+            with_problems = Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result
+            with_problems.if_not_error <|
+                Telemetry.log "DB_Table.read" "Materialize Table: connection_type={}, output={}, row_count={}, column_count={}" [self.connection.to Meta.Type . name, "Table", result.row_count, result.column_count]
+                with_problems
 
     ## PRIVATE
        Creates a query corresponding to this table.
@@ -2931,9 +2935,13 @@ type DB_Table
                  table.write (enso_project.data / "example_csv_output.csv")
     @path (Widget.Text_Input display=Display.Always)
     @format Widget_Helpers.write_table_selector
-    write self path:Writable_File format:File_Format=Auto_Detect on_existing_file:Existing_File_Behavior=..Backup match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Nothing ! Column_Count_Mismatch | Illegal_Argument | File_Error =
-        # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
-        self.read.write path format on_existing_file match_columns on_problems
+    write self path:Writable_File format=Auto_Detect on_existing_file:Existing_File_Behavior=..Backup match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Nothing ! Column_Count_Mismatch | Illegal_Argument | File_Error =
+        row_limit = 100000
+
+        ## Read one extra row to check if the table is too large.
+        materialized = self.read ..First (row_limit+1)
+        if materialized.row_count <= row_limit then materialized.write path format on_existing_file match_columns on_problems else
+            Error.throw (Illegal_Argument.Error "DB_Table contains more than 100,000 rows. Use `read` to materialize first.")
 
 
     ## GROUP Standard.Base.Output

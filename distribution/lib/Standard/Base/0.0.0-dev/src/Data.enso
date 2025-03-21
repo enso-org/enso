@@ -16,6 +16,7 @@ import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Internal.Data_Read_Helpers
+import project.Internal.Telemetry
 import project.Meta
 import project.Network.HTTP.Cache_Policy.Cache_Policy
 import project.Network.HTTP.Header.Header
@@ -92,11 +93,15 @@ read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Prob
     _ : Vector -> Error.throw (Illegal_Argument.Error "Data.read cannot be used with a Vector. Please use Data.read_many.")
     _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format else
         read (File.new path) format on_problems
-    uri : URI -> fetch uri format=format
+    uri : URI ->
+        fetch uri format=format
     _ ->
         file_obj = File.new path
         if file_obj.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `Data.list`.") else
-            file_obj.read format on_problems
+            file_content = file_obj.read format on_problems
+            file_content.if_not_error <|
+                Telemetry.log "Data.read" "Read file: size={}, extension={}, file_type={}" [file_obj.size, file_obj.extension, file_obj.to Meta.Type . name]
+                file_content
 
 ## ALIAS load, open
    GROUP Input
@@ -152,7 +157,10 @@ read_many (paths : Many_Files_List = Missing_Argument.throw "paths") format=Auto
         loaded_objects = paths.paths_to_load.map on_problems=No_Wrap.Value path->
             Data.read path format on_problems . catch Any error->
                 Failed_To_Load.Warning path error
-        return_as.make_return paths loaded_objects on_problems
+        result = return_as.make_return paths loaded_objects on_problems
+        result.if_not_error <|
+            Telemetry.log "Data.read_many" "Read files: count={}, output={}" [paths.paths_to_load.length, result.to Meta.Type . name]
+            result
 
 ## ALIAS load text, open text
    GROUP Input
@@ -243,7 +251,10 @@ read_text path=(Missing_Argument.throw "path") (encoding : Encoding = Encoding.d
 list : Text | File -> Text -> Boolean -> Vector File
 list (directory=enso_project.root) (name_filter:Text="") recursive:Boolean=False =
     file_obj = File.new directory
-    file_obj.list name_filter=name_filter recursive=recursive . sort on=.path
+    file_list = file_obj.list name_filter=name_filter recursive=recursive . sort on=.path
+    file_list.if_not_error <|
+        Telemetry.log "Data.list" "List folder: count={}, recursive={}, filtered={}, file_type={}" [file_list.length, recursive, name_filter != "", file_obj.to Meta.Type . name]
+        file_list
 
 ## ALIAS download, http get
    GROUP Input

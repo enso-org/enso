@@ -1,16 +1,12 @@
 private
 
-# this file contains additional imports necessary for
-# building native image version of Enso with Standard
-# libraries included in
+## This file contains additional imports necessary for building native image version of Enso with Standard libraries
+   included in
 
-# needed by Util_Spec
 polyglot java import org.enso.base.text.CaseFoldedString as JCaseFoldedString
 polyglot java import org.enso.base.text.CaseFoldedString.Grapheme
 polyglot java import org.enso.base.Text_Utils as JText_Utils
 polyglot java import com.ibm.icu.text.BreakIterator as JBreakIterator
-
-# often used in tests
 polyglot java import java.util.ArrayList
 polyglot java import java.util.Map
 polyglot java import java.nio.CharBuffer
@@ -26,7 +22,6 @@ polyglot java import java.lang.RuntimeException as JRuntimeException
 polyglot java import java.lang.Thread
 polyglot java import java.lang.Thread.State
 polyglot java import java.lang.Float
-
 polyglot java import org.enso.base.Stream_Utils as JStream_Utils
 polyglot java import org.enso.base.file_system.File_Utils as JFile_Utils
 polyglot java import org.enso.base.CompareException as JCompareException
