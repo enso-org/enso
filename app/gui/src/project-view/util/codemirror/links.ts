@@ -11,11 +11,11 @@ export function useLinkTitles(
   editorView: EditorView,
   { readonly }: { readonly: ToValue<boolean> },
 ) {
-  const keyboard = injectKeyboard()
+  const keyboard = injectKeyboard(true)
   useStateEffect(editorView, setLinkAttributesFactory, () =>
     linkAttributeFactory(
       toValue(readonly) ? 'Click to open link in a new window.'
-      : keyboard.mod ? `${textEditorsBindings.bindings.openLink.humanReadable} to open link.`
+      : keyboard?.mod ? `${textEditorsBindings.bindings.openLink.humanReadable} to open link.`
       : `Click to edit; ${textEditorsBindings.bindings.openLink.humanReadable} to open link.`,
     ),
   )

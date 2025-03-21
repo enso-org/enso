@@ -99,5 +99,7 @@ const handler = documentationEditorBindings.handler({
   background-color: #fff;
   height: 100%;
   width: 100%;
+  padding-left: 16px;
+  padding-right: 2px;
 }
 </style>

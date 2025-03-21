@@ -1,62 +1,54 @@
 /** @file A Markdown viewer component. */
+import * as React from 'react'
 
 import { useLogger } from '#/providers/LoggerProvider'
 import { useText } from '#/providers/TextProvider'
-import { useSuspenseQuery } from '@tanstack/react-query'
-import type { RendererObject } from 'marked'
-import { marked } from 'marked'
+import { type UrlTransformer } from '@/components/MarkdownEditor/imageUrlTransformer'
+import { Err, Ok } from '@/util/data/result'
 import { type TestIdProps } from '../AriaComponents'
-import { DEFAULT_RENDERER } from './defaultRenderer'
 
 /** Props for a {@link MarkdownViewer}. */
 export interface MarkdownViewerProps extends TestIdProps {
   /** Markdown markup to parse and display. */
   readonly text: string
   readonly imgUrlResolver: (relativePath: string) => Promise<string>
-  readonly renderer?: RendererObject
 }
+
+const LazyMarkdownEditor = React.lazy(() =>
+  import('#/components/MarkdownViewer/defaultRenderer').then(
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    ({ MarkdownEditor }) => MarkdownEditor,
+  ),
+)
 
 /**
  * Markdown viewer component.
  * Parses markdown passed in as a `text` prop into HTML and displays it.
  */
 export function MarkdownViewer(props: MarkdownViewerProps) {
-  const { text, imgUrlResolver, renderer = {}, testId } = props
+  const { text, imgUrlResolver, testId } = props
 
-  const { getText } = useText()
   const logger = useLogger()
+  const { getText } = useText()
 
-  const markedInstance = marked.use({ renderer: Object.assign({}, DEFAULT_RENDERER, renderer) })
-
-  const { data: markdownToHtml } = useSuspenseQuery({
-    queryKey: ['markdownToHtml', { text, imgUrlResolver, markedInstance }] as const,
-    meta: { persist: false },
-    gcTime: 0,
-    staleTime: 0,
-    queryFn: ({ queryKey: [, args] }) =>
-      args.markedInstance.parse(args.text, {
-        async: true,
-        walkTokens: async (token) => {
-          if (token.type === 'image' && 'href' in token && typeof token.href === 'string') {
-            const href = token.href
-
-            token.raw = href
-            token.href = await args.imgUrlResolver(href).catch((error) => {
-              logger.error(error)
-              return null
-            })
-            token.text = getText('arbitraryFetchImageError')
-          }
+  const transformImageUrl: UrlTransformer = (path: string) =>
+    /^https?:/.test(path) ?
+      Promise.resolve(Ok({ url: path }))
+    : imgUrlResolver(path).then(
+        (url) => Ok({ url }),
+        (error) => {
+          logger.error(error)
+          return Err(getText('arbitraryFetchImageError'))
         },
-      }),
-  })
+      )
 
   return (
-    <div
-      className="select-text"
+    <LazyMarkdownEditor
+      content={text}
+      transformImageUrl={transformImageUrl}
+      toolbar={false}
       data-testid={testId}
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      dangerouslySetInnerHTML={{ __html: markdownToHtml }}
+      contentTestId="cmContent"
     />
   )
 }
