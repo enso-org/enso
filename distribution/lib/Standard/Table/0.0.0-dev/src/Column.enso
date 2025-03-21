@@ -2135,17 +2135,12 @@ type Column
 
              example_zip =
                 Examples.integer_column.zip Examples.text_column_1 [_, _]
-    zip self that:Column (function : Any -> Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> Column ! Invalid_Value_Type =
-        new_fn = case skip_nothing of
-            True ->
-                x -> y ->
-                    if x.is_nothing then Nothing else
-                        if y.is_nothing then Nothing else
-                            function x y
-            False -> function
-        new_name = naming_helper.binary_operation_name "x" self that
-        vec = self.to_vector.zip on_problems=No_Wrap.Value that.to_vector new_fn
-        Column.from_vector new_name vec value_type=expected_value_type
+    @keep_unmatched (make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Report_Unmatched.to Meta.Type . qualified_name]])
+    zip self (right : Column | Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table =
+        right_table = case right of
+            _ : Table -> right
+            _ : Column -> right.to_table
+        self.to_table.zip right_table keep_unmatched right_prefix on_problems
 
     ## GROUP Standard.Base.Metadata
        ICON text_input

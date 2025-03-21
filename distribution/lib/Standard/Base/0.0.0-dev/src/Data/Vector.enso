@@ -1049,8 +1049,7 @@ type Vector a
          of both elements.
 
              [1, 2, 3].zip [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
-    zip : Vector Any -> (Any -> Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
-    zip self that:Vector function=[_,_] on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
+    zip self that:Vector (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = False) (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
         len = self.length.min that.length
         Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i)) on_problems
 
