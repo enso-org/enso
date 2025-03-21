@@ -3,7 +3,7 @@ import SvgMask from '#/components/SvgMask'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { type ForwardedRef, type HTMLAttributes, type PropsWithChildren } from 'react'
-import { ALERT_STYLES } from './constants'
+import { ALERT_STYLES } from './variants'
 
 /** Props for an {@link Alert}. */
 export interface AlertProps

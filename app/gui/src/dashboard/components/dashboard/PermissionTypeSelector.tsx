@@ -24,6 +24,7 @@ const CAPITALIZED_ASSET_TYPE: Readonly<Record<backend.AssetType, string>> = {
   [backend.AssetType.specialEmpty]: '',
   [backend.AssetType.specialError]: '',
   [backend.AssetType.specialLoading]: '',
+  [backend.AssetType.specialUp]: '',
 }
 
 /** Data needed to display a single permission type. */

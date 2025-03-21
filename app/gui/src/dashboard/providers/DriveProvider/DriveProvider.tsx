@@ -35,7 +35,7 @@ export function DriveProvider(props: ProjectsProviderProps) {
   const [store] = useState(() =>
     createStore<DriveStore>((set, get) => ({
       removeSelection: () => {
-        set({ selectedIds: EMPTY_SET, visuallySelectedKeys: null })
+        set({ selectedIds: new Set(), visuallySelectedKeys: null, selectedAssets: [] })
       },
       newestFolderId: null,
       setNewestFolderId: (newestFolderId) => {
@@ -56,6 +56,9 @@ export function DriveProvider(props: ProjectsProviderProps) {
         }
       },
       selectedIds: EMPTY_SET,
+      setSelectedIds: (selectedIds) => {
+        set({ selectedIds })
+      },
       selectedAssets: EMPTY_ARRAY,
       setSelectedAssets: (selectedAssets) => {
         if (selectedAssets.length === 0) {

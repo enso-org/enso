@@ -27,7 +27,7 @@ export project.Extensions.should_succeed
 
 export project.Faker.Faker
 
-export project.Frame_Hider.Frame_Hider
+export project.Frame_Hider
 
 export project.Problems
 

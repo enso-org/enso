@@ -46,92 +46,92 @@ import Standard.Base.Runtime.Ref.Ref
               # ...
               @Tail_Call go (i+1)
           go 1
-type Frame_Hider
-    ## PRIVATE
 
-       Hides the stack frames of the contained code from `get_top_stack_frame`.
+## PRIVATE
 
-       > Example
-         Wrap the body of a test utility to hide its stack frames.
+    Hides the stack frames of the contained code from `get_top_stack_frame`.
 
-         Any.should_equal self that = Frame_Hider.hide <|
-             ...
-             Error.throw ("Not equal at " + Frame_Hider.get_top_stack_frame)
-    hide ~action =
-        action
+    > Example
+        Wrap the body of a test utility to hide its stack frames.
 
-    ## PRIVATE
+        Any.should_equal self that = Frame_Hider.hide <|
+            ...
+            Error.throw ("Not equal at " + Frame_Hider.get_top_stack_frame)
+hide ~action =
+    action
 
-       Unhides the stack frames of the call to the user-supplied callback
-       application.
+## PRIVATE
 
-       > Example
-         Wrap a callback invocation to unhide its stack frames.
+    Unhides the stack frames of the call to the user-supplied callback
+    application.
 
-         test_utility test_predicate x =
-             ...
-             Frame_Hider.unhide (test_predicate x)
-    unhide ~action =
-        action
+    > Example
+        Wrap a callback invocation to unhide its stack frames.
 
-    ## PRIVATE
+        test_utility test_predicate x =
+            ...
+            Frame_Hider.unhide (test_predicate x)
+unhide ~action =
+    action
 
-       Unhides the stack frames of the call to the user-supplied callback
-       application, uncurried for one argument.
+## PRIVATE
 
-       `unhide_1 f x` is Equivalent to `unhide (f x)`.
+    Unhides the stack frames of the call to the user-supplied callback
+    application, uncurried for one argument.
 
-       > Example
-         Wrap a callback invocation to unhide its stack frames.
+    `unhide_1 f x` is Equivalent to `unhide (f x)`.
 
-         test_utility test_predicate x =
-             ...
-             Frame_Hider.unhide_1 test_predicate x
-    unhide_1 f x =
-        f x
+    > Example
+        Wrap a callback invocation to unhide its stack frames.
 
-    ## PRIVATE
+        test_utility test_predicate x =
+            ...
+            Frame_Hider.unhide_1 test_predicate x
+unhide_1 f x =
+    f x
 
-       Unhides the stack frames of the call to the user-supplied callback
-       application, uncurried for two arguments.
+## PRIVATE
 
-       `unhide_1 f x y` is Equivalent to `unhide (f x y)`.
+    Unhides the stack frames of the call to the user-supplied callback
+    application, uncurried for two arguments.
 
-       > Example
-         Wrap a callback invocation to unhide its stack frames.
+    `unhide_1 f x y` is Equivalent to `unhide (f x y)`.
 
-         test_utility test_predicate x y =
-             ...
-             Frame_Hider.unhide_2 test_predicate x y
-    unhide_2 f x y =
-        f x y
+    > Example
+        Wrap a callback invocation to unhide its stack frames.
 
-    ## PRIVATE
+        test_utility test_predicate x y =
+            ...
+            Frame_Hider.unhide_2 test_predicate x y
+unhide_2 f x y =
+    f x y
 
-       Identify the correct top stack frame by skipping over the stack frames
-       inside test utilities.
-    get_top_stack_frame -> Text =
-        stack_trace = Runtime.get_stack_trace
-        reversed_stack_trace = stack_trace.reverse
+## PRIVATE
 
-        ## Iterate through stack frames from bottom to top, determining how many
-           `hide` calls each one is nested inside. Each `hide` frame increases
-           the nesting level by 1, and each `unhide` decreases it by one.
+    Identify the correct top stack frame by skipping over the stack frames
+    inside test utilities.
+get_top_stack_frame -> Text =
+    stack_trace = Runtime.get_stack_trace
+    reversed_stack_trace = stack_trace.reverse
 
-           The stack frame we are looking for is the one before the last frame
-           that has a nesting level of 0 -- this is the most recent user-level
-           call, and the one that triggered the test assertion failure.
+    ## Iterate through stack frames from bottom to top, determining how many
+        `hide` calls each one is nested inside. Each `hide` frame increases
+        the nesting level by 1, and each `unhide` decreases it by one.
 
-           If we cannot find such a frame, we simply return the top of the
-           stack. (In this case, some test code is missing a call to `unhide*`.)
-        delta_for_frame frame =
-            name = frame.name
-            if name.starts_with "Frame_Hider.hide" then 1 else
-                if name.starts_with "Frame_Hider.unhide" then -1 else 0
-        nesting_levels = reversed_stack_trace.map delta_for_frame . running_fold 0 (+)
-        index =
-            i = nesting_levels.last_index_of 0
-            if i.is_nothing || i == 0 then 0 else i-1
+        The stack frame we are looking for is the one before the last frame
+        that has a nesting level of 0 -- this is the most recent user-level
+        call, and the one that triggered the test assertion failure.
 
-        top = reversed_stack_trace . at index . source_location
-        top.to_display_text
+        If we cannot find such a frame, we simply return the top of the
+        stack. (In this case, some test code is missing a call to `unhide*`.)
+    delta_for_frame frame =
+        name = frame.name
+        if name.starts_with "Frame_Hider.hide" then 1 else
+            if name.starts_with "Frame_Hider.unhide" then -1 else 0
+    nesting_levels = reversed_stack_trace.map delta_for_frame . running_fold 0 (+)
+    index =
+        i = nesting_levels.last_index_of 0
+        if i.is_nothing || i == 0 then 0 else i-1
+
+    top = reversed_stack_trace . at index . source_location
+    top.to_display_text

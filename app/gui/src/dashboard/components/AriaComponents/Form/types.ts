@@ -2,7 +2,7 @@
 import type * as React from 'react'
 import type { TestIdProps } from '../types'
 import type * as components from './components'
-import type * as styles from './styles'
+import type * as styles from './variants'
 export type * from './components/types'
 
 /** Props for the Form component */

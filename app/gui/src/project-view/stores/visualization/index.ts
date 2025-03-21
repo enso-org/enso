@@ -1,6 +1,4 @@
 import * as geoMapVisualization from '@/components/visualizations/GeoMapVisualization.vue'
-import * as heatmapVisualization from '@/components/visualizations/HeatmapVisualization.vue'
-import * as histogramVisualization from '@/components/visualizations/HistogramVisualization.vue'
 import * as imageBase64Visualization from '@/components/visualizations/ImageBase64Visualization.vue'
 import * as jsonVisualization from '@/components/visualizations/JSONVisualization.vue'
 import * as scatterplotVisualization from '@/components/visualizations/ScatterplotVisualization.vue'
@@ -67,8 +65,6 @@ const builtinVisualizations: VisualizationModule[] = [
   jsonVisualization,
   tableVisualization,
   scatterplotVisualization,
-  histogramVisualization,
-  heatmapVisualization,
   sqlVisualization,
   geoMapVisualization,
   imageBase64Visualization,

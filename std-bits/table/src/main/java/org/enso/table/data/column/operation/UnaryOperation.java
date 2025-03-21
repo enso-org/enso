@@ -60,7 +60,7 @@ public interface UnaryOperation {
       Column column,
       Function<Object, Value> function,
       boolean nothingUnchanged,
-      StorageType expectedResultType,
+      StorageType<?> expectedResultType,
       String newColumnName,
       MapOperationProblemAggregator problemAggregator) {
     Builder storageBuilder =

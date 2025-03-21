@@ -1,8 +1,8 @@
 /** @file The context menu for an arbitrary {@link backendModule.Asset}. */
+import { Separator } from '#/components/AriaComponents'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 import { ContextMenuEntry as PaywallContextMenuEntry } from '#/components/Paywall'
-import Separator from '#/components/styled/Separator'
 import {
   copyAssetsMutationOptions,
   deleteAssetsMutationOptions,
@@ -172,6 +172,7 @@ export function AssetContextMenu(props: AssetContextMenuProps) {
       doAction={() => {
         const directoryId =
           asset.type === backendModule.AssetType.directory ? asset.id : asset.parentId
+
         doPaste(directoryId, directoryId)
       }}
     />
@@ -249,21 +250,31 @@ export function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={async () => {
               invariant(localBackend != null, 'Local Backend is null')
               await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
-              const parentId = await remoteBackend.downloadProject(asset.id)
-              const assets = await localBackend.listDirectory({
-                parentId: parentId,
-                filterBy: null,
-                labels: null,
-                recentProjects: false,
-              })
-              const project = assets.filter(backendModule.assetIsProject)[0]
-              invariant(project, 'Downloaded cloud project does not exist.')
+              const localProject = await remoteBackend.downloadProject(asset.id)
+
+              let project
+              for (const parentId of [localProject.targetId, localProject.parentId]) {
+                const assets = await localBackend.listDirectory({
+                  parentId: parentId,
+                  filterBy: null,
+                  labels: null,
+                  recentProjects: false,
+                })
+                project = assets
+                  .filter((item) => item.type === backendModule.AssetType.project)
+                  .at(0)
+                if (project !== undefined) {
+                  break
+                }
+              }
+
+              invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
               openProject({
                 id: project.id,
                 title: project.title,
                 parentId: project.parentId,
                 type: backendModule.BackendType.local,
-                hybrid: { cloudProjectId: asset.id },
+                hybrid: { cloudProjectId: asset.id, parentId: localProject.parentId },
               })
             }}
           />
@@ -302,9 +313,17 @@ export function AssetContextMenu(props: AssetContextMenuProps) {
             action="uploadToCloud"
             doAction={async () => {
               try {
+                // Folder's id matches the pattern `<type>-<Full Path>`, i.e. `directory-/Users/user/enso/folder 1`
+                const parentDirectoryPath = localBackendModule.extractTypeAndId(asset.parentId).id
+
                 const projectResponse = await fetch(
-                  `./api/project-manager/projects/${localBackendModule.extractTypeAndId(asset.id).id}/enso-project`,
+                  `./api/project-manager/projects/${localBackendModule.extractTypeAndId(asset.id).id}/enso-project?projectsDirectory=${parentDirectoryPath}`,
                 )
+
+                if (!projectResponse.ok) {
+                  throw new Error('Something went wrong, please try again')
+                }
+
                 const fileName = `${asset.title}.enso-project`
                 await uploadFileToCloudMutation.mutateAsync([
                   {
@@ -408,7 +427,7 @@ export function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {isCloud && <Separator hidden={hidden} />}
+        {isCloud && !hidden && <Separator />}
 
         {isCloud && (
           <ContextMenuEntry
@@ -419,7 +438,7 @@ export function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {isCloud && managesThisAsset && self != null && <Separator hidden={hidden} />}
+        {isCloud && !hidden && managesThisAsset && self != null && <Separator />}
         {asset.type === backendModule.AssetType.project && (
           <ContextMenuEntry
             hidden={hidden}
@@ -453,7 +472,7 @@ export function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {pasteMenuEntry}
-        {canAddToThisDirectory && <Separator hidden={hidden} />}
+        {canAddToThisDirectory && !hidden && <Separator />}
         {canAddToThisDirectory && (
           <GlobalContextMenu
             noWrapper

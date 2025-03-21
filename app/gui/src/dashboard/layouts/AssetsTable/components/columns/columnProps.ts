@@ -9,6 +9,7 @@ import type { Column, SortableColumn } from './types'
 /** Props for an arbitrary variant of {@link Asset}. */
 export interface AssetColumnProps {
   readonly isOpened: boolean
+  readonly isNavigating: boolean
   readonly item: AnyAsset
   readonly backendType: BackendType
   readonly setSelected: (selected: boolean) => void

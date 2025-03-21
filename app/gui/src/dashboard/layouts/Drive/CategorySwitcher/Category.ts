@@ -2,7 +2,6 @@
 import type { UserId } from '#/services/Backend'
 import {
   FilterBy,
-  Plan,
   type DirectoryId,
   type Path,
   type User,
@@ -192,15 +191,12 @@ export function areCategoriesEqual(a: Category, b: Category) {
 }
 
 /** Whether an asset can be transferred between categories. */
-export function canTransferBetweenCategories(from: Category, to: Category, user: User) {
+export function canTransferBetweenCategories(from: Category, to: Category) {
   switch (from.type) {
     case 'cloud':
     case 'recent':
     case 'team':
     case 'user': {
-      if (user.plan === Plan.enterprise || user.plan === Plan.team) {
-        return to.type !== 'cloud'
-      }
       return to.type === 'trash' || to.type === 'cloud' || to.type === 'team' || to.type === 'user'
     }
     case 'trash': {

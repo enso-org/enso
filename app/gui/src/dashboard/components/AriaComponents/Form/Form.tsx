@@ -9,8 +9,8 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
 import * as dialog from '../Dialog'
 import * as components from './components'
-import * as styles from './styles'
 import type * as types from './types'
+import * as styles from './variants'
 
 /**
  * Form component. It wraps a `form` and provides form context.
@@ -129,6 +129,7 @@ export const Form = forwardRef(function Form<
   Submit: typeof components.Submit
   Reset: typeof components.Reset
   Field: typeof components.Field
+  FieldError: typeof components.FieldError
   FormError: typeof components.FormError
   FieldValue: typeof components.FieldValue
   Provider: typeof components.FormProvider
@@ -153,6 +154,7 @@ Form.Submit = components.Submit
 Form.Reset = components.Reset
 Form.FormError = components.FormError
 Form.FieldValue = components.FieldValue
+Form.FieldError = components.FieldError
 Form.useFormContext = components.useFormContext
 Form.useOptionalFormContext = components.useOptionalFormContext
 Form.Field = components.Field

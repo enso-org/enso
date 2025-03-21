@@ -16,9 +16,9 @@ import {
   type RefObject,
 } from 'react'
 import type { TestIdProps } from '../types'
+import { useVisualTooltip, type VisualTooltipOptions } from '../VisualTooltip/useVisualTooltip'
 import { useTextContext } from './hooks'
 import { TextProvider } from './TextProvider'
-import { useVisualTooltip, type VisualTooltipProps } from './useVisualTooltip'
 import { TEXT_STYLE } from './variants'
 
 /** Props for the Text component */
@@ -30,7 +30,7 @@ export interface TextProps
   readonly lineClamp?: number
   readonly tooltip?: ReactElement | string | false | null
   readonly tooltipTriggerRef?: RefObject<HTMLElement>
-  readonly tooltipDisplay?: VisualTooltipProps['display']
+  readonly tooltipDisplay?: VisualTooltipOptions['display']
   readonly tooltipPlacement?: Placement
   readonly tooltipOffset?: number
   readonly tooltipCrossOffset?: number
@@ -91,7 +91,7 @@ export const Text = memo(
 
     const isTooltipDisabled = useEventCallback(() => {
       if (tooltipDisplay === 'whenOverflowing') {
-        return !truncate
+        return truncate == null
       } else if (tooltipDisplay === 'always') {
         return tooltipElement === false || tooltipElement == null
       } else {

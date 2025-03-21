@@ -69,6 +69,7 @@ crate.from_cargo(
         "//:lib/rust/parser/jni/Cargo.toml",
         "//:lib/rust/parser/schema/Cargo.toml",
         "//:lib/rust/parser/src/syntax/tree/visitor/Cargo.toml",
+        "//:lib/rust/parser/macros/Cargo.toml",
         "//:lib/rust/prelude/Cargo.toml",
         "//:lib/rust/prelude/macros/Cargo.toml",
         "//:lib/rust/reflect/Cargo.toml",

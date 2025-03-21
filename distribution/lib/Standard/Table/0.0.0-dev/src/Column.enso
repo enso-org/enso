@@ -42,13 +42,14 @@ from project.Internal.Storage import enso_to_java, java_to_enso
 from project.Table import from_java_table
 
 polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.table.data.column.operation.BinaryCoalescingOperation
 polyglot java import org.enso.table.data.column.operation.cast.CastOperation
+polyglot java import org.enso.table.data.column.operation.comparators.Comparators
 polyglot java import org.enso.table.data.column.operation.CountNonTrivialWhitespace
 polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.CountUntrimmed
 polyglot java import org.enso.table.data.column.operation.RequiresNumberFormatting
 polyglot java import org.enso.table.data.column.operation.SampleOperation
-polyglot java import org.enso.table.data.column.operation.comparators.Comparators
 polyglot java import org.enso.table.data.column.operation.text.TextPartOperation
 polyglot java import org.enso.table.data.column.operation.text.TextPredicates
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
@@ -1020,12 +1021,11 @@ type Column
              import Standard.Examples
 
              example_min = Examples.decimal_column.min Examples.integer_column
-    min self (values : Any | Vector Any) -> Column =
+    min self (values : Any | Vector Any) -> Column = Value_Type_Helpers.check_multi_argument_comparable_op self values <|
         fallback a b = if a.is_nothing then b else
             if b.is_nothing then a else
                 if b < a then b else a
-        Value_Type_Helpers.check_multi_argument_comparable_op self values <|
-            run_vectorized_many_op self "min" fallback values
+        _run_vectorized_many_op self "min" fallback values
 
     ## GROUP Standard.Base.Math
        ICON transform4
@@ -1041,12 +1041,11 @@ type Column
              import Standard.Examples
 
              example_max = Examples.decimal_column.max Examples.integer_column
-    max self (values : Any | Vector Any) -> Column =
+    max self (values : Any | Vector Any) -> Column = Value_Type_Helpers.check_multi_argument_comparable_op self values <|
         fallback a b = if a.is_nothing then b else
             if b.is_nothing then a else
                 if b > a then b else a
-        Value_Type_Helpers.check_multi_argument_comparable_op self values <|
-            run_vectorized_many_op self "max" fallback values
+        _run_vectorized_many_op self "max" fallback values
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -1396,6 +1395,32 @@ type Column
             _ = [x, y]
             Error.throw (Illegal_Argument.Error "LIKE operation is not supported for the given types.")
         _apply_case_sensitive_text_operation self pattern ..Default TextPredicates.LIKE fallback new_name
+
+    ## GROUP Standard.Base.Logical
+       ICON preparation
+       Checks for each element of the column if it matches a regular expression.
+
+       Arguments:
+       - pattern: The pattern to match `self` against. If it is a column, the
+         operation is performed pairwise between corresponding elements of
+         `self` and that column.
+
+       > Example
+         Check if elements of a column start with 'A' and end with a 'M'.
+
+             import Standard.Examples
+
+             example_contains = Examples.text_column_1.regex_match (regex "A.*M")
+    regex_match self (pattern : Column | Text | Any) -> Column =
+        string_pattern = case pattern of 
+            Regex.Value _ _ -> pattern.pattern 
+            _ -> pattern
+        Value_Type.expect_text self <| Value_Type.expect_text string_pattern <|
+            new_name = naming_helper.binary_operation_name "regex_match" self pattern
+            fallback x y =
+                _ = [x, y]
+                Error.throw (Illegal_Argument.Error "regex_match is not supported for the given types.")
+            _apply_case_sensitive_text_operation self string_pattern ..Default TextPredicates.REGEX_MATCH fallback new_name
 
     ## GROUP Standard.Base.Text
        ICON text
@@ -2185,15 +2210,15 @@ type Column
             CountUntrimmed.apply self.java_column sample_size
 
     ## PRIVATE
-      indicates if a numeric column requires formatting in table viz
+       Indicates if a numeric column requires formatting in table viz
     requires_numeric_formatter_check : Boolean
     requires_numeric_formatter_check self =
         if (self.value_type.is_numeric).not then False else
             RequiresNumberFormatting.apply self.java_column
 
     ## PRIVATE
-      Counts the number of text values with non trivial whitespace.
-      Used for data quality indicator in Table Viz.
+       Counts the number of text values with non trivial whitespace.
+       Used for data quality indicator in Table Viz.
     count_non_trivial_whitespace : Integer -> Integer | Nothing
     count_non_trivial_whitespace self sample_size:Integer=Column.default_sample_size =
         if (Column.can_contain_text self.value_type).not then Nothing else
@@ -2596,7 +2621,6 @@ type Column
         "Column.from_vector " + name + " " + data
 
 ## PRIVATE
-
    Folds the vectorized operation over the provided column and values. When more
    than one value to is provided, the result is folded with subsequent values.
 
@@ -2607,27 +2631,20 @@ type Column
      It should never raise dataflow errors.
    - operands: The vector of operands to apply to the function after `column`.
    - new_name: The name of the column created as the result of this operation.
-   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
-     value results in null without passing it to the function. If set to
-     `False`, the null values are passed as any other value and can have custom
-     handling logic.
-run_vectorized_many_op : Column -> Text -> (Any -> Any -> Any) -> Vector -> Text|Nothing -> Boolean -> Column
-run_vectorized_many_op column name fallback_fn operands new_name=Nothing skip_nulls=False =
+private _run_vectorized_many_op column:Column name:Text fallback_fn:(Any -> Any -> Any) operands new_name:(Text | Nothing)=Nothing -> Column =
     effective_operands = Vector.unify_vector_or_element operands
     all_operands = [column]+effective_operands
-    effective_new_name = new_name.if_nothing <|
-        naming_helper.function_name name all_operands
+    effective_new_name = new_name.if_nothing (naming_helper.function_name name all_operands)
     common_type = Value_Type_Helpers.find_common_type_for_arguments all_operands
     common_type.if_not_error <|
         Java_Problems.with_map_operation_problem_aggregator effective_new_name Problem_Behavior.Report_Warning problem_builder->
             storage_type = resolve_storage_type common_type
-            folded = effective_operands.fold column.java_column.getStorage current-> operand->
-                case operand of
-                    _ : Column -> Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                        current.vectorizedOrFallbackZip name problem_builder fallback_fn operand.java_column.getStorage skip_nulls storage_type
-                    _ -> Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                        current.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn operand skip_nulls storage_type
-            Column.from_storage effective_new_name folded
+            folded = effective_operands.fold column.java_column current-> operand-> if Nothing == operand then current else
+                java_object = if operand.is_a Column then operand.java_column else operand
+                Polyglot_Helpers.handle_polyglot_dataflow_errors <| case name of
+                    "min" -> BinaryCoalescingOperation.min current java_object fallback_fn storage_type effective_new_name problem_builder
+                    "max" -> BinaryCoalescingOperation.max current java_object fallback_fn storage_type effective_new_name problem_builder
+            Column.from_java_column folded
 
 ## PRIVATE
 

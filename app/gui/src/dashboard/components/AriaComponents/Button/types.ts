@@ -62,7 +62,7 @@ interface PropsWithoutHref {
 
 /** Base props for a button. */
 export interface BaseButtonProps<IconType extends string, Render>
-  extends Omit<ButtonVariants, 'iconOnly' | 'isJoined' | 'position'>,
+  extends Omit<ButtonVariants, 'iconOnly' | 'isJoined' | 'loading' | 'position'>,
     TestIdProps {
   /** If `true`, the loader will not be shown. */
   readonly hideLoader?: boolean
@@ -84,9 +84,14 @@ export interface BaseButtonProps<IconType extends string, Render>
     | ((event: aria.PressEvent) => Promise<unknown> | unknown)
     | null
     | undefined
-  readonly contentClassName?: string
-  readonly isDisabled?: boolean
-  readonly formnovalidate?: boolean
+  readonly contentClassName?: string | undefined
+  readonly isDisabled?: boolean | undefined
+  readonly formnovalidate?: boolean | undefined
+  readonly isLoading?: boolean | undefined
+  /**
+   * @deprecated Use `isLoading` instead.
+   */
+  readonly loading?: boolean
   /**
    * Defaults to `full`. When `full`, the entire button will be replaced with the loader.
    * When `icon`, only the icon will be replaced with the loader.

@@ -161,7 +161,7 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
                 <Menu.Trigger>
                   <Button icon={ArrowDownIcon} aria-label={getText('more')} />
 
-                  <Menu>
+                  <Menu placement="bottom right">
                     {item.menu.map((menuItem) => (
                       <Menu.Item
                         key={menuItem.name}
@@ -181,7 +181,7 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
             <Menu.Trigger key={item.name}>
               <Button icon={ArrowDownIcon}>{getText(item.name)}</Button>
 
-              <Menu>
+              <Menu placement="bottom right">
                 {item.menu.map((menuItem) => (
                   <Menu.Item
                     key={menuItem.name}

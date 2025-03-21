@@ -1,7 +1,6 @@
 from Standard.Base import all
 
 type SQL_Part
-
     ## The text literal SELECT
     Select
 
@@ -31,4 +30,3 @@ type SQL_Part
 
     ## Any dialect defined query extensions with an identifying name
     Extension (name : Text)
-    

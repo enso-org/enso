@@ -51,18 +51,30 @@ export function useSetPasteData() {
 }
 
 /** The selected keys in the Asset Table. */
-export function useSelectedKeys() {
+export function useSelectedIds() {
   const store = useDriveStore()
   return useStore(store, (state) => state.selectedIds)
 }
 
-/** The selected assets in the Asset Table. */
+/** A function to set the selected keys in the Asset Table. */
+export function useSetSelectedIds() {
+  const store = useDriveStore()
+  return useStore(store, (state) => state.setSelectedIds)
+}
+
+/**
+ * The selected assets in the Asset Table.
+ * @deprecated Use `useSelectedIds` instead.
+ */
 export function useSelectedAssets() {
   const store = useDriveStore()
   return useStore(store, (state) => state.selectedAssets)
 }
 
-/** A function to set the selected assets in the Asset Table. */
+/**
+ * A function to set the selected assets in the Asset Table.
+ * @deprecated Use `useSetSelectedIds` instead.
+ */
 export function useSetSelectedAssets() {
   const store = useDriveStore()
   return useStore(store, (state) => state.setSelectedAssets)

@@ -48,6 +48,10 @@ export interface DriveStore {
   readonly pasteData: PasteData<DrivePastePayload> | null
   readonly setPasteData: (pasteData: PasteData<DrivePastePayload> | null) => void
   readonly selectedIds: ReadonlySet<AssetId>
+  readonly setSelectedIds: (selectedIds: ReadonlySet<AssetId>) => void
+  /**
+   * @deprecated Use `selectedIds` instead.
+   */
   readonly selectedAssets: readonly SelectedAssetInfo[]
   readonly setSelectedAssets: (selectedAssets: readonly SelectedAssetInfo[]) => void
   readonly visuallySelectedKeys: ReadonlySet<AssetId> | null

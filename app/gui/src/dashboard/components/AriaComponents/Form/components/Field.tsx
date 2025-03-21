@@ -4,8 +4,8 @@ import type { Path } from '#/utilities/objectPath'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import * as React from 'react'
-import { FIELD_STYLES } from '../styles'
-import type { FieldProps, FieldValues, FormInstance, TSchema } from './types'
+import { FIELD_ERROR_STYLES, FIELD_STYLES } from '../variants'
+import type { FieldPath, FieldProps, FieldValues, FormInstance, TSchema } from './types'
 import { useFieldState } from './useFieldState'
 
 /** Props for Field component */
@@ -115,11 +115,53 @@ export const Field = forwardRef(function Field<Schema extends TSchema>(
         </span>
       )}
 
-      {hasError && (
-        <span data-testid="error" id={errorId} className={classes.error()}>
-          {error ?? fieldState.error}
-        </span>
-      )}
+      <FieldError
+        error={error}
+        id={errorId}
+        /* This is SAFE, we are just using a type with added constraint. */
+        /* eslint-disable-next-line no-restricted-syntax */
+        name={props.name as FieldPath<Schema, string>}
+        form={props.form}
+      />
     </div>
   )
 })
+
+/**
+ * Props for the {@link FieldError} component.
+ */
+export interface FieldErrorProps<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, string>,
+> extends React.HTMLAttributes<HTMLSpanElement>,
+    VariantProps<typeof FIELD_ERROR_STYLES> {
+  readonly error?: React.ReactNode | string | null | undefined
+  readonly id?: string | undefined
+  readonly form?: FormInstance<Schema> | undefined
+  readonly name: TFieldName
+}
+
+/**
+ * Component for displaying an error message for a field.
+ */
+export function FieldError<Schema extends TSchema, TFieldName extends FieldPath<Schema, string>>(
+  props: FieldErrorProps<Schema, TFieldName>,
+) {
+  const { error, className, id, variants = FIELD_ERROR_STYLES, fullWidth, ...rest } = props
+
+  // This is SAFE, we are just using a type with added constraint.
+  // eslint-disable-next-line no-restricted-syntax
+  const fieldState = useFieldState(props as never)
+
+  const hasError = (error !== undefined ? error : fieldState.error) != null
+
+  if (!hasError) {
+    return null
+  }
+
+  return (
+    <span data-testid="error" id={id} className={variants({ className, fullWidth })} {...rest}>
+      {error ?? fieldState.error}
+    </span>
+  )
+}

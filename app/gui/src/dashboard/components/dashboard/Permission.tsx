@@ -31,6 +31,7 @@ const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<backendModule.AssetType, text.TextI
   [backendModule.AssetType.specialEmpty]: 'specialEmptyAssetType',
   [backendModule.AssetType.specialError]: 'specialErrorAssetType',
   [backendModule.AssetType.specialLoading]: 'specialLoadingAssetType',
+  [backendModule.AssetType.specialUp]: 'specialUpAssetType',
   [backendModule.AssetType.datalink]: 'datalinkAssetType',
 } satisfies { [Type in backendModule.AssetType]: `${Type}AssetType` }
 

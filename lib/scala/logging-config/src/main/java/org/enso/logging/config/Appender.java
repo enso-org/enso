@@ -9,7 +9,12 @@ import org.slf4j.event.Level;
  * to do with the recorded log events
  */
 public abstract sealed class Appender
-    permits ConsoleAppender, FileAppender, MemoryAppender, SentryAppender, SocketAppender {
+    permits ConsoleAppender,
+        FileAppender,
+        MemoryAppender,
+        TelemetryAppender,
+        SentryAppender,
+        SocketAppender {
 
   /**
    * Returns the name of the appender
@@ -27,20 +32,15 @@ public abstract sealed class Appender
    */
   public static Appender parse(Config config) throws MissingConfigurationField {
     if (config != null) {
-      switch (config.getString(nameKey)) {
-        case FileAppender.appenderName:
-          return FileAppender.parse(config);
-        case SocketAppender.appenderName:
-          return SocketAppender.parse(config);
-        case SentryAppender.appenderName:
-          return SentryAppender.parse(config);
-        case ConsoleAppender.appenderName:
-          return ConsoleAppender.parse(config);
-        case MemoryAppender.appenderName:
-          return MemoryAppender.parse(config);
-        default:
-          return null;
-      }
+      return switch (config.getString(nameKey)) {
+        case FileAppender.appenderName -> FileAppender.parse(config);
+        case SocketAppender.appenderName -> SocketAppender.parse(config);
+        case SentryAppender.appenderName -> SentryAppender.parse(config);
+        case TelemetryAppender.appenderName -> TelemetryAppender.parse(config);
+        case ConsoleAppender.appenderName -> ConsoleAppender.parse(config);
+        case MemoryAppender.appenderName -> MemoryAppender.parse(config);
+        default -> null;
+      };
     }
     return null;
   }

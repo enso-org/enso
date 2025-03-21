@@ -1,5 +1,4 @@
 from Standard.Base import all
-
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.Type_Error
@@ -64,7 +63,7 @@ type Generic_JDBC_Connection
     close self -> Nothing =
         self.jdbc_connection.close
 
-    ## ALIAS query, insert, update, delete
+    ## ALIAS delete, insert, query, update
        GROUP Standard.Base.Output
        ICON data_output
 
@@ -291,6 +290,7 @@ type Generic_JDBC_Connection
             connection.createStatement.enquoteLiteral literal
 
 type Generic_JDBC_Details
+    ## Set up a connection to a JDBC database.
     Value url:Text
 
     ## PRIVATE
@@ -308,7 +308,7 @@ type Generic_JDBC_Details
     connect self options =
         Generic_JDBC_Connection.connect self.url options.options
 
-## PRVIATE
+## PRIVATE
    Convert a JDBC ResultSet to a Table using the fallback fetcher.
 private rs_to_table_ rs =
     make_fallback_fetcher _ =

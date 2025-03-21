@@ -44,6 +44,7 @@ export interface AssetPanelState {
   readonly setIsAssetPanelTemporarilyVisible: (isAssetPanelTemporarilyVisible: boolean) => void
   readonly assetPanelProps: AssetPanelContextProps
   readonly setAssetPanelProps: (assetPanelProps: Partial<AssetPanelContextProps>) => void
+  readonly setAssetPanelDefaultItem: (defaultItem: AnyAsset | null) => void
   readonly isAssetPanelHidden: boolean
   readonly setIsAssetPanelHidden: (isAssetPanelHidden: boolean) => void
 }
@@ -100,11 +101,18 @@ export const assetPanelStore = createStore<AssetPanelState>((set, get) => {
       item: null,
       spotlightOn: null,
       path: null,
+      defaultItem: null,
     },
     setAssetPanelProps: (assetPanelProps) => {
       const current = get().assetPanelProps
       if (current !== assetPanelProps) {
         set({ assetPanelProps: { ...current, ...assetPanelProps } })
+      }
+    },
+    setAssetPanelDefaultItem: (defaultItem) => {
+      const current = get().assetPanelProps
+      if (current.defaultItem !== defaultItem) {
+        set({ assetPanelProps: { ...current, defaultItem } })
       }
     },
     isAssetPanelHidden: localStorage.get('isAssetPanelHidden') ?? false,
@@ -124,6 +132,7 @@ export interface AssetPanelContextProps {
   readonly backend: Backend | null
   readonly selectedTab: AssetPanelTab
   readonly item: AnyAsset | null
+  readonly defaultItem: AnyAsset | null
   readonly spotlightOn: AssetPropertiesSpotlight | null
 }
 
@@ -208,6 +217,7 @@ export function useResetAssetPanelProps() {
     if (current.item != null) {
       assetPanelStore.setState({
         assetPanelProps: {
+          defaultItem: current.defaultItem,
           selectedTab: current.selectedTab,
           backend: null,
           item: null,
@@ -242,6 +252,22 @@ export function useIsAssetPanelHidden() {
 /** A function to set whether the Asset Panel is hidden. */
 export function useSetIsAssetPanelHidden() {
   return useStore(assetPanelStore, (state) => state.setIsAssetPanelHidden, {
+    unsafeEnableTransition: true,
+  })
+}
+
+/**
+ * A function to set the default item of the Asset Panel.
+ */
+export function useSetAssetPanelDefaultItem() {
+  return useStore(assetPanelStore, (state) => state.setAssetPanelDefaultItem, {
+    unsafeEnableTransition: true,
+  })
+}
+
+/** The default item of the Asset Panel. */
+export function useAssetPanelDefaultItem() {
+  return useStore(assetPanelStore, (state) => state.assetPanelProps.defaultItem, {
     unsafeEnableTransition: true,
   })
 }

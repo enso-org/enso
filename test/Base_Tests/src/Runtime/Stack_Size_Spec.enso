@@ -64,25 +64,30 @@ generate_code nesting_level:Integer -> Text =
     bldr.append "import Standard.Base.Internal.Extra_Imports.RuntimeException"
     bldr.append '\n'
     bldr.append <| "main = "
-    bldr.append <| "    "
-                   + "vec = "
-                   + ("[" * nesting_level)
-                   + "42"
-                   + ("]" * nesting_level)
-    bldr.append <| "    "
-                   + "vec.map e0->"
+    bldr.append <|
+        "    "
+            + "vec = "
+            + ("[" * nesting_level)
+            + "42"
+            + ("]" * nesting_level)
+    bldr.append <|
+        "    "
+            + "vec.map e0->"
     0.up_to (nesting_level - 1) . each \i ->
-        bldr.append <| ("    " * (i + 2))
-                       + "e"
-                       + i.to_text
-                       + ".map e"
-                       + (i + 1).to_text
-                       + "-> "
-    bldr.append <| ("    " * (nesting_level + 1))
-                   + "cnt = RuntimeException.new.getStackTrace.length"
-    bldr.append <| ("    " * (nesting_level + 1))
-                   + "IO.println <| 'java_stack_frames=' + cnt.to_text"
-                   + '\n'
+        bldr.append <|
+            "    " * (i + 2)
+                + "e"
+                + i.to_text
+                + ".map e"
+                + (i + 1).to_text
+                + "-> "
+    bldr.append <|
+        "    " * (nesting_level + 1)
+            + "cnt = RuntimeException.new.getStackTrace.length"
+    bldr.append <|
+        "    " * (nesting_level + 1)
+            + "IO.println <| 'java_stack_frames=' + cnt.to_text"
+            + '\n'
     bldr.to_vector.reduce \first_line:Text second_line:Text ->
         first_line + '\n' + second_line
 

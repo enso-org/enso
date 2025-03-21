@@ -2,7 +2,7 @@
 ## module Standard.Base.System.Process.Process_Builder
 - type Process_Builder
     - Value command:Standard.Base.Any.Any arguments:Standard.Base.Any.Any stdin:Standard.Base.Any.Any
-    - create self -> Standard.Base.Any.Any
+    - create self redirect_out_err:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - set_arguments self arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - set_stdin self stdin:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - type Process_Result

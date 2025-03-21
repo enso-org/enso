@@ -15,7 +15,7 @@ object GraalVM {
     override def toString(): String = {
       val prop = System.getenv(VAR_NAME)
       // default value is `shell` for development and `native` for the release
-      return if (prop != null) {
+      if (prop != null) {
         prop
       } else {
         if (BuildInfo.isReleaseMode) {

@@ -280,6 +280,13 @@ export function useCategories() {
   return { cloudCategories, localCategories, findCategoryById, getCategoryByDirectoryId }
 }
 
+/** Return the current category and the associated backend. */
+export function useCategory() {
+  const { category, associatedBackend } = useCategoriesAPI()
+
+  return { category, associatedBackend }
+}
+
 /** Get the API to interact with the categories. */
 export function useCategoriesAPI() {
   const context = useContext(CategoriesContext)

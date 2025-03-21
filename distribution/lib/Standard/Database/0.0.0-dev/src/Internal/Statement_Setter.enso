@@ -6,7 +6,6 @@ from Standard.Table import Value_Type
 polyglot java import java.math.BigDecimal as Java_Big_Decimal
 polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.Types as Java_Types
-
 polyglot java import org.enso.base.polyglot.NumericConverter
 polyglot java import org.enso.database.JDBCUtils
 

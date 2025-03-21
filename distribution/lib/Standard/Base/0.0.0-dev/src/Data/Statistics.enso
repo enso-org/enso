@@ -437,7 +437,7 @@ type Accumulator
     check_moments self statistic ~action =
         if self.moments.is_nothing.not && self.moments.length >= statistic.order then action else
             Error.throw (Illegal_Argument.Error ("Can't compute " + statistic.to_text + " on this Accumulator."))
-    
+
     ## PRIVATE
     check_product self =
         if is_valid self.product then self.product else
