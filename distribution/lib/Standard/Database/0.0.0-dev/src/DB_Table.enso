@@ -2932,8 +2932,10 @@ type DB_Table
     @path (Widget.Text_Input display=Display.Always)
     @format Widget_Helpers.write_table_selector
     write self path:Writable_File format=Auto_Detect on_existing_file:Existing_File_Behavior=..Backup match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Nothing ! Column_Count_Mismatch | Illegal_Argument | File_Error =
-        # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
-        self.read.write path format on_existing_file match_columns on_problems
+        row_limit = 100001
+        materialized = self.read ..First row_limit
+        if materialized.row_count < row_limit then materialized.write path format on_existing_file match_columns on_problems else
+            Error.throw (Illegal_Argument.Error "DB_Table contains more than 100,000 rows. Use `read` to materialize first.")
 
 
     ## GROUP Standard.Base.Output
