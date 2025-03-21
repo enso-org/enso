@@ -48,7 +48,6 @@ const choiceSchema: z.ZodType<Choice> = z.object({
   label: z.string().nullable(),
   parameters: z.lazy(() => z.array(argumentSchema)),
   icon: z.string().nullable().optional(),
-
 })
 export type Choice = {
   value: ChoiceValue
