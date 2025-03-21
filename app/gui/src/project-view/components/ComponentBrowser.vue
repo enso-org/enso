@@ -318,7 +318,7 @@ const actions = registerHandlers({
     disabled: outsideComponentBrowsing,
   },
   'componentBrowser.acceptSuggestion': {
-    action: acceptComponent,
+    action: () => acceptComponent(),
     disabled: outsideComponentBrowsing,
   },
   'componentBrowser.acceptInputAsCode': {
