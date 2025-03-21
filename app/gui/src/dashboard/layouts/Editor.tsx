@@ -9,29 +9,17 @@ import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/Backend'
 import * as twMerge from '#/utilities/tailwindMerge'
+import { vueComponent } from '#/utilities/vue'
 import * as reactQuery from '@tanstack/react-query'
 import * as React from 'react'
 import { useTimeoutCallback } from '../hooks/timeoutHooks'
-// eslint-disable-next-line no-restricted-syntax
-import type ProjectViewTabVue from '@/ProjectViewTab.vue'
-import { lazy } from 'react'
-import { applyPureVueInReact } from 'veaury'
-import type { AllowedComponentProps, VNodeProps } from 'vue'
-import type { ComponentProps } from 'vue-component-type-helpers'
+
+const ProjectViewTab = React.lazy(() =>
+  import('@/ProjectViewTab.vue').then(({ default: vue }) => vueComponent(vue)),
+)
 
 /** Props for the GUI editor root component. */
-export type ProjectViewTabProps = Omit<
-  ComponentProps<typeof ProjectViewTabVue>,
-  keyof AllowedComponentProps | keyof VNodeProps
->
-
-const ProjectViewTab = lazy(() =>
-  import('@/ProjectViewTab.vue').then((module) => ({
-    // applyPureVuewInReact returns Function, but this is not enough to satisfy TSX.
-    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-member-access
-    default: applyPureVueInReact(module.default) as (props: ProjectViewTabProps) => JSX.Element,
-  })),
-)
+export type ProjectViewTabProps = React.ComponentProps<typeof ProjectViewTab>
 
 /** Props for an {@link Editor}. */
 export interface EditorProps {

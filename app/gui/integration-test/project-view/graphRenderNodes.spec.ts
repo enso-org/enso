@@ -26,3 +26,10 @@ test('Component icon indicates evaluation in progress', async ({ page }) => {
   await mockExpressionUpdate(page, 'final', { payload: { type: 'Pending', progress: 0.1 } })
   await expect(node.locator('.WidgetIcon .LoadingSpinner')).toBeVisible()
 })
+
+test('Menu is shown when component is hovered', async ({ page }) => {
+  await actions.goToGraph(page)
+  const node = locate.graphNodeByBinding(page, 'final')
+  await node.hover({ position: { x: 100, y: 8 } })
+  await expect(locate.componentMenu(page)).toExist()
+})

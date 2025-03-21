@@ -2325,10 +2325,12 @@ type Table
 
        ? Ordering of rows
 
-         Note that the ordering of rows from the original table is preserved in
-         all cases. The grouping and ordering settings can affect how the group
-         numbers are assigned, depending on the grouping method.  The order of
-         the rows itself is not changed by this operation.
+         In the in-memory database, the ordering of rows from the original table
+         is preserved in all cases. The grouping and ordering settings can
+         affect how the group numbers are assigned, depending on the grouping
+         method.  The order of the rows itself is not changed by this operation.
+
+         In the database backends, the ordering of rows is backend-dependent.
 
        ! Error Conditions
 
@@ -2363,8 +2365,8 @@ type Table
                 0 | 1 | 0 | 1
                 1 | 2 | 0 | 2
                 0 | 1 | 1 | 1
-                1 | 0 | 1 | 2
-                1 | 2 | 1 | 0
+                1 | 0 | 1 | 0
+                1 | 2 | 1 | 2
 
        > Example
          Divide rows into three groups.
@@ -2391,8 +2393,6 @@ type Table
     @grouping_method (Widget_Helpers.make_grouping_method_selector display=..Always)
     @name (Widget.Text_Input display=..Always)
     @from (Widget.Numeric_Input display=..Always)
-    @group_by (Widget_Helpers.make_column_name_multi_selector display=..When_Modified)
-    @order_by (Widget_Helpers.make_order_by_selector display=..When_Modified)
     add_group_number self (grouping_method : Grouping_Method = Missing_Argument.throw "grouping_method") name:Text="Group" from:Integer=0 step:Integer=1 on_problems:Problem_Behavior=..Report_Warning -> Table =
         Incomparable_Values.handle_errors <| Add_Group_Number.add_group_number self grouping_method name from step on_problems
 
