@@ -258,6 +258,7 @@ type Snowflake_Dialect
     is_feature_supported self feature:Feature -> Boolean =
         case feature of
             Feature.Generate_Rows -> False
+            Feature.Add_Group_Number -> False
             _ -> True
 
     ## PRIVATE

@@ -1,5 +1,4 @@
 import project.Any.Any
-import project.Data.Dictionary.Dictionary
 import project.Data.Download.Download_Mode.Download_Mode
 import project.Data.Pair.Pair
 import project.Data.Read.Many_Files_List.Many_Files_List
@@ -17,7 +16,6 @@ import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Internal.Data_Read_Helpers
-import project.Internal.Telemetry.Telemetry
 import project.Meta
 import project.Network.HTTP.Cache_Policy.Cache_Policy
 import project.Network.HTTP.Header.Header
@@ -94,17 +92,11 @@ read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Prob
     _ : Vector -> Error.throw (Illegal_Argument.Error "Data.read cannot be used with a Vector. Please use Data.read_many.")
     _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format else
         read (File.new path) format on_problems
-    uri : URI ->
-        fetch uri format=format
+    uri : URI -> fetch uri format=format
     _ ->
         file_obj = File.new path
         if file_obj.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `Data.list`.") else
-            file_content = file_obj.read format on_problems
-            metadata = Dictionary.empty
-                . insert "size" file_obj.size
-                . insert "extension" file_obj.extension
-            logged = Telemetry.log "Data.read" "read from file" metadata
-            if logged.is_error then file_content else file_content
+            file_obj.read format on_problems
 
 ## ALIAS load, open
    GROUP Input

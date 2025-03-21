@@ -91,6 +91,21 @@ public class EngineMainTest {
     }
   }
 
+  @Test
+  public void genDocsFails_WhenProjectDoesNotExist() throws IOException {
+    try {
+      var m = new MainMock();
+      // Using --docs api on purpose - as `--run` is able to detect project dir itself.
+      var line =
+          m.preprocessArguments("--in-project", "NON_EXISTING_DIR/foo/bar/xxx/zz", "--docs", "api");
+      m.mainEntry(line, Level.INFO, false);
+    } catch (ExitCode ex) {
+      assertEquals("Execution fails", 1, ex.exitCode);
+      assertEquals("One line printed", 1, linesOut.size());
+      assertThat(linesOut.get(0), containsString("does not exist"));
+    }
+  }
+
   private final class MainMock extends Main {
     boolean helpPrinted;
 
