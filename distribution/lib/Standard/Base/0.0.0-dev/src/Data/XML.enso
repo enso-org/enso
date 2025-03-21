@@ -65,7 +65,7 @@ type XML_Document
        If there is a parsing error, `XML_Error.Parse_Error` is thrown.
 
        Arguments:
-       - input_stream: the input stread to read the XML document from.
+       - input_stream: the input stream to read the XML document from.
 
        > Example
          Read an XML document from an input_stream.
