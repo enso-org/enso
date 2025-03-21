@@ -44,7 +44,7 @@ type Join_Kind
 
     ## PRIVATE
     default_widget display:Display=..When_Modified -> Widget =
-        make_single_choice [Choice.Option "..Inner" "..Inner" icon="join-inner", Choice.Option "..Left_Outer" "..Left_Outer" icon="join-left-outer", Choice.Option "..Right_Outer" "..Right_Outer" icon="join-right-outer", Choice.Option "..Full" "..Full" icon="join-full", Choice.Option "..Left_Exclusive" "..Left_Exclusive" icon="join-left-exclusive", Choice.Option "..Right_Exclusive" "..Right_Exclusive" icon="join-right-exclusive"] display=display
+        make_single_choice [Choice.Option "..Inner" "..Inner" icon="join_inner", Choice.Option "..Left_Outer" "..Left_Outer" icon="join_left_outer", Choice.Option "..Right_Outer" "..Right_Outer" icon="join_right_outer", Choice.Option "..Full" "..Full" icon="join_full", Choice.Option "..Left_Exclusive" "..Left_Exclusive" icon="join_left_exclusive", Choice.Option "..Right_Exclusive" "..Right_Exclusive" icon="join_right_exclusive"] display=display
 
     ## PRIVATE
     to_java : Java_Join_Kind
