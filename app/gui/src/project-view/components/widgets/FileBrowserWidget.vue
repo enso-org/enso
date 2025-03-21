@@ -260,7 +260,7 @@ onMounted(() => {
       <div class="directoryStack">
         <TransitionGroup>
           <template v-for="(directory, index) in directoryStack" :key="directory.id ?? 'root'">
-            <SvgIcon v-if="index > 0" name="arrow_right_head_only" />
+            <SvgIcon v-if="index > 0" name="navigate_breadcrumb" />
             <div
               class="clickable"
               :class="{ nonInteractive: index === directoryStack.length - 1 }"
