@@ -43,7 +43,13 @@ object ApiMessage {
         obj: Any,
         out: JsonWriter
       ): Unit = {
-        out.writeVal(obj.toString)
+        obj match {
+          case i: Integer           => out.writeVal(i)
+          case l: java.lang.Long    => out.writeVal(l)
+          case d: java.lang.Double  => out.writeVal(d)
+          case b: java.lang.Boolean => out.writeVal(b)
+          case _                    => out.writeVal(obj.toString)
+        }
       }
 
       override def nullValue: AnyRef = null

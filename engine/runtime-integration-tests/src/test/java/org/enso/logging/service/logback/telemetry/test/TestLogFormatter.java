@@ -113,6 +113,20 @@ public class TestLogFormatter {
     assertMessage(json, "Message", Map.of("arg", "some string"));
   }
 
+  @Test
+  public void integerArgumentIsInteger_NotText() {
+    var logMessage = createLogMessage("Message: arg={}", 42);
+    var json = serialize(logMessage);
+    assertThat(json, allOf(containsString("42"), not(containsString("\"42\""))));
+  }
+
+  @Test
+  public void booleanArgumentIsBoolean_NotText() {
+    var logMessage = createLogMessage("Message: arg={}", true);
+    var json = serialize(logMessage);
+    assertThat(json, allOf(containsString("true"), not(containsString("\"true\""))));
+  }
+
   private static LogMessage createLogMessage(String message, Object... args) {
     return new LogMessage("org.enso.telemetry.MyLogger", message, args);
   }
