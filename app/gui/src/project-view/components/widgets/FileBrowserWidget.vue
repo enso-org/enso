@@ -266,12 +266,7 @@ onMounted(() => {
   <div class="FileBrowserWidget">
     <div class="topBar">
       <div class="directoryStack">
-        <SvgButton
-            name="navigate_up"
-            title="Up"
-            :disabled="!canPop"
-            @click.stop="popDirectory"
-          />
+        <SvgButton name="navigate_up" title="Up" :disabled="!canPop" @click.stop="popDirectory" />
         <div class="breadcrumbs">
           <TransitionGroup>
             <template v-for="(directory, index) in directoryStack" :key="directory.id ?? 'root'">

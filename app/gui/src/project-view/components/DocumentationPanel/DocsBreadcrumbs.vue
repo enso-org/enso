@@ -33,7 +33,11 @@ function shrinkFactor(index: number): number {
         :disabled="!props.canGoBackward"
         @click.stop="emit('backward')"
       />
-      <SvgButton name="navigate_forward" :disabled="!props.canGoForward" @click.stop="emit('forward')" />
+      <SvgButton
+        name="navigate_forward"
+        :disabled="!props.canGoForward"
+        @click.stop="emit('forward')"
+      />
     </div>
     <TransitionGroup name="breadcrumbs">
       <template v-for="(breadcrumb, index) in props.breadcrumbs" :key="[index, breadcrumb.label]">
