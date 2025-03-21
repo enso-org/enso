@@ -827,7 +827,7 @@
   "settingsShortcut": "Settings",
   "closeTabShortcut": "Close Tab",
   "openShortcut": "Open",
-  "runShortcut": "Run Locally",
+  "runShortcut": "Run in Cloud",
   "closeShortcut": "Close",
   "uploadToCloudShortcut": "Upload to Cloud",
   "renameShortcut": "Rename",
