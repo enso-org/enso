@@ -385,7 +385,12 @@ export function useOpenProject() {
     const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
 
     if (!isOpeningTheSameProject) {
-      openProjectMutation.mutate(project)
+      openProjectMutation.mutate(project, {
+        onSuccess: () => {
+          addLaunchedProject(project)
+        },
+      })
+
       const openingProjectMutation = client.getMutationCache().find({
         mutationKey: ['openProject'],
         // this is unsafe, but we can't do anything about it
@@ -396,8 +401,6 @@ export function useOpenProject() {
         ...openingProjectMutation.options,
         scope: { id: project.id },
       })
-
-      addLaunchedProject(project)
     }
   })
 }
