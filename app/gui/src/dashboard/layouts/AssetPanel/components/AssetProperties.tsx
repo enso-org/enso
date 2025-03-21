@@ -38,7 +38,7 @@ import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
 import { useMutation } from '@tanstack/react-query'
-import { AssetPropertiesSpotlight } from '../types'
+import type { AssetPropertiesSpotlight } from '../types'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
   base: '',

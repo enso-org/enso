@@ -1,5 +1,5 @@
 /** @file Configuration for the AWS Amplify library. */
-import { AccessToken } from 'enso-common/src/accessToken'
+import type { AccessToken } from 'enso-common/src/accessToken'
 
 /**
  * Configuration for the AWS Amplify library.

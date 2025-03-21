@@ -2,20 +2,9 @@
  * @file The React provider for modals, along with hooks to use the provider via
  * the shared React context.
  */
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useStore } from '#/hooks/storeHooks'
-import { useSyncRef } from '#/hooks/syncRefHooks'
-import {
-  startTransition,
-  useMemo,
-  useState,
-  type Dispatch,
-  type JSX,
-  type PropsWithChildren,
-  type RefObject,
-  type SetStateAction,
-} from 'react'
-import { ModalContext, ModalsStore, ModalStaticContext, type Modal } from './constants'
+import { type PropsWithChildren } from 'react'
+import { ModalContext, ModalsStore, ModalStaticContext } from './constants'
 
 /** Props for a {@link ModalProvider}. */
 export type ModalProviderProps = Readonly<PropsWithChildren>

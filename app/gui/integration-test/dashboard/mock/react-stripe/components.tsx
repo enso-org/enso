@@ -6,12 +6,8 @@ import type {
   ElementsConsumer as StripeElementConsumer,
   Elements as StripeElements,
 } from '@stripe/react-stripe-js'
-import { createContext, useContext, useEffect, useState } from 'react'
-
-/** */
-type ElementsContextValue = Parameters<Parameters<typeof StripeElementConsumer>[0]['children']>[0]
-
-const ElementsContext = createContext<ElementsContextValue>(null!)
+import { useContext, useEffect, useState } from 'react'
+import { ElementsContext, type ElementsContextValue } from './constants'
 
 /** Elements provider for Stripe. */
 export function Elements(...[props]: Parameters<typeof StripeElements>) {
@@ -101,11 +97,3 @@ export function CardElement(props: CardElementProps) {
 
   return <></>
 }
-
-export const useStripe = () => ({
-  confirmCardSetup: () => {},
-})
-
-export const useElements = () => ({
-  getElement: () => {},
-})

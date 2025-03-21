@@ -283,7 +283,7 @@ const config = [
       'jsdoc/require-yields': 'off',
     },
   },
-
+  reactRefresh.configs.vite,
   // === Dashboard Rules ===
   {
     files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
@@ -603,10 +603,9 @@ const config = [
       '**/configuration/*',
       '**/index.ts',
     ],
-    plugins: { 'react-compiler': reactCompiler, 'react-refresh': reactRefresh },
+    plugins: { 'react-compiler': reactCompiler },
     rules: {
       'react-compiler/react-compiler': 'error',
-      'react-refresh/only-export-components': 'error',
     },
   },
   // === Index Files ===

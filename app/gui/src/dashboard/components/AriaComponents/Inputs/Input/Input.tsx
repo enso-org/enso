@@ -10,7 +10,7 @@ import {
   type TSchema,
 } from '#/components/AriaComponents/Form'
 import { Text } from '#/components/AriaComponents/Text'
-import { TestIdProps } from '#/components/AriaComponents/types'
+import type { TestIdProps } from '#/components/AriaComponents/types'
 import SvgMask from '#/components/SvgMask'
 import { useAutoFocus } from '#/hooks/autoFocusHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
