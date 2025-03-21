@@ -24,8 +24,7 @@ public final class CurrentEnsoProject {
           EnsoMeta.callStaticModuleMethod("Standard.Base.Meta.Enso_Project", "enso_project");
       Value namespace = invokeMember("namespace", ensoProject);
       Value name = invokeMember("name", ensoProject);
-      Value root = invokeMember("root", ensoProject);
-      Value rootPath = root != null ? invokeMember("path", root) : null;
+      Value rootPath = invokeMember("path", invokeMember("root", ensoProject));
       if (namespace == null || name == null || rootPath == null) {
         cached = null;
       } else {
