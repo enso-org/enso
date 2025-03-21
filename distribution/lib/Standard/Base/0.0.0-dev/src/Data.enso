@@ -99,8 +99,9 @@ read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Prob
         file_obj = File.new path
         if file_obj.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `Data.list`.") else
             file_content = file_obj.read format on_problems
-            Telemetry.log "Data.read" "Read file: size={}, extension={}, file_type={}" [file_obj.size, file_obj.extension, file_obj.to Meta.Type . name]
-            file_content
+            file_content.if_not_error <|
+                Telemetry.log "Data.read" "Read file: size={}, extension={}, file_type={}" [file_obj.size, file_obj.extension, file_obj.to Meta.Type . name]
+                file_content
 
 ## ALIAS load, open
    GROUP Input
@@ -251,8 +252,9 @@ list : Text | File -> Text -> Boolean -> Vector File
 list (directory=enso_project.root) (name_filter:Text="") recursive:Boolean=False =
     file_obj = File.new directory
     file_list = file_obj.list name_filter=name_filter recursive=recursive . sort on=.path
-    Telemetry.log "Data.list" "List folder: count={}, recursive={}, filtered={}, file_type={}" [file_list.length, recursive, name_filter != "", file_obj.to Meta.Type . name]
-    file_list
+    file_list.if_not_error <|
+        Telemetry.log "Data.list" "List folder: count={}, recursive={}, filtered={}, file_type={}" [file_list.length, recursive, name_filter != "", file_obj.to Meta.Type . name]
+        file_list
 
 ## ALIAS download, http get
    GROUP Input
