@@ -90,7 +90,7 @@ type Hyper_File
             result = Hyper_Table.Value self table schema . read limit
             result.if_not_error <|
                 Telemetry.log "Hyper_File.read" "Read Hyper table: output={}, row_count={}, column_count={}" ["Table", result.row_count, result.column_count]
-            result
+                result
 
 ## PRIVATE
 make_schema_selector hyper_file:Hyper_File include_any:Boolean=False =

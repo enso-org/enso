@@ -159,7 +159,7 @@ read_many (paths : Many_Files_List = Missing_Argument.throw "paths") format=Auto
         result = return_as.make_return paths loaded_objects on_problems
         result.if_not_error <|
             Telemetry.log "Data.read_many" "Read files: count={}, output={}" [paths.paths_to_load.length, result.to Meta.Type . name]
-        result
+            result
 
 ## ALIAS load text, open text
    GROUP Input

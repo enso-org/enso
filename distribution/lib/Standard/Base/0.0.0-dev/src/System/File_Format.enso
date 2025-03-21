@@ -224,7 +224,7 @@ type Plain_Text_Format
         result = file.read_text (self.resolve_encoding file) on_problems
         result.if_not_error <|
             Telemetry.log "File_Format.read" "Read file: format={}, output={}" ["Plain_Text", "Text"]
-        result
+            result
 
     ## PRIVATE
        Implements decoding the format from a stream.
@@ -278,7 +278,7 @@ type Bytes
         result = file.read_bytes
         result.if_not_error <|
             Telemetry.log "File_Format.read" "Read file: format={}, output={}, length={}" ["Bytes", "Vector", result.length]
-        result
+            result
 
     ## PRIVATE
        Implements decoding the format from a stream.
@@ -333,7 +333,7 @@ type JSON_Format
             Error.throw (File_Error.Corrupted_Format file error.to_display_text error)
         result.if_not_error <|
             Telemetry.log "File_Format.read" "Read file: format={}, output={}" ["JSON", result.to Meta.Type . name]
-        result
+            result
 
     ## PRIVATE
        Implements decoding the format from a stream.

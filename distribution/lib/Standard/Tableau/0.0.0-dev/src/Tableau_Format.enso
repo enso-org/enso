@@ -57,7 +57,7 @@ type Tableau_Format
         result = Hyper_File.new file self.schema
         result.if_not_error <|
             Telemetry.log "File_Format.read" "Read file: format={}, output={}, schema_count={}, table_count={}" ["Tableau_Format", "Hyper_File", result.schemas.length, result.tables.length]
-        result
+            result
 
     ## PRIVATE
        Implements decoding the format from a stream.

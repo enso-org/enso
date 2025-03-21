@@ -249,7 +249,7 @@ type Excel_Workbook
         result = limit.attach_warning (from_java_table java_table)
         result.if_not_error <|
             Telemetry.log "Excel_Workbook.read" "Read sheet: output={}, row_count={}, column_count={}, xls_format={}" ["Excel_Format", "Table", result.row_count, result.column_count, self.xls_format]
-        result
+            result
 
     ## PRIVATE
        GROUP Standard.Base.Input

@@ -28,7 +28,7 @@ connect details options:Connection_Options=..Value =
         _ -> details.connect options
     result.if_not_error <|
         Telemetry.log "Database.connect" "Database connection opened: connection_type={}" [result.to Meta.Type . name]
-    result
+        result
 
 ## PRIVATE
 connection_details_widget : Widget

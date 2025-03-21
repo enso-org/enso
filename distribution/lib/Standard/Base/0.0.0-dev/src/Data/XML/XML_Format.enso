@@ -64,7 +64,7 @@ type XML_Format
         result = XML_Document.from_file file
         result.if_not_error <|
             Telemetry.log "File_Format.read" "Read file: format={}, output={}" ["XML_Format", "XML_Document"]
-        result
+            result
 
     ## PRIVATE
        Implements decoding the format from a stream.
