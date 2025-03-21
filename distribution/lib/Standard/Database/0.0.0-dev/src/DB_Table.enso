@@ -71,6 +71,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Telemetry
 import project.Internal.Type_Refinements.DB_Table_Refinements
 import project.SQL_Query.SQL_Query
 import project.SQL_Statement.SQL_Statement
@@ -2725,6 +2726,8 @@ type DB_Table
                         warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
 
             result = max_rows.attach_warning materialized_table
+            result.if_not_error <|
+                Telemetry.log "DB_Table.read" "Materialize Table: connection_type={}, output={}, row_count={}, column_count={}" [self.connection.to Meta.Type . name, "Table", result.row_count, result.column_count]
             Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result
 
     ## PRIVATE
