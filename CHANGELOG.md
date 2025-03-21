@@ -49,6 +49,7 @@
 - [For some types, Component Browser display special "suggestions" group][12477]
 - [Nested dropdowns are supported for Selection widget.][12548]
 - [Native Image mode is now on by default][12515]
+- [Navigate up button for file browser and collapsed components][12603]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -81,6 +82,7 @@
 [12477]: https://github.com/enso-org/enso/pull/12477
 [12548]: https://github.com/enso-org/enso/pull/12548
 [12515]: https://github.com/enso-org/enso/pull/12515
+[12603]: https://github.com/enso-org/enso/pull/12603
 
 #### Enso Standard Library
 
