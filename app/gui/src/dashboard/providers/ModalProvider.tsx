@@ -37,7 +37,6 @@ const ModalsStore = createStore<{
   readonly key: number
   readonly modal: Modal | null
   readonly setModal: (modal: ModalOrCallback | null) => void
-  readonly updateModal: (modal: ModalOrCallback) => void
 }>((set, get) => ({
   key: 0,
   modal: null,
@@ -52,37 +51,14 @@ const ModalsStore = createStore<{
       set({ modal, key: nextKey })
     }
   },
-  updateModal: (modal) => {
-    const existingModal = get().modal
-
-    if (existingModal == null) {
-      throw new Error('Calling updateModal while no modal is set is forbidden.')
-    }
-
-    if (typeof modal === 'function') {
-      set({ modal: modal(existingModal) })
-    } else {
-      set({ modal })
-    }
-  },
 }))
 
 /**
  * Set the currently active modal.
- * @throws An error if a modal is already set.
  */
 export function setModal(modal: ModalOrCallback) {
   const modalsStore = ModalsStore.getState()
   modalsStore.setModal(modal)
-}
-
-/**
- * Update the currently active modal.
- * @throws An error if no modal is set.
- */
-export function updateModal(modal: ModalOrCallback) {
-  const modalsStore = ModalsStore.getState()
-  modalsStore.updateModal(modal)
 }
 
 /**
@@ -184,8 +160,8 @@ export function useModalRef() {
 
 /**
  * A React context hook exposing functions to set and unset the currently active modal.
- * @deprecated Use directly imported `setModal`, `updateModal`, and `unsetModal` functions instead.
+ * @deprecated Use directly imported `setModal`, and `unsetModal` functions instead.
  */
 export function useSetModal() {
-  return { setModal, updateModal, unsetModal } as const
+  return { setModal, unsetModal } as const
 }
