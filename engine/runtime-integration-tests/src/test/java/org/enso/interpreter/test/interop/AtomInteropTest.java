@@ -11,6 +11,9 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
@@ -495,6 +498,44 @@ public class AtomInteropTest {
           var interop = InteropLibrary.getUncached();
           var next = interop.invokeMember(atomUnwrapped, "next");
           assertThat("Returns next atom", interop.hasMembers(next), is(true));
+          return null;
+        });
+  }
+
+  @Test
+  public void invokeVsReadAndExecute() {
+    var atom =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        from Standard.Base.Any import all
+
+        type Generator
+            Value n ~next
+
+            ahead self n = if n <= 1 then self.next else
+                @Tail_Call self.next.ahead n-1
+
+        main =
+            gen n = Generator.Value n (gen n+1)
+            gen 2
+        """);
+    executeInContext(
+        ctx,
+        () -> {
+          var atomUnwrapped = unwrapValue(ctx, atom);
+          var interop = InteropLibrary.getUncached();
+
+          assertTrue(
+              "ahead method is invocable", interop.isMemberInvocable(atomUnwrapped, "ahead"));
+          var invokeAhead = interop.invokeMember(atomUnwrapped, "ahead", 5);
+          assertEquals("2+5", 7L, interop.readMember(invokeAhead, "n"));
+
+          var aheadFn = interop.readMember(atomUnwrapped, "ahead");
+          assertTrue("Function can be executed", interop.isExecutable(aheadFn));
+          var readNext = interop.execute(aheadFn, 5);
+
+          assertSame("invokeMember yields the same as readMember+execute", invokeAhead, readNext);
           return null;
         });
   }

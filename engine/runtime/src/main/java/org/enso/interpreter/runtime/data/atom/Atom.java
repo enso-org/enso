@@ -297,7 +297,7 @@ public abstract class Atom extends EnsoObject {
   final Object readMember(
       String member,
       @CachedLibrary(limit = "3") StructsLibrary structs,
-      @Cached InteropApplicationNode applySelf)
+      @Cached InteropApplicationNode preApplySelf)
       throws UnknownIdentifierException, UnsupportedMessageException {
     if (!isMemberReadable(member)) {
       throw UnknownIdentifierException.create(member);
@@ -309,9 +309,10 @@ public abstract class Atom extends EnsoObject {
     }
     var method = findMethod(member);
     if (method != null) {
-      var ctx = EnsoContext.get(applySelf);
+      var ctx = EnsoContext.get(preApplySelf);
       var state = ctx.currentState();
-      return applySelf.execute(method, state, new Object[] {this});
+      var methodWithSelfApplied = preApplySelf.execute(method, state, new Object[] {this});
+      return methodWithSelfApplied;
     }
     throw UnknownIdentifierException.create(member);
   }

@@ -57,6 +57,7 @@
 - [Warning and Error messages does not obstruct output port][12482] - they
   become semi-transparent on port hover and pass all mouse interactions.
 - [For some types, Component Browser display special "suggestions" group][12477]
+- [Nested dropdowns are supported for Selection widget.][12548]
 - [Native Image mode is now on by default][12515]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
@@ -88,6 +89,7 @@
 [12496]: https://github.com/enso-org/enso/pull/12496
 [12482]: https://github.com/enso-org/enso/pull/12482
 [12477]: https://github.com/enso-org/enso/pull/12477
+[12548]: https://github.com/enso-org/enso/pull/12548
 [12515]: https://github.com/enso-org/enso/pull/12515
 
 #### Enso Standard Library
@@ -116,6 +118,7 @@
 - [Added Table.generate_rows][12413]
 - [Added Regex_match to filter. Added Column.regex_match. Support for
   regex_match in the expression language][12492]
+- [Added `add_group_number` for Postgres and SQLite.][12574]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
@@ -135,6 +138,7 @@
 [12345]: https://github.com/enso-org/enso/pull/12345
 [12413]: https://github.com/enso-org/enso/pull/12413
 [12492]: https://github.com/enso-org/enso/pull/12492
+[12574]: https://github.com/enso-org/enso/pull/12574
 
 #### Enso Language & Runtime
 

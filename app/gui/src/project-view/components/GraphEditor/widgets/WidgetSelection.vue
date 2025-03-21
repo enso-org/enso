@@ -3,39 +3,37 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { enclosingTopLevelArgument } from '@/components/GraphEditor/widgets/WidgetTopLevelArgument.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import DropdownWidget, { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
 import { injectSelectionArrow, provideSelectionArrow } from '@/providers/selectionArrow'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import {
+  Choice,
   multipleChoiceConfiguration,
   singleChoiceConfiguration,
-  type ArgumentWidgetConfiguration,
 } from '@/providers/widgetRegistry/configuration'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
-import { requiredImports, type RequiredImport } from '@/stores/graph/imports'
 import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import {
-  SuggestionKind,
-  entryDisplayPath,
-  entryIsStatic,
-  type SuggestionEntry,
-  type SuggestionEntryArgument,
-} from '@/stores/suggestionDatabase/entry'
+import { type SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
-import type { Opt } from '@/util/data/opt'
-import { ProjectPath } from '@/util/projectPath'
-import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { ToValue } from '@/util/reactivity'
-import { autoUpdate, offset, shift, size, useFloating } from '@floating-ui/vue'
-import type { Ref, RendererNode, VNode } from 'vue'
-import { computed, proxyRefs, ref, shallowRef, toValue, watch } from 'vue'
+import type { RendererNode, VNode } from 'vue'
+import { computed, proxyRefs, ref, shallowRef, toValue, useTemplateRef, watch } from 'vue'
+import SelectionSubmenu from './WidgetSelection/SelectionSubmenu.vue'
+import { activityDropdownStyles } from './WidgetSelection/styles'
+import {
+  ActionTag,
+  Actions,
+  CustomDropdownItem,
+  Entry,
+  ExpressionTag,
+  NestedChoiceTag,
+} from './WidgetSelection/tags'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
@@ -45,7 +43,7 @@ const projectNames = injectProjectNames()
 const tree = injectWidgetTree()
 
 const widgetRoot = shallowRef<HTMLElement>()
-const dropdownElement = ref<HTMLElement>()
+const submenuRef = useTemplateRef('submenuRef')
 const activityElement = ref<HTMLElement>()
 
 const editedWidget = ref<string>()
@@ -55,117 +53,16 @@ const isHovered = ref(false)
 const activity = shallowRef<ToValue<VNode>>()
 const keepActivityAlive = ref(false)
 
-// How much wider a dropdown can be than a port it is attached to, when a long text is present.
-// Any text beyond that limit will receive an ellipsis and sliding animation on hover.
-const MAX_DROPDOWN_OVERSIZE_PX = 390
-
 const floatReference = computed(
   () => enclosingTopLevelArgument(widgetRoot.value, tree.rootElement) ?? widgetRoot.value,
 )
 
-function dropdownStyles(dropdownElement: Ref<HTMLElement | undefined>, limitWidth: boolean) {
-  return useFloating(floatReference, dropdownElement, {
-    placement: 'bottom-start',
-    middleware: computed(() => {
-      return [
-        offset((state) => {
-          const NODE_HEIGHT = 32
-          return {
-            mainAxis: (NODE_HEIGHT - state.rects.reference.height) / 2,
-          }
-        }),
-        size(() => ({
-          elementContext: 'reference',
-          apply({ elements, rects, availableWidth }) {
-            const PORT_PADDING_X = 8
-            const screenOverflow = Math.max(
-              (rects.floating.width - availableWidth) / 2 + PORT_PADDING_X,
-              0,
-            )
-            const portWidth = rects.reference.width + PORT_PADDING_X * 2
-
-            const minWidth = `${Math.max(portWidth - screenOverflow, 0)}px`
-            const maxWidth = limitWidth ? `${portWidth + MAX_DROPDOWN_OVERSIZE_PX}px` : null
-
-            Object.assign(elements.floating.style, { minWidth, maxWidth })
-            elements.floating.style.setProperty('--dropdown-max-width', maxWidth)
-          },
-        })),
-        // Try to keep the dropdown within node's bounds.
-        shift(() => (tree.rootElement ? { boundary: tree.rootElement } : {})),
-        shift(), // Always keep within screen bounds, overriding node bounds.
-      ]
-    }),
-    whileElementsMounted: autoUpdate,
-  })
-}
-
-const { floatingStyles } = dropdownStyles(dropdownElement, true)
-const { floatingStyles: activityStyles } = dropdownStyles(activityElement, false)
-
-class ExpressionTag {
-  private cachedExpressionAst: Ast.Expression | undefined
-
-  constructor(
-    readonly expression: string,
-    private explicitLabel?: Opt<string>,
-    readonly requiredImports?: RequiredImport[],
-    public parameters?: ArgumentWidgetConfiguration[],
-  ) {}
-
-  static FromProjectPath(path: ProjectPath, label?: Opt<string>): ExpressionTag | null {
-    const entry = suggestions.entries.getEntryByProjectPath(path)
-    if (entry) return ExpressionTag.FromEntry(entry, label)
-    else return null
-  }
-
-  static FromExpression(expression: string, label?: Opt<string>): ExpressionTag {
-    const qn = tryQualifiedName(expression)
-    if (qn.ok) {
-      const projectPath = projectNames.parseProjectPath(qn.value)
-      if (projectPath.ok) {
-        const fromProjPath = ExpressionTag.FromProjectPath(projectPath.value, label)
-        if (fromProjPath) return fromProjPath
-      }
-      return new ExpressionTag(qn.value, label ?? qnLastSegment(qn.value))
-    }
-    return new ExpressionTag(expression, label)
-  }
-
-  static FromEntry(entry: SuggestionEntry, label?: Opt<string>): ExpressionTag {
-    const expression =
-      entryIsStatic(entry) ? entryDisplayPath(entry)
-      : entry.kind === SuggestionKind.Method ? `_.${entry.name}`
-      : entry.name
-    return new ExpressionTag(
-      expression,
-      label ?? entry.name,
-      requiredImports(suggestions.entries, entry),
-    )
-  }
-
-  get label() {
-    return this.explicitLabel ?? this.expression
-  }
-
-  get expressionAst() {
-    if (this.cachedExpressionAst == null) {
-      this.cachedExpressionAst = Ast.parseExpression(this.expression)
-    }
-    return this.cachedExpressionAst
-  }
-}
-
-class ActionTag {
-  constructor(
-    readonly label: string,
-    readonly onClick: (dropdownActions: Actions) => void,
-  ) {}
-
-  static FromItem(item: CustomDropdownItem): ActionTag {
-    return new ActionTag(item.label, item.onClick)
-  }
-}
+const rootElement = computed(() => tree.rootElement)
+const { floatingStyles: activityStyles } = activityDropdownStyles(
+  floatReference,
+  activityElement,
+  rootElement,
+)
 
 type ExpressionFilter = (tag: ExpressionTag) => boolean
 function makeExpressionFilter(pattern: Ast.Ast | string): ExpressionFilter | undefined {
@@ -185,18 +82,28 @@ function makeExpressionFilter(pattern: Ast.Ast | string): ExpressionFilter | und
 const staticTags = computed<ExpressionTag[]>(() => {
   const tags = props.input[ArgumentInfoKey]?.info?.tagValues
   if (tags == null) return []
-  return tags.map((t) => ExpressionTag.FromExpression(t))
+  return tags.map((t) => ExpressionTag.FromExpression(suggestions, projectNames, t))
 })
 
-const dynamicTags = computed<ExpressionTag[]>(() => {
+const dynamicTags = computed<(ExpressionTag | NestedChoiceTag)[]>(() => {
   const config = props.input.dynamicConfig
   if (config?.kind !== 'Single_Choice' && config?.kind !== 'Multiple_Choice') return []
 
-  return config.values.map((value) => {
-    const tag = ExpressionTag.FromExpression(value.value, value.label)
-    tag.parameters = value.parameters
-    return tag
-  })
+  const choiceToTag = (choice: Choice): ExpressionTag | NestedChoiceTag => {
+    if (choice.value instanceof Array) {
+      return new NestedChoiceTag(choice.label ?? '…', choice.value.map(choiceToTag))
+    } else {
+      const tag = ExpressionTag.FromExpression(
+        suggestions,
+        projectNames,
+        choice.value,
+        choice.label,
+      )
+      return tag
+    }
+  }
+
+  return config.values.map(choiceToTag)
 })
 
 const filteredTags = computed(() => {
@@ -204,17 +111,17 @@ const filteredTags = computed(() => {
   const expressionFilter =
     !isMulti.value && editedValue.value && makeExpressionFilter(editedValue.value)
   if (expressionFilter) {
-    return expressionTags.filter(expressionFilter)
+    const flattened = expressionTags.flatMap((tag) =>
+      tag instanceof NestedChoiceTag ? tag.flatten() : [tag],
+    )
+    return flattened.filter(expressionFilter)
   } else {
     const actionTags = props.input[CustomDropdownItemsKey]?.map(ActionTag.FromItem) ?? []
     return [...actionTags, ...expressionTags]
   }
 })
-interface Entry extends DropdownEntry {
-  tag: ExpressionTag | ActionTag
-}
 const entries = computed<Entry[]>(() => {
-  return filteredTags.value.map((tag, _index) => ({
+  return filteredTags.value.map((tag) => ({
     value: tag.label,
     selected: tag instanceof ExpressionTag && selectedExpressions.value.has(tag.expression),
     tag,
@@ -297,7 +204,7 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
   end: onClose,
   pointerdown: (e) => {
     if (
-      targetIsOutside(e, unrefElement(dropdownElement)) &&
+      submenuRef.value?.isTargetOutside(e) &&
       targetIsOutside(e, unrefElement(activityElement)) &&
       targetIsOutside(e, unrefElement(widgetRoot)) &&
       targetIsOutside(e, document.getElementById('floatingLayer'))
@@ -339,7 +246,7 @@ function toggleDropdownWidget() {
 }
 
 const dropdownActions: Actions = {
-  setActivity: (newActivity, keepAlive = false) => {
+  setActivity: (newActivity: ToValue<VNode>, keepAlive = false) => {
     activity.value = newActivity
     keepActivityAlive.value = keepAlive
   },
@@ -348,6 +255,7 @@ const dropdownActions: Actions = {
 
 function onClick(clickedEntry: Entry, keepOpen: boolean) {
   if (clickedEntry.tag instanceof ActionTag) clickedEntry.tag.onClick(dropdownActions)
+  else if (clickedEntry.tag instanceof NestedChoiceTag) return
   else expressionTagClicked(clickedEntry.tag, clickedEntry.selected)
   if (!(keepOpen || isMulti.value || activity.value)) {
     // We cancel interaction instead of ending it to restore the old value in the inner widget;
@@ -454,29 +362,6 @@ export const widgetDefinition = defineWidget(
   import.meta.hot,
 )
 
-/** Custom item added to dropdown. These items can’t be selected, but can be clicked. */
-export interface CustomDropdownItem {
-  /** Displayed label. */
-  label: string
-  /** Action to perform when clicked. */
-  onClick: (dropdownActions: Actions) => void
-}
-
-/** Actions a {@link CustomDropdownItem} may perform when clicked. */
-export interface Actions {
-  /**
-   * Provide an alternative dialog to be rendered in place of the dropdown.
-   *
-   * For example, the {@link WidgetCloudBrowser} installs a custom entry that, when clicked,
-   * opens a file browser where the dropdown was.
-   * @param keepAlive - when set, the `activity` instance will be kept between drop-down closing
-   *  and opening. The activity component must not change it type (when being a ref) and provide
-   * `name` option explicitly.
-   */
-  setActivity: (activity: ToValue<VNode>, keepAlive?: boolean) => void
-  close: () => void
-}
-
 export { CustomDropdownItemsKey }
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
@@ -502,18 +387,17 @@ declare module '@/providers/widgetRegistry' {
         :class="{ hovered: isHovered }"
       />
     </teleport>
+    <SelectionSubmenu
+      ref="submenuRef"
+      :rootElement="tree.rootElement"
+      :floatReference="floatReference"
+      :show="dropDownInteraction.isActive() && activity == null"
+      :entries="entries"
+      :selectedExpressions="selectedExpressions"
+      :topLevel="true"
+      @clickedEntry="onClick"
+    />
     <Teleport v-if="tree.rootElement" :to="tree.rootElement">
-      <div ref="dropdownElement" :style="floatingStyles" class="widgetOutOfLayout floatingElement">
-        <SizeTransition height :duration="100">
-          <DropdownWidget
-            v-if="dropDownInteraction.isActive() && activity == null"
-            color="var(--color-node-text)"
-            backgroundColor="var(--color-node-background)"
-            :entries="entries"
-            @clickEntry="onClick"
-          />
-        </SizeTransition>
-      </div>
       <div
         ref="activityElement"
         class="activityElement widgetOutOfLayout floatingElement"
