@@ -133,6 +133,14 @@ function popTo(index: number) {
   directoryStack.value.splice(index + 1)
 }
 
+function popDirectory() {
+  if (directoryStack.value.length > 1) {
+    directoryStack.value.pop()
+  }
+}
+
+const canPop = computed(() => directoryStack.value.length > 1)
+
 function chooseFile(file: FileAsset | DatalinkAsset) {
   filenameInputContents.value = file.title
   if (!props.writeMode) {
@@ -258,17 +266,20 @@ onMounted(() => {
   <div class="FileBrowserWidget">
     <div class="topBar">
       <div class="directoryStack">
-        <TransitionGroup>
-          <template v-for="(directory, index) in directoryStack" :key="directory.id ?? 'root'">
-            <SvgIcon v-if="index > 0" name="arrow_right_head_only" />
-            <div
-              class="clickable"
-              :class="{ nonInteractive: index === directoryStack.length - 1 }"
-              @click.stop="popTo(index)"
-              v-text="directory.title"
-            ></div>
-          </template>
-        </TransitionGroup>
+        <SvgButton name="navigate_up" title="Up" :disabled="!canPop" @click.stop="popDirectory" />
+        <div class="breadcrumbs">
+          <TransitionGroup>
+            <template v-for="(directory, index) in directoryStack" :key="directory.id ?? 'root'">
+              <SvgIcon v-if="index > 0" name="navigate_breadcrumb" />
+              <div
+                class="clickable"
+                :class="{ nonInteractive: index === directoryStack.length - 1 }"
+                @click.stop="popTo(index)"
+                v-text="directory.title"
+              ></div>
+            </template>
+          </TransitionGroup>
+        </div>
       </div>
       <SvgButton
         name="folder_add"
@@ -361,12 +372,18 @@ onMounted(() => {
 }
 
 .directoryStack {
-  --transition-duration: 0.1s;
-  color: white;
-  gap: 2px;
   display: flex;
   align-items: center;
   flex-grow: 1;
+  color: white;
+  gap: 8px; /* gap between up button and breadcrumbs */
+}
+
+.breadcrumbs {
+  --transition-duration: 0.1s;
+  display: flex;
+  align-items: center;
+  gap: 2px; /* breadcrumb spacing */
 }
 
 .contents {

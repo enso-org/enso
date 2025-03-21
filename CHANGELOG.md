@@ -51,6 +51,7 @@
 - [Native Image mode is now on by default][12515]
 - [Output port ‘plus’ button is hidden if there are existing outgoing
   connections][12576]
+- [Navigate up button for file browser and collapsed components][12603]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -84,6 +85,7 @@
 [12548]: https://github.com/enso-org/enso/pull/12548
 [12515]: https://github.com/enso-org/enso/pull/12515
 [12576]: https://github.com/enso-org/enso/pull/12576
+[12603]: https://github.com/enso-org/enso/pull/12603
 
 #### Enso Standard Library
 

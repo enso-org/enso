@@ -18,6 +18,7 @@ const descriptionWithShortcut = computed(() =>
 
 <template>
   <SvgButton
+    v-if="!toValue(action.hidden)"
     :name="toValue(action.icon)"
     :disabled="toValue(action.disabled)"
     :title="descriptionWithShortcut"
