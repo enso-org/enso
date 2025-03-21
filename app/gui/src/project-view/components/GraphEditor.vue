@@ -104,7 +104,6 @@ const viewportNode = ref<HTMLElement>()
 onMounted(() => viewportNode.value?.focus())
 const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keyboard, {
   predicate: (e) => (e instanceof KeyboardEvent ? nodeSelection.selected.size === 0 : true),
-  // : (e.buttons & PointerButtonMask.Secondary) == 0,
 })
 
 // === Client saved state ===
@@ -233,18 +232,12 @@ const actionHandlers = registerHandlers({
   'graph.addComponent': {
     action: (ctx) => {
       nodeSelection.deselectAll()
-      const mousePos = ctx?.openPosition
-      console.log('mousePos', mousePos)
-      if (!mousePos) {
-        createWithComponentBrowser({ placement: { type: 'viewport' } })
-      } else {
-        createWithComponentBrowser({
-          placement: {
-            type: 'fixed',
-            position: graphNavigator.clientToScenePos(Vec2.FromXY(mousePos)),
-          },
-        })
-      }
+      const clientPos = ctx?.openPosition
+      const placement: PlacementStrategy =
+        clientPos ?
+          { type: 'fixed', position: graphNavigator.clientToScenePos(Vec2.FromXY(clientPos)) }
+        : { type: 'viewport' }
+      createWithComponentBrowser({ placement })
     },
   },
   'graph.toggleCodeEditor': {
