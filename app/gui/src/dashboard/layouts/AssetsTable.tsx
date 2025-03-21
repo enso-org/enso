@@ -122,6 +122,7 @@ import {
   setDragImageToBlank,
   type AssetRowsDragPayload,
 } from '#/utilities/drag'
+import { isElementTextInput, isTextInputEvent } from '#/utilities/event'
 import { fileExtension } from '#/utilities/fileInfo'
 import { noop } from '#/utilities/functions'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
@@ -630,6 +631,13 @@ function AssetsTable(props: AssetsTableProps) {
   }, [navigator2D, setMostRecentlySelectedIndex])
 
   const onKeyDown = useEventCallback((event: KeyboardEvent) => {
+    const isTextInputFocused = isElementTextInput(document.activeElement)
+    const isEventTextInputEvent =
+      'key' in event && (isTextInputEvent(event) || event.key === 'Enter')
+    const shouldIgnoreEvent = isTextInputFocused && isEventTextInputEvent
+    if (shouldIgnoreEvent) {
+      return
+    }
     const { selectedAssets } = driveStore.getState()
     const prevIndex = mostRecentlySelectedIndexRef.current
     const item = prevIndex == null ? null : visibleItems[prevIndex]
