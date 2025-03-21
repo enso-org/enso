@@ -151,7 +151,9 @@ export class NestedChoiceTag {
     for (const choice of this.choices) {
       if (choice instanceof ExpressionTag) {
         const newLabel = prefix + this.internalLabel + ' → ' + choice.label
-        result.push(new ExpressionTag(choice.expression, newLabel, choice.icon, choice.requiredImports))
+        result.push(
+          new ExpressionTag(choice.expression, newLabel, choice.icon, choice.requiredImports),
+        )
       } else if (choice instanceof NestedChoiceTag) {
         result.push(...choice.flatten(prefix + this.internalLabel + ' → '))
       }
