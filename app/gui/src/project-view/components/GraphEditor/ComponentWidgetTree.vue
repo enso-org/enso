@@ -72,6 +72,8 @@ function handleWidgetUpdates(update: WidgetUpdate) {
       if ('metadata' in update.portUpdate) {
         const { metadataKey, metadata } = update.portUpdate
         edit.tryGet(origin)?.setWidgetMetadata(metadataKey, metadata)
+        graph.commitEdit(edit, true)
+        return true
       }
     } else {
       console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)

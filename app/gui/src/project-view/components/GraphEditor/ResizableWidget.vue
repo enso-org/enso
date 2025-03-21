@@ -39,11 +39,15 @@ const [provideResizableWidgetRegistry, injectResizableWidgetRegistry] = createCo
       }
     }
 
-    watch([nodeWidth, resizablesCount, widgetTreeWidth], ([nodeWidth]) => {
-      if (nodeWidth) {
-        adjustToNodeWidth(nodeWidth)
-      }
-    })
+    watch(
+      [nodeWidth, resizablesCount, widgetTreeWidth],
+      ([nodeWidth]) => {
+        if (nodeWidth) {
+          adjustToNodeWidth(nodeWidth)
+        }
+      },
+      { flush: 'post' },
+    )
 
     let initialNodeWidthOnWidgetDrag: number | null = null
 
@@ -93,6 +97,7 @@ const clientBounds = computed({
     return new Rect(Vec2.Zero, size.value.scale(graphNav.scale))
   },
   set(value) {
+    if (value.size.equalsApproximately(size.value, 0.01)) return
     props.onUpdate({
       portUpdate: {
         origin: props.input.portId,
