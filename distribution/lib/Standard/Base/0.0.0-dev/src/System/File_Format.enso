@@ -13,6 +13,7 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Function.Function
+import project.Internal.Telemetry
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
