@@ -134,7 +134,8 @@ public final class SnowflakeCloudCredentials {
         throw new IllegalStateException("The Cloud Credentials have expired and must be renewed. Please go to the Dashboard and re-authenticate.");
       }
 
-      try (HttpClient client = HttpClient.newHttpClient()) {
+      try {
+        HttpClient client = HttpClient.newHttpClient();
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder();
         var body = new UrlencodedBodyBuilder().add_part_text("grant_type", "refresh_token")
             .add_part_text("refresh_token", token.token)
