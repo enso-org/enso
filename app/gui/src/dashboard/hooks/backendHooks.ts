@@ -28,9 +28,15 @@ import {
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProject } from '#/hooks/projectHooks'
-import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
+import {
+  CATEGORY_TO_FILTER_BY,
+  isCloudCategory,
+  type Category,
+} from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
+import { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type Backend from '#/services/Backend'
@@ -638,7 +644,9 @@ export function useNewFolder(backend: Backend, category: Category) {
 /** A function to create a new project. */
 export function useNewProject(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
-  const doOpenProject = useOpenProject()
+  const isCloud = isCloudCategory(category)
+  const openProjectLocally = useOpenProjectLocally(isCloud, backend.type)
+  const openProjectNatively = useOpenProjectNatively(backend.type)
   const deleteAsset = useDeleteAsset(backend, category)
 
   const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
@@ -655,6 +663,7 @@ export function useNewProject(backend: Backend, category: Category) {
         datalinkId?: backendModule.DatalinkId | null | undefined
       },
       parentId: DirectoryId,
+      runLocally = true,
     ) => {
       const siblings = await ensureListDirectory(parentId)
       const projectName = (() => {
@@ -682,13 +691,17 @@ export function useNewProject(backend: Backend, category: Category) {
           void deleteAsset(placeholderItem.id, parentId)
           throw error
         })
-        .then((createdProject) => {
-          doOpenProject({
+        .then(async (createdProject) => {
+          const openProjectParams = {
             id: createdProject.projectId,
-            type: backend.type,
             parentId: placeholderItem.parentId,
             title: createdProject.name,
-          })
+          }
+          if (runLocally) {
+            await openProjectLocally(openProjectParams)
+          } else {
+            openProjectNatively(openProjectParams)
+          }
 
           return createdProject
         })
@@ -834,4 +847,81 @@ export function getProjectExecutionDetailsQueryOptions(
     ...backendQueryOptions(backend, 'getProjectExecutionDetails', [id, title]),
     staleTime: PROJECT_EXECUTIONS_STALE_TIME,
   })
+}
+
+/** Return a hook to open a project in Hybrid Mode. */
+export function useOpenHybridProject() {
+  const localBackend = useLocalBackend()
+  const remoteBackend = useRemoteBackend()
+  const openProject = useOpenProject()
+
+  return useEventCallback(
+    async (asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>) => {
+      invariant(localBackend != null, 'Local Backend is null')
+      await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
+      const localProject = await remoteBackend.downloadProject(asset.id)
+
+      let project
+      for (const parentId of [localProject.targetId, localProject.parentId]) {
+        const assets = await localBackend.listDirectory({
+          parentId: parentId,
+          filterBy: null,
+          labels: null,
+          recentProjects: false,
+        })
+        project = assets.filter((item) => item.type === backendModule.AssetType.project).at(0)
+        if (project !== undefined) {
+          break
+        }
+      }
+
+      invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
+      openProject({
+        id: project.id,
+        title: project.title,
+        parentId: project.parentId,
+        type: backendModule.BackendType.local,
+        hybrid: { cloudProjectId: asset.id, parentId: localProject.parentId },
+      })
+    },
+  )
+}
+
+/** Return a hook to open a project natively - Cloud mode for cloud projects, Local mode for local projects. */
+export function useOpenProjectNatively(backendType: BackendType) {
+  const openProject = useOpenProject()
+
+  return useEventCallback(
+    (asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>) => {
+      openProject({
+        id: asset.id,
+        title: asset.title,
+        parentId: asset.parentId,
+        type: backendType,
+      })
+    },
+  )
+}
+
+/** Return a hook to open a project locally - meaning Hybrid Mode is used for Cloud projects. */
+export function useOpenProjectLocally(isCloud: boolean, backendType: BackendType) {
+  const openProject = useOpenProject()
+  const enableHybridExecution = useFeatureFlag('enableHybridExecution')
+  const openHybridProject = useOpenHybridProject()
+
+  return useEventCallback(
+    async (asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>) => {
+      if (isCloud && enableHybridExecution) {
+        await openHybridProject(asset)
+        return
+      } else {
+        openProject({
+          id: asset.id,
+          title: asset.title,
+          parentId: asset.parentId,
+          type: backendType,
+        })
+      }
+    },
+  )
 }
