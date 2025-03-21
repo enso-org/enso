@@ -151,6 +151,12 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       if (ast.ok) lastKnownResolvedMethodAstId.value = ast.value.id
       else console.log('immediateMethodAst', ast.error)
     })
+    watch(
+      () => proj.executionContext.getStackTop(),
+      () => {
+        lastKnownResolvedMethodAstId.value = undefined
+      },
+    )
 
     const fallbackMethodAst = computed(() => {
       const id = lastKnownResolvedMethodAstId.value

@@ -87,6 +87,7 @@ export const OPENING_PROJECT_STATES = new Set([
 ])
 export const OPENED_PROJECT_STATES = new Set([backendModule.ProjectState.opened])
 export const CLOSED_PROJECT_STATES = new Set([backendModule.ProjectState.closed])
+export const CLOSING_PROJECT_STATES = new Set([backendModule.ProjectState.closing])
 export const STATIC_PROJECT_STATES = new Set([
   backendModule.ProjectState.opened,
   backendModule.ProjectState.closed,
@@ -147,6 +148,8 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
 
       const createdStates = CREATED_PROJECT_STATES
 
+      const closingStates = CLOSING_PROJECT_STATES
+
       if (state.status === 'error') {
         return false
       }
@@ -169,6 +172,10 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
         if (openingStates.has(state.data.state.type)) {
           return LOCAL_OPENING_INTERVAL_MS
         }
+
+        if (closingStates.has(state.data.state.type)) {
+          return LOCAL_OPENING_INTERVAL_MS
+        }
       }
 
       if (createdStates.has(currentState)) {
@@ -180,6 +187,10 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
         return OPENED_INTERVAL_MS
       }
       if (openingStates.has(state.data.state.type)) {
+        return CLOUD_OPENING_INTERVAL_MS
+      }
+
+      if (closingStates.has(state.data.state.type)) {
         return CLOUD_OPENING_INTERVAL_MS
       }
 
@@ -296,6 +307,9 @@ export function useCloseProjectMutation() {
         invariant(localBackend != null, 'LocalBackend is null')
         await localBackend.deleteAsset(hybrid.parentId, { force: true }, null)
       }
+
+      await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
+      await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
     onError: async (_, { type, id, parentId, hybrid }) => {
       if (hybrid) {
@@ -371,7 +385,12 @@ export function useOpenProject() {
     const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
 
     if (!isOpeningTheSameProject) {
-      openProjectMutation.mutate(project)
+      openProjectMutation.mutate(project, {
+        onSuccess: () => {
+          addLaunchedProject(project)
+        },
+      })
+
       const openingProjectMutation = client.getMutationCache().find({
         mutationKey: ['openProject'],
         // this is unsafe, but we can't do anything about it
@@ -382,8 +401,6 @@ export function useOpenProject() {
         ...openingProjectMutation.options,
         scope: { id: project.id },
       })
-
-      addLaunchedProject(project)
     }
   })
 }

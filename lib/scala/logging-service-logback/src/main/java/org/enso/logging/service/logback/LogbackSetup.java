@@ -28,11 +28,14 @@ import org.enso.logging.config.LoggerSetup;
 import org.enso.logging.config.LoggersLevels;
 import org.enso.logging.config.LoggingServiceConfig;
 import org.enso.logging.config.MissingConfigurationField;
+import org.enso.logging.service.logback.telemetry.TelemetryAppender;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
 @org.openide.util.lookup.ServiceProvider(service = LoggerSetup.class)
 public final class LogbackSetup extends LoggerSetup {
+
+  private static final String CONSOLE_APPENDER_NAME = "enso-console";
 
   private LogbackSetup(LoggingServiceConfig config, LoggerContext context) {
     this.config = config;
@@ -138,9 +141,10 @@ public final class LogbackSetup extends LoggerSetup {
     socketAppender.setIncludeCallerData(false);
     socketAppender.setRemoteHost(hostname);
     socketAppender.setPort(port);
-    if (appenderConfig != null)
+    if (appenderConfig != null) {
       socketAppender.setReconnectionDelay(
           Duration.buildByMilliseconds(appenderConfig.getReconnectionDelay()));
+    }
 
     env.finalizeAppender(socketAppender);
     return true;
@@ -239,7 +243,7 @@ public final class LogbackSetup extends LoggerSetup {
     encoder.start();
 
     ConsoleAppender<ILoggingEvent> consoleAppender = new ConsoleAppender<>();
-    consoleAppender.setName("enso-console");
+    consoleAppender.setName(CONSOLE_APPENDER_NAME);
     consoleAppender.setEncoder(encoder);
     return consoleAppender;
   }
@@ -300,6 +304,34 @@ public final class LogbackSetup extends LoggerSetup {
       e.printStackTrace();
       return false;
     }
+    return true;
+  }
+
+  @Override
+  public boolean setupTelemetryAppender() {
+    LoggerAndContext env = contextInit(Level.DEBUG, config, false);
+    TelemetryAppender telemetryAppender;
+    try {
+      telemetryAppender = TelemetryAppender.getInstance();
+    } catch (Exception e) {
+      return false;
+    }
+    if (telemetryAppender == null) {
+      return false;
+    }
+    var rootLogger = env.logger;
+    if (rootLogger.getAppender(CONSOLE_APPENDER_NAME) == null) {
+      // Console appender must be setup as a fallback first.
+      return false;
+    }
+
+    telemetryAppender.setName("telemetry");
+    var telemetryLogger = env.ctx.getLogger("org.enso.telemetry");
+    telemetryLogger.addAppender(telemetryAppender);
+    telemetryLogger.setLevel(ch.qos.logback.classic.Level.ALL);
+
+    telemetryAppender.setContext(env.ctx);
+    telemetryAppender.start();
     return true;
   }
 

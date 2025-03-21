@@ -551,6 +551,13 @@
   "methods":[{"name":"UserProject","parameterTypes":[] }]
 },
 {
+  "name":"org.enso.logging.service.logback.telemetry.TelemetryAppender$Credentials",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.String","java.lang.String","java.lang.String","java.lang.String","java.lang.String"] }]
+},
+{
   "name":"scala.Boolean"
 },
 {

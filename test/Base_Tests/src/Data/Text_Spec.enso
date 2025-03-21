@@ -11,6 +11,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import all
 
+polyglot java import java.lang.StringBuilder as Java_String_Builder
+
 type Auto
     Value a
 
@@ -1778,6 +1780,13 @@ add_specs suite_builder =
             res2 = input3.cleanse [Named_Pattern.Leading_Numbers, Named_Pattern.Leading_Whitespace]
             res1.should_equal "String with Leading Spaces then Leading Numbers"
             res2.should_equal "11String with Leading Spaces then Leading Numbers"
+
+    suite_builder.group "StringBuilder" group_builder->
+        group_builder.specify "append and set length" <|
+            sb = Java_String_Builder.new
+            sb.append "Hello World"
+            sb.delete 5 sb.toString.length
+            sb.toString . should_equal "Hello"
 
 main filter=Nothing =
     suite = Test.build suite_builder->

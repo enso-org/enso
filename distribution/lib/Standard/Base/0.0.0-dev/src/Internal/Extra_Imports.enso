@@ -38,12 +38,12 @@ polyglot java import org.enso.base.cache.TotalCacheLimit.Limit
 polyglot java import org.enso.base.cache.TotalCacheLimit.Bytes
 polyglot java import org.enso.base.cache.TotalCacheLimit.Percentage
 
-Stream_Utils=JStream_Utils
-File_Utils=JFile_Utils
-CompareException=JCompareException
-ObjectComparator=JObjectComparator
-CaseFoldedString=JCaseFoldedString
-Text_Utils=JText_Utils
-BreakIterator=JBreakIterator
-Exception=JException
-RuntimeException=JRuntimeException
+Stream_Utils = JStream_Utils
+File_Utils = JFile_Utils
+CompareException = JCompareException
+ObjectComparator = JObjectComparator
+CaseFoldedString = JCaseFoldedString
+Text_Utils = JText_Utils
+BreakIterator = JBreakIterator
+Exception = JException
+RuntimeException = JRuntimeException

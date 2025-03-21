@@ -31,6 +31,7 @@ from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
 from project.Metadata import Display, Widget
 from project.Runtime import assert
+from project.Widget_Helpers import make_separator_selector
 
 polyglot java import java.lang.IndexOutOfBoundsException
 
@@ -950,6 +951,7 @@ type Vector a
          Join the elements of the vector together as a string.
 
              ["foo", "bar", "baz"].join ", "
+    @separator make_separator_selector
     join : Text -> Text -> Text -> Text
     join self separator:Text="" prefix:Text="" suffix:Text="" =
         Array_Like_Helpers.join self separator prefix suffix
@@ -969,7 +971,7 @@ type Vector a
     slice : Integer -> Integer -> Vector Any
     slice self start end = Array_Like_Helpers.slice self start end
 
-    ## ALIAS first, head, last, limit, sample, slice, tail, top, keep
+    ## ALIAS first, head, keep, last, limit, sample, slice, tail, top
        GROUP Selections
        ICON parse3
        Creates a new `Vector` with only the specified range of elements from the
@@ -985,7 +987,7 @@ type Vector a
     take self range:(Index_Sub_Range | Range | Integer)=..First =
         Array_Like_Helpers.take self range
 
-    ## ALIAS skip, remove
+    ## ALIAS remove, skip
        GROUP Selections
        ICON parse3
        Creates a new `Vector`, removing any elements from the specified range.
