@@ -2,6 +2,8 @@ package org.enso.compiler.test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -147,5 +149,24 @@ public class ExecStrictCompilerTest {
     var res = ContextUtils.evalModule(ctx, code);
     assertTrue("Compiles and returns result", res.isNumber());
     assertEquals("Returns correct result", 11, res.asInt());
+  }
+
+  // https://github.com/enso-org/enso/issues/12376
+  @Test
+  public void noDuplicateImportWarning() {
+    var code =
+        """
+        from Standard.Table.Column import naming_helper
+
+        main =
+            naming_helper
+        """;
+    var res = ContextUtils.evalModule(ctx, code);
+    assertThat(res, is(notNullValue()));
+    var errors = MESSAGES.toString(StandardCharsets.UTF_8);
+    assertThat(
+        "There should be no errors or warnings. But there was: " + errors,
+        errors.isEmpty(),
+        is(true));
   }
 }
