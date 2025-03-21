@@ -65,9 +65,17 @@ export class ExpressionTag {
         const fromProjPath = ExpressionTag.FromProjectPath(suggestions, projectPath.value, label)
         if (fromProjPath) return fromProjPath
       }
-      return new ExpressionTag(qn.value, label ?? qnLastSegment(qn.value), icon && isIconName(icon) ? (icon as Icon) : undefined)
+      return new ExpressionTag(
+        qn.value,
+        label ?? qnLastSegment(qn.value),
+        icon && isIconName(icon) ? (icon as Icon) : undefined,
+      )
     }
-    return new ExpressionTag(expression, label, icon && isIconName(icon) ? (icon as Icon) : undefined)
+    return new ExpressionTag(
+      expression,
+      label,
+      icon && isIconName(icon) ? (icon as Icon) : undefined,
+    )
   }
 
   /**
@@ -98,8 +106,8 @@ export class ExpressionTag {
   }
 
   /**
-  * Get the displayed icon for this tag.
-  */
+   * Get the displayed icon for this tag.
+   */
   get icon() {
     return this.explicitIcon ?? undefined
   }
