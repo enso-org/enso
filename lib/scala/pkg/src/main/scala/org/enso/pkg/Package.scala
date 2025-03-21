@@ -29,7 +29,7 @@ case class SourceFile[F](qualifiedName: QualifiedName, file: F)
   * @param initialConfig the metadata contained in the package configuration
   * @param fileSystem the file system access module
   */
-class Package[F](
+final class Package[F](
   val root: F,
   initialConfig: Config,
   implicit val fileSystem: FileSystem[F]
@@ -53,7 +53,25 @@ class Package[F](
     .getChild(Package.suggestionsCacheDirName)
 
   private[this] var config: Config = initialConfig
-  def getConfig(): Config          = config
+
+  def getConfig(): Config = config
+
+  /** Flag libraries that are ahead-of-time compilation ready.
+    * Libraries that contain polyglot JAR files need special treatment. For example
+    * one provided by `EnsoLibraryFeature`. Otherwise they return `false`
+    * from this method.
+    */
+  final def isAotReady(): Boolean = {
+    if (!polyglotDir.exists) {
+      true
+    } else {
+      PackageUtils.isAotReady(getConfig())
+    }
+  }
+
+  final def markAotReady() = {
+    PackageUtils.markAotReady(getConfig())
+  }
 
   /** Reloads the config from file system */
   def reloadConfig(): Try[Config] = {

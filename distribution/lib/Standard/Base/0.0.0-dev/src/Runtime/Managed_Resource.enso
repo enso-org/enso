@@ -1,10 +1,15 @@
 ## An API for manual resource management.
 
 import project.Any.Any
+import project.Data.Text.Text
+import project.Error.Error
 import project.Errors.Common.Uninitialized_State
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Nothing.Nothing
+import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
 
 ## Resource provides an API for manual management of computation resources.
 
@@ -44,6 +49,16 @@ type Managed_Resource
        e.g. using `Managed_Resource.register cache cleanup_fn True` is useful
        for creating user managed caches.
 
+       ! Multiple `Managed_Resource`s for the same resource
+
+         Using the same underlying resource with multiple managed resource
+         instances is an error and will result in an `Illegal_Argument` panic.
+
+       ! Values Eligible to be `Managed_Resource`s
+
+         Truly atomic values (`Integer`, `Boolean` and `Float`) cannot be
+         managed resources.
+
        Arguments:
        - resource: The resource to register.
        - function: The action to be executed on resource to clean it up when
@@ -55,7 +70,8 @@ type Managed_Resource
        A `Managed_Resource` object that can be used to access the resource.
     register : Any -> (Any -> Nothing) -> Boolean -> Managed_Resource
     register resource function system_finalization_allowed=False =
-        @Tail_Call register_builtin resource function system_finalization_allowed
+        _handle_double_registration <|
+            @Tail_Call register_builtin resource function system_finalization_allowed
 
     ## PRIVATE
        ADVANCED
@@ -106,3 +122,13 @@ register_builtin r fn sys:Boolean = @Builtin_Method "Managed_Resource.register_b
 
 ## PRIVATE
 with_builtin r fn = @Builtin_Method "Managed_Resource.with_builtin"
+
+## PRIVATE
+   Catch a double-registration panic and re-raise it as an `Illegal_Argument`.
+private _handle_double_registration ~action =
+    handler caught =
+        payload = caught.payload
+        is_double_registration = payload.is_a Text && payload.starts_with "Object is already registered as a ManagedResource"
+        if is_double_registration.not then Panic.throw caught else
+            Panic.throw (Illegal_Argument.Error payload)
+    Panic.catch Any action handler

@@ -134,7 +134,7 @@ public final class InferredBuilder implements Builder {
     }
   }
 
-  private record RetypeInfo(Class<?> clazz, StorageType type) {}
+  private record RetypeInfo(Class<?> clazz, StorageType<?> type) {}
 
   private static final List<RetypeInfo> retypePairs =
       List.of(
@@ -198,7 +198,7 @@ public final class InferredBuilder implements Builder {
   }
 
   @Override
-  public StorageType getType() {
+  public StorageType<?> getType() {
     // The type of InferredBuilder can change over time, so we do not report any stable type here.
     return null;
   }

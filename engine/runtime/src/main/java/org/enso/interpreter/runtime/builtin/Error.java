@@ -299,7 +299,7 @@ public final class Error {
    */
   public Atom makeUnsupportedArgumentsError(Object[] args, String message) {
     return unsupportedArgumentsError.newInstance(
-        ArrayLikeHelpers.wrapObjectsWithCheckAt(args), message);
+        ArrayLikeHelpers.wrapObjectsWithCheckAt(args), Text.create(message));
   }
 
   /**

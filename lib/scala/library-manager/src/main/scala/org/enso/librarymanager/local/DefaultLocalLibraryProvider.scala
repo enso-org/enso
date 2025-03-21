@@ -14,7 +14,7 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.{Failure, Success}
 
 /** A default implementation of [[LocalLibraryProvider]]. */
-class DefaultLocalLibraryProvider(searchPaths: List[Path])
+class DefaultLocalLibraryProvider(searchPaths: List[Path], checkAot: Boolean)
     extends LocalLibraryProvider {
 
   private val logger = Logger[DefaultLocalLibraryProvider]
@@ -84,7 +84,19 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path])
                 exception
               )
               false
-            case Success(pkg) => pkg.libraryName == libraryName
+            case Success(pkg) => {
+              if (checkAot && !pkg.isAotReady()) {
+                logger.warn(
+                  s"Candidate library ${pkg.libraryName} at [${MaskedPath(potentialPath)
+                    .applyMasking()}] may not be AOT ready! Use --jvm option when encoutering problems."
+                )
+                // avoid repeated warnings
+                pkg.markAotReady()
+                false
+              } else {
+                pkg.libraryName == libraryName
+              }
+            }
           }
         if (isGood) {
           logger.trace(
@@ -160,6 +172,9 @@ object DefaultLocalLibraryProvider {
   /** Creates a [[DefaultLocalLibraryProvider]] from the [[LibraryLocations]]
     * configuration.
     */
-  def make(locations: LibraryLocations): DefaultLocalLibraryProvider =
-    new DefaultLocalLibraryProvider(locations.localLibrarySearchPaths)
+  def make(
+    locations: LibraryLocations,
+    checkAot: Boolean
+  ): DefaultLocalLibraryProvider =
+    new DefaultLocalLibraryProvider(locations.localLibrarySearchPaths, checkAot)
 }

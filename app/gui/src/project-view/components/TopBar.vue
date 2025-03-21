@@ -1,36 +1,36 @@
 <script setup lang="ts">
+import ActionButton from '@/components/ActionButton.vue'
+import ControlGroup from '@/components/ControlGroup.vue'
 import ExtendedMenu from '@/components/ExtendedMenu.vue'
 import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
-import RecordControl from '@/components/RecordControl.vue'
 import SelectionMenu from '@/components/SelectionMenu.vue'
-import UndoRedoButtons from './UndoRedoButtons.vue'
+import ZoomControl from '@/components/ZoomControl.vue'
+import { injectGraphSelection } from '@/providers/graphSelection'
 
-const showCodeEditor = defineModel<boolean>('showCodeEditor', { required: true })
-const showDocumentationEditor = defineModel<boolean>('showDocumentationEditor', { required: true })
-const props = defineProps<{
-  zoomLevel: number
-}>()
-const emit = defineEmits<{
-  fitToAllClicked: []
-  zoomIn: []
-  zoomOut: []
-}>()
+const projectNameEdited = defineModel<boolean>('projectNameEdited', { default: false })
+const props = defineProps<{ zoomLevel: number }>()
+const selection = injectGraphSelection()
 </script>
 
 <template>
   <div class="TopBar">
-    <NavBreadcrumbs />
-    <RecordControl />
-    <UndoRedoButtons />
-    <SelectionMenu />
-    <ExtendedMenu
-      v-model:showCodeEditor="showCodeEditor"
-      v-model:showDocumentationEditor="showDocumentationEditor"
-      :zoomLevel="props.zoomLevel"
-      @fitToAllClicked="emit('fitToAllClicked')"
-      @zoomIn="emit('zoomIn')"
-      @zoomOut="emit('zoomOut')"
-    />
+    <ExtendedMenu />
+    <NavBreadcrumbs v-model:projectNameEdited="projectNameEdited" />
+    <ControlGroup>
+      <ActionButton class="redButton" action="graph.refreshExecution" />
+      <ActionButton class="redButton" action="graph.recomputeAll" />
+    </ControlGroup>
+    <ControlGroup>
+      <ActionButton action="graph.undo" />
+      <ActionButton action="graph.redo" />
+    </ControlGroup>
+    <SelectionMenu v-if="selection.selected.size > 1" />
+    <ControlGroup v-else>
+      <ActionButton action="graph.addComponent" label="Input" data-testid="add-component-button" />
+    </ControlGroup>
+
+    <div class="invisible flex-1"></div>
+    <ZoomControl :zoomLevel="props.zoomLevel" />
   </div>
 </template>
 
@@ -43,10 +43,11 @@ const emit = defineEmits<{
   left: 0;
   right: 0;
   margin-left: 11px;
-  pointer-events: none;
-  > * {
-    pointer-events: auto;
-  }
+  margin-right: 11px;
+}
+
+.redButton:active {
+  color: #ba4c40;
 }
 
 .TopBar.extraRightSpace {

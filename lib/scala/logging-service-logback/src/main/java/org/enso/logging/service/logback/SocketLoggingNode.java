@@ -94,7 +94,7 @@ public class SocketLoggingNode implements Runnable {
         }
       }
     } catch (java.io.EOFException e) {
-      if (state.isBefore(State.CLOSING)) {
+      if (state.isBefore(State.CLOSING) && projectId != null) {
         logger.debug("Caught java.io.EOFException closing connection.", e);
       }
     } catch (java.net.SocketException e) {

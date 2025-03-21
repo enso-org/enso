@@ -11,6 +11,7 @@ import project.Natural_Order_Sort
 import project.Number_Parse
 import project.Numeric
 import project.Range
+import project.Runtime.Managed_Resources
 import project.Runtime.Panics_And_Errors
 import project.Sieve
 import project.Startup.Startup
@@ -104,6 +105,7 @@ all_benchmarks =
         builder.append Sum.collect_benches
 
         # Runtime
+        builder.append Managed_Resources.collect_benches
         builder.append Panics_And_Errors.collect_benches
 
         builder.append Compile.collect_benches

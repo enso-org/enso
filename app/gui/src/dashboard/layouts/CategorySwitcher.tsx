@@ -110,7 +110,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 
   const isDropTarget =
     !areCategoriesEqual(currentCategory, category) &&
-    canTransferBetweenCategories(currentCategory, category, user)
+    canTransferBetweenCategories(currentCategory, category)
   const acceptedDragTypes = isDropTarget ? [mimeTypes.ASSETS_MIME_TYPE] : []
 
   const onPress = useEventCallback(() => {

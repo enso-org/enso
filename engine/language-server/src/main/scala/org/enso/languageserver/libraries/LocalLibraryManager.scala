@@ -11,6 +11,7 @@ import org.enso.librarymanager.published.repository.LibraryManifest
 import org.enso.pkg.validation.NameValidation
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
 import org.enso.yaml.YamlHelper
+import org.enso.common.HostEnsoUtils
 
 import java.io.File
 import java.nio.file.{Files, Path}
@@ -23,7 +24,8 @@ class LocalLibraryManager(
 ) extends BlockingSynchronizedRequestHandler
     with LazyLogging {
   val localLibraryProvider = new DefaultLocalLibraryProvider(
-    libraryLocations.localLibrarySearchPaths
+    libraryLocations.localLibrarySearchPaths,
+    HostEnsoUtils.isAot()
   )
 
   override def requestStage: Receive = { case request: Request =>

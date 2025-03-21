@@ -13,6 +13,7 @@ const projectNames = injectProjectNames()
 const props = defineProps<{
   message: string
   type: MessageType
+  outputPortHovered?: boolean
 }>()
 
 function containsLibraryName(): ProjectPath | null {
@@ -62,7 +63,11 @@ export const colorForMessageType: Record<MessageType, string> = {
 </script>
 
 <template>
-  <div class="GraphNodeMessage" :style="{ '--background-color': colorForMessageType[props.type] }">
+  <div
+    class="GraphNodeMessage"
+    :class="{ passEvents: outputPortHovered }"
+    :style="{ '--background-color': colorForMessageType[props.type] }"
+  >
     <SvgIcon class="icon" :name="iconForMessageType[props.type]" />
     <div class="message" v-text="props.message"></div>
     <div class="toolbar">
@@ -98,7 +103,14 @@ export const colorForMessageType: Record<MessageType, string> = {
   color: var(--color-text-inversed);
   background-color: var(--background-color);
   line-height: 20px;
-  z-index: 20;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+
+  &.passEvents {
+    opacity: 0.5;
+  }
 }
 
 .icon {
@@ -115,6 +127,7 @@ export const colorForMessageType: Record<MessageType, string> = {
   border-radius: var(--radius-full);
   position: relative;
   z-index: 1;
+  pointer-events: auto;
 
   & > .SvgButton:hover {
     background-color: color-mix(in oklab, black, transparent 90%);

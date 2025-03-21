@@ -87,6 +87,7 @@ export const OPENING_PROJECT_STATES = new Set([
 ])
 export const OPENED_PROJECT_STATES = new Set([backendModule.ProjectState.opened])
 export const CLOSED_PROJECT_STATES = new Set([backendModule.ProjectState.closed])
+export const CLOSING_PROJECT_STATES = new Set([backendModule.ProjectState.closing])
 export const STATIC_PROJECT_STATES = new Set([
   backendModule.ProjectState.opened,
   backendModule.ProjectState.closed,
@@ -147,6 +148,8 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
 
       const createdStates = CREATED_PROJECT_STATES
 
+      const closingStates = CLOSING_PROJECT_STATES
+
       if (state.status === 'error') {
         return false
       }
@@ -169,6 +172,10 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
         if (openingStates.has(state.data.state.type)) {
           return LOCAL_OPENING_INTERVAL_MS
         }
+
+        if (closingStates.has(state.data.state.type)) {
+          return LOCAL_OPENING_INTERVAL_MS
+        }
       }
 
       if (createdStates.has(currentState)) {
@@ -180,6 +187,10 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
         return OPENED_INTERVAL_MS
       }
       if (openingStates.has(state.data.state.type)) {
+        return CLOUD_OPENING_INTERVAL_MS
+      }
+
+      if (closingStates.has(state.data.state.type)) {
         return CLOUD_OPENING_INTERVAL_MS
       }
 
@@ -238,7 +249,10 @@ export function useOpenProjectMutation() {
 
       void client.cancelQueries({ queryKey })
     },
-    onSuccess: async (_, { type, id, parentId }) => {
+    onSuccess: async (_, { type, id, title, parentId, hybrid }) => {
+      if (hybrid) {
+        await remoteBackend.setHybridOpened(hybrid.cloudProjectId, title)
+      }
       await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
@@ -258,10 +272,14 @@ export function useCloseProjectMutation() {
 
   return reactQuery.useMutation({
     mutationKey: ['closeProject'],
-    mutationFn: ({ type, id, title }: LaunchedProject) => {
+    mutationFn: async ({ type, id, title, hybrid }: LaunchedProject) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
+
+      if (hybrid) {
+        await remoteBackend.closeProject(hybrid.cloudProjectId, title)
+      }
 
       return backend.closeProject(id, title)
     },
@@ -276,24 +294,31 @@ export function useCloseProjectMutation() {
 
       void client.cancelQueries({ queryKey })
     },
-    onSuccess: async (_, { type, id, parentId, cloudProjectId }) => {
+    onSuccess: async (_, { type, id, parentId, hybrid }) => {
       await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       setProjectAsset(type, id, parentId, (asset) => ({
         ...asset,
         projectState: { ...asset.projectState, type: backendModule.ProjectState.closed },
       }))
 
-      // If the project runs in hybrid execution mode
-      // TODO: implement proper handling of upload failures
-      if (cloudProjectId) {
+      if (hybrid) {
+        await remoteBackend.uploadProject(hybrid.cloudProjectId, parentId)
+
         invariant(localBackend != null, 'LocalBackend is null')
-
-        await remoteBackend.uploadProject(cloudProjectId, parentId)
-
-        await localBackend.deleteAsset(parentId, { force: true }, null)
+        await localBackend.deleteAsset(hybrid.parentId, { force: true }, null)
       }
+
+      await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
+      await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
-    onError: async (_, { type, id, parentId }) => {
+    onError: async (_, { type, id, parentId, hybrid }) => {
+      if (hybrid) {
+        await remoteBackend.uploadProject(hybrid.cloudProjectId, parentId)
+
+        invariant(localBackend != null, 'LocalBackend is null')
+        await localBackend.deleteAsset(hybrid.parentId, { force: true }, null)
+      }
+
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
@@ -360,7 +385,12 @@ export function useOpenProject() {
     const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
 
     if (!isOpeningTheSameProject) {
-      openProjectMutation.mutate(project)
+      openProjectMutation.mutate(project, {
+        onSuccess: () => {
+          addLaunchedProject(project)
+        },
+      })
+
       const openingProjectMutation = client.getMutationCache().find({
         mutationKey: ['openProject'],
         // this is unsafe, but we can't do anything about it
@@ -371,8 +401,6 @@ export function useOpenProject() {
         ...openingProjectMutation.options,
         scope: { id: project.id },
       })
-
-      addLaunchedProject(project)
     }
   })
 }

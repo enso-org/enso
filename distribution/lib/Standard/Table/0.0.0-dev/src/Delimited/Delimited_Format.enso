@@ -127,7 +127,7 @@ type Delimited_Format
 
     ## PRIVATE
        Clone the instance with some properties overridden.
-    clone : Encoding -> Quote_Style -> Headers -> (Data_Formatter|Nothing) -> Boolean -> (Text|Nothing) -> (Text|Nothing) -> Delimited_Format
+    clone : Encoding -> Quote_Style -> Headers -> (Data_Formatter|Nothing) -> Invalid_Rows -> (Line_Ending_Style|Infer) -> (Text|Nothing) -> Delimited_Format
     clone self (encoding:Encoding = self.encoding) (quote_style:Quote_Style=self.quote_style) (headers:Headers=self.headers) (value_formatter=self.value_formatter) (on_invalid_rows:Invalid_Rows=self.on_invalid_rows) (line_endings=self.line_endings) (comment_character=self.comment_character) =
         Delimited_Format.Delimited self.delimiter encoding self.skip_rows self.row_limit quote_style headers value_formatter on_invalid_rows line_endings comment_character
 
@@ -135,7 +135,8 @@ type Delimited_Format
        Create a clone of this with specified quoting settings.
     with_quotes : Text -> Text -> Boolean -> Delimited_Format
     with_quotes self quote='"' quote_escape=quote always_quote=False =
-        self.clone quote_style=(Quote_Style.With_Quotes always_quote=always_quote quote=quote quote_escape=quote_escape)
+        quote_style = if always_quote then Quote_Style.Always_Quote quote quote_escape else Quote_Style.With_Quotes  quote quote_escape
+        self.clone quote_style=quote_style
 
     ## ICON data_input
        Create a clone of this with specified quoting settings.

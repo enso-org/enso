@@ -51,17 +51,17 @@ impl<'s> span::Builder<'s> for Line<'s> {
 /// Parse the top-level of a module.
 pub fn parse_module<'s>(
     lines: &mut Vec<item::Line<'s>>,
-    precedence: &mut operator::Precedence<'s>,
+    expression_parser: &mut expression::ExpressionParser<'s>,
 ) -> Tree<'s> {
-    BodyBlockParser::default().parse_module(lines, precedence)
+    BodyBlockParser::default().parse_module(lines, expression_parser)
 }
 
 /// Parse a body block.
 pub fn parse_block<'s>(
     lines: &mut Vec<item::Line<'s>>,
-    precedence: &mut operator::Precedence<'s>,
+    expression_parser: &mut expression::ExpressionParser<'s>,
 ) -> Tree<'s> {
-    BodyBlockParser::default().parse_body_block(lines, precedence)
+    BodyBlockParser::default().parse_body_block(lines, expression_parser)
 }
 
 
@@ -198,29 +198,6 @@ pub struct OperatorBlockExpression<'s> {
     pub expression: Tree<'s>,
 }
 
-/// Interpret the given expression as an `OperatorBlockExpression`, if it fits the correct pattern.
-fn to_operator_block_expression<'s>(
-    mut items: Vec<Item<'s>>,
-    precedence: &mut operator::Precedence<'s>,
-) -> Result<OperatorBlockExpression<'s>, Tree<'s>> {
-    match &items[..] {
-        [Item::Token(a), b, ..]
-            if b.left_visible_offset().width_in_spaces != 0
-                && a.operator_properties().is_some_and(|p| p.can_form_section()) =>
-        {
-            let expression = precedence.resolve_offset(1, &mut items).unwrap();
-            let operator = Ok(items
-                .pop()
-                .unwrap()
-                .into_token()
-                .unwrap()
-                .with_variant(token::variant::Operator()));
-            Ok(OperatorBlockExpression { operator, expression })
-        }
-        _ => Err(precedence.resolve(&mut items).unwrap()),
-    }
-}
-
 impl<'s> span::Builder<'s> for OperatorBlockExpression<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span.add(&mut self.operator).add(&mut self.expression)
@@ -249,108 +226,5 @@ impl<'s> From<token::Newline<'s>> for OperatorLine<'s> {
 impl<'s> span::Builder<'s> for OperatorLine<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span.add(&mut self.newline).add(&mut self.expression)
-    }
-}
-
-
-
-// =====================
-// === Block Builder ===
-// =====================
-
-/// Builds an argument block or operator block from a sequence of lines.
-///
-/// The implementation is a state machine. The only top-level transitions are:
-/// - `Indeterminate` -> `Operator`
-/// - `Indeterminate` -> `NonOperator`
-///
-/// The `Operator` state has two substates, and one possible transition:
-/// - `body_lines is empty` -> `body_lines is not empty`
-#[derive(Debug, Default)]
-pub struct Builder<'s> {
-    state:          State,
-    empty_lines:    Vec<token::Newline<'s>>,
-    operator_lines: Vec<OperatorLine<'s>>,
-    body_lines:     Vec<Line<'s>>,
-}
-
-#[derive(Debug, Default)]
-enum State {
-    /// The builder is in an indeterminate state until a non-empty line has been encountered, which
-    /// would distinguish an operator-block from a non-operator block.
-    // `empty_lines` contains the `Newline` token introducing the block, and `Newline` tokens for
-    // any empty lines that have been encountered.
-    #[default]
-    Indeterminate,
-    /// Building an operator block. If any line doesn't fit the operator-block syntax, that line
-    /// and all following will be placed in `body_lines`.
-    // `operator_lines` contains valid operator-block expressions.
-    // `body_lines` contains any lines violating the expected operator-block syntax.
-    Operator,
-    /// Building an argument block.
-    // `body_lines` contains the block content.
-    Argument,
-}
-
-impl<'s> Builder<'s> {
-    /// Create a new instance, in initial state.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Apply a new line to the state.
-    pub fn push(
-        &mut self,
-        newline: token::Newline<'s>,
-        mut items: Vec<Item<'s>>,
-        precedence: &mut operator::Precedence<'s>,
-    ) {
-        match &mut self.state {
-            State::Indeterminate if items.is_empty() => self.empty_lines.push(newline),
-            State::Indeterminate => {
-                self.state = match to_operator_block_expression(items, precedence) {
-                    Ok(expression) => {
-                        self.operator_lines
-                            .push(OperatorLine { newline, expression: Some(expression) });
-                        State::Operator
-                    }
-                    Err(expression) => {
-                        self.body_lines.push(Line { newline, expression: Some(expression) });
-                        State::Argument
-                    }
-                };
-            }
-            State::Argument =>
-                self.body_lines.push(Line { newline, expression: precedence.resolve(&mut items) }),
-            State::Operator if !self.body_lines.is_empty() =>
-                self.body_lines.push(Line { newline, expression: precedence.resolve(&mut items) }),
-            State::Operator if items.is_empty() => self.operator_lines.push(newline.into()),
-            State::Operator => match to_operator_block_expression(items, precedence) {
-                Ok(expression) =>
-                    self.operator_lines.push(OperatorLine { newline, expression: Some(expression) }),
-                Err(expression) =>
-                    self.body_lines.push(Line { newline, expression: Some(expression) }),
-            },
-        }
-    }
-
-    /// Produce an AST node from the state.
-    pub fn build(&mut self) -> Tree<'s> {
-        match self.state {
-            State::Operator => {
-                let mut operator_lines =
-                    Vec::with_capacity(self.empty_lines.len() + self.operator_lines.len());
-                operator_lines.extend(self.empty_lines.drain(..).map(OperatorLine::from));
-                operator_lines.append(&mut self.operator_lines);
-                Tree::operator_block_application(None, operator_lines, self.body_lines.split_off(0))
-            }
-            State::Argument | State::Indeterminate => {
-                let mut body_lines =
-                    Vec::with_capacity(self.empty_lines.len() + self.body_lines.len());
-                body_lines.extend(self.empty_lines.drain(..).map(Line::from));
-                body_lines.append(&mut self.body_lines);
-                Tree::argument_block_application(None, body_lines)
-            }
-        }
     }
 }

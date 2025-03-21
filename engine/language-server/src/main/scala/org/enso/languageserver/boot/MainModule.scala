@@ -49,6 +49,7 @@ import org.enso.lockmanager.server.LockManagerService
 import org.enso.logger.masking.Masking
 import org.enso.common.RuntimeOptions
 import org.enso.common.ContextFactory
+import org.enso.common.HostEnsoUtils
 import org.enso.logging.utils.akka.AkkaConverter
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.profiling.events.NoopEventsMonitor
@@ -73,11 +74,21 @@ import scala.concurrent.duration.DurationInt
 class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
 
   private val log = LoggerFactory.getLogger(this.getClass)
+  private val telemetryLog =
+    LoggerFactory.getLogger("org.enso.telemetry.languageserver.boot.MainModule")
   log.debug(
     "Initializing main module of the Language Server from [{}, {}, {}]",
     BuildVersion.currentEdition,
     serverConfig,
     logLevel
+  )
+  telemetryLog.trace(
+    "Initializing main module of the Language Server: edition={}, graal_version={}, enso_version={}, is_release={}, AOT={}",
+    BuildVersion.currentEdition(),
+    BuildVersion.graalVersion(),
+    BuildVersion.ensoVersion(),
+    BuildVersion.isRelease,
+    HostEnsoUtils.isAot
   )
 
   private val contextSupervisor = new ComponentSupervisor()
@@ -316,7 +327,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     Runtime.getRuntime.availableProcessors().toString
   )
 
-  if (java.lang.Boolean.getBoolean("com.oracle.graalvm.isaot")) {
+  if (HostEnsoUtils.isAot()) {
     log.info("Running Language Server in AOT mode")
   } else {
     log.info("Running Language Server in JVM mode")
@@ -333,6 +344,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     .err(stdErr)
     .in(stdIn)
     .options(extraOptions)
+    .disableLinting(true)
     .enableRuntimeServerInfoKey(RuntimeServerInfo.ENABLE_OPTION)
     .messageTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
@@ -398,7 +410,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     localLibraryManager      = localLibraryManager,
     editionReferenceResolver = editionReferenceResolver,
     editionManager           = editionManager,
-    localLibraryProvider     = DefaultLocalLibraryProvider.make(libraryLocations),
+    localLibraryProvider =
+      DefaultLocalLibraryProvider.make(libraryLocations, HostEnsoUtils.isAot()),
     publishedLibraryCache =
       PublishedLibraryCache.makeReadOnlyCache(libraryLocations),
     installerConfig = LibraryInstallerConfig(

@@ -20,7 +20,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 
 public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
   @Override
-  public boolean canApply(StorageType sourceType) {
+  public boolean canApply(StorageType<?> sourceType) {
     return sourceType instanceof IntegerType
         || sourceType instanceof BigDecimalType
         || sourceType instanceof FloatType

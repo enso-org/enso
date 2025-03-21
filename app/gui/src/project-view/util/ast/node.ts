@@ -29,7 +29,7 @@ export function inputNodeFromAst(ast: Ast.Expression, argIndex: number): NodeDat
   return {
     type: 'input',
     outerAst: ast,
-    pattern: undefined,
+    pattern: ast,
     rootExpr: ast,
     innerExpr: ast,
     prefixes: { enableRecording: undefined },
