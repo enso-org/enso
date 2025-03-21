@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
  * deserialized by the logback framework. Thus, the {@link ILoggingEvent#getArgumentArray() log
  * event arguments} are most likely strings.
  */
+@org.openide.util.lookup.ServiceProvider(service = TelemetryAppender.class)
 public final class TelemetryAppenderImpl extends TelemetryAppender {
   private static final String CREDENTIALS_FILE_ENV = "ENSO_CLOUD_CREDENTIALS_FILE";
 

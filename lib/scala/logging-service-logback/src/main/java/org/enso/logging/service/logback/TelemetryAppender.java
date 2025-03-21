@@ -9,7 +9,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 public abstract class TelemetryAppender extends AppenderBase<ILoggingEvent> {
 
   static TelemetryAppender load() {
-    var loader = ServiceLoader.load(TelemetryAppender.class);
+    var loader =
+        ServiceLoader.load(TelemetryAppender.class, TelemetryAppender.class.getClassLoader());
     var appender = loader.findFirst().get();
     return appender;
   }
