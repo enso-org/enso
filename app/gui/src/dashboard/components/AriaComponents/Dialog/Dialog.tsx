@@ -3,8 +3,9 @@
  * Can be used to display alerts, confirmations, or other content.
  */
 import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
-import { DialogDismiss, ResetButtonGroupContext } from '#/components/AriaComponents'
+import { CloseButton } from '#/components/AriaComponents/Button'
+import { ResetButtonGroupContext } from '#/components/AriaComponents/Button/ResetButtonGroupContext'
+import { Text } from '#/components/AriaComponents/Text'
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as portal from '#/components/Portal'
 import * as suspense from '#/components/Suspense'
@@ -19,6 +20,7 @@ import { unsafeWriteValue } from '#/utilities/write'
 import * as React from 'react'
 import { Close } from './Close'
 import type { DialogStackItem } from './constants'
+import { DialogDismiss } from './DialogDismiss'
 import * as dialogProvider from './DialogProvider'
 import * as dialogStackProvider from './DialogStackProvider'
 import { DialogTrigger } from './DialogTrigger'
@@ -545,19 +547,12 @@ const DialogHeader = React.memo(function DialogHeader(props: DialogHeaderProps) 
       ref={headerDimensionsRef}
       className={styles.header({ scrolledToTop: isScrolledToTop })}
     >
-      {closeButton !== 'none' && (
-        <ariaComponents.CloseButton className={styles.closeButton()} onPress={close} />
-      )}
+      {closeButton !== 'none' && <CloseButton className={styles.closeButton()} onPress={close} />}
 
       {title != null && (
-        <ariaComponents.Text.Heading
-          id={titleId}
-          level={2}
-          className={styles.heading()}
-          weight="semibold"
-        >
+        <Text.Heading id={titleId} level={2} className={styles.heading()} weight="semibold">
           {title}
-        </ariaComponents.Text.Heading>
+        </Text.Heading>
       )}
     </aria.Header>
   )

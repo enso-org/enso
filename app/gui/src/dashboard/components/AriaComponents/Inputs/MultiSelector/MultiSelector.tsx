@@ -17,7 +17,7 @@ import {
   type FieldStateProps,
   type FieldValues,
   type TSchema,
-} from '#/components/AriaComponents'
+} from '#/components/AriaComponents/Form'
 import { MULTI_SELECTOR_STYLES } from '#/components/AriaComponents/Inputs/MultiSelector/variants'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'

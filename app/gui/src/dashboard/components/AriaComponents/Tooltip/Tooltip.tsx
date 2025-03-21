@@ -2,7 +2,7 @@
 import * as aria from '#/components/aria'
 import { useStrictPortalContext } from '#/components/Portal'
 import type { VariantProps } from '#/utilities/tailwindVariants'
-import { ResetButtonGroupContext } from '../Button'
+import { ResetButtonGroupContext } from '../Button/ResetButtonGroupContext'
 import { TOOLTIP_STYLES } from './variants'
 
 const DEFAULT_CONTAINER_PADDING = 6

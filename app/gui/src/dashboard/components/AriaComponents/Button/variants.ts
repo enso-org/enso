@@ -1,14 +1,8 @@
-/**
- * @file
- *
- * Variants for a button
- */
+/** @file Variants for a button. */
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import { TEXT_STYLE } from '../Text'
+import { TEXT_STYLE } from '../Text/variants'
 
-/**
- * Variants for a button
- */
+/** Variants for a button. */
 export type ButtonVariants = VariantProps<typeof BUTTON_STYLES>
 
 export const BUTTON_STYLES = tv({

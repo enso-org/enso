@@ -6,11 +6,8 @@ import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 import invariant from 'tiny-invariant'
 import type { TestIdProps } from '../types'
-import {
-  ButtonGroupProvider,
-  JoinedButtonPrivateContextProvider,
-  ResetButtonGroupContext,
-} from './shared'
+import { ResetButtonGroupContext } from './ResetButtonGroupContext'
+import { ButtonGroupProvider, JoinedButtonPrivateContextProvider } from './shared'
 import type { ButtonGroupSharedButtonProps, PrivateJoinedButtonPosition } from './types'
 
 const STYLES = tv({

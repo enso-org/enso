@@ -1,8 +1,8 @@
 /** @file Display the result of an operation. */
 import Success from '#/assets/check_mark.svg'
 import Error from '#/assets/cross.svg'
-import type { TestIdProps } from '#/components/AriaComponents'
 import { Text } from '#/components/AriaComponents/Text'
+import type { TestIdProps } from '#/components/AriaComponents/types'
 import * as loader from '#/components/Loader'
 import SvgMask from '#/components/SvgMask'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'

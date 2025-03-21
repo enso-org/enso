@@ -56,20 +56,7 @@ export function ButtonGroupProvider(props: ButtonGroupContextType & Readonly<Pro
   return <ButtonGroupContext.Provider value={contextValue}>{children}</ButtonGroupContext.Provider>
 }
 
-const EMPTY_CONTEXT: ButtonGroupContextType = {}
-
-/** A wrapper that resets the button group context. */
-export function ResetButtonGroupContext(props: PropsWithChildren) {
-  const { children } = props
-
-  return (
-    <ButtonGroupContext.Provider value={EMPTY_CONTEXT}>
-      <JoinedButtonPrivateContextProvider isJoined={false} position={undefined}>
-        {children}
-      </JoinedButtonPrivateContextProvider>
-    </ButtonGroupContext.Provider>
-  )
-}
+export const EMPTY_CONTEXT: ButtonGroupContextType = {}
 
 /** A provider for the joined button private context. */
 export function JoinedButtonPrivateContextProvider(

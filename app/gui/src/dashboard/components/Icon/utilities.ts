@@ -3,7 +3,7 @@ import type {
   AvailableIconReturn,
   IconProp,
   LegacyAvailableIconReturn,
-} from '#/components/AriaComponents'
+} from '#/components/AriaComponents/types'
 
 /** Utility function to render an icon based on the icon type and render props. */
 export function renderIcon<Icon extends string, Render>(

@@ -1,7 +1,7 @@
 /** @file Variants for `Tooltip`. */
 import { tv } from '#/utilities/tailwindVariants'
-import { DIALOG_BACKGROUND } from '../Dialog'
-import { TEXT_STYLE } from '../Text'
+import { DIALOG_BACKGROUND } from '../Dialog/variants'
+import { TEXT_STYLE } from '../Text/variants'
 
 export const TOOLTIP_STYLES = tv({
   base: 'group flex justify-center items-center text-center [overflow-wrap:anywhere]',

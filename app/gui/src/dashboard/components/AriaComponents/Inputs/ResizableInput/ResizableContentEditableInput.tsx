@@ -7,15 +7,15 @@ import {
   type HTMLAttributes,
 } from 'react'
 
-import type { FieldVariantProps } from '#/components/AriaComponents'
 import {
   Form,
-  Text,
   type FieldPath,
   type FieldProps,
   type FieldStateProps,
+  type FieldVariantProps,
   type TSchema,
-} from '#/components/AriaComponents'
+} from '#/components/AriaComponents/Form'
+import { Text } from '#/components/AriaComponents/Text'
 import { useAutoFocus } from '#/hooks/autoFocusHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'

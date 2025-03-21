@@ -7,7 +7,7 @@ import {
   type FieldValues,
   type FieldVariantProps,
   type TSchema,
-} from '#/components/AriaComponents'
+} from '#/components/AriaComponents/Form'
 import { Input, type InputProps } from '#/components/aria'
 
 /** Props for {@link HiddenFile}. */

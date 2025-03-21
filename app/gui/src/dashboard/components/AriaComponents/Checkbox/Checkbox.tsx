@@ -7,6 +7,17 @@
 import type { CheckboxProps as AriaCheckboxProps } from '#/components/aria'
 import { Checkbox as AriaCheckbox, CheckboxGroupStateContext } from '#/components/aria'
 import { useCheckboxContext } from '#/components/AriaComponents/Checkbox/hooks'
+import { Field, type FieldVariantProps } from '#/components/AriaComponents/Form/components/Field'
+import { useFormContext } from '#/components/AriaComponents/Form/components/hooks'
+import type { useField } from '#/components/AriaComponents/Form/components/useField'
+import { useFieldState } from '#/components/AriaComponents/Form/components/useFieldState'
+import type {
+  FieldPath,
+  FieldProps,
+  FieldStateProps,
+  TSchema,
+  UseFormRegisterReturn,
+} from '#/components/AriaComponents/Form/types'
 import { mergeRefs, useMergedRef } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
@@ -19,18 +30,10 @@ import {
   type ReactElement,
   type RefAttributes,
 } from 'react'
+import { Controller } from 'react-hook-form'
 import type { CheckboxGroupState } from 'react-stately'
 import invariant from 'tiny-invariant'
 import { Check } from '../Check/Check'
-import type {
-  FieldPath,
-  FieldProps,
-  FieldStateProps,
-  FieldVariantProps,
-  TSchema,
-  UseFormRegisterReturn,
-} from '../Form'
-import { Form } from '../Form'
 import { Text } from '../Text'
 import type { TestIdProps } from '../types'
 import { CheckboxStandaloneProvider } from './CheckboxContext'
@@ -70,7 +73,7 @@ export const Checkbox = forwardRef(function Checkbox<
   const { form, name } = props
 
   const { store } = useCheckboxContext()
-  const formInstance = Form.useFormContext(form)
+  const formInstance = useFormContext(form)
 
   const isInsideGroup = useStore(store, (state) => state.insideGroup)
 
@@ -95,7 +98,7 @@ export const Checkbox = forwardRef(function Checkbox<
     } = props as StandaloneCheckboxProps<Schema, FieldName>
 
     return (
-      <Form.Controller
+      <Controller
         name={name}
         control={formInstance.control}
         {...(defaultValueOverride != null && { defaultValue: defaultValueOverride })}
@@ -112,7 +115,7 @@ export const Checkbox = forwardRef(function Checkbox<
                   void formInstance.trigger(name)
                 }}
               >
-                <Form.Field
+                <Field
                   {...fieldProps}
                   form={formInstance}
                   name={name}
@@ -120,7 +123,7 @@ export const Checkbox = forwardRef(function Checkbox<
                   variants={fieldVariants}
                 >
                   <CheckboxInternal ref={ref} value={name} {...props} />
-                </Form.Field>
+                </Field>
               </CheckboxStandaloneProvider>
             </>
           )
@@ -170,7 +173,7 @@ const CheckboxInternal = forwardRef(function CheckboxInternal<
   // eslint-disable-next-line no-restricted-syntax
   const groupState = useContext(CheckboxGroupStateContext) as CheckboxGroupState | undefined
 
-  const formInstance = Form.useFormContext(form)
+  const formInstance = useFormContext(form)
 
   const { isSelected, field, onChange, name } = useStore(store, (state) => {
     const { insideGroup } = state
@@ -204,10 +207,10 @@ const CheckboxInternal = forwardRef(function CheckboxInternal<
     )
   })
 
-  const { hasError: fieldStateInvalid } = Form.useFieldState({
+  const { hasError: fieldStateInvalid } = useFieldState({
     name,
     // eslint-disable-next-line no-restricted-syntax
-    form: formInstance as unknown as Parameters<typeof Form.useField>[0]['form'],
+    form: formInstance as unknown as Parameters<typeof useField>[0]['form'],
   })
 
   const invalid = isInvalid ?? groupState?.isInvalid ?? fieldStateInvalid

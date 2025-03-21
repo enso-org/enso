@@ -1,9 +1,9 @@
 /** @file A horizontal selector. */
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import { mergeProps, type RadioGroupProps } from '#/components/aria'
-import type { FieldComponentProps } from '#/components/AriaComponents'
 import {
   Form,
+  type FieldComponentProps,
   type FieldPath,
   type FieldProps,
   type FieldStateProps,

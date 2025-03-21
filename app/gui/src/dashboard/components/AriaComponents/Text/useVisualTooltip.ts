@@ -7,8 +7,8 @@ import {
   type DOMAttributes,
   type FocusableElement,
 } from '#/components/aria'
-import type { TooltipProps } from '#/components/AriaComponents'
 import { VisualTooltipInner } from '#/components/AriaComponents/Text/VisualTooltipInner'
+import type { TooltipProps } from '#/components/AriaComponents/Tooltip'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import {
   createElement,

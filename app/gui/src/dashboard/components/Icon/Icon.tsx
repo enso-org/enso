@@ -1,10 +1,15 @@
 /** @file Displays an icon. */
+import type {
+  IconProp,
+  IconPropSvgUse,
+  LegacyIconProp,
+  TestIdProps,
+} from '#/components/AriaComponents/types'
+import SvgMask from '#/components/SvgMask'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import icons from '@/assets/icons.svg'
 import { isIconName, type Icon as PossibleIcon } from '@/util/iconMetadata/iconName'
 import { memo } from 'react'
-import type { IconProp, IconPropSvgUse, LegacyIconProp, TestIdProps } from '../AriaComponents'
-import SvgMask from '../SvgMask'
 import { ICON_STYLES } from './variants'
 
 /** Props for {@link Icon}. */

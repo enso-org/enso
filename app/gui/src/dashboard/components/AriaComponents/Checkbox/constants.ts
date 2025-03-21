@@ -1,5 +1,5 @@
 /** @file Constants for `Checkbox`. */
-import type { TSchema, UseFormRegisterReturn } from '#/components/AriaComponents/Form'
+import type { TSchema, UseFormRegisterReturn } from '#/components/AriaComponents/Form/types'
 import { tv } from '#/utilities/tailwindVariants'
 import { createContext } from 'react'
 import { createStore, type StoreApi } from 'zustand'

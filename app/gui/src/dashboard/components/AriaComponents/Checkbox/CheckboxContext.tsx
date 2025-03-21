@@ -3,11 +3,11 @@ import {
   CheckboxContext,
   type CheckBoxGroupPropsStateInsideGroup,
 } from '#/components/AriaComponents/Checkbox/constants'
+import type { TSchema, UseFormRegisterReturn } from '#/components/AriaComponents/Form/types'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { createStore } from '#/utilities/zustand'
 import type { PropsWithChildren } from 'react'
 import { useState } from 'react'
-import type { TSchema, UseFormRegisterReturn } from '../Form'
 
 /** Props for {@link CheckboxGroupProvider}. */
 export interface CheckboxGroupProviderProps extends PropsWithChildren {
