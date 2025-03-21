@@ -2,12 +2,6 @@ package org.enso.snowflake;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.enso.base.enso_cloud.ExternalLibrarySecretHelper;
-import org.enso.base.enso_cloud.HideableValue;
-import org.enso.base.net.http.UrlencodedBodyBuilder;
-import org.enso.database.JDBCProxy;
-import org.graalvm.collections.Pair;
-
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -19,6 +13,11 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.base.enso_cloud.ExternalLibrarySecretHelper;
+import org.enso.base.enso_cloud.HideableValue;
+import org.enso.base.net.http.UrlencodedBodyBuilder;
+import org.enso.database.JDBCProxy;
+import org.graalvm.collections.Pair;
 
 public final class SnowflakeCloudCredentials {
   private static CredentialConfig unsafeParseCredential(HideableValue credentialReference) {
@@ -28,7 +27,9 @@ public final class SnowflakeCloudCredentials {
       var json = jsonMapper.readTree(secretPayload);
       var tokenField = json.get("token");
       if (tokenField == null) {
-        throw new IllegalStateException("The credential is missing token information. Please finish the authentication flow before using it.");
+        throw new IllegalStateException(
+            "The credential is missing token information. Please finish the authentication flow"
+                + " before using it.");
       }
 
       if (!tokenField.isObject()) {
@@ -45,7 +46,9 @@ public final class SnowflakeCloudCredentials {
       CredentialInput input = parseInputPart(inputField);
       return new CredentialConfig(input, token);
     } catch (Exception e) {
-      throw new IllegalStateException("Failed to parse secret payload as credential. Perhaps the secret was not created in the Dashboard as a Credential?");
+      throw new IllegalStateException(
+          "Failed to parse secret payload as credential. Perhaps the secret was not created in the"
+              + " Dashboard as a Credential?");
     }
   }
 
@@ -54,7 +57,12 @@ public final class SnowflakeCloudCredentials {
     var tokenValue = tokenObject.get("refreshToken");
     var expirationDate = tokenObject.get("expirationDate");
     var metadata = tokenObject.get("metadata");
-    if (tokenValue == null || !tokenValue.isTextual() || expirationDate == null || !expirationDate.isTextual() || metadata == null || !metadata.isObject()) {
+    if (tokenValue == null
+        || !tokenValue.isTextual()
+        || expirationDate == null
+        || !expirationDate.isTextual()
+        || metadata == null
+        || !metadata.isObject()) {
       throw new IllegalStateException("Unexpected: Malformed credential payload.");
     }
 
@@ -80,11 +88,17 @@ public final class SnowflakeCloudCredentials {
     var accountField = inputObject.get("account");
     var clientIdField = inputObject.get("clientId");
     var clientSecretField = inputObject.get("clientSecret");
-    if (accountField == null || !accountField.isTextual() || clientIdField == null || !clientIdField.isTextual() || clientSecretField == null || !clientSecretField.isTextual()) {
+    if (accountField == null
+        || !accountField.isTextual()
+        || clientIdField == null
+        || !clientIdField.isTextual()
+        || clientSecretField == null
+        || !clientSecretField.isTextual()) {
       throw new IllegalStateException("Unexpected: Malformed credential payload.");
     }
 
-    return new CredentialInput(accountField.asText(), clientIdField.asText(), clientSecretField.asText());
+    return new CredentialInput(
+        accountField.asText(), clientIdField.asText(), clientSecretField.asText());
   }
 
   private static String extractTokenFromResponse(HttpResponse<String> response) {
@@ -102,7 +116,9 @@ public final class SnowflakeCloudCredentials {
     }
   }
 
-  public Connection makeConnection(String url, List<Pair<String, HideableValue>> properties, HideableValue credentialReference) throws SQLException {
+  public Connection makeConnection(
+      String url, List<Pair<String, HideableValue>> properties, HideableValue credentialReference)
+      throws SQLException {
     CredentialConfig credentials = unsafeParseCredential(credentialReference);
     AccessToken accessToken = credentials.refresh();
     var secureProperties = new ArrayList<>(properties);
@@ -112,8 +128,7 @@ public final class SnowflakeCloudCredentials {
     return JDBCProxy.getConnection(url, secureProperties);
   }
 
-  private record AccessToken(String token, String username) {
-  }
+  private record AccessToken(String token, String username) {}
 
   private record RefreshToken(String token, ZonedDateTime expirationDate, String username) {
     private boolean isExpired() {
@@ -123,7 +138,9 @@ public final class SnowflakeCloudCredentials {
 
   private record CredentialInput(String account, String clientId, String clientSecret) {
     private String authorizationHeader() {
-      return "Basic " + java.util.Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes(StandardCharsets.UTF_8));
+      return "Basic "
+          + java.util.Base64.getEncoder()
+              .encodeToString((clientId + ":" + clientSecret).getBytes(StandardCharsets.UTF_8));
     }
   }
 
@@ -131,20 +148,32 @@ public final class SnowflakeCloudCredentials {
     private AccessToken refresh() {
       if (token.isExpired()) {
         // TODO other exception type?
-        throw new IllegalStateException("The Cloud Credentials have expired and must be renewed. Please go to the Dashboard and re-authenticate.");
+        throw new IllegalStateException(
+            "The Cloud Credentials have expired and must be renewed. Please go to the Dashboard and"
+                + " re-authenticate.");
       }
 
       try {
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder();
-        var body = new UrlencodedBodyBuilder().add_part_text("grant_type", "refresh_token")
-            .add_part_text("refresh_token", token.token)
-            .build();
-        var request = requestBuilder.POST(body).header("Authorization", input.authorizationHeader()).header("Content-Type", "application/x-www-form-urlencoded").build();
+        var body =
+            new UrlencodedBodyBuilder()
+                .add_part_text("grant_type", "refresh_token")
+                .add_part_text("refresh_token", token.token)
+                .build();
+        var request =
+            requestBuilder
+                .POST(body)
+                .header("Authorization", input.authorizationHeader())
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .build();
         // TODO retries?
         var response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() != 200) {
-          throw new IllegalStateException("Failed to refresh the Cloud Credentials, service responded with code " + response.statusCode() + ".");
+          throw new IllegalStateException(
+              "Failed to refresh the Cloud Credentials, service responded with code "
+                  + response.statusCode()
+                  + ".");
         }
 
         String accessToken = extractTokenFromResponse(response);

@@ -3,13 +3,12 @@ package org.enso.google;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.UserCredentials;
-import org.enso.base.enso_cloud.ExternalLibrarySecretHelper;
-import org.enso.base.enso_cloud.HideableValue;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import org.enso.base.enso_cloud.ExternalLibrarySecretHelper;
+import org.enso.base.enso_cloud.HideableValue;
 
 public class GoogleOAuthSecretReader {
   public static GoogleCredentials createCredentialFromSecretValue(HideableValue secretValue) {
@@ -50,9 +49,7 @@ public class GoogleOAuthSecretReader {
         refresh();
       }
 
-      return Map.of(
-          "Authorization", List.of("Bearer "+token.getTokenValue())
-      );
+      return Map.of("Authorization", List.of("Bearer " + token.getTokenValue()));
     }
   }
 }

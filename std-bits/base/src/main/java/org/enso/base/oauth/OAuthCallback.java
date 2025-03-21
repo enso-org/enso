@@ -1,7 +1,6 @@
 package org.enso.base.oauth;
 
 import com.sun.net.httpserver.HttpServer;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
@@ -32,21 +31,22 @@ public final class OAuthCallback {
     private CallbackServerImplementation(int port) throws IOException {
       InetSocketAddress address = new InetSocketAddress("localhost", port);
       server = HttpServer.create(address, 0);
-      server.createContext("/oauth", exchange -> {
-        var query = exchange.getRequestURI().getQuery();
-//        System.out.println("method = " + exchange.getRequestMethod());
-//        System.out.println("query = " + query);
-//        System.out.println("headers = " + exchange.getRequestHeaders());
-//        byte[] body = exchange.getRequestBody().readAllBytes();
-//        System.out.println("body = " + new String(body));
+      server.createContext(
+          "/oauth",
+          exchange -> {
+            var query = exchange.getRequestURI().getQuery();
+            //        System.out.println("method = " + exchange.getRequestMethod());
+            //        System.out.println("query = " + query);
+            //        System.out.println("headers = " + exchange.getRequestHeaders());
+            //        byte[] body = exchange.getRequestBody().readAllBytes();
+            //        System.out.println("body = " + new String(body));
 
-
-        byte[] response = OK_RESPONSE.getBytes();
-        exchange.sendResponseHeaders(200, response.length);
-        exchange.getResponseBody().write(response);
-        exchange.close();
-        callbackResult.complete(query);
-      });
+            byte[] response = OK_RESPONSE.getBytes();
+            exchange.sendResponseHeaders(200, response.length);
+            exchange.getResponseBody().write(response);
+            exchange.close();
+            callbackResult.complete(query);
+          });
     }
 
     private void start() {
