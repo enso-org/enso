@@ -1139,12 +1139,17 @@ lazy val `logging-service-telemetry` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    scalaModuleDependencySetting,
+    mixedJavaScalaProjectSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion,
     ),
     Compile / javaModuleName := "org.enso.logging.service.telemetry",
     Compile / internalModuleDependencies ++= Seq(
+      (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`logging-service-logback` / Compile / exportedModule).value
     )
   )

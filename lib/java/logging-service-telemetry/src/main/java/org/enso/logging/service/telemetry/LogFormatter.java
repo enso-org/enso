@@ -7,7 +7,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +45,7 @@ public final class LogFormatter {
    * @param logMessage the log event to transform.
    * @return null if the logevent was in incorrect format.
    */
-  public static ObjectNode transform(LogMessage logMessage) {
+  public static ApiMessage.Log transform(LogMessage logMessage) {
     var items = logMessage.message().split(MESSAGE_DELIMITER);
     if (items.length != 2) {
       LOGGER.warn("Incorrect log message format: {}", logEventToString(logMessage));
@@ -64,11 +66,8 @@ public final class LogFormatter {
       LOGGER.warn("Restricted metadata in arguments: {}", logEventToString(logMessage));
       return null;
     }
-    var payload = new ObjectNode(JsonNodeFactory.instance);
-    payload.set("message", TextNode.valueOf(msg));
-    payload.set("kind", TextNode.valueOf(KIND));
     var metadata = constructMetadata(logMessage.arguments(), arguments, logMessage);
-    payload.set("metadata", metadata);
+    var payload = new ApiMessage.Log(msg, KIND, metadata);
     return payload;
   }
 
@@ -93,15 +92,15 @@ public final class LogFormatter {
         msg.loggerName(), msg.message(), Arrays.toString(msg.arguments()));
   }
 
-  private static ObjectNode constructMetadata(
+  private static Map<String, Object> constructMetadata(
       Object[] args, List<Argument> arguments, LogMessage logMessage) {
     assert args.length == arguments.size();
-    var meta = new ObjectNode(JsonNodeFactory.instance);
-    meta.set("loggerName", TextNode.valueOf(logMessage.loggerName()));
+    var meta = new HashMap<String, Object>();
+    meta.put("loggerName", logMessage.loggerName());
     for (int i = 0; i < args.length; i++) {
       var argName = arguments.get(i).name;
       var argValue = args[i];
-      meta.set(argName, objectToJson(argValue));
+      meta.put(argName, argValue);
     }
     return meta;
   }

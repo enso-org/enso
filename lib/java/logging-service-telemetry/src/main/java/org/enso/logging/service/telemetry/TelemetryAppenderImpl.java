@@ -1,22 +1,14 @@
 package org.enso.logging.service.telemetry;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.IOException;
-import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.enso.logging.service.logback.TelemetryAppender;
@@ -73,8 +65,7 @@ public final class TelemetryAppenderImpl extends TelemetryAppender {
 
   private static Credentials parseCredentials(Path file) throws IOException {
     assert file.toFile().exists();
-    var objectMapper = new ObjectMapper();
-    return objectMapper.readValue(file.toFile(), Credentials.class);
+    return Credentials$.MODULE$.parseFromFile(file.toFile());
   }
 
   private void enqueueJob(ILoggingEvent logEvent) {
@@ -158,7 +149,7 @@ public final class TelemetryAppenderImpl extends TelemetryAppender {
     if (payload != null) {
       return HttpRequest.newBuilder()
           .uri(endpoint)
-          .header("Authorization", "Bearer " + credentials.accessToken)
+          .header("Authorization", "Bearer " + credentials.accessToken())
           .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
           .build();
     } else {
@@ -172,8 +163,7 @@ public final class TelemetryAppenderImpl extends TelemetryAppender {
    * @return null if none of the log events could be transformed into a payload.
    */
   private String buildPayload(List<ILoggingEvent> logEvents) {
-    var payload = new ObjectNode(JsonNodeFactory.instance);
-    var logs = new ArrayNode(JsonNodeFactory.instance);
+    var logs = new ArrayList<ApiMessage.Log>();
     for (var logEvent : logEvents) {
       var logMessage =
           new LogMessage(
@@ -189,8 +179,8 @@ public final class TelemetryAppenderImpl extends TelemetryAppender {
     if (logs.isEmpty()) {
       return null;
     } else {
-      payload.set("logs", logs);
-      return payload.toString();
+      var payload = new ApiMessage.Payload(logs);
+      return ApiMessage.serializePayload(payload);
     }
   }
 
@@ -228,12 +218,4 @@ public final class TelemetryAppenderImpl extends TelemetryAppender {
       super(message, cause);
     }
   }
-
-  /** The credentials file is created by the IDE once user logs in. We are just reading it. */
-  private record Credentials(
-      @JsonProperty("client_id") String clientId,
-      @JsonProperty("access_token") String accessToken,
-      @JsonProperty("refresh_token") String refreshToken,
-      @JsonProperty("refresh_url") String refreshUrl,
-      @JsonProperty("expire_at") String expireAt) {}
 }
