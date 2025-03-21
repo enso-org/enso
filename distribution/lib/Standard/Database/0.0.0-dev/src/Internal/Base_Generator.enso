@@ -468,7 +468,7 @@ base_dialect_operations =
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
     types = [simple_cast]
-    windows = [["ROW_NUMBER", make_row_number], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group]]
+    windows = [["ROW_NUMBER", make_row_number], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group], ["GROUP_NUMBER", make_group_number], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
     leadlag = [["LEAD", _make_lead_lag "LEAD"], ["LAG", _make_lead_lag "LAG"], ["LEAD_CLOSEST", _make_lead_lag_closest_value "LEAD"], ["LAG_CLOSEST", _make_lead_lag_closest_value "LAG"]]
     base_dict = Dictionary.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows + leadlag)
     Dialect_Operations.Value base_dict
@@ -555,6 +555,39 @@ make_row_number (arguments : Vector) (metadata : Row_Number_Metadata) = if argum
     group_part = if grouping.length == 0 then "" else
         SQL_Builder.code "PARTITION BY " ++ SQL_Builder.join ", " grouping
     SQL_Builder.code "(row_number() OVER (" ++ group_part ++ " ORDER BY " ++ SQL_Builder.join ", " ordering ++ ") * " ++ step.paren ++ " + " ++ offset.paren ++ ")"
+
+## PRIVATE
+make_group_number : Vector SQL_Builder -> SQL_Builder
+make_group_number (arguments : Vector) = if arguments.length < 3 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER IR. This is a bug in the Database library.") else
+    offset = arguments.at 0
+    step = arguments.at 1
+
+    grouping = arguments.drop 2
+
+    ## ORDER BY is used here because DENSE_RANK() over an empty partition list
+       treats the entire table as a single partition. Within that partition,
+       rank values are assigned to each unique group, where a group is defined
+       as the set of rows that have the same values for the ORDER BY fields. The
+       output is also ordered by the ORDER BY fields, but that is a side-effect
+       unrelated to the ranking.
+    group_part = if grouping.length == 0 then "" else
+        SQL_Builder.code "ORDER BY " ++ SQL_Builder.join ", " grouping
+    SQL_Builder.code "(dense_rank() OVER (" ++ group_part ++  ") * " ++ step.paren ++ " + " ++ offset.paren ++ ")"
+
+## PRIVATE
+make_group_number_equal_count : Vector SQL_Builder -> SQL_Builder
+make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_EQUAL_COUNT IR. This is a bug in the Database library.") else
+    offset = arguments.at 0
+    step = arguments.at 1
+    group_count = arguments.at 2
+
+    ordering = arguments.drop 3
+
+    ordering_part = if ordering.length == 0 then "" else
+        SQL_Builder.code "ORDER BY " ++ SQL_Builder.join ", " ordering
+    row_number_minus_1 = SQL_Builder.code "((row_number() over (" ++ ordering_part ++ ")) - 1)"
+    group_size = SQL_Builder.code "(((count(*) over ()) + (" ++ group_count.paren ++ " - 1)) / " ++ group_count.paren ++ ")"
+    SQL_Builder.code "(((" ++ row_number_minus_1 ++ " / " ++ group_size ++ " + 1) * " ++ step.paren ++ ") + " ++ offset.paren ++ ")"
 
 ## PRIVATE
    A helper for `lookup_and_replace`, and perhaps other operation.

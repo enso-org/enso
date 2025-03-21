@@ -57,6 +57,7 @@ import project.Feature.Feature
 import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
+import project.Internal.Common.Group_Number_Helpers
 import project.Internal.Common.Lookup_Query_Helper
 import project.Internal.Common.Offset_Helpers
 import project.Internal.Common.Row_Number_Helpers
@@ -927,10 +928,12 @@ type DB_Table
 
        ? Ordering of rows
 
-         Note that the ordering of rows from the original table is preserved in
-         all cases. The grouping and ordering settings can affect how the group
-         numbers are assigned, depending on the grouping method.  The order of
-         the rows itself is not changed by this operation.
+         In the in-memory database, the ordering of rows from the original table
+         is preserved in all cases. The grouping and ordering settings can
+         affect how the group numbers are assigned, depending on the grouping
+         method.  The order of the rows itself is not changed by this operation.
+
+         In the database backends, the ordering of rows is backend-dependent.
 
        ! Error Conditions
 
@@ -965,8 +968,8 @@ type DB_Table
                 0 | 1 | 0 | 1
                 1 | 2 | 0 | 2
                 0 | 1 | 1 | 1
-                1 | 0 | 1 | 2
-                1 | 2 | 1 | 0
+                1 | 0 | 1 | 0
+                1 | 2 | 1 | 2
 
        > Example
          Divide rows into three groups.
@@ -990,13 +993,55 @@ type DB_Table
                 3 | 3 | 1
                 4 | 2 | 1
                 5 | 1 | 2
+    @grouping_method (Widget_Helpers.make_grouping_method_selector display=..Always)
     @name (Widget.Text_Input display=..Always)
     @from (Widget.Numeric_Input display=..Always)
-    @group_by (Widget_Helpers.make_column_name_multi_selector display=..When_Modified)
-    @order_by (Widget_Helpers.make_order_by_selector display=..When_Modified)
-    add_group_number self grouping_method:Grouping_Method=..Unique name:Text="Group" from:Integer=0 step:Integer=1 on_problems:Problem_Behavior=..Report_Warning -> Table =
-        _ = [grouping_method, name, from, step, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "add_group_number")
+    add_group_number self grouping_method:Grouping_Method=..Unique name:Text="Group" from:Integer=0 step:Integer=1 on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
+        Feature.Add_Group_Number.if_supported_else_throw self.connection.dialect "add_group_number" <|
+            problem_builder = Problem_Builder.new error_on_missing_columns=True
+            case grouping_method of
+                Grouping_Method.Unique group_by ->
+                    if group_by.is_empty then
+                        Error.throw (Illegal_Argument.Error "..Unique requires a non-empty 'group_by'")
+                    grouping_columns = _resolve_grouping_columns self.columns_helper group_by problem_builder
+                    problem_builder.attach_problems_before on_problems <|
+                        grouping_expressions = (grouping_columns.map _.as_internal).map .expression
+
+                        new_expr = Group_Number_Helpers.make_group_number from step grouping_expressions
+
+                        type_mapping = self.connection.dialect.get_type_mapping
+                        infer_from_database_callback expression =
+                            SQL_Type_Reference.new self.connection self.context expression
+                        new_type_ref = type_mapping.infer_return_type infer_from_database_callback "GROUP_NUMBER" [] new_expr
+
+                        new_column = Internal_Column.Value name new_type_ref new_expr
+
+                        rebuild_table columns =
+                            self.updated_columns (columns.map .as_internal)
+                        renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
+                        updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
+                        updated_table.as_subquery
+                Grouping_Method.Equal_Count group_count order_by ->
+                    if group_count < 1 then
+                        Error.throw (Illegal_Argument.Error "group_count must be at least 1")
+                    ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
+                    problem_builder.attach_problems_before on_problems <|
+                        order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering "add_group_number"
+
+                        new_expr = Group_Number_Helpers.make_group_number_equal_count from step group_count order_descriptors
+
+                        type_mapping = self.connection.dialect.get_type_mapping
+                        infer_from_database_callback expression =
+                            SQL_Type_Reference.new self.connection self.context expression
+                        new_type_ref = type_mapping.infer_return_type infer_from_database_callback "GROUP_NUMBER_EQUAL_COUNT" [] new_expr
+
+                        new_column = Internal_Column.Value name new_type_ref new_expr
+
+                        rebuild_table columns =
+                            self.updated_columns (columns.map .as_internal)
+                        renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
+                        updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
+                        updated_table.as_subquery
 
 
     ## GROUP Standard.Base.Selections

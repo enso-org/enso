@@ -166,10 +166,19 @@ test('Input node', async ({ page }) => {
 
   const inputNode = locate.inputNode(page)
   await expect(inputNode).toHaveCount(1)
+
   // Input node with identifier should have the icon and an identifier.
   await expect(inputNode.locator('.WidgetIcon')).toHaveCount(1)
   await expect(inputNode.locator('.WidgetToken')).toContainText('a')
 
+  // Input node has output port
+  const outputPort = await locate.outputPortCoordinates(page, inputNode)
+  await page.mouse.click(outputPort.x + 20, outputPort.y)
+  await locate.graphEditor(page).click({ position: { x: 100, y: 500 } })
+  await expect(locate.componentBrowser(page)).toExist()
+  await page.keyboard.press('Escape')
+
+  // Input node cannot be deleted
   await inputNode.click()
   await page.keyboard.press('Delete')
   await expect(inputNode).toHaveCount(1)

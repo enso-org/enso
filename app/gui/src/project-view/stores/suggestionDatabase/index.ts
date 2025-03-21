@@ -12,7 +12,7 @@ import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { type MethodPointer } from '@/util/methodPointer'
 import { AsyncQueue } from '@/util/net'
-import { type ProjectPath } from '@/util/projectPath'
+import { ProjectPath } from '@/util/projectPath'
 import { type QualifiedName } from '@/util/qualifiedName'
 import { markRaw, proxyRefs, readonly, ref } from 'vue'
 import { LanguageServer } from 'ydoc-shared/languageServer'
@@ -62,6 +62,15 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   /** Get an entry by its path within a project */
   getEntryByProjectPath(projectPath: ProjectPath): SuggestionEntry | undefined {
     const id = this.findByProjectPath(projectPath)
+    if (id != null) return this.get(id)
+  }
+
+  /** Same as {@link getEntryByProjectPath}, but usable from dev console for debugging. */
+  debugGetEntryByProjectNameAndPath(
+    projectName: QualifiedName | undefined,
+    path: QualifiedName | undefined,
+  ): SuggestionEntry | undefined {
+    const id = this.findByProjectPath(ProjectPath.create(projectName, path))
     if (id != null) return this.get(id)
   }
 
