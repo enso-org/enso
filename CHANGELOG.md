@@ -49,6 +49,10 @@
 - [For some types, Component Browser display special "suggestions" group][12477]
 - [Nested dropdowns are supported for Selection widget.][12548]
 - [Native Image mode is now on by default][12515]
+- [join_kind dropdown has icons to show how joins work][12502]
+- [Output port ‘plus’ button is hidden if there are existing outgoing
+  connections][12576]
+- [Navigate up button for file browser and collapsed components][12603]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -81,6 +85,9 @@
 [12477]: https://github.com/enso-org/enso/pull/12477
 [12548]: https://github.com/enso-org/enso/pull/12548
 [12515]: https://github.com/enso-org/enso/pull/12515
+[12502]: https://github.com/enso-org/enso/pull/12502
+[12576]: https://github.com/enso-org/enso/pull/12576
+[12603]: https://github.com/enso-org/enso/pull/12603
 
 #### Enso Standard Library
 
@@ -109,6 +116,7 @@
 - [Added Regex_match to filter. Added Column.regex_match. Support for
   regex_match in the expression language][12492]
 - [Added `add_group_number` for Postgres and SQLite.][12574]
+- [Added `add_group_number` for Snowflake and SQLServer.][12590]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
@@ -129,6 +137,7 @@
 [12413]: https://github.com/enso-org/enso/pull/12413
 [12492]: https://github.com/enso-org/enso/pull/12492
 [12574]: https://github.com/enso-org/enso/pull/12574
+[12590]: https://github.com/enso-org/enso/pull/12590
 
 #### Enso Language & Runtime
 

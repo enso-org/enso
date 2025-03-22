@@ -35,7 +35,7 @@ use_repo(rules_ts_ext, "npm_typescript")
 ############
 ### RUST ###
 ############
-bazel_dep(name = "rules_rust", version = "0.57.1")
+bazel_dep(name = "rules_rust", version = "0.59.2")
 
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
@@ -86,7 +86,7 @@ use_repo(crate, "crates")
 ####################
 ### WASM BINDGEN ###
 ####################
-bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.57.1")
+bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.59.2")
 
 WASM_BINDGEN_VERSION = "0.2.99"
 

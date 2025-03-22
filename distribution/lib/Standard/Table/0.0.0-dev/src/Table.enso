@@ -2734,6 +2734,7 @@ type Table
 
              `table.join other on=[..Equals "A" "A", ..Equals "B" "B"]`
     @on Widget_Helpers.make_join_condition_selector
+    @join_kind Join_Kind.default_widget
     join self (right : Table = Missing_Argument.throw "right") join_kind:Join_Kind=..Left_Outer (on : Vector (Join_Condition | Text) | Text | Join_Condition = [Join_Condition.Equals self.column_names.first]) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table = Out_Of_Memory.handle_java_exception "join" <|
         columns_to_keep = case join_kind of
             Join_Kind.Left_Exclusive  -> [True, False]

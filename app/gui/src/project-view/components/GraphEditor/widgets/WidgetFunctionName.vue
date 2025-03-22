@@ -101,7 +101,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetFunctionName">
+  <div class="WidgetFunctionName widgetRounded">
     <NodeWidget v-if="thisArg" :input="WidgetInput.FromAst(thisArg)" />
     <NodeWidget v-if="operator" :input="WidgetInput.FromAst(operator)" />
     <AutoSizedInput
@@ -119,8 +119,22 @@ export const widgetDefinition = defineWidget(
 
 <style scoped>
 .WidgetFunctionName {
-  display: flex;
-  flex-direction: row;
+  display: inline-flex;
+  background: var(--color-widget);
+  border-radius: var(--radius-full);
+  justify-content: center;
   align-items: center;
+  min-width: var(--node-port-height);
+  color: var(--color-node-text);
+
+  &:has(> :focus) {
+    outline: none;
+    background: var(--color-widget-focus);
+    color: var(--color-node-text-selected);
+  }
+
+  &:deep(::selection) {
+    background: var(--color-widget-selection);
+  }
 }
 </style>

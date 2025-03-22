@@ -96,7 +96,7 @@
     - updated_context_and_columns self ctx:Standard.Base.Any.Any internal_columns:Standard.Base.Any.Any subquery:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - use_first_row_as_names self on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Database.DB_Table.DB_Table
     - with_temporary_column self new_column:Standard.Database.DB_Column.DB_Column f:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - write self path:Standard.Base.System.File.Generic.Writable_File.Writable_File format:Standard.Base.System.File_Format.File_Format= on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= match_columns:Standard.Table.Match_Columns.Match_Columns= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - write self path:Standard.Base.System.File.Generic.Writable_File.Writable_File format:Standard.Base.Any.Any= on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= match_columns:Standard.Table.Match_Columns.Match_Columns= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
     - zip self right:Standard.Database.DB_Table.DB_Table= keep_unmatched:(Standard.Base.Data.Boolean.Boolean|Standard.Table.Constants.Report_Unmatched)= right_prefix:Standard.Base.Data.Text.Text= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Database.DB_Table.DB_Table
 - MAX_LITERAL_ELEMENT_COUNT -> Standard.Base.Any.Any
 - default_join_condition table:Standard.Base.Any.Any join_kind:Standard.Base.Any.Any -> Standard.Base.Any.Any

@@ -264,6 +264,11 @@ const actionHandlers = registerHandlers({
   'graph.zoomOut': {
     action: () => graphNavigator.stepZoom(-1),
   },
+  'graph.navigateUp': {
+    action: () => stackNavigator.exitNode(),
+    disabled: () => !stackNavigator.allowNavigationLeft.value,
+    hidden: () => !stackNavigator.hasBreadcrumbsBeyondRoot.value,
+  },
   ...selectionActionHandlers(
     () =>
       iter.filterDefined(
