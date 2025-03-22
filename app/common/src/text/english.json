@@ -124,6 +124,7 @@
   "createFolderBackendError": "Could not create folder '$0'",
   "updateFolderBackendError": "Could not update folder '$0'",
   "listAssetVersionsBackendError": "Failed to list versions for the selected asset",
+  "getAssetDetailsBackendError": "Failed to get details of the asset, please try again later",
   "getFileContentsBackendError": "Failed to get contents of the file",
   "updateAssetBackendError": "Could not update '$0'",
   "deleteAssetBackendError": "Could not delete '$0'",

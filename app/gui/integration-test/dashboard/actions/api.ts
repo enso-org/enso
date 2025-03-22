@@ -13,7 +13,11 @@ import * as uniqueString from 'enso-common/src/utilities/uniqueString'
 import * as actions from '.'
 
 import type { FeatureFlags } from '#/providers/FeatureFlagsProvider'
-import { organizationIdToDirectoryId } from '#/services/RemoteBackend'
+import {
+  organizationIdToDirectoryId,
+  userGroupIdToDirectoryId,
+  userIdToDirectoryId,
+} from '#/services/RemoteBackend'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -73,6 +77,7 @@ function array<T>(): Readonly<T>[] {
 
 const INITIAL_CALLS_OBJECT = {
   changePassword: array<{ oldPassword: string; newPassword: string }>(),
+  getAssetDetails: array<{ assetId: backend.AssetId }>(),
   listDirectory: array<{
     parent_id?: string
     filter_by?: backend.FilterBy
@@ -176,7 +181,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     plan: backend.Plan.solo,
     isOrganizationAdmin: true,
     isEnsoTeamMember: true,
+    groups: [],
   }
+
   const defaultOrganization: backend.OrganizationInfo = {
     id: defaultOrganizationId,
     name: defaultOrganizationName,
@@ -755,15 +762,59 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         name: 'example project name',
         state: project.projectState,
         packageName: 'Project_root',
-        // eslint-disable-next-line camelcase
-        ide_version: null,
-        // eslint-disable-next-line camelcase
-        engine_version: {
-          value: '2023.2.1-nightly.2023.9.29',
-          lifecycle: backend.VersionLifecycle.development,
-        },
         address: backend.Address('ws://localhost/'),
       } satisfies backend.ProjectRaw
+    })
+
+    await get(remoteBackendPaths.getAssetDetailsPath(GLOB_ASSET_ID), (route, request) => {
+      const maybeId = request.url().match(/[/]assets[/]([^?/]+)/)?.[1]
+      if (!maybeId) return
+      const assetId = maybeId != null ? (decodeURIComponent(maybeId) as backend.AssetId) : null
+
+      if (assetId == null) {
+        return route.fulfill({
+          status: HTTP_STATUS_BAD_REQUEST,
+          json: { message: 'Invalid Asset ID' },
+        })
+      }
+
+      called('getAssetDetails', { assetId })
+
+      const idIsDirectory = backend.isDirectoryId(assetId)
+
+      if (idIsDirectory) {
+        const isOrganizationDirectory =
+          currentUser?.organizationId != null &&
+          organizationIdToDirectoryId(currentUser.organizationId) === assetId
+        if (isOrganizationDirectory) {
+          return null
+        }
+
+        const isUserDirectory =
+          currentUser?.userId != null && userIdToDirectoryId(currentUser.userId) === assetId
+        if (isUserDirectory) {
+          return null
+        }
+
+        const isUserGroupDirectory =
+          currentUser?.groups != null &&
+          currentUser.groups.some((group) => userGroupIdToDirectoryId(group.id) === assetId)
+
+        if (isUserGroupDirectory) {
+          return null
+        }
+      }
+
+      const asset = assetMap.get(assetId)
+
+      if (asset == null) {
+        return route.fulfill({
+          status: HTTP_STATUS_NOT_FOUND,
+          json: { message: 'Asset does not exist' },
+        })
+      }
+
+      return asset
     })
 
     // === Endpoints returning `void` ===

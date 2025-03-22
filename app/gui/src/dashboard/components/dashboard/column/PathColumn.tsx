@@ -63,10 +63,7 @@ export default function PathColumn(props: AssetColumnProps) {
       setCategory(rootDirectoryInThePath.categoryId)
     }
 
-    setCurrentDirectoryId({
-      current: targetDirectory,
-      parent: finalPath[targetDirectoryIndex - 1]?.id ?? null,
-    })
+    setCurrentDirectoryId(targetDirectory)
   })
 
   if (finalPath.length === 0) {
@@ -166,11 +163,11 @@ function PathItem(props: PathItemProps) {
       key={id}
       variant="ghost-fading"
       size="small"
-      loading={transition}
+      isLoading={transition}
       icon={icon}
       onPress={onPress}
       loaderPosition="icon"
-      data-testid={`path-column-item-${label.toLowerCase().replace(/\s+/g, '-')}`}
+      testId={`path-column-item-${label.toLowerCase().replace(/\s+/g, '-')}`}
     >
       <Text color="custom" truncate="1" className="max-w-48">
         {label}

@@ -907,9 +907,16 @@ export enum ReplaceableAssetType {
   secret = 'secret',
 }
 
+/** The types of assets that can be retrieved from the backend. */
+export type RealAssetType =
+  | AssetType.project
+  | AssetType.file
+  | AssetType.datalink
+  | AssetType.secret
+  | AssetType.directory
+
 /** The corresponding ID newtype for each {@link AssetType}. */
 export interface IdType extends RealAssetIdType, SpecialAssetIdType {}
-
 export type RealAssetId = ProjectId | FileId | DatalinkId | SecretId | DirectoryId
 export interface RealAssetIdType {
   readonly [AssetType.project]: ProjectId
@@ -919,7 +926,13 @@ export interface RealAssetIdType {
   readonly [AssetType.directory]: DirectoryId
 }
 
-export type SpecialAssetId = LoadingAssetId | EmptyAssetId | ErrorAssetId
+export type RealAssetTypeId<Id extends RealAssetId> =
+  Id extends ProjectId ? AssetType.project
+  : Id extends FileId ? AssetType.file
+  : Id extends DatalinkId ? AssetType.datalink
+  : Id extends SecretId ? AssetType.secret
+  : AssetType.directory
+
 export interface SpecialAssetIdType {
   readonly [AssetType.specialLoading]: LoadingAssetId
   readonly [AssetType.specialEmpty]: EmptyAssetId
@@ -1953,8 +1966,17 @@ export default abstract class Backend {
     versionId: S3ObjectVersionId,
     title: string,
   ): Promise<CreatedProject>
-  /** Return project details. */
+  /**
+   * Return project details.
+   */
   abstract getProjectDetails(projectId: ProjectId, getPresignedUrl?: boolean): Promise<Project>
+  /** Return asset details. */
+  abstract getAssetDetails<
+    Id extends RealAssetId,
+    ReturnType extends Id extends DirectoryId ? Asset<AssetType.directory> | null
+    : Asset<RealAssetTypeId<Id>>,
+  >(assetId: Id): Promise<ReturnType>
+
   /** Return Language Server logs for a project session. */
   abstract getProjectSessionLogs(
     projectSessionId: ProjectSessionId,
@@ -2064,24 +2086,34 @@ export default abstract class Backend {
   abstract resolveProjectAssetPath(projectId: ProjectId, relativePath: string): Promise<string>
 }
 
-/** Error thrown when a directory does not exist. */
-export class DirectoryDoesNotExistError extends Error {
+/**
+ * Error thrown when an asset does not exist.
+ */
+export class AssetDoesNotExistError extends Error {
   /**
-   * Create a new instance of the {@link DirectoryDoesNotExistError} class.
+   * Create a new instance of the {@link AssetDoesNotExistError} class.
    */
-  constructor() {
-    super('Directory does not exist.')
+  constructor(message: string = 'Asset could not be found.') {
+    super(message)
   }
 }
 
-/**
- * Error thrown when a duplicate asset is found.
- */
+/** More specific error thrown when a directory does not exist. */
+export class DirectoryDoesNotExistError extends AssetDoesNotExistError {
+  /**
+   * Create a new instance of the {@link DirectoryDoesNotExistError} class.
+   */
+  constructor(message: string = 'Directory does not exist.') {
+    super(message)
+  }
+}
+
+/** Error thrown when an asset already exists. */
 export class DuplicateAssetError extends Error {
   /**
    * Create a new instance of the {@link DuplicateAssetError} class.
    */
-  constructor(message: string) {
+  constructor(message: string = 'Asset already exists.') {
     super(message)
   }
 }

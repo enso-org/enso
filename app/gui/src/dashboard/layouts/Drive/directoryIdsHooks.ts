@@ -11,12 +11,13 @@ export interface UseDirectoryIdsOptions {
 /** A hook returning the root directory id and expanded directory ids. */
 export function useDirectoryIds(options: UseDirectoryIdsOptions) {
   const { category } = options
+
   const user = useUser()
+
   const rootDirectoryId = category.homeDirectoryId ?? user.rootDirectoryId
   /** The id of the directory to use in the "list directory" query. */
-  const queryDirectoryId = useCurrentDirectoryId().current ?? category.homeDirectoryId
+  const queryDirectoryId = useCurrentDirectoryId() ?? category.homeDirectoryId
   const currentDirectoryId = queryDirectoryId ?? rootDirectoryId
-  const parentDirectoryId = useCurrentDirectoryId().parent ?? rootDirectoryId
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
 
   return {
@@ -24,6 +25,5 @@ export function useDirectoryIds(options: UseDirectoryIdsOptions) {
     rootDirectoryId,
     queryDirectoryId,
     currentDirectoryId,
-    parentDirectoryId,
   } as const
 }

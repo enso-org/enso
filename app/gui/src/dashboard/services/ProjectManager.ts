@@ -109,7 +109,7 @@ interface Attributes {
 }
 
 /** Metadata for an arbitrary file system entry. */
-type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
+export type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
 
 /** The discriminator value for {@link FileSystemEntry}. */
 export enum FileSystemEntryType {

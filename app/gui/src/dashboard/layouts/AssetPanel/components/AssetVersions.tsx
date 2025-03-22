@@ -10,15 +10,14 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useText } from '#/providers/TextProvider'
-import type Backend from '#/services/Backend'
 import type { AnyAsset, DatalinkAsset, FileAsset, ProjectAsset } from '#/services/Backend'
 import { AssetType, BackendType, S3ObjectVersionId } from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
-import { useStore } from '#/utilities/zustand'
 import { includes } from 'enso-common/src/utilities/data/array'
-import { assetPanelStore } from '../AssetPanelState'
+import { useAssetPanelCurrentItem } from '../AssetPanelState'
 import { AssetVersion, type DuplicateOptions, type Version } from './AssetVersion'
-import { assetVersionsQueryOptions } from './useAssetVersions'
+import { assetVersionsQueryOptions } from './queries'
+import type { AssetPanelProps } from './types'
 
 /** Variables for the "add new version" mutation. */
 interface AddNewVersionVariables {
@@ -27,17 +26,14 @@ interface AddNewVersionVariables {
 }
 
 /** Props for an {@link AssetVersions}. */
-export interface AssetVersionsProps {
-  readonly backend: Backend
-}
+export interface AssetVersionsProps extends AssetPanelProps {}
 
 /** Display a list of previous versions of an asset. */
 export function AssetVersions(props: AssetVersionsProps) {
   const { backend } = props
   const { getText } = useText()
-  const { item } = useStore(assetPanelStore, (state) => ({ item: state.assetPanelProps.item }), {
-    unsafeEnableTransition: true,
-  })
+
+  const item = useAssetPanelCurrentItem()
 
   if (backend.type === BackendType.local) {
     return (

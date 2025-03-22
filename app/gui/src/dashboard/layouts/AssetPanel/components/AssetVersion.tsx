@@ -12,7 +12,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { setModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
-import { AssetDiffView } from '../../AssetDiffView'
+import { AssetDiffView } from './AssetDiffView'
 
 /**
  * A version of an asset.

@@ -43,6 +43,7 @@ export function newFileId(path: projectManager.Path) {
 interface DirectoryTypeAndId {
   readonly type: backend.AssetType.directory
   readonly id: projectManager.Path
+  readonly directory: projectManager.Path
 }
 
 /** The internal asset type and properly typed corresponding internal ID of a project. */
@@ -56,6 +57,7 @@ interface ProjectTypeAndId {
 interface FileTypeAndId {
   readonly type: backend.AssetType.file
   readonly id: projectManager.Path
+  readonly directory: projectManager.Path
 }
 
 /** The internal asset type and properly typed corresponding internal ID of an arbitrary asset. */
@@ -71,9 +73,15 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
  */
 export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeAndId {
   const [, typeRaw, idRaw = ''] = id.match(/(.+?)-(.+)/) ?? []
+  const { directoryPath } = getDirectoryAndName(projectManager.Path(idRaw))
+
   switch (typeRaw) {
     case backend.AssetType.directory: {
-      return { type: backend.AssetType.directory, id: projectManager.Path(idRaw) }
+      return {
+        type: backend.AssetType.directory,
+        id: projectManager.Path(idRaw),
+        directory: directoryPath,
+      }
     }
     case backend.AssetType.project: {
       const [, idRaw2 = '', directoryRaw = ''] = idRaw.match(/(\w+-\w+-\w+-\w+-\w+)-(.+)/) ?? []
@@ -84,7 +92,11 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
       }
     }
     case backend.AssetType.file: {
-      return { type: backend.AssetType.file, id: projectManager.Path(idRaw) }
+      return {
+        type: backend.AssetType.file,
+        id: projectManager.Path(idRaw),
+        directory: directoryPath,
+      }
     }
     case undefined:
     default: {
@@ -338,6 +350,49 @@ export default class LocalBackend extends Backend {
         }.`,
       )
     }
+  }
+
+  /**
+   * Return asset details.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async getAssetDetails<
+    Id extends backend.RealAssetId,
+    Type extends backend.RealAssetTypeId<Id>,
+    ReturnType extends Id extends backend.DirectoryId ?
+      backend.Asset<backend.AssetType.directory> | null
+    : backend.Asset<Type>,
+  >(assetId: Id): Promise<ReturnType> {
+    const extracted = extractTypeAndId(assetId)
+
+    const parentPath = extracted.directory
+
+    // Consider the root directory as a virtual directory.
+    if (extracted.type === backend.AssetType.directory && extracted.id === this.rootPath()) {
+      // eslint-disable-next-line no-restricted-syntax
+      return null as never
+    }
+
+    const directoryContents = await this.listDirectory({
+      parentId: newDirectoryId(parentPath),
+      filterBy: null,
+      labels: null,
+      recentProjects: false,
+      rootPath: this.rootPath(),
+    })
+
+    const entry = directoryContents.find((content) => content.id === assetId)
+
+    if (entry == null) {
+      if (backend.isDirectoryId(assetId)) {
+        throw new backend.DirectoryDoesNotExistError()
+      }
+
+      throw new backend.AssetDoesNotExistError()
+    }
+
+    // eslint-disable-next-line no-restricted-syntax
+    return entry as never
   }
 
   /**

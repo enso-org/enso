@@ -21,16 +21,15 @@ import { persist } from 'zustand/middleware'
 import type { TransferrableAsset } from '../layouts/Drive/Categories'
 
 /** State for {@link categoryIdStore}. */
-type CurrentDirectoryIdStoreState = CurrentDirectoryIdContextType['currentDirectoryId']
+interface CurrentDirectoryIdStoreState {
+  readonly current: CurrentDirectoryIdContextType['currentDirectoryId']
+}
 
 const currentDirectoryIdStore = createStore<CurrentDirectoryIdStoreState>()(
-  persist(
-    (): CurrentDirectoryIdStoreState => ({
-      current: null,
-      parent: null,
-    }),
-    { name: 'enso-current-directory-id', version: 1 },
-  ),
+  persist((): CurrentDirectoryIdStoreState => ({ current: null }), {
+    name: 'enso-current-directory-id',
+    version: 2,
+  }),
 )
 
 /** Attached data for a paste payload. */
@@ -89,14 +88,8 @@ const DriveContext = React.createContext<ProjectsContextType | null>(null)
 
 /** The current directory ID. */
 interface CurrentDirectoryIdContextType {
-  readonly currentDirectoryId: {
-    readonly current: DirectoryId | null
-    readonly parent: DirectoryId | null
-  }
-  readonly setCurrentDirectoryId: (nextValue: {
-    readonly current: DirectoryId | null
-    readonly parent: DirectoryId | null
-  }) => void
+  readonly currentDirectoryId: DirectoryId | null
+  readonly setCurrentDirectoryId: (nextValue: DirectoryId | null) => void
 }
 
 const CurrentDirectoryIdContext = React.createContext<CurrentDirectoryIdContextType | null>(null)
@@ -117,7 +110,7 @@ export default function DriveProvider(props: ProjectsProviderProps) {
 
   const [currentDirectoryId, privateSetCurrentDirectoryId] = useSearchParamsState<
     CurrentDirectoryIdContextType['currentDirectoryId']
-  >('currentDirectoryId', () => currentDirectoryIdStore.getState())
+  >('currentDirectoryId', () => currentDirectoryIdStore.getState().current)
 
   const [store] = React.useState(() =>
     createStore<DriveStore>((set, get) => ({
@@ -176,17 +169,19 @@ export default function DriveProvider(props: ProjectsProviderProps) {
 
   const resetAssetTableState = useEventCallback(() => {
     store.getState().removeSelection()
-    privateSetCurrentDirectoryId({ current: null, parent: null })
-    currentDirectoryIdStore.setState({ current: null, parent: null })
+    privateSetCurrentDirectoryId(null)
+    currentDirectoryIdStore.setState({ current: null })
   })
 
-  const setCurrentDirectoryId = useEventCallback(
-    ({ current, parent }: { current: DirectoryId | null; parent: DirectoryId | null }) => {
-      privateSetCurrentDirectoryId({ current, parent })
-      currentDirectoryIdStore.setState({ current, parent })
-      store.getState().removeSelection()
-    },
-  )
+  const setCurrentDirectoryId = useEventCallback((current: DirectoryId | null) => {
+    if (current === currentDirectoryIdStore.getState().current) {
+      return
+    }
+
+    privateSetCurrentDirectoryId(current)
+    currentDirectoryIdStore.setState({ current })
+    store.getState().removeSelection()
+  })
 
   return (
     <CurrentDirectoryIdContext.Provider value={{ currentDirectoryId, setCurrentDirectoryId }}>

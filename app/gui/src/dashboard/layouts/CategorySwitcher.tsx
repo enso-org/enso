@@ -116,10 +116,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       // and to not invoke the Suspense boundary.
       // This makes the transition feel more responsive and natural.
       startTransition(() => {
-        setCurrentDirectoryId({
-          current: null,
-          parent: null,
-        })
+        setCurrentDirectoryId(null)
         setCategoryId(category.id)
       })
     }

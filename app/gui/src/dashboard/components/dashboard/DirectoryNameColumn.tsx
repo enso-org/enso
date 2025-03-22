@@ -56,14 +56,14 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       <Button
         icon="folder"
         variant="icon"
-        loading={isLoading || isNavigating}
+        isLoading={isLoading || isNavigating}
         aria-label={getText('open')}
         tooltipPlacement="left"
         testId="directory-row-navigate-button"
         className="mx-1 transition-transform duration-arrow"
         onPress={() => {
           startNavigation(() => {
-            setCurrentDirectoryId({ current: item.id, parent: item.parentId })
+            setCurrentDirectoryId(item.id)
           })
         }}
       />
