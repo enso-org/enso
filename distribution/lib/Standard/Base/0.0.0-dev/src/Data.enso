@@ -100,7 +100,11 @@ read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Prob
         if file_obj.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `Data.list`.") else
             file_content = file_obj.read format on_problems
             file_content.if_not_error <|
-                Telemetry.log "Data.read" "Read file: size={}, extension={}, file_type={}" [file_obj.size, file_obj.extension, file_obj.to Meta.Type . name]
+                case file_obj.is_data_link of
+                    True ->
+                        Telemetry.log "Data.read" "Read file: file_type={}, data_link={}" [file_obj.to Meta.Type . name, True]
+                    False ->
+                        Telemetry.log "Data.read" "Read file: size={}, extension={}, file_type={}, data_link={}" [file_obj.size, file_obj.extension, file_obj.to Meta.Type . name, False]
                 file_content
 
 ## ALIAS load, open
