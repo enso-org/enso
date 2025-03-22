@@ -98,6 +98,7 @@ const dynamicTags = computed<(ExpressionTag | NestedChoiceTag)[]>(() => {
         projectNames,
         choice.value,
         choice.label,
+        choice.icon,
       )
       return tag
     }
@@ -124,6 +125,7 @@ const entries = computed<Entry[]>(() => {
   return filteredTags.value.map((tag) => ({
     value: tag.label,
     selected: tag instanceof ExpressionTag && selectedExpressions.value.has(tag.expression),
+    icon: tag instanceof ExpressionTag ? tag.icon : undefined,
     tag,
   }))
 })

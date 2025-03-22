@@ -1602,6 +1602,7 @@ type DB_Table
          the same name. So `table.join other on=["A", "B"]` is a shorthand for:
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
     @on Widget_Helpers.make_join_condition_selector
+    @join_kind Join_Kind.default_widget
     join self (right : DB_Table = Missing_Argument.throw "right") join_kind:Join_Kind=..Left_Outer (on : Join_Condition | Text | Vector (Join_Condition | Text) = default_join_condition self join_kind) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
         Feature.Join.if_supported_else_throw self.connection.dialect "join" <|
             self.join_or_cross_join right join_kind on right_prefix on_problems
