@@ -336,10 +336,7 @@ const CustomDropdownItemsKey: unique symbol = Symbol.for('WidgetInput:CustomDrop
 function isHandledByCheckboxWidget(parameter: SuggestionEntryArgument | undefined): boolean {
   return (
     parameter?.tagValues != null &&
-    arrayEquals(Array.from(parameter.tagValues).sort(), [
-      'Standard.Base.Data.Boolean.Boolean.False',
-      'Standard.Base.Data.Boolean.Boolean.True',
-    ])
+    arrayEquals(Array.from(parameter.tagValues).sort(), ['False', 'True'])
   )
 }
 
