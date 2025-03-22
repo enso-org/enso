@@ -289,6 +289,7 @@
 - [Added `Download_Mode` parameter to `Data.download`.][12017]
 - [Added `Table.geo_distance` to calculate the distance between two
   points.][12393]
+- [The reload button clears the Enso Cloud request cache.][12526]
 
 [11235]: https://github.com/enso-org/enso/pull/11235
 [11255]: https://github.com/enso-org/enso/pull/11255
@@ -302,6 +303,7 @@
 [11811]: https://github.com/enso-org/enso/pull/11811
 [12017]: https://github.com/enso-org/enso/pull/12017
 [12393]: https://github.com/enso-org/enso/pull/12393
+[12526]: https://github.com/enso-org/enso/pull/12526
 
 #### Enso Language & Runtime
 
