@@ -174,6 +174,16 @@ function DashboardInner(props: DashboardProps) {
     }
   }, [inputBindings])
 
+  React.useEffect(
+    () =>
+      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+        closeModal: () => {
+          modalProvider.unsetModal()
+        },
+      }),
+    [inputBindings],
+  )
+
   const onSignOut = eventCallbacks.useEventCallback(() => {
     setPage('drive')
     closeAllProjects()
