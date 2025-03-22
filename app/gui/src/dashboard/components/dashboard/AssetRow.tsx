@@ -38,7 +38,6 @@ import {
   useRestoreAssetsMutationState,
 } from '#/hooks/backendBatchedHooks'
 import { useBackendMutationState } from '#/hooks/backendHooks'
-import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { CLOSED_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useAsset, useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
@@ -104,6 +103,10 @@ export interface AssetRowProps {
     newParentId: backendModule.DirectoryId,
     pasteData: DrivePastePayload,
   ) => void
+  readonly uploadFiles: (
+    files: readonly File[],
+    parentId: backendModule.DirectoryId,
+  ) => Promise<void>
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
@@ -243,6 +246,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     cutAndPaste,
     labels,
     grabKeyboardFocus,
+    uploadFiles,
   } = props
   const { category, backend, currentDirectoryId, doCopy, doCut, doPaste } = state
 
@@ -319,8 +323,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     }).length !== 0
 
   const isUpdating = isUpdatingSingleAsset || isMovingMultipleAssets
-
-  const uploadFiles = useUploadFiles(backend, category)
 
   const insertionVisibility = useStore(driveStore, (driveState) =>
     driveState.pasteData?.type === 'move' && driveState.pasteData.data.ids.has(id) ?
@@ -482,15 +484,18 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
               }
             }}
             onDragStart={(event) => {
+              if (rowState.isEditingName) {
+                event.preventDefault()
+              }
+
               if (
-                rowState.isEditingName ||
-                (asset.type === backendModule.AssetType.project &&
-                  !CLOSED_PROJECT_STATES.has(asset.projectState.type))
+                asset.type === backendModule.AssetType.project &&
+                !CLOSED_PROJECT_STATES.has(asset.projectState.type)
               ) {
                 event.preventDefault()
-              } else {
-                props.onDragStart?.(event, asset)
               }
+
+              props.onDragStart?.(event, asset)
             }}
             onDragEnter={(event) => {
               if (dragOverTimeoutHandle.current != null) {
