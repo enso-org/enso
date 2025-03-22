@@ -1138,6 +1138,7 @@ function AssetsTable(props: AssetsTableProps) {
               setSelected={noop}
               setRowState={noop}
               isEditable={false}
+              labels={[]}
             />
           ))}
         </DragModal>,
@@ -1245,6 +1246,8 @@ function AssetsTable(props: AssetsTableProps) {
         grabKeyboardFocus={grabRowKeyboardFocus}
         onClick={onRowClick}
         select={selectRow}
+        labels={labels ?? []}
+        cutAndPaste={cutAndPaste}
         onDragStart={onRowDragStart}
         onDragEnd={onRowDragEnd}
         onDrop={onRowDrop}
