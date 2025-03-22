@@ -17,6 +17,7 @@ const open = defineModel<boolean>('open', { default: false })
     <template #menu>
       <ActionMenu
         :actions="[
+          'graph.navigateUp',
           'graph.renameProject',
           'graph.refreshExecution',
           'graph.recomputeAll',

@@ -9,8 +9,6 @@ import Standard.Database.DB_Table.DB_Table
 
 import project.Helpers
 
-## TODO add an initial offset to fully support lazy visualizations
-
 ## PRIVATE
 
    Prepares a table or column for visualization.
@@ -222,7 +220,6 @@ make_json_for_table dataframe max_rows all_rows_count is_db_table =
    Arguments:
    - table: table containing columns 
    - column_index: the index of the column to get the distinct values for
-
 get_distinct_values_for_column : Table -> Integer -> JS_Object
 get_distinct_values_for_column table column_index =
     column = table.at column_index
@@ -238,7 +235,6 @@ get_distinct_values_for_column table column_index =
    - x: table to sort
    - sort_col_index_list: indexes of columns to sort
    - sort_direction_list: list of sort directions 1 for ascending -1 for descending
-
 apply_sort_to_table : Table -> Vector -> Vector -> Table
 apply_sort_to_table table sort_col_index_list sort_direction_list =
     parse_direction d = if d == -1 then Sort_Direction.Descending else Sort_Direction.Ascending
@@ -255,7 +251,6 @@ apply_sort_to_table table sort_col_index_list sort_direction_list =
    - filter_col: the column index to filter
    - filter_action: filter action
    - filter_val: values to filter
-
 apply_single_filter_to_table : Table -> Text -> Filter_Condition -> Any -> Table
 apply_single_filter_to_table table filter_col filter_action filter_val =
     case filter_action of
@@ -272,7 +267,6 @@ apply_single_filter_to_table table filter_col filter_action filter_val =
    - filter_col: indexes of columns with sorts applies
    - filter_action: list of filter actions 
    - filter_val: values to filter
-
 apply_filter_to_table : Table -> Integer -> Vector -> Vector -> Vector -> Table
 apply_filter_to_table table i filter_col filter_action filter_val = 
     if i == filter_col.length then table else
@@ -288,7 +282,6 @@ apply_filter_to_table table i filter_col filter_action filter_val =
 
    Arguments:
    - start_number: the start index of the next 100 rows to get
-
 get_rows_for_table : Any -> Integer -> Vector | Nothing -> Vector | Nothing -> Vector | Nothing -> Vector | Nothing -> Vector | Nothing -> JS_Object
 get_rows_for_table table start_number sort_col_index_list=Nothing sort_direction_list=Nothing filter_col=Nothing filter_action=Nothing filter_val=Nothing =
     max_rows=1000
