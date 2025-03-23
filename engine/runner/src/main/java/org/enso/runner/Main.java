@@ -1,6 +1,7 @@
 package org.enso.runner;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -1335,6 +1336,52 @@ public class Main {
     System.err.println(msg);
   }
 
+  /**
+   * Checks if JVM mode should be enabled in a project defined by arguments, based on a project's
+   * config file, if any.
+   *
+   * @param line parsed command line arguments
+   * @return true, if project should be launched in JVM mode, false otherwise
+   */
+  private boolean isJvmModeEnabled(CommandLine line) {
+    var it = line.iterator();
+    String target = null;
+    while (target == null && it.hasNext()) {
+      var opt = it.next();
+      if (opt.getLongOpt().equals("run")) target = opt.getValue();
+    }
+    if (target != null) {
+      return jvmEnabledInProject(target);
+    } else {
+      return false;
+    }
+  }
+
+  private boolean jvmEnabledInProject(String runPath) {
+    var f = new File(runPath);
+    // Guess project's root directory
+    File configFile = null;
+    while (configFile == null && f != null) {
+      var testFile = f.toPath().resolve(org.enso.pkg.Config.ensoPackageConfigName());
+      if (testFile.toFile().exists()) {
+        configFile = testFile.toFile();
+      } else {
+        f = f.getParentFile();
+      }
+    }
+    if (configFile == null) {
+      return false;
+    } else {
+      try (FileReader fileReader = new FileReader(configFile)) {
+        return org.enso.pkg.Config.fromYaml(fileReader)
+            .map(c -> c.jvm().getOrElse(() -> false))
+            .getOrElse(() -> false);
+      } catch (IOException e) {
+        return false;
+      }
+    }
+  }
+
   private void launch(String[] args) throws IOException, InterruptedException, URISyntaxException {
     var line = preprocessArguments(args);
 
@@ -1348,7 +1395,8 @@ public class Main {
       component = new File(component, "component");
     }
     assert checkOutdatedLauncher(new File(loc.toURI()), component) || true;
-    if (line.hasOption(JVM_OPTION)) {
+    var hasJVMOption = line.hasOption(JVM_OPTION);
+    if (hasJVMOption || isJvmModeEnabled(line)) {
       var jvm = line.getOptionValue(JVM_OPTION);
       var current = System.getProperty("java.home");
       if (jvm == null) {
@@ -1356,7 +1404,9 @@ public class Main {
       }
       var shouldLaunchJvm = current == null || !current.equals(jvm);
       if (!shouldLaunchJvm) {
-        stderr(JVM_OPTION + " option has no effect - already running in JVM " + current);
+        if (hasJVMOption) {
+          stderr(JVM_OPTION + " option has no effect - already running in JVM " + current);
+        }
       } else {
         var commandAndArgs = new ArrayList<String>();
         if (jvm == null) {

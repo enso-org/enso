@@ -351,4 +351,6 @@ object Config {
     repositories  = Map(),
     libraries     = Map()
   )
+
+  def ensoPackageConfigName: String = "package.yaml"
 }

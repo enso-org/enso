@@ -33,4 +33,7 @@ case class Project(
   path: File,
   lastOpened: Option[OffsetDateTime]      = None,
   directoryCreationTime: Option[FileTime] = None
-)
+) {
+
+  def isJvmModeEnabled(): Boolean = jvmModeEnabled.getOrElse(false)
+}
