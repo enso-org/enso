@@ -37,9 +37,9 @@ export function AssetVersion(props: AssetVersionProps) {
   const queryClient = useQueryClient()
   const openProjectLocally = useOpenProjectLocally()
   const duplicateProjectMutation = useMutation(
-    duplicateProjectMutationOptions(backend, queryClient, (project) =>
-      openProjectLocally(project, backend.type),
-    ),
+    duplicateProjectMutationOptions(backend, queryClient, (project) => {
+      void openProjectLocally(project, backend.type)
+    }),
   )
   const isProject = item.type === backendService.AssetType.project
 

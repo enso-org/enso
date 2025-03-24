@@ -570,7 +570,7 @@ function AssetsTable(props: AssetsTableProps) {
       asset.title === initialProjectName || asset.id === initialProjectName
     const projectToLoad = deps.items.filter(assetIsProject).find(isInitialProject)
     if (projectToLoad != null) {
-      deps.openProjectLocally(projectToLoad, BackendType.local)
+      void deps.openProjectLocally(projectToLoad, BackendType.local)
     } else if (initialProjectName != null) {
       deps.toastAndLog('findProjectError', null, initialProjectName)
     }
@@ -657,7 +657,7 @@ function AssetsTable(props: AssetsTableProps) {
               case AssetType.project: {
                 event.preventDefault()
                 event.stopPropagation()
-                openProjectLocally(item, backend.type)
+                void openProjectLocally(item, backend.type)
                 break
               }
               case AssetType.datalink: {
