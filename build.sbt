@@ -3903,9 +3903,9 @@ lazy val `engine-runner` = project
               // by disabling this service provider
               "-H:ServiceLoaderFeatureExcludeServiceProviders=net.snowflake.client.core.FileTypeDetector",
               // useful perf & debug switches:
-              // "-g",
-              // "-H:+SourceLevelDebug",
-              // "-H:-DeleteLocalSymbols",
+              "-g",
+              "-H:+SourceLevelDebug",
+              "-H:-DeleteLocalSymbols",
               // you may need to set smallJdk := None to use following flags:
               // "--trace-class-initialization=org.enso.syntax2.Parser",
               // "--diagnostics-mode",
