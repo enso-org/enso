@@ -616,7 +616,7 @@ pub fn add_backend_checks_customized(
     });
     workflow.add_customized(
         target,
-        job::StandardLibraryTests { graal_edition, cloud_tests_enabled: false, native_image_mode: native_image_mode },
+        job::StandardLibraryTests { graal_edition, cloud_tests_enabled: false, native_image_mode },
         |job| {
             job.continue_on_error = continue_on_error(&target);
         },
@@ -821,9 +821,13 @@ pub fn engine_checks_optional() -> Result<Workflow> {
         ..default()
     };
     for target in PR_OPTIONAL_TARGETS {
-        add_backend_checks_customized(&mut workflow, target, graalvm::Edition::Community, false, |_| {
-            Some(true)
-        });
+        add_backend_checks_customized(
+            &mut workflow,
+            target,
+            graalvm::Edition::Community,
+            false,
+            |_| Some(true),
+        );
     }
     Ok(workflow)
 }
@@ -843,7 +847,12 @@ pub fn engine_checks_nightly() -> Result<Workflow> {
     for target in PR_CHECKED_TARGETS {
         add_backend_checks(&mut workflow, target, graalvm::Edition::Community, true);
     }
-    add_backend_checks(&mut workflow, (OS::MacOS, Arch::AArch64), graalvm::Edition::Community, true);
+    add_backend_checks(
+        &mut workflow,
+        (OS::MacOS, Arch::AArch64),
+        graalvm::Edition::Community,
+        true,
+    );
     Ok(workflow)
 }
 
@@ -864,7 +873,7 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
     workflow.add(target, job::StandardLibraryTests {
         graal_edition:       graalvm::Edition::Community,
         cloud_tests_enabled: true,
-        native_image_mode: true,
+        native_image_mode:   true,
     });
     Ok(workflow)
 }

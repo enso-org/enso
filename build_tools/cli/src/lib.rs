@@ -372,7 +372,7 @@ impl Processor {
                                 StandardLibraryTestsSelection::All,
                             );
                             config.build_native_runner = true;
-                        },
+                        }
                         Tests::StdSnowflake => {
                             config.add_standard_library_test_selection(
                                 StandardLibraryTestsSelection::Selected(vec![
@@ -380,7 +380,7 @@ impl Processor {
                                 ]),
                             );
                             config.build_native_runner = true;
-                        },
+                        }
                         Tests::StdCloudRelated => {
                             config.add_standard_library_test_selection(
                                 StandardLibraryTestsSelection::Selected(vec![
