@@ -333,10 +333,6 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
         recentProjects: category.type === 'recent',
       },
     ] as const,
-    // Setting stale time to `Infinity` avoids attaching a ton of
-    // setTimeouts to the query. Improves performance.
-    // This is fine as refetching is handled by another query.
-    staleTime: Infinity,
     queryFn: async () => {
       try {
         return await backend.listDirectory(
@@ -774,6 +770,10 @@ export function duplicateProjectMutationOptions(
   openProject: (project: LaunchedProject) => void,
 ) {
   return mutationOptions({
+    meta: {
+      invalidates: [[backend.type, 'listDirectory']],
+      awaitInvalidates: true,
+    },
     mutationFn: async ([id, originalTitle, parentId, versionId]: [
       id: backendModule.ProjectId,
       originalTitle: string,

@@ -3,7 +3,7 @@ import { memo, type Dispatch, type JSX, type SetStateAction } from 'react'
 
 import type { AssetRowState, AssetsTableState } from '#/layouts/AssetsTable'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import type { AnyAsset, BackendType } from '#/services/Backend'
+import type { AnyAsset, BackendType, Label } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
 import type { SortableColumn } from './column/columnUtils'
 import { Column } from './column/columnUtils'
@@ -27,6 +27,7 @@ export interface AssetColumnProps {
   readonly setRowState: Dispatch<SetStateAction<AssetRowState>>
   readonly isEditable: boolean
   readonly isPlaceholder: boolean
+  readonly labels: readonly Label[]
 }
 
 /** Props for a {@link AssetColumn}. */

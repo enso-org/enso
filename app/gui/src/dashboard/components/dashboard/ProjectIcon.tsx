@@ -16,9 +16,7 @@ import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinn
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
-import { useBackendQuery } from '#/hooks/backendHooks'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import { useMemo } from 'react'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 
@@ -105,20 +103,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const isOtherUserUsingProject =
     isCloud && itemProjectState.openedBy != null && itemProjectState.openedBy !== user.email
 
-  const { data: users } = useBackendQuery(backend, 'listUsers', [], {
-    enabled: isOtherUserUsingProject,
-  })
-
-  const userOpeningProject = useMemo(
-    () =>
-      !isOtherUserUsingProject ? null : (
-        users?.find((otherUser) => otherUser.email === itemProjectState.openedBy)
-      ),
-    [isOtherUserUsingProject, itemProjectState.openedBy, users],
-  )
-
   const userOpeningProjectTooltip =
-    userOpeningProject == null ? null : getText('xIsUsingTheProject', userOpeningProject.name)
+    itemProjectState.openedBy == null ?
+      null
+    : getText('xIsUsingTheProject', itemProjectState.openedBy)
   const disabledTooltip = isUnconditionallyDisabled ? getText('downloadToOpenWorkflow') : null
 
   const state = (() => {
