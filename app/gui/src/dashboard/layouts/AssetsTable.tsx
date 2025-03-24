@@ -20,7 +20,7 @@ import {
   type SetStateAction,
 } from 'react'
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import * as z from 'zod'
 
@@ -106,13 +106,11 @@ import { useNavigator2D } from '#/providers/Navigator2DProvider'
 import { useLaunchedProjects } from '#/providers/ProjectsProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import type { AssetId } from '#/services/Backend'
+import type { AssetId, DirectoryId } from '#/services/Backend'
 import {
   assetIsProject,
   AssetType,
   BackendType,
-  createSpecialLoadingAsset,
-  DirectoryId,
   getAssetPermissionName,
   IS_OPENING_OR_OPENED,
   type AnyAsset,
@@ -157,8 +155,6 @@ const MINIMUM_DROPZONE_INTERSECTION_RATIO = 0.5
  * Tailwind styling.
  */
 const ROW_HEIGHT_PX = 36
-
-const LOADING_ASSET_LIST = [createSpecialLoadingAsset(DirectoryId('directory-'))]
 
 /** Information related to a drag selection. */
 interface DragSelectionInfo {
@@ -265,7 +261,7 @@ function AssetsTable(props: AssetsTableProps) {
     category,
   })
   const listDirectoryRefetchInterval = useListDirectoryRefetchInterval()
-  const { data: assets = [], status: fetchStatus } = useQuery(
+  const { data: assets = [] } = useSuspenseQuery(
     listDirectoryQueryOptions({
       backend,
       parentId: currentDirectoryId,
@@ -273,7 +269,6 @@ function AssetsTable(props: AssetsTableProps) {
       refetchInterval: listDirectoryRefetchInterval,
     }),
   )
-  const isLoading = fetchStatus === 'pending'
 
   const { visibleItems } = useAssetsTableItems({
     parentId: currentDirectoryId,
@@ -697,6 +692,7 @@ function AssetsTable(props: AssetsTableProps) {
               case AssetType.specialLoading:
               case AssetType.specialEmpty:
               case AssetType.specialError:
+              case AssetType.specialUp:
               default: {
                 break
               }
@@ -820,7 +816,7 @@ function AssetsTable(props: AssetsTableProps) {
 
     if (
       pasteData?.data.backendType === backend.type &&
-      canTransferBetweenCategories(pasteData.data.category, category, user)
+      canTransferBetweenCategories(pasteData.data.category, category)
     ) {
       if (pasteData.data.ids.has(newParentKey)) {
         toast.error('Cannot paste a folder into itself.')
@@ -1131,6 +1127,7 @@ function AssetsTable(props: AssetsTableProps) {
         >
           {nodes.map((node) => (
             <NameColumn
+              isNavigating={false}
               key={node.id}
               item={node}
               isOpened={false}
@@ -1226,7 +1223,7 @@ function AssetsTable(props: AssetsTableProps) {
     </tr>
   )
 
-  const itemRows = (!isLoading ? visibleItems : LOADING_ASSET_LIST).map((item) => {
+  const itemRows = visibleItems.map((item) => {
     const isOpenedByYou = openedProjects.some(({ id }) => item.id === id)
     const isOpenedOnTheBackend =
       item.projectState?.type != null ? IS_OPENING_OR_OPENED[item.projectState.type] : false
@@ -1262,24 +1259,7 @@ function AssetsTable(props: AssetsTableProps) {
     : getText('assetsDropzoneDescription')
 
   const table = (
-    <div
-      className="flex flex-none flex-col"
-      onContextMenu={(event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        setModal(
-          <AssetsTableContextMenu
-            backend={backend}
-            category={category}
-            event={event}
-            doCopy={doCopy}
-            doCut={doCut}
-            currentDirectoryId={currentDirectoryId}
-            doPaste={doPaste}
-          />,
-        )
-      }}
-    >
+    <div className="flex flex-none flex-col">
       <table className="isolate table-fixed border-collapse rounded-rows">
         <thead className="sticky top-0 isolate z-1 bg-dashboard before:absolute before:-inset-1 before:bottom-0 before:bg-dashboard">
           {headerRow}
@@ -1429,7 +1409,24 @@ function AssetsTable(props: AssetsTableProps) {
                 onDragCancel={onSelectionDragCancel}
                 preventDrag={preventSelection}
               />
-              <div className="flex h-max min-h-full w-max min-w-full flex-col">
+              <div
+                className="flex h-max min-h-full w-max min-w-full flex-col"
+                onContextMenu={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  setModal(
+                    <AssetsTableContextMenu
+                      backend={backend}
+                      category={category}
+                      event={event}
+                      doCopy={doCopy}
+                      doCut={doCut}
+                      currentDirectoryId={currentDirectoryId}
+                      doPaste={doPaste}
+                    />,
+                  )
+                }}
+              >
                 <div className="flex h-full w-min min-w-full grow flex-col px-1">
                   {table}
                   <AssetsTableAssetsUnselector />

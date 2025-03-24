@@ -56,14 +56,22 @@ const handler = {
 </script>
 
 <template>
-  <div v-if="props.left" class="left" v-on="handler.left" />
-  <div v-if="props.right" class="right" v-on="handler.right" />
-  <div v-if="props.top" class="top" v-on="handler.top" />
-  <div v-if="props.bottom" class="bottom" v-on="handler.bottom" />
-  <svg v-if="props.bottom && props.left" class="corner bottom left" v-on="handler.bottomLeft">
+  <div v-if="props.left" class="ResizeHandle left" v-on="handler.left" />
+  <div v-if="props.right" class="ResizeHandle right" v-on="handler.right" />
+  <div v-if="props.top" class="ResizeHandle top" v-on="handler.top" />
+  <div v-if="props.bottom" class="ResizeHandle bottom" v-on="handler.bottom" />
+  <svg
+    v-if="props.bottom && props.left"
+    class="ResizeHandle corner bottom left"
+    v-on="handler.bottomLeft"
+  >
     <circle />
   </svg>
-  <svg v-if="props.bottom && props.right" class="corner bottom right" v-on="handler.bottomRight">
+  <svg
+    v-if="props.bottom && props.right"
+    class="ResizeHandle corner bottom right"
+    v-on="handler.bottomRight"
+  >
     <circle />
   </svg>
 </template>

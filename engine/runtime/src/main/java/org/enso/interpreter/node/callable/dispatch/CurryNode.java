@@ -19,7 +19,7 @@ import org.enso.interpreter.runtime.state.State;
 
 /** Handles runtime function currying and oversaturated (eta-expanded) calls. */
 @NodeInfo(description = "Handles runtime currying and eta-expansion")
-public class CurryNode extends BaseNode {
+final class CurryNode extends BaseNode {
   private final FunctionSchema postApplicationSchema;
   private final boolean appliesFully;
   private @Child InvokeCallableNode oversaturatedCallableNode;

@@ -852,7 +852,7 @@ public final class ValuesGenerator implements AutoCloseable {
           v(
                   null,
                   "import Standard.Base.Runtime.Managed_Resource.Managed_Resource",
-                  "Managed_Resource.register '/' (x -> x)")
+                  "Managed_Resource.register ['/'] (x -> x)")
               .type());
       collect.add(typeNothing());
     }

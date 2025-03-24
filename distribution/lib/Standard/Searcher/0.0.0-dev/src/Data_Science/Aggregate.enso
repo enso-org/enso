@@ -30,3 +30,4 @@
              column = Examples.integer_column
              as_table = column.to_table
              aggregate = as_table.aggregate [Aggregate_Column.Minimum, Aggregate_Column.Maximum, Aggregate_Column.Sum, Aggregate_Column.Average]
+

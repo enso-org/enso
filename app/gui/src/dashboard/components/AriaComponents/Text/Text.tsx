@@ -11,8 +11,8 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
 import { memo } from 'react'
 import type { TestIdProps } from '../types'
+import * as visualTooltip from '../VisualTooltip'
 import * as textProvider from './TextProvider'
-import * as visualTooltip from './useVisualTooltip'
 
 /** Props for the Text component */
 export interface TextProps
@@ -23,7 +23,7 @@ export interface TextProps
   readonly lineClamp?: number
   readonly tooltip?: TooltipElementType
   readonly tooltipTriggerRef?: React.RefObject<HTMLElement>
-  readonly tooltipDisplay?: visualTooltip.VisualTooltipProps['display']
+  readonly tooltipDisplay?: visualTooltip.VisualTooltipOptions['display']
   readonly tooltipPlacement?: aria.Placement
   readonly tooltipOffset?: number
   readonly tooltipCrossOffset?: number
@@ -86,17 +86,18 @@ export const TEXT_STYLE = twv.tv({
       uppercase: 'uppercase',
     },
     truncate: {
+      true: 'block truncate',
       /* eslint-disable @typescript-eslint/naming-convention */
-      '1': 'block truncate',
-      '2': 'line-clamp-2 text-ellipsis',
-      '3': 'line-clamp-3 text-ellipsis',
-      '4': 'line-clamp-4 text-ellipsis',
-      '5': 'line-clamp-5 text-ellipsis',
-      '6': 'line-clamp-6 text-ellipsis',
-      '7': 'line-clamp-7 text-ellipsis',
-      '8': 'line-clamp-8 text-ellipsis',
-      '9': 'line-clamp-9 text-ellipsis',
-      custom: 'line-clamp-[var(--line-clamp)] text-ellipsis',
+      '1': 'line-clamp-1',
+      '2': 'line-clamp-2',
+      '3': 'line-clamp-3',
+      '4': 'line-clamp-4',
+      '5': 'line-clamp-5',
+      '6': 'line-clamp-6',
+      '7': 'line-clamp-7',
+      '8': 'line-clamp-8',
+      '9': 'line-clamp-9',
+      custom: 'line-clamp-[var(--line-clamp)]',
       /* eslint-enable @typescript-eslint/naming-convention */
     },
     monospace: { true: 'font-mono' },
@@ -192,7 +193,7 @@ export const Text = memo(
 
     const isTooltipDisabled = useEventCallback(() => {
       if (tooltipDisplay === 'whenOverflowing') {
-        return !truncate
+        return truncate == null
       } else if (tooltipDisplay === 'always') {
         return tooltipElement === false || tooltipElement == null
       } else {

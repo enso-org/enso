@@ -14,7 +14,7 @@ use crate::syntax::*;
 /// Abstraction for [`Token`] and [`Tree`]. Some functions, such as macro resolver need to
 /// distinguish between two cases and need to handle both incoming tokens and already constructed
 /// [`Tree`] nodes. This structure provides handy utilities to work with such cases.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, From)]
 #[allow(missing_docs)]
 pub enum Item<'s> {
     Token(Token<'s>),
@@ -70,24 +70,6 @@ impl<'s> Item<'s> {
             Item::Token(token) => Some(token),
             _ => None,
         }
-    }
-}
-
-impl<'s> From<Token<'s>> for Item<'s> {
-    fn from(t: Token<'s>) -> Self {
-        Item::Token(t)
-    }
-}
-
-impl<'s> From<Tree<'s>> for Item<'s> {
-    fn from(t: Tree<'s>) -> Self {
-        Item::Tree(t)
-    }
-}
-
-impl<'s> From<Group<'s>> for Item<'s> {
-    fn from(group: Group<'s>) -> Self {
-        Item::Group(group)
     }
 }
 

@@ -101,9 +101,11 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
 ) {
   const { category, panelWidth } = props
 
-  const itemId = useStore(assetPanelStore, (state) => state.assetPanelProps.item?.id, {
-    unsafeEnableTransition: true,
-  })
+  const itemId = useStore(
+    assetPanelStore,
+    (state) => state.assetPanelProps.item?.id ?? state.assetPanelProps.defaultItem?.id,
+    { unsafeEnableTransition: true },
+  )
 
   const selectedTab = useStore(assetPanelStore, (state) => state.selectedTab, {
     unsafeEnableTransition: true,
@@ -254,7 +256,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
             isExpanded={isExpanded}
             onPress={expandTab}
             isDisabled={isLocal}
-            isHidden={!enableAsyncExecution}
+            isHidden={true}
           />
           <AssetPanelTabs.Tab
             id="executionsCalendar"

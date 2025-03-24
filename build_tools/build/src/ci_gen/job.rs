@@ -375,8 +375,8 @@ impl StandardLibraryLabelCheck {
 
     fn changed_files_step(&self) -> Step {
         let changed_files_pattern =
-            format!("distribution/lib/Standard/{}/**/docs/api/**.md", self.lib_name);
-        let changed_files_action = "tj-actions/changed-files@v45".to_string();
+            format!("distribution/lib/Standard/{}/**/docs/api/**/**.md", self.lib_name);
+        let changed_files_action = "step-security/changed-files@v45".to_string();
         Step {
             id: Some(self.changed_files_step_name()),
             name: Some(self.changed_files_step_name()),
@@ -637,6 +637,18 @@ impl JobArchetype for UploadBackend {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("backend upload")
             .cleaning(RELEASE_CLEANING_POLICY)
+            .customize(move |step| {
+                let mut steps = vec![step];
+
+                if target.0 == OS::Linux {
+                    let upload_edition_file = step::upload_artifact("Upload Edition File")
+                        .with_custom_argument("name", paths::EDITION_FILE_ARTIFACT_NAME)
+                        .with_custom_argument("path", "distribution/editions/*.yaml");
+                    steps.push(upload_edition_file);
+                }
+
+                steps
+            })
             .build_job("Upload Backend", target)
     }
 }

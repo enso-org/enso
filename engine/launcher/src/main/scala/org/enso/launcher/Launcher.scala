@@ -74,6 +74,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     versionOverride: Option[SemVer],
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
+    jvmMode: Boolean,
     additionalArguments: Seq[String]
   ): Int = {
     val actualPath = path.getOrElse(Launcher.workingDirectory.resolve(name))
@@ -88,6 +89,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             path                = actualPath,
             name                = name,
             engineVersion       = version,
+            jvmMode             = jvmMode,
             normalizedName      = normalizedName,
             projectTemplate     = projectTemplate,
             authorName          = globalConfig.authorName,
@@ -200,6 +202,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * @param useSystemJVM if set, forces to use the default configured JVM,
     *                     instead of the JVM associated with the engine version
     * @param jvmOpts additional options to pass to the launched JVM
+    * @param jvmMode if true, enables JVM mode
     * @param additionalArguments additional arguments to pass to the runner
     * @return exit code of the launched program
     */
@@ -209,6 +212,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     logLevel: Level,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
+    jvmMode: Boolean,
     additionalArguments: Seq[String]
   ): Int = {
     runner
@@ -219,6 +223,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             versionOverride,
             logLevel,
             cliOptions.internalOptions.logMasking,
+            jvmMode,
             additionalArguments
           )
           .get,
@@ -252,6 +257,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     logLevel: Level,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
+    jvmMode: Boolean,
     additionalArguments: Seq[String]
   ): Int = {
     val exitCode = runner
@@ -262,6 +268,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             versionOverride,
             logLevel,
             cliOptions.internalOptions.logMasking,
+            jvmMode,
             additionalArguments
           )
           .get,

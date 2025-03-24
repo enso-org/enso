@@ -14,6 +14,9 @@ import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Mock_Credentials
 
 polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
+polyglot java import org.enso.base.enso_cloud.CloudRequestCache
+polyglot java import org.enso.base.cache.ReloadDetector
+polyglot java import java.time.Duration as Java_Duration
 
 ## To run this test locally:
    $ sbt 'http-test-helper/run localhost 8080'
@@ -151,6 +154,17 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                     Enso_User.list
                 err.to_display_text . should_contain "response from Enso Cloud could not be parsed"
                 err.to_display_text . should_contain "Expected field `TokenType` to be of type Text, but got Integer."
+
+    suite_builder.group "Clear cache on reload" pending=setup.httpbin_pending group_builder->
+        group_builder.specify "CloudRequestCache should be cleared when a reload is detected" <|
+            dur = Java_Duration.ofDays 1
+            cache = CloudRequestCache.INSTANCE
+            cache.getOrCompute "key1" (_-> ["key1"]) dur
+            cache.isCachedTestOnly "key1" . should_be_true
+            ReloadDetector.simulateReloadTestOnly cache
+            ## Another cache action must be called to trigger cache cleaering
+            cache.getOrCompute "key2" (_-> ["key2"]) dur
+            cache.isCachedTestOnly "key1" . should_be_false
 
 type Lazy_Ref
     Value ~get

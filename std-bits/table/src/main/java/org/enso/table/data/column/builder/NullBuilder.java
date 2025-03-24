@@ -50,7 +50,7 @@ public final class NullBuilder implements Builder {
   }
 
   @Override
-  public StorageType getType() {
+  public StorageType<?> getType() {
     return NullType.INSTANCE;
   }
 

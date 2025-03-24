@@ -148,6 +148,7 @@ export function Scroller(props: ScrollerProps) {
     variants = SCROLLER_STYLES,
     orientation = 'horizontal',
     showShadows = true,
+    testId = 'scroller',
     ...rest
   } = props
 
@@ -231,7 +232,7 @@ export function Scroller(props: ScrollerProps) {
   })
 
   return (
-    <div className={styles.base({ className })} {...rest}>
+    <div className={styles.base({ className })} data-testid={testId} {...rest}>
       <div
         ref={(el) => {
           mergeRefs(refCallback, measureRef, containerRef)(el)

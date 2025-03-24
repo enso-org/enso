@@ -19,7 +19,7 @@ import {
   CloseButton,
   IconDisplay,
   Text,
-  WithVisualTooltip,
+  VisualTooltip,
 } from '#/components/AriaComponents'
 import {
   backendMutationOptions,
@@ -185,7 +185,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
       <div className={styles.timeContainer()}>
         {!compact ?
           repeatEl
-        : <WithVisualTooltip
+        : <VisualTooltip
             tooltip={
               <div>
                 {enableAdvancedProjectExecutionOptions && (
@@ -199,7 +199,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
             className={styles.times()}
           >
             {repeatEl}
-          </WithVisualTooltip>
+          </VisualTooltip>
         }
         {session && (
           <DialogTrigger>

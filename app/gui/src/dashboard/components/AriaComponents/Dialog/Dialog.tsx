@@ -124,7 +124,7 @@ const DIALOG_STYLES = tv({
   },
   slots: {
     header:
-      'sticky z-1 top-0 grid grid-cols-[1fr_auto_1fr] items-center border-b border-primary/10 transition-[border-color] duration-150',
+      'sticky z-1 top-0 grid grid-cols-[1fr_auto_1fr] items-center border-b-0.5 border-primary/10 transition-[border-color] duration-150',
     closeButton: 'col-start-1 col-end-1 mr-auto',
     heading: 'col-start-2 col-end-2 my-0 text-center',
     scroller: 'flex flex-col h-full overflow-y-auto max-h-[inherit]',
@@ -250,6 +250,7 @@ function DialogContent(props: DialogContentProps) {
     title,
     children,
     isDismissable = true,
+    onDismiss,
     ...ariaDialogProps
   } = props
 
@@ -275,12 +276,27 @@ function DialogContent(props: DialogContentProps) {
     useRAF: false,
   })
 
+  // Mutating the method of the modalState object to ensure that the close `close`
+  // function will call the `onDismiss` function and then close the modal.
+  unsafeWriteValue(
+    modalState,
+    'close',
+    useEventCallback(() => {
+      onDismiss?.()
+      modalState.setOpen(false)
+    }),
+  )
+
+  const close = useEventCallback(() => {
+    modalState.close()
+  })
+
   utlities.useInteractOutside({
     ref: dialogRef,
     id: dialogId,
     onInteractOutside: () => {
       if (isDismissable) {
-        modalState.close()
+        close()
       } else {
         if (dialogRef.current) {
           // eslint-disable-next-line @typescript-eslint/no-magic-numbers
@@ -376,48 +392,44 @@ function DialogContent(props: DialogContentProps) {
           aria-labelledby={titleId}
           {...ariaDialogProps}
         >
-          {(opts) => (
-            <>
-              <motion.div layout className="w-full" transition={{ duration: 0 }}>
-                <DialogHeader
-                  closeButton={closeButton}
-                  title={title}
-                  titleId={titleId}
-                  scrollerRef={scrollerRef}
-                  fitContent={fitContent}
-                  hideCloseButton={hideCloseButton}
-                  padding={padding}
-                  rounded={rounded}
-                  size={size}
-                  type={type}
-                  headerDimensionsRef={headerDimensionsRef}
-                  close={opts.close}
-                  variants={variants}
-                />
-              </motion.div>
+          <motion.div layout className="w-full" transition={{ duration: 0 }}>
+            <DialogHeader
+              closeButton={closeButton}
+              title={title}
+              titleId={titleId}
+              scrollerRef={scrollerRef}
+              fitContent={fitContent}
+              hideCloseButton={hideCloseButton}
+              padding={padding}
+              rounded={rounded}
+              size={size}
+              type={type}
+              headerDimensionsRef={headerDimensionsRef}
+              close={close}
+              variants={variants}
+            />
+          </motion.div>
 
-              <motion.div
-                layout
-                layoutScroll
-                className={styles.scroller()}
-                ref={scrollerRef}
-                transition={{ duration: 0 }}
-              >
-                <DialogBody
-                  close={opts.close}
-                  contentDimensionsRef={contentDimensionsRef}
-                  dialogId={dialogId}
-                  headerDimensionsRef={headerDimensionsRef}
-                  scrollerRef={scrollerRef}
-                  measurerWrapperClassName={styles.measurerWrapper()}
-                  contentClassName={styles.content()}
-                  type={type}
-                >
-                  {children}
-                </DialogBody>
-              </motion.div>
-            </>
-          )}
+          <motion.div
+            layout
+            layoutScroll
+            className={styles.scroller()}
+            ref={scrollerRef}
+            transition={{ duration: 0 }}
+          >
+            <DialogBody
+              close={close}
+              contentDimensionsRef={contentDimensionsRef}
+              dialogId={dialogId}
+              headerDimensionsRef={headerDimensionsRef}
+              scrollerRef={scrollerRef}
+              measurerWrapperClassName={styles.measurerWrapper()}
+              contentClassName={styles.content()}
+              type={type}
+            >
+              {children}
+            </DialogBody>
+          </motion.div>
         </MotionDialog>
 
         <dialogStackProvider.DialogStackRegistrar id={dialogId} type={TYPE_TO_DIALOG_TYPE[type]} />

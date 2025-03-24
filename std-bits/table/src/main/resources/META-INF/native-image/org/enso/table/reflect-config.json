@@ -10,7 +10,6 @@
             }
         ]
     },
-
     {
         "name": "org.enso.table.data.column.storage.Storage",
         "methods": [
@@ -284,6 +283,14 @@
         ]
     },
     {
+        "name": "org.enso.table.data.column.storage.numeric.BigIntegerStorage",
+        "methods": [
+            {
+                "name": "getMaxPrecisionStored"
+            }
+        ]
+    },
+    {
         "name": "org.enso.table.data.column.storage.type.AnyObjectType"
     },
     {
@@ -470,60 +477,6 @@
             },
             {
                 "name": "EXCEL_COLUMN_NAMES"
-            }
-        ]
-    },
-    {
-        "name": "org.enso.table.excel.ExcelConnectionPool",
-        "methods": [
-            {
-                "name": "getConnectionRecordCount"
-            },
-            {
-                "name": "simulateReloadTestOnly"
-            }
-        ]
-    },
-    {
-        "name": "org.enso.table.excel.ExcelConnectionPool.ConnectionRecord"
-    },
-    {
-        "name": "org.enso.table.excel.ExcelConnectionPool$ConnectionRecord",
-        "fields": [
-            {
-                "name": "refCount"
-            }
-        ],
-        "methods": [
-            {
-                "name": "close",
-                "parameterTypes": [
-                ]
-            }
-        ]
-    },
-
-    {
-        "name": "org.enso.table.excel.ExcelConnectionPool.WriteHelper"
-    },
-    {
-        "name": "org.enso.table.excel.ExcelConnectionPool$WriteHelper",
-        "methods": [
-            {
-                "name": "writeWorkbook",
-                "parameterTypes": [
-                    "java.io.File",
-                    "java.util.function.Function"
-                ]
-            },
-            {
-                "name": "lockForWriting",
-                "parameterTypes": [
-                    "java.io.File",
-                    "org.enso.table.excel.ExcelFileFormat",
-                    "java.io.File[]",
-                    "java.util.Function"
-                ]
             }
         ]
     },

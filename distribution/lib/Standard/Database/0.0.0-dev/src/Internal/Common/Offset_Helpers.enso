@@ -1,11 +1,13 @@
 from Standard.Base import all
-from Standard.Database.Errors import Unsupported_Database_Operation
+
 from Standard.Table import Fill_With
 
+from Standard.Database.Errors import Unsupported_Database_Operation
+
+import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Operation_Metadata
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.SQL_Expression.SQL_Expression
-import project.Internal.IR.Internal_Column.Internal_Column
 
 ## PRIVATE
 make_offset (n : Integer) (colName: Internal_Column) (order_descriptors : Vector Order_Descriptor) (grouping_expressions : Vector SQL_Expression) fill_with:Fill_With -> SQL_Expression =

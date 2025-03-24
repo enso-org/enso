@@ -20,7 +20,7 @@ export default function SubmitButton(props: SubmitButtonProps) {
       fullWidth
       variant="submit"
       isDisabled={isDisabled}
-      loading={isLoading}
+      isLoading={isLoading}
       isActive={!isDisabled}
       type="submit"
       icon={icon}

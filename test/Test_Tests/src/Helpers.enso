@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test.Frame_Hider.Frame_Hider
+import Standard.Test.Frame_Hider
 import Standard.Test.Spec_Result.Spec_Result
 from Standard.Test import Test
 

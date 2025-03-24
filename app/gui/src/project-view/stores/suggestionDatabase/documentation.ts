@@ -8,18 +8,21 @@ import { type DeepReadonly } from 'vue'
 
 export interface DocumentationData {
   documentation: Doc.Section[]
+  docSummaryHtml: string | undefined
   aliases: string[]
   /** A name of a custom icon to use when displaying the entry. */
   iconName: Icon | undefined
   /** An index of a group from group list in suggestionDb store this entry belongs to. */
   groupIndex: number | undefined
+  /** If defined, it's a rank in "suggested" group (lower rank goes first) */
+  suggestedRank: number | undefined
   isPrivate: boolean
   isUnstable: boolean
 }
 
 function isTagNamed(tag: string) {
   return (section: Doc.Section): section is { Tag: Doc.Section.Tag } => {
-    return 'Tag' in section ? section.Tag.tag == tag : false
+    return 'Tag' in section && section.Tag.tag == tag
   }
 }
 
@@ -45,7 +48,28 @@ export function getGroupIndex(
   return index == null ? undefined : index
 }
 
-/** TODO: Add docs */
+/** @internal */
+export function getDocumentationSummary(sections: Doc.Section[]) {
+  const firstParagraph = sections.find(
+    (section): section is { Paragraph: Doc.Section.Paragraph } => 'Paragraph' in section,
+  )?.Paragraph.body
+  if (firstParagraph == null) return undefined
+  const endOfSummary = firstParagraph.search(/<\s*p|(?<=\.)\W/)
+  if (endOfSummary < 0) return firstParagraph
+  else return firstParagraph.substring(0, endOfSummary)
+}
+
+/** @internal */
+export function getSuggestedRank(sections: Doc.Section[]): number | undefined {
+  const str = tagValue(sections, 'Suggested')
+  if (str == null) return
+  const rank = parseFloat(str)
+  // Rank which is not a number is placed last.
+  if (isNaN(rank)) return Infinity
+  return rank
+}
+
+/** Retrieve {@link DocumentationData } from raw entry's documentation. */
 export function documentationData(
   documentation: Opt<string>,
   project: QualifiedName | undefined,
@@ -58,6 +82,7 @@ export function documentationData(
 
   return {
     documentation: parsed,
+    docSummaryHtml: getDocumentationSummary(parsed),
     iconName: iconName != null ? (iconName as Icon) : undefined,
     groupIndex,
     aliases:
@@ -66,6 +91,7 @@ export function documentationData(
         .split(/\s*,\s*/g) ?? [],
     isPrivate: isSome(tagValue(parsed, 'Private')),
     isUnstable: isSome(tagValue(parsed, 'Unstable')) || isSome(tagValue(parsed, 'Advanced')),
+    suggestedRank: getSuggestedRank(parsed),
   }
 }
 
