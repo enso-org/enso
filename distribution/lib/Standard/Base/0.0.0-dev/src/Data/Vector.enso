@@ -1062,7 +1062,7 @@ type Vector a
         f i =
             left_value = if keep_unmatched_bool then (if i >= left_len then Nothing else self.at i) else self.at i
             right_value = if keep_unmatched_bool then (if i >= right_len then Nothing else that.at i) else that.at i
-            if skip_nothing && left_value.is_nothing && right_value.is_nothing then Nothing else function left_value right_value
+            if skip_nothing && (left_value.is_nothing || right_value.is_nothing) then Nothing else function left_value right_value
         len = if keep_unmatched_bool then left_len.max right_len else left_len.min right_len
 
         # If on_problems == No_Wrap, then don't try to attach anything
