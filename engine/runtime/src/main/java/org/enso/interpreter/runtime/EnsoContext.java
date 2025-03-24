@@ -966,10 +966,15 @@ public final class EnsoContext {
     return environment.isCreateThreadAllowed();
   }
 
+  private int threadCounter;
+
   public Thread createThread(boolean systemThread, Runnable run) {
-    return systemThread
-        ? environment.createSystemThread(run)
-        : environment.newTruffleThreadBuilder(run).build();
+    if (systemThread) {
+      var t = new Thread(run, "Enso thread #" + ++threadCounter);
+      return t;
+    } else {
+      return environment.newTruffleThreadBuilder(run).build();
+    }
   }
 
   public Future<Void> submitThreadLocal(Thread[] threads, ThreadLocalAction action) {
