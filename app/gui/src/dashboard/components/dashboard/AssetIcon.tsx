@@ -1,6 +1,4 @@
 /** @file Displays a non-interactable icon for an asset based on its type and name. */
-import * as React from 'react'
-
 import BlankIcon from '#/assets/blank.svg'
 import DatalinkIcon from '#/assets/datalink.svg'
 import FolderIcon from '#/assets/folder.svg'
@@ -41,8 +39,7 @@ export default function AssetIcon(props: AssetIconProps) {
     case backend.AssetType.specialUp:
     case backend.AssetType.specialLoading:
     case backend.AssetType.specialEmpty:
-    case backend.AssetType.specialError:
-    case backend.AssetType.specialUp: {
+    case backend.AssetType.specialError: {
       // It should not be possible for these to be displayed, but return something anyway.
       return <SvgMask src={BlankIcon} className={className} />
     }

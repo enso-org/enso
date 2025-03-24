@@ -232,6 +232,8 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
   usersMap.set(defaultUser.userId, defaultUser)
 
+  console.log(backend.ParentsPath, backend.VirtualParentsPath, backend.EnsoPath)
+
   function getParentPath(parentId: backend.DirectoryId, acc: string[] = []) {
     const parent = assetMap.get(parentId)
 
