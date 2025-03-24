@@ -37,8 +37,9 @@ from project.Metadata.Widget import File_Browse, Folder_Browse, Text_Input, Vect
 from project.System.File_Format import Auto_Detect, File_Format
 
 ## ALIAS load, open
-   GROUP Input
+   GROUP File
    ICON data_input
+   SUGGESTED 2
    Reads a file into Enso.
    Uses the specified file format to parse the file into an Enso type. If not
    specified will use the file's extension to determine the file format.
@@ -84,8 +85,6 @@ from project.System.File_Format import Auto_Detect, File_Format
 
          from Standard.Table import all
          import Standard.Examples
-
-         example_xls_to_table = Data.read Examples.xls (..Sheet 'Dates')
 @path (Text_Input display=..Always)
 @format File_Format.default_widget
 read : Text | URI | File -> File_Format -> Problem_Behavior -> Any ! File_Error
@@ -108,8 +107,9 @@ read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Prob
                 file_content
 
 ## ALIAS load, open
-   GROUP Input
+   GROUP File
    ICON data_input
+   SUGGESTED 6
    Reads a a list of files into Enso.
 
    Arguments:
@@ -150,7 +150,6 @@ read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Prob
          import Standard.Examples
 
          files = Data.list name_filter="*.csv"
-         example_csv_dir_to_table = Data.read_many files
 @paths (Vector_Editor item_editor=File_Browse item_default='""' display=..Always)
 @format File_Format.default_widget
 @return Return_As.default_widget
@@ -167,7 +166,7 @@ read_many (paths : Many_Files_List = Missing_Argument.throw "paths") format=Auto
             result
 
 ## ALIAS load text, open text
-   GROUP Input
+   GROUP Default
    ICON data_input
    Open and read the file at the provided `path`.
 
@@ -195,8 +194,9 @@ read_text : (Text | File) -> Encoding -> Problem_Behavior -> Text
 read_text path=(Missing_Argument.throw "path") (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Warning) =
     File.new path . read_text encoding on_problems
 
-## GROUP Input
+## GROUP File
    ICON data_input
+   SUGGESTED 1
    Lists files contained in the provided directory.
 
    Arguments:
@@ -249,7 +249,6 @@ read_text path=(Missing_Argument.throw "path") (encoding : Encoding = Encoding.d
          import Standard.Examples
 
          example_list_files =
-             Data.list Examples.data_dir name_filter="**.md" recursive=True
 @directory (Folder_Browse display=..Always)
 @name_filter File_Format.name_filter_widget
 list : Text | File -> Text -> Boolean -> Vector File
@@ -261,8 +260,9 @@ list (directory=enso_project.root) (name_filter:Text="") recursive:Boolean=False
         file_list
 
 ## ALIAS download, http get
-   GROUP Input
+   GROUP Web
    ICON data_input
+   SUGGESTED 5
    Fetches from the provided URI and returns the response, parsing the body if
    the content-type is recognised. Returns an  error if the status code does not
    represent a successful response.
@@ -314,7 +314,6 @@ list (directory=enso_project.root) (name_filter:Text="") recursive:Boolean=False
 
          import Standard.Base.Data
          file = enso_project.data / "spreadsheet.xls"
-         Data.fetch URL . body . write file
 @uri (Text_Input display=..Always)
 @method HTTP_Method.default_fetch_widget
 @format Data_Read_Helpers.format_widget_with_raw_response
@@ -324,8 +323,9 @@ fetch (uri:(URI | Text)=(Missing_Argument.throw "uri")) (method:HTTP_Method=..Ge
     Data_Read_Helpers.fetch_following_data_links uri method headers (Data_Read_Helpers.handle_legacy_format "fetch" "format" format) cache_policy=cache_policy
 
 ## ALIAS http post, upload
-   GROUP Output
+   GROUP Web
    ICON data_upload
+   SUGGESTED 11
    Writes the provided data to the provided URI. Returns the response,
    parsing the body if the content-type is recognised. Returns an  error if the
    status code does not represent a successful response.
@@ -442,7 +442,6 @@ fetch (uri:(URI | Text)=(Missing_Argument.throw "uri")) (method:HTTP_Method=..Ge
          import Standard.Base.Data
          test_file = enso_project.data / "sample.txt"
          form_data = Dictionary.from_vector [["key", "val"], ["a_file", test_file]]
-         response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
 @uri (Text_Input display=..Always)
 @method HTTP_Method.default_post_widget
 @headers Header.default_widget
@@ -452,8 +451,9 @@ post (uri:(URI | Text)=(Missing_Argument.throw "uri")) (body:Request_Body=..Empt
     response = HTTP.post uri body method headers
     Data_Read_Helpers.decode_http_response_following_data_links response (Data_Read_Helpers.handle_legacy_format "post" "response_format" response_format)
 
-## GROUP Input
+## GROUP Web
    ICON select_column
+   SUGGESTED 4
    Fetches from the provided URI and if successful writes to the file. Returns
    an error if the status code does not represent a successful response.
 
@@ -472,7 +472,6 @@ post (uri:(URI | Text)=(Missing_Argument.throw "uri")) (body:Request_Body=..Empt
    - method: The HTTP method to use. Must be one of `HTTP_Method.Get`,
      `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
      Defaults to `HTTP_Method.Get`.
-   - headers: The headers to send with the request. Defaults to an empty vector.
 @uri (Text_Input display=..Always)
 @method HTTP_Method.default_fetch_widget
 @headers Header.default_widget

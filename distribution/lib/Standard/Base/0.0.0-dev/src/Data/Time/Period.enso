@@ -56,7 +56,7 @@ type Period
     between start_date_inclusive end_date_exclusive =
         Period.Value (Java_Period.between start_date_inclusive end_date_exclusive)
 
-    ## GROUP DateTime
+    ## GROUP Default
        ICON time
        Create a new Period from years, months and days.
 

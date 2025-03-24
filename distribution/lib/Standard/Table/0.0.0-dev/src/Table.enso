@@ -105,7 +105,7 @@ polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 ## Represents a column-oriented table data structure.
 type Table
-    ## GROUP Standard.Base.Constants
+    ## GROUP Standard.Base.Default
        ICON table_edit
        Creates a new table from a set of columns. This can either be provided as
        a set of pairs of names and data, or existing Column objects.
@@ -202,6 +202,7 @@ type Table
 
     ## GROUP Standard.Base.Constants
        ICON table_edit
+       SUGGESTED 7
        Creates a new table from a set of columns parsing the resulting table.
 
        Arguments:
@@ -226,7 +227,6 @@ type Table
 
         ? Consistent Row Count
         All columns must have the same number of rows. If a column has a
-        different number of entries, an error is thrown.
     input (columns : Vector (Vector | Column)) -> Table =
         throw_bad_column = Error.throw (Illegal_Argument.Error "Each column must be represented as a Vector of column name (Text), data (vector like elements) and optionally a type (Value_Type), or an existing column.")
         resolved_columns = columns.map c-> case c of
@@ -3402,7 +3402,7 @@ type Table
         from_java_table <| self.java_table.applyMask mask
 
     ## ALIAS export, output, save, to_file
-       GROUP Standard.Base.Output
+       GROUP Standard.Base.File
        ICON data_output
        SUGGESTED 9
        This function writes a table from memory into a file.
@@ -3842,7 +3842,7 @@ type Table
     column_naming_helper : Column_Naming_Helper
     column_naming_helper self = Column_Naming_Helper.in_memory
 
-    ## GROUP Standard.Base.Calculations
+    ## GROUP Standard.Base.Conversions
        ICON select_column
        Appends records from the vector of tables into a single table.
 

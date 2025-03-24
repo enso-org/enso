@@ -127,7 +127,7 @@ type Vector a
         single_element -> [single_element]
 
     ## ALIAS repeat
-       GROUP Constants
+       GROUP Default
        ICON data_input
        Creates a new vector of the given length, filling the elements with
        the provided constant.

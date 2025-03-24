@@ -33,7 +33,7 @@ polyglot java import org.graalvm.collections.Pair as Java_Pair
 ## Represents a Uniform Resource Identifier (URI) reference.
 type URI
     ## ALIAS get uri
-       GROUP Conversions
+       GROUP Web
        ICON convert
 
        Parse a URI from text.

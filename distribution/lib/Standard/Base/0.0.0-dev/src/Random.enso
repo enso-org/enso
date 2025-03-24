@@ -26,7 +26,7 @@ polyglot java import org.enso.base.random.RandomInstanceHolder
 ## Type for creating random values.
 type Random
     ## PRIVATE
-       GROUP Random
+       GROUP Default
 
        Create a new `Random_Generator` with the specified seed.
 
@@ -46,7 +46,7 @@ type Random
         Random_Generator.new used_seed
 
     ## PRIVATE
-       GROUP Random
+       GROUP Default
 
        Set the seed of the default `Random_Generator` instance.
 

@@ -1244,7 +1244,7 @@ type Decimal
     to_text_without_scientific_notation : Text
     to_text_without_scientific_notation self -> Text = self.big_decimal.toPlainString
 
-## GROUP Math
+## GROUP Default
    ICON input_number
    Construct a `Decimal` from a `Text`, `Integer` or `Float`.
 

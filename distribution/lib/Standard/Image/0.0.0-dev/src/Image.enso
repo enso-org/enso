@@ -21,7 +21,7 @@ polyglot java import org.opencv.core.Scalar
 ## UNSTABLE
 type Image
     ## UNSTABLE
-       GROUP Standard.Base.Conversions
+       GROUP Standard.Base.Default
        ICON convert
 
        Create an image from the array of values.

@@ -118,7 +118,7 @@ type Date_Time
     now : Date_Time
     now = @Builtin_Method "Date_Time.now"
 
-    ## GROUP DateTime
+    ## GROUP Constants
        ICON time
        Obtains an instance of `Date_Time` from a year, month, day, hour, minute,
        second, nanosecond and timezone.

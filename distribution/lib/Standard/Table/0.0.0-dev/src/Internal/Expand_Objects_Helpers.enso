@@ -49,7 +49,7 @@ expand_column (table : Table) (column : Text | Integer) (fields : (Vector Text) 
         Table.new output
 
 ## PRIVATE
-   GROUP Standard.Base.Conversions
+   GROUP Standard.Base.Default
    Expand aggregate values in a column to separate rows.
 
    For each value in the specified column, if it is an aggregate (`Vector`,

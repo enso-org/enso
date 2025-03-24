@@ -67,7 +67,7 @@ type Time_Of_Day
     now : Time_Of_Day
     now = @Builtin_Method "Time_Of_Day.now"
 
-    ## GROUP DateTime
+    ## GROUP Constants
        ICON time
        Obtains an instance of `Time_Of_Day` from an hour, minute, second
        and nanosecond.

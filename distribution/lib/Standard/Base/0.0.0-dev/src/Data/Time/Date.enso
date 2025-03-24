@@ -74,7 +74,7 @@ type Date
     today : Date
     today = @Builtin_Method "Date.today"
 
-    ## GROUP DateTime
+    ## GROUP Constants
        ICON time
        Constructs a new Date from a year, month, and day.
 
