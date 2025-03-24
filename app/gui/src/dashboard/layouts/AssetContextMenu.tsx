@@ -35,7 +35,7 @@ import {
   downloadAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useBackendQuery, useNewProject } from '#/hooks/backendHooks'
+import { useNewProject } from '#/hooks/backendHooks'
 import { useUploadFileWithToastMutation } from '#/hooks/backendUploadFilesHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { usePasteData } from '#/providers/DriveProvider'
@@ -71,8 +71,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { asset, state, setRowState } = innerProps
   const { backend, category } = state
 
-  const { data: users = [] } = useBackendQuery(backend, 'listUsers', [])
-  const { data: userGroups = [] } = useBackendQuery(backend, 'listUserGroups', [])
   const getAsset = useGetAsset()
   const canOpenProjects = projectHooks.useCanOpenProjects()
   const { user } = authProvider.useFullUserSession()
@@ -93,7 +91,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const isCloud = categoryModule.isCloudCategory(category)
   const pathComputed =
     category.type === 'recent' || category.type === 'trash' ? null
-    : isCloud ? computeFullRemotePath(asset, users, userGroups)
+    : isCloud ? computeFullRemotePath(asset, [], [])
     : asset.type === backendModule.AssetType.project ?
       mapNonNullish(localBackend?.getProjectPath(asset.id) ?? null, normalizePath)
     : normalizePath(localBackendModule.extractTypeAndId(asset.id).id)

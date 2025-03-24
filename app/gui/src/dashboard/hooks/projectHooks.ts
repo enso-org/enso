@@ -96,6 +96,11 @@ export const CREATED_PROJECT_STATES = new Set([
   backendModule.ProjectState.created,
   backendModule.ProjectState.new,
 ])
+export const BUSY_PROJECT_STATES = new Set([
+  ...Array.from(OPENING_PROJECT_STATES),
+  ...Array.from(CLOSING_PROJECT_STATES),
+  backendModule.ProjectState.opened,
+])
 
 /** Stale time for local projects, set to 10 seconds. */
 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
