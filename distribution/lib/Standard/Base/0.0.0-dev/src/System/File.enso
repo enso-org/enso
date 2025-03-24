@@ -890,7 +890,7 @@ list_descendants file =
    - if the project is running in the Cloud, the path is resolved to a Cloud file,
      relative to the project's location.
    - if running locally, the path is resolved to a local file, relative to the
-     current working directory.
+     currently running project (not to the working directory).
 
    The method also does some extra processing to ensure that if the path
    contains any data links, they will be correctly resolved. We cannot just
