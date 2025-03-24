@@ -5,8 +5,12 @@ import javax.lang.model.type.TypeMirror;
 
 /** Represents a {@code scala.collection.immutable.List} field in the IR node. */
 final class ListField extends Field {
-  ListField(String name, TypeMirror type, ProcessingEnvironment procEnv) {
+
+  private final boolean nullable;
+
+  ListField(String name, boolean nullable, TypeMirror type, ProcessingEnvironment procEnv) {
     super(type, name, procEnv);
+    this.nullable = nullable;
   }
 
   @Override
@@ -21,6 +25,6 @@ final class ListField extends Field {
 
   @Override
   public boolean isNullable() {
-    return false;
+    return nullable;
   }
 }

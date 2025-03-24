@@ -97,7 +97,7 @@ public class DuplicateMethodGenerator {
 
     for (var field : ctx.getUserFields()) {
       if (field.isChild()) {
-        if (field.isNullable()) {
+        if (field.isNullable() && !field.isList()) {
           sb.append(Utils.indent(nullableChildCode(field), 2));
           sb.append(System.lineSeparator());
           duplicatedVars.add(
@@ -187,11 +187,11 @@ public class DuplicateMethodGenerator {
     Utils.hardAssert(nullableChild.isNullable() && nullableChild.isChild());
     return """
           IR $dupName = null;
-            if ($childName != null) {
-              $dupName = $childName.duplicate($parameterNames);
-              if (!($dupName instanceof $childType)) {
-                throw new IllegalStateException("Duplicated child is not of the expected type: " + $dupName);
-              }
+          if ($childName != null) {
+            $dupName = $childName.duplicate($parameterNames);
+            if (!($dupName instanceof $childType)) {
+              throw new IllegalStateException("Duplicated child is not of the expected type: " + $dupName);
+            }
           }
         """
         .replace("$childType", nullableChild.getSimpleTypeName())
@@ -217,7 +217,8 @@ public class DuplicateMethodGenerator {
   private String listChildCode(Field listChild) {
     Utils.hardAssert(listChild.isChild() && listChild.isList());
     return """
-          $childListType $dupName =
+          $childListType $dupName = null;
+          if ($childName != null) {
             $childName.map(child -> {
               IR dupChild = child.duplicate($parameterNames);
               if (!(dupChild instanceof $childType)) {
@@ -225,6 +226,7 @@ public class DuplicateMethodGenerator {
               }
               return ($childType) dupChild;
             });
+          }
           """
         .replace("$childListType", listChild.getSimpleTypeName())
         .replace("$childType", listChild.getTypeParameter().getSimpleName())

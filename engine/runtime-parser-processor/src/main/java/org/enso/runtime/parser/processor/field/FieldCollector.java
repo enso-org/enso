@@ -98,7 +98,7 @@ public final class FieldCollector {
     var isNullable = !irChildAnnot.required();
     if (Utils.isScalaList(param.asType(), processingEnv)) {
       ensureTypeArgIsSubtypeOfIR(param.asType());
-      return new ListField(name, param.asType(), processingEnv);
+      return new ListField(name, isNullable, param.asType(), processingEnv);
     } else if (Utils.isScalaOption(param.asType(), processingEnv)) {
       ensureTypeArgIsSubtypeOfIR(param.asType());
       return new OptionField(name, param.asType(), processingEnv);

@@ -120,7 +120,22 @@ public final class MapExpressionsMethodGenerator {
                         .append(child.getName())
                         .append(" != null) {")
                         .append(System.lineSeparator());
-                    if (childIsExpression) {
+                    if (child.isList()) {
+                      // List<ChildType> childMapped = child.map(e -> e.mapExpressions(fn));
+                      sb.append("    ")
+                          .append(newChildName)
+                          .append(" = ")
+                          .append(child.getName())
+                          .append(".map(e -> ");
+                      if (childIsExpression) {
+                        // List<ChildType> childMapped = child.map(e -> fn.apply(e));
+                        sb.append("fn.apply(e)");
+                      } else {
+                        // List<ChildType> childMapped = child.map(e -> e.mapExpressions(fn));
+                        sb.append("e.").append(METHOD_NAME).append("(fn)");
+                      }
+                      sb.append(");").append(System.lineSeparator());
+                    } else if (childIsExpression) {
                       // childMapped = fn.apply(child);
                       sb.append("    ")
                           .append(newChildName)
