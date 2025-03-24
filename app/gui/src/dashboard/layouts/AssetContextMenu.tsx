@@ -1,6 +1,5 @@
 /** @file The context menu for an arbitrary {@link backendModule.Asset}. */
 import * as React from 'react'
-import invariant from 'tiny-invariant'
 
 import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
@@ -71,6 +70,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { asset, state, setRowState } = innerProps
   const { backend, category } = state
 
+  const isCloud = categoryModule.isCloudCategory(category)
+
   const getAsset = useGetAsset()
   const canOpenProjects = projectHooks.useCanOpenProjects()
   const { user } = authProvider.useFullUserSession()
@@ -81,14 +82,14 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const setAssetPanelProps = useSetAssetPanelProps()
-  const openProject = projectHooks.useOpenProject()
+  const openProjectNatively = projectHooks.useOpenProjectNatively()
+  const openProjectLocally = projectHooks.useOpenProjectLocally()
   const closeProject = projectHooks.useCloseProject()
   const deleteAssetsMutation = reactQuery.useMutation(deleteAssetsMutationOptions(backend))
   const restoreAssetsMutation = reactQuery.useMutation(restoreAssetsMutationOptions(backend))
   const copyAssetsMutation = reactQuery.useMutation(copyAssetsMutationOptions(backend))
   const downloadAssetsMutation = reactQuery.useMutation(downloadAssetsMutationOptions(backend))
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
-  const isCloud = categoryModule.isCloudCategory(category)
   const pathComputed =
     category.type === 'recent' || category.type === 'trash' ? null
     : isCloud ? computeFullRemotePath(asset, [], [])
@@ -237,14 +238,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               action="open"
               isDisabled={!canOpenProjects}
               tooltip={disabledTooltip}
-              doAction={() => {
-                openProject({
-                  id: asset.id,
-                  title: asset.title,
-                  parentId: asset.parentId,
-                  type: state.backend.type,
-                })
-              }}
+              doAction={() => openProjectLocally(asset, backend.type)}
             />
           )}
         {asset.type === backendModule.AssetType.project && isCloud && enableHybridExecution && (
@@ -253,45 +247,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             action="run"
             isDisabled={!canOpenProjects}
             tooltip={disabledTooltip}
-            doAction={async () => {
-              try {
-                invariant(localBackend != null, 'Local Backend is null')
-                await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
-                const localProject = await remoteBackend.downloadProject(asset.id)
-
-                let project
-                for (const parentId of [localProject.targetId, localProject.parentId]) {
-                  const assets = await localBackend.listDirectory({
-                    parentId: parentId,
-                    filterBy: null,
-                    labels: null,
-                    recentProjects: false,
-                  })
-                  project = assets
-                    .filter((item) => item.type === backendModule.AssetType.project)
-                    .at(0)
-                  if (project !== undefined) {
-                    break
-                  }
-                }
-
-                invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
-                openProject({
-                  id: project.id,
-                  title: project.title,
-                  parentId: project.parentId,
-                  type: backendModule.BackendType.local,
-                  hybrid: { cloudProjectId: asset.id, parentId: localProject.parentId },
-                })
-              } catch (error) {
-                toastAndLog('openProjectError', error, asset.title)
-                closeProject({
-                  id: asset.id,
-                  title: asset.title,
-                  parentId: asset.parentId,
-                  type: state.backend.type,
-                })
-              }
+            doAction={() => {
+              openProjectNatively(asset, backend.type)
             }}
           />
         )}

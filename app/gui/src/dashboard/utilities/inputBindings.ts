@@ -563,7 +563,8 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
           ]?.[eventModifierFlags]
       let handle = handlers[DEFAULT_HANDLER]
       const isTextInputFocused = eventModule.isElementTextInput(document.activeElement)
-      const isTextInputEvent = 'key' in event && eventModule.isTextInputEvent(event)
+      const isTextInputEvent =
+        'key' in event && (eventModule.isTextInputEvent(event) || event.key === 'Enter')
       const shouldIgnoreEvent = isTextInputFocused && isTextInputEvent
       if (matchingBindings != null && !shouldIgnoreEvent) {
         for (const bindingNameRaw in handlers) {

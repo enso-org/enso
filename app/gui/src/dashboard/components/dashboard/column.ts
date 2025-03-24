@@ -7,7 +7,6 @@ import type { AnyAsset, BackendType, Label } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
 import type { SortableColumn } from './column/columnUtils'
 import { Column } from './column/columnUtils'
-import DocsColumn from './column/DocsColumn'
 import LabelsColumn from './column/LabelsColumn'
 import ModifiedColumn from './column/ModifiedColumn'
 import NameColumn from './column/NameColumn'
@@ -60,6 +59,5 @@ export const COLUMN_RENDERER: Readonly<
   [Column.labels]: memo(LabelsColumn),
   [Column.accessedByProjects]: memo(PlaceholderColumn),
   [Column.accessedData]: memo(PlaceholderColumn),
-  [Column.docs]: memo(DocsColumn),
   [Column.path]: memo(PathColumn),
 }

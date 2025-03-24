@@ -18,6 +18,7 @@ import {
   type LaunchedProjectId,
 } from '#/providers/ProjectsProvider'
 
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
@@ -45,8 +46,7 @@ export interface CreateOpenedProjectQueryOptions {
 
 /** Whether the user can open projects. */
 export function useCanOpenProjects() {
-  const enableCloudExecution = useFeatureFlag('enableCloudExecution')
-  return enableCloudExecution
+  return useFeatureFlag('enableCloudExecution')
 }
 
 /** Return a function to update a project asset in the TanStack Query cache. */
@@ -361,7 +361,7 @@ export function useRenameProjectMutation() {
 }
 
 /** A callback to open a project. */
-export function useOpenProject() {
+function useOpenProject() {
   const client = reactQuery.useQueryClient()
   const canOpenProjects = useCanOpenProjects()
   const projectsStore = useProjectsStore()
@@ -396,7 +396,7 @@ export function useOpenProject() {
 
       const openingProjectMutation = client.getMutationCache().find({
         mutationKey: ['openProject'],
-        // this is unsafe, but we can't do anything about it
+        // This is unsafe, but we can't do anything about it.
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         predicate: (mutation) => mutation.state.variables?.id === project.id,
       })
@@ -406,6 +406,92 @@ export function useOpenProject() {
       })
     }
   })
+}
+
+/** Return a hook to open a project in Hybrid Mode. */
+export function useOpenHybridProject() {
+  const localBackend = backendProvider.useLocalBackend()
+  const remoteBackend = backendProvider.useRemoteBackend()
+  const toastAndLog = useToastAndLog()
+  const openProject = useOpenProject()
+  const closeProject = useCloseProject()
+
+  return eventCallbacks.useEventCallback(
+    async (asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>) => {
+      try {
+        invariant(localBackend != null, 'Local Backend is null')
+        await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
+        const localProject = await remoteBackend.downloadProject(asset.id)
+
+        let project
+        for (const parentId of [localProject.targetId, localProject.parentId]) {
+          const assets = await localBackend.listDirectory({
+            parentId: parentId,
+            filterBy: null,
+            labels: null,
+            recentProjects: false,
+          })
+          project = assets.filter((item) => item.type === backendModule.AssetType.project).at(0)
+          if (project !== undefined) {
+            break
+          }
+        }
+
+        invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
+        openProject({
+          id: project.id,
+          title: project.title,
+          parentId: project.parentId,
+          type: backendModule.BackendType.local,
+          hybrid: { cloudProjectId: asset.id, parentId: localProject.parentId },
+        })
+      } catch (error) {
+        toastAndLog('openProjectError', error, asset.title)
+        closeProject({
+          id: asset.id,
+          title: asset.title,
+          parentId: asset.parentId,
+          type: backendModule.BackendType.local,
+        })
+      }
+    },
+  )
+}
+
+/** Return a hook to open a project natively - Cloud mode for cloud projects, Local mode for local projects. */
+export function useOpenProjectNatively() {
+  const openProject = useOpenProject()
+
+  return eventCallbacks.useEventCallback(
+    (
+      asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>,
+      backendType: backendModule.BackendType,
+    ) => {
+      openProject({ ...asset, type: backendType })
+    },
+  )
+}
+
+/** Return a hook to open a project locally - meaning Hybrid Mode is used for Cloud projects. */
+export function useOpenProjectLocally() {
+  const openProject = useOpenProject()
+  const enableHybridExecution = useFeatureFlag('enableHybridExecution')
+  const openHybridProject = useOpenHybridProject()
+
+  return eventCallbacks.useEventCallback(
+    async (
+      asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>,
+      backendType: backendModule.BackendType,
+    ) => {
+      const isCloud = backendType === backendModule.BackendType.remote
+      if (isCloud && enableHybridExecution) {
+        await openHybridProject(asset)
+        return
+      } else {
+        openProject({ ...asset, type: backendType })
+      }
+    },
+  )
 }
 
 /** A function to open the editor. */
