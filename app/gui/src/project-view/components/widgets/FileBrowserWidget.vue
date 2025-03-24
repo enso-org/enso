@@ -251,6 +251,14 @@ const renameAction: Action = {
   action: () => focusedDirectory.value && renameDirectory(focusedDirectory.value),
 }
 
+function overwriteConfirmed() {
+  console.log('overwriteConfirmed')
+}
+
+function overwriteCancelled() {
+  console.log('overwriteCancelled')
+}
+
 // === Initialization ===
 
 onMounted(() => {
@@ -264,6 +272,15 @@ onMounted(() => {
 
 <template>
   <div class="FileBrowserWidget">
+    <div class="confirmationModal">
+      <span class="confirmationText">{{
+        `File '${currentFilePath ?? ''}' already exists. Overwrite?`
+      }}</span>
+      <div class="confirmationButtons">
+        <SvgButton class="confirmationButton" label="No" @click.stop="overwriteCancelled" />
+        <SvgButton class="confirmationButton" label="Yes" @click.stop="overwriteConfirmed" />
+      </div>
+    </div>
     <div class="topBar">
       <div class="directoryStack">
         <SvgButton name="navigate_up" title="Up" :disabled="!canPop" @click.stop="popDirectory" />
@@ -363,6 +380,32 @@ onMounted(() => {
   flex-direction: column;
 }
 
+.confirmationModal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  border-radius: 0 0 var(--radius-default) var(--radius-default);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirmationText {
+  color: white;
+}
+
+.confirmationButtons {
+  display: flex;
+  width: 30%;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
 .topBar {
   color: white;
   background-color: var(--background-color);
@@ -448,6 +491,15 @@ onMounted(() => {
 }
 
 .fileNameAcceptButton {
+  --color-menu-entry-hover-bg: color-mix(in oklab, var(--color-frame-selected-bg), black 10%);
+  border-radius: var(--border-radius-inner);
+  height: calc(var(--border-radius-inner) * 2);
+  margin: 0px;
+  padding: 4px 12px;
+  background-color: var(--color-frame-selected-bg);
+}
+
+.confirmationButton {
   --color-menu-entry-hover-bg: color-mix(in oklab, var(--color-frame-selected-bg), black 10%);
   border-radius: var(--border-radius-inner);
   height: calc(var(--border-radius-inner) * 2);
