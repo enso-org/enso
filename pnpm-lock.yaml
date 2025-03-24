@@ -286,9 +286,6 @@ importers:
       magic-string:
         specifier: ^0.30.17
         version: 0.30.17
-      marked:
-        specifier: 14.1.3
-        version: 14.1.3
       modern-isomorphic-ws:
         specifier: ^1.0.5
         version: 1.0.5(@types/ws@8.5.13)(ws@8.18.0)
@@ -6090,11 +6087,6 @@ packages:
 
   map-or-similar@1.5.0:
     resolution: {integrity: sha512-0aF7ZmVon1igznGI4VS30yugpduQW3y3GkcgGJOp7d8x8QrizhigUxjI/m2UojsXXto+jLAH3KSz+xOJTiORjg==}
-
-  marked@14.1.3:
-    resolution: {integrity: sha512-ZibJqTULGlt9g5k4VMARAktMAjXoVnnr+Y3aCqW1oDftcV4BA3UmrBifzXoZyenHRk75csiPu9iwsTj4VNBT0g==}
-    engines: {node: '>= 18'}
-    hasBin: true
 
   matcher@3.0.0:
     resolution: {integrity: sha512-OkeDaAZ/bQCxeFAozM55PKcKU0yJMPGifLwV4Qgjitu+5MoAfSQN4lsLJeXZ1b8w0x+/Emda6MZgXS1jvsapng==}
@@ -14837,8 +14829,6 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.5.0
 
   map-or-similar@1.5.0: {}
-
-  marked@14.1.3: {}
 
   matcher@3.0.0:
     dependencies:

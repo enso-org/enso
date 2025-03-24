@@ -149,6 +149,10 @@ public class LoggingServiceConfig implements BaseConfig {
     return (SentryAppender) appenders.getOrDefault(SentryAppender.appenderName, null);
   }
 
+  public TelemetryAppender getTelemetryAppender() {
+    return (TelemetryAppender) appenders.getOrDefault(TelemetryAppender.appenderName, null);
+  }
+
   public boolean loggingServerNeedsBoot() {
     return server != null && server.start();
   }

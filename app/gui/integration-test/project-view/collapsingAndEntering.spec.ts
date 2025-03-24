@@ -28,6 +28,16 @@ test('Entering nodes', async ({ page }) => {
   await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1', 'func2'])
 })
 
+test('Entering component shows error when function cannot be found (#12533)', async ({ page }) => {
+  await actions.goToGraph(page)
+  await mockCollapsedFunctionInfo(page, 'final', 'no_such_func')
+  await expectInsideMain(page)
+  await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project'])
+  await locate.graphNodeByBinding(page, 'final').dblclick()
+  await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'no_such_func'])
+  await expect(page.locator('.GraphMissingView')).toExist()
+})
+
 test('Leaving entered nodes', async ({ page }) => {
   await actions.goToGraph(page)
   await enterToFunc2(page)
@@ -156,10 +166,19 @@ test('Input node', async ({ page }) => {
 
   const inputNode = locate.inputNode(page)
   await expect(inputNode).toHaveCount(1)
+
   // Input node with identifier should have the icon and an identifier.
   await expect(inputNode.locator('.WidgetIcon')).toHaveCount(1)
   await expect(inputNode.locator('.WidgetToken')).toContainText('a')
 
+  // Input node has output port
+  const outputPort = await locate.outputPortCoordinates(page, inputNode)
+  await page.mouse.click(outputPort.x + 20, outputPort.y)
+  await locate.graphEditor(page).click({ position: { x: 100, y: 500 } })
+  await expect(locate.componentBrowser(page)).toExist()
+  await page.keyboard.press('Escape')
+
+  // Input node cannot be deleted
   await inputNode.click()
   await page.keyboard.press('Delete')
   await expect(inputNode).toHaveCount(1)

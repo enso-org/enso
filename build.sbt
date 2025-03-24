@@ -335,6 +335,7 @@ lazy val enso = (project in file("."))
     `logging-config`,
     `logging-service`,
     `logging-service-logback`,
+    `logging-service-telemetry`,
     `logging-truffle-connector`,
     `logging-utils`,
     `logging-utils-akka`,
@@ -1132,6 +1133,33 @@ lazy val `logging-service-logback` = project
   .dependsOn(`logging-config`)
   .dependsOn(`logging-service`)
 
+lazy val `logging-service-telemetry` = project
+  .in(file("lib/java/logging-service-telemetry"))
+  .enablePlugins(JPMSPlugin)
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    scalaModuleDependencySetting,
+    mixedJavaScalaProjectSetting,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.slf4j"                              % "slf4j-api"               % slf4jVersion,
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros"   % jsoniterVersion,
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"     % jsoniterVersion,
+      "org.netbeans.api"                       % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+    ),
+    Compile / javaModuleName := "org.enso.logging.service.telemetry",
+    Compile / moduleDependencies ++= logbackPkg ++ Seq(
+      "org.slf4j"        % "slf4j-api"               % slf4jVersion,
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
+    ),
+    Compile / internalModuleDependencies ++= Seq(
+      (`scala-libs-wrapper` / Compile / exportedModule).value,
+      (`logging-service-logback` / Compile / exportedModule).value
+    )
+  )
+  .dependsOn(`logging-service-logback`)
+
 lazy val `logging-utils-akka` = project
   .in(file("lib/scala/logging-utils-akka"))
   .enablePlugins(JPMSPlugin)
@@ -1789,6 +1817,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(`logging-service`)
   .dependsOn(pkg)
   .dependsOn(`logging-service-logback` % Runtime)
+  .dependsOn(`logging-service-telemetry` % Runtime)
   .dependsOn(`json-rpc-server` % "compile->compile;test->test")
   .dependsOn(testkit % Test)
   .dependsOn(`runtime-version-manager` % "compile->compile;test->test")
@@ -2867,23 +2896,26 @@ lazy val `runtime-integration-tests` =
       annotationProcSetting,
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ Seq(
-        "org.graalvm.polyglot" % "polyglot"                     % graalMavenPackagesVersion % "provided",
-        "org.graalvm.sdk"      % "polyglot-tck"                 % graalMavenPackagesVersion % "provided",
-        "org.graalvm.truffle"  % "truffle-api"                  % graalMavenPackagesVersion % "provided",
-        "org.graalvm.truffle"  % "truffle-dsl-processor"        % graalMavenPackagesVersion % "provided",
-        "org.graalvm.truffle"  % "truffle-tck"                  % graalMavenPackagesVersion,
-        "org.graalvm.truffle"  % "truffle-tck-common"           % graalMavenPackagesVersion,
-        "org.graalvm.truffle"  % "truffle-tck-tests"            % graalMavenPackagesVersion,
-        "org.netbeans.api"     % "org-openide-util-lookup"      % netbeansApiVersion,
-        "org.netbeans.api"     % "org-netbeans-modules-sampler" % netbeansApiVersion,
-        "org.scalacheck"      %% "scalacheck"                   % scalacheckVersion         % Test,
-        "org.scalactic"       %% "scalactic"                    % scalacticVersion          % Test,
-        "org.scalatest"       %% "scalatest"                    % scalatestVersion          % Test,
-        "junit"                % "junit"                        % junitVersion              % Test,
-        "com.github.sbt"       % "junit-interface"              % junitIfVersion            % Test,
-        "org.hamcrest"         % "hamcrest-all"                 % hamcrestVersion           % Test,
-        "org.yaml"             % "snakeyaml"                    % snakeyamlVersion,
-        "org.slf4j"            % "slf4j-api"                    % slf4jVersion
+        "org.graalvm.polyglot"       % "polyglot"                     % graalMavenPackagesVersion % "provided",
+        "org.graalvm.sdk"            % "polyglot-tck"                 % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle"        % "truffle-api"                  % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle"        % "truffle-dsl-processor"        % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle"        % "truffle-tck"                  % graalMavenPackagesVersion,
+        "org.graalvm.truffle"        % "truffle-tck-common"           % graalMavenPackagesVersion,
+        "org.graalvm.truffle"        % "truffle-tck-tests"            % graalMavenPackagesVersion,
+        "org.netbeans.api"           % "org-openide-util-lookup"      % netbeansApiVersion,
+        "org.netbeans.api"           % "org-netbeans-modules-sampler" % netbeansApiVersion,
+        "org.scalacheck"            %% "scalacheck"                   % scalacheckVersion         % Test,
+        "org.scalactic"             %% "scalactic"                    % scalacticVersion          % Test,
+        "org.scalatest"             %% "scalatest"                    % scalatestVersion          % Test,
+        "junit"                      % "junit"                        % junitVersion              % Test,
+        "com.github.sbt"             % "junit-interface"              % junitIfVersion            % Test,
+        "org.hamcrest"               % "hamcrest-all"                 % hamcrestVersion           % Test,
+        "com.fasterxml.jackson.core" % "jackson-core"                 % jacksonVersion            % Test,
+        "com.fasterxml.jackson.core" % "jackson-annotations"          % jacksonVersion            % Test,
+        "com.fasterxml.jackson.core" % "jackson-databind"             % jacksonVersion            % Test,
+        "org.yaml"                   % "snakeyaml"                    % snakeyamlVersion,
+        "org.slf4j"                  % "slf4j-api"                    % slf4jVersion
       ),
       Test / fork := true,
       Test / parallelExecution := false,
@@ -3033,6 +3065,9 @@ lazy val `runtime-integration-tests` =
           ),
           (`runtime` / javaModuleName).value + "/org.enso.compiler.test" -> Seq(
             "ALL-UNNAMED"
+          ),
+          (`logging-service-telemetry` / Compile / javaModuleName).value + "/org.enso.logging.service.telemetry" -> Seq(
+            (`runtime` / javaModuleName).value
           )
         )
         // Make sure that all the packages in test source directory are exported
@@ -3047,6 +3082,7 @@ lazy val `runtime-integration-tests` =
     .dependsOn(`runtime`)
     .dependsOn(`runtime-test-instruments`)
     .dependsOn(`logging-service-logback` % "test->test")
+    .dependsOn(`logging-service-telemetry` % Test)
     .dependsOn(`logging-utils` % Test)
     .dependsOn(testkit % Test)
     .dependsOn(`connected-lock-manager-server`)

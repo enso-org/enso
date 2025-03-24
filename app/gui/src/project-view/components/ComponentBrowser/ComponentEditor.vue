@@ -51,14 +51,13 @@ const icon = computed(() => {
   return DEFAULT_ICON
 })
 
-const selfTypeName = computed(() => {
-  if (
-    props.mode.mode === 'componentBrowsing' &&
-    props.mode.filter.selfArg?.type === 'known' &&
-    props.mode.filter.selfArg.typename.path
-  ) {
-    return qnLastSegment(props.mode.filter.selfArg.typename.path)
+const label = computed(() => {
+  if (props.mode.mode !== 'componentBrowsing') return undefined
+  if (props.mode.filter.selfArg == null) return 'Input Components'
+  if (props.mode.filter.selfArg.type === 'known' && props.mode.filter.selfArg.typename.path) {
+    return `${qnLastSegment(props.mode.filter.selfArg.typename.path)} Components`
   }
+
   return undefined
 })
 
@@ -79,8 +78,8 @@ const rootStyle = computed(() => {
     <div :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }">
       <SvgIcon :name="icon" />
     </div>
-    <span class="selfArgInfo">{{ selfTypeName ?? 'Input' }} Components</span>
-    <SvgIcon class="selfArgInfoArrow" name="folder_closed" />
+    <span v-if="label" class="selfArgInfo" v-text="label" />
+    <SvgIcon v-if="label" class="selfArgInfoArrow" name="folder_closed" />
     <AutoSizedInput
       ref="inputField"
       v-model="fieldContent.text"

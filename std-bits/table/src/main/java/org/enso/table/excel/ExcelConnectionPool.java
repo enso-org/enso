@@ -23,11 +23,16 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.enso.base.cache.ReloadDetector;
 import org.enso.table.excel.xssfreader.XSSFReaderWorkbook;
 import org.enso.table.util.FunctionWithException;
+import org.slf4j.Logger;
 
-public class ExcelConnectionPool {
+public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
   public static final ExcelConnectionPool INSTANCE = new ExcelConnectionPool();
 
-  private ExcelConnectionPool() {}
+  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(ExcelConnectionPool.class);
+
+  private ExcelConnectionPool() {
+    ReloadDetector.register(this);
+  }
 
   public ReadOnlyExcelConnection openReadOnlyConnection(File file, ExcelFileFormat format)
       throws IOException, InterruptedException {
@@ -38,7 +43,7 @@ public class ExcelConnectionPool {
                 + "written to. This is a bug in the Table library.");
       }
 
-      clearOnReload();
+      ReloadDetector.clearOnReload(this);
 
       if (!file.exists()) {
         throw new FileNotFoundException(file.toString());
@@ -213,14 +218,15 @@ public class ExcelConnectionPool {
   private final HashMap<String, ConnectionRecord> records = new HashMap<>();
   private boolean isCurrentlyWriting = false;
 
-  /** Used to clear the ConnectionRecord on reload. */
-  private final ReloadDetector reloadDetector = new ReloadDetector();
-
   /** If a reload has just happened, clear the ConnectionRecord cache. */
-  private void clearOnReload() throws IOException {
-    if (reloadDetector.hasReloadOccurred()) {
+  public void clearCache() {
+    synchronized (this) {
       for (var record : records.values()) {
-        record.close();
+        try {
+          record.close();
+        } catch (IOException e) {
+          LOGGER.error("Unable to close " + record, e);
+        }
       }
       records.clear();
     }
@@ -230,13 +236,6 @@ public class ExcelConnectionPool {
   public int getConnectionRecordCount() {
     synchronized (this) {
       return records.size();
-    }
-  }
-
-  /** Public for testing. */
-  public void simulateReloadTestOnly() {
-    synchronized (this) {
-      reloadDetector.simulateReloadTestOnly();
     }
   }
 
@@ -296,6 +295,10 @@ public class ExcelConnectionPool {
 
         return workbook;
       }
+    }
+
+    public String toString() {
+      return "ConnectionRecord " + file;
     }
   }
 

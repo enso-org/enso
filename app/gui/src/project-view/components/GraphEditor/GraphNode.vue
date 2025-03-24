@@ -192,6 +192,7 @@ watchEffect(() => {
     pos.sub(nodePosition.value).x <
       CONTENT_PADDING + ICON_WIDTH + GRAB_HANDLE_X_MARGIN_L + GRAB_HANDLE_X_MARGIN_R
   const hovered =
+    nodeHovered.value ||
     menuHovered.value ||
     inZone(nodeHoverPos.value) ||
     (menuEnabledByHover.value && inZone(selectionHoverPos.value))

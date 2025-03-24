@@ -19,7 +19,6 @@ import * as modalProvider from '#/providers/ModalProvider'
 import ProjectsProvider, {
   useClearLaunchedProjects,
   usePage,
-  useProjectsStore,
   useSetPage,
   type TabType,
 } from '#/providers/ProjectsProvider'
@@ -92,8 +91,6 @@ function fileURLToPath(url: string): string | null {
 function DashboardInner(props: DashboardProps) {
   const { initialProjectName: initialProjectNameRaw, ydocUrl } = props
   const localBackend = backendProvider.useLocalBackend()
-  const { modalRef } = modalProvider.useModalRef()
-  const { updateModal, unsetModal } = modalProvider.useSetModal()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
 
@@ -108,7 +105,6 @@ function DashboardInner(props: DashboardProps) {
   useRefetchDirectories(backendModule.BackendType.local)
   useRefetchDirectories(backendModule.BackendType.remote)
 
-  const projectsStore = useProjectsStore()
   const page = usePage()
 
   const setPage = useSetPage()
@@ -164,28 +160,6 @@ function DashboardInner(props: DashboardProps) {
     }
   }, [openEditor, openProject, categoriesAPI])
 
-  React.useEffect(
-    () =>
-      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-        closeModal: () => {
-          updateModal((oldModal) => {
-            if (oldModal == null) {
-              const currentPage = projectsStore.getState().page
-              if (currentPage === 'settings') {
-                setPage('drive')
-              }
-            }
-            return null
-          })
-
-          if (modalRef.current == null) {
-            return false
-          }
-        },
-      }),
-    [inputBindings, modalRef, updateModal, setPage, projectsStore],
-  )
-
   React.useEffect(() => {
     if (detect.isOnElectron()) {
       // We want to handle the back and forward buttons in electron the same way as in the browser.
@@ -199,6 +173,16 @@ function DashboardInner(props: DashboardProps) {
       })
     }
   }, [inputBindings])
+
+  React.useEffect(
+    () =>
+      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+        closeModal: () => {
+          modalProvider.unsetModal()
+        },
+      }),
+    [inputBindings],
+  )
 
   const onSignOut = eventCallbacks.useEventCallback(() => {
     setPage('drive')
@@ -216,7 +200,7 @@ function DashboardInner(props: DashboardProps) {
         className="flex min-h-full flex-col text-xs text-primary"
         onContextMenu={(event) => {
           event.preventDefault()
-          unsetModal()
+          modalProvider.unsetModal()
         }}
       >
         <aria.Tabs

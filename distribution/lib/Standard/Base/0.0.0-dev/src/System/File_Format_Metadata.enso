@@ -47,10 +47,11 @@ type File_Format_Metadata
        Uses the provided extension or if it is not present, tries to guess one
        based on the filename.
     guess_extension : Text | Nothing
-    guess_extension self = self.extension.if_nothing <|
-        self.name.if_not_nothing <|
+    guess_extension self =
+        guessed = self.extension.if_nothing <| self.name.if_not_nothing <|
             guessed = find_extension_from_name self.name
             if guessed == "" then Nothing else guessed
+        if guessed.is_nothing then Nothing else guessed.to_case ..Lower
 
     ## PRIVATE
     to_display_text self -> Text =

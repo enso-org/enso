@@ -2,7 +2,6 @@ private
 
 from Standard.Base import all
 
-
 type Spec
     Impl (name : Text) (code : Any -> Any) (pending : (Nothing | Text))
 

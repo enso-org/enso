@@ -107,8 +107,8 @@ test('move to trash', ({ page }) =>
       const folder1 = rows.filter({ hasText: /New Folder 1/ })
       const folder2 = rows.filter({ hasText: /New Folder 2/ })
 
-      expect(folder1).toBeVisible()
-      expect(folder2).toBeVisible()
+      await expect(folder1).toBeVisible()
+      await expect(folder2).toBeVisible()
     }))
 
 test('move (keyboard)', ({ page }) =>
@@ -159,8 +159,8 @@ test('duplicate', ({ page }) =>
       const project1 = rows.filter({ hasText: /New Project 1/, hasNotText: /\(copy\)/ })
       const project1Copy = rows.filter({ hasText: /New Project 1 \(copy\)/ })
 
-      expect(project1).toBeVisible()
-      expect(project1Copy).toBeVisible()
+      await expect(project1).toBeVisible()
+      await expect(project1Copy).toBeVisible()
     }))
 
 test('duplicate (keyboard)', ({ page }) =>
@@ -177,6 +177,6 @@ test('duplicate (keyboard)', ({ page }) =>
       const project1 = rows.filter({ hasText: /New Project 1/, hasNotText: /\(copy\)/ })
       const project1Copy = rows.filter({ hasText: /New Project 1 \(copy\)/ })
 
-      expect(project1).toBeVisible()
-      expect(project1Copy).toBeVisible()
+      await expect(project1).toBeVisible()
+      await expect(project1Copy).toBeVisible()
     }))

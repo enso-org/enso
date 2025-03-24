@@ -1347,7 +1347,6 @@ Text.trim self where:Location=..Both what=_.is_whitespace =
          match_2.length == 2
          # After being extended to full grapheme clusters, both terms "IFF" and "ffiffl" match the same span of grapheme clusters.
          match_1 == match_2
-
 Text.locate : Text -> Matching_Mode -> Case_Sensitivity -> Span | Nothing
 Text.locate self term:Text="" mode=Matching_Mode.First case_sensitivity:Case_Sensitivity=..Sensitive = case case_sensitivity of
     Case_Sensitivity.Default -> self.locate term mode Case_Sensitivity.Sensitive
@@ -1961,7 +1960,6 @@ Text.to_decimal self (scale : Integer | Nothing = Nothing) -> Decimal =
          "Hello World!".substring 5 Nothing == " World!"
          "Hello World!".substring 5 7 == " World!"
          "Hello World!".substring -7 3 == " Wo"
-
 Text.substring : Integer -> Integer -> Range ! Index_Out_Of_Bounds
 Text.substring self start:Integer length:Integer=self.length =
     if length < 0 then Error.throw (Illegal_Argument.Error "length must be greater than or equal to 0") else

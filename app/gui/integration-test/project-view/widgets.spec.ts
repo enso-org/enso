@@ -636,3 +636,17 @@ test('Table widget', async ({ page }) => {
   await page.keyboard.press('Escape')
   await expect(widget.locator('.ag-text-field-input')).toHaveCount(0)
 })
+
+test('Text widget can be refocused after focus is lost in an unexpected way (#12571)', async ({
+  page,
+}) => {
+  await actions.goToGraph(page)
+  const textNode = locate.graphNodeByBinding(page, 'text')
+  const textInput = textNode.locator('.WidgetText input')
+  await textInput.click()
+  await expect(textInput).toBeFocused()
+  await page.evaluate(() => (document.activeElement! as HTMLElement).blur())
+  await expect(textInput).not.toBeFocused()
+  await textInput.click()
+  await expect(textInput).toBeFocused()
+})
