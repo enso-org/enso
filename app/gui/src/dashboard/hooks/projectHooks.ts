@@ -45,8 +45,7 @@ export interface CreateOpenedProjectQueryOptions {
 
 /** Whether the user can open projects. */
 export function useCanOpenProjects() {
-  const enableCloudExecution = useFeatureFlag('enableCloudExecution')
-  return enableCloudExecution
+  return useFeatureFlag('enableCloudExecution')
 }
 
 /** Return a function to update a project asset in the TanStack Query cache. */
@@ -393,7 +392,7 @@ function useOpenProject() {
 
       const openingProjectMutation = client.getMutationCache().find({
         mutationKey: ['openProject'],
-        // this is unsafe, but we can't do anything about it
+        // This is unsafe, but we can't do anything about it.
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         predicate: (mutation) => mutation.state.variables?.id === project.id,
       })
@@ -452,12 +451,7 @@ export function useOpenProjectNatively() {
       asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>,
       backendType: backendModule.BackendType,
     ) => {
-      openProject({
-        id: asset.id,
-        title: asset.title,
-        parentId: asset.parentId,
-        type: backendType,
-      })
+      openProject({ ...asset, type: backendType })
     },
   )
 }
@@ -478,12 +472,7 @@ export function useOpenProjectLocally() {
         await openHybridProject(asset)
         return
       } else {
-        openProject({
-          id: asset.id,
-          title: asset.title,
-          parentId: asset.parentId,
-          type: backendType,
-        })
+        openProject({ ...asset, type: backendType })
       }
     },
   )
