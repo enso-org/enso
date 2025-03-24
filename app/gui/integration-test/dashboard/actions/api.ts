@@ -349,6 +349,46 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     rest: Partial<backend.UserGroupPermission> = {},
   ): backend.UserGroupPermission => object.merge({ userGroup, permission }, rest)
 
+  const createAsset = <T extends backend.AnyAsset>(
+    rest: Pick<T, 'id' | 'type'> & Partial<T>,
+  ): T => {
+    const asset: T = {
+      ...rest,
+      projectState: null,
+      extension: null,
+      title: rest.title ?? '',
+      modifiedAt: newDate(),
+      description: rest.description ?? '',
+      labels: [],
+      parentId: defaultDirectoryId,
+      permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
+      parentsPath: backend.ParentsPath(''),
+      virtualParentsPath: backend.VirtualParentsPath(''),
+    }
+
+    Object.defineProperty(asset, 'toJSON', {
+      value: function toJSON() {
+        const { parentsPath: _, virtualParentsPath: __, ...rest } = this
+
+        return {
+          ...rest,
+          parentsPath: this.parentsPath,
+          virtualParentsPath: this.virtualParentsPath,
+        }
+      },
+    })
+
+    Object.defineProperty(asset, 'parentsPath', {
+      get: () => getParentPath(asset.parentId),
+    })
+
+    Object.defineProperty(asset, 'virtualParentsPath', {
+      get: () => getVirtualParentPath(asset.parentId, asset.title),
+    })
+
+    return asset
+  }
+
   const createDirectory = (rest: Partial<backend.DirectoryAsset> = {}): backend.DirectoryAsset => {
     const parentId = rest.parentId ?? defaultDirectoryId
 
