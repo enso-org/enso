@@ -1,6 +1,8 @@
 package org.enso.interpreter.instrument.job
 
-import com.oracle.truffle.api.TruffleLogger
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+
 import org.enso.common.{CachePreferences, CompilationStage}
 import org.enso.compiler.{data, CompilerResult}
 import org.enso.compiler.context._
@@ -65,7 +67,7 @@ class EnsureCompiledJob(
         val compilationResult =
           ensureCompiledFiles(files)(
             ctx,
-            ctx.executionService.getLogger
+            logger
           )
         setCacheWeights()
         compilationResult
@@ -81,7 +83,7 @@ class EnsureCompiledJob(
     */
   private def ensureCompiledFiles(
     files: Iterable[File]
-  )(implicit ctx: RuntimeContext, logger: TruffleLogger): CompilationStatus = {
+  )(implicit ctx: RuntimeContext, logger: Logger): CompilationStatus = {
     val modules = files.flatMap { file =>
       ctx.executionService.getContext.getModuleForFile(file).toScala
     }
@@ -103,12 +105,11 @@ class EnsureCompiledJob(
     module: Module
   )(implicit
     ctx: RuntimeContext,
-    logger: TruffleLogger
+    logger: Logger
   ): Option[CompilationStatus] = {
     compile(module) match {
       case Left(ex) =>
-        logger.log(
-          Level.WARNING,
+        logger.warn(
           s"Error while ensureCompiledModule ${module.getName}",
           ex
         )
@@ -138,8 +139,7 @@ class EnsureCompiledJob(
         }
         .fold(
           err => {
-            logger.log(
-              Level.WARNING,
+            logger.warn(
               s"Error while ensureCompiledModule ${module.getName}",
               err
             )
@@ -330,7 +330,7 @@ class EnsureCompiledJob(
     file: File
   )(implicit
     ctx: RuntimeContext,
-    logger: TruffleLogger
+    logger: Logger
   ): Option[Changeset[Rope]] = {
     ctx.locking.withFileLock(
       file,
@@ -341,16 +341,14 @@ class EnsureCompiledJob(
           () => {
             val pendingEdits = ctx.state.pendingEdits.dequeue(file)
             val idMap        = ctx.state.pendingEdits.removeIdMap(file)
-            ctx.executionService.getLogger
-              .log(
-                Level.FINEST,
-                s"Applying pending file [{0}] edits [{1}] idMap [{2}]",
-                Array[Any](
-                  MaskedPath(file.toPath),
-                  pendingEdits.length,
-                  idMap.map(_.values.length)
-                )
+            logger.trace(
+              "Applying pending file [{}] edits [{}] idMap [{}]",
+              Array[Any](
+                MaskedPath(file.toPath),
+                pendingEdits.length,
+                idMap.map(_.values.length)
               )
+            )
             val edits = pendingEdits.map(_.edit)
             val shouldExecute =
               pendingEdits.isEmpty || pendingEdits.exists(_.execute)
@@ -632,6 +630,8 @@ class EnsureCompiledJob(
 }
 
 object EnsureCompiledJob {
+  private lazy val logger: Logger =
+    LoggerFactory.getLogger(classOf[EnsureCompiledJob])
 
   /** The outcome of a compilation. */
   sealed trait CompilationStatus

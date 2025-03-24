@@ -1,16 +1,17 @@
 package org.enso.interpreter.instrument.execution
 
-import com.oracle.truffle.api.TruffleLogger
 import org.enso.common.Asserts.assertInJvm
 import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.job.{BackgroundJob, Job, UniqueJob}
 import org.enso.text.Sha3_224VersionCalculator
 
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+
 import java.util
 import java.util.{Collections, UUID}
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.{CancellationException, ExecutorService, TimeUnit}
-import java.util.logging.Level
 import scala.concurrent.{Future, Promise, TimeoutException}
 import scala.util.control.NonFatal
 
@@ -78,8 +79,8 @@ final class JobExecutionEngine(
       versionCalculator = Sha3_224VersionCalculator
     )
 
-  private lazy val logger: TruffleLogger =
-    runtimeContext.executionService.getLogger
+  private lazy val logger: Logger =
+    LoggerFactory.getLogger(classOf[JobExecutionEngine])
 
   // Independent Runnable that has a list of jobs that should finish within a pre-determined window
   // and, if not, are interrupted.
@@ -96,8 +97,7 @@ final class JobExecutionEngine(
             assertInJvm(timeSinceRequestedToCancel > 0)
             val timeToCancel =
               forceInterruptTimeout - timeSinceRequestedToCancel
-            logger.log(
-              Level.FINEST,
+            logger.trace(
               "About to wait {}ms  to cancel job {}",
               Array[Any](
                 timeToCancel,
@@ -105,9 +105,9 @@ final class JobExecutionEngine(
               )
             )
             runningJob.future.get(timeToCancel, TimeUnit.MILLISECONDS)
-            logger.log(
-              Level.FINEST,
-              "Job {} finished within the allocated soft-cancel time"
+            logger.trace(
+              "Job {} finished within the allocated soft-cancel time",
+              runningJob.id
             )
           } catch {
             case _: TimeoutException =>
@@ -129,17 +129,15 @@ final class JobExecutionEngine(
                     .append(")\n")
                 }
               }
-              logger.log(Level.WARNING, sb.toString())
+              logger.warn(sb.toString())
               runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
             case _: CancellationException =>
-              logger.log(
-                Level.FINE,
+              logger.debug(
                 "Job `{}` was cancelled by an external task",
                 runningJob.id
               )
             case e: Throwable =>
-              logger.log(
-                Level.WARNING,
+              logger.warn(
                 "Encountered exception while waiting on status of pending jobs",
                 e
               )
@@ -201,8 +199,7 @@ final class JobExecutionEngine(
         allJobs.foreach { runningJob =>
           runningJob.job match {
             case jobRef: UniqueJob[_] if jobRef.equalsTo(job) =>
-              logger
-                .log(Level.FINEST, s"Cancelling duplicate job [$jobRef].")
+              logger.trace("Cancelling duplicate job [{}].", jobRef)
               updatePendingCancellations(
                 maybeForceCancelRunningJob(
                   runningJob,
@@ -221,9 +218,8 @@ final class JobExecutionEngine(
   ): Unit = {
     val at = System.currentTimeMillis()
     if (jobsToCancel.nonEmpty) {
-      logger.log(
-        Level.FINEST,
-        "Submitting {0} job(s) for future cancellation",
+      logger.trace(
+        "Submitting {} job(s) for future cancellation",
         jobsToCancel.map(j => (j.job.getClass, j.id))
       )
     }
@@ -240,37 +236,34 @@ final class JobExecutionEngine(
   ): Future[A] = {
     val jobId   = UUID.randomUUID()
     val promise = Promise[A]()
-    logger.log(
-      Level.FINE,
-      s"Submitting job: {0} with {1} id...",
+    logger.debug(
+      s"Submitting job: {} with {} id...",
       Array[AnyRef](job, jobId)
     )
     val future = executorService.submit(() => {
-      logger.log(Level.FINE, s"Executing job: {0}...", job)
+      logger.debug("Executing job: {}...", job)
       val before = System.currentTimeMillis()
       try {
         val result = job.run(runtimeContext)
         val took   = System.currentTimeMillis() - before
-        logger.log(
-          Level.FINE,
-          s"Job {0} finished in {1} ms.",
+        logger.debug(
+          "Job {} finished in {} ms.",
           Array[Any](job, took)
         )
         promise.success(result)
       } catch {
         case NonFatal(ex) =>
-          logger.log(Level.SEVERE, s"Error executing $job", ex)
+          logger.error(s"Error executing $job", ex)
           promise.failure(ex)
         case _: InterruptedException =>
-          logger.log(Level.WARNING, s"$job got interrupted")
+          logger.warn("{} got interrupted", job)
         case err: Throwable =>
-          logger.log(Level.SEVERE, s"Error executing $job", err)
+          logger.error(s"Error executing $job", err)
           throw err
       } finally {
         val remaining = runningJobsRef.updateAndGet(_.filterNot(_.id == jobId))
-        logger.log(
-          Level.FINEST,
-          "Number of remaining pending jobs: {0}",
+        logger.trace(
+          "Number of remaining pending jobs: {}",
           remaining.size
         )
       }
@@ -279,7 +272,7 @@ final class JobExecutionEngine(
     val runningJob = RunningJob(jobId, job, future)
 
     val queue = runningJobsRef.updateAndGet(_ :+ runningJob)
-    logger.log(Level.FINE, "Number of pending jobs: {0}", queue.size)
+    logger.debug("Number of pending jobs: {}", queue.size)
 
     promise.future
   }
@@ -299,9 +292,8 @@ final class JobExecutionEngine(
         runningJob.job.isCancellable &&
         !ignoredJobs.contains(runningJob.job.getClass)
       }
-    logger.log(
-      Level.FINE,
-      "Aborting {0} jobs because {1}: {2}",
+    logger.debug(
+      "Aborting {} jobs because {}: {}",
       Array[Any](cancellableJobs.length, reason, cancellableJobs.map(_.id))
     )
 
@@ -328,9 +320,8 @@ final class JobExecutionEngine(
           runningJob.job.isCancellable && (toAbort.isEmpty || toAbort
             .contains(runningJob.getClass))
         ) {
-          logger.log(
-            Level.FINE,
-            "Aborting job {0} because {1}",
+          logger.debug(
+            "Aborting job {} because {}",
             Array[Any](runningJob.id, reason)
           )
           Some(runningJob)
@@ -353,9 +344,8 @@ final class JobExecutionEngine(
     val pending = contextJobs
       .flatMap { runningJob =>
         if (runningJob.job.isCancellable && accept.apply(runningJob.job)) {
-          logger.log(
-            Level.FINE,
-            "Aborting job {0} because {1}",
+          logger.debug(
+            "Aborting job {} because {}",
             Array[Any](runningJob.id, reason)
           )
           Some(runningJob)
@@ -378,9 +368,8 @@ final class JobExecutionEngine(
         runningJob.job.isCancellable &&
         toAbort.contains(runningJob.job.getClass)
       }
-    logger.log(
-      Level.FINE,
-      "Aborting {0} background jobs because {1}: {2}",
+    logger.debug(
+      "Aborting {} background jobs because {}: {}",
       Array[Any](cancellableJobs.length, reason, cancellableJobs.map(_.id))
     )
     val pending = cancellableJobs.flatMap(
@@ -423,9 +412,8 @@ final class JobExecutionEngine(
       delayedBackgroundJobsQueue,
       BackgroundJob.BACKGROUND_JOBS_QUEUE_ORDER
     )
-    runtimeContext.executionService.getLogger.log(
-      Level.FINE,
-      "Submitting {0} background jobs [{1}]",
+    logger.debug(
+      "Submitting {} background jobs [{}]",
       Array[AnyRef](
         delayedBackgroundJobsQueue.size(): Integer,
         delayedBackgroundJobsQueue

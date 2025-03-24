@@ -28,7 +28,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
-import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.compiler.suggestions.SimpleUpdate;
@@ -488,7 +487,7 @@ public final class ExecutionService {
       Module module,
       scala.collection.immutable.Seq<model.TextEdit> edits,
       SimpleUpdate simpleUpdate,
-      TruffleLogger logger) {
+      org.slf4j.Logger logger) {
     try {
       module.getSource();
     } catch (IOException e) {
@@ -503,9 +502,8 @@ public final class ExecutionService {
                     module.getName(), edits, failure, module.getLiteralSource());
               },
               rope -> {
-                logger.log(
-                    Level.FINE,
-                    "Applied edits. Source has {0} lines, last line has {1} characters.",
+                logger.trace(
+                    "Applied edits. Source has {} lines, last line has {} characters.",
                     new Object[] {
                       rope.lines().length(),
                       rope.lines().drop(rope.lines().length() - 1).characters().length()
