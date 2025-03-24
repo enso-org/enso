@@ -1373,6 +1373,71 @@ public class Main {
     }
   }
 
+  private void launchJvm(
+      CommandLine line, Map<String, String> props, File component, String javaPath)
+      throws IOException, InterruptedException {
+    var commandAndArgs = new ArrayList<String>();
+    commandAndArgs.add(javaPath);
+    var jvmOptions = System.getenv("JAVA_OPTS");
+    if (jvmOptions != null) {
+      for (var op : jvmOptions.split(" ")) {
+        if (op.isEmpty()) {
+          continue;
+        }
+        commandAndArgs.add(op);
+      }
+    }
+    var assertsOn = false;
+    assert assertsOn = true;
+    if (assertsOn) {
+      commandAndArgs.add("-ea");
+    }
+    if (props != null) {
+      for (var e : props.entrySet()) {
+        commandAndArgs.add("-D" + e.getKey() + "=" + e.getValue());
+      }
+    }
+    commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
+    commandAndArgs.add("--module-path");
+    if (!component.isDirectory()) {
+      throw new IOException("Cannot find " + component + " directory");
+    }
+    commandAndArgs.add(component.getPath());
+    commandAndArgs.add("-m");
+    commandAndArgs.add("org.enso.runner/org.enso.runner.Main");
+    var it = line.iterator();
+    while (it.hasNext()) {
+      var op = it.next();
+      if (JVM_OPTION.equals(op.getLongOpt())) {
+        continue;
+      }
+      if (SYSTEM_PROPERTY.equals(op.getLongOpt())) {
+        continue;
+      }
+      var longName = op.getLongOpt();
+      if (longName != null) {
+        commandAndArgs.add("--" + longName);
+      } else {
+        commandAndArgs.add("-" + op.getOpt());
+      }
+      var values = op.getValuesList();
+      if (values != null) {
+        commandAndArgs.addAll(values);
+      }
+    }
+    commandAndArgs.addAll(line.getArgList());
+    var pb = new ProcessBuilder();
+    pb.inheritIO();
+    pb.command(commandAndArgs);
+    var p = pb.start();
+    var exitCode = p.waitFor();
+    if (exitCode == 0) {
+      throw exitSuccess();
+    } else {
+      throw doExit(exitCode);
+    }
+  }
+
   private void launch(String[] args) throws IOException, InterruptedException, URISyntaxException {
     var line = preprocessArguments(args);
 
@@ -1387,7 +1452,8 @@ public class Main {
     }
     assert checkOutdatedLauncher(new File(loc.toURI()), component) || true;
     var hasJVMOption = line.hasOption(JVM_OPTION);
-    if (hasJVMOption || isJvmModeEnabled(line)) {
+    var jvmInProjectEnforced = isJvmModeEnabled(line);
+    if (hasJVMOption || jvmInProjectEnforced) {
       var jvm = line.getOptionValue(JVM_OPTION);
       var current = System.getProperty("java.home");
       if (jvm == null) {
@@ -1399,73 +1465,20 @@ public class Main {
           stderr(JVM_OPTION + " option has no effect - already running in JVM " + current);
         }
       } else {
-        var commandAndArgs = new ArrayList<String>();
         if (jvm == null) {
           var javaExe = JavaFinder.findJavaExecutable();
           if (javaExe == null) {
-            throw exitFail("Cannot find java executable");
-          }
-          commandAndArgs.add(javaExe);
-        } else {
-          commandAndArgs.add(new File(new File(new File(jvm), "bin"), "java").getAbsolutePath());
-        }
-        var jvmOptions = System.getenv("JAVA_OPTS");
-        if (jvmOptions != null) {
-          for (var op : jvmOptions.split(" ")) {
-            if (op.isEmpty()) {
-              continue;
-            }
-            commandAndArgs.add(op);
-          }
-        }
-        var assertsOn = false;
-        assert assertsOn = true;
-        if (assertsOn) {
-          commandAndArgs.add("-ea");
-        }
-        if (props != null) {
-          for (var e : props.entrySet()) {
-            commandAndArgs.add("-D" + e.getKey() + "=" + e.getValue());
-          }
-        }
-        commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
-        commandAndArgs.add("--module-path");
-        if (!component.isDirectory()) {
-          throw new IOException("Cannot find " + component + " directory");
-        }
-        commandAndArgs.add(component.getPath());
-        commandAndArgs.add("-m");
-        commandAndArgs.add("org.enso.runner/org.enso.runner.Main");
-        var it = line.iterator();
-        while (it.hasNext()) {
-          var op = it.next();
-          if (JVM_OPTION.equals(op.getLongOpt())) {
-            continue;
-          }
-          if (SYSTEM_PROPERTY.equals(op.getLongOpt())) {
-            continue;
-          }
-          var longName = op.getLongOpt();
-          if (longName != null) {
-            commandAndArgs.add("--" + longName);
+            // Try your best if `jvm` mode enabled in a project
+            if (!jvmInProjectEnforced) throw exitFail("Cannot find java executable");
           } else {
-            commandAndArgs.add("-" + op.getOpt());
+            launchJvm(line, props, component, javaExe);
           }
-          var values = op.getValuesList();
-          if (values != null) {
-            commandAndArgs.addAll(values);
-          }
-        }
-        commandAndArgs.addAll(line.getArgList());
-        var pb = new ProcessBuilder();
-        pb.inheritIO();
-        pb.command(commandAndArgs);
-        var p = pb.start();
-        var exitCode = p.waitFor();
-        if (exitCode == 0) {
-          throw exitSuccess();
         } else {
-          throw doExit(exitCode);
+          launchJvm(
+              line,
+              props,
+              component,
+              new File(new File(new File(jvm), "bin"), "java").getAbsolutePath());
         }
       }
     }
