@@ -1,84 +1,13 @@
-<script lang="ts">
+<script setup lang="ts">
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import { useResizeObserver } from '@/composables/events'
-import { createContextStore } from '@/providers'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
+import { injectResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import { WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
-import { BoundsSet, Rect } from '@/util/data/rect'
+import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { computed, ref, Ref, toValue, watch, WatchSource } from 'vue'
-import { NODE_CONTENT_PADDING } from './GraphNode.vue'
+import { computed, ref, watch } from 'vue'
 
-const [provideResizableWidgetRegistry, injectResizableWidgetRegistry] = createContextStore(
-  'ResizableWidgets',
-  (nodeWidth: Ref<number | null>, widgetTreeWidth: WatchSource<number>) => {
-    const registeredResizables = new Map<string, [Ref<Rect>, Ref<Vec2>]>()
-    const resizablesCount = ref(0)
-
-    function register(metadataKey: string, rect: Ref<Rect>, domSize: Ref<Vec2>) {
-      registeredResizables.set(metadataKey, [rect, domSize])
-      resizablesCount.value = registeredResizables.size
-    }
-
-    function unregister(metadataKey: string) {
-      registeredResizables.delete(metadataKey)
-      resizablesCount.value = registeredResizables.size
-    }
-
-    function adjustToNodeWidth(nodeWidth: number) {
-      if (resizablesCount.value === 1) {
-        const change = nodeWidth - NODE_CONTENT_PADDING * 2 - toValue(widgetTreeWidth)
-        const widgetBounds = registeredResizables.values().next().value
-        if (widgetBounds != null) {
-          const [bounds, domSize] = widgetBounds
-          bounds.value = new Rect(
-            Vec2.Zero,
-            new Vec2(domSize.value.x + change, bounds.value.height),
-          )
-        }
-      }
-    }
-
-    watch(
-      [nodeWidth, resizablesCount, widgetTreeWidth],
-      ([nodeWidth]) => {
-        if (nodeWidth) {
-          adjustToNodeWidth(nodeWidth)
-        }
-      },
-      { flush: 'post' },
-    )
-
-    let initialNodeWidthOnWidgetDrag: number | null = null
-
-    return {
-      register,
-      unregister,
-      visResizeHandleEvents: {
-        'update:modelValue': (newRect: Rect) => {
-          adjustToNodeWidth(newRect.width)
-        },
-      },
-      widgetResizeHandleEvents: {
-        'update:resizing': (bounds: BoundsSet) => {
-          if (bounds.left || bounds.right) {
-            initialNodeWidthOnWidgetDrag = nodeWidth.value
-          }
-        },
-        'update:modelValue': (_: Rect, delta: Vec2) => {
-          if (resizablesCount.value === 1 && initialNodeWidthOnWidgetDrag != null) {
-            nodeWidth.value = initialNodeWidthOnWidgetDrag + delta.x
-          }
-        },
-      },
-    }
-  },
-)
-
-export { provideResizableWidgetRegistry, injectResizableWidgetRegistry }
-</script>
-
-<script setup lang="ts">
 const props = defineProps<{
   input: WidgetInput
   metadataKey: string
@@ -138,6 +67,11 @@ watch(
 <template>
   <div ref="htmlRoot" :style="widgetStyle">
     <slot />
-    <ResizeHandles v-model="clientBounds" bottom right v-on="registry?.widgetResizeHandleEvents" />
+    <ResizeHandles
+      v-model="clientBounds"
+      bottom
+      right
+      v-on="registry?.widgetResizeHandleEventHandlers"
+    />
   </div>
 </template>

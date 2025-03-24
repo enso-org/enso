@@ -53,11 +53,11 @@ function handleWidgetUpdates(update: WidgetUpdate) {
   if (update.directInteraction) {
     selectNode()
   }
-  const edit = update.edit ?? graph.startEdit()
   if (update.portUpdate) {
     const { origin } = update.portUpdate
     if (Ast.isAstId(origin)) {
       if ('value' in update.portUpdate) {
+        const edit = update.edit ?? graph.startEdit()
         const value = update.portUpdate.value
         const ast =
           value instanceof Ast.Ast ? value
@@ -68,18 +68,22 @@ function handleWidgetUpdates(update: WidgetUpdate) {
         } else if (typeof value === 'string') {
           edit.tryGet(origin)?.syncToCode(value)
         }
+        graph.commitEdit(edit)
       }
       if ('metadata' in update.portUpdate) {
         const { metadataKey, metadata } = update.portUpdate
-        edit.tryGet(origin)?.setWidgetMetadata(metadataKey, metadata)
-        graph.commitEdit(edit, true)
+        if (update.edit) {
+          update.edit.tryGet(origin)?.setWidgetMetadata(metadataKey, metadata)
+          graph.commitEdit(update.edit, true)
+        } else {
+          graph.setWidgetMetadata(origin, metadataKey, metadata)
+        }
         return true
       }
     } else {
       console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
     }
   }
-  graph.commitEdit(edit)
   // This handler is guaranteed to be the last handler in the chain.
   return true
 }

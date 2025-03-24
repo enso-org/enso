@@ -7,6 +7,7 @@ import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { focusIsIn, useEvent, useResizeObserver } from '@/composables/events'
+import { injectResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import type { Opt } from '@/util/data/opt'
 import { type BoundsSet, Rect } from '@/util/data/rect'
@@ -195,13 +196,12 @@ const visParams = computed(() => {
   }
 })
 
-const { visResizeHandleEvents } = injectResizableWidgetRegistry()
+const { visResizeHandleEventHandlers } = injectResizableWidgetRegistry()
 </script>
 
 <script lang="ts">
 import VisualizationHost from '@/components/visualizations/VisualizationHost.vue'
 import { defineCustomElement } from 'vue'
-import { injectResizableWidgetRegistry } from './ResizableWidget.vue'
 
 // ==========================
 // === Visualization Host ===
@@ -270,7 +270,7 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
       left
       right
       bottom
-      v-on="visResizeHandleEvents"
+      v-on="visResizeHandleEventHandlers"
       @update:resizing="resizing = $event"
     />
   </div>

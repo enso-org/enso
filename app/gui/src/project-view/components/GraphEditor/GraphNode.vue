@@ -33,6 +33,7 @@ import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectKeyboard } from '@/providers/keyboard'
+import { provideResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
@@ -46,7 +47,6 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { ComponentInstance, computed, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
 import type { ExternalId, VisualizationIdentifier } from 'ydoc-shared/yjsModel'
-import { provideResizableWidgetRegistry } from './ResizableWidget.vue'
 
 const contentNodeStyle = {
   padding: CONTENT_PADDING_PX,
