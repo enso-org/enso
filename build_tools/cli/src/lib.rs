@@ -370,7 +370,7 @@ impl Processor {
                         Tests::StandardLibraryInNative => {
                             config.add_standard_library_test_selection(
                                 StandardLibraryTestsSelection::All,
-                            )
+                            );
                             config.build_native_runner = true;
                         },
                         Tests::StdSnowflake => {
@@ -378,7 +378,7 @@ impl Processor {
                                 StandardLibraryTestsSelection::Selected(vec![
                                     "Snowflake_Tests".to_string()
                                 ]),
-                            )
+                            );
                             config.build_native_runner = true;
                         },
                         Tests::StdCloudRelated => {
@@ -393,7 +393,7 @@ impl Processor {
                                     // datalinks
                                     "Image_Tests".to_string(),
                                 ]),
-                            )
+                            );
                             config.build_native_runner = true;
                         }
                     }
