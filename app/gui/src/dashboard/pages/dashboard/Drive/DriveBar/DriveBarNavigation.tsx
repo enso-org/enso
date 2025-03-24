@@ -198,17 +198,13 @@ export function DriveBarNavigation() {
   }
 }
 
-/**
- * Props for {@link DriveBarBreadcrumbsItem}.
- */
+/** Props for {@link DriveBarBreadcrumbsItem}. */
 interface DriveBarBreadcrumbsItemProps<IconType extends string>
   extends BreadcrumbItemProps<IconType> {
   readonly navigateToDirectory: (id: React.Key) => void
 }
 
-/**
- * A breadcrumb item for the drive bar.
- */
+/** A breadcrumb item for the drive bar. */
 function DriveBarBreadcrumbsItem<IconType extends string>(
   props: DriveBarBreadcrumbsItemProps<IconType>,
 ) {
@@ -235,17 +231,13 @@ function DriveBarBreadcrumbsItem<IconType extends string>(
   )
 }
 
-/**
- * Props for {@link UpButton}.
- */
+/** Props for {@link UpButton}. */
 interface UpButtonProps {
   readonly navigateToParent: () => void
   readonly isDisabled: boolean
 }
 
-/**
- * A button for navigating to the parent directory.
- */
+/** A button for navigating to the parent directory. */
 function UpButton(props: UpButtonProps) {
   const { navigateToParent, isDisabled } = props
   const { getText } = useText()
