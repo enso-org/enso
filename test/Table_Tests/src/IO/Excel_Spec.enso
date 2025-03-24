@@ -23,6 +23,7 @@ import project.Util
 from project.Common_Table_Operations.Util import within_table
 from project.IO.Read_Many_Spec import with_temp_dir
 
+polyglot java import org.enso.base.cache.ReloadDetector
 polyglot java import org.enso.table_test_helpers.RandomHelpers
 polyglot java import org.enso.table.excel.ExcelConnectionPool
 
@@ -1183,7 +1184,7 @@ add_specs suite_builder =
                 r3.at "Value" . at 1 . should_be_a Excel_Workbook
 
         group_builder.specify "should clear cache on simulated reload" <|
-            ExcelConnectionPool.INSTANCE.simulateReloadTestOnly
+            ReloadDetector.simulateReloadTestOnly ExcelConnectionPool.INSTANCE
             w0 = xlsx_sheet.read
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
             w1 = xlsx_sheet.read
@@ -1194,7 +1195,7 @@ add_specs suite_builder =
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
             [w0, w1, w2, w3].each check_workbook
 
-            ExcelConnectionPool.INSTANCE.simulateReloadTestOnly
+            ReloadDetector.simulateReloadTestOnly ExcelConnectionPool.INSTANCE
             w4 = xlsx_sheet.read
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
             w5 = xlsx_sheet.read

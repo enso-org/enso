@@ -27,6 +27,12 @@ make_regex_text_widget display:Display=..Always =
 
 ## PRIVATE
    Creates a Single_Choice Widget for delimiters.
+make_separator_selector : Widget
+make_separator_selector =
+    make_single_choice [',', ';', '|', ['{tab}', "'\t'"], ['{space}', "' '"], ['{newline}', "'\n'"], '_', ['Custom', "'?'"]]
+
+## PRIVATE
+   Creates a Single_Choice Widget for delimiters.
 make_delimiter_selector : Widget
 make_delimiter_selector =
     make_single_choice [',', ';', '|', ['{tab}', "'\t'"], ['{space}', "' '"], ['{newline}', "['\n', '\r\n', '\r']"], '_', ['Custom', "'?'"]]

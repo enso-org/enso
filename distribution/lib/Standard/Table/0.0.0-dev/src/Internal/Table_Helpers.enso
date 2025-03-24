@@ -326,7 +326,6 @@ read_name_mapping_from_table column_map:Table = case column_map.column_count of
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-rename_columns : Column_Naming_Helper -> Vector -> Dictionary (Text | Integer | Regex) Text | Vector Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Dictionary Text Text
 rename_columns (naming_helper : Column_Naming_Helper) (internal_columns:Vector) (mapping:(Dictionary | Vector)) (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
     ## Convert Vector of Pairs to Dictionary
     is_vec_pairs = mapping.is_a Vector && mapping.length > 0 && (mapping.first.is_a Text . not)

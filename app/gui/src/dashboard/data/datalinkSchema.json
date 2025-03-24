@@ -336,6 +336,7 @@
           "title": "Custom Quotes",
           "anyOf": [
             { "$ref": "#/$defs/DelimitedQuoteStyle" },
+            { "$ref": "#/$defs/DelimitedQuoteStyleAlways" },
             { "$ref": "#/$defs/DelimitedQuoteStyleNo" }
           ]
         }
@@ -432,6 +433,37 @@
         "subType": {
           "title": "Subtype",
           "const": "with_quotes",
+          "type": "string"
+        },
+        "quote": {
+          "title": "Quote",
+          "description": "Must be exactly one character.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1,
+          "default": "\"",
+          "examples": ["\"", "'"]
+        },
+        "escape": {
+          "title": "Escape",
+          "description": "Must be exactly one character. The character that is prepended to the quote character to escape it.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1,
+          "default": "\"",
+          "examples": ["\"", "\\"]
+        }
+      },
+      "required": ["type", "subType", "quote", "escape"]
+    },
+    "DelimitedQuoteStyleAlways": {
+      "title": "Quote all text",
+      "type": "object",
+      "properties": {
+        "type": { "title": "Type", "const": "quote_style", "type": "string" },
+        "subType": {
+          "title": "Subtype",
+          "const": "always_quote",
           "type": "string"
         },
         "quote": {
