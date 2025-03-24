@@ -19,16 +19,19 @@ import io.sentry.SentryOptions;
 import io.sentry.SystemOutLogger;
 import io.sentry.logback.SentryAppender;
 import java.io.File;
+import java.net.URI;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.enso.logging.config.Appender;
 import org.enso.logging.config.BaseConfig;
 import org.enso.logging.config.LoggerSetup;
 import org.enso.logging.config.LoggersLevels;
 import org.enso.logging.config.LoggingServiceConfig;
 import org.enso.logging.config.MissingConfigurationField;
-import org.enso.logging.service.logback.telemetry.TelemetryAppender;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
@@ -312,11 +315,8 @@ public final class LogbackSetup extends LoggerSetup {
     LoggerAndContext env = contextInit(Level.DEBUG, config, false);
     TelemetryAppender telemetryAppender;
     try {
-      telemetryAppender = TelemetryAppender.getInstance();
+      telemetryAppender = TelemetryAppender.load();
     } catch (Exception e) {
-      return false;
-    }
-    if (telemetryAppender == null) {
       return false;
     }
     var rootLogger = env.logger;
@@ -326,6 +326,15 @@ public final class LogbackSetup extends LoggerSetup {
     }
 
     telemetryAppender.setName("telemetry");
+
+    var cloudUri = URI.create(getCloudLogsAPIEndpoint());
+    telemetryAppender.setEndpoint(cloudUri);
+
+    // We set-up a thread 'pool' that will contain at most one thread.
+    // If the thread is idle for 60 seconds, it will be shut down.
+    var executor = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+    telemetryAppender.setExecutor(executor);
+
     var telemetryLogger = env.ctx.getLogger("org.enso.telemetry");
     telemetryLogger.addAppender(telemetryAppender);
     telemetryLogger.setLevel(ch.qos.logback.classic.Level.ALL);
@@ -333,6 +342,14 @@ public final class LogbackSetup extends LoggerSetup {
     telemetryAppender.setContext(env.ctx);
     telemetryAppender.start();
     return true;
+  }
+
+  private static String getCloudLogsAPIEndpoint() {
+    var envUri = System.getenv("ENSO_CLOUD_API_URI");
+    var effectiveUri =
+        envUri == null ? "https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com/" : envUri;
+    var uriWithSlash = effectiveUri.endsWith("/") ? effectiveUri : effectiveUri + "/";
+    return uriWithSlash + "logs";
   }
 
   @Override

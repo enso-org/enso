@@ -3,7 +3,6 @@
    integrated state functionality.
 
 import project.Any.Any
-
 from project.Errors.Common import Uninitialized_State
 
 ## PRIVATE

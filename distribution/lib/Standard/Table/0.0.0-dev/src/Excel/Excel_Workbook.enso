@@ -27,6 +27,7 @@ import project.Internal.Java_Problems
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Read_Many_As_Merged_Table_Strategy.Read_Many_As_Merged_Table_Strategy
 import project.Internal.Read_Many_As_Merged_Table_Strategy.Read_Many_As_Table_Result
+import project.Internal.Telemetry
 import project.Match_Columns.Match_Columns
 import project.Return_As_Table.Return_As_Table
 import project.Rows_To_Read.Rows_To_Read
@@ -245,7 +246,10 @@ type Excel_Workbook
                     names = self.sheet_names
                     if (query < 1 || query >= names.length) then Error.throw (Illegal_Argument.Error "Worksheet index out of range (1 - "+names.length.to_text+").") else
                         ExcelReader.readRangeByName java_workbook (names.at (query - 1)) java_headers skip_rows java_limit java_problem_aggregator
-        limit.attach_warning (from_java_table java_table)
+        result = limit.attach_warning (from_java_table java_table)
+        result.if_not_error <|
+            Telemetry.log "Excel_Workbook.read" "Read sheet: output={}, row_count={}, column_count={}, xls_format={}" ["Excel_Format", "Table", result.row_count, result.column_count, self.xls_format]
+            result
 
     ## PRIVATE
        GROUP Standard.Base.Input
