@@ -272,10 +272,10 @@ onMounted(() => {
 
 <template>
   <div class="FileBrowserWidget">
-    <div class="confirmationModal">
-      <span class="confirmationText">{{
-        `File '${currentFilePath ?? ''}' already exists. Overwrite?`
-      }}</span>
+    <div v-if="askForOverwrite" class="confirmationModal">
+      <div class="confirmationText">
+        {{ `File '${filenameInputContents ?? ''}' already exists. Overwrite?` }}
+      </div>
       <div class="confirmationButtons">
         <SvgButton class="confirmationButton" label="No" @click.stop="overwriteCancelled" />
         <SvgButton class="confirmationButton" label="Yes" @click.stop="overwriteConfirmed" />
@@ -386,6 +386,7 @@ onMounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
+  padding: 32px;
   background-color: rgba(0, 0, 0, 0.8);
   border-radius: 0 0 var(--radius-default) var(--radius-default);
   display: flex;
@@ -397,11 +398,15 @@ onMounted(() => {
 
 .confirmationText {
   color: white;
+  text-align: center;
+  font-size: 1.2em;
+  display: flex;
+  overflow: hidden;
 }
 
 .confirmationButtons {
   display: flex;
-  width: 30%;
+  width: 40%;
   flex-direction: row;
   justify-content: space-between;
 }
