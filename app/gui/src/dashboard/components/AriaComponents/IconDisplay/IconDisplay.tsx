@@ -1,7 +1,7 @@
 /** @file A text display with an icon. */
 import { Icon } from '#/components/Icon'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import { Text, WithVisualTooltip, type IconProp, type TextProps, type TooltipElementType } from '..'
+import { Text, VisualTooltip, type IconProp, type TextProps, type TooltipElementType } from '..'
 
 const ICON_DISPLAY_STYLES = tv({
   base: 'flex items-center gap-2 max-w-[14.5rem] min-w-4 px-[7px] border-0.5 border-transparent',
@@ -52,11 +52,11 @@ export function IconDisplay<IconType extends string>(props: IconDisplayProps<Ico
 
   return (
     <div className={styles.base({ className })}>
-      <WithVisualTooltip className="flex" tooltip={tooltip} tooltipPlacement="left">
+      <VisualTooltip className="flex" tooltip={tooltip} tooltipPlacement="left">
         <Icon className={styles.icon()} size="medium">
           {icon}
         </Icon>
-      </WithVisualTooltip>
+      </VisualTooltip>
       <div className={styles.container()}>
         <Text className={styles.text()} truncate="1" {...textProps} tooltip={children}>
           {children}
