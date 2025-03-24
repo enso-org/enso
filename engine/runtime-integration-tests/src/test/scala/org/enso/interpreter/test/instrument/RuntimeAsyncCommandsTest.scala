@@ -48,7 +48,7 @@ class RuntimeAsyncCommandsTest
 
   }
 
-  class MonitoredByteArrayOutputStream extends ByteArrayOutputStream {
+  class SynchronizedByteArrayOutputStream extends ByteArrayOutputStream {
     val monitor = new Object
     override def write(b: Array[Byte], off: Int, len: Int): Unit = {
       monitor.synchronized {
@@ -63,12 +63,34 @@ class RuntimeAsyncCommandsTest
         monitor.notifyAll()
       }
     }
+
+    def awaitOnText(expected: String, exact: Boolean = true): Boolean = {
+      var receivedExpected  = false
+      var iteration         = 0
+      var out: List[String] = Nil
+      monitor.synchronized {
+        while (!receivedExpected && iteration < 10) {
+          monitor.wait(100)
+          out = context.consumeOut
+          receivedExpected =
+            if (exact) out == List(expected) else out.contains(expected)
+          iteration += 1
+        }
+      }
+      receivedExpected
+    }
+
+    def expectNoOutput(): Boolean = {
+      monitor.synchronized {
+        context.consumeOut == Nil
+      }
+    }
   }
 
   class TestContext(packageName: String)
       extends InstrumentTestContext(packageName) {
-    val out: MonitoredByteArrayOutputStream =
-      new MonitoredByteArrayOutputStream()
+    val out: SynchronizedByteArrayOutputStream =
+      new SynchronizedByteArrayOutputStream()
     val context =
       Context
         .newBuilder(LanguageInfo.ID)
@@ -240,17 +262,7 @@ class RuntimeAsyncCommandsTest
     )
 
     // wait for program to start
-    var isProgramStarted  = false
-    var iteration         = 0
-    var out: List[String] = Nil
-    while (!isProgramStarted && iteration < 100) {
-      context.out.monitor.synchronized {
-        context.out.monitor.wait(1000)
-        out = context.consumeOut
-      }
-      isProgramStarted = out == List("started")
-      iteration += 1
-    }
+    val isProgramStarted = context.out.awaitOnText("started")
     if (!isProgramStarted) {
       fail("Program start timed out")
     }
@@ -271,10 +283,7 @@ class RuntimeAsyncCommandsTest
       responses.filter(_.payload.isInstanceOf[Api.ExecutionComplete])
     failures.length shouldEqual 1
 
-    context.out.monitor.synchronized {
-      out = context.consumeOut
-    }
-    out shouldEqual Nil
+    context.out.expectNoOutput() shouldBe true
   }
 
   it should "recompute expression in context after interruption" in {
@@ -371,23 +380,11 @@ class RuntimeAsyncCommandsTest
     )
 
     // wait for program to start and interrupt
-    var isProgramStarted  = false
-    var iteration         = 0
-    var out: List[String] = Nil
-    while (!isProgramStarted && iteration < 100) {
-      context.out.monitor.synchronized {
-        context.out.monitor.wait(1000)
-        out = context.consumeOut
-      }
-      isProgramStarted = out == List("started")
-      iteration += 1
-    }
+    val isProgramStarted = context.out.awaitOnText("started")
     if (!isProgramStarted) {
       fail("Program start timed out")
     }
-    context.out.monitor.synchronized {
-      context.consumeOut shouldEqual List()
-    }
+    context.out.expectNoOutput()
 
     // trigger re-computation
     context.send(
@@ -428,18 +425,7 @@ class RuntimeAsyncCommandsTest
     )
     // It's possible that ExecutionComplete is from RecomputeContext not from EditFileNotification.
     // If that's the case, then there might be a race in the output produced by the program.
-    var reallyFinished = false
-    iteration = 0
-    out       = Nil
-    while (!reallyFinished && iteration < 50) {
-      context.out.monitor.synchronized {
-        context.out.monitor.wait(1000)
-        out = context.consumeOut
-      }
-      reallyFinished = out.contains("True")
-      iteration += 1
-    }
-
+    val reallyFinished = context.out.awaitOnText("True", exact = false)
     reallyFinished shouldBe true
   }
 
@@ -497,17 +483,7 @@ class RuntimeAsyncCommandsTest
     )
 
     // wait for program to start
-    var isProgramStarted  = false
-    var iteration         = 0
-    var out: List[String] = Nil
-    while (!isProgramStarted && iteration < 100) {
-      context.out.monitor.synchronized {
-        context.out.monitor.wait(100)
-        out = context.consumeOut
-      }
-      isProgramStarted = out == List("started")
-      iteration += 1
-    }
+    val isProgramStarted = context.out.awaitOnText("started")
     if (!isProgramStarted) {
       fail("Program start timed out")
     }
@@ -612,17 +588,7 @@ class RuntimeAsyncCommandsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    var isProgramStarted  = false
-    var iteration         = 0
-    var out: List[String] = Nil
-    while (!isProgramStarted && iteration < 100) {
-      context.out.monitor.synchronized {
-        context.out.monitor.wait(100)
-        out = context.consumeOut
-      }
-      isProgramStarted = out == List("started")
-      iteration += 1
-    }
+    var isProgramStarted = context.out.awaitOnText("started")
     if (!isProgramStarted) {
       fail("Program start timed out")
     }
@@ -692,17 +658,7 @@ class RuntimeAsyncCommandsTest
         )
       )
     )
-    isProgramStarted = false
-    iteration        = 0
-    out              = Nil
-    while (!isProgramStarted && iteration < 100) {
-      context.out.monitor.synchronized {
-        context.out.monitor.wait(100)
-        out = context.consumeOut
-      }
-      isProgramStarted = out == List("started")
-      iteration += 1
-    }
+    isProgramStarted = context.out.awaitOnText("started")
     if (!isProgramStarted) {
       fail("Program start timed out")
     }
