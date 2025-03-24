@@ -771,7 +771,7 @@ pub async fn runner_sanity_test(
             .and(test_snowflake)
             .and(test_tableau)
             .and(test_geo)
-            .and(test_image);
+            .and(test_image)
             .and(test_generic_jdbc);
 
         // The following test does not actually run anything, it just checks if the engine
