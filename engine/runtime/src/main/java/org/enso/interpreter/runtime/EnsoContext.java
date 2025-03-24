@@ -245,6 +245,28 @@ public final class EnsoContext {
   }
 
   /**
+   * Enters this context and then executes provide {@code action}.
+   *
+   * @param <T> type the action computes
+   * @param who the node who's asking to perform the action
+   * @param action the action to execute
+   * @return returns the value of the {@code action}
+   */
+  public final <T> T withinCtx(Node who, Supplier<T> action) {
+    var tc = environment.getContext();
+    if (tc.isActive()) {
+      return action.get();
+    } else {
+      var prev = tc.enter(who);
+      try {
+        return action.get();
+      } finally {
+        tc.leave(who, prev);
+      }
+    }
+  }
+
+  /**
    * @param node the location of context access. Pass {@code null} if not in a node.
    * @return the proper context instance for the current {@link
    *     com.oracle.truffle.api.TruffleContext}.

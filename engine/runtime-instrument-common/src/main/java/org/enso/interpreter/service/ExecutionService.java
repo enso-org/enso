@@ -613,7 +613,15 @@ public final class ExecutionService {
         return CompletableFuture.failedFuture(ex);
       }
     } else {
-      return questCode.submit(c);
+      return questCode.submit(
+          () -> {
+            try {
+              return c.call();
+            } catch (PanicException ex) {
+              ex.getMessage();
+              throw ex;
+            }
+          });
     }
   }
 

@@ -40,6 +40,7 @@ public final class DataflowError extends AbstractTruffleException {
   /** Signals (local) values that haven't yet been initialized */
   public static final DataflowError UNINITIALIZED = new DataflowError(null, (Node) null);
 
+  private final EnsoContext ctx;
   private final Object payload;
   private final boolean ownTrace;
 
@@ -98,18 +99,21 @@ public final class DataflowError extends AbstractTruffleException {
     super(null, null, 1, location);
     this.payload = payload;
     this.ownTrace = location != null && location.getRootNode() != null;
+    this.ctx = EnsoContext.get(location);
   }
 
   private DataflowError(Object payload, AbstractTruffleException prototype) {
     super(prototype);
     this.payload = payload;
     this.ownTrace = false;
+    this.ctx = EnsoContext.get(null);
   }
 
   private DataflowError(Object payload, int stackTraceElementLimit, Node location) {
     super(null, null, stackTraceElementLimit, location);
     this.ownTrace = false;
     this.payload = payload;
+    this.ctx = EnsoContext.get(location);
   }
 
   /**
@@ -119,6 +123,10 @@ public final class DataflowError extends AbstractTruffleException {
    */
   public final Object getPayload() {
     return payload != null ? payload : Text.create("Uninitialized value");
+  }
+
+  final EnsoContext ctx() {
+    return ctx;
   }
 
   /**
@@ -166,11 +174,16 @@ public final class DataflowError extends AbstractTruffleException {
   @ExportMessage
   Object getExceptionMessage(
       @Cached IndirectInvokeMethodNode payloads,
-      @Cached(value = "toDisplayText(this.getPayload(), payloads)", allowUncached = true)
+      @Cached(value = "toDisplayText(this.ctx(), payloads)", allowUncached = true)
           UnresolvedSymbol toDisplayText,
       @CachedLibrary(limit = "3") InteropLibrary strings,
       @Cached TypeToDisplayTextNode typeToDisplayTextNode) {
-    return handleExceptionMessage(payload, payloads, toDisplayText, strings, typeToDisplayTextNode);
+    return ctx()
+        .withinCtx(
+            payloads,
+            () ->
+                handleExceptionMessage(
+                    payload, ctx(), payloads, toDisplayText, strings, typeToDisplayTextNode));
   }
 
   @ExportMessage
