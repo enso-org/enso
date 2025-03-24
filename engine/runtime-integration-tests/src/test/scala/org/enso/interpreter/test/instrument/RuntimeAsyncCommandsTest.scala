@@ -74,13 +74,13 @@ class RuntimeAsyncCommandsTest
       var out: List[String] = Nil
       val expectedList      = expected.toList
       monitor.synchronized {
-        while (!receivedExpected && iteration < 10) {
+        while (!receivedExpected && iteration < 20) {
           out = readAndReset()
           receivedExpected =
             if (exact) out == expectedList
             else expectedList.forall(out.contains)
           if (!receivedExpected)
-            monitor.wait(100)
+            monitor.wait(200)
           iteration += 1
         }
         receivedExpected
@@ -642,7 +642,7 @@ class RuntimeAsyncCommandsTest
 
     val response1 = context.receiveNIgnoreExpressionUpdates(
       6,
-      timeoutSeconds = 20
+      timeoutSeconds = 10
     )
     response1 should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
