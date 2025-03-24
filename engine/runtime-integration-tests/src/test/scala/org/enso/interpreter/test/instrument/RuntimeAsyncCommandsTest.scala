@@ -49,7 +49,7 @@ class RuntimeAsyncCommandsTest
   }
 
   class SynchronizedByteArrayOutputStream extends ByteArrayOutputStream {
-    val monitor = new Object
+    private val monitor = new Object
     override def write(b: Array[Byte], off: Int, len: Int): Unit = {
       monitor.synchronized {
         super.write(b, off, len)
@@ -64,27 +64,42 @@ class RuntimeAsyncCommandsTest
       }
     }
 
-    def awaitOnText(expected: String, exact: Boolean = true): Boolean = {
+    def awaitOnText(expected: String*): Boolean = {
+      awaitOnText(true, expected: _*)
+    }
+
+    def awaitOnText(exact: Boolean, expected: String*): Boolean = {
       var receivedExpected  = false
       var iteration         = 0
       var out: List[String] = Nil
+      val expectedList      = expected.toList
       monitor.synchronized {
         while (!receivedExpected && iteration < 10) {
-          monitor.wait(100)
-          out = context.consumeOut
+          out = readAndReset()
           receivedExpected =
-            if (exact) out == List(expected) else out.contains(expected)
+            if (exact) out == expectedList
+            else expectedList.forall(out.contains)
+          if (!receivedExpected)
+            monitor.wait(100)
           iteration += 1
         }
+        receivedExpected
       }
-      receivedExpected
+
     }
 
     def expectNoOutput(): Boolean = {
       monitor.synchronized {
-        context.consumeOut == Nil
+        readAndReset() == Nil
       }
     }
+
+    private def readAndReset(): List[String] = {
+      val result = toString
+      reset()
+      result.linesIterator.toList
+    }
+
   }
 
   class TestContext(packageName: String)
@@ -131,12 +146,6 @@ class RuntimeAsyncCommandsTest
     def writeInSrcDir(moduleName: String, contents: String): File = {
       val file = new File(pkg.sourceDir, s"$moduleName.enso")
       Files.write(file.toPath, contents.getBytes).toFile
-    }
-
-    def consumeOut: List[String] = {
-      val result = out.toString
-      out.reset()
-      result.linesIterator.toList
     }
   }
 
@@ -357,7 +366,7 @@ class RuntimeAsyncCommandsTest
       ),
       context.executionComplete(contextId)
     )
-    context.consumeOut shouldEqual List("started", "False")
+    context.out.awaitOnText("started", "False")
 
     // recompute
     context.send(
@@ -425,7 +434,7 @@ class RuntimeAsyncCommandsTest
     )
     // It's possible that ExecutionComplete is from RecomputeContext not from EditFileNotification.
     // If that's the case, then there might be a race in the output produced by the program.
-    val reallyFinished = context.out.awaitOnText("True", exact = false)
+    val reallyFinished = context.out.awaitOnText(exact = false, "True")
     reallyFinished shouldBe true
   }
 
