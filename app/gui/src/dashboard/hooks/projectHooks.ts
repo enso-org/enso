@@ -18,6 +18,7 @@ import {
   type LaunchedProjectId,
 } from '#/providers/ProjectsProvider'
 
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
@@ -389,10 +390,8 @@ function useOpenProject() {
     const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
 
     if (!isOpeningTheSameProject) {
-      openProjectMutation.mutate(project, {
-        onSuccess: () => {
-          addLaunchedProject(project)
-        },
+      void openProjectMutation.mutateAsync(project).then(() => {
+        addLaunchedProject(project)
       })
 
       const openingProjectMutation = client.getMutationCache().find({
@@ -413,36 +412,48 @@ function useOpenProject() {
 export function useOpenHybridProject() {
   const localBackend = backendProvider.useLocalBackend()
   const remoteBackend = backendProvider.useRemoteBackend()
+  const toastAndLog = useToastAndLog()
   const openProject = useOpenProject()
+  const closeProject = useCloseProject()
 
   return eventCallbacks.useEventCallback(
     async (asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>) => {
-      invariant(localBackend != null, 'Local Backend is null')
-      await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
-      const localProject = await remoteBackend.downloadProject(asset.id)
+      try {
+        invariant(localBackend != null, 'Local Backend is null')
+        await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
+        const localProject = await remoteBackend.downloadProject(asset.id)
 
-      let project
-      for (const parentId of [localProject.targetId, localProject.parentId]) {
-        const assets = await localBackend.listDirectory({
-          parentId: parentId,
-          filterBy: null,
-          labels: null,
-          recentProjects: false,
-        })
-        project = assets.filter((item) => item.type === backendModule.AssetType.project).at(0)
-        if (project !== undefined) {
-          break
+        let project
+        for (const parentId of [localProject.targetId, localProject.parentId]) {
+          const assets = await localBackend.listDirectory({
+            parentId: parentId,
+            filterBy: null,
+            labels: null,
+            recentProjects: false,
+          })
+          project = assets.filter((item) => item.type === backendModule.AssetType.project).at(0)
+          if (project !== undefined) {
+            break
+          }
         }
-      }
 
-      invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
-      openProject({
-        id: project.id,
-        title: project.title,
-        parentId: project.parentId,
-        type: backendModule.BackendType.local,
-        hybrid: { cloudProjectId: asset.id, parentId: localProject.parentId },
-      })
+        invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
+        openProject({
+          id: project.id,
+          title: project.title,
+          parentId: project.parentId,
+          type: backendModule.BackendType.local,
+          hybrid: { cloudProjectId: asset.id, parentId: localProject.parentId },
+        })
+      } catch (error) {
+        toastAndLog('openProjectError', error, asset.title)
+        closeProject({
+          id: asset.id,
+          title: asset.title,
+          parentId: asset.parentId,
+          type: backendModule.BackendType.local,
+        })
+      }
     },
   )
 }
