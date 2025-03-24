@@ -212,6 +212,7 @@ public final class EnsoContext {
         pkg -> packageRepository.registerMainProjectPackage(pkg.libraryName(), pkg));
 
     var preinit = environment.getOptions().get(RuntimeOptions.PREINITIALIZE_KEY);
+    preinit = "regex";
     if (preinit != null && preinit.length() > 0) {
       var epb = environment.getInternalLanguages().get("epb");
       @SuppressWarnings("unchecked")
