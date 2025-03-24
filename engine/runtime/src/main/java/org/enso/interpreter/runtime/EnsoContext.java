@@ -215,10 +215,12 @@ public final class EnsoContext {
     preinit = "regex";
     if (preinit != null && preinit.length() > 0) {
       var epb = environment.getInternalLanguages().get("epb");
-      @SuppressWarnings("unchecked")
-      var run = (Consumer<String>) environment.lookup(epb, Consumer.class);
-      if (run != null) {
-        run.accept(preinit);
+      if (epb != null) {
+        @SuppressWarnings("unchecked")
+        var run = (Consumer<String>) environment.lookup(epb, Consumer.class);
+        if (run != null) {
+          run.accept(preinit);
+        }
       }
     }
   }
