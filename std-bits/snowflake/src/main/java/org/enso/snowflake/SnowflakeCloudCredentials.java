@@ -2,7 +2,7 @@ package org.enso.snowflake;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -33,19 +33,21 @@ public final class SnowflakeCloudCredentials {
       }
 
       if (!tokenField.isObject()) {
-        throw new IllegalStateException("Unexpected: Malformed credential payload.");
+        throw malformedCredential();
       }
 
       RefreshToken token = parseTokenPart(tokenField);
 
       var inputField = json.get("input");
       if (inputField == null || !inputField.isObject()) {
-        throw new IllegalStateException("Unexpected: Malformed credential payload.");
+        throw malformedCredential();
       }
 
       CredentialInput input = parseInputPart(inputField);
       return new CredentialConfig(input, token);
     } catch (Exception e) {
+      // We specifically do not pass the original exception as cause, to avoid leaking any secrets
+      // that it could contain.
       throw new IllegalStateException(
           "Failed to parse secret payload as credential. Perhaps the secret was not created in the"
               + " Dashboard as a Credential?");
@@ -63,7 +65,7 @@ public final class SnowflakeCloudCredentials {
         || !expirationDate.isTextual()
         || metadata == null
         || !metadata.isObject()) {
-      throw new IllegalStateException("Unexpected: Malformed credential payload.");
+      throw malformedCredential();
     }
 
     String refreshToken = tokenValue.asText();
@@ -76,7 +78,7 @@ public final class SnowflakeCloudCredentials {
 
     var usernameField = metadata.get("username");
     if (usernameField == null || !usernameField.isTextual()) {
-      throw new IllegalStateException("Unexpected: Malformed credential payload.");
+      throw malformedCredential();
     }
 
     String username = usernameField.asText();
@@ -94,11 +96,17 @@ public final class SnowflakeCloudCredentials {
         || !clientIdField.isTextual()
         || clientSecretField == null
         || !clientSecretField.isTextual()) {
-      throw new IllegalStateException("Unexpected: Malformed credential payload.");
+      throw malformedCredential();
     }
 
     return new CredentialInput(
         accountField.asText(), clientIdField.asText(), clientSecretField.asText());
+  }
+
+  private static RuntimeException malformedCredential() {
+    // We specifically do not pass the original exception as cause, to avoid leaking any secrets
+    // that it could contain.
+    throw new IllegalStateException("Unexpected: Malformed credential payload.");
   }
 
   private static String extractTokenFromResponse(HttpResponse<String> response) {
@@ -107,16 +115,19 @@ public final class SnowflakeCloudCredentials {
       var json = jsonMapper.readTree(response.body());
       var tokenField = json.get("access_token");
       if (tokenField == null || !tokenField.isTextual()) {
-        throw new IllegalStateException("Failed to extract access token from response.");
+        // This is rethrown with a message by the catch block.
+        throw new IllegalStateException();
       }
 
       return tokenField.asText();
     } catch (Exception e) {
+      // We specifically do not pass the original exception as cause, to avoid leaking any secrets
+      // that it could contain.
       throw new IllegalStateException("Failed to extract access token from response.");
     }
   }
 
-  public Connection makeConnection(
+  public static Connection makeConnection(
       String url, List<Pair<String, HideableValue>> properties, HideableValue credentialReference)
       throws SQLException {
     CredentialConfig credentials = unsafeParseCredential(credentialReference);
@@ -142,6 +153,10 @@ public final class SnowflakeCloudCredentials {
           + java.util.Base64.getEncoder()
               .encodeToString((clientId + ":" + clientSecret).getBytes(StandardCharsets.UTF_8));
     }
+
+    private URI tokenUri() {
+      return URI.create("https://" + account + ".snowflakecomputing.com/oauth/token-request");
+    }
   }
 
   private record CredentialConfig(CredentialInput input, RefreshToken token) {
@@ -164,6 +179,7 @@ public final class SnowflakeCloudCredentials {
         var request =
             requestBuilder
                 .POST(body)
+                .uri(input.tokenUri())
                 .header("Authorization", input.authorizationHeader())
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .build();
@@ -178,7 +194,9 @@ public final class SnowflakeCloudCredentials {
 
         String accessToken = extractTokenFromResponse(response);
         return new AccessToken(accessToken, token.username);
-      } catch (IOException | InterruptedException e) {
+      } catch (Exception e) {
+        // We specifically do not pass the original exception as cause, to avoid leaking any secrets
+        // that it could contain.
         throw new IllegalStateException("Failed to refresh the Cloud Credentials.");
       }
     }

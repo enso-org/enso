@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
@@ -9,6 +10,7 @@ from Standard.Table import Table
 
 import Standard.Database.Column_Description.Column_Description
 import Standard.Database.Connection.Connection.Connection
+import Standard.Database.Connection.Credentials.Credentials
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Internal.Common.Connections_Helpers
 import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
@@ -20,6 +22,7 @@ from Standard.Database.Connection.Connection import make_database_selector, make
 from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 
+import project.Connection.Key_Pair_Credentials.Key_Pair_Credentials
 import project.Internal.Snowflake_Dialect
 
 polyglot java import org.enso.base.enso_cloud.InterpretAsPrivateKey
@@ -41,7 +44,8 @@ type Snowflake_Connection
             # Special handling for OAuth credentials stored in the cloud
             cloud_credentials : Enso_Secret ->
                 base_properties = JDBC_Connection.properties_as_java_props properties
-                SnowflakeCloudCredentials.makeConnection url base_properties (as_hideable_value cloud_credentials)
+                raw_java_connection = SnowflakeCloudCredentials.makeConnection url base_properties (as_hideable_value cloud_credentials)
+                JDBC_Connection.from_java raw_java_connection
             _ ->
                 auth_properties = auth_jdbc_properties credentials
                 clashing = (Hashset.from_vector properties.map .first) . intersection (Hashset.from_vector auth_properties.map .first)
