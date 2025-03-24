@@ -9,7 +9,6 @@ import org.enso.runtime.parser.dsl.GenerateFields;
 import org.enso.runtime.parser.dsl.GenerateIR;
 import org.enso.runtime.parser.dsl.IRChild;
 import org.enso.runtime.parser.dsl.IRField;
-import scala.Option;
 import scala.collection.immutable.List;
 
 public interface JImport extends Scope {
@@ -24,8 +23,7 @@ public interface JImport extends Scope {
         @IRChild(required = false) List<Name.Literal> hiddenNames,
         @IRField boolean isSynthetic,
         IdentifiedLocation identifiedLocation,
-        MetadataStorage passData
-    ) {
+        MetadataStorage passData) {
       super(name, rename, isAll, onlyNames, hiddenNames, isSynthetic, identifiedLocation, passData);
     }
 

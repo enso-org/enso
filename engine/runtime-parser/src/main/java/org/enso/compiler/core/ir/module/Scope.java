@@ -6,9 +6,7 @@ import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import scala.Option;
 
-/** A representation of constructs that can only occur in the top-level
- * module scope
- */
+/** A representation of constructs that can only occur in the top-level module scope */
 public interface Scope extends IR {
 
   @Override
@@ -18,6 +16,9 @@ public interface Scope extends IR {
   Scope setLocation(Option<IdentifiedLocation> location);
 
   @Override
-  Scope duplicate(boolean keepLocations, boolean keepMetadata, boolean keepDiagnostics,
+  Scope duplicate(
+      boolean keepLocations,
+      boolean keepMetadata,
+      boolean keepDiagnostics,
       boolean keepIdentifiers);
 }
