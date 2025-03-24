@@ -2,6 +2,7 @@ import org.enso.runner.common.LanguageServerApi;
 
 module org.enso.language.server {
   requires java.logging;
+  requires java.management;
   requires scala.library;
 
   requires commons.cli;
