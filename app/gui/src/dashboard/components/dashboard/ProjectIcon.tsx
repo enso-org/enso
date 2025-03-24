@@ -78,7 +78,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
   const isDisabled = isDisabledRaw || isUnconditionallyDisabled
 
-  const openProject = projectHooks.useOpenProject()
+  const openProjectLocally = projectHooks.useOpenProjectLocally()
   const closeProject = projectHooks.useCloseProject()
 
   const { user } = authProvider.useFullUserSession()
@@ -143,8 +143,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
     }
   })()
 
-  const doOpenProject = useEventCallback(() => {
-    openProject({ ...item, type: backend.type })
+  const doOpenProject = useEventCallback(async () => {
+    await openProjectLocally(item, backend.type)
   })
   const doCloseProject = useEventCallback(() => {
     closeProject({ ...item, type: backend.type })
