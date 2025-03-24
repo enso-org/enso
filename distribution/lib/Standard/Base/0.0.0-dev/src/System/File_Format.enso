@@ -13,6 +13,7 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Function.Function
+import project.Internal.Telemetry
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
@@ -220,7 +221,10 @@ type Plain_Text_Format
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems:Problem_Behavior =
-        file.read_text (self.resolve_encoding file) on_problems
+        result = file.read_text (self.resolve_encoding file) on_problems
+        result.if_not_error <|
+            Telemetry.log "File_Format.read" "Read file: format={}, output={}" ["Plain_Text", "Text"]
+            result
 
     ## PRIVATE
        Implements decoding the format from a stream.
@@ -271,7 +275,10 @@ type Bytes
     read : File -> Problem_Behavior -> Any
     read self file on_problems:Problem_Behavior =
         _ = [on_problems]
-        file.read_bytes
+        result = file.read_bytes
+        result.if_not_error <|
+            Telemetry.log "File_Format.read" "Read file: format={}, output={}, length={}" ["Bytes", "Vector", result.length]
+            result
 
     ## PRIVATE
        Implements decoding the format from a stream.
@@ -322,8 +329,11 @@ type JSON_Format
     read self file on_problems:Problem_Behavior =
         _ = [on_problems]
         text = file.read_text
-        Json.parse text . catch Invalid_JSON error->
+        result = Json.parse text . catch Invalid_JSON error->
             Error.throw (File_Error.Corrupted_Format file error.to_display_text error)
+        result.if_not_error <|
+            Telemetry.log "File_Format.read" "Read file: format={}, output={}" ["JSON", result.to Meta.Type . name]
+            result
 
     ## PRIVATE
        Implements decoding the format from a stream.

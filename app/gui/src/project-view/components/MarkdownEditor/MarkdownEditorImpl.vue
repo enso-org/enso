@@ -16,10 +16,14 @@ import { minimalSetup } from 'codemirror'
 import { computed, onMounted, ref, useCssModule, useTemplateRef, type ComponentInstance } from 'vue'
 import * as Y from 'yjs'
 
-const { content, toolbar } = defineProps<{
+const { content, toolbar, contentTestId } = defineProps<{
   content: Y.Text | string
   toolbar: boolean
+  contentTestId?: string | undefined
 }>()
+defineOptions({
+  inheritAttrs: false,
+})
 
 const focused = ref(false)
 const editing = computed(() => !readonly.value && focused.value)
@@ -36,6 +40,7 @@ const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
     ensoMarkdown(),
   ],
   vueHost: () => vueHost,
+  contentTestId,
 })
 const { italic, bold, insertLink, blockType, insertCodeBlock } = useMarkdownFormatting(editorView)
 
@@ -122,7 +127,6 @@ defineExpose({
 
 .toolbar {
   height: 48px;
-  padding-left: 18px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -134,7 +138,6 @@ defineExpose({
 .scrollArea {
   width: 100%;
   overflow-y: auto;
-  padding-left: 10px;
   /* Prevent touchpad back gesture, which can be triggered while panning. */
   overscroll-behavior-x: none;
   flex-grow: 1;
@@ -143,6 +146,12 @@ defineExpose({
 :deep(.cm-content) {
   /*noinspection CssUnresolvedCustomProperty,CssNoGenericFontName*/
   font-family: var(--font-sans);
+}
+
+/*noinspection CssUnusedSymbol*/
+:deep(.cm-line) {
+  padding-left: 0;
+  padding-right: 0;
 }
 
 /*noinspection CssUnusedSymbol*/

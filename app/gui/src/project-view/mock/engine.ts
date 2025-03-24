@@ -381,15 +381,29 @@ function createId(id: Uuid) {
   return (builder: Builder) => EnsoUUID.createEnsoUUID(builder, low, high)
 }
 
-function sendVizData(id: Uuid, config: VisualizationConfiguration, expressionId?: Uuid) {
-  const vizDataHandler =
+type VizRequest = { type: 'widget'; id: string | undefined } | { type: 'visualization'; id: string }
+function recognizeVizRequest(config: VisualizationConfiguration): VizRequest {
+  return (
     typeof config.expression === 'string' ?
       // Getting widget configuration is a special case, where we sometimes pass lambda as
       // expression to discard the input value
       /^[a-z_]+ *->.*get_widget_json/.test(config.expression) ?
-        mockWidgetConfiguration(config.positionalArgumentsExpressions?.at(0))
-      : mockVizPreprocessors[`${config.visualizationModule}.${config.expression}`]
-    : mockVizPreprocessors[`${config.expression.definedOnType}.${config.expression.name}`]
+        ({ type: 'widget', id: config.positionalArgumentsExpressions?.at(0) } satisfies VizRequest)
+      : ({
+          type: 'visualization',
+          id: `${config.visualizationModule}.${config.expression}`,
+        } satisfies VizRequest)
+    : ({
+        type: 'visualization',
+        id: `${config.expression.definedOnType}.${config.expression.name}`,
+      } satisfies VizRequest)
+  )
+}
+
+function sendVizData(id: Uuid, config: VisualizationConfiguration, expressionId?: Uuid) {
+  const req = recognizeVizRequest(config)
+  const vizDataHandler =
+    req.type === 'visualization' ? mockVizPreprocessors[req.id] : mockWidgetConfiguration(req.id)
   if (!vizDataHandler || !sendData) return
   const vizData =
     vizDataHandler instanceof Uint8Array ? vizDataHandler : (
@@ -574,6 +588,17 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
       return Promise.reject(`Method '${method}' not mocked`)
   }
 }
+
+function updateVisualization(preprocessor: string, data: unknown) {
+  for (const [id, config] of visualizations.entries()) {
+    if (recognizeVizRequest(config).id === preprocessor) {
+      const exprId = visualizationExprIds.get(id)
+      const vizData = encodeJSON(data)
+      sendVizUpdate(id, config.executionContextId, exprId, vizData)
+    }
+  }
+}
+;(window as any)._mockVisualizationDataUpdate = updateVisualization
 
 const directory = mockFsDirectoryHandle(fileTree, '(root)')
 

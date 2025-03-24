@@ -101,9 +101,11 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
 ) {
   const { category, panelWidth } = props
 
-  const itemId = useStore(assetPanelStore, (state) => state.assetPanelProps.item?.id, {
-    unsafeEnableTransition: true,
-  })
+  const itemId = useStore(
+    assetPanelStore,
+    (state) => state.assetPanelProps.item?.id ?? state.assetPanelProps.defaultItem?.id,
+    { unsafeEnableTransition: true },
+  )
 
   const selectedTab = useStore(assetPanelStore, (state) => state.selectedTab, {
     unsafeEnableTransition: true,

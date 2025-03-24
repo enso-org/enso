@@ -481,6 +481,7 @@ fn named_arguments() {
     expect_invalid_node("f (x = y");
     expect_invalid_node("f (x=y");
     expect_invalid_node("f x=)");
+    expect_invalid_node("f (x =)");
     test!("(x a=b)", (Group (NamedApp (Ident x) a (Ident b))));
     test!("(x a=b.c)", (Group (NamedApp (Ident x) a (OprApp (Ident b) (Ok ".") (Ident c)))));
     test!("catch handler=exc->\n    throw",
