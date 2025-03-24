@@ -129,8 +129,6 @@ watch(directories, (directories) => {
 
 // === Interactivity ===
 
-const askForOverwrite = ref(false)
-
 function enterDir(dir: DirectoryAsset) {
   directoryStack.value.push(dir)
 }
@@ -154,6 +152,8 @@ function chooseFile(file: FileAsset | DatalinkAsset) {
   }
 }
 
+const askForOverwrite = ref(false)
+
 function tryAcceptCurrentFile() {
   if (fileExists(filenameInputContents.value) && props.writeMode) {
     askForOverwrite.value = true
@@ -166,6 +166,15 @@ function acceptCurrentFile() {
   if (currentFilePath.value) {
     emit('pathAccepted', currentFilePath.value)
   }
+}
+
+function overwriteConfirmed() {
+  askForOverwrite.value = false
+  acceptCurrentFile()
+}
+
+function overwriteCancelled() {
+  askForOverwrite.value = false
 }
 
 const isBusy = computed(() => isDirectoryStackInitializing.value || isPending.value)
@@ -261,15 +270,6 @@ const renameAction: Action = {
   description: 'Rename directory',
   disabled: computed(() => focusedDirectory.value == null || editedAsset.value != null),
   action: () => focusedDirectory.value && renameDirectory(focusedDirectory.value),
-}
-
-function overwriteConfirmed() {
-  askForOverwrite.value = false
-  acceptCurrentFile()
-}
-
-function overwriteCancelled() {
-  askForOverwrite.value = false
 }
 
 // === Initialization ===
