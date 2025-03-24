@@ -819,7 +819,6 @@
   "labelsColumnName": "Labels",
   "accessedByProjectsColumnName": "Accessed by projects",
   "accessedDataColumnName": "Accessed data",
-  "docsColumnName": "Docs",
   "rootFolderColumnName": "Root folder",
   "pathColumnName": "Location",
 
@@ -828,7 +827,7 @@
   "settingsShortcut": "Settings",
   "closeTabShortcut": "Close Tab",
   "openShortcut": "Open",
-  "runShortcut": "Run Locally",
+  "runShortcut": "Run in Cloud",
   "closeShortcut": "Close",
   "uploadToCloudShortcut": "Upload to Cloud",
   "renameShortcut": "Rename",
@@ -890,8 +889,6 @@
   "accessedByProjectsColumnHide": "Accessed By Projects",
   "accessedDataColumnShow": "Accessed Data",
   "accessedDataColumnHide": "Accessed Data",
-  "docsColumnShow": "Docs",
-  "docsColumnHide": "Docs",
   "pathColumnShow": "Location",
   "pathColumnHide": "Location",
 

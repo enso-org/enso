@@ -27,7 +27,7 @@ import {
 } from 'enso-common/src/backendQuery'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useOpenProject } from '#/hooks/projectHooks'
+import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
@@ -634,7 +634,8 @@ export function useNewFolder(backend: Backend, category: Category) {
 /** A function to create a new project. */
 export function useNewProject(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
-  const doOpenProject = useOpenProject()
+  const openProjectLocally = useOpenProjectLocally()
+  const openProjectNatively = useOpenProjectNatively()
   const deleteAsset = useDeleteAsset(backend, category)
 
   const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
@@ -651,6 +652,7 @@ export function useNewProject(backend: Backend, category: Category) {
         datalinkId?: backendModule.DatalinkId | null | undefined
       },
       parentId: DirectoryId,
+      runLocally = true,
     ) => {
       const siblings = await ensureListDirectory(parentId)
       const projectName = (() => {
@@ -679,12 +681,17 @@ export function useNewProject(backend: Backend, category: Category) {
           throw error
         })
         .then((createdProject) => {
-          doOpenProject({
+          const openProjectParams = {
             id: createdProject.projectId,
-            type: backend.type,
             parentId: placeholderItem.parentId,
             title: createdProject.name,
-          })
+          }
+          if (runLocally) {
+            // Open in background.
+            void openProjectLocally(openProjectParams, backend.type)
+          } else {
+            openProjectNatively(openProjectParams, backend.type)
+          }
 
           return createdProject
         })

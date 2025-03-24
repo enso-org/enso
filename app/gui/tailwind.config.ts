@@ -169,7 +169,6 @@ export default {
         'drive-labels-column': 'var(--drive-labels-column-width)',
         'drive-accessed-by-projects-column': 'var(--drive-accessed-by-projects-column-width)',
         'drive-accessed-data-column': 'var(--drive-accessed-data-column-width)',
-        'drive-docs-column': 'var(--drive-docs-column-width)',
       },
       minWidth: ({ theme }) => ({ ...theme('width') }),
       maxWidth: ({ theme }) => ({ ...theme('width') }),
