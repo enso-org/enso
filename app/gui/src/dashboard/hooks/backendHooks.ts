@@ -684,14 +684,15 @@ export function useNewProject(backend: Backend, category: Category) {
           void deleteAsset(placeholderItem.id, parentId)
           throw error
         })
-        .then(async (createdProject) => {
+        .then((createdProject) => {
           const openProjectParams = {
             id: createdProject.projectId,
             parentId: placeholderItem.parentId,
             title: createdProject.name,
           }
           if (runLocally) {
-            await openProjectLocally(openProjectParams, backend.type)
+            // Open in background.
+            void openProjectLocally(openProjectParams, backend.type)
           } else {
             openProjectNatively(openProjectParams, backend.type)
           }
