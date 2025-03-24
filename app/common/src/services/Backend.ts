@@ -935,8 +935,8 @@ export interface Asset<Type extends AssetType = AssetType> {
    */
   readonly parentId: DirectoryId
   readonly permissions: readonly AssetPermission[] | null
-  readonly labels?: readonly LabelName[]
-  readonly description?: string
+  readonly labels?: readonly LabelName[] | undefined
+  readonly description?: string | undefined
   readonly projectState: Type extends AssetType.project ? ProjectStateType : null
   readonly extension: Type extends AssetType.file ? string : null
   readonly parentsPath: ParentsPath
@@ -944,7 +944,9 @@ export interface Asset<Type extends AssetType = AssetType> {
   /** The display path. */
   readonly ensoPath?: EnsoPath
   /** The actual path (URL encoded when on the Remote backend). */
-  readonly ensoPathValue?: EnsoPathValue
+  | undefined
+  /** The actual path (URL encoded when on the Remote backend). */
+  readonly ensoPathValue?: EnsoPathValue | undefined
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
