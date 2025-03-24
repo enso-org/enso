@@ -942,9 +942,7 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
-  readonly ensoPath?: EnsoPath
-  /** The actual path (URL encoded when on the Remote backend). */
-  | undefined
+  readonly ensoPath?: EnsoPath | undefined
   /** The actual path (URL encoded when on the Remote backend). */
   readonly ensoPathValue?: EnsoPathValue | undefined
 }
