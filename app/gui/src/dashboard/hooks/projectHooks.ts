@@ -390,10 +390,8 @@ export function useOpenProject() {
     const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
 
     if (!isOpeningTheSameProject) {
-      openProjectMutation.mutate(project, {
-        onSuccess: () => {
-          addLaunchedProject(project)
-        },
+      void openProjectMutation.mutateAsync(project).then(() => {
+        addLaunchedProject(project)
       })
 
       const openingProjectMutation = client.getMutationCache().find({
