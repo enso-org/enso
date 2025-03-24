@@ -1,9 +1,4 @@
-from Standard.Base import all
-import Standard.Base.Runtime.Ref.Ref
-
-## PRIVATE
-
-   Frame_Hider is used in test utilities to hide uninteresting stack frames from
+## Frame_Hider is used in test utilities to hide uninteresting stack frames from
    users when reporting the location of test failures.
 
    In a test utility such as `Any.should_equal`, the failure of a test assertion
@@ -46,6 +41,9 @@ import Standard.Base.Runtime.Ref.Ref
               # ...
               @Tail_Call go (i+1)
           go 1
+
+from Standard.Base import all
+import Standard.Base.Runtime.Ref.Ref
 
 ## PRIVATE
 

@@ -13,16 +13,17 @@ from project.Metadata.Choice import Option
 
 polyglot java import java.util.Locale as JavaLocale
 
-## Constants
-## These are chosen as the union of the top 10 countries by population, and the
-## top ten countries by total (nominal, not per-capita) GDP.
-
 ## A type representing a locale.
 
    A locale consists of three parts:
    - A language, which is mandatory.
    - A country code, which is optional.
    - A variant, which is optional.
+
+   ? Constants
+
+   These are chosen as the union of the top 10 countries by population, and the
+   top ten countries by total (nominal, not per-capita) GDP.
 type Locale
     ## ICON text_input
        Construct a new locale.

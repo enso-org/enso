@@ -49,15 +49,16 @@ function Editor(props: EditorProps) {
   const projectQuery = reactQuery.useSuspenseQuery({
     ...projectStatusQuery,
     select: (data) => {
-      const isOpeningProject = projectHooks.OPENING_PROJECT_STATES.has(data.state.type)
+      const isProjectOpening = projectHooks.OPENING_PROJECT_STATES.has(data.state.type)
       const isProjectClosed = projectHooks.CLOSED_PROJECT_STATES.has(data.state.type)
+      const isProjectOpened = projectHooks.OPENED_PROJECT_STATES.has(data.state.type)
+      const isProjectClosing = projectHooks.CLOSING_PROJECT_STATES.has(data.state.type)
 
-      return { ...data, isOpeningProject, isProjectClosed }
+      return { ...data, isProjectOpening, isProjectClosed, isProjectOpened, isProjectClosing }
     },
   })
 
-  const isProjectClosed = projectQuery.data.isProjectClosed
-  const isOpeningProject = projectQuery.data.isOpeningProject
+  const { isProjectClosed, isProjectOpening, isProjectOpened, isProjectClosing } = projectQuery.data
 
   React.useEffect(() => {
     if (isProjectClosed) {
@@ -76,7 +77,7 @@ function Editor(props: EditorProps) {
     },
     ms: projectHooks.getTimeoutBasedOnTheBackendType(backend.type),
     deps: [],
-    isDisabled: !isOpeningProject || projectQuery.isError,
+    isDisabled: !isProjectOpening || projectQuery.isError,
   })
 
   if (isOpeningFailed) {
@@ -109,19 +110,22 @@ function Editor(props: EditorProps) {
               />
             )
 
-          case isOpeningProject:
+          case isProjectClosed:
+          case isProjectClosing:
+          case isProjectOpening:
             return <suspense.Loader minHeight="full" />
 
-          default:
+          case isProjectOpened:
             return (
-              <errorBoundary.ErrorBoundary>
-                <EditorInternal
-                  {...props}
-                  openedProject={projectQuery.data}
-                  backendType={project.type}
-                />
-              </errorBoundary.ErrorBoundary>
+              <EditorInternal
+                {...props}
+                openedProject={projectQuery.data}
+                backendType={project.type}
+              />
             )
+
+          default:
+            return null
         }
       })()}
     </div>

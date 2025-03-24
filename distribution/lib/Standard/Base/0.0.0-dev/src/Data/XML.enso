@@ -41,7 +41,8 @@ polyglot java import org.xml.sax.SAXException
 polyglot java import org.xml.sax.SAXParseException
 
 type XML_Document
-    ## GROUP Input
+    ## PRIVATE
+       GROUP Input
        ICON data_input
        Read an XML document from a file.
        If there is an error reading the file, `File_Error` is thrown.
@@ -65,7 +66,7 @@ type XML_Document
        If there is a parsing error, `XML_Error.Parse_Error` is thrown.
 
        Arguments:
-       - input_stream: the input stread to read the XML document from.
+       - input_stream: the input stream to read the XML document from.
 
        > Example
          Read an XML document from an input_stream.
@@ -165,7 +166,6 @@ type XML_Document
          of children. If `Text`, then if starts with `"@"`, returns the
          attribute with the given name otherwise returns the first child element
          with the given name.
-
     @key child_selector
     get_child_element : Text | Integer -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
     get_child_element self key:(Text | Integer)="." =

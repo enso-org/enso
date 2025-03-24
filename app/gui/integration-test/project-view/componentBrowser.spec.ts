@@ -88,6 +88,12 @@ test('Different ways of opening Component Browser', async ({ page }) => {
 test('Opening Component Browser from output port buttons', async ({ page }) => {
   await actions.goToGraph(page)
 
+  // Pan the graph up so that every node is guaranteed to be visible.
+  await page.mouse.move(100, 100)
+  await page.mouse.down({ button: 'middle' })
+  await page.mouse.move(100, -350)
+  await page.mouse.up({ button: 'middle' })
+
   // Small (+) button shown when node is hovered
   const node = locate.graphNodeByBinding(page, 'selected')
   await locate.graphNodeIcon(node).hover()

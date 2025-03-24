@@ -50,7 +50,7 @@ import org.enso.base.Stream_Utils;
  *
  * @param <M> Additional metadata to associate with the data.
  */
-public class LRUCache<M> {
+public class LRUCache<M> implements ReloadDetector.HasClearableCache {
   private static final Logger logger = Logger.getLogger(LRUCache.class.getName());
 
   /**
@@ -73,9 +73,6 @@ public class LRUCache<M> {
   /** Used to get the current free disk space; mockable. */
   private final DiskSpaceGetter diskSpaceGetter;
 
-  /** Used to clear the cache on reload. */
-  private final ReloadDetector reloadDetector = new ReloadDetector();
-
   public LRUCache() {
     this(LRUCacheSettings.getDefault(), new NowGetter(), new DiskSpaceGetter());
   }
@@ -84,6 +81,7 @@ public class LRUCache<M> {
     this.settings = settings;
     this.nowGetter = nowGetter;
     this.diskSpaceGetter = diskSpaceGetter;
+    ReloadDetector.register(this);
   }
 
   /**
@@ -92,7 +90,7 @@ public class LRUCache<M> {
    */
   public CacheResult<M> getResult(ItemBuilder<M> itemBuilder)
       throws IOException, InterruptedException, ResponseTooLargeException {
-    clearOnReload();
+    ReloadDetector.clearOnReload(this);
 
     String cacheKey = itemBuilder.makeCacheKey();
 
@@ -226,12 +224,6 @@ public class LRUCache<M> {
     removeCacheEntriesByPredicate(e -> true);
   }
 
-  private void clearOnReload() {
-    if (reloadDetector.hasReloadOccurred()) {
-      clear();
-    }
-  }
-
   /** Remove all cache entries (and their cache files) that match the predicate. */
   private void removeCacheEntriesByPredicate(Predicate<CacheEntry<M>> predicate) {
     List<Map.Entry<String, CacheEntry<M>>> toRemove =
@@ -363,11 +355,6 @@ public class LRUCache<M> {
     return settings;
   }
 
-  /** Public for testing. */
-  public void simulateReloadTestOnly() {
-    reloadDetector.simulateReloadTestOnly();
-  }
-
   private record CacheEntry<M>(File responseData, M metadata, long size, ZonedDateTime expiry) {}
 
   /**
@@ -384,6 +371,11 @@ public class LRUCache<M> {
     public boolean shouldCache() {
       return ttl.isPresent();
     }
+  }
+
+  @Override /* HasClearableCache */
+  public void clearCache() {
+    cache.clear();
   }
 
   public record CacheResult<M>(InputStream inputStream, M metadata) {}

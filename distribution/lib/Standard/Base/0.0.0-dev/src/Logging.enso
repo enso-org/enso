@@ -43,7 +43,6 @@ type Progress
        - up_to: how _"long"_ - e.g. how many steps the action is expected to take. 
            It has to be at least one or higher.
        - action: function performing the computation while reporting its `Progress`
-
     run label:Text up_to:Integer action:(Progress->Any) -> Any =
         logger = LoggerFactory.getLogger (Progress.to Meta.Type . qualified_name)
         progress = Progress.Running label (up_to.max 1) logger
@@ -62,7 +61,6 @@ type Progress
 
        Returns:
        The self value.
-
     advance self amount:Integer=1 -> Progress =
         add = if amount>=0 then amount else 0
         log_impl self.logger "ADVANCE {}+{}" Log_Level.Finest [self, add]
@@ -75,7 +73,6 @@ type Progress
 
        Returns:
        The self value.
-
     log self detail:Text -> Progress =
         log_impl self.logger "LOG {}:{}" Log_Level.Finest [self, detail]
         self
