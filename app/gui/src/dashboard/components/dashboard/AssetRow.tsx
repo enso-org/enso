@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import { useStore } from '#/utilities/zustand'
-import { useQuery } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 
 import BlankIcon from '#/assets/blank.svg'
@@ -38,13 +37,12 @@ import {
   useMoveAssetsMutationState,
   useRestoreAssetsMutationState,
 } from '#/hooks/backendBatchedHooks'
-import { useBackendMutationState, useBackendQuery } from '#/hooks/backendHooks'
-import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
-import { useCutAndPaste } from '#/hooks/cutAndPasteHooks'
-import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
+import { useBackendMutationState } from '#/hooks/backendHooks'
+import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useAsset, useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
+import type { Label } from '#/services/Backend'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
 import * as object from '#/utilities/object'
@@ -75,6 +73,12 @@ export interface AssetRowProps {
   readonly state: assetsTable.AssetsTableState
   readonly columns: columnUtils.Column[]
   readonly isKeyboardSelected: boolean
+  readonly labels: readonly Label[]
+  readonly cutAndPaste: (
+    newParentKey: backendModule.DirectoryId,
+    newParentId: backendModule.DirectoryId,
+    pasteData: DrivePastePayload,
+  ) => void
   readonly grabKeyboardFocus: (item: backendModule.AnyAsset) => void
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
   readonly select: (item: backendModule.AnyAsset) => void
@@ -99,6 +103,10 @@ export interface AssetRowProps {
     newParentId: backendModule.DirectoryId,
     pasteData: DrivePastePayload,
   ) => void
+  readonly uploadFiles: (
+    files: readonly File[],
+    parentId: backendModule.DirectoryId,
+  ) => Promise<void>
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
@@ -235,13 +243,14 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     isPlaceholder,
     type,
     asset,
+    cutAndPaste,
+    labels,
+    grabKeyboardFocus,
+    uploadFiles,
   } = props
-  const { grabKeyboardFocus } = props
   const { category, backend, currentDirectoryId, doCopy, doCut, doPaste } = state
 
   const [isNavigating, startNavigation] = useTransition()
-
-  const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
 
   const driveStore = useDriveStore()
   const { user } = useFullUserSession()
@@ -271,7 +280,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(
     assetRowUtils.INITIAL_ROW_STATE,
   )
-  const cutAndPaste = useCutAndPaste(backend, category)
   const setLabelsDragPayload = useSetLabelsDragPayload()
 
   const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === asset.id)
@@ -315,20 +323,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     }).length !== 0
 
   const isUpdating = isUpdatingSingleAsset || isMovingMultipleAssets
-
-  const { data: projectState } = useQuery({
-    ...createGetProjectDetailsQuery({
-      // This is safe because we disable the query when the asset is not a project.
-      // see `enabled` property below.
-      // eslint-disable-next-line no-restricted-syntax
-      assetId: asset.id as backendModule.ProjectId,
-      backend,
-    }),
-    select: (data) => data.state.type,
-    enabled: asset.type === backendModule.AssetType.project && !isPlaceholder && isOpened,
-  })
-
-  const uploadFiles = useUploadFiles(backend, category)
 
   const insertionVisibility = useStore(driveStore, (driveState) =>
     driveState.pasteData?.type === 'move' && driveState.pasteData.data.ids.has(id) ?
@@ -390,7 +384,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
           // Assume the parent is the root directory.
           return true
         }
-        if (isTeamParentsPath(parent.parentsPath, userGroups?.map((team) => team.id) ?? [])) {
+        if (isTeamParentsPath(parent.parentsPath, [])) {
           return true
         }
         // Assume user path; check permissions
@@ -490,16 +484,18 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
               }
             }}
             onDragStart={(event) => {
+              if (rowState.isEditingName) {
+                event.preventDefault()
+              }
+
               if (
-                rowState.isEditingName ||
-                (projectState !== backendModule.ProjectState.closed &&
-                  projectState !== backendModule.ProjectState.created &&
-                  projectState != null)
+                asset.type === backendModule.AssetType.project &&
+                BUSY_PROJECT_STATES.has(asset.projectState.type)
               ) {
                 event.preventDefault()
-              } else {
-                props.onDragStart?.(event, asset)
               }
+
+              props.onDragStart?.(event, asset)
             }}
             onDragEnter={(event) => {
               if (dragOverTimeoutHandle.current != null) {
@@ -571,6 +567,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                 <td key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
                   <Render
                     isNavigating={isNavigating}
+                    labels={labels}
                     isPlaceholder={isPlaceholder}
                     isOpened={isOpened}
                     backendType={backend.type}

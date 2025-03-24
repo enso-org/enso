@@ -3,8 +3,6 @@ import * as React from 'react'
 
 import Plus2Icon from '#/assets/plus2.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
-
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -26,21 +24,21 @@ import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 
 /** A column listing the labels on this asset. */
 export default function LabelsColumn(props: column.AssetColumnProps) {
-  const { item, state } = props
+  const { item, state, labels } = props
   const { backend, category, setQuery } = state
   const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const { data: labels } = backendHooks.useBackendQuery(backend, 'listTags', [])
   const driveStore = useDriveStore()
   const showDraggedLabelsFallback = useStore(
     driveStore,
     ({ selectedIds, isDraggingOverSelectedRow }) =>
       isDraggingOverSelectedRow && selectedIds.has(item.id),
   )
-  const labelsByName = React.useMemo(() => {
-    return new Map(labels?.map((label) => [label.value, label]))
-  }, [labels])
+  const labelsByName = React.useMemo(
+    () => new Map(labels.map((label) => [label.value, label])),
+    [labels],
+  )
   const self = permissions.tryFindSelfPermission(user, item.permissions)
   const managesThisAsset =
     category.type !== 'trash' &&

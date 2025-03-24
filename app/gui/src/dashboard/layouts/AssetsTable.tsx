@@ -1030,14 +1030,16 @@ function AssetsTable(props: AssetsTableProps) {
           end: Math.ceil(Math.max(range.initialIndex, endIndex)),
         }
       }
-      if (range == null) {
-        setVisuallySelectedKeys(null)
-      } else {
-        const otherAssets = visibleItems.slice(range.start, range.end).map((node) => node)
-        setVisuallySelectedKeys(
-          new Set(calculateNewSelection(event, otherAssets, () => []).map((asset) => asset.id)),
-        )
-      }
+      startTransition(() => {
+        if (range == null) {
+          setVisuallySelectedKeys(null)
+        } else {
+          const otherAssets = visibleItems.slice(range.start, range.end).map((node) => node)
+          setVisuallySelectedKeys(
+            new Set(calculateNewSelection(event, otherAssets, () => []).map((asset) => asset.id)),
+          )
+        }
+      })
     }
   })
 
@@ -1136,6 +1138,7 @@ function AssetsTable(props: AssetsTableProps) {
               setSelected={noop}
               setRowState={noop}
               isEditable={false}
+              labels={[]}
             />
           ))}
         </DragModal>,
@@ -1243,9 +1246,12 @@ function AssetsTable(props: AssetsTableProps) {
         grabKeyboardFocus={grabRowKeyboardFocus}
         onClick={onRowClick}
         select={selectRow}
+        labels={labels ?? []}
+        cutAndPaste={cutAndPaste}
         onDragStart={onRowDragStart}
         onDragEnd={onRowDragEnd}
         onDrop={onRowDrop}
+        uploadFiles={uploadFiles}
       />
     )
   })

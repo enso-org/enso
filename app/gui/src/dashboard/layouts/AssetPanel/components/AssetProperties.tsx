@@ -153,8 +153,6 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   })
 
   const { data: labels = [] } = useBackendQuery(backend, 'listTags', [])
-  const { data: users = [] } = useBackendQuery(backend, 'listUsers', [])
-  const { data: userGroups = [] } = useBackendQuery(backend, 'listUserGroups', [])
   const self = permissions.tryFindSelfPermission(user, item.permissions)
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
@@ -166,7 +164,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const isCloud = backend.type === BackendType.remote
   const pathComputed =
     category.type === 'recent' || category.type === 'trash' ? null
-    : isCloud ? computeFullRemotePath(item, users, userGroups)
+    : isCloud ? computeFullRemotePath(item, [], [])
     : item.type === AssetType.project ?
       mapNonNullish(localBackend?.getProjectPath(item.id) ?? null, normalizePath)
     : normalizePath(extractTypeAndId(item.id).id)
