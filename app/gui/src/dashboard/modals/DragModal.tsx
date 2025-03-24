@@ -3,7 +3,7 @@ import { DIALOG_BACKGROUND, Underlay } from '#/components/AriaComponents'
 import { Badge } from '#/components/Badge'
 import Portal from '#/components/Portal'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useSetModal } from '#/providers/ModalProvider'
+import { unsetModal } from '#/providers/ModalProvider'
 import {
   Children,
   startTransition,
@@ -42,35 +42,37 @@ export default function DragModal(props: DragModalProps) {
     onDragEnd: onDragEndRaw,
     ...passthrough
   } = props
-  const { unsetModal } = useSetModal()
   const [left, setLeft] = useState(event.pageX - (offsetPx ?? offsetXPx))
   const [top, setTop] = useState(event.pageY - (offsetPx ?? offsetYPx))
   const onDragEndOuter = useEventCallback(onDragEndRaw)
 
-  useEffect(() => {
-    const onDrag = (dragEvent: MouseEvent) => {
-      if (dragEvent.pageX !== 0 || dragEvent.pageY !== 0) {
-        setLeft(dragEvent.pageX - (offsetPx ?? offsetXPx))
-        setTop(dragEvent.pageY - (offsetPx ?? offsetYPx))
-      }
+  const onDrag = useEventCallback((dragEvent: MouseEvent) => {
+    if (dragEvent.pageX !== 0 || dragEvent.pageY !== 0) {
+      setLeft(dragEvent.pageX - (offsetPx ?? offsetXPx))
+      setTop(dragEvent.pageY - (offsetPx ?? offsetYPx))
     }
+  })
+
+  useEffect(() => {
     const onDragEnd = () => {
       startTransition(() => {
         onDragEndOuter()
         unsetModal()
       })
     }
+
     // Update position (non-FF)
     document.addEventListener('drag', onDrag, { capture: true })
     // Update position (FF)
     document.addEventListener('dragover', onDrag, { capture: true })
     document.addEventListener('dragend', onDragEnd, { capture: true })
+
     return () => {
       document.removeEventListener('drag', onDrag, { capture: true })
       document.removeEventListener('dragover', onDrag, { capture: true })
       document.removeEventListener('dragend', onDragEnd, { capture: true })
     }
-  }, [offsetPx, offsetXPx, offsetYPx, onDragEndOuter, unsetModal])
+  }, [onDragEndOuter, onDrag])
 
   return (
     <Portal>

@@ -35,7 +35,7 @@ import {
   downloadAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useBackendQuery, useNewProject } from '#/hooks/backendHooks'
+import { useNewProject } from '#/hooks/backendHooks'
 import { useUploadFileWithToastMutation } from '#/hooks/backendUploadFilesHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { usePasteData } from '#/providers/DriveProvider'
@@ -71,8 +71,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { asset, state, setRowState } = innerProps
   const { backend, category } = state
 
-  const { data: users = [] } = useBackendQuery(backend, 'listUsers', [])
-  const { data: userGroups = [] } = useBackendQuery(backend, 'listUserGroups', [])
   const getAsset = useGetAsset()
   const canOpenProjects = projectHooks.useCanOpenProjects()
   const { user } = authProvider.useFullUserSession()
@@ -93,7 +91,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const isCloud = categoryModule.isCloudCategory(category)
   const pathComputed =
     category.type === 'recent' || category.type === 'trash' ? null
-    : isCloud ? computeFullRemotePath(asset, users, userGroups)
+    : isCloud ? computeFullRemotePath(asset, [], [])
     : asset.type === backendModule.AssetType.project ?
       mapNonNullish(localBackend?.getProjectPath(asset.id) ?? null, normalizePath)
     : normalizePath(localBackendModule.extractTypeAndId(asset.id).id)
@@ -256,34 +254,44 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             isDisabled={!canOpenProjects}
             tooltip={disabledTooltip}
             doAction={async () => {
-              invariant(localBackend != null, 'Local Backend is null')
-              await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
-              const localProject = await remoteBackend.downloadProject(asset.id)
+              try {
+                invariant(localBackend != null, 'Local Backend is null')
+                await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
+                const localProject = await remoteBackend.downloadProject(asset.id)
 
-              let project
-              for (const parentId of [localProject.targetId, localProject.parentId]) {
-                const assets = await localBackend.listDirectory({
-                  parentId: parentId,
-                  filterBy: null,
-                  labels: null,
-                  recentProjects: false,
-                })
-                project = assets
-                  .filter((item) => item.type === backendModule.AssetType.project)
-                  .at(0)
-                if (project !== undefined) {
-                  break
+                let project
+                for (const parentId of [localProject.targetId, localProject.parentId]) {
+                  const assets = await localBackend.listDirectory({
+                    parentId: parentId,
+                    filterBy: null,
+                    labels: null,
+                    recentProjects: false,
+                  })
+                  project = assets
+                    .filter((item) => item.type === backendModule.AssetType.project)
+                    .at(0)
+                  if (project !== undefined) {
+                    break
+                  }
                 }
-              }
 
-              invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
-              openProject({
-                id: project.id,
-                title: project.title,
-                parentId: project.parentId,
-                type: backendModule.BackendType.local,
-                hybrid: { cloudProjectId: asset.id, parentId: localProject.parentId },
-              })
+                invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
+                openProject({
+                  id: project.id,
+                  title: project.title,
+                  parentId: project.parentId,
+                  type: backendModule.BackendType.local,
+                  hybrid: { cloudProjectId: asset.id, parentId: localProject.parentId },
+                })
+              } catch (error) {
+                toastAndLog('openProjectError', error, asset.title)
+                closeProject({
+                  id: asset.id,
+                  title: asset.title,
+                  parentId: asset.parentId,
+                  type: state.backend.type,
+                })
+              }
             }}
           />
         )}

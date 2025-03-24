@@ -786,6 +786,10 @@ export function duplicateProjectMutationOptions(
   openProject: (project: LaunchedProject) => void,
 ) {
   return mutationOptions({
+    meta: {
+      invalidates: [[backend.type, 'listDirectory']],
+      awaitInvalidates: true,
+    },
     mutationFn: async ([id, originalTitle, parentId, versionId]: [
       id: backendModule.ProjectId,
       originalTitle: string,
