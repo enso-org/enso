@@ -64,7 +64,7 @@ import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useCutAndPaste } from '#/hooks/cutAndPasteHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useIntersectionRatio } from '#/hooks/intersectionHooks'
-import { useOpenProject } from '#/hooks/projectHooks'
+import { useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -212,7 +212,7 @@ function AssetsTable(props: AssetsTableProps) {
   const { initialProjectName } = props
 
   const openedProjects = useLaunchedProjects()
-  const doOpenProject = useOpenProject()
+  const openProjectLocally = useOpenProjectLocally()
   const setCanDownload = useSetCanDownload()
   const setSuggestions = useSetSuggestions()
   const getAsset = useGetAsset()
@@ -558,7 +558,7 @@ function AssetsTable(props: AssetsTableProps) {
 
   const initialProjectNameDeps = useSyncRef({
     items: assets,
-    doOpenProject,
+    openProjectLocally,
     toastAndLog,
   })
 
@@ -570,12 +570,7 @@ function AssetsTable(props: AssetsTableProps) {
       asset.title === initialProjectName || asset.id === initialProjectName
     const projectToLoad = deps.items.filter(assetIsProject).find(isInitialProject)
     if (projectToLoad != null) {
-      deps.doOpenProject({
-        type: BackendType.local,
-        id: projectToLoad.id,
-        title: projectToLoad.title,
-        parentId: projectToLoad.parentId,
-      })
+      deps.openProjectLocally(projectToLoad, BackendType.local)
     } else if (initialProjectName != null) {
       deps.toastAndLog('findProjectError', null, initialProjectName)
     }
@@ -662,12 +657,7 @@ function AssetsTable(props: AssetsTableProps) {
               case AssetType.project: {
                 event.preventDefault()
                 event.stopPropagation()
-                doOpenProject({
-                  type: backend.type,
-                  id: item.id,
-                  title: item.title,
-                  parentId: item.parentId,
-                })
+                openProjectLocally(item, backend.type)
                 break
               }
               case AssetType.datalink: {

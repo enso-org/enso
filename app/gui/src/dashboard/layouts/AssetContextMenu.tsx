@@ -34,12 +34,7 @@ import {
   downloadAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import {
-  useBackendQuery,
-  useNewProject,
-  useOpenProjectLocally,
-  useOpenProjectNatively,
-} from '#/hooks/backendHooks'
+import { useBackendQuery, useNewProject } from '#/hooks/backendHooks'
 import { useUploadFileWithToastMutation } from '#/hooks/backendUploadFilesHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { usePasteData } from '#/providers/DriveProvider'
@@ -89,8 +84,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const setAssetPanelProps = useSetAssetPanelProps()
-  const openProjectNatively = useOpenProjectNatively(backend.type)
-  const openProjectLocally = useOpenProjectLocally(isCloud, backend.type)
+  const openProjectNatively = projectHooks.useOpenProjectNatively()
+  const openProjectLocally = projectHooks.useOpenProjectLocally()
   const closeProject = projectHooks.useCloseProject()
   const deleteAssetsMutation = reactQuery.useMutation(deleteAssetsMutationOptions(backend))
   const restoreAssetsMutation = reactQuery.useMutation(restoreAssetsMutationOptions(backend))
@@ -245,9 +240,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               action="open"
               isDisabled={!canOpenProjects}
               tooltip={disabledTooltip}
-              doAction={async () => {
-                await openProjectLocally(asset)
-              }}
+              doAction={() => openProjectLocally(asset, backend.type)}
             />
           )}
         {asset.type === backendModule.AssetType.project && isCloud && enableHybridExecution && (
@@ -257,7 +250,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             isDisabled={!canOpenProjects}
             tooltip={disabledTooltip}
             doAction={() => {
-              openProjectNatively(asset)
+              openProjectNatively(asset, backend.type)
             }}
           />
         )}

@@ -616,10 +616,10 @@
     },
     "@@rules_rust+//crate_universe:extension.bzl%crate": {
       "general": {
-        "bzlTransitiveDigest": "2bm8JGpVfTeP2/OEWLfaiC0BppLkZjpmq45/K90H3Zw=",
+        "bzlTransitiveDigest": "hCuKz2FMeqFDuYQoH1d3ptMTfAOR4t1WTwnn+cqGoWc=",
         "usagesDigest": "OCn7DjU3x/3XjXO/YKB21T6eWTeB+1aCl/8gG02+fK4=",
         "recordedFileInputs": {
-          "@@rules_rust++rust_host_tools+rust_host_tools//bin/rustc": "b953c69e6f682bf55e39bdd55bdcbd3e1cc0cbdf9dfda24b9c6478ee2c38359b",
+          "@@rules_rust++rust_host_tools+rust_host_tools//bin/rustc": "241027b94ad67beb36d0356f7cc05180daaa9966b2958cfba1d4de089d2e521c",
           "@@//app/rust-ffi/Cargo.toml": "b17bf21f56720ffba5031fdf70296acb53ff018adcf17a8cdcec86b46103d1d8",
           "@@//build_tools/install/config/Cargo.toml": "a6d15eb23a5f90467f680b296fe2e35af904f9ff00ce9530d754c96728288008",
           "@@//lib/rust/parser/debug/fuzz/Cargo.toml": "d93cea0a1b3a5e96ea99d0f57c7a07361b6e3b46afb95dab362e7562d86655d0",
@@ -651,7 +651,7 @@
           "@@//lib/rust/prelude/Cargo.toml": "d247be5470788ea62ada9fcc9aeb65be876c77fc7a0689a660c43b266bd6c504",
           "@@+_repo_rules+wasm_bindgen_cli_crate//Cargo.toml": "40b1c540eed2e2031f1622391be27ec7f28ddea710447f078c5f2fd245ef2750",
           "@@//lib/rust/metamodel/Cargo.toml": "20f5bb60a5c394ee059eecf25bcf5d3dd15151600e50cbc069c1e4fdb77d7ab9",
-          "@@rules_rust++rust_host_tools+rust_host_tools//bin/cargo": "be459aeefa634aa6693a9a4741cfa4d63dd8a50af2d1a8ff221b7565e7eb4e4c"
+          "@@rules_rust++rust_host_tools+rust_host_tools//bin/cargo": "35099f3b7b9497b3ae95aa00886ac6839343488e5cdb958e69c16c9b58c3afb2"
         },
         "recordedDirentsInputs": {},
         "envVariables": {
