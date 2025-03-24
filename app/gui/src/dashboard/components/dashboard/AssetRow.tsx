@@ -38,7 +38,7 @@ import {
   useRestoreAssetsMutationState,
 } from '#/hooks/backendBatchedHooks'
 import { useBackendMutationState } from '#/hooks/backendHooks'
-import { CLOSED_PROJECT_STATES } from '#/hooks/projectHooks'
+import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useAsset, useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
@@ -490,7 +490,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
 
               if (
                 asset.type === backendModule.AssetType.project &&
-                !CLOSED_PROJECT_STATES.has(asset.projectState.type)
+                BUSY_PROJECT_STATES.has(asset.projectState.type)
               ) {
                 event.preventDefault()
               }
