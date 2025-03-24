@@ -113,6 +113,10 @@ const isEmpty = computed(
   () => directories.value?.length === 0 && files.value?.length === 0 && editedAsset.value == null,
 )
 
+function fileExists(title: string) {
+  return files.value?.some((file) => file.title === title)
+}
+
 // === Prefetching ===
 
 watch(directories, (directories) => {
@@ -124,6 +128,8 @@ watch(directories, (directories) => {
 })
 
 // === Interactivity ===
+
+const askForOverwrite = ref(false)
 
 function enterDir(dir: DirectoryAsset) {
   directoryStack.value.push(dir)
@@ -148,11 +154,17 @@ function chooseFile(file: FileAsset | DatalinkAsset) {
   }
 }
 
+function tryAcceptCurrentFile() {
+  if (fileExists(filenameInputContents.value) && props.writeMode) {
+    askForOverwrite.value = true
+  } else {
+    acceptCurrentFile()
+  }
+}
+
 function acceptCurrentFile() {
   if (currentFilePath.value) {
     emit('pathAccepted', currentFilePath.value)
-  } else {
-    return false
   }
 }
 
@@ -252,11 +264,12 @@ const renameAction: Action = {
 }
 
 function overwriteConfirmed() {
-  console.log('overwriteConfirmed')
+  askForOverwrite.value = false
+  acceptCurrentFile()
 }
 
 function overwriteCancelled() {
-  console.log('overwriteCancelled')
+  askForOverwrite.value = false
 }
 
 // === Initialization ===
@@ -352,13 +365,13 @@ onMounted(() => {
         @keydown.delete.stop
         @keydown.arrow-left.stop
         @keydown.arrow-right.stop
-        @keydown.enter.stop="acceptCurrentFile()"
+        @keydown.enter.stop="tryAcceptCurrentFile"
       />
       <SvgButton
         class="fileNameAcceptButton"
         label="Ok"
         :disabled="!filenameInputContents"
-        @click.stop="acceptCurrentFile"
+        @click.stop="tryAcceptCurrentFile"
       />
     </div>
   </div>
