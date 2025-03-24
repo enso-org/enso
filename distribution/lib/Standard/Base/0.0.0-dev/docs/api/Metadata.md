@@ -1,7 +1,7 @@
 ## Enso Signatures 1.0
 ## module Standard.Base.Metadata
 - type Choice
-    - Option label:Standard.Base.Data.Text.Text value:Standard.Base.Data.Text.Text= parameters:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)= icon:Standard.Base.Data.Text.Text=
+    - Option label:Standard.Base.Data.Text.Text value:(Standard.Base.Data.Text.Text|Standard.Base.Any.Any)= parameters:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)= icon:Standard.Base.Data.Text.Text=
 - type Display
     - Always
     - Expanded_Only

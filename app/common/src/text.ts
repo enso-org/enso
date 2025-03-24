@@ -46,6 +46,9 @@ interface PlaceholderOverrides {
   readonly couldNotInviteUser: [userEmail: string]
   readonly filesWithoutConflicts: [fileCount: number]
   readonly projectsWithoutConflicts: [projectCount: number]
+  readonly resolveDuplicatesTitleMany: [conflictingFileCount: number]
+  readonly resolveDuplicatesDescriptionMany: [conflictingFileCount: number]
+  readonly assetWillBeRenamed: [assetName: string]
   readonly andOtherFiles: [fileCount: number]
   readonly andOtherProjects: [projectCount: number]
   readonly emailIsNotAValidEmail: [userEmail: string]
@@ -212,6 +215,13 @@ export function resolveUserLanguage() {
  */
 export function getDictionary(language: Language) {
   return TEXTS[language]
+}
+
+/**
+ * Resolves the dictionary for the user's preferred language.
+ */
+export function resolveDictionary() {
+  return getDictionary(resolveUserLanguage())
 }
 
 /**

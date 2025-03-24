@@ -42,11 +42,17 @@
   for large datasets.
 - [Disable heatmap and histogram viz][12475].
 - [Component Browser displays short summary of component's documentation][12459]
+- [Fixed color picker for selected nodes][12508]
 - [Updated Top Bar actions menu and made zoom controls always visible.][12496]
 - [Warning and Error messages does not obstruct output port][12482] - they
   become semi-transparent on port hover and pass all mouse interactions.
 - [For some types, Component Browser display special "suggestions" group][12477]
+- [Nested dropdowns are supported for Selection widget.][12548]
 - [Native Image mode is now on by default][12515]
+- [join_kind dropdown has icons to show how joins work][12502]
+- [Output port ‘plus’ button is hidden if there are existing outgoing
+  connections][12576]
+- [Navigate up button for file browser and collapsed components][12603]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -73,10 +79,15 @@
 [12272]: https://github.com/enso-org/enso/pull/12272
 [12475]: https://github.com/enso-org/enso/pull/12475
 [12459]: https://github.com/enso-org/enso/pull/12459
+[12508]: https://github.com/enso-org/enso/pull/12508
 [12496]: https://github.com/enso-org/enso/pull/12496
 [12482]: https://github.com/enso-org/enso/pull/12482
 [12477]: https://github.com/enso-org/enso/pull/12477
+[12548]: https://github.com/enso-org/enso/pull/12548
 [12515]: https://github.com/enso-org/enso/pull/12515
+[12502]: https://github.com/enso-org/enso/pull/12502
+[12576]: https://github.com/enso-org/enso/pull/12576
+[12603]: https://github.com/enso-org/enso/pull/12603
 
 #### Enso Standard Library
 
@@ -104,6 +115,8 @@
 - [Added Table.generate_rows][12413]
 - [Added Regex_match to filter. Added Column.regex_match. Support for
   regex_match in the expression language][12492]
+- [Added `add_group_number` for Postgres and SQLite.][12574]
+- [Added `add_group_number` for Snowflake and SQLServer.][12590]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
@@ -123,6 +136,8 @@
 [12345]: https://github.com/enso-org/enso/pull/12345
 [12413]: https://github.com/enso-org/enso/pull/12413
 [12492]: https://github.com/enso-org/enso/pull/12492
+[12574]: https://github.com/enso-org/enso/pull/12574
+[12590]: https://github.com/enso-org/enso/pull/12590
 
 #### Enso Language & Runtime
 
@@ -140,6 +155,8 @@
 - [Use fn... to reference any module function][12128]
 - [Improve error message for mismatched named argument application][12238]
 - [Registering a value as multiple managed resources is now an error.][12395]
+- [An operator block now applies to the whole preceding expression][12505],
+  rather than the last term on the line.
 
 [11777]: https://github.com/enso-org/enso/pull/11777
 [11600]: https://github.com/enso-org/enso/pull/11600
@@ -153,6 +170,7 @@
 [12128]: https://github.com/enso-org/enso/pull/12128
 [12238]: https://github.com/enso-org/enso/pull/12238
 [12395]: https://github.com/enso-org/enso/pull/12395
+[12505]: https://github.com/enso-org/enso/pull/12505
 
 # Enso 2024.5
 
@@ -271,6 +289,7 @@
 - [Added `Download_Mode` parameter to `Data.download`.][12017]
 - [Added `Table.geo_distance` to calculate the distance between two
   points.][12393]
+- [The reload button clears the Enso Cloud request cache.][12526]
 
 [11235]: https://github.com/enso-org/enso/pull/11235
 [11255]: https://github.com/enso-org/enso/pull/11255
@@ -284,6 +303,7 @@
 [11811]: https://github.com/enso-org/enso/pull/11811
 [12017]: https://github.com/enso-org/enso/pull/12017
 [12393]: https://github.com/enso-org/enso/pull/12393
+[12526]: https://github.com/enso-org/enso/pull/12526
 
 #### Enso Language & Runtime
 
