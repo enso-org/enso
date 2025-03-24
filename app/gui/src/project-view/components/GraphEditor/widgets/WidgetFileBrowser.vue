@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import {
-  CustomDropdownItemsKey,
-  type CustomDropdownItem,
-} from '@/components/GraphEditor/widgets/WidgetSelection.vue'
+import { CustomDropdownItemsKey } from '@/components/GraphEditor/widgets/WidgetSelection.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
@@ -13,6 +10,7 @@ import { ArgumentInfoKey } from '@/util/callTree'
 import { ProjectPath, printAbsoluteProjectPath } from '@/util/projectPath'
 import { computed } from 'vue'
 import { TextLiteral, type QualifiedName } from 'ydoc-shared/ast'
+import { CustomDropdownItem } from './WidgetSelection/tags'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()

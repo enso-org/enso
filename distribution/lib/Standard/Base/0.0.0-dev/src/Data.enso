@@ -1,5 +1,4 @@
 import project.Any.Any
-import project.Data.Dictionary.Dictionary
 import project.Data.Download.Download_Mode.Download_Mode
 import project.Data.Pair.Pair
 import project.Data.Read.Many_Files_List.Many_Files_List
@@ -17,7 +16,7 @@ import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Internal.Data_Read_Helpers
-import project.Internal.Telemetry.Telemetry
+import project.Internal.Telemetry
 import project.Meta
 import project.Network.HTTP.Cache_Policy.Cache_Policy
 import project.Network.HTTP.Header.Header
@@ -100,11 +99,13 @@ read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Prob
         file_obj = File.new path
         if file_obj.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `Data.list`.") else
             file_content = file_obj.read format on_problems
-            metadata = Dictionary.empty
-                . insert "size" file_obj.size
-                . insert "extension" file_obj.extension
-            logged = Telemetry.log "Data.read" "read from file" metadata
-            if logged.is_error then file_content else file_content
+            file_content.if_not_error <|
+                case file_obj.is_data_link of
+                    True ->
+                        Telemetry.log "Data.read" "Read file: file_type={}, data_link={}" [file_obj.to Meta.Type . name, True]
+                    False ->
+                        Telemetry.log "Data.read" "Read file: size={}, extension={}, file_type={}, data_link={}" [file_obj.size, file_obj.extension, file_obj.to Meta.Type . name, False]
+                file_content
 
 ## ALIAS load, open
    GROUP Input
@@ -160,7 +161,10 @@ read_many (paths : Many_Files_List = Missing_Argument.throw "paths") format=Auto
         loaded_objects = paths.paths_to_load.map on_problems=No_Wrap.Value path->
             Data.read path format on_problems . catch Any error->
                 Failed_To_Load.Warning path error
-        return_as.make_return paths loaded_objects on_problems
+        result = return_as.make_return paths loaded_objects on_problems
+        result.if_not_error <|
+            Telemetry.log "Data.read_many" "Read files: count={}, output={}" [paths.paths_to_load.length, result.to Meta.Type . name]
+            result
 
 ## ALIAS load text, open text
    GROUP Input
@@ -251,7 +255,10 @@ read_text path=(Missing_Argument.throw "path") (encoding : Encoding = Encoding.d
 list : Text | File -> Text -> Boolean -> Vector File
 list (directory=enso_project.root) (name_filter:Text="") recursive:Boolean=False =
     file_obj = File.new directory
-    file_obj.list name_filter=name_filter recursive=recursive . sort on=.path
+    file_list = file_obj.list name_filter=name_filter recursive=recursive . sort on=.path
+    file_list.if_not_error <|
+        Telemetry.log "Data.list" "List folder: count={}, recursive={}, filtered={}, file_type={}" [file_list.length, recursive, name_filter != "", file_obj.to Meta.Type . name]
+        file_list
 
 ## ALIAS download, http get
    GROUP Input

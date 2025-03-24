@@ -13,17 +13,26 @@ aggregation of logs from multiple components. This service can be started with
 one of the main components, allowing other components to connect to it. The
 service aggregates all logs in one place for easier analysis of the interaction
 between components. Components can also log to console or files directly without
-involving the centralized logging service.
+involving the centralized logging service. For more information about this
+architecture, see [Logging server](#logging-server).
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Configuration](#configuration)
   - [Custom Log Levels](#custom-log-levels)
   - [Appenders](#appenders)
+    - [Project Manager](#project-manager)
+    - [Engine runner](#engine-runner)
     - [Format](#format)
     - [File](#file-appender)
     - [Network](#socket-appender)
     - [Sentry.io](#sentry-appender)
+- [Logging server](#logging-server)
+- [Telemetry](#telemetry)
+  - [Logger namespace](#logger-namespace)
+  - [LogEvent format](#logevent-format)
+  - [Transforming LogEvent to HTTP POST request](#transforming-logevent-to-http-post-request)
+  - [Log level](#log-level)
 - [JVM Architecture](#jvm-architecture)
   - [SLF4J Interface](#slf4j-interface)
   - [Setting Up Logging](#setting-up-logging)
@@ -148,20 +157,25 @@ The appenders are defined by the `logging-service.appenders`. Currently only a
 single appender can be selected at a time, although additional
 [logging to file](#logging-to-file) is supported. The selection may also be done
 via an environmental variable but it depends on which component we are
-executing.
+executing:
 
-- `project-manager` - project manager by default starts a centralized logging
-  server that collects logs (as defined in `logging-service.server` config key)
-  and the logs output can be overwritten by `ENSO_LOGSERVER_APPENDER` env
-  variable
-- `ensoup` or `enso` - the default log output can be overwritten by defining the
-  `ENSO_APPENDER_DEFAULT` env variable
+#### Project Manager
+
+Project manager by default starts a centralized logging server that collects
+logs (as defined in `logging-service.server` config key) and the logs output can
+be overwritten by `ENSO_LOGSERVER_APPENDER` env variable
 
 For example, for the project manager to output to `console` one simply executes
 
 ```
 ENSO_LOGSERVER_APPENDER=console ./project-manager
 ```
+
+#### Engine runner
+
+When executing the engine runner component, i.e., CLI usage, via `ensoup` or
+`enso`, the default log output can be overwritten by defining the
+`ENSO_APPENDER_DEFAULT` env variable
 
 #### Format
 
@@ -256,6 +270,131 @@ provided via an environment variable `ENSO_APPENDER_SENTRY_DSN`. `flush-timeout`
 determines how often logger should send its collected events to sentry.io
 service. If `debug` value is `true`, logging will print to stdout additional
 trace information of the logging process itself.
+
+## Logging server
+
+The following section describes the _logging server_ architecture when user
+opens a project from IDE. In CLI mode (i.e. running `enso --run script.enso`),
+there is no _logging server_ - see [Engine runner appender](#engine-runner).
+
+The centralized logging service is implemented as a logging server started by
+the
+[Project Manager](https://github.com/enso-org/enso/blob/c47dba1d108e0d52e401333d1b6f6f4182436aa7/lib/scala/project-manager/src/main/scala/org/enso/projectmanager/boot/ProjectManager.scala#L326-L345).
+The implementation of logging server is in
+[org.enso.logging.service.logback.LoggingServer](https://github.com/enso-org/enso/blob/da6a6ae9dde9c0cef02c1d07be5e03660b40d086/lib/scala/logging-service-logback/src/main/java/org/enso/logging/service/logback/LoggingServer.java).
+The logging server
+[listens](https://github.com/enso-org/enso/blob/da6a6ae9dde9c0cef02c1d07be5e03660b40d086/lib/scala/logging-service-logback/src/main/java/org/enso/logging/service/logback/SocketServer.java#L56)
+to clients that connect via a socket. The client is, for example, language
+server that is started as a subprocess by the project manager. The clients use
+[org.enso.logging.service.logback.DeferredProcessingSocketAppender](https://github.com/enso-org/enso/blob/566d3d503e35ccf8c363facd590d1332683bce3a/lib/scala/logging-service-logback/src/main/java/org/enso/logging/service/logback/DeferredProcessingSocketAppender.java)
+to send log events to the logging server. The logging server then properly
+dispatches the received logging event to all the appenders in
+[SocketLoggingNode](https://github.com/enso-org/enso/blob/3e0b4dd7413e45373dc4ac26f124ee6aedffd50c/lib/scala/logging-service-logback/src/main/java/org/enso/logging/service/logback/SocketLoggingNode.java#L87-L94).
+
+## Telemetry
+
+Telemetry gathers anonymized, yet still useful information about the environment
+Enso IDE operates at. Such metadata (not user data) are send to the Enso cloud
+to improve planning and further help to optimize Enso user experience.
+
+Telemetry events are just logging messages in a special format. Using logging
+infrastructure makes it easy to collect telemetry from all possible sources -
+engine, standard libraries, language server and project manager. All the
+telemetry events are visible in our OpenSearch dashboard. To properly send
+telemetry logs to the cloud, the used logger and the log message must conform to
+the specification described below.
+
+Note that the telemetry is collected only when running Enso via
+[Project Manager](#project-manager). In CLI mode, when running via
+[Engine runner](#engine-runner), no telemetry is collected.
+
+### Logger namespace
+
+To send telemetry data to our cloud endpoint, a logger inside
+`org.enso.telemetry` namespace must be used. To create such a logger from Java,
+use something like this:
+
+```java
+var logger = org.slf4j.LoggerFactory.getLogger("org.enso.telemetry.MyLogger");
+```
+
+To create this logger in Enso, use:
+
+```
+polyglot java import org.slf4j.LoggerFactory
+logger = LoggerFactory.getLogger "org.enso.telemetry.MyLogger"
+```
+
+### LogEvent format
+
+The format of the message passed to the logger is important. If it does not
+follow this specification, it will not be forwarded to the cloud endpoint. The
+message consist of two parts: `message` and `arguments` delimited by a colon:
+`<message>: <arguments>`. The `message` part is a string that describes the
+event. The `arguments` part is a mapping of `name={}` pairs separated by a
+comma. Note that for the compatibility with standard `ch.qos.logback` appenders,
+it is important that the value of argument is `{}`. The actual argument values
+are passed to the message as argument array via
+`ILoggingEvent.getArgumentArray()` method. Number of these arguments must match
+number of the arguments given in the message.
+
+An example in Java is:
+
+```java
+logger.trace("MyEvent: name={}, age={}", "John", 42);
+```
+
+In Enso, one has to use
+[org.slf4j.spi.LoggingEventBuilder](https://github.com/qos-ch/slf4j/blob/master/slf4j-api/src/main/java/org/slf4j/spi/LoggingEventBuilder.java)
+like this:
+
+```
+event_bldr = logger.atTrace
+event_bldr.setMessage "MyEvent: name={}, age={}"
+event_bldr.addArgument "John"
+event_bldr.addArgument 42
+event_bldr.log
+```
+
+The reason for that is that the `trace` method accepts vararg and there is no
+way to pass a vararg arguments from Enso to Java. Note that this is a Truffle
+API limitation, not something that could be fixed on Enso side.
+
+### Transforming LogEvent to HTTP POST request
+
+If the LogEvent has the correct aforementioned format, it is delegated to the
+`TelemetryAppender` that is responsible for sending HTTP POST requests
+asynchronously to the cloud endpoint. The payload of the message looks roughly
+like this:
+
+```json
+{
+  "message": "MyEvent",
+  "metadata": {
+    "loggerName": "org.enso.telemetry.MyLogger",
+    "name": "John",
+    "age": 42
+  }
+}
+```
+
+The actual format expected by the cloud is defined at
+[logs/endpoints/remote.rs](https://github.com/enso-org/cloud-v2/blob/main/src/lambdas/src/lambdas/logs/endpoints/remote.rs#L169).
+
+If the format of the LogEvent violates the specification, a warning will be ...
+warning in the logs, and nothing will be sent.
+
+### Log level
+
+TelemetryAppender is enabled by default for all logging levels. If you wish to
+send telemetry event only to the TelemetryAppender, use `TRACE` level. If you
+use `DEBUG` level, it will, by default, be also send to the FileAppender. If you
+use `INFO` level, it will, by default, be also send to the FileAppender and
+ConsoleAppender.
+
+Note that changing the log level for the `org.enso.telemetry` namespace, either
+via `application.conf` or via system property, will not affect the Telemetry
+Appender. The Telemetry Appender is always enabled for all log levels.
 
 ## JVM Architecture
 
@@ -408,7 +547,7 @@ examples, full user manual is available at SLF4J's
 
 ## Log a simple INFO message
 
-```
+```java
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -423,7 +562,7 @@ public class HelloWorld {
 
 ## Log a simple INFO message only if TRACE is enabled
 
-```
+```java
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -440,7 +579,7 @@ public class HelloWorld {
 
 ## Log an exception
 
-```
+```java
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -448,7 +587,7 @@ public class HelloWorld {
 
   public static void main(String[] args) {
     Logger logger = LoggerFactory.getLogger(HelloWorld.class);
-    Throwable ex = new RuntimeException("foo")
+    Throwable ex = new RuntimeException("foo");
     logger.error("Hello World", ex);
   }
 }
@@ -457,3 +596,20 @@ public class HelloWorld {
 Note that in order for the full stacktrace to be printed, pattern in the desired
 appender must not contain `%nopex` formatting key. See [formatting](#format) for
 details.
+
+## Log a telemetry event
+
+```java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class HelloWorld {
+
+  public static void main(String[] args) {
+    Logger logger = LoggerFactory.getLogger("org.enso.telemetry.My.SuperCool.TelemetryLogger");
+    logger.trace("This is a telemetry message: arg1={}, arg2={}", "foo", 42);
+  }
+}
+```
+
+See [Telemetry](#telemetry) section for more details.

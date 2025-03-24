@@ -90,8 +90,9 @@ parse_line line =
     Vector.build existing_entries->
         current_entry = Java_String_Builder.new
         next_entry =
-            existing_entries.append current_entry.toString
-            current_entry.setLength 0
+            current_str = current_entry.toString
+            existing_entries.append current_str
+            current_entry.delete 0 current_str.length
         characters = line.characters
         go ix is_escape = case ix>=characters.length of
             True ->

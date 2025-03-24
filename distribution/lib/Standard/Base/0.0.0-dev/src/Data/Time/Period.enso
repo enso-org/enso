@@ -143,7 +143,6 @@ type Period
              import Standard.Base.Data.Time.Period
 
              example_subtract = (Period.new years=3) - (Period.new months=11)
-
     - : Period -> Period ! (Time_Error | Illegal_Argument)
     - self other_period =
         ensure_period other_period <|

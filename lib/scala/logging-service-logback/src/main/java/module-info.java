@@ -1,11 +1,11 @@
 import org.enso.logger.ObservedMessage.Service;
 import org.enso.logging.config.LoggerSetup;
-import org.enso.logging.service.logback.LogbackObservingImpl;
-import org.enso.logging.service.logback.LogbackSetup;
 
 module org.enso.logging.service.logback {
+  requires java.net.http;
   requires ch.qos.logback.classic;
   requires ch.qos.logback.core;
+  requires com.fasterxml.jackson.databind;
   requires sentry;
   requires sentry.logback;
   requires org.enso.logging.service;
@@ -17,7 +17,7 @@ module org.enso.logging.service.logback {
   exports org.enso.logging.service.logback;
 
   provides LoggerSetup with
-      LogbackSetup;
+      org.enso.logging.service.logback.LogbackSetup;
   provides Service with
-      LogbackObservingImpl;
+      org.enso.logging.service.logback.LogbackObservingImpl;
 }
