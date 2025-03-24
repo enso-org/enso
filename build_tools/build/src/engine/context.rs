@@ -757,6 +757,12 @@ pub async fn runner_sanity_test(
             .run_ok()
             .await;
 
+        let test_generic_jdbc = Command::new(&enso)
+            .args(["--run", repo_root.test.join("Generic_JDBC_Tests").as_str()])
+            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
+            .run_ok()
+            .await;
+
         let all_cmds = test_base
             .and(test_internal_base)
             .and(test_table)
@@ -766,6 +772,7 @@ pub async fn runner_sanity_test(
             .and(test_tableau)
             .and(test_geo)
             .and(test_image);
+            .and(test_generic_jdbc);
 
         // The following test does not actually run anything, it just checks if the engine
         // can accept `--jvm` argument and evaluates something.

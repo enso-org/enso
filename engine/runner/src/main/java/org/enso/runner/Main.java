@@ -1344,21 +1344,12 @@ public class Main {
    * @return true, if project should be launched in JVM mode, false otherwise
    */
   private boolean isJvmModeEnabled(CommandLine line) {
-    var it = line.iterator();
-    String target = null;
-    while (target == null && it.hasNext()) {
-      var opt = it.next();
-      if (opt.getLongOpt().equals("run")) target = opt.getValue();
-    }
-    if (target != null) {
-      return jvmEnabledInProject(target);
-    } else {
+    var target = line.getOptionValue(RUN_OPTION);
+    if (target == null) {
       return false;
     }
-  }
 
-  private boolean jvmEnabledInProject(String runPath) {
-    var f = new File(runPath);
+    var f = new File(target);
     // Guess project's root directory
     File configFile = null;
     while (configFile == null && f != null) {
@@ -1570,10 +1561,6 @@ public class Main {
         throw exitFail(e.getMessage());
       }
     }
-  }
-
-  protected String getLanguageId() {
-    return LanguageInfo.ID;
   }
 
   /**
