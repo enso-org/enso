@@ -198,6 +198,12 @@ final class IRNodeClassGenerator {
     return fieldCollector.collectFields();
   }
 
+  private String ctorBinaryName() {
+    var ctor = generatedClassContext.getProcessedClass().getCtor();
+    var clazz = (TypeElement) ctor.getEnclosingElement();
+    return processingEnv.getElementUtils().getBinaryName(clazz).toString();
+  }
+
   /**
    * Returns string representation of the class fields. Meant to be at the beginning of the class
    * body.
@@ -205,11 +211,29 @@ final class IRNodeClassGenerator {
   private String fieldsCode() {
     var userDefinedFields =
         generatedClassContext.getUserFields().stream()
-            .map(field -> "private final " + field.getSimpleTypeName() + " " + field.getName())
-            .collect(Collectors.joining(";" + System.lineSeparator()));
+            .map(
+                field ->
+                    """
+                ${comment}
+                private final ${type} ${name};
+                """
+                        .replace("${comment}", commentForField(field))
+                        .replace("${type}", field.getSimpleTypeName())
+                        .replace("${name}", field.getName()))
+            .collect(Collectors.joining(System.lineSeparator()));
+    var comment =
+        """
+        /**
+         * Section with user-defined fields. These fields are generated from
+         * {@link ${ctor} annotated constructor}.
+         */
+        """
+            .replace("${ctor}", ctorBinaryName());
     var code =
         """
-        $userDefinedFields;
+        ${comment}
+        ${userDefinedFields};
+        // === End of user-defined fields ===
         // The following meta fields cannot be private, as we are explicitly
         // setting them in the `duplicate` method. Inheritor should not access
         // these fields directly
@@ -218,8 +242,37 @@ final class IRNodeClassGenerator {
         protected IdentifiedLocation location;
         protected UUID id;
         """
-            .replace("$userDefinedFields", userDefinedFields);
+            .replace("${comment}", comment)
+            .replace("${userDefinedFields}", userDefinedFields);
     return code;
+  }
+
+  private String commentForField(Field field) {
+    var ctor = generatedClassContext.getProcessedClass().getCtor();
+    var matchingCtorParam =
+        ctor.getParameters().stream()
+            .filter(param -> param.getSimpleName().toString().equals(field.getName()))
+            .findFirst();
+    String matchingCtorInfo;
+    if (matchingCtorParam.isPresent()) {
+      var ctorParam = matchingCtorParam.get();
+      matchingCtorInfo = "{@code " + ctorParam + "}";
+    } else {
+      matchingCtorInfo = "{@code " + field.getName() + "}";
+    }
+    var isChild = "" + field.isChild();
+    var isNullable = "" + field.isNullable();
+    return """
+        /**
+         * Created from ${matchingCtorInfo}.
+         * <p> - isNullable: ${isNullable}.
+         * <p> - isChild: ${isChild}.
+         */
+        """
+        .replace("${isChild}", isChild)
+        .replace("${isNullable}", isNullable)
+        .replace("${matchingCtorInfo}", matchingCtorInfo)
+        .stripTrailing();
   }
 
   /**

@@ -277,7 +277,7 @@ public final class MapExpressionsMethodGenerator {
     }
     var code =
         """
-        ${newVarType} ${newVarName} = null;
+        ${newVarType} ${newVarName} = Option.empty();
         if (${fieldName} == null) {
           throw new IllegalStateException(
             "Child of type scala.Option must not be null. But field "
