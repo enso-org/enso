@@ -1,4 +1,4 @@
-load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen_toolchain")
+load("@rrwb//:defs.bzl", "rust_wasm_bindgen_toolchain")
 
 rust_wasm_bindgen_toolchain(
     name = "windows_cli_impl",
@@ -9,8 +9,8 @@ toolchain(
     name = "cli",
     toolchain = select({
         "@rules_rust//rust/platform:x86_64-pc-windows-msvc": "windows_cli_impl",
-        "//conditions:default": "@rules_rust_wasm_bindgen//:default_wasm_bindgen_toolchain_impl",
+        "//conditions:default": "@rrwb//:default_wasm_bindgen_toolchain_impl",
     }),
-    toolchain_type = "@rules_rust_wasm_bindgen//:toolchain_type",
+    toolchain_type = "@rrwb//:toolchain_type",
     visibility = ["//visibility:public"]
 )

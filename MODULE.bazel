@@ -93,37 +93,38 @@ use_repo(crate, "crates")
 ####################
 ### WASM BINDGEN ###
 ####################
-bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.59.2")
+bazel_dep(name = "rules_rust_wasm_bindgen", repo_name="rrwb", version = "0.59.2")
+register_toolchains("@rrwb//:default_wasm_bindgen_toolchain")
 
-WASM_BINDGEN_VERSION = "0.2.100"
+# WASM_BINDGEN_VERSION = "0.2.100"
 
-wb_crates = use_extension("@rules_rust//crate_universe:extension.bzl", "crate")
-wb_crates.from_cargo(
-    name = "wb_crates",
-    supported_platform_triples = [
-        "aarch64-apple-darwin",
-        "x86_64-pc-windows-msvc",
-        "x86_64-unknown-linux-gnu",
-        "x86_64-apple-darwin"
-    ],
-    cargo_config = "//:.cargo/config.toml",
-    cargo_lockfile = "@wasm_bindgen_cli_crate//:Cargo.lock",
-    manifests = ["@wasm_bindgen_cli_crate//:Cargo.toml"],
-    isolated = False,
-)
-use_repo(wb_crates, "wb_crates")
+# wb_crates = use_extension("@rules_rust//crate_universe:extension.bzl", "crate")
+# wb_crates.from_cargo(
+#     name = "wb_crates",
+#     supported_platform_triples = [
+#         "aarch64-apple-darwin",
+#         "x86_64-pc-windows-msvc",
+#         "x86_64-unknown-linux-gnu",
+#         "x86_64-apple-darwin"
+#     ],
+#     cargo_config = "//:.cargo/config.toml",
+#     cargo_lockfile = "@wasm_bindgen_cli_crate//:Cargo.lock",
+#     manifests = ["@wasm_bindgen_cli_crate//:Cargo.toml"],
+#     isolated = False,
+# )
+# use_repo(wb_crates, "wb_crates")
 
-http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-http_archive(
-    name = "wasm_bindgen_cli_crate",
-    build_file = "//toolchains/wasm_bindgen:BUILD.wasm-bindgen-cli.bazel",
-    integrity = "sha256-nn8G9BWAyHtvT4QXbQM/CcCDjbFSOo0YmQZLU8u5LFk=",
-    strip_prefix = "wasm-bindgen-cli-{}".format(WASM_BINDGEN_VERSION),
-    type = "tar.gz",
-    urls = ["https://static.crates.io/crates/wasm-bindgen-cli/wasm-bindgen-cli-{}.crate".format(WASM_BINDGEN_VERSION)],
-)
+# http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+# http_archive(
+#     name = "wasm_bindgen_cli_crate",
+#     build_file = "//toolchains/wasm_bindgen:BUILD.wasm-bindgen-cli.bazel",
+#     integrity = "sha256-nn8G9BWAyHtvT4QXbQM/CcCDjbFSOo0YmQZLU8u5LFk=",
+#     strip_prefix = "wasm-bindgen-cli-{}".format(WASM_BINDGEN_VERSION),
+#     type = "tar.gz",
+#     urls = ["https://static.crates.io/crates/wasm-bindgen-cli/wasm-bindgen-cli-{}.crate".format(WASM_BINDGEN_VERSION)],
+# )
 
-register_toolchains("//toolchains/wasm_bindgen:cli")
+# register_toolchains("//toolchains/wasm_bindgen:cli")
 
 ###########
 ### JVM ###
