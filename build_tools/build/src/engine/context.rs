@@ -24,7 +24,6 @@ use crate::project::ProcessWrapper;
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::actions::workflow::MessageLevel;
 use ide_ci::cache;
-use ide_ci::cache::goodie::graalvm::locate_graal;
 use ide_ci::github::release::IsReleaseExt;
 use ide_ci::platform::DEFAULT_SHELL;
 use ide_ci::programs::java::JAVA_HOME;
