@@ -12,6 +12,7 @@ import javax.lang.model.element.TypeElement;
 import org.enso.runtime.parser.processor.field.Field;
 import org.enso.runtime.parser.processor.field.FieldCollector;
 import org.enso.runtime.parser.processor.methodgen.BuilderMethodGenerator;
+import org.enso.runtime.parser.processor.methodgen.ChildrenMethodGenerator;
 import org.enso.runtime.parser.processor.methodgen.CopyMethodGenerator;
 import org.enso.runtime.parser.processor.methodgen.DuplicateMethodGenerator;
 import org.enso.runtime.parser.processor.methodgen.EqualsMethodGenerator;
@@ -35,6 +36,7 @@ final class IRNodeClassGenerator {
   private final GeneratedClassContext generatedClassContext;
   private final DuplicateMethodGenerator duplicateMethodGenerator;
   private final CopyMethodGenerator copyMethodGenerator;
+  private final ChildrenMethodGenerator childrenMethodGenerator;
   private final SetLocationMethodGenerator setLocationMethodGenerator;
   private final BuilderMethodGenerator builderMethodGenerator;
   private final MapExpressionsMethodGenerator mapExpressionsMethodGenerator;
@@ -76,6 +78,7 @@ final class IRNodeClassGenerator {
     this.duplicateMethodGenerator =
         new DuplicateMethodGenerator(duplicateMethod, generatedClassContext);
     this.copyMethodGenerator = new CopyMethodGenerator(generatedClassContext);
+    this.childrenMethodGenerator = new ChildrenMethodGenerator(generatedClassContext);
     this.builderMethodGenerator = new BuilderMethodGenerator(generatedClassContext);
     var mapExpressionsMethod =
         Utils.findMapExpressionsMethod(processedClass.getIrInterfaceElem(), processingEnv);
@@ -326,58 +329,6 @@ final class IRNodeClassGenerator {
     return sb.toString();
   }
 
-  private String childrenMethodBody() {
-    var sb = new StringBuilder();
-    var nl = System.lineSeparator();
-    sb.append("var list = new ArrayList<IR>();").append(nl);
-    generatedClassContext.getUserFields().stream()
-        .filter(Field::isChild)
-        .forEach(
-            childField -> {
-              String addToListCode;
-              if (childField.isList()) {
-                addToListCode =
-                    """
-                    $childName.foreach(list::add);
-                    """
-                        .replace("$childName", childField.getName());
-              } else if (childField.isOption()) {
-                addToListCode =
-                    """
-                    if ($childName.isDefined()) {
-                      list.add($childName.get());
-                    }
-                    """
-                        .replace("$childName", childField.getName());
-              } else if (childField.isPersistanceReference()) {
-                addToListCode =
-                    """
-                    list.add(${childName}.get(${childType}.class));
-                    """
-                        .replace("${childName}", childField.getName())
-                        .replace("${childType}", childField.getTypeParameter().getSimpleName());
-              } else {
-                addToListCode = "list.add(" + childField.getName() + ");";
-              }
-
-              var childName = childField.getName();
-              if (childField.isNullable()) {
-                sb.append(
-                    """
-                if ($childName != null) {
-                  $addToListCode
-                }
-                """
-                        .replace("$childName", childName)
-                        .replace("$addToListCode", addToListCode));
-              } else {
-                sb.append(addToListCode).append(nl);
-              }
-            });
-    sb.append("return scala.jdk.javaapi.CollectionConverters.asScala(list).toList();").append(nl);
-    return indent(sb.toString(), 2);
-  }
-
   /**
    * Returns a String representing all the overriden methods from {@code org.enso.compiler.core.IR}.
    * Meant to be inside the generated record definition.
@@ -401,17 +352,14 @@ final class IRNodeClassGenerator {
           }
         }
 
-        $setLocationMethod
+        ${setLocationMethod}
 
         @Override
         public IdentifiedLocation identifiedLocation() {
           return this.location;
         }
 
-        @Override
-        public scala.collection.immutable.List<IR> children() {
-        $childrenMethodBody
-        }
+        ${childrenMethod}
 
         @Override
         public @Identifier UUID getId() {
@@ -442,11 +390,12 @@ final class IRNodeClassGenerator {
           }
         }
 
-        $duplicateMethods
+        ${duplicateMethods}
         """
-            .replace("$childrenMethodBody", childrenMethodBody())
-            .replace("$setLocationMethod", setLocationMethodGenerator.generateMethodCode())
-            .replace("$duplicateMethods", duplicateMethodGenerator.generateDuplicateMethodsCode());
+            .replace("${childrenMethod}", childrenMethodGenerator.generateCode())
+            .replace("${setLocationMethod}", setLocationMethodGenerator.generateMethodCode())
+            .replace(
+                "${duplicateMethods}", duplicateMethodGenerator.generateDuplicateMethodsCode());
     return code;
   }
 
@@ -482,11 +431,5 @@ final class IRNodeClassGenerator {
 
   private String mapExpressions() {
     return mapExpressionsMethodGenerator.generateMapExpressionsMethodCode();
-  }
-
-  private static String indent(String code, int indentation) {
-    return code.lines()
-        .map(line -> " ".repeat(indentation) + line)
-        .collect(Collectors.joining(System.lineSeparator()));
   }
 }
