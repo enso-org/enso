@@ -1784,7 +1784,7 @@ add_column_operation_specs suite_builder setup =
 
             group_builder.specify "map and zip" <|
                 data.t.at "a" . map (x -> x + 1) . name . should_equal "a"
-                data.t.at "a" . zip (data.t.at "b") [_, _] . name . should_equal "[a] x [b]"
+                data.t.at "a" . to_vector . zip (data.t.at "b" . to_vector) [_, _] . name . should_equal "[a] x [b]"
 
     suite_builder.group prefix+"(Column_Operations_Spec) Column.rename" group_builder->
         group_builder.specify "should not allow illegal names" <|
