@@ -1,6 +1,7 @@
 package org.enso.runner;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -628,6 +629,7 @@ public class Main {
             authors,
             nil(),
             "",
+            Option$.MODULE$.empty(),
             Option$.MODULE$.empty());
     throw exitSuccess();
   }
@@ -1341,6 +1343,108 @@ public class Main {
     System.err.println(msg);
   }
 
+  /**
+   * Checks if JVM mode should be enabled in a project defined by arguments, based on a project's
+   * config file, if any.
+   *
+   * @param line parsed command line arguments
+   * @return true, if project should be launched in JVM mode, false otherwise
+   */
+  private boolean isJvmModeEnabled(CommandLine line) {
+    var target = line.getOptionValue(RUN_OPTION);
+    if (target == null) {
+      return false;
+    }
+
+    var f = new File(target);
+    // Guess project's root directory
+    File configFile = null;
+    while (configFile == null && f != null) {
+      var testFile = f.toPath().resolve(org.enso.pkg.Config.ensoPackageConfigName());
+      if (testFile.toFile().exists()) {
+        configFile = testFile.toFile();
+      } else {
+        f = f.getParentFile();
+      }
+    }
+    if (configFile == null) {
+      return false;
+    } else {
+      try (FileReader fileReader = new FileReader(configFile)) {
+        return org.enso.pkg.Config.fromYaml(fileReader)
+            .map(c -> c.jvm().getOrElse(() -> false))
+            .getOrElse(() -> false);
+      } catch (IOException e) {
+        return false;
+      }
+    }
+  }
+
+  private void launchJvm(
+      CommandLine line, Map<String, String> props, File component, String javaPath)
+      throws IOException, InterruptedException {
+    var commandAndArgs = new ArrayList<String>();
+    commandAndArgs.add(javaPath);
+    var jvmOptions = System.getenv("JAVA_OPTS");
+    if (jvmOptions != null) {
+      for (var op : jvmOptions.split(" ")) {
+        if (op.isEmpty()) {
+          continue;
+        }
+        commandAndArgs.add(op);
+      }
+    }
+    var assertsOn = false;
+    assert assertsOn = true;
+    if (assertsOn) {
+      commandAndArgs.add("-ea");
+    }
+    if (props != null) {
+      for (var e : props.entrySet()) {
+        commandAndArgs.add("-D" + e.getKey() + "=" + e.getValue());
+      }
+    }
+    commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
+    commandAndArgs.add("--module-path");
+    if (!component.isDirectory()) {
+      throw new IOException("Cannot find " + component + " directory");
+    }
+    commandAndArgs.add(component.getPath());
+    commandAndArgs.add("-m");
+    commandAndArgs.add("org.enso.runner/org.enso.runner.Main");
+    var it = line.iterator();
+    while (it.hasNext()) {
+      var op = it.next();
+      if (JVM_OPTION.equals(op.getLongOpt())) {
+        continue;
+      }
+      if (SYSTEM_PROPERTY.equals(op.getLongOpt())) {
+        continue;
+      }
+      var longName = op.getLongOpt();
+      if (longName != null) {
+        commandAndArgs.add("--" + longName);
+      } else {
+        commandAndArgs.add("-" + op.getOpt());
+      }
+      var values = op.getValuesList();
+      if (values != null) {
+        commandAndArgs.addAll(values);
+      }
+    }
+    commandAndArgs.addAll(line.getArgList());
+    var pb = new ProcessBuilder();
+    pb.inheritIO();
+    pb.command(commandAndArgs);
+    var p = pb.start();
+    var exitCode = p.waitFor();
+    if (exitCode == 0) {
+      throw exitSuccess();
+    } else {
+      throw doExit(exitCode);
+    }
+  }
+
   private void launch(String[] args) throws IOException, InterruptedException, URISyntaxException {
     var line = preprocessArguments(args);
 
@@ -1354,7 +1458,9 @@ public class Main {
       component = new File(component, "component");
     }
     assert checkOutdatedLauncher(new File(loc.toURI()), component) || true;
-    if (line.hasOption(JVM_OPTION)) {
+    var hasJVMOption = line.hasOption(JVM_OPTION);
+    var jvmInProjectEnforced = isJvmModeEnabled(line);
+    if (hasJVMOption || jvmInProjectEnforced) {
       var jvm = line.getOptionValue(JVM_OPTION);
       var current = System.getProperty("java.home");
       if (jvm == null) {
@@ -1362,75 +1468,24 @@ public class Main {
       }
       var shouldLaunchJvm = current == null || !current.equals(jvm);
       if (!shouldLaunchJvm) {
-        stderr(JVM_OPTION + " option has no effect - already running in JVM " + current);
+        if (hasJVMOption) {
+          stderr(JVM_OPTION + " option has no effect - already running in JVM " + current);
+        }
       } else {
-        var commandAndArgs = new ArrayList<String>();
         if (jvm == null) {
           var javaExe = JavaFinder.findJavaExecutable();
           if (javaExe == null) {
-            throw exitFail("Cannot find java executable");
-          }
-          commandAndArgs.add(javaExe);
-        } else {
-          commandAndArgs.add(new File(new File(new File(jvm), "bin"), "java").getAbsolutePath());
-        }
-        var jvmOptions = System.getenv("JAVA_OPTS");
-        if (jvmOptions != null) {
-          for (var op : jvmOptions.split(" ")) {
-            if (op.isEmpty()) {
-              continue;
-            }
-            commandAndArgs.add(op);
-          }
-        }
-        var assertsOn = false;
-        assert assertsOn = true;
-        if (assertsOn) {
-          commandAndArgs.add("-ea");
-        }
-        if (props != null) {
-          for (var e : props.entrySet()) {
-            commandAndArgs.add("-D" + e.getKey() + "=" + e.getValue());
-          }
-        }
-        commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
-        commandAndArgs.add("--module-path");
-        if (!component.isDirectory()) {
-          throw new IOException("Cannot find " + component + " directory");
-        }
-        commandAndArgs.add(component.getPath());
-        commandAndArgs.add("-m");
-        commandAndArgs.add("org.enso.runner/org.enso.runner.Main");
-        var it = line.iterator();
-        while (it.hasNext()) {
-          var op = it.next();
-          if (JVM_OPTION.equals(op.getLongOpt())) {
-            continue;
-          }
-          if (SYSTEM_PROPERTY.equals(op.getLongOpt())) {
-            continue;
-          }
-          var longName = op.getLongOpt();
-          if (longName != null) {
-            commandAndArgs.add("--" + longName);
+            // Try your best if `jvm` mode enabled in a project
+            if (!jvmInProjectEnforced) throw exitFail("Cannot find java executable");
           } else {
-            commandAndArgs.add("-" + op.getOpt());
+            launchJvm(line, props, component, javaExe);
           }
-          var values = op.getValuesList();
-          if (values != null) {
-            commandAndArgs.addAll(values);
-          }
-        }
-        commandAndArgs.addAll(line.getArgList());
-        var pb = new ProcessBuilder();
-        pb.inheritIO();
-        pb.command(commandAndArgs);
-        var p = pb.start();
-        var exitCode = p.waitFor();
-        if (exitCode == 0) {
-          throw exitSuccess();
         } else {
-          throw doExit(exitCode);
+          launchJvm(
+              line,
+              props,
+              component,
+              new File(new File(new File(jvm), "bin"), "java").getAbsolutePath());
         }
       }
     }
@@ -1526,10 +1581,6 @@ public class Main {
         throw exitFail(e.getMessage());
       }
     }
-  }
-
-  protected String getLanguageId() {
-    return LanguageInfo.ID;
   }
 
   /**

@@ -162,6 +162,10 @@ const actions = {
     description: 'Decrease Zoom',
     icon: 'minus',
   },
+  'graph.navigateUp': {
+    description: 'Navigate Up',
+    icon: 'navigate_up',
+  },
 } satisfies Record<string, Action>
 
 /**

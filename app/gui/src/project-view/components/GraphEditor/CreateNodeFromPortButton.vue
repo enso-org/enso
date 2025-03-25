@@ -21,9 +21,9 @@ const props = defineProps<{ portId: AstId }>()
 
 <style scoped>
 .CreateNodeFromPortButton {
-  --radius: 6px;
+  --radius: 10px;
   --maskSize: calc(var(--radius) * 2);
-  --strokeWidth: 1.5px;
+  --strokeWidth: 2px;
   --leftOffset: 16px;
   --topOffset: 40px;
   --color-dimmed: color-mix(in oklab, var(--color-node-primary) 60%, white 40%);

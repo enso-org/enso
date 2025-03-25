@@ -3,7 +3,7 @@ import * as Y from 'yjs'
 import { ensoMarkdownParser, ensoStandardMarkdownParser } from './ensoMarkdown'
 import { xxHash128 } from './ffi'
 import type { ConcreteChild, RawConcreteChild } from './print'
-import { ensureUnspaced, firstChild, preferUnspaced, unspaced } from './print'
+import { firstChild, preferUnspaced, unspaced } from './print'
 import { Token, TokenType } from './token'
 import type { ConcreteRefs, DeepReadonly, DocLine, TextToken } from './tree'
 
@@ -19,7 +19,7 @@ export function* docLineToConcrete(
   let extraIndent = ''
   for (const { token } of docLine.docs.elements) {
     if (token.node.tokenType_ === TokenType.Newline) {
-      yield ensureUnspaced(token, false)
+      yield preferUnspaced(token)
     } else {
       if (prevType === TokenType.Newline) {
         yield { whitespace: token.whitespace ?? indent + extraIndent, node: token.node }

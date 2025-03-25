@@ -297,6 +297,7 @@ type SQLServer_Dialect
             Feature.Union -> True
             Feature.Aggregate -> True
             Feature.Offset -> True
+            Feature.Add_Group_Number -> True
             _ -> False
 
     ## PRIVATE

@@ -300,8 +300,9 @@ public abstract class InvokeMethodNode extends BaseNode {
   private PanicException methodNotFound(UnresolvedSymbol symbol, Object self)
       throws PanicException {
     var cause = onBoundary ? UnknownIdentifierException.create(symbol.getName()) : null;
-    var payload = EnsoContext.get(this).getBuiltins().error().makeNoSuchMethod(self, symbol);
-    throw new PanicException(payload, cause, this);
+    var ctx = EnsoContext.get(this);
+    var payload = ctx.getBuiltins().error().makeNoSuchMethod(self, symbol);
+    throw new PanicException(ctx, payload, cause, this);
   }
 
   @Specialization

@@ -10,14 +10,14 @@ import {
 } from 'react'
 
 import * as aria from '#/components/aria'
+import { Tooltip, TooltipTrigger } from '#/components/AriaComponents/Tooltip'
+import { useVisualTooltip } from '#/components/AriaComponents/VisualTooltip'
+import { Icon as IconComponent } from '#/components/Icon'
+import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
 import { useContextProps } from '../../hooks/useContextProps'
-import { Icon as IconComponent } from '../../Icon'
-import { StatelessSpinner } from '../../StatelessSpinner'
 import { useDialogContext } from '../Dialog'
-import { Tooltip, TooltipTrigger } from '../Tooltip'
-import { useVisualTooltip } from '../VisualTooltip'
 import { ButtonGroup, ButtonGroupJoin } from './ButtonGroup'
 import {
   ButtonContext,
@@ -350,7 +350,7 @@ const ButtonContent = memo(function ButtonContent(props: ButtonContentProps) {
         styles={styles}
         hideLoader={hideLoader}
       />
-      <span className={styles.text()}>{children}</span>
+      {children}
       {hasAddon(addonEnd) && <div className={styles.addonEnd()}>{addonEnd}</div>}
     </>
   )

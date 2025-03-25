@@ -7,6 +7,7 @@ from Standard.Base.Metadata.Widget import Single_Choice
 import project.Connection.Connection.Connection
 import project.Connection.Connection_Details.Connection_Details
 import project.Connection.Connection_Options.Connection_Options
+import project.Internal.Telemetry
 from project.Errors import SQL_Error
 
 polyglot java import org.enso.database.DatabaseConnectionDetailsSPI
@@ -21,9 +22,13 @@ polyglot java import org.enso.database.DatabaseConnectionDetailsSPI
 @details connection_details_widget
 @options Connection_Options.default_widget
 connect : Connection_Details -> Connection_Options -> Connection ! SQL_Error
-connect details options:Connection_Options=..Value = case details of
-    _ : Function -> (resolve_constructor details) . connect options
-    _ -> details.connect options
+connect details options:Connection_Options=..Value =
+    result = case details of
+        _ : Function -> (resolve_constructor details) . connect options
+        _ -> details.connect options
+    result.if_not_error <|
+        Telemetry.log "Database.connect" "Database connection opened: connection_type={}" [result.to Meta.Type . name]
+        result
 
 ## PRIVATE
 connection_details_widget : Widget

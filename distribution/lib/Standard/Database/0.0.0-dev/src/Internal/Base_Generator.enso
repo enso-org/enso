@@ -587,7 +587,8 @@ make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 the
         SQL_Builder.code "ORDER BY " ++ SQL_Builder.join ", " ordering
     row_number_minus_1 = SQL_Builder.code "((row_number() over (" ++ ordering_part ++ ")) - 1)"
     group_size = SQL_Builder.code "(((count(*) over ()) + (" ++ group_count.paren ++ " - 1)) / " ++ group_count.paren ++ ")"
-    SQL_Builder.code "(((" ++ row_number_minus_1 ++ " / " ++ group_size ++ " + 1) * " ++ step.paren ++ ") + " ++ offset.paren ++ ")"
+    base_value = SQL_Builder.code "(" ++ row_number_minus_1 ++ " / " ++ group_size ++ " + 1)"
+    SQL_Builder.code "((" ++ base_value.paren ++ " * " ++ step.paren ++ ") + " ++ offset.paren ++ ")"
 
 ## PRIVATE
    A helper for `lookup_and_replace`, and perhaps other operation.

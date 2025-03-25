@@ -30,6 +30,7 @@ polyglot java import org.enso.base.cache.DiskSpaceGetter
 polyglot java import org.enso.base.cache.LRUCache
 polyglot java import org.enso.base.cache.LRUCacheSettings
 polyglot java import org.enso.base.cache.NowGetter
+polyglot java import org.enso.base.cache.ReloadDetector
 polyglot java import org.enso.base.cache.TotalCacheLimit
 polyglot java import org.enso.base.enso_cloud.EnsoSecretHelper
 
@@ -175,7 +176,7 @@ add_specs suite_builder =
             with_lru_cache lru_cache action
 
         fake_reload =
-            EnsoSecretHelper.getOrCreateCache.getLRUCache.simulateReloadTestOnly
+            ReloadDetector.simulateReloadTestOnly get_lru_cache
 
         url0 = base_url_with_slash+'test_download?max-age=16&length=10'
         url1 = base_url_with_slash+'test_download?max-age=16&length=20'

@@ -34,18 +34,6 @@ const STATUS_NOT_AUTHORIZED = 401
 /** HTTP status indicating that authorized user doesn't have access to the given resource */
 const STATUS_NOT_ALLOWED = 403
 
-const TYPE_TO_EXTENSION: Record<backend.AssetType, string> = {
-  directory: '/',
-  project: '.project',
-  secret: '.secret',
-  datalink: '.datalink',
-  file: '',
-  specialEmpty: '',
-  specialError: '',
-  specialLoading: '',
-  specialUp: '',
-}
-
 /** The format of all errors returned by the backend. */
 interface RemoteBackendError {
   readonly type: string
@@ -181,20 +169,6 @@ export function parentsPathsToPath(
   if (userGroup) {
     return `enso://Teams/${userGroup.groupName}${virtualParentsPathWithPrefix}`
   }
-}
-
-/** Convert a {@link backend.ParentsPath} and a {@link backend.VirtualParentsPath} to a full path. */
-export function computeFullRemotePath(
-  asset: Pick<backend.AnyAsset, 'parentsPath' | 'title' | 'type' | 'virtualParentsPath'>,
-  users: readonly backend.UserInfo[],
-  userGroups: readonly backend.UserGroupInfo[],
-) {
-  const { title, type, parentsPath, virtualParentsPath } = asset
-  const directoryPath = parentsPathsToPath(parentsPath, virtualParentsPath, users, userGroups)
-  if (directoryPath == null) {
-    return
-  }
-  return `${directoryPath}/${title}${TYPE_TO_EXTENSION[type]}`
 }
 
 /** HTTP response body for the "list users" endpoint. */
@@ -638,6 +612,9 @@ export default class RemoteBackend extends Backend {
         .map((asset) =>
           object.merge(asset, {
             permissions: [...(asset.permissions ?? [])].sort(backend.compareAssetPermissions),
+            ...(asset.ensoPath != null ?
+              { ensoPathValue: backend.EnsoPathValue(String(encodeURI(asset.ensoPath))) }
+            : {}),
           }),
         )
         .map((asset) => this.dynamicAssetUser(asset))
@@ -1555,7 +1532,10 @@ export default class RemoteBackend extends Backend {
     }
     const details = await this.getProjectDetails(id, true)
 
-    invariant(details.url != null, 'The download URL of the project must be present.')
+    if (details.url == null) {
+      this.logger.error(`Project ${id} details missing download URL.`)
+      return this.throw(null, 'getProjectDetailsBackendError')
+    }
 
     const queryString = new URLSearchParams({
       downloadUrl: details.url,

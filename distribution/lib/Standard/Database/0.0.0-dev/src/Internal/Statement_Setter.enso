@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
+from Standard.Base.Data.Decimal import get_big_decimal
 
 from Standard.Table import Value_Type
 
@@ -40,7 +41,7 @@ fill_hole_default stmt i type_hint value = case value of
             big_decimal = NumericConverter.bigIntegerAsBigDecimal value
             stmt.setBigDecimal i big_decimal
         False -> stmt.setLong i value
-    _ : Decimal   -> stmt.setBigDecimal i value.big_decimal
+    _ : Decimal   -> stmt.setBigDecimal i (get_big_decimal value)
     _ : Float     -> stmt.setDouble i value
     _ : Text      -> stmt.setString i value
     _ : Date_Time ->

@@ -153,7 +153,7 @@ make_filter_condition_selector table display:Display=..Always cache=Nothing =
             builder.append (Option "..Less" parameters=[["than", column_chooser]])
             builder.append (Option "..Equal_Or_Less" parameters=[["than", column_chooser]])
             builder.append (Option "..Greater" parameters=[["than", column_chooser]])
-            builder.append (Option ".Equal_Or_Greater" parameters=[["than", column_chooser]])
+            builder.append (Option "..Equal_Or_Greater" parameters=[["than", column_chooser]])
             builder.append (Option "..Between" parameters=[["lower", column_chooser], ["upper", column_chooser]])
 
         if include_text then
@@ -162,7 +162,7 @@ make_filter_condition_selector table display:Display=..Always cache=Nothing =
             builder.append (Option "..Ends_With" parameters=[["suffix", column_chooser]])
             builder.append (Option "..Contains" parameters=[["substring", column_chooser]])
             builder.append (Option "..Like" parameters=[["pattern", column_chooser]])
-            builder.append (Option "..Regex_Match" parameters=[["pattern", regex_chooser]])
+            builder.append (Option "..Regex_Match" "..Regex_Match (regex '.*')" parameters=[["pattern", regex_chooser]])
 
         builder.append (Option "..Is_Nothing")
         builder.append (Option "..Not_Nothing")

@@ -429,6 +429,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
       category,
       backend: associatedBackend,
       parentId: targetId,
+      refetchInterval: null,
     }),
     select: (data) => {
       // We use titles as keys, because they are always unique, and we want to find duplicates by title.
