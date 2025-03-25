@@ -21,10 +21,6 @@ import type { FallbackProps } from 'react-error-boundary'
 import { Icon } from './Icon'
 import SvgMask from './SvgMask'
 
-// =====================
-// === ErrorBoundary ===
-// =====================
-
 /** Arguments for the {@link ErrorBoundaryProps.onBeforeFallbackShown} callback. */
 export interface OnBeforeFallbackShownArgs {
   readonly error: unknown

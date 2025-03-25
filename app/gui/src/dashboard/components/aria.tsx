@@ -16,10 +16,6 @@ export {
   type TooltipTriggerState,
 } from 'react-stately'
 
-// ==================
-// === mergeProps ===
-// ==================
-
 /**
  * Merges multiple props objects together.
  * Event handlers are chained, classNames are combined, and ids are deduplicated -

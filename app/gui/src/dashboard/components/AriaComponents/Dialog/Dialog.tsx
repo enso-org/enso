@@ -161,10 +161,6 @@ const TRANSITION: Spring = {
   mass: 3,
 }
 
-// ==============
-// === Dialog ===
-// ==============
-
 /** Props for the {@link Dialog} component. */
 export interface DialogProps
   extends types.DialogProps,

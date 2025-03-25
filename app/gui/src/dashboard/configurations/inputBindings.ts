@@ -36,10 +36,6 @@ import * as inputBindings from '#/utilities/inputBindings'
 
 export type * from '#/utilities/inputBindings'
 
-// ======================
-// === Input bindings ===
-// ======================
-
 /** The type of the keybind and mousebind namespace for the dashboard. */
 export type DashboardBindingNamespace = ReturnType<typeof createBindings>
 

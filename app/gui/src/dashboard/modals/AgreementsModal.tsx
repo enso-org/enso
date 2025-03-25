@@ -9,10 +9,6 @@ import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
 
-// =================
-// === Constants ===
-// =================
-
 const TEN_MINUTES_MS = 600_000
 const TOS_SCHEMA = z.object({ versionHash: z.string() })
 const PRIVACY_POLICY_SCHEMA = z.object({ versionHash: z.string() })
@@ -49,10 +45,6 @@ export const latestPrivacyPolicyQueryOptions = queryOptions({
   refetchInterval: TEN_MINUTES_MS,
 })
 
-// ============================
-// === Global configuration ===
-// ============================
-
 declare module '#/utilities/LocalStorage' {
   /** Metadata containing the version hash of the terms of service that the user has accepted. */
   interface LocalStorageData {
@@ -63,10 +55,6 @@ declare module '#/utilities/LocalStorage' {
 
 LocalStorage.registerKey('termsOfService', { schema: TOS_SCHEMA })
 LocalStorage.registerKey('privacyPolicy', { schema: PRIVACY_POLICY_SCHEMA })
-
-// =======================
-// === AgreementsModal ===
-// =======================
 
 /** Modal for accepting the terms of service. */
 export function AgreementsModal() {

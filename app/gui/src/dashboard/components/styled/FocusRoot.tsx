@@ -8,10 +8,6 @@ import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import * as aria from '#/components/aria'
 import * as withFocusScope from '#/components/styled/withFocusScope'
 
-// =================
-// === FocusRoot ===
-// =================
-
 /** Props passed to the inner handler of a {@link FocusRoot}. */
 export interface FocusRootInnerProps {
   readonly ref: React.RefCallback<HTMLElement | SVGElement | null>

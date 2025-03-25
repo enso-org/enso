@@ -27,16 +27,8 @@ import * as object from '#/utilities/object'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 
-// ================
-// === Newtypes ===
-// ================
-
 /** Create a {@link chat.MessageId}. */
 const MessageId = newtype.newtypeConstructor<chat.MessageId>()
-
-// =================
-// === Constants ===
-// =================
 
 // TODO[sb]: Consider associating a project with a thread
 // (and providing a button to jump to the relevant project).
@@ -65,10 +57,6 @@ const MAX_MESSAGE_INPUT_LINES = 10
  */
 const MAX_MESSAGE_HISTORY = 25
 
-// ==========================
-// === ChatDisplayMessage ===
-// ==========================
-
 /** Information needed to display a chat message. */
 interface ChatDisplayMessage {
   readonly id: chat.MessageId
@@ -88,10 +76,6 @@ interface ChatDisplayMessage {
   readonly editedTimestamp: number | null
 }
 
-// ==========================
-// === makeNewThreadTitle ===
-// ==========================
-
 /** Returns an auto-generated thread title. */
 function makeNewThreadTitle(threads: chat.ThreadData[]) {
   const threadTitleNumbers = threads
@@ -99,10 +83,6 @@ function makeNewThreadTitle(threads: chat.ThreadData[]) {
     .flatMap((match) => (match != null ? parseInt(match[1] ?? '0', 10) : []))
   return `${DEFAULT_THREAD_TITLE} ${Math.max(0, ...threadTitleNumbers) + 1}`
 }
-
-// ===================
-// === ReactionBar ===
-// ===================
 
 /** Props for a {@link ReactionBar}. */
 export interface ReactionBarProps {
@@ -148,10 +128,6 @@ function ReactionBar(props: ReactionBarProps) {
   )
 }
 
-// =================
-// === Reactions ===
-// =================
-
 /** Props for a {@link Reactions}. */
 export interface ReactionsProps {
   readonly reactions: chat.ReactionSymbol[]
@@ -173,10 +149,6 @@ function Reactions(props: ReactionsProps) {
     )
   }
 }
-
-// ===================
-// === ChatMessage ===
-// ===================
 
 /** Props for a {@link ChatMessage}. */
 export interface ChatMessageProps {
@@ -238,10 +210,6 @@ function ChatMessage(props: ChatMessageProps) {
     </div>
   )
 }
-
-// ==================
-// === ChatHeader ===
-// ==================
 
 /** Props for a {@Link ChatHeader}. */
 interface InternalChatHeaderProps {
@@ -382,10 +350,6 @@ function ChatHeader(props: InternalChatHeaderProps) {
     </>
   )
 }
-
-// ============
-// === Chat ===
-// ============
 
 /** Props for a {@link Chat}. */
 export interface ChatProps {

@@ -26,7 +26,6 @@ polyglot java import org.enso.base.Stream_Utils as JStream_Utils
 polyglot java import org.enso.base.file_system.File_Utils as JFile_Utils
 polyglot java import org.enso.base.CompareException as JCompareException
 polyglot java import org.enso.base.ObjectComparator as JObjectComparator
-
 polyglot java import org.enso.base.cache.DiskSpaceGetter
 polyglot java import org.enso.base.cache.NowGetter
 polyglot java import org.enso.base.cache.ReloadDetector

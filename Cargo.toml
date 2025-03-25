@@ -122,7 +122,7 @@ tokio-util = { version = "0.7.10", features = ["full"] }
 tracing = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 walkdir = { version = "2.5.0" }
-wasm-bindgen = { version = "0.2.99", default-features = false }
+wasm-bindgen = { version = "0.2.100", default-features = false }
 wasm-bindgen-test = { version = "0.3.49" }
 windows = { version = "0.52.0", features = ["Win32_UI", "Win32_UI_Shell", "Win32_System_LibraryLoader", "Win32_System_Com"] }
 winreg = { version = "0.52.0" }
