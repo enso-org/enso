@@ -71,7 +71,6 @@ type Type
         @Tail_Call Meta_Helpers.get_short_type_name_builtin c
 
     ## ADVANCED
-       GROUP Metadata
        ICON find
 
        Finds type specified by fully qualified name. Searches
