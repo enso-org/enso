@@ -205,6 +205,11 @@ const config = [
   ...pluginVue.configs['flat/recommended'],
   ...vueTsEslintConfig(),
   {
+    linterOptions: {
+      reportUnusedDisableDirectives: 'error',
+    },
+  },
+  {
     // files: ['{**,src}/*.{vue,js,jsx,cjs,mjs,ts,tsx,cts,mts}'],
     languageOptions: {
       parserOptions: {
@@ -285,6 +290,10 @@ const config = [
   },
 
   // === Dashboard Rules ===
+  {
+    ...reactRefresh.configs.vite,
+    files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
+  },
   {
     files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
     settings: {
@@ -603,10 +612,9 @@ const config = [
       '**/configuration/*',
       '**/index.ts',
     ],
-    plugins: { 'react-compiler': reactCompiler, 'react-refresh': reactRefresh },
+    plugins: { 'react-compiler': reactCompiler },
     rules: {
       'react-compiler/react-compiler': 'error',
-      'react-refresh/only-export-components': 'error',
     },
   },
   // === Index Files ===
