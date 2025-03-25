@@ -35,5 +35,5 @@ public abstract class FromPolyglotArrayBuiltinVectorNode extends Node {
     var ctx = EnsoContext.get(this);
     throw new PanicException(
         ctx.getBuiltins().error().makeTypeError("polyglot array", arr, "array"), this);
-    }
+  }
 }
