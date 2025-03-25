@@ -40,7 +40,6 @@ import java.io.File
 import java.util
 import java.util.UUID
 import java.util.function.Consumer
-import java.util.logging.Level
 import scala.jdk.OptionConverters._
 
 /** A job that ensures that specified files are compiled.
@@ -168,8 +167,7 @@ class EnsureCompiledJob(
       ) { case ((modules, statuses), module) =>
         compile(module) match {
           case Left(err) =>
-            ctx.executionService.getLogger
-              .log(Level.SEVERE, s"Compilation error in ${module.getName}", err)
+            logger.error(s"Compilation error in ${module.getName}", err)
             sendFailureUpdate(
               Api.ExecutionResult.Failure(
                 err.getMessage,
@@ -294,8 +292,7 @@ class EnsureCompiledJob(
         !compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)
         || idMapOpt.isDefined
       ) {
-        ctx.executionService.getLogger
-          .log(Level.FINEST, s"Compiling ${module.getName}.")
+        logger.trace(s"Compiling ${module.getName}.")
         val compiler = ctx.executionService.getContext.getCompiler
 
         idMapOpt.foreach { idMap =>
@@ -484,8 +481,7 @@ class EnsureCompiledJob(
       UpsertVisualizationJob.upsertVisualization(visualization)
     }
     if (invalidatedVisualizations.nonEmpty) {
-      ctx.executionService.getLogger.log(
-        Level.FINEST,
+      logger.trace(
         "Invalidated visualizations [{}]",
         invalidatedVisualizations.map(_.id)
       )
@@ -689,8 +685,8 @@ object EnsureCompiledJob {
             .flatMap { module =>
               val path = java.util.Optional.ofNullable(module.getPath)
               if (path.isEmpty) {
-                ctx.executionService.getLogger
-                  .severe(s"${module.getName} module path is empty")
+                logger
+                  .error(s"${module.getName} module path is empty")
               }
               path
             }

@@ -3,8 +3,6 @@ package org.enso.interpreter.instrument.job
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 
-import java.util.logging.Level
-
 /** A job responsible for starting background jobs processing. */
 final class StartBackgroundProcessingJob()
     extends Job[Unit](
@@ -19,13 +17,14 @@ final class StartBackgroundProcessingJob()
 }
 
 object StartBackgroundProcessingJob {
+  private def logger: org.slf4j.Logger =
+    org.slf4j.LoggerFactory.getLogger(getClass)
 
   /** Start background jobs execution. */
   def startBackgroundJobs()(implicit ctx: RuntimeContext): Unit = {
     val jobsStarted = ctx.jobControlPlane.startBackgroundJobs()
     if (jobsStarted) {
-      ctx.executionService.getLogger
-        .log(Level.FINE, "Background jobs started")
+      logger.debug("Background jobs started")
       ctx.endpoint.sendToClient(
         Api.Response(Api.BackgroundJobsStartedNotification())
       )

@@ -13,7 +13,6 @@ import org.enso.text.editing.EditorOps
 
 import java.io.File
 import java.util.UUID
-import java.util.logging.Level
 
 /** A job responsible for refactoring renaming operation.
   *
@@ -35,14 +34,12 @@ final class RefactoringRenameJob(
 
   /** @inheritdoc */
   override def runImpl(implicit ctx: RuntimeContext): Seq[File] = {
-    val logger = ctx.executionService.getLogger
     ctx.locking.withReadCompilationLock(
       this.getClass,
       () =>
         try {
-          logger.log(
-            Level.FINE,
-            s"Renaming symbol [{0}]...",
+          logger.debug(
+            s"Renaming symbol [{}]...",
             expressionId
           )
           val refactoredFile = applyRefactoringEdits()
@@ -82,6 +79,9 @@ final class RefactoringRenameJob(
         }
     )
   }
+
+  private def logger: org.slf4j.Logger =
+    org.slf4j.LoggerFactory.getLogger(classOf[RefactoringRenameJob])
 
   private def applyRefactoringEdits()(implicit ctx: RuntimeContext): File = {
     val module = ctx.executionService.getContext
