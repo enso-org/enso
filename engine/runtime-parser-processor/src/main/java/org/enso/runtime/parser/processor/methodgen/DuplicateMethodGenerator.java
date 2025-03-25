@@ -225,7 +225,7 @@ public class DuplicateMethodGenerator {
     return """
           $childListType $dupName = null;
           if ($childName != null) {
-            $childName.map(child -> {
+            $dupName = $childName.map(child -> {
               IR dupChild = child.duplicate($parameterNames);
               if (!(dupChild instanceof $childType)) {
                 throw new IllegalStateException("Duplicated child is not of the expected type: " + dupChild);
