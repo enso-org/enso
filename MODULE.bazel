@@ -59,7 +59,7 @@ crate.from_cargo(
         "wasm32-unknown-unknown",
         "x86_64-pc-windows-msvc",
         "x86_64-unknown-linux-gnu",
-        "x86_64-apple-darwin"
+        "x86_64-apple-darwin",
     ],
     cargo_config = "//:.cargo/config.toml",
     cargo_lockfile = "//:Cargo.lock",
