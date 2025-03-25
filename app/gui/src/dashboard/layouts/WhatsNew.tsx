@@ -1,23 +1,15 @@
 /** @file Community updates for the app. */
-import * as React from 'react'
-
 import BookImage from '#/assets/book.png'
 import Logo from '#/assets/enso_logo_large.svg'
 import IntegrationsImage from '#/assets/integrations.png'
 import YoutubeIcon from '#/assets/youtube.svg'
 import { Button, Text } from '#/components/AriaComponents'
-
-import * as textProvider from '#/providers/TextProvider'
-
 import SvgMask from '#/components/SvgMask'
-
-// ================
-// === WhatsNew ===
-// ================
+import { useText } from '#/providers/TextProvider'
 
 /** Community updates for the app. */
-export default function WhatsNew() {
-  const { getText } = textProvider.useText()
+export function WhatsNew() {
+  const { getText } = useText()
 
   return (
     <div className="flex w-full flex-col">

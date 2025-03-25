@@ -36,7 +36,6 @@ import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
-import { useRefetchDirectories } from '#/layouts/Drive/fetchDirectoriesHooks'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -101,15 +100,11 @@ function DashboardInner(props: DashboardProps) {
   const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
 
   const categoriesAPI = useCategoriesAPI()
-
-  useRefetchDirectories(backendModule.BackendType.local)
-  useRefetchDirectories(backendModule.BackendType.remote)
-
   const page = usePage()
-
   const setPage = useSetPage()
+
   const openEditor = projectHooks.useOpenEditor()
-  const openProject = projectHooks.useOpenProject()
+  const openProjectLocally = projectHooks.useOpenProjectLocally()
   const closeProject = projectHooks.useCloseProject()
   const closeAllProjects = projectHooks.useCloseAllProjects()
   const clearLaunchedProjects = useClearLaunchedProjects()
@@ -126,12 +121,14 @@ function DashboardInner(props: DashboardProps) {
           localBackend.rootPath(),
           projectName,
         )
-        openProject({
-          type: backendModule.BackendType.local,
-          id: localBackendModule.newProjectId(projectManager.UUID(id), localBackend.rootPath()),
-          title: projectName,
-          parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
-        })
+        await openProjectLocally(
+          {
+            id: localBackendModule.newProjectId(projectManager.UUID(id), localBackend.rootPath()),
+            title: projectName,
+            parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
+          },
+          backendModule.BackendType.local,
+        )
       }
       return null
     },
@@ -147,18 +144,20 @@ function DashboardInner(props: DashboardProps) {
         projectManager.Path(project.parentDirectory),
       )
 
-      openProject({
-        type: backendModule.BackendType.local,
-        id: projectId,
-        title: project.name,
-        parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
-      })
+      void openProjectLocally(
+        {
+          id: projectId,
+          title: project.name,
+          parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
+        },
+        backendModule.BackendType.local,
+      )
     })
 
     return () => {
       window.projectManagementApi?.setOpenProjectHandler(() => {})
     }
-  }, [openEditor, openProject, categoriesAPI])
+  }, [openEditor, openProjectLocally, categoriesAPI])
 
   React.useEffect(() => {
     if (detect.isOnElectron()) {

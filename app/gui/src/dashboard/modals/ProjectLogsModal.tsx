@@ -1,45 +1,35 @@
 /** @file A modal for showing logs for a project. */
-import * as React from 'react'
-
-import * as reactQuery from '@tanstack/react-query'
-
 import ReloadIcon from '#/assets/reload.svg'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
-
-import type * as backendModule from '#/services/Backend'
+import { Button, Dialog } from '#/components/AriaComponents'
+import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-
-// ========================
-// === ProjectLogsModal ===
-// ========================
+import type { ProjectSessionId } from '#/services/Backend'
+import { useSuspenseQuery } from '@tanstack/react-query'
 
 /** Props for a {@link ProjectLogsModal}. */
 export interface ProjectLogsModalProps {
   readonly backend: Backend
-  readonly projectSessionId: backendModule.ProjectSessionId
+  readonly projectSessionId: ProjectSessionId
   readonly projectTitle: string
 }
 
 /** A modal for showing logs for a project. */
 export default function ProjectLogsModal(props: ProjectLogsModalProps) {
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   return (
-    <ariaComponents.Dialog title={getText('logs')} type="fullscreen">
+    <Dialog title={getText('logs')} type="fullscreen">
       {() => <ProjectLogsModalInternal {...props} />}
-    </ariaComponents.Dialog>
+    </Dialog>
   )
 }
 
 /** A modal for showing logs for a project. */
 function ProjectLogsModalInternal(props: ProjectLogsModalProps) {
   const { backend, projectSessionId, projectTitle } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
-  const logsQuery = reactQuery.useSuspenseQuery({
+  const logsQuery = useSuspenseQuery({
     queryKey: ['projectLogs', { projectSessionId, projectTitle }],
     queryFn: async () => {
       const logs = await backend.getProjectSessionLogs(projectSessionId, projectTitle)
@@ -50,7 +40,7 @@ function ProjectLogsModalInternal(props: ProjectLogsModalProps) {
   return (
     <div className="flex flex-col">
       <div className="flex items-center gap-4 self-start rounded-full border-0.5 border-primary/20 px-[11px] py-2">
-        <ariaComponents.Button
+        <Button
           size="medium"
           variant="icon"
           icon={ReloadIcon}
