@@ -150,7 +150,7 @@ add_specs suite_builder =
             c3 = c1.map a-> a.to_text+" hi!"
             c3.should_be_a Column
             r3 = my_text_fn c3:Text
-            r3 . should_equal "10 hi!"
+            r3 . should_equal "10 hi!!"
 
             c4 = c1.is_nothing
             c4.should_be_a Column
