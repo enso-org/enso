@@ -1,5 +1,4 @@
 /** @file A list of previous versions of an asset. */
-import * as React from 'react'
 import { useState } from 'react'
 
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'

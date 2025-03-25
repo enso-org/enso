@@ -4,6 +4,7 @@ import { getMessageOrToString } from '#/utilities/error'
 import { useMutationState, type Mutation, type QueryClient } from '@tanstack/react-query'
 import {
   FilterBy,
+  type AnyAsset,
   type AssetId,
   type default as Backend,
   type DirectoryId,
@@ -285,10 +286,7 @@ export function downloadAssetsMutationOptions(backend: Backend) {
 export function addAssetsLabelsMutationOptions(backend: Backend) {
   return mutationOptions({
     mutationFn: async ([infos, labelNames]: [
-      infos: readonly {
-        id: AssetId
-        labels: readonly LabelName[] | null
-      }[],
+      infos: readonly Pick<AnyAsset, 'id' | 'labels'>[],
       labelNames: readonly LabelName[],
     ]) => {
       const results = await Promise.allSettled(
@@ -328,10 +326,7 @@ export function addAssetsLabelsMutationOptions(backend: Backend) {
 export function removeAssetsLabelsMutationOptions(backend: Backend) {
   return mutationOptions({
     mutationFn: async ([infos, labelNames]: [
-      infos: readonly {
-        id: AssetId
-        labels: readonly LabelName[] | null
-      }[],
+      infos: readonly Pick<AnyAsset, 'id' | 'labels'>[],
       labelNames: readonly LabelName[],
     ]) => {
       const results = await Promise.allSettled(

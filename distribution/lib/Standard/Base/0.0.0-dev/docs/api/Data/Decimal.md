@@ -1,8 +1,6 @@
 ## Enso Signatures 1.0
 ## module Standard.Base.Data.Decimal
 - type Decimal
-    - From_Float big_decimal:Standard.Base.Data.Decimal.BigDecimal original_value:Standard.Base.Data.Numbers.Float
-    - Value big_decimal:Standard.Base.Data.Decimal.BigDecimal
     - % self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Data.Decimal.Decimal
     - * self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Any.Any
     - + self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Any.Any

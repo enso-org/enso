@@ -284,7 +284,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
         <ariaComponents.Button
           size="custom"
           variant="custom"
-          className="flex grow items-center gap-icon-with-text"
+          className="flex grow items-center gap-2"
           onPress={() => {
             setIsThreadListVisible((visible) => !visible)
           }}
