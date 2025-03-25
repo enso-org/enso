@@ -2,6 +2,7 @@
 import { DisplayIcon } from '@/components/GraphEditor/widgets/WidgetIcon.vue'
 import WidgetTreeRoot from '@/components/GraphEditor/WidgetTreeRoot.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
+import { PortId } from '@/providers/portInfo'
 import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { WidgetEditHandlerParent } from '@/providers/widgetRegistry/editHandler'
 import { useGraphStore, type NodeId } from '@/stores/graph'
@@ -50,39 +51,46 @@ function selectNode() {
 }
 
 function handleWidgetUpdates(update: WidgetUpdate) {
+  function reportInvalidOrigin(origin: PortId) {
+    console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
+  }
+
   if (update.directInteraction) {
     selectNode()
   }
-  if (update.portUpdate) {
-    const { origin } = update.portUpdate
+  if (!update.edit && update.portUpdate && !('value' in update.portUpdate)) {
+    const { origin, metadata, metadataKey } = update.portUpdate
     if (Ast.isAstId(origin)) {
-      if ('value' in update.portUpdate) {
-        const edit = update.edit ?? graph.startEdit()
-        const value = update.portUpdate.value
-        const ast =
-          value instanceof Ast.Ast ? value
-          : value == null ? Ast.Wildcard.new(edit)
-          : undefined
-        if (ast) {
-          edit.replaceValue(origin, ast)
-        } else if (typeof value === 'string') {
-          edit.tryGet(origin)?.syncToCode(value)
-        }
-        graph.commitEdit(edit)
-      }
-      if ('metadata' in update.portUpdate) {
-        const { metadataKey, metadata } = update.portUpdate
-        if (update.edit) {
-          update.edit.tryGet(origin)?.setWidgetMetadata(metadataKey, metadata)
-          graph.commitEdit(update.edit, true)
-        } else {
-          graph.setWidgetMetadata(origin, metadataKey, metadata)
-        }
-        return true
-      }
+      graph.setWidgetMetadata(origin, metadataKey, metadata)
     } else {
-      console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
+      reportInvalidOrigin(origin)
     }
+  } else {
+    const edit = update.edit ?? graph.startEdit()
+    if (update.portUpdate) {
+      const { origin } = update.portUpdate
+      if (Ast.isAstId(origin)) {
+        if ('value' in update.portUpdate) {
+          const value = update.portUpdate.value
+          const ast =
+            value instanceof Ast.Ast ? value
+            : value == null ? Ast.Wildcard.new(edit)
+            : undefined
+          if (ast) {
+            edit.replaceValue(origin, ast)
+          } else if (typeof value === 'string') {
+            edit.tryGet(origin)?.syncToCode(value)
+          }
+        }
+        if ('metadata' in update.portUpdate) {
+          const { metadataKey, metadata } = update.portUpdate
+          edit.tryGet(origin)?.setWidgetMetadata(metadataKey, metadata)
+        }
+      } else {
+        reportInvalidOrigin(origin)
+      }
+    }
+    graph.commitEdit(edit)
   }
   // This handler is guaranteed to be the last handler in the chain.
   return true
