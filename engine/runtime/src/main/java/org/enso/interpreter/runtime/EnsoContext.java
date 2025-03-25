@@ -911,23 +911,20 @@ public final class EnsoContext {
   }
 
   public ExecutionEnvironment getExecutionEnvironment() {
-    return withinCtx(
-        null,
-        () -> {
-          ExecutionEnvironment env = language.getExecutionEnvironment();
-          return env == null ? getGlobalExecutionEnvironment() : env;
-        });
+    ExecutionEnvironment env = language.getExecutionEnvironment();
+    return env == null ? getGlobalExecutionEnvironment() : env;
   }
 
   /** Set the runtime execution environment of this context. */
   public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
-    withinCtx(
-        null,
-        () -> {
-          this.globalExecutionEnvironment = executionEnvironment;
-          language.setExecutionEnvironment(executionEnvironment);
-          return null;
-        });
+    var tc = environment.getContext();
+    var prev = tc.enter(null);
+    try {
+      this.globalExecutionEnvironment = executionEnvironment;
+      language.setExecutionEnvironment(executionEnvironment);
+    } finally {
+      tc.leave(null, prev);
+    }
   }
 
   /**
