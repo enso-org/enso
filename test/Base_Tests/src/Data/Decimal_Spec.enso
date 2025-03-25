@@ -840,8 +840,8 @@ add_specs suite_builder =
             Decimal.new "0" . signum . should_equal 0
 
     suite_builder.group "(Decimal_Spec) Rounding" group_builder->
-        do_round n dp=0 use_bankers=False =
-            d = Decimal.new n . round dp use_bankers
+        do_round n dp=0 rounding_Mode=Rounding_Mode.half_up =
+            d = Decimal.new n . round dp rounding_mode
             d.to_float
 
         Round_Spec.add_specs group_builder (Round_Spec.Batch_Runner.from_function do_round) run_advanced=True
@@ -870,7 +870,7 @@ add_specs suite_builder =
             Decimal.new "3.3" . round . should_equal (Decimal.new "3")
             Decimal.new "3.1415" . round 2 . should_equal (Decimal.new "3.14")
             Decimal.new "1234.5678E-50" . round 53 . should_equal (Decimal.new "1234.568E-50")
-            Decimal.new "2.5" . round use_bankers=True . should_equal 2
+            Decimal.new "2.5" . round rounding_Mode=Rounding_Mode.bankers . should_equal 2
 
     suite_builder.group "(Decimal_Spec) floor, ceil, truncate" group_builder->
         group_builder.specify "should calculate floor correctly" <|

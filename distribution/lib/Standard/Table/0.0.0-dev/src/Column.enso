@@ -866,7 +866,7 @@ type Column
        argument. For negative decimal places, see below.
 
        By default, rounding uses "asymmetric round-half-up", also known as
-       "round towards positive infinity." If use_bankers=True, then it uses
+       "round towards positive infinity." If rounding_Mode=Rounding_Mode.bankers, then it uses
        "round-half-even", also known as "banker's rounding".
 
        If the column is of type `Float` and `decimal_places` > 0, `round`
@@ -909,10 +909,10 @@ type Column
          Round a column of `Float` values`.
 
              Column.from_vector "foo" [1.2, 2.3, 3.6] . round == (Column.from_vector "foo" [1, 2, 4])
-    round self decimal_places:Integer=0 use_bankers:Boolean=False -> Column ! Illegal_Argument | Invalid_Value_Type = Value_Type.expect_numeric self <|
+    round self decimal_places:Integer=0 rounding_mode:Rounding_Mode=Rounding_Mode.half_up -> Column ! Illegal_Argument | Invalid_Value_Type = Value_Type.expect_numeric self <|
         Illegal_Argument.handle_java_exception <| Rounding_Helpers.check_decimal_places decimal_places <|
             new_name = naming_helper.function_name "round" [self]
-            run_vectorized_ternary_op self Java_Storage.Maps.ROUND decimal_places use_bankers new_name=new_name
+            run_vectorized_ternary_op self Java_Storage.Maps.ROUND decimal_places (rounding_mode == Rounding_Mode.bankers) new_name=new_name
 
     ## ALIAS int
        GROUP Standard.Base.Rounding
