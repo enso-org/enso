@@ -64,7 +64,7 @@ final class JavaFinder {
   }
 
   private static boolean isOnWindows() {
-    return System.getProperty("os.name").equals("windows");
+    return System.getProperty("os.name").toLowerCase().contains("win");
   }
 
   /**
