@@ -10,79 +10,22 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
-import org.enso.base.enso_cloud.ExternalLibrarySecretHelper;
+import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper;
 import org.enso.base.enso_cloud.HideableValue;
 import org.enso.base.net.http.UrlencodedBodyBuilder;
 import org.enso.database.JDBCProxy;
 import org.graalvm.collections.Pair;
 
 public final class SnowflakeCloudCredentials {
-  private static CredentialConfig unsafeParseCredential(HideableValue credentialReference) {
-    String secretPayload = ExternalLibrarySecretHelper.resolveValue(credentialReference);
-    ObjectMapper jsonMapper = new ObjectMapper();
-    try {
-      var json = jsonMapper.readTree(secretPayload);
-      var tokenField = json.get("token");
-      if (tokenField == null) {
-        throw new IllegalStateException(
-            "The credential is missing token information. Please finish the authentication flow"
-                + " before using it.");
-      }
-
-      if (!tokenField.isObject()) {
-        throw malformedCredential();
-      }
-
-      RefreshToken token = parseTokenPart(tokenField);
-
-      var inputField = json.get("input");
-      if (inputField == null || !inputField.isObject()) {
-        throw malformedCredential();
-      }
-
-      CredentialInput input = parseInputPart(inputField);
-      return new CredentialConfig(input, token);
-    } catch (Exception e) {
-      // We specifically do not pass the original exception as cause, to avoid leaking any secrets
-      // that it could contain.
-      throw new IllegalStateException(
-          "Failed to parse secret payload as credential. Perhaps the secret was not created in the"
-              + " Dashboard as a Credential?");
-    }
-  }
-
-  private static RefreshToken parseTokenPart(JsonNode tokenObject) {
-    assert tokenObject.isObject();
-    var tokenValue = tokenObject.get("refreshToken");
-    var expirationDate = tokenObject.get("expirationDate");
-    var metadata = tokenObject.get("metadata");
-    if (tokenValue == null
-        || !tokenValue.isTextual()
-        || expirationDate == null
-        || !expirationDate.isTextual()
-        || metadata == null
-        || !metadata.isObject()) {
-      throw malformedCredential();
-    }
-
-    String refreshToken = tokenValue.asText();
-    ZonedDateTime expiration;
-    try {
-      expiration = ZonedDateTime.parse(expirationDate.asText());
-    } catch (DateTimeParseException e) {
-      throw new IllegalStateException("Failed to parse expiration date in credential payload.");
-    }
-
-    var usernameField = metadata.get("username");
-    if (usernameField == null || !usernameField.isTextual()) {
-      throw malformedCredential();
-    }
-
-    String username = usernameField.asText();
-    return new RefreshToken(refreshToken, expiration, username);
+  private static SnowflakeCredentialConfig unsafeReadCredential(
+      ExternalLibraryCredentialHelper.CredentialReference credentialReference) {
+    ExternalLibraryCredentialHelper.CredentialConfig config =
+        ExternalLibraryCredentialHelper.readCredential(credentialReference);
+    var input = parseInputPart(config.input());
+    var token = SnowflakeRefreshToken.parse(config.refreshToken());
+    return new SnowflakeCredentialConfig(input, token);
   }
 
   private static CredentialInput parseInputPart(JsonNode inputObject) {
@@ -96,17 +39,25 @@ public final class SnowflakeCloudCredentials {
         || !clientIdField.isTextual()
         || clientSecretField == null
         || !clientSecretField.isTextual()) {
-      throw malformedCredential();
+      throw ExternalLibraryCredentialHelper.malformedCredential();
     }
 
     return new CredentialInput(
         accountField.asText(), clientIdField.asText(), clientSecretField.asText());
   }
 
-  private static RuntimeException malformedCredential() {
-    // We specifically do not pass the original exception as cause, to avoid leaking any secrets
-    // that it could contain.
-    throw new IllegalStateException("Unexpected: Malformed credential payload.");
+  public static Connection makeConnection(
+      String url,
+      List<Pair<String, HideableValue>> properties,
+      ExternalLibraryCredentialHelper.CredentialReference credentialReference)
+      throws SQLException {
+    SnowflakeCredentialConfig credentials = unsafeReadCredential(credentialReference);
+    AccessToken accessToken = credentials.refresh();
+    var secureProperties = new ArrayList<>(properties);
+    secureProperties.add(Pair.create("authenticator", new HideableValue.PlainValue("oauth")));
+    secureProperties.add(Pair.create("user", new HideableValue.PlainValue(accessToken.username())));
+    secureProperties.add(Pair.create("token", new HideableValue.PlainValue(accessToken.token())));
+    return JDBCProxy.getConnection(url, secureProperties);
   }
 
   private static String extractTokenFromResponse(HttpResponse<String> response) {
@@ -127,25 +78,28 @@ public final class SnowflakeCloudCredentials {
     }
   }
 
-  public static Connection makeConnection(
-      String url, List<Pair<String, HideableValue>> properties, HideableValue credentialReference)
-      throws SQLException {
-    CredentialConfig credentials = unsafeParseCredential(credentialReference);
-    AccessToken accessToken = credentials.refresh();
-    var secureProperties = new ArrayList<>(properties);
-    secureProperties.add(Pair.create("authenticator", new HideableValue.PlainValue("oauth")));
-    secureProperties.add(Pair.create("user", new HideableValue.PlainValue(accessToken.username())));
-    secureProperties.add(Pair.create("token", new HideableValue.PlainValue(accessToken.token())));
-    return JDBCProxy.getConnection(url, secureProperties);
-  }
+  private record SnowflakeRefreshToken(
+      String token, ZonedDateTime expirationDate, String username) {
+    private static SnowflakeRefreshToken parse(ExternalLibraryCredentialHelper.RefreshToken token) {
+      if (token.expirationDate() == null) {
+        throw ExternalLibraryCredentialHelper.malformedCredential();
+      }
 
-  private record AccessToken(String token, String username) {}
+      var usernameField = token.metadata().get("username");
+      if (usernameField == null || !usernameField.isTextual()) {
+        throw ExternalLibraryCredentialHelper.malformedCredential();
+      }
 
-  private record RefreshToken(String token, ZonedDateTime expirationDate, String username) {
+      String username = usernameField.asText();
+      return new SnowflakeRefreshToken(token.token(), token.expirationDate(), username);
+    }
+
     private boolean isExpired() {
       return expirationDate.isBefore(ZonedDateTime.now());
     }
   }
+
+  private record AccessToken(String token, String username) {}
 
   private record CredentialInput(String account, String clientId, String clientSecret) {
     private String authorizationHeader() {
@@ -159,7 +113,7 @@ public final class SnowflakeCloudCredentials {
     }
   }
 
-  private record CredentialConfig(CredentialInput input, RefreshToken token) {
+  private record SnowflakeCredentialConfig(CredentialInput input, SnowflakeRefreshToken token) {
     private AccessToken refresh() {
       if (token.isExpired()) {
         // TODO other exception type?
