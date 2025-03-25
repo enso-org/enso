@@ -45,6 +45,9 @@
     - to_display_text self -> Standard.Base.Any.Any
 - type Invalid_Conversion_Target
     - Error target:Standard.Base.Any.Any
+- type Length_Mismatch
+    - Error left_length:Standard.Base.Data.Numbers.Integer right_length:Standard.Base.Data.Numbers.Integer
+    - to_display_text self -> Standard.Base.Any.Any
 - type Loss_Of_Numeric_Precision
     - Warning original_value:Standard.Base.Any.Any new_value:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any

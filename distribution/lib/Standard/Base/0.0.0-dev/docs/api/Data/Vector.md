@@ -76,5 +76,5 @@
     - to_vector self -> Standard.Base.Any.Any
     - transpose self -> Standard.Base.Any.Any
     - unify_vector_or_element value:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - zip self that:Standard.Base.Data.Vector.Vector function:Standard.Base.Any.Any= on_problems:(Standard.Base.Errors.Problem_Behavior.Problem_Behavior|Standard.Base.Data.Vector.No_Wrap)= -> Standard.Base.Any.Any
+    - zip self that:Standard.Base.Data.Vector.Vector function:Standard.Base.Any.Any= skip_nothing:Standard.Base.Data.Boolean.Boolean= keep_unmatched:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Constants.Report_Unmatched)= on_problems:(Standard.Base.Errors.Problem_Behavior.Problem_Behavior|Standard.Base.Data.Vector.No_Wrap)= -> Standard.Base.Any.Any
 - Standard.Base.Errors.Wrapped_Error.Wrapped_Error.from that:Standard.Base.Data.Vector.Map_Error -> Standard.Base.Errors.Wrapped_Error.Wrapped_Error
