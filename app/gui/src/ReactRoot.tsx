@@ -34,7 +34,9 @@ function resolveEnvUrl(url: string | undefined) {
 export default function ReactRoot(props: ReactRootProps) {
   const { config, queryClient, onAuthenticated } = props
 
-  const httpClient = new HttpClient()
+  const httpClient = new HttpClient({
+    'x-ide-version': $config.VERSION ?? '',
+  })
 
   const supportsDeepLinks = !IS_DEV_MODE && !isOnLinux() && isOnElectron()
 
