@@ -100,7 +100,7 @@ public interface Import extends Scope {
         if (hiddenNames().isDefined()) {
           hidingPart = " hiding " + hiddenNames().get().map(Literal::name).mkString(", ");
         }
-        var all = onlyNames() != null ? "" : " all";
+        var all = onlyNames().isDefined() ? "" : " all";
         return "from " + name().name() + renameCode + " import" + onlyPart + all + hidingPart;
       } else {
         return "import " + name().name() + renameCode;
