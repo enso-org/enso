@@ -46,7 +46,15 @@ public interface Import extends Scope {
     }
 
     public static Module createSynthetic(Name.Qualified name) {
-      return new Module(name, null, false, null, null, true, null, new MetadataStorage());
+      return new Module(
+          name,
+          Option.empty(),
+          false,
+          Option.empty(),
+          Option.empty(),
+          true,
+          null,
+          new MetadataStorage());
     }
 
     public Module copyWithNameAndRename(Name.Qualified name, Option<Name.Literal> rename) {
