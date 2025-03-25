@@ -75,7 +75,7 @@ class RuntimeAsyncCommandsTest
       val expectedList      = expected.toList
       monitor.synchronized {
         while (!receivedExpected && iteration < 20) {
-          out = readAndReset()
+          out = readOutAsList()
           receivedExpected =
             if (exact) out == expectedList
             else expectedList.forall(out.contains)
@@ -83,6 +83,7 @@ class RuntimeAsyncCommandsTest
             monitor.wait(200)
           iteration += 1
         }
+        reset()
         receivedExpected
       }
 
@@ -90,13 +91,12 @@ class RuntimeAsyncCommandsTest
 
     def expectNoOutput(): Boolean = {
       monitor.synchronized {
-        readAndReset() == Nil
+        readOutAsList() == Nil
       }
     }
 
-    private def readAndReset(): List[String] = {
+    private def readOutAsList(): List[String] = {
       val result = toString
-      reset()
       result.linesIterator.toList
     }
 
