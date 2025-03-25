@@ -1,23 +1,14 @@
 /** @file Settings tab for deleting the current user. */
-import * as React from 'react'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
-
-import ConfirmDeleteUserModal from '#/modals/ConfirmDeleteUserModal'
-
-// ========================================
-// === DeleteUserAccountSettingsSection ===
-// ========================================
+import { ConfirmDeleteUserModal } from '#/modals/ConfirmDeleteUserModal'
+import { useAuth } from '#/providers/AuthProvider'
+import { useText } from '#/providers/TextProvider'
 
 /** Settings tab for deleting the current user. */
 export default function DeleteUserAccountSettingsSection() {
-  const { deleteUser } = authProvider.useAuth()
-  const { getText } = textProvider.useText()
+  const { deleteUser } = useAuth()
+  const { getText } = useText()
 
   return (
     <FocusArea direction="vertical">
@@ -26,21 +17,19 @@ export default function DeleteUserAccountSettingsSection() {
           className="flex flex-col items-start gap-2.5 rounded-2.5xl border-2 border-danger px-[1rem] pb-[0.9375rem] pt-[0.5625rem]"
           {...innerProps}
         >
-          <aria.Heading level={2} className="h-[2.375rem] py-0.5 text-xl font-bold text-danger">
-            {getText('dangerZone')}
-          </aria.Heading>
+          <Text.Heading color="danger">{getText('dangerZone')}</Text.Heading>
           <div className="flex gap-2">
-            <ariaComponents.DialogTrigger>
-              <ariaComponents.Button size="medium" variant="delete">
+            <DialogTrigger>
+              <Button size="medium" variant="delete">
                 {getText('deleteUserAccountButtonLabel')}
-              </ariaComponents.Button>
+              </Button>
               <ConfirmDeleteUserModal
                 doDelete={async () => {
                   await deleteUser()
                 }}
               />
-            </ariaComponents.DialogTrigger>
-            <aria.Text className="my-auto">{getText('deleteUserAccountWarning')}</aria.Text>
+            </DialogTrigger>
+            <Text className="my-auto">{getText('deleteUserAccountWarning')}</Text>
           </div>
         </div>
       )}

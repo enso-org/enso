@@ -135,5 +135,7 @@ test("can't start an already running by another user", ({ page }) =>
     await expect(row.getByTestId('switch-to-project')).not.toBeVisible()
     await expect(startProjectButton).not.toBeVisible()
     await expect(stopProjectButton).toBeDisabled()
-    await expect(stopProjectButton).toHaveAccessibleName(getText('xIsUsingTheProject', 'Test User'))
+    await expect(stopProjectButton).toHaveAccessibleName(
+      getText('xIsUsingTheProject', 'test@test.com'),
+    )
   }))

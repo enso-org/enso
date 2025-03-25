@@ -45,7 +45,7 @@ export default function RestoreAccount() {
               await restoreUser()
             }}
             variant="icon"
-            className="flex items-center justify-center gap-icon-with-text rounded-full bg-blue-600 px-4 py-auth-input-y text-white transition-all duration-auth selectable enabled:active"
+            className="flex items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-auth-input-y text-white transition-all duration-auth selectable enabled:active"
           >
             {getText('restoreAccountSubmit')}
           </ariaComponents.Button>

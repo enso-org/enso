@@ -1,6 +1,5 @@
 /** @file Events related to changes in the asset list. */
 import { copyAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
-import { useBackendQuery } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useTransferBetweenCategories, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
@@ -18,8 +17,6 @@ export function useCutAndPaste(backend: Backend, category: Category) {
   const copyAssetsMutation = useMutation(copyAssetsMutationOptions(backend))
   const transferBetweenCategories = useTransferBetweenCategories(category)
   const getAsset = useGetAsset()
-  const { data: users } = useBackendQuery(backend, 'listUsers', [])
-  const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
 
   return useEventCallback(
     (newParentKey: DirectoryId, newParentId: DirectoryId, pasteData: DrivePastePayload) => {
@@ -29,8 +26,8 @@ export function useCutAndPaste(backend: Backend, category: Category) {
         return item ? [item] : []
       })
       const newParent = getAsset(newParentKey)
-      const userIds = users?.map((user) => user.userId) ?? []
-      const userGroupIds = userGroups?.map((userGroup) => userGroup.id) ?? []
+      const userIds = [] as const
+      const userGroupIds = [] as const
       const isMovingToUserSpace =
         newParent?.parentsPath != null && isUserParentsPath(newParent.parentsPath, userIds)
       const teamToUserItems =

@@ -226,22 +226,21 @@ export class Server {
             break
           }
 
-          https.get(downloadUrl, (actualResponse) => {
-            const projectsDirectory = projectManagement.getProjectsDirectory()
-            const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
-            const targetDirectory = path.join(parentDirectory, 'project_root')
+          https.get(downloadUrl, async (actualResponse) => {
+            try {
+              const projectsDirectory = projectManagement.getProjectsDirectory()
+              const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
+              const targetDirectory = path.join(parentDirectory, 'project_root')
 
-            fs.mkdir(targetDirectory, { recursive: true })
-              .then(() => projectManagement.unpackBundle(actualResponse, targetDirectory))
-              .then(() => {
-                response
-                  .writeHead(HTTP_STATUS_OK, COOP_COEP_CORP_HEADERS)
-                  .end(JSON.stringify({ targetDirectory, parentDirectory }))
-              })
-              .catch((e) => {
-                console.error(e)
-                response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COOP_COEP_CORP_HEADERS).end()
-              })
+              await fs.mkdir(targetDirectory, { recursive: true })
+              await projectManagement.unpackBundle(actualResponse, targetDirectory)
+              response
+                .writeHead(HTTP_STATUS_OK, COOP_COEP_CORP_HEADERS)
+                .end(JSON.stringify({ targetDirectory, parentDirectory }))
+            } catch (e) {
+              console.error(e)
+              response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COOP_COEP_CORP_HEADERS).end()
+            }
           })
 
           break
