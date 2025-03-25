@@ -159,6 +159,7 @@ export function useNavigator(
 
         if (state.last && longpressTimer) cancelLongpress()
         if (state.last && holdDragStarted) holdDragStarted = false
+        // Using 10ms instead of 0 here, because otherwise the expected `contextmenu` event is not consistently fired before the timer.
         if (state.last && preventContextMenu) setTimeout(() => (preventContextMenu = false), 10)
       },
       onPinch(state) {
