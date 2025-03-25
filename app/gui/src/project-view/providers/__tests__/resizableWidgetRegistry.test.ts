@@ -1,9 +1,12 @@
-import { provideResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
+import { PortId } from '@/providers/portInfo'
+import { useResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import assert from 'assert'
 import { expect, test } from 'vitest'
 import { nextTick, ref } from 'vue'
+
+const NODE_PADDING = 4
 
 test.each`
   nodeWidth | widgetTreeDomWidth | widgetWidth | widgetDomWidth | expected | commentary
@@ -14,26 +17,26 @@ test.each`
   'Initializing resizable widget width: $commentary',
   async ({ nodeWidth, widgetTreeDomWidth, widgetWidth, widgetDomWidth, expected }) => {
     const nodeWidthRef = ref(nodeWidth)
-    const widgetTreeDomWidthRef = ref(widgetTreeDomWidth)
-    const { register, unregister } = provideResizableWidgetRegistry(
+    const { register, unregister } = useResizableWidgetRegistry(
       nodeWidthRef,
-      widgetTreeDomWidthRef,
+      NODE_PADDING,
+      widgetTreeDomWidth,
     )
     const widgetSizeRef = ref(Rect.XYWH(0, 0, widgetWidth, 100))
     const widgetDomSizeRef = ref(new Vec2(widgetDomWidth, 100))
-    register('SingleWidget', widgetSizeRef, widgetDomSizeRef)
+    register('SingleWidget' as PortId, widgetSizeRef, widgetDomSizeRef)
     await nextTick()
     expect(nodeWidthRef.value).toBe(nodeWidth)
     expect(widgetSizeRef.value).toEqual(Rect.XYWH(0, 0, expected, 100))
-    unregister('SingleWidget')
+    unregister('SingleWidget' as PortId)
 
     // If there's more than one widget, they should be not resized.
     const widget1SizeRef = ref(Rect.XYWH(0, 0, widgetWidth / 2, 100))
     const widget1DomSizeRef = ref(new Vec2(widgetDomWidth / 2, 100))
     const widget2SizeRef = ref(Rect.XYWH(0, 0, widgetWidth / 2, 100))
     const widget2DomSizeRef = ref(new Vec2(widgetDomWidth / 2, 100))
-    register('Widget1', widget1SizeRef, widget1DomSizeRef)
-    register('Widget2', widget2SizeRef, widget2DomSizeRef)
+    register('Widget1' as PortId, widget1SizeRef, widget1DomSizeRef)
+    register('Widget2' as PortId, widget2SizeRef, widget2DomSizeRef)
     await nextTick()
     expect(nodeWidthRef.value).toBe(nodeWidth)
     expect(widget1SizeRef.value).toEqual(Rect.XYWH(0, 0, widgetWidth / 2, 100))
@@ -45,17 +48,17 @@ test.each([[[20]], [[-20]], [[10, 10]], [[-10, -10]]])(
   'Resizing visualization in %s steps updates the single resizable widget',
   async (resizingSteps) => {
     const nodeWidthRef = ref(100)
-    const widgetTreeDomWidthRef = ref(92)
-    const { register, visResizeHandleEventHandlers } = provideResizableWidgetRegistry(
+    const { register, visResizeHandleEventHandlers } = useResizableWidgetRegistry(
       nodeWidthRef,
-      widgetTreeDomWidthRef,
+      NODE_PADDING,
+      nodeWidthRef.value - 2 * NODE_PADDING,
     )
     // If someone would add this event in the future, it should be tested.
     assert(!('update:resizing' in visResizeHandleEventHandlers))
 
     const widgetSizeRef = ref(Rect.XYWH(0, 0, 80, 100))
     const widgetDomSizeRef = ref(new Vec2(80, 100))
-    register('SingleWidget', widgetSizeRef, widgetDomSizeRef)
+    register('SingleWidget' as PortId, widgetSizeRef, widgetDomSizeRef)
     await nextTick()
 
     for (const step of resizingSteps) {
@@ -79,14 +82,14 @@ test.each([[[20]], [[-20]], [[10, 10]], [[-10, -10]]])(
   'Resizing single widget in %s steps updates visualization width',
   async (resizingSteps) => {
     const nodeWidthRef = ref(100)
-    const widgetTreeDomWidthRef = ref(92)
-    const { register, widgetResizeHandleEventHandlers } = provideResizableWidgetRegistry(
+    const { register, widgetResizeHandleEventHandlers } = useResizableWidgetRegistry(
       nodeWidthRef,
-      widgetTreeDomWidthRef,
+      NODE_PADDING,
+      nodeWidthRef.value - 2 * NODE_PADDING,
     )
     const widgetSizeRef = ref(Rect.XYWH(0, 0, 80, 100))
     const widgetDomSizeRef = ref(new Vec2(80, 100))
-    register('SingleWidget', widgetSizeRef, widgetDomSizeRef)
+    register('SingleWidget' as PortId, widgetSizeRef, widgetDomSizeRef)
     await nextTick()
 
     widgetResizeHandleEventHandlers['update:resizing']({ right: true })

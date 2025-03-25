@@ -26,17 +26,15 @@ const clientBounds = computed({
     return new Rect(Vec2.Zero, size.value.scale(graphNav.scale))
   },
   set(value) {
-    if (value.size.equalsApproximately(size.value, 0.01)) return
+    const sizeToStore = value.size.scale(1 / graphNav.scale)
+    if (sizeToStore.equalsApproximately(size.value, 0.01)) return
     props.onUpdate({
       portUpdate: {
         origin: props.input.portId,
         metadataKey: 'WidgetTableEditor',
         metadata: {
           ...props.config,
-          size: {
-            x: value.width / graphNav.scale,
-            y: value.height / graphNav.scale,
-          },
+          size: sizeToStore.xy(),
         },
       },
       directInteraction: false,
