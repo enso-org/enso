@@ -19,6 +19,7 @@ const PRIVACY_POLICY_SCHEMA = z.object({ versionHash: z.string() })
 const TOS_ENDPOINT_SCHEMA = z.object({ hash: z.string() })
 const PRIVACY_POLICY_ENDPOINT_SCHEMA = z.object({ hash: z.string() })
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const latestTermsOfServiceQueryOptions = queryOptions({
   queryKey: ['termsOfService', 'currentVersion'],
   queryFn: async () => {
@@ -34,6 +35,7 @@ export const latestTermsOfServiceQueryOptions = queryOptions({
   refetchInterval: TEN_MINUTES_MS,
 })
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const latestPrivacyPolicyQueryOptions = queryOptions({
   queryKey: ['privacyPolicy', 'currentVersion'],
   queryFn: async () => {

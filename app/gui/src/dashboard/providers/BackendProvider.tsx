@@ -95,6 +95,7 @@ export default function BackendProvider(props: BackendProviderProps) {
  * Get the Remote Backend.
  * @throws {Error} when no Remote Backend exists. This should never happen.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useRemoteBackend() {
   const remoteBackend = React.useContext(BackendContext).remoteBackend
 
@@ -110,6 +111,7 @@ export function useRemoteBackend() {
 // =======================
 
 /** Get the Local Backend. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useLocalBackend() {
   return React.useContext(BackendContext).localBackend
 }
@@ -123,6 +125,7 @@ export function useLocalBackend() {
  * @throws {Error} when neither the Remote Backend nor the Local Backend are supported.
  * This should never happen unless the build is misconfigured.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useBackend(category: Category) {
   const remoteBackend = useRemoteBackend()
   const localBackend = useLocalBackend()
@@ -142,6 +145,7 @@ export function useBackend(category: Category) {
  * Get the backend for the given project type.
  * @throws {Error} when a Local Backend is requested for a non-local project.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useBackendForProjectType(projectType: BackendType) {
   const remoteBackend = useRemoteBackend()
   const localBackend = useLocalBackend()
@@ -159,11 +163,13 @@ export function useBackendForProjectType(projectType: BackendType) {
 }
 
 /** Whether connecting to the Project Manager failed. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useDidLoadingProjectManagerFail() {
   return React.useContext(ProjectManagerContext).didLoadingProjectManagerFail
 }
 
 /** Reconnect to the Project Manager. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useReconnectToProjectManager() {
   return React.useContext(ProjectManagerContext).reconnectToProjectManager
 }

@@ -12,7 +12,7 @@ import type * as text from 'enso-common/src/text'
 
 import ArrowRight from '#/assets/arrow_right.svg'
 
-import { DASHBOARD_PATH, LOGIN_PATH } from '#/appUtils'
+import { DASHBOARD_PATH, LOGIN_PATH, ORGANIZATION_NAME_MAX_LENGTH } from '#/appUtils'
 
 import { useIsFirstRender } from '#/hooks/mountHooks'
 
@@ -23,8 +23,6 @@ import * as textProvider from '#/providers/TextProvider'
 import * as ariaComponents from '#/components/AriaComponents'
 import Page from '#/components/Page'
 import * as stepper from '#/components/Stepper'
-
-import { ORGANIZATION_NAME_MAX_LENGTH } from '#/modals/SetupOrganizationAfterSubscribe'
 
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { InviteUsersForm } from '#/modals/InviteUsersModal'

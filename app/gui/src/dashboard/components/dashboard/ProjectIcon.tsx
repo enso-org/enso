@@ -24,6 +24,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 // === Constants ===
 // =================
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const CLOSED_PROJECT_STATE = { type: backendModule.ProjectState.closed } as const
 
 /**
