@@ -60,6 +60,7 @@ import org.enso.polyglot.debugger.ExecutedVisualization;
 import org.enso.polyglot.debugger.IdExecutionService;
 import org.enso.text.editing.JavaEditorAdapter;
 import org.enso.text.editing.model;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -438,12 +439,14 @@ public final class ExecutionService {
    *
    * @param module the module to edit.
    * @param edits the edits to apply.
+   * @param simpleUpdate identification of a "simple edit" or {@code null}
+   * @param logger logger to use for logging
    */
   public void modifyModuleSources(
       Module module,
       scala.collection.immutable.Seq<model.TextEdit> edits,
       SimpleUpdate simpleUpdate,
-      org.slf4j.Logger logger) {
+      Logger logger) {
     try {
       module.getSource();
     } catch (IOException e) {
