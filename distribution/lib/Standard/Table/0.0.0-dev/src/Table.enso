@@ -2973,9 +2973,9 @@ type Table
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
        ICON join2-1
-       Joins two tables by zipping rows from both tables table together - the
-       first row of the left table is correlated with the first one of the right
-       one etc.
+       Joins two tables by zipping rows from both tables together - the first
+       row of the left table is correlated with the first one of the right one
+       etc.
 
        Arguments:
        - right: The table to join with.
