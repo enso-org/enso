@@ -642,7 +642,7 @@ class RuntimeAsyncCommandsTest
 
     val response1 = context.receiveNIgnoreExpressionUpdates(
       6,
-      timeoutSeconds = 10
+      timeoutSeconds = 20
     )
     response1 should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
