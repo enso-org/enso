@@ -3,7 +3,7 @@ import * as Y from 'yjs'
 import { ensoMarkdownParser, ensoStandardMarkdownParser } from './ensoMarkdown'
 import { xxHash128 } from './ffi'
 import type { ConcreteChild, RawConcreteChild } from './print'
-import { ensureUnspaced, firstChild, preferUnspaced, unspaced } from './print'
+import { firstChild, preferUnspaced, unspaced } from './print'
 import { Token, TokenType } from './token'
 import type { ConcreteRefs, DeepReadonly, DocLine, TextToken } from './tree'
 

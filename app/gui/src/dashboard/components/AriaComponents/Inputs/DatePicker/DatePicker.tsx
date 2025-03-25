@@ -61,7 +61,7 @@ const DATE_PICKER_STYLES = tv({
     dateInput: 'flex justify-start grow order-2',
     dateSegment: 'rounded placeholder-shown:text-primary/30 focus:bg-primary/10 px-[0.5px]',
     calendarButton: 'order-1 rotate-90',
-    resetButton: '',
+    resetButton: 'order-2',
     calendarPopover: '',
     calendarDialog: 'text-primary text-xs mx-2',
     calendarContainer: '',
@@ -79,6 +79,43 @@ const DATE_PICKER_STYLES = tv({
     rounded: 'xlarge',
   },
 })
+
+/** Return the date segment using English placeholders. */
+function normalizeDateSegment(segment: DateSegmentType): DateSegmentType {
+  if (segment.text !== segment.placeholder) {
+    return segment
+  }
+  switch (segment.type) {
+    case 'era': {
+      return { ...segment, text: 'AD', placeholder: 'AD' }
+    }
+    case 'year': {
+      return { ...segment, text: 'yyyy', placeholder: 'yyyy' }
+    }
+    case 'month': {
+      return { ...segment, text: 'mm', placeholder: 'mm' }
+    }
+    case 'day': {
+      return { ...segment, text: 'dd', placeholder: 'dd' }
+    }
+    case 'hour': {
+      return { ...segment, text: 'HH', placeholder: 'HH' }
+    }
+    case 'minute': {
+      return { ...segment, text: 'MM', placeholder: 'MM' }
+    }
+    case 'second': {
+      return { ...segment, text: 'SS', placeholder: 'SS' }
+    }
+    case 'timeZoneName': {
+      return { ...segment, text: 'UTC+XX', placeholder: 'UTC+XX' }
+    }
+    case 'dayPeriod':
+    case 'literal': {
+      return segment
+    }
+  }
+}
 
 /** Props for a {@link DatePicker}. */
 export interface DatePickerProps<
@@ -175,7 +212,7 @@ export const DatePicker = forwardRef(function DatePicker<
                     segments[segment.type] === false ?
                       <></>
                     : <DateSegment
-                        segment={segment}
+                        segment={normalizeDateSegment(segment)}
                         className={styles.dateSegment({
                           className:
                             segment.type === 'literal' && segment.text === ' ' ? 'w-1.5' : '',

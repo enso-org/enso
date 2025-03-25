@@ -56,7 +56,7 @@ export const BINDINGS = inputBindings.defineBindings({
   // An alternative shortcut is required because Mod+W cannot be overridden in browsers.
   closeTab: { name: 'Close Tab', bindings: ['Mod+W', 'Mod+Alt+W'], icon: CloseTabIcon },
   open: { name: 'Open', bindings: ['Enter'], icon: OpenIcon },
-  run: { name: 'Execute as Task', bindings: ['Shift+Enter'], icon: Play2Icon },
+  run: { name: 'Run in Cloud', bindings: ['Shift+Enter'], icon: Play2Icon },
   close: { name: 'Close', bindings: [], icon: CloseIcon },
   uploadToCloud: { name: 'Upload to Cloud', bindings: [], icon: CloudToIcon },
   rename: { name: 'Rename', bindings: ['Mod+R'], icon: PenIcon },

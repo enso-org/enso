@@ -1,16 +1,10 @@
 /** @file Various types of drag event payloads. */
-import type * as React from 'react'
-
-import type * as backend from '#/services/Backend'
-
-import * as uniqueString from 'enso-common/src/utilities/uniqueString'
-
-// ===========================
-// === setDragImageToBlank ===
-// ===========================
+import type { AnyAsset, AssetId } from '#/services/Backend'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
+import type { DragEvent } from 'react'
 
 /** Set the drag image to blank, so a custom div can be used instead. */
-export function setDragImageToBlank(event: React.DragEvent) {
+export function setDragImageToBlank(event: DragEvent) {
   const blankElement = document.createElement('div')
   const image = new Image()
   // Blank GIF
@@ -18,10 +12,6 @@ export function setDragImageToBlank(event: React.DragEvent) {
   event.dataTransfer.setDragImage(image, 0, 0)
   blankElement.remove()
 }
-
-// ==========================
-// === DragPayloadManager ===
-// ==========================
 
 /** Associates drag events with payload data. */
 class DragPayloadManager<Payload> {
@@ -33,8 +23,8 @@ class DragPayloadManager<Payload> {
     this.regex = new RegExp('^' + mimetype + '; id=(.+)$')
   }
 
-  /** Tries to get the payload associated with a {@link React.DragEvent}. */
-  lookup(event: React.DragEvent) {
+  /** Tries to get the payload associated with a {@link DragEvent}. */
+  lookup(event: DragEvent) {
     const item = Array.from(event.dataTransfer.items).find((dataTransferItem) =>
       dataTransferItem.type.startsWith(this.mimetype),
     )
@@ -42,15 +32,15 @@ class DragPayloadManager<Payload> {
     return id != null ? (this.map.get(id) ?? null) : null
   }
 
-  /** Associate data with a {@link React.DragEvent}. */
-  bind(event: React.DragEvent, payload: Payload) {
-    const id = uniqueString.uniqueString()
+  /** Associate data with a {@link DragEvent}. */
+  bind(event: DragEvent, payload: Payload) {
+    const id = uniqueString()
     event.dataTransfer.setData(`${this.mimetype}; id=${id}`, JSON.stringify(payload))
     this.map.set(id, payload)
     this.reverseMap.set(payload, id)
   }
 
-  /** Dissociate data from its associated {@link React.DragEvent}. */
+  /** Dissociate data from its associated {@link DragEvent}. */
   unbind(payload: Payload) {
     const id = this.reverseMap.get(payload)
     this.reverseMap.delete(payload)
@@ -60,28 +50,15 @@ class DragPayloadManager<Payload> {
   }
 }
 
-// ============================
-// === AssetRowsDragPayload ===
-// ============================
-
 export const ASSET_ROWS = new DragPayloadManager<AssetRowsDragPayload>(
   'application/x-enso-asset-list',
 )
 
 /** Metadata for an asset row. */
 interface AssetRowsDragPayloadItem {
-  readonly key: backend.AssetId
-  readonly asset: backend.AnyAsset
+  readonly key: AssetId
+  readonly asset: AnyAsset
 }
 
 /** Data for a {@link DragEvent} started from an `AssetsTable`. */
 export type AssetRowsDragPayload = readonly AssetRowsDragPayloadItem[]
-
-// ========================
-// === LabelDragPayload ===
-// ========================
-
-export const LABELS = new DragPayloadManager<LabelsDragPayload>('application/x-enso-label')
-
-/** Data for a {@link DragEvent} started from an {@link backend.LabelName}. */
-export type LabelsDragPayload = ReadonlySet<backend.LabelName>

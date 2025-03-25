@@ -238,7 +238,7 @@ get_distinct_values_for_column table column_index =
 apply_sort_to_table : Table -> Vector -> Vector -> Table
 apply_sort_to_table table sort_col_index_list sort_direction_list =
     parse_direction d = if d == -1 then Sort_Direction.Descending else Sort_Direction.Ascending
-    get_pattern i = (Sort_Column.Index (sort_col_index_list.get i) (parse_direction (sort_direction_list.get i)))
+    get_pattern i = (Sort_Column.Index ((sort_col_index_list.get i)+1) (parse_direction (sort_direction_list.get i)))
     sort_pattern = ((0.up_to sort_col_index_list.length).map idx-> get_pattern idx)
     table.sort sort_pattern
 
