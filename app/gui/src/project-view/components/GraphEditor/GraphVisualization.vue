@@ -196,7 +196,7 @@ const visParams = computed(() => {
   }
 })
 
-const { visResizeHandleEventHandlers } = injectResizableWidgetRegistry()
+const resizableWidgets = injectResizableWidgetRegistry(true)
 </script>
 
 <script lang="ts">
@@ -270,7 +270,7 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
       left
       right
       bottom
-      v-on="visResizeHandleEventHandlers"
+      v-on="resizableWidgets?.visResizeHandleEventHandlers"
       @update:resizing="resizing = $event"
     />
   </div>

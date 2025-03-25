@@ -1,8 +1,9 @@
-import { NODE_CONTENT_PADDING } from '@/components/GraphEditor/GraphNode.vue'
 import { createContextStore } from '@/providers'
 import { BoundsSet, Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { ref, Ref, toValue, watch, WatchSource } from 'vue'
+
+const NODE_CONTENT_PADDING = 4
 
 /**
  * Context Store with registry of resizable widgets.
@@ -35,6 +36,7 @@ const [provideResizableWidgetRegistry, injectResizableWidgetRegistry] = createCo
     function adjustToNodeWidth(nodeWidth: number) {
       if (resizablesCount.value === 1) {
         const change = nodeWidth - NODE_CONTENT_PADDING * 2 - toValue(widgetTreeDomWidth)
+        console.log('CHANGE', change)
         const widgetBounds = registeredResizables.values().next().value
         if (widgetBounds != null) {
           const { bounds, domSize } = widgetBounds
