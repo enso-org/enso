@@ -17,6 +17,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.callable.IndirectInvokeMethodNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
@@ -88,7 +89,12 @@ public final class PanicException extends AbstractTruffleException {
     return cacheMessage;
   }
 
-  EnsoContext ctx() {
+  /**
+   * Obtains associated context, if any.
+   *
+   * @return associated context or {@code null}
+   */
+  final EnsoContext ctx() {
     return ctx;
   }
 
@@ -153,15 +159,29 @@ public final class PanicException extends AbstractTruffleException {
           UnresolvedSymbol toDisplayText,
       @CachedLibrary(limit = "3") InteropLibrary strings,
       @Cached TypeToDisplayTextNode typeToDisplayTextNode) {
-    return ctx()
-        .withinCtx(
-            payloads,
-            () ->
-                handleExceptionMessage(
-                    payload, ctx(), payloads, toDisplayText, strings, typeToDisplayTextNode));
+    return handleExceptionMessage(
+        payload, ctx(), payloads, toDisplayText, strings, typeToDisplayTextNode);
   }
 
   static Object handleExceptionMessage(
+      Object payload,
+      EnsoContext ctx,
+      IndirectInvokeMethodNode payloads,
+      UnresolvedSymbol toDisplayText,
+      InteropLibrary strings,
+      TypeToDisplayTextNode typeToDisplayTextNode) {
+    Supplier<Object> action =
+        () ->
+            findExceptionMessage(
+                payload, ctx, payloads, toDisplayText, strings, typeToDisplayTextNode);
+    if (ctx != null) {
+      return ctx.withinCtx(payloads, action);
+    } else {
+      return action.get();
+    }
+  }
+
+  private static Object findExceptionMessage(
       Object payload,
       EnsoContext ctx,
       IndirectInvokeMethodNode payloads,
@@ -228,7 +248,11 @@ public final class PanicException extends AbstractTruffleException {
   @CompilerDirectives.TruffleBoundary
   final Object getExceptionStackTrace(@Bind("$node") Node queryNode) {
     if (stackTrace == null) {
-      stackTrace = ctx.withinCtx(queryNode, () -> computeStackTrace(queryNode));
+      if (ctx != null) {
+        stackTrace = ctx.withinCtx(queryNode, () -> computeStackTrace(queryNode));
+      } else {
+        stackTrace = computeStackTrace(queryNode);
+      }
     }
     return stackTrace;
   }

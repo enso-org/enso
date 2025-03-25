@@ -125,6 +125,11 @@ public final class DataflowError extends AbstractTruffleException {
     return payload != null ? payload : Text.create("Uninitialized value");
   }
 
+  /**
+   * Obtains associated context, if any.
+   *
+   * @return associated context or {@code null}
+   */
   final EnsoContext ctx() {
     return ctx;
   }
@@ -178,12 +183,8 @@ public final class DataflowError extends AbstractTruffleException {
           UnresolvedSymbol toDisplayText,
       @CachedLibrary(limit = "3") InteropLibrary strings,
       @Cached TypeToDisplayTextNode typeToDisplayTextNode) {
-    return ctx()
-        .withinCtx(
-            payloads,
-            () ->
-                handleExceptionMessage(
-                    payload, ctx(), payloads, toDisplayText, strings, typeToDisplayTextNode));
+    return handleExceptionMessage(
+        payload, ctx(), payloads, toDisplayText, strings, typeToDisplayTextNode);
   }
 
   @ExportMessage
