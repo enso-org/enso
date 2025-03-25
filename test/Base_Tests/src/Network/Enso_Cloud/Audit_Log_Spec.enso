@@ -68,7 +68,7 @@ add_specs suite_builder =
                 events.length . should_equal 121
 
     suite_builder.group "Clear cache on reload" group_builder->
-        group_builder.specify "LogApiAccess cache should be cleared when a reload is detected" <|
+        group_builder.specify "LogApiAccess cache should be cleared when a reload is detected" <| setup.with_prepared_environment <|
             Audit_Log.report_event "TestEvent" "Message"
             LogApiAccess.INSTANCE.isCachedTestOnly . should_be_true
             ReloadDetector.simulateReloadTestOnly LogApiAccess.INSTANCE

@@ -156,7 +156,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                 err.to_display_text . should_contain "Expected field `TokenType` to be of type Text, but got Integer."
 
     suite_builder.group "Clear cache on reload" pending=setup.httpbin_pending group_builder->
-        group_builder.specify "CloudRequestCache should be cleared when a reload is detected" <|
+        group_builder.specify "CloudRequestCache should be cleared when a reload is detected" pending=setup.pending <| setup.with_prepared_environment <|
             dur = Java_Duration.ofDays 1
             cache = CloudRequestCache.INSTANCE
             cache.getOrCompute "key1" (_-> ["key1"]) dur
@@ -165,7 +165,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
             cache.getOrCompute "key2" (_-> ["key2"]) dur  # Triggers cache clearing
             cache.isCachedTestOnly "key1" . should_be_false
 
-        group_builder.specify "AuthenticationProvider cache should be cleared when a reload is detected" <|
+        group_builder.specify "AuthenticationProvider cache should be cleared when a reload is detected" pending=setup.pending <| setup.with_prepared_environment <|
             AuthenticationProvider.INSTANCE.getAccessToken . should_succeed
             AuthenticationProvider.INSTANCE.isCachedTestOnly . should_be_true
             ReloadDetector.simulateReloadTestOnly AuthenticationProvider.INSTANCE

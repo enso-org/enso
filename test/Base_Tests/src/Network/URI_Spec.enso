@@ -346,7 +346,7 @@ add_specs suite_builder =
             secret.should_succeed
             Panic.with_finalizer secret.delete (action secret)
 
-        group_builder.specify "EnsoSecreetReader cache should be cleared when a reload is detected" <|
+        group_builder.specify "EnsoSecreetReader cache should be cleared when a reload is detected" pending=cloud_setup.pending <| Test.with_retries <|
             with_secret secret1-> with_secret secret2->
                 base_uri = URI.from 'https://httpbin.org/bytes/50'
                 uri1 = base_uri . add_query_argument "arg1" secret1
