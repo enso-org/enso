@@ -4,7 +4,7 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.type.TypeMirror;
 
 /** Represents a {@code scala.collection.immutable.List} field in the IR node. */
-final class ListField extends Field {
+public final class ListField extends Field {
 
   private final boolean nullable;
 

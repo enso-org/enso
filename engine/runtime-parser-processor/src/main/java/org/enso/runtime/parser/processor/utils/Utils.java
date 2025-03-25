@@ -154,6 +154,10 @@ public final class Utils {
         .collect(Collectors.joining(System.lineSeparator()));
   }
 
+  public static String indent(String code) {
+    return indent(code, 2);
+  }
+
   /**
    * Returns null if the given {@code typeMirror} is not a declared type and thus has no associated
    * {@link TypeElement}.
@@ -184,6 +188,14 @@ public final class Utils {
       return procEnv.getTypeUtils().isSameType(listType.asType(), typeElem.asType());
     }
     return false;
+  }
+
+  public static TypeMirror getTypeArgument(TypeMirror type) {
+    if (type instanceof DeclaredType declaredType) {
+      Utils.hardAssert(declaredType.getTypeArguments().size() == 1);
+      return declaredType.getTypeArguments().get(0);
+    }
+    return null;
   }
 
   public static boolean isPersistanceReference(TypeMirror type, ProcessingEnvironment procEnv) {

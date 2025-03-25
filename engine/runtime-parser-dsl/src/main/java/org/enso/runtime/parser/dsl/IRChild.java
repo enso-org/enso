@@ -22,6 +22,8 @@ import java.lang.annotation.Target;
  *   <li>{@link scala.collection.immutable.List} with type parameter that extends {@code
  *       org.enso.compiler.core.IR}
  *   <li>{@link scala.Option} with type parameter that extends {@code org.enso.compiler.core.IR}
+ *   <li>{@link scala.Option} with {@link scala.collection.immutable.List} with type parameter that
+ *       extends {@code org.enso.compiler.core.IR}.
  *   <li>{@code org.enso.persist.Persistance.Reference} with type parameter that extends {@code
  *       org.enso.compiler.core.IR}
  * </ul>
@@ -35,6 +37,11 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.PARAMETER)
 public @interface IRChild {
-  /** If true, the child will always be non-null. Otherwise, it can be null. */
+  /**
+   * If true, the child will always be non-null. Otherwise, it can be null. Children of types {@link
+   * scala.Option} or {@link scala.collection.immutable.List} are required by default. It is an
+   * error to set this to false for a child of type {@link scala.Option} or {@link
+   * scala.collection.immutable.List}.
+   */
   boolean required() default true;
 }

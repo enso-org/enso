@@ -782,6 +782,37 @@ public class TestIRProcessorInline {
   }
 
   @Test
+  public void fieldCanBeScalaOptionList() {
+    var src =
+        generatedClass(
+            "JName",
+            """
+        import org.enso.runtime.parser.dsl.GenerateIR;
+        import org.enso.runtime.parser.dsl.GenerateFields;
+        import org.enso.runtime.parser.dsl.IRChild;
+        import org.enso.compiler.core.IR;
+        import scala.collection.immutable.List;
+        import scala.Option;
+
+        @GenerateIR
+        public final class JName extends JNameGen {
+          @GenerateFields
+          public JName(@IRChild Option<List<IR>> expressions) {
+            super(expressions);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
+        }
+        """);
+    assertThat(src, containsString("class JNameGen"));
+    assertThat(src, containsString("Option<List<IR>> expressions"));
+    assertThat(src, containsString("expressions.isDefined"));
+  }
+
+  @Test
   public void fieldCanBeScalaOption() {
     var src =
         generatedClass(

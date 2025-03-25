@@ -15,7 +15,7 @@ import org.enso.runtime.parser.processor.utils.Utils;
 public abstract class Field {
   protected final TypeMirror type;
   protected final String name;
-  private final ProcessingEnvironment procEnv;
+  protected final ProcessingEnvironment procEnv;
 
   protected Field(TypeMirror type, String name, ProcessingEnvironment procEnv) {
     this.type = type;

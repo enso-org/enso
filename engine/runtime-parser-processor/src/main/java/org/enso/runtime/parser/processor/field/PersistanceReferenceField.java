@@ -4,7 +4,7 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.type.TypeMirror;
 
 /** Field with type {@code org.enso.persist.Persistance.Reference}. */
-final class PersistanceReferenceField extends Field {
+public final class PersistanceReferenceField extends Field {
   protected PersistanceReferenceField(String name, TypeMirror type, ProcessingEnvironment procEnv) {
     super(type, name, procEnv);
   }
