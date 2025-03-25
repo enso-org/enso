@@ -6,7 +6,6 @@ import org.enso.logging.config.MissingConfigurationField;
 import org.enso.logging.service.logback.LogbackSetup;
 import org.slf4j.ILoggerFactory;
 import org.slf4j.IMarkerFactory;
-import org.slf4j.event.Level;
 import org.slf4j.spi.MDCAdapter;
 import org.slf4j.spi.SLF4JServiceProvider;
 
