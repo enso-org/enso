@@ -3,10 +3,6 @@ import { useSyncRef } from '#/hooks/syncRefHooks'
 import { unsafeWriteValue } from '#/utilities/write'
 import * as React from 'react'
 
-// =================
-// === Constants ===
-// =================
-
 /** See {@link AutoScrollOptions.threshold}. */
 const AUTOSCROLL_THRESHOLD_PX = 50
 /** See {@link AutoScrollOptions.speed}. */
@@ -14,16 +10,8 @@ const AUTOSCROLL_SPEED = 100
 /** See {@link AutoScrollOptions.falloff}. */
 const AUTOSCROLL_FALLOFF = 10
 
-// ===========================
-// === AutoScrollDirection ===
-// ===========================
-
 /** The direction(s) in which autoscroll should happen. */
 export type AutoScrollDirection = 'both' | 'horizontal' | 'none' | 'vertical'
-
-// =========================
-// === AutoScrollOptions ===
-// =========================
 
 /** Options for {@link useAutoScroll}. */
 export interface AutoScrollOptions {
@@ -41,10 +29,6 @@ export interface AutoScrollOptions {
   readonly falloff?: number
 }
 
-// =========================
-// === AutoScrollOffsets ===
-// =========================
-
 /**
  * The amount of space on which side on which scrolling should have no effect.
  * The container is treated as this much smaller, meaning that autoscroll speed will be calculated
@@ -56,10 +40,6 @@ interface AutoScrollInsets {
   readonly left?: number
   readonly right?: number
 }
-
-// =====================
-// === useAutoScroll ===
-// =====================
 
 /** Scroll a container when the mouse is near the edges of a container. */
 export function useAutoScroll(

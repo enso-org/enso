@@ -4,10 +4,6 @@
  */
 import * as React from 'react'
 
-// ===========================
-// === FocusClassesContext ===
-// ===========================
-
 /** State contained in a `FocusClassesContext`. */
 export interface FocusClassesContextType {
   readonly focusChildClass: string
@@ -18,10 +14,6 @@ const FocusClassesContext = React.createContext<FocusClassesContextType>({
   focusChildClass: 'focus-child',
   focusDefaultClass: 'focus-default',
 })
-
-// ============================
-// === FocusClassesProvider ===
-// ============================
 
 /** Props for a {@link FocusClassesProvider}. */
 export interface FocusClassesProviderProps extends Readonly<React.PropsWithChildren> {

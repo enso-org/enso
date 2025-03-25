@@ -124,10 +124,6 @@ export const SAMPLES: Sample[] = [
   },
 ]
 
-// ===================
-// === ProjectTile ===
-// ===================
-
 /** Props for a {@link ProjectTile}. */
 interface InternalProjectTileProps {
   readonly sample: Sample

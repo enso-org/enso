@@ -3,10 +3,6 @@ import type * as React from 'react'
 
 import * as detect from 'enso-common/src/detect'
 
-// =============================
-// === Mouse event utilities ===
-// =============================
-
 /** Returns `true` if and only if the event is a single click event. */
 export function isSingleClick(event: React.MouseEvent) {
   return event.detail === 1
@@ -24,10 +20,6 @@ export function isDoubleClick(event: React.MouseEvent) {
 export function isModKey(event: React.KeyboardEvent | React.MouseEvent) {
   return detect.isOnMacOS() ? event.metaKey : event.ctrlKey
 }
-
-// ================================
-// === Keyboard event utilities ===
-// ================================
 
 /**
  * A {@link RegExp} that matches {@link KeyboardEvent.code}s corresponding to non-printable
@@ -106,10 +98,6 @@ export function isElementSingleLineTextInput(
   )
 }
 
-// =============================
-// === isElementPartOfMonaco ===
-// =============================
-
 /** Whether the element is part of a Monaco editor. */
 export function isElementPartOfMonaco(element: EventTarget | null) {
   const recursiveCheck = (htmlElement: HTMLElement | null): boolean => {
@@ -127,10 +115,6 @@ export function isElementPartOfMonaco(element: EventTarget | null) {
   return element != null && element instanceof HTMLElement && recursiveCheck(element)
 }
 
-// =========================
-// === isElementInBounds ===
-// =========================
-
 /** Whether the event occurred within the given {@link DOMRect}. */
 export function isElementInBounds(
   event: Pick<MouseEvent, 'clientX' | 'clientY'>,
@@ -144,10 +128,6 @@ export function isElementInBounds(
     event.clientY <= bounds.bottom + margin
   )
 }
-
-// ==================
-// === submitForm ===
-// ==================
 
 /** An event with an {@link Element} as its target. */
 interface EventWithElementTarget {

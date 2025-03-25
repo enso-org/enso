@@ -12,10 +12,6 @@ import * as result from '#/components/Result'
 import { PLAN_TO_TEXT_ID } from '#/modules/payments'
 import { Plan, isPlan } from '#/services/Backend'
 
-// ========================
-// === SubscribeSuccess ===
-// ========================
-
 /** A page to show when a user successfully subscribes to a plan. */
 export function SubscribeSuccess() {
   const { getText } = textProvider.useText()

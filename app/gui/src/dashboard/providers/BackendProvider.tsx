@@ -16,10 +16,6 @@ import type LocalBackend from '#/services/LocalBackend'
 import { ProjectManagerEvents } from '#/services/ProjectManager'
 import type RemoteBackend from '#/services/RemoteBackend'
 
-// ======================
-// === BackendContext ===
-// ======================
-
 /** State contained in a `BackendContext`. */
 export interface BackendContextType {
   readonly remoteBackend: RemoteBackend | null
@@ -47,10 +43,6 @@ export interface BackendProviderProps extends Readonly<React.PropsWithChildren> 
   readonly remoteBackend: RemoteBackend | null
   readonly localBackend: LocalBackend | null
 }
-
-// =======================
-// === BackendProvider ===
-// =======================
 
 /** A React Provider that lets components get and set the current backend. */
 export default function BackendProvider(props: BackendProviderProps) {
@@ -87,10 +79,6 @@ export default function BackendProvider(props: BackendProviderProps) {
   )
 }
 
-// ========================
-// === useRemoteBackend ===
-// ========================
-
 /**
  * Get the Remote Backend.
  * @throws {Error} when no Remote Backend exists. This should never happen.
@@ -105,18 +93,10 @@ export function useRemoteBackend() {
   return remoteBackend
 }
 
-// =======================
-// === useLocalBackend ===
-// =======================
-
 /** Get the Local Backend. */
 export function useLocalBackend() {
   return React.useContext(BackendContext).localBackend
 }
-
-// ==================
-// === useBackend ===
-// ==================
 
 /**
  * Get the corresponding backend for the given property.
