@@ -6,7 +6,6 @@ import org.enso.logging.config.MissingConfigurationField;
 import org.enso.logging.service.logback.LogbackSetup;
 import org.slf4j.ILoggerFactory;
 import org.slf4j.IMarkerFactory;
-import org.slf4j.event.Level;
 import org.slf4j.spi.MDCAdapter;
 import org.slf4j.spi.SLF4JServiceProvider;
 
@@ -23,9 +22,7 @@ public class TestLogProvider implements SLF4JServiceProvider {
     assert factory instanceof LoggerContext;
     if (!initialized) {
       try {
-        var setup = new LogbackSetup((LoggerContext) factory);
-        setup.setup();
-        setup.setupConsoleAppender(Level.WARN);
+        new LogbackSetup((LoggerContext) factory).setup();
         initialized = true;
       } catch (MissingConfigurationField e) {
         throw new RuntimeException(e);
