@@ -163,6 +163,7 @@ public final class PanicException extends AbstractTruffleException {
         payload, ctx(), payloads, toDisplayText, strings, typeToDisplayTextNode);
   }
 
+  @CompilerDirectives.TruffleBoundary
   static Object handleExceptionMessage(
       Object payload,
       EnsoContext ctx,
