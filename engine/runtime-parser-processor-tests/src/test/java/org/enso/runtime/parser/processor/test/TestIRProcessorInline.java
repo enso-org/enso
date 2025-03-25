@@ -3,8 +3,10 @@ package org.enso.runtime.parser.processor.test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.fail;
 
 import com.google.testing.compile.Compilation;
+import com.google.testing.compile.Compilation.Status;
 import com.google.testing.compile.CompilationSubject;
 import com.google.testing.compile.Compiler;
 import com.google.testing.compile.JavaFileObjects;
@@ -29,7 +31,14 @@ public class TestIRProcessorInline {
     var srcObject = JavaFileObjects.forSourceString(name, src);
     var compiler = Compiler.javac().withProcessors(new IRProcessor());
     var compilation = compiler.compile(srcObject);
-    CompilationSubject.assertThat(compilation).succeeded();
+    if (compilation.status() != Status.SUCCESS) {
+      var failureMsg = new StringBuilder();
+      failureMsg.append("Compilation failed with diagnostics: ");
+      for (var diag : compilation.diagnostics()) {
+        failureMsg.append("  ").append(diag.toString()).append(System.lineSeparator());
+      }
+      fail(failureMsg.toString());
+    }
     assertThat("Generated just one source", compilation.generatedSourceFiles().size(), is(1));
     var generatedSrc = compilation.generatedSourceFiles().get(0);
     try {
