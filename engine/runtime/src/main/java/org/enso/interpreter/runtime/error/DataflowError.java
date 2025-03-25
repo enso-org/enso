@@ -106,7 +106,7 @@ public final class DataflowError extends AbstractTruffleException {
     super(prototype);
     this.payload = payload;
     this.ownTrace = false;
-    this.ctx = EnsoContext.get(null);
+    this.ctx = prototype instanceof PanicException panic ? panic.ctx() : null;
   }
 
   private DataflowError(Object payload, int stackTraceElementLimit, Node location) {

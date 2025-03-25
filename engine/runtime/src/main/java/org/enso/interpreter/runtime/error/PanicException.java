@@ -53,21 +53,22 @@ public final class PanicException extends AbstractTruffleException {
    * @param location the node throwing this exception, for use in guest stack traces
    */
   public PanicException(Object payload, Node location) {
-    this(payload, null, location);
+    this(EnsoContext.get(location), payload, null, location);
   }
 
   /**
    * Creates user visible panic with additional cause.
    *
+   * @param ctx context the exception is associated with
    * @param payload arbitrary, user-provided payload carried by this exception
    * @param cause additional exception to carry information about the panic
    * @param location the node throwing this exception, for use in guest stack traces
    */
-  public PanicException(Object payload, Throwable cause, Node location) {
+  public PanicException(EnsoContext ctx, Object payload, Throwable cause, Node location) {
     super(null, cause, UNLIMITED_STACK_TRACE, location);
     assert InteropLibrary.isValidValue(payload) : "Only interop values are supported: " + payload;
     this.payload = payload;
-    this.ctx = EnsoContext.get(location);
+    this.ctx = ctx;
   }
 
   /**

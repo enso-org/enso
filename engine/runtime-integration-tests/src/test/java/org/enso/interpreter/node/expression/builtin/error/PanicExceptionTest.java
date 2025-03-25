@@ -47,9 +47,10 @@ public class PanicExceptionTest {
     ContextUtils.executeInContext(
         context,
         () -> {
+          var leak = ContextUtils.leakContext(context);
           var text = Text.create("Some text for the exception");
           var thrown = new java.lang.AssertionError(text.toString());
-          var ex = new PanicException(text, thrown, null);
+          var ex = new PanicException(leak, text, thrown, null);
           assertEquals(text.toString(), ex.getMessage());
           var msg = InteropLibrary.getUncached().getExceptionMessage(ex);
           assertEquals(text, msg);

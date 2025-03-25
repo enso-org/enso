@@ -1050,7 +1050,7 @@ public final class EnsoContext {
       msg = msg + sep + message;
     }
     var err = getBuiltins().error().makeAssertionError(msg);
-    throw new PanicException(err, e, node);
+    throw new PanicException(this, err, e, node);
   }
 
   private <T> T getOption(OptionKey<T> key) {
