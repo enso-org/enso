@@ -4,6 +4,7 @@
 common --enable_platform_specific_config
 common --incompatible_allow_tags_propagation
 common --incompatible_use_plus_in_repo_names
+common --experimental_isolated_extension_usages
 test --test_output=errors
 build --show_result=20
 build --reuse_sandbox_directories
