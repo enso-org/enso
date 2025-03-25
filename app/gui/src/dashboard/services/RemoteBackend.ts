@@ -1532,7 +1532,10 @@ export default class RemoteBackend extends Backend {
     }
     const details = await this.getProjectDetails(id, true)
 
-    invariant(details.url != null, 'The download URL of the project must be present.')
+    if (details.url == null) {
+      this.logger.error(`Project ${id} details missing download URL.`)
+      return this.throw(null, 'getProjectDetailsBackendError')
+    }
 
     const queryString = new URLSearchParams({
       downloadUrl: details.url,
