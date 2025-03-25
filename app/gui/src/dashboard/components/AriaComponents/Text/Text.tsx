@@ -6,6 +6,7 @@ import * as aria from '#/components/aria'
 import * as mergeRefs from '#/utilities/mergeRefs'
 import * as twv from '#/utilities/tailwindVariants'
 
+import type { TooltipElementType } from '#/components/AriaComponents'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
 import { memo } from 'react'
@@ -20,9 +21,9 @@ export interface TextProps
     TestIdProps {
   readonly elementType?: keyof HTMLElementTagNameMap
   readonly lineClamp?: number
-  readonly tooltip?: React.ReactElement | string | false | null
+  readonly tooltip?: TooltipElementType
   readonly tooltipTriggerRef?: React.RefObject<HTMLElement>
-  readonly tooltipDisplay?: visualTooltip.VisualTooltipProps['display']
+  readonly tooltipDisplay?: visualTooltip.VisualTooltipOptions['display']
   readonly tooltipPlacement?: aria.Placement
   readonly tooltipOffset?: number
   readonly tooltipCrossOffset?: number
@@ -52,13 +53,13 @@ export const TEXT_STYLE = twv.tv({
     // leading should always be after the text size to make sure it is not stripped by twMerge
     variant: {
       custom: '',
-      body: 'text-xs leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-medium',
+      body: 'text-xs leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px',
       // eslint-disable-next-line @typescript-eslint/naming-convention
       'body-sm':
-        'text-[10.5px] leading-[16px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-medium',
-      h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px] macos:before:h-[3px] macos:after:h-[3px] font-bold',
+        'text-[10.5px] leading-[16px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px]',
+      h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px] macos:before:h-[3px] macos:after:h-[3px]',
       subtitle:
-        'text-[13.5px] leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-bold',
+        'text-[13.5px] leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px]',
       caption:
         'text-[8.5px] leading-[12px] before:h-[1px] after:h-[1px] macos:before:h-[0.5px] macos:after:h-[1.5px]',
       overline:
@@ -66,6 +67,7 @@ export const TEXT_STYLE = twv.tv({
     },
     weight: {
       custom: '',
+      default: '',
       bold: 'font-bold',
       semibold: 'font-semibold',
       extraBold: 'font-extrabold',
@@ -118,7 +120,7 @@ export const TEXT_STYLE = twv.tv({
   defaultVariants: {
     variant: 'body',
     font: 'default',
-    weight: 'medium',
+    weight: 'default',
     transform: 'none',
     color: 'primary',
     italic: false,
@@ -127,6 +129,14 @@ export const TEXT_STYLE = twv.tv({
     disableLineHeightCompensation: false,
     textSelection: 'auto',
   },
+  compoundVariants: [
+    { variant: 'body', weight: 'default', className: 'font-medium' },
+    { variant: 'body-sm', weight: 'default', className: 'font-medium' },
+    { variant: 'h1', weight: 'default', className: 'font-bold' },
+    { variant: 'subtitle', weight: 'default', className: 'font-bold' },
+    { variant: 'caption', weight: 'default', className: 'font-medium' },
+    { variant: 'overline', weight: 'default', className: 'font-medium' },
+  ],
 })
 
 /** Text component that supports truncation and show a tooltip on hover when text is truncated */

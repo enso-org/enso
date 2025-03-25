@@ -27,10 +27,11 @@ import {
 } from 'enso-common/src/backendQuery'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useOpenProject } from '#/hooks/projectHooks'
+import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type Backend from '#/services/Backend'
@@ -308,16 +309,30 @@ export function useListUserGroupsWithUsers(backend: Backend): ListUserGroupsWith
   }
 }
 
+/** Return the refetch interval for listing directories based on feature flag state. */
+export function useListDirectoryRefetchInterval() {
+  const enableAssetsTableBackgroundRefresh = useFeatureFlag('enableAssetsTableBackgroundRefresh')
+  const assetsTableBackgroundRefreshInterval = useFeatureFlag(
+    'assetsTableBackgroundRefreshInterval',
+  )
+  return enableAssetsTableBackgroundRefresh ? assetsTableBackgroundRefreshInterval : Infinity
+}
+
 /** Options for {@link listDirectoryQueryOptions}. */
 export interface ListDirectoryQueryOptions {
   readonly backend: Backend
   readonly parentId: DirectoryId
   readonly category: Category
+  /**
+   * When using React, use {@link useListDirectoryRefetchInterval} to 0.
+   * `undefined` is intentionally excluded as this value should be explicitly given.
+   */
+  readonly refetchInterval: number | null
 }
 
 /** Build a query options object to fetch the children of a directory. */
 export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
-  const { backend, parentId, category } = options
+  const { backend, parentId, category, refetchInterval } = options
 
   const rootPath = 'rootPath' in category ? category.rootPath : undefined
 
@@ -333,10 +348,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
         recentProjects: category.type === 'recent',
       },
     ] as const,
-    // Setting stale time to `Infinity` avoids attaching a ton of
-    // setTimeouts to the query. Improves performance.
-    // This is fine as refetching is handled by another query.
-    staleTime: Infinity,
+    ...(refetchInterval != null ? { refetchInterval } : {}),
     queryFn: async () => {
       try {
         return await backend.listDirectory(
@@ -638,7 +650,8 @@ export function useNewFolder(backend: Backend, category: Category) {
 /** A function to create a new project. */
 export function useNewProject(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
-  const doOpenProject = useOpenProject()
+  const openProjectLocally = useOpenProjectLocally()
+  const openProjectNatively = useOpenProjectNatively()
   const deleteAsset = useDeleteAsset(backend, category)
 
   const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
@@ -655,6 +668,7 @@ export function useNewProject(backend: Backend, category: Category) {
         datalinkId?: backendModule.DatalinkId | null | undefined
       },
       parentId: DirectoryId,
+      runLocally = true,
     ) => {
       const siblings = await ensureListDirectory(parentId)
       const projectName = (() => {
@@ -683,12 +697,17 @@ export function useNewProject(backend: Backend, category: Category) {
           throw error
         })
         .then((createdProject) => {
-          doOpenProject({
+          const openProjectParams = {
             id: createdProject.projectId,
-            type: backend.type,
             parentId: placeholderItem.parentId,
             title: createdProject.name,
-          })
+          }
+          if (runLocally) {
+            // Open in background.
+            void openProjectLocally(openProjectParams, backend.type)
+          } else {
+            openProjectNatively(openProjectParams, backend.type)
+          }
 
           return createdProject
         })
@@ -774,6 +793,10 @@ export function duplicateProjectMutationOptions(
   openProject: (project: LaunchedProject) => void,
 ) {
   return mutationOptions({
+    meta: {
+      invalidates: [[backend.type, 'listDirectory']],
+      awaitInvalidates: true,
+    },
     mutationFn: async ([id, originalTitle, parentId, versionId]: [
       id: backendModule.ProjectId,
       originalTitle: string,

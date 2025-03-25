@@ -307,14 +307,15 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
   const { shouldBeDisabled, backend, category, rootDirectoryId, children } = props
   const { getText } = useText()
 
-  const rootDirectoryQuery = listDirectoryQueryOptions({
+  const rootDirectoryQueryOptions = listDirectoryQueryOptions({
     backend,
     category,
     parentId: rootDirectoryId,
+    refetchInterval: null,
   })
 
   const { data: isEmpty } = useSuspenseQuery({
-    ...rootDirectoryQuery,
+    ...rootDirectoryQueryOptions,
     select: (data) => data.length === 0,
   })
 

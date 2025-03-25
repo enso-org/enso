@@ -7,13 +7,20 @@ import {
   getDescriptionForTimeZone,
   getTimeZoneOffsetStringWithGMT,
   MONTH_3_LETTER_TEXT_IDS,
+  zonedDateTimeToReadableIsoString,
 } from 'enso-common/src/utilities/data/dateTime'
 
 import LogsIcon from '#/assets/logs.svg'
 import RepeatIcon from '#/assets/repeat.svg'
-import TimeIcon from '#/assets/time.svg'
 import { DialogTrigger } from '#/components/aria'
-import { Button, ButtonGroup, CloseButton, Text, VisualTooltip } from '#/components/AriaComponents'
+import {
+  Button,
+  ButtonGroup,
+  CloseButton,
+  IconDisplay,
+  Text,
+  VisualTooltip,
+} from '#/components/AriaComponents'
 import {
   backendMutationOptions,
   getProjectExecutionDetailsQueryOptions,
@@ -101,7 +108,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
       )
       switch (repeat.type) {
         case 'none': {
-          return getText('doesNotRepeat')
+          return zonedDateTimeToReadableIsoString(zonedStartDate)
         }
         case 'daily': {
           return `${startDateDailyRepeat} ${getText('everyDaySuffix')}`
@@ -222,19 +229,17 @@ export function ProjectExecution(props: ProjectExecutionProps) {
       {!compact && (
         <ButtonGroup className={styles.infoContainer()}>
           {enableAdvancedProjectExecutionOptions && (
-            <Button
-              size="xsmall"
+            <IconDisplay
               variant="outline"
-              icon={TimeIcon}
+              icon="time"
               tooltip={maxDurationLabel}
               tooltipPlacement="left"
               className={styles.info()}
             >
               {maxDurationDescription}
-            </Button>
+            </IconDisplay>
           )}
-          <Button
-            size="xsmall"
+          <IconDisplay
             variant="outline"
             icon={RepeatIcon}
             tooltip={repeatIntervalLabel}
@@ -242,9 +247,8 @@ export function ProjectExecution(props: ProjectExecutionProps) {
             className={styles.info()}
           >
             {repeatIntervalDescription}
-          </Button>
-          <Button
-            size="xsmall"
+          </IconDisplay>
+          <IconDisplay
             variant="outline"
             icon="time"
             tooltip={timeZoneLabel}
@@ -252,7 +256,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
             className={styles.info()}
           >
             {timeZoneDescription}
-          </Button>
+          </IconDisplay>
         </ButtonGroup>
       )}
     </div>

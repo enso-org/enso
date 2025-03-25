@@ -149,6 +149,14 @@ export const ParentsPath = newtype.newtypeConstructor<ParentsPath>()
 export type VirtualParentsPath = newtype.Newtype<string, 'VirtualParentsPath'>
 export const VirtualParentsPath = newtype.newtypeConstructor<VirtualParentsPath>()
 
+/** The path of this asset, including the root directory. */
+export type EnsoPath = newtype.Newtype<string, 'EnsoPath'>
+export const EnsoPath = newtype.newtypeConstructor<EnsoPath>()
+
+/** The path string of this asset, including the root directory. */
+export type EnsoPathValue = newtype.Newtype<string, 'EnsoPathValue'>
+export const EnsoPathValue = newtype.newtypeConstructor<EnsoPathValue>()
+
 const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
 
 /**
@@ -843,10 +851,6 @@ export function findLeastUsedColor(labels: Iterable<Label>) {
   return minColor == null ? COLORS[0] : (COLOR_STRING_TO_COLOR.get(minColor) ?? COLORS[0])
 }
 
-// =================
-// === AssetType ===
-// =================
-
 export enum SpecialAssetType {
   loading = 'specialLoading',
   empty = 'specialEmpty',
@@ -916,10 +920,6 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.specialUp]: -1,
 }
 
-// =============
-// === Asset ===
-// =============
-
 /**
  * Metadata uniquely identifying a directory entry.
  * These can be Projects, Files, Secrets, or other directories.
@@ -935,12 +935,16 @@ export interface Asset<Type extends AssetType = AssetType> {
    */
   readonly parentId: DirectoryId
   readonly permissions: readonly AssetPermission[] | null
-  readonly labels: readonly LabelName[] | null
-  readonly description: string | null
+  readonly labels?: readonly LabelName[] | undefined
+  readonly description?: string | undefined
   readonly projectState: Type extends AssetType.project ? ProjectStateType : null
   readonly extension: Type extends AssetType.file ? string : null
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
+  /** The display path. */
+  readonly ensoPath?: EnsoPath | undefined
+  /** The actual path (URL encoded when on the Remote backend). */
+  readonly ensoPathValue?: EnsoPathValue | undefined
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
@@ -1007,8 +1011,6 @@ export function createPlaceholderFileAsset(title: string, parentId: DirectoryId)
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: fileExtension(title),
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1028,8 +1030,6 @@ export function createPlaceholderProjectAsset(title: string, parentId: Directory
       volumeId: '',
     },
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1049,8 +1049,6 @@ export function createPlaceholderDirectoryAsset(
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1067,8 +1065,6 @@ export function createPlaceholderSecretAsset(title: string, parentId: DirectoryI
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1088,8 +1084,6 @@ export function createPlaceholderDatalinkAsset(
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1109,8 +1103,6 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
     permissions: [],
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1135,8 +1127,6 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
     permissions: [],
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1161,8 +1151,6 @@ export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorA
     permissions: [],
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
