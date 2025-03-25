@@ -15,6 +15,7 @@ import org.enso.polyglot.ModuleExports
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.buffer.Rope
+import org.slf4j.LoggerFactory
 
 final class AnalyzeModuleJob(
   module: Module,
@@ -34,7 +35,7 @@ final class AnalyzeModuleJob(
 
 object AnalyzeModuleJob {
   private def logger: org.slf4j.Logger =
-    org.slf4j.LoggerFactory.getLogger(getClass)
+    LoggerFactory.getLogger(getClass)
 
   def apply(
     module: Module,

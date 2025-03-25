@@ -8,6 +8,7 @@ import org.enso.interpreter.instrument.job.ExecuteJob;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.polyglot.runtime.Runtime$Api$ExecutionEnvironment;
 import org.enso.polyglot.runtime.Runtime$Api$SetExecutionEnvironmentResponse;
+import org.slf4j.LoggerFactory;
 import scala.Option;
 import scala.collection.mutable.Stack;
 import scala.concurrent.ExecutionContext;
@@ -79,7 +80,7 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
                           return null;
                         });
               } else {
-                org.slf4j.LoggerFactory.getLogger(SetExecutionEnvironmentCommand.class)
+                LoggerFactory.getLogger(SetExecutionEnvironmentCommand.class)
                     .debug(
                         "Requested environment '{}' is the same as the current one. Request has no"
                             + " effect",

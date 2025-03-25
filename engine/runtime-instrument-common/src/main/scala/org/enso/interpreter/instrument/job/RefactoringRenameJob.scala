@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument.job
 
+import org.slf4j.LoggerFactory
 import org.enso.compiler.core.{ExternalID, IR}
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.refactoring.IRUtils
@@ -81,7 +82,7 @@ final class RefactoringRenameJob(
   }
 
   private def logger: org.slf4j.Logger =
-    org.slf4j.LoggerFactory.getLogger(classOf[RefactoringRenameJob])
+    LoggerFactory.getLogger(classOf[RefactoringRenameJob])
 
   private def applyRefactoringEdits()(implicit ctx: RuntimeContext): File = {
     val module = ctx.executionService.getContext
