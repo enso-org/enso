@@ -68,6 +68,7 @@ const {
   currentFilePath,
   highlightedName,
   initializeStack,
+  enterSubdirectories,
   isDirectoryStackInitializing,
 } = useFileBrowserStack(
   backend,
@@ -154,7 +155,8 @@ function chooseFile(file: FileAsset | DatalinkAsset) {
 
 const askForOverwrite = ref(false)
 
-function tryAcceptCurrentFile() {
+async function tryAcceptCurrentFile() {
+  await enterSubdirectories()
   if (fileExists(filenameInputContents.value) && props.writeMode) {
     askForOverwrite.value = true
   } else {

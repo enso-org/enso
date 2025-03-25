@@ -122,6 +122,21 @@ export function useFileBrowserStack(
     return Ok()
   }
 
+  /** Split `filenameInputContents` into subdirectories by `/` and enter them, up to last existing directory. */
+  async function enterSubdirectories() {
+    let nextSlash = filenameInputContents.value.indexOf('/')
+    while (nextSlash !== -1) {
+      const directoryName = filenameInputContents.value.slice(0, nextSlash)
+      const result = await enterDirByName(directoryName, directoryStack.value)
+      if (result.ok) {
+        filenameInputContents.value = filenameInputContents.value.slice(nextSlash + 1)
+        nextSlash = filenameInputContents.value.indexOf('/')
+      } else {
+        break
+      }
+    }
+  }
+
   function dirsToEnterOnInit(user: User) {
     const initialSegments = unwrapOr(choosenPathSegments.value, ['Users', user.name])
     const rootSegs = unwrapOrWithLog(rootSegments.value ?? Err('cannot load root directory'), [])
@@ -176,6 +191,7 @@ export function useFileBrowserStack(
     currentFilePath,
     highlightedName,
     initializeStack,
+    enterSubdirectories,
     isDirectoryStackInitializing,
   }
 }
