@@ -146,6 +146,23 @@
         "recordedRepoMappingEntries": []
       }
     },
+    "//toolchains:tar/extensions.bzl%tar_toolchain": {
+      "general": {
+        "bzlTransitiveDigest": "zaB1i+QbFHKAtb8fdIPYDrVMuvv47NruofNSwyBYoGQ=",
+        "usagesDigest": "as88kBc5XKKjvtBjgA9K4U2bY8597uhSgRX22NpzMGY=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "tar_toolchain": {
+            "bzlFile": "@@//toolchains:tar/extensions.bzl",
+            "ruleClassName": "tar_toolchain_repo_rule",
+            "attributes": {}
+          }
+        },
+        "recordedRepoMappingEntries": []
+      }
+    },
     "@@apple_support+//crosstool:setup.bzl%apple_cc_configure_extension": {
       "general": {
         "bzlTransitiveDigest": "7ii+gFxWSxHhQPrBxfMEHhtrGvHmBTvsh+KOyGunP/s=",
