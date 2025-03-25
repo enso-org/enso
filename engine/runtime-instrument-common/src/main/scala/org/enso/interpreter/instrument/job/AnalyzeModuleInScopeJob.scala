@@ -18,7 +18,7 @@ final class AnalyzeModuleInScopeJob(
   modules: Iterable[(Module, IndexState, Boolean)]
 ) extends BackgroundJob[Unit](AnalyzeModuleInScopeJob.Priority) {
   private def logger: org.slf4j.Logger =
-    getLogger(classOf[AnalyzeModuleInScopeJob])
+    LoggerFactory.getLogger(classOf[AnalyzeModuleInScopeJob])
 
   private val exportsBuilder = new ExportsBuilder
 
