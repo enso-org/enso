@@ -28,23 +28,24 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
     interpreterContext.executionService.getContext
       .isInterpreterSequentialCommandExection()
 
-  private val locking = new ReentrantLocking(
-    interpreterContext.executionService.getLogger
-  )
+  private val locking = new ReentrantLocking()
 
   private val executionState = new ExecutionState()
 
   private val jobExecutionEngine =
     new JobExecutionEngine(interpreterContext, executionState, locking)
 
+  private def logger: org.slf4j.Logger =
+    org.slf4j.LoggerFactory.getLogger(classOf[CommandExecutionEngine])
+
   private val commandExecutor =
     if (isSequential) {
-      interpreterContext.executionService.getLogger.fine(
+      logger.debug(
         "Executing commands sequentially"
       )
       jobExecutionEngine.jobExecutor
     } else {
-      interpreterContext.executionService.getLogger.fine(
+      logger.debug(
         "Executing commands in a separate command pool"
       )
       interpreterContext.executionService.getContext

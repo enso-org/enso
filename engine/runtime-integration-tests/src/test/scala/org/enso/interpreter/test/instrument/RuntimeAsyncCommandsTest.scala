@@ -182,7 +182,7 @@ class RuntimeAsyncCommandsTest
         |loop n s=0 =
         |    if (s > n) then s else
         |        Thread.sleep 100
-        |        loop n s+1
+        |        @Tail_Call loop n s+1
         |
         |main =
         |    IO.println "started"

@@ -1,7 +1,6 @@
 package org.enso.interpreter.instrument.command;
 
 import java.util.UUID;
-import java.util.logging.Level;
 import org.enso.interpreter.instrument.CacheInvalidation;
 import org.enso.interpreter.instrument.InstrumentFrame;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
@@ -41,7 +40,6 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
   @SuppressWarnings("unchecked")
   private void setExecutionEnvironment(
       Runtime$Api$ExecutionEnvironment executionEnvironment, UUID contextId, RuntimeContext ctx) {
-    var logger = ctx.executionService().getLogger();
     ctx.locking()
         .withContextLock(
             ctx.locking().getOrCreateContextLock(contextId),
@@ -81,11 +79,11 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
                           return null;
                         });
               } else {
-                logger.log(
-                    Level.FINE,
-                    "Requested environment '{}' is the same as the current one. Request has no"
-                        + " effect",
-                    oldEnvironmentName);
+                org.slf4j.LoggerFactory.getLogger(SetExecutionEnvironmentCommand.class)
+                    .debug(
+                        "Requested environment '{}' is the same as the current one. Request has no"
+                            + " effect",
+                        oldEnvironmentName);
                 reply(new Runtime$Api$SetExecutionEnvironmentResponse(contextId), ctx);
               }
               return null;

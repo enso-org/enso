@@ -1,6 +1,5 @@
 package org.enso.interpreter.instrument.job;
 
-import java.util.logging.Level;
 import org.enso.common.CompilationStage;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
 import org.enso.pkg.QualifiedName;
@@ -32,10 +31,8 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
                   .ifPresent(
                       module -> {
                         if (module.getCompilationStage().isBefore(CompilationStage.AFTER_CODEGEN)) {
-                          ctx.executionService()
-                              .getLogger()
-                              .log(
-                                  Level.WARNING,
+                          org.slf4j.LoggerFactory.getLogger(SerializeModuleJob.class)
+                              .warn(
                                   "Attempt to serialize the module [{}] at stage [{}].",
                                   new Object[] {module.getName(), module.getCompilationStage()});
                           return;
