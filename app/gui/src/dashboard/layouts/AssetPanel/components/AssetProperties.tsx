@@ -302,12 +302,13 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                 <td className="flex w-full gap-1 p-0">
                   {item.labels?.map((value) => {
                     const label = labels.find((otherLabel) => otherLabel.value === value)
+                    if (!label) {
+                      return null
+                    }
                     return (
-                      label != null && (
-                        <Label key={value} active isDisabled color={label.color} onPress={() => {}}>
-                          {value}
-                        </Label>
-                      )
+                      <Label key={value} active isDisabled color={label.color} onPress={() => {}}>
+                        {value}
+                      </Label>
                     )
                   })}
                 </td>

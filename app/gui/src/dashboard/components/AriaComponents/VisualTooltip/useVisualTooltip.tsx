@@ -1,19 +1,12 @@
-/**
- * @file
- *
- * A hook for creating a visual tooltip that appears when the target element is hovered over.
- */
-
-import * as React from 'react'
-
-import * as eventCallback from '#/hooks/eventCallbackHooks'
-
+/** @file A hook for creating a visual tooltip that appears when the target element is hovered over. */
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import Portal from '#/components/Portal'
+import * as eventCallback from '#/hooks/eventCallbackHooks'
+import * as React from 'react'
 
 /** Props for {@link useVisualTooltip}. */
-export interface VisualTooltipProps
+export interface VisualTooltipOptions
   extends Pick<ariaComponents.TooltipProps, 'maxWidth' | 'rounded' | 'size' | 'variant'> {
   readonly children: React.ReactNode
   readonly className?: string
@@ -53,7 +46,7 @@ const DEFAULT_DELAY = 250
  * Common use case is to show a tooltip when the content of an element is overflowing,
  * Or show a description of the element when hovered over.
  */
-export function useVisualTooltip(props: VisualTooltipProps): VisualTooltipReturn {
+export function useVisualTooltip(props: VisualTooltipOptions): VisualTooltipReturn {
   const {
     children,
     targetRef,

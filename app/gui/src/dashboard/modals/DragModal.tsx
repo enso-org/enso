@@ -1,29 +1,27 @@
 /** @file Modal for confirming delete of any type of asset. */
-import * as React from 'react'
-
-import * as modalProvider from '#/providers/ModalProvider'
-
+import { DIALOG_BACKGROUND, Underlay } from '#/components/AriaComponents'
+import { Badge } from '#/components/Badge'
+import Portal from '#/components/Portal'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { DIALOG_BACKGROUND, Underlay } from '../components/AriaComponents'
-import { Badge } from '../components/Badge'
-import Portal from '../components/Portal'
-
-// =================
-// === Constants ===
-// =================
+import { unsetModal } from '#/providers/ModalProvider'
+import {
+  Children,
+  startTransition,
+  useEffect,
+  useState,
+  type DragEvent,
+  type PropsWithChildren,
+} from 'react'
 
 /** The default offset (up and to the right) of the drag element. */
 const DEFAULT_OFFSET_PX = 16
 
-// =================
-// === DragModal ===
-// =================
-
 /** Props for a {@link DragModal}. */
 export interface DragModalProps
-  extends Readonly<React.PropsWithChildren>,
+  extends Readonly<PropsWithChildren>,
     Readonly<JSX.IntrinsicElements['div']> {
-  readonly event: React.DragEvent
+  readonly hideBadge?: boolean
+  readonly event: DragEvent
   readonly onDragEnd: () => void
   readonly offsetPx?: number
   readonly offsetXPx?: number
@@ -33,6 +31,7 @@ export interface DragModalProps
 /** A modal for confirming the deletion of an asset. */
 export default function DragModal(props: DragModalProps) {
   const {
+    hideBadge = false,
     event,
     offsetPx,
     offsetXPx = DEFAULT_OFFSET_PX,
@@ -43,8 +42,8 @@ export default function DragModal(props: DragModalProps) {
     onDragEnd: onDragEndRaw,
     ...passthrough
   } = props
-  const [left, setLeft] = React.useState(event.pageX - (offsetPx ?? offsetXPx))
-  const [top, setTop] = React.useState(event.pageY - (offsetPx ?? offsetYPx))
+  const [left, setLeft] = useState(event.pageX - (offsetPx ?? offsetXPx))
+  const [top, setTop] = useState(event.pageY - (offsetPx ?? offsetYPx))
   const onDragEndOuter = useEventCallback(onDragEndRaw)
 
   const onDrag = useEventCallback((dragEvent: MouseEvent) => {
@@ -54,11 +53,11 @@ export default function DragModal(props: DragModalProps) {
     }
   })
 
-  React.useEffect(() => {
+  useEffect(() => {
     const onDragEnd = () => {
-      React.startTransition(() => {
+      startTransition(() => {
         onDragEndOuter()
-        modalProvider.unsetModal()
+        unsetModal()
       })
     }
 
@@ -86,7 +85,7 @@ export default function DragModal(props: DragModalProps) {
           })}
         >
           <div className="absolute w-full">
-            {React.Children.toArray(children)
+            {Children.toArray(children)
               .slice(0, 3)
               .reverse()
               .map((child, index, array) => (
@@ -100,9 +99,11 @@ export default function DragModal(props: DragModalProps) {
               ))}
           </div>
 
-          <Underlay className="absolute -right-1 -top-3 rounded-full">
-            <Badge color="primary">{React.Children.toArray(children).length}</Badge>
-          </Underlay>
+          {!hideBadge && (
+            <Underlay className="absolute -right-1 -top-3 rounded-full">
+              <Badge color="primary">{Children.toArray(children).length}</Badge>
+            </Underlay>
+          )}
         </div>
       </div>
     </Portal>

@@ -50,12 +50,15 @@ export function DriveBarNavigation() {
     },
   })
 
+  const parentDirectoryQueryOptions = listDirectoryQueryOptions({
+    backend: associatedBackend,
+    parentId: parentDirectoryId,
+    category,
+    refetchInterval: null,
+  })
+
   const { data: directoryData } = useSuspenseQuery({
-    ...listDirectoryQueryOptions({
-      backend: associatedBackend,
-      parentId: parentDirectoryId,
-      category,
-    }),
+    ...parentDirectoryQueryOptions,
     select: (data) => {
       if (parentDirectoryId === currentDirectoryId) {
         return null

@@ -1,23 +1,17 @@
-/**
- * @file
- *
- * The separator component.
- */
-import * as React from 'react'
-
-import * as aria from '#/components/aria'
-
-import * as twv from '#/utilities/tailwindVariants'
+/** @file A visual separator. */
+import {
+  Separator as AriaSeparator,
+  type SeparatorProps as AriaSeparatorProps,
+} from '#/components/aria'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 
 /** The props for {@link Separator} component. */
-export interface SeparatorProps
-  extends aria.SeparatorProps,
-    twv.VariantProps<typeof SEPARATOR_STYLES> {
+export interface SeparatorProps extends AriaSeparatorProps, VariantProps<typeof SEPARATOR_STYLES> {
   readonly className?: string | undefined
 }
 
 /** The styles for the {@link Separator} component. */
-export const SEPARATOR_STYLES = twv.tv({
+export const SEPARATOR_STYLES = tv({
   base: 'rounded-full border-none',
   variants: {
     size: {
@@ -75,7 +69,7 @@ export const SEPARATOR_STYLES = twv.tv({
   ],
 })
 
-/** A separator component. */
+/** A visual separator. */
 export function Separator(props: SeparatorProps) {
   const {
     orientation = 'horizontal',
@@ -88,5 +82,5 @@ export function Separator(props: SeparatorProps) {
 
   const styles = variants({ orientation, variant, size, className })
 
-  return <aria.Separator orientation={orientation} className={styles} {...rest} />
+  return <AriaSeparator orientation={orientation} className={styles} {...rest} />
 }

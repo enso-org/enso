@@ -61,8 +61,6 @@
   --icons-gap: 0.75rem;
   /* The gap between an icon and its associated text. */
   --samples-icon-with-text-gap: 0.375rem;
-  /* The horizontal gap between an icon and its associated text in a selector option. */
-  --icon-with-text-gap: 0.5rem;
   /* The horizontal gap between an input and its associated submit button. */
   --input-with-button-gap: 0.25rem;
   /* The horizontal gap between the drive sidebar and the asset tree. */

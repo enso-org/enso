@@ -356,12 +356,11 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
 
   const onDragOver = (event: React.DragEvent<Element>) => {
     const directoryId = asset.type === backendModule.AssetType.directory ? id : parentId
-    const labelsPayload = drag.LABELS.lookup(event)
-    if (labelsPayload) {
+    const { labelsDragPayload, isDraggingOverSelectedRow } = driveStore.getState()
+    if (labelsDragPayload) {
       event.preventDefault()
       event.stopPropagation()
       setDragTargetAssetId(asset.id)
-      const { isDraggingOverSelectedRow } = driveStore.getState()
       if (selected !== isDraggingOverSelectedRow) {
         setIsDraggingOverSelectedRow(selected)
       }
@@ -528,36 +527,35 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                 !event.currentTarget.contains(event.relatedTarget)
               ) {
                 setIsDraggedOver(false)
+                setDragTargetAssetId(null)
               }
               props.onDragLeave?.(event, asset)
             }}
             onDrop={(event) => {
-              if (state.category.type !== 'trash') {
-                props.onDrop?.(event, asset)
-                setIsDraggedOver(false)
-                const directoryId =
-                  asset.type === backendModule.AssetType.directory ? asset.id : parentId
-                const payload = drag.ASSET_ROWS.lookup(event)
-                if (
-                  payload != null &&
-                  payload.every((innerItem) => innerItem.key !== directoryId)
-                ) {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  unsetModal()
-                  const ids = payload
-                    .filter((payloadItem) => payloadItem.asset.parentId !== directoryId)
-                    .map((dragItem) => dragItem.key)
-                  cutAndPaste(directoryId, directoryId, {
-                    backendType: backend.type,
-                    ids: new Set(ids),
-                    category,
-                  })
-                } else if (event.dataTransfer.types.includes('Files')) {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  void uploadFiles(Array.from(event.dataTransfer.files), directoryId)
-                }
+              if (state.category.type === 'trash' || state.category.type === 'recent') {
+                return
+              }
+              props.onDrop?.(event, asset)
+              setIsDraggedOver(false)
+              const directoryId =
+                asset.type === backendModule.AssetType.directory ? asset.id : parentId
+              const payload = drag.ASSET_ROWS.lookup(event)
+              if (payload != null && payload.every((innerItem) => innerItem.key !== directoryId)) {
+                event.preventDefault()
+                event.stopPropagation()
+                unsetModal()
+                const ids = payload
+                  .filter((payloadItem) => payloadItem.asset.parentId !== directoryId)
+                  .map((dragItem) => dragItem.key)
+                cutAndPaste(directoryId, directoryId, {
+                  backendType: backend.type,
+                  ids: new Set(ids),
+                  category,
+                })
+              } else if (event.dataTransfer.types.includes('Files')) {
+                event.preventDefault()
+                event.stopPropagation()
+                void uploadFiles(Array.from(event.dataTransfer.files), directoryId)
               }
             }}
           >

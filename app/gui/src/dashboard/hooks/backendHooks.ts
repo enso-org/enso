@@ -31,6 +31,7 @@ import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHo
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type Backend from '#/services/Backend'
@@ -308,16 +309,30 @@ export function useListUserGroupsWithUsers(backend: Backend): ListUserGroupsWith
   }
 }
 
+/** Return the refetch interval for listing directories based on feature flag state. */
+export function useListDirectoryRefetchInterval() {
+  const enableAssetsTableBackgroundRefresh = useFeatureFlag('enableAssetsTableBackgroundRefresh')
+  const assetsTableBackgroundRefreshInterval = useFeatureFlag(
+    'assetsTableBackgroundRefreshInterval',
+  )
+  return enableAssetsTableBackgroundRefresh ? assetsTableBackgroundRefreshInterval : Infinity
+}
+
 /** Options for {@link listDirectoryQueryOptions}. */
 export interface ListDirectoryQueryOptions {
   readonly backend: Backend
   readonly parentId: DirectoryId
   readonly category: Category
+  /**
+   * When using React, use {@link useListDirectoryRefetchInterval} to 0.
+   * `undefined` is intentionally excluded as this value should be explicitly given.
+   */
+  readonly refetchInterval: number | null
 }
 
 /** Build a query options object to fetch the children of a directory. */
 export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
-  const { backend, parentId, category } = options
+  const { backend, parentId, category, refetchInterval } = options
 
   const rootPath = 'rootPath' in category ? category.rootPath : undefined
 
@@ -333,6 +348,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
         recentProjects: category.type === 'recent',
       },
     ] as const,
+    ...(refetchInterval != null ? { refetchInterval } : {}),
     queryFn: async () => {
       try {
         return await backend.listDirectory(
