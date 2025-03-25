@@ -1,7 +1,7 @@
 package org.enso.languageserver.websocket.json
 
 import io.circe.literal.JsonStringContext
-import org.enso.languageserver.data.Config
+import org.enso.pkg.Config
 import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 import org.enso.version.BuildVersion
 

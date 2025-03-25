@@ -50,10 +50,6 @@ function createResetPasswordFormSchema(getText: GetText) {
 
 const REDIRECT_TIMEOUT = 3000
 
-// =====================
-// === ResetPassword ===
-// =====================
-
 /** A form for users to reset their password. */
 export default function ResetPassword() {
   const { resetPassword } = useSessionAPI()

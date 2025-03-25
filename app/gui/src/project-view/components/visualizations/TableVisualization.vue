@@ -338,7 +338,6 @@ function createServerSideDatasource(): IServerSideDatasource {
     getRows: async (params) => {
       const server = createServer()
       const response: Response = await server.getData(params.request)
-      const startIndex = params.request.startRow ? params.request.startRow : 0
       const rows = createRowsForTable(response.data, 0, true)
       setTimeout(() => {
         if (response.success) {
@@ -431,7 +430,7 @@ function getFilterType(valueType: string) {
 
 function getFilterOptions(valueType: string) {
   if (valueType === 'Date') {
-    return ['equals', 'notEqual', 'greaterThan', 'lessThan', 'blank', 'notBlank']
+    return ['equals', 'notEqual', 'greaterThan', 'lessThan']
   } else if (isNumericType(valueType)) {
     return [
       'equals',
@@ -440,11 +439,9 @@ function getFilterOptions(valueType: string) {
       'greaterThanOrEqual',
       'lessThan',
       'lessThanOrEqual',
-      'blank',
-      'notBlank',
     ]
   } else if (valueType === 'Char') {
-    return ['equals', 'notEqual', 'blank', 'notBlank', 'contains', 'startsWith', 'endsWith']
+    return ['equals', 'notEqual', 'contains', 'startsWith', 'endsWith']
   } else {
     return null
   }

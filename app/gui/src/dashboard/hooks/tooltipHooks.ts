@@ -1,10 +1,6 @@
 /** @file Hooks related to tooltips. */
 import * as React from 'react'
 
-// =======================
-// === useNeedsTooltip ===
-// =======================
-
 /** Whether a given element needs a tooltip. */
 export function useNeedsTooltip() {
   const [needsTooltip, setNeedsTooltip] = React.useState(false)

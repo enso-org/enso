@@ -95,7 +95,8 @@ object Contact {
   *                             local libraries over what is defined in the
   *                             edition
   * @param componentGroups the description of component groups provided by this
-  *                        package
+  *                        package,
+  * @param jvm determines whether JVM mode should be enabled for the project
   */
 case class Config(
   name: String,
@@ -107,7 +108,8 @@ case class Config(
   maintainers: List[Contact],
   edition: Option[Editions.RawEdition],
   preferLocalLibraries: Boolean,
-  componentGroups: Option[ComponentGroups]
+  componentGroups: Option[ComponentGroups],
+  jvm: Option[Boolean]
 ) {
 
   /** Converts the configuration into a YAML representation. */
@@ -157,6 +159,7 @@ object Config {
     val Edition: String        = "edition"
     val PreferLocalLibraries   = "prefer-local-libraries"
     val ComponentGroups        = "component-groups"
+    val Jvm: String            = "jvm"
   }
 
   implicit val yamlDecoder: YamlDecoder[Config] =
@@ -230,6 +233,11 @@ object Config {
               .get(JsonFields.ComponentGroups)
               .map(componentGroups.decode)
               .getOrElse(Right(None))
+            jvmMode <- clazzMap
+              .get(JsonFields.Jvm)
+              .flatMap(v => booleanDecoder.decode(v).toOption)
+              .map(v => Right(Some(v)))
+              .getOrElse(Right(None))
           } yield Config(
             name,
             normalizedName,
@@ -240,7 +248,8 @@ object Config {
             maintainers,
             edition,
             preferLocalLibraries,
-            componentGroups
+            componentGroups,
+            jvmMode
           )
       }
     }
@@ -297,6 +306,11 @@ object Config {
             (JsonFields.ComponentGroups, componentGroupsEncoder.encode(v))
           )
         )
+        if (value.jvm.nonEmpty) {
+          elements.add(
+            (JsonFields.Jvm, booleanEncoder.encode(value.jvm.get))
+          )
+        }
 
         toMap(elements)
       }
@@ -337,4 +351,6 @@ object Config {
     repositories  = Map(),
     libraries     = Map()
   )
+
+  def ensoPackageConfigName: String = "package.yaml"
 }

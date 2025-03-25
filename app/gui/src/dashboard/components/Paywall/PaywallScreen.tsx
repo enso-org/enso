@@ -1,52 +1,39 @@
-/**
- * @file
- *
- * A screen that shows a paywall.
- */
-
-import * as React from 'react'
-
-import * as tw from 'tailwind-merge'
-
-import * as billingHooks from '#/hooks/billing'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
-
-import * as components from './components'
-import * as upgradeButton from './UpgradeButton'
+/** @file A screen that shows a paywall. */
+import { Text } from '#/components/AriaComponents'
+import { usePaywallFeatures, type PaywallFeatureName } from '#/hooks/billing'
+import { useText } from '#/providers/TextProvider'
+import { twMerge } from '#/utilities/tailwindMerge'
+import { PaywallBulletPoints, PaywallLock } from './components'
+import { UpgradeButton } from './UpgradeButton'
 
 /** Props for a {@link PaywallScreen}. */
 export interface PaywallScreenProps {
-  readonly feature: billingHooks.PaywallFeatureName
+  readonly feature: PaywallFeatureName
   readonly className?: string
 }
 
 /** A screen that shows a paywall. */
 export function PaywallScreen(props: PaywallScreenProps) {
   const { feature, className } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
-  const { getFeature } = billingHooks.usePaywallFeatures()
+  const { getFeature } = usePaywallFeatures()
 
   const { bulletPointsTextId, descriptionTextId } = getFeature(feature)
 
   return (
-    <div className={tw.twMerge('flex flex-col items-start', className)}>
-      <components.PaywallLock feature={feature} />
+    <div className={twMerge('flex flex-col items-start', className)}>
+      <PaywallLock feature={feature} />
 
-      <ariaComponents.Text.Heading level="2">
-        {getText('paywallScreenTitle')}
-      </ariaComponents.Text.Heading>
+      <Text.Heading level="2">{getText('paywallScreenTitle')}</Text.Heading>
 
-      <ariaComponents.Text balance variant="subtitle" className="mt-1 max-w-[720px]">
+      <Text balance variant="subtitle" className="mt-1 max-w-[720px]">
         {getText(descriptionTextId)}
-      </ariaComponents.Text>
+      </Text>
 
-      <components.PaywallBulletPoints bulletPointsTextId={bulletPointsTextId} className="my-3" />
+      <PaywallBulletPoints bulletPointsTextId={bulletPointsTextId} className="my-3" />
 
-      <upgradeButton.UpgradeButton feature={feature} className="mt-0.5 min-w-36" />
+      <UpgradeButton feature={feature} className="mt-0.5 min-w-36" />
     </div>
   )
 }

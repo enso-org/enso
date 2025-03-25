@@ -4,10 +4,6 @@ import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinn
 import * as twv from '#/utilities/tailwindVariants'
 import { memo } from 'react'
 
-// =================
-// === Constants ===
-// =================
-
 const STYLES = twv.tv({
   base: 'animate-appear-delayed flex h-full w-full items-center justify-center duration-200',
   variants: {
@@ -48,16 +44,8 @@ const SIZE_MAP: Record<Size, number> = {
   small: 16,
 }
 
-// ============
-// === Size ===
-// ============
-
 /** The possible sizes for a {@link Loader}. */
 export type Size = 'large' | 'medium' | 'small'
-
-// ==============
-// === Loader ===
-// ==============
 
 /** Props for a {@link Loader}. */
 export interface LoaderProps extends twv.VariantProps<typeof STYLES> {

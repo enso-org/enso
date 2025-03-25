@@ -34,10 +34,6 @@ if (GOOGLE_ANALYTICS_TAG === 'G-CLTBJ37MDM') {
   gtag('config', 'G-DH47F649JC')
 }
 
-// ====================
-// === useGtagEvent ===
-// ====================
-
 /**
  * A hook that returns a no-op if the user is offline, otherwise it returns
  * a transparent wrapper around `gtag.event`.
@@ -47,10 +43,6 @@ export function useGtagEvent() {
     event(name, params)
   }, [])
 }
-
-// =============================
-// === gtagOpenCloseCallback ===
-// =============================
 
 /**
  * Send an event indicating that something has been opened, and return a cleanup function

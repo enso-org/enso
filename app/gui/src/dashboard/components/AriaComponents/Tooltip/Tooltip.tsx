@@ -8,10 +8,6 @@ import { ResetButtonGroupContext } from '../Button'
 import { DIALOG_BACKGROUND } from '../Dialog'
 import { TEXT_STYLE } from '../Text'
 
-// =================
-// === Constants ===
-// =================
-
 export const TOOLTIP_STYLES = tv({
   base: 'group flex justify-center items-center text-center min-w-10 [overflow-wrap:anywhere]',
   variants: {
@@ -60,10 +56,6 @@ export const TOOLTIP_STYLES = tv({
 
 const DEFAULT_CONTAINER_PADDING = 6
 const DEFAULT_OFFSET = 9
-
-// ===============
-// === Tooltip ===
-// ===============
 
 /** Props for a {@link Tooltip}. */
 export interface TooltipProps

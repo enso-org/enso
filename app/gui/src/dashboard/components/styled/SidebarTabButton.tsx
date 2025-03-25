@@ -9,10 +9,6 @@ const SIDEBAR_TAB_BUTTON_STYLES = tv({
   },
 })
 
-// ========================
-// === SidebarTabButton ===
-// ========================
-
 /** Props for a {@link SidebarTabButton}. */
 export interface SidebarTabButtonProps {
   readonly id: string

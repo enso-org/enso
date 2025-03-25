@@ -245,7 +245,7 @@ public final class EnsoContext {
   }
 
   /**
-   * Enters this context and then executes provide {@code action}.
+   * Enters this context and then executes provided {@code action}.
    *
    * @param <T> type the action computes
    * @param who the node who's asking to perform the action

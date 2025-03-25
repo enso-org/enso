@@ -1,5 +1,7 @@
 package org.enso.interpreter.instrument.job
 
+import org.slf4j.LoggerFactory
+
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 
@@ -18,7 +20,7 @@ final class StartBackgroundProcessingJob()
 
 object StartBackgroundProcessingJob {
   private def logger: org.slf4j.Logger =
-    org.slf4j.LoggerFactory.getLogger(getClass)
+    LoggerFactory.getLogger(getClass)
 
   /** Start background jobs execution. */
   def startBackgroundJobs()(implicit ctx: RuntimeContext): Unit = {

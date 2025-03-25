@@ -12,12 +12,13 @@ import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.{ModuleExports, Suggestion}
+import org.slf4j.LoggerFactory
 
 final class AnalyzeModuleInScopeJob(
   modules: Iterable[(Module, IndexState, Boolean)]
 ) extends BackgroundJob[Unit](AnalyzeModuleInScopeJob.Priority) {
   private def logger: org.slf4j.Logger =
-    org.slf4j.LoggerFactory.getLogger(classOf[AnalyzeModuleInScopeJob])
+    LoggerFactory.getLogger(classOf[AnalyzeModuleInScopeJob])
 
   private val exportsBuilder = new ExportsBuilder
 

@@ -61,7 +61,7 @@ file_types = Vector.from_polyglot_array (FileSystemSPI.get_types False)
 @Builtin_Type
 type File
     ## ALIAS new file
-       GROUP Input
+       GROUP File
        ICON data_input
 
        Creates a new file object, pointing to the given path.

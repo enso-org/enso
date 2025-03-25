@@ -71,10 +71,6 @@ interface DriveStore {
   readonly setDragTargetAssetId: (dragTargetAssetId: AssetId | null) => void
 }
 
-// =======================
-// === ProjectsContext ===
-// =======================
-
 /** State contained in a `ProjectsContext`. */
 export type ProjectsContextType = StoreApi<DriveStore>
 

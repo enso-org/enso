@@ -6,6 +6,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.jdk.CollectionConverters._
 import org.enso.polyglot.Suggestion
+import org.slf4j.LoggerFactory
 
 /** A job responsible for deserializing suggestions of loaded library.
   *
@@ -16,7 +17,7 @@ final class DeserializeLibrarySuggestionsJob(
 ) extends BackgroundJob[Unit](DeserializeLibrarySuggestionsJob.Priority, true)
     with UniqueJob[Unit] {
   private def logger: org.slf4j.Logger =
-    org.slf4j.LoggerFactory.getLogger(classOf[DeserializeLibrarySuggestionsJob])
+    LoggerFactory.getLogger(classOf[DeserializeLibrarySuggestionsJob])
 
   /** @inheritdoc */
   override def equalsTo(that: UniqueJob[_]): Boolean =

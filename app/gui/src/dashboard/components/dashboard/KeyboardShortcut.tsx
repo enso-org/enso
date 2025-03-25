@@ -23,10 +23,6 @@ import {
 } from '#/utilities/inputBindings'
 import { twMerge } from '#/utilities/tailwindMerge'
 
-// ========================
-// === KeyboardShortcut ===
-// ========================
-
 /** The size (both width and height) of key icons. */
 const ICON_SIZE_PX = '1.5cap'
 

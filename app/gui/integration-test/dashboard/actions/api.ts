@@ -236,7 +236,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     const parent = assetMap.get(parentId)
 
     if (parent == null) {
-      return [parentId, ...acc].join('/')
+      return backend.ParentsPath([parentId, ...acc].join('/'))
     }
 
     // this should never happen, but we need to check it for a case
@@ -245,21 +245,31 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     return getParentPath(parent.parentId, [parent.id, ...acc])
   }
 
-  function getVirtualParentPath(
-    parentId: backend.DirectoryId,
-    _parentTitle: string,
-    acc: string[] = [],
-  ) {
+  function getVirtualParentPath(parentId: backend.DirectoryId, parts: string[] = []) {
     const parent = assetMap.get(parentId)
 
     if (parent == null) {
-      return acc.join('/')
+      return backend.VirtualParentsPath(parts.join('/'))
     }
 
-    // this should never happen, but we need to check it for a case
+    // This should never happen, but we need to check it for type-safety purposes.
     invariant(parent.type === backend.AssetType.directory, 'Parent is not a directory')
 
-    return getVirtualParentPath(parent.parentId, parent.title, [parent.title, ...acc])
+    return getVirtualParentPath(parent.parentId, [parent.title, ...parts])
+  }
+
+  function getEnsoPath(parentId: backend.DirectoryId, parts: string[] = []) {
+    const parent = assetMap.get(parentId)
+
+    if (parent == null) {
+      // FIXME: Support teams in API mock
+      return backend.EnsoPath(`enso://Users/${defaultUser.name}/${parts.join('/')}`)
+    }
+
+    // This should never happen, but we need to check it for type-safety purposes.
+    invariant(parent.type === backend.AssetType.directory, 'Parent is not a directory')
+
+    return getEnsoPath(parent.parentId, [parent.title, ...parts])
   }
 
   function trackCalls() {
@@ -349,9 +359,34 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     rest: Partial<backend.UserGroupPermission> = {},
   ): backend.UserGroupPermission => object.merge({ userGroup, permission }, rest)
 
-  const createDirectory = (rest: Partial<backend.DirectoryAsset> = {}): backend.DirectoryAsset => {
-    const parentId = rest.parentId ?? defaultDirectoryId
+  function createAsset<T extends backend.AnyAsset>(rest: Pick<T, 'id' | 'type'> & Partial<T>): T
+  function createAsset(
+    rest: Pick<backend.AnyAsset, 'id' | 'type'> & Partial<backend.AnyAsset>,
+  ): backend.AnyAsset {
+    // @ts-expect-error This is UNSAFE if the generic parameter is explicitly specified.
+    return {
+      projectState: null,
+      extension: null,
+      title: rest.title ?? '',
+      modifiedAt: newDate(),
+      description: rest.description ?? '',
+      labels: [],
+      parentId: defaultDirectoryId,
+      permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
+      get parentsPath() {
+        return getParentPath(this.parentId)
+      },
+      get virtualParentsPath() {
+        return getVirtualParentPath(this.parentId)
+      },
+      get ensoPath() {
+        return getEnsoPath(this.parentId)
+      },
+      ...rest,
+    }
+  }
 
+  const createDirectory = (rest: Partial<backend.DirectoryAsset> = {}): backend.DirectoryAsset => {
     const directoryTitles = new Set(
       assets
         .filter((asset) => asset.type === backend.AssetType.directory)
@@ -360,45 +395,12 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
     const title = rest.title ?? `New Folder ${directoryTitles.size + 1}`
 
-    const directory = object.merge(
-      {
-        type: backend.AssetType.directory,
-        id: backend.DirectoryId(`directory-${uniqueString.uniqueString()}` as const),
-        projectState: null,
-        extension: null,
-        title,
-        modifiedAt: newDate(),
-        description: rest.description ?? '',
-        labels: [],
-        parentId,
-        permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
-        parentsPath: backend.ParentsPath(''),
-        virtualParentsPath: backend.VirtualParentsPath(''),
-      },
-      rest,
-    )
-
-    Object.defineProperty(directory, 'toJSON', {
-      value: function toJSON() {
-        const { parentsPath: _, virtualParentsPath: __, ...rest } = this
-
-        return {
-          ...rest,
-          parentsPath: this.parentsPath,
-          virtualParentsPath: this.virtualParentsPath,
-        }
-      },
+    return createAsset({
+      type: backend.AssetType.directory,
+      id: backend.DirectoryId(`directory-${uniqueString.uniqueString()}` as const),
+      title,
+      ...rest,
     })
-
-    Object.defineProperty(directory, 'parentsPath', {
-      get: () => getParentPath(directory.parentId),
-    })
-
-    Object.defineProperty(directory, 'virtualParentsPath', {
-      get: () => getVirtualParentPath(directory.id, directory.title),
-    })
-
-    return directory
   }
 
   const createProject = (rest: Partial<backend.ProjectAsset> = {}): backend.ProjectAsset => {
@@ -410,173 +412,41 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
     const title = rest.title ?? `New Project ${projectNames.size + 1}`
 
-    const project = object.merge(
-      {
-        type: backend.AssetType.project,
-        id: backend.ProjectId('project-' + uniqueString.uniqueString()),
-        projectState: {
-          type: backend.ProjectState.closed,
-          volumeId: '',
-        },
-        extension: null,
-        title,
-        modifiedAt: newDate(),
-        description: rest.description ?? '',
-        labels: [],
-        parentId: defaultDirectoryId,
-        permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
-        parentsPath: backend.ParentsPath(''),
-        virtualParentsPath: backend.VirtualParentsPath(''),
+    return createAsset({
+      type: backend.AssetType.project,
+      id: backend.ProjectId('project-' + uniqueString.uniqueString()),
+      title,
+      projectState: {
+        type: backend.ProjectState.closed,
+        volumeId: '',
       },
-      rest,
-    )
-    Object.defineProperty(project, 'toJSON', {
-      value: function toJSON() {
-        const { parentsPath: _, virtualParentsPath: __, ...rest } = this
-
-        return {
-          ...rest,
-          parentsPath: this.parentsPath,
-          virtualParentsPath: this.virtualParentsPath,
-        }
-      },
+      ...rest,
     })
-
-    Object.defineProperty(project, 'parentsPath', {
-      get: () => getParentPath(project.parentId),
-    })
-
-    Object.defineProperty(project, 'virtualParentsPath', {
-      get: () => getVirtualParentPath(project.parentId, project.title),
-    })
-
-    return project
   }
 
   const createFile = (rest: Partial<backend.FileAsset> = {}): backend.FileAsset => {
-    const file = object.merge(
-      {
-        type: backend.AssetType.file,
-        id: backend.FileId('file-' + uniqueString.uniqueString()),
-        projectState: null,
-        extension: '',
-        title: rest.title ?? '',
-        modifiedAt: newDate(),
-        description: rest.description ?? '',
-        labels: [],
-        parentId: defaultDirectoryId,
-        permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
-        parentsPath: backend.ParentsPath(''),
-        virtualParentsPath: backend.VirtualParentsPath(''),
-      },
-      rest,
-    )
-
-    Object.defineProperty(file, 'toJSON', {
-      value: function toJSON() {
-        const { parentsPath: _, virtualParentsPath: __, ...rest } = this
-
-        return {
-          ...rest,
-          parentsPath: this.parentsPath,
-          virtualParentsPath: this.virtualParentsPath,
-        }
-      },
+    return createAsset({
+      type: backend.AssetType.file,
+      id: backend.FileId('file-' + uniqueString.uniqueString()),
+      extension: '',
+      ...rest,
     })
-
-    Object.defineProperty(file, 'parentsPath', {
-      get: () => getParentPath(file.parentId),
-    })
-
-    Object.defineProperty(file, 'virtualParentsPath', {
-      get: () => getVirtualParentPath(file.parentId, file.title),
-    })
-
-    return file
   }
 
   const createSecret = (rest: Partial<backend.SecretAsset>): backend.SecretAsset => {
-    const secret = object.merge(
-      {
-        type: backend.AssetType.secret,
-        id: backend.SecretId('secret-' + uniqueString.uniqueString()),
-        projectState: null,
-        extension: null,
-        title: rest.title ?? '',
-        modifiedAt: newDate(),
-        description: rest.description ?? '',
-        labels: [],
-        parentId: defaultDirectoryId,
-        permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
-        parentsPath: backend.ParentsPath(''),
-        virtualParentsPath: backend.VirtualParentsPath(''),
-      },
-      rest,
-    )
-
-    Object.defineProperty(secret, 'toJSON', {
-      value: function toJSON() {
-        const { parentsPath: _, virtualParentsPath: __, ...rest } = this
-
-        return {
-          ...rest,
-          parentsPath: this.parentsPath,
-          virtualParentsPath: this.virtualParentsPath,
-        }
-      },
+    return createAsset({
+      type: backend.AssetType.secret,
+      id: backend.SecretId('secret-' + uniqueString.uniqueString()),
+      ...rest,
     })
-
-    Object.defineProperty(secret, 'parentsPath', {
-      get: () => getParentPath(secret.parentId),
-    })
-
-    Object.defineProperty(secret, 'virtualParentsPath', {
-      get: () => getVirtualParentPath(secret.parentId, secret.title),
-    })
-
-    return secret
   }
 
   const createDatalink = (rest: Partial<backend.DatalinkAsset>): backend.DatalinkAsset => {
-    const datalink = object.merge(
-      {
-        type: backend.AssetType.datalink,
-        id: backend.DatalinkId('datalink-' + uniqueString.uniqueString()),
-        projectState: null,
-        extension: null,
-        title: rest.title ?? '',
-        modifiedAt: newDate(),
-        description: rest.description ?? '',
-        labels: [],
-        parentId: defaultDirectoryId,
-        permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
-        parentsPath: backend.ParentsPath(''),
-        virtualParentsPath: backend.VirtualParentsPath(''),
-      },
-      rest,
-    )
-
-    Object.defineProperty(datalink, 'toJSON', {
-      value: function toJSON() {
-        const { parentsPath: _, virtualParentsPath: __, ...rest } = this
-
-        return {
-          ...rest,
-          parentsPath: this.parentsPath,
-          virtualParentsPath: this.virtualParentsPath,
-        }
-      },
+    return createAsset({
+      type: backend.AssetType.datalink,
+      id: backend.DatalinkId('datalink-' + uniqueString.uniqueString()),
+      ...rest,
     })
-
-    Object.defineProperty(datalink, 'parentsPath', {
-      get: () => getParentPath(datalink.parentId),
-    })
-
-    Object.defineProperty(datalink, 'virtualParentsPath', {
-      get: () => getVirtualParentPath(datalink.parentId, datalink.title),
-    })
-
-    return datalink
   }
 
   const createLabel = (value: string, color: backend.LChColor): backend.Label => ({
@@ -1330,9 +1200,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       const state = { type: backend.ProjectState.closed, volumeId: '' }
 
       const project = addProject({
-        description: null,
         id,
-        labels: [],
         modifiedAt: newDate(),
         parentId,
         permissions: [
@@ -1369,9 +1237,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       const parentId = body.parentId ?? defaultDirectoryId
 
       const directory = addDirectory({
-        description: null,
         id,
-        labels: [],
         parentId,
         projectState: null,
       })
