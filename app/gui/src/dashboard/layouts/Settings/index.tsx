@@ -34,10 +34,6 @@ import SettingsSidebar from './Sidebar'
 import SettingsTab from './Tab'
 import SettingsTabType from './TabType'
 
-// ================
-// === Settings ===
-// ================
-
 /** Props for a {@link Settings}. */
 export interface SettingsProps {
   readonly backend: Backend | null

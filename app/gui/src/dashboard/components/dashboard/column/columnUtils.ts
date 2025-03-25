@@ -13,10 +13,6 @@ import TimeIcon from '#/assets/time.svg'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import * as backend from '#/services/Backend'
 
-// =============
-// === Types ===
-// =============
-
 /** Column type. */
 export enum Column {
   name = 'name',
@@ -30,10 +26,6 @@ export enum Column {
 
 /** Columns that can be used as a sort column. */
 export type SortableColumn = Column.modified | Column.name
-
-// =================
-// === Constants ===
-// =================
 
 export const DEFAULT_ENABLED_COLUMNS: ReadonlySet<Column> = new Set([
   Column.name,
@@ -79,10 +71,6 @@ export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
   [Column.accessedData]: `min-w-drive-accessed-data-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.path]: `min-w-drive-path-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
 }
-
-// =====================
-// === getColumnList ===
-// =====================
 
 /** Return the full list of columns given the relevant current state. */
 export function getColumnList(

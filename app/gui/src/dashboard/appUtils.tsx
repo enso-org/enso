@@ -1,9 +1,5 @@
 /** @file Constants related to the application root component. */
 
-// =================
-// === Constants ===
-// =================
-
 // === Paths ===
 
 export const OPEN_IDE_DEEPLINK = 'enso://'

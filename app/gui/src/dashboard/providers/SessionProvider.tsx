@@ -32,10 +32,6 @@ import { toast } from 'react-toastify'
 import { useSetModal } from './ModalProvider'
 import { useText } from './TextProvider'
 
-// ======================
-// === SessionContext ===
-// ======================
-
 /** State contained in a {@link SessionContext}. */
 interface SessionContextType {
   readonly session: cognito.UserSession | null
@@ -63,10 +59,6 @@ interface SessionContextType {
 }
 
 const SessionContext = React.createContext<SessionContextType | null>(null)
-
-// =======================
-// === SessionProvider ===
-// =======================
 
 /** Props for a {@link SessionProvider}. */
 export interface SessionProviderProps {
@@ -436,10 +428,6 @@ function SessionRefresher(props: SessionRefresherProps) {
 
   return null
 }
-
-// ==================
-// === useSession ===
-// ==================
 
 /**
  * React context hook returning the session of the authenticated user.
