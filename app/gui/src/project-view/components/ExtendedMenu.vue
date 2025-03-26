@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { Action, ActionName } from '@/providers/action'
 import ActionMenu from './ActionMenu.vue'
 
 const open = defineModel<boolean>('open', { default: false })
+const props = defineProps<{ actions: (Action | ActionName)[] }>()
 </script>
 
 <template>
@@ -15,21 +17,7 @@ const open = defineModel<boolean>('open', { default: false })
   >
     <template #button><SvgIcon name="3_dot_menu" class="moreIcon" /></template>
     <template #menu>
-      <ActionMenu
-        :actions="[
-          'graph.navigateUp',
-          'graph.renameProject',
-          'graph.refreshExecution',
-          'graph.recomputeAll',
-          'graph.undo',
-          'graph.redo',
-          'graph.addComponent',
-          'graph.fitAll',
-          'graph.toggleCodeEditor',
-          'graph.toggleDocumentationEditor',
-        ]"
-        @close="open = false"
-      />
+      <ActionMenu :actions="props.actions" @close="open = false" />
     </template>
   </DropdownMenu>
 </template>

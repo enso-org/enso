@@ -13,10 +13,6 @@ import FocusRing from '#/components/styled/FocusRing'
 import { Form, HiddenFile } from '#/components/AriaComponents'
 import type Backend from '#/services/Backend'
 
-// ===========================
-// === ProfilePictureInput ===
-// ===========================
-
 /** Props for a {@link ProfilePictureInput}. */
 export interface ProfilePictureInputProps {
   readonly backend: Backend

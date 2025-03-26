@@ -46,11 +46,8 @@ import {
   useSetFeatureFlags,
 } from './FeatureFlagsProvider'
 
-// ===================
-// === UserSession ===
-// ===================
-
 /** Possible types of {@link BaseUserSession}. */
+// eslint-disable-next-line react-refresh/only-export-components
 export enum UserSessionType {
   offline = 'offline',
   partial = 'partial',
@@ -88,10 +85,6 @@ export interface FullUserSession extends BaseUserSession {
  */
 export type UserSession = FullUserSession | PartialUserSession
 
-// ===================
-// === AuthContext ===
-// ===================
-
 /**
  * Interface returned by the `useAuth` hook.
  *
@@ -126,10 +119,6 @@ interface AuthContextType {
 }
 
 const AuthContext = React.createContext<AuthContextType | null>(null)
-
-// ====================
-// === AuthProvider ===
-// ====================
 
 /** Query to fetch the user's session data from the backend. */
 function createUsersMeQuery(
@@ -354,10 +343,6 @@ export default function AuthProvider(props: AuthProviderProps) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-// ===============
-// === useAuth ===
-// ===============
-
 /**
  * A React hook that provides access to the authentication context.
  *
@@ -365,6 +350,7 @@ export default function AuthProvider(props: AuthProviderProps) {
  * never the context component.
  * @throws {Error} when used outside a {@link AuthProvider}.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = React.useContext(AuthContext)
 
@@ -385,10 +371,6 @@ export function AnyLoggedInUserLayout() {
 
   return <router.Outlet context={session} />
 }
-
-// =======================
-// === ProtectedLayout ===
-// =======================
 
 /** A React Router layout route containing routes only accessible by users that are logged in. */
 export function ProtectedLayout() {
@@ -419,10 +401,6 @@ export function ProtectedLayout() {
   )
 }
 
-// ===========================
-// === SemiProtectedLayout ===
-// ===========================
-
 /**
  * A React Router layout route containing routes only accessible by users that are
  * in the process of registering.
@@ -449,10 +427,6 @@ export function SemiProtectedLayout() {
   // User is in the process of registration, allow them to complete the registration.
   return <router.Outlet context={session} />
 }
-
-// ===================
-// === GuestLayout ===
-// ===================
 
 /**
  * A React Router layout route containing routes only accessible by users that are
@@ -582,14 +556,11 @@ export function CloudBrowserDisabledLayout(props: CloudBrowserDisabledLayoutProp
   )
 }
 
-// =============================
-// === usePartialUserSession ===
-// =============================
-
 /**
  * A React context hook returning the user session
  * for a user that has not yet completed registration.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePartialUserSession() {
   const { session } = useAuth()
 
@@ -598,20 +569,14 @@ export function usePartialUserSession() {
   return session
 }
 
-// ======================
-// === useUserSession ===
-// ======================
-
 /** A React context hook returning the user session for a user that may or may not be logged in. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useUserSession() {
   return useAuth().session
 }
 
-// ==========================
-// === useFullUserSession ===
-// ==========================
-
 /** A React context hook returning the user session for a user that is fully logged in. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useFullUserSession(): FullUserSession {
   const { session } = useAuth()
 
@@ -621,6 +586,7 @@ export function useFullUserSession(): FullUserSession {
 }
 
 /** A React context hook returning the user session for a user that is fully logged in. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useUser() {
   const { user } = useFullUserSession()
 

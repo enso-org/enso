@@ -41,13 +41,10 @@ import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-import org.slf4j.Logger;
 
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends Storage<Double>
     implements ColumnDoubleStorage, ColumnStorageWithNothingMap, NumericFormattingStorage {
-
-  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(DoubleStorage.class);
 
   final double[] data;
   final BitSet isNothing;

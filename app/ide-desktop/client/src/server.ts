@@ -227,18 +227,26 @@ export class Server {
           }
 
           https.get(downloadUrl, async (actualResponse) => {
-            try {
-              const projectsDirectory = projectManagement.getProjectsDirectory()
-              const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
-              const targetDirectory = path.join(parentDirectory, 'project_root')
+            const projectsDirectory = projectManagement.getProjectsDirectory()
+            const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
+            const targetDirectory = path.join(parentDirectory, 'project_root')
 
+            try {
               await fs.mkdir(targetDirectory, { recursive: true })
               await projectManagement.unpackBundle(actualResponse, targetDirectory)
               response
                 .writeHead(HTTP_STATUS_OK, COOP_COEP_CORP_HEADERS)
                 .end(JSON.stringify({ targetDirectory, parentDirectory }))
             } catch (e) {
-              console.error(e)
+              logger.error(e)
+              await fs
+                .access(parentDirectory)
+                .then(() => {
+                  fs.rmdir(parentDirectory, { maxRetries: 3, recursive: true })
+                })
+                .catch((e) => {
+                  logger.error(`Failed to cleanup directory ${parentDirectory}.`, e)
+                })
               response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COOP_COEP_CORP_HEADERS).end()
             }
           })
@@ -287,7 +295,7 @@ export class Server {
               )
               uploadRequest.write(projectBundle, (err) => {
                 if (err) {
-                  console.error(err)
+                  logger.error(err)
                   response
                     .writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR)
                     .end('Failed to write project bundle.')
@@ -296,14 +304,14 @@ export class Server {
               uploadRequest.end()
             })
             .catch((err) => {
-              console.error(err)
+              logger.error(err)
               response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COOP_COEP_CORP_HEADERS).end()
             })
 
           break
         }
         default: {
-          console.error(`Unknown Cloud middleware request:`, requestPath)
+          logger.error(`Unknown Cloud middleware request:`, requestPath)
           break
         }
       }

@@ -19,10 +19,6 @@ import { unsafeWriteValue } from '#/utilities/write'
 import { useMutation } from '@tanstack/react-query'
 import AuthenticationPage from './AuthenticationPage'
 
-// ===========================
-// === ConfirmRegistration ===
-// ===========================
-
 const REDIRECT_TIMEOUT = 5_000
 
 /** An empty component redirecting users based on the backend response to user registration. */

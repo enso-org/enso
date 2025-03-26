@@ -144,6 +144,7 @@ interface TooltipInnerProps
 }
 
 /** The inner component of the tooltip. */
+// eslint-disable-next-line react-refresh/only-export-components
 function TooltipInner(props: TooltipInnerProps) {
   const {
     id,

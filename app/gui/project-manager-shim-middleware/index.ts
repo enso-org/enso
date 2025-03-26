@@ -173,6 +173,13 @@ export default function projectManagerShimMiddleware(
             })
             .catch((e) => {
               console.error(e)
+              try {
+                if (fsSync.existsSync(parentDirectory)) {
+                  fsSync.rmdirSync(parentDirectory, { maxRetries: 3, recursive: true })
+                }
+              } catch (e) {
+                console.error(`Failed to cleanup directory ${parentDirectory}.`, e)
+              }
               response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COMMON_HEADERS).end()
             })
         })

@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import ActionButton from '@/components/ActionButton.vue'
 import ColorPickerMenu from '@/components/ColorPickerMenu.vue'
-import { injectActions } from '@/providers/action'
+import { resolveAction } from '@/providers/action'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { toValue } from 'vue'
 
-const actions = injectActions()
 const selection = injectGraphSelection()
-const pickColorMulti = actions['components.pickColorMulti']
+const pickColorMulti = resolveAction('components.pickColorMulti')
 </script>
 
 <template>

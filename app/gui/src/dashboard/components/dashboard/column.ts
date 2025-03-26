@@ -45,10 +45,6 @@ export interface AssetColumn {
   readonly render: (props: AssetColumnProps) => JSX.Element
 }
 
-// =======================
-// === COLUMN_RENDERER ===
-// =======================
-
 /** React components for every column. */
 export const COLUMN_RENDERER: Readonly<
   Record<Column, React.MemoExoticComponent<(props: AssetColumnProps) => React.JSX.Element>>

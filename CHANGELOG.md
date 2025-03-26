@@ -55,6 +55,7 @@
 - [Navigate up button for file browser and collapsed components][12603]
 - [Resizing visualization in Table.input component resizes the table widget
   too][12643]
+- [Add right-click context menu to the graph editor background][12601]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -91,6 +92,7 @@
 [12576]: https://github.com/enso-org/enso/pull/12576
 [12603]: https://github.com/enso-org/enso/pull/12603
 [12643]: https://github.com/enso-org/enso/pull/12643
+[12601]: https://github.com/enso-org/enso/pull/12603
 
 #### Enso Standard Library
 

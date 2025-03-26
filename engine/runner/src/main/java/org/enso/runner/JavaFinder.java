@@ -43,11 +43,17 @@ final class JavaFinder {
         javaExe = binDir.resolve("java");
       }
       if (javaExe.toFile().exists()) {
-        logger.warn("Found JDK in JAVA_HOME: {}", javaHome);
+        logger.info("Found JDK in JAVA_HOME: {}", javaHome);
         return javaExe.toAbsolutePath().toString();
+      } else {
+        logger.warn(
+            "No JDK found in JAVA_HOME (missing Java executable at {}). Trying java on PATH.",
+            javaExe);
       }
+    } else {
+      logger.warn("JAVA_HOME is not set. Trying java on PATH.");
     }
-    logger.warn("No JDK found in JAVA_HOME. Trying java on PATH.");
+
     if (isJavaOnPath()) {
       var javaExe = isOnWindows() ? "java.exe" : "java";
       logger.warn("Falling back to java on PATH: {}", javaExe);
@@ -58,7 +64,7 @@ final class JavaFinder {
   }
 
   private static boolean isOnWindows() {
-    return System.getProperty("os.name").equals("windows");
+    return System.getProperty("os.name").toLowerCase().contains("win");
   }
 
   /**
