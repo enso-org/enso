@@ -3,6 +3,7 @@ package org.enso.common;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Handler;
@@ -214,6 +215,12 @@ public final class ContextFactory {
     if (enableDebugServer) {
       builder.option(DebugServerInfo.ENABLE_OPTION, "true");
     }
+    if (shouldChangeWorkingDir()) {
+      assert projectRoot != null;
+      var parent = Path.of(projectRoot).getParent();
+      assert parent != null;
+      builder.currentWorkingDirectory(parent);
+    }
     builder.option(RuntimeOptions.LOG_LEVEL, logLevelName);
     var logLevels = LoggerSetup.get().getConfig().getLoggers();
     if (logLevels.hasEnsoLoggers()) {
@@ -264,6 +271,16 @@ public final class ContextFactory {
     var ctx = builder.build();
     ContextInsightSetup.configureContext(ctx);
     return ctx;
+  }
+
+  private boolean shouldChangeWorkingDir() {
+    return projectRoot != null
+        && !System.getProperty("user.dir").equals(parentDir(projectRoot));
+  }
+
+  private static String parentDir(String path) {
+    var parent = Path.of(path).getParent();
+    return parent != null ? parent.toAbsolutePath().toString() : null;
   }
 
   /**
