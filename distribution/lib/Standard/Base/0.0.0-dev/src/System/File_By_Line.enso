@@ -17,7 +17,6 @@ from project.Metadata import Display, Widget
 
 polyglot java import java.io.File as Java_File
 polyglot java import java.nio.charset.Charset
-polyglot java import org.enso.base.Array_Utils
 polyglot java import org.enso.base.arrays.LongArrayList
 polyglot java import org.enso.base.FileLineReader
 

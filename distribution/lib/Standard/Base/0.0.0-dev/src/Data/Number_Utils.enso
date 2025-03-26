@@ -1,0 +1,13 @@
+from Standard.Base import all
+
+## PRVIATE
+   Convert an Integer in the unsigned byte range [128..255] to the signed byte
+   range. Numbers outside either byte range are returned unchanged,
+convert_unsigned_byte_to_signed x:Integer -> Integer =
+    if x < 128 then x else
+        if x < 256 then -(256 - x) else x
+
+## PRVIATE
+   Convert an array of Integers in the unsigned byte range [128..255] to the
+   signed byte range. Numbers outside either byte range are returned unchanged,
+convert_unsigned_byte_array_to_signed v:Vector -> Vector = v.map convert_unsigned_byte_to_signed

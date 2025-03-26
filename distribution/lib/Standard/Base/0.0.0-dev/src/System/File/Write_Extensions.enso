@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Number_Utils
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -99,6 +100,7 @@ Vector.write_bytes : Writable_File -> Existing_File_Behavior -> Any ! Illegal_Ar
 Vector.write_bytes self (path : Writable_File) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) =
     Panic.catch Unsupported_Argument_Types handler=(_ -> Error.throw (Illegal_Argument.Error "Only Vectors consisting of bytes (integers in the range from -128 to 127) are supported by the `write_bytes` method.")) <|
         ## Convert to a byte array before writing - and fail early if there is any problem.
+        #byte_array = Array_Utils.ensureByteArray (Number_Utils.convert_unsigned_byte_array_to_signed self)
         byte_array = Array_Utils.ensureByteArray self
 
         # write_bytes does not allow dry run

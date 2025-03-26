@@ -622,3 +622,17 @@ type Failed_To_Load
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self = "Failed to load file at path: "+self.path.to_display_text+": "+self.cause.to_display_text
+
+type Unsigned_Bytes_Converted_To_Signed
+    ## PRIVATE
+       Indicates that integers with in the unsigned byte range [128..255] were
+       converted to signed bytes.
+
+       Arguments:
+       - message: message describing the operation that was not allowed.
+    Error
+
+    ## PRIVATE
+       Convert the Forbidden_Operation error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Integers with in the unsigned byte range [128..255] were converted to signed bytes"
