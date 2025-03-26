@@ -90,7 +90,8 @@ public class ExternalLibraryCredentialHelper {
         CloudAPI.getAPIRootURI()
             + "oauth/"
             + credentialReference.serviceName().toLowerCase()
-            + "/refresh";
+            + "/refresh/"
+            + credentialReference.secretId();
     var client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
     var request =
         HttpRequest.newBuilder()
@@ -162,5 +163,5 @@ public class ExternalLibraryCredentialHelper {
   private static final List<RestrictedAccess.AccessLocation> allowRefreshCredential =
       List.of(
           new RestrictedAccess.AccessLocation(
-              "org.enso.google.GoogleOAuthHelper.CloudRenewableGoogleCredentials", "refresh"));
+              "org.enso.google.GoogleOAuthHelper$CloudRenewableGoogleCredentials", "refresh"));
 }

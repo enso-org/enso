@@ -56,7 +56,7 @@ create_credential name scopes =
 
     Enso_Secret.get name
 
-main =
+create_fresh_credential =
     IO.println redirect_uri
     name = "test-google-cred-"+(Date_Time.now.format "yyyy-MM-dd_HH-mm-ss")
     scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
@@ -65,7 +65,14 @@ main =
     IO.println '\n\nPress Enter once the authentication is complete\n\n'
     Java_System.console.readLine
     IO.println '\nNow trying to authenticate using these credentials\n\n'
+    credential
 
+get_existing_credential =
+    Enso_Secret.get "test-google-cred-2025-03-26_20-42-41"
+
+main =
+    credential = get_existing_credential
+    IO.println "Authenticating using "+credential.to_text
     google_sheets = Google_Sheets.initialize credential
     table = google_sheets.get_table "1Xa1cXLN4oeCl7FpD_IErfOMHhFuShpc1S5Buc0UF4b0" "Sheet1"
     IO.println table
