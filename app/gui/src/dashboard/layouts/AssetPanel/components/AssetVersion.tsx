@@ -57,8 +57,8 @@ export function AssetVersion(props: AssetVersionProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className={TEXT_WITH_ICON().base({ gap: 'small', className: 'flex-none' })}>
-            <Icon size="xsmall" icon="calendar" className={TEXT_WITH_ICON().icon()} />
+          <div className={TEXT_WITH_ICON().base({ gap: 'medium', className: 'flex-none' })}>
+            <Icon size="small" icon="calendar" className={TEXT_WITH_ICON().icon()} />
             <Text elementType="time" variant="body-sm" className={TEXT_WITH_ICON().text()}>
               {formatDateTime(new Date(version.lastModified))}
             </Text>
@@ -66,7 +66,19 @@ export function AssetVersion(props: AssetVersionProps) {
 
           {version.user && (
             <Popover.Trigger>
-              <Button variant="ghost" size="small" icon="default_user" className="min-w-0">
+              <Button
+                variant="ghost"
+                size="small"
+                icon={
+                  <ProfilePicture
+                    picture={version.user.profilePicture}
+                    name={version.user.name}
+                    size="xxsmall"
+                    className="-mt-0.5"
+                  />
+                }
+                className="min-w-0"
+              >
                 <Text variant="body-sm" truncate="1" nowrap>
                   {version.user.name}
                 </Text>

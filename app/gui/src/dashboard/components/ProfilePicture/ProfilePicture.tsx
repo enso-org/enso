@@ -8,7 +8,7 @@ export const PROFILE_PICTURE_STYLES = tv({
     size: {
       auto: 'w-auto h-auto',
       full: 'w-full h-full',
-      xxsmall: 'w-2 h-2',
+      xxsmall: 'w-3 h-3',
       xsmall: 'w-4 h-4',
       small: 'w-6 h-6',
       medium: 'w-8 h-8',

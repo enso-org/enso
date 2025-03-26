@@ -26,12 +26,13 @@ export interface SpinnerProps {
   readonly padding?: number
   readonly className?: string
   readonly state: SpinnerState
+  readonly thickness?: number
 }
 
 /** A spinning arc that animates using the `dasharray-<percentage>` custom Tailwind classes. */
 
 export const Spinner = React.memo(function Spinner(props: SpinnerProps) {
-  const { size, padding, className, state } = props
+  const { size, padding, className, state, thickness = 3 } = props
 
   const cssClasses = twJoin('pointer-events-none', className)
 
@@ -48,14 +49,14 @@ export const Spinner = React.memo(function Spinner(props: SpinnerProps) {
       data-testid="spinner"
     >
       <rect
-        x={1.5}
-        y={1.5}
-        width={21}
-        height={21}
-        rx={10.5}
+        x={thickness / 2}
+        y={thickness / 2}
+        width={24 - thickness}
+        height={24 - thickness}
+        rx={12 - thickness / 2}
         stroke="currentColor"
         strokeLinecap="round"
-        strokeWidth={3}
+        strokeWidth={thickness}
         className={twJoin(
           'pointer-events-none origin-center !animate-spin-ease transition-stroke-dasharray [transition-duration:var(--spinner-slow-transition-duration)]',
           SPINNER_CSS_CLASSES[state],
