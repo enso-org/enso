@@ -9,7 +9,6 @@ import { TEXT_WITH_ICON } from '#/components/patterns'
 import { ProfilePicture } from '#/components/ProfilePicture'
 import { setModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
-import { formatDateTime } from 'enso-common/src/utilities/data/dateTime'
 import { Badge } from '../../../components/Badge'
 import { AssetDiffView } from '../../AssetDiffView'
 
@@ -36,7 +35,7 @@ export interface AssetVersionProps {
 export function AssetVersion(props: AssetVersionProps) {
   const { version, item, backend, doRestore, otherVersions, previousVersion, doDuplicate } = props
 
-  const { getText } = useText()
+  const { getText, locale } = useText()
 
   const isProject = item.type === backendService.AssetType.project
   const comparableVersions = otherVersions
@@ -56,11 +55,17 @@ export function AssetVersion(props: AssetVersionProps) {
           {version.isLatest && <Badge variant="outline">{getText('latestIndicator')}</Badge>}
         </div>
 
-        <div className="-mt-1 flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <div className={TEXT_WITH_ICON().base({ gap: 'medium', className: 'flex-none' })}>
             <Icon size="small" icon="calendar" className={TEXT_WITH_ICON().icon()} />
             <Text elementType="time" variant="body-sm" className={TEXT_WITH_ICON().text()}>
-              {formatDateTime(new Date(version.lastModified))}
+              {new Date(version.lastModified).toLocaleString(locale, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: 'numeric',
+              })}
             </Text>
           </div>
 
@@ -68,7 +73,7 @@ export function AssetVersion(props: AssetVersionProps) {
             <Popover.Trigger>
               <Button
                 variant="ghost"
-                size="small"
+                size="xxsmall"
                 icon={
                   <ProfilePicture
                     picture={version.user.profilePicture}
