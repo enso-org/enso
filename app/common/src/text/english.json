@@ -881,6 +881,8 @@
   "openInFileBrowserShortcut": "Open in File Browser",
   "openInFileBrowserShortcutWindows": "Open in Explorer",
   "openInFileBrowserShortcutMacOs": "Open in Finder",
+  "copyIdShortcut": "Copy Id",
+  "copyAllIdsShortcut": "Copy Selected Ids",
 
   "nameColumnShow": "Name",
   "nameColumnHide": "Name",

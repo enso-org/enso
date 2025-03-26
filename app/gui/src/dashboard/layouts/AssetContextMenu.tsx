@@ -89,8 +89,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const path = asset.ensoPathValue
   const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
+  const copyIdMutation = copyHooks.useCopy({ copyText: asset.id })
   const uploadFileToCloudMutation = useUploadFileWithToastMutation(remoteBackend)
   const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined
+  const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
 
   const newProject = useNewProject(backend, category)
 
@@ -175,10 +177,20 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
 
   const canUploadToCloud = user.plan !== backendModule.Plan.free
 
+  const copyIdEntry = showDeveloperIds && (
+    <ContextMenuEntry
+      hidden={hidden}
+      color="accent"
+      action="copyId"
+      doAction={copyIdMutation.mutateAsync}
+    />
+  )
+
   return (
     category.type === 'trash' ?
       !ownsThisAsset ? null
       : <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden} event={event}>
+          {copyIdEntry}
           <ContextMenuEntry
             hidden={hidden}
             action="undelete"
@@ -208,6 +220,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         </ContextMenu>
     : !canManageThisAsset ? null
     : <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden} event={event}>
+        {copyIdEntry}
         {asset.type === backendModule.AssetType.datalink && (
           <ContextMenuEntry
             hidden={hidden}
