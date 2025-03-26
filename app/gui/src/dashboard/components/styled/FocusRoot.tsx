@@ -21,6 +21,7 @@ export interface FocusRootProps {
 }
 
 /** An element that prevents navigation outside of itself. */
+// eslint-disable-next-line react-refresh/only-export-components
 function FocusRoot(props: FocusRootProps) {
   const { active = true, children } = props
   const navigator2D = navigator2DProvider.useNavigator2D()
@@ -61,4 +62,5 @@ function FocusRoot(props: FocusRootProps) {
 }
 
 /** An area that can be focused within. */
+// eslint-disable-next-line react-refresh/only-export-components
 export default withFocusScope.withFocusScope(FocusRoot)

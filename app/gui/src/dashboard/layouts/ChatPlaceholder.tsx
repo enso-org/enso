@@ -11,8 +11,6 @@ import * as appUtils from '#/appUtils'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as chat from '#/layouts/Chat'
-
 import * as ariaComponents from '#/components/AriaComponents'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
@@ -33,7 +31,7 @@ function ChatPlaceholder(props: ChatPlaceholderProps) {
   const logger = loggerProvider.useLogger()
   const navigate = router.useNavigate()
 
-  const container = document.getElementById(chat.HELP_CHAT_ID)
+  const container = document.getElementById('enso-chat')
 
   if (container == null) {
     logger.error('Chat container not found.')

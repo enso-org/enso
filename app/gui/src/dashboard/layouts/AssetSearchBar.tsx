@@ -61,6 +61,7 @@ interface InternalTagsProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const searchbarSuggestionsStore = createStore<{
   readonly suggestions: readonly Suggestion[]
   readonly setSuggestions: (suggestions: readonly Suggestion[]) => void
@@ -74,6 +75,7 @@ export const searchbarSuggestionsStore = createStore<{
 /**
  * Sets the suggestions.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSetSuggestions() {
   return useStore(searchbarSuggestionsStore, (state) => state.setSuggestions, {
     unsafeEnableTransition: true,

@@ -39,6 +39,7 @@ export default function FocusClassesProvider(props: FocusClassesProviderProps) {
 }
 
 /** The current direction in which focus siblings are located. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useFocusClasses() {
   return React.useContext(FocusClassesContext)
 }

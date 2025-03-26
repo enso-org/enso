@@ -30,6 +30,7 @@ import {
   type TooltipElementType,
 } from '../AriaComponents'
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const BREADCRUMB_ITEM_STYLES = tv({
   base: 'flex items-center gap-2 bg-transparent transition-colors',
   slots: {
@@ -102,6 +103,7 @@ export interface BreadcrumbItemContextType {
 /**
  * Context for the breadcrumb item.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export const BreadcrumbItemContext = createContext<BreadcrumbItemContextType>({
   isCurrent: false,
   onActionSpecified: false,

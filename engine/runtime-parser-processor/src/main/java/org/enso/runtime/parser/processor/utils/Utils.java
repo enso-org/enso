@@ -25,6 +25,7 @@ public final class Utils {
   private static final String EXPRESSION_FQN = "org.enso.compiler.core.ir.Expression";
   private static final String SCALA_LIST = "scala.collection.immutable.List";
   private static final String SCALA_OPTION = "scala.Option";
+  private static final String PERSISTANCE_REFERENCE = "org.enso.persist.Persistance.Reference";
   private static final String DIAGNOSTIC_STORAGE_FQN =
       "org.enso.compiler.core.ir.DiagnosticStorage";
   private static final String IDENTIFIED_LOCATION_FQN =
@@ -153,6 +154,10 @@ public final class Utils {
         .collect(Collectors.joining(System.lineSeparator()));
   }
 
+  public static String indent(String code) {
+    return indent(code, 2);
+  }
+
   /**
    * Returns null if the given {@code typeMirror} is not a declared type and thus has no associated
    * {@link TypeElement}.
@@ -180,6 +185,23 @@ public final class Utils {
     var elem = procEnv.getTypeUtils().asElement(type);
     if (elem instanceof TypeElement typeElem) {
       var listType = procEnv.getElementUtils().getTypeElement(SCALA_LIST);
+      return procEnv.getTypeUtils().isSameType(listType.asType(), typeElem.asType());
+    }
+    return false;
+  }
+
+  public static TypeMirror getTypeArgument(TypeMirror type) {
+    if (type instanceof DeclaredType declaredType) {
+      Utils.hardAssert(declaredType.getTypeArguments().size() == 1);
+      return declaredType.getTypeArguments().get(0);
+    }
+    return null;
+  }
+
+  public static boolean isPersistanceReference(TypeMirror type, ProcessingEnvironment procEnv) {
+    var elem = procEnv.getTypeUtils().asElement(type);
+    if (elem instanceof TypeElement typeElem) {
+      var listType = procEnv.getElementUtils().getTypeElement(PERSISTANCE_REFERENCE);
       return procEnv.getTypeUtils().isSameType(listType.asType(), typeElem.asType());
     }
     return false;

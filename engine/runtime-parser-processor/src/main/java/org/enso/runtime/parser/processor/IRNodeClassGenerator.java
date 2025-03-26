@@ -12,6 +12,7 @@ import javax.lang.model.element.TypeElement;
 import org.enso.runtime.parser.processor.field.Field;
 import org.enso.runtime.parser.processor.field.FieldCollector;
 import org.enso.runtime.parser.processor.methodgen.BuilderMethodGenerator;
+import org.enso.runtime.parser.processor.methodgen.ChildrenMethodGenerator;
 import org.enso.runtime.parser.processor.methodgen.CopyMethodGenerator;
 import org.enso.runtime.parser.processor.methodgen.DuplicateMethodGenerator;
 import org.enso.runtime.parser.processor.methodgen.EqualsMethodGenerator;
@@ -35,6 +36,7 @@ final class IRNodeClassGenerator {
   private final GeneratedClassContext generatedClassContext;
   private final DuplicateMethodGenerator duplicateMethodGenerator;
   private final CopyMethodGenerator copyMethodGenerator;
+  private final ChildrenMethodGenerator childrenMethodGenerator;
   private final SetLocationMethodGenerator setLocationMethodGenerator;
   private final BuilderMethodGenerator builderMethodGenerator;
   private final MapExpressionsMethodGenerator mapExpressionsMethodGenerator;
@@ -55,6 +57,7 @@ final class IRNodeClassGenerator {
           "org.enso.compiler.core.ir.DiagnosticStorage$",
           "org.enso.compiler.core.ir.Expression",
           "org.enso.compiler.core.ir.IdentifiedLocation",
+          "org.enso.compiler.core.ir.Name",
           "org.enso.compiler.core.ir.MetadataStorage",
           "scala.Option");
 
@@ -75,6 +78,7 @@ final class IRNodeClassGenerator {
     this.duplicateMethodGenerator =
         new DuplicateMethodGenerator(duplicateMethod, generatedClassContext);
     this.copyMethodGenerator = new CopyMethodGenerator(generatedClassContext);
+    this.childrenMethodGenerator = new ChildrenMethodGenerator(generatedClassContext);
     this.builderMethodGenerator = new BuilderMethodGenerator(generatedClassContext);
     var mapExpressionsMethod =
         Utils.findMapExpressionsMethod(processedClass.getIrInterfaceElem(), processingEnv);
@@ -194,6 +198,12 @@ final class IRNodeClassGenerator {
     return fieldCollector.collectFields();
   }
 
+  private String ctorBinaryName() {
+    var ctor = generatedClassContext.getProcessedClass().getCtor();
+    var clazz = (TypeElement) ctor.getEnclosingElement();
+    return processingEnv.getElementUtils().getBinaryName(clazz).toString();
+  }
+
   /**
    * Returns string representation of the class fields. Meant to be at the beginning of the class
    * body.
@@ -201,11 +211,29 @@ final class IRNodeClassGenerator {
   private String fieldsCode() {
     var userDefinedFields =
         generatedClassContext.getUserFields().stream()
-            .map(field -> "private final " + field.getSimpleTypeName() + " " + field.getName())
-            .collect(Collectors.joining(";" + System.lineSeparator()));
+            .map(
+                field ->
+                    """
+                ${comment}
+                private final ${type} ${name};
+                """
+                        .replace("${comment}", commentForField(field))
+                        .replace("${type}", field.getSimpleTypeName())
+                        .replace("${name}", field.getName()))
+            .collect(Collectors.joining(System.lineSeparator()));
+    var comment =
+        """
+        /**
+         * Section with user-defined fields. These fields are generated from
+         * {@link ${ctor} annotated constructor}.
+         */
+        """
+            .replace("${ctor}", ctorBinaryName());
     var code =
         """
-        $userDefinedFields;
+        ${comment}
+        ${userDefinedFields};
+        // === End of user-defined fields ===
         // The following meta fields cannot be private, as we are explicitly
         // setting them in the `duplicate` method. Inheritor should not access
         // these fields directly
@@ -214,8 +242,37 @@ final class IRNodeClassGenerator {
         protected IdentifiedLocation location;
         protected UUID id;
         """
-            .replace("$userDefinedFields", userDefinedFields);
+            .replace("${comment}", comment)
+            .replace("${userDefinedFields}", userDefinedFields);
     return code;
+  }
+
+  private String commentForField(Field field) {
+    var ctor = generatedClassContext.getProcessedClass().getCtor();
+    var matchingCtorParam =
+        ctor.getParameters().stream()
+            .filter(param -> param.getSimpleName().toString().equals(field.getName()))
+            .findFirst();
+    String matchingCtorInfo;
+    if (matchingCtorParam.isPresent()) {
+      var ctorParam = matchingCtorParam.get();
+      matchingCtorInfo = "{@code " + ctorParam + "}";
+    } else {
+      matchingCtorInfo = "{@code " + field.getName() + "}";
+    }
+    var isChild = "" + field.isChild();
+    var isNullable = "" + field.isNullable();
+    return """
+        /**
+         * Created from ${matchingCtorInfo}.
+         * <p> - isNullable: ${isNullable}.
+         * <p> - isChild: ${isChild}.
+         */
+        """
+        .replace("${isChild}", isChild)
+        .replace("${isNullable}", isNullable)
+        .replace("${matchingCtorInfo}", matchingCtorInfo)
+        .stripTrailing();
   }
 
   /**
@@ -325,51 +382,6 @@ final class IRNodeClassGenerator {
     return sb.toString();
   }
 
-  private String childrenMethodBody() {
-    var sb = new StringBuilder();
-    var nl = System.lineSeparator();
-    sb.append("var list = new ArrayList<IR>();").append(nl);
-    generatedClassContext.getUserFields().stream()
-        .filter(Field::isChild)
-        .forEach(
-            childField -> {
-              String addToListCode;
-              if (childField.isList()) {
-                addToListCode =
-                    """
-                    $childName.foreach(list::add);
-                    """
-                        .replace("$childName", childField.getName());
-              } else if (childField.isOption()) {
-                addToListCode =
-                    """
-                    if ($childName.isDefined()) {
-                      list.add($childName.get());
-                    }
-                    """
-                        .replace("$childName", childField.getName());
-              } else {
-                addToListCode = "list.add(" + childField.getName() + ");";
-              }
-
-              var childName = childField.getName();
-              if (childField.isNullable()) {
-                sb.append(
-                    """
-                if ($childName != null) {
-                  $addToListCode
-                }
-                """
-                        .replace("$childName", childName)
-                        .replace("$addToListCode", addToListCode));
-              } else {
-                sb.append(addToListCode).append(nl);
-              }
-            });
-    sb.append("return scala.jdk.javaapi.CollectionConverters.asScala(list).toList();").append(nl);
-    return indent(sb.toString(), 2);
-  }
-
   /**
    * Returns a String representing all the overriden methods from {@code org.enso.compiler.core.IR}.
    * Meant to be inside the generated record definition.
@@ -393,17 +405,14 @@ final class IRNodeClassGenerator {
           }
         }
 
-        $setLocationMethod
+        ${setLocationMethod}
 
         @Override
         public IdentifiedLocation identifiedLocation() {
           return this.location;
         }
 
-        @Override
-        public scala.collection.immutable.List<IR> children() {
-        $childrenMethodBody
-        }
+        ${childrenMethod}
 
         @Override
         public @Identifier UUID getId() {
@@ -434,38 +443,46 @@ final class IRNodeClassGenerator {
           }
         }
 
-        $duplicateMethods
+        ${duplicateMethods}
         """
-            .replace("$childrenMethodBody", childrenMethodBody())
-            .replace("$setLocationMethod", setLocationMethodGenerator.generateMethodCode())
-            .replace("$duplicateMethods", duplicateMethodGenerator.generateDuplicateMethodsCode());
+            .replace("${childrenMethod}", childrenMethodGenerator.generateCode())
+            .replace("${setLocationMethod}", setLocationMethodGenerator.generateMethodCode())
+            .replace(
+                "${duplicateMethods}", duplicateMethodGenerator.generateDuplicateMethodsCode());
     return code;
   }
 
   /** Returns string representation of all getters for the user-defined fields. */
   private String userDefinedGetters() {
-    var code =
-        generatedClassContext.getUserFields().stream()
-            .map(
-                field ->
-                    """
-            public $returnType $fieldName() {
-              return $fieldName;
+    var sb = new StringBuilder();
+    for (var field : generatedClassContext.getUserFields()) {
+      String code;
+      if (field.isPersistanceReference()) {
+        code =
+            """
+            public ${returnType} ${fieldName}() {
+              return ${fieldName}.get(${returnType}.class);
             }
             """
-                        .replace("$returnType", field.getSimpleTypeName())
-                        .replace("$fieldName", field.getName()))
-            .collect(Collectors.joining(System.lineSeparator()));
-    return code;
+                .replace("${returnType}", field.getTypeParameter().getSimpleName())
+                .replace("${fieldName}", field.getName());
+      } else {
+        code =
+            """
+            public ${returnType} ${fieldName}() {
+              return ${fieldName};
+            }
+            """
+                .replace("${returnType}", field.getSimpleTypeName())
+                .replace("${fieldName}", field.getName());
+      }
+      sb.append(code);
+      sb.append(System.lineSeparator());
+    }
+    return sb.toString();
   }
 
   private String mapExpressions() {
     return mapExpressionsMethodGenerator.generateMapExpressionsMethodCode();
-  }
-
-  private static String indent(String code, int indentation) {
-    return code.lines()
-        .map(line -> " ".repeat(indentation) + line)
-        .collect(Collectors.joining(System.lineSeparator()));
   }
 }

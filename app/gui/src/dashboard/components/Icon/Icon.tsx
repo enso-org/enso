@@ -47,6 +47,7 @@ export interface SvgUseIconProps<Render = never> {
   readonly icon: IconTypeSvgUse<Render>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const ICON_STYLES = tv({
   base: 'flex-none aspect-square [&>svg]:stroke-current [&>svg]:w-full [&>svg]:h-full',
   variants: {
@@ -181,6 +182,7 @@ export function SvgUse(props: SvgUseProps) {
 /**
  * Utility function to render an icon based on the icon type and render props.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function renderIcon<Icon extends string, Render>(
   icon: IconType<Icon, Render>,
   renderProps: Render,

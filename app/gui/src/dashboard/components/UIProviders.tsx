@@ -57,6 +57,7 @@ export default function UIProviders(props: UIProvidersProps) {
 /**
  * A hook to get the root elements for the application.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useRootContext() {
   return React.useContext(RootContext)
 }

@@ -35,7 +35,6 @@ const MessageId = newtype.newtypeConstructor<chat.MessageId>()
 // The project shouldn't be jumped to automatically, since it may take a long time
 // to switch projects, and undo history may be lost.
 
-export const HELP_CHAT_ID = 'enso-chat'
 /** The size (both width and height) of each reaction button. */
 const REACTION_BUTTON_SIZE = 20
 /** The size (both width and height) of each reaction on a message. */
@@ -588,7 +587,7 @@ export default function Chat(props: ChatProps) {
     }
   }, [webSocket, shouldIgnoreMessageLimit, logger, threads, messages, accessToken, sendMessage])
 
-  const container = document.getElementById(HELP_CHAT_ID)
+  const container = document.getElementById('enso-chat')
 
   const switchThread = React.useCallback(
     (newThreadId: chat.ThreadId) => {
