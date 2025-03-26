@@ -152,12 +152,19 @@ function chooseFile(file: FileAsset | DatalinkAsset) {
 }
 
 const askForOverwrite = ref(false)
+const warningText = ref<string | null>(null)
 
 async function tryAcceptCurrentFile() {
-  await enterSubdirectories()
+  const enteringResult = await enterSubdirectories()
+  if (!enteringResult.ok) {
+    warningText.value = `${enteringResult.error.payload.toString()}`
+    return
+  }
   const assetInfo = await assetExists(filenameInputContents.value)
   if (assetInfo.exists && assetInfo.type === AssetType.file && props.writeMode) {
     askForOverwrite.value = true
+  } else if (assetInfo.exists && assetInfo.type === AssetType.directory) {
+    warningText.value = `'${filenameInputContents.value}' is a directory, not a file`
   } else {
     acceptCurrentFile()
   }
@@ -176,6 +183,10 @@ function overwriteConfirmed() {
 
 function overwriteCancelled() {
   askForOverwrite.value = false
+}
+
+function warningDismissed() {
+  warningText.value = null
 }
 
 const isBusy = computed(() => isDirectoryStackInitializing.value || isPending.value)
@@ -294,6 +305,10 @@ onMounted(() => {
         <SvgButton class="confirmationButton" label="No" @click.stop="overwriteCancelled" />
         <SvgButton class="confirmationButton" label="Yes" @click.stop="overwriteConfirmed" />
       </div>
+    </div>
+    <div v-if="warningText" class="confirmationModal">
+      <div class="confirmationText">{{ 'Warning: ' + warningText }}</div>
+      <SvgButton class="confirmationButton" label="Dismiss" @click.stop="warningDismissed" />
     </div>
     <div class="topBar">
       <div class="directoryStack">

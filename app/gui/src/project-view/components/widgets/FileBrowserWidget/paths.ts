@@ -134,7 +134,7 @@ export function useFileBrowserStack(
   }
 
   /** Split `filenameInputContents` into subdirectories by `/` and enter them, up to last existing directory. */
-  async function enterSubdirectories() {
+  async function enterSubdirectories(): Promise<Result<void, CannotEnterDir>> {
     let nextSlash = filenameInputContents.value.indexOf('/')
     while (nextSlash !== -1) {
       const directoryName = filenameInputContents.value.slice(0, nextSlash)
@@ -143,9 +143,10 @@ export function useFileBrowserStack(
         filenameInputContents.value = filenameInputContents.value.slice(nextSlash + 1)
         nextSlash = filenameInputContents.value.indexOf('/')
       } else {
-        break
+        return result
       }
     }
+    return Ok()
   }
 
   function dirsToEnterOnInit(user: User) {
