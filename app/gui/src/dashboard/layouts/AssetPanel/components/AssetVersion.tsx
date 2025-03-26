@@ -46,18 +46,14 @@ export function AssetVersion(props: AssetVersionProps) {
   const canRestore = !version.isLatest
 
   return (
-    <div className="grid w-full select-none grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+    <div className="grid w-full select-none grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
       <div className="flex flex-1 flex-col">
         <div className="flex items-center gap-2">
           <Text variant="body" truncate>
             {version.title}
           </Text>
 
-          {version.isLatest && (
-            <Badge variant="outline" className="h-fit">
-              {getText('latestIndicator')}
-            </Badge>
-          )}
+          {version.isLatest && <Badge variant="outline">{getText('latestIndicator')}</Badge>}
         </div>
 
         <div className="flex items-center gap-2">
@@ -210,7 +206,11 @@ function VersionDialog(props: VersionDialogProps) {
   return (
     <Dialog
       type="fullscreen"
-      title={getText('compareVersionXWithY', version.title, compareVersion?.title ?? 'Latest')}
+      title={
+        compareVersion?.title != null ?
+          getText('compareVersionXWithY', version.title, compareVersion.title)
+        : getText('changes')
+      }
       padding="none"
     >
       <div className="flex h-full flex-col">

@@ -80,11 +80,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
         const number = data.versions.length - index
         const title = getText('versionX', number)
 
-        return {
-          ...version,
-          number,
-          title,
-        }
+        return { ...version, number, title }
       }),
   })
 
