@@ -3,16 +3,8 @@ import { Text } from '#/components/AriaComponents'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { useText } from '#/providers/TextProvider'
 
-// =================
-// === Constants ===
-// =================
-
 /** The diameter of the spinner. */
 const SPINNER_SIZE_PX = 64
-
-// =====================
-// === LoadingScreen ===
-// =====================
 
 /** A loading screen. */
 export default function LoadingScreen() {

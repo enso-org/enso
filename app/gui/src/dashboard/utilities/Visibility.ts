@@ -1,9 +1,5 @@
 /** @file The state of an item that needs to be synced with a remote server. */
 
-// ==================
-// === Visibility ===
-// ==================
-
 /** The state of an item that that needs to be synced with a remote server. */
 enum Visibility {
   /** The item is present. */

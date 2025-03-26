@@ -32,10 +32,49 @@ class ConfigSpec
           Contact(None, Some("c@example.com"))
         ),
         preferLocalLibraries = true,
-        componentGroups      = None
+        componentGroups      = None,
+        jvm                  = None
       )
       val deserialized = Config.fromYaml(config.toYaml).get
       deserialized shouldEqual config
+    }
+
+    "should be parseable and have the right values" in {
+      val config =
+        """name: placeholder
+          |vresion: dev
+          |namespace: local
+          |edition:
+          |  engine-version: 4.5.6
+          |license: none
+          |maintainers:
+          |  - name: A
+          |    email: a@example.com
+          |  - name: B
+          |  - email: c@example.com
+          |prefer-local-libraries: true
+          |jvm: true
+          |""".stripMargin
+      val parsed = Config.fromYaml(config).get
+      val expectedConfig = Config(
+        name           = "placeholder",
+        normalizedName = None,
+        version        = "dev",
+        namespace      = "local",
+        edition =
+          Some(Config.makeCompatibilityEditionFromVersion(SemVer.of(4, 5, 6))),
+        license = "none",
+        authors = List(),
+        maintainers = List(
+          Contact(Some("A"), Some("a@example.com")),
+          Contact(Some("B"), None),
+          Contact(None, Some("c@example.com"))
+        ),
+        preferLocalLibraries = true,
+        componentGroups      = None,
+        jvm                  = Some(true)
+      )
+      parsed shouldEqual expectedConfig
     }
 
     "only require the name and use defaults for everything else" in {

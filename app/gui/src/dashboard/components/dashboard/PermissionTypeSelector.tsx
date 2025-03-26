@@ -10,10 +10,6 @@ import * as backend from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
-// =================
-// === Constants ===
-// =================
-
 const CAPITALIZED_ASSET_TYPE: Readonly<Record<backend.AssetType, string>> = {
   [backend.AssetType.directory]: 'Folder',
   [backend.AssetType.project]: 'Project',
@@ -71,10 +67,6 @@ const PERMISSION_TYPE_DATA: readonly PermissionTypeData[] = [
     description: () => 'Remove all permissions from this user.',
   },
 ]
-
-// ==============================
-// === PermissionTypeSelector ===
-// ==============================
 
 /** Props for a {@link PermissionTypeSelector}. */
 export interface PermissionTypeSelectorProps {

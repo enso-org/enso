@@ -11,6 +11,7 @@ import { motion, type Variants } from 'framer-motion'
  * Variants for the {@link Check} component.
  */
 /* eslint-disable @typescript-eslint/no-magic-numbers */
+// eslint-disable-next-line react-refresh/only-export-components
 export const CHECK_VARIANTS: Variants = {
   checked: {
     pathLength: 1,
@@ -37,6 +38,7 @@ export const CHECK_VARIANTS: Variants = {
 }
 /* eslint-enable @typescript-eslint/no-magic-numbers */
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const CHECK_CLASSES = tv({
   base: ['flex-none aspect-square', 'transition-[outline-offset,border-width] duration-200'],
   variants: {

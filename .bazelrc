@@ -9,9 +9,9 @@ build --show_result=20
 build --reuse_sandbox_directories
 build --nolegacy_external_runfiles
 build --incompatible_strict_action_env
-build --noexperimental_check_output_files --experimental_allow_tags_propagation
-fetch --noexperimental_check_output_files --experimental_allow_tags_propagation
-query --noexperimental_check_output_files --experimental_allow_tags_propagation
+build --noexperimental_check_output_files
+fetch --noexperimental_check_output_files
+query --noexperimental_check_output_files
 build --nobuild_runfile_links
 coverage --build_runfile_links
 

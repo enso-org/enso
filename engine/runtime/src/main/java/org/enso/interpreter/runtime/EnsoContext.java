@@ -245,6 +245,28 @@ public final class EnsoContext {
   }
 
   /**
+   * Enters this context and then executes provided {@code action}.
+   *
+   * @param <T> type the action computes
+   * @param who the node who's asking to perform the action
+   * @param action the action to execute
+   * @return returns the value of the {@code action}
+   */
+  public final <T> T withinCtx(Node who, Supplier<T> action) {
+    var tc = environment.getContext();
+    if (tc.isActive()) {
+      return action.get();
+    } else {
+      var prev = tc.enter(who);
+      try {
+        return action.get();
+      } finally {
+        tc.leave(who, prev);
+      }
+    }
+  }
+
+  /**
    * @param node the location of context access. Pass {@code null} if not in a node.
    * @return the proper context instance for the current {@link
    *     com.oracle.truffle.api.TruffleContext}.
@@ -895,8 +917,14 @@ public final class EnsoContext {
 
   /** Set the runtime execution environment of this context. */
   public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
-    this.globalExecutionEnvironment = executionEnvironment;
-    language.setExecutionEnvironment(executionEnvironment);
+    var tc = environment.getContext();
+    var prev = tc.enter(null);
+    try {
+      this.globalExecutionEnvironment = executionEnvironment;
+      language.setExecutionEnvironment(executionEnvironment);
+    } finally {
+      tc.leave(null, prev);
+    }
   }
 
   /**
@@ -966,10 +994,15 @@ public final class EnsoContext {
     return environment.isCreateThreadAllowed();
   }
 
+  private int threadCounter;
+
   public Thread createThread(boolean systemThread, Runnable run) {
-    return systemThread
-        ? environment.createSystemThread(run)
-        : environment.newTruffleThreadBuilder(run).build();
+    if (systemThread) {
+      var t = new Thread(run, "Enso thread #" + ++threadCounter);
+      return t;
+    } else {
+      return environment.newTruffleThreadBuilder(run).build();
+    }
   }
 
   public Future<Void> submitThreadLocal(Thread[] threads, ThreadLocalAction action) {
@@ -1023,7 +1056,7 @@ public final class EnsoContext {
       msg = msg + sep + message;
     }
     var err = getBuiltins().error().makeAssertionError(msg);
-    throw new PanicException(err, e, node);
+    throw new PanicException(this, err, e, node);
   }
 
   private <T> T getOption(OptionKey<T> key) {

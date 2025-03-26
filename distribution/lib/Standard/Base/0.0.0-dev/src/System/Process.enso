@@ -8,7 +8,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Metadata.Widget import Text_Input, Vector_Editor
 
 ## ALIAS run a command
-   GROUP Input
+   GROUP System
    ICON system
 
    Call a command with a list of arguments.

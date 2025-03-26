@@ -49,6 +49,10 @@ class RuntimeComponentsTest
 
   var baseGroups: Seq[GroupName] = Seq(
     GroupName("Input"),
+    GroupName("File"),
+    GroupName("Database"),
+    GroupName("Web"),
+    GroupName("EnsoCloud"),
     GroupName("Constants"),
     GroupName("Metadata"),
     GroupName("Output"),

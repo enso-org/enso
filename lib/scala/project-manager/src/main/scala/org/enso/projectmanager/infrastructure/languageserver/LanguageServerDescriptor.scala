@@ -23,7 +23,7 @@ import scala.concurrent.duration.FiniteDuration
   *                                  versions
   * @param engineVersion version of the langauge server's engine to use
   * @param jvmSettings settings to use for the JVM that will host the engine
-  * @param jvmMode if true, enables JVM mode
+  * @param jvmModeEnabled enables JVM mode if true
   * @param discardOutput specifies if the process output should be discarded or
   *                      printed to parent's streams
   * @param profilingPath the language server profiling file path
@@ -45,7 +45,7 @@ case class LanguageServerDescriptor(
   distributionConfiguration: DistributionConfiguration,
   engineVersion: SemVer,
   jvmSettings: JVMSettings,
-  jvmMode: Boolean,
+  jvmModeEnabled: Boolean,
   discardOutput: Boolean,
   profilingPath: Option[Path],
   profilingTime: Option[FiniteDuration],

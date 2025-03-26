@@ -132,10 +132,6 @@ function Editor(props: EditorProps) {
   )
 }
 
-// ======================
-// === EditorInternal ===
-// ======================
-
 /** Props for an {@link EditorInternal}. */
 interface EditorInternalProps extends Omit<EditorProps, 'project'> {
   readonly openedProject: backendModule.Project

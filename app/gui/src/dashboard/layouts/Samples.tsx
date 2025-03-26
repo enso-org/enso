@@ -30,7 +30,7 @@ export interface Sample {
 }
 
 /** The full list of templates. */
-export const SAMPLES: Sample[] = [
+const SAMPLES: Sample[] = [
   {
     title: 'New Project',
     id: 'Default',
@@ -123,10 +123,6 @@ export const SAMPLES: Sample[] = [
     group: 'Examples',
   },
 ]
-
-// ===================
-// === ProjectTile ===
-// ===================
 
 /** Props for a {@link ProjectTile}. */
 interface InternalProjectTileProps {
