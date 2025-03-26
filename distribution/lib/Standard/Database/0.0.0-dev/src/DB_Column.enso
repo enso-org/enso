@@ -1505,10 +1505,13 @@ type DB_Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.regex_match (regex "A.*M")
-    regex_match self (pattern : Column | Text | Any) -> Column =
-        Value_Type.expect_text self <| Value_Type.expect_text pattern <|
-            new_name = self.naming_helper.binary_operation_name "regex_match" self pattern
-            if self.connection.dialect.is_operation_supported "REGEX_MATCH" then self.make_binary_op "REGEX_MATCH" pattern new_name else
+    regex_match self (pattern : DB_Column | Text | Any) -> DB_Column =
+        string_pattern = case pattern of 
+            Regex.Value _ _ -> pattern.pattern 
+            _ -> pattern
+        Value_Type.expect_text self <| Value_Type.expect_text string_pattern <|
+            new_name = self.naming_helper.binary_operation_name "regex_match" self string_pattern
+            if self.connection.dialect.is_operation_supported "REGEX_MATCH" then self.make_binary_op "REGEX_MATCH" string_pattern new_name else
                 Error.throw (Unsupported_Database_Operation.Error ("regex_match"))
 
 
