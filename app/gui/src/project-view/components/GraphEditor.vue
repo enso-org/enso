@@ -62,6 +62,7 @@ import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
 import { Err, Ok, unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
+import { VueInstance } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { set } from 'lib0'
 import {
@@ -72,6 +73,7 @@ import {
   shallowRef,
   toRaw,
   toRef,
+  useTemplateRef,
   watch,
   type ComponentInstance,
 } from 'vue'
@@ -99,8 +101,9 @@ onUnmounted(() => {
 
 // === Navigator ===
 
-const viewportNode = ref<HTMLElement>()
-onMounted(() => viewportNode.value?.focus())
+const viewportNode = useTemplateRef<VueInstance>('viewportNode')
+const viewportElem = computed(() => unrefElement<HTMLElement>(viewportNode))
+onMounted(() => viewportElem.value?.focus())
 const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keyboard, {
   predicate: (e) => (e instanceof KeyboardEvent ? nodeSelection.selected.size === 0 : true),
 })
@@ -647,7 +650,7 @@ async function handleFileDrop(event: DragEvent) {
 // === Color Picker ===
 
 provideNodeColors(graphStore, (variable) =>
-  viewportNode.value ? getComputedStyle(viewportNode.value).getPropertyValue(variable) : '',
+  viewportElem.value ? getComputedStyle(viewportElem.value).getPropertyValue(variable) : '',
 )
 
 const groupColors = computed(() => {
@@ -682,9 +685,14 @@ const contextMenuActions: ActionName[] = [
     @drop.prevent="handleFileDrop($event)"
   >
     <div class="vertical">
-      <div ref="viewportNode" class="viewport">
+      <ContextMenuTrigger
+        ref="viewportNode"
+        class="viewport"
+        :actions="contextMenuActions"
+        @click="handleClick"
+      >
         <GraphMissingView v-if="graphMissing" />
-        <ContextMenuTrigger v-else :actions="contextMenuActions" @click="handleClick">
+        <template v-else>
           <GraphNodes
             @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
             @enterNode="(id) => stackNavigator.enterNode(id)"
@@ -709,7 +717,7 @@ const contextMenuActions: ActionName[] = [
             @selectedSuggestionId="displayedDocs = $event"
             @isAiPrompt="aiMode = $event"
           />
-        </ContextMenuTrigger>
+        </template>
         <TopBar
           v-model:recordMode="projectStore.recordMode"
           v-model:showCodeEditor="showCodeEditor"
@@ -724,7 +732,7 @@ const contextMenuActions: ActionName[] = [
           :scrollableArea="Rect.Bounding(...graphStore.visibleNodeAreas)"
         />
         <GraphMouse />
-      </div>
+      </ContextMenuTrigger>
       <BottomPanel v-model:show="showCodeEditor">
         <Suspense>
           <CodeEditor ref="codeEditor" />
@@ -767,18 +775,13 @@ const contextMenuActions: ActionName[] = [
   }
 }
 
-.viewport {
+.viewport.viewport {
   position: relative; /* Needed for safari when using contain: layout */
+  display: block;
   contain: layout;
   overflow: clip;
   touch-action: none;
   --node-color-no-type: #596b81;
   --output-node-color: #006b8a;
-}
-
-.viewport .ContextMenuTrigger {
-  display: block;
-  position: absolute;
-  inset: 0;
 }
 </style>
