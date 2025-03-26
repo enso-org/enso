@@ -33,13 +33,13 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
       testId="upsert-secret-modal"
       className="w-full"
     >
-      <Input
+      {isCreatingSecret && (<Input
         name="title"
         autoFocus
         autoComplete="off"
         label={getText('name')}
         placeholder={getText('secretNamePlaceholder')}
-      />
+      />)}
 
       <Input
         name="value"
