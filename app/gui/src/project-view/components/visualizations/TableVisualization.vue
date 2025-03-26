@@ -24,6 +24,7 @@ import { TableVisualisationTooltip } from './TableVisualization/TableVisualisati
 import {
   convertFilterModel,
   convertSortModel,
+  createExpressionRowTemplate,
   createExpressionTemplate,
 } from './TableVisualization/TableVizDataSourceUtils'
 import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
@@ -304,7 +305,7 @@ function createServer() {
         colTypeMap.value,
       )
 
-      const expressionFunction = createExpressionTemplate(
+      const expressionFunction = createExpressionRowTemplate(
         'Standard.Visualization.Table.Visualization',
         'get_rows_for_table',
         //the index of the next bucket of rows to get
@@ -430,7 +431,7 @@ function getFilterType(valueType: string) {
 
 function getFilterOptions(valueType: string) {
   if (valueType === 'Date') {
-    return ['equals', 'notEqual', 'greaterThan', 'lessThan']
+    return ['equals', 'notEqual', 'greaterThan', 'lessThan', 'inRange', 'blank', 'notBlank']
   } else if (isNumericType(valueType)) {
     return [
       'equals',
@@ -439,9 +440,12 @@ function getFilterOptions(valueType: string) {
       'greaterThanOrEqual',
       'lessThan',
       'lessThanOrEqual',
+      'inRange',
+      'blank',
+      'notBlank',
     ]
   } else if (valueType === 'Char') {
-    return ['equals', 'notEqual', 'contains', 'startsWith', 'endsWith']
+    return ['equals', 'notEqual', 'contains', 'startsWith', 'endsWith', 'blank', 'notBlank']
   } else {
     return null
   }
