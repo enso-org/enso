@@ -56,7 +56,7 @@ export function AssetVersion(props: AssetVersionProps) {
           {version.isLatest && <Badge variant="outline">{getText('latestIndicator')}</Badge>}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="-mt-1 flex items-center gap-2">
           <div className={TEXT_WITH_ICON().base({ gap: 'medium', className: 'flex-none' })}>
             <Icon size="small" icon="calendar" className={TEXT_WITH_ICON().icon()} />
             <Text elementType="time" variant="body-sm" className={TEXT_WITH_ICON().text()}>
@@ -184,10 +184,7 @@ export function AssetVersion(props: AssetVersionProps) {
                         )
                       }}
                     >
-                      {getText(
-                        'compareWithVersionY',
-                        comparableVersion.isLatest ? 'Latest' : comparableVersion.title,
-                      )}
+                      {comparableVersion.isLatest ? 'Latest' : comparableVersion.title}
                     </Menu.Item>
                   )}
                 </Menu>
