@@ -815,7 +815,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Restore a project from a different version. */
-  override async restoreProject(
+  override async restoreAsset(
     projectId: backend.ProjectId,
     versionId: backend.S3ObjectVersionId,
     title: string,

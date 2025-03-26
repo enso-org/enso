@@ -1,5 +1,4 @@
 /** @file A dropdown menu of user actions and settings. */
-import DefaultUserIcon from '#/assets/default_user.svg'
 import { Popover, Text } from '#/components/AriaComponents'
 import MenuEntry from '#/components/MenuEntry'
 import FocusArea from '#/components/styled/FocusArea'
@@ -16,6 +15,7 @@ import { IS_DEV_MODE } from 'enso-common/src/detect'
 import { useNavigate } from 'react-router-dom'
 import { LOGIN_PATH } from '../appUtils'
 import { useToggleEnsoDevtools } from '../components/Devtools'
+import { ProfilePicture } from '../components/ProfilePicture'
 import { useSessionAPI } from '../providers/SessionProvider'
 
 /** Props for a {@link UserMenu}. */
@@ -87,12 +87,7 @@ export default function UserMenu(props: UserMenuProps) {
   return hidden ? entries : (
       <Popover data-testid="user-menu" size="xxsmall">
         <div className="mb-2 flex select-none items-center gap-icons overflow-hidden px-menu-entry transition-all duration-user-menu">
-          <div className="flex size-row-h shrink-0 items-center overflow-clip rounded-full">
-            <img
-              src={user.profilePicture ?? DefaultUserIcon}
-              className="pointer-events-none size-row-h"
-            />
-          </div>
+          <ProfilePicture picture={user.profilePicture} name={user.name} />
 
           <div className="flex min-w-0 flex-col">
             <Text disableLineHeightCompensation variant="body" truncate="1" weight="semibold">

@@ -790,7 +790,7 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
 export function duplicateProjectMutationOptions(
   backend: Backend,
   queryClient: QueryClient,
-  openProject: (project: LaunchedProject) => void,
+  openProject: (project: LaunchedProject) => Promise<void>,
 ) {
   return mutationOptions({
     meta: {
@@ -822,8 +822,8 @@ export function duplicateProjectMutationOptions(
         title = `${originalTitle} (${index})`
       }
 
-      await backend.duplicateProject(id, versionId, title).then((project) => {
-        openProject({
+      await backend.duplicateAsset(id, versionId, title).then(async (project) => {
+        await openProject({
           type: backend.type,
           parentId,
           title,

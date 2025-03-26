@@ -138,7 +138,6 @@ export function closeProjectPath(projectId: backend.ProjectId) {
 export function getProjectDetailsPath(projectId: backend.ProjectId) {
   return `projects/${projectId}`
 }
-
 /** Relative HTTP path to the "get project logs" endpoint of the Cloud backend API. */
 export function getProjectSessionLogsPath(projectSessionId: backend.ProjectSessionId) {
   return `project-sessions/${projectSessionId}/logs`
