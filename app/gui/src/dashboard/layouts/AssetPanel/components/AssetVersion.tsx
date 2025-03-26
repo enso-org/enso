@@ -91,32 +91,34 @@ export function AssetVersion(props: AssetVersionProps) {
                     name={version.user.name}
                     className={TEXT_WITH_ICON().icon()}
                   />
+
                   <div
                     className={TEXT_WITH_ICON().text({ className: 'flex flex-col items-start' })}
                   >
-                    <Text variant="body" className="leading-[1.2]" truncate="3">
-                      {version.user.name}
-                    </Text>
+                    <Text.Group>
+                      <Text variant="body" className="leading-[1.2]" truncate="3">
+                        {version.user.name}
+                      </Text>
 
-                    <Button.Group>
-                      <Button
-                        variant="link"
-                        size="small"
-                        icon="email"
-                        className="min-w-0"
-                        tooltip={getText('sendEmail')}
-                        href={`mailto:${version.user.email}`}
-                      >
-                        {version.user.email}
-                      </Button>
+                      <Button.Group verticalAlign="center">
+                        <Button
+                          variant="link"
+                          size="small"
+                          icon="email"
+                          className="min-w-0"
+                          tooltip={getText('sendEmail')}
+                          href={`mailto:${version.user.email}`}
+                        >
+                          {version.user.email}
+                        </Button>
 
-                      <CopyButton
-                        variant="link"
-                        size="small"
-                        className="min-w-0"
-                        copyText={version.user.email}
-                      />
-                    </Button.Group>
+                        <CopyButton
+                          size="xsmall"
+                          className="min-w-0"
+                          copyText={version.user.email}
+                        />
+                      </Button.Group>
+                    </Text.Group>
                   </div>
                 </div>
               </Popover>
