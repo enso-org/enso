@@ -8,7 +8,8 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.commons.io.FileUtils;
-import org.enso.desktopenvironment.Platform;
+import org.enso.common.Platform;
+import org.enso.desktopenvironment.Directories;
 import org.enso.projectmanager.boot.configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,8 +22,7 @@ public final class ProjectsMigration {
 
   public static void migrate(configuration.StorageConfig storageConfig) {
     var oldProjectsPath =
-        Platform.getOperatingSystem()
-            .getDirectories()
+        Directories.getForCurrentPlatform()
             .getUserHome()
             .resolve("enso")
             .resolve("projects")
