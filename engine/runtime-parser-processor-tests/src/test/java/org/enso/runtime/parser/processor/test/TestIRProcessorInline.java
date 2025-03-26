@@ -3,8 +3,10 @@ package org.enso.runtime.parser.processor.test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.fail;
 
 import com.google.testing.compile.Compilation;
+import com.google.testing.compile.Compilation.Status;
 import com.google.testing.compile.CompilationSubject;
 import com.google.testing.compile.Compiler;
 import com.google.testing.compile.JavaFileObjects;
@@ -29,7 +31,14 @@ public class TestIRProcessorInline {
     var srcObject = JavaFileObjects.forSourceString(name, src);
     var compiler = Compiler.javac().withProcessors(new IRProcessor());
     var compilation = compiler.compile(srcObject);
-    CompilationSubject.assertThat(compilation).succeeded();
+    if (compilation.status() != Status.SUCCESS) {
+      var failureMsg = new StringBuilder();
+      failureMsg.append("Compilation failed with diagnostics: ");
+      for (var diag : compilation.diagnostics()) {
+        failureMsg.append("  ").append(diag.toString()).append(System.lineSeparator());
+      }
+      fail(failureMsg.toString());
+    }
     assertThat("Generated just one source", compilation.generatedSourceFiles().size(), is(1));
     var generatedSrc = compilation.generatedSourceFiles().get(0);
     try {
@@ -741,6 +750,69 @@ public class TestIRProcessorInline {
   }
 
   @Test
+  public void fieldCanBeScalaList_NotRequired() {
+    var src =
+        generatedClass(
+            "JName",
+            """
+        import org.enso.runtime.parser.dsl.GenerateIR;
+        import org.enso.runtime.parser.dsl.GenerateFields;
+        import org.enso.runtime.parser.dsl.IRChild;
+        import org.enso.compiler.core.IR;
+        import scala.collection.immutable.List;
+
+        @GenerateIR
+        public final class JName extends JNameGen {
+          @GenerateFields
+          public JName(@IRChild(required = false) List<IR> expressions) {
+            super(expressions);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
+        }
+        """);
+    assertThat(src, containsString("class JNameGen"));
+    assertThat(src, containsString("List<IR> expressions"));
+    // expressions child is not required, so there must be somewhere a check
+    // that it is not null.
+    assertThat(src, containsString("expressions != null"));
+  }
+
+  @Test
+  public void fieldCanBeScalaOptionList() {
+    var src =
+        generatedClass(
+            "JName",
+            """
+        import org.enso.runtime.parser.dsl.GenerateIR;
+        import org.enso.runtime.parser.dsl.GenerateFields;
+        import org.enso.runtime.parser.dsl.IRChild;
+        import org.enso.compiler.core.IR;
+        import scala.collection.immutable.List;
+        import scala.Option;
+
+        @GenerateIR
+        public final class JName extends JNameGen {
+          @GenerateFields
+          public JName(@IRChild Option<List<IR>> expressions) {
+            super(expressions);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
+        }
+        """);
+    assertThat(src, containsString("class JNameGen"));
+    assertThat(src, containsString("Option<List<IR>> expressions"));
+    assertThat(src, containsString("expressions.isDefined"));
+  }
+
+  @Test
   public void fieldCanBeScalaOption() {
     var src =
         generatedClass(
@@ -767,5 +839,37 @@ public class TestIRProcessorInline {
         """);
     assertThat(src, containsString("class JNameGen"));
     assertThat("has getter method for expression", src, containsString("Option<IR> expression()"));
+  }
+
+  @Test
+  public void fieldCanBePersistanceReference() {
+    var src =
+        generatedClass(
+            "JName",
+            """
+        import org.enso.runtime.parser.dsl.GenerateIR;
+        import org.enso.runtime.parser.dsl.GenerateFields;
+        import org.enso.runtime.parser.dsl.IRChild;
+        import org.enso.persist.Persistance;
+        import org.enso.compiler.core.IR;
+
+        @GenerateIR
+        public final class JName extends JNameGen {
+          @GenerateFields
+          public JName(@IRChild Persistance.Reference<IR> expression) {
+            super(expression);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
+        }
+        """);
+    assertThat(src, containsString("class JNameGen"));
+    assertThat(
+        "has getter method for expression with a different return type",
+        src,
+        containsString("IR expression()"));
   }
 }
