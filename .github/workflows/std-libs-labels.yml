@@ -301,7 +301,7 @@ jobs:
           fetch-depth: 2
       - id: Generic_JDBC-changed-files
         name: Generic_JDBC-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
           files: distribution/lib/Standard/Generic_JDBC/**/docs/api/**.md
       - name: List all changed files in Generic_JDBC
