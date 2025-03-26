@@ -23,7 +23,7 @@ const sortDirectionMap = {
   desc: '-1',
 }
 
-const parseSingleArgument = (
+const parseFilterValues = (
   value: ValueTypeArgumentParent,
   tempModule: Ast.MutableModule,
 ): Ast.Owned<Ast.MutableExpression> => {
@@ -50,7 +50,7 @@ const parseSingleArgument = (
       return Ast.TextLiteral.new(value.value)
     case 'Mixed': {
       const items = value.value.map((val: { valueType: ValueTypes; value: string }) =>
-        parseSingleArgument(val, tempModule),
+        parseFilterValues(val, tempModule),
       )
       return Ast.Vector.new(tempModule, items)
     }
@@ -59,13 +59,9 @@ const parseSingleArgument = (
   }
 }
 
-export const parseArgument = (arg: Argument, tempModule: Ast.MutableModule) => {
+export const parseArgument = (arg: string[] | 'Nothing', tempModule: Ast.MutableModule) => {
   if (Array.isArray(arg)) {
-    const itemList = arg.map((i) => {
-      return typeof i === 'string' ?
-          Ast.parseExpression(i, tempModule)!
-        : parseSingleArgument(i, tempModule)
-    })
+    const itemList = arg.map((i) => Ast.parseExpression(i, tempModule)!)
     return Ast.Vector.new(tempModule, itemList!)
   }
   return Ast.parseExpression(arg, tempModule)!
@@ -84,14 +80,13 @@ const parseFilterCondition = (
   }
   if (filterAction === '..Between') {
     const filterCondition = Pattern.parseExpression('(..Between __ __)')
-    console.log({ filterValue })
-    const fromValue = parseSingleArgument(filterValue[0], tempModule)
-    const toValue = parseSingleArgument(filterValue[1], tempModule)
+    const fromValue = parseFilterValues(filterValue[0], tempModule)
+    const toValue = parseFilterValues(filterValue[1], tempModule)
     return filterCondition.instantiateCopied([fromValue, toValue])
   }
   const filterCondition = Pattern.parseExpression('(__ __)')
   const action = Ast.parseExpression(filterAction, tempModule)!
-  const filterVal = parseSingleArgument(filterValue, tempModule)
+  const filterVal = parseFilterValues(filterValue, tempModule)
   return filterCondition.instantiateCopied([action, filterVal])
 }
 
@@ -156,7 +151,10 @@ export const convertFilterModel = (
           typeof value.value === 'object' &&
           'fromValue' in value.value
         ) {
-          return [{ valueType: value.valType as ValueTypes, value: `${value.value.fromValue}` }, { valueType: value.valType as ValueTypes, value: `${value.value.toValue}` }]
+          return [
+            { valueType: value.valType as ValueTypes, value: `${value.value.fromValue}` },
+            { valueType: value.valType as ValueTypes, value: `${value.value.toValue}` },
+          ]
         }
 
         return { valueType: value.valType as ValueTypes, value: `${value.value}` }
@@ -166,10 +164,10 @@ export const convertFilterModel = (
   return { filterColumnIndexList, filterActions, valueList }
 }
 
-export const createExpressionTemplate = (
+export const createDistinctExpressionTemplate = (
   visulizationModule: string,
   expressionString: string,
-  ...positionalArgumentsExpressions: Argument[]
+  columnIndex: string,
 ) => {
   const tempModule = Ast.MutableModule.Transient()
   const preprocessorModule = Ast.parseExpression(visulizationModule, tempModule)!
@@ -181,10 +179,7 @@ export const createExpressionTemplate = (
 
   const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
     Ast.Wildcard.new(tempModule),
-    ...positionalArgumentsExpressions.map((arg) => {
-      const parsedArg = parseArgument(arg, tempModule)
-      return Ast.Group.new(tempModule, parsedArg)
-    }),
+    Ast.parseExpression(columnIndex, tempModule)!,
   ])
   return (nodeId: string) => {
     const rhs = Ast.parseExpression(nodeId, tempModule)!
@@ -196,11 +191,11 @@ export const createExpressionRowTemplate = (
   visulizationModule: string,
   expressionString: string,
   startRow: string,
-  sortColIndexes: any,
-  sortDirections: any,
-  filterColumnIndexList: any,
-  filterActions: any,
-  valueList: any,
+  sortColIndexes: string[] | 'Nothing',
+  sortDirections: string[] | 'Nothing',
+  filterColumnIndexList: string[] | 'Nothing',
+  filterActions: string[] | 'Nothing',
+  valueList: string[] | 'Nothing',
 ) => {
   const tempModule = Ast.MutableModule.Transient()
   const preprocessorModule = Ast.parseExpression(visulizationModule, tempModule)!
@@ -210,7 +205,7 @@ export const createExpressionRowTemplate = (
     Ast.identifier(expressionString)!,
   )
 
-  const newFunction = (actions: string[] | string) => {
+  const parseFilterArgs = (actions: string[] | 'Nothing') => {
     if (actions === 'Nothing') {
       return parseArgument('Nothing', tempModule)
     }
@@ -221,10 +216,10 @@ export const createExpressionRowTemplate = (
     return Ast.Vector.new(tempModule, filters)
   }
 
-  const parsedfilterConditions = newFunction(filterActions)
+  const parsedfilterConditions = parseFilterArgs(filterActions)
 
   const positionalArgumentsExpressions = [
-    parseArgument(startRow, tempModule),
+    Ast.parseExpression(startRow, tempModule)!,
     parseArgument(sortColIndexes, tempModule),
     parseArgument(sortDirections, tempModule),
     parseArgument(filterColumnIndexList, tempModule),
@@ -234,7 +229,6 @@ export const createExpressionRowTemplate = (
   const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
     Ast.Wildcard.new(tempModule),
     ...positionalArgumentsExpressions.map((arg) => {
-      console.log(arg)
       return Ast.Group.new(tempModule, arg)
     }),
   ])

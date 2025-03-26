@@ -24,8 +24,8 @@ import { TableVisualisationTooltip } from './TableVisualization/TableVisualisati
 import {
   convertFilterModel,
   convertSortModel,
+  createDistinctExpressionTemplate,
   createExpressionRowTemplate,
-  createExpressionTemplate,
 } from './TableVisualization/TableVizDataSourceUtils'
 import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
@@ -278,7 +278,7 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
 function createServer() {
   return {
     getSetFilterValues: async (columnIndex?: number) => {
-      const expressionFunction = createExpressionTemplate(
+      const expressionFunction = createDistinctExpressionTemplate(
         'Standard.Visualization.Table.Visualization',
         'get_distinct_values_for_column',
         `${columnIndex}`,
@@ -311,15 +311,15 @@ function createServer() {
         //the index of the next bucket of rows to get
         `${request.startRow}`,
         //column indexes that require a sort
-        sortColIndexes,
+        sortColIndexes as string[] | 'Nothing',
         //direction (Ascending/Descending) for the sorts
-        sortDirections,
+        sortDirections as string[] | 'Nothing',
         //column indexes that require a filter
-        filterColumnIndexList,
+        filterColumnIndexList as string[] | 'Nothing',
         //column actions i.e Greater Than, Between...
-        filterActions,
+        filterActions as string[] | 'Nothing',
         //values to filter on
-        valueList,
+        valueList as string[] | 'Nothing',
       )
       const response = await config.executeExpression(expressionFunction)
       return {
