@@ -293,10 +293,10 @@ const CheckboxInternal = forwardRef(function CheckboxInternal<
         <>
           <Check
             color={renderProps.isInvalid ? 'error' : 'primary'}
-            isSelected={renderProps.isSelected}
+            isSelected={isSelected}
             isPressed={renderProps.isPressed}
             isIndeterminate={isIndeterminate}
-            className={classes.icon({ isSelected: renderProps.isSelected })}
+            className={classes.icon({ isSelected })}
           />
 
           <Text variant="body" color="current">

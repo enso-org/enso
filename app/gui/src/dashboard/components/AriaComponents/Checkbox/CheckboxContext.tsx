@@ -2,8 +2,9 @@
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { type StoreApi, createStore } from '#/utilities/zustand'
 import type { PropsWithChildren } from 'react'
-import { createContext, useContext, useState } from 'react'
-import type { TSchema, UseFormRegisterReturn } from '../Form'
+import { createContext, useContext, useEffect, useState } from 'react'
+import type { FieldPath } from '../Form'
+import { Form, type TSchema, type UseFormRegisterReturn } from '../Form'
 
 /** Context for the checkbox. */
 interface CheckboxContextType {
@@ -57,15 +58,21 @@ interface CheckBoxGroupPropsStateOutsideGroup {
 }
 
 /** Props for {@link CheckboxGroupProvider}. */
-export interface CheckboxGroupProviderProps extends PropsWithChildren {
-  readonly name: string
+export interface CheckboxGroupProviderProps<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, readonly string[]>,
+> extends Readonly<PropsWithChildren> {
+  readonly name: TFieldName
   readonly onChange: (selected: string[]) => void
   readonly field: UseFormRegisterReturn<TSchema>
   readonly defaultValue?: string[] | undefined
 }
 
 /** Checkbox group provider used to manage the state of a group of checkboxes. */
-export function CheckboxGroupProvider(props: CheckboxGroupProviderProps) {
+export function CheckboxGroupProvider<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, readonly string[]>,
+>(props: CheckboxGroupProviderProps<TSchema, TFieldName>) {
   const { children, onChange, name, field, defaultValue = [] } = props
 
   const [store] = useState(() =>
@@ -76,6 +83,18 @@ export function CheckboxGroupProvider(props: CheckboxGroupProviderProps) {
       selected: new Set(defaultValue),
     })),
   )
+
+  const formInstance = Form.useFormContext<Schema>()
+  const value = Form.useWatch({
+    control: formInstance.control,
+    name,
+    // @ts-expect-error This should be correct due to the constraint on `TFieldName` above.
+    defaultValue,
+  })
+
+  useEffect(() => {
+    store.setState({ selected: new Set(value) })
+  }, [store, value])
 
   const onChangeStableCallback = useEventCallback(onChange)
 

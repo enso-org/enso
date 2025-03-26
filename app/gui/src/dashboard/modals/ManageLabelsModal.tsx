@@ -10,6 +10,7 @@ import FocusArea from '#/components/styled/FocusArea'
 import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { useAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { unsetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
@@ -43,7 +44,9 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
  * Internal implementation of a {@link ManageLabelsModal}.
  */
 function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
-  const { backend, item } = props
+  const { backend, item: itemRaw } = props
+
+  const item = useAsset(itemRaw.id) ?? itemRaw
 
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
@@ -65,11 +68,8 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
       const labelName = LabelName(name)
       try {
         await createTagMutation.mutateAsync([{ value: labelName, color: color ?? leastUsedColor }])
-        await associateTagMutation.mutateAsync([
-          item.id,
-          [...(item.labels ?? []), labelName],
-          item.title,
-        ])
+        const newLabels = [...(item.labels ?? []), labelName]
+        await associateTagMutation.mutateAsync([item.id, newLabels, item.title])
         unsetModal()
       } catch (error) {
         toastAndLog(null, error)
