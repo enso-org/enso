@@ -54,6 +54,7 @@
   connections][12576]
 - [Navigate up button for file browser and collapsed components][12603]
 - [File Browser Widget warns when trying to override an existing file][12644]
+- [Add right-click context menu to the graph editor background][12601]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -90,6 +91,7 @@
 [12576]: https://github.com/enso-org/enso/pull/12576
 [12603]: https://github.com/enso-org/enso/pull/12603
 [12644]: https://github.com/enso-org/enso/pull/12644
+[12601]: https://github.com/enso-org/enso/pull/12603
 
 #### Enso Standard Library
 

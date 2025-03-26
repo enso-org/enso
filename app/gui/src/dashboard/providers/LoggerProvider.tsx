@@ -34,6 +34,7 @@ export default function LoggerProvider(props: LoggerProviderProps) {
 }
 
 /** A React context hook exposing the diagnostic logger. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useLogger() {
   return React.useContext(LoggerContext)
 }

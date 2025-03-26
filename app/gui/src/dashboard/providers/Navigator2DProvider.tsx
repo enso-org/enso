@@ -23,6 +23,7 @@ export default function Navigator2DProvider(props: Navigator2DProviderProps) {
 }
 
 /** Exposes a property to get the 2D navigator namespace. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useNavigator2D() {
   return React.useContext(Navigator2DContext)
 }

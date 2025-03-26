@@ -23,6 +23,7 @@ import { useState, type PropsWithChildren, type ReactElement, type ReactNode } f
 /**
  * A wrapper that passes through its children.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 function PassThroughWrapper({ children }: PropsWithChildren) {
   return children
 }
@@ -30,6 +31,7 @@ function PassThroughWrapper({ children }: PropsWithChildren) {
 /**
  * A wrapper that provides the {@link UIProviders} context.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 function UIProvidersWrapper({
   children,
 }: {
@@ -49,6 +51,7 @@ function UIProvidersWrapper({
 /**
  * A wrapper that provides the {@link Form} context.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 function FormWrapper<Schema extends TSchema, SubmitResult = void>(
   props: FormProps<Schema, SubmitResult>,
 ) {
@@ -209,6 +212,7 @@ function renderHookWithForm<Result, Props, Schema extends TSchema, SubmitResult 
   } as const
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export * from '@testing-library/react'
 export { default as userEvent } from '@testing-library/user-event'
 // override render method

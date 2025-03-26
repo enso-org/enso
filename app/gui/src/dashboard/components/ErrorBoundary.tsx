@@ -230,4 +230,5 @@ export function InlineErrorDisplay(props: InlineErrorDisplayProps) {
   return <>{render ?? defaultRender}</>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export { useErrorBoundary, withErrorBoundary } from 'react-error-boundary'

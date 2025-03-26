@@ -52,6 +52,7 @@ const ModalsStore = createStore<{
 /**
  * Set the currently active modal.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function setModal(modal: ModalOrCallback) {
   const modalsStore = ModalsStore.getState()
   modalsStore.setModal(modal)
@@ -60,6 +61,7 @@ export function setModal(modal: ModalOrCallback) {
 /**
  * Unset the currently active modal.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function unsetModal() {
   const modalsStore = ModalsStore.getState()
   modalsStore.setModal(null)
@@ -68,6 +70,7 @@ export function unsetModal() {
 /**
  * Get the currently active modal.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function getModal() {
   const modalsStore = ModalsStore.getState()
   return modalsStore.modal
@@ -131,12 +134,14 @@ function ModalStaticProvider(props: InternalModalStaticProviderProps) {
 }
 
 /** A React context hook exposing the currently active modal, if one is currently visible. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useModal() {
   const { modal, key } = React.useContext(ModalContext)
   return { modal, key } as const
 }
 
 /** A React context hook exposing the currently active modal (if one is currently visible) as a ref. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useModalRef() {
   const { modalRef } = React.useContext(ModalStaticContext)
   return { modalRef } as const
@@ -146,6 +151,7 @@ export function useModalRef() {
  * A React context hook exposing functions to set and unset the currently active modal.
  * @deprecated Use directly imported `setModal`, and `unsetModal` functions instead.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSetModal() {
   return { setModal, unsetModal } as const
 }

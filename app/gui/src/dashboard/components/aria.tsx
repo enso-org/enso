@@ -2,15 +2,19 @@
 import type { Mutable } from 'enso-common/src/utilities/data/object'
 import * as aria from 'react-aria'
 
+// eslint-disable-next-line react-refresh/only-export-components
 export * from '@react-aria/interactions'
 export { ClearPressResponder } from '@react-aria/interactions'
 export type * from '@react-types/shared'
+// eslint-disable-next-line react-refresh/only-export-components
 export * from 'react-aria'
 // @ts-expect-error The conflicting exports are props types ONLY
+// eslint-disable-next-line react-refresh/only-export-components
 export * from 'react-aria-components'
 // Resolve ambigouous star exports (`react-aria` and `react-aria-components`)
 export { I18nProvider, RouterProvider } from 'react-aria-components'
 export {
+  // eslint-disable-next-line react-refresh/only-export-components
   useTooltipTriggerState,
   type OverlayTriggerState,
   type TooltipTriggerState,
@@ -24,6 +28,7 @@ export {
  *
  * The constraint is defaulted to `never` to make an explicit constraint mandatory.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function mergeProps<Constraint extends object = never>() {
   return <const T extends readonly (Partial<Constraint> | null | undefined)[]>(
     ...args: T & { [K in keyof T]: Pick<T[K], keyof Constraint & keyof T[K]> }

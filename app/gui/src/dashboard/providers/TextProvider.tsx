@@ -58,6 +58,7 @@ export default function TextProvider(props: TextProviderProps) {
 }
 
 /** Exposes a property to get localized text, and get and set the current language. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useText() {
   const { language, setLanguage, locale } = React.useContext(TextContext)
 
