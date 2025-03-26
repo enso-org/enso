@@ -146,7 +146,7 @@ class Runner(
       val projectDirectory = Path.of(projectPath).toAbsolutePath.normalize
       RunSettings(
         version,
-        options.jvmMode,
+        options.jvmModeEnabled,
         arguments ++ additionalArguments,
         workingDirectory         = Some(projectDirectory.getParent),
         connectLoggerIfAvailable = true,

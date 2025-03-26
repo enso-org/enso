@@ -5,16 +5,17 @@ import ExtendedMenu from '@/components/ExtendedMenu.vue'
 import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
 import SelectionMenu from '@/components/SelectionMenu.vue'
 import ZoomControl from '@/components/ZoomControl.vue'
+import { Action, ActionName } from '@/providers/action'
 import { injectGraphSelection } from '@/providers/graphSelection'
 
 const projectNameEdited = defineModel<boolean>('projectNameEdited', { default: false })
-const props = defineProps<{ zoomLevel: number }>()
+const props = defineProps<{ zoomLevel: number; menuActions: (Action | ActionName)[] }>()
 const selection = injectGraphSelection()
 </script>
 
 <template>
   <div class="TopBar">
-    <ExtendedMenu />
+    <ExtendedMenu :actions="menuActions" />
     <NavBreadcrumbs v-model:projectNameEdited="projectNameEdited" />
     <ControlGroup>
       <ActionButton class="redButton" action="graph.refreshExecution" />
@@ -44,6 +45,10 @@ const selection = injectGraphSelection()
   right: 0;
   margin-left: 11px;
   margin-right: 11px;
+  pointer-events: none;
+  > * {
+    pointer-events: all;
+  }
 }
 
 .redButton:active {

@@ -32,10 +32,6 @@ import { toast } from 'react-toastify'
 import { useSetModal } from './ModalProvider'
 import { useText } from './TextProvider'
 
-// ======================
-// === SessionContext ===
-// ======================
-
 /** State contained in a {@link SessionContext}. */
 interface SessionContextType {
   readonly session: cognito.UserSession | null
@@ -63,10 +59,6 @@ interface SessionContextType {
 }
 
 const SessionContext = React.createContext<SessionContextType | null>(null)
-
-// =======================
-// === SessionProvider ===
-// =======================
 
 /** Props for a {@link SessionProvider}. */
 export interface SessionProviderProps {
@@ -437,14 +429,11 @@ function SessionRefresher(props: SessionRefresherProps) {
   return null
 }
 
-// ==================
-// === useSession ===
-// ==================
-
 /**
  * React context hook returning the session of the authenticated user.
  * @throws {Error} when used outside a {@link SessionProvider}.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSession() {
   const context = React.useContext(SessionContext)
 
@@ -456,6 +445,7 @@ export function useSession() {
 /**
  * Returns API to work with a session.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSessionAPI(): Omit<SessionContextType, 'session'> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { session, ...api } = useSession()
@@ -467,6 +457,7 @@ export function useSessionAPI(): Omit<SessionContextType, 'session'> {
  * React context hook returning the session of the authenticated user.
  * @throws {Error} if the session is not defined.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSessionStrict() {
   const { session } = useSession()
 

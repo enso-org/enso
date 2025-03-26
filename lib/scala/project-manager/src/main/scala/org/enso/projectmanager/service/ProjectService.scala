@@ -105,14 +105,15 @@ class ProjectService[
     moduleName = NameValidation.normalizeName(name)
     path <- repo.findPathForNewProject(moduleName).mapError(toServiceFailure)
     project = Project(
-      id        = projectId,
-      name      = name,
-      module    = moduleName,
-      namespace = Config.DefaultNamespace,
-      kind      = UserProject,
-      created   = creationTime,
-      edition   = None,
-      path      = path.toFile
+      id             = projectId,
+      name           = name,
+      module         = moduleName,
+      namespace      = Config.DefaultNamespace,
+      kind           = UserProject,
+      created        = creationTime,
+      edition        = None,
+      path           = path.toFile,
+      jvmModeEnabled = None
     )
     _ <- log.debug(
       "Found a path [{}] for a new project [{}, {}].",

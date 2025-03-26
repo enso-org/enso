@@ -20,7 +20,6 @@ type Generic_JDBC_Connection
     private Value jdbc_connection:JDBC_Connection.JDBC_Connection
 
     ## ADVANCED
-       GROUP Standard.Base.Input
        ICON data_input
 
        Connect to a database specified by a JDBC URL.

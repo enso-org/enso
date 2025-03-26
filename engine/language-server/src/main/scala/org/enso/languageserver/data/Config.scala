@@ -172,6 +172,3 @@ case class Config(
     ")"
 
 }
-object Config {
-  def ensoPackageConfigName: String = "package.yaml"
-}

@@ -166,9 +166,9 @@ export function modKey(e: KeyboardEvent | MouseEvent): boolean {
  *
  * [^1]: https://github.com/vuejs/core/blob/ae97e5053895eeaaa443306e72cd8f45da001179/packages/runtime-core/src/componentPublicInstance.ts#L312
  */
-export function unrefElement(
-  element: Ref<Element | undefined | null | VueInstance>,
-): Element | undefined | null {
+export function unrefElement<E extends Element>(
+  element: Ref<E | undefined | null | VueInstance>,
+): E | undefined {
   const plain = toValue(element)
   const result = (plain as VueInstance)?.$el ?? plain
   // A component's root can be a Node (if it's a fragment), TextNode, or Comment (if its root uses a v-if).
@@ -181,7 +181,7 @@ export function unrefElement(
     }
     return undefined
   }
-  return result
+  return result ?? undefined
 }
 
 interface ResizeObserverData {

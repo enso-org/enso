@@ -90,7 +90,7 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
       secureRpcPort  = secureRpcPort,
       dataPort       = dataPort,
       secureDataPort = secureDataPort,
-      jvmMode        = descriptor.jvmMode
+      jvmModeEnabled = descriptor.jvmModeEnabled
     )
     val configurationManager = new GlobalRunnerConfigurationManager(
       versionManager,
