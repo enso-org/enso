@@ -3,7 +3,6 @@ from Standard.Test import all
 
 polyglot java import java.io.File as Java_File
 polyglot java import java.lang.System as Java_System
-polyglot java import java.nio.file.Files as Java_Files
 
 add_specs suite_builder =
     suite_builder.group "Engine runner" group_builder->
@@ -21,40 +20,33 @@ add_specs suite_builder =
                 from Standard.Base import all
                 main =
                     file = File.new "README.txt"
-                    "Hello".write file
+                    file.absolute.path
 
             main_src . write main on_existing_file=Existing_File_Behavior.Overwrite
             # Ensure that the subprocess runs without any warnings or errors
-            execute_project proj_dir
-
-            Test.with_clue "The file created in the subprocess should not be in the current directory" <|
-                (File.current_directory / "README.txt").exists . should_be_false
-
-            # Ensure that the enso subprocess created the "README.txt" file relatively
-            # to its own project dir
-            (proj_dir / "README.txt").exists . should_be_true
+            stdout = execute_project proj_dir
+            expected_path = (tmp_dir / "README.txt").absolute.path
+            stdout . should_equal expected_path
 
 
 ## Executes a project and expects no output in stdout and stderr
-execute_project proj_dir:File =
+execute_project proj_dir:File -> Text =
     proj_dir.is_directory . should_be_true
     res = Process.run enso_bin.path ["--run", proj_dir.absolute.path]
     res.exit_code . should_equal Exit_Code.Success
-    clue = "Expected empty out from subprocess: "
-        + "stdout was '"
-        + res.stdout
-        + "', stderr was '"
+    clue = "Expected empty stderr from subprocess: "
+        + "stderr was '"
         + res.stderr
         + "'"
-        + System.default_line_separator
     Test.with_clue clue <|
-        res.stdout.is_empty . should_be_true
         res.stderr.is_empty . should_be_true
+    res.stdout.trim
 
 create_tmp_dir -> File =
-    j_path = Java_Files.createTempDirectory "enso_projs"
-    j_path.toFile.deleteOnExit
-    File.new j_path.toAbsolutePath.toString
+    tmp_file = File.create_temporary_file
+    tmp_file.delete
+    tmp_file.create_directory
+    tmp_file
 
 create_new_enso_project dir:File =
     res = Process.run enso_bin.path [ "--new", dir.path ]
