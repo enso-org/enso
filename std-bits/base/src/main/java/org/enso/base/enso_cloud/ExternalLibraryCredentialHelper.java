@@ -1,5 +1,6 @@
 package org.enso.base.enso_cloud;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.ZonedDateTime;
@@ -51,32 +52,30 @@ public class ExternalLibraryCredentialHelper {
 
     String secretPayload = EnsoSecretReader.readSecret(credentialReference.secretId());
     ObjectMapper jsonMapper = new ObjectMapper();
+    JsonNode json;
     try {
-      var json = jsonMapper.readTree(secretPayload);
-      var tokenField = json.get("token");
-      if (tokenField == null) {
-        throw new IllegalStateException(
-            "The credential is missing token information. Please finish the authentication flow"
-                + " before using it.");
-      }
-
-      if (!tokenField.isObject()) {
-        throw malformedCredential();
-      }
-
-      var inputField = json.get("input");
-      if (inputField == null || !inputField.isObject()) {
-        throw malformedCredential();
-      }
-
-      return new CredentialConfig(inputField, RefreshToken.parse(tokenField));
-    } catch (Exception e) {
-      // We specifically do not pass the original exception as cause, to avoid leaking any secrets
-      // that it could contain.
-      throw new IllegalStateException(
-          "Failed to parse secret payload as credential. Perhaps the secret was not created in the"
-              + " Dashboard as a Credential?");
+      json = jsonMapper.readTree(secretPayload);
+    } catch (JsonProcessingException e) {
+      throw malformedCredential();
     }
+
+    var tokenField = json.get("token");
+    if (tokenField == null) {
+      throw new IllegalStateException(
+          "The credential is missing token information. Please finish the authentication flow"
+              + " before using it.");
+    }
+
+    if (!tokenField.isObject()) {
+      throw malformedCredential();
+    }
+
+    var inputField = json.get("input");
+    if (inputField == null || !inputField.isObject()) {
+      throw malformedCredential();
+    }
+
+    return new CredentialConfig(inputField, RefreshToken.parse(tokenField));
   }
 
   public static AccessToken requestAccessToken(CredentialReference credentialReference)
@@ -95,7 +94,7 @@ public class ExternalLibraryCredentialHelper {
   private static final List<RestrictedAccess.AccessLocation> allowParseCredential =
       List.of(
           new RestrictedAccess.AccessLocation(
-              "org.enso.snowflake.SnowflakeCloudCredentials", "unsafeParseCredential"));
+              "org.enso.snowflake.SnowflakeCloudCredentials", "unsafeReadCredential"));
 
   private static final List<RestrictedAccess.AccessLocation> allowRefreshCredential =
       List.of(
