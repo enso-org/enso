@@ -172,7 +172,6 @@ export function AssetVersion(props: AssetVersionProps) {
                   {(comparableVersion) => (
                     <Menu.Item
                       id={comparableVersion.versionId}
-                      icon="compare"
                       onAction={() => {
                         setModal(
                           <VersionDialog
