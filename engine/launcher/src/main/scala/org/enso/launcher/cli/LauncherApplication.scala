@@ -283,7 +283,7 @@ object LauncherApplication {
               secureRpcPort  = secureRpcPort,
               dataPort       = dataPort,
               secureDataPort = secureDataPort,
-              jvmMode        = jvmMode
+              jvmModeEnabled = jvmMode
             ),
             contentRoot         = path,
             versionOverride     = versionOverride,

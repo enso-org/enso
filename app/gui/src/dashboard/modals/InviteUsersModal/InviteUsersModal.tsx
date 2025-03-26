@@ -13,10 +13,6 @@ import { Stepper } from '#/components/Stepper'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type * as backendModule from '#/services/Backend'
 
-// ========================
-// === InviteUsersModal ===
-// ========================
-
 /** Props for an {@link InviteUsersModal}. */
 export interface InviteUsersModalProps {
   readonly relativeToTrigger?: boolean
@@ -44,10 +40,6 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
     )
   }
 }
-
-// ===============================
-// === InviteUsersModalContent ===
-// ===============================
 
 /** Props for the content of an {@link InviteUsersModal}. */
 interface InviteUsersModalContentProps {

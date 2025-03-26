@@ -6,10 +6,6 @@ import * as React from 'react'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
-// ============================
-// === InputBindingsContext ===
-// ============================
-
 /** State contained in a `ShortcutsContext`. */
 export type InputBindingsContextType = inputBindingsModule.DashboardBindingNamespace
 
@@ -21,10 +17,6 @@ const InputBindingsContext = React.createContext<InputBindingsContextType>(
 export interface InputBindingsProviderProps extends Readonly<React.PropsWithChildren> {
   readonly inputBindings?: inputBindingsModule.DashboardBindingNamespace
 }
-
-// =============================
-// === InputBindingsProvider ===
-// =============================
 
 /** A React Provider that lets components get the input bindings. */
 export default function InputBindingsProvider(props: InputBindingsProviderProps) {
@@ -53,6 +45,7 @@ export default function InputBindingsProvider(props: InputBindingsProviderProps)
  * Exposes a property to get the input bindings namespace.
  * @throws {Error} when used outside of its context.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useInputBindings() {
   return React.useContext(InputBindingsContext)
 }

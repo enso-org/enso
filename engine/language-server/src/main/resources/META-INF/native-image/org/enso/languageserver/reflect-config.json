@@ -254,6 +254,15 @@
   "queryAllPublicMethods":true
 },
 {
+  "name":"com.sun.management.OperatingSystemMXBean",
+  "methods": [
+    {
+      "name": "getTotalPhysicalMemorySize",
+      "parameterTypes": []
+    }
+  ]
+},
+{
   "name":"com.sun.management.VMOption",
   "queryAllPublicMethods":true
 },

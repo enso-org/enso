@@ -12,10 +12,6 @@ import SvgMask from '#/components/SvgMask'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { useNavigate } from 'react-router'
 
-// ======================
-// === RestoreAccount ===
-// ======================
-
 /** Restore an account that has been deleted. */
 export default function RestoreAccount() {
   const { getText } = textProvider.useText()

@@ -42,7 +42,6 @@ polyglot java import org.xml.sax.SAXParseException
 
 type XML_Document
     ## PRIVATE
-       GROUP Input
        ICON data_input
        Read an XML document from a file.
        If there is an error reading the file, `File_Error` is thrown.

@@ -105,8 +105,7 @@ polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 ## Represents a column-oriented table data structure.
 type Table
-    ## GROUP Standard.Base.Constants
-       ICON table_edit
+    ## ICON table_edit
        Creates a new table from a set of columns. This can either be provided as
        a set of pairs of names and data, or existing Column objects.
 
@@ -202,6 +201,7 @@ type Table
 
     ## GROUP Standard.Base.Constants
        ICON table_edit
+       SUGGESTED 7
        Creates a new table from a set of columns parsing the resulting table.
 
        Arguments:
@@ -3402,7 +3402,7 @@ type Table
         from_java_table <| self.java_table.applyMask mask
 
     ## ALIAS export, output, save, to_file
-       GROUP Standard.Base.Output
+       GROUP Standard.Base.File
        ICON data_output
        SUGGESTED 9
        This function writes a table from memory into a file.

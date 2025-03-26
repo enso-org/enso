@@ -4,10 +4,6 @@
  */
 import * as React from 'react'
 
-// ==============
-// === Logger ===
-// ==============
-
 /**
  * Interface used to log logs, errors, etc.
  *
@@ -21,17 +17,9 @@ export interface Logger {
   readonly error: (message: unknown, ...optionalParams: unknown[]) => void
 }
 
-// =====================
-// === LoggerContext ===
-// =====================
-
 /** See `AuthContext` for safety details. */
 // eslint-disable-next-line no-restricted-syntax
 const LoggerContext = React.createContext<Logger>({} as Logger)
-
-// ======================
-// === LoggerProvider ===
-// ======================
 
 /** Props for a {@link LoggerProvider}. */
 export interface LoggerProviderProps {
@@ -45,11 +33,8 @@ export default function LoggerProvider(props: LoggerProviderProps) {
   return <LoggerContext.Provider value={logger}>{children}</LoggerContext.Provider>
 }
 
-// =================
-// === useLogger ===
-// =================
-
 /** A React context hook exposing the diagnostic logger. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useLogger() {
   return React.useContext(LoggerContext)
 }

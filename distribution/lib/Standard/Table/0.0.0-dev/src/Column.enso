@@ -71,8 +71,7 @@ polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 type Column
-    ## GROUP Standard.Base.Input
-       ICON data_input
+    ## ICON convert
        Creates a new column given a name and a vector of elements.
 
        Arguments:
