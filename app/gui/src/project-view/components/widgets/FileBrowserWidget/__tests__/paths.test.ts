@@ -234,3 +234,20 @@ test.each`
     expect(filenameInputContents.value).toBe(expectedInputContents)
   },
 )
+
+test.each`
+  initialPath                         | inputContents     | expectedResult
+  ${''}                               | ${''}             | ${{ exists: false }}
+  ${''}                               | ${'input.csv'}    | ${{ exists: true, type: AssetType.file }}
+  ${'enso://Users/user/New Folder 1'} | ${'input.csv'}    | ${{ exists: true, type: AssetType.file }}
+  ${'enso://Users/user/New Folder 1'} | ${'non-existent'} | ${{ exists: false }}
+  ${'enso://Users/user/New Folder 1'} | ${'Nested'}       | ${{ exists: true, type: AssetType.directory }}
+`(
+  'File exists (path: $initialPath, input: $inputContents)',
+  async ({ initialPath, inputContents, expectedResult }) => {
+    const { initializeStack, assetExists } = fixture('enso://', '0', initialPath, true)
+    await initializeStack(MOCK_USER, MOCK_ORGANIZATION_INFO)
+    const exists = await assetExists(inputContents)
+    expect(exists).toEqual(expectedResult)
+  },
+)

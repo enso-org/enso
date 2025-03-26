@@ -108,6 +108,17 @@ export function useFileBrowserStack(
       `${currentPath.value}${filenameInputContents.value}`,
   )
 
+  type AssetExists = { exists: true; type: AssetType } | { exists: false }
+
+  async function assetExists(name: string): Promise<AssetExists> {
+    const currentDir = directoryStack.value[directoryStack.value.length - 1]
+    if (currentDir == null) return { exists: false }
+    const content = await listDirectory(currentDir)
+    const asset = content.find((asset) => asset.title === name)
+    if (!asset) return { exists: false }
+    return { exists: true, type: asset.type }
+  }
+
   async function enterDirByName(
     name: string,
     stack: Directory[],
@@ -190,6 +201,7 @@ export function useFileBrowserStack(
     currentPath,
     currentFilePath,
     highlightedName,
+    assetExists,
     initializeStack,
     enterSubdirectories,
     isDirectoryStackInitializing,

@@ -27,6 +27,7 @@ import Backend, {
   assetIsDatalink,
   assetIsDirectory,
   assetIsFile,
+  AssetType,
 } from 'enso-common/src/services/Backend'
 import { computed, onMounted, reactive, ref, toRef, toValue, watch } from 'vue'
 
@@ -70,6 +71,7 @@ const {
   initializeStack,
   enterSubdirectories,
   isDirectoryStackInitializing,
+  assetExists,
 } = useFileBrowserStack(
   backend,
   toRef(props, 'choosenPath'),
@@ -114,10 +116,6 @@ const isEmpty = computed(
   () => directories.value?.length === 0 && files.value?.length === 0 && editedAsset.value == null,
 )
 
-function fileExists(title: string) {
-  return files.value?.some((file) => file.title === title)
-}
-
 // === Prefetching ===
 
 watch(directories, (directories) => {
@@ -157,7 +155,8 @@ const askForOverwrite = ref(false)
 
 async function tryAcceptCurrentFile() {
   await enterSubdirectories()
-  if (fileExists(filenameInputContents.value) && props.writeMode) {
+  const assetInfo = await assetExists(filenameInputContents.value)
+  if (assetInfo.exists && assetInfo.type === AssetType.file && props.writeMode) {
     askForOverwrite.value = true
   } else {
     acceptCurrentFile()
