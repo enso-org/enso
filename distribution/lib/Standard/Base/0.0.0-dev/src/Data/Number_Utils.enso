@@ -1,13 +1,22 @@
 from Standard.Base import all
-
-## PRVIATE
-   Convert an Integer in the unsigned byte range [128..255] to the signed byte
-   range. Numbers outside either byte range are returned unchanged,
-convert_unsigned_byte_to_signed x:Integer -> Integer =
-    if x < 128 then x else
-        if x < 256 then -(256 - x) else x
+import Standard.Base.Errors.Common.Unsigned_Bytes_Converted_To_Signed
+import Standard.Base.Runtime.Ref.Ref
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 ## PRVIATE
    Convert an array of Integers in the unsigned byte range [128..255] to the
-   signed byte range. Numbers outside either byte range are returned unchanged,
-convert_unsigned_byte_array_to_signed v:Vector -> Vector = v.map convert_unsigned_byte_to_signed
+   signed byte range. Numbers outside this range, and non-Integers, will throw
+   Illegal_Argument.  The converted array is passed to the action, and if a
+   value is converted, a warning is attached to the result of the action.
+convert_unsigned_byte_array_to_signed v:Vector ~action =
+    should_warn = Ref.new False
+    converted = v.map x->
+        case x of
+            _ : Integer ->
+                if x < -128 || x > 255 then Error.throw (Illegal_Argument.Error "Value is outside the valid signed [-128, 127] and unsigned [0..255] byte ranges: "+x.to_text) else
+                    if x <= 127 then x else
+                        should_warn.put True
+                        -(256 - x)
+            _ -> (Illegal_Argument.Error "Value is not an Integer: "+x.to_text)
+    result = action converted
+    if should_warn.get then (Warning.attach Unsigned_Bytes_Converted_To_Signed.Error result) else result
