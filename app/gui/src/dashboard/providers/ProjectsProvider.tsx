@@ -57,6 +57,7 @@ LocalStorage.registerKey('launchedProjects', {
   schema: LAUNCHED_PROJECT_SCHEMA,
 })
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const PAGES_SCHEMA = z
   .enum(TAB_TYPES)
   .or(
@@ -156,6 +157,7 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
 }
 
 /** The projects store. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useProjectsStore() {
   const context = React.useContext(ProjectsContext)
 
@@ -165,6 +167,7 @@ export function useProjectsStore() {
 }
 
 /** The page context. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePage() {
   const context = React.useContext(PageContext)
 
@@ -174,6 +177,7 @@ export function usePage() {
 }
 
 /** A function to set the current page. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSetPage() {
   const { setPage } = useProjectsStore()
   return eventCallbacks.useEventCallback((page: LaunchedProjectId | TabType) => {
@@ -182,6 +186,7 @@ export function useSetPage() {
 }
 
 /** Returns the launched projects context. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useLaunchedProjects() {
   const context = React.useContext(LaunchedProjectsContext)
 
@@ -194,24 +199,28 @@ export function useLaunchedProjects() {
 }
 
 /** A function to update launched projects. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useUpdateLaunchedProjects() {
   const { updateLaunchedProjects } = useProjectsStore()
   return updateLaunchedProjects
 }
 
 /** A function to add a new launched project. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAddLaunchedProject() {
   const { addLaunchedProject } = useProjectsStore()
   return addLaunchedProject
 }
 
 /** A function to remove a launched project. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useRemoveLaunchedProject() {
   const { removeLaunchedProject } = useProjectsStore()
   return removeLaunchedProject
 }
 
 /** A function to remove all launched projects. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useClearLaunchedProjects() {
   const { setLaunchedProjects } = useProjectsStore()
 

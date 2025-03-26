@@ -33,6 +33,7 @@ export interface PopoverProps
   readonly placement?: Placement | undefined
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const POPOVER_STYLES = twv.tv({
   base: 'shadow-xl w-full overflow-clip',
   variants: {

@@ -13,6 +13,7 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
+import { ORGANIZATION_NAME_MAX_LENGTH } from '#/appUtils'
 import { Button } from '#/components/AriaComponents'
 import { Result } from '#/components/Result'
 import { Stepper } from '#/components/Stepper'
@@ -172,9 +173,7 @@ export interface SetOrganizationNameFormProps {
   readonly onSubmit: (name: string) => Promise<void>
 }
 
-export const ORGANIZATION_NAME_MAX_LENGTH = 64
-
-// eslint-disable-next-line no-restricted-syntax
+// eslint-disable-next-line no-restricted-syntax, react-refresh/only-export-components
 export const SET_ORGANIZATION_NAME_FORM_SCHEMA = (getText: GetText) =>
   ariaComponents.Form.schema.object({
     name: ariaComponents.Form.schema

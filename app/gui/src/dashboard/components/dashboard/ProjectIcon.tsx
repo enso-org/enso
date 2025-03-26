@@ -20,6 +20,7 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const CLOSED_PROJECT_STATE = { type: backendModule.ProjectState.closed } as const
 
 /**
