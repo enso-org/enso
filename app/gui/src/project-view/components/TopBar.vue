@@ -45,6 +45,10 @@ const selection = injectGraphSelection()
   right: 0;
   margin-left: 11px;
   margin-right: 11px;
+  pointer-events: none;
+  > * {
+    pointer-events: all;
+  }
 }
 
 .redButton:active {

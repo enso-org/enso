@@ -698,6 +698,7 @@ const contextMenuActions: ActionName[] = [
             @enterNode="(id) => stackNavigator.enterNode(id)"
             @createNodes="createNodesFromSource"
             @toggleDocPanel="toggleRightDockHelpPanel"
+            @contextmenu.stop.prevent
           />
           <GraphEdges
             :navigator="graphNavigator"
@@ -726,6 +727,7 @@ const contextMenuActions: ActionName[] = [
           :zoomLevel="100.0 * graphNavigator.targetScale"
           :class="{ extraRightSpace: !rightDock.visible }"
           :menuActions="contextMenuActions"
+          @contextmenu.stop.prevent
         />
         <SceneScroller
           :navigator="graphNavigator"

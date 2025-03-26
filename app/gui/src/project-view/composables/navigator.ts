@@ -130,7 +130,7 @@ export function useNavigator(
   useEventListener(viewportElem, 'contextmenu', contextMenuHandler, { capture: true })
   let preventContextMenu = false
   function contextMenuHandler(event: MouseEvent) {
-    if (event.target !== event.currentTarget || preventContextMenu) {
+    if (preventContextMenu) {
       event.preventDefault()
       event.stopImmediatePropagation()
     }
