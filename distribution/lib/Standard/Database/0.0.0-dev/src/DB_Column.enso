@@ -1506,8 +1506,10 @@ type DB_Column
 
              example_contains = Examples.text_column_1.regex_match (regex "A.*M")
     regex_match self (pattern : Column | Text | Any) -> Column =
-        _ = [pattern]
-        Error.throw (Unsupported_Database_Operation.Error ("regex_match"))
+        Value_Type.expect_text self <| Value_Type.expect_text pattern <|
+            new_name = self.naming_helper.binary_operation_name "regex_match" self pattern
+            if self.connection.dialect.is_operation_supported "REGEX_MATCH" then self.make_binary_op "REGEX_MATCH" pattern new_name else
+                Error.throw (Unsupported_Database_Operation.Error ("regex_match"))
 
 
     ## GROUP Standard.Base.Text
