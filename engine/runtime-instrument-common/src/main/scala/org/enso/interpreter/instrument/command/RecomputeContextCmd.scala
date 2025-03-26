@@ -11,7 +11,6 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
-import org.enso.interpreter.runtime.EnsoContext
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
@@ -43,8 +42,7 @@ class RecomputeContextCmd(
     ec: ExecutionContext
   ): Future[Boolean] = {
     Future {
-      EnsoContext
-        .get(null)
+      ctx.executionService.getContext
         .getResourceManager()
         .scheduleFinalizationOfSystemReferences();
       ctx.jobControlPlane.abortJobs(

@@ -8,10 +8,6 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 
 import LocalStorage, { type LocalStorageData, type LocalStorageKey } from '#/utilities/LocalStorage'
 
-// ===========================
-// === LocalStorageContext ===
-// ===========================
-
 /** State contained in a `LocalStorageContext`. */
 export interface LocalStorageContextType {
   readonly localStorage: LocalStorage
@@ -23,10 +19,6 @@ const LocalStorageContext = React.createContext<LocalStorageContextType>(null)
 
 /** Props for a {@link LocalStorageProvider}. */
 export type LocalStorageProviderProps = Readonly<React.PropsWithChildren>
-
-// ============================
-// === LocalStorageProvider ===
-// ============================
 
 /** A React Provider that lets components get the shortcut registry. */
 export default function LocalStorageProvider(props: LocalStorageProviderProps) {

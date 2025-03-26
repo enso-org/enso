@@ -4,16 +4,8 @@ import * as detect from 'enso-common/src/detect'
 
 /* eslint-disable @typescript-eslint/naming-convention */
 
-// =================
-// === Constants ===
-// =================
-
 const ONE_HOUR_MS = 3_600_000
 export const LATEST_RELEASE_PAGE_URL = 'https://github.com/enso-org/enso/releases/latest'
-
-// ==================
-// === GitHub API ===
-// ==================
 
 /** Metadata for a GitHub user. */
 interface GitHubSimpleUser {
@@ -88,10 +80,6 @@ interface GitHubRelease {
   readonly published_at: string
   readonly assets: GitHubReleaseAsset[]
 }
-
-// =====================
-// === CachedRelease ===
-// =====================
 
 /** Metadata for a GitHub release, plus metadata for caching purposes. */
 interface CachedRelease {

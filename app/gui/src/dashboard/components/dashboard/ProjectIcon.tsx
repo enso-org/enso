@@ -20,10 +20,6 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 
-// =================
-// === Constants ===
-// =================
-
 // eslint-disable-next-line react-refresh/only-export-components
 export const CLOSED_PROJECT_STATE = { type: backendModule.ProjectState.closed } as const
 
@@ -57,10 +53,6 @@ const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, SpinnerSt
   [backendModule.ProjectState.scheduled]: 'loading-medium',
   [backendModule.ProjectState.opened]: 'done',
 }
-
-// ===================
-// === ProjectIcon ===
-// ===================
 
 /** Props for a {@link ProjectIcon}. */
 export interface ProjectIconProps {

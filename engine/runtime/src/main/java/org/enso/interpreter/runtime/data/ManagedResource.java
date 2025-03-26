@@ -85,14 +85,14 @@ public final class ManagedResource extends BuiltinObject {
               + " object is garbage collected.")
   @Builtin.Specialize
   public static ManagedResource register_builtin(
-      EnsoContext context, Object obj, Function function, boolean systemCanFinalize) {
+      EnsoContext ctx, Object obj, Function function, boolean systemCanFinalize) {
     if (obj instanceof TruffleObject resource) {
-      return context.getResourceManager().register(resource, function, systemCanFinalize);
+      return ctx.getResourceManager().register(resource, function, systemCanFinalize);
     } else {
-      var error = context.getBuiltins().error();
+      var error = ctx.getBuiltins().error();
       var msg = "Cannot manage non-resource object";
       var payload = error.makeUnsupportedArgumentsError(new Object[] {obj}, msg);
-      throw new PanicException(payload, null);
+      throw new PanicException(ctx, payload, null, null);
     }
   }
 

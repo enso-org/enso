@@ -6,10 +6,6 @@ import * as React from 'react'
 import { createStore } from 'zustand'
 import { useStore } from '../hooks/storeHooks'
 
-// =====================
-// === ModalProvider ===
-// =====================
-
 /** The type of a modal. */
 export type Modal = React.JSX.Element
 
@@ -137,10 +133,6 @@ function ModalStaticProvider(props: InternalModalStaticProviderProps) {
   )
 }
 
-// ================
-// === useModal ===
-// ================
-
 /** A React context hook exposing the currently active modal, if one is currently visible. */
 // eslint-disable-next-line react-refresh/only-export-components
 export function useModal() {
@@ -148,20 +140,12 @@ export function useModal() {
   return { modal, key } as const
 }
 
-// ===================
-// === useModalRef ===
-// ===================
-
 /** A React context hook exposing the currently active modal (if one is currently visible) as a ref. */
 // eslint-disable-next-line react-refresh/only-export-components
 export function useModalRef() {
   const { modalRef } = React.useContext(ModalStaticContext)
   return { modalRef } as const
 }
-
-// ===================
-// === useSetModal ===
-// ===================
 
 /**
  * A React context hook exposing functions to set and unset the currently active modal.

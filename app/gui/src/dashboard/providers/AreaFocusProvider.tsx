@@ -4,10 +4,6 @@
  */
 import * as React from 'react'
 
-// ========================
-// === AreaFocusContext ===
-// ========================
-
 /** State contained in a `AreaFocusContext`. */
 export interface AreaFocusContextType {
   readonly areaFocus: boolean
@@ -19,10 +15,6 @@ const AreaFocusContext = React.createContext<AreaFocusContextType>({ areaFocus: 
 export interface AreaFocusProviderProps
   extends Readonly<React.PropsWithChildren>,
     AreaFocusContextType {}
-
-// =========================
-// === AreaFocusProvider ===
-// =========================
 
 /**
  * A React provider (and associated hooks) for determining whether the current area

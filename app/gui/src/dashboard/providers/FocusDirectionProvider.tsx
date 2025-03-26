@@ -4,10 +4,6 @@
  */
 import * as React from 'react'
 
-// =============================
-// === FocusDirectionContext ===
-// =============================
-
 /** Possible directions in which focus siblings can be. */
 export type FocusDirection = 'horizontal' | 'vertical'
 
@@ -24,10 +20,6 @@ const FocusDirectionContext = React.createContext<FocusDirectionContextType>({
 export interface FocusDirectionProviderProps
   extends Readonly<React.PropsWithChildren>,
     FocusDirectionContextType {}
-
-// ==============================
-// === FocusDirectionProvider ===
-// ==============================
 
 /**
  * A React provider (and associated hooks) for determining whether the current focus contex

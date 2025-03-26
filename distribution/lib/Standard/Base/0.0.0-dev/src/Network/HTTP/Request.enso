@@ -87,7 +87,6 @@ type Request
     head url (headers = []) = Request.new HTTP_Method.Head url headers
 
     ## ALIAS http post, upload
-       GROUP Output
        ICON data_upload
        Create a Post request.
 

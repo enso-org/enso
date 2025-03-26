@@ -139,7 +139,7 @@ jobs:
 
       - uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          bazelrc: build --remote_cache=http://${{ secrets.ENSO_BAZEL_CACHE_USERNAME  }}@${{ vars.ENSO_BAZEL_CACHE_URI }}
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
 
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile

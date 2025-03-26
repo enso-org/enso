@@ -6,10 +6,6 @@ import SvgMask from '#/components/SvgMask'
 import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 
-// =================
-// === Constants ===
-// =================
-
 // eslint-disable-next-line react-refresh/only-export-components
 export const ALERT_STYLES = tv({
   base: 'flex items-stretch gap-2',
@@ -52,10 +48,6 @@ export const ALERT_STYLES = tv({
     rounded: 'xlarge',
   },
 })
-
-// =============
-// === Alert ===
-// =============
 
 /** Props for an {@link Alert}. */
 export interface AlertProps

@@ -20,10 +20,6 @@ import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 import * as cognitoModule from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'
 
-// =====================
-// === AmplifyConfig ===
-// =====================
-
 /**
  * Configuration for the AWS Amplify library.
  *
@@ -44,10 +40,6 @@ export interface AmplifyConfig {
   readonly redirectSignOut: string
   readonly responseType: string
 }
-
-// ===========================
-// === NestedAmplifyConfig ===
-// ===========================
 
 /** Configuration options for a {@link OauthAmplifyConfig}. */
 interface OauthAmplifyConfigOptions {
@@ -98,10 +90,6 @@ export function toNestedAmplifyConfig(config: AmplifyConfig): NestedAmplifyConfi
   }
 }
 
-// ==================
-// === AuthConfig ===
-// ==================
-
 /** Configuration for the authentication service. */
 export interface AuthConfig {
   /**
@@ -110,10 +98,6 @@ export interface AuthConfig {
    */
   readonly supportsDeepLinks: boolean
 }
-
-// ===================
-// === AuthService ===
-// ===================
 
 /** API for the authentication service. */
 export interface AuthService {

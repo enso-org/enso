@@ -1,5 +1,5 @@
 from Standard.Base import all
-from Standard.Base.Metadata import Display, make_single_choice, Widget, Choice
+from Standard.Base.Metadata import Choice, Display, make_single_choice, Widget
 
 polyglot java import org.enso.table.data.table.join.JoinKind as Java_Join_Kind
 

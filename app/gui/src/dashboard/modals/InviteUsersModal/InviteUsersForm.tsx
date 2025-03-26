@@ -19,10 +19,6 @@ import type * as backendModule from '#/services/Backend'
 
 import * as parserUserEmails from '#/utilities/parseUserEmails'
 
-// =======================
-// === InviteUsersForm ===
-// =======================
-
 /** Props for an {@link InviteUsersForm}. */
 export interface InviteUsersFormProps {
   readonly onSubmitted: (emails: backendModule.EmailAddress[]) => void
