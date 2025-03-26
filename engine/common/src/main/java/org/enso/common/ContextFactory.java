@@ -215,12 +215,6 @@ public final class ContextFactory {
     if (enableDebugServer) {
       builder.option(DebugServerInfo.ENABLE_OPTION, "true");
     }
-    if (shouldChangeWorkingDir()) {
-      assert projectRoot != null;
-      var parent = Path.of(projectRoot).getParent();
-      assert parent != null;
-      builder.currentWorkingDirectory(parent);
-    }
     builder.option(RuntimeOptions.LOG_LEVEL, logLevelName);
     var logLevels = LoggerSetup.get().getConfig().getLoggers();
     if (logLevels.hasEnsoLoggers()) {
@@ -236,6 +230,13 @@ public final class ContextFactory {
 
     if (projectRoot != null) {
       builder.option(RuntimeOptions.PROJECT_ROOT, projectRoot);
+      var parentDir = Path.of(projectRoot).getParent();
+      if (parentDir != null) {
+        var parentDirAbs = parentDir.toAbsolutePath().toString();
+        if (!System.getProperty("user.dir").equals(parentDirAbs)) {
+          builder.currentWorkingDirectory(parentDir);
+        }
+      }
       var graalpy =
           new File(
               new File(new File(new File(new File(projectRoot), "polyglot"), "python"), "bin"),
@@ -271,16 +272,6 @@ public final class ContextFactory {
     var ctx = builder.build();
     ContextInsightSetup.configureContext(ctx);
     return ctx;
-  }
-
-  private boolean shouldChangeWorkingDir() {
-    return projectRoot != null
-        && !System.getProperty("user.dir").equals(parentDir(projectRoot));
-  }
-
-  private static String parentDir(String path) {
-    var parent = Path.of(path).getParent();
-    return parent != null ? parent.toAbsolutePath().toString() : null;
   }
 
   /**
