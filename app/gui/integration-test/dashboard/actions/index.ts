@@ -72,6 +72,7 @@ async function login({ page }: MockParams, email = 'email@example.com', password
 async function waitForLoaded(page: Page) {
   await page.waitForLoadState()
 
+  await expect(page.getByTestId(/^(before|after)-auth-layout$/)).toBeAttached({ timeout: 30_000 })
   await expect(page.getByTestId('loading-screen')).toHaveCount(0, { timeout: 30_000 })
 }
 

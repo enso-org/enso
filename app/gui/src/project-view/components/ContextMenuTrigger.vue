@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { Action, ActionName } from '../providers/action'
+import { provideActionContext } from '../providers/actionContext'
 import ContextMenu from './ContextMenu.vue'
 
 const { actions } = defineProps<{
@@ -11,30 +11,36 @@ const emit = defineEmits<{
   hidden: []
 }>()
 
-const point = ref<{ x: number; y: number } | null>(null)
+const ctx = provideActionContext()
 
-function show(at: typeof point.value) {
-  point.value = at
+function show(at: typeof ctx.openPosition) {
+  ctx.openPosition = at
   emit('shown')
 }
 
 function hide() {
-  point.value = null
+  ctx.openPosition = null
   emit('hidden')
 }
 </script>
 
 <template>
-  <div style="display: contents" @contextmenu.stop.prevent="show">
+  <div class="ContextMenuTrigger" @contextmenu.stop.prevent="show">
     <slot />
     <ContextMenu
-      v-if="point != null"
+      v-if="ctx.openPosition != null"
       ref="menuComponent"
       :actions="actions"
-      :point="point"
+      :point="ctx.openPosition"
       @close="hide"
     >
       <slot name="menuElements" />
     </ContextMenu>
   </div>
 </template>
+
+<style scoped>
+.ContextMenuTrigger {
+  display: contents;
+}
+</style>
