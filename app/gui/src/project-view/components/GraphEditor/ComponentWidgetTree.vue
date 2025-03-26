@@ -59,6 +59,8 @@ function handleWidgetUpdates(update: WidgetUpdate) {
     selectNode()
   }
   if (!update.edit && update.portUpdate && !('value' in update.portUpdate)) {
+    // A fast-track for metadata-only updates. Edit is quite a heavy operation,
+    // and we don't need it in this case.
     const { origin, metadata, metadataKey } = update.portUpdate
     if (Ast.isAstId(origin)) {
       graph.setWidgetMetadata(origin, metadataKey, metadata)
