@@ -3,6 +3,11 @@ package org.enso.base.enso_cloud;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -13,9 +18,9 @@ import java.util.List;
  * <p>It will only allow access from trusted code locations.
  */
 public class ExternalLibraryCredentialHelper {
-  public record CredentialReference(String secretId) {}
+  public record CredentialReference(String secretId, String serviceName) {}
 
-  public record AccessToken(String token) {}
+  public record AccessToken(String token, ZonedDateTime expirationDate) {}
 
   public record RefreshToken(String token, ZonedDateTime expirationDate, JsonNode metadata) {
     private static RefreshToken parse(JsonNode tokenObject) {
@@ -81,8 +86,66 @@ public class ExternalLibraryCredentialHelper {
   public static AccessToken requestAccessToken(CredentialReference credentialReference)
       throws EnsoSecretAccessDenied {
     RestrictedAccess.checkAccess(allowRefreshCredential);
-    // TODO
-    return null;
+    var apiUri =
+        CloudAPI.getAPIRootURI()
+            + "oauth/"
+            + credentialReference.serviceName().toLowerCase()
+            + "/refresh";
+    var client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
+    var request =
+        HttpRequest.newBuilder()
+            .uri(URI.create(apiUri))
+            .header("Authorization", "Bearer " + AuthenticationProvider.getAccessToken())
+            .POST(HttpRequest.BodyPublishers.noBody())
+            .build();
+    // TODO retries?
+    HttpResponse<String> response;
+    try {
+      response = client.send(request, HttpResponse.BodyHandlers.ofString());
+    } catch (IOException | InterruptedException e) {
+      // TODO retries
+      throw new IllegalStateException(
+          "Failed to refresh the " + credentialReference.serviceName() + " token.");
+    }
+
+    int status = response.statusCode();
+    if (status != 200) {
+      throw new IllegalArgumentException(
+          "Unable to refresh the token - the service responded with status " + status + ".");
+    }
+
+    ObjectMapper jsonMapper = new ObjectMapper();
+    JsonNode json;
+    try {
+      json = jsonMapper.readTree(response.body());
+    } catch (JsonProcessingException e) {
+      throw malformedTokenResponse();
+    }
+
+    var tokenField = json.get("token");
+    if (tokenField == null || !tokenField.isTextual()) {
+      throw malformedTokenResponse();
+    }
+
+    ZonedDateTime expirationDate = null;
+    var expirationField = json.get("expirationDate");
+    if (expirationField != null) {
+      if (!expirationField.isTextual()) {
+        throw malformedTokenResponse();
+      }
+
+      try {
+        expirationDate = ZonedDateTime.parse(expirationField.asText());
+      } catch (DateTimeParseException e) {
+        throw new IllegalStateException("Failed to parse expiration date in token response.");
+      }
+    }
+
+    return new AccessToken(tokenField.asText(), expirationDate);
+  }
+
+  private static RuntimeException malformedTokenResponse() {
+    throw new IllegalStateException("Malformed token response.");
   }
 
   public static RuntimeException malformedCredential() {
@@ -99,5 +162,5 @@ public class ExternalLibraryCredentialHelper {
   private static final List<RestrictedAccess.AccessLocation> allowRefreshCredential =
       List.of(
           new RestrictedAccess.AccessLocation(
-              "org.enso.google.GoogleOAuthSecretReader", "createCredentialFromSecretValue"));
+              "org.enso.google.GoogleOAuthHelper.CloudRenewableGoogleCredentials", "refresh"));
 }

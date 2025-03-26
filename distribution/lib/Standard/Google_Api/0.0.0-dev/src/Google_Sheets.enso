@@ -3,7 +3,7 @@ import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Metadata.Display
 from Standard.Base.Metadata import make_single_choice, Widget
 from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
-from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
+from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
 
 from Standard.Table import Table
 
@@ -15,7 +15,7 @@ polyglot java import com.google.api.services.sheets.v4.SheetsScopes
 polyglot java import java.io.IOException
 polyglot java import java.util.Collections
 
-polyglot java import org.enso.google.GoogleOAuthSecretReader
+polyglot java import org.enso.google.GoogleOAuthHelper
 polyglot java import org.enso.google.GoogleSheetsHelpers
 
 type Google_Sheets
@@ -34,7 +34,7 @@ type Google_Sheets
         base_credential = case secret_file of
             secret : Enso_Secret ->
                 # TODO to avoid passing credentials around, prod should probably create instance of Sheets and return it here
-                GoogleOAuthSecretReader.createCredentialFromSecretValue (as_hideable_value secret)
+                GoogleOAuthHelper.createCredential (as_credential_reference secret)
             _ ->
                 secret_file.with_input_stream [File_Access.Read] stream->
                     stream.with_java_stream is->
