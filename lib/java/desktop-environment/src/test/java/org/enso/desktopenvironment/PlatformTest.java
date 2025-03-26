@@ -1,5 +1,6 @@
 package org.enso.desktopenvironment;
 
+import org.enso.common.Platform;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -12,11 +13,11 @@ public class PlatformTest {
 
   @Test
   public void getDirectories() {
-    Assert.assertNotNull(Platform.getOperatingSystem().getDirectories());
+    Assert.assertNotNull(Directories.getForCurrentPlatform());
   }
 
   @Test
   public void getTrashBin() {
-    Assert.assertNotNull(Platform.getOperatingSystem().getTrashBin());
+    Assert.assertNotNull(TrashBin.getForCurrentPlatform());
   }
 }

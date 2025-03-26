@@ -2,6 +2,7 @@ package org.enso.desktopenvironment;
 
 import java.nio.file.Path;
 import java.util.List;
+import org.enso.common.Platform;
 import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.nativeimage.UnmanagedMemory;
 import org.graalvm.nativeimage.c.CContext;
@@ -14,6 +15,17 @@ import org.slf4j.LoggerFactory;
 
 @CContext(MacTrashBin.CoreServices.class)
 final class MacTrashBin implements TrashBin {
+
+  private MacTrashBin() {}
+
+  private static MacTrashBin instance;
+
+  static MacTrashBin getInstance() {
+    if (instance == null) {
+      instance = new MacTrashBin();
+    }
+    return instance;
+  }
 
   @CFunction
   static native int FSPathMakeRefWithOptions(

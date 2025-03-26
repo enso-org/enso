@@ -2,6 +2,7 @@ package org.enso.desktopenvironment;
 
 import java.nio.file.Path;
 import java.util.List;
+import org.enso.common.Platform;
 import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.CContext;
@@ -16,6 +17,17 @@ import org.slf4j.LoggerFactory;
 
 @CContext(WindowsTrashBin.ShellApi.class)
 final class WindowsTrashBin implements TrashBin {
+  private WindowsTrashBin() {}
+
+  private static WindowsTrashBin instance;
+
+  public static WindowsTrashBin getInstance() {
+    if (instance == null) {
+      instance = new WindowsTrashBin();
+    }
+    return instance;
+  }
+
   @CConstant
   public static native int FO_DELETE();
 

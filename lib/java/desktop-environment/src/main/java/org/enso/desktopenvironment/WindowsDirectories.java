@@ -6,6 +6,16 @@ import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
 final class WindowsDirectories implements Directories {
+  private static WindowsDirectories instance;
+
+  private WindowsDirectories() {}
+
+  static WindowsDirectories getInstance() {
+    if (instance == null) {
+      instance = new WindowsDirectories();
+    }
+    return instance;
+  }
 
   private static final String[] PROCESS_REG_QUERY =
       new String[] {

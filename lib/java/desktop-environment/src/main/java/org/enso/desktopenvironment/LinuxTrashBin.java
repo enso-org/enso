@@ -22,13 +22,24 @@ import org.apache.commons.io.FileUtils;
  * for each trashed entry in the files directory.
  */
 final class LinuxTrashBin implements TrashBin {
-
+  private static LinuxTrashBin instance;
+  private final LinuxDirectories directories;
   private static final String XDG_DATA_HOME = "XDG_DATA_HOME";
   private static final String PATH_TRASH = "Trash";
   private static final String PATH_FILES = "files";
   private static final String PATH_INFO = "info";
 
-  private final LinuxDirectories directories = new LinuxDirectories();
+  public static LinuxTrashBin getInstance() {
+    if (instance == null) {
+      var directories = LinuxDirectories.getInstance();
+      instance = new LinuxTrashBin(directories);
+    }
+    return instance;
+  }
+
+  private LinuxTrashBin(LinuxDirectories directories) {
+    this.directories = directories;
+  }
 
   @Override
   public boolean isSupported() {
