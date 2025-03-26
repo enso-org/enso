@@ -28,11 +28,20 @@ import { useFullUserSession } from '#/providers/AuthProvider'
 import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { AssetType, BackendType, Plan, type AnyAsset, type DatalinkId } from '#/services/Backend'
+import {
+  AssetType,
+  BackendType,
+  getAssetPermissionId,
+  getAssetPermissionName,
+  Plan,
+  type AnyAsset,
+  type DatalinkId,
+} from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
 import { useMutation } from '@tanstack/react-query'
+import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
   base: '',
@@ -166,6 +175,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     editDescriptionMutation.variables?.[0] === item.id ?
       (editDescriptionMutation.variables[1].description ?? item.description)
     : item.description
+  const ownerPermission = permissions.tryGetOwnerPermission(item)
 
   const editDescriptionForm = Form.useForm({
     schema: (z) => z.object({ description: z.string() }),
@@ -267,8 +277,8 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           <table>
             <tbody>
               {item.ensoPath != null && item.ensoPathValue && (
-                <tr data-testid="asset-panel-permissions" className="h-row">
-                  <td className="text my-auto min-w-side-panel-label p-0">
+                <tr data-testid="asset-panel-path" className="h-row">
+                  <td className="my-auto min-w-side-panel-label p-0">
                     <Text>{getText('path')}</Text>
                   </td>
                   <td className="w-full p-0">
@@ -281,10 +291,77 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                   </td>
                 </tr>
               )}
+              {featureFlags.showDeveloperIds && (
+                <tr className="h-row">
+                  <td className="my-auto min-w-side-panel-label p-0">
+                    <Text color="accent">{getText('assetId')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <div className="flex items-center gap-2">
+                      <Text color="accent" className="w-0 grow" truncate="1">
+                        {item.id}
+                      </Text>
+                      <CopyButton copyText={item.id} />
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {featureFlags.showDeveloperIds && (
+                <tr className="h-row">
+                  <td className="my-auto min-w-side-panel-label p-0">
+                    <Text color="accent">{getText('parentId')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <div className="flex items-center gap-2">
+                      <Text color="accent" className="w-0 grow" truncate="1">
+                        {item.parentId}
+                      </Text>
+                      <CopyButton copyText={item.parentId} />
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {ownerPermission && (
+                <tr data-testid="asset-panel-owner" className="h-row">
+                  <td className="min-w-side-panel-label p-0">
+                    <Text className="inline-block">{getText('owner')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <Text className="grow" truncate="1">
+                      {getAssetPermissionName(ownerPermission)}
+                    </Text>
+                  </td>
+                </tr>
+              )}
+              {featureFlags.showDeveloperIds && ownerPermission && (
+                <tr className="h-row">
+                  <td className="my-auto min-w-side-panel-label p-0">
+                    <Text color="accent">{getText('ownerId')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <div className="flex items-center gap-2">
+                      <Text color="accent" className="w-0 grow" truncate="1">
+                        {getAssetPermissionId(ownerPermission)}
+                      </Text>
+                      <CopyButton copyText={getAssetPermissionId(ownerPermission)} />
+                    </div>
+                  </td>
+                </tr>
+              )}
+              <tr data-testid="asset-panel-modified-at" className="h-row">
+                <td className="min-w-side-panel-label p-0">
+                  <Text className="inline-block">{getText('modifiedAt')}</Text>
+                </td>
+                <td className="w-full p-0">
+                  <Text className="grow" truncate="1">
+                    {toReadableIsoString(new Date(item.modifiedAt))}
+                  </Text>
+                </td>
+              </tr>
               {isEnterprise && (
                 <tr data-testid="asset-panel-permissions" className="h-row">
-                  <td className="text my-auto min-w-side-panel-label p-0">
-                    <Text className="text inline-block">{getText('sharedWith')}</Text>
+                  <td className="my-auto min-w-side-panel-label p-0">
+                    <Text className="inline-block">{getText('sharedWith')}</Text>
                   </td>
                   <td className="flex w-full gap-1 p-0">
                     <SharedWithColumn
@@ -296,8 +373,8 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                 </tr>
               )}
               <tr data-testid="asset-panel-labels" className="h-row">
-                <td className="text my-auto min-w-side-panel-label p-0">
-                  <Text className="text inline-block">{getText('labels')}</Text>
+                <td className="my-auto min-w-side-panel-label p-0">
+                  <Text className="inline-block">{getText('labels')}</Text>
                 </td>
                 <td className="flex w-full gap-1 p-0">
                   {item.labels?.map((value) => {
