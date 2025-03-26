@@ -3,7 +3,6 @@ package org.enso.desktopenvironment;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.enso.common.Platform;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -11,7 +10,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class TrashBinTest {
 
-  private static final TrashBin TRASH_BIN = TrashBin.getForCurrentPlatform();
+  private static final TrashBin TRASH_BIN = Platform.getOperatingSystem().getTrashBin();
 
   @Rule public TemporaryFolder temporaryFolder = new TemporaryFolder();
 

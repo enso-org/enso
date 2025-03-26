@@ -1,5 +1,6 @@
-package org.enso.common;
+package org.enso.desktopenvironment;
 
+/** Identification of the desktop platform. */
 public enum Platform {
   LINUX,
   MACOS,
@@ -12,9 +13,19 @@ public enum Platform {
 
   private static final Platform OPERATING_SYSTEM = detectOperatingSystem();
 
+  /**
+   * @GuardedBy("this")
+   */
+  private Directories directories;
+
+  /**
+   * @GuardedBy("this")
+   */
+  private TrashBin trashBin;
+
   private Platform() {}
 
-  public static Platform detectOperatingSystem() {
+  private static Platform detectOperatingSystem() {
     var osName = System.getProperty(OS_NAME);
     var lowerOsName = osName.toLowerCase();
 
@@ -47,5 +58,29 @@ public enum Platform {
 
   public boolean isWindows() {
     return this == WINDOWS;
+  }
+
+  public synchronized Directories getDirectories() {
+    if (directories == null) {
+      directories =
+          switch (Platform.getOperatingSystem()) {
+            case LINUX -> new LinuxDirectories();
+            case MACOS -> new MacOsDirectories();
+            case WINDOWS -> new WindowsDirectories();
+          };
+    }
+    return directories;
+  }
+
+  public synchronized TrashBin getTrashBin() {
+    if (trashBin == null) {
+      trashBin =
+          switch (this) {
+            case LINUX -> new LinuxTrashBin();
+            case MACOS -> new MacTrashBin();
+            case WINDOWS -> new WindowsTrashBin();
+          };
+    }
+    return trashBin;
   }
 }

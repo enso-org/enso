@@ -2,13 +2,12 @@ package org.enso.desktopenvironment;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import org.enso.common.Platform;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class DirectoriesTest {
 
-  private static final Directories directories = Directories.getForCurrentPlatform();
+  private static final Directories directories = Platform.getOperatingSystem().getDirectories();
 
   @Test
   public void getUserHome() {

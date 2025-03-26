@@ -4,16 +4,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 final class MacOsDirectories implements Directories {
-  private static MacOsDirectories instance;
-
-  private MacOsDirectories() {}
-
-  static MacOsDirectories getInstance() {
-    if (instance == null) {
-      instance = new MacOsDirectories();
-    }
-    return instance;
-  }
 
   private static final String DOCUMENTS = "Documents";
 

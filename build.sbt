@@ -4152,7 +4152,6 @@ lazy val `desktop-environment` =
         "com.github.sbt"  % "junit-interface" % junitIfVersion            % Test
       )
     )
-    .dependsOn(`engine-common`)
 
 lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .enablePlugins(JPMSPlugin)
