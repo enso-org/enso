@@ -236,7 +236,10 @@ add_filter_specs suite_builder setup =
             t.filter "X" (..Regex_Match (regex ".*an.*") keep_or_remove=Filter_Action.Remove) . at "X" . to_vector . should_equal ["abb", "bacb", Nothing]
             t.filter "X" (..Regex_Match (regex ".a.*")) . at "X" . to_vector . should_equal ["bacb", "banana", "nana"]
             t.filter "X" (..Regex_Match (regex ".*b")) . at "X" . to_vector . should_equal ["abb", "bacb"]
+            t.filter "X" (..Regex_Match (regex "^.*b")) . at "X" . to_vector . should_equal ["abb", "bacb"]
+            t.filter "X" (..Regex_Match (regex ".*b$")) . at "X" . to_vector . should_equal ["abb", "bacb"]
             t.filter "X" (..Regex_Match (regex "nana")) . at "X" . to_vector . should_equal ["nana"]
+            t.filter "X" (..Regex_Match (regex "^nana$")) . at "X" . to_vector . should_equal ["nana"]
             t.filter "Z" (..Regex_Match (regex "\[ab\].+")) . at "Z" . to_vector . should_equal ["[ab]aaaa", "[ab]ccc"]
 
         group_builder.specify "text operations should also match newlines" <|
