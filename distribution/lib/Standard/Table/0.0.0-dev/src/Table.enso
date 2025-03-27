@@ -2155,7 +2155,7 @@ type Table
                 _ : Filter_Condition ->
                     resolved = (self:Table_Ref).resolve_condition filter_condition
                     x = mask (make_filter_column column resolved on_problems)
-                    x.catch Any err->(Error.throw (Argument_Hinted_Error err "column"))
+                    x.catch Any err->(Error.throw (Argument_Hinted_Error.Error err "column"))
                 _ : Function -> mask (column.map filter_condition)
         _ : Expression -> self.filter (self.evaluate_expression column on_problems) filter on_problems
         _ ->

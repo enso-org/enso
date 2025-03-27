@@ -458,7 +458,7 @@ type Argument_Hinted_Error
    Error error related_argument:Text
 
    to_display_text self -> Text =
-       error.to_display_text
+       self.error.to_display_text
 
 type Invalid_Value_Type
     ## PRIVATE
