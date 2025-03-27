@@ -569,8 +569,8 @@ ends_with = Base_Generator.lift_binary_op "ENDS_WITH" str-> sub->
     res.paren
 
 ## PRIVATE
-regex_match = Base_Generator.lift_binary_op "REGEX_MATCH" str-> sub->
-    str ++ " ~ " ++ sub
+regex_match = Base_Generator.lift_binary_op "REGEX_MATCH" str-> pattern->
+    str ++ " ~ " ++ pattern
 
 ## PRIVATE
 make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
