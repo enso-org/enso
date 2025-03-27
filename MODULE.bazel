@@ -4,7 +4,7 @@
 ### JavaScript ecosystem ###
 ############################
 
-bazel_dep(name = "aspect_rules_js", version = "2.1.1")
+bazel_dep(name = "aspect_rules_js", version = "2.1.2")
 bazel_dep(name = "aspect_rules_ts", version = "3.3.2")
 bazel_dep(name = "rules_nodejs", version = "6.3.2")
 bazel_dep(name = "aspect_bazel_lib", version = "2.10.0")
@@ -35,7 +35,7 @@ use_repo(rules_ts_ext, "npm_typescript")
 ############
 ### RUST ###
 ############
-bazel_dep(name = "rules_rust", version = "0.57.1")
+bazel_dep(name = "rules_rust", version = "0.59.2")
 
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
@@ -46,9 +46,21 @@ rust.toolchain(
 use_repo(rust, "rust_toolchains")
 register_toolchains("@rust_toolchains//:all")
 
+# Add wasm_bindgen toolchain, patch it to shorten the dirnames and avoid max_path issues
+bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.59.2")
+single_version_override(module_name = "rules_rust_wasm_bindgen", patches = ["wasm_bindgen.patch"])
+register_toolchains("@rules_rust_wasm_bindgen//:default_wasm_bindgen_toolchain")
+
 crate = use_extension("@rules_rust//crate_universe:extension.bzl", "crate")
 crate.from_cargo(
     name = "crates",
+    supported_platform_triples = [
+        "aarch64-apple-darwin",
+        "wasm32-unknown-unknown",
+        "x86_64-pc-windows-msvc",
+        "x86_64-unknown-linux-gnu",
+        "x86_64-apple-darwin",
+    ],
     cargo_config = "//:.cargo/config.toml",
     cargo_lockfile = "//:Cargo.lock",
     manifests = [
@@ -82,35 +94,6 @@ crate.from_cargo(
     isolated = False,
 )
 use_repo(crate, "crates")
-
-####################
-### WASM BINDGEN ###
-####################
-bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.57.1")
-
-WASM_BINDGEN_VERSION = "0.2.99"
-
-wb_crates = use_extension("@rules_rust//crate_universe:extension.bzl", "crate")
-wb_crates.from_cargo(
-    name = "wb_crates",
-    cargo_config = "//:.cargo/config.toml",
-    cargo_lockfile = "@wasm_bindgen_cli_crate//:Cargo.lock",
-    manifests = ["@wasm_bindgen_cli_crate//:Cargo.toml"],
-    isolated = False,
-)
-use_repo(wb_crates, "wb_crates")
-
-http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-http_archive(
-    name = "wasm_bindgen_cli_crate",
-    build_file = "//toolchains/wasm_bindgen:BUILD.wasm-bindgen-cli.bazel",
-    integrity = "sha256-+X6aHOxWGsoyOWdwK4xQaAoNF6GXuT/aQzunp2z1egw=",
-    strip_prefix = "wasm-bindgen-cli-{}".format(WASM_BINDGEN_VERSION),
-    type = "tar.gz",
-    urls = ["https://static.crates.io/crates/wasm-bindgen-cli/wasm-bindgen-cli-{}.crate".format(WASM_BINDGEN_VERSION)],
-)
-
-register_toolchains("//toolchains/wasm_bindgen:cli")
 
 ###########
 ### JVM ###

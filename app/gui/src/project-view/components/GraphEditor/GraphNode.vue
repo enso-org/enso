@@ -429,9 +429,9 @@ function selectBeforeAction<Handlers extends { [K in string]?: ActionHandler }>(
 ) {
   for (const actionName in handlers) {
     const origAction = handlers[actionName]!.action
-    handlers[actionName]!.action = () => {
+    handlers[actionName]!.action = (...args) => {
       setSoleSelected()
-      origAction?.()
+      origAction?.(...args)
     }
   }
   return handlers

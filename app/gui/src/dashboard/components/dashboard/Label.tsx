@@ -10,10 +10,6 @@ import type { Label as BackendLabel } from '#/services/Backend'
 import { lChColorToCssColor, type LChColor } from '#/services/Backend'
 import { twMerge } from '#/utilities/tailwindMerge'
 
-// =============
-// === Label ===
-// =============
-
 /** Props for a {@link Label}. */
 interface InternalLabelProps extends Readonly<PropsWithChildren> {
   readonly 'data-testid'?: string

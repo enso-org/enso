@@ -199,15 +199,15 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
         val exportsItself = curModName.equals(expName.name)
         // Skip the exports that already have associated resolved import.
         if (!exportsItself && !resolvedImportNames.contains(expName.name)) {
-          val syntheticImport = Import.Module(
+          val syntheticImport = new Import.Module(
             expName,
             rename,
             false,
             onlyNames,
             None,
-            identifiedLocation = null,
-            isSynthetic        = true,
-            passData           = new MetadataStorage()
+            true,
+            null,
+            new MetadataStorage()
           )
           tryResolveImport(module.getIr, syntheticImport) match {
             case (_, Some(resolvedImp)) =>

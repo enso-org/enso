@@ -21,13 +21,10 @@ import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-import org.slf4j.Logger;
 
 /** A column storing 64-bit integers. */
 public final class LongStorage extends AbstractLongStorage
     implements ColumnStorageWithNothingMap, NumericFormattingStorage {
-
-  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(LongStorage.class);
 
   // TODO [RW] at some point we will want to add separate storage classes for byte, short and int,
   // for more compact storage and more efficient handling of smaller integers; for now we will be

@@ -17,10 +17,6 @@ import { useText } from '#/providers/TextProvider'
 import { useLocation, useNavigate } from 'react-router'
 import { toast } from 'react-toastify'
 
-// ======================
-// === ForgotPassword ===
-// ======================
-
 /** A form for users to request for their password to be reset. */
 export default function ForgotPassword() {
   const { forgotPassword } = useSessionAPI()

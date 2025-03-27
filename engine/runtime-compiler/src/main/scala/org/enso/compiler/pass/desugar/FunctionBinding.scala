@@ -95,29 +95,23 @@ case object FunctionBinding extends IRPass {
     * @return `ir`, with any function definition sugar removed
     */
   def desugarExpression(ir: Expression): Expression = {
-    ir.transformExpressions {
-      case functionBinding @ Function.Binding(
-            _,
-            args,
-            body,
-            _,
-            _,
-            canBeTCO,
-            _
-          ) =>
-        if (args.isEmpty) {
-          throw new CompilerError("The arguments list should not be empty.")
-        }
+    ir.transformExpressions { case functionBinding: Function.Binding =>
+      if (functionBinding.arguments.isEmpty) {
+        throw new CompilerError("The arguments list should not be empty.")
+      }
 
-        val lambda = args
-          .map(_.mapExpressions(desugarExpression))
-          .foldRight(desugarExpression(body))((arg, body) =>
-            new Function.Lambda(List(arg), body, null)
-          )
-          .asInstanceOf[Function.Lambda]
-          .copy(canBeTCO = canBeTCO, location = functionBinding.location())
+      val lambda = functionBinding.arguments
+        .map(_.mapExpressions(desugarExpression))
+        .foldRight(desugarExpression(functionBinding.body))((arg, body) =>
+          new Function.Lambda(List(arg), body, null)
+        )
+        .asInstanceOf[Function.Lambda]
+        .copy(
+          canBeTCO = functionBinding.canBeTCO,
+          location = functionBinding.location()
+        )
 
-        new Expression.Binding(functionBinding, lambda)
+      new Expression.Binding(functionBinding, lambda)
     }
   }
 

@@ -87,7 +87,7 @@ class LanguageServerController(
       distributionConfiguration      = distributionConfiguration,
       engineVersion                  = engineVersion,
       jvmSettings                    = distributionConfiguration.defaultJVMSettings,
-      jvmMode                        = processConfig.jvmMode,
+      jvmModeEnabled                 = processConfig.jvmMode || project.isJvmModeEnabled(),
       discardOutput                  = distributionConfiguration.shouldDiscardChildOutput,
       profilingPath                  = processConfig.profilingPath,
       profilingTime                  = processConfig.profilingTime,

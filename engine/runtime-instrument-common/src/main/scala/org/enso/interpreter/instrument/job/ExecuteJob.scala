@@ -1,12 +1,13 @@
 package org.enso.interpreter.instrument.job
 
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+
 import java.util.UUID
 import org.enso.interpreter.instrument.InstrumentFrame
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.runtime.state.ExecutionEnvironment
 import org.enso.polyglot.runtime.Runtime.Api
-
-import java.util.logging.Level
 
 /** A job responsible for executing a call stack for the provided context.
   *
@@ -44,15 +45,14 @@ class ExecuteJob(
     _hasStarted = true
     _threadName = Thread.currentThread().getName
     try {
-      ctx.executionService.getLogger.log(
-        Level.FINE,
+      ExecuteJob.logger.debug(
         "Starting ExecuteJob[{}]",
         _jobId
       )
       execute
     } catch {
       case t: Throwable =>
-        ctx.executionService.getLogger.log(Level.SEVERE, "Failed to execute", t)
+        ExecuteJob.logger.error("Failed to execute", t)
         val errorMsg = if (t.getMessage == null) {
           if (t.getCause == null) {
             t.getClass.getSimpleName
@@ -75,9 +75,8 @@ class ExecuteJob(
           )
         )
     } finally {
-      ctx.executionService.getLogger.log(
-        Level.FINEST,
-        "Finished ExecuteJob[{0}]",
+      ExecuteJob.logger.trace(
+        "Finished ExecuteJob[{}]",
         _jobId
       )
     }
@@ -147,6 +146,8 @@ class ExecuteJob(
 }
 
 object ExecuteJob {
+  final private lazy val logger: Logger =
+    LoggerFactory.getLogger(classOf[ExecuteJob])
 
   /** Create execute job from the executable.
     *

@@ -16,10 +16,6 @@ import type LocalBackend from '#/services/LocalBackend'
 import { ProjectManagerEvents } from '#/services/ProjectManager'
 import type RemoteBackend from '#/services/RemoteBackend'
 
-// ======================
-// === BackendContext ===
-// ======================
-
 /** State contained in a `BackendContext`. */
 export interface BackendContextType {
   readonly remoteBackend: RemoteBackend | null
@@ -47,10 +43,6 @@ export interface BackendProviderProps extends Readonly<React.PropsWithChildren> 
   readonly remoteBackend: RemoteBackend | null
   readonly localBackend: LocalBackend | null
 }
-
-// =======================
-// === BackendProvider ===
-// =======================
 
 /** A React Provider that lets components get and set the current backend. */
 export default function BackendProvider(props: BackendProviderProps) {
@@ -87,14 +79,11 @@ export default function BackendProvider(props: BackendProviderProps) {
   )
 }
 
-// ========================
-// === useRemoteBackend ===
-// ========================
-
 /**
  * Get the Remote Backend.
  * @throws {Error} when no Remote Backend exists. This should never happen.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useRemoteBackend() {
   const remoteBackend = React.useContext(BackendContext).remoteBackend
 
@@ -105,24 +94,18 @@ export function useRemoteBackend() {
   return remoteBackend
 }
 
-// =======================
-// === useLocalBackend ===
-// =======================
-
 /** Get the Local Backend. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useLocalBackend() {
   return React.useContext(BackendContext).localBackend
 }
-
-// ==================
-// === useBackend ===
-// ==================
 
 /**
  * Get the corresponding backend for the given property.
  * @throws {Error} when neither the Remote Backend nor the Local Backend are supported.
  * This should never happen unless the build is misconfigured.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useBackend(category: Category) {
   const remoteBackend = useRemoteBackend()
   const localBackend = useLocalBackend()
@@ -142,6 +125,7 @@ export function useBackend(category: Category) {
  * Get the backend for the given project type.
  * @throws {Error} when a Local Backend is requested for a non-local project.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useBackendForProjectType(projectType: BackendType) {
   const remoteBackend = useRemoteBackend()
   const localBackend = useLocalBackend()
@@ -159,11 +143,13 @@ export function useBackendForProjectType(projectType: BackendType) {
 }
 
 /** Whether connecting to the Project Manager failed. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useDidLoadingProjectManagerFail() {
   return React.useContext(ProjectManagerContext).didLoadingProjectManagerFail
 }
 
 /** Reconnect to the Project Manager. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useReconnectToProjectManager() {
   return React.useContext(ProjectManagerContext).reconnectToProjectManager
 }

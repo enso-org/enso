@@ -17,10 +17,6 @@ import type * as backend from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
-// ===============
-// === UserRow ===
-// ===============
-
 /** Props for a {@link UserRow}. */
 export interface UserRowProps {
   readonly id: string

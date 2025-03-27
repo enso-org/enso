@@ -3,6 +3,7 @@
 import { useApproach, useApproachVec } from '@/composables/animation'
 import {
   PointerButtonMask,
+  unrefElement,
   useArrows,
   useResizeObserver,
   useWheelActions,
@@ -10,7 +11,7 @@ import {
 import type { KeyboardComposable } from '@/composables/keyboard'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { useEventListener } from '@vueuse/core'
+import { useEventListener, VueInstance } from '@vueuse/core'
 import { useGesture, type Handler } from '@vueuse/gesture'
 import {
   computed,
@@ -55,7 +56,7 @@ export interface NavigatorOptions {
 export type NavigatorComposable = ReturnType<typeof useNavigator>
 /** TODO: Add docs */
 export function useNavigator(
-  viewportNode: Ref<HTMLElement | undefined>,
+  viewportNode: Ref<HTMLElement | VueInstance | null | undefined>,
   keyboard: KeyboardComposable,
   options: NavigatorOptions = {},
 ) {
@@ -65,8 +66,9 @@ export function useNavigator(
   const center = useApproachVec(targetCenter, 100, 0.02)
 
   const viewportRect = shallowRef<Rect>(Rect.Zero)
+  const viewportElem = computed(() => unrefElement(viewportNode))
   function updateViewportRect() {
-    viewportRect.value = elemRect(viewportNode.value)
+    viewportRect.value = elemRect(viewportElem.value)
   }
 
   const dragPredicate = (e: PointerEvent) => e.target === e.currentTarget && predicate(e)
@@ -94,6 +96,7 @@ export function useNavigator(
   }
 
   function handleDragZooming(state: DragState) {
+    if (state.delta[1] != 0) preventContextMenu = true
     const prevScale = scale.value
     updateScale((oldValue) => oldValue * Math.exp(-state.delta[1] / 100))
     scrollTo(center.value.scaleAround(prevScale / scale.value, gesturePivot))
@@ -124,6 +127,15 @@ export function useNavigator(
     longpressTimer = null
   }
 
+  useEventListener(viewportElem, 'contextmenu', contextMenuHandler, { capture: true })
+  let preventContextMenu = false
+  function contextMenuHandler(event: MouseEvent) {
+    if (preventContextMenu) {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+    }
+  }
+
   useGesture(
     {
       onMove(state) {
@@ -149,6 +161,8 @@ export function useNavigator(
 
         if (state.last && longpressTimer) cancelLongpress()
         if (state.last && holdDragStarted) holdDragStarted = false
+        // Using 10ms instead of 0 here, because otherwise the expected `contextmenu` event is not consistently fired before the timer.
+        if (state.last && preventContextMenu) setTimeout(() => (preventContextMenu = false), 10)
       },
       onPinch(state) {
         // A started longpress touch can transform into pinch without warning, make sure to clear the timeout.
@@ -181,7 +195,7 @@ export function useNavigator(
       },
     },
     {
-      domTarget: viewportNode,
+      domTarget: viewportElem,
       eventOptions: {
         passive: false,
       },
@@ -244,13 +258,13 @@ export function useNavigator(
     skipAnimation = false,
   ) {
     resetTargetFollowing()
-    if (!viewportNode.value) return
+    if (!viewportElem.value) return
     targetScale.value = Math.max(
       minScale,
       Math.min(
         maxScale,
-        viewportNode.value.clientHeight / rect.height,
-        viewportNode.value.clientWidth / rect.width,
+        viewportElem.value.clientHeight / rect.height,
+        viewportElem.value.clientWidth / rect.width,
       ),
     )
     targetCenter.value = rect.center().finiteOrZero()
@@ -433,9 +447,9 @@ export function useNavigator(
     },
   )
 
-  useEventListener(viewportNode, 'wheel', wheelEvents.wheel)
-  useEventListener(viewportNode, 'wheel', wheelEventsCapture.wheel, { capture: true })
-  useEventListener(viewportNode, 'pointermove', wheelEventsCapture.pointermove, { capture: true })
+  useEventListener(viewportElem, 'wheel', wheelEvents.wheel)
+  useEventListener(viewportElem, 'wheel', wheelEventsCapture.wheel, { capture: true })
+  useEventListener(viewportElem, 'pointermove', wheelEventsCapture.pointermove, { capture: true })
 
   return proxyRefs({
     keyboardEvents: panArrows.events,
