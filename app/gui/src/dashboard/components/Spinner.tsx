@@ -29,6 +29,11 @@ export interface SpinnerProps {
   readonly thickness?: number
 }
 
+/**
+ * The default size of the spinner.
+ */
+export const ROTATING_ELEMENT_SIZE = 24
+
 /** A spinning arc that animates using the `dasharray-<percentage>` custom Tailwind classes. */
 
 export const Spinner = React.memo(function Spinner(props: SpinnerProps) {
@@ -51,9 +56,9 @@ export const Spinner = React.memo(function Spinner(props: SpinnerProps) {
       <rect
         x={thickness / 2}
         y={thickness / 2}
-        width={24 - thickness}
-        height={24 - thickness}
-        rx={12 - thickness / 2}
+        width={ROTATING_ELEMENT_SIZE - thickness}
+        height={ROTATING_ELEMENT_SIZE - thickness}
+        rx={ROTATING_ELEMENT_SIZE / 2 - thickness / 2}
         stroke="currentColor"
         strokeLinecap="round"
         strokeWidth={thickness}

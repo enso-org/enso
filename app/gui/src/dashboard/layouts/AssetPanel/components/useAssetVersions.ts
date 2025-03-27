@@ -9,7 +9,7 @@ const REFRESH_INTERVAL = 3000 // 3 seconds
 
 /** Options for {@link assetVersionsQueryOptions}. */
 export interface AssetVersionsQueryOptions {
-  readonly assetId: ProjectId | FileId | DatalinkId
+  readonly assetId: DatalinkId | FileId | ProjectId
   readonly backend: Backend
   readonly enabled?: boolean
 }

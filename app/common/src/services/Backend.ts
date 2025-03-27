@@ -1832,11 +1832,7 @@ export default abstract class Backend {
     projectTitle: string,
   ): Promise<ProjectExecution>
   /** Restore a project from a different version. */
-  abstract restoreAsset(
-    assetId: AssetId,
-    versionId: S3ObjectVersionId,
-    title: string,
-  ): Promise<void>
+  abstract restoreAsset(assetId: AssetId, versionId: S3ObjectVersionId): Promise<void>
   /** Duplicate a specific version of an asset. */
   abstract duplicateProject(
     projectId: ProjectId,

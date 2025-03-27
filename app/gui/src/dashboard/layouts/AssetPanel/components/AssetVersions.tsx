@@ -97,7 +97,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
 
   const restoreMutation = useMutation({
     mutationFn: (variables: AddNewVersionVariables) =>
-      backend.restoreAsset(item.id, variables.versionId, item.title),
+      backend.restoreAsset(item.id, variables.versionId),
     onError: (error: unknown, _variables, context) => {
       toastAndLog('restoreProjectError', error, item.title)
       queryClient.setQueryData(queryOptions.queryKey, context)

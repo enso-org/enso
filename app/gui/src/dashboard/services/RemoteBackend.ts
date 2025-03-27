@@ -665,7 +665,7 @@ export default class RemoteBackend extends Backend {
 
   /** List all previous versions of an asset. */
   override async listAssetVersions(
-    assetId: backend.ProjectId | backend.FileId | backend.DatalinkId,
+    assetId: backend.DatalinkId | backend.FileId | backend.ProjectId,
   ): Promise<backend.AssetVersions> {
     const path = remoteBackendPaths.listAssetVersionsPath(assetId)
     const response = await this.get<backend.AssetVersions>(path)
@@ -820,7 +820,6 @@ export default class RemoteBackend extends Backend {
   override async restoreAsset(
     assetId: backend.AssetId,
     versionId: backend.S3ObjectVersionId,
-    title: string,
   ): Promise<void> {
     const path = remoteBackendPaths.restoreAssetPath(assetId)
     const response = await this.post(path, { versionId })

@@ -40,6 +40,7 @@ export const CloseButton = memo(function CloseButton<IconType extends string>(
           // @ts-expect-error TypeScript fails to infer the type of the `className` prop
           // But it's safe because we are passing all values transparently
           // and they are typed outside.
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           typeof className === 'function' ? className(values) : className,
         )
       }
