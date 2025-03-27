@@ -6,8 +6,6 @@ import * as React from 'react'
 
 import * as detect from 'enso-common/src/detect'
 
-import { DashboardTabBar } from './DashboardTabBar'
-
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { CategoriesProvider } from '#/layouts/Drive/Categories/categoriesHooks'
@@ -18,17 +16,14 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import ProjectsProvider, {
   useClearLaunchedProjects,
+  useLaunchedProjects,
   usePage,
   useSetPage,
-  type TabType,
 } from '#/providers/ProjectsProvider'
 
-import type * as assetTable from '#/layouts/AssetsTable'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
-import UserBar from '#/layouts/UserBar'
 
-import * as aria from '#/components/aria'
 import Page from '#/components/Page'
 
 import * as backendModule from '#/services/Backend'
@@ -39,8 +34,19 @@ import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import { vueComponent } from '#/utilities/vue'
+import VueTabView from '@/../components/TabView.vue'
 import { usePrefetchQuery } from '@tanstack/react-query'
-import { DashboardTabPanels } from './DashboardTabPanels'
+
+const TabView = vueComponent(VueTabView, {
+  useInjectPropsFromWrapper: () => {
+    return {
+      page: usePage(),
+      setPage: useSetPage(),
+      launchedProjects: useLaunchedProjects(),
+    }
+  },
+}).default
 
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
@@ -92,8 +98,6 @@ function DashboardInner(props: DashboardProps) {
   const localBackend = backendProvider.useLocalBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
-
-  const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
 
   const initialLocalProjectPath =
     initialProjectNameRaw != null ? fileURLToPath(initialProjectNameRaw) : null
@@ -191,6 +195,8 @@ function DashboardInner(props: DashboardProps) {
     setPage('settings')
   })
 
+  console.log('Dashboard refresh???')
+
   return (
     <Page hideInfoBar hideChat>
       <div
@@ -200,7 +206,8 @@ function DashboardInner(props: DashboardProps) {
           modalProvider.unsetModal()
         }}
       >
-        <aria.Tabs
+        <TabView initialProjectName={initialProjectName} ydocUrl={ydocUrl} />
+        {/* <aria.Tabs
           className="relative flex min-h-full grow select-none flex-col container-size"
           selectedKey={page}
           onSelectionChange={(newPage) => {
@@ -219,12 +226,8 @@ function DashboardInner(props: DashboardProps) {
             />
           </div>
 
-          <DashboardTabPanels
-            initialProjectName={initialProjectName}
-            ydocUrl={ydocUrl}
-            assetManagementApiRef={assetManagementApiRef}
-          />
-        </aria.Tabs>
+          <DashboardTabPanels initialProjectName={initialProjectName} ydocUrl={ydocUrl} />
+        </aria.Tabs> */}
         {$config.CHAT_URL != null ?
           <Chat
             isOpen={isHelpChatOpen}

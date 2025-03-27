@@ -4,11 +4,7 @@ import * as aria from '#/components/aria'
 
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useOpenProjectMutation, useRenameProjectMutation } from '#/hooks/projectHooks'
-import type { AssetManagementApi } from '#/layouts/AssetsTable'
 import { useLaunchedProjects, usePage } from '#/providers/ProjectsProvider'
-import type { ProjectId } from '#/services/Backend'
 import { lazy, type ReactNode } from 'react'
 import { Collection } from 'react-aria-components'
 
@@ -16,7 +12,6 @@ import { Collection } from 'react-aria-components'
 export interface DashboardTabPanelsProps {
   readonly initialProjectName: string | null
   readonly ydocUrl: string | null
-  readonly assetManagementApiRef: React.RefObject<AssetManagementApi> | null
 }
 
 const LazyDrive = lazy(() => import('#/layouts/Drive'))
@@ -25,53 +20,24 @@ const LazySettings = lazy(() => import('#/layouts/Settings'))
 
 /** The tab panels for the dashboard page. */
 export function DashboardTabPanels(props: DashboardTabPanelsProps) {
-  const { initialProjectName, ydocUrl, assetManagementApiRef } = props
+  const { initialProjectName, ydocUrl } = props
 
   const page = usePage()
 
   const launchedProjects = useLaunchedProjects()
-  const openProjectMutation = useOpenProjectMutation()
-  const renameProjectMutation = useRenameProjectMutation()
-
-  const onRenameProject = useEventCallback(async (newName: string, projectId: ProjectId) => {
-    const project = launchedProjects.find((proj) => proj.id === projectId)
-
-    if (project == null) {
-      return
-    }
-
-    await renameProjectMutation.mutateAsync({ newName, project })
-  })
 
   const tabPanels = [
     {
       id: 'drive',
       className: 'flex min-h-0 grow [&[data-inert]]:hidden',
-      children: (
-        <LazyDrive
-          assetsManagementApiRef={assetManagementApiRef}
-          hidden={page !== 'drive'}
-          initialProjectName={initialProjectName}
-        />
-      ),
+      children: <LazyDrive hidden={page !== 'drive'} initialProjectName={initialProjectName} />,
     },
 
     ...launchedProjects.map((project) => ({
       id: project.id,
       shouldForceMount: true,
       className: 'flex min-h-0 grow [&[data-inert]]:hidden',
-      children: (
-        <LazyEditor
-          hidden={page !== project.id}
-          ydocUrl={ydocUrl}
-          project={project}
-          projectId={project.id}
-          isOpeningFailed={openProjectMutation.isError}
-          openingError={openProjectMutation.error}
-          startProject={openProjectMutation.mutate}
-          renameProject={onRenameProject}
-        />
-      ),
+      children: <LazyEditor hidden={page !== project.id} ydocUrl={ydocUrl} project={project} />,
     })),
 
     {

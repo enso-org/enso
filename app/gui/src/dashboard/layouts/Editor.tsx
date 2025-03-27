@@ -23,19 +23,15 @@ export type ProjectViewTabProps = React.ComponentProps<typeof ProjectViewTab>
 
 /** Props for an {@link Editor}. */
 export interface EditorProps {
-  readonly isOpeningFailed: boolean
-  readonly openingError: Error | null
-  readonly startProject: (project: LaunchedProject) => void
   readonly project: LaunchedProject
-  readonly hidden: boolean
+  readonly hidden?: boolean
   readonly ydocUrl: string | null
-  readonly renameProject: (newName: string, projectId: backendModule.ProjectId) => void
-  readonly projectId: backendModule.ProjectId
 }
 
 /** The container that launches the IDE. */
 function Editor(props: EditorProps) {
-  const { project, hidden, startProject, isOpeningFailed, openingError } = props
+  console.log('RENDER EDITOR', props)
+  const { project, hidden = false } = props
 
   const backend = backendProvider.useBackendForProjectType(project.type)
 
@@ -43,6 +39,8 @@ function Editor(props: EditorProps) {
     assetId: project.id,
     backend,
   })
+  const openProjectMutation = projectHooks.useOpenProjectMutation()
+  const renameProjectMutation = projectHooks.useRenameProjectMutation()
 
   const queryClient = reactQuery.useQueryClient()
 
@@ -59,9 +57,21 @@ function Editor(props: EditorProps) {
   })
 
   const { isProjectClosed, isProjectOpening, isProjectOpened, isProjectClosing } = projectQuery.data
+  console.log('QUERY DATA', projectQuery.data)
+
+  const isOpeningFailed = openProjectMutation.isError
+  const openingError = openProjectMutation.error
+  console.log('MUTATION DATA', isOpeningFailed, openingError)
+  const startProject = openProjectMutation.mutate
+
+  const onRenameProject = useEventCallback(async (newName: string) => {
+    console.log('RENAMING PROJECT')
+    await renameProjectMutation.mutateAsync({ newName, project })
+  })
 
   React.useEffect(() => {
     if (isProjectClosed) {
+      console.log('STARTING PROJECT')
       startProject(project)
     }
   }, [isProjectClosed, startProject, project])
@@ -121,6 +131,7 @@ function Editor(props: EditorProps) {
                 {...props}
                 openedProject={projectQuery.data}
                 backendType={project.type}
+                renameProject={onRenameProject}
               />
             )
 
@@ -136,11 +147,12 @@ function Editor(props: EditorProps) {
 interface EditorInternalProps extends Omit<EditorProps, 'project'> {
   readonly openedProject: backendModule.Project
   readonly backendType: backendModule.BackendType
+  readonly renameProject: (newName: string) => void
 }
 
 /** An internal editor. */
 function EditorInternal(props: EditorInternalProps) {
-  const { hidden, ydocUrl, renameProject, openedProject, backendType } = props
+  const { hidden = false, ydocUrl, renameProject, openedProject, backendType } = props
 
   const { getText } = textProvider.useText()
   const gtagEvent = gtagHooks.useGtagEvent()
@@ -155,7 +167,7 @@ function EditorInternal(props: EditorInternalProps) {
   }, [hidden, gtagEvent])
 
   const onRenameProject = useEventCallback((newName: string) => {
-    renameProject(newName, openedProject.projectId)
+    renameProject(newName)
   })
 
   const appProps = React.useMemo<ProjectViewTabProps>(() => {

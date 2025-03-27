@@ -13,8 +13,15 @@ type VueComponentProps<T> = Omit<ComponentProps<T>, keyof AllowedComponentProps 
  *
  * This adds type information to {@link applyPureVueInReact}.
  */
-export function vueComponent<T>(vue: T): { default: React.ComponentType<VueComponentProps<T>> } {
+export function vueComponent<
+  T,
+  ReactProps extends object = object,
+  VueProps extends object = object,
+>(
+  vue: T,
+  options?: { useInjectPropsFromWrapper?: (reactProps: ReactProps) => VueProps },
+): { default: React.ComponentType<Omit<VueComponentProps<T>, keyof VueProps> & ReactProps> } {
   // applyPureVueInReact returns Function, but this is not enough to satisfy TSX.
   // eslint-disable-next-line no-restricted-syntax
-  return { default: applyPureVueInReact(vue) as never }
+  return { default: applyPureVueInReact(vue, options as any) as never }
 }

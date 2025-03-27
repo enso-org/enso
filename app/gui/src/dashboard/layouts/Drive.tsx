@@ -39,13 +39,13 @@ import { useDirectoryIds } from './Drive/directoryIdsHooks'
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-  readonly hidden: boolean
+  readonly hidden?: boolean
   readonly initialProjectName: string | null
-  readonly assetsManagementApiRef: React.Ref<assetsTable.AssetManagementApi>
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 function Drive(props: DriveProps) {
+  console.log('RENDERING DRIVE')
   const { isOffline } = offlineHooks.useOffline()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useFullUserSession()
@@ -144,13 +144,9 @@ interface DriveAssetsViewProps extends DriveProps {
  * The assets view of the Drive.
  */
 function DriveAssetsView(props: DriveAssetsViewProps) {
-  const {
-    category,
-    setCategory,
-    hidden = false,
-    initialProjectName,
-    assetsManagementApiRef,
-  } = props
+  const { category, setCategory, hidden = false, initialProjectName } = props
+
+  const assetsManagementApiRef = React.useRef<assetsTable.AssetManagementApi | null>(null)
 
   const deferredCategory = useDeferredValue(category)
 
