@@ -29,7 +29,7 @@ import { assertDefined } from '@/util/assert'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { expect, test } from 'vitest'
-import { sourceRangeKey, type SourceRange } from 'ydoc-shared/util/data/text'
+import { SourceRange, sourceRangeKey } from 'ydoc-shared/util/data/text'
 
 /** The type of annotation. */
 enum AnnotationType {
@@ -88,7 +88,7 @@ function parseAnnotations(annotatedCode: string): {
 
       const from = offset - accumulatedOffset
       const to = from + name.length
-      const range: SourceRange = { from, to }
+      const range = SourceRange.unsafeFromBounds(from, to)
 
       const annotation = new Annotation(kind, id)
       accumulatedOffset += match.length - name.length
@@ -233,13 +233,13 @@ test('Annotations parsing', () => {
     }
   }
 
-  validateAnnotation({ from: 11, to: 12 }, AnnotationType.Binding, 1, 'x')
-  validateAnnotation({ from: 21, to: 22 }, AnnotationType.Binding, 2, 'y')
-  validateAnnotation({ from: 35, to: 36 }, AnnotationType.Binding, 3, 'x')
-  validateAnnotation({ from: 40, to: 41 }, AnnotationType.Usage, 3, 'x')
-  validateAnnotation({ from: 44, to: 45 }, AnnotationType.Usage, 2, 'y')
-  validateAnnotation({ from: 54, to: 55 }, AnnotationType.Usage, 1, 'x')
-  validateAnnotation({ from: 58, to: 59 }, AnnotationType.Usage, 2, 'y')
+  validateAnnotation(SourceRange.unsafeFromBounds(11, 12), AnnotationType.Binding, 1, 'x')
+  validateAnnotation(SourceRange.unsafeFromBounds(21, 22), AnnotationType.Binding, 2, 'y')
+  validateAnnotation(SourceRange.unsafeFromBounds(35, 36), AnnotationType.Binding, 3, 'x')
+  validateAnnotation(SourceRange.unsafeFromBounds(40, 41), AnnotationType.Usage, 3, 'x')
+  validateAnnotation(SourceRange.unsafeFromBounds(44, 45), AnnotationType.Usage, 2, 'y')
+  validateAnnotation(SourceRange.unsafeFromBounds(54, 55), AnnotationType.Usage, 1, 'x')
+  validateAnnotation(SourceRange.unsafeFromBounds(58, 59), AnnotationType.Usage, 2, 'y')
 })
 
 function runTestCase(code: string) {
