@@ -1514,7 +1514,7 @@ type DB_Column
             pattern_with_start = if string_pattern.starts_with '^' then string_pattern else "^" + string_pattern
             pattern_with_end = if string_pattern.ends_with '$' then pattern_with_start else pattern_with_start + "$"
             new_name = self.naming_helper.binary_operation_name "regex_match" self pattern
-            if self.connection.dialect.is_operation_supported "REGEX_MATCH" then self.make_binary_op "REGEX_MATCH" with_end new_name else
+            if self.connection.dialect.is_operation_supported "REGEX_MATCH" then self.make_binary_op "REGEX_MATCH" pattern_with_end new_name else
                 Error.throw (Unsupported_Database_Operation.Error ("regex_match"))
 
 
