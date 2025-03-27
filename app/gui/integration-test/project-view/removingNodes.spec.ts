@@ -43,7 +43,7 @@ test('Deleting multiple nodes with context menu', async ({ page }) => {
   await deletedNode2.click({ modifiers: ['Shift'] })
   await deletedNode2.click({ button: 'right' })
   await page
-    .locator('.ComponentContextMenu')
+    .locator('.ActionMenu')
     .getByRole('button', { name: 'Delete Selected Components' })
     .click()
   await expect(locate.graphNode(page)).toHaveCount(nodesCount - 2)

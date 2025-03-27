@@ -3,9 +3,11 @@ package org.enso.interpreter.test.hash;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsAndInfo;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
@@ -28,7 +30,6 @@ import org.junit.runner.RunWith;
 @RunWith(Theories.class)
 public class HashCodeTest {
   private static Context context;
-  private static final InteropLibrary interop = InteropLibrary.getUncached();
 
   private static HashCodeNode hashCodeNode;
   private static EqualsNode equalsNode;
@@ -44,7 +45,13 @@ public class HashCodeTest {
           hashCodeNode = HashCodeNode.build();
           equalsNode = EqualsNode.create();
           hostValueToEnsoNode = HostValueToEnsoNode.build();
-          testRootNode = new TestRootNode();
+          testRootNode =
+              new TestRootNode(
+                  (frame) -> {
+                    @SuppressWarnings("unchecked")
+                    var fn = (Function<VirtualFrame, Object>) frame.getArguments()[0];
+                    return fn.apply(frame);
+                  });
           testRootNode.insertChildren(hashCodeNode, equalsNode, hostValueToEnsoNode);
           return null;
         });
@@ -57,6 +64,10 @@ public class HashCodeTest {
     context.close();
     context = null;
     unwrappedValues = null;
+    hashCodeNode = null;
+    equalsNode = null;
+    hostValueToEnsoNode = null;
+    testRootNode = null;
   }
 
   /**
@@ -66,42 +77,44 @@ public class HashCodeTest {
   @DataPoints public static Object[] unwrappedValues;
 
   private static Object[] fetchAllUnwrappedValues() {
-    var valGenerator =
-        ValuesGenerator.create(
-            context, ValuesGenerator.Language.ENSO, ValuesGenerator.Language.JAVA);
     List<Value> values = new ArrayList<>();
-    values.addAll(valGenerator.numbers());
-    values.addAll(valGenerator.booleans());
-    values.addAll(valGenerator.textual());
-    values.addAll(valGenerator.numbersMultiText());
-    values.addAll(valGenerator.arrayLike());
-    values.addAll(valGenerator.vectors());
-    values.addAll(valGenerator.maps());
-    values.addAll(valGenerator.multiLevelAtoms());
-    values.addAll(valGenerator.timesAndDates());
-    values.addAll(valGenerator.timeZones());
-    values.addAll(valGenerator.durations());
-    values.addAll(valGenerator.periods());
-    values.addAll(valGenerator.warnings());
-    try {
-      return values.stream()
-          .map(value -> ContextUtils.unwrapValue(context, value))
-          .map(unwrappedValue -> hostValueToEnsoNode.execute(unwrappedValue))
-          .collect(Collectors.toList())
-          .toArray(new Object[] {});
-    } catch (Exception e) {
-      throw new AssertionError(e);
+    try (ValuesGenerator valGenerator =
+        ValuesGenerator.create(
+            context, ValuesGenerator.Language.ENSO, ValuesGenerator.Language.JAVA)) {
+      values.addAll(valGenerator.numbers());
+      values.addAll(valGenerator.booleans());
+      values.addAll(valGenerator.textual());
+      values.addAll(valGenerator.numbersMultiText());
+      values.addAll(valGenerator.arrayLike());
+      values.addAll(valGenerator.vectors());
+      values.addAll(valGenerator.maps());
+      values.addAll(valGenerator.multiLevelAtoms());
+      values.addAll(valGenerator.timesAndDates());
+      values.addAll(valGenerator.timeZones());
+      values.addAll(valGenerator.durations());
+      values.addAll(valGenerator.periods());
+      values.addAll(valGenerator.warnings());
+      try {
+        return values.stream()
+            .map(value -> ContextUtils.unwrapValue(context, value))
+            .map(unwrappedValue -> hostValueToEnsoNode.execute(unwrappedValue))
+            .collect(Collectors.toList())
+            .toArray(new Object[] {});
+      } catch (Exception e) {
+        throw new AssertionError(e);
+      }
     }
   }
 
   @Theory
   public void hashCodeContractTheory(Object firstValue, Object secondValue) {
-    ContextUtils.executeInContext(
+    InteropLibrary interop = InteropLibrary.getUncached();
+    executeInContextWithNode(
         context,
-        () -> {
+        (frame) -> {
           var firstHash = hashCodeNode.execute(firstValue);
           var secondHash = hashCodeNode.execute(secondValue);
-          var valuesAreEqual = equalsNode.execute(null, firstValue, secondValue);
+          var valuesAreEqual = equalsNode.execute(frame, firstValue, secondValue);
           // if o1 == o2 then hash(o1) == hash(o2)
           if (isTrue(valuesAreEqual)) {
             assertEquals(
@@ -165,5 +178,10 @@ public class HashCodeTest {
 
   private static boolean isNothing(Object obj) {
     return obj == EnsoContext.get(null).getNothing();
+  }
+
+  private static Object executeInContextWithNode(Context ctx, Function<VirtualFrame, Object> fn) {
+    var ret = ContextUtils.executeInContext(ctx, () -> testRootNode.getCallTarget().call(fn));
+    return ret;
   }
 }

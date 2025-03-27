@@ -27,6 +27,7 @@ export interface StripeProviderRenderProps {
 /**
  * Creates options for quering stripe instance
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function stripeQueryOptions() {
   return reactQuery.queryOptions({
     queryKey: ['stripe', $config.STRIPE_KEY] as const,
@@ -84,6 +85,7 @@ export function StripeProvider(props: StripeProviderProps) {
 }
 
 /** Hook that gets the Stripe instance and elements from the Stripe context. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useStripe() {
   const stripeInstance = stripeReact.useStripe()
   const elements = stripeReact.useElements()
@@ -100,6 +102,7 @@ export function useStripe() {
  * Hook that loads the Stripe instance using React Suspense.
  * @returns The Stripe instance.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useStripeLoader() {
   return reactQuery.useSuspenseQuery(stripeQueryOptions())
 }

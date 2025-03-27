@@ -30,6 +30,7 @@ polyglot java import org.enso.base.cache.DiskSpaceGetter
 polyglot java import org.enso.base.cache.LRUCache
 polyglot java import org.enso.base.cache.LRUCacheSettings
 polyglot java import org.enso.base.cache.NowGetter
+polyglot java import org.enso.base.cache.ReloadDetector
 polyglot java import org.enso.base.cache.TotalCacheLimit
 polyglot java import org.enso.base.enso_cloud.EnsoSecretHelper
 
@@ -135,9 +136,9 @@ add_specs suite_builder =
             after_count = get_num_response_cache_entries
             [before_count, after_count]
 
-        expect_counts expected_counts ~action =
+        expect_counts expected_counts ~action = Frame_Hider.hide <|
             counts = with_counts action
-            counts . should_equal expected_counts frames_to_skip=1
+            counts . should_equal expected_counts
 
         get_cache_files : Vector Text
         get_cache_files -> Vector Text =
@@ -175,7 +176,7 @@ add_specs suite_builder =
             with_lru_cache lru_cache action
 
         fake_reload =
-            EnsoSecretHelper.getOrCreateCache.getLRUCache.simulateReloadTestOnly
+            ReloadDetector.simulateReloadTestOnly get_lru_cache
 
         url0 = base_url_with_slash+'test_download?max-age=16&length=10'
         url1 = base_url_with_slash+'test_download?max-age=16&length=20'
@@ -423,7 +424,7 @@ add_specs suite_builder =
 
         cloud_setup = Cloud_Tests_Setup.prepare
 
-        group_builder.specify "Should work with secrets in the URI" pending=pending_has_url <| Test.with_retries <|
+        group_builder.specify "Should work with secrets in the URI" pending="https://github.com/enso-org/enso/issues/12575" <| Test.with_retries <|
             cloud_setup.with_prepared_environment <|
                 secret1 = Enso_Secret.create "http-cache-secret-1-"+Random.uuid "My Value"
                 secret2 = Enso_Secret.create "http-cache-secret-2-"+Random.uuid "Some Value"
@@ -444,7 +445,7 @@ add_specs suite_builder =
                     HTTP.fetch uri2 . decode_as_text . should_succeed
                     get_num_response_cache_entries . should_equal 2
 
-        group_builder.specify "Should work with secrets in the headers" pending=pending_has_url <| Test.with_retries <|
+        group_builder.specify "Should work with secrets in the headers" pending="https://github.com/enso-org/enso/issues/12575" <| Test.with_retries <|
             cloud_setup.with_prepared_environment <|
                 secret1 = Enso_Secret.create "http-cache-secret-1-"+Random.uuid "My Value"
                 secret2 = Enso_Secret.create "http-cache-secret-2-"+Random.uuid "Some Value"

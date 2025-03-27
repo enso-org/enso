@@ -2,6 +2,7 @@ package org.enso.desktopenvironment;
 
 import java.nio.file.Path;
 import java.util.List;
+import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.CContext;
 import org.graalvm.nativeimage.c.constant.CConstant;
@@ -35,7 +36,7 @@ final class WindowsTrashBin implements TrashBin {
       try {
         return moveToTrashImpl(path);
       } catch (NullPointerException | LinkageError err) {
-        if (!Boolean.getBoolean("com.oracle.graalvm.isaot")) {
+        if (!ImageInfo.inImageRuntimeCode()) {
           var logger = LoggerFactory.getLogger(MacTrashBin.class);
           logger.warn("Moving to Windows' Trash Bin is not supported in non-AOT mode.");
           return false;

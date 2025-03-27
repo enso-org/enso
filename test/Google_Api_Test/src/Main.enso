@@ -10,7 +10,7 @@ main filter=Nothing =
 
 
 add_specs suite_builder =
-    suite_builder.group "Google Spreadsheets" group_builder->
+    suite_builder.group "Google Spreadsheets" pending="outdated" group_builder->
         group_builder.specify "should allow downloading a spreadsheet" <|
             secret = enso_project.data / 'secret.json'
             api = Google_Sheets.initialize secret

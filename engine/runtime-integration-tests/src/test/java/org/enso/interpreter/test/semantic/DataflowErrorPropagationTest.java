@@ -48,6 +48,8 @@ public class DataflowErrorPropagationTest {
   public static void disposeCtx() {
     ctx.close();
     ctx = null;
+    suppressError = null;
+    suppressErrorWithAssign = null;
   }
 
   @Test

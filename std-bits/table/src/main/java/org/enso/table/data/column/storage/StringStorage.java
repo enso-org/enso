@@ -1,10 +1,8 @@
 package org.enso.table.data.column.storage;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.CountNonTrivialWhitespace;
 import org.enso.table.data.column.operation.CountUntrimmed;
 import org.enso.table.data.column.operation.SampleOperation;
@@ -14,16 +12,13 @@ import org.enso.table.data.column.operation.map.text.StringIsInOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
-import org.slf4j.Logger;
 
 /** A column storing strings. */
 public final class StringStorage extends SpecializedStorage<String> {
 
-  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(StringStorage.class);
-
   record DataQualityMetrics(Long untrimmedCount, Long whitespaceCount) {}
 
-  private Future<DataQualityMetrics> dataQualityMetricsValues;
+  private CachedPropertyCheck<DataQualityMetrics> dataQualityMetricsValues;
 
   /**
    * @param data the underlying data
@@ -33,7 +28,7 @@ public final class StringStorage extends SpecializedStorage<String> {
     super(type, data, buildOps());
 
     dataQualityMetricsValues =
-        CompletableFuture.supplyAsync(this::createDataQualityMetricsWitDefaultSize);
+        new CachedPropertyCheck<>(() -> createDataQualityMetricsWitDefaultSize(), null);
   }
 
   public static StringStorage makeEmpty(TextType type, long size) {
@@ -64,24 +59,13 @@ public final class StringStorage extends SpecializedStorage<String> {
   }
 
   /**
-   * Counts the number of cells in the columns with whitespace. If the calculation fails then it
-   * returns null.
+   * Counts the number of cells in the columns with untrimmed whitespace. If the calculation fails
+   * then it returns null.
    *
    * @return the number of cells with untrimmed whitespace
    */
   public Long cachedUntrimmedCount() throws InterruptedException {
-    if (dataQualityMetricsValues.isCancelled()) {
-      // Need to recompute the value, as was cancelled.
-      dataQualityMetricsValues =
-          CompletableFuture.supplyAsync(() -> createDataQualityMetricsWitDefaultSize());
-    }
-
-    try {
-      return dataQualityMetricsValues.get().untrimmedCount;
-    } catch (ExecutionException e) {
-      LOGGER.error("Failed to compute untrimmed count", e);
-      return null;
-    }
+    return dataQualityMetricsValues.get().untrimmedCount.longValue();
   }
 
   /**
@@ -91,18 +75,7 @@ public final class StringStorage extends SpecializedStorage<String> {
    * @return the number of cells with non trivial whitespace
    */
   public Long cachedWhitespaceCount() throws InterruptedException {
-    if (dataQualityMetricsValues.isCancelled()) {
-      // Need to recompute the value, as was cancelled.
-      dataQualityMetricsValues =
-          CompletableFuture.supplyAsync(() -> createDataQualityMetricsWitDefaultSize());
-    }
-
-    try {
-      return dataQualityMetricsValues.get().whitespaceCount;
-    } catch (ExecutionException e) {
-      LOGGER.error("Failed to compute non trivial whitespace count", e);
-      return null;
-    }
+    return dataQualityMetricsValues.get().whitespaceCount.longValue();
   }
 
   private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {
@@ -156,7 +129,7 @@ public final class StringStorage extends SpecializedStorage<String> {
   }
 
   @Override
-  public StorageType inferPreciseTypeShrunk() {
+  public StorageType<?> inferPreciseTypeShrunk() {
     var type = getType();
     if (type.fixedLength()) {
       return type;

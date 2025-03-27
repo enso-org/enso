@@ -9,16 +9,8 @@ import * as textProvider from '#/providers/TextProvider'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as errorModule from '#/utilities/error'
 
-// ===========================
-// === ToastAndLogCallback ===
-// ===========================
-
 /** The type of the `toastAndLog` function returned by {@link useToastAndLog}. */
 export type ToastAndLogCallback = ReturnType<typeof useToastAndLog>
-
-// ======================
-// === useToastAndLog ===
-// ======================
 
 /**
  * Return a function to send a toast with rendered error message. The same message is also logged

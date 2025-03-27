@@ -6,15 +6,7 @@ import type * as backendService from '#/services/Backend'
 import type Backend from '#/services/Backend'
 import { splitFileContents } from 'ydoc-shared/ensoFile'
 
-// =================
-// === Constants ===
-// =================
-
 const TWO_MINUTES_MS = 120_000
-
-// ==============================
-// === useFetchVersionContent ===
-// ==============================
 
 /** Options for {@link useFetchVersionContent}. */
 export interface FetchVersionContentOptions {

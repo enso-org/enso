@@ -20,7 +20,7 @@ export function analyzeBindings(
 ): Map<Ast.AstId, BindingInfo> {
   const toRaw = new Map<SourceRangeKey, RawAst.Tree.Function>()
   visitRecursive(Ast.rawParseModule(moduleSource.text), (node) => {
-    if (node.type === RawAst.Tree.Type.Function) {
+    if (RawAst.Tree.isInstance(node) && node.type === RawAst.Tree.Type.Function) {
       toRaw.set(sourceRangeKey(parsedTreeRange(node)), node)
       return false
     }

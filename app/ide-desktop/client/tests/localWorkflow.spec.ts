@@ -24,7 +24,8 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }) => {
   await page.locator('.GraphNode').click()
   await page.keyboard.press('Enter')
   await expect(page.locator('.ComponentBrowser')).toBeVisible()
-  const entry = page.locator('.ComponentList .list-variant.selected .component', {
+  await page.keyboard.insertText('count')
+  const entry = page.locator('.ComponentEntry', {
     hasText: 'column_count',
   })
   await expect(entry).toBeVisible()
@@ -36,14 +37,42 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }) => {
   await expect(addedNode.locator('.TableVisualization')).toBeVisible()
   await expect(addedNode.locator('.TableVisualization')).toContainText('1')
 
+  // Select and collapse nodes
+  await page.keyboard.press(`${CONTROL_KEY}+A`)
+  await page.getByRole('button', { name: 'Group Selected Components' }).click()
+  await expect(page.locator('.GraphNode')).toHaveCount(1)
+  await expect(page.locator('.GraphNode')).toHaveText(/Main.collapsed/)
+  await page.locator('.GraphNode').click()
+  await page.getByRole('button', { name: 'Visualization' }).click()
+  await expect(page.locator('.TableVisualization')).toBeVisible()
+  await expect(page.locator('.TableVisualization')).toContainText('1')
+
+  // Enter collapsed function
+  // First wait until node is computed. Visualization may be cached, so we look at icon.
+  await expect(page.locator('.GraphNode .WidgetIcon svg use')).toHaveAttribute('href', /#group/)
+  await page.locator('.GraphNode').dblclick()
+  await expect(page.locator('.GraphNode')).toHaveCount(3)
+  await expect(page.locator('.NavBreadcrumb')).toHaveText(['New Project 1', 'collapsed'])
+
+  // Rename collapsed function
+  await page.locator('.FunctionSignatureEditor .FunctionName').dblclick() // double click for select all.
+  await page.keyboard.insertText('new_name')
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.NavBreadcrumb')).toHaveText(['New Project 1', 'new_name'])
+
+  // Leave function
+  await page.mouse.dblclick(10, 100)
+  await expect(page.locator('.GraphNode')).toHaveCount(1)
+  await expect(page.locator('.GraphNode')).toHaveText(/Main.new_name/)
+
   // Create new text literal node.
   await page.keyboard.press('Escape') // deselect.
-  await page.locator('.PlusButton').click()
+  await page.getByTestId('add-component-button').click()
   await expect(page.locator('.ComponentBrowser')).toBeVisible()
   const input = page.locator('.ComponentBrowser input')
   await input.fill(`'${TEXT_TO_WRITE}'`)
   await page.keyboard.press('Enter')
-  await expect(page.locator('.GraphNode'), {}).toHaveCount(3)
+  await expect(page.locator('.GraphNode'), {}).toHaveCount(2)
 
   // Create write node
   await page.keyboard.press('Enter')
@@ -51,7 +80,7 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }) => {
   const code = `write (enso_project.root / '${OUTPUT_FILE}') on_existing_file=..Append`
   await input.fill(code)
   await page.keyboard.press('Enter')
-  await expect(page.locator('.GraphNode'), {}).toHaveCount(4)
+  await expect(page.locator('.GraphNode'), {}).toHaveCount(3)
 
   // Check that the output file is not created yet.
   const writeNode = page.locator('.GraphNode', { hasText: 'write' })

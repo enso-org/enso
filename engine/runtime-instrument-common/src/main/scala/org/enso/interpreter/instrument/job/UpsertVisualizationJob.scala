@@ -1,5 +1,7 @@
 package org.enso.interpreter.instrument.job
 
+import org.slf4j.LoggerFactory
+
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
@@ -27,7 +29,6 @@ import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
-import java.util.logging.Level
 
 import scala.annotation.unused
 import scala.util.Try
@@ -135,9 +136,8 @@ class UpsertVisualizationJob(
     message: String,
     executionResult: Option[Api.ExecutionResult.Diagnostic]
   )(implicit ctx: RuntimeContext): Unit = {
-    ctx.executionService.getLogger.log(
-      Level.SEVERE,
-      "Visualization for expression {0} failed: {1} (evaluation result: {2})",
+    UpsertVisualizationJob.logger.error(
+      "Visualization for expression {} failed: {} (evaluation result: {})",
       Array[Object](expressionId, message, executionResult)
     )
     ctx.endpoint.sendToClient(
@@ -158,6 +158,8 @@ class UpsertVisualizationJob(
 }
 
 object UpsertVisualizationJob {
+  private lazy val logger =
+    LoggerFactory.getLogger(classOf[UpsertVisualizationJob])
 
   /** Invalidate caches for a particular expression id. */
   sealed private case class InvalidateCaches(
@@ -306,9 +308,8 @@ object UpsertVisualizationJob {
         )
 
       case error: ThreadInterruptedException =>
-        ctx.executionService.getLogger.log(
-          Level.SEVERE,
-          "Evaluation of visualization argument [{0}] in module [{1}] was interrupted [{2}] times.",
+        UpsertVisualizationJob.logger.error(
+          "Evaluation of visualization argument [{}] in module [{}] was interrupted [{}] times.",
           Array[Object](
             argumentExpression,
             module.getName.toString,
@@ -324,9 +325,8 @@ object UpsertVisualizationJob {
         )
 
       case error =>
-        ctx.executionService.getLogger.log(
-          Level.SEVERE,
-          "Evaluation of visualization argument [{0}] failed in module [{1}] with [{2}]: {3}",
+        UpsertVisualizationJob.logger.error(
+          "Evaluation of visualization argument [{}] failed in module [{}] with [{}]: {}",
           Array[Object](
             argumentExpression,
             module.getName.toString,
@@ -387,9 +387,8 @@ object UpsertVisualizationJob {
         )
 
       case error: ThreadInterruptedException =>
-        ctx.executionService.getLogger.log(
-          Level.SEVERE,
-          "Evaluation of visualization [{0}] in module [{1}] was interrupted [{2}] times.",
+        UpsertVisualizationJob.logger.error(
+          "Evaluation of visualization [{}] in module [{}] was interrupted [{}] times.",
           Array[Object](
             expression,
             expressionModule,
@@ -405,9 +404,8 @@ object UpsertVisualizationJob {
         )
 
       case error =>
-        ctx.executionService.getLogger.log(
-          Level.SEVERE,
-          "Evaluation of visualization [{0}] failed in module [{1}] with [{2}]: {3}",
+        UpsertVisualizationJob.logger.error(
+          "Evaluation of visualization [{}] failed in module [{}] with [{}]: {}",
           Array[Object](
             expression,
             expressionModule,

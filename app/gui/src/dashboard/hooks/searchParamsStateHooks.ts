@@ -16,10 +16,6 @@ import * as safeJsonParse from '#/utilities/safeJsonParse'
 import { useCallback } from 'react'
 import { useLocation, useNavigate, type NavigateOptions } from 'react-router-dom'
 
-// ===================================
-// === SearchParamsStateReturnType ===
-// ===================================
-
 /** The return type of the `useSearchParamsState` hook. */
 type SearchParamsStateReturnType<T> = Readonly<
   [
@@ -33,10 +29,6 @@ type SearchParamsStateReturnType<T> = Readonly<
 export interface SearchParamsSetOptions {
   readonly replace?: boolean
 }
-
-// ============================
-// === useSearchParamsState ===
-// ============================
 
 /**
  * Hook to synchronize a state in the URL search params. It returns the value, a setter and a clear function.

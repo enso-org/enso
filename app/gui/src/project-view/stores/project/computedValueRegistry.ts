@@ -56,13 +56,6 @@ export class ComputedValueRegistry {
   processUpdates(updates: ExpressionUpdate[]) {
     for (const update of updates) {
       const info = this.db.get(update.expressionId)
-      if (update.payload.type == 'Pending' && update.payload.progress == -1.0) {
-        // just update the payload
-        if (info) {
-          info.payload = update.payload
-        }
-        continue
-      }
       if (info) updateInfo(info, update, this.projectNames)
       else this.db.set(update.expressionId, combineInfo(undefined, update, this.projectNames))
     }
@@ -86,9 +79,18 @@ function updateInfo(
 ) {
   const newInfo = combineInfo(info, update, projectNames)
   if (newInfo.typename !== info.typename) info.typename = newInfo.typename
+  if (newInfo.rawTypename !== info.rawTypename) info.rawTypename = newInfo.rawTypename
   if (newInfo.methodCall !== info.methodCall) info.methodCall = newInfo.methodCall
   if (newInfo.payload !== info.payload) info.payload = newInfo.payload
-  if (newInfo.profilingInfo !== info.profilingInfo) info.profilingInfo = update.profilingInfo
+  if (newInfo.profilingInfo !== info.profilingInfo) info.profilingInfo = newInfo.profilingInfo
+  // Ensure new fields can't be added to `ExpressionInfo` without this code being updated.
+  const _allFieldsHandled = {
+    typename: newInfo.typename,
+    rawTypename: newInfo.rawTypename,
+    methodCall: newInfo.methodCall,
+    payload: newInfo.payload,
+    profilingInfo: newInfo.profilingInfo,
+  } satisfies ExpressionInfo
 }
 
 /**

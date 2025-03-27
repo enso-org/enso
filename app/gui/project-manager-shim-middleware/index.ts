@@ -161,15 +161,25 @@ export default function projectManagerShimMiddleware(
 
         https.get(downloadUrl, (actualResponse) => {
           const projectsDirectory = projectManagement.getProjectsDirectory()
-          const targetDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
+          const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
+          const targetDirectory = path.join(parentDirectory, 'project_root')
 
           fs.mkdir(targetDirectory, { recursive: true })
             .then(() => projectManagement.unpackBundle(actualResponse, targetDirectory))
-            .then((projectDirectory) => {
-              response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(projectDirectory)
+            .then(() => {
+              response
+                .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
+                .end(JSON.stringify({ targetDirectory, parentDirectory }))
             })
             .catch((e) => {
               console.error(e)
+              try {
+                if (fsSync.existsSync(parentDirectory)) {
+                  fsSync.rmdirSync(parentDirectory, { maxRetries: 3, recursive: true })
+                }
+              } catch (e) {
+                console.error(`Failed to cleanup directory ${parentDirectory}.`, e)
+              }
               response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COMMON_HEADERS).end()
             })
         })

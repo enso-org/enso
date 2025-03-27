@@ -16,10 +16,6 @@ import type * as backend from '#/services/Backend'
 
 import { useFullUserSession } from '#/providers/AuthProvider'
 
-// ====================
-// === UserGroupRow ===
-// ====================
-
 /** Props for a {@link UserGroupRow}. */
 export interface UserGroupRowProps {
   readonly userGroup: backend.UserGroupInfo

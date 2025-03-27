@@ -20,6 +20,7 @@ export namespace Doc {
     | 'Removed'
     | 'Unstable'
     | 'Upcoming'
+    | 'Suggested'
   export type Mark = 'Important' | 'Info' | 'Example'
 
   export interface Argument {

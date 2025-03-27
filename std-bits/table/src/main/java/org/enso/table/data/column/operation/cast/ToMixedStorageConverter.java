@@ -8,7 +8,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 
 public class ToMixedStorageConverter implements StorageConverter<Object> {
   @Override
-  public boolean canApply(StorageType sourceType) {
+  public boolean canApply(StorageType<?> sourceType) {
     return true;
   }
 

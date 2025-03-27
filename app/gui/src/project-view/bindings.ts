@@ -1,8 +1,10 @@
 import { defineKeybinds } from '@/util/shortcuts'
+import { isMacLike } from './composables/events'
 
 export const undoBindings = defineKeybinds('undo', {
   undo: ['Mod+Z'],
-  redo: ['Mod+Y', 'Mod+Shift+Z'],
+  // On Mac, `Mod+Shift+Z` takes priority and will be displayed in the tooltip.
+  redo: isMacLike ? ['Mod+Shift+Z', 'Mod+Y'] : ['Mod+Y', 'Mod+Shift+Z'],
 })
 
 export const codeEditorBindings = defineKeybinds('code-editor', {
@@ -19,18 +21,24 @@ export const textEditorsBindings = defineKeybinds('text-editors', {
   openLink: ['Mod+PointerMain'],
 })
 
+export const listBindings = defineKeybinds('list', {
+  moveUp: ['ArrowUp'],
+  moveDown: ['ArrowDown'],
+  accept: ['Enter'],
+})
+
 export const interactionBindings = defineKeybinds('current-interaction', {
   cancel: ['Escape'],
 })
 
 export const componentBrowserBindings = defineKeybinds('component-browser', {
-  applySuggestion: ['Tab'],
+  applySuggestion: ['Shift+Enter'],
   acceptSuggestion: ['Enter'],
   acceptCode: ['Enter'],
   acceptInput: ['Mod+Enter'],
-  acceptAIPrompt: ['Tab', 'Enter'],
-  moveUp: ['ArrowUp'],
-  moveDown: ['ArrowDown'],
+  acceptAIPrompt: ['Enter'],
+  switchPanelFocus: ['Tab'],
+  switchToCodeEditMode: ['Mod+Tab'],
 })
 
 export const graphBindings = defineKeybinds('graph-editor', {

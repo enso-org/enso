@@ -9,6 +9,7 @@ import {
 } from '@tanstack/react-query'
 import {
   FilterBy,
+  type AnyAsset,
   type AssetId,
   type default as Backend,
   type BackendType,
@@ -232,9 +233,11 @@ export function moveAssetsMutationOptions(backend: Backend) {
           backend.updateAsset(id, { description: null, parentDirectoryId: parentId }, '(unknown)'),
         ),
       )
+
       const errors = results.flatMap((result): unknown =>
         result.status === 'rejected' ? [result.reason] : [],
       )
+
       if (errors.length !== 0) {
         throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
           errors,
@@ -242,6 +245,7 @@ export function moveAssetsMutationOptions(backend: Backend) {
           total: ids.length,
         })
       }
+
       return results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
     },
     meta: {
@@ -324,10 +328,7 @@ export function downloadAssetsMutationOptions(backend: Backend) {
 export function addAssetsLabelsMutationOptions(backend: Backend) {
   return mutationOptions({
     mutationFn: async ([infos, labelNames]: [
-      infos: readonly {
-        id: AssetId
-        labels: readonly LabelName[] | null
-      }[],
+      infos: readonly Pick<AnyAsset, 'id' | 'labels'>[],
       labelNames: readonly LabelName[],
     ]) => {
       const results = await Promise.allSettled(
@@ -367,10 +368,7 @@ export function addAssetsLabelsMutationOptions(backend: Backend) {
 export function removeAssetsLabelsMutationOptions(backend: Backend) {
   return mutationOptions({
     mutationFn: async ([infos, labelNames]: [
-      infos: readonly {
-        id: AssetId
-        labels: readonly LabelName[] | null
-      }[],
+      infos: readonly Pick<AnyAsset, 'id' | 'labels'>[],
       labelNames: readonly LabelName[],
     ]) => {
       const results = await Promise.allSettled(

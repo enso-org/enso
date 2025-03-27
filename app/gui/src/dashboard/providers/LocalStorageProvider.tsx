@@ -32,6 +32,7 @@ export default function LocalStorageProvider(props: LocalStorageProviderProps) {
 }
 
 /** Exposes a property to get the shortcut registry. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useLocalStorage() {
   return React.useContext(LocalStorageContext)
 }
@@ -52,6 +53,7 @@ export function useLocalStorageState<K extends LocalStorageKey>(
 ]
 
 /** Subscribe to Local Storage updates for a specific key. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useLocalStorageState<K extends LocalStorageKey>(
   key: K,
   defaultValue?: LocalStorageData[K],

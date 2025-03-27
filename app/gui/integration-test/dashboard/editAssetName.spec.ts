@@ -31,21 +31,6 @@ function locateEditingCross(page: Locator) {
   return page.getByLabel(TEXT.cancelEdit)
 }
 
-test('edit name (double click)', ({ page }) =>
-  mockAllAndLogin({ page })
-    .createFolder()
-    .driveTable.withRows(async (rows, _, { api }) => {
-      const row = rows.nth(0)
-      const nameEl = locateAssetRowName(row)
-      await nameEl.click()
-      await nameEl.click()
-      await locateInput(nameEl).fill(NEW_NAME)
-      const calls = api.trackCalls()
-      await locateEditingTick(row).click()
-      await expect(row).toHaveText(new RegExp('^' + NEW_NAME))
-      expect(calls.updateDirectory).toMatchObject([{ title: NEW_NAME }])
-    }))
-
 test('edit name (context menu)', ({ page }) =>
   mockAllAndLogin({ page })
     .createFolder()
@@ -83,15 +68,17 @@ test('edit name (keyboard)', ({ page }) =>
       expect(calls.updateDirectory).toMatchObject([{ title: NEW_NAME_2 }])
     }))
 
-test('cancel editing name (double click)', ({ page }) =>
+test('cancel editing name (context menu)', ({ page }) =>
   mockAllAndLogin({ page })
     .createFolder()
     .driveTable.withRows(async (rows, _, { api }) => {
       const row = rows.nth(0)
       const nameEl = locateAssetRowName(row)
       const oldName = (await nameEl.textContent()) ?? ''
-      await nameEl.click()
-      await nameEl.click()
+      await nameEl.click({ button: 'right' })
+      await locateContextMenu(page)
+        .getByText(/Rename/)
+        .click()
       await nameEl.getByTestId('input').fill(NEW_NAME)
       const calls = api.trackCalls()
       await locateEditingCross(row).click()
@@ -119,15 +106,17 @@ test('cancel editing name (keyboard)', ({ page }) => {
     })
 })
 
-test('change to blank name (double click)', ({ page }) =>
+test('change to blank name (context menu)', ({ page }) =>
   mockAllAndLogin({ page })
     .createFolder()
     .driveTable.withRows(async (rows, _, { api }) => {
       const row = rows.nth(0)
       const nameEl = locateAssetRowName(row)
       const oldName = (await nameEl.textContent()) ?? ''
-      await nameEl.click()
-      await nameEl.click()
+      await nameEl.click({ button: 'right' })
+      await locateContextMenu(page)
+        .getByText(/Rename/)
+        .click()
       await nameEl.getByTestId('input').fill('')
       await expect(locateEditingTick(row)).toBeVisible()
       const calls = api.trackCalls()
@@ -167,8 +156,10 @@ test('edit name, error message is visible', ({ page }) => {
     await locateAssetRowName(row).click()
 
     const nameEl = locateAssetRowName(row)
-    await nameEl.click()
-    await nameEl.click()
+    await nameEl.click({ button: 'right' })
+    await locateContextMenu(page)
+      .getByText(/Rename/)
+      .click()
 
     const inputEl = locateInput(nameEl)
 
@@ -205,8 +196,10 @@ test('edit name (empty name)', ({ page }) =>
     await locateAssetRowName(row).click()
 
     const nameEl = locateAssetRowName(row)
-    await nameEl.click()
-    await nameEl.click()
+    await nameEl.click({ button: 'right' })
+    await locateContextMenu(page)
+      .getByText(/Rename/)
+      .click()
 
     const inputEl = locateInput(nameEl)
 
@@ -242,8 +235,10 @@ test('edit name (invalid name)', ({ page }) =>
     await locateAssetRowName(row).click()
 
     const nameEl = locateAssetRowName(row)
-    await nameEl.click()
-    await nameEl.click()
+    await nameEl.click({ button: 'right' })
+    await locateContextMenu(page)
+      .getByText(/Rename/)
+      .click()
 
     const inputEl = locateInput(nameEl)
 
@@ -280,8 +275,10 @@ test('edit name (duplicate name)', ({ page }) =>
     await locateAssetRowName(row).click()
 
     const nameEl = locateAssetRowName(row)
-    await nameEl.click()
-    await nameEl.click()
+    await nameEl.click({ button: 'right' })
+    await locateContextMenu(page)
+      .getByText(/Rename/)
+      .click()
 
     const inputEl = locateInput(nameEl)
 
@@ -312,8 +309,10 @@ test('error should not overlay the table header', ({ page }) =>
     await locateAssetRowName(row).click()
 
     const nameEl = locateAssetRowName(row)
-    await nameEl.click()
-    await nameEl.click()
+    await nameEl.click({ button: 'right' })
+    await locateContextMenu(page)
+      .getByText(/Rename/)
+      .click()
 
     const inputEl = locateInput(nameEl)
 

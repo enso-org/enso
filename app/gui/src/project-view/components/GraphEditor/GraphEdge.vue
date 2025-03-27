@@ -20,6 +20,9 @@ const { edge, maskSource, animateFromSourceHover } = defineProps<{
   maskSource?: boolean
   animateFromSourceHover?: boolean
 }>()
+defineOptions({
+  inheritAttrs: false,
+})
 
 // The padding added around the masking rect for nodes with visible output port. The actual padding
 // is animated together with node's port opening. Required to correctly not draw the edge in space
@@ -126,7 +129,7 @@ const sourceMask = computed<NodeMask | undefined>(() => {
   if (!nodeRect) return
   const animProgress =
     startsInPort.value ?
-      ((sourceNode.value && graph.nodeOutputHoverAnimations.get(sourceNode.value)) ?? 0)
+      ((sourceNode.value && graph.nodeOutputAnimations.get(sourceNode.value)) ?? 0)
     : 0
   const padding = animProgress * VISIBLE_PORT_MASK_PADDING
   if (!maskSource && padding === 0) return
@@ -287,7 +290,7 @@ const arrowPath = [
 
 const sourceHoverAnimationStyle = computed(() => {
   if (!animateFromSourceHover || !base.value || !sourceNode.value) return {}
-  const progress = graph.nodeOutputHoverAnimations.get(sourceNode.value) ?? 0
+  const progress = graph.nodeOutputAnimations.get(sourceNode.value) ?? 0
   if (progress === 1) return {}
   const currentLength = progress * base.value.getTotalLength()
   return {
@@ -331,7 +334,7 @@ const colorClasses = computed(() => {
         fill="black"
       />
     </mask>
-    <g v-bind="sourceMask && { mask: `url('#${sourceMask.id}')` }">
+    <g v-bind="{ ...$attrs, ...(sourceMask ? { mask: `url('#${sourceMask.id}')` } : {}) }">
       <path
         ref="base"
         :d="basePath"

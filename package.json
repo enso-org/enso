@@ -12,6 +12,7 @@
     "eslint-plugin-react": "^7.37.3",
     "eslint-plugin-react-compiler": "19.0.0-beta-8a03594-20241020",
     "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
     "eslint-plugin-vue": "^9.32.0",
     "globals": "^15.14.0",
     "npm-run-all": "^4.1.5",
@@ -22,8 +23,8 @@
   },
   "dependencies": {
     "@bazel/bazelisk": "^1.22.1",
-    "typescript": "^5.7.2",
-    "tslib": "^2.8.1"
+    "tslib": "^2.8.1",
+    "typescript": "^5.7.2"
   },
   "name": "root",
   "scripts": {
@@ -39,7 +40,6 @@
     "ci-check": "corepack pnpm run -r compile && corepack pnpm run --aggregate-output /^ci:/",
     "ci:prettier": "prettier --check --cache .",
     "ci:lint": "corepack pnpm run -r --parallel lint --output-file eslint_report.json --format json --cache-strategy content",
-    "ci:test": "corepack pnpm run -r --parallel test",
     "ci:unit-test": "corepack pnpm run -r --parallel test:unit",
     "ci:typecheck": "corepack pnpm run -r --parallel typecheck",
     "git-clean": "git clean -xfd --exclude='.env*'",
@@ -59,7 +59,8 @@
       "tslib": "$tslib",
       "jsdom": "^24.1.0",
       "@types/react": "^18.3.1",
-      "ws": "^8.18.0"
+      "ws": "^8.18.0",
+      "esbuild": "^0.25.0"
     },
     "packageExtensions": {
       "@aws-amplify/auth": {
@@ -156,7 +157,8 @@
       },
       "@storybook/core": {
         "dependencies": {
-          "@storybook/react-vite": "*"
+          "@storybook/react-vite": "*",
+          "@storybook/vue3-vite": "*"
         }
       },
       "modern-isomorphic-ws": {

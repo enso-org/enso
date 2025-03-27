@@ -281,6 +281,7 @@ fn enable_cloud_tests(step: Step) -> Step {
 pub struct StandardLibraryTests {
     pub graal_edition:       graalvm::Edition,
     pub cloud_tests_enabled: bool,
+    pub native_image_mode:   bool,
 }
 
 impl JobArchetype for StandardLibraryTests {
@@ -288,8 +289,13 @@ impl JobArchetype for StandardLibraryTests {
         let graal_edition = self.graal_edition;
         let should_enable_cloud_tests = self.cloud_tests_enabled;
         // If cloud tests are enabled, we run only cloud related tests.
-        let test_scope =
-            if should_enable_cloud_tests { "std-cloud-related" } else { "standard-library" };
+        let test_scope = if should_enable_cloud_tests {
+            "std-cloud-related"
+        } else if self.native_image_mode {
+            "standard-library-in-native"
+        } else {
+            "standard-library"
+        };
         let job_name = format!("Standard Library Tests ({graal_edition})");
         let run_command = format!("backend test {test_scope}");
         let run_steps_builder = RunStepsBuilder::new(run_command).customize(move |step| {
@@ -375,8 +381,8 @@ impl StandardLibraryLabelCheck {
 
     fn changed_files_step(&self) -> Step {
         let changed_files_pattern =
-            format!("distribution/lib/Standard/{}/**/docs/api/**.md", self.lib_name);
-        let changed_files_action = "tj-actions/changed-files@v45".to_string();
+            format!("distribution/lib/Standard/{}/**/docs/api/**/**.md", self.lib_name);
+        let changed_files_action = "step-security/changed-files@v45".to_string();
         Step {
             id: Some(self.changed_files_step_name()),
             name: Some(self.changed_files_step_name()),
@@ -637,6 +643,18 @@ impl JobArchetype for UploadBackend {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("backend upload")
             .cleaning(RELEASE_CLEANING_POLICY)
+            .customize(move |step| {
+                let mut steps = vec![step];
+
+                if target.0 == OS::Linux {
+                    let upload_edition_file = step::upload_artifact("Upload Edition File")
+                        .with_custom_argument("name", paths::EDITION_FILE_ARTIFACT_NAME)
+                        .with_custom_argument("path", "distribution/editions/*.yaml");
+                    steps.push(upload_edition_file);
+                }
+
+                steps
+            })
             .build_job("Upload Backend", target)
     }
 }

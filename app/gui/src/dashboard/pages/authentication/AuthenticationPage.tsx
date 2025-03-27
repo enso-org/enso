@@ -17,10 +17,6 @@ import { useOffline } from '#/hooks/offlineHooks'
 import { useText } from '#/providers/TextProvider'
 import invariant from 'tiny-invariant'
 
-// ==========================
-// === AuthenticationPage ===
-// ==========================
-
 /** Props for an {@link AuthenticationPage}. */
 interface AuthenticationPagePropsBase {
   readonly supportsOffline?: boolean

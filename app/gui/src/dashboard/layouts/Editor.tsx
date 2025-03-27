@@ -9,29 +9,17 @@ import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/Backend'
 import * as twMerge from '#/utilities/tailwindMerge'
+import { vueComponent } from '#/utilities/vue'
 import * as reactQuery from '@tanstack/react-query'
 import * as React from 'react'
 import { useTimeoutCallback } from '../hooks/timeoutHooks'
-// eslint-disable-next-line no-restricted-syntax
-import type ProjectViewTabVue from '@/ProjectViewTab.vue'
-import { lazy } from 'react'
-import { applyPureVueInReact } from 'veaury'
-import type { AllowedComponentProps, VNodeProps } from 'vue'
-import type { ComponentProps } from 'vue-component-type-helpers'
+
+const ProjectViewTab = React.lazy(() =>
+  import('@/ProjectViewTab.vue').then(({ default: vue }) => vueComponent(vue)),
+)
 
 /** Props for the GUI editor root component. */
-export type ProjectViewTabProps = Omit<
-  ComponentProps<typeof ProjectViewTabVue>,
-  keyof AllowedComponentProps | keyof VNodeProps
->
-
-const ProjectViewTab = lazy(() =>
-  import('@/ProjectViewTab.vue').then((module) => ({
-    // applyPureVuewInReact returns Function, but this is not enough to satisfy TSX.
-    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-member-access
-    default: applyPureVueInReact(module.default) as (props: ProjectViewTabProps) => JSX.Element,
-  })),
-)
+export type ProjectViewTabProps = React.ComponentProps<typeof ProjectViewTab>
 
 /** Props for an {@link Editor}. */
 export interface EditorProps {
@@ -61,15 +49,16 @@ function Editor(props: EditorProps) {
   const projectQuery = reactQuery.useSuspenseQuery({
     ...projectStatusQuery,
     select: (data) => {
-      const isOpeningProject = projectHooks.OPENING_PROJECT_STATES.has(data.state.type)
+      const isProjectOpening = projectHooks.OPENING_PROJECT_STATES.has(data.state.type)
       const isProjectClosed = projectHooks.CLOSED_PROJECT_STATES.has(data.state.type)
+      const isProjectOpened = projectHooks.OPENED_PROJECT_STATES.has(data.state.type)
+      const isProjectClosing = projectHooks.CLOSING_PROJECT_STATES.has(data.state.type)
 
-      return { ...data, isOpeningProject, isProjectClosed }
+      return { ...data, isProjectOpening, isProjectClosed, isProjectOpened, isProjectClosing }
     },
   })
 
-  const isProjectClosed = projectQuery.data.isProjectClosed
-  const isOpeningProject = projectQuery.data.isOpeningProject
+  const { isProjectClosed, isProjectOpening, isProjectOpened, isProjectClosing } = projectQuery.data
 
   React.useEffect(() => {
     if (isProjectClosed) {
@@ -88,7 +77,7 @@ function Editor(props: EditorProps) {
     },
     ms: projectHooks.getTimeoutBasedOnTheBackendType(backend.type),
     deps: [],
-    isDisabled: !isOpeningProject || projectQuery.isError,
+    isDisabled: !isProjectOpening || projectQuery.isError,
   })
 
   if (isOpeningFailed) {
@@ -121,28 +110,27 @@ function Editor(props: EditorProps) {
               />
             )
 
-          case isOpeningProject:
+          case isProjectClosed:
+          case isProjectClosing:
+          case isProjectOpening:
             return <suspense.Loader minHeight="full" />
 
-          default:
+          case isProjectOpened:
             return (
-              <errorBoundary.ErrorBoundary>
-                <EditorInternal
-                  {...props}
-                  openedProject={projectQuery.data}
-                  backendType={project.type}
-                />
-              </errorBoundary.ErrorBoundary>
+              <EditorInternal
+                {...props}
+                openedProject={projectQuery.data}
+                backendType={project.type}
+              />
             )
+
+          default:
+            return null
         }
       })()}
     </div>
   )
 }
-
-// ======================
-// === EditorInternal ===
-// ======================
 
 /** Props for an {@link EditorInternal}. */
 interface EditorInternalProps extends Omit<EditorProps, 'project'> {

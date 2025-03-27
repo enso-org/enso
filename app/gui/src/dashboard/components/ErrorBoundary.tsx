@@ -21,10 +21,6 @@ import type { FallbackProps } from 'react-error-boundary'
 import { Icon } from './Icon'
 import SvgMask from './SvgMask'
 
-// =====================
-// === ErrorBoundary ===
-// =====================
-
 /** Arguments for the {@link ErrorBoundaryProps.onBeforeFallbackShown} callback. */
 export interface OnBeforeFallbackShownArgs {
   readonly error: unknown
@@ -234,4 +230,5 @@ export function InlineErrorDisplay(props: InlineErrorDisplayProps) {
   return <>{render ?? defaultRender}</>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export { useErrorBoundary, withErrorBoundary } from 'react-error-boundary'

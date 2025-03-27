@@ -39,7 +39,7 @@ public final class DateBuilder extends TypedBuilder<LocalDate> {
   }
 
   @Override
-  public boolean canRetypeTo(StorageType type) {
+  public boolean canRetypeTo(StorageType<?> type) {
     if (allowDateToDateTimeConversion && Objects.equals(type, DateTimeType.INSTANCE)) {
       return true;
     }
@@ -47,7 +47,7 @@ public final class DateBuilder extends TypedBuilder<LocalDate> {
   }
 
   @Override
-  public Builder retypeTo(StorageType type) {
+  public Builder retypeTo(StorageType<?> type) {
     if (allowDateToDateTimeConversion && Objects.equals(type, DateTimeType.INSTANCE)) {
       var res = new DateTimeBuilder(data.length, true);
       for (int i = 0; i < currentSize; i++) {

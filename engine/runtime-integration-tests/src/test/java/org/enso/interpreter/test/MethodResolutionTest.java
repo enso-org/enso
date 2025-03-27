@@ -38,6 +38,7 @@ public final class MethodResolutionTest {
   public static void disposeCtx() {
     ctx.close();
     ctx = null;
+    methodResolverNode = null;
   }
 
   @Test

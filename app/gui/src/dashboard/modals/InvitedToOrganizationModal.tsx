@@ -11,10 +11,6 @@ import { useRemoteBackend } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
 import { useMutation } from '@tanstack/react-query'
 
-// ==================================
-// === InvitedToOrganizationModal ===
-// ==================================
-
 /** Modal for accepting the terms of service. */
 export function InvitedToOrganizationModal() {
   const { getText } = useText()

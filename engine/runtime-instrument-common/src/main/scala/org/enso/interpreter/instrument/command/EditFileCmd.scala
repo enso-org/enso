@@ -6,7 +6,6 @@ import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.logger.masking.MaskedPath
 import org.enso.polyglot.runtime.Runtime.Api
 
-import java.util.logging.Level
 import scala.concurrent.ExecutionContext
 
 /** A command that performs edition of a file.
@@ -24,7 +23,6 @@ class EditFileCmd(request: Api.EditFileNotification)
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Unit = {
-    val logger = ctx.executionService.getLogger
     ctx.locking.withFileLock(
       request.path,
       this.getClass,
@@ -32,9 +30,8 @@ class EditFileCmd(request: Api.EditFileNotification)
         ctx.locking.withPendingEditsLock(
           this.getClass,
           () => {
-            logger.log(
-              Level.FINEST,
-              "Adding pending file [{0}] edits [{1}] and IdMap of length {2}",
+            logger.trace(
+              "Adding pending file [{}] edits [{}] and IdMap of length {}",
               Array[Any](
                 MaskedPath(request.path.toPath),
                 request.edits.map(e => (e.range, e.text.length)),

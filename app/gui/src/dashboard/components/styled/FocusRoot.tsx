@@ -8,10 +8,6 @@ import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import * as aria from '#/components/aria'
 import * as withFocusScope from '#/components/styled/withFocusScope'
 
-// =================
-// === FocusRoot ===
-// =================
-
 /** Props passed to the inner handler of a {@link FocusRoot}. */
 export interface FocusRootInnerProps {
   readonly ref: React.RefCallback<HTMLElement | SVGElement | null>
@@ -25,6 +21,7 @@ export interface FocusRootProps {
 }
 
 /** An element that prevents navigation outside of itself. */
+// eslint-disable-next-line react-refresh/only-export-components
 function FocusRoot(props: FocusRootProps) {
   const { active = true, children } = props
   const navigator2D = navigator2DProvider.useNavigator2D()
@@ -65,4 +62,5 @@ function FocusRoot(props: FocusRootProps) {
 }
 
 /** An area that can be focused within. */
+// eslint-disable-next-line react-refresh/only-export-components
 export default withFocusScope.withFocusScope(FocusRoot)

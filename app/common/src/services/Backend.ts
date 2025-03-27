@@ -1,6 +1,7 @@
 /** @file Type definitions common between all backends. */
 
-import type { TextId } from '../text'
+import { z } from 'zod'
+import { getText, resolveDictionary, type TextId } from '../text'
 import * as array from '../utilities/data/array'
 import * as dateTime from '../utilities/data/dateTime'
 import * as newtype from '../utilities/data/newtype'
@@ -53,6 +54,10 @@ export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
 /** Unique identifier for an asset representing the nonexistent children of an empty directory. */
 export type EmptyAssetId = newtype.Newtype<string, 'EmptyAssetId'>
 export const EmptyAssetId = newtype.newtypeConstructor<EmptyAssetId>()
+
+/** Unique identifier for an asset representing the parent directory. */
+export type UpAssetId = newtype.Newtype<string, 'UpAssetId'>
+export const UpAssetId = newtype.newtypeConstructor<UpAssetId>()
 
 /**
  * Unique identifier for an asset representing the nonexistent children of a directory
@@ -143,6 +148,14 @@ export const ParentsPath = newtype.newtypeConstructor<ParentsPath>()
 /** The path of directory names to this asset, excluding the root directory. */
 export type VirtualParentsPath = newtype.Newtype<string, 'VirtualParentsPath'>
 export const VirtualParentsPath = newtype.newtypeConstructor<VirtualParentsPath>()
+
+/** The path of this asset, including the root directory. */
+export type EnsoPath = newtype.Newtype<string, 'EnsoPath'>
+export const EnsoPath = newtype.newtypeConstructor<EnsoPath>()
+
+/** The path string of this asset, including the root directory. */
+export type EnsoPathValue = newtype.Newtype<string, 'EnsoPathValue'>
+export const EnsoPathValue = newtype.newtypeConstructor<EnsoPathValue>()
 
 const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
 
@@ -838,10 +851,6 @@ export function findLeastUsedColor(labels: Iterable<Label>) {
   return minColor == null ? COLORS[0] : (COLOR_STRING_TO_COLOR.get(minColor) ?? COLORS[0])
 }
 
-// =================
-// === AssetType ===
-// =================
-
 export enum SpecialAssetType {
   loading = 'specialLoading',
   empty = 'specialEmpty',
@@ -864,6 +873,15 @@ export enum AssetType {
   specialEmpty = 'specialEmpty',
   /** A special {@link AssetType} representing a directory listing that errored. */
   specialError = 'specialError',
+  /** A special {@link AssetType} representing a button that navigates to the parent directory. */
+  specialUp = 'specialUp',
+}
+
+export enum ReplaceableAssetType {
+  project = 'project',
+  file = 'file',
+  datalink = 'datalink',
+  secret = 'secret',
 }
 
 /** The corresponding ID newtype for each {@link AssetType}. */
@@ -883,6 +901,7 @@ export interface SpecialAssetIdType {
   readonly [AssetType.specialLoading]: LoadingAssetId
   readonly [AssetType.specialEmpty]: EmptyAssetId
   readonly [AssetType.specialError]: ErrorAssetId
+  readonly [AssetType.specialUp]: UpAssetId
 }
 
 /**
@@ -898,11 +917,8 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.specialLoading]: 1000,
   [AssetType.specialEmpty]: 1000,
   [AssetType.specialError]: 1000,
+  [AssetType.specialUp]: -1,
 }
-
-// =============
-// === Asset ===
-// =============
 
 /**
  * Metadata uniquely identifying a directory entry.
@@ -919,12 +935,16 @@ export interface Asset<Type extends AssetType = AssetType> {
    */
   readonly parentId: DirectoryId
   readonly permissions: readonly AssetPermission[] | null
-  readonly labels: readonly LabelName[] | null
-  readonly description: string | null
+  readonly labels?: readonly LabelName[] | undefined
+  readonly description?: string | undefined
   readonly projectState: Type extends AssetType.project ? ProjectStateType : null
   readonly extension: Type extends AssetType.file ? string : null
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
+  /** The display path. */
+  readonly ensoPath?: EnsoPath | undefined
+  /** The actual path (URL encoded when on the Remote backend). */
+  readonly ensoPathValue?: EnsoPathValue | undefined
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
@@ -950,6 +970,9 @@ export type SpecialEmptyAsset = Asset<AssetType.specialEmpty>
 
 /** A convenience alias for {@link Asset}<{@link AssetType.specialError}>. */
 export type SpecialErrorAsset = Asset<AssetType.specialError>
+
+/** A convenience alias for {@link Asset}<{@link AssetType.specialUp}>. */
+export type SpecialUpAsset = Asset<AssetType.specialUp>
 
 const PLACEHOLDER_SIGNATURE = Symbol('placeholder')
 
@@ -988,8 +1011,6 @@ export function createPlaceholderFileAsset(title: string, parentId: DirectoryId)
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: fileExtension(title),
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1009,8 +1030,6 @@ export function createPlaceholderProjectAsset(title: string, parentId: Directory
       volumeId: '',
     },
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1030,8 +1049,6 @@ export function createPlaceholderDirectoryAsset(
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1048,8 +1065,6 @@ export function createPlaceholderSecretAsset(title: string, parentId: DirectoryI
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1069,8 +1084,6 @@ export function createPlaceholderDatalinkAsset(
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1090,8 +1103,6 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
     permissions: [],
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1116,8 +1127,6 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
     permissions: [],
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1142,8 +1151,6 @@ export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorA
     permissions: [],
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1173,7 +1180,8 @@ export type AnyAsset<Type extends AssetType = AssetType> = Extract<
   | SecretAsset
   | SpecialEmptyAsset
   | SpecialErrorAsset
-  | SpecialLoadingAsset,
+  | SpecialLoadingAsset
+  | SpecialUpAsset,
   HasType<Type>
 >
 
@@ -1234,6 +1242,10 @@ export function createPlaceholderAssetId<Type extends AssetType>(
     }
     case AssetType.specialError: {
       result = ErrorAssetId(id)
+      break
+    }
+    case AssetType.specialUp: {
+      result = UpAssetId(id)
       break
     }
   }
@@ -1621,6 +1633,37 @@ export function extractProjectExtension(name: string) {
   return { basename: basename ?? name, extension: extension ?? '' }
 }
 
+export interface TitleSchemaOptions {
+  readonly asset: AnyAsset
+  readonly siblings?: readonly AnyAsset[] | null
+}
+
+/**
+ * Check if the title contains invalid characters.
+ */
+export function doesTitleContainInvalidCharacters(name: string) {
+  return name.includes('/') || name.includes('\\') || name.includes('..')
+}
+
+/**
+ * A Zod schema for validating a title.
+ */
+export function titleSchema(options: TitleSchemaOptions) {
+  const { asset, siblings } = options
+
+  return z
+    .string()
+    .trim()
+    .min(1)
+    .max(512)
+    .refine((value) => isNewTitleUnique(asset, value, siblings), {
+      message: getText(resolveDictionary(), 'nameShouldBeUnique'),
+    })
+    .refine((value) => !doesTitleContainInvalidCharacters(value), {
+      message: getText(resolveDictionary(), 'nameShouldNotContainInvalidCharacters'),
+    })
+}
+
 /**
  * Check whether a new title is unique among the siblings.
  */
@@ -1636,7 +1679,7 @@ export function isNewTitleUnique(
       return true
     }
 
-    const hasSameTitle = sibling.title.toLowerCase() === newTitle.toLowerCase()
+    const hasSameTitle = sibling.title.trim().toLowerCase() === newTitle.trim().toLowerCase()
     return !hasSameTitle
   })
 }
@@ -1650,7 +1693,7 @@ export class NetworkError extends Error {
    */
   constructor(
     message: string,
-    readonly status?: number,
+    readonly status?: number | null,
   ) {
     super(message)
   }
@@ -1908,5 +1951,17 @@ export class DirectoryDoesNotExistError extends Error {
    */
   constructor() {
     super('Directory does not exist.')
+  }
+}
+
+/**
+ * Error thrown when a duplicate asset is found.
+ */
+export class DuplicateAssetError extends Error {
+  /**
+   * Create a new instance of the {@link DuplicateAssetError} class.
+   */
+  constructor(message: string) {
+    super(message)
   }
 }

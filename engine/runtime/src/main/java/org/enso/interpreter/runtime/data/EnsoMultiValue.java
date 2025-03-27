@@ -18,6 +18,7 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.library.ExportMessage.Ignore;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import java.math.BigInteger;
@@ -30,6 +31,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
+import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -184,11 +186,16 @@ public final class EnsoMultiValue extends EnsoObject {
     }
   }
 
-  @ExportMessage
+  @Ignore
   @TruffleBoundary
   @Override
   public final String toDisplayString(boolean ignore) {
-    return toString();
+    return toDisplayString(ignore, AnyToTextNode.getUncached()).toString();
+  }
+
+  @ExportMessage
+  final Object toDisplayString(boolean ignore, @Cached AnyToTextNode toTextNode) {
+    return toTextNode.execute(this);
   }
 
   private enum InteropType {
@@ -627,22 +634,12 @@ public final class EnsoMultiValue extends EnsoObject {
    */
   public final Pair<Function, Type> resolveSymbol(
       MethodResolverNode node, UnresolvedSymbol symbol) {
-    var ctx = EnsoContext.get(node);
-    Pair<Function, Type> fallbackToAnyMethod = null;
     for (var t : EnsoMultiType.AllTypesWith.getUncached().executeAllTypes(dispatch, null, 0)) {
       var fnAndType = node.execute(t, symbol);
       if (fnAndType != null) {
-        if (fnAndType.getRight() != ctx.getBuiltins().any()) {
-          // if there is a non-Any method available in any of the
-          // dispach types, then use it!
-          return fnAndType;
-        }
-        if (fallbackToAnyMethod == null) {
-          // remember a suitable method on Any
-          fallbackToAnyMethod = fnAndType;
-        }
+        return fnAndType;
       }
     }
-    return fallbackToAnyMethod;
+    return null;
   }
 }

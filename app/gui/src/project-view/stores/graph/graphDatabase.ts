@@ -5,7 +5,7 @@ import {
   type ExpressionInfo,
 } from '@/stores/project/computedValueRegistry'
 import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
-import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
+import { SuggestionDb, type GroupInfo } from '@/stores/suggestionDatabase'
 import { type CallableSuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
@@ -66,7 +66,7 @@ export class GraphDb {
   /** Constructor. */
   constructor(
     private readonly suggestionDb: SuggestionDb,
-    private readonly groups: Ref<DeepReadonly<Group[]>>,
+    private readonly groups: Ref<DeepReadonly<GroupInfo[]>>,
     private readonly valuesRegistry: ComputedValueRegistry,
     private readonly projectNames: ProjectNameStore,
   ) {}
@@ -594,7 +594,10 @@ interface AllNodeFieldsFromAst {
    * Nodes for the function's inputs have (pattern) expressions as their outer ASTs.
    */
   outerAst: Ast.Statement | Ast.Expression
-  /** The left side of the assignment expression, if `outerAst` is an assignment expression. */
+  /**
+   * The bound expression. If `outerAst` is an assignment statement, this will be part of the side
+   * to the left of its operator. If this is an input node, it will inside the argument definition.
+   */
   pattern: Ast.Expression | undefined
   /**
    * The value of the node. The right side of the assignment, if `outerAst` is an assignment

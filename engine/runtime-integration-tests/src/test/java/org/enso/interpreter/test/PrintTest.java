@@ -3,6 +3,7 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.*;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -12,6 +13,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -22,12 +24,18 @@ public class PrintTest {
   @Before
   public void prepareCtx() {
     ctx = ContextUtils.createDefaultContext(out);
-    out.reset();
   }
 
   @After
-  public void disposeCtx() {
+  public void disposeCtx() throws IOException {
     ctx.close();
+    ctx = null;
+    out.reset();
+  }
+
+  @AfterClass
+  public static void cleanup() throws IOException {
+    out.close();
   }
 
   private void checkPrint(String code, String expected) throws Exception {

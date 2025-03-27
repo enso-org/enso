@@ -34,6 +34,7 @@ const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
   },
 })
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const ACTION_TO_TEXT_ID: Readonly<
   Record<
     inputBindings.DashboardBindingKey,
@@ -48,7 +49,6 @@ export const ACTION_TO_TEXT_ID: Readonly<
   uploadToCloud: 'uploadToCloudShortcut',
   rename: 'renameShortcut',
   edit: 'editShortcut',
-  editDescription: 'editDescriptionShortcut',
   snapshot: 'snapshotShortcut',
   delete: 'deleteShortcut',
   undelete: 'undeleteShortcut',
