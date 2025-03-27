@@ -236,6 +236,7 @@ add_filter_specs suite_builder setup =
             t.filter "X" (..Regex_Match (regex ".a.*")) . at "X" . to_vector . should_equal ["bacb", "banana", "nana"]
             t.filter "X" (..Regex_Match (regex ".*b")) . at "X" . to_vector . should_equal ["abb", "bacb"]
             t.filter "X" (..Regex_Match (regex "^.*b")) . at "X" . to_vector . should_equal ["abb", "bacb"]
+            t.filter "X" (..Regex_Match (regex "(^...)")) . at "X" . to_vector . should_equal ["abb"]
             t.filter "X" (..Regex_Match (regex ".*b$")) . at "X" . to_vector . should_equal ["abb", "bacb"]
             t.filter "X" (..Regex_Match (regex "nana")) . at "X" . to_vector . should_equal ["nana"]
             t.filter "X" (..Regex_Match (regex "^nana$")) . at "X" . to_vector . should_equal ["nana"]
