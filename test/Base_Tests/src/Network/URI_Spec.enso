@@ -340,7 +340,6 @@ add_specs suite_builder =
                     r1.should_fail_with Illegal_Argument
                     r1.catch.to_display_text . should_contain "Secrets are not allowed in HTTP connections, use HTTPS instead."
 
-    suite_builder.group "Clear cache on reload" group_builder->
         with_secret ~action =
             secret = Enso_Secret.create "my_test_secret-clear-cache-1-"+Random.uuid "My Value"
             secret.should_succeed
