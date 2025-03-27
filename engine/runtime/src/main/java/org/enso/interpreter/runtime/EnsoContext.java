@@ -141,7 +141,7 @@ public final class EnsoContext {
     this.in = environment.in();
     this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
     this.threadExecutors = new ThreadExecutors(this);
-    this.threadManager = new ThreadManager(threadExecutors, environment);
+    this.threadManager = new ThreadManager(threadExecutors, getJobParallelism(), environment);
     this.resourceManager = new ResourceManager(this);
     this.isInlineCachingDisabled = getOption(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     var isParallelismEnabled = getOption(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
@@ -794,10 +794,8 @@ public final class EnsoContext {
 
   /** The job parallelism or 1 */
   public int getJobParallelism() {
-    var n = getOption(RuntimeOptions.JOB_PARALLELISM_KEY);
-    var base = n == null ? 1 : n.intValue();
-    var optimal = Math.round(base * 0.5);
-    return optimal < 1 ? 1 : (int) optimal;
+    int n = getOption(RuntimeOptions.JOB_PARALLELISM_KEY);
+    return Math.max(1, n);
   }
 
   /**

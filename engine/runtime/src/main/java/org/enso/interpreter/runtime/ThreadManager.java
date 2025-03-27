@@ -19,9 +19,9 @@ public final class ThreadManager {
   private static final Object ENTERED = new Object();
   private static final Object NO_OP = new Object();
 
-  ThreadManager(ThreadExecutors th, Env env) {
+  ThreadManager(ThreadExecutors th, int throughput, Env env) {
     this.env = env;
-    this.questCode = th.newCachedThreadPool("guest-code", false, 1, 4, 10);
+    this.questCode = th.newFixedThreadPool(throughput, "guest-code", false);
   }
 
   /**
