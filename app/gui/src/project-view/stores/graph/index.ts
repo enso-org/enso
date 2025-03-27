@@ -701,6 +701,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
         fromCache: update.fromCache ?? false,
         payload: update.payload ?? { type: 'Value' },
         type: update.type ?? [],
+        hiddenType: update.hiddenType ?? [],
         ...(update.methodCall ? { methodCall: update.methodCall } : {}),
       }
       proj.computedValueRegistry.processUpdates([update_])
