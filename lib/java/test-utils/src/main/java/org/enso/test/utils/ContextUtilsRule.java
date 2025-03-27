@@ -1,6 +1,7 @@
 package org.enso.test.utils;
 
 import java.io.ByteArrayOutputStream;
+import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
@@ -38,6 +39,11 @@ public final class ContextUtilsRule implements TestRule {
     return new ContextUtilsRule(contextSupplier, null);
   }
 
+  public static ContextUtilsRule createWithCapturedOut(ByteArrayOutputStream out) {
+    Supplier<Context> supplier = () -> ContextUtils.createDefaultContext(out);
+    return new ContextUtilsRule(supplier, out);
+  }
+
   @Override
   public Statement apply(Statement base, Description description) {
     return new CustomStatement(base, description);
@@ -48,8 +54,47 @@ public final class ContextUtilsRule implements TestRule {
     return ContextUtils.evalModule(ctx, src);
   }
 
+  /**
+   * Evaluates the given source as if it was in a module with given name.
+   *
+   * @param src The source code of the module
+   * @param name name of the module defining the source
+   * @param methodName name of main method to invoke
+   * @return The value returned from the main method of the unnamed module.
+   */
+  public Value evalModule(CharSequence src, String name, String methodName) {
+    return ContextUtils.evalModule(currentCtx(), src, name, methodName);
+  }
+
   public Value eval(Source src) {
     return currentCtx().eval(src);
+  }
+
+  /**
+   * Unwraps the `receiver` field from the Value. This is a hack to allow us to test execute methods
+   * of artificially created ASTs, e.g., single nodes. More specifically, only unwrapped values are
+   * eligible to be passed to node's execute methods, we cannot pass {@link Value} directly to the
+   * node's execute methods.
+   *
+   * <p>Does something similar to what {@link
+   * com.oracle.truffle.tck.DebuggerTester#getSourceImpl(Source)} does, but uses a different hack
+   * than reflective access.
+   */
+  public Object unwrapValue(Value value) {
+    return ContextUtils.unwrapValue(currentCtx(), value);
+  }
+
+  /**
+   * Executes the given callable in the current context.A necessity for executing artificially
+   * created Truffle ASTs.
+   *
+   * @param <T> type of the return value
+   * @param callable action to invoke with given return type
+   * @return Object returned from {@code callable} wrapped in {@link Value}.
+   */
+  public <T> Value executeInContext(Callable<T> callable) {
+    var ctx = currentCtx();
+    return ContextUtils.executeInContext(ctx, callable);
   }
 
   private static Context currentCtx() {
@@ -78,6 +123,7 @@ public final class ContextUtilsRule implements TestRule {
       } catch (Throwable t) {
         throw new FailureWithOutput("Compiler output: " + out.toString(), t);
       } finally {
+        out.reset();
         CURRENT.set(prev);
       }
     }

@@ -1,8 +1,5 @@
 package org.enso.interpreter.test;
 
-import static org.enso.test.utils.ContextUtils.createDefaultContext;
-import static org.enso.test.utils.ContextUtils.evalModule;
-import static org.enso.test.utils.ContextUtils.executeInContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -12,22 +9,20 @@ import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public final class MethodResolutionTest {
   private static MethodResolverNode methodResolverNode;
-  private static Context ctx;
+  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
 
   @BeforeClass
   public static void initCtx() {
-    ctx = createDefaultContext();
-    executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           methodResolverNode = MethodResolverNode.getUncached();
           return null;
@@ -36,16 +31,13 @@ public final class MethodResolutionTest {
 
   @AfterClass
   public static void disposeCtx() {
-    ctx.close();
-    ctx = null;
     methodResolverNode = null;
   }
 
   @Test
   public void resolveStaticMethodFromAny() {
     var myTypeVal =
-        evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         from Standard.Base import all
 
@@ -54,8 +46,7 @@ public final class MethodResolutionTest {
 
         main = My_Type
         """);
-    executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           var myType = unwrapType(myTypeVal);
           var symbol = UnresolvedSymbol.build("to_display_text", myType.getDefinitionScope());
@@ -69,8 +60,7 @@ public final class MethodResolutionTest {
   @Test
   public void resolveInstanceMethodFromMyType() {
     var myTypeVal =
-        evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             method self = 42
@@ -79,8 +69,7 @@ public final class MethodResolutionTest {
         """,
             "Module",
             "main");
-    executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           var myType = unwrapType(myTypeVal);
           var symbol = UnresolvedSymbol.build("method", myType.getDefinitionScope());
@@ -94,8 +83,7 @@ public final class MethodResolutionTest {
   @Test
   public void resolveStaticMethodFromMyType() {
     var myTypeVal =
-        evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             method = 42
@@ -104,8 +92,7 @@ public final class MethodResolutionTest {
         """,
             "Module",
             "main");
-    executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           var myType = unwrapType(myTypeVal);
           var symbol = UnresolvedSymbol.build("method", myType.getDefinitionScope());
@@ -119,8 +106,7 @@ public final class MethodResolutionTest {
   @Test
   public void resolveExtensionMethodFromMyType() {
     var myTypeVal =
-        evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
         My_Type.method = 42
@@ -129,8 +115,7 @@ public final class MethodResolutionTest {
         """,
             "Module",
             "main");
-    executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           var myType = unwrapType(myTypeVal);
           var symbol = UnresolvedSymbol.build("method", myType.getDefinitionScope());
@@ -150,7 +135,7 @@ public final class MethodResolutionTest {
   }
 
   private Type unwrapType(Value val) {
-    var unwrapped = ContextUtils.unwrapValue(ctx, val);
+    var unwrapped = ctxRule.unwrapValue(val);
     return (Type) unwrapped;
   }
 }
