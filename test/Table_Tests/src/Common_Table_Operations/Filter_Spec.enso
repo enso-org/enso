@@ -230,8 +230,7 @@ add_filter_specs suite_builder setup =
         if setup.flagged ..Supports_Regex_Match then group_builder.specify "by text search (regex_match)" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "bacb", "banana", Nothing, "nana"]], ["Y", ["a", "B", "d", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
 
-            z = t.filter "X" (..Regex_Match ".*an.*") . at "X" 
-            z . to_vector . should_equal ["banana", "nana"]
+            t.filter "X" (..Regex_Match ".*an.*") . at "X" . to_vector . should_equal ["banana", "nana"]
             t.filter "X" (..Regex_Match (regex ".*an.*")) . at "X" . to_vector . should_equal ["banana", "nana"]
             t.filter "X" (..Regex_Match (regex ".*an.*") keep_or_remove=Filter_Action.Remove) . at "X" . to_vector . should_equal ["abb", "bacb", Nothing]
             t.filter "X" (..Regex_Match (regex ".a.*")) . at "X" . to_vector . should_equal ["bacb", "banana", "nana"]
