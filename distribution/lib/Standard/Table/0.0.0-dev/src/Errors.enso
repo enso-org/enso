@@ -454,6 +454,12 @@ type No_Index_Set_Error
     to_display_text : Text
     to_display_text self = "The table does not have an index set."
 
+type Argument_Hinted_Error
+   Error error related_argument:Text
+
+   to_display_text self -> Text =
+       error.to_display_text
+
 type Invalid_Value_Type
     ## PRIVATE
        Indicates that a column with an unexpected value type has been encountered.
