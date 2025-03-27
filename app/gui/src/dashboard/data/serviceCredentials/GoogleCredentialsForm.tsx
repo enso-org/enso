@@ -27,7 +27,7 @@ export function GoogleCredentialsDialog(props: CredentialsFormProps) {
     onSubmit: async (formValue) => {
       const nonce = uuidv4()
       await upsertCredential({ input: { type: 'Google', ...formValue }, nonce }, (id) => {
-        invariant($config.GOOGLE_OAUTH_CLIENT_ID, 'Google OAuth client id is missing')
+        invariant($config.GOOGLE_OAUTH_CLIENT_ID != null, 'Google OAuth client id is missing')
         const state = btoa(JSON.stringify({ secretId: id, nonce }))
         const query = new URLSearchParams({
           /* eslint-disable @typescript-eslint/naming-convention, camelcase */

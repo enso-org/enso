@@ -23,7 +23,9 @@ export function SnowflakeCredentialsForm(props: CredentialsFormProps) {
       z
         .object({
           account: z.string(),
+          // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
           client_id: z.string(),
+          // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
           client_secret: z.string(),
           role: z.string(),
         })
