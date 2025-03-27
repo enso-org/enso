@@ -25,8 +25,7 @@ function resizeHandler(resizeX: 'left' | 'right' | false, resizeY: 'top' | 'bott
         emit('update:resizing', resizing)
         break
       case 'move':
-        if (!initialBounds) break
-        else {
+        if (initialBounds) {
           const newBounds = initialBounds.withBoundsClamped(
             selectFields(resizing, {
               top: initialBounds.top + pos.relative.y,
