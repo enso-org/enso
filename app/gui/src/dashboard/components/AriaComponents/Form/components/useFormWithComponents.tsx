@@ -9,7 +9,6 @@ import {
   Password,
   Selector,
   Switch,
-  type CheckboxGroupCheckboxProps,
   type CheckboxProps,
   type ComboBoxProps,
   type DatePickerProps,
@@ -17,7 +16,6 @@ import {
   type MultiSelectorProps,
   type PasswordProps,
   type SelectorProps,
-  type StandaloneCheckboxProps,
   type SwitchProps,
 } from '#/components/AriaComponents'
 import {
@@ -45,85 +43,46 @@ export function useFormWithComponents<Schema extends TSchema, SubmitResult = voi
     [form],
   )
 
-  const SwitchWithForm = useCallback(
-    <TFieldName extends FieldPath<Schema, boolean>>(
-      props: Omit<SwitchProps<Schema, TFieldName>, 'form'>,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax, @typescript-eslint/no-explicit-any
-    ) => <Switch {...props} form={form as any} />,
-    [form],
-  )
+  const SwitchWithForm = Switch as <TFieldName extends FieldPath<Schema, boolean>>(
+    props: Omit<SwitchProps<Schema, TFieldName>, 'form'>,
+  ) => JSX.Element
 
-  const CheckboxGroupWithForm = useCallback(
-    <TFieldName extends FieldPath<Schema, readonly string[]>>(
-      props: Omit<CheckboxGroupProps<Schema, TFieldName>, 'form'>,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax, @typescript-eslint/no-explicit-any
-    ) => <CheckboxGroup {...props} form={form as any} />,
-    [form],
-  )
+  const CheckboxGroupWithForm = CheckboxGroup as <
+    TFieldName extends FieldPath<Schema, readonly string[]>,
+  >(
+    props: Omit<CheckboxGroupProps<Schema, TFieldName>, 'form'>,
+  ) => JSX.Element
 
-  const CheckboxWithForm = useCallback(
-    <TFieldName extends FieldPath<Schema, boolean>>(
-      props: Omit<CheckboxProps<Schema, TFieldName>, 'form'>,
-    ) =>
-      'name' in props ?
-        <Checkbox
-          // eslint-disable-next-line no-restricted-syntax
-          {...(props as Omit<StandaloneCheckboxProps<Schema, TFieldName>, 'form'>)}
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax, @typescript-eslint/no-explicit-any
-          form={form as any}
-        />
-        // eslint-disable-next-line no-restricted-syntax
-      : <Checkbox {...(props as CheckboxGroupCheckboxProps)} />,
-    [form],
-  )
+  const CheckboxWithForm = Checkbox as <TFieldName extends FieldPath<Schema, boolean>>(
+    props: Omit<CheckboxProps<Schema, TFieldName>, 'form'>,
+  ) => JSX.Element
 
-  const InputWithForm = useCallback(
-    <TFieldName extends FieldPath<Schema, number | string>>(
-      props: Omit<InputProps<Schema, TFieldName>, 'form'>,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax, @typescript-eslint/no-explicit-any
-    ) => <Input {...props} form={form as any} />,
-    [form],
-  )
+  const InputWithForm = Input as <TFieldName extends FieldPath<Schema, number | string>>(
+    props: Omit<InputProps<Schema, TFieldName>, 'form'>,
+  ) => JSX.Element
 
-  const SelectorWithForm = useCallback(
-    <TFieldName extends FieldPath<Schema, T>, T>(
-      props: Omit<SelectorProps<Schema, TFieldName, T>, 'form'>,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax, @typescript-eslint/no-explicit-any
-    ) => <Selector {...props} form={form as any} />,
-    [form],
-  )
+  const SelectorWithForm = Selector as <TFieldName extends FieldPath<Schema, T>, T>(
+    props: Omit<SelectorProps<Schema, TFieldName, T>, 'form'>,
+  ) => JSX.Element
 
-  const MultiSelectorWithForm = useCallback(
-    <TFieldName extends FieldPath<Schema, readonly T[]>, T>(
-      props: Omit<MultiSelectorProps<Schema, TFieldName, T>, 'form'>,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax, @typescript-eslint/no-explicit-any
-    ) => <MultiSelector {...props} form={form as any} />,
-    [form],
-  )
+  const MultiSelectorWithForm = MultiSelector as <
+    TFieldName extends FieldPath<Schema, readonly T[]>,
+    T,
+  >(
+    props: Omit<MultiSelectorProps<Schema, TFieldName, T>, 'form'>,
+  ) => JSX.Element
 
-  const ComboBoxWithForm = useCallback(
-    <TFieldName extends FieldPath<Schema, string>>(
-      props: Omit<ComboBoxProps<Schema, TFieldName>, 'form'>,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax, @typescript-eslint/no-explicit-any
-    ) => <ComboBox {...props} form={form as any} />,
-    [form],
-  )
+  const ComboBoxWithForm = ComboBox as <TFieldName extends FieldPath<Schema, string>>(
+    props: Omit<ComboBoxProps<Schema, TFieldName>, 'form'>,
+  ) => JSX.Element
 
-  const DatePickerWithForm = useCallback(
-    <TFieldName extends FieldPath<Schema, DateValue>>(
-      props: Omit<DatePickerProps<Schema, TFieldName>, 'form'>,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax, @typescript-eslint/no-explicit-any
-    ) => <DatePicker {...props} form={form as any} />,
-    [form],
-  )
+  const DatePickerWithForm = DatePicker as <TFieldName extends FieldPath<Schema, DateValue>>(
+    props: Omit<DatePickerProps<Schema, TFieldName>, 'form'>,
+  ) => JSX.Element
 
-  const PasswordWithForm = useCallback(
-    <TFieldName extends FieldPath<Schema, string>>(
-      props: Omit<PasswordProps<Schema, TFieldName>, 'form'>,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax, @typescript-eslint/no-explicit-any
-    ) => <Password {...props} form={form as any} />,
-    [form],
-  )
+  const PasswordWithForm = Password as <TFieldName extends FieldPath<Schema, string>>(
+    props: Omit<PasswordProps<Schema, TFieldName>, 'form'>,
+  ) => JSX.Element
 
   /* eslint-disable @typescript-eslint/naming-convention */
   return {
