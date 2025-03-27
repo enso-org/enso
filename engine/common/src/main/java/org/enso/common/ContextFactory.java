@@ -3,7 +3,6 @@ package org.enso.common;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Handler;
@@ -230,13 +229,6 @@ public final class ContextFactory {
 
     if (projectRoot != null) {
       builder.option(RuntimeOptions.PROJECT_ROOT, projectRoot);
-      var parentDir = Path.of(projectRoot).getParent();
-      if (parentDir != null) {
-        var parentDirAbs = parentDir.toAbsolutePath().toString();
-        if (!System.getProperty("user.dir").equals(parentDirAbs)) {
-          builder.currentWorkingDirectory(parentDir);
-        }
-      }
       var graalpy =
           new File(
               new File(new File(new File(new File(projectRoot), "polyglot"), "python"), "bin"),
