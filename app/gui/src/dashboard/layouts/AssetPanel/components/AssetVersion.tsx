@@ -4,13 +4,13 @@ import type Backend from '#/services/Backend'
 import * as backendService from '#/services/Backend'
 
 import { Button, CopyButton, Dialog, Menu, Popover, Text } from '#/components/AriaComponents'
+import { Badge } from '#/components/Badge'
 import { Icon } from '#/components/Icon'
 import { TEXT_WITH_ICON } from '#/components/patterns'
 import { ProfilePicture } from '#/components/ProfilePicture'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { setModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
-import { Badge } from '../../../components/Badge'
-import { useEventCallback } from '../../../hooks/eventCallbackHooks'
 import { AssetDiffView } from '../../AssetDiffView'
 
 /**
@@ -22,7 +22,7 @@ export interface Version extends backendService.S3ObjectVersion {
 }
 
 /**
- *
+ * Options for duplicating an asset.
  */
 export interface DuplicateOptions {
   readonly start?: boolean
