@@ -1,6 +1,6 @@
 /** @file Constants related to the application root component. */
 
-// === Paths ===
+export const ORGANIZATION_NAME_MAX_LENGTH = 64
 
 export const OPEN_IDE_DEEPLINK = 'enso://'
 

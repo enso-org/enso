@@ -39,6 +39,7 @@ export interface SelectorProps<Schema extends TSchema, TFieldName extends FieldP
   readonly placeholder?: string
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const SELECTOR_STYLES = tv({
   base: 'block w-full bg-transparent transition-[border-color,outline] duration-200',
   variants: {

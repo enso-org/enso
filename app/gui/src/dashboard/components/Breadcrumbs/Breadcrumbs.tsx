@@ -15,6 +15,7 @@ import { Button, type IconProp, type TestIdProps } from '../AriaComponents'
 import { Icon } from '../Icon'
 import { BreadcrumbItem, BreadcrumbItemProvider } from './BreadcrumbItem'
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const BREADCRUMBS_STYLES = tv({
   base: 'flex items-center w-full',
   slots: { separator: 'text-primary last:hidden w-2.5 h-2.5 mt-[0.5px]' },

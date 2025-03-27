@@ -59,6 +59,7 @@ type StandaloneCheckboxProps<
   TFieldName extends FieldPath<Schema, boolean>,
 > = FieldProps & FieldStateProps<AriaCheckboxProps, Schema, TFieldName, boolean> & FieldVariantProps
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const CHECKBOX_STYLES = tv({
   base: 'group flex gap-2 items-center cursor-pointer select-none',
   variants: {

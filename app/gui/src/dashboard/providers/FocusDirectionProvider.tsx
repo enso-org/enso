@@ -35,6 +35,7 @@ export default function FocusDirectionProvider(props: FocusDirectionProviderProp
 }
 
 /** The current direction in which focus siblings are located. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useFocusDirection() {
   return React.useContext(FocusDirectionContext).direction
 }

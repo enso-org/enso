@@ -30,7 +30,7 @@ export interface Sample {
 }
 
 /** The full list of templates. */
-export const SAMPLES: Sample[] = [
+const SAMPLES: Sample[] = [
   {
     title: 'New Project',
     id: 'Default',

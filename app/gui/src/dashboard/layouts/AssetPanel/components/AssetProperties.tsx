@@ -401,7 +401,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
           >
-            {getText('secret')}
+            {getText('configuration')}
           </Heading>
           <UpsertSecretModal
             key={item.id}
@@ -423,7 +423,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
           >
-            {getText('datalink')}
+            {getText('configuration')}
           </Heading>
           {datalinkQuery.isLoading ?
             <div className="grid place-items-center self-stretch">

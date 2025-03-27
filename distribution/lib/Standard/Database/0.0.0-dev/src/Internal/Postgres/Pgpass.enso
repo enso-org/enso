@@ -1,6 +1,5 @@
 from Standard.Base import all
-
-polyglot java import java.lang.StringBuilder as Java_String_Builder
+import Standard.Base.Runtime.Ref.Ref
 
 ## PRIVATE
    Read the .pgpass file from the User's home directory and obtain username
@@ -88,37 +87,36 @@ parse_file file =
 ## PRIVATE
 parse_line line =
     Vector.build existing_entries->
-        current_entry = Java_String_Builder.new
+        current_entry = Ref.new ""
         next_entry =
-            current_str = current_entry.toString
-            existing_entries.append current_str
-            current_entry.delete 0 current_str.length
+            existing_entries.append current_entry.get
+            current_entry.put ""
         characters = line.characters
         go ix is_escape = case ix>=characters.length of
             True ->
                 if is_escape then
                     # Handle the trailing escape character.
-                    current_entry.append '\\'
+                    current_entry.modify (+ '\\')
                 next_entry
             False ->
                 c = characters.at ix
                 case c=='\\' of
                     True ->
                         if is_escape then
-                            current_entry.append '\\'
+                            current_entry.modify (+ '\\')
                         @Tail_Call go (ix+1) is_escape.not
                     False -> case c==':' of
                         True ->
                             case is_escape of
-                                True -> current_entry.append ':'
+                                True -> current_entry.modify (+ ':')
                                 False -> next_entry
                             @Tail_Call go (ix+1) False
                         False ->
                             if is_escape then
                                 # Handle escape character followed by other characters.
-                                current_entry.append '\\'
+                                current_entry.modify (+ '\\')
                             # Any other character is just appended and escape is reset.
-                            current_entry.append c
+                            current_entry.modify (+ c)
                             @Tail_Call go (ix+1) False
         go 0 False
         existing_entries
