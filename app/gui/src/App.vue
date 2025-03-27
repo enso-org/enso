@@ -57,10 +57,10 @@ const interactionBindingsHandler = interactionBindings.handler({
   cancel: () => interaction.handleCancel(),
 })
 
+useEvent(window, 'keydown', interactionBindingsHandler)
 useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointerdown'), {
   capture: true,
 })
-
 useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
   capture: true,
 })
@@ -73,7 +73,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div :class="['App', ...classSet.keys()]" @keydown="interactionBindingsHandler">
+  <div :class="['App', ...classSet.keys()]">
     <ProjectView v-if="projectViewOnly" v-bind="projectViewOnly.options" />
     <ReactRootWrapper
       v-else

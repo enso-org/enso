@@ -27,7 +27,7 @@ import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { builtinWidgets } from '@/components/widgets'
 import { useDoubleClick } from '@/composables/doubleClick'
-import { keyboardBusy, keyboardBusyExceptIn, unrefElement } from '@/composables/events'
+import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/composables/events'
 import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { ActionName, registerHandlers, toggledAction } from '@/providers/action'
@@ -292,18 +292,17 @@ const actionHandlers = registerHandlers({
   ),
 })
 
-/**
- * A keyevent handler which handles shortcuts of this and some more panels.
- * See also https://github.com/enso-org/enso/issues/10414
- */
-function broadShortcutHandler(event: KeyboardEvent) {
-  if (!keyboardBusy() && undoBindingsHandler(event)) return
-  if (!keyboardBusy() && graphBindingsHandler(event)) return
-  if (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event)) return
-  if (!keyboardBusyExceptIn(documentationEditorArea.value) && documentationEditorHandler(event))
-    return
-  if (!keyboardBusy() && graphNavigator.keyboardEvents.keydown(event)) return
-}
+// See also https://github.com/enso-org/enso/issues/10414
+useEvent(
+  window,
+  'keydown',
+  (event) =>
+    (!keyboardBusy() && undoBindingsHandler(event)) ||
+    (!keyboardBusy() && graphBindingsHandler(event)) ||
+    (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event)) ||
+    (!keyboardBusyExceptIn(documentationEditorArea.value) && documentationEditorHandler(event)) ||
+    (!keyboardBusy() && graphNavigator.keyboardEvents.keydown(event)),
+)
 
 function tryGetSelectionDocUrl() {
   const selected = nodeSelection.tryGetSoleSelection()
@@ -667,7 +666,6 @@ const contextMenuActions: ActionName[] = [
     :style="groupColors"
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
-    @keydown="broadShortcutHandler"
   >
     <div class="vertical">
       <ContextMenuTrigger
