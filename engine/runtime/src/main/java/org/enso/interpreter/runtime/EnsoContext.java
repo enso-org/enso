@@ -1001,7 +1001,7 @@ public final class EnsoContext {
 
   private int threadCounter;
 
-  public Thread createThread(boolean systemThread, Runnable run) {
+  final Thread createThread(boolean systemThread, Runnable run) {
     if (systemThread) {
       var t = new Thread(run, "Enso thread #" + ++threadCounter);
       return t;

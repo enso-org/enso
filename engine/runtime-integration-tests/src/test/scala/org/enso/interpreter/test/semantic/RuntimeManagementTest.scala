@@ -5,7 +5,6 @@ import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 import org.enso.common.{LanguageInfo, MethodNames}
 
 import scala.ref.WeakReference
-import scala.util.Try
 
 class RuntimeManagementTest extends InterpreterTest {
   override def subject: String = "Enso Code Execution"
@@ -37,18 +36,13 @@ class RuntimeManagementTest extends InterpreterTest {
 
       val main = getMain(code)
 
-      val runnable: Runnable = { () =>
-        val p = langCtx.getThreadManager.enter()
-        try {
-          Try(main.execute())
-        } finally {
-          langCtx.getThreadManager.leave(p)
-        }
-      }
+      def runMain(): java.util.concurrent.Future[org.graalvm.polyglot.Value] =
+        langCtx.getThreadManager.submit(() => {
+          main.execute()
+        })
 
       def runTest(n: Int = 5): Unit = {
-        val threads = 0.until(n).map(_ => new Thread(runnable))
-        threads.foreach(_.start())
+        val futures       = 0.until(n).map(_ => runMain())
         var reportedCount = 0
         while (reportedCount < n) {
           Thread.sleep(100)
@@ -56,9 +50,9 @@ class RuntimeManagementTest extends InterpreterTest {
         }
         val expectedOut = List.fill(n)("Interrupted.")
         langCtx.getThreadManager.interruptThreads()
-        threads.foreach(_.join())
+        futures.foreach(_.get())
         consumeOut shouldEqual expectedOut
-        threads.forall(!_.isAlive) shouldBe true
+        futures.forall(!_.isDone) shouldBe true
       }
 
       runTest()

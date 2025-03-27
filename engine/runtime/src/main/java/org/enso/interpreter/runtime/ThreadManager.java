@@ -21,7 +21,7 @@ public final class ThreadManager {
 
   ThreadManager(ThreadExecutors th, Env env) {
     this.env = env;
-    this.questCode = th.newFixedThreadPool(1, "quest-code", false);
+    this.questCode = th.newCachedThreadPool("guest-code", false, 1, 4, 10);
   }
 
   /**
@@ -36,12 +36,16 @@ public final class ThreadManager {
    * @return a token object that must be passed to {@link #leave(Object)}. This object is opaque,
    *     with no guarantees on its structure.
    */
-  public Object enter() {
-    if (interruptFlags.get(Thread.currentThread()) == null) {
+  private Object enter() {
+    if (isNotEnteredYet()) {
       interruptFlags.put(Thread.currentThread(), false);
       return ENTERED;
     }
     return NO_OP;
+  }
+
+  private boolean isNotEnteredYet() {
+    return interruptFlags.get(Thread.currentThread()) == null;
   }
 
   /**
@@ -51,21 +55,37 @@ public final class ThreadManager {
    *
    * @param token the token returned by the corresponding call to {@link #enter()}.
    */
-  public void leave(Object token) {
+  private void leave(Object token) {
     if (token != NO_OP) {
       interruptFlags.remove(Thread.currentThread());
     }
   }
 
+  /**
+   * Schedules a computation of provided action on one of available <em>guest threads</em>.
+   *
+   * @param <T> type of the value to operate on
+   * @param action the action to perform to obtain a value
+   * @return observable future filled with the computed value
+   */
   public final <T> CompletableFuture<T> submit(Supplier<T> action) {
-    if (Thread.currentThread().getName().startsWith("guest-code")) {
+    if (isNotEnteredYet()) {
+      Supplier<T> wrap =
+          () -> {
+            var tok = enter();
+            try {
+              return action.get();
+            } finally {
+              leave(tok);
+            }
+          };
+      return CompletableFuture.supplyAsync(wrap, questCode);
+    } else {
       try {
         return CompletableFuture.completedFuture(action.get());
       } catch (Exception ex) {
         return CompletableFuture.failedFuture(ex);
       }
-    } else {
-      return CompletableFuture.supplyAsync(action, questCode);
     }
   }
 

@@ -202,14 +202,12 @@ public final class ExecutionService {
                           service.bind(
                               module, call.getFunction().getCallTarget(), callbacks, this.timer));
 
-              Object p = context.getThreadManager().enter();
               try {
                 var callFn =
                     Function.fullyApplied(
                         execute.getCallTarget(), substituteMissingArguments(call));
                 RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
               } finally {
-                context.getThreadManager().leave(p);
                 eventNodeFactory.ifPresent(EventBinding::dispose);
               }
               return null;
@@ -306,12 +304,7 @@ public final class ExecutionService {
     var future =
         submitExecution(
             () -> {
-              Object p = context.getThreadManager().enter();
-              try {
-                return invoke.getCallTarget().call(module, expression);
-              } finally {
-                context.getThreadManager().leave(p);
-              }
+              return invoke.getCallTarget().call(module, expression);
             });
     return resultOf(future);
   }
@@ -343,15 +336,10 @@ public final class ExecutionService {
     var future =
         submitExecution(
             () -> {
-              Object p = context.getThreadManager().enter();
-              try {
-                var callArgs =
-                    Function.ArgumentsHelper.buildArguments(
-                        null, new Object[] {fn, new Object[] {argument}});
-                return call.getCallTarget().call(callArgs);
-              } finally {
-                context.getThreadManager().leave(p);
-              }
+              var callArgs =
+                  Function.ArgumentsHelper.buildArguments(
+                      null, new Object[] {fn, new Object[] {argument}});
+              return call.getCallTarget().call(callArgs);
             });
     return resultOf(future);
   }
@@ -412,7 +400,6 @@ public final class ExecutionService {
                   idExecutionInstrument.map(
                       service -> service.bind(module, entryCallTarget, callbacks, this.timer));
               var ret = new Object[1];
-              Object p = context.getThreadManager().enter();
               try {
                 State state;
                 if (fn instanceof FunctionCallInstrumentationNode.FunctionCall fnCall) {
@@ -427,7 +414,6 @@ public final class ExecutionService {
                 ret[0] =
                     RunStateNode.getUncached().execute(null, cacheKey(), executionCache, callFn);
               } finally {
-                context.getThreadManager().leave(p);
                 eventNodeFactory.ifPresent(EventBinding::dispose);
               }
               return ret[0];
@@ -563,8 +549,12 @@ public final class ExecutionService {
    * @return a human-readable version of its contents.
    */
   public String getExceptionMessage(AbstractTruffleException panic) {
+    var future = submitExecution(() -> computeExceptionMessage(panic));
+    return resultOf(future);
+  }
+
+  private String computeExceptionMessage(AbstractTruffleException panic) {
     var iop = InteropLibrary.getUncached();
-    var p = context.getThreadManager().enter();
     var payload = panic instanceof PanicException ex ? ex.getPayload() : panic;
     try {
       // Invoking a member on an Atom that does not have a method `to_display_text` will not
@@ -585,8 +575,6 @@ public final class ExecutionService {
       } else {
         throw e;
       }
-    } finally {
-      context.getThreadManager().leave(p);
     }
   }
 

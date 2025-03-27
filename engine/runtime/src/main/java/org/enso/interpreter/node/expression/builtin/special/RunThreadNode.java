@@ -7,8 +7,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
-import org.enso.interpreter.node.BaseNode;
-import org.enso.interpreter.node.callable.thunk.ThunkExecutorNodeGen;
 import org.enso.interpreter.runtime.EnsoContext;
 
 @BuiltinMethod(type = "Special", name = "<run_thread>")
@@ -23,23 +21,25 @@ public abstract class RunThreadNode extends Node {
   @Specialization
   Thread doExecute(MaterializedFrame frame, Object self) {
     EnsoContext ctx = EnsoContext.get(this);
-    Thread thread =
-        ctx.createThread(
-            false,
-            () -> {
-              Object p = ctx.getThreadManager().enter();
-              try {
-                ThunkExecutorNodeGen.getUncached()
-                    .executeThunk(
-                        frame,
-                        self,
-                        EnsoContext.get(this).currentState(),
-                        BaseNode.TailStatus.NOT_TAIL);
-              } finally {
-                ctx.getThreadManager().leave(p);
-              }
-            });
-    thread.start();
-    return thread;
+    /*
+        Thread thread =
+            ctx.createThread(
+                false,
+                () -> {
+                  Object p = ctx.getThreadManager().enter();
+                  try {
+                    ThunkExecutorNodeGen.getUncached()
+                        .executeThunk(
+                            frame,
+                            self,
+                            EnsoContext.get(this).currentState(),
+                            BaseNode.TailStatus.NOT_TAIL);
+                  } finally {
+                    ctx.getThreadManager().leave(p);
+                  }
+                });
+        thread.start();
+    */
+    throw ctx.raiseAssertionPanic(this, "Cannot run new thread", null);
   }
 }
