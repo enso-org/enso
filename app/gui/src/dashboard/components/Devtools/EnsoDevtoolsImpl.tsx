@@ -303,15 +303,6 @@ export function EnsoDevtools() {
                       setFeatureFlag('enableHybridExecution', value)
                     }}
                   />
-                  <ariaComponents.Switch
-                    form={form}
-                    name="moreComputedNotifications"
-                    label="More Computed Notifications"
-                    description="More Computed Notifications (for copy, move, delete and undelete)"
-                    onChange={(value) => {
-                      setFeatureFlag('moreComputedNotifications', value)
-                    }}
-                  />
                 </>
               )}
             </ariaComponents.Form>
