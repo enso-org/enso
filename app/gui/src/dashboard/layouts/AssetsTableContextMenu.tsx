@@ -81,9 +81,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const deleteAssetsMutation = useMutation(deleteAssetsMutationOptions(backend))
   const restoreAssetsMutation = useMutation(restoreAssetsMutationOptions(backend))
   const showDeveloperIds = useFeatureFlag('showDeveloperIds')
-  const copyIdsMutation = useCopy({
-    copyText: selectedAssets.map((asset) => asset.id).join('\n'),
-  })
+  const copyMutation = useCopy()
 
   const hasPasteData = useStore(driveStore, ({ pasteData }) => {
     const effectivePasteData =
@@ -134,7 +132,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       action="copyId"
       color="accent"
       label={getText('copyAllIdsShortcut')}
-      doAction={copyIdsMutation.mutateAsync}
+      doAction={() => copyMutation.mutateAsync(selectedAssets.map((asset) => asset.id).join('\n'))}
     />
   )
 

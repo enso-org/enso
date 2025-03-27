@@ -15,24 +15,23 @@ import * as textProvider from '#/providers/TextProvider'
 
 /** Props for the useCopy hook. */
 export interface UseCopyProps {
-  readonly copyText: string
-  readonly onCopy?: () => void
+  readonly onCopy?: (() => void) | undefined
   readonly successToastMessage?: boolean | string
 }
 
 const DEFAULT_TIMEOUT = 2000
 
 /** A hook for copying text to the clipboard. */
-export function useCopy(props: UseCopyProps) {
-  const { copyText, onCopy, successToastMessage = true } = props
+export function useCopy(props: UseCopyProps = {}) {
+  const { onCopy, successToastMessage = true } = props
 
   const resetTimeoutIdRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   const copyQuery = reactQuery.useMutation({
-    mutationFn: () => {
-      return navigator.clipboard.writeText(copyText)
+    mutationFn: (text: string) => {
+      return navigator.clipboard.writeText(text)
     },
     onMutate: () => {
       // Clear the reset timeout.

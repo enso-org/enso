@@ -4,7 +4,7 @@ import * as React from 'react'
 import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 
-import * as copyHooks from '#/hooks/copyHooks'
+import { useCopy } from '#/hooks/copyHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -88,8 +88,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const downloadAssetsMutation = reactQuery.useMutation(downloadAssetsMutationOptions(backend))
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const path = asset.ensoPathValue
-  const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
-  const copyIdMutation = copyHooks.useCopy({ copyText: asset.id })
+  const copyMutation = useCopy()
   const uploadFileToCloudMutation = useUploadFileWithToastMutation(remoteBackend)
   const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined
   const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
@@ -182,7 +181,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
       hidden={hidden}
       color="accent"
       action="copyId"
-      doAction={copyIdMutation.mutateAsync}
+      doAction={() => copyMutation.mutateAsync(asset.id)}
     />
   )
 
@@ -427,7 +426,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <ContextMenuEntry
             hidden={hidden}
             action="copyAsPath"
-            doAction={copyMutation.mutateAsync}
+            doAction={() => copyMutation.mutateAsync(path)}
           />
         )}
         {!isRunningProject && !isOtherUserUsingProject && (
