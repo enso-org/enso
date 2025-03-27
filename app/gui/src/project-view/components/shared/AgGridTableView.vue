@@ -120,9 +120,10 @@ const props = defineProps<{
   suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
   processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
-  datasource?: IServerSideDatasource
+  datasource: IServerSideDatasource | null
   rowCount?: number
   isServerSideModel?: boolean
+  nodeType?: string
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -148,6 +149,12 @@ function onGridReady(event: GridReadyEvent<TData>) {
 }
 
 const rowModelType = computed(() => (props.isServerSideModel ? 'serverSide' : 'clientSide'))
+
+const gridKey = ref(0);
+
+watch(() => props.nodeType, () => {
+  gridKey.value++; // Force re-render of the grid component
+});
 
 watch(
   () => props.textFormatOption,
@@ -344,6 +351,7 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       v-bind="$attrs"
       ref="grid"
       class="ag-theme-alpine inner"
+      :key="gridKey"
       :headerHeight="26"
       :rowModelType="rowModelType"
       :serverSideDatasource="datasource"

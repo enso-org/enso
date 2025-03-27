@@ -154,6 +154,8 @@ const defaultColDef: Ref<ColDef> = ref({
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
+const datasource = ref<IServerSideDatasource | null>(null)
+const nodeType = ref<string | undefined>(undefined)
 const allRowCount = computed(() =>
   typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
 )
@@ -180,6 +182,14 @@ const statusBar = computed(() =>
     }
   : null,
 )
+
+watchEffect(() => {
+  console.log('HELLLO')
+  console.log(config.nodeType)
+  datasource.value = null
+  datasource.value = createServerSideDatasource()
+  nodeType.value = config.nodeType
+})
 
 const textFormatterSelected = ref<TextFormatOptions>('partial')
 
@@ -321,9 +331,16 @@ function createServer() {
         valueList,
       )
       const response = await config.executeExpression(expressionFunction)
-      return {
-        success: true,
-        data: response.value.rows,
+      if (response.ok) {
+        return {
+          success: true,
+          data: response.value.rows,
+        }
+      } else {
+        return {
+          success: false,
+          data: null,
+        }
       }
     },
   }
@@ -745,8 +762,12 @@ watchEffect(() => {
         ]
       : dataHeader
     if (!data_.is_using_server_sort_and_filter) {
+      const hasIndexRow = config.nodeType === TABLE_NODE_TYPE
+      const shift = hasIndexRow ? 1 : 0
       rowData.value =
-        data_.data ? createRowsForTable(data_.data, 1, data_.is_using_server_sort_and_filter) : []
+        data_.data ?
+          createRowsForTable(data_.data, shift, data_.is_using_server_sort_and_filter)
+        : []
     }
   }
   const headerGroupingMap = new Map()
@@ -961,10 +982,11 @@ config.setToolbar(
         :rowData="rowData"
         :defaultColDef="defaultColDef"
         :textFormatOption="textFormatterSelected"
-        :datasource="createServerSideDatasource()"
+        :datasource="datasource"
         :rowCount="allRowCount"
         :isServerSideModel="isSSRM"
         :statusBar="statusBar"
+        :nodeType="nodeType"
         @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
       />
     </Suspense>
