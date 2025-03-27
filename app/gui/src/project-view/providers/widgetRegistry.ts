@@ -19,6 +19,17 @@ export namespace WidgetInput {
     }
   }
 
+  /** Returns widget-input data for the given AST tree or token with a specific port ID. */
+  export function FromAstWithPortId<A extends Ast.Ast | Ast.Token>(
+    ast: A,
+    portId: PortId,
+  ): WidgetInput & { value: A } {
+    return {
+      portId,
+      value: ast,
+    }
+  }
+
   /** Returns the input marked to be a port. */
   export function WithPort<T extends WidgetInput>(input: T): T {
     return {

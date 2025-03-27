@@ -14,16 +14,6 @@ const functionInfo = injectFunctionInfo(true)
 const graph = useGraphStore()
 const tree = injectWidgetTree()
 
-const typeAnnotation = computed(() => {
-  if (
-    props.input.value.lhs instanceof Ast.Group &&
-    props.input.value.lhs.expression instanceof Ast.TypeAnnotated
-  ) {
-    return props.input.value.lhs.expression
-  }
-  return null
-})
-
 const baseIcon = computed(() => {
   const callInfo = functionInfo?.callInfo
   return displayedIconOf(
@@ -38,8 +28,15 @@ const iconInput = computed(() => {
   const lhs = props.input.value.lhs
   if (!lhs) return
   if (lhs instanceof Ast.Group && lhs.expression instanceof Ast.TypeAnnotated) {
-    const input = WidgetInput.WithPort(WidgetInput.FromAst(lhs.expression.expression))
-    input[DisplayIcon] = { icon: displayedIcon.value, showContents: false }
+    const input = WidgetInput.WithPort(
+      WidgetInput.FromAstWithPortId(lhs.expression, lhs.expression.expression.id),
+    )
+    input[DisplayIcon] = { icon: displayedIcon.value, showContents: true, noGap: true }
+    return input
+  } else if (lhs instanceof Ast.TypeAnnotated) {
+    const portId = lhs.expression.id
+    const input = WidgetInput.WithPort(WidgetInput.FromAstWithPortId(lhs, portId))
+    input[DisplayIcon] = { icon: displayedIcon.value, showContents: true, noGap: true }
     return input
   }
   const input = WidgetInput.WithPort(WidgetInput.FromAst(lhs))
@@ -72,6 +69,11 @@ export const widgetDefinition = defineWidget(
               return Score.Good
             }
           }
+        } else if (info.input.value.lhs instanceof Ast.TypeAnnotated) {
+          const subject = info.input.value.lhs.expression.id
+          if (subject === selfId) {
+            return Score.Good
+          }
         }
       }
       return Score.Mismatch
@@ -84,9 +86,6 @@ export const widgetDefinition = defineWidget(
 <template>
   <div class="WidgetSelfAccessChain" :class="{ showFullAccessChain }">
     <NodeWidget v-if="iconInput" :input="iconInput" />
-    <span v-if="typeAnnotation" class="token widgetApplyPadding">:</span>
-    <NodeWidget v-if="typeAnnotation" :input="WidgetInput.FromAst(typeAnnotation.typeNode)" />
-    <span v-if="typeAnnotation" class="token widgetApplyPadding">.</span>
     <NodeWidget
       v-if="showFullAccessChain"
       :input="WidgetInput.FromAst(props.input.value.operator)"

@@ -83,6 +83,12 @@ export function primaryApplicationSubject(
       accessChain: accessChain.map((ast) => ast.id),
     }
   }
+  if (subject instanceof Ast.TypeAnnotated && isAcceptableSubject(subject.expression)) {
+    return {
+      subject: subject.expression.id,
+      accessChain: accessChain.map((ast) => ast.id),
+    }
+  }
   // The leftmost element must be an identifier or a placeholder.
   if (!isAcceptableSubject(subject)) return
   return { subject: subject.id, accessChain: accessChain.map((ast) => ast.id) }
