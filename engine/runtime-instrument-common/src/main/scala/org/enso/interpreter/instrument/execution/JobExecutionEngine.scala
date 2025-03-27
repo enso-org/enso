@@ -99,10 +99,8 @@ final class JobExecutionEngine(
               forceInterruptTimeout - timeSinceRequestedToCancel
             logger.trace(
               "About to wait {}ms  to cancel job {}",
-              Array[Any](
-                timeToCancel,
-                runningJob.id
-              )
+              timeToCancel,
+              runningJob.id
             )
             runningJob.future.get(timeToCancel, TimeUnit.MILLISECONDS)
             logger.trace(
@@ -238,7 +236,8 @@ final class JobExecutionEngine(
     val promise = Promise[A]()
     logger.debug(
       s"Submitting job: {} with {} id...",
-      Array[AnyRef](job, jobId)
+      job,
+      jobId
     )
     val future = executorService.submit(() => {
       logger.debug("Executing job: {}...", job)
@@ -248,7 +247,8 @@ final class JobExecutionEngine(
         val took   = System.currentTimeMillis() - before
         logger.debug(
           "Job {} finished in {} ms.",
-          Array[Any](job, took)
+          job,
+          took
         )
         promise.success(result)
       } catch {
@@ -294,7 +294,9 @@ final class JobExecutionEngine(
       }
     logger.debug(
       "Aborting {} jobs because {}: {}",
-      Array[Any](cancellableJobs.length, reason, cancellableJobs.map(_.id))
+      cancellableJobs.length,
+      reason,
+      cancellableJobs.map(_.id)
     )
 
     val pending = cancellableJobs.flatMap(
@@ -322,7 +324,8 @@ final class JobExecutionEngine(
         ) {
           logger.debug(
             "Aborting job {} because {}",
-            Array[Any](runningJob.id, reason)
+            runningJob.id,
+            reason
           )
           Some(runningJob)
         } else None
@@ -346,7 +349,8 @@ final class JobExecutionEngine(
         if (runningJob.job.isCancellable && accept.apply(runningJob.job)) {
           logger.debug(
             "Aborting job {} because {}",
-            Array[Any](runningJob.id, reason)
+            runningJob.id,
+            reason
           )
           Some(runningJob)
         } else None
@@ -370,7 +374,9 @@ final class JobExecutionEngine(
       }
     logger.debug(
       "Aborting {} background jobs because {}: {}",
-      Array[Any](cancellableJobs.length, reason, cancellableJobs.map(_.id))
+      cancellableJobs.length,
+      reason,
+      cancellableJobs.map(_.id)
     )
     val pending = cancellableJobs.flatMap(
       maybeForceCancelRunningJob(_, softAbortFirst = true)
@@ -414,10 +420,8 @@ final class JobExecutionEngine(
     )
     logger.debug(
       "Submitting {} background jobs [{}]",
-      Array[AnyRef](
-        delayedBackgroundJobsQueue.size(): Integer,
-        delayedBackgroundJobsQueue
-      )
+      delayedBackgroundJobsQueue.size(): Integer,
+      delayedBackgroundJobsQueue
     )
     delayedBackgroundJobsQueue.forEach(job => runBackground(job))
     delayedBackgroundJobsQueue.clear()

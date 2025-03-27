@@ -35,8 +35,8 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
                           LoggerFactory.getLogger(SerializeModuleJob.class)
                               .warn(
                                   "Attempt to serialize the module [{}] at stage [{}].",
-                                  module.getName(), module.getCompilationStage()
-                          );
+                                  module.getName(),
+                                  module.getCompilationStage());
                           return;
                         }
                         compiler
