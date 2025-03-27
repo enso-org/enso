@@ -13,6 +13,10 @@ export interface ProfilePictureProps
    * The name of the user, used as the `alt` attribute of the image.
    */
   readonly name: string
+  /**
+   * The class name to apply to the component.
+   */
+  readonly className?: string | undefined
 }
 
 /**

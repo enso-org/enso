@@ -51,8 +51,4 @@ export type VariantProps<
    * ```
    */
   variants?: ExtractFunction<Component> | undefined
-  /**
-   * The class name to apply to the component.
-   */
-  className?: string | undefined
 }
