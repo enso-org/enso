@@ -2154,7 +2154,8 @@ type Table
             case filter_condition of
                 _ : Filter_Condition ->
                     resolved = (self:Table_Ref).resolve_condition filter_condition
-                    mask (make_filter_column column resolved on_problems)
+                    wrap_error "column" <|
+                        mask (make_filter_column column resolved on_problems)
                 _ : Function -> mask (column.map filter_condition)
         _ : Expression -> self.filter (self.evaluate_expression column on_problems) filter on_problems
         _ ->
