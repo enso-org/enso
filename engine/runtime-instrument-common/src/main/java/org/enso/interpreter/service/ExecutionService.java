@@ -2,7 +2,6 @@ package org.enso.interpreter.service;
 
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventBinding;
@@ -23,8 +22,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
-import java.util.logging.Level;
-import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.compiler.suggestions.SimpleUpdate;
 import org.enso.interpreter.instrument.Endpoint;
@@ -63,6 +60,8 @@ import org.enso.polyglot.debugger.ExecutedVisualization;
 import org.enso.polyglot.debugger.IdExecutionService;
 import org.enso.text.editing.JavaEditorAdapter;
 import org.enso.text.editing.model;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A service allowing externally-triggered code execution, registered by an instance of the
@@ -74,8 +73,6 @@ public final class ExecutionService {
   private final EnsoContext context;
   private final Optional<IdExecutionService> idExecutionInstrument;
   private final NotificationHandler.Forwarder notificationForwarder;
-  private final TruffleLogger logger =
-      TruffleLogger.getLogger(LanguageInfo.ID, ExecutionService.class);
   private final ConnectedLockManager connectedLockManager;
   private final ExecuteRootNode execute = new ExecuteRootNode();
   private final CallRootNode call = new CallRootNode();
@@ -113,13 +110,6 @@ public final class ExecutionService {
     return context;
   }
 
-  /**
-   * @return the execution service logger.
-   */
-  public TruffleLogger getLogger() {
-    return logger;
-  }
-
   public FunctionCallInstrumentationNode.FunctionCall prepareFunctionCall(
       Module module, String typeName, String methodName)
       throws TypeNotFoundException, MethodNotFoundException {
@@ -144,9 +134,10 @@ public final class ExecutionService {
     if (connectedLockManager != null) {
       connectedLockManager.connect(endpoint);
     } else {
-      logger.warning(
-          "ConnectedLockManager was not initialized, even though a Language Server connection has"
-              + " been established. This may result in synchronization errors.");
+      LoggerFactory.getLogger(ExecutionService.class)
+          .warn(
+              "ConnectedLockManager was not initialized, even though a Language Server connection"
+                  + " has been established. This may result in synchronization errors.");
     }
   }
 
@@ -448,12 +439,14 @@ public final class ExecutionService {
    *
    * @param module the module to edit.
    * @param edits the edits to apply.
+   * @param simpleUpdate identification of a "simple edit" or {@code null}
+   * @param logger logger to use for logging
    */
   public void modifyModuleSources(
       Module module,
       scala.collection.immutable.Seq<model.TextEdit> edits,
       SimpleUpdate simpleUpdate,
-      TruffleLogger logger) {
+      Logger logger) {
     try {
       module.getSource();
     } catch (IOException e) {
@@ -468,9 +461,8 @@ public final class ExecutionService {
                     module.getName(), edits, failure, module.getLiteralSource());
               },
               rope -> {
-                logger.log(
-                    Level.FINE,
-                    "Applied edits. Source has {0} lines, last line has {1} characters.",
+                logger.trace(
+                    "Applied edits. Source has {} lines, last line has {} characters.",
                     new Object[] {
                       rope.lines().length(),
                       rope.lines().drop(rope.lines().length() - 1).characters().length()
@@ -568,7 +560,7 @@ public final class ExecutionService {
   }
 
   @SuppressWarnings("unchecked")
-  static <E extends Exception> E raise(Class<E> type, Exception ex) throws E {
+  static <E extends Throwable> E raise(Class<E> type, Throwable ex) throws E {
     throw (E) ex;
   }
 

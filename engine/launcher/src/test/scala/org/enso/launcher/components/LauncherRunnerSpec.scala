@@ -306,7 +306,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         secureRpcPort  = None,
         dataPort       = 4321,
         secureDataPort = None,
-        jvmMode        = false
+        jvmModeEnabled = false
       )
       val runSettings = runner
         .languageServer(

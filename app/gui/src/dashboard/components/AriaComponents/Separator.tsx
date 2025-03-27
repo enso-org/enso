@@ -11,6 +11,7 @@ export interface SeparatorProps extends AriaSeparatorProps, VariantProps<typeof 
 }
 
 /** The styles for the {@link Separator} component. */
+// eslint-disable-next-line react-refresh/only-export-components
 export const SEPARATOR_STYLES = tv({
   base: 'rounded-full border-none',
   variants: {

@@ -6,10 +6,6 @@
 
 import type * as newtype from '#/utilities/newtype'
 
-// =====================
-// === Message Types ===
-// =====================
-
 /** Identifier for a chat Thread. */
 export type ThreadId = newtype.Newtype<string, 'ThreadId'>
 /** Identifier for a chat message. */
@@ -71,10 +67,6 @@ interface ChatBaseMessageData<Type extends ChatMessageDataType> {
   readonly type: Type
 }
 
-// =========================
-// === Internal messages ===
-// =========================
-
 /** Sent to the main file with user information. */
 export interface ChatInternalAuthenticateMessageData
   extends ChatBaseMessageData<ChatMessageDataType.internalAuthenticate> {
@@ -88,10 +80,6 @@ export interface ChatInternalAuthenticateAnonymouslyMessageData
   readonly userId: UserId
   readonly email: EmailAddress
 }
-
-// ======================================
-// === Messages from server to client ===
-// ======================================
 
 /** All possible emojis that can be used as a reaction on a chat message. */
 export type ReactionSymbol = '❤️' | '🎉' | '👀' | '👍' | '👎' | '😀' | '🙁'
@@ -176,10 +164,6 @@ export type ChatServerMessageData =
   | ChatServerReplayedMessageMessageData
   | ChatServerThreadMessageData
   | ChatServerThreadsMessageData
-
-// ======================================
-// === Messages from client to server ===
-// ======================================
 
 /** Sent whenever the user opens the chat sidebar. */
 export interface ChatAuthenticateMessageData

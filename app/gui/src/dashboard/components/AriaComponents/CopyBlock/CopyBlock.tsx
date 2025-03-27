@@ -10,10 +10,6 @@ import * as twv from '#/utilities/tailwindVariants'
 import { Button } from '../Button'
 import { TEXT_STYLE } from '../Text'
 
-// =================
-// === Constants ===
-// =================
-
 const COPY_BLOCK_STYLES = twv.tv({
   base: TEXT_STYLE({
     class: 'max-w-full bg-primary/5 border-primary/10',
@@ -35,10 +31,6 @@ const COPY_BLOCK_STYLES = twv.tv({
   slots: { copyTextBlock: 'flex-auto text-nowrap overflow-x-auto scroll-hidden w-full' },
   defaultVariants: { size: 'medium', rounded: 'full' },
 })
-
-// =================
-// === CopyBlock ===
-// =================
 
 /** Props for a {@link CopyBlock}. */
 export interface CopyBlockProps {

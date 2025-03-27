@@ -24,11 +24,12 @@ import org.enso.base.cache.ReloadDetector;
 import org.enso.table.excel.xssfreader.XSSFReaderWorkbook;
 import org.enso.table.util.FunctionWithException;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
   public static final ExcelConnectionPool INSTANCE = new ExcelConnectionPool();
 
-  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(ExcelConnectionPool.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExcelConnectionPool.class);
 
   private ExcelConnectionPool() {
     ReloadDetector.register(this);

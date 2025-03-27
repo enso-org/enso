@@ -37,8 +37,9 @@ from project.Metadata.Widget import File_Browse, Folder_Browse, Text_Input, Vect
 from project.System.File_Format import Auto_Detect, File_Format
 
 ## ALIAS load, open
-   GROUP Input
+   GROUP File
    ICON data_input
+   SUGGESTED 1
    Reads a file into Enso.
    Uses the specified file format to parse the file into an Enso type. If not
    specified will use the file's extension to determine the file format.
@@ -108,8 +109,9 @@ read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Prob
                 file_content
 
 ## ALIAS load, open
-   GROUP Input
+   GROUP File
    ICON data_input
+   SUGGESTED 2
    Reads a a list of files into Enso.
 
    Arguments:
@@ -167,7 +169,6 @@ read_many (paths : Many_Files_List = Missing_Argument.throw "paths") format=Auto
             result
 
 ## ALIAS load text, open text
-   GROUP Input
    ICON data_input
    Open and read the file at the provided `path`.
 
@@ -195,8 +196,9 @@ read_text : (Text | File) -> Encoding -> Problem_Behavior -> Text
 read_text path=(Missing_Argument.throw "path") (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Warning) =
     File.new path . read_text encoding on_problems
 
-## GROUP Input
+## GROUP File
    ICON data_input
+   SUGGESTED 3
    Lists files contained in the provided directory.
 
    Arguments:
@@ -249,7 +251,6 @@ read_text path=(Missing_Argument.throw "path") (encoding : Encoding = Encoding.d
          import Standard.Examples
 
          example_list_files =
-             Data.list Examples.data_dir name_filter="**.md" recursive=True
 @directory (Folder_Browse display=..Always)
 @name_filter File_Format.name_filter_widget
 list : Text | File -> Text -> Boolean -> Vector File
@@ -261,8 +262,9 @@ list (directory=enso_project.root) (name_filter:Text="") recursive:Boolean=False
         file_list
 
 ## ALIAS download, http get
-   GROUP Input
-   ICON data_input
+   GROUP Web
+   ICON data_download
+   SUGGESTED 4
    Fetches from the provided URI and returns the response, parsing the body if
    the content-type is recognised. Returns an  error if the status code does not
    represent a successful response.
@@ -324,7 +326,7 @@ fetch (uri:(URI | Text)=(Missing_Argument.throw "uri")) (method:HTTP_Method=..Ge
     Data_Read_Helpers.fetch_following_data_links uri method headers (Data_Read_Helpers.handle_legacy_format "fetch" "format" format) cache_policy=cache_policy
 
 ## ALIAS http post, upload
-   GROUP Output
+   GROUP Web
    ICON data_upload
    Writes the provided data to the provided URI. Returns the response,
    parsing the body if the content-type is recognised. Returns an  error if the
@@ -452,8 +454,8 @@ post (uri:(URI | Text)=(Missing_Argument.throw "uri")) (body:Request_Body=..Empt
     response = HTTP.post uri body method headers
     Data_Read_Helpers.decode_http_response_following_data_links response (Data_Read_Helpers.handle_legacy_format "post" "response_format" response_format)
 
-## GROUP Input
-   ICON select_column
+## GROUP Web
+   ICON data_download
    Fetches from the provided URI and if successful writes to the file. Returns
    an error if the status code does not represent a successful response.
 

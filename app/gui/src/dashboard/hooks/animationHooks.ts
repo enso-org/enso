@@ -1,10 +1,6 @@
 /** @file React Hooks for running a callback on every frame, and smooth interpolation. */
 import * as React from 'react'
 
-// ==============
-// === useRaf ===
-// ==============
-
 /** Details for a callback used in {@link useRaf}. */
 interface RafCallback {
   readonly fn: (t: number, dt: number) => void
@@ -73,10 +69,6 @@ function runRaf() {
     requestAnimationFrame(tick)
   }
 }
-
-// ===================
-// === useApproach ===
-// ===================
 
 /**
  * Animate value over time using exponential approach.

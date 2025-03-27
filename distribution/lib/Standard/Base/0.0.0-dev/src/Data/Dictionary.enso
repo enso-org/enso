@@ -90,7 +90,6 @@ type Dictionary key value
                     Error.throw (Illegal_Argument.Error "`Dictionary.from_keys_and_values` encountered duplicate key: "+key.to_display_text)
 
     ## ALIAS dictionary, lookup table
-       GROUP Constants
        ICON array_new2
        Builds a dictionary from a vector of key-value pairs, with each key-value
        pair represented as a 2 element vector.

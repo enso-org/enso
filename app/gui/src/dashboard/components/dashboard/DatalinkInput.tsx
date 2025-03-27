@@ -10,15 +10,7 @@ import type { FieldPath, FormInstance, TSchema } from '#/components/AriaComponen
 import { Form } from '#/components/AriaComponents'
 import * as error from '#/utilities/error'
 
-// =================
-// === Constants ===
-// =================
-
 const DEFS: Record<string, object> = SCHEMA.$defs
-
-// ====================
-// === getValidator ===
-// ====================
 
 /**
  * Get a known schema using a path.
@@ -27,10 +19,6 @@ const DEFS: Record<string, object> = SCHEMA.$defs
 function getValidator(path: string) {
   return error.assert<(value: unknown) => boolean>(() => datalinkValidator.AJV.getSchema(path))
 }
-
-// =====================
-// === DataLinkInput ===
-// =====================
 
 /** Props for a {@link DatalinkInput}. */
 export type DatalinkInputProps = Omit<

@@ -26,6 +26,7 @@ use ide_ci::actions::workflow::MessageLevel;
 use ide_ci::cache;
 use ide_ci::github::release::IsReleaseExt;
 use ide_ci::platform::DEFAULT_SHELL;
+use ide_ci::programs::java::JAVA_HOME;
 use ide_ci::programs::sbt;
 use ide_ci::programs::Sbt;
 use std::env::consts::DLL_EXTENSION;
@@ -757,6 +758,15 @@ pub async fn runner_sanity_test(
             .run_ok()
             .await;
 
+        let graal_path = cache::goodie::graalvm::locate_graal()?;
+
+        let test_generic_jdbc = Command::new(&enso)
+            .args(["--run", repo_root.test.join("Generic_JDBC_Tests").as_str()])
+            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
+            .set_env(JAVA_HOME, &graal_path)?
+            .run_ok()
+            .await;
+
         let all_cmds = test_base
             .and(test_internal_base)
             .and(test_table)
@@ -765,7 +775,8 @@ pub async fn runner_sanity_test(
             .and(test_snowflake)
             .and(test_tableau)
             .and(test_geo)
-            .and(test_image);
+            .and(test_image)
+            .and(test_generic_jdbc);
 
         // The following test does not actually run anything, it just checks if the engine
         // can accept `--jvm` argument and evaluates something.

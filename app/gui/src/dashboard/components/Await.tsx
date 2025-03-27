@@ -116,6 +116,7 @@ export function useAwait<PromiseType>(
  * @throws {Promise} - The promise that is being awaited by Suspense
  * @returns The data of the promise.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAwait<PromiseType>(
   promise?: Promise<PromiseType> | null,
 ): PromiseType | undefined {

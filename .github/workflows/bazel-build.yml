@@ -11,7 +11,7 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
-      - uses: bazel-contrib/setup-bazel@0.9.0
+      - uses: bazel-contrib/setup-bazel@0.13.0
         with:
           bazelisk-cache: true
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"

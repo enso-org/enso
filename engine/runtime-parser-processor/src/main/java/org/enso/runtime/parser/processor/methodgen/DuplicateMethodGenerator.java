@@ -10,6 +10,7 @@ import javax.lang.model.type.TypeMirror;
 import org.enso.runtime.parser.processor.GeneratedClassContext;
 import org.enso.runtime.parser.processor.IRProcessingException;
 import org.enso.runtime.parser.processor.field.Field;
+import org.enso.runtime.parser.processor.field.OptionListField;
 import org.enso.runtime.parser.processor.utils.Utils;
 
 /**
@@ -97,19 +98,29 @@ public class DuplicateMethodGenerator {
 
     for (var field : ctx.getUserFields()) {
       if (field.isChild()) {
-        if (field.isNullable()) {
+        if (field.isNullable() && !field.isList()) {
           sb.append(Utils.indent(nullableChildCode(field), 2));
           sb.append(System.lineSeparator());
           duplicatedVars.add(
               new DuplicateVar(field.getType(), dupFieldName(field), field.getName(), true));
         } else {
-          if (field.isList()) {
+          if (field instanceof OptionListField optionListField) {
+            sb.append(Utils.indent(optionListChildCode(optionListField), 2));
+            sb.append(System.lineSeparator());
+            duplicatedVars.add(
+                new DuplicateVar(field.getType(), dupFieldName(field), field.getName(), false));
+          } else if (field.isList()) {
             sb.append(Utils.indent(listChildCode(field), 2));
             sb.append(System.lineSeparator());
             duplicatedVars.add(
                 new DuplicateVar(field.getType(), dupFieldName(field), field.getName(), false));
           } else if (field.isOption()) {
             sb.append(Utils.indent(optionChildCode(field), 2));
+            sb.append(System.lineSeparator());
+            duplicatedVars.add(
+                new DuplicateVar(field.getType(), dupFieldName(field), field.getName(), false));
+          } else if (field.isPersistanceReference()) {
+            sb.append(Utils.indent(persistanceReferenceCode(field), 2));
             sb.append(System.lineSeparator());
             duplicatedVars.add(
                 new DuplicateVar(field.getType(), dupFieldName(field), field.getName(), false));
@@ -182,11 +193,11 @@ public class DuplicateMethodGenerator {
     Utils.hardAssert(nullableChild.isNullable() && nullableChild.isChild());
     return """
           IR $dupName = null;
-            if ($childName != null) {
-              $dupName = $childName.duplicate($parameterNames);
-              if (!($dupName instanceof $childType)) {
-                throw new IllegalStateException("Duplicated child is not of the expected type: " + $dupName);
-              }
+          if ($childName != null) {
+            $dupName = $childName.duplicate($parameterNames);
+            if (!($dupName instanceof $childType)) {
+              throw new IllegalStateException("Duplicated child is not of the expected type: " + $dupName);
+            }
           }
         """
         .replace("$childType", nullableChild.getSimpleTypeName())
@@ -212,14 +223,16 @@ public class DuplicateMethodGenerator {
   private String listChildCode(Field listChild) {
     Utils.hardAssert(listChild.isChild() && listChild.isList());
     return """
-          $childListType $dupName =
-            $childName.map(child -> {
+          $childListType $dupName = null;
+          if ($childName != null) {
+            $dupName = $childName.map(child -> {
               IR dupChild = child.duplicate($parameterNames);
               if (!(dupChild instanceof $childType)) {
                 throw new IllegalStateException("Duplicated child is not of the expected type: " + dupChild);
               }
               return ($childType) dupChild;
             });
+          }
           """
         .replace("$childListType", listChild.getSimpleTypeName())
         .replace("$childType", listChild.getTypeParameter().getSimpleName())
@@ -245,6 +258,43 @@ public class DuplicateMethodGenerator {
         .replace("$childName", optionChild.getName())
         .replace("$dupName", dupFieldName(optionChild))
         .replace("$parameterNames", String.join(", ", parameterNames()));
+  }
+
+  private String optionListChildCode(OptionListField optionListChild) {
+    return """
+        var ${dupName} = ${childName};
+        if (${childName}.isDefined()) {
+          ${childName}.get().map(child -> {
+            IR dupChild = child.duplicate(${parameterNames});
+            if (!(dupChild instanceof ${childType})) {
+              throw new IllegalStateException("Duplicated child is not of the expected type: " + dupChild);
+            }
+            return (${childType}) dupChild;
+          });
+        }
+        """
+        .replace("${childName}", optionListChild.getName())
+        .replace("${childType}", optionListChild.getNestedTypeParameter().getSimpleName())
+        .replace("${dupName}", dupFieldName(optionListChild))
+        .replace("${parameterNames}", String.join(", ", parameterNames()));
+  }
+
+  private String persistanceReferenceCode(Field perRefChild) {
+    Utils.hardAssert(perRefChild.isPersistanceReference());
+    return """
+        ${perRefType} ${dupName};
+        {
+          ${type} duplicated = ${childName}
+              .get(${type}.class)
+              .duplicate(${parameterNames});
+          ${dupName} = Reference.of(duplicated);
+        }
+        """
+        .replace("${perRefType}", perRefChild.getSimpleTypeName())
+        .replace("${type}", perRefChild.getTypeParameter().getSimpleName())
+        .replace("${childName}", perRefChild.getName())
+        .replace("${dupName}", dupFieldName(perRefChild))
+        .replace("${parameterNames}", String.join(", ", parameterNames()));
   }
 
   private static String nonChildCode(Field field) {

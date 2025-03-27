@@ -13,10 +13,6 @@ import { asObject, singletonObjectOrNull } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { twJoin } from 'tailwind-merge'
 
-// =======================
-// === JSONSchemaInput ===
-// =======================
-
 /** Props for a {@link JSONSchemaInput}. */
 export interface JSONSchemaInputProps {
   readonly dropdownTitle?: string

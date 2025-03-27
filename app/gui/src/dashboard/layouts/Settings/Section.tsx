@@ -5,10 +5,6 @@ import { memo } from 'react'
 import type { SettingsContext, SettingsSectionData } from './data'
 import SettingsEntry from './Entry'
 
-// =======================
-// === SettingsSection ===
-// =======================
-
 /** Props for a {@link SettingsSection}. */
 export interface SettingsSectionProps {
   readonly context: SettingsContext
