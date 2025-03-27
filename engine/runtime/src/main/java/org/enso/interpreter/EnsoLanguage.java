@@ -17,7 +17,6 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.nio.file.Path;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
@@ -166,18 +165,6 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
         env.getOptions().get(RuntimeOptions.ENABLE_EXECUTION_TIMER_KEY);
     Timer timer = isExecutionTimerEnabled ? new Timer.Nanosecond() : new Timer.Disabled();
     env.registerService(timer);
-
-    var projRoot = env.getOptions().get(RuntimeOptions.PROJECT_ROOT_KEY);
-    if (projRoot != null && !projRoot.isEmpty()) {
-      var parentDir = Path.of(projRoot).getParent();
-      if (parentDir != null) {
-        var parentDirAbs = parentDir.toAbsolutePath().toString();
-        if (!System.getProperty("user.dir").equals(parentDirAbs)) {
-          var truffleFile = env.getPublicTruffleFile(parentDirAbs);
-          env.setCurrentWorkingDirectory(truffleFile);
-        }
-      }
-    }
 
     EnsoContext context =
         new EnsoContext(
