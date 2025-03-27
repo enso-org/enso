@@ -38,4 +38,31 @@ public class ContextInitTest {
         });
     assertThat("Expected empty out, but got: " + out, out.toString().isEmpty(), is(true));
   }
+
+  @Test
+  public void shouldChangeWorkingDir_BeforeExecutingProject_JavaFile() throws IOException {
+    var projDir = tmpFolder.newFolder().toPath();
+    var mainSrc =
+        """
+        from Standard.Base import all
+        polyglot java import java.io.File as Java_File
+
+        main =
+            file = Java_File.new "MY_FILE.txt"
+            file.getAbsolutePath
+        """;
+    ProjectUtils.createProject("Project", mainSrc, projDir);
+    var out = new ByteArrayOutputStream();
+    var ctxBuilder = ContextUtils.defaultContextBuilder().out(out).err(out);
+    var expectedWorkingDir = projDir.getParent();
+    var expectedPath = expectedWorkingDir.resolve("MY_FILE.txt").toAbsolutePath().toString();
+    ProjectUtils.testProjectRun(
+        ctxBuilder,
+        projDir,
+        res -> {
+          assertThat(res.isString(), is(true));
+          assertThat(res.asString(), is(expectedPath));
+        });
+    assertThat("Expected empty out, but got: " + out, out.toString().isEmpty(), is(true));
+  }
 }
