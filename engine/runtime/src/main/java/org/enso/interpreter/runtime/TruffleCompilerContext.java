@@ -129,13 +129,8 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public Thread createThread(Runnable r) {
-    return context.createThread(false, r);
-  }
-
-  @Override
   public Thread createSystemThread(Runnable r) {
-    return context.createThread(true, r);
+    return context.getThreadManager().createThread(true, r);
   }
 
   @Override

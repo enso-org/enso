@@ -68,8 +68,6 @@ public interface CompilerContext extends CompilerStub {
   // threads
   boolean isCreateThreadAllowed();
 
-  Thread createThread(Runnable r);
-
   Thread createSystemThread(Runnable r);
 
   // Truffle related

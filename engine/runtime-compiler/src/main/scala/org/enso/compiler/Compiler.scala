@@ -84,7 +84,7 @@ class Compiler(
       TimeUnit.SECONDS,
       new LinkedBlockingDeque[Runnable](),
       (runnable: Runnable) => {
-        context.createThread(runnable)
+        context.createSystemThread(runnable)
       }
     )
   } else null
