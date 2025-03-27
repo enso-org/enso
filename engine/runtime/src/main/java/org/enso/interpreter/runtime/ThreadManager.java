@@ -50,6 +50,34 @@ public final class ThreadManager {
   }
 
   /**
+   * Creates new cached pool of system threads associated with this context.
+   *
+   * @param name human-readable name of the pool
+   * @param min minimal number of threads kept-alive in the pool
+   * @param max maximal number of available threads
+   * @param maxQueueSize maximal number of pending tasks
+   * @return new execution service for this context
+   */
+  public ExecutorService newCachedThreadPool(String name, int min, int max, int maxQueueSize) {
+    // only allow creation of systemThreads
+    // non-system threads have to be managed and controlled internally
+    return threads.newCachedThreadPool(name, true, min, max, maxQueueSize);
+  }
+
+  /**
+   * Creates new fixed pool of system threads associated with this context.
+   *
+   * @param parallel amount of parallelism for the pool
+   * @param name human-readable name of the pool
+   * @return new execution service for this context
+   */
+  public ExecutorService newFixedThreadPool(int parallel, String name) {
+    // only allow creation of systemThreads
+    // non-system threads have to be managed and controlled internally
+    return threads.newFixedThreadPool(parallel, name, true);
+  }
+
+  /**
    * Forces all threads managed by this system to halt at the next safepoint (i.e. a {@link #poll()}
    * call) and throw a {@link ThreadInterruptedException}.
    *
@@ -76,6 +104,7 @@ public final class ThreadManager {
 
   /** Requests that all threads are shutdown. */
   public final void shutdown() {
+    threads.shutdown();
     var hasBeenInterrupted = Thread.interrupted();
     for (var t : interruptFlags.keySet()) {
       try {

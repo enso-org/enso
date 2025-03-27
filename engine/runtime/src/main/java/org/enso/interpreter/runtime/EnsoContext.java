@@ -33,7 +33,6 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -93,7 +92,6 @@ public final class EnsoContext {
   private @CompilationFinal DefaultPackageRepository packageRepository;
   private @CompilationFinal TopLevelScope topScope;
   private final ThreadManager threadManager;
-  private final ThreadExecutors threadExecutors;
   private final ResourceManager resourceManager;
   private final boolean isInlineCachingDisabled;
   private final boolean isIrCachingDisabled;
@@ -138,7 +136,7 @@ public final class EnsoContext {
     this.err = new PrintStream(environment.err());
     this.in = environment.in();
     this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
-    this.threadExecutors = new ThreadExecutors(environment, logger);
+    var threadExecutors = new ThreadExecutors(environment, logger);
     this.threadManager = new ThreadManager(threadExecutors, getJobParallelism(), environment);
     this.resourceManager = new ResourceManager(this);
     this.isInlineCachingDisabled = getOption(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
@@ -314,7 +312,6 @@ public final class EnsoContext {
 
   /** Performs eventual cleanup before the context is disposed of. */
   public void shutdown() {
-    threadExecutors.shutdown();
     threadManager.shutdown();
     resourceManager.shutdown();
     compiler.shutdown(shouldWaitForPendingSerializationJobs);
@@ -794,34 +791,6 @@ public final class EnsoContext {
   public int getJobParallelism() {
     int n = getOption(RuntimeOptions.JOB_PARALLELISM_KEY);
     return Math.max(1, n);
-  }
-
-  /**
-   * Creates new cached pool of system threads associated with this context.
-   *
-   * @param name human-readable name of the pool
-   * @param min minimal number of threads kept-alive in the pool
-   * @param max maximal number of available threads
-   * @param maxQueueSize maximal number of pending tasks
-   * @return new execution service for this context
-   */
-  public ExecutorService newCachedThreadPool(String name, int min, int max, int maxQueueSize) {
-    // only allow creation of systemThreads
-    // non-system threads have to be managed and controlled internally
-    return threadExecutors.newCachedThreadPool(name, true, min, max, maxQueueSize);
-  }
-
-  /**
-   * Creates new fixed pool of system threads associated with this context.
-   *
-   * @param parallel amount of parallelism for the pool
-   * @param name human-readable name of the pool
-   * @return new execution service for this context
-   */
-  public ExecutorService newFixedThreadPool(int parallel, String name) {
-    // only allow creation of systemThreads
-    // non-system threads have to be managed and controlled internally
-    return threadExecutors.newFixedThreadPool(parallel, name, true);
   }
 
   /**

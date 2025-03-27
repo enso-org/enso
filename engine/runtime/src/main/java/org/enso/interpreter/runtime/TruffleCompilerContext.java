@@ -146,7 +146,7 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   final ExecutorService newSerializationPool() {
-    return context.newFixedThreadPool(1, "SerializationPool background thread");
+    return context.getThreadManager().newFixedThreadPool(1, "SerializationPool background thread");
   }
 
   @Override
