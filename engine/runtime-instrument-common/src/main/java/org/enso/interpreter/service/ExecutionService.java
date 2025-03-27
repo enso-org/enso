@@ -21,12 +21,10 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.enso.common.MethodNames;
 import org.enso.compiler.suggestions.SimpleUpdate;
 import org.enso.interpreter.instrument.Endpoint;
@@ -75,7 +73,6 @@ import org.slf4j.LoggerFactory;
 public final class ExecutionService {
   private static final String MAIN_METHOD = "main";
   private final EnsoContext context;
-  private final ExecutorService questCode;
   private final Optional<IdExecutionService> idExecutionInstrument;
   private final NotificationHandler.Forwarder notificationForwarder;
   private final ConnectedLockManager connectedLockManager;
@@ -103,7 +100,6 @@ public final class ExecutionService {
       Timer timer) {
     this.idExecutionInstrument = idExecutionInstrument;
     this.context = context;
-    this.questCode = context.newCachedThreadPool("guest-code", 1, 1, Integer.MAX_VALUE, false);
     this.notificationForwarder = notificationForwarder;
     this.connectedLockManager = connectedLockManager;
     this.timer = timer;
@@ -599,16 +595,8 @@ public final class ExecutionService {
     throw (E) ex;
   }
 
-  private <T> Future<T> submitExecution(Callable<T> c) {
-    if (Thread.currentThread().getName().startsWith("guest-code")) {
-      try {
-        return CompletableFuture.completedFuture(c.call());
-      } catch (Exception ex) {
-        return CompletableFuture.failedFuture(ex);
-      }
-    } else {
-      return questCode.submit(c);
-    }
+  private <T> Future<T> submitExecution(Supplier<T> c) {
+    return context.getThreadManager().submit(c);
   }
 
   private static <T> T resultOf(Future<T> future) {

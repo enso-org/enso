@@ -140,8 +140,8 @@ public final class EnsoContext {
     this.err = new PrintStream(environment.err());
     this.in = environment.in();
     this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
-    this.threadManager = new ThreadManager(environment);
     this.threadExecutors = new ThreadExecutors(this);
+    this.threadManager = new ThreadManager(threadExecutors, environment);
     this.resourceManager = new ResourceManager(this);
     this.isInlineCachingDisabled = getOption(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     var isParallelismEnabled = getOption(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
@@ -801,26 +801,31 @@ public final class EnsoContext {
   }
 
   /**
+   * Creates new cached pool of system threads associated with this context.
+   *
    * @param name human-readable name of the pool
    * @param min minimal number of threads kept-alive in the pool
    * @param max maximal number of available threads
    * @param maxQueueSize maximal number of pending tasks
-   * @param systemThreads use system threads or polyglot threads
    * @return new execution service for this context
    */
-  public ExecutorService newCachedThreadPool(
-      String name, int min, int max, int maxQueueSize, boolean systemThreads) {
-    return threadExecutors.newCachedThreadPool(name, systemThreads, min, max, maxQueueSize);
+  public ExecutorService newCachedThreadPool(String name, int min, int max, int maxQueueSize) {
+    // only allow creation of systemThreads
+    // non-system threads have to be managed and controlled internally
+    return threadExecutors.newCachedThreadPool(name, true, min, max, maxQueueSize);
   }
 
   /**
+   * Creates new fixed pool of system threads associated with this context.
+   *
    * @param parallel amount of parallelism for the pool
    * @param name human-readable name of the pool
-   * @param systemThreads use system threads or polyglot threads
    * @return new execution service for this context
    */
-  public ExecutorService newFixedThreadPool(int parallel, String name, boolean systemThreads) {
-    return threadExecutors.newFixedThreadPool(parallel, name, systemThreads);
+  public ExecutorService newFixedThreadPool(int parallel, String name) {
+    // only allow creation of systemThreads
+    // non-system threads have to be managed and controlled internally
+    return threadExecutors.newFixedThreadPool(parallel, name, true);
   }
 
   /**

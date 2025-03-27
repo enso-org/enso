@@ -2,21 +2,26 @@ package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.ThreadLocalAction;
 import com.oracle.truffle.api.TruffleLanguage.Env;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 import org.enso.interpreter.runtime.control.ThreadInterruptedException;
 
 /** Manages threads running guest code, exposing a safepoint-like functionality. */
-public class ThreadManager {
+public final class ThreadManager {
   private final ReentrantLock lock = new ReentrantLock();
   private final Env env;
 
+  private final ExecutorService questCode;
   private final ConcurrentHashMap<Thread, Boolean> interruptFlags = new ConcurrentHashMap<>();
   private static final Object ENTERED = new Object();
   private static final Object NO_OP = new Object();
 
-  public ThreadManager(Env env) {
+  ThreadManager(ThreadExecutors th, Env env) {
     this.env = env;
+    this.questCode = th.newFixedThreadPool(1, "quest-code", false);
   }
 
   /**
@@ -49,6 +54,18 @@ public class ThreadManager {
   public void leave(Object token) {
     if (token != NO_OP) {
       interruptFlags.remove(Thread.currentThread());
+    }
+  }
+
+  public final <T> CompletableFuture<T> submit(Supplier<T> action) {
+    if (Thread.currentThread().getName().startsWith("guest-code")) {
+      try {
+        return CompletableFuture.completedFuture(action.get());
+      } catch (Exception ex) {
+        return CompletableFuture.failedFuture(ex);
+      }
+    } else {
+      return CompletableFuture.supplyAsync(action, questCode);
     }
   }
 

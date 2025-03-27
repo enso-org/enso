@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
+/** Internal holder of all threads associated with {@link EnsoContext}. */
 final class ThreadExecutors {
   private final EnsoContext context;
   private final Map<ExecutorService, String> pools =
