@@ -7,6 +7,7 @@
  *     x = 1
  *     y = 2
  *     z = x -> x + y
+ *     u = x + y
  * ```
  *
  * It would be annotated in the following manner:
@@ -337,4 +338,11 @@ test(
     »2,default«
     «3,default» = 1
     »3,default«`),
+)
+
+test(
+  'Type casting',
+  runTestCase(`«1,main» =
+    «2,x» = 1
+    (»2,x«:Int).toString`),
 )

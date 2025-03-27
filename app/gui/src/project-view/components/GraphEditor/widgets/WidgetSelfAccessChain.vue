@@ -14,6 +14,16 @@ const functionInfo = injectFunctionInfo(true)
 const graph = useGraphStore()
 const tree = injectWidgetTree()
 
+const typeAnnotation = computed(() => {
+  if (
+    props.input.value.lhs instanceof Ast.Group &&
+    props.input.value.lhs.expression instanceof Ast.TypeAnnotated
+  ) {
+    return props.input.value.lhs.expression
+  }
+  return null
+})
+
 const baseIcon = computed(() => {
   const callInfo = functionInfo?.callInfo
   return displayedIconOf(
@@ -27,6 +37,11 @@ const { displayedIcon } = useDisplayedIcon(graph.db, toRef(tree, 'externalId'), 
 const iconInput = computed(() => {
   const lhs = props.input.value.lhs
   if (!lhs) return
+  if (lhs instanceof Ast.Group && lhs.expression instanceof Ast.TypeAnnotated) {
+    const input = WidgetInput.WithPort(WidgetInput.FromAst(lhs.expression.expression))
+    input[DisplayIcon] = { icon: displayedIcon.value, showContents: false }
+    return input
+  }
   const input = WidgetInput.WithPort(WidgetInput.FromAst(lhs))
   input[DisplayIcon] = { icon: displayedIcon.value, showContents: showFullAccessChain.value }
   return input
@@ -47,8 +62,19 @@ export const widgetDefinition = defineWidget(
     score: (info) => {
       const tree = injectWidgetTree()
       const selfId = tree.potentialSelfArgumentId
-      const match = selfId != null && info.input.value.lhs?.id === selfId
-      return match ? Score.Good : Score.Mismatch
+      if (selfId != null) {
+        if (info.input.value.lhs?.id === selfId) {
+          return Score.Good
+        } else if (info.input.value.lhs instanceof Ast.Group) {
+          if (info.input.value.lhs.expression instanceof Ast.TypeAnnotated) {
+            const subject = info.input.value.lhs.expression.expression.id
+            if (subject === selfId) {
+              return Score.Good
+            }
+          }
+        }
+      }
+      return Score.Mismatch
     },
   },
   import.meta.hot,
@@ -58,6 +84,9 @@ export const widgetDefinition = defineWidget(
 <template>
   <div class="WidgetSelfAccessChain" :class="{ showFullAccessChain }">
     <NodeWidget v-if="iconInput" :input="iconInput" />
+    <span v-if="typeAnnotation" class="token widgetApplyPadding">:</span>
+    <NodeWidget v-if="typeAnnotation" :input="WidgetInput.FromAst(typeAnnotation.typeNode)" />
+    <span v-if="typeAnnotation" class="token widgetApplyPadding">.</span>
     <NodeWidget
       v-if="showFullAccessChain"
       :input="WidgetInput.FromAst(props.input.value.operator)"
@@ -75,5 +104,10 @@ export const widgetDefinition = defineWidget(
   &.showFullAccessChain {
     gap: 0;
   }
+}
+
+.token {
+  opacity: 0.33;
+  user-select: none;
 }
 </style>

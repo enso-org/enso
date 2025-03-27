@@ -263,6 +263,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
     const connectedEdges = computed(() => {
       const edges = new Array<ConnectedEdge>()
       for (const [target, sources] of db.connections.allReverse()) {
+        console.log('Connections', target, sources)
         if (target === editedNodeDisconnectedTarget.value) continue
         for (const source of sources) {
           const edge = { source, target }

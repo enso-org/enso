@@ -70,14 +70,21 @@ export function primaryApplicationSubject(
   const { subject, accessChain } = Ast.accessChain(ast)
   // Require at least one property access.
   if (accessChain.length === 0) return
-  // The leftmost element must be an identifier or a placeholder.
+  const isAcceptableSubject = (subject: Ast.Ast) =>
+    (subject instanceof Ast.Ident && !subject.isTypeOrConstructor()) ||
+    subject instanceof Ast.Wildcard
   if (
-    !(
-      (subject instanceof Ast.Ident && !subject.isTypeOrConstructor()) ||
-      subject instanceof Ast.Wildcard
-    )
-  )
-    return
+    subject instanceof Ast.Group &&
+    subject.expression instanceof Ast.TypeAnnotated &&
+    isAcceptableSubject(subject.expression.expression)
+  ) {
+    return {
+      subject: subject.expression.expression.id,
+      accessChain: accessChain.map((ast) => ast.id),
+    }
+  }
+  // The leftmost element must be an identifier or a placeholder.
+  if (!isAcceptableSubject(subject)) return
   return { subject: subject.id, accessChain: accessChain.map((ast) => ast.id) }
 }
 

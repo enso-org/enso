@@ -30,6 +30,11 @@ function transformChild(child: Ast.Expression | Ast.Token) {
     childInput.forcePort = true
   if (props.input.value instanceof Ast.UnaryOprApp && child.id === props.input.value.argument?.id)
     childInput.forcePort = true
+  if (
+    props.input.value instanceof Ast.TypeAnnotated &&
+    child.id === props.input.value.expression?.id
+  )
+    childInput.forcePort = true
   return childInput
 }
 </script>
