@@ -558,7 +558,10 @@ const DialogHeader = React.memo(function DialogHeader(props: DialogHeaderProps) 
   }, [handleScrollEvent, scrollerRef])
 
   return (
-    <header ref={headerDimensionsRef} className={styles.header({ scrolledToTop: isScrolledToTop })}>
+    <aria.Header
+      ref={headerDimensionsRef}
+      className={styles.header({ scrolledToTop: isScrolledToTop })}
+    >
       {closeButton !== 'none' && (
         <ariaComponents.CloseButton className={styles.closeButton()} onPress={close} />
       )}
@@ -573,7 +576,7 @@ const DialogHeader = React.memo(function DialogHeader(props: DialogHeaderProps) 
           {title}
         </ariaComponents.Text.Heading>
       )}
-    </header>
+    </aria.Header>
   )
 })
 
