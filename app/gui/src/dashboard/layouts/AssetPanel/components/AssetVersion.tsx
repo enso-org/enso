@@ -193,7 +193,7 @@ export function AssetVersion(props: AssetVersionProps) {
               </Menu.Item>
             )}
 
-            {isProject && (
+            {isProject && comparableVersions.length > 0 && (
               <Menu.SubmenuTrigger>
                 <Menu.Item icon="compare">{getText('compareVersionSubmenuLabel')}</Menu.Item>
                 <Menu items={comparableVersions}>
