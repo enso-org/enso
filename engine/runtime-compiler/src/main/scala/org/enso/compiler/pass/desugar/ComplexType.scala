@@ -202,8 +202,8 @@ case object ComplexType extends IRPass {
         res
       case binding @ Expression.Binding(name, _, _, _) =>
         matchSignaturesAndGenerate(name, binding)
-      case funSugar @ Function.Binding(name, _, _, _, _, _, _) =>
-        matchSignaturesAndGenerate(name, funSugar)
+      case funSugar: Function.Binding =>
+        matchSignaturesAndGenerate(funSugar.name, funSugar)
       case err: Error                  => Seq(err)
       case ann: Name.GenericAnnotation => Seq(ann)
       case _ =>
@@ -274,23 +274,15 @@ case object ComplexType extends IRPass {
           expressionBinding.diagnosticsCopy,
           signature
         )
-      case functionBinding @ Function.Binding(
-            name,
-            args,
-            body,
-            isPrivate,
-            location,
-            _,
-            passData
-          ) =>
+      case functionBinding: Function.Binding =>
         genForName(
           typeName,
-          name,
-          args,
-          body,
-          isPrivate,
-          location,
-          passData,
+          functionBinding.name,
+          functionBinding.arguments,
+          functionBinding.body,
+          functionBinding.isPrivate,
+          functionBinding.identifiedLocation,
+          functionBinding.passData,
           functionBinding.diagnosticsCopy,
           signature
         )

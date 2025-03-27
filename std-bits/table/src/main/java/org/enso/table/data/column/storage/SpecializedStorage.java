@@ -22,14 +22,14 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
    * @param ops the operations supported by this storage
    */
   protected SpecializedStorage(
-      StorageType type, T[] data, MapOperationStorage<T, SpecializedStorage<T>> ops) {
+      StorageType<T> type, T[] data, MapOperationStorage<T, SpecializedStorage<T>> ops) {
     this.type = type;
     this.data = data;
     this.ops = ops;
   }
 
   protected final T[] data;
-  private final StorageType type;
+  private final StorageType<T> type;
   private final MapOperationStorage<T, SpecializedStorage<T>> ops;
 
   @Override
@@ -38,7 +38,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public StorageType getType() {
+  public StorageType<T> getType() {
     return type;
   }
 

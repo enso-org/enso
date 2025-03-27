@@ -25,6 +25,7 @@ export function DialogProvider(props: DialogContextValue & React.PropsWithChildr
 }
 
 /** Custom hook to get the dialog context. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useDialogContext() {
   return React.useContext(DialogContext)
 }
@@ -33,6 +34,7 @@ export function useDialogContext() {
  * Custom hook to get the dialog context.
  * @throws if the hook is used outside of a DialogProvider
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useDialogStrictContext() {
   const context = useDialogContext()
   invariant(context != null, 'useDialogStrictContext must be used within a DialogProvider')

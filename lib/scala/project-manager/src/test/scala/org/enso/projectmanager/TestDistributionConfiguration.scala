@@ -98,8 +98,7 @@ class TestDistributionConfiguration(
     new JVMSettings(
       javaCommandOverride = Some(javaCommand),
       jvmOptions          = Seq(),
-      extraOptions        = Seq(),
-      nativeImage         = false
+      extraOptions        = Seq()
     )
   }
 

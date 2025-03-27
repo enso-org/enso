@@ -19,7 +19,6 @@ overrides:
       printWidth: 100
       trailingComma: "all"
       arrowParens: "always"
-      organizeImportsSkipDestructiveCodeActions: true
       experimentalTernaries: true
       tailwindConfig: ./app/gui/tailwind.config.ts
 

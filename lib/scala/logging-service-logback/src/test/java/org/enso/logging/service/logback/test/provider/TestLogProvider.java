@@ -22,7 +22,10 @@ public class TestLogProvider implements SLF4JServiceProvider {
     assert factory instanceof LoggerContext;
     if (!initialized) {
       try {
-        new LogbackSetup((LoggerContext) factory).setup();
+        var setup = new LogbackSetup((LoggerContext) factory);
+        setup.setup();
+        // useful when exceptions are being swallowed in tests
+        // setup.setupConsoleAppender(Level.WARN);
         initialized = true;
       } catch (MissingConfigurationField e) {
         throw new RuntimeException(e);

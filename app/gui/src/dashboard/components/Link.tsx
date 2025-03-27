@@ -11,10 +11,6 @@ import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import { twMerge } from 'tailwind-merge'
 
-// ============
-// === Link ===
-// ============
-
 /** Props for a {@link Link}. */
 export interface LinkProps {
   readonly onPress?: () => void

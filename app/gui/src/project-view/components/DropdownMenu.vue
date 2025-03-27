@@ -75,6 +75,10 @@ const { floatingStyles } = useFloating(rootElement, floatElement, {
   margin: -4px;
 }
 
+.DropdownMenuButton {
+  backdrop-filter: var(--blur-app-bg);
+}
+
 .arrow {
   position: absolute;
   bottom: calc(-8px - var(--arrow-offset, 0px));

@@ -8,20 +8,12 @@ import FocusRoot from '#/components/styled/FocusRoot'
 import { ClearPressResponder } from '#/components/aria'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
 
-// =================
-// === Constants ===
-// =================
-
 const MODAL_VARIANTS = tailwindVariants.tv({
   base: 'inset z-1',
   variants: {
     centered: { true: 'size-screen fixed grid place-items-center' },
   },
 })
-
-// =================
-// === Component ===
-// =================
 
 /** Props for a {@link Modal}. */
 export interface ModalProps

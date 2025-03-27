@@ -1,12 +1,12 @@
 /** @file Types common to all credentials dialogs. */
-import type { SecretId } from 'enso-common/src/services/Backend'
+import type { CredentialMetadata, SecretId } from 'enso-common/src/services/Backend'
 import type { TextId } from 'enso-common/src/text'
 
 /** Props for a credentials form. */
 export interface CredentialsFormProps {
   readonly value?: unknown
   readonly upsertCredential: (
-    value: unknown,
+    value: CredentialMetadata,
     makeAuthorizeUrl: (id: SecretId) => string,
   ) => Promise<void>
   readonly isCreating: boolean

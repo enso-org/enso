@@ -11,10 +11,6 @@ import * as textProvider from '#/providers/TextProvider'
 import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 
-// ==================
-// === AboutModal ===
-// ==================
-
 /** A modal for confirming the deletion of an asset. */
 export default function AboutModal() {
   const localBackend = backendProvider.useLocalBackend()

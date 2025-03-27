@@ -14,7 +14,7 @@ import * as backendService from '#/services/Backend'
 
 import { duplicateProjectMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useOpenProject } from '#/hooks/projectHooks'
+import { useOpenProjectLocally } from '#/hooks/projectHooks'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDateTime } from 'enso-common/src/utilities/data/dateTime'
@@ -35,9 +35,11 @@ export function AssetVersion(props: AssetVersionProps) {
   const { placeholder = false, number, version, item, backend, latestVersion, doRestore } = props
   const { getText } = textProvider.useText()
   const queryClient = useQueryClient()
-  const openProject = useOpenProject()
+  const openProjectLocally = useOpenProjectLocally()
   const duplicateProjectMutation = useMutation(
-    duplicateProjectMutationOptions(backend, queryClient, openProject),
+    duplicateProjectMutationOptions(backend, queryClient, (project) => {
+      void openProjectLocally(project, backend.type)
+    }),
   )
   const isProject = item.type === backendService.AssetType.project
 

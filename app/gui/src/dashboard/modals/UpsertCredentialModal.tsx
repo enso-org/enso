@@ -2,7 +2,7 @@
 import { Dialog, Form, FormDropdown, Input } from '#/components/AriaComponents'
 import { CREDENTIAL_INFOS, type CredentialInfo } from '#/data/serviceCredentials'
 import { useText } from '#/providers/TextProvider'
-import type { SecretId } from '#/services/Backend'
+import type { CredentialMetadata, SecretId } from '#/services/Backend'
 import { openInNewBrowserTab } from '#/utilities/window'
 
 /** Props for a {@link UpsertCredentialModal}. */
@@ -11,7 +11,7 @@ export interface UpsertCredentialModalProps {
   readonly id: SecretId | null
   readonly name: string | null
   readonly defaultOpen?: boolean
-  readonly doCreate: (name: string, type: string, value: unknown) => Promise<SecretId>
+  readonly doCreate: (name: string, value: CredentialMetadata) => Promise<SecretId>
   /** Defaults to `true`. */
   readonly canCancel?: boolean
   /** Defaults to `false`. */
@@ -70,7 +70,7 @@ export default function UpsertCredentialModal(props: UpsertCredentialModalProps)
         canCancel={canCancel}
         canReset={canReset}
         upsertCredential={async (value, makeAuthorizeUrl) => {
-          const secretId = await doCreate(title, credentialInfo.credentialType, value)
+          const secretId = await doCreate(title, value)
           const authorizeUrl = makeAuthorizeUrl(secretId)
           openInNewBrowserTab(authorizeUrl)
         }}

@@ -45,10 +45,6 @@ function ColorPickerItem(props: InternalColorPickerItemProps) {
   )
 }
 
-// ===================
-// === ColorPicker ===
-// ===================
-
 /** Props for a {@link ColorPicker}. */
 export interface ColorPickerProps extends Readonly<Omit<aria.RadioGroupProps, 'className'>> {
   readonly children?: React.ReactNode

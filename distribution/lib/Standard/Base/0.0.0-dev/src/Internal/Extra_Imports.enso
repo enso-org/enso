@@ -1,16 +1,12 @@
 private
 
-# this file contains additional imports necessary for
-# building native image version of Enso with Standard
-# libraries included in
+## This file contains additional imports necessary for building native image version of Enso with Standard libraries
+   included in
 
-# needed by Util_Spec
 polyglot java import org.enso.base.text.CaseFoldedString as JCaseFoldedString
 polyglot java import org.enso.base.text.CaseFoldedString.Grapheme
 polyglot java import org.enso.base.Text_Utils as JText_Utils
 polyglot java import com.ibm.icu.text.BreakIterator as JBreakIterator
-
-# often used in tests
 polyglot java import java.util.ArrayList
 polyglot java import java.util.Map
 polyglot java import java.nio.CharBuffer
@@ -26,18 +22,24 @@ polyglot java import java.lang.RuntimeException as JRuntimeException
 polyglot java import java.lang.Thread
 polyglot java import java.lang.Thread.State
 polyglot java import java.lang.Float
-
 polyglot java import org.enso.base.Stream_Utils as JStream_Utils
 polyglot java import org.enso.base.file_system.File_Utils as JFile_Utils
 polyglot java import org.enso.base.CompareException as JCompareException
 polyglot java import org.enso.base.ObjectComparator as JObjectComparator
+polyglot java import org.enso.base.cache.DiskSpaceGetter
+polyglot java import org.enso.base.cache.NowGetter
+polyglot java import org.enso.base.cache.ReloadDetector
+polyglot java import org.enso.base.cache.TotalCacheLimit
+polyglot java import org.enso.base.cache.TotalCacheLimit.Limit
+polyglot java import org.enso.base.cache.TotalCacheLimit.Bytes
+polyglot java import org.enso.base.cache.TotalCacheLimit.Percentage
 
-Stream_Utils=JStream_Utils
-File_Utils=JFile_Utils
-CompareException=JCompareException
-ObjectComparator=JObjectComparator
-CaseFoldedString=JCaseFoldedString
-Text_Utils=JText_Utils
-BreakIterator=JBreakIterator
-Exception=JException
-RuntimeException=JRuntimeException
+Stream_Utils = JStream_Utils
+File_Utils = JFile_Utils
+CompareException = JCompareException
+ObjectComparator = JObjectComparator
+CaseFoldedString = JCaseFoldedString
+Text_Utils = JText_Utils
+BreakIterator = JBreakIterator
+Exception = JException
+RuntimeException = JRuntimeException

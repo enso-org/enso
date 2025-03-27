@@ -14,12 +14,13 @@ export interface BadgeProps extends VariantProps<typeof BADGE_STYLES> {
   readonly className?: string
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const BADGE_STYLES = tv({
   base: 'flex items-center justify-center px-[5px] border-[0.5px] min-w-6',
   variants: {
     variant: {
       solid: 'border-transparent bg-[var(--badge-bg-color)] text-[var(--badge-text-color)]',
-      outline: 'border-[var(--badge-border-color)] bg-transparent text-[var(--badge-text-color)]',
+      outline: 'border-[var(--badge-border-color)] bg-transparent text-primary',
     },
     color: {
       primary:
@@ -49,6 +50,7 @@ export const BADGE_STYLES = tv({
       variant: 'body-sm',
       color: 'current',
       className: '',
+      truncate: true,
     }),
   },
   defaultVariants: {

@@ -13,9 +13,14 @@ const props = withDefaults(
     // eslint-disable-next-line vue/require-default-prop
     transformImageUrl?: UrlTransformer | undefined
     toolbar?: boolean
+    // eslint-disable-next-line vue/require-default-prop
+    contentTestId?: string | undefined
   }>(),
   { toolbar: true },
 )
+defineOptions({
+  inheritAttrs: false,
+})
 
 const inner = ref<ComponentInstance<typeof LazyMarkdownEditor>>()
 
@@ -38,7 +43,13 @@ defineExpose({
 
 <template>
   <Suspense>
-    <LazyMarkdownEditor ref="inner" :content="props.content" :toolbar="props.toolbar">
+    <LazyMarkdownEditor
+      ref="inner"
+      v-bind="$attrs"
+      :content="props.content"
+      :toolbar="props.toolbar"
+      :contentTestId="props.contentTestId"
+    >
       <template #toolbarLeft>
         <slot name="toolbarLeft" />
       </template>

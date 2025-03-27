@@ -22,7 +22,7 @@ import org.graalvm.polyglot.Context;
 /** Aggregate Column computing the total value in a group. */
 public class Sum extends Aggregator {
   private final Storage<?> inputStorage;
-  private final StorageType inputType;
+  private final StorageType<?> inputType;
 
   public Sum(String name, Column column) {
     super(name);

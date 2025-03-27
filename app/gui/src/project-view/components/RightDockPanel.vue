@@ -19,12 +19,10 @@ const isFullscreen = ref(false)
 <template>
   <DockPanel
     v-model:size="dockStore.width"
-    :show="dockStore.visible"
-    :tab="dockStore.displayedTab"
+    v-model:tab="dockStore.displayedTab"
+    v-model:show="dockStore.visible"
     :tabButtons="tabButtons"
     :contentFullscreen="isFullscreen"
-    @update:show="dockStore.setVisible"
-    @update:tab="dockStore.switchToTab"
   >
     <template #tab-docs>
       <DocumentationEditor

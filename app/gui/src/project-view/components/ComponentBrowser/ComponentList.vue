@@ -1,27 +1,37 @@
 <script setup lang="ts">
-import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
+import { makeComponentLists, type Component } from '@/components/ComponentBrowser/component'
 import ComponentEntry from '@/components/ComponentBrowser/ComponentEntry.vue'
-import type { Filtering } from '@/components/ComponentBrowser/filtering'
+import { Filter, Filtering } from '@/components/ComponentBrowser/filtering'
 import SvgIcon from '@/components/SvgIcon.vue'
 import VirtualizedList from '@/components/VirtualizedList.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
+import { useProjectStore } from '@/stores/project'
+import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { Ast } from '@/util/ast'
+import { substituteQualifiedName } from '@/util/ast/abstract'
 import { tryGetIndex } from '@/util/data/array'
-import { computed, ref, toRef, watch } from 'vue'
+import { qnLastSegment } from '@/util/qualifiedName'
+import * as map from 'lib0/map'
+import { computed, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
+import { parseExpression } from 'ydoc-shared/ast'
+import ActionButton from '../ActionButton.vue'
 
 const ITEM_SIZE = 24
 const SCROLL_TO_SELECTION_MARGIN = ITEM_SIZE / 2
 const MOUSE_SELECTION_DEBOUNCE = 200
 
 const props = defineProps<{
-  filtering: Filtering
+  filter: Filter
+  literal?: Ast.Ast | undefined
 }>()
 const emit = defineEmits<{
   acceptSuggestion: [suggestion: Component]
   'update:selectedComponent': [selected: Component | null]
 }>()
 
+const projectStore = useProjectStore()
 const root = ref<HTMLElement>()
 const groupsPanel = ref<ComponentExposed<typeof VirtualizedList>>()
 const componentsPanel = ref<ComponentExposed<typeof VirtualizedList>>()
@@ -42,18 +52,35 @@ const displayedSelectedComponentIndex = computed({
   },
 })
 
-watch(toRef(props, 'filtering'), () => (displayedSelectedComponentIndex.value = 0))
+const filtering = computed(() => {
+  const currentModule = projectStore.moduleProjectPath
+  return new Filtering(props.filter, currentModule?.ok ? currentModule.value : undefined)
+})
+
+watch(filtering, () => (displayedSelectedComponentIndex.value = 0))
 watch(selectedGroupIndex, () => (selectedComponentIndex.value = 0))
 
 const suggestionDbStore = useSuggestionDbStore()
-const components = computed(() => makeComponentList(suggestionDbStore.entries, props.filtering))
+const projectNames = injectProjectNames()
+const components = computed(() => {
+  const lists = makeComponentLists(suggestionDbStore.entries, filtering.value)
+  if (props.literal != null) {
+    map
+      .setIfUndefined(lists, 'all', (): Component[] => [])
+      .unshift({
+        label: props.literal.code(),
+        icon: props.literal instanceof Ast.TextLiteral ? 'text_input' : 'input_number',
+      })
+  }
+  return lists
+})
 const currentGroups = computed(() => {
   return Array.from(components.value.entries(), ([id, components]) => ({
     id,
     ...(id === 'all' ? { name: 'all' }
     : id === 'suggestions' ? { name: 'suggestions' }
     : (suggestionDbStore.groups[id] ?? { name: 'unknown' })),
-    ...(props.filtering.pattern != null ? { displayedNumber: components.length } : {}),
+    ...(filtering.value?.pattern != null ? { displayedNumber: components.length } : {}),
   }))
 })
 const displayedGroupId = computed(() =>
@@ -75,6 +102,21 @@ const selectedComponent = computed(() =>
     null
   : (currentComponents.value[selectedComponentIndex.value] ?? null),
 )
+
+const selectedSuggestion = computed(() => {
+  if (selectedComponent.value?.suggestionId == null) return null
+  return suggestionDbStore.entries.get(selectedComponent.value.suggestionId)
+})
+
+const selectedSuggestionReturnType = computed(() => {
+  if (selectedSuggestion.value == null) return undefined
+  const typename = selectedSuggestion.value.returnType(projectNames)
+
+  const parsedType = parseExpression(typename)
+  if (parsedType == null) return typename
+  const substituted = substituteQualifiedName(parsedType, (qn) => qnLastSegment(qn))
+  return substituted.code()
+})
 
 watch(selectedComponent, (component) => emit('update:selectedComponent', component), {
   immediate: true,
@@ -118,27 +160,37 @@ defineExpose({
         <SvgIcon v-if="selected" class="groupEntryIcon" name="folder_closed" />
       </div>
     </VirtualizedList>
-    <VirtualizedList
-      ref="componentsPanel"
-      v-slot="{ item: component }"
-      v-model:selected="displayedSelectedComponentIndex"
-      class="components"
-      :items="currentComponents"
-      :itemHeight="ITEM_SIZE"
-      :scrollToSelectionMargin="SCROLL_TO_SELECTION_MARGIN"
-      :autoSelectFirst="focusedPanel === 'componentsPanel'"
-      :debounceMouseSelection="MOUSE_SELECTION_DEBOUNCE"
-      @itemAccepted="emit('acceptSuggestion', $event)"
-    >
-      <ComponentEntry :component="component" :color="componentColor(component)" />
-    </VirtualizedList>
+    <div class="rightPane">
+      <VirtualizedList
+        ref="componentsPanel"
+        v-slot="{ item: component }"
+        v-model:selected="displayedSelectedComponentIndex"
+        class="components"
+        :items="currentComponents"
+        :itemHeight="ITEM_SIZE"
+        :scrollToSelectionMargin="SCROLL_TO_SELECTION_MARGIN"
+        :autoSelectFirst="focusedPanel === 'componentsPanel'"
+        :debounceMouseSelection="MOUSE_SELECTION_DEBOUNCE"
+        @itemAccepted="emit('acceptSuggestion', $event)"
+      >
+        <ComponentEntry :component="component" :color="componentColor(component)" />
+      </VirtualizedList>
+      <div class="documentation">
+        <div class="documentationContent">
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <p v-if="selectedSuggestion?.docSummaryHtml" v-html="selectedSuggestion.docSummaryHtml" />
+          <p v-if="selectedSuggestion" v-text="`Returns: ${selectedSuggestionReturnType}`" />
+        </div>
+        <ActionButton class="helpButton" action="graphEditor.showHelp" />
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .ComponentList {
   width: 661px;
-  height: 370px;
+  height: 386px;
   border: none;
   border-radius: var(--radius-default);
   background-color: var(--background-color);
@@ -148,6 +200,7 @@ defineExpose({
 
 .groups {
   width: 129px;
+  min-width: 129px;
   height: 100%;
   flex-grow: 0;
   padding: 9px;
@@ -180,8 +233,41 @@ defineExpose({
   --icon-size: 12px;
 }
 
-.components {
+.rightPane {
   flex-grow: 1;
   padding: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.components {
+  flex-grow: 1;
+}
+
+.documentation {
+  border-top: 1px solid #d9d9d9;
+  padding-top: 9px;
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+
+.documentationContent {
+  min-width: 0;
+  flex-grow: 1;
+  p {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* If help contains <code> tags, it is a bit higher, resulting in panel hight jump. */
+    height: 23px;
+  }
+}
+
+.helpButton {
+  width: 24px;
+  height: 24px;
 }
 </style>

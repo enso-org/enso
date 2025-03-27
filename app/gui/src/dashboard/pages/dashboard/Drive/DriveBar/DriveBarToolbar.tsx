@@ -46,13 +46,12 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertCredentialModal from '#/modals/UpsertCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
-import { useFullUserSession } from '#/providers/AuthProvider'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import type { DirectoryId } from '#/services/Backend'
+import type { CredentialMetadata, DirectoryId } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
@@ -81,7 +80,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
   const isCloud = isCloudCategory(category)
   const { isOffline } = useOffline()
-  const { user } = useFullUserSession()
   const canDownload = useCanDownload()
 
   const { currentDirectoryId, rootDirectoryId } = useDirectoryIds({ category })
@@ -101,7 +99,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const effectivePasteData =
     (
       pasteData?.data.backendType === backend.type &&
-      canTransferBetweenCategories(pasteData.data.category, category, user)
+      canTransferBetweenCategories(pasteData.data.category, category)
     ) ?
       pasteData
     : null
@@ -117,11 +115,9 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     return await newSecretRaw(name, value, currentDirectoryId)
   })
   const newCredentialRaw = useNewCredential(backend)
-  const newCredential = useEventCallback(
-    async (name: string, value: string, metadata?: unknown) => {
-      return await newCredentialRaw(name, value, metadata, currentDirectoryId)
-    },
-  )
+  const newCredential = useEventCallback(async (name: string, value: CredentialMetadata) => {
+    return await newCredentialRaw(name, value, currentDirectoryId)
+  })
   const newDatalinkRaw = useNewDatalink(backend)
   const newDatalink = useEventCallback(async (name: string, value: unknown) => {
     return await newDatalinkRaw(name, value, currentDirectoryId)
@@ -234,51 +230,51 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 aria-label={getText('newFolder')}
                 onPress={() => newFolder(currentDirectoryId)}
               />
+              <DialogTrigger>
+                <Button
+                  isDisabled={!isCloud}
+                  variant="icon"
+                  size="medium"
+                  icon={AddKeyIcon}
+                  aria-label={isCloud ? getText('newSecret') : getText('newSecretOnlyCloud')}
+                />
+                <UpsertSecretModal
+                  id={null}
+                  name={null}
+                  doCreate={async (name, value) => {
+                    await newSecret(name, value)
+                  }}
+                />
+              </DialogTrigger>
+              <DialogTrigger>
+                <Button
+                  isDisabled={!isCloud}
+                  variant="icon"
+                  size="medium"
+                  icon={AddKeyIcon}
+                  aria-label={
+                    isCloud ? getText('newCredential') : getText('newCredentialOnlyCloud')
+                  }
+                />
+                <UpsertCredentialModal id={null} name={null} doCreate={newCredential} />
+              </DialogTrigger>
+              <DialogTrigger>
+                <Button
+                  isDisabled={!isCloud}
+                  variant="icon"
+                  size="medium"
+                  icon={AddDatalinkIcon}
+                  aria-label={isCloud ? getText('newDatalink') : getText('newDatalinkOnlyCloud')}
+                />
+                <UpsertDatalinkModal
+                  doCreate={async (name, value) => {
+                    await newDatalink(name, value)
+                  }}
+                />
+              </DialogTrigger>
+            </div>
 
-              {isCloud && (
-                <DialogTrigger>
-                  <Button
-                    variant="icon"
-                    size="medium"
-                    icon={AddKeyIcon}
-                    aria-label={getText('newSecret')}
-                  />
-                  <UpsertSecretModal
-                    id={null}
-                    name={null}
-                    doCreate={async (name, value) => {
-                      await newSecret(name, value)
-                    }}
-                  />
-                </DialogTrigger>
-              )}
-              {isCloud && (
-                <DialogTrigger>
-                  <Button
-                    variant="icon"
-                    size="medium"
-                    icon={AddKeyIcon}
-                    isDisabled={shouldBeDisabled}
-                    aria-label={getText('newCredential')}
-                  />
-                  <UpsertCredentialModal id={null} name={null} doCreate={newCredential} />
-                </DialogTrigger>
-              )}
-              {isCloud && (
-                <DialogTrigger>
-                  <Button
-                    variant="icon"
-                    size="medium"
-                    icon={AddDatalinkIcon}
-                    aria-label={getText('newDatalink')}
-                  />
-                  <UpsertDatalinkModal
-                    doCreate={async (name, value) => {
-                      await newDatalink(name, value)
-                    }}
-                  />
-                </DialogTrigger>
-              )}
+            <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px]">
               <Button
                 variant="icon"
                 size="medium"
@@ -329,14 +325,15 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
   const { shouldBeDisabled, backend, category, rootDirectoryId, children } = props
   const { getText } = useText()
 
-  const rootDirectoryQuery = listDirectoryQueryOptions({
+  const rootDirectoryQueryOptions = listDirectoryQueryOptions({
     backend,
     category,
     parentId: rootDirectoryId,
+    refetchInterval: null,
   })
 
   const { data: isEmpty } = useSuspenseQuery({
-    ...rootDirectoryQuery,
+    ...rootDirectoryQueryOptions,
     select: (data) => data.length === 0,
   })
 

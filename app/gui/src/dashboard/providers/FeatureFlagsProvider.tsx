@@ -13,9 +13,7 @@ import { persist } from 'zustand/middleware'
 const MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS = 100
 const DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS = 3_000
 
-/**
- * Feature flags for internal testing.
- */
+/** Feature flags for internal testing. */
 export function featureFlagsForInternalTesting() {
   return {
     enableCloudExecution: true,

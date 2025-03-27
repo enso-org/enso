@@ -10,10 +10,6 @@ import { getDetailedRectangle, getDetailedRectangleFromRectangle } from '#/utili
 import { findScrollContainers, type HTMLOrSVGElement } from '#/utilities/scrollContainers'
 import { motion, useMotionValue } from 'framer-motion'
 
-// =================
-// === Constants ===
-// =================
-
 /**
  * Defines the minimal distance that the mouse must move before
  * we consider that user has started a selection.
@@ -22,10 +18,6 @@ const DEAD_ZONE_SIZE = 24
 
 // eslint-disable-next-line no-restricted-syntax
 const noop = () => {}
-
-// ======================
-// === SelectionBrush ===
-// ======================
 
 /**
  * Parameters for the onDrag callback.

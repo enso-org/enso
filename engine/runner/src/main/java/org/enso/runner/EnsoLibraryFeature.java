@@ -115,6 +115,7 @@ public final class EnsoLibraryFeature implements Feature {
               nativeLibPaths.add(out.getAbsolutePath());
             }
           }
+          pkg.markAotReady();
         }
       }
     } catch (Exception ex) {

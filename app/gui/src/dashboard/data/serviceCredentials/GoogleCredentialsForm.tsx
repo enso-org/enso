@@ -9,6 +9,7 @@ import { CredentialsFormButtons } from '#/data/serviceCredentials/CredentialsFor
 import { useSynchronizeCredentialsValue } from '#/data/serviceCredentials/utilities'
 import { useText } from '#/providers/TextProvider'
 import { getOauthCallbackPath } from '#/services/remoteBackendPaths'
+import { uuidv4 } from 'lib0/random.js'
 import invariant from 'tiny-invariant'
 import type { CredentialsFormProps } from './types'
 
@@ -24,8 +25,10 @@ export function GoogleCredentialsDialog(props: CredentialsFormProps) {
         scopes: z.string().array(),
       }),
     onSubmit: async (formValue) => {
-      await upsertCredential(formValue, (id) => {
+      const nonce = uuidv4()
+      await upsertCredential({ input: { type: 'Google', ...formValue }, nonce }, (id) => {
         invariant($config.GOOGLE_OAUTH_CLIENT_ID, 'Google OAuth client id is missing')
+        const state = btoa(JSON.stringify({ secretId: id, nonce }))
         const query = new URLSearchParams({
           /* eslint-disable @typescript-eslint/naming-convention, camelcase */
           response_type: 'code',
@@ -33,7 +36,7 @@ export function GoogleCredentialsDialog(props: CredentialsFormProps) {
           prompt: 'consent',
           redirect_uri: getOauthCallbackPath('Google'),
           client_id: $config.GOOGLE_OAUTH_CLIENT_ID,
-          state: id,
+          state,
           /* eslint-enable @typescript-eslint/naming-convention, camelcase */
         })
         for (const scope of formValue.scopes) {

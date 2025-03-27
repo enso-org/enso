@@ -59,6 +59,10 @@ abstract class BaseSuggestionEntry implements SuggestionEntryCommon {
   get documentation() {
     return this.documentationData.documentation
   }
+
+  get docSummaryHtml() {
+    return this.documentationData.docSummaryHtml
+  }
   get aliases() {
     return this.documentationData.aliases
   }
@@ -67,6 +71,9 @@ abstract class BaseSuggestionEntry implements SuggestionEntryCommon {
   }
   get groupIndex() {
     return this.documentationData.groupIndex
+  }
+  get suggestedRank() {
+    return this.documentationData.suggestedRank
   }
   get isPrivate() {
     return this.documentationData.isPrivate

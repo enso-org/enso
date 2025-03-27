@@ -1,5 +1,4 @@
 /** @file Renders the list of templates from which a project can be created. */
-import * as React from 'react'
 
 import ReadAndFilterImage from '#/assets/ReadAndFilter.png'
 import AggregatingImage from '#/assets/aggregate.png'
@@ -17,10 +16,6 @@ import WeatherImage from '#/assets/weather.png'
 
 import { Button, Text } from '#/components/AriaComponents'
 
-// =========================
-// === List of templates ===
-// =========================
-
 /** Template metadata. */
 export interface Sample {
   readonly title: string
@@ -35,7 +30,7 @@ export interface Sample {
 }
 
 /** The full list of templates. */
-export const SAMPLES: Sample[] = [
+const SAMPLES: Sample[] = [
   {
     title: 'New Project',
     id: 'Default',
@@ -129,10 +124,6 @@ export const SAMPLES: Sample[] = [
   },
 ]
 
-// ===================
-// === ProjectTile ===
-// ===================
-
 /** Props for a {@link ProjectTile}. */
 interface InternalProjectTileProps {
   readonly sample: Sample
@@ -170,10 +161,6 @@ function ProjectTile(props: InternalProjectTileProps) {
   )
 }
 
-// ===============
-// === Samples ===
-// ===============
-
 /** Props for a {@link Samples}. */
 export interface SamplesProps {
   readonly groupName: string
@@ -181,7 +168,7 @@ export interface SamplesProps {
 }
 
 /** A list of sample projects. */
-export default function Samples(props: SamplesProps) {
+export function Samples(props: SamplesProps) {
   const { groupName, createProject } = props
 
   return (

@@ -107,6 +107,7 @@ public abstract class StaticAnalysisTest {
                     CollectionConverters.asScala(contacts).toList(),
                     Option.empty(),
                     true,
+                    Option.empty(),
                     Option.empty());
             return new Package<>(root, initialConfig, TruffleFileSystem.INSTANCE);
           } catch (IOException e) {

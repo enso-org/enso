@@ -187,7 +187,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
                       <div className="flex flex-col items-center">
                         <Text
                           weight={isToday ? 'bold' : 'medium'}
-                          color={isToday ? 'success' : 'disabled'}
+                          color={isToday ? 'success' : 'inherit'}
                         >
                           {date.day}
                         </Text>
@@ -230,6 +230,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
         <Text color="disabled">{getText('noProjectExecutions')}</Text>
       : projectExecutionsForToday.map(({ projectExecution, date }) => (
           <ProjectExecution
+            key={projectExecution.executionId}
             compact
             backend={backend}
             item={item}

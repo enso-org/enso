@@ -1,0 +1,145 @@
+package org.enso.compiler.core.ir.module.scope;
+
+import java.util.function.Function;
+import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.core.ir.IRKind;
+import org.enso.compiler.core.ir.IdentifiedLocation;
+import org.enso.compiler.core.ir.MetadataStorage;
+import org.enso.compiler.core.ir.Name;
+import org.enso.compiler.core.ir.Name.Literal;
+import org.enso.compiler.core.ir.module.Scope;
+import org.enso.runtime.parser.dsl.GenerateFields;
+import org.enso.runtime.parser.dsl.GenerateIR;
+import org.enso.runtime.parser.dsl.IRChild;
+import org.enso.runtime.parser.dsl.IRField;
+import scala.Option;
+import scala.collection.immutable.List;
+
+public interface Import extends Scope {
+
+  @Override
+  Import mapExpressions(Function<Expression, Expression> fn);
+
+  @Override
+  Import setLocation(Option<IdentifiedLocation> location);
+
+  @Override
+  Import duplicate(
+      boolean keepLocations,
+      boolean keepMetadata,
+      boolean keepDiagnostics,
+      boolean keepIdentifiers);
+
+  @GenerateIR(interfaces = {Import.class, IRKind.Primitive.class})
+  final class Module extends ImportModuleGen {
+    @GenerateFields
+    public Module(
+        @IRChild Name.Qualified name,
+        @IRChild Option<Name.Literal> rename,
+        @IRField boolean isAll,
+        @IRChild Option<List<Name.Literal>> onlyNames,
+        @IRChild Option<List<Name.Literal>> hiddenNames,
+        @IRField boolean isSynthetic,
+        IdentifiedLocation identifiedLocation,
+        MetadataStorage passData) {
+      super(name, rename, isAll, onlyNames, hiddenNames, isSynthetic, identifiedLocation, passData);
+    }
+
+    public static Module createSynthetic(Name.Qualified name) {
+      return new Module(
+          name,
+          Option.empty(),
+          false,
+          Option.empty(),
+          Option.empty(),
+          true,
+          null,
+          new MetadataStorage());
+    }
+
+    public Module copyWithNameAndRename(Name.Qualified name, Option<Name.Literal> rename) {
+      return copy(
+          diagnostics,
+          passData,
+          location,
+          id,
+          name,
+          rename,
+          isAll(),
+          onlyNames(),
+          hiddenNames(),
+          isSynthetic());
+    }
+
+    public Module copyWithName(Name.Qualified name) {
+      return copy(
+          diagnostics,
+          passData,
+          location,
+          id,
+          name,
+          rename(),
+          isAll(),
+          onlyNames(),
+          hiddenNames(),
+          isSynthetic());
+    }
+
+    @Override
+    public String showCode(int indent) {
+      var renameCode = "";
+      if (rename().isDefined()) {
+        renameCode = " as " + rename().get().name();
+      }
+      if (isAll()) {
+        var onlyPart = "";
+        if (onlyNames().isDefined()) {
+          onlyPart = " " + onlyNames().get().map(Literal::name).mkString(", ");
+        }
+        var hidingPart = "";
+        if (hiddenNames().isDefined()) {
+          hidingPart = " hiding " + hiddenNames().get().map(Literal::name).mkString(", ");
+        }
+        var all = onlyNames().isDefined() ? "" : " all";
+        return "from " + name().name() + renameCode + " import" + onlyPart + all + hidingPart;
+      } else {
+        return "import " + name().name() + renameCode;
+      }
+    }
+
+    /**
+     * Gets the name of the module visible in this scope, either the original name or the rename.
+     *
+     * @return the name of this import visible in code
+     */
+    public Name getSimpleName() {
+      if (rename().isDefined()) {
+        return rename().get();
+      } else {
+        return name().parts().last();
+      }
+    }
+
+    /**
+     * Checks whether the import statement allows use of the given exported name.
+     *
+     * <p>Note that it does not verify if the name is actually exported by the module, only checks
+     * if it is syntactically allowed.
+     *
+     * @param name the name to check
+     * @return whether the name could be accessed or not
+     */
+    public boolean allowsAccess(String name) {
+      if (!isAll()) {
+        return false;
+      }
+      if (onlyNames().isDefined()) {
+        return onlyNames().get().exists(nm -> nm.name().equals(name));
+      } else if (hiddenNames().isDefined()) {
+        return !hiddenNames().get().exists(nm -> nm.name().equals(name));
+      } else {
+        return true;
+      }
+    }
+  }
+}

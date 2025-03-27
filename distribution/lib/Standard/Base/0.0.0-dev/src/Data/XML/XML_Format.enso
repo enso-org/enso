@@ -4,6 +4,7 @@ import project.Data.Vector.Vector
 import project.Data.XML.XML_Document
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Function.Function
+import project.Internal.Telemetry
 import project.Meta
 import project.Network.URI.URI
 import project.Nothing.Nothing
@@ -60,7 +61,10 @@ type XML_Format
     read : File -> Problem_Behavior -> Any
     read self file:File on_problems:Problem_Behavior =
         _ = [on_problems]
-        XML_Document.from_file file
+        result = XML_Document.from_file file
+        result.if_not_error <|
+            Telemetry.log "File_Format.read" "Read file: format={}, output={}" ["XML_Format", "XML_Document"]
+            result
 
     ## PRIVATE
        Implements decoding the format from a stream.

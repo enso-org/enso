@@ -19,6 +19,7 @@ import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import invariant from 'tiny-invariant'
+import { z } from 'zod'
 
 /** HTTP status indicating that the request was successful. */
 const STATUS_SUCCESS_FIRST = 200
@@ -32,16 +33,6 @@ const STATUS_SERVER_ERROR = 500
 const STATUS_NOT_AUTHORIZED = 401
 /** HTTP status indicating that authorized user doesn't have access to the given resource */
 const STATUS_NOT_ALLOWED = 403
-const TYPE_TO_EXTENSION: Record<backend.AssetType, string> = {
-  directory: '/',
-  project: '.project',
-  secret: '.secret',
-  datalink: '.datalink',
-  file: '',
-  specialEmpty: '',
-  specialError: '',
-  specialLoading: '',
-}
 
 /** The format of all errors returned by the backend. */
 interface RemoteBackendError {
@@ -180,20 +171,6 @@ export function parentsPathsToPath(
   }
 }
 
-/** Convert a {@link backend.ParentsPath} and a {@link backend.VirtualParentsPath} to a full path. */
-export function computeFullRemotePath(
-  asset: Pick<backend.AnyAsset, 'parentsPath' | 'title' | 'type' | 'virtualParentsPath'>,
-  users: readonly backend.UserInfo[],
-  userGroups: readonly backend.UserGroupInfo[],
-) {
-  const { title, type, parentsPath, virtualParentsPath } = asset
-  const directoryPath = parentsPathsToPath(parentsPath, virtualParentsPath, users, userGroups)
-  if (directoryPath == null) {
-    return
-  }
-  return `${directoryPath}/${title}${TYPE_TO_EXTENSION[type]}`
-}
-
 /** HTTP response body for the "list users" endpoint. */
 export interface ListUsersResponseBody {
   readonly users: readonly backend.User[]
@@ -275,20 +252,21 @@ export default class RemoteBackend extends Backend {
       this.logger.error(textId.message)
 
       throw textId
-    } else {
-      const error =
-        response == null || response.headers.get('Content-Type') !== 'application/json' ?
-          { message: 'unknown error' }
-          // This is SAFE only when the response has been confirmed to have an erroring status code.
-          // eslint-disable-next-line no-restricted-syntax
-        : ((await response.json()) as RemoteBackendError)
-      const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
-      this.logger.error(message)
-
-      const status = response?.status
-
-      throw new backend.NetworkError(message, status)
     }
+
+    const error =
+      response == null || response.headers.get('Content-Type') !== 'application/json' ?
+        { message: 'unknown error' }
+        // This is SAFE only when the response has been confirmed to have an erroring status code.
+        // eslint-disable-next-line no-restricted-syntax
+      : ((await response.json()) as RemoteBackendError)
+
+    const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
+    this.logger.error(message)
+
+    const status = response?.status
+
+    throw new backend.NetworkError(message, status)
   }
 
   /** The path to the root directory of this {@link Backend}. */
@@ -634,6 +612,9 @@ export default class RemoteBackend extends Backend {
         .map((asset) =>
           object.merge(asset, {
             permissions: [...(asset.permissions ?? [])].sort(backend.compareAssetPermissions),
+            ...(asset.ensoPath != null ?
+              { ensoPathValue: backend.EnsoPathValue(String(encodeURI(asset.ensoPath))) }
+            : {}),
           }),
         )
         .map((asset) => this.dynamicAssetUser(asset))
@@ -719,10 +700,15 @@ export default class RemoteBackend extends Backend {
   ) {
     const path = remoteBackendPaths.updateAssetPath(assetId)
     const response = await this.patch(path, body)
+
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'updateAssetBackendError', title)
-    } else {
-      return
+      await this.throw(response, 'updateAssetBackendError', title).catch((error) => {
+        if (isDuplicateAssetError(error)) {
+          throw new backend.DuplicateAssetError(error.message)
+        }
+
+        throw error
+      })
     }
   }
 
@@ -773,11 +759,20 @@ export default class RemoteBackend extends Backend {
       remoteBackendPaths.copyAssetPath(assetId),
       { parentDirectoryId },
     )
+
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'copyAssetBackendError', title, parentDirectoryTitle)
-    } else {
-      return await response.json()
+      return await this.throw(response, 'copyAssetBackendError', title, parentDirectoryTitle).catch(
+        (error) => {
+          if (isDuplicateAssetError(error)) {
+            throw new backend.DuplicateAssetError(error.message)
+          }
+
+          throw error
+        },
+      )
     }
+
+    return await response.json()
   }
 
   /**
@@ -1536,6 +1531,7 @@ export default class RemoteBackend extends Backend {
       case backend.AssetType.specialLoading:
       case backend.AssetType.specialEmpty:
       case backend.AssetType.specialError:
+      case backend.AssetType.specialUp:
       default: {
         invariant(`'${asset.type}' assets cannot be downloaded.`)
         break
@@ -1544,24 +1540,37 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Download the project to a temporary location. */
-  async downloadProject(id: backend.ProjectId): Promise<DirectoryId> {
+  async downloadProject(id: backend.ProjectId) {
+    /** The type of the response body of this endpoint. */
+    interface ResponseBody {
+      readonly targetDirectory: string
+      readonly parentDirectory: string
+    }
     const details = await this.getProjectDetails(id, true)
 
-    invariant(details.url != null, 'The download URL of the project must be present.')
+    if (details.url == null) {
+      this.logger.error(`Project ${id} details missing download URL.`)
+      return this.throw(null, 'getProjectDetailsBackendError')
+    }
 
     const queryString = new URLSearchParams({
       downloadUrl: details.url,
       projectId: id,
     })
 
-    const response = await this.client.get(`./api/cloud/download-project?${queryString}`)
-    const path = await response.text()
-
-    if (!response.ok) {
+    const response = await this.client.get<ResponseBody>(
+      `./api/cloud/download-project?${queryString}`,
+    )
+    if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
     }
 
-    return DirectoryId(`directory-${path}` as const)
+    const responseBody = await response.json()
+
+    return {
+      targetId: DirectoryId(`directory-${responseBody.targetDirectory}` as const),
+      parentId: DirectoryId(`directory-${responseBody.parentDirectory}` as const),
+    }
   }
 
   /** Upload the project. */
@@ -1606,6 +1615,34 @@ export default class RemoteBackend extends Backend {
       const blob = await response.blob()
       return URL.createObjectURL(blob)
     }
+  }
+
+  /** Set state of the project running in Hybrid mode as open in progress. */
+  async setHybridOpenInProgress(id: backend.ProjectId, title: string): Promise<void> {
+    const path = remoteBackendPaths.getHybridSetOpenInProgress(id)
+    const response = await this.post(path, {})
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'openProjectBackendError', title)
+    } else {
+      return
+    }
+  }
+
+  /** Set state of the project running in Hybrid mode as opened. */
+  async setHybridOpened(id: backend.ProjectId, title: string): Promise<void> {
+    const path = remoteBackendPaths.getHybridSetOpened(id)
+    const response = await this.post(path, {})
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'openProjectBackendError', title)
+    } else {
+      return
+    }
+  }
+
+  /** Send ping notifying the backend that the project is running. */
+  async ping(id: backend.ProjectId): Promise<void> {
+    const path = remoteBackendPaths.getHybridProjectPing(id)
+    await this.post(path, {})
   }
 
   /**
@@ -1667,4 +1704,16 @@ export default class RemoteBackend extends Backend {
   private delete<T = void>(path: string, payload?: Record<string, unknown>) {
     return this.client.delete<T>(`${$config.API_URL}/${path}`, payload)
   }
+}
+
+/** The schema that checks if the error is a duplicate asset error. */
+const DUPLICATE_ASSET_ERROR_SCHEMA = z.object({
+  message: z.string().includes('A resource with that title already exists.'),
+})
+
+/**
+ * Check if the error is a duplicate asset error.
+ */
+function isDuplicateAssetError(error: unknown): error is Error {
+  return DUPLICATE_ASSET_ERROR_SCHEMA.safeParse(error).success
 }

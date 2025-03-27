@@ -1189,7 +1189,7 @@ export class OprApp extends BaseExpression {
     rhs: Owned<MutableExpression> | undefined,
   ) {
     const operatorToken =
-      operator instanceof Token ? operator : Token.new(operator, TokenType.Operator)
+      typeof operator === 'string' ? Token.new(operator, TokenType.Operator) : operator
     return OprApp.concrete(module, unspaced(lhs), [autospaced(operatorToken)], autospaced(rhs))
   }
 
@@ -1827,7 +1827,7 @@ export class TextLiteral extends BaseExpression {
     let nextTokenSpacing: 'unspaced' | 'maybe-spaced' | 'indented' = 'unspaced'
     let blockIndent: string | undefined = undefined
     for (const raw of rawChildren) {
-      const tokenType = isToken(raw.node) ? raw.node.tokenType_ : null
+      const tokenType = isTokenId(raw.node) ? raw.node.tokenType_ : null
       const specialToken =
         tokenType === TokenType.Newline ? 'newline'
         : tokenType === TokenType.OpenSymbol || tokenType === TokenType.CloseSymbol ?
@@ -1890,7 +1890,21 @@ export class MutableTextLiteral extends TextLiteral implements MutableExpression
 
   setBoundaries(code: string) {
     this.fields.set('open', unspaced(Token.new(code)))
-    this.fields.set('close', unspaced(Token.new(code)))
+    if (code.length > 1) {
+      this.fields.set('close', undefined)
+    } else {
+      this.fields.set('close', unspaced(Token.new(code)))
+    }
+  }
+
+  fixBoundaries() {
+    const open = this.open
+    const close = this.close
+    if (open != null && close == null && open.code().length === 1) {
+      this.fields.set('close', unspaced(Token.new(open.code())))
+    } else if (open == null && close != null) {
+      this.fields.set('open', unspaced(Token.new(close.code())))
+    }
   }
 
   setElements(elements: TextElement<OwnedRefs>[]) {
@@ -2401,11 +2415,11 @@ export class FunctionDef extends BaseStatement {
   ): Owned<MutableFunctionDef> {
     const module = options.edit ?? MutableModule.Transient()
     const argumentDefinitions = args.map((arg) =>
-      typeof arg === 'string' || isToken(arg) ?
-        {
+      typeof arg === 'object' && 'pattern' in arg ?
+        arg
+      : {
           pattern: autospaced(Ident.new(module, arg)),
-        }
-      : arg,
+        },
     )
     return MutableFunctionDef.concrete(module, {
       docLine: undefined,
@@ -2421,7 +2435,10 @@ export class FunctionDef extends BaseStatement {
     })
   }
 
-  /** TODO: Add docs */
+  /**
+   * @returns The contents of the function's body; this will be a single expression if the function
+   * is defined inline, or zero or more statements if the function's body is a block.
+   */
   *bodyExpressions(): IterableIterator<Expression | Statement> {
     const body = this.body
     if (body instanceof BodyBlock) {
@@ -3413,8 +3430,9 @@ function toIdentStrict(ident: StrictIdentLike | undefined): IdentifierToken | un
 function toIdentStrict(ident: StrictIdentLike | undefined): IdentifierToken | undefined {
   return (
     ident ?
-      isToken(ident) ? ident
-      : (Token.new(ident, TokenType.Ident) as IdentifierToken)
+      typeof ident === 'string' ?
+        (Token.new(ident, TokenType.Ident) as IdentifierToken)
+      : ident
     : undefined
   )
 }
@@ -3425,8 +3443,9 @@ function toIdent(ident: IdentLike | undefined): IdentifierOrOperatorIdentifierTo
 function toIdent(ident: IdentLike | undefined): IdentifierOrOperatorIdentifierToken | undefined {
   return (
     ident ?
-      isToken(ident) ? ident
-      : (Token.new(ident, TokenType.Ident) as IdentifierOrOperatorIdentifierToken)
+      typeof ident === 'string' ?
+        (Token.new(ident, TokenType.Ident) as IdentifierOrOperatorIdentifierToken)
+      : ident
     : undefined
   )
 }

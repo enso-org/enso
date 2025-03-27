@@ -121,12 +121,12 @@ const scrollTarget = ref(0.0)
 const scrollPosition = useApproach(scrollTarget)
 const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
 
-function showSelectedItem() {
-  if (selected.value == null) return
-  const selectedPosition = itemPos(selected.value)
-  const maxScrollPos = Math.max(selectedPosition - scrollToSelectionMargin, 0.0)
+function showHighlightedItem() {
+  if (highlighted.value == null) return
+  const highlightedPosition = itemPos(highlighted.value)
+  const maxScrollPos = Math.max(highlightedPosition - scrollToSelectionMargin, 0.0)
   const minScrollPos = Math.min(
-    selectedPosition + itemHeight + scrollToSelectionMargin - scrollerSize.value.y,
+    highlightedPosition + itemHeight + scrollToSelectionMargin - scrollerSize.value.y,
     listContentHeight.value - scrollerSize.value.y,
   )
   if (scrollPosition.value > maxScrollPos) {
@@ -157,19 +157,21 @@ watch(
 // === Expose ===
 
 function moveUp() {
-  if (selected.value != null && selected.value > 0) {
-    selected.value -= 1
+  if (highlighted.value != null && highlighted.value > 0) {
+    highlighted.value -= 1
   }
-  showSelectedItem()
+  updateSelectionToHighlight()
+  showHighlightedItem()
 }
 
 function moveDown() {
-  if (selected.value == null) {
-    selected.value = 0
-  } else if (selected.value < items.length - 1) {
-    selected.value += 1
+  if (highlighted.value == null) {
+    highlighted.value = 0
+  } else if (highlighted.value < items.length - 1) {
+    highlighted.value += 1
   }
-  showSelectedItem()
+  updateSelectionToHighlight()
+  showHighlightedItem()
 }
 
 function accept() {

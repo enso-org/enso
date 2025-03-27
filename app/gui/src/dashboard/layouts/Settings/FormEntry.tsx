@@ -6,10 +6,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import SettingsInput from './Input'
 import type { SettingsContext, SettingsFormEntryData } from './data'
 
-// =========================
-// === SettingsFormEntry ===
-// =========================
-
 /** Props for a {@link SettingsFormEntry}. */
 export interface SettingsFormEntryProps<T extends Record<keyof T, string>> {
   readonly context: SettingsContext

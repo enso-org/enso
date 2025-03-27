@@ -36,7 +36,7 @@ type Choice
        - parameters: A list of parameters for the arguments for the `value`.
          This provides the structure needed for nested widgets.
        - icon: The icon to display for the entry. By default, no icon is used.
-    Option label:Text value:Text=label parameters:(Vector (Pair Text Widget))=[] icon:Text=""
+    Option label:Text value:(Text | Vector Choice)=label parameters:(Vector (Pair Text Widget))=[] icon:Text=""
 
 type Widget
     ## Describes a single value widget (dropdown).

@@ -204,7 +204,7 @@ object NativeImage {
         Seq("-cp", cpStr) ++
         staticParameters ++
         configs ++
-        Seq("--no-fallback", "--no-server") ++
+        Seq("--no-fallback") ++
         Seq("-march=compatibility") ++
         initializeAtBuildtimeOptions ++
         initializeAtRuntimeOptions ++

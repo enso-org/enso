@@ -23,7 +23,8 @@
   },
   "peerDependencies": {
     "@tanstack/query-core": "5.59.20",
-    "@tanstack/vue-query": "5.59.20"
+    "@tanstack/vue-query": "5.59.20",
+    "zod": "^3.23.0"
   },
   "dependencies": {
     "@internationalized/date": "3.7.0",

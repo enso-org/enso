@@ -1,11 +1,5 @@
 /** @file A horizontal line dividing two sections in a menu. */
-import * as React from 'react'
-
-import * as aria from '#/components/aria'
-
-// =================
-// === Separator ===
-// =================
+import { Separator as AriaSeparator } from '#/components/aria'
 
 /** Props for a {@link Separator}. */
 export interface SeparatorProps {
@@ -18,7 +12,7 @@ export default function Separator(props: SeparatorProps) {
 
   return (
     !hidden && (
-      <aria.Separator className="mx-context-menu-entry-px my-separator-y border-t-0.5 border-black/[0.16]" />
+      <AriaSeparator className="mx-context-menu-entry-px my-separator-y border-t-0.5 border-black/[0.16]" />
     )
   )
 }

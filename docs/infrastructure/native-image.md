@@ -200,9 +200,10 @@ safely.
 
 ### Engine runner Configuration
 
-The Native Image generation for the Engine Runner is currently in a preview
-state. It is triggered by `ENSO_LAUNCHER` environment variable. Its value can be
-one of the following:
+The Native Image generation for the Engine Runner is on by default for releases.
+In development mode, Native Image build has to be enabled explicitly. It is
+triggered by `ENSO_LAUNCHER` environment variable. Its value can be one of the
+following:
 
 - `shell`: The default value. `buildEngineDistribution` command does not build
   the native image.

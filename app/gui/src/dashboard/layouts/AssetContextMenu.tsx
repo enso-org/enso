@@ -1,6 +1,5 @@
 /** @file The context menu for an arbitrary {@link backendModule.Asset}. */
 import * as React from 'react'
-import invariant from 'tiny-invariant'
 
 import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
@@ -35,15 +34,12 @@ import {
   downloadAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useBackendQuery, useNewProject } from '#/hooks/backendHooks'
+import { useNewProject } from '#/hooks/backendHooks'
 import { useUploadFileWithToastMutation } from '#/hooks/backendUploadFilesHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { usePasteData } from '#/providers/DriveProvider'
 import * as featureFlagsProvider from '#/providers/FeatureFlagsProvider'
-import { computeFullRemotePath } from '#/services/RemoteBackend'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
-import { normalizePath } from '#/utilities/fileInfo'
-import { mapNonNullish } from '#/utilities/nullable'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useSetAssetPanelProps, useSetIsAssetPanelTemporarilyVisible } from './AssetPanel'
@@ -71,8 +67,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { asset, state, setRowState } = innerProps
   const { backend, category } = state
 
-  const { data: users = [] } = useBackendQuery(backend, 'listUsers', [])
-  const { data: userGroups = [] } = useBackendQuery(backend, 'listUserGroups', [])
+  const isCloud = categoryModule.isCloudCategory(category)
+
   const getAsset = useGetAsset()
   const canOpenProjects = projectHooks.useCanOpenProjects()
   const { user } = authProvider.useFullUserSession()
@@ -83,24 +79,15 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const setAssetPanelProps = useSetAssetPanelProps()
-  const openProject = projectHooks.useOpenProject()
+  const openProjectNatively = projectHooks.useOpenProjectNatively()
+  const openProjectLocally = projectHooks.useOpenProjectLocally()
   const closeProject = projectHooks.useCloseProject()
   const deleteAssetsMutation = reactQuery.useMutation(deleteAssetsMutationOptions(backend))
   const restoreAssetsMutation = reactQuery.useMutation(restoreAssetsMutationOptions(backend))
   const copyAssetsMutation = reactQuery.useMutation(copyAssetsMutationOptions(backend))
   const downloadAssetsMutation = reactQuery.useMutation(downloadAssetsMutationOptions(backend))
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
-  const isCloud = categoryModule.isCloudCategory(category)
-  const pathComputed =
-    category.type === 'recent' || category.type === 'trash' ? null
-    : isCloud ? computeFullRemotePath(asset, users, userGroups)
-    : asset.type === backendModule.AssetType.project ?
-      mapNonNullish(localBackend?.getProjectPath(asset.id) ?? null, normalizePath)
-    : normalizePath(localBackendModule.extractTypeAndId(asset.id).id)
-  const path =
-    pathComputed == null ? null
-    : isCloud ? encodeURI(pathComputed)
-    : pathComputed
+  const path = asset.ensoPathValue
   const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
   const uploadFileToCloudMutation = useUploadFileWithToastMutation(remoteBackend)
   const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined
@@ -180,6 +167,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
       doAction={() => {
         const directoryId =
           asset.type === backendModule.AssetType.directory ? asset.id : asset.parentId
+
         doPaste(directoryId, directoryId)
       }}
     />
@@ -238,14 +226,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               action="open"
               isDisabled={!canOpenProjects}
               tooltip={disabledTooltip}
-              doAction={() => {
-                openProject({
-                  id: asset.id,
-                  title: asset.title,
-                  parentId: asset.parentId,
-                  type: state.backend.type,
-                })
-              }}
+              doAction={() => openProjectLocally(asset, backend.type)}
             />
           )}
         {asset.type === backendModule.AssetType.project && isCloud && enableHybridExecution && (
@@ -254,26 +235,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             action="run"
             isDisabled={!canOpenProjects}
             tooltip={disabledTooltip}
-            doAction={async () => {
-              invariant(localBackend != null, 'Local Backend is null')
-              const parentId = await remoteBackend.downloadProject(asset.id)
-              const assets = await localBackend.listDirectory({
-                parentId: parentId,
-                filterBy: null,
-                labels: null,
-                recentProjects: false,
-              })
-              const project = assets
-                .filter((item) => item.type === backendModule.AssetType.project)
-                .at(0)
-              invariant(project, 'Downloaded cloud project does not exist.')
-              openProject({
-                id: project.id,
-                title: project.title,
-                parentId: project.parentId,
-                type: backendModule.BackendType.local,
-                cloudProjectId: asset.id,
-              })
+            doAction={() => {
+              openProjectNatively(asset, backend.type)
             }}
           />
         )}
@@ -311,9 +274,17 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             action="uploadToCloud"
             doAction={async () => {
               try {
+                // Folder's id matches the pattern `<type>-<Full Path>`, i.e. `directory-/Users/user/enso/folder 1`
+                const parentDirectoryPath = localBackendModule.extractTypeAndId(asset.parentId).id
+
                 const projectResponse = await fetch(
-                  `./api/project-manager/projects/${localBackendModule.extractTypeAndId(asset.id).id}/enso-project`,
+                  `./api/project-manager/projects/${localBackendModule.extractTypeAndId(asset.id).id}/enso-project?projectsDirectory=${parentDirectoryPath}`,
                 )
+
+                if (!projectResponse.ok) {
+                  throw new Error('Something went wrong, please try again')
+                }
+
                 const fileName = `${asset.title}.enso-project`
                 await uploadFileToCloudMutation.mutateAsync([
                   {
@@ -335,7 +306,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           !isOtherUserUsingProject &&
           (!isCloud ||
             asset.type === backendModule.AssetType.project ||
-            asset.type === backendModule.AssetType.directory) && (
+            asset.type === backendModule.AssetType.directory ||
+            asset.type === backendModule.AssetType.secret) && (
             <ContextMenuEntry
               hidden={hidden}
               action="rename"
@@ -372,21 +344,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               }}
             />
           )}
-        {isCloud && (
-          <ContextMenuEntry
-            hidden={hidden}
-            action="editDescription"
-            label={getText('editDescriptionShortcut')}
-            doAction={() => {
-              setIsAssetPanelTemporarilyVisible(true)
-              setAssetPanelProps({
-                backend,
-                item: asset,
-                spotlightOn: 'description',
-              })
-            }}
-          />
-        )}
         {isCloud && (
           <ContextMenuEntry
             hidden={hidden}
