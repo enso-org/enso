@@ -1258,6 +1258,17 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTDxfImpl",
+        "methods":[
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTDxfsImpl",
         "methods": [
             {
