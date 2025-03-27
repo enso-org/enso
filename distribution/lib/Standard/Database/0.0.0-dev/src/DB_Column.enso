@@ -1505,7 +1505,7 @@ type DB_Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.regex_match (regex "A.*M")
-    regex_match self (pattern : DB_Column | Text | Any) -> DB_Column =
+    regex_match self (pattern : DB_Column | Text | Regex) -> DB_Column =
         string_pattern = case pattern of 
             Regex.Value _ _ -> pattern.pattern 
             _ -> pattern
