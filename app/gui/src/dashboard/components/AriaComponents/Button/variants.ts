@@ -228,7 +228,6 @@ export const BUTTON_STYLES = tv({
       isJoined: false,
       class: 'focus-visible:outline-offset-[3px]',
     },
-
     {
       size: 'custom',
       iconOnly: true,

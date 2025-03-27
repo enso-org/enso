@@ -664,7 +664,9 @@ export default class RemoteBackend extends Backend {
   }
 
   /** List all previous versions of an asset. */
-  override async listAssetVersions(assetId: backend.AssetId): Promise<backend.AssetVersions> {
+  override async listAssetVersions(
+    assetId: backend.ProjectId | backend.FileId | backend.DatalinkId,
+  ): Promise<backend.AssetVersions> {
     const path = remoteBackendPaths.listAssetVersionsPath(assetId)
     const response = await this.get<backend.AssetVersions>(path)
     if (!responseIsSuccessful(response)) {
@@ -816,14 +818,14 @@ export default class RemoteBackend extends Backend {
 
   /** Restore a project from a different version. */
   override async restoreAsset(
-    projectId: backend.ProjectId,
+    assetId: backend.AssetId,
     versionId: backend.S3ObjectVersionId,
     title: string,
   ): Promise<void> {
-    const path = remoteBackendPaths.restoreProjectPath(projectId)
+    const path = remoteBackendPaths.restoreAssetPath(assetId)
     const response = await this.post(path, { versionId })
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'restoreProjectBackendError', title)
+      return await this.throw(response, 'restoreAssetBackendError')
     } else {
       return
     }

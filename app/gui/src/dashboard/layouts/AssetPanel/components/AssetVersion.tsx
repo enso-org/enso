@@ -10,6 +10,7 @@ import { ProfilePicture } from '#/components/ProfilePicture'
 import { setModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import { Badge } from '../../../components/Badge'
+import { useEventCallback } from '../../../hooks/eventCallbackHooks'
 import { AssetDiffView } from '../../AssetDiffView'
 
 /**
@@ -20,6 +21,13 @@ export interface Version extends backendService.S3ObjectVersion {
   readonly title: string
 }
 
+/**
+ *
+ */
+export interface DuplicateOptions {
+  readonly start?: boolean
+}
+
 /** Props for a {@link AssetVersion}. */
 export interface AssetVersionProps {
   readonly otherVersions: Version[]
@@ -27,13 +35,21 @@ export interface AssetVersionProps {
   readonly version: Version
   readonly previousVersion: Version | undefined
   readonly backend: Backend
-  readonly doRestore: () => Promise<void> | void
-  readonly doDuplicate: () => Promise<void> | void
+  readonly doRestore: (version: Version) => Promise<void> | void
+  readonly doDuplicate: (options?: DuplicateOptions) => Promise<void> | void
 }
 
 /** Displays information describing a specific version of an asset. */
 export function AssetVersion(props: AssetVersionProps) {
-  const { version, item, backend, doRestore, otherVersions, previousVersion, doDuplicate } = props
+  const {
+    version,
+    item,
+    backend,
+    doRestore: doRestoreRaw,
+    otherVersions,
+    previousVersion,
+    doDuplicate,
+  } = props
 
   const { getText, locale } = useText()
 
@@ -43,6 +59,10 @@ export function AssetVersion(props: AssetVersionProps) {
     .filter((v) => v.versionId !== version.versionId)
 
   const canRestore = !version.isLatest
+
+  const doRestore = useEventCallback(async () => {
+    await doRestoreRaw(version)
+  })
 
   return (
     <div className="grid w-full select-none grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
@@ -152,12 +172,9 @@ export function AssetVersion(props: AssetVersionProps) {
         )}
 
         <Menu.Trigger>
-          <Button
-            icon="folder_opened"
-            iconPosition="end"
-            variant="outline"
-            aria-label={getText('moreActions')}
-          />
+          <Button icon="folder_opened" iconPosition="end" variant="outline">
+            {!isProject && getText('actions')}
+          </Button>
 
           <Menu>
             {canRestore && (
@@ -169,6 +186,12 @@ export function AssetVersion(props: AssetVersionProps) {
             <Menu.Item onAction={doDuplicate} icon="duplicate">
               {getText('duplicateThisVersion')}
             </Menu.Item>
+
+            {isProject && (
+              <Menu.Item onAction={() => doDuplicate({ start: true })} icon="copy">
+                {getText('duplicateAndOpen')}
+              </Menu.Item>
+            )}
 
             {isProject && (
               <Menu.SubmenuTrigger>
