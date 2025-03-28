@@ -28,9 +28,11 @@ import { userIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
 import type { ReactNode } from 'react'
-import { createContext, useContext } from 'react'
+import { createContext, useContext, useEffect } from 'react'
 import invariant from 'tiny-invariant'
 import { z } from 'zod'
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type {
   AnyCategory,
   AnyCloudCategory,
@@ -57,6 +59,20 @@ declare module '#/utilities/LocalStorage' {
 const LOCAL_ROOT_DIRECTORIES_SCHEMA = z.string().array().readonly()
 
 LocalStorage.registerKey('localRootDirectories', { schema: LOCAL_ROOT_DIRECTORIES_SCHEMA })
+
+/** State for {@link categoryIdStore}. */
+interface CategoryIdStoreState {
+  readonly categoryId: CategoryId | null
+}
+
+const categoryIdStore = create<CategoryIdStoreState>()(
+  persist(
+    (): CategoryIdStoreState => ({
+      categoryId: null,
+    }),
+    { name: 'enso-category-id' },
+  ),
+)
 
 /**
  * Result of the useCloudCategoryList hook.
@@ -317,6 +333,12 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
   const [categoryId, privateSetCategoryId, resetCategoryId] = useSearchParamsState<CategoryId>(
     'driveCategory',
     () => {
+      const savedId = categoryIdStore.getState().categoryId
+
+      if (savedId != null && findCategoryById(savedId) != null) {
+        return savedId
+      }
+
       if (isOffline && localBackend != null) {
         return 'local'
       }
@@ -327,6 +349,10 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
     // eslint-disable-next-line no-restricted-syntax
     (value): value is CategoryId => findCategoryById(value as CategoryId) != null,
   )
+
+  useEffect(() => {
+    categoryIdStore.setState({ categoryId })
+  }, [categoryId])
 
   const setCategoryId = useEventCallback((nextCategoryId: CategoryId) => {
     const previousCategory = findCategoryById(categoryId)
