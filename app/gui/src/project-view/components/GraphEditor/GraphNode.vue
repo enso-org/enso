@@ -271,7 +271,7 @@ provideResizableWidgetRegistry(
     get: () => visualizationWidth.value && visualizationWidth.value * scale.value,
     set: (width) => (visualizationWidth.value = width && width / scale.value),
   }),
-  () => CONTENT_PADDING * scale.value,
+  () => NODE_CONTENT_PADDING * scale.value,
   () => widgetTreeSize.value.x,
 )
 
