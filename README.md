@@ -144,7 +144,7 @@ always trust the results you get.
 <ul><ul>
     <b>Watch Tutorials</b><br/>
     <ul>
-        <li><a href="https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md">Enso keyboard shortcuts</a></li>
+        <li><a href="https://github.com/enso-org/enso/blob/develop/app/gui/shortcuts.md">Enso keyboard shortcuts</a></li>
         <li><a href="https://youtu.be/_Twh45PI_vU&list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0">Enso 101</a></li>
         <li><a href="https://youtu.be/hFxugfGbvGI?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0">Analyze trams data</a></li>
         <li><a href="https://youtu.be/gXnojGR6wOI?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0">Analyze GitHub Stargazers data</a></li>
