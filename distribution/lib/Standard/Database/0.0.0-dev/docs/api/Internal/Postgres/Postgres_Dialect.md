@@ -76,6 +76,7 @@
 - mod_op -> Standard.Base.Any.Any
 - postgres -> Standard.Base.Any.Any
 - postgres_dialect_name -> Standard.Base.Any.Any
+- regex_match -> Standard.Base.Any.Any
 - replace args:Standard.Base.Any.Any metadata:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - represents_an_untyped_null_expression arg:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - right -> Standard.Base.Any.Any

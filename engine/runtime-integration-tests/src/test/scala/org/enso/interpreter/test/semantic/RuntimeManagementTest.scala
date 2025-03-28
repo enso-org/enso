@@ -5,10 +5,19 @@ import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 import org.enso.common.{LanguageInfo, MethodNames}
 
 import scala.ref.WeakReference
-import scala.util.Try
+import org.graalvm.polyglot.Context
+import org.enso.common.RuntimeOptions
 
 class RuntimeManagementTest extends InterpreterTest {
+  private def parallelism = 5
+
   override def subject: String = "Enso Code Execution"
+
+  override def contextModifiers: Option[Context#Builder => Context#Builder] =
+    Some(b => {
+      b.allowCreateThread(true)
+        .option(RuntimeOptions.JOB_PARALLELISM, "" + parallelism)
+    })
 
   override def specify(implicit
     interpreterContext: InterpreterContext
@@ -37,28 +46,32 @@ class RuntimeManagementTest extends InterpreterTest {
 
       val main = getMain(code)
 
-      val runnable: Runnable = { () =>
-        val p = langCtx.getThreadManager.enter()
-        try {
-          Try(main.execute())
-        } finally {
-          langCtx.getThreadManager.leave(p)
-        }
-      }
+      def runMain(): java.util.concurrent.Future[org.graalvm.polyglot.Value] =
+        langCtx.getThreadManager.submit(() => {
+          main.execute()
+        })
 
-      def runTest(n: Int = 5): Unit = {
-        val threads = 0.until(n).map(_ => new Thread(runnable))
-        threads.foreach(_.start())
+      def runTest(): Unit = {
+        val futures       = 0.until(parallelism).map(_ => runMain())
         var reportedCount = 0
-        while (reportedCount < n) {
+        while (reportedCount < parallelism) {
           Thread.sleep(100)
           reportedCount += consumeOut.length
         }
-        val expectedOut = List.fill(n)("Interrupted.")
+        val expectedOut = List.fill(parallelism)("Interrupted.")
         langCtx.getThreadManager.interruptThreads()
-        threads.foreach(_.join())
+        futures.foreach(f => {
+          try {
+            val v = f.get()
+            fail("Unexpected value: " + v)
+          } catch {
+            case ex1: java.util.concurrent.ExecutionException => {
+              ex1.getMessage() shouldEqual "org.enso.interpreter.test.InterpreterException: org.enso.interpreter.runtime.control.ThreadInterruptedException"
+            }
+          }
+        })
         consumeOut shouldEqual expectedOut
-        threads.forall(!_.isAlive) shouldBe true
+        futures.forall(_.isDone) shouldBe true
       }
 
       runTest()

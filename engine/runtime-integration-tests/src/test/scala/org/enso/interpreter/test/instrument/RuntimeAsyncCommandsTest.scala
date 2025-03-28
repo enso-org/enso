@@ -504,12 +504,9 @@ class RuntimeAsyncCommandsTest
         Api.RecomputeContextRequest(contextId, None, None, Seq())
       )
     )
-    val responses = context.receiveNIgnoreStdLib(
-      4
-    )
+    val responses = context.receiveNIgnoreStdLib(3)
 
     responses should contain theSameElementsAs Seq(
-      context.executionComplete(contextId),
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       TestMessages.update(
         contextId,
