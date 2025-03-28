@@ -92,6 +92,9 @@ type Hyper_File
                 Telemetry.log "Hyper_File.read" "Read Hyper table: output={}, row_count={}, column_count={}" ["Table", result.row_count, result.column_count]
                 result
 
+    write self table =
+        Nothing
+
 ## PRIVATE
 make_schema_selector hyper_file:Hyper_File include_any:Boolean=False =
     schemas = hyper_file.schemas.map t-> Option t t.pretty
