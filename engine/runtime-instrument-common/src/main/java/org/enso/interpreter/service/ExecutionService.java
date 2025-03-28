@@ -494,20 +494,16 @@ public final class ExecutionService {
    * @param o the object to get the language for
    * @return the associated language, or {@code null} if it doesn't exist
    */
-  public String getLanguage(Object o) {
+  public String getLanguage(Object o) throws UnsupportedMessageException {
     var iop = InteropLibrary.getUncached(o);
     if (iop.hasSourceLocation(o)) {
-      try {
-        var sourceSection = iop.getSourceLocation(o);
-        var source = sourceSection.getSource();
-        if (source != null) {
-          return source.getLanguage();
-        }
-      } catch (UnsupportedMessageException ignored) {
-        CompilerDirectives.shouldNotReachHere("Message support already checked.");
+      var sourceSection = iop.getSourceLocation(o);
+      var source = sourceSection.getSource();
+      if (source != null) {
+        return source.getLanguage();
       }
     }
-    return null;
+    throw UnsupportedMessageException.create();
   }
 
   /**
@@ -516,16 +512,12 @@ public final class ExecutionService {
    * @param o the object to get the source section for
    * @return the associated source section, or {@code null} if it doesn't exist
    */
-  public SourceSection getSourceLocation(Object o) {
+  public SourceSection getSourceLocation(Object o) throws UnsupportedMessageException {
     var iop = InteropLibrary.getUncached(o);
     if (iop.hasSourceLocation(o)) {
-      try {
-        return iop.getSourceLocation(o);
-      } catch (UnsupportedMessageException ignored) {
-        CompilerDirectives.shouldNotReachHere("Message support already checked.");
-      }
+      return iop.getSourceLocation(o);
     }
-    return null;
+    throw UnsupportedMessageException.create();
   }
 
   public boolean isExitException(AbstractTruffleException ex) {
