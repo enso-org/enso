@@ -18,15 +18,15 @@ import { useUser } from '#/providers/AuthProvider'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
-import { useBackend, useLocalBackend } from '#/providers/BackendProvider'
+import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { type DirectoryId, Path } from '#/services/Backend'
+import { DirectoryId, Path, Plan } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
-import { userIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
@@ -86,15 +86,34 @@ export type CloudCategoryResult = ReturnType<typeof useCloudCategoryList>
 export function useCloudCategoryList() {
   const user = useUser()
   const { getText } = useText()
+  const backend = useRemoteBackend()
+  const { data: organization } = useSuspenseQuery({
+    queryKey: [backend.type, 'getOrganization'],
+    queryFn: () => backend.getOrganization(),
+  })
 
-  const { userId } = user
+  const homeDirectoryId = (() => {
+    switch (user.plan) {
+      case undefined:
+      case Plan.free:
+      case Plan.solo: {
+        return user.rootDirectoryId
+      }
+      case Plan.team:
+      case Plan.enterprise: {
+        return organization == null ?
+            user.rootDirectoryId
+          : DirectoryId(`directory-${organization.id.replace(/^organization-/, '')}` as const)
+      }
+    }
+  })()
 
   const cloudCategory: CloudCategory = {
     type: 'cloud',
     id: 'cloud',
     label: getText('cloudCategory'),
     icon: CloudIcon,
-    homeDirectoryId: userIdToDirectoryId(userId),
+    homeDirectoryId,
   }
 
   const recentCategory: RecentCategory = {
@@ -102,6 +121,7 @@ export function useCloudCategoryList() {
     id: 'recent',
     label: getText('recentCategory'),
     icon: RecentIcon,
+    homeDirectoryId,
   }
 
   const trashCategory: TrashCategory = {
@@ -109,6 +129,7 @@ export function useCloudCategoryList() {
     id: 'trash',
     label: getText('trashCategory'),
     icon: Trash2Icon,
+    homeDirectoryId,
   }
 
   const predefinedCloudCategories: AnyCloudCategory[] = [
@@ -178,14 +199,16 @@ export type LocalCategoryResult = ReturnType<typeof useLocalCategoryList>
 export function useLocalCategoryList() {
   const { getText } = useText()
   const localBackend = useLocalBackend()
+  const [localRootDirectory] = useLocalStorageState('localRootDirectory')
+  const rootPath = Path(localRootDirectory ?? '')
 
   const localCategory: LocalCategory = {
     type: 'local',
     id: 'local',
     label: getText('localCategory'),
     icon: ComputerIcon,
-    homeDirectoryId: newDirectoryId(localBackend?.rootPath() ?? Path('')),
-    rootPath: localBackend?.rootPath() ?? Path(''),
+    homeDirectoryId: newDirectoryId(rootPath),
+    rootPath,
   }
 
   const predefinedLocalCategories: AnyLocalCategory[] = [localCategory]

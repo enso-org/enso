@@ -120,7 +120,7 @@ export default function DriveProvider(props: ProjectsProviderProps) {
 
   const [currentDirectoryId, privateSetCurrentDirectoryId] = useSearchParamsState<
     CurrentDirectoryIdContextType['currentDirectoryId']
-  >('currentDirectoryId', currentDirectoryIdStore.getState)
+  >('currentDirectoryId', () => currentDirectoryIdStore.getState())
 
   const [store] = React.useState(() =>
     createStore<DriveStore>((set, get) => ({
