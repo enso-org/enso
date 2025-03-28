@@ -8,6 +8,7 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Deprecated.Deprecated
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.No_Such_Key.No_Such_Key
@@ -20,6 +21,7 @@ import project.System.File.File_Access.File_Access
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File.Write_Extensions
 import project.System.Input_Stream.Input_Stream
+import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
