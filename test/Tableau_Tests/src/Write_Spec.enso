@@ -1,0 +1,24 @@
+from Standard.Base import all
+import Standard.Base.Errors.File_Error.File_Error
+
+from Standard.Table import all
+from Standard.Tableau import Hyper_File
+import Standard.Tableau.Hyper_Errors.Hyper_Table_Not_Found
+
+from Standard.Test import all
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+
+add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
+    transient = enso_project.data / "transient"
+    names_file = transient / "names.hyper"
+
+    group_builder.specify "should be able to write a hyper file" <|
+        t = Table.input [['A', ['a']]]
+        t.write names_file
+        names_table = Hyper_File.new names_file . tables . first
+        table = names_table.read
+        table.should_equal t
