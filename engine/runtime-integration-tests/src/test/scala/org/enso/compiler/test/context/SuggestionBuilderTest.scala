@@ -4043,6 +4043,39 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     method.get.returnType shouldEqual "Test.Test"
   }
 
+  "parse method with partially inlined types (3)" in {
+    val code =
+      """|import Standard.Base.Data.Text.Text
+         |import Standard.Base.Data.Numbers.Integer
+         |import Standard.Base.Data.Boolean.Boolean
+         |import Standard.Base.Data.Errors.Common.Forbidden_Operation
+         |
+         |type Test
+         |    filter self (column : Text | Integer = 42) (fun : Integer) (on_problems:Boolean=..False) -> Test ! Forbidden_Operation = self
+         |""".stripMargin
+    val module      = code.preprocessModule()
+    val suggestions = build(code, module)
+    val method = suggestions.collectFirst {
+      case s: Suggestion.DefinedMethod if s.name == "filter" => s
+    }
+    method shouldBe defined
+    method.get.arguments.size shouldEqual 4
+    val arg1 = method.get.arguments(1)
+    arg1.name shouldEqual "column"
+    arg1.reprType shouldEqual "Standard.Base.Data.Text.Text | Standard.Base.Data.Numbers.Integer"
+    arg1.tagValues shouldEqual None
+    val arg2 = method.get.arguments(2)
+    arg2.name shouldEqual "fun"
+    arg2.reprType shouldEqual "Standard.Base.Data.Numbers.Integer"
+    arg2.tagValues shouldEqual None
+
+    val arg3 = method.get.arguments(3)
+    arg3.reprType shouldEqual "Standard.Base.Data.Boolean.Boolean"
+    arg3.tagValues shouldEqual Some(List("True", "False"))
+
+    method.get.returnType shouldEqual "Test.Test"
+  }
+
   private def build(
     source: String,
     ir: Module,

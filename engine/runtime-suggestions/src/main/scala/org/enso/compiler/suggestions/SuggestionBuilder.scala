@@ -534,6 +534,8 @@ final class SuggestionBuilder[A: IndexedSource](
           go(bin.right.value),
           bin.operator.name
         )
+      case tpeError: Type.Error =>
+        buildTypeSignature(tpeError.typed)
       case tname: Name =>
         tname
           .getMetadata(TypeNames)

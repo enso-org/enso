@@ -154,7 +154,9 @@ case object TypeSignatures extends IRPass {
                   inferred.last,
                   identifiedLocation = null
                 )
-                meth.updateMetadata(new MetadataPair(this, Signature(typeFun)))
+                newMethod.updateMetadata(
+                  new MetadataPair(this, Signature(typeFun))
+                )
               }
             Some(newMethod)
         }
