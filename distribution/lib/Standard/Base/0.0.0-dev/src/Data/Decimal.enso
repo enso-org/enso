@@ -251,12 +251,17 @@ type Decimal
     parse : Text -> Locale -> Text -> Math_Context | Nothing -> Decimal ! Number_Parse_Error | Illegal_Argument
     parse (text : Text) (locale:Locale=Locale.default) (format:Text="") (mc : Math_Context | Nothing = Nothing) -> Decimal ! Number_Parse_Error | Illegal_Argument =
         Illegal_Argument.handle_java_exception <| handle_java_exception <| handle_number_format_exception <|
-            # `getInstance` returns `DecimalFormat` or a subclass of `DecimalFormat`.
-            decimal_format = NumberFormat.getInstance locale.java_locale
-            decimal_format.applyLocalizedPattern format
-            decimal_format.setParseBigDecimal True
-            decimal = Panic.catch ParseException (Decimal.Value (decimal_format.parse text)) _->
-                Error.throw (Number_Parse_Error.Error text)
+            number_format_parse txt =
+                # `getInstance` returns `DecimalFormat` or a subclass of `DecimalFormat`.
+                decimal_format = NumberFormat.getInstance locale.java_locale
+                decimal_format.applyLocalizedPattern format
+                decimal_format.setParseBigDecimal True
+                Panic.catch ParseException (Decimal.Value (decimal_format.parse txt)) _->
+                    Error.throw (Number_Parse_Error.Error text)
+            decimal = case format == "" && locale == Locale.default of
+                True -> Panic.catch ParseException (Decimal.Value (Decimal_Utils.fromString text)) _->
+                    number_format_parse text
+                False -> number_format_parse text
             if mc == Nothing then decimal else
                 Decimal.Value <| handle_precision_loss text <| Decimal_Utils.applyMathContext decimal.big_decimal mc.math_context
 
