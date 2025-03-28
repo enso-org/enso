@@ -227,7 +227,7 @@ add_filter_specs suite_builder setup =
             t.filter "X" (Filter_Condition.Like "nana") . at "X" . to_vector . should_equal ["nana"]
             t.filter "Z" (Filter_Condition.Like "[ab]_%") . at "Z" . to_vector . should_equal ["[ab]aaaa", "[ab]ccc"]
 
-        if setup.is_database.not then group_builder.specify "by text search (regex_match)" <|
+        if setup.flagged ..Supports_Regex_Match then group_builder.specify "by text search (regex_match)" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "bacb", "banana", Nothing, "nana"]], ["Y", ["a", "B", "d", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
 
             t.filter "X" (..Regex_Match ".*an.*") . at "X" . to_vector . should_equal ["banana", "nana"]
@@ -235,8 +235,16 @@ add_filter_specs suite_builder setup =
             t.filter "X" (..Regex_Match (regex ".*an.*") keep_or_remove=Filter_Action.Remove) . at "X" . to_vector . should_equal ["abb", "bacb", Nothing]
             t.filter "X" (..Regex_Match (regex ".a.*")) . at "X" . to_vector . should_equal ["bacb", "banana", "nana"]
             t.filter "X" (..Regex_Match (regex ".*b")) . at "X" . to_vector . should_equal ["abb", "bacb"]
+            t.filter "X" (..Regex_Match (regex "^.*b")) . at "X" . to_vector . should_equal ["abb", "bacb"]
+            t.filter "X" (..Regex_Match (regex "(^...)")) . at "X" . to_vector . should_equal ["abb"]
+            t.filter "X" (..Regex_Match (regex ".*b$")) . at "X" . to_vector . should_equal ["abb", "bacb"]
             t.filter "X" (..Regex_Match (regex "nana")) . at "X" . to_vector . should_equal ["nana"]
+            t.filter "X" (..Regex_Match (regex "^nana$")) . at "X" . to_vector . should_equal ["nana"]
             t.filter "Z" (..Regex_Match (regex "\[ab\].+")) . at "Z" . to_vector . should_equal ["[ab]aaaa", "[ab]ccc"]
+
+        if setup.flagged ..Supports_Regex_Match . not then group_builder.specify "by text search regex_match unsupported" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "bacb", "banana", Nothing, "nana"]], ["Y", ["a", "B", "d", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
+            t.filter "X" (..Regex_Match ".*an.*") . should_fail_with (Unsupported_Database_Operation.Error "regex_match")
 
         group_builder.specify "text operations should also match newlines" <|
             t = table_builder [["X", ['a\n\n\n', 'a\n', 'a\n\n\nb', 'a\nb', 'caa\nbb']]]

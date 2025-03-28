@@ -30,18 +30,19 @@ import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import { Range } from 'ydoc-shared/util/data/range'
 import { Ok } from 'ydoc-shared/util/data/result'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
+import { NODE_CONTENT_PADDING } from './GraphEditor/GraphNode.vue'
 
 // Difference in position between the component browser and a node for the input of the component browser to
 // be placed at the same position as the node.
-const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(-4, -4)
+const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(0, 0)
 const PAN_MARGINS = {
   top: 48,
   bottom: 40,
   left: 80,
   right: 40,
 }
-const COMPONENT_EDITOR_PADDING = 14
-const ICON_WIDTH = 16
+const COMPONENT_EDITOR_PADDING = NODE_CONTENT_PADDING
+const ICON_WIDTH = 24
 // Component editor is larger than a typical node, so the edge should touch it a bit higher.
 const EDGE_Y_OFFSET = -8
 
