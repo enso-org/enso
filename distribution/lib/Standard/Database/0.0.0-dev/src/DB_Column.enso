@@ -942,7 +942,7 @@ type DB_Column
                 round_midpoint.let "round_midpoint" round_midpoint->
                     ((scaled.truncate % 2) == 0).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
                         even_is_up = (self >= 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
-                        half_goes_up = if roungind_mode == Rounding_Mode.bankers then even_is_up else self >= 0
+                        half_goes_up = if rounding_mode == Rounding_Mode.bankers then even_is_up else self >= 0
                         do_round_up = half_goes_up.let "half_goes_up" x-> x.iif (self >= round_midpoint) (self > round_midpoint)
                         result = do_round_up.let "do_round_up" x-> x.iif ((round_base + 1.0) / scale) (round_base / scale)
                         result.rename new_name
