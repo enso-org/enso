@@ -248,7 +248,7 @@ type Decimal
 
              Decimal.parse "(123,456,789.654)" format="###,###.##;(###,###.##)"
              # => -123456789.654
-    parse : Text -> Locale -> Text -> Math_Context | Nothing -> Decimal ! Number_Parse_Error
+    parse : Text -> Locale -> Text -> Math_Context | Nothing -> Decimal ! Number_Parse_Error | Illegal_Argument
     parse (text : Text) (locale:Locale=Locale.default) (format:Text="") (mc : Math_Context | Nothing = Nothing) -> Decimal ! Number_Parse_Error | Illegal_Argument =
         Illegal_Argument.handle_java_exception <| handle_java_exception <| handle_number_format_exception <|
             case (locale == Locale.default && format == "") of
