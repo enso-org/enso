@@ -53,6 +53,8 @@
 - [Output port ‘plus’ button is hidden if there are existing outgoing
   connections][12576]
 - [Navigate up button for file browser and collapsed components][12603]
+- [Resizing visualization in Table.input component resizes the table widget
+  too][12643]
 - [File Browser Widget warns when trying to override an existing file][12644]
 - [Add right-click context menu to the graph editor background][12601]
 
@@ -90,6 +92,7 @@
 [12502]: https://github.com/enso-org/enso/pull/12502
 [12576]: https://github.com/enso-org/enso/pull/12576
 [12603]: https://github.com/enso-org/enso/pull/12603
+[12643]: https://github.com/enso-org/enso/pull/12643
 [12644]: https://github.com/enso-org/enso/pull/12644
 [12601]: https://github.com/enso-org/enso/pull/12603
 
