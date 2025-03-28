@@ -28,6 +28,8 @@ add_specs suite_builder =
         group_builder.specify "should be able to construct a Decimal from a string" <|
             Decimal.new "123.45" . should_have_rep [12345, 5, 2]
             Decimal.parse "123.45" . should_have_rep [12345, 5, 2]
+
+        group_builder.specify "should be able to construct a Decimal from a string using from_text (deprecated)" <|
             Decimal.from_text "123.45" . should_have_rep [12345, 5, 2]
 
         group_builder.specify "should throw Number_Parse_Error on a badly-formatted string" <|

@@ -1137,7 +1137,7 @@ type Decimal
         formatter.format self.big_decimal
 
     ## PRIVATE
-       ALIAS from text
+       DEPRECATED
        GROUP conversions
        ICON convert
 
