@@ -97,7 +97,7 @@ class ReentrantLocking extends Locking {
       case _: InterruptedException =>
         logger.debug(
           "Failed [{}] to acquire lock: interrupted",
-          Array[Any](where.getSimpleName)
+          where.getSimpleName
         )
         null.asInstanceOf[T]
     } finally {
@@ -105,10 +105,8 @@ class ReentrantLocking extends Locking {
         releaseWriteCompilationLock()
         logger.trace(
           "Kept write compilation lock [{}] for {}ms",
-          Array[Any](
-            where.getSimpleName,
-            System.currentTimeMillis - lockTimestamp
-          )
+          where.getSimpleName,
+          System.currentTimeMillis - lockTimestamp
         )
       }
     }
@@ -142,7 +140,7 @@ class ReentrantLocking extends Locking {
       case _: InterruptedException =>
         logger.debug(
           "Failed [{}] to acquire lock: interrupted",
-          Array[Any](where.getSimpleName)
+          where.getSimpleName
         )
         null.asInstanceOf[T]
     } finally {
@@ -150,10 +148,8 @@ class ReentrantLocking extends Locking {
         releaseReadCompilationLock()
         logger.trace(
           "Kept read compilation lock [{}] for {}ms",
-          Array[Any](
-            where.getSimpleName,
-            System.currentTimeMillis - lockTimestamp
-          )
+          where.getSimpleName,
+          System.currentTimeMillis - lockTimestamp
         )
       }
     }
@@ -179,7 +175,7 @@ class ReentrantLocking extends Locking {
       case _: InterruptedException =>
         logger.debug(
           "Failed [{}] to acquire lock: interrupted",
-          Array[Any](where.getSimpleName)
+          where.getSimpleName
         )
         null.asInstanceOf[T]
     } finally {
@@ -187,10 +183,8 @@ class ReentrantLocking extends Locking {
         releasePendingEditsLock()
         logger.trace(
           s"Kept pending edits lock [{}] for {}ms",
-          Array[Any](
-            where.getSimpleName,
-            System.currentTimeMillis - lockTimestamp
-          )
+          where.getSimpleName,
+          System.currentTimeMillis - lockTimestamp
         )
       }
     }
@@ -215,7 +209,7 @@ class ReentrantLocking extends Locking {
       case _: InterruptedException =>
         logger.debug(
           "Failed [{}] to acquire lock: interrupted",
-          Array[Any](where.getSimpleName)
+          where.getSimpleName
         )
         null.asInstanceOf[T]
     } finally {
@@ -223,10 +217,8 @@ class ReentrantLocking extends Locking {
         contextLock.lock.unlock()
         logger.trace(
           "Kept context lock [{}] for {}ms",
-          Array[Any](
-            where.getSimpleName,
-            System.currentTimeMillis - contextLockTimestamp
-          )
+          where.getSimpleName,
+          System.currentTimeMillis - contextLockTimestamp
         )
       }
     }
@@ -275,7 +267,7 @@ class ReentrantLocking extends Locking {
       case _: InterruptedException =>
         logger.debug(
           "Failed [{}] to acquire lock: interrupted",
-          Array[Any](where.getSimpleName)
+          where.getSimpleName
         )
         null.asInstanceOf[T]
     } finally {
@@ -283,10 +275,8 @@ class ReentrantLocking extends Locking {
         releaseFileLock(file)
         logger.debug(
           s"Kept file lock [{}] for {1}ms",
-          Array[Any](
-            where.getSimpleName,
-            System.currentTimeMillis - lockTimestamp
-          )
+          where.getSimpleName,
+          System.currentTimeMillis - lockTimestamp
         )
       }
     }
@@ -302,7 +292,9 @@ class ReentrantLocking extends Locking {
     val now2 = System.currentTimeMillis()
     logger.trace(
       "Waited [{}] {}ms for the {}",
-      Array[Any](where.getSimpleName, now2 - now, msg)
+      where.getSimpleName,
+      now2 - now,
+      msg
     )
     now2
   }

@@ -53,6 +53,9 @@
 - [Output port ‘plus’ button is hidden if there are existing outgoing
   connections][12576]
 - [Navigate up button for file browser and collapsed components][12603]
+- [Resizing visualization in Table.input component resizes the table widget
+  too][12643]
+- [File Browser Widget warns when trying to override an existing file][12644]
 - [Add right-click context menu to the graph editor background][12601]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
@@ -89,6 +92,8 @@
 [12502]: https://github.com/enso-org/enso/pull/12502
 [12576]: https://github.com/enso-org/enso/pull/12576
 [12603]: https://github.com/enso-org/enso/pull/12603
+[12643]: https://github.com/enso-org/enso/pull/12643
+[12644]: https://github.com/enso-org/enso/pull/12644
 [12601]: https://github.com/enso-org/enso/pull/12603
 
 #### Enso Standard Library
@@ -121,6 +126,7 @@
 - [Added `add_group_number` for Snowflake and SQLServer.][12590]
 - [Added `skip_nothing` and `report_unmatched` arguments to `Vector.zip`][12626]
 - [Changed in-memory `Column.zip` to match `Table.zip`, removing the `function` parameter]][12626]
+- [Added Regex_match for Postgres][12663]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
@@ -143,6 +149,7 @@
 [12574]: https://github.com/enso-org/enso/pull/12574
 [12590]: https://github.com/enso-org/enso/pull/12590
 [12626]: https://github.com/enso-org/enso/pull/12626
+[12663]: https://github.com/enso-org/enso/pull/12663
 
 #### Enso Language & Runtime
 

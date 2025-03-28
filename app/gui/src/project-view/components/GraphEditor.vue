@@ -3,7 +3,6 @@ import {
   codeEditorBindings,
   documentationEditorBindings,
   graphBindings,
-  interactionBindings,
   undoBindings,
 } from '@/bindings'
 import BottomPanel from '@/components/BottomPanel.vue'
@@ -39,7 +38,6 @@ import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
-import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { injectKeyboard } from '@/providers/keyboard'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import type { Node, NodeId } from '@/stores/graph'
@@ -294,32 +292,17 @@ const actionHandlers = registerHandlers({
   ),
 })
 
-// === Interactions ===
-
-const interaction = provideInteractionHandler()
-const interactionBindingsHandler = interactionBindings.handler({
-  cancel: () => interaction.handleCancel(),
-})
-
+// See also https://github.com/enso-org/enso/issues/10414
 useEvent(
   window,
   'keydown',
   (event) =>
-    interactionBindingsHandler(event) ||
     (!keyboardBusy() && undoBindingsHandler(event)) ||
     (!keyboardBusy() && graphBindingsHandler(event)) ||
     (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event)) ||
     (!keyboardBusyExceptIn(documentationEditorArea.value) && documentationEditorHandler(event)) ||
     (!keyboardBusy() && graphNavigator.keyboardEvents.keydown(event)),
 )
-
-useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointerdown'), {
-  capture: true,
-})
-
-useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
-  capture: true,
-})
 
 function tryGetSelectionDocUrl() {
   const selected = nodeSelection.tryGetSoleSelection()
