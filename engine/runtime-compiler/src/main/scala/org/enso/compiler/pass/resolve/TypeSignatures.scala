@@ -143,7 +143,19 @@ case object TypeSignatures extends IRPass {
                   newMethodWithAnnotations
                 )
             }
-          case None => Some(newMethod)
+          case None =>
+            // No explicit type signature *before* the method was provided.
+            // Reconstruct type signature from inlined types in arguments/return type, if present.
+            val inferred = rebuildSignatureFromInlinedTypes(meth.body)
+            if (inferred.nonEmpty) {
+              val typeFun = Type.Function(
+                inferred.init,
+                inferred.last,
+                meth.identifiedLocation()
+              )
+              meth.updateMetadata(new MetadataPair(this, Signature(typeFun)))
+            }
+            Some(newMethod)
         }
 
         lastSignature = None
@@ -182,6 +194,29 @@ case object TypeSignatures extends IRPass {
     mod.copy(
       bindings = newBindings
     )
+  }
+
+  private def rebuildSignatureFromInlinedTypes(
+    expr: Expression
+  ): List[Expression] = {
+    expr match {
+      case lambda: Function.Lambda =>
+        lambda.arguments match {
+          case (defArg: DefinitionArgument.Specified) :: Nil
+              if defArg.name().isInstanceOf[Name.Self] =>
+            rebuildSignatureFromInlinedTypes(lambda.body)
+          case args =>
+            val bodyArgs = rebuildSignatureFromInlinedTypes(lambda.body)
+            args.flatMap(_.getMetadata(this).map(_.signature)) ::: bodyArgs
+        }
+      case _ =>
+        expr match {
+          case tpe: Type.Ascription =>
+            tpe.typed.getMetadata(this).map(_.signature :: Nil).getOrElse(Nil)
+          case _ =>
+            Nil
+        }
+    }
   }
 
   /** Attaches {@link Signature} to each arguments of a function
