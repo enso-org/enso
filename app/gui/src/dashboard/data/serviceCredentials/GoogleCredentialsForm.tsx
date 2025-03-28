@@ -29,6 +29,7 @@ export function GoogleCredentialsDialog(props: CredentialsFormProps) {
       await upsertCredential({ input: { type: 'Google', ...formValue }, nonce }, (id) => {
         invariant($config.GOOGLE_OAUTH_CLIENT_ID != null, 'Google OAuth client id is missing')
         const state = btoa(JSON.stringify({ secretId: id, nonce }))
+        const scope = formValue.scopes.join(' ')
         const query = new URLSearchParams({
           /* eslint-disable @typescript-eslint/naming-convention, camelcase */
           response_type: 'code',
@@ -37,11 +38,9 @@ export function GoogleCredentialsDialog(props: CredentialsFormProps) {
           redirect_uri: getOauthCallbackPath('Google'),
           client_id: $config.GOOGLE_OAUTH_CLIENT_ID,
           state,
+          scope
           /* eslint-enable @typescript-eslint/naming-convention, camelcase */
         })
-        for (const scope of formValue.scopes) {
-          query.append('scope', scope)
-        }
         return `https://accounts.google.com/o/oauth2/v2/auth?${query.toString()}`
       })
     },

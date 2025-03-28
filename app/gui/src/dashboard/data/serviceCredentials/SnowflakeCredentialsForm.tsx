@@ -27,25 +27,28 @@ export function SnowflakeCredentialsForm(props: CredentialsFormProps) {
           client_id: z.string(),
           // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
           client_secret: z.string(),
-          role: z.string(),
+          role: z.string().nullable(),
         })
         .refine((obj) => {
           const { role, ...rest } = obj
-          return { ...rest, ...(role !== '' ? { role } : {}) }
+          return { ...rest, ...(role !== '' ? { role } : { role: null }) }
         }),
     onSubmit: async (formValue) => {
       const nonce = uuidv4()
       await upsertCredential({ input: { type: 'Snowflake', ...formValue }, nonce }, (id) => {
+        const account = formValue.account
         const state = btoa(JSON.stringify({ secretId: id, nonce }))
+        const scope = "refresh_token" + (formValue.role == null ? "" : " session:role:" + formValue.role)
         const query = new URLSearchParams({
           /* eslint-disable @typescript-eslint/naming-convention, camelcase */
           client_id: formValue.client_id,
           response_type: 'code',
           redirect_uri: getOauthCallbackPath('Snowflake'),
           state,
+          scope
           /* eslint-enable @typescript-eslint/naming-convention, camelcase */
         })
-        const url = `https://${encodeURIComponent(formValue.account)}.snowflakecomputing.com/oauth/authorize?${query.toString()}`
+        const url = `https://${encodeURIComponent(account)}.snowflakecomputing.com/oauth/authorize?${query.toString()}`
         return url
       })
     },
