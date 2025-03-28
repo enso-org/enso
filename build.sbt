@@ -2992,7 +2992,8 @@ lazy val `runtime-integration-tests` =
         (`semver` / Compile / exportedModule).value,
         (`downloader` / Compile / exportedModule).value,
         (`logging-config` / Compile / exportedModule).value,
-        (`logging-service` / Compile / exportedModule).value
+        (`logging-service` / Compile / exportedModule).value,
+        (`logging-service-telemetry` / Compile / exportedModule).value
       ),
       Test / patchModules := {
         // Patch test-classes into the runtime module. This is standard way to deal with the
@@ -3025,6 +3026,7 @@ lazy val `runtime-integration-tests` =
         (`runtime-instrument-common` / javaModuleName).value,
         (`text-buffer` / javaModuleName).value,
         (`logging-service-logback` / Test / javaModuleName).value,
+        (`logging-service-telemetry` / Compile / javaModuleName).value,
         "ch.qos.logback.classic",
         "truffle.tck.tests"
       ),
@@ -3045,7 +3047,8 @@ lazy val `runtime-integration-tests` =
             "org.openide.util.lookup.RELEASE180",
             "ch.qos.logback.classic",
             (`logging-service-logback` / Compile / javaModuleName).value,
-            (`logging-service-logback` / Test / javaModuleName).value
+            (`logging-service-logback` / Test / javaModuleName).value,
+            (`logging-service-telemetry` / Compile / javaModuleName).value
           ),
           testInstrumentsModName -> Seq(runtimeModName)
         )
@@ -3082,7 +3085,7 @@ lazy val `runtime-integration-tests` =
     .dependsOn(`runtime`)
     .dependsOn(`runtime-test-instruments`)
     .dependsOn(`logging-service-logback` % "test->test")
-    .dependsOn(`logging-service-telemetry` % Test)
+    .dependsOn(`logging-service-telemetry` % "test->compile")
     .dependsOn(`logging-utils` % Test)
     .dependsOn(testkit % Test)
     .dependsOn(`connected-lock-manager-server`)

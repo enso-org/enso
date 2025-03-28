@@ -27,6 +27,7 @@ import Backend, {
   assetIsDatalink,
   assetIsDirectory,
   assetIsFile,
+  AssetType,
 } from 'enso-common/src/services/Backend'
 import { computed, onMounted, reactive, ref, toRef, toValue, watch } from 'vue'
 
@@ -68,7 +69,9 @@ const {
   currentFilePath,
   highlightedName,
   initializeStack,
+  enterSubdirectories,
   isDirectoryStackInitializing,
+  assetExists,
 } = useFileBrowserStack(
   backend,
   toRef(props, 'choosenPath'),
@@ -148,12 +151,42 @@ function chooseFile(file: FileAsset | DatalinkAsset) {
   }
 }
 
+const askForOverwrite = ref(false)
+const warningText = ref<string | null>(null)
+
+async function tryAcceptCurrentFile() {
+  const enteringResult = await enterSubdirectories()
+  if (!enteringResult.ok) {
+    warningText.value = `${enteringResult.error.payload.toString()}`
+    return
+  }
+  const assetInfo = await assetExists(filenameInputContents.value)
+  if (assetInfo.exists && assetInfo.type === AssetType.file && props.writeMode) {
+    askForOverwrite.value = true
+  } else if (assetInfo.exists && assetInfo.type === AssetType.directory) {
+    warningText.value = `'${filenameInputContents.value}' is a directory, not a file`
+  } else {
+    acceptCurrentFile()
+  }
+}
+
 function acceptCurrentFile() {
   if (currentFilePath.value) {
     emit('pathAccepted', currentFilePath.value)
-  } else {
-    return false
   }
+}
+
+function overwriteConfirmed() {
+  askForOverwrite.value = false
+  acceptCurrentFile()
+}
+
+function overwriteCancelled() {
+  askForOverwrite.value = false
+}
+
+function warningDismissed() {
+  warningText.value = null
 }
 
 const isBusy = computed(() => isDirectoryStackInitializing.value || isPending.value)
@@ -264,6 +297,19 @@ onMounted(() => {
 
 <template>
   <div class="FileBrowserWidget">
+    <div v-if="askForOverwrite" class="confirmationModal">
+      <div class="confirmationText">
+        {{ `File '${filenameInputContents ?? ''}' already exists. Overwrite?` }}
+      </div>
+      <div class="confirmationButtons">
+        <SvgButton class="confirmationButton" label="No" @click.stop="overwriteCancelled" />
+        <SvgButton class="confirmationButton" label="Yes" @click.stop="overwriteConfirmed" />
+      </div>
+    </div>
+    <div v-if="warningText" class="confirmationModal">
+      <div class="confirmationText">{{ 'Warning: ' + warningText }}</div>
+      <SvgButton class="confirmationButton" label="Dismiss" @click.stop="warningDismissed" />
+    </div>
     <div class="topBar">
       <div class="directoryStack">
         <SvgButton name="navigate_up" title="Up" :disabled="!canPop" @click.stop="popDirectory" />
@@ -335,13 +381,13 @@ onMounted(() => {
         @keydown.delete.stop
         @keydown.arrow-left.stop
         @keydown.arrow-right.stop
-        @keydown.enter.stop="acceptCurrentFile()"
+        @keydown.enter.stop="tryAcceptCurrentFile"
       />
       <SvgButton
         class="fileNameAcceptButton"
         label="Ok"
         :disabled="!filenameInputContents"
-        @click.stop="acceptCurrentFile"
+        @click.stop="tryAcceptCurrentFile"
       />
     </div>
   </div>
@@ -361,6 +407,37 @@ onMounted(() => {
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.confirmationModal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 32px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border-radius: 0 0 var(--radius-default) var(--radius-default);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirmationText {
+  color: white;
+  text-align: center;
+  font-size: 1.2em;
+  display: flex;
+  overflow: hidden;
+}
+
+.confirmationButtons {
+  display: flex;
+  width: 40%;
+  flex-direction: row;
+  justify-content: space-between;
 }
 
 .topBar {
@@ -447,7 +524,8 @@ onMounted(() => {
   user-select: all;
 }
 
-.fileNameAcceptButton {
+.fileNameAcceptButton,
+.confirmationButton {
   --color-menu-entry-hover-bg: color-mix(in oklab, var(--color-frame-selected-bg), black 10%);
   border-radius: var(--border-radius-inner);
   height: calc(var(--border-radius-inner) * 2);

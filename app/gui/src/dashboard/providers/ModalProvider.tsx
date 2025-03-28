@@ -64,7 +64,11 @@ export function setModal(modal: ModalOrCallback) {
 // eslint-disable-next-line react-refresh/only-export-components
 export function unsetModal() {
   const modalsStore = ModalsStore.getState()
-  modalsStore.setModal(null)
+  if (modalsStore.modal != null) {
+    modalsStore.setModal(null)
+  } else {
+    return false
+  }
 }
 
 /**
