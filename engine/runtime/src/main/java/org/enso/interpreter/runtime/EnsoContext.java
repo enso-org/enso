@@ -137,7 +137,7 @@ public final class EnsoContext {
     this.in = environment.in();
     this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
     var threadExecutors = new ThreadExecutors(environment, logger);
-    this.threadManager = new ThreadManager(threadExecutors, getJobParallelism(), environment);
+    this.threadManager = new ThreadManager(threadExecutors, 1, environment);
     this.resourceManager = new ResourceManager(this);
     this.isInlineCachingDisabled = getOption(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     var isParallelismEnabled = getOption(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
