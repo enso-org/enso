@@ -735,9 +735,13 @@ export default class RemoteBackend extends Backend {
    * Restore an arbitrary asset from the trash.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  override async undoDeleteAsset(assetId: backend.AssetId, title: string): Promise<void> {
+  override async undoDeleteAsset(
+    assetId: backend.AssetId,
+    body: backend.UndoDeleteAssetRequestBody,
+    title: string,
+  ): Promise<void> {
     const path = remoteBackendPaths.UNDO_DELETE_ASSET_PATH
-    const response = await this.patch(path, { assetId })
+    const response = await this.patch(path, { assetId, ...body })
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'undoDeleteAssetBackendError', title)
     } else {

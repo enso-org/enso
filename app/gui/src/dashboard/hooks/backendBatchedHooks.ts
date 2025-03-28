@@ -77,7 +77,7 @@ export function restoreAssetsMutationOptions(backend: Backend) {
     mutationKey: [backend.type, 'restoreAssets'],
     mutationFn: async (ids: readonly AssetId[]) => {
       const results = await Promise.allSettled(
-        ids.map((id) => backend.undoDeleteAsset(id, '(unknown)')),
+        ids.map((id) => backend.undoDeleteAsset(id, {}, '(unknown)')),
       )
       const errors = results.flatMap((result): unknown =>
         result.status === 'rejected' ? [result.reason] : [],

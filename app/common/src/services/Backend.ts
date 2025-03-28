@@ -1377,6 +1377,11 @@ export interface DeleteAssetRequestBody {
   readonly force: boolean
 }
 
+/** HTTP request body for the "undo delete asset" endpoint. */
+export interface UndoDeleteAssetRequestBody {
+  readonly parentId?: DirectoryId
+}
+
 /** HTTP request body for the "create project" endpoint. */
 export interface CreateProjectRequestBody {
   readonly projectName: string
@@ -1776,7 +1781,11 @@ export default abstract class Backend {
   /** Delete an arbitrary asset. */
   abstract deleteAsset(assetId: AssetId, body: DeleteAssetRequestBody, title: string): Promise<void>
   /** Restore an arbitrary asset from the trash. */
-  abstract undoDeleteAsset(assetId: AssetId, title: string): Promise<void>
+  abstract undoDeleteAsset(
+    assetId: AssetId,
+    body: UndoDeleteAssetRequestBody,
+    title: string,
+  ): Promise<void>
   /** Copy an arbitrary asset to another directory. */
   abstract copyAsset(
     assetId: AssetId,
