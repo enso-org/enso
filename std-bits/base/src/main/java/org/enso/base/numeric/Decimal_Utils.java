@@ -20,6 +20,11 @@ public class Decimal_Utils {
     return new ConversionResult(bd, bd.compareTo(withoutMC) != 0);
   }
 
+  public static ConversionResult applyMathContext(BigDecimal bd, MathContext mc) {
+    BigDecimal rounded = bd.round(mc);
+    return new ConversionResult(rounded, bd.compareTo(rounded) != 0);
+  }
+
   public static BigDecimal fromInteger(Object o) {
     if (o instanceof Long l) {
       // According to the BigInteger Javadocs, valueOf is preferred "because it

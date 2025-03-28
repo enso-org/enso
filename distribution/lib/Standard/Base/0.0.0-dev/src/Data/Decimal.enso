@@ -251,20 +251,14 @@ type Decimal
     parse : Text -> Locale -> Text -> Math_Context | Nothing -> Decimal ! Number_Parse_Error | Illegal_Argument
     parse (text : Text) (locale:Locale=Locale.default) (format:Text="") (mc : Math_Context | Nothing = Nothing) -> Decimal ! Number_Parse_Error | Illegal_Argument =
         Illegal_Argument.handle_java_exception <| handle_java_exception <| handle_number_format_exception <|
-            case (locale == Locale.default && format == "") of
-                True ->
-                    case mc of
-                        _ : Math_Context -> Decimal.Value <| handle_precision_loss text <| Decimal_Utils.fromString text mc.math_context
-                        _ : Nothing -> Decimal.Value (Decimal_Utils.fromString text)
-                False ->
-                    # `getInstance` returns `DecimalFormat` or a subclass of `DecimalFormat`.
-                    decimal_format = NumberFormat.getInstance locale.java_locale
-                    decimal_format.applyLocalizedPattern format
-                    decimal_format.setParseBigDecimal True
-                    decimal = Panic.catch ParseException (Decimal.Value (decimal_format.parse text)) _->
-                        Error.throw (Number_Parse_Error.Error text)
-                    if mc == Nothing then decimal else
-                        Decimal.Value (decimal.big_decimal.round mc.math_context)
+            # `getInstance` returns `DecimalFormat` or a subclass of `DecimalFormat`.
+            decimal_format = NumberFormat.getInstance locale.java_locale
+            decimal_format.applyLocalizedPattern format
+            decimal_format.setParseBigDecimal True
+            decimal = Panic.catch ParseException (Decimal.Value (decimal_format.parse text)) _->
+                Error.throw (Number_Parse_Error.Error text)
+            if mc == Nothing then decimal else
+                Decimal.Value <| handle_precision_loss text <| Decimal_Utils.applyMathContext decimal.big_decimal mc.math_context
 
     ## GROUP conversions
        ICON convert
