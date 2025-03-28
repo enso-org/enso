@@ -45,6 +45,7 @@ from project.System.File_Format import Auto_Detect, File_Format
    Uses the specified file format to parse the file into an Enso type. If not
    specified will use the file's extension to determine the file format.
 
+   Arguments:
    - path: The path to the file to read. If the path is a URI, the data
      will be fetched from a supported protocol.
    - format: A `File_Format` object used to read file into memory.
