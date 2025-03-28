@@ -184,8 +184,6 @@ const statusBar = computed(() =>
 )
 
 watchEffect(() => {
-  console.log('HELLLO')
-  console.log(config.nodeType)
   datasource.value = null
   datasource.value = createServerSideDatasource()
   nodeType.value = config.nodeType
@@ -611,7 +609,10 @@ function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef 
       params.node?.rowPinned === 'top' ?
         null
       : `Double click to view this ${tooltipValue ?? 'value'} in a separate component`,
-    cellRenderer: (params: ICellRendererParams) => `<div class='link'> ${params.value} </div>`,
+    cellRenderer: (params: ICellRendererParams) =>
+      params.value !== null && params.value !== undefined ?
+        `<div class='link'> ${params.value} </div>`
+      : null,
     filter: fieldName != INDEX_FIELD_NAME,
   }
 }

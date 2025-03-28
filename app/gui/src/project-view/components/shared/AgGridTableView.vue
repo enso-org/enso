@@ -150,11 +150,14 @@ function onGridReady(event: GridReadyEvent<TData>) {
 
 const rowModelType = computed(() => (props.isServerSideModel ? 'serverSide' : 'clientSide'))
 
-const gridKey = ref(0);
+const gridKey = ref(0)
 
-watch(() => props.nodeType, () => {
-  gridKey.value++; // Force re-render of the grid component
-});
+watch(
+  () => props.nodeType,
+  () => {
+    gridKey.value++ // Force re-render of the grid component
+  },
+)
 
 watch(
   () => props.textFormatOption,
