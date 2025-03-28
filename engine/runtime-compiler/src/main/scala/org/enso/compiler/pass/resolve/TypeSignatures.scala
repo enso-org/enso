@@ -146,18 +146,18 @@ case object TypeSignatures extends IRPass {
           case None =>
             // No explicit type signature *before* the method was provided.
             // Reconstruct type signature from inlined types in arguments/return type, if present.
-            val inferred = rebuildSignatureFromInlinedTypes(meth.body)
-            if (inferred.nonEmpty) {
-              val typeFun = Type.Function(
-                inferred.init,
-                inferred.last,
-                meth.identifiedLocation()
-              )
-              meth.updateMetadata(new MetadataPair(this, Signature(typeFun)))
-            }
+            rebuildSignatureFromInlinedTypes(meth.body)
+              .filter(_.nonEmpty)
+              .foreach { inferred =>
+                val typeFun = Type.Function(
+                  inferred.init,
+                  inferred.last,
+                  identifiedLocation = null
+                )
+                meth.updateMetadata(new MetadataPair(this, Signature(typeFun)))
+              }
             Some(newMethod)
         }
-
         lastSignature = None
         res
       case ut: Definition.Type =>
@@ -198,7 +198,7 @@ case object TypeSignatures extends IRPass {
 
   private def rebuildSignatureFromInlinedTypes(
     expr: Expression
-  ): List[Expression] = {
+  ): Option[List[Expression]] = {
     expr match {
       case lambda: Function.Lambda =>
         lambda.arguments match {
@@ -206,17 +206,26 @@ case object TypeSignatures extends IRPass {
               if defArg.name().isInstanceOf[Name.Self] =>
             rebuildSignatureFromInlinedTypes(lambda.body)
           case args =>
-            val bodyArgs = rebuildSignatureFromInlinedTypes(lambda.body)
-            args.flatMap(_.getMetadata(this).map(_.signature)) ::: bodyArgs
+            val bodyTypeArgs = rebuildSignatureFromInlinedTypes(lambda.body)
+            val argTypes = liftOpt(
+              args.map(arg => arg.getMetadata(this).map(_.signature))
+            )
+            bodyTypeArgs.flatMap(b => argTypes.map(a => a ::: b))
         }
       case _ =>
         expr match {
           case tpe: Type.Ascription =>
-            tpe.typed.getMetadata(this).map(_.signature :: Nil).getOrElse(Nil)
+            tpe.typed.getMetadata(this).map(_.signature :: Nil)
           case _ =>
-            Nil
+            None
         }
     }
+  }
+
+  private def liftOpt[T](xs: List[Option[T]]): Option[List[T]] = xs match {
+    case Some(elem) :: xs => liftOpt(xs).map(v => elem :: v)
+    case None :: _        => None
+    case Nil              => Some(Nil)
   }
 
   /** Attaches {@link Signature} to each arguments of a function
