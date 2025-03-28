@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import '@/assets/base.css'
+import { interactionBindings } from '@/bindings'
 import TooltipDisplayer from '@/components/TooltipDisplayer.vue'
+import { useEvent } from '@/composables/events'
 import ProjectView from '@/ProjectView.vue'
 import { initializeActions } from '@/providers/action'
 import { provideAppClassSet } from '@/providers/appClass'
@@ -45,11 +47,23 @@ const queryClient = useQueryClient()
 
 provideKeyboard()
 provideGuiConfig(appConfigValue)
-provideInteractionHandler()
+const interaction = provideInteractionHandler()
 initializeActions()
 
 registerAutoBlurHandler()
 registerGlobalBlurHandler()
+
+const interactionBindingsHandler = interactionBindings.handler({
+  cancel: () => interaction.handleCancel(),
+})
+
+useEvent(window, 'keydown', interactionBindingsHandler)
+useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointerdown'), {
+  capture: true,
+})
+useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
+  capture: true,
+})
 
 onMounted(() => {
   if (appConfigValue.value.window.vibrancy) {

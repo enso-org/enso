@@ -55,7 +55,7 @@ const MOCK_FS: Record<string, { type: AnyAsset['type']; name: string; contents: 
   '4': {
     type: AssetType.directory,
     name: 'New Folder 1',
-    contents: ['6'],
+    contents: ['6', '7'],
   },
   '5': {
     type: AssetType.file,
@@ -65,6 +65,16 @@ const MOCK_FS: Record<string, { type: AnyAsset['type']; name: string; contents: 
   '6': {
     type: AssetType.file,
     name: 'input.csv',
+    contents: [],
+  },
+  '7': {
+    type: AssetType.directory,
+    name: 'Nested',
+    contents: ['8'],
+  },
+  '8': {
+    type: AssetType.file,
+    name: 'test.txt',
     contents: [],
   },
 }
@@ -148,7 +158,7 @@ test.each`
 )
 
 test.each`
-  initialPath                                       | expectedInputContets
+  initialPath                                       | expectedInputContents
   ${''}                                             | ${''}
   ${''}                                             | ${''}
   ${'enso://Users/user/input.csv'}                  | ${'input.csv'}
@@ -157,7 +167,7 @@ test.each`
   ${'enso://Users/user/New Folder 1/dir/input.csv'} | ${''}
 `(
   'Initial input content in write mode $initialPath',
-  async ({ initialPath, expectedInputContets }) => {
+  async ({ initialPath, expectedInputContents }) => {
     const { initializeStack, filenameInputContents, highlightedName } = fixture(
       'enso://',
       '0',
@@ -165,8 +175,8 @@ test.each`
       true,
     )
     await initializeStack(MOCK_USER, MOCK_ORGANIZATION_INFO)
-    expect(filenameInputContents.value).toBe(expectedInputContets)
-    expect(highlightedName.value).toBe(expectedInputContets)
+    expect(filenameInputContents.value).toBe(expectedInputContents)
+    expect(highlightedName.value).toBe(expectedInputContents)
   },
 )
 
@@ -191,5 +201,53 @@ test.each`
         expected ? 'input.csv' : undefined,
       )
     }
+  },
+)
+
+test.each`
+  initialInputContents                  | expectedStack                | expectedInputContents
+  ${''}                                 | ${['0', '1', '3']}           | ${''}
+  ${'New Folder 1'}                     | ${['0', '1', '3']}           | ${'New Folder 1'}
+  ${'New Folder 1/input.csv'}           | ${['0', '1', '3', '4']}      | ${'input.csv'}
+  ${'New Folder 1/Nested/test.txt'}     | ${['0', '1', '3', '4', '7']} | ${'test.txt'}
+  ${'New Folder 1/Nested/non-existent'} | ${['0', '1', '3', '4', '7']} | ${'non-existent'}
+  ${'New Folder 1/invalid/test.txt'}    | ${['0', '1', '3', '4']}      | ${'invalid/test.txt'}
+`(
+  'Enter subdirectories (input: $initialInputContents)',
+  async ({ initialInputContents, expectedStack, expectedInputContents }) => {
+    const { initializeStack, filenameInputContents, enterSubdirectories, directoryStack } = fixture(
+      'enso://',
+      '0',
+      '',
+      true,
+    )
+    await initializeStack(MOCK_USER, MOCK_ORGANIZATION_INFO)
+    filenameInputContents.value = initialInputContents
+    await enterSubdirectories()
+    const expectedStackStructure = expectedStack.map((id: string, index: number) =>
+      expect.objectContaining({
+        id: id as DirectoryId,
+        title: index === 0 ? 'Cloud' : MOCK_FS[id]?.name,
+      }),
+    )
+    expect(directoryStack.value).toEqual(expectedStackStructure)
+    expect(filenameInputContents.value).toBe(expectedInputContents)
+  },
+)
+
+test.each`
+  initialPath                         | inputContents     | expectedResult
+  ${''}                               | ${''}             | ${{ exists: false }}
+  ${''}                               | ${'input.csv'}    | ${{ exists: true, type: AssetType.file }}
+  ${'enso://Users/user/New Folder 1'} | ${'input.csv'}    | ${{ exists: true, type: AssetType.file }}
+  ${'enso://Users/user/New Folder 1'} | ${'non-existent'} | ${{ exists: false }}
+  ${'enso://Users/user/New Folder 1'} | ${'Nested'}       | ${{ exists: true, type: AssetType.directory }}
+`(
+  'File exists (path: $initialPath, input: $inputContents)',
+  async ({ initialPath, inputContents, expectedResult }) => {
+    const { initializeStack, assetExists } = fixture('enso://', '0', initialPath, true)
+    await initializeStack(MOCK_USER, MOCK_ORGANIZATION_INFO)
+    const exists = await assetExists(inputContents)
+    expect(exists).toEqual(expectedResult)
   },
 )
