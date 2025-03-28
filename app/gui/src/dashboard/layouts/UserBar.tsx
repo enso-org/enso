@@ -78,9 +78,9 @@ export default function UserBar(props: UserBarProps) {
   const { isOffline } = useOffline()
 
   const shouldShowUpgradeButton =
-    user.isOrganizationAdmin && user.plan !== Plan.enterprise && user.plan !== Plan.team
+    user.isOrganizationAdmin && (user.plan === Plan.free || user.plan == null)
 
-  const upgradeButtonVariant = user.plan === Plan.free ? 'primary' : 'outline'
+  const upgradeButtonVariant = user.plan === Plan.free || user.plan == null ? 'primary' : 'outline'
   // eslint-disable-next-line no-restricted-syntax
   const shouldShowPaywallButton = (false as boolean) && isFeatureUnderPaywall('inviteUser')
   const shouldShowInviteButton =
