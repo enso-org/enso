@@ -186,10 +186,6 @@ export interface DuplicatedProject {
   readonly projectNormalizedName: string
 }
 
-// ====================
-// === ProjectState ===
-// ====================
-
 /** A project that is currently opening. */
 interface OpenInProgressProjectState {
   readonly state: backend.ProjectState.openInProgress

@@ -39,6 +39,18 @@ export default mergeConfig(
         },
       },
     ],
+    server: {
+      warmup: {
+        // Warming server up ***significantly*** speeds up execution of the first batch of tests in dev mode.
+        clientFiles: [
+          './src/dashboard/pages/dashboard/**/*.tsx',
+          './src/dashboard/layouts/**/*.tsx',
+          './src/dashboard/modals/**/*.tsx',
+          './src/dashboard/hooks/**/*.ts',
+          './src/dashboard/tailwind.css',
+        ],
+      },
+    },
     resolve: {
       alias: {
         '@stripe/stripe-js/pure': fileURLToPath(

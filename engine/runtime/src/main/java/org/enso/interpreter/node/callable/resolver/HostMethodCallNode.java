@@ -224,7 +224,7 @@ public abstract class HostMethodCallNode extends Node {
     } catch (UnsupportedMessageException | UnknownIdentifierException e) {
       CompilerDirectives.transferToInterpreter();
       var err = ctx.getBuiltins().error().makeNotInvokable(self);
-      throw new PanicException(err, e, this);
+      throw new PanicException(ctx, err, e, this);
     } catch (ArityException e) {
       var err =
           ctx.getBuiltins()
@@ -275,7 +275,7 @@ public abstract class HostMethodCallNode extends Node {
       CompilerDirectives.transferToInterpreter();
       var ctx = EnsoContext.get(this);
       var err = ctx.getBuiltins().error().makeNotInvokable(self);
-      throw new PanicException(err, e, this);
+      throw new PanicException(ctx, err, e, this);
     } catch (ArityException e) {
       throw new PanicException(
           EnsoContext.get(this)

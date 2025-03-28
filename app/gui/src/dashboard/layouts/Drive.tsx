@@ -37,10 +37,6 @@ import { Suspense } from '../components/Suspense'
 import { useCategoriesAPI } from './Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from './Drive/directoryIdsHooks'
 
-// =============
-// === Drive ===
-// =============
-
 /** Props for a {@link Drive}. */
 export interface DriveProps {
   readonly hidden: boolean

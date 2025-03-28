@@ -45,8 +45,6 @@ import java.util.concurrent.{
   CompletableFuture,
   ExecutorService,
   Future,
-  LinkedBlockingDeque,
-  ThreadPoolExecutor,
   TimeUnit
 }
 import java.util.logging.Level
@@ -77,16 +75,7 @@ class Compiler(
 
   /** The thread pool that handles parsing of modules. */
   private val pool: ExecutorService = if (config.parallelParsing) {
-    new ThreadPoolExecutor(
-      Compiler.startingThreadCount,
-      Compiler.maximumThreadCount,
-      Compiler.threadKeepalive,
-      TimeUnit.SECONDS,
-      new LinkedBlockingDeque[Runnable](),
-      (runnable: Runnable) => {
-        context.createThread(runnable)
-      }
-    )
+    context.newParsingPool()
   } else null
 
   /** Java accessor */
@@ -873,17 +862,8 @@ class Compiler(
       Name.Qualified(name, identifiedLocation = null)
     }.toList
     ir.copy(
-      imports = ir.imports ::: moduleNames.map(m =>
-        Import.Module(
-          m,
-          rename             = None,
-          isAll              = false,
-          onlyNames          = None,
-          hiddenNames        = None,
-          identifiedLocation = null,
-          isSynthetic        = true
-        )
-      ),
+      imports =
+        ir.imports ::: moduleNames.map(m => Import.Module.createSynthetic(m)),
       exports = ir.exports ::: moduleNames.map(m =>
         Export.Module(
           m,
@@ -1175,7 +1155,6 @@ class Compiler(
         }
 
         pool.shutdownNow()
-        Thread.sleep(100)
       } else {
         pool.shutdownNow()
       }

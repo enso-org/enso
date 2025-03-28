@@ -5,7 +5,6 @@ module org.enso.logging.service.logback {
   requires java.net.http;
   requires ch.qos.logback.classic;
   requires ch.qos.logback.core;
-  requires com.fasterxml.jackson.databind;
   requires sentry;
   requires sentry.logback;
   requires org.enso.logging.service;
@@ -15,6 +14,8 @@ module org.enso.logging.service.logback {
   requires static org.openide.util.lookup.RELEASE180;
 
   exports org.enso.logging.service.logback;
+
+  uses org.enso.logging.service.logback.TelemetryAppender;
 
   provides LoggerSetup with
       org.enso.logging.service.logback.LogbackSetup;

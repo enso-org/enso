@@ -1,20 +1,12 @@
 /** @file Utilities for using JSON schemas. */
 import * as objectModule from '#/utilities/object'
 
-// =================
-// === lookupDef ===
-// =================
-
 /** Look up a `{ "$ref": "" }` in the root schema. */
 export function lookupDef(defs: Record<string, object>, schema: object) {
   const ref = '$ref' in schema && typeof schema.$ref === 'string' ? schema.$ref : null
   const [, name] = ref?.match(/^#[/][$]defs[/](.+)$/) ?? ''
   return name == null ? null : objectModule.asObject(defs[name])
 }
-
-// =====================
-// === getSchemaName ===
-// =====================
 
 const SCHEMA_NAMES = new WeakMap<object, string>()
 
@@ -62,10 +54,6 @@ export function getSchemaName(defs: Record<string, object>, schema: object) {
     return name
   }
 }
-
-// =============================
-// === constantValueToSchema ===
-// =============================
 
 /**
  * Convert a constant value to a JSON schema representing the value, or `null` if it cannot be
@@ -135,10 +123,6 @@ export function constantValueToSchema(value: unknown): object | null {
   }
   return result
 }
-
-// =====================
-// === constantValue ===
-// =====================
 
 const CONSTANT_VALUE = new WeakMap<object, readonly [] | readonly [NonNullable<unknown> | null]>()
 const PARTIAL_CONSTANT_VALUE = new WeakMap<

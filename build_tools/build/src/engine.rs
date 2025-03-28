@@ -85,6 +85,10 @@ pub enum Tests {
     #[clap(alias = "stdlib")]
     StandardLibrary,
 
+    /// Run all Standard Library tests with native-image.
+    #[clap(alias = "stdlib-native")]
+    StandardLibraryInNative,
+
     /// Run the Snowflake tests.
     StdSnowflake,
 

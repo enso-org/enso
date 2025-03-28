@@ -21,12 +21,9 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparis
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
-import org.slf4j.Logger;
 
 public final class BigDecimalStorage extends SpecializedStorage<BigDecimal>
     implements NumericFormattingStorage {
-
-  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(BigDecimalStorage.class);
 
   private CachedPropertyCheck<Boolean> isNumericFormatRequired;
 

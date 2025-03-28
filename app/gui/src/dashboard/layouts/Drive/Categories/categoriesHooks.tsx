@@ -66,6 +66,7 @@ export type CloudCategoryResult = ReturnType<typeof useCloudCategoryList>
 /**
  * List of categories in the Cloud.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useCloudCategoryList() {
   const user = useUser()
   const { getText } = useText()
@@ -157,6 +158,7 @@ export type LocalCategoryResult = ReturnType<typeof useLocalCategoryList>
  * List of all categories in the LocalBackend.
  * Usually these are the root folder and the list of favorites
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useLocalCategoryList() {
   const { getText } = useText()
   const localBackend = useLocalBackend()
@@ -262,6 +264,7 @@ export type CategoriesResult = ReturnType<typeof useCategories>
 /**
  * List of all categories.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useCategories() {
   const cloudCategories = useCloudCategoryList()
   const localCategories = useLocalCategoryList()
@@ -366,6 +369,7 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
 /**
  * Returns the current category and the associated backend.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useCategory() {
   const { category, associatedBackend } = useCategoriesAPI()
 
@@ -375,6 +379,7 @@ export function useCategory() {
 /**
  * Gets the api to interact with the categories.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useCategoriesAPI() {
   const context = useContext(CategoriesContext)
 

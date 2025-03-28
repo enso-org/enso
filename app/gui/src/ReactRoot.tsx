@@ -28,13 +28,29 @@ function resolveEnvUrl(url: string | undefined) {
   return url?.replace('__HOSTNAME__', window.location.hostname)
 }
 
+function generateSessionID() {
+  const sessionID = sessionStorage.getItem('sessionID')
+  if (sessionID) {
+    return sessionID
+  }
+
+  const newSessionID = crypto.randomUUID()
+  sessionStorage.setItem('sessionID', newSessionID)
+  return newSessionID
+}
+
 /**
  * A component gathering all views written currently in React with necessary contexts.
  */
 export default function ReactRoot(props: ReactRootProps) {
   const { config, queryClient, onAuthenticated } = props
 
-  const httpClient = new HttpClient()
+  const sessionID = generateSessionID()
+
+  const httpClient = new HttpClient({
+    'x-enso-ide-version': $config.VERSION ?? '',
+    'x-enso-session-id': sessionID,
+  })
 
   const supportsDeepLinks = !IS_DEV_MODE && !isOnLinux() && isOnElectron()
 

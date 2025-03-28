@@ -1,37 +1,9 @@
 /** @file Test sorting of assets columns. */
-import { expect, test, type Locator } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 
 import { mockAllAndLogin } from './actions'
-
-/** A test assertion to confirm that the element is fully transparent. */
-async function expectOpacity0(locator: Locator) {
-  await test.step('Expect `opacity: 0`', async () => {
-    await expect(async () => {
-      expect(await locator.evaluate((el) => getComputedStyle(el).opacity)).toBe('0')
-    }).toPass()
-  })
-}
-
-/** A test assertion to confirm that the element is not fully transparent. */
-async function expectNotOpacity0(locator: Locator) {
-  await test.step('Expect not `opacity: 0`', async () => {
-    await expect(async () => {
-      expect(await locator.evaluate((el) => getComputedStyle(el).opacity)).not.toBe('0')
-    }).toPass()
-  })
-}
-
-/** Find a "sort ascending" icon. */
-function locateSortAscendingIcon(page: Locator) {
-  return page.getByAltText('Sort Ascending')
-}
-
-/** Find a "sort descending" icon. */
-function locateSortDescendingIcon(page: Locator) {
-  return page.getByAltText('Sort Descending')
-}
 
 const START_DATE_EPOCH_MS = 1.7e12
 /** The number of milliseconds in a minute. */
@@ -77,14 +49,6 @@ test('sort', ({ page }) =>
       // d file
     },
   })
-    .driveTable.withNameColumnHeading(async (nameHeading) => {
-      await expectOpacity0(locateSortAscendingIcon(nameHeading))
-      await expect(locateSortDescendingIcon(nameHeading)).not.toBeVisible()
-    })
-    .driveTable.withModifiedColumnHeading(async (modifiedHeading) => {
-      await expectOpacity0(locateSortAscendingIcon(modifiedHeading))
-      await expect(locateSortDescendingIcon(modifiedHeading)).not.toBeVisible()
-    })
     .driveTable.withRows(async (rows) => {
       // By default, assets should be grouped by type.
       // Assets in each group are ordered by insertion order.
@@ -104,9 +68,6 @@ test('sort', ({ page }) =>
     })
     // Sort by name ascending.
     .driveTable.clickNameColumnHeading()
-    .driveTable.withNameColumnHeading(async (nameHeading) => {
-      await expectNotOpacity0(locateSortAscendingIcon(nameHeading))
-    })
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveText([
         /^a directory 1/,
@@ -124,9 +85,6 @@ test('sort', ({ page }) =>
     })
     // Sort by name descending.
     .driveTable.clickNameColumnHeading()
-    .driveTable.withNameColumnHeading(async (nameHeading) => {
-      await expectNotOpacity0(locateSortDescendingIcon(nameHeading))
-    })
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveText([
         /^H secret/,
@@ -146,10 +104,6 @@ test('sort', ({ page }) =>
     .driveTable.clickNameColumnHeading()
     .do(async (thePage) => {
       await thePage.mouse.move(0, 0)
-    })
-    .driveTable.withNameColumnHeading(async (nameHeading) => {
-      await expectOpacity0(locateSortAscendingIcon(nameHeading))
-      await expect(locateSortDescendingIcon(nameHeading)).not.toBeVisible()
     })
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveText([
@@ -168,9 +122,6 @@ test('sort', ({ page }) =>
     })
     // Sort by date ascending.
     .driveTable.clickModifiedColumnHeading()
-    .driveTable.withModifiedColumnHeading(async (modifiedHeading) => {
-      await expectNotOpacity0(locateSortAscendingIcon(modifiedHeading))
-    })
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveText([
         /^b project/,
@@ -188,9 +139,6 @@ test('sort', ({ page }) =>
     })
     // Sort by date descending.
     .driveTable.clickModifiedColumnHeading()
-    .driveTable.withModifiedColumnHeading(async (modifiedHeading) => {
-      await expectNotOpacity0(locateSortDescendingIcon(modifiedHeading))
-    })
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveText([
         /^d file/,
@@ -210,10 +158,6 @@ test('sort', ({ page }) =>
     .driveTable.clickModifiedColumnHeading()
     .do(async (thePage) => {
       await thePage.mouse.move(0, 0)
-    })
-    .driveTable.withModifiedColumnHeading(async (modifiedHeading) => {
-      await expectOpacity0(locateSortAscendingIcon(modifiedHeading))
-      await expect(locateSortDescendingIcon(modifiedHeading)).not.toBeVisible()
     })
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveText([

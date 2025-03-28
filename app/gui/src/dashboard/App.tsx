@@ -98,10 +98,6 @@ import { CloudBrowserDisabledLayout } from '#/providers/AuthProvider'
 import { useMutation } from '@tanstack/react-query'
 import { useOffline } from './hooks/offlineHooks'
 
-// ============================
-// === Global configuration ===
-// ============================
-
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
@@ -127,20 +123,12 @@ LocalStorage.registerKey('inputBindings', {
 LocalStorage.registerKey('localRootDirectory', { schema: z.string() })
 LocalStorage.registerKey('preferredTimeZone', { schema: z.string() })
 
-// ======================
-// === getMainPageUrl ===
-// ======================
-
 /** Returns the URL to the main page. This is the current URL, with the current route removed. */
 function getMainPageUrl() {
   const mainPageUrl = new URL(window.location.href)
   mainPageUrl.pathname = mainPageUrl.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
   return mainPageUrl
 }
-
-// ===========
-// === App ===
-// ===========
 
 /** Global configuration for the `App` component. */
 export interface AppProps {
@@ -265,10 +253,6 @@ export default function App(props: AppProps) {
     </>
   )
 }
-
-// =================
-// === AppRouter ===
-// =================
 
 /** Props for an {@link AppRouter}. */
 export interface AppRouterProps extends AppProps {

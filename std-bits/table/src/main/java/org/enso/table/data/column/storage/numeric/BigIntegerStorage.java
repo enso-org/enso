@@ -24,12 +24,9 @@ import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.slf4j.Logger;
 
 public class BigIntegerStorage extends SpecializedStorage<BigInteger>
     implements NumericFormattingStorage {
-
-  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(BigIntegerStorage.class);
 
   private CachedPropertyCheck<Boolean> isNumericFormatRequired;
 

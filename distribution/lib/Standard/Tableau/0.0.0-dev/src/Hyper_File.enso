@@ -9,6 +9,7 @@ from Standard.Table import Table
 
 import project.Hyper_Errors.Hyper_Table_Not_Found
 import project.Hyper_Table.Hyper_Table
+import project.Internal.Telemetry
 
 polyglot java import org.enso.tableau.HyperReader
 
@@ -85,7 +86,11 @@ type Hyper_File
             table_to_read = self.tables.find if_missing=Nothing t-> t.table == table
             if table_to_read.is_nothing then Error.throw (Hyper_Table_Not_Found.Error "*" table) else
                 table_to_read.read limit
-        _ -> Hyper_Table.Value self table schema . read limit
+        _ ->
+            result = Hyper_Table.Value self table schema . read limit
+            result.if_not_error <|
+                Telemetry.log "Hyper_File.read" "Read Hyper table: output={}, row_count={}, column_count={}" ["Table", result.row_count, result.column_count]
+                result
 
 ## PRIVATE
 make_schema_selector hyper_file:Hyper_File include_any:Boolean=False =

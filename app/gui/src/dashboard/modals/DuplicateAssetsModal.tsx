@@ -36,10 +36,6 @@ import {
 import { Fragment } from 'react'
 import invariant from 'tiny-invariant'
 
-// =============
-// === Types ===
-// =============
-
 /**
  * An object containing the current asset, and the asset that is about to be uploaded,
  * that will conflict with the existing asset.
@@ -53,10 +49,6 @@ export interface ConflictingAsset<
   readonly new: Asset
   readonly file: File
 }
-
-// =================================
-// === UpdateOrRenameAssetsModal ===
-// =================================
 
 /** Props for a {@link DuplicateAssetsModal}. */
 export interface DuplicateAssetsModalProps {
@@ -429,6 +421,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
       category,
       backend: associatedBackend,
       parentId: targetId,
+      refetchInterval: null,
     }),
     select: (data) => {
       // We use titles as keys, because they are always unique, and we want to find duplicates by title.
@@ -687,6 +680,7 @@ export interface ResolveDuplicationsOptions
 /**
  * Function for resolving duplicates.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export async function resolveDuplications(props: ResolveDuplicationsOptions) {
   const { targetId, conflictingIds } = props
 

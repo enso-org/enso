@@ -47,7 +47,6 @@ polyglot java import java.lang.IndexOutOfBoundsException
      A vector containing 50 elements, each being the number `42`, can be
      created by:
          Vector.fill length=50 item=42
-
 @Builtin_Type
 type Vector a
     ## PRIVATE

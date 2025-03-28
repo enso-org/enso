@@ -1,4 +1,4 @@
-package org.enso.logging.service.logback.telemetry;
+package org.enso.logging.service.telemetry;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import java.util.ArrayList;

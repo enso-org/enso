@@ -13,16 +13,8 @@ import { Button, Form, Input, Text } from '#/components/AriaComponents'
 import FocusRing from '#/components/styled/FocusRing'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 
-// =================
-// === Constants ===
-// =================
-
 /** A zero-width space. Useful to make a `div` take up at least one line. */
 const ZWSP = '\u200b'
-
-// ====================
-// === Autocomplete ===
-// ====================
 
 /** Base props for a {@link Autocomplete}. */
 interface InternalBaseAutocompleteProps<T> {

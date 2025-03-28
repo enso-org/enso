@@ -19,10 +19,6 @@ import * as backendModule from '#/services/Backend'
 import { Text } from '#/components/AriaComponents'
 import * as object from '#/utilities/object'
 
-// =================
-// === Constants ===
-// =================
-
 const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<backendModule.AssetType, text.TextId>> = {
   [backendModule.AssetType.directory]: 'directoryAssetType',
   [backendModule.AssetType.project]: 'projectAssetType',
@@ -34,10 +30,6 @@ const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<backendModule.AssetType, text.TextI
   [backendModule.AssetType.specialUp]: 'specialUpAssetType',
   [backendModule.AssetType.datalink]: 'datalinkAssetType',
 } satisfies { [Type in backendModule.AssetType]: `${Type}AssetType` }
-
-// ==================
-// === Permission ===
-// ==================
 
 /** Props for a {@link Permission}. */
 export interface PermissionProps {

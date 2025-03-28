@@ -5,7 +5,6 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.ThreadLocalAction;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
@@ -34,8 +33,6 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -95,7 +92,6 @@ public final class EnsoContext {
   private @CompilationFinal DefaultPackageRepository packageRepository;
   private @CompilationFinal TopLevelScope topScope;
   private final ThreadManager threadManager;
-  private final ThreadExecutors threadExecutors;
   private final ResourceManager resourceManager;
   private final boolean isInlineCachingDisabled;
   private final boolean isIrCachingDisabled;
@@ -140,8 +136,8 @@ public final class EnsoContext {
     this.err = new PrintStream(environment.err());
     this.in = environment.in();
     this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
-    this.threadManager = new ThreadManager(environment);
-    this.threadExecutors = new ThreadExecutors(this);
+    var threadExecutors = new ThreadExecutors(environment, logger);
+    this.threadManager = new ThreadManager(threadExecutors, getJobParallelism(), environment);
     this.resourceManager = new ResourceManager(this);
     this.isInlineCachingDisabled = getOption(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     var isParallelismEnabled = getOption(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
@@ -248,6 +244,28 @@ public final class EnsoContext {
   }
 
   /**
+   * Enters this context and then executes provided {@code action}.
+   *
+   * @param <T> type the action computes
+   * @param who the node who's asking to perform the action
+   * @param action the action to execute
+   * @return returns the value of the {@code action}
+   */
+  public final <T> T withinCtx(Node who, Supplier<T> action) {
+    var tc = environment.getContext();
+    if (tc.isActive()) {
+      return action.get();
+    } else {
+      var prev = tc.enter(who);
+      try {
+        return action.get();
+      } finally {
+        tc.leave(who, prev);
+      }
+    }
+  }
+
+  /**
    * @param node the location of context access. Pass {@code null} if not in a node.
    * @return the proper context instance for the current {@link
    *     com.oracle.truffle.api.TruffleContext}.
@@ -297,7 +315,6 @@ public final class EnsoContext {
 
   /** Performs eventual cleanup before the context is disposed of. */
   public void shutdown() {
-    threadExecutors.shutdown();
     threadManager.shutdown();
     resourceManager.shutdown();
     compiler.shutdown(shouldWaitForPendingSerializationJobs);
@@ -775,33 +792,8 @@ public final class EnsoContext {
 
   /** The job parallelism or 1 */
   public int getJobParallelism() {
-    var n = getOption(RuntimeOptions.JOB_PARALLELISM_KEY);
-    var base = n == null ? 1 : n.intValue();
-    var optimal = Math.round(base * 0.5);
-    return optimal < 1 ? 1 : (int) optimal;
-  }
-
-  /**
-   * @param name human-readable name of the pool
-   * @param min minimal number of threads kept-alive in the pool
-   * @param max maximal number of available threads
-   * @param maxQueueSize maximal number of pending tasks
-   * @param systemThreads use system threads or polyglot threads
-   * @return new execution service for this context
-   */
-  public ExecutorService newCachedThreadPool(
-      String name, int min, int max, int maxQueueSize, boolean systemThreads) {
-    return threadExecutors.newCachedThreadPool(name, systemThreads, min, max, maxQueueSize);
-  }
-
-  /**
-   * @param parallel amount of parallelism for the pool
-   * @param name human-readable name of the pool
-   * @param systemThreads use system threads or polyglot threads
-   * @return new execution service for this context
-   */
-  public ExecutorService newFixedThreadPool(int parallel, String name, boolean systemThreads) {
-    return threadExecutors.newFixedThreadPool(parallel, name, systemThreads);
+    int n = getOption(RuntimeOptions.JOB_PARALLELISM_KEY);
+    return Math.max(1, n);
   }
 
   /**
@@ -898,8 +890,14 @@ public final class EnsoContext {
 
   /** Set the runtime execution environment of this context. */
   public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
-    this.globalExecutionEnvironment = executionEnvironment;
-    language.setExecutionEnvironment(executionEnvironment);
+    var tc = environment.getContext();
+    var prev = tc.enter(null);
+    try {
+      this.globalExecutionEnvironment = executionEnvironment;
+      language.setExecutionEnvironment(executionEnvironment);
+    } finally {
+      tc.leave(null, prev);
+    }
   }
 
   /**
@@ -969,16 +967,6 @@ public final class EnsoContext {
     return environment.isCreateThreadAllowed();
   }
 
-  public Thread createThread(boolean systemThread, Runnable run) {
-    return systemThread
-        ? environment.createSystemThread(run)
-        : environment.newTruffleThreadBuilder(run).build();
-  }
-
-  public Future<Void> submitThreadLocal(Thread[] threads, ThreadLocalAction action) {
-    return environment.submitThreadLocal(threads, action);
-  }
-
   public CallTarget parseInternal(Source src, String... argNames) {
     return environment.parseInternal(src, argNames);
   }
@@ -1026,7 +1014,7 @@ public final class EnsoContext {
       msg = msg + sep + message;
     }
     var err = getBuiltins().error().makeAssertionError(msg);
-    throw new PanicException(err, e, node);
+    throw new PanicException(this, err, e, node);
   }
 
   private <T> T getOption(OptionKey<T> key) {

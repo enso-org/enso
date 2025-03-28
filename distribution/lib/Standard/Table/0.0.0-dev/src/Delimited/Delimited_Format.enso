@@ -18,6 +18,7 @@ import project.Delimited.Quote_Style.Quote_Style
 import project.Headers.Headers
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Writer
+import project.Internal.Telemetry
 import project.Match_Columns.Match_Columns
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
@@ -109,7 +110,10 @@ type Delimited_Format
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems:Problem_Behavior =
-        Delimited_Reader.read_file self file on_problems
+        result = Delimited_Reader.read_file self file on_problems
+        result.if_not_error <|
+            Telemetry.log "File_Format.read" "Read file: format={}, output={}, row_count={}, column_count={}" ["Delimited_Format", "Table", result.row_count, result.column_count]
+            result
 
     ## PRIVATE
        Implements decoding the format from a stream.

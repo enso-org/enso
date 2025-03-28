@@ -99,6 +99,7 @@ export interface UseDialogStackStateProps {
 }
 
 /** useDialogStackState is a custom hook that provides the state of the dialog stack. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useDialogStackState(props: UseDialogStackStateProps) {
   const store = React.useContext(DialogStackContext)
   invariant(store, 'useDialogStackState must be used within a DialogStackProvider')
@@ -112,6 +113,7 @@ export function useDialogStackState(props: UseDialogStackStateProps) {
 /**
  * Hook that returns true if the given id is the latest item in the dialog stack.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useIsLatestDialogStackItem(id: string) {
   const store = React.useContext(DialogStackContext)
   invariant(store, 'useIsLatestDialogStackItem must be used within a DialogStackProvider')
@@ -122,6 +124,7 @@ export function useIsLatestDialogStackItem(id: string) {
 /**
  * Hook that returns the index of the given id in the dialog stack.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useDialogStackIndex(id: string) {
   const store = React.useContext(DialogStackContext)
   invariant(store, 'useDialogStackIndex must be used within a DialogStackProvider')

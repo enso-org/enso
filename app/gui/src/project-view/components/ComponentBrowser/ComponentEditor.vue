@@ -51,14 +51,13 @@ const icon = computed(() => {
   return DEFAULT_ICON
 })
 
-const selfTypeName = computed(() => {
-  if (
-    props.mode.mode === 'componentBrowsing' &&
-    props.mode.filter.selfArg?.type === 'known' &&
-    props.mode.filter.selfArg.typename.path
-  ) {
-    return qnLastSegment(props.mode.filter.selfArg.typename.path)
+const label = computed(() => {
+  if (props.mode.mode !== 'componentBrowsing') return undefined
+  if (props.mode.filter.selfArg == null) return 'Input Components'
+  if (props.mode.filter.selfArg.type === 'known' && props.mode.filter.selfArg.typename.path) {
+    return `${qnLastSegment(props.mode.filter.selfArg.typename.path)} Components`
   }
+
   return undefined
 })
 
@@ -79,8 +78,8 @@ const rootStyle = computed(() => {
     <div :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }">
       <SvgIcon :name="icon" />
     </div>
-    <span class="selfArgInfo">{{ selfTypeName ?? 'Input' }} Components</span>
-    <SvgIcon class="selfArgInfoArrow" name="folder_closed" />
+    <span v-if="label" class="selfArgInfo" v-text="label" />
+    <SvgIcon v-if="label" class="selfArgInfoArrow" name="folder_closed" />
     <AutoSizedInput
       ref="inputField"
       v-model="fieldContent.text"
@@ -97,12 +96,11 @@ const rootStyle = computed(() => {
 
 <style scoped>
 .ComponentEditor {
-  --port-padding: 6px;
+  --port-padding: 4px;
   --icon-size: 16px;
   border-radius: 22px;
   background-color: var(--background-color);
-  padding: 0 var(--component-editor-padding);
-  height: 44px;
+  padding: var(--component-editor-padding);
   display: flex;
   flex-direction: row;
   gap: 8px;
@@ -123,7 +121,7 @@ const rootStyle = computed(() => {
   text-align: center;
   border-radius: var(--radius-full);
   padding: var(--port-padding);
-  margin: 0 0 0 calc(0px - var(--port-padding));
+  margin: 0;
   isolation: isolate;
   &.port {
     background-color: var(--color-node-port);

@@ -76,6 +76,7 @@ function handleClick(entry: Entry, altKey: boolean, htmlElement: EventTarget | n
 export interface DropdownEntry {
   readonly value: string
   readonly selected: boolean
+  readonly icon?: Icon | undefined
 }
 </script>
 
@@ -89,7 +90,10 @@ export interface DropdownEntry {
         class="item clickable"
         @click.stop="handleClick(entry, $event.altKey, $event.currentTarget)"
       >
-        <div class="itemContent" v-text="entry.value"></div>
+        <div class="item-inner">
+          <SvgIcon v-if="entry.icon" :name="entry.icon" class="menu-icon" />
+          <div class="itemContent" v-text="entry.value"></div>
+        </div>
       </li>
     </ul>
     <div v-if="enableSortButton" class="sort">
@@ -193,6 +197,16 @@ export interface DropdownEntry {
   margin: 3px 0;
   text-wrap: nowrap;
   text-overflow: ellipsis;
+}
+
+.item-inner {
+  display: flex;
+  align-items: center;
+}
+
+.menu-icon {
+  margin-left: -4px;
+  margin-right: 6px;
 }
 
 @keyframes text-scroll {
