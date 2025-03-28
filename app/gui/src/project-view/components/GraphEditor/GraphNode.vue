@@ -1,3 +1,11 @@
+<script lang="ts">
+const MAXIMUM_CLICK_LENGTH_MS = 300
+const MAXIMUM_CLICK_DISTANCE_SQ = 50
+export const NODE_CONTENT_PADDING = 4
+export const NODE_CONTENT_PADDING_PX = `${NODE_CONTENT_PADDING}px`
+const MENU_CLOSE_TIMEOUT_MS = 300
+</script>
+
 <script setup lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import ComponentMenu from '@/components/ComponentMenu.vue'
@@ -39,14 +47,8 @@ import { Vec2 } from '@/util/data/vec2'
 import { computed, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
 import type { ExternalId, VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
-const MAXIMUM_CLICK_LENGTH_MS = 300
-const MAXIMUM_CLICK_DISTANCE_SQ = 50
-const CONTENT_PADDING = 4
-const CONTENT_PADDING_PX = `${CONTENT_PADDING}px`
-const MENU_CLOSE_TIMEOUT_MS = 300
-
 const contentNodeStyle = {
-  padding: CONTENT_PADDING_PX,
+  padding: NODE_CONTENT_PADDING_PX,
 }
 
 const props = defineProps<{
@@ -190,7 +192,7 @@ watchEffect(() => {
   const inZone = (pos: Vec2 | undefined) =>
     pos != null &&
     pos.sub(nodePosition.value).x <
-      CONTENT_PADDING + ICON_WIDTH + GRAB_HANDLE_X_MARGIN_L + GRAB_HANDLE_X_MARGIN_R
+      NODE_CONTENT_PADDING + ICON_WIDTH + GRAB_HANDLE_X_MARGIN_L + GRAB_HANDLE_X_MARGIN_R
   const hovered =
     nodeHovered.value ||
     menuHovered.value ||

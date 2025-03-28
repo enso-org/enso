@@ -36,7 +36,14 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
       role="alertdialog"
       modalProps={defaultOpen == null ? {} : { defaultOpen }}
     >
-      <Form schema={z.object({})} method="dialog" onSubmit={doDelete} onSubmitSuccess={unsetModal}>
+      <Form
+        schema={z.object({})}
+        method="dialog"
+        onSubmit={doDelete}
+        onSubmitSuccess={() => {
+          unsetModal()
+        }}
+      >
         <Text className="relative">{getText('confirmPrompt', actionText)}</Text>
         {cannotUndo && (
           <Text className="relative" weight="bold">

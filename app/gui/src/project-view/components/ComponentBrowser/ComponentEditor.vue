@@ -96,12 +96,11 @@ const rootStyle = computed(() => {
 
 <style scoped>
 .ComponentEditor {
-  --port-padding: 6px;
+  --port-padding: 4px;
   --icon-size: 16px;
   border-radius: 22px;
   background-color: var(--background-color);
-  padding: 0 var(--component-editor-padding);
-  height: 44px;
+  padding: var(--component-editor-padding);
   display: flex;
   flex-direction: row;
   gap: 8px;
@@ -122,7 +121,7 @@ const rootStyle = computed(() => {
   text-align: center;
   border-radius: var(--radius-full);
   padding: var(--port-padding);
-  margin: 0 0 0 calc(0px - var(--port-padding));
+  margin: 0;
   isolation: isolate;
   &.port {
     background-color: var(--color-node-port);
