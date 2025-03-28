@@ -518,14 +518,18 @@ public final class ExecutionService {
    */
   public SourceSection getSourceLocation(Object o) {
     var iop = InteropLibrary.getUncached(o);
-    if (iop.hasSourceLocation(o)) {
-      try {
-        return iop.getSourceLocation(o);
-      } catch (UnsupportedMessageException ignored) {
-        CompilerDirectives.shouldNotReachHere("Message support already checked.");
-      }
-    }
-    return null;
+    return context.withinCtx(
+        iop,
+        () -> {
+          if (iop.hasSourceLocation(o)) {
+            try {
+              return iop.getSourceLocation(o);
+            } catch (UnsupportedMessageException ignored) {
+              CompilerDirectives.shouldNotReachHere("Message support already checked.");
+            }
+          }
+          return null;
+        });
   }
 
   public boolean isExitException(AbstractTruffleException ex) {
