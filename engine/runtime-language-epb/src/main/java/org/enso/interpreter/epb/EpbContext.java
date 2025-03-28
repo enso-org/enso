@@ -48,12 +48,6 @@ final class EpbContext {
    * @param preInitializeLanguages comma separated list of languages to immediately initialize
    */
   public void initialize(String preInitializeLanguages) {
-    for (var entry : env.getInternalLanguages().entrySet()) {
-      var l = entry.getValue();
-      if ("regex".equals(l.getId())) {
-        env.initializeLanguage(l);
-      }
-    }
     if (!isInner) {
       if (innerContext == null) {
         innerContext =
