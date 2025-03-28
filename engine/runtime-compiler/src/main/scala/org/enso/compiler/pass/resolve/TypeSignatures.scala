@@ -207,10 +207,9 @@ case object TypeSignatures extends IRPass {
             rebuildSignatureFromInlinedTypes(lambda.body)
           case args =>
             val bodyTypeArgs = rebuildSignatureFromInlinedTypes(lambda.body)
-            val argTypes = liftOpt(
-              args.map(arg => arg.getMetadata(this).map(_.signature))
-            )
-            bodyTypeArgs.flatMap(b => argTypes.map(a => a ::: b))
+            val argTypes =
+              args.map(_.getMetadata(this).map(_.signature).getOrElse(anyIr))
+            bodyTypeArgs.map(b => argTypes ::: b)
         }
       case _ =>
         expr match {
@@ -222,11 +221,15 @@ case object TypeSignatures extends IRPass {
     }
   }
 
-  private def liftOpt[T](xs: List[Option[T]]): Option[List[T]] = xs match {
-    case Some(elem) :: xs => liftOpt(xs).map(v => elem :: v)
-    case None :: _        => None
-    case Nil              => Some(Nil)
-  }
+  val anyIr = Name.Qualified(
+    List(
+      Name.Literal("Standard", isMethod = false, identifiedLocation = null),
+      Name.Literal("Base", isMethod     = false, identifiedLocation = null),
+      Name.Literal("Any", isMethod      = false, identifiedLocation = null),
+      Name.Literal("Any", isMethod      = false, identifiedLocation = null)
+    ),
+    identifiedLocation = null
+  )
 
   /** Attaches {@link Signature} to each arguments of a function
     * with ascribed type for correct resolution by {@link TypesNames}
