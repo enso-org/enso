@@ -121,6 +121,7 @@
   regex_match in the expression language][12492]
 - [Added `add_group_number` for Postgres and SQLite.][12574]
 - [Added `add_group_number` for Snowflake and SQLServer.][12590]
+- [Added Regex_match for Postgres][12663]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
@@ -142,6 +143,7 @@
 [12492]: https://github.com/enso-org/enso/pull/12492
 [12574]: https://github.com/enso-org/enso/pull/12574
 [12590]: https://github.com/enso-org/enso/pull/12590
+[12663]: https://github.com/enso-org/enso/pull/12663
 
 #### Enso Language & Runtime
 
