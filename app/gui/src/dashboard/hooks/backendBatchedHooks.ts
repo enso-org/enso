@@ -132,11 +132,40 @@ export function copyAssetsMutationOptions(backend: Backend) {
     mutationKey: [backend.type, 'copyAssets'],
     mutationFn: async ([ids, parentId]: [ids: readonly AssetId[], parentId: DirectoryId]) => {
       const results = await Promise.allSettled(
-        ids.map((id) => backend.copyAsset(id, parentId, '(unknown)', '(unknown)')),
+        ids.map((id) =>
+          backend.copyAsset(id, parentId, null).catch((error) => {
+            if (error instanceof DuplicateAssetError) {
+              return { id, error }
+            }
+            throw error
+          }),
+        ),
       )
+      const duplicateErrors = results
+        .filter((result) => result.status === 'fulfilled')
+        .map((result) =>
+          typeof result.value === 'object' && 'error' in result.value ? result.value : null,
+        )
+        .filter((error) => error != null)
+
       const errors = results.flatMap((result): unknown =>
         result.status === 'rejected' ? [result.reason] : [],
       )
+
+      if (duplicateErrors.length !== 0) {
+        const resolutions = await resolveDuplications({
+          targetId: parentId,
+          conflictingIds: duplicateErrors.map((error) => error.id),
+        })
+
+        const renames = resolutions.filter((resolution) => resolution.conclusion === 'rename')
+
+        await Promise.allSettled(
+          renames.map((resolution) =>
+            backend.copyAsset(resolution.assetId, parentId, resolution.newName),
+          ),
+        )
+      }
       if (errors.length !== 0) {
         throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
           errors,
@@ -224,8 +253,8 @@ export function moveAssetsMutationOptions(backend: Backend) {
 
         const renames = resolutions.filter((resolution) => resolution.conclusion === 'rename')
 
-        await Promise.allSettled([
-          ...renames.map((resolution) =>
+        await Promise.allSettled(
+          renames.map((resolution) =>
             backend.updateAsset(
               resolution.assetId,
               {
@@ -236,7 +265,7 @@ export function moveAssetsMutationOptions(backend: Backend) {
               resolution.newName,
             ),
           ),
-        ])
+        )
       }
 
       if (errors.length !== 0) {

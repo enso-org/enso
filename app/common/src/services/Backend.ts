@@ -1790,8 +1790,7 @@ export default abstract class Backend {
   abstract copyAsset(
     assetId: AssetId,
     parentDirectoryId: DirectoryId,
-    title: string,
-    parentDirectoryTitle: string,
+    title: string | null,
   ): Promise<CopyAssetResponse>
   /** Return a list of projects belonging to the current user. */
   abstract listProjects(): Promise<readonly ListedProject[]>
