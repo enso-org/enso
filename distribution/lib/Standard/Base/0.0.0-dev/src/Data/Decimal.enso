@@ -1274,7 +1274,7 @@ type Decimal
            c = dec 12.345
 dec : Text | Integer | Float -> Math_Context | Nothing -> Decimal ! Arithmetic_Error | Number_Parse_Error
 dec (x : Text | Integer | Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error | Number_Parse_Error =
-    Decimal.new x mc
+    if x.is_a Float then Decimal.from_float x mc explicit=True else Decimal.new x mc
 
 ## PRIVATE
 handle_number_format_exception ~action =
