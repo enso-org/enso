@@ -1,6 +1,8 @@
 /** @file A modal for creating and editing a credential. */
+import { uuidv4 } from 'lib0/random.js'
 import { Dialog, Form, FormDropdown, Input } from '#/components/AriaComponents'
 import { CREDENTIAL_INFOS, type CredentialInfo } from '#/data/serviceCredentials'
+import { CredentialsFormButtons } from '#/data/serviceCredentials/CredentialsFormButtons'
 import { useText } from '#/providers/TextProvider'
 import type { CredentialMetadata, SecretId } from '#/services/Backend'
 import { openInNewBrowserTab } from '#/utilities/window'
@@ -41,9 +43,15 @@ export default function UpsertCredentialModal(props: UpsertCredentialModalProps)
         credentialInfo: z.custom<CredentialInfo>(),
       }),
     defaultValues: { title: nameRaw ?? '', credentialInfo: CREDENTIAL_INFOS[0] },
-    onSubmit: () => {},
+    onSubmit: (values, submittedForm) => {
+      const _nonce = uuidv4()
+      console.log("Submitting", values, submittedForm)
+      // const secretId = doCreate(values.title, undefined)
+      // const authorizeUrl = makeAuthorizeUrl(secretId)
+      // openInNewBrowserTab(authorizeUrl)
+    },
   })
-  const title = form.watch('title')
+  // const title = form.watch('title')
   const credentialInfo = form.watch('credentialInfo')
 
   const content = (
@@ -65,15 +73,11 @@ export default function UpsertCredentialModal(props: UpsertCredentialModalProps)
       >
         {({ item: { nameId } }) => getText(nameId)}
       </FormDropdown>
-      <credentialInfo.component
+      <credentialInfo.component/>
+      <CredentialsFormButtons 
         isCreating={isCreatingCredential}
         canCancel={canCancel}
         canReset={canReset}
-        upsertCredential={async (value, makeAuthorizeUrl) => {
-          const secretId = await doCreate(title, value)
-          const authorizeUrl = makeAuthorizeUrl(secretId)
-          openInNewBrowserTab(authorizeUrl)
-        }}
       />
     </Form>
   )

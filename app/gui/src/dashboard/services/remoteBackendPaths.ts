@@ -223,7 +223,8 @@ export function getCheckoutSessionPath(checkoutSessionId: backend.CheckoutSessio
 }
 /** Relative HTTP path to the "get oauth callback" endpoint of the Cloud backend API. */
 export function getOauthCallbackPath(service: backend.CredentialInput['type']) {
-  return `libs/${service}/oauth/callback`
+  const normalized = service.toLowerCase()
+  return `oauth/${normalized}/callback`
 }
 
 /** Relative HTTP path to the "hybrid set open in progress" endpoint of the Cloud backend API. */
