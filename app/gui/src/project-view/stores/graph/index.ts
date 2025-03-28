@@ -457,6 +457,12 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       metadata.set('visualization', normalizeVisMetadata(data))
     }
 
+    function setWidgetMetadata(widget: AstId, widgetKey: string, md: unknown) {
+      const ast = syncModule.value?.tryGet(widget)
+      if (!ast) return
+      ast.setWidgetMetadata(widgetKey, md)
+    }
+
     function updateNodeRect(nodeId: NodeId, rect: Rect) {
       nodeRects.set(nodeId, rect)
       if (rect.pos.equals(Vec2.Infinity)) {
@@ -833,6 +839,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       setNodeContent,
       setNodePosition,
       setNodeVisualization,
+      setWidgetMetadata,
       undoManager,
       updateNodeRect,
       setNodeHovered,
