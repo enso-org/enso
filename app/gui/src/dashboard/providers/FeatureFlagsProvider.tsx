@@ -66,7 +66,7 @@ const flagsStore = createStore<FeatureFlagsStore>()(
       },
     }),
     {
-      name: 'featureFlags',
+      name: 'enso-feature-flags',
       version: 1,
       merge: (persistedState, newState) => {
         /**

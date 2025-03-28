@@ -31,7 +31,7 @@ import type { ReactNode } from 'react'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
 import { z } from 'zod'
-import { create } from 'zustand'
+import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type {
   AnyCategory,
@@ -65,7 +65,7 @@ interface CategoryIdStoreState {
   readonly categoryId: CategoryId | null
 }
 
-const categoryIdStore = create<CategoryIdStoreState>()(
+const categoryIdStore = createStore<CategoryIdStoreState>()(
   persist(
     (): CategoryIdStoreState => ({
       categoryId: null,
