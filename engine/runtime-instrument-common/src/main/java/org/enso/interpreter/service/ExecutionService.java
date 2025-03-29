@@ -499,16 +499,20 @@ public final class ExecutionService {
    * @param o the object to get the language for
    * @return the associated language, or {@code null} if it doesn't exist
    */
-  public String getLanguage(Object o) throws UnsupportedMessageException {
+  public String getLanguage(Object o) {
     var iop = InteropLibrary.getUncached(o);
     if (iop.hasSourceLocation(o)) {
-      var sourceSection = iop.getSourceLocation(o);
-      var source = sourceSection.getSource();
-      if (source != null) {
-        return source.getLanguage();
+      try {
+        var sourceSection = iop.getSourceLocation(o);
+        var source = sourceSection.getSource();
+        if (source != null) {
+          return source.getLanguage();
+        }
+      } catch (UnsupportedMessageException ex) {
+        // fallthru
       }
     }
-    throw UnsupportedMessageException.create();
+    return null;
   }
 
   /**
@@ -517,12 +521,16 @@ public final class ExecutionService {
    * @param o the object to get the source section for
    * @return the associated source section, or {@code null} if it doesn't exist
    */
-  public SourceSection getSourceLocation(Object o) throws UnsupportedMessageException {
+  public SourceSection getSourceLocation(Object o) {
     var iop = InteropLibrary.getUncached(o);
     if (iop.hasSourceLocation(o)) {
-      return iop.getSourceLocation(o);
+      try {
+        return iop.getSourceLocation(o);
+      } catch (UnsupportedMessageException ex) {
+        // fallthru
+      }
     }
-    throw UnsupportedMessageException.create();
+    return null;
   }
 
   public boolean isExitException(AbstractTruffleException ex) {
