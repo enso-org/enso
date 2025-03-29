@@ -313,4 +313,15 @@ public class HyperReader {
       }
     }
   }
+
+ public static void writeTable(
+    String path,
+    String schemaName,
+    String tableName,
+    Column[] columns
+) throws IOException {
+       var connection = new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS);
+}
+
+
 }

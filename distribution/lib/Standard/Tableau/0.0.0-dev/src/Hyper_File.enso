@@ -93,7 +93,7 @@ type Hyper_File
                 result
 
     write self table =
-        Nothing
+        HyperReader.writeTable self.file.path
 
 ## PRIVATE
 make_schema_selector hyper_file:Hyper_File include_any:Boolean=False =
