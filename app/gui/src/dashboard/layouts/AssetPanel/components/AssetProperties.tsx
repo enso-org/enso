@@ -25,15 +25,10 @@ import { assetPanelStore, useSetAssetPanelProps } from '#/layouts/AssetPanel/'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useLocalBackend } from '#/providers/BackendProvider'
 import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { AssetType, BackendType, Plan, type AnyAsset, type DatalinkId } from '#/services/Backend'
-import { extractTypeAndId } from '#/services/LocalBackend'
-import { computeFullRemotePath } from '#/services/RemoteBackend'
-import { normalizePath } from '#/utilities/fileInfo'
-import { mapNonNullish } from '#/utilities/nullable'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
@@ -60,9 +55,13 @@ export interface AssetPropertiesProps {
 export function AssetProperties(props: AssetPropertiesProps) {
   const { isReadonly = false, backend, category } = props
 
-  const { item, spotlightOn } = useStore(assetPanelStore, (state) => state.assetPanelProps, {
-    unsafeEnableTransition: true,
-  })
+  const { item, spotlightOn, defaultItem } = useStore(
+    assetPanelStore,
+    (state) => state.assetPanelProps,
+    { unsafeEnableTransition: true },
+  )
+
+  const currentItem = item ?? defaultItem
 
   const { getText } = useText()
 
@@ -70,14 +69,15 @@ export function AssetProperties(props: AssetPropertiesProps) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
   }
 
-  if (item == null) {
+  if (currentItem == null) {
     return <Result status="info" title={getText('assetProperties.notSelected')} centered />
   }
 
   return (
     <AssetPropertiesInternal
+      key={currentItem.id}
       backend={backend}
-      item={item}
+      item={currentItem}
       isReadonly={isReadonly}
       category={category}
       spotlightOn={spotlightOn}
@@ -105,7 +105,6 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const { user } = useFullUserSession()
   const isEnterprise = user.plan === Plan.enterprise
   const { getText } = useText()
-  const localBackend = useLocalBackend()
   const [isEditingDescriptionRaw, setIsEditingDescriptionRaw] = React.useState(false)
   const isEditingDescription = isEditingDescriptionRaw || spotlightOn === 'description'
   const setIsEditingDescription = useEventCallback(
@@ -148,8 +147,6 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   })
 
   const { data: labels = [] } = useBackendQuery(backend, 'listTags', [])
-  const { data: users = [] } = useBackendQuery(backend, 'listUsers', [])
-  const { data: userGroups = [] } = useBackendQuery(backend, 'listUserGroups', [])
   const self = permissions.tryFindSelfPermission(user, item.permissions)
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
@@ -159,16 +156,6 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const isSecret = item.type === AssetType.secret
   const isDatalink = item.type === AssetType.datalink
   const isCloud = backend.type === BackendType.remote
-  const pathComputed =
-    category.type === 'recent' || category.type === 'trash' ? null
-    : isCloud ? computeFullRemotePath(item, users, userGroups)
-    : item.type === AssetType.project ?
-      mapNonNullish(localBackend?.getProjectPath(item.id) ?? null, normalizePath)
-    : normalizePath(extractTypeAndId(item.id).id)
-  const path =
-    pathComputed == null ? null
-    : isCloud ? encodeURI(pathComputed)
-    : pathComputed
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   // Provide an extra `mutationKey` so that it has its own loading state.
   const editDescriptionMutation = useMutation(
@@ -275,11 +262,11 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
           >
-            {getText('settings')}
+            {getText('properties')}
           </Heading>
           <table>
             <tbody>
-              {path != null && (
+              {item.ensoPath != null && item.ensoPathValue && (
                 <tr data-testid="asset-panel-permissions" className="h-row">
                   <td className="text my-auto min-w-side-panel-label p-0">
                     <Text>{getText('path')}</Text>
@@ -287,9 +274,9 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                   <td className="w-full p-0">
                     <div className="flex items-center gap-2">
                       <Text className="w-0 grow" truncate="1">
-                        {decodeURI(path)}
+                        {item.ensoPath}
                       </Text>
-                      <CopyButton copyText={path} />
+                      <CopyButton copyText={item.ensoPathValue} />
                     </div>
                   </td>
                 </tr>
@@ -315,12 +302,13 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                 <td className="flex w-full gap-1 p-0">
                   {item.labels?.map((value) => {
                     const label = labels.find((otherLabel) => otherLabel.value === value)
+                    if (!label) {
+                      return null
+                    }
                     return (
-                      label != null && (
-                        <Label key={value} active isDisabled color={label.color} onPress={() => {}}>
-                          {value}
-                        </Label>
-                      )
+                      <Label key={value} active isDisabled color={label.color} onPress={() => {}}>
+                        {value}
+                      </Label>
                     )
                   })}
                 </td>
@@ -336,9 +324,10 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
           >
-            {getText('secret')}
+            {getText('configuration')}
           </Heading>
           <UpsertSecretModal
+            key={item.id}
             noDialog
             canReset
             canCancel={false}
@@ -357,7 +346,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
           >
-            {getText('datalink')}
+            {getText('configuration')}
           </Heading>
           {datalinkQuery.isLoading ?
             <div className="grid place-items-center self-stretch">

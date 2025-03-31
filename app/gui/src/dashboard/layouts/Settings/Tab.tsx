@@ -11,10 +11,6 @@ import type { SettingsContext, SettingsSectionData, SettingsTabData } from './da
 import SettingsPaywall from './Paywall'
 import SettingsSection from './Section'
 
-// ===================
-// === SettingsTab ===
-// ===================
-
 /** Props for a {@link SettingsTab}. */
 export interface SettingsTabProps {
   readonly context: SettingsContext

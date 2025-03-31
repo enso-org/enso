@@ -1,6 +1,4 @@
 /** @file Displays a non-interactable icon for an asset based on its type and name. */
-import * as React from 'react'
-
 import BlankIcon from '#/assets/blank.svg'
 import DatalinkIcon from '#/assets/datalink.svg'
 import FolderIcon from '#/assets/folder.svg'
@@ -19,7 +17,7 @@ export interface AssetIconProps {
   readonly className?: string
 }
 
-/** Displays a few details of an asset. */
+/** Displays a non-interactable icon for an asset based on its type and name. */
 export default function AssetIcon(props: AssetIconProps) {
   const { asset, className } = props
   switch (asset.type) {
@@ -38,6 +36,7 @@ export default function AssetIcon(props: AssetIconProps) {
     case backend.AssetType.secret: {
       return <SvgMask src={KeyIcon} className={className} />
     }
+    case backend.AssetType.specialUp:
     case backend.AssetType.specialLoading:
     case backend.AssetType.specialEmpty:
     case backend.AssetType.specialError: {

@@ -118,7 +118,7 @@ export function Tab(props: TabProps) {
                 )}
               />
             : icon}
-            <ariaComponents.Text truncate="1" className="max-w-40" color="current">
+            <ariaComponents.Text truncate="1" className="max-w-40" color="current" nowrap>
               {children}
             </ariaComponents.Text>
 

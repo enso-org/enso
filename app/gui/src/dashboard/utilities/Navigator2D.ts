@@ -6,18 +6,10 @@ import * as detect from 'enso-common/src/detect'
 import * as eventModule from '#/utilities/event'
 import * as object from '#/utilities/object'
 
-// =================
-// === Constants ===
-// =================
-
 /** A singleton function that returns true. */
 function returnTrue() {
   return true
 }
-
-// =================
-// === Direction ===
-// =================
 
 /** The four cardinal directions. */
 export enum Direction {
@@ -40,10 +32,6 @@ function mapDirections<T>(map: (direction: Direction) => T): Readonly<Record<Dir
     [Direction.down]: map(Direction.down),
   }
 }
-
-// ===================
-// === Navigator2D ===
-// ===================
 
 /** Metadata containing an element and its distance. */
 interface ElementAndDistance {

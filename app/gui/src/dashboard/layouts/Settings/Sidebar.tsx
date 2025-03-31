@@ -10,10 +10,6 @@ import { twMerge } from '#/utilities/tailwindMerge'
 import { SETTINGS_DATA, type SettingsContext } from './data'
 import type SettingsTabType from './TabType'
 
-// =======================
-// === SettingsSidebar ===
-// =======================
-
 /** Props for a {@link SettingsSidebar} */
 export interface SettingsSidebarProps {
   readonly context: SettingsContext

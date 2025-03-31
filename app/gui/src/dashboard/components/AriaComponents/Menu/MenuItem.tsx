@@ -14,6 +14,7 @@ import { Check } from '../Check'
 import { Text, TEXT_STYLE } from '../Text'
 import type { IconProp, TestIdProps } from '../types'
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const MENU_ITEM_STYLES = tv({
   base: 'group flex w-full cursor-default gap-3 rounded-3xl px-[14px] py-1 outline-none transition-colors duration-75 text-left',
   variants: {

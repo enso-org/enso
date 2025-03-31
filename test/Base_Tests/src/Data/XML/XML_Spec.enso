@@ -41,12 +41,17 @@ add_specs suite_builder =
 
         group_builder.specify "Can read from a string" <|
             xml_string = data.test_file.read_text
+            doc = XML_Document.parse xml_string
+            doc.root_element.name . should_equal "class"
+
+        group_builder.specify "Can read from a string using XML_Document.from_text (deprecated)" <|
+            xml_string = data.test_file.read_text
             doc = XML_Document.from_text xml_string
             doc.root_element.name . should_equal "class"
 
         group_builder.specify "Can read from a short string" <|
             xml_string = "<class></class>"
-            doc = XML_Document.from_text xml_string
+            doc = XML_Document.parse xml_string
             doc.root_element.name . should_equal "class"
 
         group_builder.specify "Parse error from file" <|
@@ -55,7 +60,7 @@ add_specs suite_builder =
 
         group_builder.specify "Parse error from string" <|
             xml_string = "<<<<</"
-            XML_Document.from_text xml_string . catch . should_be_a XML_Error.Parse_Error
+            XML_Document.parse xml_string . catch . should_be_a XML_Error.Parse_Error
 
     suite_builder.group "Write XML" group_builder->
         group_builder.specify "Can roundtrip a document to and from a file" <|

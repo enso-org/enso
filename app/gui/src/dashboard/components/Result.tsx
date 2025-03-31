@@ -1,18 +1,12 @@
 /** @file Display the result of an operation. */
-import * as React from 'react'
-
 import Success from '#/assets/check_mark.svg'
 import Error from '#/assets/cross.svg'
-
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import type { JSX, PropsWithChildren, ReactElement } from 'react'
 import type { TestIdProps } from './AriaComponents'
 import { Text } from './AriaComponents/Text'
-import * as loader from './Loader'
+import { Loader } from './Loader'
 import SvgMask from './SvgMask'
-
-// =================
-// === Constants ===
-// =================
 
 const INFO_ICON = (
   // eslint-disable-next-line no-restricted-syntax
@@ -23,7 +17,7 @@ const INFO_ICON = (
 
 const STATUS_ICON_MAP: Readonly<Record<Status, StatusIcon>> = {
   loading: {
-    icon: <loader.Loader minHeight="h8" />,
+    icon: <Loader minHeight="h8" />,
     colorClassName: 'text-primary',
     bgClassName: 'bg-transparent',
   },
@@ -36,7 +30,7 @@ const STATUS_ICON_MAP: Readonly<Record<Status, StatusIcon>> = {
   success: { icon: Success, colorClassName: 'text-green-500', bgClassName: 'bg-green' },
   // pending is the same as loading. Used for mutations.
   pending: {
-    icon: <loader.Loader minHeight="h8" />,
+    icon: <Loader minHeight="h8" />,
     colorClassName: 'text-primary',
     bgClassName: 'bg-transparent',
   },
@@ -71,41 +65,29 @@ const RESULT_STYLES = tv({
   defaultVariants: { centered: 'all' },
 })
 
-// ==============
-// === Status ===
-// ==============
-
 /** Possible statuses for a result. */
 export type Status = 'error' | 'idle' | 'info' | 'loading' | 'pending' | 'success'
 
-// ==================
-// === StatusIcon ===
-// ==================
-
 /** The corresponding icon and color for each status. */
 interface StatusIcon {
-  readonly icon: React.ReactElement | string
+  readonly icon: ReactElement | string
   readonly colorClassName: string
   readonly bgClassName: string
 }
 
-// ==============
-// === Result ===
-// ==============
-
 /** Props for a {@link Result}. */
 export interface ResultProps
-  extends React.PropsWithChildren,
+  extends PropsWithChildren,
     VariantProps<typeof RESULT_STYLES>,
     TestIdProps {
   readonly className?: string
-  readonly title?: React.JSX.Element | string
-  readonly subtitle?: React.JSX.Element | string
+  readonly title?: JSX.Element | string
+  readonly subtitle?: JSX.Element | string
   /**
    * The status of the result.
    * @default 'success'
    */
-  readonly status?: React.ReactElement | Status
+  readonly status?: ReactElement | Status
   readonly icon?: string | false
 }
 

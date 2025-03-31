@@ -14,10 +14,6 @@ import {
 } from '#/utilities/inputBindings'
 import { twMerge } from '#/utilities/tailwindMerge'
 
-// ==============================
-// === eventToPartialShortcut ===
-// ==============================
-
 const DISALLOWED_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta'])
 const DELETE_KEY = isOnMacOS() ? 'Backspace' : 'Delete'
 
@@ -36,10 +32,6 @@ function eventToPartialShortcut(event: KeyboardEvent | ReactKeyboardEvent) {
     : (normalizedKeyboardSegmentLookup[event.key.toLowerCase()] ?? event.key)
   return { key, modifiers }
 }
-
-// ====================================
-// === CaptureKeyboardShortcutModal ===
-// ====================================
 
 /** Props for a {@link CaptureKeyboardShortcutModal}. */
 export interface CaptureKeyboardShortcutModalProps {

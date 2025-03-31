@@ -6,6 +6,7 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.expression.literal.LiteralNode;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.test.utils.ContextUtils;
 import org.junit.Test;
 
 public class SequenceLiteralNodeTest {
@@ -13,6 +14,12 @@ public class SequenceLiteralNodeTest {
 
   @Test
   public void propagatePanicSentinel() {
+    try (var ctx = ContextUtils.createDefaultContext()) {
+      ContextUtils.executeInContext(ctx, this::propagatePanicSentinelImpl);
+    }
+  }
+
+  private Void propagatePanicSentinelImpl() {
     var sentinel = new PanicSentinel(new PanicException(0L, null), null);
 
     var one = LiteralNode.build(1);
@@ -29,5 +36,6 @@ public class SequenceLiteralNodeTest {
         fail("The right exception should have been propagated!");
       }
     }
+    return null;
   }
 }

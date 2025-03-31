@@ -13,7 +13,7 @@ function goToMain() {
 <template>
   <div class="GraphMissingView">
     <SvgIcon class="header-icon" name="error" />
-    <span>The component you are viewing no longer exists.</span>
+    <span>The current component could not be found.</span>
     <StandaloneButton icon="home2" label="Go back" @click="goToMain" />
   </div>
 </template>

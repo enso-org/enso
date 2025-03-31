@@ -27,10 +27,11 @@ import {
 } from 'enso-common/src/backendQuery'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useOpenProject } from '#/hooks/projectHooks'
+import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type Backend from '#/services/Backend'
@@ -49,6 +50,7 @@ import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackend
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
 import { useMemo } from 'react'
+import { z } from 'zod'
 
 const PROJECT_EXECUTIONS_STALE_TIME = 60_000
 
@@ -307,16 +309,30 @@ export function useListUserGroupsWithUsers(backend: Backend): ListUserGroupsWith
   }
 }
 
+/** Return the refetch interval for listing directories based on feature flag state. */
+export function useListDirectoryRefetchInterval() {
+  const enableAssetsTableBackgroundRefresh = useFeatureFlag('enableAssetsTableBackgroundRefresh')
+  const assetsTableBackgroundRefreshInterval = useFeatureFlag(
+    'assetsTableBackgroundRefreshInterval',
+  )
+  return enableAssetsTableBackgroundRefresh ? assetsTableBackgroundRefreshInterval : Infinity
+}
+
 /** Options for {@link listDirectoryQueryOptions}. */
 export interface ListDirectoryQueryOptions {
   readonly backend: Backend
   readonly parentId: DirectoryId
   readonly category: Category
+  /**
+   * When using React, use {@link useListDirectoryRefetchInterval} to 0.
+   * `undefined` is intentionally excluded as this value should be explicitly given.
+   */
+  readonly refetchInterval: number | null
 }
 
 /** Build a query options object to fetch the children of a directory. */
 export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
-  const { backend, parentId, category } = options
+  const { backend, parentId, category, refetchInterval } = options
 
   const rootPath = 'rootPath' in category ? category.rootPath : undefined
 
@@ -332,10 +348,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
         recentProjects: category.type === 'recent',
       },
     ] as const,
-    // Setting stale time to `Infinity` avoids attaching a ton of
-    // setTimeouts to the query. Improves performance.
-    // This is fine as refetching is handled by another query.
-    staleTime: Infinity,
+    ...(refetchInterval != null ? { refetchInterval } : {}),
     queryFn: async () => {
       try {
         return await backend.listDirectory(
@@ -356,6 +369,66 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
         }
       }
     },
+  })
+}
+
+/**
+ * Options for {@link unsafe_assetFromCacheQueryOptions}.
+ */
+export interface AssetFromCacheQueryOptions {
+  readonly backend: Backend
+  readonly assetId: AssetId
+  readonly queryClient: QueryClient
+}
+
+/**
+ * Build a query options object to fetch an asset from the React Query cache.
+ * This is _only_ for situations when WE KNOW that the asset is in the cache.
+ * This is _not_ a general purpose function for fetching assets.
+ */
+// eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
+export function unsafe_assetFromCacheQueryOptions(options: AssetFromCacheQueryOptions) {
+  const { backend, assetId, queryClient } = options
+
+  const assetSchema = z
+    .object({ id: z.string().refine((value) => value === assetId) })
+    // This is safe, because we assert that the id is the same as the assetId
+    // This makes us sure that this is an asset.
+    // eslint-disable-next-line no-restricted-syntax
+    .transform((data) => data as unknown as backendModule.AnyAsset)
+
+  return queryOptions({
+    queryKey: [backend.type, 'asset', { id: assetId }],
+    // We don't want to cache this query, as it's purely a computed from another query.
+    gcTime: 0,
+    meta: { persist: false },
+    queryFn: () =>
+      queryClient
+        .getQueryCache()
+        .getAll()
+        .map((query) => {
+          const data = query.state.data
+
+          if (Array.isArray(data)) {
+            // eslint-disable-next-line no-restricted-syntax
+            const asset = data.find((maybeAsset) => assetSchema.safeParse(maybeAsset).success) as
+              | AnyAsset
+              | undefined
+
+            if (asset != null) {
+              return asset
+            }
+          }
+
+          const result = assetSchema.safeParse(data)
+
+          if (result.success) {
+            return result.data
+          }
+
+          return null
+        })
+        .filter((asset) => asset != null)[0],
   })
 }
 
@@ -577,7 +650,8 @@ export function useNewFolder(backend: Backend, category: Category) {
 /** A function to create a new project. */
 export function useNewProject(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
-  const doOpenProject = useOpenProject()
+  const openProjectLocally = useOpenProjectLocally()
+  const openProjectNatively = useOpenProjectNatively()
   const deleteAsset = useDeleteAsset(backend, category)
 
   const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
@@ -594,6 +668,7 @@ export function useNewProject(backend: Backend, category: Category) {
         datalinkId?: backendModule.DatalinkId | null | undefined
       },
       parentId: DirectoryId,
+      runLocally = true,
     ) => {
       const siblings = await ensureListDirectory(parentId)
       const projectName = (() => {
@@ -622,12 +697,17 @@ export function useNewProject(backend: Backend, category: Category) {
           throw error
         })
         .then((createdProject) => {
-          doOpenProject({
+          const openProjectParams = {
             id: createdProject.projectId,
-            type: backend.type,
             parentId: placeholderItem.parentId,
             title: createdProject.name,
-          })
+          }
+          if (runLocally) {
+            // Open in background.
+            void openProjectLocally(openProjectParams, backend.type)
+          } else {
+            openProjectNatively(openProjectParams, backend.type)
+          }
 
           return createdProject
         })
@@ -713,6 +793,10 @@ export function duplicateProjectMutationOptions(
   openProject: (project: LaunchedProject) => void,
 ) {
   return mutationOptions({
+    meta: {
+      invalidates: [[backend.type, 'listDirectory']],
+      awaitInvalidates: true,
+    },
     mutationFn: async ([id, originalTitle, parentId, versionId]: [
       id: backendModule.ProjectId,
       originalTitle: string,

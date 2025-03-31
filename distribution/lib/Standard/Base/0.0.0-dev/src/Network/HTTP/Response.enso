@@ -179,7 +179,7 @@ type Response
     decode_as_json self (encoding : Encoding | Infer = Infer) =
         self.body.decode_as_json encoding
 
-    ## ALIAS export, save, output, to_file
+    ## ALIAS export, output, save, to_file
        GROUP Output
        ICON data_download
        Write response body to a File.
@@ -250,6 +250,7 @@ filename_from_content_disposition content_disposition =
 type Enso_Http_Response
     private Value uri:URI (headers:HttpHeaders) body:Input_Stream status_code:Integer
 
+    ## PRIVATE
     new java_response:EnsoHttpResponse -> Enso_Http_Response =
         uri = URI.parse java_response.uri.toString
         error_handler = (HTTP_Error.handle_java_exceptions uri)

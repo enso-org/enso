@@ -8,6 +8,7 @@ import { twJoin } from 'tailwind-merge'
 /** The state of the spinner. It should go from `initial`, to `loading`, to `done`. */
 export type SpinnerState = 'done' | 'initial' | 'loading-fast' | 'loading-medium' | 'loading-slow'
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const SPINNER_CSS_CLASSES: Readonly<Record<SpinnerState, string>> = {
   initial: 'dasharray-5 ease-linear',
   /* eslint-disable-next-line @typescript-eslint/naming-convention */

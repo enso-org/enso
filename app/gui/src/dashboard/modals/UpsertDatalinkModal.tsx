@@ -6,16 +6,8 @@ import { validateDatalink } from '#/data/datalinkValidator'
 import { useText } from '#/providers/TextProvider'
 import { constantValueOfSchema } from '#/utilities/jsonSchema'
 
-// =================
-// === Constants ===
-// =================
-
 const DEFS: Record<string, object> = SCHEMA.$defs
 const INITIAL_DATALINK_VALUE = constantValueOfSchema(DEFS, SCHEMA.$defs.DataLink, true)[0] ?? null
-
-// ===========================
-// === UpsertDataLinkModal ===
-// ===========================
 
 /** Props for a {@link UpsertDatalinkModal}. */
 export interface UpsertDatalinkModalProps {

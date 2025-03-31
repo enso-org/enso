@@ -49,6 +49,7 @@ import org.enso.lockmanager.server.LockManagerService
 import org.enso.logger.masking.Masking
 import org.enso.common.RuntimeOptions
 import org.enso.common.ContextFactory
+import org.enso.common.HostEnsoUtils
 import org.enso.logging.utils.akka.AkkaConverter
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.profiling.events.NoopEventsMonitor
@@ -60,6 +61,7 @@ import org.slf4j.event.Level
 import org.slf4j.{LoggerFactory, MDC}
 
 import java.io.{File, PrintStream}
+import java.lang.management.ManagementFactory
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.Clock
@@ -79,6 +81,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     serverConfig,
     logLevel
   )
+
+  initialTelemetry()
 
   private val contextSupervisor = new ComponentSupervisor()
   private val utcClock          = Clock.systemUTC()
@@ -321,7 +325,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     stdErr.attach(arr => System.out.write(arr))
   }
 
-  if (java.lang.Boolean.getBoolean("com.oracle.graalvm.isaot")) {
+  if (HostEnsoUtils.isAot()) {
     log.info("Running Language Server in AOT mode")
   } else {
     log.info("Running Language Server in JVM mode")
@@ -338,6 +342,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     .err(stdErr)
     .in(stdIn)
     .options(extraOptions)
+    .disableLinting(true)
     .enableRuntimeServerInfoKey(RuntimeServerInfo.ENABLE_OPTION)
     .messageTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
@@ -403,7 +408,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     localLibraryManager      = localLibraryManager,
     editionReferenceResolver = editionReferenceResolver,
     editionManager           = editionManager,
-    localLibraryProvider     = DefaultLocalLibraryProvider.make(libraryLocations),
+    localLibraryProvider =
+      DefaultLocalLibraryProvider.make(libraryLocations, HostEnsoUtils.isAot()),
     publishedLibraryCache =
       PublishedLibraryCache.makeReadOnlyCache(libraryLocations),
     installerConfig = LibraryInstallerConfig(
@@ -529,5 +535,35 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       .withFallback(empty)
       .getConfig("akka")
       .getConfig("https")
+  }
+
+  private def initialTelemetry(): Unit = {
+    val telemetryLog =
+      LoggerFactory.getLogger(
+        "org.enso.telemetry.languageserver.boot.MainModule"
+      )
+    val osBean     = ManagementFactory.getOperatingSystemMXBean
+    val mServer    = ManagementFactory.getPlatformMBeanServer
+    val memoryBean = ManagementFactory.getMemoryMXBean
+    val maxHeapMB  = (memoryBean.getHeapMemoryUsage.getMax / 1024) / 1024
+    val totalMem = mServer
+      .getAttribute(osBean.getObjectName, "TotalPhysicalMemorySize")
+      .asInstanceOf[Long]
+    val totalMemMB = totalMem / 1024 / 1024
+    ManagementFactory.getMemoryMXBean.getHeapMemoryUsage
+    telemetryLog.trace(
+      "Initializing main module of the Language Server: edition={}, graal_version={}, enso_version={}, is_release={}, AOT={}, os_name={}, os_arch={}, os_version={}, available_cpus={}, total_memory_MB={}, available_memory_MB={}",
+      BuildVersion.currentEdition(),
+      BuildVersion.graalVersion(),
+      BuildVersion.ensoVersion(),
+      BuildVersion.isRelease,
+      HostEnsoUtils.isAot,
+      osBean.getName,
+      osBean.getArch,
+      osBean.getVersion,
+      osBean.getAvailableProcessors,
+      totalMemMB,
+      maxHeapMB
+    )
   }
 }

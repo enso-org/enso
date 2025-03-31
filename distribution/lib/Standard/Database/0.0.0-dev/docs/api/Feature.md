@@ -8,6 +8,7 @@
     - Cross_Join
     - Distinct
     - Filter
+    - Generate_Rows
     - Integration_Tests
     - Join
     - Make_Table_From

@@ -226,19 +226,29 @@ export class Server {
             break
           }
 
-          https.get(downloadUrl, (actualResponse) => {
+          https.get(downloadUrl, async (actualResponse) => {
             const projectsDirectory = projectManagement.getProjectsDirectory()
-            const targetDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
+            const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
+            const targetDirectory = path.join(parentDirectory, 'project_root')
 
-            fs.mkdir(targetDirectory, { recursive: true })
-              .then(() => projectManagement.unpackBundle(actualResponse, targetDirectory))
-              .then((projectDirectory) => {
-                response.writeHead(HTTP_STATUS_OK, COOP_COEP_CORP_HEADERS).end(projectDirectory)
-              })
-              .catch((e) => {
-                console.error(e)
-                response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COOP_COEP_CORP_HEADERS).end()
-              })
+            try {
+              await fs.mkdir(targetDirectory, { recursive: true })
+              await projectManagement.unpackBundle(actualResponse, targetDirectory)
+              response
+                .writeHead(HTTP_STATUS_OK, COOP_COEP_CORP_HEADERS)
+                .end(JSON.stringify({ targetDirectory, parentDirectory }))
+            } catch (e) {
+              logger.error(e)
+              await fs
+                .access(parentDirectory)
+                .then(() => {
+                  fs.rmdir(parentDirectory, { maxRetries: 3, recursive: true })
+                })
+                .catch((e) => {
+                  logger.error(`Failed to cleanup directory ${parentDirectory}.`, e)
+                })
+              response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COOP_COEP_CORP_HEADERS).end()
+            }
           })
 
           break
@@ -285,7 +295,7 @@ export class Server {
               )
               uploadRequest.write(projectBundle, (err) => {
                 if (err) {
-                  console.error(err)
+                  logger.error(err)
                   response
                     .writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR)
                     .end('Failed to write project bundle.')
@@ -294,14 +304,14 @@ export class Server {
               uploadRequest.end()
             })
             .catch((err) => {
-              console.error(err)
+              logger.error(err)
               response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COOP_COEP_CORP_HEADERS).end()
             })
 
           break
         }
         default: {
-          console.error(`Unknown Cloud middleware request:`, requestPath)
+          logger.error(`Unknown Cloud middleware request:`, requestPath)
           break
         }
       }

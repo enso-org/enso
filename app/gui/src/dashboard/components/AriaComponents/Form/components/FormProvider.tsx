@@ -32,6 +32,7 @@ export function FormProvider<Schema extends types.TSchema>(
 }
 
 /** Returns the form instance from the context. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useFormContext<Schema extends types.TSchema>(
   form?: FormInstanceValidated<Schema>,
 ): FormInstance<Schema> {
@@ -51,6 +52,7 @@ export function useFormContext<Schema extends types.TSchema>(
 }
 
 /** Returns the form instance from the context, or null if the context is not available. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useOptionalFormContext<
   Form extends FormInstanceValidated<Schema> | undefined,
   Schema extends types.TSchema,

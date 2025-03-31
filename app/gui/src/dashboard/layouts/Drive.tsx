@@ -37,10 +37,6 @@ import { Suspense } from '../components/Suspense'
 import { useCategoriesAPI } from './Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from './Drive/directoryIdsHooks'
 
-// =============
-// === Drive ===
-// =============
-
 /** Props for a {@link Drive}. */
 export interface DriveProps {
   readonly hidden: boolean
@@ -181,7 +177,7 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
         data-testid="drive-view"
         className="mt-4 flex flex-1 flex-col gap-4 overflow-visible px-4"
       >
-        <div className="grid flex-1 grid-cols-[minmax(180px,auto)_minmax(0,1fr)] gap-3 overflow-hidden">
+        <div className="grid flex-1 grid-cols-[180px_minmax(0,1fr)] gap-3 overflow-hidden">
           <div className="grid-col-1 flex flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden pt-1">
             <CategorySwitcher category={category} setCategoryId={setCategory} />
 

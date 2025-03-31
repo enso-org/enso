@@ -26,10 +26,6 @@ const GOOGLE_ICON = <img src={GoogleIcon} alt="" />
 // eslint-disable-next-line no-restricted-syntax
 const GITHUB_ICON = <img src={GithubIcon} alt="" />
 
-// =============
-// === Login ===
-// =============
-
 /** A form for users to log in. */
 export default function Login() {
   const location = router.useLocation()

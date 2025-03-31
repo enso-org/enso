@@ -1,4 +1,11 @@
-import { componentBrowserBindings, graphBindings, nodeEditBindings } from '@/bindings'
+import {
+  codeEditorBindings,
+  componentBrowserBindings,
+  documentationEditorBindings,
+  graphBindings,
+  nodeEditBindings,
+  undoBindings,
+} from '@/bindings'
 import { createContextStore } from '@/providers'
 import { assert } from '@/util/assert'
 import { Icon } from '@/util/iconMetadata/iconName'
@@ -6,12 +13,13 @@ import { ToValue } from '@/util/reactivity'
 import { BindingInfo } from '@/util/shortcuts'
 import { ref } from 'vue'
 import { ForbidExcessProps } from 'ydoc-shared/util/types'
+import { ActionContext, injectActionContext } from './actionContext'
 
 /**
  * A definition of some action available via shortcut, button, and/or menu entry.
  */
 export interface Action {
-  action?: () => void
+  action?: (ctx: ActionContext | undefined) => void
   icon: Icon
   shortcut?: BindingInfo
   testid?: string
@@ -20,9 +28,13 @@ export interface Action {
   disabled?: ToValue<boolean>
   toggled?: ToValue<boolean>
 }
-export type ActionHandler = Partial<Action> & { action: () => void }
+export type ActionHandler = Partial<Action> & { action: (ctx: ActionContext | undefined) => void }
 
 const actions = {
+  'graphEditor.showHelp': {
+    icon: 'help',
+    description: 'Show help',
+  },
   'components.collapse': {
     icon: 'group',
     description: 'Group Selected Components',
@@ -101,6 +113,59 @@ const actions = {
     description: 'Swtich to Code Edit Mode',
     shortcut: componentBrowserBindings.bindings.switchToCodeEditMode,
   },
+  'graph.addComponent': {
+    icon: 'add',
+    description: 'Add Component',
+    shortcut: graphBindings.bindings.openComponentBrowser,
+  },
+  'graph.toggleCodeEditor': {
+    description: 'Code Editor',
+    icon: 'bottom_panel',
+    shortcut: codeEditorBindings.bindings.toggle,
+  },
+  'graph.toggleDocumentationEditor': {
+    icon: 'right_panel',
+    description: 'Documentation Editor',
+    shortcut: documentationEditorBindings.bindings.toggle,
+  },
+  'graph.renameProject': {
+    description: 'Rename Project',
+    icon: 'edit',
+  },
+  'graph.refreshExecution': {
+    description: 'Refresh',
+    icon: 'refresh',
+  },
+  'graph.recomputeAll': {
+    description: 'Write All',
+    icon: 'workflow_play',
+  },
+  'graph.undo': {
+    description: 'Undo',
+    shortcut: undoBindings.bindings.undo,
+    icon: 'undo',
+  },
+  'graph.redo': {
+    description: 'Redo',
+    shortcut: undoBindings.bindings.redo,
+    icon: 'redo',
+  },
+  'graph.fitAll': {
+    description: 'Show All Components',
+    icon: 'show_all',
+  },
+  'graph.zoomIn': {
+    description: 'Increase Zoom',
+    icon: 'add',
+  },
+  'graph.zoomOut': {
+    description: 'Decrease Zoom',
+    icon: 'minus',
+  },
+  'graph.navigateUp': {
+    description: 'Navigate Up',
+    icon: 'navigate_up',
+  },
 } satisfies Record<string, Action>
 
 /**
@@ -170,6 +235,31 @@ export function toggledAction(toggleState = ref(false)) {
       toggleState.value = !toggleState.value
     },
     toggled: toggleState,
+  }
+}
+
+type ResolvedAction = Action & { action: () => void }
+
+/**
+ * Potentially resolve an action by name from context. Raises an error if such action is not found.
+ */
+export function resolveAction(actionOrName: Action | ActionName): ResolvedAction {
+  let action: Action
+
+  if (typeof actionOrName === 'string') {
+    const actions = injectActions()
+    assert(
+      actions != null,
+      `Trying to reference an action by name '${actionOrName}', but actions not injected.`,
+    )
+    action = actions[actionOrName]
+  } else {
+    action = actionOrName
+  }
+  const ctx = injectActionContext(true)
+  return {
+    ...action,
+    action: () => action.action?.(ctx),
   }
 }
 

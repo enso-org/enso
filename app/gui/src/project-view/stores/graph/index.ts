@@ -85,8 +85,9 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
     proj.setObservedFileName('Main.enso')
 
     const nodeRects = reactive(new Map<NodeId, Rect>())
-    const nodeOutputHoverAnimations = reactive(new Map<NodeId, number>())
+    const nodeOutputAnimations = reactive(new Map<NodeId, number>())
     const nodeHovered = reactive(new Map<NodeId, boolean>())
+    const nodeOutputVisible = reactive(new Map<NodeId, boolean>())
     const vizRects = reactive(new Map<NodeId, Rect>())
     // The currently visible nodes' areas (including visualization).
     const visibleNodeAreas = computed(() => {
@@ -150,10 +151,16 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       if (ast.ok) lastKnownResolvedMethodAstId.value = ast.value.id
       else console.log('immediateMethodAst', ast.error)
     })
+    watch(
+      () => proj.executionContext.getStackTop(),
+      () => {
+        lastKnownResolvedMethodAstId.value = undefined
+      },
+    )
 
     const fallbackMethodAst = computed(() => {
       const id = lastKnownResolvedMethodAstId.value
-      const ast = id != null ? syncModule.value?.get(id) : undefined
+      const ast = id != null ? syncModule.value?.tryGet(id) : undefined
       if (ast instanceof Ast.FunctionDef) return ast
       return undefined
     })
@@ -333,7 +340,8 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
           if (outerAst.isStatement()) Ast.deleteFromParentBlock(outerAst)
           nodeRects.delete(id)
           nodeHovered.delete(id)
-          nodeOutputHoverAnimations.delete(id)
+          nodeOutputVisible.delete(id)
+          nodeOutputAnimations.delete(id)
           deletedNodes.add(id)
         }
       })
@@ -360,7 +368,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
           for (const _conflict of conflicts) {
             // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
             // https://github.com/enso-org/enso/issues/9356
-            // substituteQualifiedName(wholeAssignment, conflict.pattern, conflict.fullyQualified)
+            // substituteQualifiedNameByPattern(wholeAssignment, conflict.pattern, conflict.fullyQualified)
           }
         }
       })
@@ -449,6 +457,12 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       metadata.set('visualization', normalizeVisMetadata(data))
     }
 
+    function setWidgetMetadata(widget: AstId, widgetKey: string, md: unknown) {
+      const ast = syncModule.value?.tryGet(widget)
+      if (!ast) return
+      ast.setWidgetMetadata(widgetKey, md)
+    }
+
     function updateNodeRect(nodeId: NodeId, rect: Rect) {
       nodeRects.set(nodeId, rect)
       if (rect.pos.equals(Vec2.Infinity)) {
@@ -460,8 +474,12 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       nodeHovered.set(nodeId, hovered)
     }
 
-    function updateNodeOutputHoverAnim(nodeId: NodeId, progress: number) {
-      nodeOutputHoverAnimations.set(nodeId, progress)
+    function setNodeOutputVisible(nodeId: NodeId, hovered: boolean) {
+      nodeOutputVisible.set(nodeId, hovered)
+    }
+
+    function updateNodeOutputAnim(nodeId: NodeId, progress: number) {
+      nodeOutputAnimations.set(nodeId, progress)
     }
 
     const nodesToPlace = reactive<NodeId[]>([])
@@ -761,6 +779,10 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       }
     }
 
+    function isConnectedSource(portId: AstId): boolean {
+      return db.connections.lookup(portId).size > 0
+    }
+
     function isConnectedTarget(portId: PortId): boolean {
       return isAstId(portId) && db.connections.reverseLookup(portId).size > 0
     }
@@ -799,7 +821,8 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       moduleSource,
       nodeRects,
       nodeHovered,
-      nodeOutputHoverAnimations,
+      nodeOutputVisible,
+      nodeOutputAnimations,
       vizRects,
       visibleNodeAreas,
       visibleArea,
@@ -816,10 +839,12 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       setNodeContent,
       setNodePosition,
       setNodeVisualization,
+      setWidgetMetadata,
       undoManager,
       updateNodeRect,
       setNodeHovered,
-      updateNodeOutputHoverAnim,
+      setNodeOutputVisible,
+      updateNodeOutputAnim,
       updateVizRect,
       addPortInstance,
       removePortInstance,
@@ -836,6 +861,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       viewModule,
       addMissingImports,
       addMissingImportsDisregardConflicts,
+      isConnectedSource,
       isConnectedTarget,
       nodeCanBeEntered,
       modulePath,

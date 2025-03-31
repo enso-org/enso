@@ -279,6 +279,11 @@ jobs:
       - run: ./run backend upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Edition File
+        uses: actions/upload-artifact@v4
+        with:
+          name: Edition File
+          path: distribution/editions/*.yaml
       - if: (always())
         name: Clean after
         run: ./run git-clean
@@ -489,6 +494,11 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download Edition File
+        uses: actions/download-artifact@v4
+        with:
+          name: Edition File
+          path: distribution/editions
       - run: ./run release publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

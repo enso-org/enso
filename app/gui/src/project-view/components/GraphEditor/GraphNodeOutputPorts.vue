@@ -15,7 +15,8 @@ const emit = defineEmits<{
   portClick: [event: PointerEvent, portId: AstId]
   portDoubleClick: [event: PointerEvent, portId: AstId]
   newNodeClick: [portId: AstId]
-  'update:hoverAnim': [progress: number]
+  'update:visible': [hovered: boolean]
+  'update:animation': [progress: number]
 }>()
 
 const graph = useGraphStore()
@@ -61,6 +62,10 @@ const mouseOverCreateNodeFromPortButton = ref(false)
 
 const outputHovered = computed(() => (graph.mouseEditedEdge ? undefined : mouseOverOutput.value))
 
+function isPortDisconnected(portId: AstId) {
+  return !graph.isConnectedSource(portId)
+}
+
 const anyPortDisconnected = computed(() => {
   for (const port of outputPortsSet.value) {
     if (graph.unconnectedEdgeSources.has(port)) return true
@@ -85,7 +90,8 @@ const portsVisible = computed(
 
 const portsHoverAnimation = useApproach(() => (portsVisible.value ? 1 : 0), 50, 0.01)
 
-watchEffect(() => emit('update:hoverAnim', portsHoverAnimation.value))
+watchEffect(() => emit('update:visible', portsVisible.value))
+watchEffect(() => emit('update:animation', portsHoverAnimation.value))
 
 const hoverAnimations = new Map<AstId, [ReturnType<typeof useApproach>, EffectScope]>()
 watchEffect(() => {
@@ -146,7 +152,7 @@ graph.suggestEdgeFromOutput(outputHovered)
         </g>
         <text class="outputPortLabel">{{ port.label }}</text>
         <CreateNodeFromPortButton
-          v-if="!componentBrowserOpened"
+          v-if="!componentBrowserOpened && isPortDisconnected(port.portId)"
           :class="{ hovered: mouseOverCreateNodeFromPortButton }"
           :portId="port.portId"
           @pointerleave="mouseOverCreateNodeFromPortButton = false"

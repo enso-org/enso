@@ -19,7 +19,7 @@ public final class ColumnStorageFacade<S, T> implements ColumnStorage<T> {
   }
 
   @Override
-  public StorageType getType() {
+  public StorageType<T> getType() {
     throw new UnsupportedOperationException("Not implemented");
   }
 

@@ -8,6 +8,7 @@ import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Metadata.Choice import Option
 
 import project.Hyper_File.Hyper_File
+import project.Internal.Telemetry
 
 ## Read the file to a `Hyper_File` object.
 type Tableau_Format
@@ -53,7 +54,10 @@ type Tableau_Format
     read : File -> Problem_Behavior -> Any
     read self file on_problems:Problem_Behavior =
         _ = [on_problems]
-        Hyper_File.new file self.schema
+        result = Hyper_File.new file self.schema
+        result.if_not_error <|
+            Telemetry.log "File_Format.read" "Read file: format={}, output={}, schema_count={}, table_count={}" ["Tableau_Format", "Hyper_File", result.schemas.length, result.tables.length]
+            result
 
     ## PRIVATE
        Implements decoding the format from a stream.

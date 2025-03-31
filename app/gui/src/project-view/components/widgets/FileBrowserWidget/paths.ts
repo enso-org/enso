@@ -108,6 +108,17 @@ export function useFileBrowserStack(
       `${currentPath.value}${filenameInputContents.value}`,
   )
 
+  type AssetExists = { exists: true; type: AssetType } | { exists: false }
+
+  async function assetExists(name: string): Promise<AssetExists> {
+    const currentDir = directoryStack.value[directoryStack.value.length - 1]
+    if (currentDir == null) return { exists: false }
+    const content = await listDirectory(currentDir)
+    const asset = content.find((asset) => asset.title === name)
+    if (!asset) return { exists: false }
+    return { exists: true, type: asset.type }
+  }
+
   async function enterDirByName(
     name: string,
     stack: Directory[],
@@ -119,6 +130,22 @@ export function useFileBrowserStack(
     if (!nextAsset) return Err(new CannotEnterDir('notFound', name))
     if (!assetIsDirectory(nextAsset)) return Err(new CannotEnterDir('notDir', name))
     stack.push(nextAsset)
+    return Ok()
+  }
+
+  /** Split `filenameInputContents` into subdirectories by `/` and enter them, up to last existing directory. */
+  async function enterSubdirectories(): Promise<Result<void, CannotEnterDir>> {
+    let nextSlash = filenameInputContents.value.indexOf('/')
+    while (nextSlash !== -1) {
+      const directoryName = filenameInputContents.value.slice(0, nextSlash)
+      const result = await enterDirByName(directoryName, directoryStack.value)
+      if (result.ok) {
+        filenameInputContents.value = filenameInputContents.value.slice(nextSlash + 1)
+        nextSlash = filenameInputContents.value.indexOf('/')
+      } else {
+        return result
+      }
+    }
     return Ok()
   }
 
@@ -175,7 +202,9 @@ export function useFileBrowserStack(
     currentPath,
     currentFilePath,
     highlightedName,
+    assetExists,
     initializeStack,
+    enterSubdirectories,
     isDirectoryStackInitializing,
   }
 }

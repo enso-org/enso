@@ -94,7 +94,8 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     MainProcessConfig(
       logLevel      = if (debugLogs) Level.TRACE else Level.ERROR,
       profilingPath = profilingPath,
-      profilingTime = None
+      profilingTime = None,
+      jvmMode       = false
     )
 
   val testClock =
@@ -192,7 +193,8 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
   lazy val projectCreationService =
     new ProjectCreationService[ZIO[ZAny, +*, +*]](
       distributionConfiguration,
-      loggingService
+      loggingService,
+      jvmMode = false
     )
 
   lazy val globalConfigService = new GlobalConfigService[ZIO[ZAny, +*, +*]](

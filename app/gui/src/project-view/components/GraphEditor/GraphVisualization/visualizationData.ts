@@ -1,6 +1,8 @@
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import type { ToolbarItem } from '@/components/visualizations/toolbar'
+import { useGraphStore } from '@/stores/graph'
+import { NodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import {
@@ -56,6 +58,7 @@ export function useVisualizationData({
 
   const projectStore = useProjectStore()
   const visualizationStore = useVisualizationStore()
+  const graph = useGraphStore()
 
   // Flag used to prevent rendering the visualization with a stale preprocessor while the new preprocessor is being
   // prepared asynchronously.
@@ -91,6 +94,28 @@ export function useVisualizationData({
       }
     },
   )
+
+  const executeExpression = async (
+    expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>,
+  ) => {
+    const dataSourceValue = toValue(dataSource)
+    if (dataSourceValue?.type !== 'node') return
+    const graphDb = graph.db
+    const nodeFirstOurputPort = graphDb.getNodeFirstOutputPort(dataSourceValue.nodeId as NodeId)
+    const identifier = graphDb.getOutputPortIdentifier(nodeFirstOurputPort)
+    if (identifier === undefined) return
+    const contextId =
+      dataSourceValue.nodeId &&
+      graphDb.nodeIdToNode.get(dataSourceValue.nodeId as NodeId)?.outerAst.externalId
+    if (contextId === undefined) return
+    try {
+      const expression = expressionFunction(identifier)
+      return projectStore.executeExpression(contextId, expression.code())
+    } catch (e) {
+      console.error(e)
+      throw e
+    }
+  }
 
   const currentType = computed(() => {
     const selectedTypeValue = toValue(selectedVis)
@@ -260,5 +285,6 @@ export function useVisualizationData({
       (toolbarDefinition.value = definition),
     visualizationDefinedToolbar: computed(() => toValue(toolbarDefinition.value)),
     toolbarOverlay,
+    executeExpression,
   }
 }

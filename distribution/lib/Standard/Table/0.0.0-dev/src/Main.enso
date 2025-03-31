@@ -33,6 +33,8 @@ export project.Extensions.Table_Conversions.write_table
 
 export project.Fill_With.Fill_With
 
+export project.Generate_Rows_Range.Generate_Rows_Range
+
 export project.Grouping_Method.Grouping_Method
 
 export project.Headers.Headers
@@ -59,3 +61,4 @@ export project.Table.Table
 export project.Value_Type.Auto
 export project.Value_Type.Bits
 export project.Value_Type.Value_Type
+

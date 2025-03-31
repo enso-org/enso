@@ -5,7 +5,6 @@ import org.enso.interpreter.instrument.execution.Completion.{Done, Interrupted}
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
-import java.util.logging.Level
 import scala.concurrent.ExecutionContext
 
 /** `SynchronousCommand`, despite its name,. will still execute asynchronously along with other commands except that
@@ -24,8 +23,7 @@ abstract class SynchronousCommand(maybeRequestId: Option[RequestId])
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Result[Completion] = {
-    val logger = ctx.executionService.getLogger
-    logger.log(Level.FINE, s"Executing command synchronously: $this...")
+    logger.debug(s"Executing command synchronously: $this...")
     try {
       executeSynchronously
       Done
@@ -34,19 +32,11 @@ abstract class SynchronousCommand(maybeRequestId: Option[RequestId])
         Interrupted
       case ex: Throwable => {
         val msg = s"An error occurred during execution of $this command"
-        try {
-          logger.log(Level.SEVERE, msg, ex)
-        } catch {
-          case ise: IllegalStateException =>
-            // Thread using TruffleLogger has to have a current context or the TruffleLogger has to be bound to an engine
-            ex.printStackTrace()
-            ise.initCause(ex)
-            throw ise
-        }
+        logger.error(msg, ex)
         Done
       }
     } finally {
-      logger.log(Level.FINE, s"Command $this finished.")
+      logger.trace(s"Command $this finished.")
     }
   }
 

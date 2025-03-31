@@ -115,6 +115,15 @@ const isDropdownOpened = ref(false)
   }
 }
 
+.ColorRing {
+  /* Cut a hole inside color ring. First we draw a rectangle containing entire ColorRing (with the
+   arrow), and then define circle inside. */
+  clip-path: path(
+    evenodd,
+    'M -52,52 L -52,-52 L 154,-52 L 154,154 L -52,154 z M52,32 A20,20 0,1,1 52,72 20,20 0,1,1 52,32'
+  );
+}
+
 /**
   * Styles to position icons in a circular pattern. Slots are named `slot<SIDE>` and positioned using absolute positioning.
   * The slots form a quarter circle with `slotS` at the bottom, `slotSW` to the left of `slotS`, and `slotW` above `slotSW`.

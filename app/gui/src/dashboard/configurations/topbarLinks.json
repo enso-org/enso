@@ -22,12 +22,16 @@
           "url": "https://community.ensoanalytics.com/c/q_and_a/"
         },
         {
-          "name": "enso101",
-          "url": "https://community.ensoanalytics.com/c/enso101/"
+          "name": "gettingStarted",
+          "url": "https://community.ensoanalytics.com/c/getting-started-with-enso/"
         },
         {
           "name": "componentExamples",
           "url": "https://community.ensoanalytics.com/c/enso-component-examples/"
+        },
+        {
+          "name": "exampleWorkflows",
+          "url": "https://community.ensoanalytics.com/c/example-workflows/"
         }
       ]
     },

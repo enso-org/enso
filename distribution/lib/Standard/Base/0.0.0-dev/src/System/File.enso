@@ -61,7 +61,7 @@ file_types = Vector.from_polyglot_array (FileSystemSPI.get_types False)
 @Builtin_Type
 type File
     ## ALIAS new file
-       GROUP Input
+       GROUP File
        ICON data_input
 
        Creates a new file object, pointing to the given path.
@@ -245,7 +245,7 @@ type File
                 just_file_options = open_options.filter opt-> opt.is_a File_Access
                 Managed_Resource.bracket (new_input_stream self just_file_options) (_.close) action
 
-    ## ALIAS load, open, import
+    ## ALIAS import, load, open
        GROUP Input
        ICON data_input
        Read a file using the specified file format
@@ -321,8 +321,9 @@ type File
     @encoding Encoding.default_widget
     read_text : Encoding -> Problem_Behavior -> Text ! File_Error
     read_text self (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Warning) =
-        bytes = self.read_bytes
-        Text.from_bytes bytes encoding on_problems
+        if self.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read_text` of a directory.") else
+            bytes = self.read_bytes
+            Text.from_bytes bytes encoding on_problems
 
     ## GROUP Operators
        ICON folder

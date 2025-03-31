@@ -23,6 +23,7 @@ import { z } from 'zod'
 /** Whether the chat button should be visible. Temporarily disabled. */
 const SHOULD_SHOW_CHAT_BUTTON: boolean = false
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const TOPBAR_LINKS_SCHEMA = z.object({
   items: z.array(
     z
@@ -201,7 +202,7 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
                 <Menu.Trigger>
                   <Button icon={ArrowDownIcon} aria-label={getText('more')} />
 
-                  <Menu>
+                  <Menu placement="bottom right">
                     {item.menu.map((menuItem) => (
                       <Menu.Item
                         key={menuItem.name}
@@ -221,7 +222,7 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
             <Menu.Trigger key={item.name}>
               <Button icon={ArrowDownIcon}>{getText(item.name)}</Button>
 
-              <Menu>
+              <Menu placement="bottom right">
                 {item.menu.map((menuItem) => (
                   <Menu.Item
                     key={menuItem.name}

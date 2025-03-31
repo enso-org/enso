@@ -3,10 +3,6 @@
  * related to {@link Set}s.
  */
 
-// =================
-// === Constants ===
-// =================
-
 export const EMPTY_SET: ReadonlySet<never> = new Set<never>()
 
 /**

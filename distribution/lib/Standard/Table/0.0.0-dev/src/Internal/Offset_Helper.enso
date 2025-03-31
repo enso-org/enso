@@ -1,15 +1,15 @@
 private
 
 from Standard.Base import all
-import project.Table.Table
 
 import project.Column.Column
-import project.Internal.Java_Problems
 import project.Fill_With.Fill_With
-import project.Set_Mode.Set_Mode
-import project.Internal.Table_Helpers
-import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
+import project.Internal.Java_Problems
+import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Table_Helpers
+import project.Set_Mode.Set_Mode
+import project.Table.Table
 
 polyglot java import org.enso.table.operations.Offset as Java_Offset
 

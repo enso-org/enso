@@ -166,14 +166,6 @@ impl Paths {
         self.repo_root.distribution.editions.edition_yaml.to_path_buf()
     }
 
-    pub async fn download_edition_file_artifact(&self) -> Result {
-        ide_ci::actions::artifacts::download_single_file_artifact(
-            EDITION_FILE_ARTIFACT_NAME,
-            self.edition_file(),
-        )
-        .await
-    }
-
     pub fn version(&self) -> &Version {
         &self.triple.versions.version
     }

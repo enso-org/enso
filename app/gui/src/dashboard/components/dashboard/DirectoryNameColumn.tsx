@@ -8,7 +8,6 @@ import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { useText } from '#/providers/TextProvider'
 import { isNewTitleUnique, type DirectoryAsset } from '#/services/Backend'
-import { isSingleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { isDirectoryNameContainInvalidCharacters } from '#/utilities/validation'
@@ -26,10 +25,10 @@ export interface DirectoryNameColumnProps extends AssetColumnProps {
  * This should never happen.
  */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
-  const { item, state, rowState, setRowState, isEditable } = props
+  const { item, state, rowState, setRowState, isEditable, isNavigating } = props
   const { backend } = state
 
-  const [isLoading, startTransition] = useTransition()
+  const [isLoading, startNavigation] = useTransition()
 
   const { getText } = useText()
   const driveStore = useDriveStore()
@@ -61,28 +60,18 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           event.stopPropagation()
         }
       }}
-      onClick={(event) => {
-        if (isSingleClick(event) && driveStore.getState().selectedIds.size === 1) {
-          const [id] = driveStore.getState().selectedIds
-          if (item.id === id) {
-            event.stopPropagation()
-            setIsEditing(true)
-            return
-          }
-        }
-      }}
     >
       <Button
         icon={FolderIcon}
         size="medium"
         variant="icon"
-        loading={isLoading}
+        loading={isLoading || isNavigating}
         aria-label={getText('open')}
         tooltipPlacement="left"
         testId="directory-row-navigate-button"
         className="mx-1 transition-transform duration-arrow"
         onPress={() => {
-          startTransition(() => {
+          startNavigation(() => {
             setCurrentDirectoryId({ current: item.id, parent: item.parentId })
           })
         }}

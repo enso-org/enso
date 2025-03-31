@@ -10,26 +10,34 @@ import {
   type CSSProperties,
   type Key,
   type PropsWithChildren,
-  type ReactNode,
 } from 'react'
 import {
   useBreadcrumbItem,
   useDrop,
   type AriaBreadcrumbItemProps,
   type DropEvent,
+  type PressEvent,
 } from 'react-aria'
 import type * as aria from 'react-aria-components'
 import invariant from 'tiny-invariant'
-import { Button, Text, type Addon, type IconProp, type TestIdProps } from '../AriaComponents'
-import { Icon as IconComponent } from '../Icon'
+import {
+  Button,
+  IconDisplay,
+  Text,
+  type Addon,
+  type IconProp,
+  type TestIdProps,
+  type TooltipElementType,
+} from '../AriaComponents'
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const BREADCRUMB_ITEM_STYLES = tv({
   base: 'flex items-center gap-2 bg-transparent transition-colors',
   slots: {
     link: 'block max-w-48 min-w-4 w-auto',
     more: 'aspect-square',
     container: 'flex items-center gap-2',
-    icon: '-mb-0.5',
+    iconDisplay: 'h-8',
   },
   variants: {
     isCurrent: {
@@ -66,8 +74,11 @@ export interface BreadcrumbItemProps<IconType extends string>
   readonly isDisabled?: boolean
   readonly className?: string | ((renderProps: BreadcrumbItemRenderProps) => string)
   readonly style?: CSSProperties | ((renderProps: BreadcrumbItemRenderProps) => CSSProperties)
-  readonly children: ReactNode | ((renderProps: BreadcrumbItemRenderProps) => ReactNode)
+  readonly children:
+    | TooltipElementType
+    | ((renderProps: BreadcrumbItemRenderProps) => TooltipElementType)
   readonly isLoading?: boolean
+  readonly isDroppable?: boolean
 }
 
 /**
@@ -92,6 +103,7 @@ export interface BreadcrumbItemContextType {
 /**
  * Context for the breadcrumb item.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export const BreadcrumbItemContext = createContext<BreadcrumbItemContextType>({
   isCurrent: false,
   onActionSpecified: false,
@@ -125,6 +137,8 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
     rel,
     ping,
     referrerPolicy,
+    onPress: onPressRaw,
+    isDroppable = true,
   } = props
   const { id, ...breadcrumbItemProps } = props
 
@@ -149,27 +163,20 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
   // `dropProps` is type-safe, ESLint is being silly.
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const { dropProps, isDropTarget } = useDrop({
-    isDisabled: !onDropSpecified && (isDisabled || isCurrent),
+    isDisabled: !onDropSpecified || isDisabled || !isDroppable,
     ref,
     onDrop: (e) => {
       dropMutation.mutate({ id, e })
     },
   })
 
-  const onPress = useEventCallback(async () => {
+  const onPress = useEventCallback(async (event: PressEvent) => {
     if (id == null) {
       return
     }
 
-    await onAction(id)
+    await Promise.all([onAction(id), onPressRaw?.(event) ?? Promise.resolve()])
   })
-
-  const iconComponent = (() => {
-    if (typeof icon === 'function') {
-      return icon(renderProps)
-    }
-    return icon
-  })()
 
   const shouldFail = onActionSpecified && id == null
 
@@ -190,33 +197,30 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
 
   const styles = variants({ isCurrent, isDropTarget })
 
+  const renderedIcon = typeof icon === 'function' ? icon(renderProps) : icon
+  const renderedChildren = typeof children === 'function' ? children(renderProps) : children
+
   const container =
     isCurrent ?
-      <Text
-        className={styles.link()}
-        nowrap
-        truncate="1"
+      <IconDisplay
         data-current
         aria-current="page"
         textSelection="none"
         elementType="a"
+        icon={renderedIcon}
+        className={styles.iconDisplay()}
       >
-        <span className={styles.container()}>
-          <IconComponent className={styles.icon()} size="medium" renderProps={renderProps}>
-            {icon}
-          </IconComponent>
-          {typeof children === 'function' ? children(renderProps) : children}
-        </span>
-      </Text>
+        {renderedChildren}
+      </IconDisplay>
     : <Button
         {...linkProps}
         loading={dropMutation.isPending}
         loaderPosition="icon"
         onPress={onPress}
-        icon={iconComponent}
+        icon={renderedIcon}
       >
         <Text className={styles.link()} nowrap truncate="1" disableLineHeightCompensation>
-          {typeof children === 'function' ? children(renderProps) : children}
+          {renderedChildren}
         </Text>
       </Button>
 

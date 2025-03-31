@@ -40,20 +40,12 @@ import * as listen from './listen.mock.js'
 
 export { CognitoErrorType } from './cognito.js'
 
-// =================
-// === Constants ===
-// =================
-
 /** One second, in milliseconds. */
 const SEC_MS = 1_000
 /** One day, in milliseconds. */
 const DAY_MS = 86_400_000
 /** Ten hours, in seconds. */
 const TEN_HOURS_S = 36_000
-
-// ===============
-// === Cognito ===
-// ===============
 
 const MOCK_ORGANIZATION_ID_KEY = 'mock_organization_id'
 const MOCK_EMAIL_KEY = 'mock_email'
@@ -309,10 +301,6 @@ export class Cognito {
   }
 }
 
-// ===================
-// === UserSession ===
-// ===================
-
 /** User's session, provides information for identifying and authenticating the user. */
 export interface UserSession {
   /**
@@ -347,10 +335,6 @@ function parseUserSession(session: cognito.CognitoUserSession): UserSession {
   }
 }
 
-// ==============
-// === SignUp ===
-// ==============
-
 /**
  * A wrapper around the Amplify "sign up" endpoint that converts known errors
  * to `SignUpError`s.
@@ -367,10 +351,6 @@ async function signUp(
   return result.mapErr(original.intoAmplifyErrorOrThrow).mapErr(original.intoSignUpErrorOrThrow)
 }
 
-// =====================
-// === ConfirmSignUp ===
-// =====================
-
 /**
  * A wrapper around the Amplify "confirm sign up" endpoint that converts known errors
  * to `ConfirmSignUpError`s.
@@ -382,10 +362,6 @@ async function confirmSignUp(_email: string, _code: string) {
     result.mapErr(original.intoAmplifyErrorOrThrow).mapErr(original.intoConfirmSignUpErrorOrThrow),
   )
 }
-
-// ======================
-// === ChangePassword ===
-// ======================
 
 /**
  * A wrapper around the Amplify "current authenticated user" endpoint that converts known errors

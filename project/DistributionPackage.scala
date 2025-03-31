@@ -276,7 +276,7 @@ object DistributionPackage {
             "JAVA_OPTS" -> "-Dorg.jline.terminal.dumb=true"
           ).run
           // Poor man's solution to stuck index generation
-          val GENERATING_INDEX_TIMEOUT = 60 * 2 // 2 minutes
+          val GENERATING_INDEX_TIMEOUT = 60 * 4 // 2 minutes
           var current                  = 0
           var timeout                  = false
           while (runningProcess.isAlive() && !timeout) {
