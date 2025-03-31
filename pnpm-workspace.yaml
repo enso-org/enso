@@ -4,6 +4,7 @@ packages:
   - app/gui
   - app/lang-markdown
   - app/lezer-markdown
+  - app/table-expression
   - app/rust-ffi
   - app/ydoc-server
   - app/ydoc-shared
