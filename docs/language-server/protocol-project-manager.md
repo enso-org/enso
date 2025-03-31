@@ -422,6 +422,11 @@ the action.
   missingComponentAction?: MissingComponentAction;
 
   /**
+   * Extra open options.
+   */
+  cloudProjectDirectoryPath?: string;
+
+  /**
    * Custom directory with the user projects.
    */
   projectsDirectory?: string;

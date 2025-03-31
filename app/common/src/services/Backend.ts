@@ -1411,6 +1411,8 @@ export interface OpenProjectRequestBody {
   readonly cognitoCredentials: CognitoCredentials | null
   /** Only used by the Local backend. */
   readonly parentId: DirectoryId
+  /** Extra open options. */
+  readonly cloudProjectDirectoryPath: string | null
 }
 
 /** HTTP request body for the "create project execution" endpoint. */
