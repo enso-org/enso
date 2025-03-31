@@ -17,12 +17,12 @@ import {
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import UpsertCredentialModal from '#/modals/UpsertCredentialModal'
+import CreateCredentialModal from '#/modals/UpsertCredentialModal'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { BackendType, type DirectoryId } from '#/services/Backend'
+import { BackendType, CredentialMetadata, type DirectoryId } from '#/services/Backend'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 
 /** Props for a {@link GlobalContextMenu}. */
@@ -74,8 +74,8 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
     return await newSecretRaw(name, value, directoryId ?? currentDirectoryId)
   })
   const newCredentialRaw = useNewCredential(backend)
-  const newCredential = useEventCallback(async (name: string, type: string, value: unknown) => {
-    return await newCredentialRaw(name, type, value, directoryId ?? currentDirectoryId)
+  const newCredential = useEventCallback(async (name: string, value: CredentialMetadata) => {
+    return await newCredentialRaw(name, value, directoryId ?? currentDirectoryId)
   })
   const newProjectRaw = useNewProject(backend, category)
   const newProject = useEventCallback(
@@ -140,7 +140,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
           hidden={hidden}
           action="newCredential"
           doAction={() => {
-            setModal(<UpsertCredentialModal id={null} name={null} doCreate={newCredential} />)
+            setModal(<CreateCredentialModal doCreate={newCredential} />)
           }}
         />
       )}

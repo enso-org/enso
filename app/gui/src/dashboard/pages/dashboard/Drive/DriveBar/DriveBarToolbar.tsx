@@ -43,7 +43,7 @@ import {
 } from '#/layouts/CategorySwitcher/Category'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-import UpsertCredentialModal from '#/modals/UpsertCredentialModal'
+import CreateCredentialModal from '#/modals/UpsertCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
@@ -256,7 +256,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                     isCloud ? getText('newCredential') : getText('newCredentialOnlyCloud')
                   }
                 />
-                <UpsertCredentialModal id={null} name={null} doCreate={newCredential} />
+                <CreateCredentialModal doCreate={newCredential} />
               </DialogTrigger>
               <DialogTrigger>
                 <Button

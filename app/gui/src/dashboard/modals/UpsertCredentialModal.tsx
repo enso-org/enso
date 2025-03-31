@@ -1,91 +1,68 @@
 /** @file A modal for creating and editing a credential. */
 import { uuidv4 } from 'lib0/random.js'
-import { Dialog, Form, FormDropdown, Input } from '#/components/AriaComponents'
+import { Dialog, Dropdown, Text } from '#/components/AriaComponents'
 import { CREDENTIAL_INFOS, type CredentialInfo } from '#/data/serviceCredentials'
 import { CredentialsFormButtons } from '#/data/serviceCredentials/CredentialsFormButtons'
 import { useText } from '#/providers/TextProvider'
 import type { CredentialMetadata, SecretId } from '#/services/Backend'
 import { openInNewBrowserTab } from '#/utilities/window'
+import { useState } from 'react'
 
-/** Props for a {@link UpsertCredentialModal}. */
-export interface UpsertCredentialModalProps {
-  readonly noDialog?: boolean
-  readonly id: SecretId | null
-  readonly name: string | null
-  readonly defaultOpen?: boolean
+/** Props for a {@link CreateCredentialModal}. */
+export interface CreateCredentialModalProps {
+  readonly noDialog?: boolean,
   readonly doCreate: (name: string, value: CredentialMetadata) => Promise<SecretId>
-  /** Defaults to `true`. */
-  readonly canCancel?: boolean
-  /** Defaults to `false`. */
-  readonly canReset?: boolean
 }
 
-/** A modal for creating and editing a credential. */
-export default function UpsertCredentialModal(props: UpsertCredentialModalProps) {
+/** A modal for creating a credential. */
+export default function CreateCredentialModal(props: CreateCredentialModalProps) {
   const {
     noDialog = false,
-    id,
-    name: nameRaw,
-    defaultOpen,
-    doCreate,
-    canCancel = true,
-    canReset = false,
+    doCreate
   } = props
   const { getText } = useText()
 
-  const isCreatingCredential = id == null
-
-  const form = Form.useForm({
-    method: 'dialog',
-    schema: (z) =>
-      z.object({
-        title: z.string().min(1, getText('emptyStringError')),
-        credentialInfo: z.custom<CredentialInfo>(),
-      }),
-    defaultValues: { title: nameRaw ?? '', credentialInfo: CREDENTIAL_INFOS[0] },
+  const _todo = doCreate
+/*
     onSubmit: (values, submittedForm) => {
-      const _nonce = uuidv4()
-      console.log("Submitting", values, submittedForm)
-      // const secretId = doCreate(values.title, undefined)
+      const nonce = uuidv4()
+      console.log("Submitting", values, submittedForm, nonce)
+      const secretId = doCreate(values.title, undefined as unknown as CredentialMetadata)
       // const authorizeUrl = makeAuthorizeUrl(secretId)
       // openInNewBrowserTab(authorizeUrl)
     },
-  })
-  // const title = form.watch('title')
-  const credentialInfo = form.watch('credentialInfo')
+*/
 
+  const [selectedChildIndex, setSelectedChildIndex] = useState<number>(0)
+  const selectedItem = CREDENTIAL_INFOS[selectedChildIndex] ?? CREDENTIAL_INFOS[0]
   const content = (
-    <Form form={form} testId="upsert-credential-modal" gap="none" className="w-full">
-      <Input
-        form={form}
-        name="title"
-        autoFocus
-        autoComplete="off"
-        label={getText('name')}
-        placeholder={getText('credentialNamePlaceholder')}
-      />
-      <FormDropdown
-        form={form}
-        isRequired
-        name="credentialInfo"
-        label={getText('credentialTypeLabel')}
+    <div className="w-full h-full">
+      <Dropdown
+        aria-label={getText('credentialTypeLabel')}
         items={CREDENTIAL_INFOS}
+        selectedIndex={selectedChildIndex}
+        className="w-full self-start"
+        onChange={(_childSchema, index) => {
+          setSelectedChildIndex(index)
+        }}
       >
-        {({ item: { nameId } }) => getText(nameId)}
-      </FormDropdown>
-      <credentialInfo.component/>
-      <CredentialsFormButtons 
-        isCreating={isCreatingCredential}
-        canCancel={canCancel}
-        canReset={canReset}
-      />
-    </Form>
+        {({ item }) => <Text slot="label">{getText(item.nameId)}</Text>}
+      </Dropdown>
+      <Text>{selectedItem.nameId}</Text>
+    </div>
   )
+
+  /*
+  <CredentialsFormButtons 
+        isCreating={true}
+        canCancel={true}
+        canReset={false}
+      />
+      */
 
   return noDialog ? content : (
       <Dialog
-        title={isCreatingCredential ? getText('newCredential') : getText('editCredential')}
-        modalProps={defaultOpen == null ? {} : { defaultOpen }}
+        title={getText('newCredential')}
         isDismissable={false}
       >
         {content}
