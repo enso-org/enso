@@ -204,9 +204,12 @@ case object TypeSignatures extends IRPass {
     expr match {
       case lambda: Function.Lambda =>
         lambda.arguments match {
-          case (defArg: DefinitionArgument.Specified) :: Nil
+          case (defArg: DefinitionArgument.Specified) :: args
               if defArg.name().isInstanceOf[Name.Self] =>
-            rebuildSignatureFromInlinedTypes(lambda.body)
+            val bodyTypeArgs = rebuildSignatureFromInlinedTypes(lambda.body)
+            val argTypes =
+              args.map(_.getMetadata(this).map(_.signature).getOrElse(anyIr))
+            bodyTypeArgs.map(b => argTypes ::: b)
           case args =>
             val bodyTypeArgs = rebuildSignatureFromInlinedTypes(lambda.body)
             val argTypes =
