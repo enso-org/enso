@@ -176,9 +176,7 @@ function DashboardInner(props: DashboardProps) {
   React.useEffect(
     () =>
       inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-        closeModal: () => {
-          modalProvider.unsetModal()
-        },
+        closeModal: () => modalProvider.unsetModal(),
       }),
     [inputBindings],
   )

@@ -21,7 +21,10 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.enso.common.MethodNames;
 import org.enso.compiler.suggestions.SimpleUpdate;
 import org.enso.interpreter.instrument.Endpoint;
@@ -68,7 +71,6 @@ import org.slf4j.LoggerFactory;
  * language.
  */
 public final class ExecutionService {
-
   private static final String MAIN_METHOD = "main";
   private final EnsoContext context;
   private final Optional<IdExecutionService> idExecutionInstrument;
@@ -173,37 +175,49 @@ public final class ExecutionService {
           SourceNotFoundException,
           UnsupportedMessageException,
           UnsupportedTypeException {
-    SourceSection src = call.getFunction().getSourceSection();
-    if (src == null) {
-      throw new SourceNotFoundException(call.getFunction().getName());
-    }
+    var pending =
+        submitExecution(
+            () -> {
+              SourceSection src;
+              try {
+                src = call.getFunction().getSourceSection();
+              } catch (UnsupportedMessageException ex) {
+                src = null;
+              }
+              if (src == null) {
+                throw new SourceNotFoundException(call.getFunction().getName());
+              }
 
-    var callbacks =
-        new ExecutionCallbacks(
-            visualizationHolder,
-            nextExecutionItem,
-            cache,
-            methodCallsCache,
-            syncState,
-            expressionExecutionState,
-            onCachedCallback,
-            onComputedCallback,
-            funCallCallback,
-            onExecutedVisualizationCallback,
-            this.context.isProgressReportEnabled() ? onComputedCallback : null);
-    Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
-        idExecutionInstrument.map(
-            service ->
-                service.bind(module, call.getFunction().getCallTarget(), callbacks, this.timer));
+              var callbacks =
+                  new ExecutionCallbacks(
+                      visualizationHolder,
+                      nextExecutionItem,
+                      cache,
+                      methodCallsCache,
+                      syncState,
+                      expressionExecutionState,
+                      onCachedCallback,
+                      onComputedCallback,
+                      funCallCallback,
+                      onExecutedVisualizationCallback,
+                      this.context.isProgressReportEnabled() ? onComputedCallback : null);
+              Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
+                  idExecutionInstrument.map(
+                      service ->
+                          service.bind(
+                              module, call.getFunction().getCallTarget(), callbacks, this.timer));
 
-    Object p = context.getThreadManager().enter();
-    try {
-      var callFn = Function.fullyApplied(execute.getCallTarget(), substituteMissingArguments(call));
-      RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
-    } finally {
-      context.getThreadManager().leave(p);
-      eventNodeFactory.ifPresent(EventBinding::dispose);
-    }
+              try {
+                var callFn =
+                    Function.fullyApplied(
+                        execute.getCallTarget(), substituteMissingArguments(call));
+                RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
+              } finally {
+                eventNodeFactory.ifPresent(EventBinding::dispose);
+              }
+              return null;
+            });
+    resultOf(pending);
   }
 
   /**
@@ -292,12 +306,12 @@ public final class ExecutionService {
    * @return a result of evaluation
    */
   public Object evaluateExpression(Module module, String expression) {
-    Object p = context.getThreadManager().enter();
-    try {
-      return invoke.getCallTarget().call(module, expression);
-    } finally {
-      context.getThreadManager().leave(p);
-    }
+    var future =
+        submitExecution(
+            () -> {
+              return invoke.getCallTarget().call(module, expression);
+            });
+    return resultOf(future);
   }
 
   /**
@@ -324,14 +338,15 @@ public final class ExecutionService {
    * @return the result of calling the function
    */
   public Object callFunction(Object fn, Object argument) {
-    Object p = context.getThreadManager().enter();
-    try {
-      var callArgs =
-          Function.ArgumentsHelper.buildArguments(null, new Object[] {fn, new Object[] {argument}});
-      return call.getCallTarget().call(callArgs);
-    } finally {
-      context.getThreadManager().leave(p);
-    }
+    var future =
+        submitExecution(
+            () -> {
+              var callArgs =
+                  Function.ArgumentsHelper.buildArguments(
+                      null, new Object[] {fn, new Object[] {argument}});
+              return call.getCallTarget().call(callArgs);
+            });
+    return resultOf(future);
   }
 
   /**
@@ -341,7 +356,7 @@ public final class ExecutionService {
    * @param cache the runtime cache
    * @param executionCache cache with values provided by main execution
    * @param module the module providing scope for the function
-   * @param function the function object
+   * @param fn the function object
    * @param arguments the sequence of arguments applied to the function
    * @return the result of calling the function
    */
@@ -352,56 +367,63 @@ public final class ExecutionService {
       Module module,
       Object function,
       Object... arguments) {
-    UUID nextExecutionItem = null;
-    CallTarget entryCallTarget =
-        (function instanceof Function) ? ((Function) function).getCallTarget() : null;
-    MethodCallsCache methodCallsCache = new MethodCallsCache();
-    UpdatesSynchronizationState syncState = new UpdatesSynchronizationState();
-    Consumer<ExpressionCall> funCallCallback = (value) -> {};
-    Consumer<ExpressionValue> onComputedCallback =
-        (value) -> context.getLogger().finest("_ON_COMPUTED " + value.getExpressionId());
-    Consumer<ExpressionValue> onCachedCallback =
-        (value) -> context.getLogger().finest("_ON_CACHED_VALUE " + value.getExpressionId());
-    Consumer<ExecutedVisualization> onExecutedVisualizationCallback = (value) -> {};
-    ExpressionExecutionState expressionExecutionState = new ExpressionExecutionState();
-    Consumer<ExpressionValue> onProgressCallback =
-        (value) -> context.getLogger().finest("_ON_PROGRESS " + value.getExpressionId());
 
-    var callbacks =
-        new ExecutionCallbacks(
-            visualizationHolder,
-            nextExecutionItem,
-            cache,
-            methodCallsCache,
-            syncState,
-            expressionExecutionState,
-            onCachedCallback,
-            onComputedCallback,
-            funCallCallback,
-            onExecutedVisualizationCallback,
-            onProgressCallback);
-    Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
-        idExecutionInstrument.map(
-            service -> service.bind(module, entryCallTarget, callbacks, this.timer));
-    var ret = new Object[1];
-    Object p = context.getThreadManager().enter();
-    try {
-      State state;
-      if (function instanceof FunctionCallInstrumentationNode.FunctionCall fnCall) {
-        state = fnCall.getState();
-      } else {
-        var fn = (Function) function;
-        state = State.create(context);
-        function = new FunctionCallInstrumentationNode.FunctionCall(fn, state, new Object[0]);
-      }
-      var callArgs = new Object[] {function, arguments};
-      var callFn = Function.fullyApplied(call.getCallTarget(), callArgs);
-      ret[0] = RunStateNode.getUncached().execute(null, cacheKey(), executionCache, callFn);
-    } finally {
-      context.getThreadManager().leave(p);
-      eventNodeFactory.ifPresent(EventBinding::dispose);
-    }
-    return ret[0];
+    var future =
+        submitExecution(
+            () -> {
+              var fn = function;
+              UUID nextExecutionItem = null;
+              CallTarget entryCallTarget =
+                  (fn instanceof Function) ? ((Function) fn).getCallTarget() : null;
+              MethodCallsCache methodCallsCache = new MethodCallsCache();
+              UpdatesSynchronizationState syncState = new UpdatesSynchronizationState();
+              Consumer<ExpressionCall> funCallCallback = (value) -> {};
+              Consumer<ExpressionValue> onComputedCallback =
+                  (value) -> context.getLogger().finest("_ON_COMPUTED " + value.getExpressionId());
+              Consumer<ExpressionValue> onCachedCallback =
+                  (value) ->
+                      context.getLogger().finest("_ON_CACHED_VALUE " + value.getExpressionId());
+              Consumer<ExecutedVisualization> onExecutedVisualizationCallback = (value) -> {};
+              ExpressionExecutionState expressionExecutionState = new ExpressionExecutionState();
+              Consumer<ExpressionValue> onProgressCallback =
+                  (value) -> context.getLogger().finest("_ON_PROGRESS " + value.getExpressionId());
+
+              var callbacks =
+                  new ExecutionCallbacks(
+                      visualizationHolder,
+                      nextExecutionItem,
+                      cache,
+                      methodCallsCache,
+                      syncState,
+                      expressionExecutionState,
+                      onCachedCallback,
+                      onComputedCallback,
+                      funCallCallback,
+                      onExecutedVisualizationCallback,
+                      onProgressCallback);
+              Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
+                  idExecutionInstrument.map(
+                      service -> service.bind(module, entryCallTarget, callbacks, this.timer));
+              var ret = new Object[1];
+              try {
+                State state;
+                if (fn instanceof FunctionCallInstrumentationNode.FunctionCall fnCall) {
+                  state = fnCall.getState();
+                } else {
+                  var tmp = (Function) fn;
+                  state = State.create(context);
+                  fn = new FunctionCallInstrumentationNode.FunctionCall(tmp, state, new Object[0]);
+                }
+                var callArgs = new Object[] {fn, arguments};
+                var callFn = Function.fullyApplied(call.getCallTarget(), callArgs);
+                ret[0] =
+                    RunStateNode.getUncached().execute(null, cacheKey(), executionCache, callFn);
+              } finally {
+                eventNodeFactory.ifPresent(EventBinding::dispose);
+              }
+              return ret[0];
+            });
+    return resultOf(future);
   }
 
   private Type cacheKey() {
@@ -463,10 +485,8 @@ public final class ExecutionService {
               rope -> {
                 logger.trace(
                     "Applied edits. Source has {} lines, last line has {} characters.",
-                    new Object[] {
-                      rope.lines().length(),
-                      rope.lines().drop(rope.lines().length() - 1).characters().length()
-                    });
+                    rope.lines().length(),
+                    rope.lines().drop(rope.lines().length() - 1).characters().length());
                 module.setLiteralSource(rope, simpleUpdate);
                 return new Object();
               });
@@ -488,8 +508,8 @@ public final class ExecutionService {
         if (source != null) {
           return source.getLanguage();
         }
-      } catch (UnsupportedMessageException ignored) {
-        CompilerDirectives.shouldNotReachHere("Message support already checked.");
+      } catch (UnsupportedMessageException ex) {
+        // fallthru
       }
     }
     return null;
@@ -506,8 +526,8 @@ public final class ExecutionService {
     if (iop.hasSourceLocation(o)) {
       try {
         return iop.getSourceLocation(o);
-      } catch (UnsupportedMessageException ignored) {
-        CompilerDirectives.shouldNotReachHere("Message support already checked.");
+      } catch (UnsupportedMessageException ex) {
+        // fallthru
       }
     }
     return null;
@@ -532,8 +552,12 @@ public final class ExecutionService {
    * @return a human-readable version of its contents.
    */
   public String getExceptionMessage(AbstractTruffleException panic) {
+    var future = submitExecution(() -> computeExceptionMessage(panic));
+    return resultOf(future);
+  }
+
+  private String computeExceptionMessage(AbstractTruffleException panic) {
     var iop = InteropLibrary.getUncached();
-    var p = context.getThreadManager().enter();
     var payload = panic instanceof PanicException ex ? ex.getPayload() : panic;
     try {
       // Invoking a member on an Atom that does not have a method `to_display_text` will not
@@ -554,14 +578,26 @@ public final class ExecutionService {
       } else {
         throw e;
       }
-    } finally {
-      context.getThreadManager().leave(p);
     }
   }
 
   @SuppressWarnings("unchecked")
   static <E extends Throwable> E raise(Class<E> type, Throwable ex) throws E {
     throw (E) ex;
+  }
+
+  private <T> Future<T> submitExecution(Supplier<T> c) {
+    return context.getThreadManager().submit(c);
+  }
+
+  private static <T> T resultOf(Future<T> future) {
+    try {
+      return future.get();
+    } catch (InterruptedException ex) {
+      throw raise(RuntimeException.class, ex);
+    } catch (ExecutionException ex) {
+      throw raise(RuntimeException.class, ex.getCause());
+    }
   }
 
   private static final class ExecuteRootNode extends RootNode {

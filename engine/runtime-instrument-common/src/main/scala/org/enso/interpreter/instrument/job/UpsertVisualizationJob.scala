@@ -138,7 +138,9 @@ class UpsertVisualizationJob(
   )(implicit ctx: RuntimeContext): Unit = {
     UpsertVisualizationJob.logger.error(
       "Visualization for expression {} failed: {} (evaluation result: {})",
-      Array[Object](expressionId, message, executionResult)
+      expressionId,
+      message,
+      executionResult
     )
     ctx.endpoint.sendToClient(
       Api.Response(
@@ -310,12 +312,10 @@ object UpsertVisualizationJob {
       case error: ThreadInterruptedException =>
         UpsertVisualizationJob.logger.error(
           "Evaluation of visualization argument [{}] in module [{}] was interrupted [{}] times.",
-          Array[Object](
-            argumentExpression,
-            module.getName.toString,
-            retryCount: Integer,
-            error
-          )
+          argumentExpression,
+          module.getName.toString,
+          retryCount: Integer,
+          error
         )
         Left(
           EvaluationFailed(
@@ -327,13 +327,11 @@ object UpsertVisualizationJob {
       case error =>
         UpsertVisualizationJob.logger.error(
           "Evaluation of visualization argument [{}] failed in module [{}] with [{}]: {}",
-          Array[Object](
-            argumentExpression,
-            module.getName.toString,
-            error.getClass.getSimpleName,
-            error.getMessage,
-            error
-          )
+          argumentExpression,
+          module.getName.toString,
+          error.getClass.getSimpleName,
+          error.getMessage,
+          error
         )
         Left(
           EvaluationFailed(
@@ -389,12 +387,10 @@ object UpsertVisualizationJob {
       case error: ThreadInterruptedException =>
         UpsertVisualizationJob.logger.error(
           "Evaluation of visualization [{}] in module [{}] was interrupted [{}] times.",
-          Array[Object](
-            expression,
-            expressionModule,
-            retryCount: Integer,
-            error
-          )
+          expression,
+          expressionModule,
+          retryCount: Integer,
+          error
         )
         Left(
           EvaluationFailed(
@@ -406,13 +402,11 @@ object UpsertVisualizationJob {
       case error =>
         UpsertVisualizationJob.logger.error(
           "Evaluation of visualization [{}] failed in module [{}] with [{}]: {}",
-          Array[Object](
-            expression,
-            expressionModule,
-            error.getClass,
-            error.getMessage,
-            error
-          )
+          expression,
+          expressionModule,
+          error.getClass,
+          error.getMessage,
+          error
         )
         Left(
           EvaluationFailed(
