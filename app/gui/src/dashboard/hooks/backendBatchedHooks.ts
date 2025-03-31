@@ -8,7 +8,6 @@ import {
   type AnyAsset,
   type AssetId,
   type default as Backend,
-  type CopyAssetResponse,
   type DirectoryId,
   type LabelName,
 } from 'enso-common/src/services/Backend'
@@ -135,14 +134,7 @@ export function copyAssetsMutationOptions(backend: Backend) {
       /**
        * Copy an asset and return a promise that resolves to the asset or an error.
        */
-      const copyAsset = async (id: AssetId) =>
-        backend.copyAsset(id, parentId).catch((error) => {
-          if (error instanceof DuplicateAssetError) {
-            return { id, error }
-          }
-
-          throw error
-        })
+      const copyAsset = async (id: AssetId) => backend.copyAsset(id, parentId)
 
       const results = await Promise.allSettled(ids.map((id) => copyAsset(id)))
 
@@ -158,12 +150,7 @@ export function copyAssetsMutationOptions(backend: Backend) {
         })
       }
 
-      // This is safe because we know that the `results` array contains only
-      // `CopyAssetResponse` objects, because errors are filtered out.
-      // eslint-disable-next-line no-restricted-syntax
-      return results.flatMap((result) =>
-        result.status === 'fulfilled' ? [result.value] : [],
-      ) as CopyAssetResponse[]
+      return results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
     },
     meta: {
       invalidates: [[backend.type, 'listDirectory']],
