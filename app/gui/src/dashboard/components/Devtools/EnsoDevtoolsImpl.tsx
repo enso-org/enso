@@ -118,7 +118,7 @@ export function EnsoDevtools() {
               <Form
                 gap="small"
                 schema={(schema) => schema.object({ plan: schema.nativeEnum(backend.Plan) })}
-                defaultValues={{ plan: session.user.plan ?? backend.Plan.free }}
+                defaultValues={{ plan: session.user.plan }}
               >
                 {({ form }) => (
                   <>

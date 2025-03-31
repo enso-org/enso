@@ -48,8 +48,7 @@ export function tryCreateOwnerPermission(
     case 'local':
     case 'local-directory':
     default: {
-      const isFreeOrSolo =
-        user.plan == null || user.plan === backend.Plan.free || user.plan === backend.Plan.solo
+      const isFreeOrSolo = user.plan === backend.Plan.free || user.plan === backend.Plan.solo
       const owner = isFreeOrSolo ? user : (newOwnerFromPath(path, users, userGroups) ?? user)
       if ('userId' in owner) {
         const { organizationId, userId, name, email } = owner

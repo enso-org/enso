@@ -8,6 +8,7 @@ import {
   type AnyAsset,
   type AssetId,
   type default as Backend,
+  type CopyAssetResponse,
   type DirectoryId,
   type LabelName,
 } from 'enso-common/src/services/Backend'
@@ -131,26 +132,23 @@ export function copyAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
     mutationKey: [backend.type, 'copyAssets'],
     mutationFn: async ([ids, parentId]: [ids: readonly AssetId[], parentId: DirectoryId]) => {
-      const results = await Promise.allSettled(
-        ids.map((id) =>
-          backend.copyAsset(id, parentId, null).catch((error) => {
-            if (error instanceof DuplicateAssetError) {
-              return { id, error }
-            }
-            throw error
-          }),
-        ),
-      )
+      function copyAsset(id: AssetId, title: string | null) {
+        return backend.copyAsset(id, parentId, title).catch((error) => {
+          if (error instanceof DuplicateAssetError) {
+            return { id, error }
+          }
+          throw error
+        })
+      }
+
+      const results = await Promise.allSettled(ids.map((id) => copyAsset(id, null)))
+
       const duplicateErrors = results
         .filter((result) => result.status === 'fulfilled')
         .map((result) =>
           typeof result.value === 'object' && 'error' in result.value ? result.value : null,
         )
         .filter((error) => error != null)
-
-      const errors = results.flatMap((result): unknown =>
-        result.status === 'rejected' ? [result.reason] : [],
-      )
 
       if (duplicateErrors.length !== 0) {
         const resolutions = await resolveDuplications({
@@ -160,12 +158,17 @@ export function copyAssetsMutationOptions(backend: Backend) {
 
         const renames = resolutions.filter((resolution) => resolution.conclusion === 'rename')
 
-        await Promise.allSettled(
-          renames.map((resolution) =>
-            backend.copyAsset(resolution.assetId, parentId, resolution.newName),
-          ),
+        results.push(
+          ...(await Promise.allSettled(
+            renames.map((resolution) => copyAsset(resolution.assetId, resolution.newName)),
+          )),
         )
       }
+
+      const errors = results.flatMap((result): unknown =>
+        result.status === 'rejected' ? [result.reason] : [],
+      )
+
       if (errors.length !== 0) {
         throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
           errors,
@@ -173,7 +176,10 @@ export function copyAssetsMutationOptions(backend: Backend) {
           total: ids.length,
         })
       }
-      return results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
+
+      return results.flatMap((result) =>
+        result.status === 'fulfilled' ? [result.value] : [],
+      ) as CopyAssetResponse[]
     },
     meta: {
       invalidates: [[backend.type, 'listDirectory']],
