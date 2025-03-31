@@ -31,7 +31,7 @@ import { unsafeWriteValue } from '#/utilities/write'
 import type { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { toast } from 'react-toastify'
 import { Activity } from '../components/Activity'
-import { useSetModal } from './ModalProvider'
+import { unsetModal } from './ModalProvider'
 import { useText } from './TextProvider'
 
 // ======================
@@ -105,8 +105,8 @@ function createSessionQuery(authService: ISessionProvider) {
 export default function SessionProvider(props: SessionProviderProps) {
   const { mainPageUrl, children, registerAuthEventListener, authService, onLogout } = props
 
-  const { unsetModal } = useSetModal()
   const { getText } = useText()
+  const { isOffline } = useOffline()
 
   // stabilize the callback so that it doesn't change on every render
   const saveAccessTokenEventCallback = useEventCallback((accessToken: cognito.UserSession) => {
@@ -352,12 +352,18 @@ export default function SessionProvider(props: SessionProviderProps) {
   }, [session.data, saveAccessTokenEventCallback])
 
   const sessionStatus = (() => {
+    if (isOffline) {
+      return 'offline'
+    }
+
     if (session.data) {
       return getTimeUntilSessionExpires(session.data.expireAt) === 0 ? 'expired' : 'active'
     }
 
     return 'unauthenticated'
   })()
+
+  const shouldSuspend = sessionStatus === 'expired' || logoutMutation.isPending
 
   const sessionContextValue = {
     signUp,
@@ -382,9 +388,10 @@ export default function SessionProvider(props: SessionProviderProps) {
     <SessionContext.Provider value={sessionContextValue}>
       {/*
        * We need to wrap the children in an Activity component, to prevent the refetching of the
-       * nested requests, when the session is expired.
+       * nested requests, when the session is expired. Also we suspend the subtree when the user is
+       * logging out, to avoid refetching any nested data.
        */}
-      <Activity mode={sessionStatus === 'expired' ? 'inactive' : 'active'}>
+      <Activity mode={shouldSuspend ? 'inactive' : 'active'}>
         {typeof children === 'function' ? children(sessionContextValue) : children}
       </Activity>
 
