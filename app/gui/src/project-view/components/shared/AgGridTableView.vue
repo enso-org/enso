@@ -152,10 +152,14 @@ const rowModelType = computed(() => (props.isServerSideModel ? 'serverSide' : 'c
 
 const gridKey = ref(0)
 
+const forceGridReRender = () => {
+  gridKey.value++
+}
+
 watch(
   () => props.nodeType,
   () => {
-    gridKey.value++ // Force re-render of the grid component
+    forceGridReRender()
   },
 )
 
@@ -246,7 +250,7 @@ function processCellForClipboard({
   return formatted
 }
 
-defineExpose({ gridApi })
+defineExpose({ gridApi, forceGridReRender })
 
 // === Keybinds ===
 

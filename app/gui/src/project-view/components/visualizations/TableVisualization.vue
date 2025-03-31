@@ -19,7 +19,7 @@ import type {
   SetFilterValuesFuncParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
-import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
+import { ComponentInstance, computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import {
   convertFilterModel,
@@ -29,6 +29,7 @@ import {
 import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
 import { formatText, getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
+import { ComponentExposed } from 'vue-component-type-helpers'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -155,6 +156,10 @@ const defaultColDef: Ref<ColDef> = ref({
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
 const nodeType = ref<string | undefined>(undefined)
+  const grid = ref<
+  ComponentInstance<typeof AgGridTableView> &
+    ComponentExposed<typeof AgGridTableView>
+>()
 const allRowCount = computed(() =>
   typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
 )
@@ -210,12 +215,14 @@ function setRowLimit(newRowLimit: number) {
   }
 }
 
-watchEffect(() =>
+watchEffect(() => {
+  grid.value?.forceGridReRender()
   config.setPreprocessor(
     'Standard.Visualization.Table.Visualization',
     'prepare_visualization',
     rowLimit.value.toString(),
-  ),
+  )
+},
 )
 
 const isFilterSortNodeEnabled = computed(
@@ -975,6 +982,7 @@ config.setToolbar(
      suspense), but for some reason it causes reactivity loop - see https://github.com/enso-org/enso/issues/10782 -->
     <Suspense>
       <AgGridTableView
+      ref="grid"
         class="scrollable grid"
         :columnDefs="columnDefs"
         :rowData="rowData"
