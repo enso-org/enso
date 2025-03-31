@@ -72,7 +72,7 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }) => {
   await page.keyboard.press('Escape') // deselect.
   await page.getByTestId('add-component-button').click()
   await expect(page.locator('.ComponentBrowser')).toBeVisible()
-  const input = page.locator('.ComponentBrowser input')
+  const input = page.getByTestId('component-editor-content')
   await input.fill(`'${TEXT_TO_WRITE}'`)
   await page.keyboard.press('Enter')
   await expect(page.locator('.GraphNode'), {}).toHaveCount(2)
