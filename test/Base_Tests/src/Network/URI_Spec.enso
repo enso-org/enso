@@ -346,16 +346,17 @@ add_specs suite_builder =
             Panic.with_finalizer secret.delete (action secret)
 
         group_builder.specify "EnsoSecreetReader cache should be cleared when a reload is detected" pending=cloud_setup.pending <| Test.with_retries <|
-            with_secret secret1-> with_secret secret2->
-                base_uri = URI.from 'https://httpbin.org/bytes/50'
-                uri1 = base_uri . add_query_argument "arg1" secret1
-                uri2 = base_uri . add_query_argument "arg1" secret2
-                uri1.fetch . should_succeed
-                uri2.fetch . should_succeed
-                (EnsoSecretHelper.getEnsoSecretReaderCacheSize >= 2) . should_be_true
-                EnsoSecretHelper.simulateEnsoSecretReaderReload
-                uri1.fetch . should_succeed
-                (EnsoSecretHelper.getEnsoSecretReaderCacheSize == 1) . should_be_true
+            cloud_setup.with_prepared_environment <|
+                with_secret secret1-> with_secret secret2->
+                    base_uri = URI.from 'https://httpbin.org/bytes/50'
+                    uri1 = base_uri . add_query_argument "arg1" secret1
+                    uri2 = base_uri . add_query_argument "arg1" secret2
+                    uri1.fetch . should_succeed
+                    uri2.fetch . should_succeed
+                    (EnsoSecretHelper.getEnsoSecretReaderCacheSize >= 2) . should_be_true
+                    EnsoSecretHelper.simulateEnsoSecretReaderReload
+                    uri1.fetch . should_succeed
+                    (EnsoSecretHelper.getEnsoSecretReaderCacheSize == 1) . should_be_true
 
 main filter=Nothing =
     suite = Test.build suite_builder->
