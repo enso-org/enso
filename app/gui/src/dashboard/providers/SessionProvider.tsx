@@ -28,7 +28,9 @@ import * as gtag from '#/hooks/gtagHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { unsafeWriteValue } from '#/utilities/write'
+import type { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { toast } from 'react-toastify'
+import { Activity } from '../components/Activity'
 import { useSetModal } from './ModalProvider'
 import { useText } from './TextProvider'
 
@@ -349,6 +351,14 @@ export default function SessionProvider(props: SessionProviderProps) {
     }
   }, [session.data, saveAccessTokenEventCallback])
 
+  const sessionStatus = (() => {
+    if (session.data) {
+      return getTimeUntilSessionExpires(session.data.expireAt) === 0 ? 'expired' : 'active'
+    }
+
+    return 'unauthenticated'
+  })()
+
   const sessionContextValue = {
     signUp,
     session: session.data,
@@ -370,7 +380,13 @@ export default function SessionProvider(props: SessionProviderProps) {
 
   return (
     <SessionContext.Provider value={sessionContextValue}>
-      {typeof children === 'function' ? children(sessionContextValue) : children}
+      {/*
+       * We need to wrap the children in an Activity component, to prevent the refetching of the
+       * nested requests, when the session is expired.
+       */}
+      <Activity mode={sessionStatus === 'expired' ? 'inactive' : 'active'}>
+        {typeof children === 'function' ? children(sessionContextValue) : children}
+      </Activity>
 
       {session.data && (
         <SessionRefresher
@@ -428,7 +444,7 @@ function SessionRefresher(props: SessionRefresherProps) {
         // If the session has not expired, we should refresh it when it is 5 minutes from expiring.
         // We use 1 second to ensure that we refresh even if the time is very close to expiring
         // and value won't be less than 0.
-        Math.max(new Date(expireAt).getTime() - Date.now() - TEN_SECONDS_MS, TEN_SECONDS_MS)
+        Math.max(getTimeUntilSessionExpires(expireAt) - TEN_SECONDS_MS, TEN_SECONDS_MS)
 
       return timeUntilRefresh < SIX_HOURS_MS ? timeUntilRefresh : SIX_HOURS_MS
     },
@@ -473,4 +489,19 @@ export function useSessionStrict() {
   invariant(session != null, 'Session must be defined')
 
   return { session } as const
+}
+
+/**
+ * Get the time until the session expires.
+ * @param expireAt - The time at which the session expires.
+ * @returns The time until the session expires. If the session has already expired, it returns 0.
+ */
+function getTimeUntilSessionExpires(expireAt: Rfc3339DateTime) {
+  const timeUntilRefresh =
+    // If the session has not expired, we should refresh it when it is 5 minutes from expiring.
+    // We use 1 second to ensure that we refresh even if the time is very close to expiring
+    // and value won't be less than 0.
+    Math.max(new Date(expireAt).getTime() - Date.now(), 0)
+
+  return timeUntilRefresh
 }
