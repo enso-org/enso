@@ -1,0 +1,113 @@
+package org.enso.change.directory;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import org.enso.common.Platform;
+import org.graalvm.nativeimage.ImageInfo;
+import org.graalvm.nativeimage.c.CContext;
+import org.graalvm.nativeimage.c.function.CFunction;
+import org.graalvm.nativeimage.c.type.CCharPointer;
+import org.graalvm.nativeimage.c.type.CTypeConversion;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+@CContext(LinuxWorkingDirectory.Directives.class)
+public final class LinuxWorkingDirectory implements WorkingDirectory {
+  private static final String PWD = "pwd";
+  private static final Logger LOGGER = LoggerFactory.getLogger(LinuxWorkingDirectory.class);
+
+  @Override
+  public boolean changeWorkingDir(String path) {
+    try (var cPath = CTypeConversion.toCString(path + "\0")) {
+      int res = chdir(cPath.get());
+      if (res != 0) {
+        LOGGER.error("chdir({}) syscall returned {}", path, res);
+        return false;
+      }
+      return true;
+    } catch (Throwable e) {
+      if (!ImageInfo.inImageRuntimeCode()) {
+        LOGGER.warn("Changing working directory is not supported in non-AOT mode", e);
+      } else {
+        LOGGER.error("Cannot change working directory to " + path + " on Linux", e);
+      }
+      return false;
+    }
+  }
+
+  @Override
+  public String currentWorkingDir() {
+    String pwd;
+    try {
+      pwd = invokePwd();
+    } catch (IOException | InterruptedException e) {
+      LOGGER.error("Cannot invoke `pwd` on Linux", e);
+      return System.getProperty("user.dir");
+    }
+    String cwd;
+    try {
+      cwd = invokeCwd();
+    } catch (Throwable t) {
+      LOGGER.error("Cannot invoke `getcwd` on Linux", t);
+      return System.getProperty("user.dir");
+    }
+    Objects.requireNonNull(pwd);
+    Objects.requireNonNull(cwd);
+    if (!pwd.equals(cwd)) {
+      LOGGER.error("pwd and getcwd return different paths: {} != {}", pwd, cwd);
+    }
+    return pwd;
+  }
+
+  @CFunction
+  static native int chdir(CCharPointer path);
+
+  @CFunction
+  static native CCharPointer getcwd(CCharPointer buf, int size);
+
+  private String invokePwd() throws IOException, InterruptedException {
+    var process = new ProcessBuilder(PWD).start();
+    process.waitFor(3, TimeUnit.SECONDS);
+    var pwd =
+        new String(
+            process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+    return pwd.trim();
+  }
+
+  private String invokeCwd() {
+    byte[] buf = new byte[4096];
+    String path;
+    try (var ptrHolder = CTypeConversion.toCBytes(buf)) {
+      var ptr = ptrHolder.get();
+      var retPtr = getcwd(ptr, 4096);
+      if (retPtr.isNull()) {
+        LOGGER.error("getcwd() syscall returned null");
+      }
+      if (!retPtr.equal(ptr)) {
+        LOGGER.error("getcwd() syscall returned different pointer");
+      }
+      path = new String(buf);
+    }
+    return path.trim();
+  }
+
+  static final class Directives implements CContext.Directives {
+
+    @Override
+    public boolean isInConfiguration() {
+      return Platform.getOperatingSystem().isLinux();
+    }
+
+    @Override
+    public List<String> getHeaderFiles() {
+      return List.of("<unistd.h>");
+    }
+
+    @Override
+    public List<String> getLibraries() {
+      return List.of("c");
+    }
+  }
+}

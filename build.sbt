@@ -12,6 +12,7 @@ import src.main.scala.licenses.{
   DistributionDescription,
   SBTDistributionComponent
 }
+import scala.sys.process._
 
 // This import is unnecessary, but bit adds a proper code completion features
 // to IntelliJ.
@@ -302,6 +303,7 @@ lazy val enso = (project in file("."))
     `benchmark-java-helpers`,
     `benchmarks-common`,
     `bench-processor`,
+    `change-directory`,
     cli,
     `common-polyglot-core-utils`,
     `connected-lock-manager`,
@@ -4138,6 +4140,61 @@ lazy val `benchmarks-common` =
       )
     )
     .dependsOn(`polyglot-api`)
+
+lazy val `change-directory` =
+  project
+    .in(file("lib/java/change-directory"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      frgaalJavaCompilerSetting,
+      javaModuleName := "org.enso.change.directory",
+      libraryDependencies ++= Seq(
+        "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
+        "org.slf4j"       % "slf4j-api"       % slf4jVersion,
+        "junit"           % "junit"           % junitVersion              % Test,
+        "com.github.sbt"  % "junit-interface" % junitIfVersion            % Test
+      ),
+      Compile / moduleDependencies ++= Seq(
+        "org.slf4j"       % "slf4j-api"   % slf4jVersion,
+        "org.graalvm.sdk" % "nativeimage" % graalMavenPackagesVersion,
+        "org.graalvm.sdk" % "word"        % graalMavenPackagesVersion
+      ),
+      Compile / internalModuleDependencies ++= Seq(
+        (`engine-common` / Compile / exportedModule).value
+      ),
+      NativeImage.smallJdk := None,
+      NativeImage.additionalCp := {
+        val ourDeps = (Test / fullClasspath).value.map(_.data.getAbsolutePath)
+        ourDeps
+      },
+      Test / buildNativeImage := Def.taskDyn {
+        val targetDir = (Test / target).value
+        NativeImage.buildNativeImage(
+          "test-change-directory",
+          staticOnLinux = true,
+          targetDir     = targetDir,
+          mainClass     = Some("org.enso.change.directory.TestRunner"),
+          initializeAtRuntime = Seq(
+            "org.enso.change.directory"
+          ),
+          additionalOptions = Seq(
+            "-ea"
+          )
+        )
+      }.value,
+      Test / test := Def
+        .task {
+          val exeSuffix = if (Platform.isWindows) ".exe" else ""
+          val exeFile =
+            (Test / target).value / ("test-change-directory" + exeSuffix)
+          val binPath = exeFile.getAbsolutePath
+          binPath ! streams.value.log
+        }
+        .dependsOn(Test / buildNativeImage)
+        .value,
+      Test / fork := true
+    )
+    .dependsOn(`engine-common`)
 
 lazy val `desktop-environment` =
   project

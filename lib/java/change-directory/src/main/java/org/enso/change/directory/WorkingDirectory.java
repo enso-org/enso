@@ -1,0 +1,17 @@
+package org.enso.change.directory;
+
+import org.enso.common.Platform;
+
+public interface WorkingDirectory {
+  static WorkingDirectory getForCurrentPlatform() {
+    return switch (Platform.getOperatingSystem()) {
+      case Platform.LINUX -> new LinuxWorkingDirectory();
+      case Platform.MACOS -> throw new UnsupportedOperationException("unimplemented");
+      case Platform.WINDOWS -> throw new UnsupportedOperationException("unimplemented");
+    };
+  }
+
+  boolean changeWorkingDir(String path);
+
+  String currentWorkingDir();
+}
