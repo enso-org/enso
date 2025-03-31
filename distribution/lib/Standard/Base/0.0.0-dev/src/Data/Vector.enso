@@ -1075,11 +1075,29 @@ type Vector a
             b : Boolean -> b
         report_mismatch = keep_unmatched == Report_Unmatched
 
-        f i =
-            left_value = if keep_unmatched_bool then (if i >= left_len then Nothing else self.at i) else self.at i
-            right_value = if keep_unmatched_bool then (if i >= right_len then Nothing else that.at i) else that.at i
-            if skip_nothing && (left_value.is_nothing || right_value.is_nothing) then Nothing else function left_value right_value
         len = if keep_unmatched_bool then left_len.max right_len else left_len.min right_len
+        min_len = left_len.min right_len
+
+        f = case keep_unmatched_bool of
+            True -> case skip_nothing of
+                True -> i->
+                    left_value = if i < left_len then self.at i else Nothing
+                    right_value = if i < right_len then that.at i else Nothing
+                    if left_value.is_nothing || right_value.is_nothing then Nothing else
+                        function left_value right_value
+                False -> i->
+                    if i < min_len then function (self.at i) (that.at i) else
+                        left_value = if i >= left_len then Nothing else self.at i
+                        right_value = if i >= right_len then Nothing else that.at i
+                        function left_value right_value
+            False -> case skip_nothing of
+                True -> i->
+                    left_value = self.at i
+                    right_value = that.at i
+                    if left_value.is_nothing || right_value.is_nothing then Nothing else
+                        function left_value right_value
+                False -> i->
+                    function (self.at i) (that.at i)
 
         # If on_problems == No_Wrap, then don't try to attach anything
         problem_attacher = if on_problems == No_Wrap.Value then (x->x) else
