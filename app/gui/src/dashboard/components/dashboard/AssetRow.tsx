@@ -209,8 +209,7 @@ const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialR
 /** Props for a {@link RealAssetRow}. */
 type RealAssetRowProps = AssetRowProps & { readonly id: backendModule.RealAssetId }
 
-/** Renders a real asset row. */
-
+/** Render a real asset row. */
 const RealAssetRow = React.memo(function RealAssetRow(props: RealAssetRowProps) {
   const { id } = props
 

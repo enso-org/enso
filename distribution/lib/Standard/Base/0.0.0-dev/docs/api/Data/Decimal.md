@@ -20,14 +20,14 @@
     - format self format:Standard.Base.Data.Text.Text= locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Data.Text.Text
     - from_float f:Standard.Base.Data.Numbers.Float mc:(Standard.Base.Data.Numeric.Math_Context.Math_Context|Standard.Base.Nothing.Nothing)= explicit:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - from_integer i:Standard.Base.Data.Numbers.Integer mc:(Standard.Base.Data.Numeric.Math_Context.Math_Context|Standard.Base.Nothing.Nothing)= -> Standard.Base.Data.Decimal.Decimal
-    - from_text s:Standard.Base.Data.Text.Text mc:(Standard.Base.Data.Numeric.Math_Context.Math_Context|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - from_text text:Standard.Base.Data.Text.Text locale:Standard.Base.Data.Locale.Locale= format:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
     - internal_representation self -> (Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer)
     - max self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Data.Decimal.Decimal
     - min self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Data.Decimal.Decimal
     - multiply self that:Standard.Base.Data.Decimal.Decimal math_context:(Standard.Base.Data.Numeric.Math_Context.Math_Context|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
     - negate self -> Standard.Base.Data.Decimal.Decimal
     - new x:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Numbers.Float) mc:(Standard.Base.Data.Numeric.Math_Context.Math_Context|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
-    - parse text:Standard.Base.Data.Text.Text locale:Standard.Base.Data.Locale.Locale= format:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - parse text:Standard.Base.Data.Text.Text locale:Standard.Base.Data.Locale.Locale= format:Standard.Base.Data.Text.Text= mc:(Standard.Base.Data.Numeric.Math_Context.Math_Context|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
     - pow self exp:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Decimal.Decimal
     - precision self -> Standard.Base.Data.Numbers.Integer
     - remainder self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Data.Decimal.Decimal
