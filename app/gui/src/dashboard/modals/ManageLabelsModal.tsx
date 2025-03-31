@@ -70,6 +70,7 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
         await createTagMutation.mutateAsync([{ value: labelName, color: color ?? leastUsedColor }])
         const newLabels = [...(item.labels ?? []), labelName]
         await associateTagMutation.mutateAsync([item.id, newLabels, item.title])
+        form.resetField('labels', { defaultValue: newLabels })
         unsetModal()
       } catch (error) {
         toastAndLog(null, error)
@@ -91,7 +92,11 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
   const canCreateNewLabel = canSelectColor
 
   return (
-    <Form form={form} className="relative flex flex-col gap-modal rounded-default p-modal">
+    <Form
+      key={JSON.stringify(item.labels)}
+      form={form}
+      className="relative flex flex-col gap-modal rounded-default p-modal"
+    >
       <Text.Heading slot="title" level={2} variant="subtitle">
         {getText('labels')}
       </Text.Heading>
