@@ -26,7 +26,6 @@ import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
-import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
 
 import * as backendModule from '#/services/Backend'
 
@@ -40,17 +39,11 @@ import {
 import { useBackendMutationState } from '#/hooks/backendHooks'
 import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import { useAsset, useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useFullUserSession } from '#/providers/AuthProvider'
+import { useAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import type { Label } from '#/services/Backend'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
 import * as object from '#/utilities/object'
-import {
-  canPermissionModifyDirectoryContents,
-  isTeamParentsPath,
-  tryFindSelfPermission,
-} from '#/utilities/permissions'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useTransition } from 'react'
@@ -253,9 +246,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   const [isNavigating, startNavigation] = useTransition()
 
   const driveStore = useDriveStore()
-  const { user } = useFullUserSession()
   const setSelectedAssets = useSetSelectedAssets()
-  const getAsset = useGetAsset()
   const selected = useStore(driveStore, ({ visuallySelectedKeys, selectedIds }) =>
     (visuallySelectedKeys ?? selectedIds).has(id),
   )
@@ -355,7 +346,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   }, [grabKeyboardFocusRef, isKeyboardSelected, asset])
 
   const onDragOver = (event: React.DragEvent<Element>) => {
-    const directoryId = asset.type === backendModule.AssetType.directory ? id : parentId
     const { labelsDragPayload, isDraggingOverSelectedRow } = driveStore.getState()
     if (labelsDragPayload) {
       event.preventDefault()
@@ -367,32 +357,8 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
       return
     }
     const payload = drag.ASSET_ROWS.lookup(event)
-    const isPayloadMatch =
-      payload != null && payload.every((innerItem) => innerItem.key !== directoryId)
-    const canPaste = (() => {
-      if (!isPayloadMatch) {
-        return false
-      }
-      if (isLocalCategory(category)) {
-        return true
-      }
-      return payload.every((payloadItem) => {
-        const payloadParentId = getAsset(payloadItem.key)?.parentId
-        const parent = payloadParentId == null ? null : getAsset(payloadParentId)
-        if (!parent) {
-          // Assume the parent is the root directory.
-          return true
-        }
-        if (isTeamParentsPath(parent.parentsPath, [])) {
-          return true
-        }
-        // Assume user path; check permissions
-        const permission = tryFindSelfPermission(user, asset.permissions)
-        return permission != null && canPermissionModifyDirectoryContents(permission.permission)
-      })
-    })()
-
-    if ((isPayloadMatch && canPaste) || event.dataTransfer.types.includes('Files')) {
+    const isPayloadMatch = payload != null
+    if (isPayloadMatch || event.dataTransfer.types.includes('Files')) {
       event.preventDefault()
       if (asset.type === backendModule.AssetType.directory && state.category.type !== 'trash') {
         setIsDraggedOver(true)

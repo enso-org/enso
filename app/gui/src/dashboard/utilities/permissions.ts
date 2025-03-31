@@ -1,7 +1,6 @@
 /** @file Utilities for working with permissions. */
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import * as backend from '#/services/Backend'
-import { directoryIdToUserGroupId, directoryIdToUserId } from '#/services/RemoteBackend'
 import {
   type AssetPermission,
   compareAssetPermissions,
@@ -139,24 +138,13 @@ export function isTeamPath(path: string) {
 }
 
 /** Whether a path is inside a user's home directory. */
-export function isUserParentsPath(path: backend.ParentsPath, userIds: readonly backend.UserId[]) {
-  const assetUserOrTeamId = directoryIdToUserId(
-    // eslint-disable-next-line no-restricted-syntax
-    backend.DirectoryId((path.split('/')[0] ?? 'directory-') as never),
-  )
-  return userIds.includes(assetUserOrTeamId)
+export function isUserParentsPath(path: backend.EnsoPath | undefined) {
+  return path != null && path.startsWith('enso://Users/')
 }
 
 /** Whether a path is inside a team's home directory. */
-export function isTeamParentsPath(
-  path: backend.ParentsPath,
-  teamIds: readonly backend.UserGroupId[],
-) {
-  const assetUserOrTeamId = directoryIdToUserGroupId(
-    // eslint-disable-next-line no-restricted-syntax
-    backend.DirectoryId((path.split('/')[0] ?? 'directory-') as never),
-  )
-  return teamIds.includes(assetUserOrTeamId)
+export function isTeamParentsPath(path: backend.EnsoPath | undefined) {
+  return path != null && path.startsWith('enso://Teams/')
 }
 
 /** Find the new owner of an asset based on the path of its new parent directory. */

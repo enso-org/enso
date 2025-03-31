@@ -26,18 +26,14 @@ export function useCutAndPaste(backend: Backend, category: Category) {
         return item ? [item] : []
       })
       const newParent = getAsset(newParentKey)
-      const userIds = [] as const
-      const userGroupIds = [] as const
       const isMovingToUserSpace =
-        newParent?.parentsPath != null && isUserParentsPath(newParent.parentsPath, userIds)
+        newParent?.parentsPath != null && isUserParentsPath(newParent.ensoPath)
       const teamToUserItems =
-        isMovingToUserSpace ?
-          assets.filter((asset) => isTeamParentsPath(asset.parentsPath, userGroupIds))
-        : []
+        isMovingToUserSpace ? assets.filter((asset) => isTeamParentsPath(asset.ensoPath)) : []
       const nonTeamToUserIds =
         isMovingToUserSpace ?
           assets
-            .filter((asset) => !isTeamParentsPath(asset.parentsPath, userGroupIds))
+            .filter((asset) => !isTeamParentsPath(asset.ensoPath))
             .map((otherItem) => otherItem.id)
         : ids
       if (teamToUserItems.length !== 0) {
