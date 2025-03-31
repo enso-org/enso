@@ -852,7 +852,7 @@ type DB_Column
        `Value_Type.Integer` columns.
 
        By default, rounding uses "symmetric round-half-up", also known as
-       "round towards 0." If rounding_Mode=Rounding_Mode.Bankers, then it uses "round-half-even",
+       "round towards 0." If rounding_mode=Rounding_Mode.Bankers, then it uses "round-half-even",
        also known as "banker's rounding".
 
        The return type depends on the backend.
