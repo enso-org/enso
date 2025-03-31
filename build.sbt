@@ -4178,7 +4178,8 @@ lazy val `change-directory` =
             "org.enso.change.directory"
           ),
           additionalOptions = Seq(
-            "-ea"
+            "-ea",
+            "--features=org.enso.change.directory.TestCollectorFeature"
           )
         )
       }.value,
