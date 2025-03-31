@@ -319,11 +319,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     RuntimeOptions.JOB_PARALLELISM,
     Runtime.getRuntime.availableProcessors().toString
   )
-  if (System.getProperty("enso.dev.inspectPort") != null) {
-    val inspectPort = Integer.getInteger("enso.dev.inspectPort", 34567);
-    extraOptions.put("inspect", s":$inspectPort")
-    stdErr.attach(arr => System.out.write(arr))
-  }
 
   if (HostEnsoUtils.isAot()) {
     log.info("Running Language Server in AOT mode")
