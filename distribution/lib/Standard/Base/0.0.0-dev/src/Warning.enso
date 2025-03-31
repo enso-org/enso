@@ -51,7 +51,8 @@ type Warning
     remove_warnings value warning_type=Any =
         Warning.detach_selected_warnings value (w-> w.is_a warning_type) . first
 
-    ## GROUP Errors
+    ## PRIVATE
+       GROUP Errors
        ICON error
        Throws the first matching warning (either all or of a specified type) as a data flow error.
 

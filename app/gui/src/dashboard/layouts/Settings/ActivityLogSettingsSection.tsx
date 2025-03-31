@@ -19,7 +19,7 @@ import type Backend from '#/services/Backend'
 import { EVENT_TYPES, EventType, type Event } from '#/services/Backend'
 import { iconIdFor, nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { formatDateTime } from 'enso-common/src/utilities/data/dateTime'
+import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 
 const EVENT_TYPE_ICON: Record<EventType, string> = {
   [EventType.GetSecret]: KeyIcon,
@@ -351,7 +351,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 <ActivityLogTableCell>{EVENT_TYPE_NAME[log.metadata.type]}</ActivityLogTableCell>
                 <ActivityLogTableCell>{log.userEmail}</ActivityLogTableCell>
                 <ActivityLogTableCell>
-                  {log.timestamp ? formatDateTime(new Date(log.timestamp)) : ''}
+                  {log.timestamp ? toReadableIsoString(new Date(log.timestamp)) : ''}
                 </ActivityLogTableCell>
               </tr>
             ))

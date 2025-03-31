@@ -68,7 +68,7 @@ export default function AssetSummary(props: AssetSummaryProps) {
           <Icon icon="calendar" size="small" />
 
           <Text variant="body-sm" truncate>
-            {getText('lastModifiedOn', dateTime.formatDateTime(new Date(asset.modifiedAt)))}
+            {getText('lastModifiedOn', dateTime.toReadableIsoString(new Date(asset.modifiedAt)))}
           </Text>
         </span>
       </div>
