@@ -154,7 +154,6 @@ const defaultColDef: Ref<ColDef> = ref({
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
-const datasource = ref<IServerSideDatasource | null>(null)
 const nodeType = ref<string | undefined>(undefined)
 const allRowCount = computed(() =>
   typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
@@ -184,8 +183,6 @@ const statusBar = computed(() =>
 )
 
 watchEffect(() => {
-  datasource.value = null
-  datasource.value = createServerSideDatasource()
   nodeType.value = config.nodeType
 })
 
@@ -983,7 +980,7 @@ config.setToolbar(
         :rowData="rowData"
         :defaultColDef="defaultColDef"
         :textFormatOption="textFormatterSelected"
-        :datasource="datasource"
+        :datasource="createServerSideDatasource()"
         :rowCount="allRowCount"
         :isServerSideModel="isSSRM"
         :statusBar="statusBar"

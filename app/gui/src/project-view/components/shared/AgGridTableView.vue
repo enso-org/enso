@@ -120,7 +120,7 @@ const props = defineProps<{
   suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
   processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
-  datasource: IServerSideDatasource | null
+  datasource?: IServerSideDatasource
   rowCount?: number
   isServerSideModel?: boolean
   nodeType?: string
@@ -353,8 +353,8 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
     <AgGridVue
       v-bind="$attrs"
       ref="grid"
-      class="ag-theme-alpine inner"
       :key="gridKey"
+      class="ag-theme-alpine inner"
       :headerHeight="26"
       :rowModelType="rowModelType"
       :serverSideDatasource="datasource"
