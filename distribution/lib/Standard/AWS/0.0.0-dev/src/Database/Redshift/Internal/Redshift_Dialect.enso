@@ -236,6 +236,7 @@ type Redshift_Dialect
             Dialect_Flag.Supports_Nanoseconds_In_Time -> False
             Dialect_Flag.Supports_Mixed_Columns -> False
             Dialect_Flag.Supports_Date_Time_Without_Timezone -> False
+            Dialect_Flag.Supports_Regex_Match -> False
 
     ## PRIVATE
        The default table types to use when listing tables.
