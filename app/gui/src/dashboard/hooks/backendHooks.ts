@@ -40,13 +40,10 @@ import {
   BackendType,
   type AnyAsset,
   type AssetId,
-  type DirectoryAsset,
   type DirectoryId,
   type User,
   type UserGroupInfo,
 } from '#/services/Backend'
-import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
-import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
 import { useMemo } from 'react'
 import { z } from 'zod'
@@ -433,95 +430,6 @@ export function unsafe_assetFromCacheQueryOptions(options: AssetFromCacheQueryOp
 
 /** The type of directory listings in the React Query cache. */
 type DirectoryQuery = readonly AnyAsset<AssetType>[] | undefined
-
-/** Options for {@link useAsset}. */
-export interface UseAssetOptions extends ListDirectoryQueryOptions {
-  readonly assetId: AssetId
-}
-
-/** Data for a specific asset. */
-export function useAsset(options: UseAssetOptions) {
-  const { parentId, assetId } = options
-
-  const { data: asset } = useQuery({
-    ...listDirectoryQueryOptions(options),
-    select: (data) => data.find((child) => child.id === assetId),
-  })
-
-  if (asset) {
-    return asset
-  }
-
-  const shared = {
-    parentId,
-    projectState: null,
-    extension: null,
-    description: '',
-    modifiedAt: toRfc3339(new Date()),
-    permissions: [],
-    labels: [],
-    parentsPath: backendModule.ParentsPath(''),
-    virtualParentsPath: backendModule.VirtualParentsPath(''),
-  } satisfies Partial<DirectoryAsset>
-  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-  switch (true) {
-    case assetId === USERS_DIRECTORY_ID: {
-      return {
-        ...shared,
-        id: assetId,
-        title: 'Users',
-        type: AssetType.directory,
-      } satisfies DirectoryAsset
-    }
-    case assetId === TEAMS_DIRECTORY_ID: {
-      return {
-        ...shared,
-        id: assetId,
-        title: 'Teams',
-        type: AssetType.directory,
-      } satisfies DirectoryAsset
-    }
-    case backendModule.isLoadingAssetId(assetId): {
-      return {
-        ...shared,
-        id: assetId,
-        title: '',
-        type: AssetType.specialLoading,
-      } satisfies backendModule.SpecialLoadingAsset
-    }
-    case backendModule.isEmptyAssetId(assetId): {
-      return {
-        ...shared,
-        id: assetId,
-        title: '',
-        type: AssetType.specialEmpty,
-      } satisfies backendModule.SpecialEmptyAsset
-    }
-    case backendModule.isErrorAssetId(assetId): {
-      return {
-        ...shared,
-        id: assetId,
-        title: '',
-        type: AssetType.specialError,
-      } satisfies backendModule.SpecialErrorAsset
-    }
-    default: {
-      return
-    }
-  }
-}
-
-/** Non-nullable for a specific asset. */
-export function useAssetStrict(options: UseAssetOptions) {
-  const asset = useAsset(options)
-
-  invariant(
-    asset,
-    `Expected asset to be defined, but got undefined, Asset ID: ${JSON.stringify(options.assetId)}`,
-  )
-
-  return asset
-}
 
 /** Return matching in-flight mutations matching the given filters. */
 export function useBackendMutationState<Method extends BackendMutationMethod, Result>(

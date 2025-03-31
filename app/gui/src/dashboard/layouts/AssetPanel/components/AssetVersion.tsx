@@ -11,6 +11,7 @@ import { ProfilePicture } from '#/components/ProfilePicture'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { setModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
+import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { AssetDiffView } from '../../AssetDiffView'
 
 /**
@@ -51,7 +52,7 @@ export function AssetVersion(props: AssetVersionProps) {
     doDuplicate,
   } = props
 
-  const { getText, locale } = useText()
+  const { getText } = useText()
 
   const isProject = item.type === backendService.AssetType.project
   const comparableVersions = otherVersions
@@ -79,13 +80,7 @@ export function AssetVersion(props: AssetVersionProps) {
           <div className={TEXT_WITH_ICON().base({ gap: 'medium', className: 'flex-none' })}>
             <Icon size="small" icon="calendar" className={TEXT_WITH_ICON().icon()} />
             <Text elementType="time" variant="body-sm" className={TEXT_WITH_ICON().text()}>
-              {new Date(version.lastModified).toLocaleString(locale, {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: 'numeric',
-              })}
+              {toReadableIsoString(new Date(version.lastModified))}
             </Text>
           </div>
 
