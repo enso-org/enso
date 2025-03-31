@@ -41,6 +41,7 @@ import {
   type AnyAsset,
   type AssetId,
   type DirectoryId,
+  type FilterBy,
   type User,
   type UserGroupInfo,
 } from '#/services/Backend'
@@ -317,6 +318,7 @@ export function useListDirectoryRefetchInterval() {
 /** Options for {@link listDirectoryQueryOptions}. */
 export interface ListDirectoryQueryOptions {
   readonly backend: Backend
+  readonly filterBy?: FilterBy | null | undefined
   readonly parentId: DirectoryId
   readonly category: Category
   /**
@@ -328,7 +330,13 @@ export interface ListDirectoryQueryOptions {
 
 /** Build a query options object to fetch the children of a directory. */
 export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
-  const { backend, parentId, category, refetchInterval } = options
+  const {
+    backend,
+    parentId,
+    category,
+    refetchInterval,
+    filterBy = CATEGORY_TO_FILTER_BY[category.type],
+  } = options
 
   const rootPath = 'rootPath' in category ? category.rootPath : undefined
 
@@ -340,7 +348,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
       {
         rootPath,
         labels: null,
-        filterBy: CATEGORY_TO_FILTER_BY[category.type],
+        filterBy,
         recentProjects: category.type === 'recent',
       },
     ] as const,
@@ -351,7 +359,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
           {
             parentId,
             rootPath,
-            filterBy: CATEGORY_TO_FILTER_BY[category.type],
+            filterBy,
             labels: null,
             recentProjects: category.type === 'recent',
           },

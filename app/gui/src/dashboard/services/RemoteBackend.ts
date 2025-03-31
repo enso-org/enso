@@ -767,8 +767,6 @@ export default class RemoteBackend extends Backend {
   override async copyAsset(
     assetId: backend.AssetId,
     parentDirectoryId: backend.DirectoryId,
-    title: string,
-    parentDirectoryTitle: string,
   ): Promise<backend.CopyAssetResponse> {
     const response = await this.post<backend.CopyAssetResponse>(
       remoteBackendPaths.copyAssetPath(assetId),
@@ -776,15 +774,13 @@ export default class RemoteBackend extends Backend {
     )
 
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'copyAssetBackendError', title, parentDirectoryTitle).catch(
-        (error) => {
-          if (isDuplicateAssetError(error)) {
-            throw new backend.DuplicateAssetError(error.message)
-          }
+      return await this.throw(response, 'copyAssetBackendError').catch((error) => {
+        if (isDuplicateAssetError(error)) {
+          throw new backend.DuplicateAssetError(error.message)
+        }
 
-          throw error
-        },
-      )
+        throw error
+      })
     }
 
     return await response.json()
