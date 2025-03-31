@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Unsigned_Bytes_Converted_To_Signed
+import Standard.Base.Errors.Common.Mixed_Signed_And_Unsigned_Bytes
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -27,4 +27,4 @@ convert_unsigned_byte_array_to_signed v:Vector ~action =
             _ -> (Illegal_Argument.Error "Value is not an Integer: "+x.to_text)
     result = action converted
     should_warn = seen_signed_byte.get && seen_unsigned_byte.get
-    if should_warn then (Warning.attach Unsigned_Bytes_Converted_To_Signed.Error result) else result
+    if should_warn then (Warning.attach Mixed_Signed_And_Unsigned_Bytes.Error result) else result

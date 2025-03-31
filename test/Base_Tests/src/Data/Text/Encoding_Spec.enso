@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Unsigned_Bytes_Converted_To_Signed
+import Standard.Base.Errors.Common.Mixed_Signed_And_Unsigned_Bytes
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -372,12 +372,12 @@ add_specs suite_builder =
             problems = [Encoding_Error.Error "Encoding issues at 16."]
             Problems.test_problem_handling action problems tester
 
-        group_builder.specify "should allow unsigned bytes in Vector.write_bytes, but attach a warning" <|
-            t1 = Text.from_bytes [65, 33, 222]
-            t2 = Text.from_bytes [65, 33, -34]
+        group_builder.specify "should allow mixed signed and unsigned bytes in Vector.write_bytes, but attach a warning" <|
+            t1 = Text.from_bytes [65, 33, 221, -34]
+            t2 = Text.from_bytes [65, 33, 221, 222]
             t1 . should_equal t2
             t1.bytes . should_equal t2.bytes
-            Problems.expect_only_warning Unsigned_Bytes_Converted_To_Signed t1
+            Problems.expect_only_warning Mixed_Signed_And_Unsigned_Bytes t1
             Problems.assume_no_problems t2
 
 main filter=Nothing =
