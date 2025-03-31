@@ -166,7 +166,7 @@ type Math_Operation
     Power (rhs : Column_Ref|Expression|Number = 1)
 
     ## Rounds values in the column to the specified precision.
-    Round (precision:Integer = 0) (rounding_mode:Rounding_Mode = Rounding_Mode.half_up)
+    Round (precision:Integer = 0) (rounding_mode:Rounding_Mode = Rounding_Mode.Half_Up)
 
     ## Rounds values in the column up to the nearest integer.
     Ceil
@@ -346,7 +346,7 @@ type Simple_Calculation
     Power (rhs : Column_Ref|Expression|Number = 1)
 
     ## Rounds values in the column to the specified precision.
-    Round (precision:Integer = 0) (rounding_mode:Rounding_Mode = Rounding_Mode.half_up)
+    Round (precision:Integer = 0) (rounding_mode:Rounding_Mode = Rounding_Mode.Half_Up)
 
     ## Rounds values in the column up to the nearest integer.
     Ceil

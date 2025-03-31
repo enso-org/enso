@@ -46,7 +46,7 @@ type Check_Instance
 add_specs group_builder batch_runner run_advanced =
     pending_advanced = if run_advanced.not then "Advanced edge tests are disabled in this run."
     group_builder.specify "Can round positive decimals correctly" <|
-        batch_runner.run rounding_Mode=Rounding_Mode.half_up round_fun->
+        batch_runner.run rounding_Mode=Rounding_Mode.Half_Up round_fun->
             round_fun 3.0 . should_equal 3
             round_fun 3.00001 . should_equal 3
             round_fun 3.3 . should_equal 3
@@ -56,7 +56,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun 3.99999 . should_equal 4
 
     group_builder.specify "Can round negative decimals correctly" <|
-        batch_runner.run rounding_Mode=Rounding_Mode.half_up round_fun->
+        batch_runner.run rounding_Mode=Rounding_Mode.Half_Up round_fun->
             round_fun -3.0 . should_equal -3
             round_fun -3.00001 . should_equal -3
             round_fun -3.3 . should_equal -3
@@ -66,20 +66,20 @@ add_specs group_builder batch_runner run_advanced =
             round_fun -3.99999 . should_equal -4
 
     group_builder.specify "Explicit and implicit 0 decimal places work the same" <|
-        batch_runner.run rounding_Mode=Rounding_Mode.half_up round_fun->
+        batch_runner.run rounding_Mode=Rounding_Mode.Half_Up round_fun->
             round_fun 3.00001 0 . should_equal 3
             round_fun 3.3 0 . should_equal 3
             round_fun 3.00001 . should_equal 3
             round_fun 3.3 . should_equal 3
 
     group_builder.specify "Can round zero and small decimals correctly" <|
-        batch_runner.run rounding_Mode=Rounding_Mode.half_up round_fun->
+        batch_runner.run rounding_Mode=Rounding_Mode.Half_Up round_fun->
             round_fun 0.0 . should_equal 0
             round_fun 0.00001 . should_equal 0
             round_fun -0.00001 . should_equal 0
 
     group_builder.specify "Can round positive decimals to a specified number of decimal places" <|
-        batch_runner.run rounding_Mode=Rounding_Mode.half_up round_fun->
+        batch_runner.run rounding_Mode=Rounding_Mode.Half_Up round_fun->
             round_fun 3.0001 2 . should_equal 3.0
             round_fun 3.1414 2 . should_equal 3.14
             round_fun 3.1415 2 . should_equal 3.14
@@ -93,7 +93,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun 3.9999 3 . should_equal 4.0
 
     group_builder.specify "Can round negative decimals to a specified number of decimal places" <|
-        batch_runner.run rounding_Mode=Rounding_Mode.half_up round_fun->
+        batch_runner.run rounding_Mode=Rounding_Mode.Half_Up round_fun->
             round_fun -3.0001 2 . should_equal -3.0
             round_fun -3.1414 2 . should_equal -3.14
             round_fun -3.1415 2 . should_equal -3.14
@@ -107,7 +107,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun -3.9999 3 . should_equal -4.0
 
     group_builder.specify "Can round positive decimals to a specified negative number of decimal places" <|
-        batch_runner.run rounding_Mode=Rounding_Mode.half_up round_fun->
+        batch_runner.run rounding_Mode=Rounding_Mode.Half_Up round_fun->
             round_fun 1234.0 -1 . should_equal 1230
             round_fun 1234.0 -2 . should_equal 1200
             round_fun 1234.0 -3 . should_equal 1000
@@ -123,7 +123,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun 1494.0 -2 . should_equal 1500
 
     group_builder.specify "Can round negative decimals to a specified negative number of decimal places" <|
-        batch_runner.run rounding_Mode=Rounding_Mode.half_up round_fun->
+        batch_runner.run rounding_Mode=Rounding_Mode.Half_Up round_fun->
             round_fun -1234.0 -1 . should_equal -1230
             round_fun -1234.0 -2 . should_equal -1200
             round_fun -1234.0 -3 . should_equal -1000
@@ -139,7 +139,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun -1494.0 -2 . should_equal -1500
 
     group_builder.specify "Banker's rounding handles half-way values correctly" pending=pending_advanced <|
-        batch_runner.run rounding_Mode=Rounding_Mode.bankers round_fun->
+        batch_runner.run rounding_Mode=Rounding_Mode.Bankers round_fun->
             round_fun -3.5 . should_equal -4
             round_fun -2.5 . should_equal -2
             round_fun -1.5 . should_equal -2
@@ -160,7 +160,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun -12250.0 -2 . should_equal -12200
 
     group_builder.specify "Banker's rounding handles non-half-way values just like normal rounding" pending=pending_advanced <|
-        batch_runner.run rounding_Mode=Rounding_Mode.bankers round_fun->
+        batch_runner.run rounding_Mode=Rounding_Mode.Bankers round_fun->
             round_fun 3.0 . should_equal 3
             round_fun 3.00001 . should_equal 3
             round_fun 3.3 . should_equal 3
@@ -168,7 +168,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun 3.50001 . should_equal 4
             round_fun 3.99999 . should_equal 4
 
-        batch_runner.run rounding_Mode=Rounding_Mode.half_up round_fun->
+        batch_runner.run rounding_Mode=Rounding_Mode.Half_Up round_fun->
             round_fun -3.0 . should_equal -3
             round_fun -3.00001 . should_equal -3
             round_fun -3.3 . should_equal -3
@@ -177,7 +177,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun -3.99999 . should_equal -4
 
     group_builder.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)" <|
-        batch_runner.run rounding_Mode=Rounding_Mode.half_up round_fun->
+        batch_runner.run rounding_Mode=Rounding_Mode.Half_Up round_fun->
             round_fun 0 . should_equal 0
             round_fun 3 . should_equal 3
             round_fun -3 . should_equal -3
@@ -187,7 +187,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun -3 1 . should_equal -3
 
     group_builder.specify "Can round integers to a specified number of negative places correctly" <|
-        batch_runner.run rounding_Mode=Rounding_Mode.half_up round_fun->
+        batch_runner.run rounding_Mode=Rounding_Mode.Half_Up round_fun->
             round_fun 0 -1 . should_equal 0
             round_fun 4 -1 . should_equal 0
             round_fun 5 -1 . should_equal 10
@@ -216,7 +216,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun 3101 -3 . should_equal 3000
 
     group_builder.specify "Can round negative integers to a specified number of negative places correctly" pending=pending_advanced <|
-        batch_runner.run rounding_Mode=Rounding_Mode.half_up round_fun->
+        batch_runner.run rounding_Mode=Rounding_Mode.Half_Up round_fun->
             round_fun -4 -1 . should_equal 0
             round_fun -5 -1 . should_equal -10
             round_fun -6 -1 . should_equal -10
@@ -244,7 +244,7 @@ add_specs group_builder batch_runner run_advanced =
             round_fun -3101 -3 . should_equal -3000
 
     group_builder.specify "Can round negative integers to a specified number of negative places with banker's rounding correctly" pending=pending_advanced <|
-        batch_runner.run rounding_Mode=Rounding_Mode.bankers round_fun->
+        batch_runner.run rounding_Mode=Rounding_Mode.Bankers round_fun->
             round_fun 12300 -2 . should_equal 12300
             round_fun 12301 -2 . should_equal 12300
             round_fun 12330 -2 . should_equal 12300

@@ -42,7 +42,7 @@ collect_benches = Bench.build builder->
             fun = pair.at 1
             group_builder.specify ("integer_" + name) (data.integers.map fun)
 
-        [Rounding_Mode.half_up, Rounding_Mode.bankers].each rounding_mode->
+        [Rounding_Mode.Half_Up, Rounding_Mode.Bankers].each rounding_mode->
             [0, -2, 2].each decimal_places->
                 name = create_name "round_decimal_places_" decimal_places rounding_mode
                 fun = _.round decimal_places rounding_mode

@@ -110,7 +110,7 @@ collect_benches = Bench.build builder->
         group_builder.specify "floor_decimals" <|
             data.decimals.floor
 
-        [Rounding_Mode.half_up, Rounding_Mode.bankers].each rounding_mode->
+        [Rounding_Mode.Half_Up, Rounding_Mode.Bankers].each rounding_mode->
             [0, -2, 2].map decimal_places->
                 name = create_name "round_decimal_places_" decimal_places rounding_mode
                 fun x = x.round decimal_places rounding_mode

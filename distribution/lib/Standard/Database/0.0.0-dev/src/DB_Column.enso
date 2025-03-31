@@ -852,7 +852,7 @@ type DB_Column
        `Value_Type.Integer` columns.
 
        By default, rounding uses "symmetric round-half-up", also known as
-       "round towards 0." If rounding_Mode=Rounding_Mode.bankers, then it uses "round-half-even",
+       "round towards 0." If rounding_Mode=Rounding_Mode.Bankers, then it uses "round-half-even",
        also known as "banker's rounding".
 
        The return type depends on the backend.
@@ -883,7 +883,7 @@ type DB_Column
              import Standard.Examples
 
              example_round = Examples.decimal_column.round 2
-    round self decimal_places:Integer=0 rounding_mode:Rounding_Mode=Rounding_Mode.half_up -> DB_Column ! Illegal_Argument | Invalid_Value_Type =
+    round self decimal_places:Integer=0 rounding_mode:Rounding_Mode=Rounding_Mode.Half_Up -> DB_Column ! Illegal_Argument | Invalid_Value_Type =
         Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
             if self.should_use_builtin_round decimal_places rounding_mode then self.round_builtin decimal_places rounding_mode else
                 self.short_circuit_special_floating_point <|
@@ -904,7 +904,7 @@ type DB_Column
     should_use_builtin_round : Integer -> Boolean -> Boolean
     should_use_builtin_round self decimal_places rounding_mode =
         # Don't use for banker's rounding (unless the dialect has a builtin for it)
-        bankers_ok = self.connection.dialect.flagged ..Use_Builtin_Bankers || rounding_mode != Rounding_Mode.bankers
+        bankers_ok = self.connection.dialect.flagged ..Use_Builtin_Bankers || rounding_mode != Rounding_Mode.Bankers
         # Don't use for negative decimal places, if the backend doesn't support it
         negative_dp_ok = decimal_places >= 0 || self.connection.dialect.flagged ..Supports_Negative_Decimal_Places
         # Don't use for floating-point inputs if decimal_places != 0, for Postgres
@@ -917,9 +917,9 @@ type DB_Column
     round_builtin self decimal_places rounding_mode =
         new_name = self.naming_helper.function_name "round" [self]
         case rounding_mode of
-            Rounding_Mode.bankers ->
+            Rounding_Mode.Bankers ->
                     self.make_binary_op "ROUND_BANKERS" (SQL_Expression.Literal decimal_places.to_text) new_name
-            Rounding_Mode.half_up ->
+            Rounding_Mode.Half_Up ->
                 case decimal_places == 0 of
                     True ->
                         self.make_unary_op "ROUND" new_name
@@ -941,7 +941,7 @@ type DB_Column
                 round_midpoint.let "round_midpoint" round_midpoint->
                     ((scaled.truncate % 2) == 0).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
                         even_is_up = (self >= 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
-                        half_goes_up = if rounding_mode == Rounding_Mode.bankers then even_is_up else self >= 0
+                        half_goes_up = if rounding_mode == Rounding_Mode.Bankers then even_is_up else self >= 0
                         do_round_up = half_goes_up.let "half_goes_up" x-> x.iif (self >= round_midpoint) (self > round_midpoint)
                         result = do_round_up.let "do_round_up" x-> x.iif ((round_base + 1.0) / scale) (round_base / scale)
                         result.rename new_name
@@ -962,7 +962,7 @@ type DB_Column
                 round_midpoint.let "round_midpoint" round_midpoint->
                     ((scaled.truncate.decimal_mod (k 2)) != k 0).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
                         even_is_up = (self >= k 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
-                        half_goes_up = if rounding_mode == Rounding_Mode.bankers then even_is_up else self >= k 0
+                        half_goes_up = if rounding_mode == Rounding_Mode.Bankers then even_is_up else self >= k 0
                         do_round_up = half_goes_up.let "half_goes_up" x-> x.iif (self >= round_midpoint) (self > round_midpoint)
                         result = do_round_up.let "do_round_up" x-> x.iif ((round_base + k 1).decimal_div scale) (round_base.decimal_div scale)
                         result.rename new_name
@@ -981,11 +981,11 @@ type DB_Column
                 result_unnudged = scaled_down * scale
                 result_unnudged.let "result_unnudged" result_unnudged->
                     if_non_neg =
-                        half_goes_up = if rounding_mode == Rounding_Mode.bankers then (scaled_down % 2) != 0 else self >= 0
+                        half_goes_up = if rounding_mode == Rounding_Mode.Bankers then (scaled_down % 2) != 0 else self >= 0
                         round_up = half_goes_up.let "half_goes_up" x-> x.iif (remainder >= halfway) (remainder > halfway)
                         round_up.let "round_up" x-> x.iif (result_unnudged + scale) result_unnudged
                     if_neg =
-                        half_goes_up = if rounding_mode == Rounding_Mode.bankers then (scaled_down % 2) == 0 else self >= 0
+                        half_goes_up = if rounding_mode == Rounding_Mode.Bankers then (scaled_down % 2) == 0 else self >= 0
                         round_up = half_goes_up.let "half_goes_up" x-> x.iif (remainder < -halfway) (remainder <= -halfway)
                         round_up.let "round_up" x-> x.iif (result_unnudged - scale) result_unnudged
 
