@@ -17,7 +17,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectLocally } from '#/hooks/projectHooks'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { formatDateTime } from 'enso-common/src/utilities/data/dateTime'
+import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 
 /** Props for a {@link AssetVersion}. */
 export interface AssetVersionProps {
@@ -67,7 +67,7 @@ export function AssetVersion(props: AssetVersionProps) {
         </div>
 
         <time className="text-xs text-not-selected">
-          {getText('onDateX', formatDateTime(new Date(version.lastModified)))}
+          {getText('onDateX', toReadableIsoString(new Date(version.lastModified)))}
         </time>
       </div>
 
