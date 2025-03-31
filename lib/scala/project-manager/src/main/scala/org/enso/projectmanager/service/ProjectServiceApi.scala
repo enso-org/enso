@@ -72,6 +72,7 @@ trait ProjectServiceApi[F[+_, +_]] {
     clientId: UUID,
     projectId: UUID,
     missingComponentAction: MissingComponentActions.MissingComponentAction,
+    cloudProjectDirectoryPath: Option[String],
     projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, RunningLanguageServerInfo]
 

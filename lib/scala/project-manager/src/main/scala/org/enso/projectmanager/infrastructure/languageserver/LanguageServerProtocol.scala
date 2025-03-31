@@ -24,7 +24,8 @@ object LanguageServerProtocol {
     project: Project,
     engineVersion: SemVer,
     progressTracker: ActorRef,
-    engineUpdate: Boolean
+    engineUpdate: Boolean,
+    extraEnv: Seq[(String, String)]
   )
 
   /** Base trait for server startup results.

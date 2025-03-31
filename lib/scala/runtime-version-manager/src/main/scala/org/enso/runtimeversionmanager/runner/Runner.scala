@@ -10,7 +10,6 @@ import org.slf4j.event.Level
 import java.net.URI
 import org.enso.runtimeversionmanager.components.{Engine, RuntimeVersionManager}
 import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
-import org.enso.runtimeversionmanager.runner.Runner.ENSO_CLOUD_PROJECT_DIRECTORY_PATH_ENV_NAME
 
 import java.nio.file.Path
 
@@ -105,7 +104,8 @@ class Runner(
       version,
       logLevel,
       logMasking,
-      additionalArguments
+      additionalArguments,
+      Seq()
     )
   }
 
@@ -116,7 +116,8 @@ class Runner(
     version: SemVer,
     logLevel: Level,
     logMasking: Boolean,
-    additionalArguments: Seq[String]
+    additionalArguments: Seq[String],
+    extraEnv: Seq[(String, String)]
   ): Try[RunSettings] =
     Try {
       val arguments = Seq(
@@ -150,9 +151,7 @@ class Runner(
         arguments ++ additionalArguments,
         workingDirectory         = Some(projectDirectory.getParent),
         connectLoggerIfAvailable = true,
-        extraEnv = Seq(
-          ENSO_CLOUD_PROJECT_DIRECTORY_PATH_ENV_NAME -> projectDirectory.toString
-        )
+        extraEnv                 = extraEnv
       )
     }
 
@@ -328,8 +327,4 @@ class Runner(
 object Runner {
 
   private val LAUNCHER_ENV_NAME = "ENSO_LAUNCHER"
-
-  /** The variable is used in stdlib to resolve relative paths. */
-  private val ENSO_CLOUD_PROJECT_DIRECTORY_PATH_ENV_NAME =
-    "ENSO_CLOUD_PROJECT_DIRECTORY_PATH"
 }
