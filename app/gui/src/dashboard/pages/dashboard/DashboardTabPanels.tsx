@@ -11,6 +11,7 @@ import { useOpenProjectMutation, useRenameProjectMutation } from '#/hooks/projec
 import type { AssetManagementApi } from '#/layouts/AssetsTable'
 import { useLaunchedProjects, usePage } from '#/providers/ProjectsProvider'
 import type { ProjectId } from '#/services/Backend'
+import { omit } from 'enso-common/src/utilities/data/object'
 import { lazy, type ReactNode } from 'react'
 import { Collection } from 'react-aria-components'
 import { twJoin } from 'tailwind-merge'
@@ -90,7 +91,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
   return (
     <Collection items={tabPanels}>
       {(tabPanelProps: aria.TabPanelProps & { children: ReactNode; wrapInActivity: boolean }) => (
-        <TabPanel {...tabPanelProps}>
+        <TabPanel {...omit(tabPanelProps, 'wrapInActivity')}>
           {({ state }: TabPanelRenderProps) => {
             const content = (
               <Suspense>

@@ -30,7 +30,6 @@ import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import { OfflineError } from '#/utilities/HttpClient'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { useDeferredValue } from 'react'
 import { toast } from 'react-toastify'
 import { Suspense } from '../components/Suspense'
@@ -201,7 +200,6 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
                 <ErrorBoundary>
                   <AssetsTable
                     assetManagementApiRef={assetsManagementApiRef}
-                    hidden={hidden}
                     query={query}
                     setQuery={setQuery}
                     category={deferredCategory}

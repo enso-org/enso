@@ -24,6 +24,10 @@ import { mergeProps } from '../aria'
 
 /**
  * A TabPanel provides the content for a tab.
+ *
+ * This component is a modified version of the `TabPanel` component from the
+ * `react-aria-components` library. We use simplified solution that better
+ * fits our needs and doesn't cause performance issues.
  */
 // eslint-disable-next-line no-restricted-syntax
 export const TabPanel = createHideableComponent(function TabPanel(
