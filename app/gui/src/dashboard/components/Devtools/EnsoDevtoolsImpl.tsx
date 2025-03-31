@@ -126,7 +126,7 @@ export function EnsoDevtools() {
               <Form
                 gap="small"
                 schema={(schema) => schema.object({ plan: schema.nativeEnum(backend.Plan) })}
-                defaultValues={{ plan: session.user.plan ?? backend.Plan.free }}
+                defaultValues={{ plan: session.user.plan }}
               >
                 {({ form }) => (
                   <>
@@ -227,6 +227,15 @@ export function EnsoDevtools() {
             >
               {(form) => (
                 <>
+                  <ariaComponents.Switch
+                    form={form}
+                    name="showDeveloperIds"
+                    label={getText('ensoDevtoolsFeatureFlags.showDeveloperIds')}
+                    description={getText('ensoDevtoolsFeatureFlags.showDeveloperIdsDescription')}
+                    onChange={(value) => {
+                      setFeatureFlag('showDeveloperIds', value)
+                    }}
+                  />
                   <ariaComponents.Switch
                     form={form}
                     name="enableMultitabs"

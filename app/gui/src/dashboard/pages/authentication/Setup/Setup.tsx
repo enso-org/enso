@@ -349,7 +349,7 @@ export function Setup() {
 
   const [searchParams] = useSearchParams()
 
-  const userPlan = session && 'user' in session ? (session.user.plan ?? Plan.free) : Plan.free
+  const userPlan = session && 'user' in session ? session.user.plan : Plan.free
 
   const steps = BASE_STEPS
   const isDebug = searchParams.get('__qd-debg__') === 'true'
