@@ -8,7 +8,6 @@ import { useFullUserSession } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
-import { Plan } from '#/services/Backend'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
@@ -94,7 +93,7 @@ export default function UserMenu(props: UserMenuProps) {
               {user.name}
             </Text>
 
-            <Text disableLineHeightCompensation>{getText(`${user.plan ?? Plan.free}`)}</Text>
+            <Text disableLineHeightCompensation>{getText(user.plan)}</Text>
           </div>
         </div>
         <FocusArea direction="vertical">

@@ -5,25 +5,12 @@ import { useText } from '#/providers/TextProvider'
 import { useIsMutating, useQuery, type MutationKey } from '@tanstack/react-query'
 import { BackendType } from 'enso-common/src/services/Backend'
 import { omit } from 'enso-common/src/utilities/data/object'
-import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { useState } from 'react'
 import { toast } from 'react-toastify'
 import { NotificationItem } from './NotificationItem'
 import type { NotificationInfo } from './types'
 
 const COMPUTED_NOTIFICATION_STORAGE_TIME_MS = 60_000
-const MUTATION_ID_MAP = new WeakMap<object, string>()
-
-/** Get or insert a mutation id for a computed mutation. */
-function upsertMutationId(variables: object) {
-  const id = MUTATION_ID_MAP.get(variables)
-  if (id != null) {
-    return id
-  }
-  const newId = uniqueString()
-  MUTATION_ID_MAP.set(variables, newId)
-  return newId
-}
 
 /** Return the number of ongoing mutations of the given type across both backends. */
 export function useIsMutatingForBothBackends(makeKey: (backendType: BackendType) => MutationKey) {
