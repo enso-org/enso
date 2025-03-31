@@ -138,7 +138,6 @@ export function closeProjectPath(projectId: backend.ProjectId) {
 export function getProjectDetailsPath(projectId: backend.ProjectId) {
   return `projects/${projectId}`
 }
-
 /** Relative HTTP path to the "get project logs" endpoint of the Cloud backend API. */
 export function getProjectSessionLogsPath(projectSessionId: backend.ProjectSessionId) {
   return `project-sessions/${projectSessionId}/logs`
@@ -147,9 +146,9 @@ export function getProjectSessionLogsPath(projectSessionId: backend.ProjectSessi
 export function duplicateProjectPath(projectId: backend.ProjectId) {
   return `projects/${projectId}/versions/clone`
 }
-/** Relative HTTP path to the "restore project" endpoint of the Cloud backend API. */
-export function restoreProjectPath(projectId: backend.ProjectId) {
-  return `projects/${projectId}/versions/restore`
+/** Relative HTTP path to the "restore asset" endpoint of the Cloud backend API. */
+export function restoreAssetPath(assetId: backend.AssetId) {
+  return `assets/${assetId}/versions/restore`
 }
 /** Relative HTTP path to the "open project" endpoint of the Cloud backend API. */
 export function openProjectPath(projectId: backend.ProjectId) {

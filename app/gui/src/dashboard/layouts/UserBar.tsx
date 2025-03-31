@@ -1,7 +1,6 @@
 /** @file A toolbar containing chat and the user menu. */
 import { SUBSCRIBE_PATH } from '#/appUtils'
 import ChatIcon from '#/assets/chat.svg'
-import DefaultUserIcon from '#/assets/default_user.svg'
 import ArrowDownIcon from '#/assets/expand_arrow_down.svg'
 import Offline from '#/assets/offline_filled.svg'
 import { Button, DialogTrigger, Menu, Popover, Text } from '#/components/AriaComponents'
@@ -19,6 +18,7 @@ import { isAbsoluteUrl } from '#/utilities/url'
 import type { TextId } from 'enso-common/src/text'
 import { AnimatePresence, motion } from 'framer-motion'
 import { z } from 'zod'
+import { ProfilePicture } from '../components/ProfilePicture/ProfilePicture'
 
 /** Whether the chat button should be visible. Temporarily disabled. */
 const SHOULD_SHOW_CHAT_BUTTON: boolean = false
@@ -152,11 +152,8 @@ export default function UserBar(props: UserBarProps) {
           <Button
             size="custom"
             variant="icon"
-            isActive
-            icon={<img src={user.profilePicture ?? DefaultUserIcon} className="aspect-square" />}
+            icon={<ProfilePicture picture={user.profilePicture} name={user.name} />}
             aria-label={getText('userMenuLabel')}
-            className="overflow-clip rounded-full opacity-100"
-            contentClassName="size-8"
           />
 
           <UserMenu goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />

@@ -1,10 +1,8 @@
 {
   "ellipsis": "...",
-
   "arbitraryMutationError": "An error occurred while performing an action. Please try again.",
   "arbitraryFetchError": "An error occurred while fetching data",
   "arbitraryFetchImageError": "An error occurred while fetching an image",
-
   "createFolderError": "Could not create new folder",
   "createProjectError": "Could not create new project",
   "createDatalinkError": "Could not create new Datalink",
@@ -21,18 +19,14 @@
   "moveMultipleAssetsError": "Some assets could not be moved, please try again.",
   "deleteAssetError": "Could not delete '$0'",
   "restoreAssetError": "Could not restore '$0'",
-
   "refetchQueriesPending": "Getting latest updates...",
   "refetchQueriesError": "Could not get latest updates. Some information may be outdated",
-
   "localBackendDatalinkError": "Cannot create Datalinks on the local drive",
   "localBackendSecretError": "Cannot create secrets on the local drive",
   "offlineUploadFilesError": "Cannot upload files when offline",
-
   "noIdeVersionError": "Could not get the IDE version of the project",
   "noJSONEndpointError": "Could not get the address of the project's JSON endpoint",
   "noBinaryEndpointError": "Could not get the address of the project's binary endpoint",
-
   "listVersionsError": "Could not list versions",
   "loadFileError": "Could not load file",
   "noAppDownloadError": "Could not find a compatible download link",
@@ -58,14 +52,11 @@
   "deleteUserError": "Could not delete user '$0'",
   "otherUserIsUsingProjectError": "Someone else is using this project",
   "localBackendNotDetectedError": "Could not detect the local backend",
-
   "invalidInput": "Invalid input",
   "nameShouldBeUnique": "Name must be unique",
   "nameShouldNotContainInvalidCharacters": "Name should not contain invalid characters",
   "invalidEmailValidationError": "Please enter a valid email address",
-
   "noNewProfilePictureError": "Could not upload a new profile picture because no image was found",
-
   "registrationError": "Something went wrong! Please try again or contact the administrators.",
   "missingEmailError": "Missing email address",
   "missingVerificationCodeError": "Missing verification code",
@@ -73,9 +64,7 @@
   "passwordLengthError": "Your password must be between 6 and 256 characters long.",
   "passwordValidationMessage": "Your password must include numbers, letters (both lowercase and uppercase) and symbols ( ^$*.[]{}()?\"!@#%&/,><':;|_~`=+-).",
   "passwordValidationError": "Your password does not meet the security requirements.",
-
   "sessionExpiredError": "Your session has expired. Please sign in again.",
-
   "confirmSignUpError": "Incorrect email or confirmation code.",
   "confirmRegistration": "Sign Up Successful!",
   "confirmRegistrationSubtitle": "Please confirm your email to complete registration",
@@ -107,7 +96,6 @@
   "resetPasswordSuccessSubtitle": "You will be redirected back to the IDE shortly.",
   "signOutSuccess": "Successfully logged out!",
   "userNotAuthorizedError": "Your session has expired. Please log in again.",
-
   "listUsersBackendError": "Could not list users in the organization",
   "createUserBackendError": "Could not create user",
   "notAuthorizedBackendError": "Please log in first",
@@ -140,7 +128,7 @@
   "copyAssetBackendError": "Could not copy '$0' to '$1'",
   "listProjectsBackendError": "Could not list projects",
   "createProjectBackendError": "Could not create project with name '$0'",
-  "restoreProjectBackendError": "Could not restore project '$0'",
+  "restoreAssetBackendError": "Could not restore asset",
   "duplicateProjectBackendError": "Could not duplicate project as '$0'",
   "closeProjectBackendError": "Could not close project '$0'",
   "listProjectSessionsBackendError": "Could not list sessions for project '$0'",
@@ -189,7 +177,6 @@
   "duplicateLabelError": "This label already exists.",
   "emptyStringError": "This value must not be empty.",
   "resolveProjectAssetPathBackendError": "Could not get asset",
-
   "directoryAssetType": "folder",
   "directoryDoesNotExistError": "Unable to find directory. Does it exist?",
   "projectAssetType": "project",
@@ -200,10 +187,8 @@
   "specialLoadingAssetType": "special loading asset",
   "specialEmptyAssetType": "special empty asset",
   "specialErrorAssetType": "special error asset",
-
   "couldNotConnectToPM": "Could not connect to the Project Manager. Please try restarting Enso, or manually launching the Project Manager.",
   "upgradeToUseCloud": "Upgrade your plan to use Enso Cloud.",
-
   "me": "Me",
   "or": "or",
   "login": "Login",
@@ -220,6 +205,7 @@
   "value": "Value",
   "name": "Name",
   "change": "Change",
+  "changes": "Changes",
   "confirm": "Confirm",
   "cancel": "Cancel",
   "create": "Create",
@@ -305,15 +291,12 @@
   "forward": "Forward",
   "more": "More",
   "close": "Close",
-
   "enterSecretPath": "Enter secret path",
   "enterText": "Enter text",
   "enterNumber": "Enter number",
   "enterInteger": "Enter integer",
-
   "itemSingular": "item",
   "itemPlural": "items",
-
   "resolveDuplicatesTitleOne": "1 conflicting file found",
   "resolveDuplicatesTitleMany": "$0 conflicting files found",
   "resolveDuplicatesDescriptionOne": "A file with the same name already exists in this folder. How would you like to proceed?",
@@ -336,9 +319,7 @@
   "andOtherFiles": "and $0 other files",
   "andOtherProject": "and 1 other project",
   "andOtherProjects": "and $0 other projects",
-
   "invalidConclusion": "Please select an option",
-
   "existing": "Existing",
   "new": "New",
   "skipAll": "Skip All",
@@ -346,7 +327,6 @@
   "apply": "Apply",
   "newName": "New Name",
   "newNameDescription": "Update the name of the file or project.",
-
   "cloudCategory": "Cloud",
   "myFilesCategory": "My Files",
   "recentCategory": "Recent",
@@ -370,7 +350,6 @@
   "userCategoryDropZoneLabel": "Move to $0's home directory",
   "teamCategoryDropZoneLabel": "Move to $0 team's directory",
   "localCategoryDropZoneLabel": "Move to Local category",
-
   "newFolder": "New Folder",
   "newProject": "New Project",
   "uploadFiles": "Import",
@@ -381,10 +360,8 @@
   "newSecretOnlyCloud": "New Secret - only available in the cloud",
   "newLabel": "New Label",
   "newEmptyProject": "New Project",
-
   "stopExecution": "Stop execution",
   "openInEditor": "Open in editor",
-
   "fieldErrorLabel": "Error",
   "unknownPlaceholder": "unknown",
   "expand": "Expand",
@@ -466,10 +443,14 @@
   "electronVersion": "Electron",
   "chromeVersion": "Chrome",
   "userAgent": "User Agent",
+  "seeChanges": "See changes",
   "compareWithLatest": "Compare with latest",
-  "compareVersionXWithLatest": "Compare version $0 with latest",
+  "compareVersionXWithY": "Compare $0 with $1",
+  "compareWithVersionY": "Compare with $0",
+  "compareVersionSubmenuLabel": "Compare with...",
   "projectSessionX": "Session $0",
   "onDateX": "on $0",
+  "byUserX": "by $0",
   "xUsersAndGroupsSelected": "$0 users and groups selected",
   "allTrashedItemsForever": "delete all trashed items forever",
   "addShortcut": "Add shortcut",
@@ -515,7 +496,7 @@
   "choosePlanDescription": "Select a plan to continue using Enso, or try the free edition. You can always upgrade later.",
   "localAssetsDoNotHaveVersions": "Local assets do not have versions",
   "noVersionsFound": "No versions found",
-  "latestIndicator": "(Latest)",
+  "latestIndicator": "Latest",
   "noDateSelected": "No date selected",
   "assetsDropzoneDescription": "Drag and drop files here, or click to upload.",
   "assetsDropFileDescription": "Drop here to upload 1 file",
@@ -550,7 +531,6 @@
   "uploadLargeFileError": "Could not upload file",
   "closeWindowDialogTitle": "Close window?",
   "anUploadIsInProgress": "An upload is in progress.",
-
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",
   "deleteSelectedAssetsActionText": "delete $0 selected items",
@@ -560,17 +540,14 @@
   "deleteUserGroupActionText": "delete the user group '$0'",
   "deleteThisProjectExecution": "delete this project execution schedule",
   "removeUserFromUserGroupActionText": "remove the user '$0' from the user group '$1'",
-
   "enterTheNewKeyboardShortcutFor": "Enter the new keyboard shortcut for $0.",
   "noShortcutEntered": "No shortcut entered",
-
   "addUser": "Add User",
   "typeEmailToInvite": "Type emails to invite",
   "emailIsBlank": "Email is blank",
   "emailIsNotAValidEmail": "'$0' is not a valid email",
   "userIsAlreadyInTheOrganization": "'$0' is already in the organization",
   "youAreAlreadyAddingUser": "You are already adding '$0'",
-
   "chatInputPlaceholder": "Type your message ...",
   "secretValueHidden": "●●●●●●●●",
   "secretNamePlaceholder": "Enter the name of the secret",
@@ -580,32 +557,26 @@
   "labelSearchPlaceholder": "Type labels to search",
   "inviteUserPlaceholder": "Type usernames or emails to search or invite",
   "inviteFirstUserPlaceholder": "Enter an email to invite someone",
-
   "loginToYourAccount": "Login to your account",
   "passwordPlaceholder": "Enter your password",
   "signUpOrLoginWithGoogle": "Sign up or login with Google",
   "signUpOrLoginWithGitHub": "Sign up or login with GitHub",
   "orLoginWithEmail": "or login with email",
   "dontHaveAnAccount": "Don't have an account?",
-
   "createANewAccount": "Create a new account",
   "confirmPasswordLabel": "Confirm password",
   "confirmPasswordPlaceholder": "Confirm your password",
   "alreadyHaveAnAccount": "Already have an account?",
-
   "setYourUsername": "Set your username",
   "usernamePlaceholder": "Enter your username",
   "organizationNamePlaceholder": "Enter your organization name",
   "setUsername": "Set username",
-
   "forgotYourPassword": "Forgot Your Password?",
   "sendLink": "Send link",
   "goBackToLogin": "Go back to login",
-
   "resetYourPassword": "Reset your password",
   "emailPlaceholder": "Enter your email",
   "confirmationCodePlaceholder": "Enter the confirmation code",
-
   "emailLabel": "Email",
   "passwordLabel": "Password",
   "changePassword": "Change Password",
@@ -637,14 +608,12 @@
   "newsItemHelpServerDescription": "Learn how to use Enso.",
   "newsItemCommunityServer": "Join the community",
   "newsItemCommunityServerDescription": "Chat with Enso team and other users.",
-
   "drivePageName": "Data Catalog",
   "editorPageName": "Spatial Analysis",
   "settingsPageName": "Settings",
   "chatButtonAltText": "Chat",
   "inviteButtonAltText": "Invite others to try Enso",
   "shareButtonAltText": "Share",
-
   "billedMonthly": "Billed monthly",
   "billedAnnually": "Billed annually",
   "tryFree": "Try free for $0 days, then ",
@@ -790,7 +759,6 @@
   "weeklyProjectExecutionRepeatType": "Weekly",
   "monthlyProjectExecutionRepeatType": "Monthly",
   "xthWeek": "$0 week",
-
   "someAgreementsHaveBeenUpdated": "Some agreements have been updated. Please re-read and agree to continue.",
   "licenseAgreementTitle": "Enso Terms of Service",
   "licenseAgreementCheckbox": "I agree to the Enso Terms of Service",
@@ -799,13 +767,11 @@
   "privacyPolicyCheckbox": "I agree to the Privacy Policy",
   "privacyPolicyCheckboxError": "Please agree to the Privacy Policy",
   "viewPrivacyPolicy": "View Privacy Policy",
-
   "metaModifier": "Meta",
   "shiftModifier": "Shift",
   "altModifier": "Alt",
   "ctrlModifier": "Ctrl",
   "superModifier": "Super",
-
   "ownerPermissionType": "owner",
   "adminPermissionType": "admin",
   "editPermissionType": "edit",
@@ -814,7 +780,6 @@
   "deletePermissionType": "delete",
   "docsPermissionModifier": "docs",
   "execPermissionModifier": "exec",
-
   "nameColumnName": "Name",
   "modifiedColumnName": "Modified",
   "sharedWithColumnName": "Shared with",
@@ -823,7 +788,6 @@
   "accessedDataColumnName": "Accessed data",
   "rootFolderColumnName": "Root folder",
   "pathColumnName": "Location",
-
   "hideDevtools": "Hide Devtools",
   "ensoDevtoolsShortcut": "Enso Devtools",
   "settingsShortcut": "Settings",
@@ -878,7 +842,6 @@
   "openInFileBrowserShortcut": "Open in File Browser",
   "openInFileBrowserShortcutWindows": "Open in Explorer",
   "openInFileBrowserShortcutMacOs": "Open in Finder",
-
   "nameColumnShow": "Name",
   "nameColumnHide": "Name",
   "modifiedColumnShow": "Modified",
@@ -893,9 +856,7 @@
   "accessedDataColumnHide": "Accessed Data",
   "pathColumnShow": "Location",
   "pathColumnHide": "Location",
-
   "hideColumn": "Hide column",
-
   "activityLog": "Activity Log",
   "startDate": "Start Date",
   "endDate": "End Date",
@@ -903,7 +864,6 @@
   "users": "Users",
   "type": "Type",
   "timestamp": "Timestamp",
-
   "mondayAbbr": "M",
   "tuesdayAbbr": "Tu",
   "wednesdayAbbr": "W",
@@ -911,28 +871,23 @@
   "fridayAbbr": "F",
   "saturdayAbbr": "Sa",
   "sundayAbbr": "Su",
-
   "deleteUserAccount": "Delete User Account",
   "deleteUserSuccess": "User deleted successfully! You can restore the account within 14 days.",
-
   "restoreAccount": "Restore Account",
   "restoreAccountDescription": "You can restore your account within 14 days of deletion. After 14 days, your account will be permanently deleted.",
   "restoreAccountSubmit": "Restore Account",
   "restoreUserSuccess": "Account restored successfully!",
   "restoreUserLocalBackendError": "Cannot restore user on the local backend.",
-
   "editAssetDescriptionModalTitle": "Edit Asset Description",
   "editAssetDescriptionModalPlaceholder": "Enter a description for the asset",
   "editAssetDescriptionModalSubmit": "Submit",
   "editAssetDescriptionModalCancel": "Cancel",
-
   "userGroups": "User Groups",
   "userGroup": "User Group",
   "newUserGroup": "New User Group",
   "userGroupsPaywallMessage": "You have reached the limit of user groups for your plan. Upgrade to create more user groups.",
   "userGroupsLimitMessage": "You can create up to $0 user group(s)",
   "userGroupNamePlaceholder": "Enter the name of the user group",
-
   "assetSearchFieldLabel": "Search through items",
   "startModalLabel": "Start modal",
   "userMenuLabel": "User Settings",
@@ -946,15 +901,14 @@
   "settingsSidebarLabel": "Settings sidebar",
   "settingsSearchBarLabel": "Settings search bar",
   "settingsSearchBarPlaceholder": "Type to search for settings.",
-
-  "restoreThisVersion": "Restore this version",
-  "duplicateThisVersion": "Duplicate this version",
-
+  "restoreThisVersion": "Restore",
+  "duplicateThisVersion": "Duplicate",
+  "duplicateAndOpen": "Duplicate and run",
+  "actions": "Actions",
+  "moreActions": "More actions",
   "appNameDesktopEdition": "Enso Desktop Edition",
   "appNameCloudEdition": "Enso Cloud Edition",
-
   "tryAgain": "Try again",
-
   "arbitraryFieldRequired": "Please fill out this field",
   "arbitraryFieldInvalid": "This field is invalid",
   "arbitraryFieldTooShort": "This field is too short",
@@ -967,32 +921,25 @@
   "arbitraryFieldNotMatchAll": "This field does not match all of the patterns",
   "arbitraryFieldNotContain": "This field does not contain another field",
   "arbitraryFieldNotContainAny": "This field does not contain any of the fields",
-
   "arbitraryErrorTitle": "An error occurred",
   "somethingWentWrong": "Something went wrong",
   "arbitraryErrorSubtitle": "Please try again or contact the administrators.",
   "arbitraryFormErrorMessage": "Something went wrong while submitting the form. Please try again or contact the administrators.",
-
   "subscribeSubmit": "Subscribe",
   "bankCardLabel": "Bank Card",
   "contactSales": "Contact Sales",
-
   "setupOrganization": "Setup your organization",
   "setupOrganizationDescription": "Before you can invite users, you need to set up your organization.",
   "setOrgNameTitle": "Set your organization name",
   "setOrgNameDescription": "Enter the name of your organization. You can always change it later.",
   "setOrgNameSubmit": "Set organization name",
-
   "inviteUsers": "Invite Users",
   "inviteUsersDescription": "Invite users to join your organization by entering their email addresses below. You can always invite more users later.",
-
   "setDefaultUserGroup": "Set default user group name",
   "setDefaultUserGroupDescription": "Enter the name of the default user group. All new users will be added to this group. You can always change it later.",
-
   "userContextMenuLabel": "User context menu",
   "userGroupContextMenuLabel": "User Group context menu",
   "userGroupUserContextMenuLabel": "User Group User context menu",
-
   "noResultsSettingsSection": "",
   "generalSettingsTabSection": "General",
   "accountSettingsTab": "Account",
@@ -1056,7 +1003,6 @@
   "securitySettingsTabSection": "Security",
   "activityLogSettingsTab": "Activity log",
   "activityLogSettingsSection": "Activity Log",
-
   "free": "Free",
   "freePlan": "Free Plan",
   "solo": "Solo",
@@ -1065,25 +1011,21 @@
   "teamPlan": "Team Plan",
   "enterprise": "Enterprise",
   "enterprisePlan": "Enterprise Plan",
-
   "paywallScreenTitle": "Unlock the potential of Enso",
   "paywallScreenDescription": "Upgrade to $0 to unlock additional features and get access to priority support.",
   "paywallAvailabilityLevel": "Available on $0 plan",
-
   "userGroupsFeatureLabel": "User Groups",
   "userGroupsFeatureBulletPoints": "Create user group to manage permissions;Assign user group to assets;Assign users to group",
   "userGroupsFeatureDescription": "Get fine-grained control over who can access your assets by creating user groups and assigning them to assets. Assign users to groups to manage their permissions.",
   "userGroupsFullFeatureLabel": "Unlimited User Groups",
   "userGroupsFullFeatureBulletPoints": "Create unlimited user groups to manage permissions;Assign user groups to assets;Assign users to groups",
   "userGroupsFullFeatureDescription": "Get fine-grained control over who can access your assets by creating user groups and assigning them to assets. Assign users to groups to manage their permissions.",
-
   "inviteUserFeatureLabel": "Invite Users",
   "inviteUserFeatureBulletPoints": "Invite users to join your organization;Manage user access to assets;Assign users to user groups",
   "inviteUserFeatureDescription": "Invite users to join your organization and manage their access to assets. Assign users to user groups to manage their permissions.",
   "inviteUserFullFeatureLabel": "Unlimited Invitations",
   "inviteUserFullFeatureBulletPoints": "Invite unlimited users to join your organization;Manage user access to assets;Assign users to user groups",
   "inviteUserFullFeatureDescription": "Invite unlimited users to join your organization and manage their access to assets. Assign users to user groups to manage their permissions.",
-
   "shareFeatureLabel": "Share Assets",
   "shareFeatureBulletPoints": "Share assets with other users;Manage shared assets;Assign shared assets to user groups",
   "shareFeatureDescription": "Share assets with other users and manage shared assets. Assign shared assets to user groups to manage their permissions.",
@@ -1091,11 +1033,9 @@
   "shareFullFeatureBulletPoints": "Share unlimited assets with other users;Manage shared assets;Assign shared assets to user groups",
   "shareFullFeatureDescription": "Share unlimited assets with other users and manage shared assets. Assign shared assets to user groups to manage their permissions.",
   "shareFullPaywallMessage": "You can only share assets with a single user group. Upgrade to share assets with multiple user groups and users.",
-
   "uploadToCloudFeatureLabel": "Upload to Cloud",
   "uploadToCloudFeatureBulletPoints": "Upload assets to the Cloud;Manage Cloud assets;Run projects in the Cloud",
   "uploadToCloudFeatureDescription": "Upload assets to the cloud and manage them in the cloud. Run projects in the cloud.",
-
   "ensoDevtoolsButtonLabel": "Open Enso Devtools",
   "ensoDevtoolsPopoverHeading": "Enso Devtools",
   "ensoDevtoolsPlanSelectSubtitle": "User Plan",
@@ -1107,7 +1047,6 @@
   "ensoDevtoolsFeatureFlags.enableAssetsTableBackgroundRefreshDescription": "Enable background refresh of the assets table.",
   "ensoDevtoolsFeatureFlags.assetsTableBackgroundRefreshInterval": "Assets Table Background Refresh Interval",
   "ensoDevtoolsFeatureFlags.assetsTableBackgroundRefreshIntervalDescription": "The interval at which the assets table will be refreshed in the background.",
-
   "setupEnso": "Set up Enso",
   "termsAndConditions": "Terms and Conditions",
   "back": "Back",
@@ -1119,12 +1058,12 @@
   "setUsernameDescription": "Start by setting your username. You can always change it later.",
   "allSet": "All set!",
   "allSetDescription": "You're all set up! Click the button below to start using Enso.",
-
   "assetDocs.notProject": "Please select a project to view its docs.",
   "assetDocs.noDocs": "No docs available for this asset.",
   "assetProperties.notSelected": "Select a single asset to view its properties.",
   "assetProperties.localBackend": "Properties are not available for local assets.",
   "assetVersions.localAssetsDoNotHaveVersions": "Local assets do not have versions.",
+  "assetVersions.invalidAssetType": "Versions are available for projects, files and datalinks only.",
   "assetVersions.notSelected": "Select a single asset to view its versions.",
   "assetProjectSessions.noSessions": "No sessions yet! Open the project to start a session.",
   "assetProjectSessions.localBackend": "Sessions are not available for local projects.",
@@ -1136,9 +1075,9 @@
   "assetProjectExecutionsCalendar.localBackend": "The execution calendar is not available for local projects.",
   "assetProjectExecutionsCalendar.notSelected": "Select a single project to view its execution calendar.",
   "assetProjectExecutionsCalendar.notProjectAsset": "Select a single project to view its execution calendar.",
-
   "cloudBrowserDisabledTitle": "Desktop App Required.",
   "cloudBrowserDisabledSubtitle": "For the best experience and full functionality, please use our desktop app. You will be redirected to the desktop app shortly. Alternatively, you can download the desktop app below.",
   "openInDesktop": "Open in Desktop",
-  "downloadIDE": "Download Enso Desktop Edition"
+  "downloadIDE": "Download Enso Desktop Edition",
+  "sendEmail": "Send email"
 }
