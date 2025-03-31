@@ -12,6 +12,7 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -158,13 +159,23 @@ public final class Function extends EnsoObject {
     return getCallTarget().getRootNode().getName();
   }
 
+  @ExportMessage
+  boolean hasSourceLocation() {
+    return getCallTarget().getRootNode().getSourceSection() != null;
+  }
+
   /**
    * @return the source section this function was defined in.
    */
   @TruffleBoundary
   @ExportMessage(name = "getSourceLocation")
-  public SourceSection getSourceSection() {
-    return getCallTarget().getRootNode().getSourceSection();
+  public SourceSection getSourceSection() throws UnsupportedMessageException {
+    var section = getCallTarget().getRootNode().getSourceSection();
+    if (section == null) {
+      throw UnsupportedMessageException.create();
+    } else {
+      return section;
+    }
   }
 
   /**
@@ -212,11 +223,6 @@ public final class Function extends EnsoObject {
   @ExportMessage
   boolean isExecutable() {
     return true;
-  }
-
-  @ExportMessage
-  boolean hasSourceLocation() {
-    return getSourceSection() != null;
   }
 
   @ExportMessage
@@ -281,7 +287,10 @@ public final class Function extends EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   Object invokeMember(String member, Object... args)
-      throws ArityException, UnknownIdentifierException, UnsupportedTypeException {
+      throws ArityException,
+          UnknownIdentifierException,
+          UnsupportedTypeException,
+          UnsupportedMessageException {
     switch (member) {
       case MethodNames.Function.EQUALS:
         Object that = Types.extractArguments(args, Object.class);

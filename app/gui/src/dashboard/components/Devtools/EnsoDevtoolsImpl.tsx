@@ -221,6 +221,15 @@ export function EnsoDevtools() {
                 <>
                   <ariaComponents.Switch
                     form={form}
+                    name="showDeveloperIds"
+                    label={getText('ensoDevtoolsFeatureFlags.showDeveloperIds')}
+                    description={getText('ensoDevtoolsFeatureFlags.showDeveloperIdsDescription')}
+                    onChange={(value) => {
+                      setFeatureFlag('showDeveloperIds', value)
+                    }}
+                  />
+                  <ariaComponents.Switch
+                    form={form}
                     name="enableMultitabs"
                     label={getText('ensoDevtoolsFeatureFlags.enableMultitabs')}
                     description={getText('ensoDevtoolsFeatureFlags.enableMultitabsDescription')}
