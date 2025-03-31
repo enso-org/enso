@@ -15,6 +15,7 @@ import type { AnyAsset, DatalinkAsset, FileAsset, ProjectAsset } from '#/service
 import { AssetType, BackendType, S3ObjectVersionId } from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
 import { useStore } from '#/utilities/zustand'
+import { includes } from 'enso-common/src/utilities/data/array'
 import { assetPanelStore } from '../AssetPanelState'
 import { AssetVersion, type DuplicateOptions, type Version } from './AssetVersion'
 import { assetVersionsQueryOptions } from './useAssetVersions'
@@ -29,8 +30,6 @@ interface AddNewVersionVariables {
 export interface AssetVersionsProps {
   readonly backend: Backend
 }
-
-const ALLOWED_ASSET_TYPES = [AssetType.project, AssetType.datalink, AssetType.file]
 
 /** Display a list of previous versions of an asset. */
 export function AssetVersions(props: AssetVersionsProps) {
@@ -159,5 +158,5 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
  * Check if the asset is allowed to have versions.
  */
 function isAllowedAssetType(asset: AnyAsset): asset is DatalinkAsset | FileAsset | ProjectAsset {
-  return ALLOWED_ASSET_TYPES.includes(asset.type)
+  return includes([AssetType.project, AssetType.datalink, AssetType.file], asset.type)
 }
