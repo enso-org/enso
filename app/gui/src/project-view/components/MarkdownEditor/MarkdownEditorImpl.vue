@@ -105,15 +105,14 @@ defineExpose({
       <slot name="toolbarRight" />
     </div>
     <slot name="belowToolbar" />
-    <div class="scrollArea">
-      <CodeMirrorRoot
-        ref="editorRoot"
-        v-bind="$attrs"
-        :class="{ MarkdownEditor: true, editing }"
-        @focusout="focused = false"
-      />
+    <CodeMirrorRoot
+      ref="editorRoot"
+      v-bind="$attrs"
+      :class="{ editing }"
+      @focusout="focused = false"
+    >
       <VueHostRender :host="vueHost" />
-    </div>
+    </CodeMirrorRoot>
   </div>
 </template>
 
@@ -135,35 +134,32 @@ defineExpose({
   z-index: 250;
 }
 
-.scrollArea {
-  width: 100%;
-  overflow-y: auto;
-  /* Prevent touchpad back gesture, which can be triggered while panning. */
-  overscroll-behavior-x: none;
-  flex-grow: 1;
-}
-
-:deep(.cm-content) {
-  /*noinspection CssUnresolvedCustomProperty,CssNoGenericFontName*/
-  font-family: var(--font-sans);
-}
-
 /*noinspection CssUnusedSymbol*/
-:deep(.cm-line) {
-  padding-left: 0;
-  padding-right: 0;
-}
+.CodeMirrorRoot {
+  & :deep(.cm-content) {
+    /*noinspection CssUnresolvedCustomProperty,CssNoGenericFontName*/
+    font-family: var(--font-sans);
+  }
 
-/*noinspection CssUnusedSymbol*/
-:deep(.cm-editor) {
-  opacity: 1;
-  color: black;
-  font-size: 12px;
-}
+  /*noinspection CssUnusedSymbol*/
+  & :deep(.cm-line) {
+    padding-left: 0;
+    padding-right: 0;
+  }
 
-/*noinspection CssUnusedSymbol*/
-:deep(img.uploading) {
-  opacity: 0.5;
+  /*noinspection CssUnusedSymbol*/
+  & :deep(.cm-editor) {
+    flex-grow: 1;
+
+    opacity: 1;
+    color: black;
+    font-size: 12px;
+  }
+
+  /*noinspection CssUnusedSymbol*/
+  & :deep(img.uploading) {
+    opacity: 0.5;
+  }
 }
 </style>
 
@@ -218,8 +214,8 @@ defineExpose({
 
 /* === View-mode === */
 
-:global(.MarkdownEditor:not(.editing) .cm-line),
-:global(.MarkdownEditor .cm-line:not(.cm-has-cursor)) {
+:global(.CodeMirrorRoot:not(.editing) .cm-line),
+:global(.CodeMirrorRoot .cm-line:not(.cm-has-cursor)) {
   :global(.cm-image-markup) {
     display: none;
   }

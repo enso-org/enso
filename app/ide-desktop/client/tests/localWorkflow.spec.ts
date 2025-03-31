@@ -55,7 +55,10 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }) => {
   await expect(page.locator('.NavBreadcrumb')).toHaveText(['New Project 1', 'collapsed'])
 
   // Rename collapsed function
-  await page.locator('.FunctionSignatureEditor .FunctionName').dblclick() // double click for select all.
+  await page
+    .locator('.FunctionSignatureEditor')
+    .getByTestId('widget-function-name-content')
+    .dblclick() // double click for select all.
   await page.keyboard.insertText('new_name')
   await page.keyboard.press('Enter')
   await expect(page.locator('.NavBreadcrumb')).toHaveText(['New Project 1', 'new_name'])
