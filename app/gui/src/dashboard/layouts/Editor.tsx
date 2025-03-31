@@ -30,7 +30,6 @@ export interface EditorProps {
 
 /** The container that launches the IDE. */
 function Editor(props: EditorProps) {
-  console.log('RENDER EDITOR', props)
   const { project, hidden = false } = props
 
   const backend = backendProvider.useBackendForProjectType(project.type)
@@ -57,21 +56,17 @@ function Editor(props: EditorProps) {
   })
 
   const { isProjectClosed, isProjectOpening, isProjectOpened, isProjectClosing } = projectQuery.data
-  console.log('QUERY DATA', projectQuery.data)
 
   const isOpeningFailed = openProjectMutation.isError
   const openingError = openProjectMutation.error
-  console.log('MUTATION DATA', isOpeningFailed, openingError)
   const startProject = openProjectMutation.mutate
 
   const onRenameProject = useEventCallback(async (newName: string) => {
-    console.log('RENAMING PROJECT')
     await renameProjectMutation.mutateAsync({ newName, project })
   })
 
   React.useEffect(() => {
     if (isProjectClosed) {
-      console.log('STARTING PROJECT')
       startProject(project)
     }
   }, [isProjectClosed, startProject, project])

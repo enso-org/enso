@@ -10,7 +10,6 @@ import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as backendModule from '#/services/Backend'
 import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
-import { createCrossingProviderForPureVueInReact } from 'veaury'
 
 const TAB_TYPES = ['drive', 'settings'] as const
 
@@ -88,16 +87,16 @@ const ProjectsContext = React.createContext<ProjectsContextType | null>(null)
 
 const PageContext = React.createContext<LaunchedProjectId | TabType | null>(null)
 const LaunchedProjectsContext = React.createContext<readonly LaunchedProject[] | null>(null)
-const [useProjectVueContext, ProjectsVueContextProvider] = createCrossingProviderForPureVueInReact(
-  () => {
-    return {
-      page: usePage(),
-      setPage: useSetPage(),
-      launchedProjects: useLaunchedProjects(),
-    }
-  },
-)
-export { useProjectVueContext }
+// const [useProjectVueContext, ProjectsVueContextProvider] = createCrossingProviderForPureVueInReact(
+//   () => {
+//     return {
+//       page: usePage(),
+//       setPage: useSetPage(),
+//       launchedProjects: useLaunchedProjects(),
+//     }
+//   },
+// )
+// export { useProjectVueContext }
 
 /** Props for a {@link ProjectsProvider}. */
 export type ProjectsProviderProps = Readonly<React.PropsWithChildren>
@@ -144,10 +143,7 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
       addLaunchedProject,
       removeLaunchedProject,
       setLaunchedProjects,
-      setPage: (pg: LaunchedProjectId | TabType) => {
-        console.log('SET PAGE', pg)
-        setPage(pg)
-      },
+      setPage,
       getState,
     }),
     [
@@ -164,7 +160,7 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
     <ProjectsContext.Provider value={projectsContextValue}>
       <PageContext.Provider value={page}>
         <LaunchedProjectsContext.Provider value={launchedProjects}>
-          <ProjectsVueContextProvider>{children}</ProjectsVueContextProvider>
+          {children}
         </LaunchedProjectsContext.Provider>
       </PageContext.Provider>
     </ProjectsContext.Provider>

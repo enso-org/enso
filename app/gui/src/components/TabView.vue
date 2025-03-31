@@ -1,12 +1,18 @@
+<script lang="ts">
+import { Suspense } from '#/components/Suspense'
+
+const LazyDrive = lazyReactInVue(() => import('#/layouts/Drive'))
+const LazyEditor = lazyReactInVue(() => import('#/layouts/Editor'))
+const LazySettings = lazyReactInVue(() => import('#/layouts/Settings'))
+</script>
+
 <script setup lang="ts">
-import ReactDrive from '#/layouts/Drive'
-import ReactEditor from '#/layouts/Editor'
-import ReactSettings from '#/layouts/Settings'
 import { LaunchedProject, LaunchedProjectId, TabType } from '#/providers/ProjectsProvider'
 import { assert } from '@/util/assert'
-import * as react from 'react'
-import { applyPureReactInVue } from 'veaury'
+import { applyPureReactInVue, lazyReactInVue } from 'veaury'
 import { computed, h, onMounted, onUnmounted } from 'vue'
+
+const ReactSuspense = applyPureReactInVue(Suspense)
 
 const { initialProjectName, ydocUrl, page, setPage, launchedProjects } = defineProps<{
   initialProjectName: string | null
@@ -16,12 +22,9 @@ const { initialProjectName, ydocUrl, page, setPage, launchedProjects } = defineP
   launchedProjects: LaunchedProject[]
 }>()
 
-const Drive = applyPureReactInVue(ReactDrive)
-const Editor = applyPureReactInVue(ReactEditor)
-const Settings = applyPureReactInVue(ReactSettings)
-const LazyDrive = applyPureReactInVue(react.lazy(() => import('#/layouts/Drive')))
-const LazyEditor = applyPureReactInVue(react.lazy(() => import('#/layouts/Editor')))
-const LazySettings = applyPureReactInVue(react.lazy(() => import('#/layouts/Settings')))
+// const Drive = applyPureReactInVue(ReactDrive)
+// const Editor = applyPureReactInVue(ReactEditor)
+// const Settings = applyPureReactInVue(ReactSettings)
 
 // const {
 //   page,
@@ -38,14 +41,15 @@ const currentComponent = computed(() => {
   switch (page) {
     case null:
     case 'drive':
-      return h(Drive, { initialProjectName })
+      return h(LazyDrive, { initialProjectName })
     case 'settings':
-      return Settings
+      return LazySettings
 
-    default:
+    default: {
       const project = launchedProjects.find((p) => p.id === page)
       assert(project != null)
-      return h(Editor, { project, ydocUrl })
+      return h(LazyEditor, { project, ydocUrl })
+    }
   }
 })
 
@@ -56,16 +60,14 @@ onUnmounted(() => console.error('UNMOUNTED'))
   <div class="TabView">
     <div class="bar">
       <div class="tab" @click="setPage('drive')">Drive</div>
-      <div
-        v-for="(project, index) in launchedProjects"
-        :key="project.id"
-        @click="setPage(project.id)"
-      >
+      <div v-for="project in launchedProjects" :key="project.id" @click="setPage(project.id)">
         {{ project.title }}
       </div>
     </div>
   </div>
   <KeepAlive>
-    <component :is="currentComponent" class="panel" />
+    <ReactSuspense>
+      <component :is="currentComponent" class="panel" />
+    </ReactSuspense>
   </KeepAlive>
 </template>

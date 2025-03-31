@@ -45,7 +45,6 @@ export interface DriveProps {
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 function Drive(props: DriveProps) {
-  console.log('RENDERING DRIVE')
   const { isOffline } = offlineHooks.useOffline()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useFullUserSession()

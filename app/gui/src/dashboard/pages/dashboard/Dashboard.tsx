@@ -38,15 +38,7 @@ import { vueComponent } from '#/utilities/vue'
 import VueTabView from '@/../components/TabView.vue'
 import { usePrefetchQuery } from '@tanstack/react-query'
 
-const TabView = vueComponent(VueTabView, {
-  useInjectPropsFromWrapper: () => {
-    return {
-      page: usePage(),
-      setPage: useSetPage(),
-      launchedProjects: useLaunchedProjects(),
-    }
-  },
-}).default
+const TabView = vueComponent(VueTabView).default
 
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
@@ -106,6 +98,7 @@ function DashboardInner(props: DashboardProps) {
   const categoriesAPI = useCategoriesAPI()
   const page = usePage()
   const setPage = useSetPage()
+  const launchedProjects = useLaunchedProjects()
 
   const openEditor = projectHooks.useOpenEditor()
   const openProjectLocally = projectHooks.useOpenProjectLocally()
@@ -195,8 +188,6 @@ function DashboardInner(props: DashboardProps) {
     setPage('settings')
   })
 
-  console.log('Dashboard refresh???')
-
   return (
     <Page hideInfoBar hideChat>
       <div
@@ -206,7 +197,13 @@ function DashboardInner(props: DashboardProps) {
           modalProvider.unsetModal()
         }}
       >
-        <TabView initialProjectName={initialProjectName} ydocUrl={ydocUrl} />
+        <TabView
+          initialProjectName={initialProjectName}
+          ydocUrl={ydocUrl}
+          page={page}
+          setPage={setPage}
+          launchedProjects={launchedProjects}
+        />
         {/* <aria.Tabs
           className="relative flex min-h-full grow select-none flex-col container-size"
           selectedKey={page}
