@@ -272,7 +272,6 @@ export default class RemoteBackend extends Backend {
   /** The path to the root directory of this {@link Backend}. */
   override rootPath(user: backend.User) {
     switch (user.plan) {
-      case undefined:
       case backend.Plan.free:
       case backend.Plan.solo: {
         return `enso://Users/${user.name}`
@@ -290,7 +289,6 @@ export default class RemoteBackend extends Backend {
     organization: backend.OrganizationInfo | null,
   ): backend.DirectoryId | null {
     switch (user.plan) {
-      case undefined:
       case backend.Plan.free:
       case backend.Plan.solo: {
         return user.rootDirectoryId
@@ -537,29 +535,44 @@ export default class RemoteBackend extends Backend {
     if (response.status === STATUS_NOT_FOUND) {
       // User info has not yet been created, we should redirect to the onboarding page.
       return null
-    } else if (response.status === STATUS_NOT_AUTHORIZED) {
+    }
+
+    if (response.status === STATUS_NOT_AUTHORIZED) {
       // User is not authorized, we should redirect to the login page.
       return await this.throw(
         response,
         new backend.NotAuthorizedError(this.getText('notAuthorizedBackendError')),
       )
-    } else if (!responseIsSuccessful(response)) {
+    }
+
+    if (!responseIsSuccessful(response)) {
       // Arbitrary error, might be a server error or a network error.
       return this.throw(response, 'usersMeBackendError')
-    } else {
-      const user = await response.json()
-
-      Object.defineProperty(user, 'isEnsoTeamMember', {
-        value: user.email.endsWith('@enso.org') || user.email.endsWith('@ensoanalytics.com'),
-        writable: false,
-        configurable: false,
-        enumerable: true,
-      })
-
-      this.user = user
-
-      return user
     }
+
+    const user = await response.json()
+
+    const plan = user.plan
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (plan == null) {
+      // @ts-expect-error The property is declared as read-only, but it's not enforced.
+      // We assume it's read-only for external use.
+      // backend may return null for the plan, but this means that the user is on the free plan.
+      // so we normalize it to the free plan.
+      user.plan = backend.Plan.free
+    }
+
+    Object.defineProperty(user, 'isEnsoTeamMember', {
+      value: user.email.endsWith('@enso.org') || user.email.endsWith('@ensoanalytics.com'),
+      writable: false,
+      configurable: false,
+      enumerable: true,
+    })
+
+    this.user = user
+
+    return user
   }
 
   /**
