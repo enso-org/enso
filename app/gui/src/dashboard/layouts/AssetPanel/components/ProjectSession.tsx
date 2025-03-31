@@ -5,7 +5,7 @@ import ProjectLogsModal from '#/modals/ProjectLogsModal'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import type { ProjectSession as BackendProjectSession, ProjectAsset } from '#/services/Backend'
-import { formatDateTime } from 'enso-common/src/utilities/data/dateTime'
+import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 
 /** Props for a {@link ProjectSession}. */
 export interface ProjectSessionProps {
@@ -26,7 +26,7 @@ export function ProjectSession(props: ProjectSessionProps) {
       <div className="flex flex-1 flex-col">
         {getText('projectSessionX', index)}
         <time className="text-xs">
-          {getText('onDateX', formatDateTime(new Date(projectSession.createdAt)))}
+          {getText('onDateX', toReadableIsoString(new Date(projectSession.createdAt)))}
         </time>
       </div>
       <div className="flex items-center gap-1">

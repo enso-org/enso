@@ -72,7 +72,7 @@ XML_Element.to_table : Table ! Type_Error
 XML_Element.to_table self =
     self.to Table
 
-## GROUP Standard.Base.Constants
+## PRIVATE
    ICON data_input
    Converts an object or a Vector of object into a Table, by looking up the
    requested fields from each item.

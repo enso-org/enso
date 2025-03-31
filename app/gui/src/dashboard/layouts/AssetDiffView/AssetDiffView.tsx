@@ -9,29 +9,33 @@ import { StatelessSpinner } from '../../components/StatelessSpinner'
 
 /** Props for an {@link AssetDiffView}. */
 export interface AssetDiffViewProps {
-  readonly versionId: backendService.S3ObjectVersionId
-  readonly latestVersionId: backendService.S3ObjectVersionId
+  readonly currentVersionId: backendService.S3ObjectVersionId | undefined
+  readonly previousVersionId: backendService.S3ObjectVersionId | undefined
   readonly project: backendService.ProjectAsset
   readonly backend: Backend
 }
 
 /** Diff view comparing `Main.enso` of two versions for a specific project. */
 export function AssetDiffView(props: AssetDiffViewProps) {
-  const { versionId, project, backend, latestVersionId } = props
+  const { currentVersionId, previousVersionId, project, backend } = props
 
-  const [versionContent, headContent] = useSuspenseQueries({
+  const [currentVersionContent, previousVersionContent] = useSuspenseQueries({
     queries: [
-      versionContentQueryOptions({
-        versionId,
-        projectId: project.id,
-        backend,
-      }),
-      versionContentQueryOptions({
-        versionId: latestVersionId,
-        projectId: project.id,
-        backend,
-      }),
-    ],
+      currentVersionId ?
+        versionContentQueryOptions({
+          versionId: currentVersionId,
+          projectId: project.id,
+          backend,
+        })
+      : undefined,
+      previousVersionId ?
+        versionContentQueryOptions({
+          versionId: previousVersionId,
+          projectId: project.id,
+          backend,
+        })
+      : undefined,
+    ].filter((query) => query !== undefined),
   })
 
   const loader = (
@@ -52,8 +56,8 @@ export function AssetDiffView(props: AssetDiffViewProps) {
           colors: { 'editor.background': '#00000000' },
         })
       }}
-      original={versionContent.data}
-      modified={headContent.data}
+      original={previousVersionContent?.data ?? ''}
+      modified={currentVersionContent?.data ?? ''}
       language="enso"
       options={{ readOnly: true }}
       loading={loader}

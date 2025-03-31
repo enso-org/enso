@@ -6,8 +6,6 @@ import type * as backendService from '#/services/Backend'
 import type Backend from '#/services/Backend'
 import { splitFileContents } from 'ydoc-shared/ensoFile'
 
-const TWO_MINUTES_MS = 120_000
-
 /** Options for {@link useFetchVersionContent}. */
 export interface FetchVersionContentOptions {
   readonly projectId: backendService.ProjectId
@@ -31,11 +29,10 @@ export function versionContentQueryOptions(params: FetchVersionContentOptions) {
       },
     ] as const,
     queryFn: ({ queryKey }) => {
-      const [, { method, versionId, projectId }] = queryKey
-      return params.backend[method](projectId, versionId)
+      const [, { versionId, projectId }] = queryKey
+      return params.backend.getFileContent(projectId, versionId)
     },
     select: (data) => (params.metadata === true ? data : omitMetadata(data)),
-    staleTime: TWO_MINUTES_MS,
   })
 }
 
