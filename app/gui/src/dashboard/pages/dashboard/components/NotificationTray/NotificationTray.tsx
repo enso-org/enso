@@ -9,7 +9,6 @@ import { useState } from 'react'
 import { NotificationItem } from './NotificationItem'
 import {
   useComputedNotifications,
-  useMoreComputedNotificationsIfEnabled,
   useNotificationState,
 } from './computedNotificationHooks'
 import type { NotificationInfo } from './types'
@@ -22,7 +21,6 @@ export function NotificationTray() {
   const notificationState = useNotificationState()
   const { computedNotifications, removeComputedNotification } = notificationState
   useComputedNotifications(notificationState)
-  useMoreComputedNotificationsIfEnabled(notificationState)
 
   const [lastOpenTimestamp, setLastOpenTimestamp] = useState(0)
   const hasUnreadNotifications = computedNotifications.some(
