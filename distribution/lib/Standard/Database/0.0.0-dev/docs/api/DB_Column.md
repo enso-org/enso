@@ -77,15 +77,15 @@
     - read self max_rows:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Table.Column.Column
     - regex_match self pattern:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex) -> Standard.Database.DB_Column.DB_Column
     - rename self name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
-    - round self decimal_places:Standard.Base.Data.Numbers.Integer= use_bankers:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
-    - round_builtin self decimal_places:Standard.Base.Any.Any use_bankers:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - round_decimal self decimal_places:Standard.Base.Any.Any use_bankers:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - round_float self decimal_places:Standard.Base.Any.Any use_bankers:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - round_integer self decimal_places:Standard.Base.Any.Any use_bankers:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - round self decimal_places:Standard.Base.Data.Numbers.Integer= rounding_mode:Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode= -> Standard.Base.Any.Any
+    - round_builtin self decimal_places:Standard.Base.Any.Any rounding_mode:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - round_decimal self decimal_places:Standard.Base.Any.Any rounding_mode:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - round_float self decimal_places:Standard.Base.Any.Any rounding_mode:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - round_integer self decimal_places:Standard.Base.Any.Any rounding_mode:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - second self -> Standard.Base.Any.Any
     - short_circuit_special_floating_point self exp:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - should_be_selected_by_type self value_type:Standard.Table.Value_Type.Value_Type -> Standard.Base.Data.Boolean.Boolean
-    - should_use_builtin_round self decimal_places:Standard.Base.Any.Any use_bankers:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - should_use_builtin_round self decimal_places:Standard.Base.Any.Any rounding_mode:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - sort self order:Standard.Base.Data.Sort_Direction.Sort_Direction= -> Standard.Database.DB_Column.DB_Column
     - sql_type self -> Standard.Base.Any.Any
     - starts_with self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Database.DB_Column.DB_Column

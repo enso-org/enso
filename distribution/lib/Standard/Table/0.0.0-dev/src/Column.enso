@@ -876,7 +876,8 @@ type Column
        - decimal_places: The number of decimal places to round to. Can be
          negative, which results in rounding to positive integer powers of 10.
          Must be between -15 and 15 (inclusive).
-       - use_bankers: Rounds mid-point to nearest even number.
+       - rounding_mode: specifies how to break ties for the least significant
+         digit.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
 

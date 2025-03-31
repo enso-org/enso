@@ -85,7 +85,7 @@
     - rename self name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - requires_numeric_formatter_check self -> Standard.Base.Any.Any
     - reverse self -> Standard.Table.Column.Column
-    - round self decimal_places:Standard.Base.Data.Numbers.Integer= use_bankers:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - round self decimal_places:Standard.Base.Data.Numbers.Integer= rounding_mode:Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode= -> Standard.Base.Any.Any
     - running self statistic:Standard.Base.Data.Statistics.Statistic= name:Standard.Base.Data.Text.Text= -> Standard.Table.Column.Column
     - second self -> Standard.Base.Any.Any
     - should_be_selected_by_type self value_type:Standard.Table.Value_Type.Value_Type -> Standard.Base.Data.Boolean.Boolean

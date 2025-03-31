@@ -999,7 +999,8 @@ type Decimal
          negative, which results in rounding to positive integer powers of 10.
          Must be between Java `Integer.MIN_VALUE` and `Integer.MAX_VALUE`
          (-2147483648 and 2147483647) (inclusive).
-       - use_bankers: Rounds mid-point to nearest even number.
+       - rounding_mode: specifies how to break ties for the least significant
+         digit.
 
        ! Error Conditions
 
