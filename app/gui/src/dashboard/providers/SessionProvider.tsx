@@ -363,7 +363,7 @@ export default function SessionProvider(props: SessionProviderProps) {
     return 'unauthenticated'
   })()
 
-  const shouldSuspend = sessionStatus === 'expired' || logoutMutation.isPending
+  const shouldSuspend = sessionStatus === 'expired' || logoutMutation.isPending || session.isPending
 
   const sessionContextValue = {
     signUp,

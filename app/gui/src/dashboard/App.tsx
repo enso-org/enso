@@ -95,7 +95,6 @@ import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import { useInitAuthService } from '#/authentication/service'
 import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
 import { CloudBrowserDisabledLayout } from '#/providers/AuthProvider'
-import { useMutation } from '@tanstack/react-query'
 import { useOffline } from './hooks/offlineHooks'
 
 // ============================
@@ -210,28 +209,6 @@ export default function App(props: AppProps) {
       }
     },
   })
-
-  const { isOffline } = useOffline()
-  const { getText } = textProvider.useText()
-  const queryClient = reactQuery.useQueryClient()
-
-  const { mutate: executeBackgroundUpdate } = useMutation({
-    mutationKey: ['refetch-queries', { isOffline }],
-    scope: { id: 'refetch-queries' },
-    mutationFn: () => queryClient.refetchQueries({ type: 'all', queryKey: [RemoteBackend.type] }),
-    networkMode: 'online',
-    onError: () => {
-      toastify.toast.error(getText('refetchQueriesError'), {
-        position: 'bottom-right',
-      })
-    },
-  })
-
-  React.useEffect(() => {
-    if (!isOffline) {
-      executeBackgroundUpdate()
-    }
-  }, [executeBackgroundUpdate, isOffline])
 
   // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
@@ -534,9 +511,10 @@ function AppRouter(props: AppRouterProps) {
         <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
           <AuthProvider onAuthenticated={onAuthenticated}>
             <InputBindingsProvider inputBindings={inputBindings}>
-              <LocalBackendPathSynchronizer />
-              <VersionChecker />
               {routes}
+              <VersionChecker />
+              <LocalBackendPathSynchronizer />
+              <OnOnlineQueryRefresher />
             </InputBindingsProvider>
           </AuthProvider>
         </BackendProvider>
@@ -556,6 +534,35 @@ function LocalBackendPathSynchronizer() {
       localBackend.resetRootPath()
     }
   }
+
+  return null
+}
+
+/**
+ * Refetch all queries when the user comes online.
+ */
+function OnOnlineQueryRefresher() {
+  const { isOffline } = useOffline()
+  const { getText } = textProvider.useText()
+  const queryClient = reactQuery.useQueryClient()
+
+  const { mutate: executeBackgroundUpdate } = reactQuery.useMutation({
+    mutationKey: ['refetch-queries', { isOffline }],
+    scope: { id: 'refetch-queries' },
+    mutationFn: () => queryClient.refetchQueries({ type: 'all', queryKey: [RemoteBackend.type] }),
+    networkMode: 'online',
+    onError: () => {
+      toastify.toast.error(getText('refetchQueriesError'), {
+        position: 'bottom-right',
+      })
+    },
+  })
+
+  React.useEffect(() => {
+    if (!isOffline) {
+      executeBackgroundUpdate()
+    }
+  }, [executeBackgroundUpdate, isOffline])
 
   return null
 }
