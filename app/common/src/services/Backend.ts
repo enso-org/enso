@@ -1787,11 +1787,7 @@ export default abstract class Backend {
   /** Restore an arbitrary asset from the trash. */
   abstract undoDeleteAsset(assetId: AssetId, title: string): Promise<void>
   /** Copy an arbitrary asset to another directory. */
-  abstract copyAsset(
-    assetId: AssetId,
-    parentDirectoryId: DirectoryId,
-    title: string | null,
-  ): Promise<CopyAssetResponse>
+  abstract copyAsset(assetId: AssetId, parentDirectoryId: DirectoryId): Promise<CopyAssetResponse>
   /** Return a list of projects belonging to the current user. */
   abstract listProjects(): Promise<readonly ListedProject[]>
   /** Create a project for the current user. */

@@ -767,11 +767,10 @@ export default class RemoteBackend extends Backend {
   override async copyAsset(
     assetId: backend.AssetId,
     parentDirectoryId: backend.DirectoryId,
-    title: string | null,
   ): Promise<backend.CopyAssetResponse> {
     const response = await this.post<backend.CopyAssetResponse>(
       remoteBackendPaths.copyAssetPath(assetId),
-      { parentDirectoryId, title },
+      { parentDirectoryId },
     )
 
     if (!responseIsSuccessful(response)) {

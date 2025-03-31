@@ -132,38 +132,19 @@ export function copyAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
     mutationKey: [backend.type, 'copyAssets'],
     mutationFn: async ([ids, parentId]: [ids: readonly AssetId[], parentId: DirectoryId]) => {
-      function copyAsset(id: AssetId, title: string | null) {
-        return backend.copyAsset(id, parentId, title).catch((error) => {
+      /**
+       * Copy an asset and return a promise that resolves to the asset or an error.
+       */
+      const copyAsset = async (id: AssetId) =>
+        backend.copyAsset(id, parentId).catch((error) => {
           if (error instanceof DuplicateAssetError) {
             return { id, error }
           }
+
           throw error
         })
-      }
 
-      const results = await Promise.allSettled(ids.map((id) => copyAsset(id, null)))
-
-      const duplicateErrors = results
-        .filter((result) => result.status === 'fulfilled')
-        .map((result) =>
-          typeof result.value === 'object' && 'error' in result.value ? result.value : null,
-        )
-        .filter((error) => error != null)
-
-      if (duplicateErrors.length !== 0) {
-        const resolutions = await resolveDuplications({
-          targetId: parentId,
-          conflictingIds: duplicateErrors.map((error) => error.id),
-        })
-
-        const renames = resolutions.filter((resolution) => resolution.conclusion === 'rename')
-
-        results.push(
-          ...(await Promise.allSettled(
-            renames.map((resolution) => copyAsset(resolution.assetId, resolution.newName)),
-          )),
-        )
-      }
+      const results = await Promise.allSettled(ids.map((id) => copyAsset(id)))
 
       const errors = results.flatMap((result): unknown =>
         result.status === 'rejected' ? [result.reason] : [],
@@ -177,6 +158,9 @@ export function copyAssetsMutationOptions(backend: Backend) {
         })
       }
 
+      // This is safe because we know that the `results` array contains only
+      // `CopyAssetResponse` objects, because errors are filtered out.
+      // eslint-disable-next-line no-restricted-syntax
       return results.flatMap((result) =>
         result.status === 'fulfilled' ? [result.value] : [],
       ) as CopyAssetResponse[]
