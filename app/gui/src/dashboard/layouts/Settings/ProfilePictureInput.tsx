@@ -11,7 +11,9 @@ import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 
 import { Form, HiddenFile } from '#/components/AriaComponents'
+import { ProfilePicture } from '#/components/ProfilePicture/ProfilePicture'
 import type Backend from '#/services/Backend'
+import { StatelessSpinner } from '../../components/StatelessSpinner'
 
 /** Props for a {@link ProfilePictureInput}. */
 export interface ProfilePictureInputProps {
@@ -26,30 +28,41 @@ export default function ProfilePictureInput(props: ProfilePictureInputProps) {
 
   const uploadUserPicture = useMutation(backendMutationOptions(backend, 'uploadUserPicture'))
 
-  const form = Form.useForm({
-    schema: (z) => z.object({ picture: z.instanceof(File) }),
-    onSubmit: async ({ picture }) => {
-      await uploadUserPicture.mutateAsync([{ fileName: picture.name }, picture])
-    },
-  })
-
   return (
-    <Form form={form}>
+    <Form
+      schema={(z) => z.object({ picture: z.instanceof(File) })}
+      onSubmit={async ({ picture }) => {
+        await uploadUserPicture.mutateAsync([{ fileName: picture.name }, picture])
+      }}
+    >
       <FocusRing within>
         <aria.Label
           data-testid="user-profile-picture-input"
-          className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame"
+          className="relative flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center rounded-full transition-colors hover:bg-frame"
         >
-          <img
-            src={user?.profilePicture ?? DefaultUserIcon}
+          {uploadUserPicture.isPending && (
+            <StatelessSpinner
+              state="loading-medium"
+              className="absolute -inset-1"
+              thickness={0.5}
+            />
+          )}
+
+          <ProfilePicture
+            picture={user?.profilePicture ?? DefaultUserIcon}
+            name={user?.name ?? ''}
+            size="large"
             className="pointer-events-none h-full w-full"
           />
-          <HiddenFile autoSubmit form={form} name="picture" />
+          <HiddenFile autoSubmit name="picture" />
         </aria.Label>
       </FocusRing>
+
       <aria.Text className="w-profile-picture-caption py-profile-picture-caption-y">
         {getText('profilePictureWarning')}
       </aria.Text>
+
+      <Form.FormError />
     </Form>
   )
 }

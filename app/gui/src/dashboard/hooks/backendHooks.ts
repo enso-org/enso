@@ -33,7 +33,6 @@ import { useFullUserSession } from '#/providers/AuthProvider'
 import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import {
@@ -784,54 +783,6 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
   })
 
   return { ...createPermissionMutation, mutate, mutateAsync }
-}
-
-/** Duplicate a specific version of a project. */
-export function duplicateProjectMutationOptions(
-  backend: Backend,
-  queryClient: QueryClient,
-  openProject: (project: LaunchedProject) => void,
-) {
-  return mutationOptions({
-    meta: {
-      invalidates: [[backend.type, 'listDirectory']],
-      awaitInvalidates: true,
-    },
-    mutationFn: async ([id, originalTitle, parentId, versionId]: [
-      id: backendModule.ProjectId,
-      originalTitle: string,
-      parentId: backendModule.DirectoryId,
-      versionId: backendModule.S3ObjectVersionId,
-    ]) => {
-      const siblings = await queryClient.ensureQueryData(
-        backendQueryOptions(backend, 'listDirectory', [
-          {
-            parentId,
-            labels: null,
-            filterBy: backendModule.FilterBy.active,
-            recentProjects: false,
-          },
-          '(unknown)',
-        ]),
-      )
-      const siblingTitles = new Set(siblings.map((sibling) => sibling.title))
-      let index = 1
-      let title = `${originalTitle} (${index})`
-      while (siblingTitles.has(title)) {
-        index += 1
-        title = `${originalTitle} (${index})`
-      }
-
-      await backend.duplicateProject(id, versionId, title).then((project) => {
-        openProject({
-          type: backend.type,
-          parentId,
-          title,
-          id: project.projectId,
-        })
-      })
-    },
-  })
 }
 
 /** Build a query options object to list executions for a project. */

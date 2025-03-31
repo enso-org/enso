@@ -1,9 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { expect, userEvent, within } from '@storybook/test'
+import { useState } from 'react'
 import { z } from 'zod'
+import { Button } from '../Button'
 import { Form } from '../Form'
+import { Text } from '../Text'
 import { Checkbox } from './Checkbox'
-
 // Schema for our form
 const defaultFormSchema = z.object({
   singleCheckbox: z.boolean(),
@@ -321,5 +323,59 @@ export const InvalidGroupFromForm: GroupStory = {
     await expect(checkboxes[0]).not.toBeChecked()
     await expect(checkboxes[1]).not.toBeChecked()
     await expect(checkboxes[2]).not.toBeChecked()
+  },
+}
+
+export const CheckboxGroupWithDynamicOptions: GroupStory = {
+  render: () => {
+    const [options, setOptions] = useState(['option1', 'option2', 'option3'])
+    return (
+      <Form schema={defaultFormSchema}>
+        <Checkbox.Group name="multipleChoices" label="Dynamic options">
+          {options.map((option) => (
+            <Checkbox key={option} value={option}>
+              {option}
+            </Checkbox>
+          ))}
+        </Checkbox.Group>
+
+        <Button.Group>
+          <Form.Submit>Submit</Form.Submit>
+          <Button
+            variant="outline"
+            onPress={() => {
+              setOptions([...options, `option${options.length + 1}`])
+            }}
+          >
+            Add option
+          </Button>
+        </Button.Group>
+
+        <Form.FormError />
+
+        <Form.FieldValue name="multipleChoices">
+          {(field) => (
+            <Text variant="caption" data-testid="selected-options">
+              {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */}
+              {field.join(', ')}
+            </Text>
+          )}
+        </Form.FieldValue>
+      </Form>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const addButton = canvas.getByRole('button', { name: 'Add option' })
+
+    await userEvent.click(canvas.getByRole('checkbox', { name: 'option1' }))
+    await userEvent.click(addButton)
+    await userEvent.click(canvas.getByRole('checkbox', { name: 'option4' }))
+
+    await userEvent.click(canvas.getByRole('checkbox', { name: 'option2' }))
+
+    await userEvent.click(addButton)
+
+    await expect(canvas.getByTestId('selected-options')).toHaveTextContent('option4, option2')
   },
 }

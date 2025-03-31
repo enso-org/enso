@@ -1,22 +1,23 @@
 /** @file A list of previous versions of an asset. */
-import { useState } from 'react'
 
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 
-import { Text } from '#/components/AriaComponents'
 import { Result } from '#/components/Result'
+import { copyAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import type { AnyAsset } from '#/services/Backend'
-import { AssetType, BackendType, type S3ObjectVersion, S3ObjectVersionId } from '#/services/Backend'
-import { noop } from '#/utilities/functions'
+import type { AnyAsset, DatalinkAsset, FileAsset, ProjectAsset } from '#/services/Backend'
+import { AssetType, BackendType, S3ObjectVersionId } from '#/services/Backend'
+import type RemoteBackend from '#/services/RemoteBackend'
 import { useStore } from '#/utilities/zustand'
-import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import { includes } from 'enso-common/src/utilities/data/array'
 import { assetPanelStore } from '../AssetPanelState'
-import { AssetVersion } from './AssetVersion'
+import { AssetVersion, type DuplicateOptions, type Version } from './AssetVersion'
 import { assetVersionsQueryOptions } from './useAssetVersions'
 
 /** Variables for the "add new version" mutation. */
@@ -47,15 +48,24 @@ export function AssetVersions(props: AssetVersionsProps) {
       />
     )
   }
+
   if (item == null) {
     return <Result status="info" centered title={getText('assetVersions.notSelected')} />
   }
-  return <AssetVersionsInternal {...props} item={item} />
+
+  if (!isAllowedAssetType(item)) {
+    return <Result status="info" centered title={getText('assetVersions.invalidAssetType')} />
+  }
+
+  // This is SAFE because we know that the backend is a RemoteBackend.
+  // eslint-disable-next-line no-restricted-syntax
+  return <AssetVersionsInternal {...props} backend={backend as RemoteBackend} item={item} />
 }
 
 /** Props for an {@link AssetVersionsInternal}. */
 interface AssetVersionsInternalProps extends AssetVersionsProps {
-  readonly item: AnyAsset
+  readonly item: DatalinkAsset | FileAsset | ProjectAsset
+  readonly backend: RemoteBackend
 }
 
 /** Internal implementation of {@link AssetVersions}. */
@@ -65,81 +75,88 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
 
-  const [placeholderVersions, setPlaceholderVersions] = useState<readonly S3ObjectVersion[]>([])
+  const queryClient = useQueryClient()
+  const queryOptions = assetVersionsQueryOptions({ assetId: item.id, backend })
 
-  const versionsQuery = useSuspenseQuery(assetVersionsQueryOptions({ assetId: item.id, backend }))
+  const versionsQuery = useSuspenseQuery({
+    ...queryOptions,
+    select: (data) =>
+      data.versions.map((version, index) => {
+        const number = data.versions.length - index
+        const title = getText('versionX', number)
 
-  const latestVersion = versionsQuery.data.find((version) => version.isLatest)
-
-  const restoreMutation = useMutation({
-    mutationFn: async (variables: AddNewVersionVariables) => {
-      if (item.type === AssetType.project) {
-        await backend.restoreProject(item.id, variables.versionId, item.title)
-      }
-    },
-    onMutate: (variables) => {
-      setPlaceholderVersions((oldVersions) => [
-        {
-          isLatest: false,
-          key: uniqueString(),
-          lastModified: toRfc3339(new Date()),
-          versionId: variables.placeholderId,
-        },
-        ...oldVersions,
-      ])
-    },
-    onSuccess: async () => {
-      // `backend.restoreProject` does not return the ID of the new version, so a full refetch is
-      // necessary.
-      await versionsQuery.refetch()
-    },
-    onError: (error: unknown) => {
-      toastAndLog('restoreProjectError', error, item.title)
-    },
-    onSettled: (_data, _error, variables) => {
-      setPlaceholderVersions((oldVersions) =>
-        oldVersions.filter((version) => version.versionId !== variables.placeholderId),
-      )
-    },
+        return { ...version, number, title }
+      }),
   })
 
+  const versions = versionsQuery.data
+  const latestVersion = versions.find((version) => version.isLatest)
+
+  const openProjectLocally = useOpenProjectLocally()
+
+  const restoreMutation = useMutation({
+    mutationFn: (variables: AddNewVersionVariables) =>
+      backend.restoreAsset(item.id, variables.versionId),
+    onError: (error: unknown, _variables, context) => {
+      toastAndLog('restoreProjectError', error, item.title)
+      queryClient.setQueryData(queryOptions.queryKey, context)
+    },
+    meta: { invalidates: [queryOptions.queryKey], awaitInvalidates: true },
+  })
+
+  const duplicateProjectMutation = useMutation(copyAssetsMutationOptions(backend))
+
+  const doDuplicate = useEventCallback(async (options?: DuplicateOptions) => {
+    const newItem = await duplicateProjectMutation.mutateAsync([[item.id], item.parentId])
+    const newAsset = newItem[0]?.asset
+
+    if (options?.start === true && newAsset != null && item.type === AssetType.project) {
+      // This is SAFE because we know that the the new asset is a Project,
+      // because we can't create a duplicate with a different type.
+      // eslint-disable-next-line no-restricted-syntax
+      await openProjectLocally(newAsset as ProjectAsset, backend.type)
+    }
+  })
+
+  const doRestore = useEventCallback((version: Version) =>
+    restoreMutation.mutateAsync({
+      versionId: version.versionId,
+      placeholderId: S3ObjectVersionId(uniqueString()),
+    }),
+  )
+
+  if (versions.length === 0) {
+    return <Result status="info" centered title={getText('noVersionsFound')} />
+  }
+
+  if (latestVersion == null) {
+    return <Result status="error" centered title={getText('fetchLatestVersionError')} />
+  }
+
   return (
-    <div className="pointer-events-auto flex flex-1 shrink-0 flex-col items-center overflow-y-auto overflow-x-hidden">
-      {versionsQuery.data.length === 0 ?
-        <div>{getText('noVersionsFound')}</div>
-      : latestVersion == null ?
-        <Text color="danger">{getText('fetchLatestVersionError')}</Text>
-      : [
-          ...placeholderVersions.map((version, i) => (
-            <AssetVersion
-              key={version.versionId}
-              placeholder
-              number={versionsQuery.data.length + placeholderVersions.length - i}
-              version={version}
-              item={item}
-              backend={backend}
-              latestVersion={latestVersion}
-              doRestore={noop}
-            />
-          )),
-          ...versionsQuery.data.map((version, i) => (
-            <AssetVersion
-              key={version.versionId}
-              number={versionsQuery.data.length - i}
-              version={version}
-              item={item}
-              backend={backend}
-              latestVersion={latestVersion}
-              doRestore={() =>
-                restoreMutation.mutateAsync({
-                  versionId: version.versionId,
-                  placeholderId: S3ObjectVersionId(uniqueString()),
-                })
-              }
-            />
-          )),
-        ]
-      }
+    <div className="flex w-full flex-col">
+      {versions.map((version, index) => (
+        <div key={version.versionId}>
+          <AssetVersion
+            version={version}
+            otherVersions={versions}
+            item={item}
+            backend={backend}
+            previousVersion={versions[index + 1]}
+            doRestore={doRestore}
+            doDuplicate={doDuplicate}
+          />
+
+          {index !== versions.length - 1 && <div className="ml-[3px] h-5 w-[0.5px] bg-primary" />}
+        </div>
+      ))}
     </div>
   )
+}
+
+/**
+ * Check if the asset is allowed to have versions.
+ */
+function isAllowedAssetType(asset: AnyAsset): asset is DatalinkAsset | FileAsset | ProjectAsset {
+  return includes([AssetType.project, AssetType.datalink, AssetType.file], asset.type)
 }
