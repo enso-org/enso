@@ -96,6 +96,11 @@ export function canPermissionModifyDirectoryContents(permission: PermissionActio
 }
 
 /** Replace the first owner permission with the permission of a new user or team. */
+export function tryGetOwnerPermission(asset: backend.AnyAsset) {
+  return asset.permissions?.find((permission) => permission.permission === PermissionAction.own)
+}
+
+/** Replace the first owner permission with the permission of a new user or team. */
 export function replaceOwnerPermission(
   asset: backend.AnyAsset,
   newOwner: backend.User | backend.UserGroup,

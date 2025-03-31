@@ -269,8 +269,7 @@ type Enso_File
             create_tags_if_not_exist labels . if_not_error <|
                 update_asset_labels self labels . if_not_error self
 
-    ## GROUP EnsoCloud
-       ICON data_output
+    ## ICON data_output
        Creates a new label with the given name and color.
 
        Arguments:

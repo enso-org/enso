@@ -14,7 +14,6 @@ import type { SortInfo } from '#/utilities/sorting'
 import { regexEscape } from '#/utilities/string'
 import { createStore, useStore } from '#/utilities/zustand.ts'
 import { useEffect } from 'react'
-import invariant from 'tiny-invariant'
 
 /** Options for {@link useAssetsTableItems}. */
 export interface UseAssetsTableOptions {
@@ -56,16 +55,6 @@ export function useGetAssetChildren() {
   return useEventCallback((parentId: DirectoryId) =>
     [...ASSET_ITEMS_STORE.getState().items.values()].filter((asset) => asset.parentId === parentId),
   )
-}
-
-/** Return the asset with the given id, or throw an error if it is `undefined`. */
-export function useAssetStrict(id: AssetId) {
-  const asset = useAsset(id)
-  invariant(
-    asset,
-    `Expected asset to be defined, but got undefined, Asset ID: ${JSON.stringify(id)}`,
-  )
-  return asset
 }
 
 /** A hook to return the items in the assets table. */

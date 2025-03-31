@@ -25,6 +25,7 @@ if (isDevMode) {
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  root: fileURLToPath(new URL('.', import.meta.url)),
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
   plugins: [
     wasm(),
