@@ -7,8 +7,7 @@ import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
 import { selectOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemirror'
-import { highlightStyle } from '@/util/codemirror/highlight'
-import { computed, ref, useCssModule, useTemplateRef, watch, type ComponentInstance } from 'vue'
+import { computed, ref, useTemplateRef, watch, type ComponentInstance } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -36,7 +35,7 @@ const { syncExt, connectSync } = useStringSync()
 const { editorView } = useCodeMirror(editorRoot, {
   content: textContents.value,
   placeholder,
-  extensions: [highlightStyle(useCssModule()), syncExt, selectOnMouseFocus],
+  extensions: [syncExt, selectOnMouseFocus],
   readonly: false,
   contentTestId: 'widget-text-content',
   singleLine: true,
