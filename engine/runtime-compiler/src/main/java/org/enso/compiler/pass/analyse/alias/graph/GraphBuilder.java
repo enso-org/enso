@@ -31,6 +31,8 @@ public final class GraphBuilder {
    * @return builder operating on the graph {@code g} starting at scope {@code s}
    */
   public static GraphBuilder create(Graph g, Graph.Scope s) {
+    assert g != null;
+    assert s != null;
     return new GraphBuilder(g, s);
   }
 
