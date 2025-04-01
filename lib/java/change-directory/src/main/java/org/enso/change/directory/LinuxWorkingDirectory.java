@@ -15,8 +15,11 @@ import org.slf4j.LoggerFactory;
 
 @CContext(LinuxWorkingDirectory.Directives.class)
 public final class LinuxWorkingDirectory implements WorkingDirectory {
+  static final LinuxWorkingDirectory INSTANCE = new LinuxWorkingDirectory();
   private static final String PWD = "pwd";
   private static final Logger LOGGER = LoggerFactory.getLogger(LinuxWorkingDirectory.class);
+
+  private LinuxWorkingDirectory() {}
 
   @Override
   public boolean changeWorkingDir(String path) {
