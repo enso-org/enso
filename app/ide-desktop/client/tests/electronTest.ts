@@ -47,8 +47,7 @@ export const test = base.extend<{
   },
 
   /**
-   * Setup for all tests: checks if and where electron exec is.
-   * @throws when no Enso package could be found.
+   * Setup for all tests: Create an electron-based app instance.
    */
   app: async function ({ projectsDir, testRunId, viewport }, use) {
     const args = process.env.ENSO_TEST_APP_ARGS?.split(',') ?? []
@@ -67,11 +66,13 @@ export const test = base.extend<{
     const innerPage = await app.firstWindow()
     if (viewport) innerPage.setViewportSize(viewport)
 
-    const __browserFn = innerPage.context().browser
+    // Chromatic runtime depends on `page.context().browser().name`, which doesn't exist on electron.
+    // In those cases, we have to stub it as chromium-based "browser".
+    const originalBrowserFn = innerPage.context().browser
     Object.defineProperty(innerPage.context(), 'browser', {
       value: function browser() {
         return (
-          __browserFn.apply(this) ?? {
+          originalBrowserFn.apply(this) ?? {
             browserType: () => ({
               name: () => 'chromium',
             }),

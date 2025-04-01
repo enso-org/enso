@@ -148,6 +148,10 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   expect(projectFiles).toContain('images')
   const images = await fs.readdir(pathModule.join(PROJECT_PATH, 'images'))
   expect(images).toContain('image.png')
+
+  // Ensure that the graph is stable before doing the snapshot. Some nodes might still
+  // be pending at the time the image upload finishes, which can cause the snapshot to
+  // be unstable.
   await expect(page.locator('.GraphEditor .GraphNode.pending')).toHaveCount(0)
 
   await doSnapshot(page, testInfo)

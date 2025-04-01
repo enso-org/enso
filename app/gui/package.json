@@ -181,7 +181,7 @@
     "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.5.1",
     "chalk": "^5.4.1",
-    "chromatic": "11.18.1",
+    "chromatic": "11.25.1",
     "cross-env": "^7.0.3",
     "css.escape": "^1.5.1",
     "d3": "^7.9.0",
