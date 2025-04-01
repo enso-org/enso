@@ -163,6 +163,10 @@ GatherLicenses.distributions := Seq(
   ),
   makeStdLibDistribution("Base", Distribution.sbtProjects(`std-base`)),
   makeStdLibDistribution(
+    "Generic_JDBC",
+    Distribution.sbtProjects(`std-generic-jdbc`)
+  ),
+  makeStdLibDistribution(
     "Google_Api",
     Distribution.sbtProjects(`std-google-api`)
   ),
@@ -377,6 +381,7 @@ lazy val enso = (project in file("."))
     `std-base`,
     `std-benchmarks`,
     `std-database`,
+    `std-generic-jdbc`,
     `std-google-api`,
     `std-image`,
     `std-microsoft`,
@@ -2854,6 +2859,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`exploratory-benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(`std-image` / Compile / packageBin)
       .dependsOn(`std-database` / Compile / packageBin)
+      .dependsOn(`std-generic-jdbc` / Compile / packageBin)
       .dependsOn(`std-google-api` / Compile / packageBin)
       .dependsOn(`std-table` / Compile / packageBin)
       .dependsOn(`std-aws` / Compile / packageBin)
@@ -4682,6 +4688,10 @@ val `base-polyglot-root`  = stdLibComponentRoot("Base") / "polyglot" / "java"
 val `table-polyglot-root` = stdLibComponentRoot("Table") / "polyglot" / "java"
 val `image-polyglot-root` = stdLibComponentRoot("Image") / "polyglot" / "java"
 val `image-native-libs`   = stdLibComponentRoot("Image") / "polyglot" / "lib"
+val `generic-jdbc-polyglot-root` =
+  stdLibComponentRoot("Generic_JDBC") / "polyglot" / "java"
+val `generic-jdbc-native-libs` =
+  stdLibComponentRoot("Generic_JDBC") / "polyglot" / "lib"
 val `google-api-polyglot-root` =
   stdLibComponentRoot("Google_Api") / "polyglot" / "java"
 val `google-api-native-libs` =
@@ -4795,6 +4805,7 @@ lazy val `generic-jdbc-connection-spec-dependencies` = project
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
+  .dependsOn(`std-database` % "provided")
 
 lazy val `snowflake-test-java-helpers` = project
   .in(file("test/Snowflake_Tests/polyglot-sources/snowflake-test-java-helpers"))
@@ -4958,6 +4969,36 @@ lazy val `std-image` = project
       .value
   )
   .dependsOn(`std-base` % "provided")
+
+lazy val `std-generic-jdbc` = project
+  .in(file("std-bits") / "generic-jdbc")
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
+    Compile / packageBin / artifactPath :=
+      `generic-jdbc-polyglot-root` / "std-generic-jdbc.jar",
+    libraryDependencies ++= Seq(
+      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided"
+    ),
+    Compile / packageBin := {
+      val result = (Compile / packageBin).value
+      StdBits
+        .copyDependencies(
+          `generic-jdbc-polyglot-root`,
+          Seq("std-generic-jdbc.jar"),
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+  .dependsOn(`std-database` % "provided")
 
 lazy val `std-google-api` = project
   .in(file("std-bits") / "google-api")
@@ -5505,6 +5546,7 @@ val stdBitsProjects =
     "AWS",
     "Base",
     "Database",
+    "Generic_JDBC",
     "Google_Api",
     "Image",
     "Microsoft",
@@ -5566,6 +5608,8 @@ pkgStdLibInternal := Def.inputTask {
       (`std-base` / Compile / packageBin).value
     case "Database" =>
       (`std-database` / Compile / packageBin).value
+    case "Generic_JDBC" =>
+      (`std-generic-jdbc` / Compile / packageBin).value
     case "Google_Api" =>
       (`std-google-api` / Compile / packageBin).value
     case "Image" =>
@@ -5596,6 +5640,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-table` / Compile / packageBin).value
       (`std-database` / Compile / packageBin).value
       (`std-image` / Compile / packageBin).value
+      (`std-generic-jdbc` / Compile / packageBin).value
       (`std-google-api` / Compile / packageBin).value
       (`std-aws` / Compile / packageBin).value
       (`std-snowflake` / Compile / packageBin).value

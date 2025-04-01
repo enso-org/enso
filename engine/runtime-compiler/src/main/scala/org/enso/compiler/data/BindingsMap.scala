@@ -365,7 +365,10 @@ case class BindingsMap(
       val matchingConcreteModules = matchingModulesFromProject.collect {
         case ModuleReference.Concrete(concreteMod) => concreteMod
       }
-      val importedBindingMaps = matchingConcreteModules.map(_.getBindingsMap)
+      val importedBindingMaps = matchingConcreteModules
+        .map(_.getBindingsMap)
+        // Avoid infinite loops with the identical binding maps
+        .filterNot(_ eq this)
       importedBindingMaps.foreach { bm =>
         val resolution = bm.resolveQualifiedName(name)
         resolution match {
