@@ -94,7 +94,7 @@ class LocalScope(
     * @return a child of this scope
     */
   def createChild(): LocalScope = createChild(() => {
-    GraphBuilder.create(null, scope).addChild().toScope()
+    GraphBuilder.create(aliasingGraph(), scope).addChild().toScope()
   })
 
   /** Creates a child using a known aliasing scope.

@@ -1,6 +1,6 @@
 /** @file A list of previous versions of an asset. */
 
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 
@@ -75,7 +75,6 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
 
-  const queryClient = useQueryClient()
   const queryOptions = assetVersionsQueryOptions({ assetId: item.id, backend })
 
   const versionsQuery = useSuspenseQuery({
@@ -97,9 +96,8 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
   const restoreMutation = useMutation({
     mutationFn: (variables: AddNewVersionVariables) =>
       backend.restoreAsset(item.id, variables.versionId),
-    onError: (error: unknown, _variables, context) => {
+    onError: (error: unknown, _variables) => {
       toastAndLog('restoreProjectError', error, item.title)
-      queryClient.setQueryData(queryOptions.queryKey, context)
     },
     meta: { invalidates: [queryOptions.queryKey], awaitInvalidates: true },
   })
@@ -113,7 +111,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
     if (options?.start === true && newAsset != null && item.type === AssetType.project) {
       // This is SAFE because we know that the the new asset is a Project,
       // because we can't create a duplicate with a different type.
-      // eslint-disable-next-line no-restricted-syntax
+      /* eslint-disable-next-line no-restricted-syntax */
       await openProjectLocally(newAsset as ProjectAsset, backend.type)
     }
   })
