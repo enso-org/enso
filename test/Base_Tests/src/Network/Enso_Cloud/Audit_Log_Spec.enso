@@ -67,7 +67,7 @@ add_specs suite_builder =
                 events = get_audit_log_events . filter ev-> (ev.metadata.get "my_field") == random_payload
                 events.length . should_equal 121
 
-    suite_builder.group "Clear cache on reload" group_builder->
+    suite_builder.group "Clear cache on reload" pending=setup.pending group_builder->
         group_builder.specify "AuditLogApiAccess cache should be cleared when a reload is detected" <| setup.with_prepared_environment <|
             Audit_Log.report_event "TestEvent" "Message"
             AuditLogApiAccess.INSTANCE.isCachedTestOnly . should_be_true
