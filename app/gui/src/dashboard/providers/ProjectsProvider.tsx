@@ -38,6 +38,7 @@ const PROJECT_SCHEMA = z
     parentId: DIRECTORY_ID_SCHEMA,
     title: z.string(),
     type: z.nativeEnum(backendModule.BackendType),
+    preventAutoStart: z.boolean().optional(),
     hybrid: z.optional(
       z.object({
         cloudProjectId: PROJECT_ID_SCHEMA,
@@ -112,10 +113,14 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
 
   useMounted(() => {
     setLaunchedProjects(
-      launchedProjects.filter(
-        // Disallow Cloud projects and Hybrid projects from auto-opening.
-        (project) => project.type === backendModule.BackendType.local && project.hybrid == null,
-      ),
+      launchedProjects.map((project) => {
+        if (project.type === backendModule.BackendType.local && project.hybrid == null) {
+          return project
+        } else {
+          // Disallow Cloud projects and Hybrid projects from auto-opening
+          return { ...project, preventAutoStart: true }
+        }
+      }),
     )
   })
 

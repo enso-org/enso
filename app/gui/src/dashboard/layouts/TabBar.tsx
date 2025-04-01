@@ -16,6 +16,7 @@ import { StatelessSpinner } from '#/components/StatelessSpinner'
 import SvgMask from '#/components/SvgMask'
 
 import { AnimatedBackground } from '#/components/AnimatedBackground'
+import { Icon } from '#/components/Icon'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useBackendForProjectType } from '#/providers/BackendProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
@@ -49,10 +50,12 @@ export interface TabProps extends Readonly<React.PropsWithChildren> {
   readonly 'data-testid'?: string
   readonly id: string
   readonly isActive: boolean
-  readonly isHidden?: boolean
-  readonly icon: React.ReactNode | string | null
+  readonly isHidden?: boolean | undefined
+  readonly isFaded?: boolean | undefined
+  readonly icon: ariaComponents.IconPropSvgUse<string>
+  readonly tooltip?: string | undefined
   readonly labelId: text.TextId
-  readonly onClose?: () => void
+  readonly onClose?: (() => void) | undefined
 }
 
 const UNDERLAY_ELEMENT = (
@@ -65,9 +68,20 @@ const UNDERLAY_ELEMENT = (
 
 /** A tab in a {@link TabBar}. */
 export function Tab(props: TabProps) {
-  const { id, isActive, isHidden = false, icon, labelId, children, onClose } = props
+  const {
+    id,
+    isActive,
+    isHidden = false,
+    isFaded = false,
+    icon,
+    labelId,
+    tooltip,
+    children,
+    onClose,
+  } = props
   const { getText } = textProvider.useText()
   const inputBindings = useInputBindings()
+  console.log(':3', id, isActive)
 
   const stableOnClose = useEventCallback(() => {
     onClose?.()
@@ -86,11 +100,7 @@ export function Tab(props: TabProps) {
       data-testid={props['data-testid']}
       id={id}
       aria-label={getText(labelId)}
-      className={tailwindMerge.twJoin(
-        'disabled:cursor-not-allowed disabled:opacity-30 [&.disabled]:cursor-not-allowed [&.disabled]:opacity-30',
-        !isActive && 'cursor-pointer',
-        isHidden && 'hidden',
-      )}
+      className={tailwindMerge.twJoin(!isActive && 'cursor-pointer', isHidden && 'hidden')}
     >
       {({ isSelected, isHovered }) => (
         <AnimatedBackground.Item
@@ -110,14 +120,15 @@ export function Tab(props: TabProps) {
               animate={!isSelected && isHovered ? 'active' : 'inactive'}
               className="pointer-events-none absolute -inset-x-2.5 inset-y-2 -z-1 rounded-3xl bg-dashboard transition-colors duration-300"
             />
-            {typeof icon === 'string' ?
-              <SvgMask
-                src={icon}
+            <ariaComponents.VisualTooltip className="flex cursor-help" tooltip={tooltip}>
+              <Icon
+                icon={icon}
                 className={tailwindMerge.twJoin(
                   onClose && 'group-hover:hidden focus-visible:hidden',
+                  isFaded && 'opacity-30',
                 )}
               />
-            : icon}
+            </ariaComponents.VisualTooltip>
             <ariaComponents.Text truncate="1" className="max-w-40" color="current" nowrap>
               {children}
             </ariaComponents.Text>
@@ -142,7 +153,9 @@ const SPINNER = <StatelessSpinner state="loading-medium" size={16} />
 /** A {@link Tab} that displays the name of the project. */
 export function ProjectTab(props: ProjectTabProps) {
   const { project, onLoadEnd, onClose, icon: iconRaw, ...rest } = props
+  const { preventAutoStart = false } = project
 
+  const { getText } = textProvider.useText()
   const didNotifyOnLoadEnd = React.useRef(false)
   const backend = useBackendForProjectType(project.type)
 
@@ -167,6 +180,7 @@ export function ProjectTab(props: ProjectTabProps) {
   })
 
   const isReady = isSuccess && isOpened
+  const wasNeverRun = preventAutoStart && !isReady
 
   React.useEffect(() => {
     if (isReady && !didNotifyOnLoadEnd.current) {
@@ -182,7 +196,7 @@ export function ProjectTab(props: ProjectTabProps) {
   }, [isReady])
 
   const icon = (() => {
-    if (isReady) {
+    if (isReady || preventAutoStart) {
       return iconRaw
     }
 
@@ -193,7 +207,15 @@ export function ProjectTab(props: ProjectTabProps) {
     return SPINNER
   })()
 
-  return <Tab {...rest} icon={icon} onClose={stableOnClose} />
+  return (
+    <Tab
+      {...rest}
+      isFaded={wasNeverRun}
+      tooltip={wasNeverRun ? getText('projectStoppedDescription') : undefined}
+      icon={icon}
+      onClose={stableOnClose}
+    />
+  )
 }
 
 TabBar.ProjectTab = ProjectTab

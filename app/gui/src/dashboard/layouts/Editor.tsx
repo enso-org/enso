@@ -1,5 +1,7 @@
 /** @file The container that launches the IDE. */
+import { Button } from '#/components/AriaComponents'
 import * as errorBoundary from '#/components/ErrorBoundary'
+import { Result } from '#/components/Result'
 import * as suspense from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as gtagHooks from '#/hooks/gtagHooks'
@@ -36,6 +38,8 @@ export interface EditorProps {
 /** The container that launches the IDE. */
 function Editor(props: EditorProps) {
   const { project, hidden, startProject, isOpeningFailed, openingError } = props
+  const { preventAutoStart = false } = project
+  const { getText } = textProvider.useText()
 
   const backend = backendProvider.useBackendForProjectType(project.type)
 
@@ -61,7 +65,7 @@ function Editor(props: EditorProps) {
   const { isProjectClosed, isProjectOpening, isProjectOpened, isProjectClosing } = projectQuery.data
 
   React.useEffect(() => {
-    if (isProjectClosed) {
+    if (isProjectClosed && !preventAutoStart) {
       startProject(project)
     }
   }, [isProjectClosed, startProject, project])
@@ -79,6 +83,26 @@ function Editor(props: EditorProps) {
     deps: [],
     isDisabled: !isProjectOpening || projectQuery.isError,
   })
+
+  if (isProjectClosed && preventAutoStart) {
+    return (
+      <Result
+        status="info"
+        title={getText('projectStopped')}
+        subtitle={getText('projectStoppedDescription')}
+      >
+        <Button
+          isLoading={isProjectOpening}
+          className="mx-auto"
+          onPress={() => {
+            startProject(project)
+          }}
+        >
+          {getText('openProject')}
+        </Button>
+      </Result>
+    )
+  }
 
   if (isOpeningFailed) {
     return (
