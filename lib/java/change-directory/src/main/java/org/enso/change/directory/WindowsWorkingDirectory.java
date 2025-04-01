@@ -57,7 +57,6 @@ public final class WindowsWorkingDirectory implements WorkingDirectory {
   @CFunction
   static native int SetCurrentDirectory(CCharPointer lpPathName);
 
-
   static final class Directives implements CContext.Directives {
     @Override
     public boolean isInConfiguration() {
@@ -75,4 +74,3 @@ public final class WindowsWorkingDirectory implements WorkingDirectory {
     }
   }
 }
-
