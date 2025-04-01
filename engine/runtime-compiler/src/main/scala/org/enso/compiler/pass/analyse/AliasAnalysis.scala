@@ -419,11 +419,9 @@ case object AliasAnalysis extends IRPass {
             name.name,
             binding.getId(),
             binding.getExternalId,
-            isSuspended
+            isSuspended,
+            true
           )
-
-          builder.add(occurrence)
-          builder.addDefinition(occurrence)
 
           binding
             .copy(
@@ -481,8 +479,6 @@ case object AliasAnalysis extends IRPass {
           label.getId,
           label.getExternalId
         )
-        builder.add(definition)
-        builder.addDefinition(definition)
 
         member
           .copy(
@@ -527,14 +523,16 @@ case object AliasAnalysis extends IRPass {
   ): List[DefinitionArgument] = {
     args.map {
       case arg: DefinitionArgument.Specified if isSyntheticSelf(arg.name) =>
-        // Synthetic `self` must not be added to the scope, but it has to be added as a
-        // definition for frame index metadata
         val definition = builder.newDef(
           arg.name.name,
           arg.getId(),
-          arg.getExternalId
+          arg.getExternalId,
+          false, /* not suspended */
+          false /*
+            // Synthetic `self` must not be added to the scope, but it has to be added as a
+            // definition for frame index metadata
+           */
         )
-        builder.addDefinition(definition)
         arg
           .updateMetadata(
             new MetadataPair(
@@ -563,10 +561,9 @@ case object AliasAnalysis extends IRPass {
             name.name,
             arg.getId(),
             arg.getExternalId,
-            suspended
+            suspended,
+            true
           )
-          builder.add(definition)
-          builder.addDefinition(definition)
 
           arg
             .copy(
@@ -728,8 +725,6 @@ case object AliasAnalysis extends IRPass {
           name.getId,
           name.getExternalId
         )
-        builder.add(definition)
-        builder.addDefinition(definition)
         definition.id
       } else {
         val occurrence =
@@ -738,7 +733,6 @@ case object AliasAnalysis extends IRPass {
             name.getId,
             name.getExternalId
           )
-        builder.add(occurrence)
         if (!isConstructorNameInPatternContext && !name.isMethod) {
           builder.resolveLocalUsage(occurrence)
         }

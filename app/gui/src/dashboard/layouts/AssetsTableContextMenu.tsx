@@ -28,8 +28,10 @@ import {
   deleteAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
+import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import { useMutation } from '@tanstack/react-query'
@@ -78,6 +80,8 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const driveStore = useDriveStore()
   const deleteAssetsMutation = useMutation(deleteAssetsMutationOptions(backend))
   const restoreAssetsMutation = useMutation(restoreAssetsMutationOptions(backend))
+  const showDeveloperIds = useFeatureFlag('showDeveloperIds')
+  const copyMutation = useCopy()
 
   const hasPasteData = useStore(driveStore, ({ pasteData }) => {
     const effectivePasteData =
@@ -122,6 +126,16 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     }
   })
 
+  const copyIdsMenuEntry = showDeveloperIds && (
+    <ContextMenuEntry
+      hidden={hidden}
+      action="copyId"
+      color="accent"
+      label={getText('copyAllIdsShortcut')}
+      doAction={() => copyMutation.mutateAsync(selectedAssets.map((asset) => asset.id).join('\n'))}
+    />
+  )
+
   const pasteAllMenuEntry = hasPasteData && (
     <ContextMenuEntry
       hidden={hidden}
@@ -146,6 +160,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
           hidden={hidden}
           event={event}
         >
+          {copyIdsMenuEntry}
           <ContextMenuEntry
             hidden={hidden}
             action="undelete"
@@ -188,12 +203,23 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   }
 
   if (category.type === 'recent') {
-    return null
+    return (
+      showDeveloperIds && (
+        <ContextMenu
+          aria-label={getText('assetsTableContextMenuLabel')}
+          hidden={hidden}
+          event={event}
+        >
+          {copyIdsMenuEntry}
+        </ContextMenu>
+      )
+    )
   }
 
   return (
     <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden} event={event}>
       <>
+        {copyIdsMenuEntry}
         {selectedAssets.length !== 0 && (
           <ContextMenuEntry
             hidden={hidden}

@@ -15,7 +15,8 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import type { TextProps } from '#/components/AriaComponents'
+import { Text, useDialogContext, useVisualTooltip } from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
@@ -80,6 +81,7 @@ export const ACTION_TO_TEXT_ID: Readonly<
   aboutThisApp: 'aboutThisAppShortcut',
   openInFileBrowser: 'openInFileBrowserShortcut',
   ensoDevtools: 'ensoDevtoolsShortcut',
+  copyId: 'copyIdShortcut',
 } satisfies { [Key in inputBindings.DashboardBindingKey]: `${Key}Shortcut` }
 
 /** Props for a {@link MenuEntry}. */
@@ -94,6 +96,7 @@ export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MEN
   readonly isDisabled?: boolean | undefined
   readonly title?: string | undefined
   readonly doAction: () => void
+  readonly color?: TextProps['color'] | undefined
 }
 
 /** An item in a menu. */
@@ -107,11 +110,12 @@ export default function MenuEntry(props: MenuEntryProps) {
     doAction,
     icon,
     tooltip: tooltipValue,
+    color,
     ...variantProps
   } = props
   const { getText } = textProvider.useText()
   const { unsetModal } = modalProvider.useSetModal()
-  const dialogContext = ariaComponents.useDialogContext()
+  const dialogContext = useDialogContext()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const focusChildProps = focusHooks.useFocusChild()
   const info = inputBindings.metadata[action]
@@ -141,7 +145,7 @@ export default function MenuEntry(props: MenuEntryProps) {
     [inputBindings, action, doAction, isDisabledRef],
   )
 
-  const { tooltip, targetProps } = ariaComponents.useVisualTooltip({
+  const { tooltip, targetProps } = useVisualTooltip({
     isDisabled: tooltipValue == null,
     targetRef: buttonRef,
     display: 'always',
@@ -179,9 +183,9 @@ export default function MenuEntry(props: MenuEntryProps) {
                 color={info.color}
                 className="size-4 text-primary"
               />
-              <ariaComponents.Text slot="label">
+              <Text color={color} slot="label">
                 {label ?? getText(labelTextId)}
-              </ariaComponents.Text>
+              </Text>
             </div>
             <KeyboardShortcut action={action} />
           </div>

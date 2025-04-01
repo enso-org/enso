@@ -181,7 +181,7 @@ function ChatMessage(props: ChatMessageProps) {
         <div className="mx-chat-message-info-x leading-cozy">
           <div className="font-bold">{message.name}</div>
           <div className="text-primary text-opacity-unimportant">
-            {dateTime.formatDateTimeChatFriendly(new Date(message.timestamp))}
+            {dateTime.toReadableIsoString(new Date(message.timestamp))}
           </div>
         </div>
       </div>
