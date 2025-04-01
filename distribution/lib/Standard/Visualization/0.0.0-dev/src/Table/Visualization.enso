@@ -265,7 +265,7 @@ apply_single_filter_to_table table filter_col filter_condition =
    - filter_col: indexes of columns with sorts applies
    - filter_condition: list of filter conditions
 apply_filter_to_table : Table -> Integer -> Vector -> Vector -> Table
-apply_filter_to_table table i filter_col filter_condition = 
+apply_filter_to_table table i filter_col filter_conditions = 
     if i == filter_col.length then table else
         col = filter_col.get i
         condition = filter_condition.get i
