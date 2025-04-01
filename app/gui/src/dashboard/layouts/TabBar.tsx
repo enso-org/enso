@@ -152,7 +152,7 @@ const SPINNER = <StatelessSpinner state="loading-medium" size={16} />
 /** A {@link Tab} that displays the name of the project. */
 export function ProjectTab(props: ProjectTabProps) {
   const { project, onLoadEnd, onClose, icon: iconRaw, ...rest } = props
-  const { preventAutoStart = false } = project
+  const { preventAutoReopen = false } = project
 
   const { getText } = textProvider.useText()
   const didNotifyOnLoadEnd = React.useRef(false)
@@ -179,7 +179,7 @@ export function ProjectTab(props: ProjectTabProps) {
   })
 
   const isReady = isSuccess && isOpened
-  const wasNeverRun = preventAutoStart && !isReady
+  const wasNeverRun = preventAutoReopen && !isReady
 
   React.useEffect(() => {
     if (isReady && !didNotifyOnLoadEnd.current) {
@@ -195,7 +195,7 @@ export function ProjectTab(props: ProjectTabProps) {
   }, [isReady])
 
   const icon = (() => {
-    if (isReady || preventAutoStart) {
+    if (isReady || preventAutoReopen) {
       return iconRaw
     }
 

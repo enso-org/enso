@@ -38,7 +38,7 @@ const PROJECT_SCHEMA = z
     parentId: DIRECTORY_ID_SCHEMA,
     title: z.string(),
     type: z.nativeEnum(backendModule.BackendType),
-    preventAutoStart: z.boolean().optional(),
+    preventAutoReopen: z.boolean().optional(),
     hybrid: z.optional(
       z.object({
         cloudProjectId: PROJECT_ID_SCHEMA,
@@ -118,7 +118,7 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
           return project
         } else {
           // Disallow Cloud projects and Hybrid projects from auto-opening
-          return { ...project, preventAutoStart: true }
+          return { ...project, preventAutoReopen: true }
         }
       }),
     )

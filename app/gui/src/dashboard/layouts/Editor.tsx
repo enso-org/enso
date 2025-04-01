@@ -38,7 +38,7 @@ export interface EditorProps {
 /** The container that launches the IDE. */
 function Editor(props: EditorProps) {
   const { project, hidden, startProject, isOpeningFailed, openingError } = props
-  const { preventAutoStart = false } = project
+  const { preventAutoReopen = false } = project
   const { getText } = textProvider.useText()
 
   const backend = backendProvider.useBackendForProjectType(project.type)
@@ -65,10 +65,10 @@ function Editor(props: EditorProps) {
   const { isProjectClosed, isProjectOpening, isProjectOpened, isProjectClosing } = projectQuery.data
 
   React.useEffect(() => {
-    if (isProjectClosed && !preventAutoStart) {
+    if (isProjectClosed && !preventAutoReopen) {
       startProject(project)
     }
-  }, [isProjectClosed, startProject, project, preventAutoStart])
+  }, [isProjectClosed, startProject, project, preventAutoReopen])
 
   useTimeoutCallback({
     callback: () => {
@@ -84,7 +84,7 @@ function Editor(props: EditorProps) {
     isDisabled: !isProjectOpening || projectQuery.isError,
   })
 
-  if (isProjectClosed && preventAutoStart) {
+  if (isProjectClosed && preventAutoReopen) {
     return (
       <Result
         status="info"
