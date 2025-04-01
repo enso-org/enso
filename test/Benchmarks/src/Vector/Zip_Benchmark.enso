@@ -19,7 +19,7 @@ collect_benches = Bench.build builder->
 
     [True, False].each skip_nothing-> [True, False, Report_Unmatched].each keep_unmatched->
         builder.group "Zip_Benchmark_skip_nothing_"+skip_nothing.to_text+"_keep_unmatched_"+keep_unmatched.to_text options group_builder->
-            group_builder.specify "Make_Array" <|
+            group_builder.specify "Make_Pair" <|
                 values.value.zip values.value [_, _] skip_nothing=skip_nothing keep_unmatched=keep_unmatched
             group_builder.specify "Add" <|
                 values.value.zip values.value (+) skip_nothing=skip_nothing keep_unmatched=keep_unmatched

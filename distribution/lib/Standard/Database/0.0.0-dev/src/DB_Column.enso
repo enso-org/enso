@@ -2021,8 +2021,7 @@ type DB_Column
        ICON join2-1
        Joins this column with another column (or table) by zipping rows from
        both together - the first row of the left column is correlated with the
-       first one of the right one etc. For columnas, zip converts the columns to
-       single-column tables and performs `zip` on them. `zip` returns a `Table`.
+       first one of the right one etc. `zip` always returns a `Table`.
 
        Arguments:
        - right: The column or table to join with.
@@ -2062,10 +2061,7 @@ type DB_Column
          defined nor any ordering was specified explicitly by the user, the
          order of columns is undefined and the operation will fail, reporting a
          `Undefined_Column_Order` problem and returning an empty table.
-
-       ? Row Ordering For Database Columns
-
-         The ordering of rows in the resulting table is not specified.
+    @keep_unmatched Widget_Helpers.make_keep_unmatched_selector
     zip self (right : Column | Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table =
         _ = [right, keep_unmatched, right_prefix, on_problems]
         Error.throw <| Unsupported_Database_Operation.Error "zip"
