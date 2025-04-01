@@ -14,7 +14,7 @@ import * as paywallFeatures from './paywallFeaturesHooks'
 
 /** Props for the {@link usePaywall} hook. */
 export interface UsePaywallProps {
-  readonly plan?: backend.Plan | undefined
+  readonly plan: backend.Plan
 }
 
 /** A hook that provides paywall-related functionality. */
@@ -25,9 +25,8 @@ export function usePaywall(props: UsePaywallProps) {
   const { features } = devtools.usePaywallDevtools()
   const paywallLevel = paywallConfiguration.mapPlanOnPaywall(plan)
 
-  const getPaywallLevel = eventCallbackHooks.useEventCallback(
-    (specifiedPlan: backend.Plan | undefined) =>
-      paywallConfiguration.mapPlanOnPaywall(specifiedPlan),
+  const getPaywallLevel = eventCallbackHooks.useEventCallback((specifiedPlan: backend.Plan) =>
+    paywallConfiguration.mapPlanOnPaywall(specifiedPlan),
   )
 
   const isFeatureUnderPaywall = eventCallbackHooks.useEventCallback(

@@ -88,45 +88,36 @@ class AliasAnalysisTest extends CompilerTest {
   // === The Tests ============================================================
 
   "The analysis scope" should {
-    val builder = GraphBuilder.create()
-
-    val flatScope = new Graph.Scope()
-
-    val complexScope               = new Graph.Scope()
-    val complexBuilder             = GraphBuilder.create(null, complexScope)
+    val complexBuilder             = GraphBuilder.create()
+    val complexScope               = complexBuilder.toScope()
     val child1                     = complexBuilder.addChild()
     val child2                     = complexBuilder.addChild()
     val childOfChild               = child1.addChild()
     val childOfChildOfChildBuilder = childOfChild.addChild()
     val childOfChildOfChild        = childOfChildOfChildBuilder.toScope()
 
-    val aDef   = builder.newDef("a", genId, None)
+    val aDef   = complexBuilder.newDef("a", genId, None)
     val aDefId = aDef.id
 
-    val bDef   = builder.newDef("b", genId, None)
+    val bDef   = childOfChild.newDef("b", genId, None)
     val bDefId = bDef.id
 
-    val aUse   = builder.newUse("a", genId, None)
+    val aUse   = childOfChildOfChildBuilder.newUse("a", genId, None)
     val aUseId = aUse.id
 
-    val bUse   = builder.newUse("b", genId, None)
+    val bUse   = childOfChild.newUse("b", genId, None)
     val bUseId = bUse.id
 
-    val cUse   = builder.newUse("c", genId, None)
+    val cUse   = child2.newUse("c", genId, None)
     val cUseId = cUse.id
 
-    // Add occurrences to the scopes
-    complexBuilder.add(aDef)
-    child2.add(cUse)
-    childOfChild.add(bDef)
-    childOfChild.add(bUse)
-    childOfChildOfChildBuilder.add(aUse)
-
     "have a number of scopes of 1 without children" in {
+      val flatScope = new Graph.Scope()
       flatScope.scopeCount shouldEqual 1
     }
 
     "have a nesting level of 1 without children" in {
+      val flatScope = new Graph.Scope()
       flatScope.maxNesting shouldEqual 1
     }
 
@@ -243,24 +234,23 @@ class AliasAnalysisTest extends CompilerTest {
 
     val aDef   = builder.newDef("a", genId, None)
     val aDefId = aDef.id
+    // builder.add(aDef)
 
     val bDef = builder.newDef("b", genId, None)
+    bDef.getClass()
+    // builder.add(bDef)
 
     val aUse1   = builder.newUse("a", genId, None)
     val aUse1Id = aUse1.id
+    // builder.add(aUse1)
 
-    val aUse2   = builder.newUse("a", genId, None)
+    val aUse2   = childScope.newUse("a", genId, None)
     val aUse2Id = aUse2.id
+    // childScope.add(aUse2)
 
-    val cUse   = builder.newUse("c", genId, None)
+    val cUse   = childScope.newUse("c", genId, None)
     val cUseId = cUse.id
-
-    builder.add(aDef)
-    builder.add(aUse1)
-    builder.add(bDef)
-
-    childScope.add(aUse2)
-    childScope.add(cUse)
+    // childScope.add(cUse)
 
     val use1Link = graph.resolveLocalUsage(aUse1)
     val use2Link = graph.resolveLocalUsage(aUse2)
@@ -352,23 +342,17 @@ class AliasAnalysisTest extends CompilerTest {
       val child2     = builder.addChild()
       val grandChild = child1.addChild()
 
-      val aDefInRoot = builder.newDef("a", genId, None)
-      builder.add(aDefInRoot)
+      val aDefInRoot = builder.newDef("a", genId, None, false, true)
 
-      val aDefInChild1 = builder.newDef("a", genId, None)
-      child1.add(aDefInChild1)
+      val aDefInChild1 = child1.newDef("a", genId, None, false, true)
 
-      val aDefInChild2 = builder.newDef("a", genId, None)
-      child2.add(aDefInChild2)
+      val aDefInChild2 = child2.newDef("a", genId, None, false, true)
 
-      val aDefInGrandChild = builder.newDef("a", genId, None)
-      grandChild.add(aDefInGrandChild)
+      val aDefInGrandChild = grandChild.newDef("a", genId, None, false, true)
 
-      val bDefInRoot = builder.newDef("b", genId, None)
-      builder.add(bDefInRoot)
+      val bDefInRoot = builder.newDef("b", genId, None, false, true)
 
-      val bDefInChild2 = builder.newDef("b", genId, None)
-      child2.add(bDefInChild2)
+      val bDefInChild2 = child2.newDef("b", genId, None, false, true)
 
       graph.knownShadowedDefinitions(aDefInGrandChild) shouldEqual Set(
         aDefInRoot,

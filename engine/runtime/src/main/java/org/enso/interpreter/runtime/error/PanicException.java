@@ -312,11 +312,12 @@ public final class PanicException extends AbstractTruffleException {
 
   @ExportMessage(name = "getSourceLocation")
   SourceSection getSourceSection() throws UnsupportedMessageException {
-    SourceSection loc = getLocation().getEncapsulatingSourceSection();
-    if (loc == null) {
+    SourceSection section = getLocation().getEncapsulatingSourceSection();
+    if (section == null) {
       throw UnsupportedMessageException.create();
+    } else {
+      return getLocation().getEncapsulatingSourceSection();
     }
-    return getLocation().getEncapsulatingSourceSection();
   }
 
   private static Logger logger() {

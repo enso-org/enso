@@ -20,7 +20,8 @@ polyglot java import org.enso.google.GoogleAnalyticsReader
 ## Type providing API access to Google Analytics.
 type Google_Analytics
     ## GROUP Standard.Base.Web
-       ICON data_input
+       ICON cloud_from
+       SUGGESTED 9
        Performs Google Analytics call
        This method calls the Google Analytics Reporting v4 API.
 

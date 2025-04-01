@@ -2,11 +2,8 @@
 import Error from '#/assets/cross.svg'
 import CopyIcon from '#/assets/duplicate.svg'
 import Done from '#/assets/tick.svg'
-
-import * as copyHook from '#/hooks/copyHooks'
-
+import { useCopy } from '#/hooks/copyHooks'
 import * as textProvider from '#/providers/TextProvider'
-
 import { Button } from './Button'
 import type { ButtonProps } from './types'
 
@@ -39,10 +36,12 @@ export function CopyButton<IconType extends string>(props: CopyButtonProps<IconT
     copyIcon = CopyIcon,
     successIcon = Done,
     errorIcon = Error,
+    copyText,
+    onCopy,
     ...buttonProps
   } = props
   const { getText } = textProvider.useText()
-  const copyQuery = copyHook.useCopy(props)
+  const copyQuery = useCopy({ onCopy })
   const successfullyCopied = copyQuery.isSuccess
   const isError = copyQuery.isError
   const showIcon = copyIcon !== false
@@ -60,7 +59,7 @@ export function CopyButton<IconType extends string>(props: CopyButtonProps<IconT
       {...(buttonProps as any)}
       variant={variant}
       aria-label={props['aria-label'] ?? getText('copyShortcut')}
-      onPress={() => copyQuery.mutateAsync()}
+      onPress={() => copyQuery.mutateAsync(copyText)}
       icon={icon}
     />
   )
