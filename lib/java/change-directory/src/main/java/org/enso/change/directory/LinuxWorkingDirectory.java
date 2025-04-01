@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 import org.enso.common.Platform;
 import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.nativeimage.c.CContext;
+import org.graalvm.nativeimage.c.constant.CConstant;
 import org.graalvm.nativeimage.c.function.CFunction;
 import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
@@ -63,6 +64,26 @@ public final class LinuxWorkingDirectory implements WorkingDirectory {
     }
     return pwd;
   }
+
+  @Override
+  public boolean exists(String dir, String file) {
+    String full;
+    if (dir.endsWith("/")) {
+      full = new String(dir + file);
+    } else {
+      full = dir + "/" + file;
+    }
+    try (var cPath = CTypeConversion.toCString(full)) {
+      var res = access(cPath.get(), R_OK());
+      return res == 0;
+    }
+  }
+
+  @CConstant
+  static native int R_OK();
+
+  @CFunction
+  static native int access(CCharPointer path, int mode);
 
   @CFunction
   static native int chdir(CCharPointer path);
