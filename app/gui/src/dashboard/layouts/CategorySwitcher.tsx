@@ -4,9 +4,6 @@ import * as React from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { SEARCH_PARAMS_PREFIX } from '#/appUtils'
-import FolderAddIcon from '#/assets/folder_add.svg'
-import Minus2Icon from '#/assets/minus2.svg'
-import SettingsIcon from '#/assets/settings.svg'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import { Badge } from '#/components/Badge'
@@ -32,11 +29,11 @@ import { useEventCallback } from '../hooks/eventCallbackHooks'
 import { useSetCurrentDirectoryId } from '../providers/DriveProvider'
 import { useCloudCategoryList, useLocalCategoryList } from './Drive/Categories/categoriesHooks'
 
-/** Metadata for a categoryModule.categoryType. */
+/** Metadata for a category. */
 interface CategoryMetadata {
   readonly isNested?: boolean
   readonly category: Category
-  readonly icon: string
+  readonly icon: ariaComponents.IconProp & string
   readonly label: string
   readonly buttonLabel: string
   readonly dropZoneLabel: string
@@ -313,7 +310,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                 size="medium"
                 variant="icon"
                 extraClickZone="small"
-                icon={SettingsIcon}
+                icon="settings"
                 aria-label={getText('changeLocalRootDirectoryInSettings')}
                 className="my-auto opacity-0 transition-opacity group-hover:opacity-100"
                 onPress={() => {
@@ -344,7 +341,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                     size="medium"
                     variant="icon"
                     extraClickZone={false}
-                    icon={Minus2Icon}
+                    icon="minus"
                     aria-label={getText('removeDirectoryFromFavorites')}
                     className="hidden group-hover:block"
                   />
@@ -368,7 +365,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
               <ariaComponents.Button
                 size="medium"
                 variant="icon"
-                icon={FolderAddIcon}
+                icon="folder_add_small"
                 loaderPosition="icon"
                 onPress={async () => {
                   const [newDirectory] =

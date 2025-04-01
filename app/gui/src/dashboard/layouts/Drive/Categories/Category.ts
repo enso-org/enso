@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 import * as z from 'zod'
 
+import type { SvgUseIcon } from '#/components/AriaComponents'
 import { deleteAssetsMutationOptions, moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useBackendQuery } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -23,7 +24,10 @@ import { newDirectoryId } from '#/services/LocalBackend'
 const PATH_SCHEMA = z.string().refine((s): s is Path => true)
 const DIRECTORY_ID_SCHEMA = z.string().refine((s): s is DirectoryId => true)
 
-const EACH_CATEGORY_SCHEMA = z.object({ label: z.string(), icon: z.string() })
+const EACH_CATEGORY_SCHEMA = z.object({
+  label: z.string(),
+  icon: z.custom<SvgUseIcon | (string & {})>((icon) => typeof icon === 'string'),
+})
 
 /** A category corresponding to the root of the user or organization. */
 const CLOUD_CATEGORY_SCHEMA = z

@@ -81,7 +81,6 @@ export function Tab(props: TabProps) {
   } = props
   const { getText } = textProvider.useText()
   const inputBindings = useInputBindings()
-  console.log(':3', id, isActive)
 
   const stableOnClose = useEventCallback(() => {
     onClose?.()
