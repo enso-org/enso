@@ -55,6 +55,4 @@ this:
 In Enso, create a `Database.connect` node. Under `details`, select `JDBC`, and
 enter the JDBC URL. The `Database.connect` node will look ike this:
 
-```
 **Database.connect** details **Generic_JDBC_Details.Value** url **'jdbc:h2:/path/to/my/database'**
-```
