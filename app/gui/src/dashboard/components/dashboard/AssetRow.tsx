@@ -42,6 +42,7 @@ import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
+import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type { Label } from '#/services/Backend'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
@@ -109,7 +110,7 @@ export interface AssetRowProps {
     parentId: backendModule.DirectoryId,
   ) => Promise<void>
   readonly renameAsset: (assetId: backendModule.AssetId, newTitle: string) => Promise<void>
-  readonly closeProject: (projectId: backendModule.ProjectId) => Promise<void>
+  readonly closeProject: (project: LaunchedProject) => Promise<void>
   readonly openProject: (projectId: backendModule.ProjectId) => Promise<void>
 }
 
@@ -214,15 +215,7 @@ const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialR
 type RealAssetRowProps = AssetRowProps
 
 /** Render a real asset row. */
-const RealAssetRow = React.memo(function RealAssetRow(props: RealAssetRowProps) {
-  return <RealAssetInternalRow {...props} />
-})
-
-/** Internal props for a {@link RealAssetRow}. */
-export interface RealAssetRowInternalProps extends AssetRowProps {}
-
-/** Internal implementation of a {@link RealAssetRow}. */
-export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
+export function RealAssetRow(props: RealAssetRowProps) {
   const {
     id,
     parentId,
@@ -434,7 +427,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
               }
             }}
             className={tailwindMerge.twMerge(
-              'h-table-row rounded-full transition-all ease-in-out rounded-rows-child',
+              'h-table-row rounded-full transition-all ease-in-out rounded-rows-child [contain-intrinsic-size:44px] [content-visibility:auto]',
               visibility,
               (isDraggedOver || selected) && 'selected',
             )}

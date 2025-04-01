@@ -25,17 +25,14 @@ export function useMutationCallback<
   options: UseMutationOptions<TData, TError, TVariables, TContext>,
   queryClient?: QueryClient,
 ): UseMutationResult<TData, TError, TVariables, TContext>['mutateAsync'] {
-  const ctxQueryClient = useQueryClient()
-  const queryClientContext = queryClient ?? ctxQueryClient
+  const ctxQueryClient = useQueryClient(queryClient)
 
   return useEventCallback<UseMutationResult<TData, TError, TVariables, TContext>['mutateAsync']>(
-    (...args) =>
-      queryClientContext
+    (variables) =>
+      ctxQueryClient
         .getMutationCache()
-        .build<TData, TError, TVariables, TContext>(queryClientContext, options)
-        // This is safe, because the function is typed outside of the callback.
-        // eslint-disable-next-line no-restricted-syntax
-        .execute(args as TVariables),
+        .build<TData, TError, TVariables, TContext>(ctxQueryClient, options)
+        .execute(variables),
   )
 }
 
@@ -49,10 +46,9 @@ export function useEnsureQueryData<
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey,
 >(queryClient?: QueryClient) {
-  const ctxQueryClient = useQueryClient()
-  const queryClientContext = queryClient ?? ctxQueryClient
+  const ctxQueryClient = useQueryClient(queryClient)
 
   return useEventCallback<
     (options: EnsureQueryDataOptions<TQueryFnData, TError, TData, TQueryKey>) => Promise<TData>
-  >((options) => queryClientContext.ensureQueryData(options))
+  >((options) => ctxQueryClient.ensureQueryData(options))
 }

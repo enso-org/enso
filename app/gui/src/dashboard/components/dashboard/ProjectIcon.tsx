@@ -18,6 +18,7 @@ import * as backendModule from '#/services/Backend'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import type { LaunchedProject } from '../../providers/ProjectsProvider'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const CLOSED_PROJECT_STATE = { type: backendModule.ProjectState.closed } as const
@@ -60,7 +61,7 @@ export interface ProjectIconProps {
   readonly isDisabled: boolean
   readonly isOpened: boolean
   readonly item: backendModule.ProjectAsset
-  readonly closeProject: (projectId: backendModule.ProjectId) => Promise<void>
+  readonly closeProject: (project: LaunchedProject) => Promise<void>
   readonly openProject: (projectId: backendModule.ProjectId) => Promise<void>
 }
 
@@ -80,9 +81,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
   const isDisabled = isDisabledRaw || isUnconditionallyDisabled
 
-  // const openProjectLocally = projectHooks.useOpenProjectLocally()
-  // const closeProject = projectHooks.useCloseProject()
-
   const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
 
@@ -92,13 +90,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const status = projectState.type
   const isRunningInBackground = projectState.executeAsync ?? false
 
-  const isCloud = backend.type === backendModule.BackendType.remote
-
   const isOtherUserUsingProject =
-    isCloud && projectState.openedBy != null && projectState.openedBy !== user.email
+    projectState.openedBy != null && projectState.openedBy !== user.email
 
   const userOpeningProjectTooltip =
-    projectState.openedBy == null ? null : getText('xIsUsingTheProject', projectState.openedBy)
+    isOtherUserUsingProject ? getText('xIsUsingTheProject', projectState.openedBy) : null
   const disabledTooltip = isUnconditionallyDisabled ? getText('downloadToOpenWorkflow') : null
 
   const state = (() => {
@@ -130,8 +126,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const doOpenProject = useEventCallback(async () => {
     await openProject(item.id)
   })
+
   const doCloseProject = useEventCallback(async () => {
-    await closeProject(item.id)
+    await closeProject({ ...item, type: backend.type })
   })
 
   const getTooltip = (defaultTooltip: string) =>

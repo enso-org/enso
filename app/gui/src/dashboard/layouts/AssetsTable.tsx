@@ -65,7 +65,7 @@ import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useCutAndPaste } from '#/hooks/cutAndPasteHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useIntersectionRatio } from '#/hooks/intersectionHooks'
-import { useOpenProjectLocally } from '#/hooks/projectHooks'
+import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -124,10 +124,10 @@ import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
 import { PermissionAction } from '#/utilities/permissions'
 import { withPresence } from '#/utilities/set'
+import type { SortInfo } from '#/utilities/sorting'
+import { twMerge } from '#/utilities/tailwindMerge'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import invariant from 'tiny-invariant'
-import type { SortInfo } from '../utilities/sorting'
-import { twMerge } from '../utilities/tailwindMerge'
-import { useMutationCallback } from '../utilities/tanstackQuery'
 import {
   SUGGESTIONS_FOR_HAS,
   SUGGESTIONS_FOR_NEGATIVE_TYPE,
@@ -776,16 +776,14 @@ function AssetsTable(props: AssetsTableProps) {
   const renameAssetMutationCallback = useMutationCallback(
     backendMutationOptions(backend, 'updateAsset'),
   )
-  const closeProjectMutationCallback = useMutationCallback(
-    backendMutationOptions(backend, 'closeProject'),
-  )
+  const closeProjectMutationCallback = useCloseProject()
 
   const doRenameAsset = useEventCallback((assetId: AssetId, newTitle: string) => {
-    return renameAssetMutationCallback([assetId, { title: newTitle }, assetId])
-  })
-
-  const doCloseProject = useEventCallback((projectId: ProjectId) => {
-    return closeProjectMutationCallback([projectId, projectId])
+    return renameAssetMutationCallback([
+      assetId,
+      { title: newTitle, parentDirectoryId: null, description: null },
+      assetId,
+    ])
   })
 
   const doOpenProject = useEventCallback((projectId: ProjectId) => {
@@ -1247,7 +1245,7 @@ function AssetsTable(props: AssetsTableProps) {
         onDrop={onRowDrop}
         uploadFiles={uploadFiles}
         renameAsset={doRenameAsset}
-        closeProject={doCloseProject}
+        closeProject={closeProjectMutationCallback}
         openProject={doOpenProject}
       />
     )

@@ -183,7 +183,7 @@ export const Button = memo(
       targetRef: contentRef,
       children: tooltipElement,
       isDisabled: !shouldUseVisualTooltip,
-      overlayPositionProps: { placement: tooltipPlacement ?? 'top' },
+      ...(tooltipPlacement && { overlayPositionProps: { placement: tooltipPlacement } }),
     })
 
     const shouldDisplayBorder = isJoined && (position === 'first' || position === 'middle')
