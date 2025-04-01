@@ -420,7 +420,7 @@ export function useOpenHybridProject() {
   const closeProject = useCloseProject()
 
   return eventCallbacks.useEventCallback(
-    async (asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title' | 'ensoPath'>) => {
+    async (asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>) => {
       try {
         invariant(localBackend != null, 'Local Backend is null')
         await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
