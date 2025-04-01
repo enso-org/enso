@@ -1013,6 +1013,9 @@ type Vector a
        - that: The vector to zip with `self`.
        - function: The function used to combine pairwise elements of `self` and
          `that`.
+       - skip_nothing: If `True`, `Nothing` values will be skipped, and a
+         `Nothing` will be used at that position in the output. Otherwise,
+         `Nothing` values will be passed to the `function`. Defaults to `False`.
        - keep_unmatched: If set to `True`, the result will include as many elements
          as the longer of the two vectors - the last elements of the longer
          vector will have `Nothing`s for elements in the smaller one. If set to
@@ -1023,9 +1026,6 @@ type Vector a
          if they do not, the behaviour is the same as if it was set to `True` -
          i.e. the unmatched elements are kept with `Nothing` values for the
          other `Vector`, but a `Row_Count_Mismatch` problem is also reported.
-       - skip_nothing: If `True`, `Nothing` values will be skipped, and a
-         `Nothing` will be used at that position in the output. Otherwise,
-         `Nothing` values will be passed to the `function`.
        - on_problems: Specifies how to handle any problems that arise in
          `function`.
 
