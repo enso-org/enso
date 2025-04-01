@@ -20,37 +20,35 @@ export function useCutAndPaste(backend: Backend, category: Category) {
   const transferBetweenCategories = useTransferBetweenCategories(category)
   const getAsset = useGetAsset()
 
-  return useEventCallback(
-    async (newParentKey: DirectoryId, newParentId: DirectoryId, pasteData: DrivePastePayload) => {
-      const ids = Array.from(pasteData.ids)
-      const assets = ids.flatMap((id) => {
-        const item = getAsset(id)
-        return item ? [item] : []
-      })
-      const newParent = getAsset(newParentKey)
-      const isMovingToUserSpace =
-        newParent?.parentsPath != null && isUserParentsPath(newParent.ensoPath)
-      if (pasteData.category.type === 'trash') {
-        await Promise.all(
-          assets.map((asset) =>
-            undoDeleteAssetMutation.mutateAsync([asset.id, { parentId: newParentId }, asset.title]),
-          ),
-        )
-      }
-      const teamToUserItems =
-        isMovingToUserSpace ? assets.filter((asset) => isTeamParentsPath(asset.ensoPath)) : []
-      const nonTeamToUserIds =
-        isMovingToUserSpace ?
-          assets
-            .filter((asset) => !isTeamParentsPath(asset.ensoPath))
-            .map((otherItem) => otherItem.id)
-        : ids
-      if (teamToUserItems.length !== 0) {
-        await copyAssetsMutation.mutateAsync([teamToUserItems.map((item) => item.id), newParentId])
-      }
-      if (nonTeamToUserIds.length !== 0) {
-        transferBetweenCategories(pasteData.category, category, pasteData.ids, newParentId)
-      }
-    },
-  )
+  return useEventCallback(async (newParentId: DirectoryId, pasteData: DrivePastePayload) => {
+    const ids = Array.from(pasteData.ids)
+    const assets = ids.flatMap((id) => {
+      const item = getAsset(id)
+      return item ? [item] : []
+    })
+    const newParent = getAsset(newParentId)
+    const isMovingToUserSpace =
+      newParent?.parentsPath != null && isUserParentsPath(newParent.ensoPath)
+    if (pasteData.category.type === 'trash') {
+      await Promise.all(
+        assets.map((asset) =>
+          undoDeleteAssetMutation.mutateAsync([asset.id, { parentId: newParentId }, asset.title]),
+        ),
+      )
+    }
+    const teamToUserItems =
+      isMovingToUserSpace ? assets.filter((asset) => isTeamParentsPath(asset.ensoPath)) : []
+    const nonTeamToUserIds =
+      isMovingToUserSpace ?
+        assets
+          .filter((asset) => !isTeamParentsPath(asset.ensoPath))
+          .map((otherItem) => otherItem.id)
+      : ids
+    if (teamToUserItems.length !== 0) {
+      await copyAssetsMutation.mutateAsync([teamToUserItems.map((item) => item.id), newParentId])
+    }
+    if (nonTeamToUserIds.length !== 0) {
+      transferBetweenCategories(pasteData.category, category, pasteData.ids, newParentId)
+    }
+  })
 }

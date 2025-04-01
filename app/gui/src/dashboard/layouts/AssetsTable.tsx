@@ -807,7 +807,7 @@ function AssetsTable(props: AssetsTableProps) {
     setSelectedAssets([])
   })
 
-  const doPaste = useEventCallback((newParentKey: DirectoryId, newParentId: DirectoryId) => {
+  const doPaste = useEventCallback((newParentId: DirectoryId) => {
     unsetModal()
 
     const { pasteData } = driveStore.getState()
@@ -816,13 +816,13 @@ function AssetsTable(props: AssetsTableProps) {
       pasteData?.data.backendType === backend.type &&
       canTransferBetweenCategories(pasteData.data.category, category)
     ) {
-      if (pasteData.data.ids.has(newParentKey)) {
+      if (pasteData.data.ids.has(newParentId)) {
         toast.error('Cannot paste a folder into itself.')
       } else {
         if (pasteData.type === 'copy') {
           copyAssetsMutation.mutate([[...pasteData.data.ids], newParentId])
         } else {
-          cutAndPaste(newParentKey, newParentId, pasteData.data)
+          cutAndPaste(newParentId, pasteData.data)
         }
         setPasteData(null)
       }
@@ -1232,7 +1232,6 @@ function AssetsTable(props: AssetsTableProps) {
       <AssetRow
         key={item.id + item.virtualParentsPath}
         isPlaceholder={false}
-        onCutAndPaste={cutAndPaste}
         isOpened={isOpenedByYou || isOpenedOnTheBackend}
         columns={columns}
         id={item.id}
@@ -1246,7 +1245,6 @@ function AssetsTable(props: AssetsTableProps) {
         onClick={onRowClick}
         select={selectRow}
         labels={labels ?? []}
-        cutAndPaste={cutAndPaste}
         onDragStart={onRowDragStart}
         onDragEnd={onRowDragEnd}
         onDrop={onRowDrop}

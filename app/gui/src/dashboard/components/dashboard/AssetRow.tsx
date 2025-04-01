@@ -37,6 +37,7 @@ import {
   useRestoreAssetsMutationState,
 } from '#/hooks/backendBatchedHooks'
 import { useBackendMutationState } from '#/hooks/backendHooks'
+import { useCutAndPaste } from '#/hooks/cutAndPasteHooks'
 import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useAsset } from '#/layouts/Drive/assetsTableItemsHooks'
@@ -67,11 +68,6 @@ export interface AssetRowProps {
   readonly columns: columnUtils.Column[]
   readonly isKeyboardSelected: boolean
   readonly labels: readonly Label[]
-  readonly cutAndPaste: (
-    newParentKey: backendModule.DirectoryId,
-    newParentId: backendModule.DirectoryId,
-    pasteData: DrivePastePayload,
-  ) => void
   readonly grabKeyboardFocus: (item: backendModule.AnyAsset) => void
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
   readonly select: (item: backendModule.AnyAsset) => void
@@ -235,7 +231,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     isPlaceholder,
     type,
     asset,
-    cutAndPaste,
     labels,
     grabKeyboardFocus,
     uploadFiles,
@@ -243,6 +238,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   const { category, backend, currentDirectoryId, doCopy, doCut, doPaste } = state
 
   const [isNavigating, startNavigation] = useTransition()
+  const cutAndPaste = useCutAndPaste(backend, category)
 
   const driveStore = useDriveStore()
   const setSelectedAssets = useSetSelectedAssets()
@@ -512,7 +508,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                 const ids = payload
                   .filter((payloadItem) => payloadItem.asset.parentId !== directoryId)
                   .map((dragItem) => dragItem.key)
-                cutAndPaste(directoryId, directoryId, {
+                cutAndPaste(directoryId, {
                   backendType: backend.type,
                   ids: new Set(ids),
                   category,
