@@ -1,6 +1,22 @@
 /** @file Types common to all credentials dialogs. */
-import type { CredentialMetadata, SecretId } from 'enso-common/src/services/Backend'
+import type { CredentialInput, SecretId } from 'enso-common/src/services/Backend'
 import type { TextId } from 'enso-common/src/text'
+
+/**
+ * TODO
+ */
+export interface CredentialRecipe {
+  readonly title: string
+  readonly input: CredentialInput
+  readonly makeAuthUrl: (secretId: SecretId, nonce: string) => string
+}
+
+/**
+ * TODO
+ */
+export interface CredentialFormProps {
+  readonly createCredentials: (recipe: CredentialRecipe) => Promise<void>
+}
 
 /** Information to describe a credential in the list of credentials. */
 export interface CredentialInfo {
@@ -9,6 +25,5 @@ export interface CredentialInfo {
   readonly credentialType: string
   /** A SVG data url. */
   readonly icon: string | undefined
-  readonly makeAuthUrl: (id: SecretId, metadata: CredentialMetadata) => string,
-  readonly form: React.ComponentType
+  readonly form: React.ComponentType<CredentialFormProps>
 }

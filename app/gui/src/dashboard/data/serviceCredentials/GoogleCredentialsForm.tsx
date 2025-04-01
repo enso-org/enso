@@ -6,25 +6,20 @@
 
 import { Checkbox, Form, Input } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
-import { z } from 'zod'
 import { CredentialsFormButtons } from './CredentialsFormButtons'
-import * as i18n from 'enso-common/src/text'
+import { FORM_SCHEMA, submitForm } from './google'
+import type { CredentialFormProps } from './types'
 
-const FORM_SCHEMA = z.object({
-  title: z.string().min(1),
-  scopes: z.array(z.string()).refine((scopes) => scopes.length > 0, {message: i18n.getText(i18n.resolveDictionary(), 'googleCredentialScopesEmptyError')}),
-})
 
 /** Dialog for a Google credential. */
-export function GoogleCredentialsForm() {
+export function GoogleCredentialsForm(props: CredentialFormProps) {
+  const { createCredentials } = props
   const { getText } = useText()
   
   const form = Form.useForm({
     method: 'dialog',
     schema: FORM_SCHEMA,
-    onSubmit: (values) => {
-      console.log(values)
-    },
+    onSubmit: (values) => submitForm(createCredentials, values),
   })
 
   return (

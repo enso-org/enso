@@ -6,27 +6,19 @@
 
 import { Form, Input } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
-import { z } from 'zod'
 import { CredentialsFormButtons } from './CredentialsFormButtons'
-
-const FORM_SCHEMA = z.object({
-  title: z.string().min(1),
-  account: z.string().min(1),
-  clientId: z.string().min(1),
-  clientSecret: z.string().min(1),
-  role: z.string().nullable().transform((s) => s == null || s.length === 0 ? null : s)
-})
+import type { CredentialFormProps } from './types'
+import { FORM_SCHEMA, submitForm } from './snowflake'
 
 /** Dialog for a Snowflake credential. */
-export function SnowflakeCredentialsForm() {
+export function SnowflakeCredentialsForm(props: CredentialFormProps) {
+  const { createCredentials } = props
   const { getText } = useText()
 
   const form = Form.useForm({
     method: 'dialog',
     schema: FORM_SCHEMA,
-    onSubmit: (values) => {
-      console.log(values)
-    },
+    onSubmit: (values) => submitForm(createCredentials, values),
   })
 
   return (

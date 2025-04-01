@@ -1,8 +1,8 @@
 /** @file A modal for creating and editing a credential. */
 import { uuidv4 } from 'lib0/random.js'
 import { Dialog, Dropdown, Text } from '#/components/AriaComponents'
-import { CREDENTIAL_INFOS, type CredentialInfo } from '#/data/serviceCredentials'
-import { CredentialsFormButtons } from '#/data/serviceCredentials/CredentialsFormButtons'
+import type { CredentialRecipe} from '#/data/serviceCredentials';
+import { CREDENTIAL_INFOS } from '#/data/serviceCredentials'
 import { useText } from '#/providers/TextProvider'
 import type { CredentialMetadata, SecretId } from '#/services/Backend'
 import { openInNewBrowserTab } from '#/utilities/window'
@@ -22,16 +22,19 @@ export default function CreateCredentialModal(props: CreateCredentialModalProps)
   } = props
   const { getText } = useText()
 
-  const _todo = doCreate
-/*
-    onSubmit: (values, submittedForm) => {
-      const nonce = uuidv4()
-      console.log("Submitting", values, submittedForm, nonce)
-      const secretId = doCreate(values.title, undefined as unknown as CredentialMetadata)
-      // const authorizeUrl = makeAuthorizeUrl(secretId)
-      // openInNewBrowserTab(authorizeUrl)
-    },
-*/
+  // TODO maybe move this?
+  const submitCredentialForm = async (recipe: CredentialRecipe) => {
+    console.log("Creating credentials", recipe.title, recipe.input)
+    const nonce = uuidv4()
+    const metadata: CredentialMetadata = {
+      nonce,
+      input: recipe.input
+    }
+    const secretId = await doCreate(recipe.title, metadata)
+    const url = recipe.makeAuthUrl(secretId, nonce)
+    openInNewBrowserTab(url)
+  }
+
   const [selectedChildIndex, setSelectedChildIndex] = useState<number>(0)
 
   const selectedItem = CREDENTIAL_INFOS[selectedChildIndex]
@@ -48,7 +51,7 @@ export default function CreateCredentialModal(props: CreateCredentialModalProps)
       >
         {({ item }) => <Text slot="label">{getText(item.nameId)}</Text>}
       </Dropdown>
-      {selectedItem && (<selectedItem.form />)}
+      {selectedItem && (<selectedItem.form createCredentials={submitCredentialForm}/>)}
     </div>
   )
 

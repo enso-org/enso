@@ -3,39 +3,70 @@
  */
 import invariant from 'tiny-invariant'
 
-import type { CredentialMetadata, GoogleCredentialInput, SecretId } from "#/services/Backend"
+import type { GoogleCredentialInput, SecretId } from "#/services/Backend"
 import { getOauthCallbackPath } from "#/services/remoteBackendPaths"
-import { z, type ZodType } from 'zod'
+import * as i18n from 'enso-common/src/text'
+import { z } from 'zod'
+import type { CredentialRecipe } from './types'
 
-export const SCHEMA = z.object({
-  type: z.literal('Google'),
-  scopes: z.array(z.string())
-}) satisfies ZodType<GoogleCredentialInput>
+
+export const FORM_SCHEMA = z.object({
+  title: z.string().min(1),
+  scopes: z.array(z.string()).refine((scopes) => scopes.length > 0, {message: i18n.getText(i18n.resolveDictionary(), 'googleCredentialScopesEmptyError')}),
+})
+
+/**
+ * Maps scopes in the form to related sets of actual OAuth scopes.
+ * 
+ * It is used for simplifying the user-facing form - a single user-facing feature, like "Sheets" may actually require multiple scopes to be enabled to work correctly.
+ */
+export const SCOPE_MAPPING = {
+  "sheets": ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"],
+  "analytics": ["https://www.googleapis.com/auth/analytics"]
+}
 
 /**
  * TODO
- * @throws foo
  */
-export function makeAuthUrl(secretId: SecretId, metadata: CredentialMetadata): string {
-  if (metadata.input.type !== 'Google') {
-    // TODO can we check statically
-    throw new Error("Invalid credential type")
-  }
-
-  invariant($config.GOOGLE_OAUTH_CLIENT_ID != null, 'Google OAuth client id is missing')
-  const nonce = metadata.nonce
-  const state = btoa(JSON.stringify({ secretId, nonce }))
-  const scope = metadata.input.scopes.join(' ')
-  const query = new URLSearchParams({
-      /* eslint-disable @typescript-eslint/naming-convention, camelcase */
-      response_type: 'code',
-      access_type: 'offline',
-      prompt: 'consent',
-      redirect_uri: getOauthCallbackPath('Google'),
-      client_id: $config.GOOGLE_OAUTH_CLIENT_ID,
-      state,
-      scope
-      /* eslint-enable @typescript-eslint/naming-convention, camelcase */
-  })
-  return `https://accounts.google.com/o/oauth2/v2/auth?${query.toString()}`
+function isValidScope(name: string): name is keyof typeof SCOPE_MAPPING {
+  return Object.keys(SCOPE_MAPPING).includes(name)
 }
+
+/**
+ * TODO
+ */
+export function submitForm(createCredentials: (recipe: CredentialRecipe) => Promise<void>, values: z.infer<typeof FORM_SCHEMA>): Promise<void> {
+  const oauthScopesSet = new Set<string>()
+  values.scopes.forEach((scope) => {
+    invariant(isValidScope(scope), "Scopes used in the form must match ones in SCOPE_MAPPING")
+    const translatedScopes: string[] = SCOPE_MAPPING[scope]
+    translatedScopes.forEach((s) => oauthScopesSet.add(s))
+  })
+  const oauthScopes: string[] = Array.from(oauthScopesSet)
+  const input: GoogleCredentialInput = {
+    type: 'Google',
+    scopes: oauthScopes
+  }
+  return createCredentials({
+    title: values.title,
+    input,
+    makeAuthUrl: (secretId: SecretId, nonce: string) => {
+      invariant($config.GOOGLE_OAUTH_CLIENT_ID != null, 'Google OAuth client id is missing')
+      const state = btoa(JSON.stringify({ secretId, nonce }))
+      const scope = oauthScopes.join(' ')
+      const query = new URLSearchParams({
+          /* eslint-disable @typescript-eslint/naming-convention, camelcase */
+          response_type: 'code',
+          access_type: 'offline',
+          prompt: 'consent',
+          redirect_uri: getOauthCallbackPath('Google'),
+          client_id: $config.GOOGLE_OAUTH_CLIENT_ID,
+          state,
+          scope
+          /* eslint-enable @typescript-eslint/naming-convention, camelcase */
+      })
+      return `https://accounts.google.com/o/oauth2/v2/auth?${query.toString()}`
+    }
+  })
+}
+
