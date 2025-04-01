@@ -41,10 +41,7 @@ test('setup (team plan, skipping invites)', ({ page }) =>
   mockAll({
     page,
     setupAPI: (api) => {
-      api.setCurrentUser({
-        ...api.defaultUser,
-        plan: Plan.free,
-      })
+      api.setCurrentUser(null)
     },
   })
     .loginAsNewUser()

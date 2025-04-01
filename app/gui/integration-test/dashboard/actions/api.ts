@@ -1120,7 +1120,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         userGroups: null,
         isOrganizationAdmin: true,
         isEnsoTeamMember: true,
-        plan: backend.Plan.enterprise,
+        plan: backend.Plan.free,
       }
       return currentUser
     })
