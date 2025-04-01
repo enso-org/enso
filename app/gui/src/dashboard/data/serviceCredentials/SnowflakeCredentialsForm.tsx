@@ -10,10 +10,10 @@ import { z } from 'zod'
 import { CredentialsFormButtons } from './CredentialsFormButtons'
 
 const FORM_SCHEMA = z.object({
-  title: z.string(),
-  account: z.string(),
-  clientId: z.string(),
-  clientSecret: z.string(),
+  title: z.string().min(1),
+  account: z.string().min(1),
+  clientId: z.string().min(1),
+  clientSecret: z.string().min(1),
   role: z.string().nullable().transform((s) => s == null || s.length === 0 ? null : s)
 })
 

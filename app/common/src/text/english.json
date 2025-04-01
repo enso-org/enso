@@ -314,6 +314,8 @@
   "role": "Role",
   "snowflakeCredentialType": "Snowflake",
   "googleCredentialType": "Google",
+  "googleCredentialScopes": "Scopes",
+  "googleCredentialScopesEmptyError": "Please select at least one scope for the integration.",
   "googleCredentialSheetsScope": "Sheets",
   "googleCredentialSheetsReadScope": "Read sheets",
   "googleCredentialSheetsWriteScope": "Write sheets",
