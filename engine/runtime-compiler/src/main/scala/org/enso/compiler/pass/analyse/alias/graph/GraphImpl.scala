@@ -14,11 +14,11 @@ import scala.annotation.unused
 sealed private[graph] class GraphImpl(
   private val rootScopeImpl: Graph.Scope = new GraphImpl.Scope(),
   private var _nextIdCounter: Int        = 0,
-  private var links: Set[GraphImpl.Link] = Set()
+  private var links: Set[Graph.Link]     = Set()
 ) extends Graph {
-  private var sourceLinks: Map[GraphImpl.Id, Set[GraphImpl.Link]] =
+  private var sourceLinks: Map[GraphImpl.Id, Set[Graph.Link]] =
     new HashMap()
-  private var targetLinks: Map[GraphImpl.Id, Set[GraphImpl.Link]] =
+  private var targetLinks: Map[GraphImpl.Id, Set[Graph.Link]] =
     new HashMap()
 
   private[graph] def rootScope: GraphImpl.Scope =
@@ -46,7 +46,7 @@ sealed private[graph] class GraphImpl(
     copy
   }
 
-  private[analyse] def getLinks(): Set[GraphImpl.Link] = links
+  private[analyse] def getLinks(): Set[Graph.Link] = links
 
   final def freeze(): Unit = {
     _nextIdCounter = -1
@@ -101,7 +101,7 @@ sealed private[graph] class GraphImpl(
     */
   final def resolveLocalUsage(
     occurrence: GraphOccurrence.Use
-  ): Option[GraphImpl.Link] = {
+  ): Option[Graph.Link] = {
     scopeFor(occurrence.id).flatMap(_.resolveUsage(occurrence).map { link =>
       addSourceTargetLink(link)
       links += link
@@ -109,7 +109,7 @@ sealed private[graph] class GraphImpl(
     })
   }
 
-  private def addSourceTargetLink(link: GraphImpl.Link): Unit = {
+  private def addSourceTargetLink(link: Graph.Link): Unit = {
     // commented out: used from DebugEvalNode
     // org.enso.common.Asserts.assertInJvm(!frozen)
     sourceLinks = sourceLinks.updatedWith(link.source)(v =>
@@ -141,8 +141,8 @@ sealed private[graph] class GraphImpl(
     * @param id the identifier for the symbol
     * @return a list of links in which `id` occurs
     */
-  final def linksFor(id: GraphImpl.Id): Set[GraphImpl.Link] = {
-    sourceLinks.getOrElse(id, Set.empty[GraphImpl.Link]) ++ targetLinks
+  final def linksFor(id: GraphImpl.Id): Set[Graph.Link] = {
+    sourceLinks.getOrElse(id, Set.empty[Graph.Link]) ++ targetLinks
       .getOrElse(
         id,
         Set()
@@ -158,7 +158,7 @@ sealed private[graph] class GraphImpl(
     */
   private[analyse] def linksFor[T <: GraphOccurrence: ClassTag](
     symbol: GraphImpl.Symbol
-  ): Set[GraphImpl.Link] = {
+  ): Set[Graph.Link] = {
     val idsForSym = rootScope.symbolToIds[T](symbol)
 
     links.filter(l =>
@@ -180,7 +180,7 @@ sealed private[graph] class GraphImpl(
     * @param id the identifier to find the definition link for
     * @return the definition link for `id` if it exists
     */
-  final def defLinkFor(id: GraphImpl.Id): Option[GraphImpl.Link] = {
+  final def defLinkFor(id: GraphImpl.Id): Option[Graph.Link] = {
     linksFor(id).find { edge =>
       val occ = getOccurrence(edge.target)
       occ match {
@@ -492,7 +492,7 @@ object GraphImpl {
     private[analyse] def resolveUsage(
       occurrence: GraphOccurrence.Use,
       parentCounter: Int = 0
-    ): Option[GraphImpl.Link] = {
+    ): Option[Graph.Link] = {
       val definition = occurrences.values.find {
         case GraphOccurrence.Def(_, name, _, _, _) =>
           name == occurrence.symbol
@@ -503,7 +503,7 @@ object GraphImpl {
         case None =>
           parent.flatMap(_.resolveUsage(occurrence, parentCounter + 1))
         case Some(target) =>
-          Some(GraphImpl.Link(occurrence.id, parentCounter, target.id()))
+          Some(Graph.Link(occurrence.id, parentCounter, target.id()))
       }
     }
 
@@ -665,19 +665,4 @@ object GraphImpl {
       this.parent.foreach(_.removeScopeFromParent(this))
     }
   }
-
-  /** A link in the [[Graph]].
-    *
-    * The source of the link should always be an [[GraphOccurrence.Use]] while the
-    * target of the link should always be an [[GraphOccurrence.Def]].
-    *
-    * @param source the source ID of the link in the graph
-    * @param scopeCount the number of scopes that the link traverses
-    * @param target the target ID of the link in the graph
-    */
-  sealed private[analyse] case class Link(
-    source: Id,
-    scopeCount: Int,
-    target: Id
-  ) {}
 }

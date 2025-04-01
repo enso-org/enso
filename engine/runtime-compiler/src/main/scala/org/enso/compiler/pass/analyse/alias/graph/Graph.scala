@@ -10,6 +10,8 @@ abstract class Graph {
     scope_mapping: mutable.Map[Graph.Scope, Graph.Scope] = mutable.Map()
   ): Graph
 
+  def defLinkFor(id: Graph.Id): Option[Graph.Link]
+
   private[graph] def rootScope: Graph.Scope
 }
 
@@ -37,4 +39,18 @@ object Graph {
   /** The type of identifiers on the graph. */
   type Id = Int
 
+  /** A link in the [[Graph]].
+    *
+    * The source of the link should always be an [[GraphOccurrence.Use]] while the
+    * target of the link should always be an [[GraphOccurrence.Def]].
+    *
+    * @param source the source ID of the link in the graph
+    * @param scopeCount the number of scopes that the link traverses
+    * @param target the target ID of the link in the graph
+    */
+  sealed private[analyse] case class Link(
+    source: Id,
+    scopeCount: Int,
+    target: Id
+  ) {}
 }
