@@ -7,7 +7,6 @@ import { useText } from '#/providers/TextProvider'
 import type { CredentialMetadata, SecretId } from '#/services/Backend'
 import { openInNewBrowserTab } from '#/utilities/window'
 import { useState } from 'react'
-import { useToastAndLog } from '#/hooks/toastAndLogHooks';
 
 /** Props for a {@link CreateCredentialModal}. */
 export interface CreateCredentialModalProps {
@@ -22,7 +21,6 @@ export default function CreateCredentialModal(props: CreateCredentialModalProps)
     doCreate
   } = props
   const { getText } = useText()
-  const toastAndLog = useToastAndLog()
 
   // TODO maybe move this?
   const submitCredentialForm = async (recipe: CredentialRecipe) => {
@@ -33,13 +31,9 @@ export default function CreateCredentialModal(props: CreateCredentialModalProps)
       input: recipe.input
     }
 
-    try {
-      const secretId = await doCreate(recipe.name, metadata)
-      const url = recipe.makeAuthUrl(secretId, nonce)
-      openInNewBrowserTab(url)
-    } catch (error) {
-      toastAndLog(null, error)
-    }
+    const secretId = await doCreate(recipe.name, metadata)
+    const url = recipe.makeAuthUrl(secretId, nonce)
+    openInNewBrowserTab(url)
   }
 
   const [selectedChildIndex, setSelectedChildIndex] = useState<number>(0)

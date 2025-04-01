@@ -36,6 +36,9 @@ function isValidScope(name: string): name is keyof typeof SCOPE_MAPPING {
  * TODO
  */
 export function submitForm(createCredentials: (recipe: CredentialRecipe) => Promise<void>, values: z.infer<typeof FORM_SCHEMA>): Promise<void> {
+  invariant($config.GOOGLE_OAUTH_CLIENT_ID != null, 'Google OAuth client id is missing')
+  const googleOauthClientId = $config.GOOGLE_OAUTH_CLIENT_ID
+  
   const oauthScopesSet = new Set<string>()
   values.scopes.forEach((scope) => {
     invariant(isValidScope(scope), "Scopes used in the form must match ones in SCOPE_MAPPING")
@@ -51,7 +54,6 @@ export function submitForm(createCredentials: (recipe: CredentialRecipe) => Prom
     name: values.name,
     input,
     makeAuthUrl: (secretId: SecretId, nonce: string) => {
-      invariant($config.GOOGLE_OAUTH_CLIENT_ID != null, 'Google OAuth client id is missing')
       const state = btoa(JSON.stringify({ secretId, nonce }))
       const scope = oauthScopes.join(' ')
       const query = new URLSearchParams({
@@ -60,7 +62,7 @@ export function submitForm(createCredentials: (recipe: CredentialRecipe) => Prom
           access_type: 'offline',
           prompt: 'consent',
           redirect_uri: getOauthCallbackPath('Google'),
-          client_id: $config.GOOGLE_OAUTH_CLIENT_ID,
+          client_id: googleOauthClientId,
           state,
           scope
           /* eslint-enable @typescript-eslint/naming-convention, camelcase */
