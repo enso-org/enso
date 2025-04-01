@@ -780,6 +780,7 @@ pub struct PackageIde;
 impl JobArchetype for PackageIde {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("ide build --backend-source local --gui-upload-artifact false")
+            .fetch_depth(2)
             .customize(move |step| {
                 let mut steps = vec![];
 
