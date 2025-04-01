@@ -32,9 +32,9 @@ export default function CreateCredentialModal(props: CreateCredentialModalProps)
       // openInNewBrowserTab(authorizeUrl)
     },
 */
-
   const [selectedChildIndex, setSelectedChildIndex] = useState<number>(0)
-  const selectedItem = CREDENTIAL_INFOS[selectedChildIndex] ?? CREDENTIAL_INFOS[0]
+
+  const selectedItem = CREDENTIAL_INFOS[selectedChildIndex]
   const content = (
     <div className="w-full">
       <Dropdown
@@ -48,7 +48,7 @@ export default function CreateCredentialModal(props: CreateCredentialModalProps)
       >
         {({ item }) => <Text slot="label">{getText(item.nameId)}</Text>}
       </Dropdown>
-      {selectedItem.form()}
+      {selectedItem && (<selectedItem.form />)}
     </div>
   )
 

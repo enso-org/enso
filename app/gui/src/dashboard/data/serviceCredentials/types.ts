@@ -10,5 +10,5 @@ export interface CredentialInfo {
   /** A SVG data url. */
   readonly icon: string | undefined
   readonly makeAuthUrl: (id: SecretId, metadata: CredentialMetadata) => string,
-  readonly form: () => JSX.Element
+  readonly form: React.ComponentType
 }
