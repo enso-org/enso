@@ -187,7 +187,10 @@ const statusBar = computed(() =>
 )
 
 watchEffect(() => {
-  nodeType.value = config.nodeType
+  if(nodeType.value != config.nodeType) {
+    grid.value?.forceGridRefresh()
+    nodeType.value = config.nodeType
+  }
 })
 
 const textFormatterSelected = ref<TextFormatOptions>('partial')
@@ -215,7 +218,9 @@ function setRowLimit(newRowLimit: number) {
 }
 
 watchEffect(() => {
-  grid.value?.forceGridReRender()
+  if(typeof props.data === 'object' && 'header' in props.data && props.data.is_using_server_sort_and_filter) {
+    grid.value?.forceGridRefresh()
+  }
   config.setPreprocessor(
     'Standard.Visualization.Table.Visualization',
     'prepare_visualization',
@@ -276,11 +281,9 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
     const index = props.data.header?.findIndex((h: string) => colName === h)
     const server = createServer()
     const response = await server.getSetFilterValues(index)
-    setTimeout(() => {
       if (response.success) {
         params.success(response.data)
       }
-    }, 500)
   }
 }
 
@@ -356,13 +359,12 @@ function createServerSideDatasource(): IServerSideDatasource {
       const server = createServer()
       const response: Response = await server.getData(params.request)
       const rows = createRowsForTable(response.data, 0, true)
-      setTimeout(() => {
+
         if (response.success) {
           params.success({ rowData: rows })
         } else {
           params.fail()
         }
-      }, 500)
     },
   }
 }
@@ -990,7 +992,6 @@ config.setToolbar(
         :rowCount="allRowCount"
         :isServerSideModel="isSSRM"
         :statusBar="statusBar"
-        :nodeType="nodeType"
         @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
       />
     </Suspense>

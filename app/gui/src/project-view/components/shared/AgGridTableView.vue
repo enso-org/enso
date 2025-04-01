@@ -123,7 +123,6 @@ const props = defineProps<{
   datasource?: IServerSideDatasource
   rowCount?: number
   isServerSideModel?: boolean
-  nodeType?: string
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -152,16 +151,10 @@ const rowModelType = computed(() => (props.isServerSideModel ? 'serverSide' : 'c
 
 const gridKey = ref(0)
 
-const forceGridReRender = () => {
+const forceGridRefresh = () => {
+  //when using the ag gris severSide model this forces the grid to 'refresh' and call getRows
   gridKey.value++
 }
-
-watch(
-  () => props.nodeType,
-  () => {
-    forceGridReRender()
-  },
-)
 
 watch(
   () => props.textFormatOption,
@@ -250,7 +243,7 @@ function processCellForClipboard({
   return formatted
 }
 
-defineExpose({ gridApi, forceGridReRender })
+defineExpose({ gridApi, forceGridRefresh })
 
 // === Keybinds ===
 
