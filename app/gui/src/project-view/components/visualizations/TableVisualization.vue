@@ -187,6 +187,7 @@ const statusBar = computed(() =>
 )
 
 watchEffect(() => {
+  // if the column definitions remain the same but there has been updates upstream ag grid doesn't know to re fetch the row data to the updated data
   if (nodeType.value != config.nodeType) {
     grid.value?.forceGridRefresh()
     nodeType.value = config.nodeType
