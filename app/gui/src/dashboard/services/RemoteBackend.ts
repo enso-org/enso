@@ -755,6 +755,7 @@ export default class RemoteBackend extends Backend {
     body: backend.UndoDeleteAssetRequestBody,
     title: string,
   ): Promise<void> {
+    console.log(assetId, body)
     const path = remoteBackendPaths.UNDO_DELETE_ASSET_PATH
     const response = await this.patch(path, { assetId, ...body })
     if (!responseIsSuccessful(response)) {

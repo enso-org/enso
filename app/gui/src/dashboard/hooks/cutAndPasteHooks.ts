@@ -1,5 +1,6 @@
 /** @file Events related to changes in the asset list. */
 import { copyAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useTransferBetweenCategories, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
@@ -15,11 +16,12 @@ import { useMutation } from '@tanstack/react-query'
  */
 export function useCutAndPaste(backend: Backend, category: Category) {
   const copyAssetsMutation = useMutation(copyAssetsMutationOptions(backend))
+  const undoDeleteAssetMutation = useMutation(backendMutationOptions(backend, 'undoDeleteAsset'))
   const transferBetweenCategories = useTransferBetweenCategories(category)
   const getAsset = useGetAsset()
 
   return useEventCallback(
-    (newParentKey: DirectoryId, newParentId: DirectoryId, pasteData: DrivePastePayload) => {
+    async (newParentKey: DirectoryId, newParentId: DirectoryId, pasteData: DrivePastePayload) => {
       const ids = Array.from(pasteData.ids)
       const assets = ids.flatMap((id) => {
         const item = getAsset(id)
@@ -28,6 +30,13 @@ export function useCutAndPaste(backend: Backend, category: Category) {
       const newParent = getAsset(newParentKey)
       const isMovingToUserSpace =
         newParent?.parentsPath != null && isUserParentsPath(newParent.ensoPath)
+      if (pasteData.category.type === 'trash') {
+        await Promise.all(
+          assets.map((asset) =>
+            undoDeleteAssetMutation.mutateAsync([asset.id, { parentId: newParentId }, asset.title]),
+          ),
+        )
+      }
       const teamToUserItems =
         isMovingToUserSpace ? assets.filter((asset) => isTeamParentsPath(asset.ensoPath)) : []
       const nonTeamToUserIds =
@@ -37,7 +46,7 @@ export function useCutAndPaste(backend: Backend, category: Category) {
             .map((otherItem) => otherItem.id)
         : ids
       if (teamToUserItems.length !== 0) {
-        copyAssetsMutation.mutate([teamToUserItems.map((item) => item.id), newParentId])
+        await copyAssetsMutation.mutateAsync([teamToUserItems.map((item) => item.id), newParentId])
       }
       if (nonTeamToUserIds.length !== 0) {
         transferBetweenCategories(pasteData.category, category, pasteData.ids, newParentId)
