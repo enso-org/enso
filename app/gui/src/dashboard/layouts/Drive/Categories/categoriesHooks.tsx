@@ -94,7 +94,6 @@ export function useCloudCategoryList() {
 
   const homeDirectoryId = (() => {
     switch (user.plan) {
-      case undefined:
       case Plan.free:
       case Plan.solo: {
         return user.rootDirectoryId
@@ -138,16 +137,15 @@ export function useCloudCategoryList() {
     trashCategory,
   ]
 
-  const teamCategories =
-    user.groups?.map<TeamCategory>((group) => ({
-      type: 'team',
-      id: group.id,
-      team: group,
-      rootPath: Path(`enso://Teams/${group.name}`),
-      homeDirectoryId: group.homeDirectoryId,
-      label: getText('teamCategory', group.name),
-      icon: PeopleIcon,
-    })) ?? []
+  const teamCategories = (user.groups ?? []).map<TeamCategory>((group) => ({
+    type: 'team',
+    id: group.id,
+    team: group,
+    rootPath: Path(`enso://Teams/${group.name}`),
+    homeDirectoryId: group.homeDirectoryId,
+    label: getText('teamCategory', group.name),
+    icon: PeopleIcon,
+  }))
 
   const categories = [...predefinedCloudCategories, ...teamCategories] satisfies AnyCloudCategory[]
 
@@ -200,7 +198,8 @@ export function useLocalCategoryList() {
   const { getText } = useText()
   const localBackend = useLocalBackend()
   const [localRootDirectory] = useLocalStorageState('localRootDirectory')
-  const rootPath = Path(localRootDirectory ?? '')
+  const rootPath = localRootDirectory != null ? Path(localRootDirectory) : localBackend?.rootPath()
+  invariant(rootPath != null, 'Local directory must have a root path.')
 
   const localCategory: LocalCategory = {
     type: 'local',
