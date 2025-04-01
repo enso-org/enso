@@ -188,8 +188,8 @@ add_column_operation_specs suite_builder setup =
                 + [[-12300, -2, -12300], [-12301, -2, -12300]]
             cases_transposed = cases.transpose
             bankers_cases_transposed = bankers_cases.transpose
-            round_batch (cases_transposed.at 0) (cases_transposed.at 1) False . should_equal (cases_transposed.at 2)
-            round_batch (bankers_cases_transposed.at 0) (bankers_cases_transposed.at 1) True . should_equal (bankers_cases_transposed.at 2)
+            round_batch (cases_transposed.at 0) (cases_transposed.at 1) rounding_mode=Rounding_Mode.Half_Up . should_equal (cases_transposed.at 2)
+            round_batch (bankers_cases_transposed.at 0) (bankers_cases_transposed.at 1) rounding_mode=Rou.Bankers . should_equal (bankers_cases_transposed.at 2)
 
     build_sorted_table table_structure table_builder=setup.table_builder =
         # Workaround for https://github.com/enso-org/enso/issues/10321
