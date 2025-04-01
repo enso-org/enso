@@ -1,4 +1,4 @@
-import { injectBackend } from '@/providers/backend'
+import { injectProjectBackend } from '@/providers/backend'
 import type { ToValue } from '@/util/reactivity'
 import type {
   UseMutationOptions,
@@ -6,7 +6,7 @@ import type {
   UseQueryOptions,
   UseQueryReturnType,
 } from '@tanstack/vue-query'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import type { BackendMutationMethod, BackendQueryMethod } from 'enso-common/src/backendQuery'
 import {
   backendBaseOptions,
@@ -31,7 +31,7 @@ function backendQueryOptions<Method extends BackendQueryMethod>(
   args: ToValue<Parameters<Backend[Method]> | undefined>,
   backend: Backend | null,
 ) {
-  return {
+  return queryOptions({
     ...backendBaseOptions(backend),
     ...(methodDefaultOptions[method] ?? {}),
     queryKey: computed(() => {
@@ -40,7 +40,7 @@ function backendQueryOptions<Method extends BackendQueryMethod>(
     }),
     queryFn: () => backend && (backend[method] as any).apply(backend, toValue(args)!),
     enabled: computed(() => !!backend && !!toValue(args)),
-  }
+  })
 }
 
 type MutationOptions<Method extends BackendMutationMethod> = ToValue<
@@ -95,7 +95,7 @@ function backendMutationOptions<Method extends BackendMutationMethod>(
  */
 export function useBackend(which: 'remote' | 'project') {
   const queryClient = useQueryClient()
-  const { project, remote } = injectBackend()
+  const { project, remote } = injectProjectBackend()
   const backend = which === 'project' ? project : remote
 
   /** Perform the specified query, and keep the result up-to-date if the provided arguments change. */

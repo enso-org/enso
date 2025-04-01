@@ -15,6 +15,7 @@ import { BackendType } from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
 import { ProjectManagerEvents } from '#/services/ProjectManager'
 import type RemoteBackend from '#/services/RemoteBackend'
+import { createCrossingProviderForPureVueInReact } from 'veaury'
 
 /** State contained in a `BackendContext`. */
 export interface BackendContextType {
@@ -73,7 +74,7 @@ export default function BackendProvider(props: BackendProviderProps) {
       <ProjectManagerContext.Provider
         value={{ didLoadingProjectManagerFail, reconnectToProjectManager }}
       >
-        {children}
+        <BackendProviderForVue>{children}</BackendProviderForVue>
       </ProjectManagerContext.Provider>
     </BackendContext.Provider>
   )
@@ -153,3 +154,11 @@ export function useDidLoadingProjectManagerFail() {
 export function useReconnectToProjectManager() {
   return React.useContext(ProjectManagerContext).reconnectToProjectManager
 }
+
+const [useBackendInVue, BackendProviderForVue] = createCrossingProviderForPureVueInReact(() => {
+  return {
+    remote: useRemoteBackend(),
+    local: useLocalBackend(),
+  }
+})
+export { useBackendInVue }

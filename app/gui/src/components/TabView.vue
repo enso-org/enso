@@ -1,5 +1,13 @@
 <script lang="ts">
 import { Suspense } from '#/components/Suspense'
+import { createGetProjectDetailsQuery, OPENED_PROJECT_STATES } from '#/hooks/projectHooks'
+import { useBackendInVue } from '#/providers/BackendProvider'
+import { LaunchedProject, LaunchedProjectId, TabType } from '#/providers/ProjectsProvider'
+import { BackendType } from '#/services/Backend'
+import { assert } from '@/util/assert'
+import { useQuery } from '@tanstack/vue-query'
+import { applyPureReactInVue, lazyReactInVue } from 'veaury'
+import { computed, h, watch, watchEffect } from 'vue'
 
 const LazyDrive = lazyReactInVue(() => import('#/layouts/Drive'))
 const LazyEditor = lazyReactInVue(() => import('#/layouts/Editor'))
@@ -7,11 +15,6 @@ const LazySettings = lazyReactInVue(() => import('#/layouts/Settings'))
 </script>
 
 <script setup lang="ts">
-import { LaunchedProject, LaunchedProjectId, TabType } from '#/providers/ProjectsProvider'
-import { assert } from '@/util/assert'
-import { applyPureReactInVue, lazyReactInVue } from 'veaury'
-import { computed, h, onMounted, onUnmounted } from 'vue'
-
 const ReactSuspense = applyPureReactInVue(Suspense)
 
 const { initialProjectName, ydocUrl, page, setPage, launchedProjects } = defineProps<{
@@ -22,21 +25,31 @@ const { initialProjectName, ydocUrl, page, setPage, launchedProjects } = defineP
   launchedProjects: LaunchedProject[]
 }>()
 
-// const Drive = applyPureReactInVue(ReactDrive)
-// const Editor = applyPureReactInVue(ReactEditor)
-// const Settings = applyPureReactInVue(ReactSettings)
+const backend = useBackendInVue()
 
-// const {
-//   page,
-//   setPage,
-//   launchedProjects,
-// }: {
-//   page: LaunchedProjectId | TabType | null
-//   setPage(page: LaunchedProjectId | TabType): void
-//   launchedProjects: LaunchedProject[]
-// } = useProjectVueContext()
+const lastProject = computed(() => launchedProjects[launchedProjects.length - 1])
+watchEffect(() => console.log('Last project', lastProject.value))
+const lastProjectDetailsOptions = computed(() =>
+  lastProject.value ?
+    createGetProjectDetailsQuery({
+      assetId: lastProject.value.id,
+      backend: lastProject.value.type === BackendType.local ? backend.local : backend.remote,
+    })
+  : { queryKey: [] },
+)
+const lastProjectDetails = useQuery(lastProjectDetailsOptions as any)
+watchEffect(() => console.log('Last project details', lastProjectDetails.data.value))
 
-console.log(launchedProjects, page, initialProjectName, ydocUrl)
+watch(
+  () => OPENED_PROJECT_STATES.has(lastProjectDetails.data.value?.state.type),
+  (isOpened, wasOpened) => {
+    console.log('IS OPENED', isOpened, 'WAS OPENED', wasOpened)
+    if (isOpened === true && wasOpened === false && lastProject.value != null) {
+      setPage(lastProject.value.id)
+    }
+  },
+)
+
 const currentComponent = computed(() => {
   switch (page) {
     case null:
@@ -52,9 +65,6 @@ const currentComponent = computed(() => {
     }
   }
 })
-
-onMounted(() => console.error('MOUNTED'))
-onUnmounted(() => console.error('UNMOUNTED'))
 </script>
 <template>
   <div class="TabView">
