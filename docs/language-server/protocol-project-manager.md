@@ -422,7 +422,9 @@ the action.
   missingComponentAction?: MissingComponentAction;
 
   /**
-   * Extra open options.
+   * Specifies the cloud project directory.
+   *
+   * Required when running in hybrid mode.
    */
   cloudProjectDirectoryPath?: string;
 

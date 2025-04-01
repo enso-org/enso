@@ -423,11 +423,10 @@ export function useOpenHybridProject() {
     async (asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title' | 'ensoPath'>) => {
       try {
         invariant(localBackend != null, 'Local Backend is null')
-        const ensoPath = asset.ensoPath
-        invariant(ensoPath, 'Enso Path is undefined')
-        const cloudProjectDirectoryPath = ensoPath.slice(0, ensoPath.lastIndexOf('/'))
         await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
         const localProject = await remoteBackend.downloadProject(asset.id)
+        invariant(asset.ensoPath, 'Enso path is not defined')
+        const cloudProjectDirectoryPath = asset.ensoPath.slice(0, asset.ensoPath.lastIndexOf('/'))
 
         let project
         for (const parentId of [localProject.targetId, localProject.parentId]) {
