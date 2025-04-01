@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Decimal.Decimal
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Locale.Locale
+import project.Data.Number_Utils
 import project.Data.Range.Range
 import project.Data.Text.Case.Case
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
@@ -786,7 +787,8 @@ Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Be
 Text.from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
 Text.from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Error) =
     byte_vector = Vector.unify_vector_or_element bytes
-    Reporting_Stream_Decoder_Helper.decode_bytes_to_text byte_vector encoding on_problems
+    Number_Utils.convert_unsigned_byte_array_to_signed byte_vector byte_vector-> byte_vector.if_not_error <|
+        Reporting_Stream_Decoder_Helper.decode_bytes_to_text byte_vector encoding on_problems
 
 ## ICON convert
    Returns a vector containing bytes representing the UTF-8 encoding of the

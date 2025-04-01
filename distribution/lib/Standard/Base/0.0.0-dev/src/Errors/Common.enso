@@ -634,3 +634,12 @@ type Length_Mismatch
     to_display_text : Text
     to_display_text self =
         "The Vector lengths do not match: "+self.left_length.to_text+" does not equal "+self.right_length.to_text+"."
+
+type Mixed_Signed_And_Unsigned_Bytes
+    ## PRIVATE
+       Indicates that a collection of bytes contains both unsigned and signed bytes.
+    Error
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = "Collection contains both signed (value < 0) and unsigned (value > 127) bytes. Please use one convention consistently."

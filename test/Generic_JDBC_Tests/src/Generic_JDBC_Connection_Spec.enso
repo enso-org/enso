@@ -4,8 +4,9 @@ import Standard.Test.Spec_Result.Spec_Result
 from Standard.Test import all
 
 import Standard.Database.Errors.SQL_Error
-import Standard.Database.JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
 import Standard.Database.SQL_Query.SQL_Query
+
+import Standard.Generic_JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
 
 data_dir = enso_project.data / "transient"
 
