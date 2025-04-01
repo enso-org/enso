@@ -151,6 +151,7 @@ public class VectorArraySignatureTest {
                       .replace("]", "].to_array")
                       .replace("a vector", "an array")
                       .replace("vector", "array");
+                      .replace("Vector", "Array");
               assertEquals("Bad documentation for Array." + name, exp, ad.doc());
             }
           }
