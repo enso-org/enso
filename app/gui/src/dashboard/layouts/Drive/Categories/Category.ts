@@ -4,7 +4,7 @@ import invariant from 'tiny-invariant'
 import * as z from 'zod'
 
 import { deleteAssetsMutationOptions, moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
-import { useBackendQuery } from '#/hooks/backendHooks'
+import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
@@ -202,17 +202,16 @@ export function areCategoriesEqual(a: Category, b: Category) {
 
 /** Whether an asset can be transferred between categories. */
 export function canTransferBetweenCategories(from: Category, to: Category) {
+  const isDestinationCloudCategory = to.type === 'cloud' || to.type === 'team' || to.type === 'user'
   switch (from.type) {
     case 'cloud':
     case 'recent':
     case 'team':
     case 'user': {
-      return to.type === 'trash' || to.type === 'cloud' || to.type === 'team' || to.type === 'user'
+      return to.type === 'trash' || isDestinationCloudCategory
     }
     case 'trash': {
-      // In the future we want to be able to drag to certain categories to restore directly
-      // to specific home directories.
-      return false
+      return isDestinationCloudCategory
     }
     case 'local':
     case 'local-directory': {
@@ -229,6 +228,7 @@ export function useTransferBetweenCategories(currentCategory: Category) {
   const { user } = useFullUserSession()
   const { data: organization = null } = useBackendQuery(remoteBackend, 'getOrganization', [])
   const deleteAssetsMutation = useMutation(deleteAssetsMutationOptions(backend))
+  const undoDeleteAssetMutation = useMutation(backendMutationOptions(backend, 'undoDeleteAsset'))
   const moveAssetsMutation = useMutation(moveAssetsMutationOptions(backend))
 
   return useEventCallback(
@@ -241,16 +241,19 @@ export function useTransferBetweenCategories(currentCategory: Category) {
           if (to.type === 'trash') {
             deleteAssetsMutation.mutate([[...keys], false])
           } else if (to.type === 'cloud' || to.type === 'team' || to.type === 'user') {
-            newParentId ??=
-              to.type === 'cloud' ?
-                remoteBackend.rootDirectoryId(user, organization)
-              : to.homeDirectoryId
+            newParentId ??= to.homeDirectoryId
             invariant(newParentId != null, 'The Cloud backend is missing a root directory.')
             moveAssetsMutation.mutate([[...keys], newParentId])
           }
           break
         }
         case 'trash': {
+          if (to.type === 'cloud' || to.type === 'team' || to.type === 'user') {
+            newParentId ??= to.homeDirectoryId
+            invariant(newParentId != null, 'The Cloud backend is missing a root directory.')
+            moveAssetsMutation.mutate([[...keys], newParentId])
+            undoDeleteAssetMutation.mutate()
+          }
           break
         }
         case 'local':
