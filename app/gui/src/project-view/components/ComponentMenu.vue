@@ -1,13 +1,21 @@
 <script setup lang="ts">
+import ActionButton from '@/components/ActionButton.vue'
+import ActionMenu from '@/components/ActionMenu.vue'
 import ColorRing from '@/components/ColorRing.vue'
-import ComponentContextMenu from '@/components/ComponentContextMenu.vue'
 import DropdownMenu from '@/components/DropdownMenu.vue'
-import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { injectComponentButtons } from '@/providers/componentButtons'
 import { ref } from 'vue'
 
-const componentButtons = injectComponentButtons()
+const _props = defineProps<{
+  colorPickerOpened: boolean
+  currentNodeColor: string | undefined
+  matchableColors: ReadonlySet<string>
+}>()
+const emit = defineEmits<{
+  closeColorPicker: []
+  setNodeColor: [color: string | undefined]
+}>()
+
 const isDropdownOpened = ref(false)
 </script>
 
@@ -15,25 +23,13 @@ const isDropdownOpened = ref(false)
   <div
     class="ComponentMenu"
     :class="{
-      menu: !componentButtons.pickColor.state,
+      menu: !colorPickerOpened,
       openedDropdown: isDropdownOpened,
     }"
   >
-    <template v-if="!componentButtons.pickColor.state">
-      <SvgButton
-        name="eye"
-        class="slotS"
-        title="Visualization"
-        @click.stop="
-          componentButtons.toggleVisualization.state = !componentButtons.toggleVisualization.state
-        "
-      />
-      <SvgButton
-        name="help"
-        class="slotSW"
-        title="Help"
-        @click.stop="componentButtons.toggleDocPanel.action"
-      />
+    <template v-if="!colorPickerOpened">
+      <ActionButton action="component.toggleVisualization" class="slotS" />
+      <ActionButton action="component.toggleDocPanel" class="slotSW" />
       <DropdownMenu
         v-model:open="isDropdownOpened"
         placement="bottom-start"
@@ -43,16 +39,31 @@ const isDropdownOpened = ref(false)
       >
         <template #button><SvgIcon name="3_dot_menu" class="moreIcon" /></template>
         <template #menu>
-          <ComponentContextMenu @close="isDropdownOpened = false" />
+          <ActionMenu
+            :actions="[
+              'component.toggleDocPanel',
+              'component.toggleVisualization',
+              'component.createNewNode',
+              'component.editingComment',
+              'component.recompute',
+              'component.pickColor',
+              'component.enterNode',
+              'component.startEditing',
+              'components.copy',
+              'components.deleteSelected',
+            ]"
+            @close="isDropdownOpened = false"
+          />
         </template>
       </DropdownMenu>
     </template>
     <ColorRing
       v-else
-      v-model="componentButtons.pickColor.actionData.currentColor"
-      :matchableColors="componentButtons.pickColor.actionData.matchableColors"
+      :modelValue="currentNodeColor"
+      :matchableColors="matchableColors"
       :initialColorAngle="90"
-      @close="componentButtons.pickColor.state = false"
+      @update:modelValue="emit('setNodeColor', $event)"
+      @close="emit('closeColorPicker')"
     />
   </div>
 </template>
@@ -102,6 +113,15 @@ const isDropdownOpened = ref(false)
       'M0,16 V68 A52,52,0,0,0,52,68 A16,16,0,0,0,52,36 A20,20,0,0,1,32,16 A16,16,0,0,0,0,16'
     );
   }
+}
+
+.ColorRing {
+  /* Cut a hole inside color ring. First we draw a rectangle containing entire ColorRing (with the
+   arrow), and then define circle inside. */
+  clip-path: path(
+    evenodd,
+    'M -52,52 L -52,-52 L 154,-52 L 154,154 L -52,154 z M52,32 A20,20 0,1,1 52,72 20,20 0,1,1 52,32'
+  );
 }
 
 /**

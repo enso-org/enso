@@ -1,7 +1,5 @@
 /** @file The icon and name of an {@link backendModule.Asset}. */
-import * as React from 'react'
-
-import type * as column from '#/components/dashboard/column'
+import type { AssetColumnProps } from '#/components/dashboard/column'
 import DatalinkNameColumn from '#/components/dashboard/DatalinkNameColumn'
 import DirectoryNameColumn from '#/components/dashboard/DirectoryNameColumn'
 import FileNameColumn from '#/components/dashboard/FileNameColumn'
@@ -10,12 +8,8 @@ import SecretNameColumn from '#/components/dashboard/SecretNameColumn'
 
 import * as backendModule from '#/services/Backend'
 
-// =================
-// === AssetName ===
-// =================
-
 /** Props for a {@link AssetNameColumn}. */
-export type AssetNameColumnProps = column.AssetColumnProps
+export type AssetNameColumnProps = AssetColumnProps
 
 /** The icon and name of an {@link backendModule.Asset}. */
 export default function AssetNameColumn(props: AssetNameColumnProps) {
@@ -37,6 +31,7 @@ export default function AssetNameColumn(props: AssetNameColumnProps) {
     case backendModule.AssetType.secret: {
       return <SecretNameColumn {...props} item={item} />
     }
+    case backendModule.AssetType.specialUp:
     case backendModule.AssetType.specialLoading:
     case backendModule.AssetType.specialEmpty:
     case backendModule.AssetType.specialError: {

@@ -27,6 +27,7 @@ class LoggingServer extends LoggingService<URI> {
       logServer = new SocketServer(lc, port);
       logServer.start();
       setup.setup(level, path, prefix, setup.getConfig());
+      setup.setupTelemetryAppender();
       return new URI(null, null, "localhost", port, null, null, null);
     } catch (URISyntaxException e) {
       throw new RuntimeException(e);

@@ -146,7 +146,6 @@ export const widgetDefinition = defineWidget(
   background: var(--color-widget);
   border-radius: var(--radius-full);
   user-select: none;
-  border-radius: var(--radius-full);
   justify-content: center;
   align-items: center;
   min-width: var(--node-port-height);

@@ -11,37 +11,33 @@ import * as projectManager from '#/services/ProjectManager'
 import { APP_BASE_URL } from '#/utilities/appBaseUrl'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
-import { fileExtension, getFileName, getFolderPath } from '#/utilities/fileInfo'
+import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/utilities/fileInfo'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
-
-// =============================
-// === ipWithSocketToAddress ===
-// =============================
 
 /** Convert a {@link projectManager.IpWithSocket} to a {@link backend.Address}. */
 function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
   return backend.Address(`ws://${ipWithSocket.host}:${ipWithSocket.port}`)
 }
 
-// ======================================
-// === Functions for manipulating ids ===
-// ======================================
+export const DIRECTORY_ID_PREFIX = `${backend.AssetType.directory}-`
+export const PROJECT_ID_PREFIX = `${backend.AssetType.project}-`
+export const FILE_ID_PREFIX = `${backend.AssetType.file}-`
 
 /** Create a {@link backend.DirectoryId} from a path. */
 export function newDirectoryId(path: projectManager.Path) {
-  return backend.DirectoryId(`${backend.AssetType.directory}-${path}` as const)
+  return backend.DirectoryId(`${DIRECTORY_ID_PREFIX}${path}` as const)
 }
 
 /** Create a {@link backend.ProjectId} from a UUID. */
 export function newProjectId(uuid: projectManager.UUID, path: projectManager.Path) {
-  return backend.ProjectId(`${backend.AssetType.project}-${uuid}-${path}`)
+  return backend.ProjectId(`${PROJECT_ID_PREFIX}${uuid}-${path}`)
 }
 
 /** Create a {@link backend.FileId} from a path. */
 export function newFileId(path: projectManager.Path) {
-  return backend.FileId(`${backend.AssetType.file}-${path}`)
+  return backend.FileId(`${FILE_ID_PREFIX}${path}`)
 }
 
 /** The internal asset type and properly typed corresponding internal ID of a directory. */
@@ -98,10 +94,6 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
   }
 }
 
-// ====================
-// === LocalBackend ===
-// ====================
-
 /**
  * Class for sending requests to the Project Manager API endpoints.
  * This is used instead of the cloud backend API when managing local projects from the dashboard.
@@ -156,6 +148,7 @@ export default class LocalBackend extends Backend {
   override async listDirectory(
     query: backend.ListDirectoryRequestParams,
   ): Promise<readonly backend.AnyAsset[]> {
+    const { rootPath = this.rootPath() } = query
     const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
 
@@ -165,58 +158,93 @@ export default class LocalBackend extends Backend {
       const entries = await this.projectManager.listDirectory(parentIdRaw)
       result = entries
         .map((entry) => {
+          const virtualParentsPath = (() => {
+            let path = entry.path.replace(rootPath, '')
+
+            if (path.startsWith('/')) {
+              path = path.slice(1)
+            }
+
+            if (path.endsWith('/')) {
+              path = path.slice(0, -1)
+            }
+
+            return path
+          })()
+
+          const parentsPath = (() => {
+            const parentsPathArray: backend.DirectoryId[] = [newDirectoryId(rootPath)]
+            const splitPath = virtualParentsPath.split('/')
+
+            let previousPath = ''
+
+            for (const directory of splitPath) {
+              if (directory === '') {
+                continue
+              }
+
+              previousPath = backend.Path(previousPath + '/' + directory)
+
+              if (previousPath.endsWith('/')) {
+                previousPath = previousPath.slice(0, -1)
+              }
+
+              parentsPathArray.push(newDirectoryId(backend.Path(rootPath + previousPath)))
+            }
+
+            return parentsPathArray.slice(0, -1).join('/')
+          })()
+
+          const ensoPathRaw = normalizePath(entry.path)
+          const ensoPath = backend.EnsoPath(ensoPathRaw)
+          const shared = {
+            permissions: [],
+            projectState: null,
+            extension: null,
+            parentsPath: backend.ParentsPath(parentsPath),
+            virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
+            ensoPath,
+            ensoPathValue: backend.EnsoPathValue(ensoPathRaw),
+          } satisfies Partial<backend.DirectoryAsset>
+
           switch (entry.type) {
             case projectManager.FileSystemEntryType.DirectoryEntry: {
+              const id = newDirectoryId(entry.path)
+
               return {
+                ...shared,
+                id,
                 type: backend.AssetType.directory,
-                id: newDirectoryId(entry.path),
                 modifiedAt: entry.attributes.lastModifiedTime,
                 parentId,
                 title: getFileName(entry.path),
-                permissions: [],
-                projectState: null,
-                extension: null,
-                labels: [],
-                description: null,
-                parentsPath: '',
-                virtualParentsPath: '',
               } satisfies backend.DirectoryAsset
             }
             case projectManager.FileSystemEntryType.ProjectEntry: {
               return {
+                ...shared,
                 type: backend.AssetType.project,
                 id: newProjectId(entry.metadata.id, extractTypeAndId(parentId).id),
                 title: entry.metadata.name,
                 modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
                 parentId,
-                permissions: [],
                 projectState: {
                   type:
                     this.projectManager.projects.get(entry.metadata.id)?.state ??
                     backend.ProjectState.closed,
                   volumeId: '',
                 },
-                extension: null,
-                labels: [],
-                description: null,
-                parentsPath: '',
-                virtualParentsPath: '',
               } satisfies backend.ProjectAsset
             }
             case projectManager.FileSystemEntryType.FileEntry: {
               return {
+                ...shared,
                 type: backend.AssetType.file,
                 id: newFileId(entry.path),
                 title: getFileName(entry.path),
                 modifiedAt: entry.attributes.lastModifiedTime,
                 parentId,
-                permissions: [],
-                projectState: null,
                 extension: fileExtension(entry.path),
-                labels: [],
-                description: null,
-                parentsPath: '',
-                virtualParentsPath: '',
               } satisfies backend.FileAsset
             }
           }
@@ -770,7 +798,7 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
-  override restoreProject() {
+  override restoreAsset() {
     return this.invalidOperation()
   }
 
@@ -806,6 +834,11 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override createProjectExecution() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override getProjectExecutionDetails() {
     return this.invalidOperation()
   }
 

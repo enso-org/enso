@@ -4,10 +4,6 @@
  */
 import * as React from 'react'
 
-// ===========================
-// === FocusClassesContext ===
-// ===========================
-
 /** State contained in a `FocusClassesContext`. */
 export interface FocusClassesContextType {
   readonly focusChildClass: string
@@ -18,10 +14,6 @@ const FocusClassesContext = React.createContext<FocusClassesContextType>({
   focusChildClass: 'focus-child',
   focusDefaultClass: 'focus-default',
 })
-
-// ============================
-// === FocusClassesProvider ===
-// ============================
 
 /** Props for a {@link FocusClassesProvider}. */
 export interface FocusClassesProviderProps extends Readonly<React.PropsWithChildren> {
@@ -47,6 +39,7 @@ export default function FocusClassesProvider(props: FocusClassesProviderProps) {
 }
 
 /** The current direction in which focus siblings are located. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useFocusClasses() {
   return React.useContext(FocusClassesContext)
 }

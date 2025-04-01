@@ -21,13 +21,13 @@ public final class NullComparators implements Comparators {
   }
 
   @Override
-  public boolean canApply(ColumnStorage<?> left, ColumnStorage<?> right) {
+  public boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
     return left.getType() instanceof NullType;
   }
 
   @Override
-  public ColumnStorage<Boolean> apply(ColumnStorage<?> left, ColumnStorage<?> right) {
-    assert canApply(left, right);
+  public ColumnStorage<Boolean> applyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
+    assert canApplyZip(left, right);
     return BoolStorage.makeEmpty(left.getSize());
   }
 }

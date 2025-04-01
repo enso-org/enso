@@ -3,6 +3,7 @@
 import * as mkcert from 'mkcert'
 import * as fs from 'node:fs/promises'
 import * as http from 'node:http'
+import * as https from 'node:https'
 import * as path from 'node:path'
 import * as stream from 'node:stream'
 
@@ -34,6 +35,7 @@ ydocServer.configureAllDebugLogs(
 const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
+const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
 
 // ==============
 // === Config ===
@@ -203,6 +205,116 @@ export class Server {
         ),
         { end: true },
       )
+    } else if (requestUrl.startsWith('/api/cloud/')) {
+      switch (requestPath) {
+        case '/api/cloud/download-project': {
+          const url = new URL(`https://example.com/${requestUrl}`)
+          const downloadUrl = url.searchParams.get('downloadUrl')
+          const projectId = url.searchParams.get('projectId')
+
+          if (downloadUrl == null) {
+            response
+              .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
+              .end('Request is missing search parameter `downloadUrl`.')
+            break
+          }
+
+          if (projectId == null) {
+            response
+              .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
+              .end('Request is missing search parameter `projectId`.')
+            break
+          }
+
+          https.get(downloadUrl, async (actualResponse) => {
+            const projectsDirectory = projectManagement.getProjectsDirectory()
+            const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
+            const targetDirectory = path.join(parentDirectory, 'project_root')
+
+            try {
+              await fs.mkdir(targetDirectory, { recursive: true })
+              await projectManagement.unpackBundle(actualResponse, targetDirectory)
+              response
+                .writeHead(HTTP_STATUS_OK, COOP_COEP_CORP_HEADERS)
+                .end(JSON.stringify({ targetDirectory, parentDirectory }))
+            } catch (e) {
+              logger.error(e)
+              await fs
+                .access(parentDirectory)
+                .then(() => {
+                  fs.rmdir(parentDirectory, { maxRetries: 3, recursive: true })
+                })
+                .catch((e) => {
+                  logger.error(`Failed to cleanup directory ${parentDirectory}.`, e)
+                })
+              response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COOP_COEP_CORP_HEADERS).end()
+            }
+          })
+
+          break
+        }
+        case '/api/cloud/upload-project': {
+          const url = new URL(`https://example.com/${requestUrl}`)
+          const uploadUrl = url.searchParams.get('uploadUrl')
+          const projectDir = url.searchParams.get('directory')
+
+          if (uploadUrl == null) {
+            response
+              .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
+              .end('Request is missing search parameter `uploadUrl`.')
+            break
+          }
+          if (projectDir == null) {
+            response
+              .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
+              .end('Request is missing search parameter `directory`.')
+            break
+          }
+
+          projectManagement
+            .createBundle(projectDir)
+            .then((projectBundle) => {
+              const headers = {
+                authorization: request.headers.authorization,
+              }
+              const uploadRequest = https.request(
+                uploadUrl,
+                { method: 'POST', headers },
+                (actualResponse) => {
+                  if (!response.writableFinished) {
+                    response.writeHead(
+                      // This is SAFE. The documentation says:
+                      // Only valid for response obtained from ClientRequest.
+                      actualResponse.statusCode!,
+                      actualResponse.statusMessage,
+                      actualResponse.headers,
+                    )
+                    actualResponse.pipe(response, { end: true })
+                  }
+                },
+              )
+              uploadRequest.write(projectBundle, (err) => {
+                if (err) {
+                  logger.error(err)
+                  response
+                    .writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR)
+                    .end('Failed to write project bundle.')
+                }
+              })
+              uploadRequest.end()
+            })
+            .catch((err) => {
+              logger.error(err)
+              response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COOP_COEP_CORP_HEADERS).end()
+            })
+
+          break
+        }
+        default: {
+          logger.error(`Unknown Cloud middleware request:`, requestPath)
+          break
+        }
+      }
     } else if (request.method === 'POST') {
       switch (requestPath) {
         case '/api/upload-file': {

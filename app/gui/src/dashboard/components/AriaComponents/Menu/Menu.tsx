@@ -15,10 +15,11 @@ import { AnimatedBackground } from '../../AnimatedBackground'
 import { Popover } from '../Dialog'
 import { Separator, SEPARATOR_STYLES, type SeparatorProps } from '../Separator'
 import { Text } from '../Text'
-import type { TestIdProps } from '../types'
+import type { Placement, TestIdProps } from '../types'
 import { MenuItem } from './MenuItem'
 import { MenuTrigger } from './MenuTrigger'
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const MENU_STYLES = tv({
   base: 'flex flex-col [clip-path:inset(0_0_0_0_round_.75rem)] overflow-x-hidden',
   slots: {
@@ -26,6 +27,7 @@ export const MENU_STYLES = tv({
   },
 })
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const MENU_SECTION_STYLES = tv({
   base: 'flex flex-col',
   slots: {
@@ -33,6 +35,7 @@ export const MENU_SECTION_STYLES = tv({
   },
 })
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const MENU_SEPARATOR_STYLES = tv({
   extend: SEPARATOR_STYLES,
   base: 'my-1.5 mx-2',
@@ -44,6 +47,7 @@ export interface MenuProps<T extends object>
     VariantProps<typeof MENU_STYLES>,
     TestIdProps {
   readonly variant?: 'dark' | 'light'
+  readonly placement?: Placement | undefined
   readonly className?: string
 }
 
@@ -91,6 +95,7 @@ export const Menu = createHideableComponent(function Menu<T extends object>(prop
     className,
     children,
     variants = MENU_STYLES,
+    placement,
     testId = 'menu',
     ...menuProps
   } = props
@@ -98,7 +103,13 @@ export const Menu = createHideableComponent(function Menu<T extends object>(prop
   const styles = variants()
 
   return (
-    <Popover variant={variant} className={styles.popover()} size="xxsmall" rounded="xxxlarge">
+    <Popover
+      variant={variant}
+      placement={placement}
+      className={styles.popover()}
+      size="xxsmall"
+      rounded="xxxlarge"
+    >
       {() => (
         <AnimatedBackground>
           <aria.Menu<T> data-testid={testId} className={styles.base({ className })} {...menuProps}>
@@ -199,7 +210,6 @@ export interface MenuSeparatorProps
 /**
  * A separator in a menu.
  */
-// eslint-disable-next-line no-restricted-syntax
 export const MenuSeparator = memo(function MenuSeparator(props: MenuSeparatorProps) {
   const { variants = MENU_SEPARATOR_STYLES, ...rest } = props
 

@@ -1,6 +1,5 @@
 import * as iter from 'enso-common/src/utilities/data/iter'
 import * as map from 'lib0/map'
-import * as Y from 'yjs'
 import { assert } from '../util/assert'
 import type { IdMap } from '../yjsModel'
 import { abstractMarkdown } from './documentation'
@@ -351,7 +350,7 @@ class Abstractor {
     return FunctionDef.concrete(this.module, {
       docLine,
       docLineMarkdownHash,
-      docMarkdown: new Y.Text(docMarkdown),
+      docMarkdown,
       annotationLines,
       signatureLine,
       private_,

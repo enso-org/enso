@@ -7,6 +7,7 @@ import { ref, watch } from 'vue'
 const props = defineProps<{
   title: string
   icon: Icon
+  highlighted?: boolean
   editingState?: 'editing' | 'pending' | 'just created' | undefined
 }>()
 
@@ -30,7 +31,7 @@ watch(input, (newInput) => {
 </script>
 
 <template>
-  <div class="FileBrowserEntry" @click="emit('click')">
+  <div :class="{ FileBrowserEntry: true, highlighted }" @click="emit('click')">
     <LoadingSpinner v-if="editingState === 'pending'" :size="16" />
     <SvgIcon v-else :name="icon" />
     <input
@@ -39,6 +40,13 @@ watch(input, (newInput) => {
       v-model="currentTitle"
       @blur="emit('nameAccepted', currentTitle)"
       @keydown.enter.stop="input?.blur()"
+      @pointerdown.stop
+      @click.stop
+      @contextmenu.stop
+      @keydown.backspace.stop
+      @keydown.delete.stop
+      @keydown.arrow-left.stop
+      @keydown.arrow-right.stop
     />
     <div v-else>{{ title }}</div>
   </div>
@@ -60,6 +68,10 @@ watch(input, (newInput) => {
   &:focus,
   &:active {
     background-color: var(--color-menu-entry-hover-bg);
+  }
+
+  &.highlighted {
+    background-color: var(--color-menu-entry-selected-bg);
   }
 
   & .LoadingSpinner {

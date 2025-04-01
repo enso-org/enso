@@ -13,10 +13,8 @@ import * as eventCallback from '#/hooks/eventCallbackHooks'
 import * as lazyMemo from '#/hooks/useLazyMemoHooks'
 
 import * as safeJsonParse from '#/utilities/safeJsonParse'
-
-// ===================================
-// === SearchParamsStateReturnType ===
-// ===================================
+import { useCallback } from 'react'
+import { useLocation, useNavigate, type NavigateOptions } from 'react-router-dom'
 
 /** The return type of the `useSearchParamsState` hook. */
 type SearchParamsStateReturnType<T> = Readonly<
@@ -32,10 +30,6 @@ export interface SearchParamsSetOptions {
   readonly replace?: boolean
 }
 
-// ============================
-// === useSearchParamsState ===
-// ============================
-
 /**
  * Hook to synchronize a state in the URL search params. It returns the value, a setter and a clear function.
  * @param key - The key to store the value in the URL search params.
@@ -47,42 +41,61 @@ export function useSearchParamsState<T = unknown>(
   defaultValue: T | (() => T),
   predicate: (unknown: unknown) => unknown is T = (unknown): unknown is T => true,
 ): SearchParamsStateReturnType<T> {
-  const [searchParams, setSearchParams] = reactRouterDom.useSearchParams()
+  const { search } = useLocation()
+  const navigate = useNavigate()
+
+  const searchParams = new URLSearchParams(search)
+
+  const setSearchParams = useCallback(
+    (
+      nextSearchParams:
+        | URLSearchParams
+        | ((currentSearchParams: URLSearchParams) => URLSearchParams),
+      options: NavigateOptions = {},
+    ) => {
+      const params = new URLSearchParams(window.location.search)
+
+      if (nextSearchParams instanceof Function) {
+        nextSearchParams = nextSearchParams(params)
+      }
+
+      navigate(`?${nextSearchParams.toString()}`, { replace: false, ...options })
+    },
+    [navigate],
+  )
 
   const prefixedKey = `${appUtils.SEARCH_PARAMS_PREFIX}${key}`
 
   const lazyDefaultValueInitializer = lazyMemo.useLazyMemoHooks(defaultValue, [])
-  const stablePredicate = eventCallback.useEventCallback(predicate)
 
   const clear = eventCallback.useEventCallback((replace: boolean = false) => {
-    searchParams.delete(prefixedKey)
-    setSearchParams(searchParams, { replace })
+    setSearchParams(
+      (currentSearchParams) => {
+        currentSearchParams.delete(prefixedKey)
+        return currentSearchParams
+      },
+      { replace },
+    )
   })
 
-  const unprefixedValue = searchParams.get(key)
-  if (unprefixedValue != null) {
-    searchParams.set(prefixedKey, unprefixedValue)
-    searchParams.delete(key)
-    setSearchParams(searchParams)
-  }
-
-  const rawValue = React.useMemo<T>(() => {
+  const rawValue = (() => {
     const maybeValue = searchParams.get(prefixedKey)
     const defaultValueFrom = lazyDefaultValueInitializer()
 
     return maybeValue != null ?
         safeJsonParse.safeJsonParse(maybeValue, defaultValueFrom, (unknown): unknown is T => true)
       : defaultValueFrom
-  }, [prefixedKey, lazyDefaultValueInitializer, searchParams])
+  })()
 
-  const isValueValid = stablePredicate(rawValue)
+  const isValueValid = predicate(rawValue)
 
   const value = isValueValid ? rawValue : lazyDefaultValueInitializer()
 
-  if (!isValueValid) {
-    clear(true)
-  }
-
+  React.useEffect(() => {
+    if (!isValueValid) {
+      clear(true)
+    }
+  }, [isValueValid, clear])
   /**
    * Set the value in the URL search params. If the next value is the same as the default value, it will remove the key from the URL search params.
    * Function reference is always the same.
@@ -100,8 +113,13 @@ export function useSearchParamsState<T = unknown>(
       if (nextValue === lazyDefaultValueInitializer()) {
         clear()
       } else {
-        searchParams.set(prefixedKey, JSON.stringify(nextValue))
-        setSearchParams(searchParams, { replace, preventScrollReset: true })
+        setSearchParams(
+          (currentSearchParams) => {
+            currentSearchParams.set(prefixedKey, JSON.stringify(nextValue))
+            return currentSearchParams
+          },
+          { replace, preventScrollReset: true },
+        )
       }
     },
   )

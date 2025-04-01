@@ -3,11 +3,10 @@ import { memo, type Dispatch, type JSX, type SetStateAction } from 'react'
 
 import type { AssetRowState, AssetsTableState } from '#/layouts/AssetsTable'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import type { AnyAsset, BackendType } from '#/services/Backend'
+import type { AnyAsset, BackendType, Label } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
 import type { SortableColumn } from './column/columnUtils'
 import { Column } from './column/columnUtils'
-import DocsColumn from './column/DocsColumn'
 import LabelsColumn from './column/LabelsColumn'
 import ModifiedColumn from './column/ModifiedColumn'
 import NameColumn from './column/NameColumn'
@@ -18,18 +17,16 @@ import SharedWithColumn from './column/SharedWithColumn'
 /** Props for an arbitrary variant of {@link Asset}. */
 export interface AssetColumnProps {
   readonly isOpened: boolean
+  readonly isNavigating: boolean
   readonly item: AnyAsset
-  readonly depth: number
   readonly backendType: BackendType
-  readonly selected: boolean
   readonly setSelected: (selected: boolean) => void
-  readonly isSoleSelected: boolean
   readonly state: AssetsTableState
   readonly rowState: AssetRowState
   readonly setRowState: Dispatch<SetStateAction<AssetRowState>>
   readonly isEditable: boolean
   readonly isPlaceholder: boolean
-  readonly isExpanded: boolean
+  readonly labels: readonly Label[]
 }
 
 /** Props for a {@link AssetColumn}. */
@@ -48,10 +45,6 @@ export interface AssetColumn {
   readonly render: (props: AssetColumnProps) => JSX.Element
 }
 
-// =======================
-// === COLUMN_RENDERER ===
-// =======================
-
 /** React components for every column. */
 export const COLUMN_RENDERER: Readonly<
   Record<Column, React.MemoExoticComponent<(props: AssetColumnProps) => React.JSX.Element>>
@@ -62,6 +55,5 @@ export const COLUMN_RENDERER: Readonly<
   [Column.labels]: memo(LabelsColumn),
   [Column.accessedByProjects]: memo(PlaceholderColumn),
   [Column.accessedData]: memo(PlaceholderColumn),
-  [Column.docs]: memo(DocsColumn),
   [Column.path]: memo(PathColumn),
 }

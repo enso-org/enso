@@ -1246,5 +1246,14 @@
                 ]
             }
         ]
+    },
+    {
+        "name": "org.enso.snowflake_helpers.TestKeyGenerator",
+        "allPublicMethods": true
+    },
+    {
+        "name": "net.snowflake.client.jdbc.telemetry.TelemetryClient",
+        "allPublicMethods": true,
+        "allPublicConstructors": true
     }
 ]

@@ -12,7 +12,7 @@ import type {
   AvailableIconReturn,
   IconProp as IconType,
   IconPropSvgUse as IconTypeSvgUse,
-  LegacyAvialableIconReturn,
+  LegacyAvailableIconReturn,
   LegacyIconProp as LegacyIconPropType,
   TestIdProps,
 } from '../AriaComponents'
@@ -30,6 +30,7 @@ export type IconProps<Render = never> = BaseIconProps<Render> &
 interface BaseIconProps<Render = never> extends VariantProps<typeof ICON_STYLES>, TestIdProps {
   readonly className?: string | undefined
   readonly renderProps?: Render
+  readonly alt?: string | undefined
 }
 
 /**
@@ -41,16 +42,15 @@ export interface LegacyIconProps<Icon extends string, Render = never>
   readonly icon?: never
 }
 
-/**
- * Generic type for imported from figma icons
- */
+/** Generic type for icons imported from Figma. */
 export interface SvgUseIconProps<Render = never> {
   readonly children?: never
   readonly icon: IconTypeSvgUse<Render>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const ICON_STYLES = tv({
-  base: 'flex-none aspect-square [&>svg]:stroke-current [&>svg]:w-full [&>svg]:h-full',
+  base: 'flex-none aspect-square w-full h-full [&>svg]:stroke-current [&>svg]:w-full [&>svg]:h-full',
   variants: {
     color: {
       custom: '',
@@ -58,7 +58,7 @@ export const ICON_STYLES = tv({
       danger: 'text-danger',
       success: 'text-accent-dark',
       accent: 'text-accent-dark',
-      muted: 'text-primary/40',
+      muted: 'text-primary/50',
       disabled: 'text-disabled',
       invert: 'text-invert',
       inherit: 'text-inherit',
@@ -82,48 +82,72 @@ export const ICON_STYLES = tv({
   },
 })
 
-/**
- * Icon component that displays an icon based on different input.
- */
+/** Icon component that displays an icon based on different input. */
 // eslint-disable-next-line no-restricted-syntax
 export const Icon = memo(function Icon<Render = never>(props: IconProps<Render>) {
-  const { className, variants = ICON_STYLES, size, testId, renderProps = {}, color } = props
+  const { className, variants = ICON_STYLES, size, testId, renderProps, color, alt } = props
 
-  const styles = variants({
-    size,
-    className,
-    color,
-  })
+  const styles = variants({ size, className, color })
 
-  const getIconJsx = (ic: IconType<string, Render>) => {
-    // eslint-disable-next-line no-restricted-syntax
-    const renderedIcon = typeof ic === 'function' ? ic(renderProps as Render) : ic
-
-    if (renderedIcon == null || renderedIcon === false) {
-      return null
-    }
-
-    if (typeof renderedIcon === 'string') {
-      if (isIconName(renderedIcon)) {
-        return <SvgUse icon={renderedIcon} testId={testId} className={styles} />
-      }
-
-      return <SvgMask src={renderedIcon} className={styles} testId={testId} />
-    }
-
+  if ('children' in props) {
     return (
-      <span className={styles} data-testid={testId}>
-        {renderedIcon}
-      </span>
+      <IconInternal<Render>
+        icon={props.children}
+        className={styles}
+        testId={testId}
+        renderProps={renderProps}
+        alt={alt}
+      />
     )
   }
 
-  if ('children' in props) {
-    return <>{getIconJsx(props.children)}</>
+  return (
+    <IconInternal<Render>
+      icon={props.icon}
+      className={styles}
+      testId={testId}
+      renderProps={renderProps}
+      alt={alt}
+    />
+  )
+}) as <Render = never>(props: IconProps<Render>) => React.JSX.Element
+
+/** Props for {@link IconInternal}. */
+interface IconInternalProps<Render = never> extends TestIdProps {
+  readonly className?: string | undefined
+  readonly icon: IconType<string, Render>
+  readonly renderProps?: Render | undefined
+  readonly alt?: string | undefined
+}
+
+/**
+ * Internal icon component that displays an icon based on different input.
+ * @internal
+ */
+function IconInternal<Render = never>(props: IconInternalProps<Render>) {
+  const { className, testId, renderProps, icon, alt = '' } = props
+
+  // eslint-disable-next-line no-restricted-syntax
+  const renderedIcon = typeof icon === 'function' ? icon(renderProps as never) : icon
+
+  if (renderedIcon == null || renderedIcon === false) {
+    return null
   }
 
-  return <>{getIconJsx(props.icon)}</>
-}) as <Render = never>(props: IconProps<Render>) => React.JSX.Element
+  if (typeof renderedIcon === 'string') {
+    if (isIconName(renderedIcon)) {
+      return <SvgUse icon={renderedIcon} testId={testId} className={className} alt={alt} />
+    }
+
+    return <SvgMask src={renderedIcon} className={className} testId={testId} alt={alt} />
+  }
+
+  return (
+    <span className={className} data-testid={testId}>
+      {renderedIcon}
+    </span>
+  )
+}
 
 /**
  * Props for {@link SvgUse}.
@@ -131,23 +155,33 @@ export const Icon = memo(function Icon<Render = never>(props: IconProps<Render>)
 export interface SvgUseProps extends TestIdProps {
   readonly icon: PossibleIcon
   readonly className?: string | undefined
+  readonly alt?: string | undefined
 }
 
 /**
  * A component that displays an SVG from the icons bundle file.
  * Please refer to Figma for the list of available icons.
+ * Prefer using {@link Icon} instead.
+ * @internal
  */
 export function SvgUse(props: SvgUseProps) {
-  const { icon, testId = 'svg-use', className } = props
+  const { icon, testId = 'svg-use', className, alt = '' } = props
 
   return (
     <svg
       className={className}
+      data-testid={testId}
+      role={alt.length > 0 ? 'img' : 'presentation'}
       viewBox="0 0 16 16"
       preserveAspectRatio="xMidYMid slice"
-      data-testid={testId}
+      aria-label={alt}
     >
-      <use href={icon.includes(':') ? icon : `${icons}#${icon}`} data-icon={icon} />
+      <use
+        href={icon.includes(':') ? icon : `${icons}#${icon}`}
+        className="h-full w-full"
+        aria-hidden="true"
+        data-icon={icon}
+      />
     </svg>
   )
 }
@@ -155,9 +189,10 @@ export function SvgUse(props: SvgUseProps) {
 /**
  * Utility function to render an icon based on the icon type and render props.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function renderIcon<Icon extends string, Render>(
   icon: IconType<Icon, Render>,
   renderProps: Render,
-): AvailableIconReturn | LegacyAvialableIconReturn<Icon> {
+): AvailableIconReturn | LegacyAvailableIconReturn<Icon> {
   return typeof icon === 'function' ? icon(renderProps) : icon
 }

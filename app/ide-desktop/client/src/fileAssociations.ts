@@ -60,8 +60,8 @@ export function argsDenoteFileOpenAttempt(clientArgs: readonly string[]): string
     try {
       fsSync.accessSync(arg, fsSync.constants.R_OK)
       result = arg
-    } catch (e) {
-      logger.log(`The single argument '${arg}' does not denote a readable file: ${String(e)}`)
+    } catch {
+      // Do nothing.
     }
   }
   return result

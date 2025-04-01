@@ -2,13 +2,6 @@ import { textEditorsBindings } from '@/bindings'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { type VueHost } from '@/components/VueHostRender.vue'
 import { injectKeyboard } from '@/providers/keyboard'
-import {
-  HeaderLevel,
-  ListType,
-  toggleHeader,
-  toggleList,
-  toggleQuote,
-} from '@/util/codemirror/markdownEditing'
 import { useCompartment, useDispatch, useStateEffect } from '@/util/codemirror/reactivity'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
@@ -17,14 +10,7 @@ import { ToValue } from '@/util/reactivity'
 import { Compartment, EditorState, type Extension, Text } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
-import {
-  type ComponentInstance,
-  computed,
-  type Ref,
-  toValue,
-  watchEffect,
-  type WatchSource,
-} from 'vue'
+import { type ComponentInstance, computed, toValue, watchEffect, type WatchSource } from 'vue'
 import { Awareness } from 'y-protocols/awareness.js'
 import { assert } from 'ydoc-shared/util/assert'
 import * as Y from 'yjs'
@@ -43,21 +29,27 @@ export function useCodeMirror(
     content,
     extensions,
     vueHost,
+    contentTestId,
   }: {
     /** If a value is provided, the editor state will be synchronized with it. */
     content?: ToValue<string | Y.Text>
     /** CodeMirror {@link Extension}s to include in the editor's initial state. */
     extensions?: Extension
-    /** If a value is provided, it will be made available to extensions that render Vue components. */
+    /**
+     * If a value is provided, it will be made available to extensions that render Vue components.
+     */
     vueHost?: WatchSource<VueHost | undefined>
+    /** If provided, the element with class `cm-content` will also have the given `data-testid`. */
+    contentTestId?: string | undefined
   },
 ) {
   const editorView = new EditorView()
+  if (contentTestId != null) editorView.contentDOM.dataset['testid'] = contentTestId
   const readonly = computed(() => !!content && typeof toValue(content) === 'string')
   const readonlyExt = useCompartment(editorView, () =>
-    toValue(readonly) ? EditorState.readOnly.of(true) : [],
+    toValue(readonly) ? [EditorState.readOnly.of(true), EditorView.editable.of(false)] : [],
   )
-  const { bindingsExt } = useBindings({ readonly, contentDOM: editorView.contentDOM })
+  const { bindingsExt } = useBindings(editorView)
   const sync = content ? useSync(content) : undefined
   const extrasCompartment = new Compartment()
   editorView.setState(
@@ -94,36 +86,27 @@ export function useCodeMirror(
     /** The {@link EditorView}, connecting the current state with the DOM. */
     editorView,
     /**
-     * This function can be used to provide extensions that are not ready before `useCodeMirror` can be called, e.g.
-     * because they require an {@link EditorView} instance to be created. If called more than once, the new collection
-     * of extra extensions will replace the previous collection.
+     * This function can be used to provide extensions that are not ready before `useCodeMirror` can
+     * be called, e.g. because they require an {@link EditorView} instance to be created. If called
+     * more than once, the new collection of extra extensions will replace the previous collection.
      */
     setExtraExtensions: (extensions: Extension) =>
       editorView.dispatch({
         effects: extrasCompartment.reconfigure([extensions]),
       }),
     /**
-     * When `useCodeMirror` is configured to set up synchronization by passing the `content` argument, this value tracks
-     * whether the content synchronized with the document is writable.
+     * When `useCodeMirror` is configured to set up synchronization by passing the `content`
+     * argument, this value tracks whether the content synchronized with the document is writable.
      */
     readonly,
     putTextAt,
-    toggleHeader: (level: HeaderLevel) => toggleHeader(editorView, level),
-    toggleQuote: () => toggleQuote(editorView),
-    toggleList: (type: ListType) => toggleList(editorView, type),
     /** The DOM element containing the editor's content. */
     contentElement: editorView.contentDOM,
   }
 }
 
-function useBindings({
-  readonly,
-  contentDOM,
-}: {
-  readonly: Readonly<Ref<boolean>>
-  contentDOM: HTMLElement
-}) {
-  const keyboard = injectKeyboard()
+function useBindings(view: EditorView) {
+  const keyboard = injectKeyboard(true)
 
   function openLink(event: Event) {
     let element: HTMLAnchorElement | undefined = undefined
@@ -132,7 +115,7 @@ function useBindings({
         element = el
         break
       }
-      if (el === contentDOM) break
+      if (el === view.contentDOM) break
     }
     if (!element) return false
     event.preventDefault()
@@ -147,10 +130,10 @@ function useBindings({
   return {
     bindingsExt: EditorView.domEventHandlers({
       keydown: (event) => bindingsHandler(event),
-      click: (event) => bindingsHandler(event) || (readonly.value && openLink(event)),
+      click: (event) => bindingsHandler(event) || (view.state.readOnly && openLink(event)),
       pointerdown: (event) => {
-        keyboard.updateState(event)
-        if (keyboard.mod) event.preventDefault()
+        keyboard?.updateState(event)
+        if (keyboard?.mod) event.preventDefault()
       },
     }),
   }
@@ -187,8 +170,8 @@ function useSync(content: ToValue<string | Y.Text>) {
             effects: syncCompartment.reconfigure(extensions),
           }
         },
-        // The y-sync plugin breaks if it is reconfigured directly (it never unobserves the original yText), but can
-        // handle being removed and reinstalled.
+        // The y-sync plugin breaks if it is reconfigured directly (it never unobserves the original
+        // yText), but can handle being removed and reinstalled.
         () =>
           editorView.dispatch({
             effects: syncCompartment.reconfigure([]),

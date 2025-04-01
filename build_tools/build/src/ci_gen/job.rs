@@ -15,6 +15,7 @@ use crate::paths;
 
 use core::panic;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
+use ide_ci::actions::workflow::definition::checkout_repo_step;
 use ide_ci::actions::workflow::definition::get_input_expression;
 use ide_ci::actions::workflow::definition::setup_wasm_pack_step;
 use ide_ci::actions::workflow::definition::shell;
@@ -280,6 +281,7 @@ fn enable_cloud_tests(step: Step) -> Step {
 pub struct StandardLibraryTests {
     pub graal_edition:       graalvm::Edition,
     pub cloud_tests_enabled: bool,
+    pub native_image_mode:   bool,
 }
 
 impl JobArchetype for StandardLibraryTests {
@@ -287,8 +289,13 @@ impl JobArchetype for StandardLibraryTests {
         let graal_edition = self.graal_edition;
         let should_enable_cloud_tests = self.cloud_tests_enabled;
         // If cloud tests are enabled, we run only cloud related tests.
-        let test_scope =
-            if should_enable_cloud_tests { "std-cloud-related" } else { "standard-library" };
+        let test_scope = if should_enable_cloud_tests {
+            "std-cloud-related"
+        } else if self.native_image_mode {
+            "standard-library-in-native"
+        } else {
+            "standard-library"
+        };
         let job_name = format!("Standard Library Tests ({graal_edition})");
         let run_command = format!("backend test {test_scope}");
         let run_steps_builder = RunStepsBuilder::new(run_command).customize(move |step| {
@@ -344,6 +351,9 @@ impl JobArchetype for StandardLibraryTests {
     }
 }
 
+/// Job that checks if any of stdlib APIs have changed, by building the Enso
+/// engine distribution, and running `enso --docs api --in-project <std-lib>`,
+/// and comparing it to the API signature files that are already in the VCS.
 #[derive(Clone, Copy, Debug)]
 pub struct StandardLibraryApiCheck;
 
@@ -353,6 +363,94 @@ impl JobArchetype for StandardLibraryApiCheck {
         let run_command = "backend stdlib-api-check";
         let job = RunStepsBuilder::new(run_command).build_job(job_name, target);
         job
+    }
+}
+
+/// Job that checks if the API of a standard library has changed, and if so,
+/// appends a label to the PR.
+#[derive(Clone, Debug)]
+pub struct StandardLibraryLabelCheck {
+    /// Library name to check. WIthout the leading `Standard` prefix
+    pub lib_name: String,
+}
+
+impl StandardLibraryLabelCheck {
+    fn changed_files_step_name(&self) -> String {
+        format!("{}-changed-files", self.lib_name)
+    }
+
+    fn changed_files_step(&self) -> Step {
+        let changed_files_pattern =
+            format!("distribution/lib/Standard/{}/**/docs/api/**/**.md", self.lib_name);
+        let changed_files_action = "step-security/changed-files@v45".to_string();
+        Step {
+            id: Some(self.changed_files_step_name()),
+            name: Some(self.changed_files_step_name()),
+            uses: Some(changed_files_action),
+            ..default()
+        }
+        .with_custom_argument("files", changed_files_pattern)
+    }
+
+    fn list_all_changed_files_step(&self) -> Step {
+        let run = format!(
+            r#"
+        if [[ "${{{{ steps.{}.outputs.any_changed }}}}" == "true" ]]; then
+            echo "Files changed:"
+        fi
+        for file in ${{ALL_CHANGED_FILES}}; do
+            echo "$file"
+        done
+        "#,
+            self.changed_files_step_name()
+        );
+        Step {
+            name: Some(format!("List all changed files in {}", self.lib_name)),
+            run: Some(run),
+            ..default()
+        }
+        .with_env(
+            "ALL_CHANGED_FILES",
+            "${{ steps.".to_string()
+                + &self.changed_files_step_name()
+                + ".outputs.all_changed_files }}",
+        )
+    }
+
+    fn append_label_step(&self) -> Step {
+        let label_name = format!("-libs-API-change-{}", self.lib_name);
+        let add_label_action = "actions-ecosystem/action-add-labels@v1".to_string();
+        Step {
+            name: Some(format!("Append {} label", label_name)),
+            uses: Some(add_label_action),
+            r#if: Some(format!(
+                "steps.{}.outputs.any_changed == 'true'",
+                self.changed_files_step_name()
+            )),
+            ..default()
+        }
+        .with_custom_argument("labels", label_name)
+        .with_custom_argument("github_token", "${{ secrets.GITHUB_TOKEN }}")
+    }
+}
+
+impl JobArchetype for StandardLibraryLabelCheck {
+    fn job(&self, target: Target) -> Job {
+        if target.0 != OS::Linux {
+            panic!("StandardLibraryApiCheck jobs run only on Linux");
+        }
+        let job_name = format!("{}-change-labels", self.lib_name);
+        let steps: Vec<Step> = vec![
+            checkout_repo_step(Some(2)),
+            self.changed_files_step(),
+            self.list_all_changed_files_step(),
+            self.append_label_step(),
+        ];
+        Job { name: job_name, runs_on: vec![RunnerLabel::LinuxLatest], steps, ..default() }
+    }
+
+    fn id_key_base(&self) -> String {
+        format!("stdlib-api-check-{}", self.lib_name)
     }
 }
 
@@ -545,6 +643,18 @@ impl JobArchetype for UploadBackend {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("backend upload")
             .cleaning(RELEASE_CLEANING_POLICY)
+            .customize(move |step| {
+                let mut steps = vec![step];
+
+                if target.0 == OS::Linux {
+                    let upload_edition_file = step::upload_artifact("Upload Edition File")
+                        .with_custom_argument("name", paths::EDITION_FILE_ARTIFACT_NAME)
+                        .with_custom_argument("path", "distribution/editions/*.yaml");
+                    steps.push(upload_edition_file);
+                }
+
+                steps
+            })
             .build_job("Upload Backend", target)
     }
 }

@@ -1,33 +1,24 @@
 package org.enso.table.data.column.storage;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.CountNonTrivialWhitespace;
 import org.enso.table.data.column.operation.CountUntrimmed;
 import org.enso.table.data.column.operation.SampleOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.text.CoalescingStringStringOp;
-import org.enso.table.data.column.operation.map.text.LikeOp;
-import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
-import org.enso.table.data.column.operation.map.text.StringLongToStringOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
-import org.slf4j.Logger;
 
 /** A column storing strings. */
 public final class StringStorage extends SpecializedStorage<String> {
 
-  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(StringStorage.class);
-
   record DataQualityMetrics(Long untrimmedCount, Long whitespaceCount) {}
-  ;
 
-  private Future<DataQualityMetrics> dataQualityMetricsValues;
+  private CachedPropertyCheck<DataQualityMetrics> dataQualityMetricsValues;
 
   /**
    * @param data the underlying data
@@ -37,7 +28,7 @@ public final class StringStorage extends SpecializedStorage<String> {
     super(type, data, buildOps());
 
     dataQualityMetricsValues =
-        CompletableFuture.supplyAsync(() -> createDataQualityMetricsWitDefaultSize());
+        new CachedPropertyCheck<>(() -> createDataQualityMetricsWitDefaultSize(), null);
   }
 
   public static StringStorage makeEmpty(TextType type, long size) {
@@ -68,24 +59,13 @@ public final class StringStorage extends SpecializedStorage<String> {
   }
 
   /**
-   * Counts the number of cells in the columns with whitespace. If the calculation fails then it
-   * returns null.
+   * Counts the number of cells in the columns with untrimmed whitespace. If the calculation fails
+   * then it returns null.
    *
    * @return the number of cells with untrimmed whitespace
    */
   public Long cachedUntrimmedCount() throws InterruptedException {
-    if (dataQualityMetricsValues.isCancelled()) {
-      // Need to recompute the value, as was cancelled.
-      dataQualityMetricsValues =
-          CompletableFuture.supplyAsync(() -> createDataQualityMetricsWitDefaultSize());
-    }
-
-    try {
-      return dataQualityMetricsValues.get().untrimmedCount;
-    } catch (ExecutionException e) {
-      LOGGER.error("Failed to compute untrimmed count", e);
-      return null;
-    }
+    return dataQualityMetricsValues.get().untrimmedCount.longValue();
   }
 
   /**
@@ -95,58 +75,11 @@ public final class StringStorage extends SpecializedStorage<String> {
    * @return the number of cells with non trivial whitespace
    */
   public Long cachedWhitespaceCount() throws InterruptedException {
-    if (dataQualityMetricsValues.isCancelled()) {
-      // Need to recompute the value, as was cancelled.
-      dataQualityMetricsValues =
-          CompletableFuture.supplyAsync(() -> createDataQualityMetricsWitDefaultSize());
-    }
-
-    try {
-      return dataQualityMetricsValues.get().whitespaceCount;
-    } catch (ExecutionException e) {
-      LOGGER.error("Failed to compute non trivial whitespace count", e);
-      return null;
-    }
+    return dataQualityMetricsValues.get().whitespaceCount.longValue();
   }
 
   private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {
     MapOperationStorage<String, SpecializedStorage<String>> t = new MapOperationStorage<>();
-    t.add(
-        new StringBooleanOp(Maps.STARTS_WITH) {
-          @Override
-          protected boolean doString(String a, String b) {
-            return Text_Utils.starts_with(a, b);
-          }
-        });
-    t.add(
-        new StringBooleanOp(Maps.ENDS_WITH) {
-          @Override
-          protected boolean doString(String a, String b) {
-            return Text_Utils.ends_with(a, b);
-          }
-        });
-    t.add(
-        new StringLongToStringOp(Maps.TEXT_LEFT) {
-          @Override
-          protected String doOperation(String a, long b) {
-            return Text_Utils.take_prefix(a, b);
-          }
-        });
-    t.add(
-        new StringLongToStringOp(Maps.TEXT_RIGHT) {
-          @Override
-          protected String doOperation(String a, long b) {
-            return Text_Utils.take_suffix(a, b);
-          }
-        });
-    t.add(
-        new StringBooleanOp(Maps.CONTAINS) {
-          @Override
-          protected boolean doString(String a, String b) {
-            return Text_Utils.contains(a, b);
-          }
-        });
-    t.add(new LikeOp());
     t.add(new StringIsInOp<>());
     t.add(
         new StringStringOp(Maps.ADD) {
@@ -196,7 +129,7 @@ public final class StringStorage extends SpecializedStorage<String> {
   }
 
   @Override
-  public StorageType inferPreciseTypeShrunk() {
+  public StorageType<?> inferPreciseTypeShrunk() {
     var type = getType();
     if (type.fixedLength()) {
       return type;

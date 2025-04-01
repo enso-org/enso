@@ -12,6 +12,7 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -23,6 +24,7 @@ import com.oracle.truffle.api.source.SourceSection;
 import org.enso.common.MethodNames;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
+import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.CallerInfo;
@@ -88,6 +90,25 @@ public final class Function extends EnsoObject {
   }
 
   /**
+   * Helper method to construct a function with pre-applied arguments from any call target.
+   *
+   * @param callTarget the call target to invoke
+   * @param args the arguments to pass to the call target
+   * @return fully saturated function ready to be processed by {@link ThunkExecutorNode}
+   */
+  public static Function fullyApplied(RootCallTarget callTarget, Object... args) {
+    var defs = new ArgumentDefinition[args.length];
+    var appl = new boolean[args.length];
+    for (var i = 0; i < args.length; i++) {
+      defs[i] =
+          new ArgumentDefinition(i, null, null, null, ArgumentDefinition.ExecutionMode.EXECUTE);
+      appl[i] = true;
+    }
+    var schema = FunctionSchema.newBuilder().argumentDefinitions(defs).hasPreapplied(appl).build();
+    return new Function(callTarget, null, schema, args, new Object[0]);
+  }
+
+  /**
    * Creates a Function object from a {@link BuiltinRootNode} and argument definitions.
    *
    * @param node the {@link RootNode} for the function logic
@@ -138,13 +159,23 @@ public final class Function extends EnsoObject {
     return getCallTarget().getRootNode().getName();
   }
 
+  @ExportMessage
+  boolean hasSourceLocation() {
+    return getCallTarget().getRootNode().getSourceSection() != null;
+  }
+
   /**
    * @return the source section this function was defined in.
    */
   @TruffleBoundary
   @ExportMessage(name = "getSourceLocation")
-  public SourceSection getSourceSection() {
-    return getCallTarget().getRootNode().getSourceSection();
+  public SourceSection getSourceSection() throws UnsupportedMessageException {
+    var section = getCallTarget().getRootNode().getSourceSection();
+    if (section == null) {
+      throw UnsupportedMessageException.create();
+    } else {
+      return section;
+    }
   }
 
   /**
@@ -195,11 +226,6 @@ public final class Function extends EnsoObject {
   }
 
   @ExportMessage
-  boolean hasSourceLocation() {
-    return getSourceSection() != null;
-  }
-
-  @ExportMessage
   boolean hasExecutableName() {
     return this.getName() != null;
   }
@@ -226,7 +252,7 @@ public final class Function extends EnsoObject {
         @Cached InlinedBranchProfile panicProfile) {
       try {
         return interopApplicationNode.execute(
-            function, EnsoContext.get(thisLib).emptyState(), arguments);
+            function, EnsoContext.get(thisLib).currentState(), arguments);
       } catch (StackOverflowError err) {
         CompilerDirectives.transferToInterpreter();
         var asserts = false;
@@ -261,7 +287,10 @@ public final class Function extends EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   Object invokeMember(String member, Object... args)
-      throws ArityException, UnknownIdentifierException, UnsupportedTypeException {
+      throws ArityException,
+          UnknownIdentifierException,
+          UnsupportedTypeException,
+          UnsupportedMessageException {
     switch (member) {
       case MethodNames.Function.EQUALS:
         Object that = Types.extractArguments(args, Object.class);

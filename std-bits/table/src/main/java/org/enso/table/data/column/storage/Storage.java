@@ -24,7 +24,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   public abstract long getSize();
 
   @Override
-  public abstract StorageType getType();
+  public abstract StorageType<T> getType();
 
   /**
    * Returns a more specialized storage, if available.
@@ -46,7 +46,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    * @return the type of the values in this column's storage. Most storages just return their type.
    *     Mixed storage will try to see if all elements fit some more precise type.
    */
-  public StorageType inferPreciseType() {
+  public StorageType<?> inferPreciseType() {
     return getType();
   }
 
@@ -59,7 +59,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    * used in typechecking of lots of operations. This one however, is only used in a specific
    * `auto_value_type` use-case and rarely will need to be computed more than once.
    */
-  public StorageType inferPreciseTypeShrunk() {
+  public StorageType<?> inferPreciseTypeShrunk() {
     return getType();
   }
 
@@ -79,12 +79,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     public static final String ROUND = "round";
     public static final String AND = "&&";
     public static final String OR = "||";
-    public static final String STARTS_WITH = "starts_with";
-    public static final String ENDS_WITH = "ends_with";
-    public static final String TEXT_LEFT = "text_left";
-    public static final String TEXT_RIGHT = "text_right";
-    public static final String CONTAINS = "contains";
-    public static final String LIKE = "like";
     public static final String IS_IN = "is_in";
     public static final String MIN = "min";
     public static final String MAX = "max";
@@ -133,7 +127,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       BiFunction<Object, Object, Object> function,
       Object argument,
       boolean skipNulls,
-      StorageType expectedResultType,
+      StorageType<?> expectedResultType,
       ProblemAggregator problemAggregator) {
     Builder storageBuilder = Builder.getForType(expectedResultType, getSize(), problemAggregator);
     if (skipNulls && argument == null) {
@@ -171,7 +165,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       BiFunction<Object, Object, Object> function,
       Storage<?> arg,
       boolean skipNa,
-      StorageType expectedResultType,
+      StorageType<?> expectedResultType,
       ProblemAggregator problemAggregator) {
     Builder storageBuilder = Builder.getForType(expectedResultType, getSize(), problemAggregator);
     Context context = Context.getCurrent();
@@ -212,7 +206,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       BiFunction<Object, Object, Object> fallback,
       Object argument,
       boolean skipNulls,
-      StorageType expectedResultType) {
+      StorageType<?> expectedResultType) {
     if (isBinaryOpVectorized(name)) {
       return runVectorizedBinaryMap(name, argument, problemAggregator);
     } else {
@@ -241,7 +235,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       Object argument0,
       Object argument1,
       boolean skipNulls,
-      StorageType expectedResultType) {
+      StorageType<?> expectedResultType) {
     if (isTernaryOpVectorized(name)) {
       return runVectorizedTernaryMap(name, argument0, argument1, problemAggregator);
     } else {
@@ -270,7 +264,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       BiFunction<Object, Object, Object> fallback,
       Storage<?> other,
       boolean skipNulls,
-      StorageType expectedResultType) {
+      StorageType<?> expectedResultType) {
     if (isBinaryOpVectorized(name)) {
       return runVectorizedZip(name, other, problemAggregator);
     } else {
@@ -279,7 +273,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     }
   }
 
-  private void checkFallback(Object fallback, StorageType storageType, String operationName)
+  private void checkFallback(Object fallback, StorageType<?> storageType, String operationName)
       throws IllegalArgumentException {
     if (fallback == null) {
       if (operationName == null) {
@@ -312,7 +306,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    * @return a new storage, with all missing elements replaced by arg
    */
   public Storage<?> fillMissing(
-      Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
+      Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
     Builder builder = Builder.getForType(commonType, getSize(), problemAggregator);
     Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
     Context context = Context.getCurrent();
@@ -333,7 +327,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    * @return a new storage with missing values filled
    */
   public Storage<?> fillMissingFrom(
-      Storage<?> other, StorageType commonType, ProblemAggregator problemAggregator) {
+      Storage<?> other, StorageType<?> commonType, ProblemAggregator problemAggregator) {
     var builder = Builder.getForType(commonType, getSize(), problemAggregator);
     Context context = Context.getCurrent();
     for (long i = 0; i < getSize(); i++) {
@@ -424,7 +418,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       return new LongConstantStorage(longValue, repeat);
     }
 
-    StorageType storageType = StorageType.forBoxedItem(converted);
+    var storageType = StorageType.forBoxedItem(converted);
     Builder builder = Builder.getForType(storageType, repeat, problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < repeat; i++) {

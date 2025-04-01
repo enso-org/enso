@@ -109,6 +109,10 @@ export function getProjectContentPath(
 export function getProjectAssetPath(projectId: backend.ProjectId, relativePath: string) {
   return `projects/${projectId}/files/${relativePath.replace('./', '')}`
 }
+/** Relative HTTP path to the upload project endpoint of the Cloud backend API. */
+export function getProjectUploadPath(projectId: backend.ProjectId) {
+  return `projects/${projectId}/upload`
+}
 
 /** Relative HTTP path to the "update asset" endpoint of the Cloud backend API. */
 export function updateAssetPath(assetId: backend.AssetId) {
@@ -134,7 +138,6 @@ export function closeProjectPath(projectId: backend.ProjectId) {
 export function getProjectDetailsPath(projectId: backend.ProjectId) {
   return `projects/${projectId}`
 }
-
 /** Relative HTTP path to the "get project logs" endpoint of the Cloud backend API. */
 export function getProjectSessionLogsPath(projectSessionId: backend.ProjectSessionId) {
   return `project-sessions/${projectSessionId}/logs`
@@ -143,9 +146,9 @@ export function getProjectSessionLogsPath(projectSessionId: backend.ProjectSessi
 export function duplicateProjectPath(projectId: backend.ProjectId) {
   return `projects/${projectId}/versions/clone`
 }
-/** Relative HTTP path to the "restore project" endpoint of the Cloud backend API. */
-export function restoreProjectPath(projectId: backend.ProjectId) {
-  return `projects/${projectId}/versions/restore`
+/** Relative HTTP path to the "restore asset" endpoint of the Cloud backend API. */
+export function restoreAssetPath(assetId: backend.AssetId) {
+  return `assets/${assetId}/versions/restore`
 }
 /** Relative HTTP path to the "open project" endpoint of the Cloud backend API. */
 export function openProjectPath(projectId: backend.ProjectId) {
@@ -163,6 +166,10 @@ export function listProjectExecutionsPath(projectId: backend.ProjectId) {
 export function createProjectExecutionPath(projectId: backend.ProjectId) {
   return `projects/${projectId}/executions/new`
 }
+/** Relative HTTP path to the "get project execution details" endpoint of the Cloud backend API. */
+export function getProjectExecutionDetailsPath(executionId: backend.ProjectExecutionId) {
+  return `executions/${executionId}`
+}
 /** Relative HTTP path to the "update project execution" endpoint of the Cloud backend API. */
 export function updateProjectExecutionPath(executionId: backend.ProjectExecutionId) {
   return `executions/${executionId}`
@@ -173,7 +180,7 @@ export function syncProjectExecutionPath(executionId: backend.ProjectExecutionId
 }
 /** Relative HTTP path to the "delete project execution" endpoint of the Cloud backend API. */
 export function deleteProjectExecutionPath(executionId: backend.ProjectExecutionId) {
-  return `project-executions/${executionId}`
+  return `executions/${executionId}`
 }
 /** Relative HTTP path to the "get file details" endpoint of the Cloud backend API. */
 export function getFileDetailsPath(fileId: backend.FileId) {
@@ -210,6 +217,19 @@ export function deleteUserGroupPath(groupId: backend.UserGroupId) {
 /** Relative HTTP path to the "get checkout session" endpoint of the Cloud backend API. */
 export function getCheckoutSessionPath(checkoutSessionId: backend.CheckoutSessionId) {
   return `${GET_CHECKOUT_SESSION_PATH}/${checkoutSessionId}`
+}
+
+/** Relative HTTP path to the "hybrid set open in progress" endpoint of the Cloud backend API. */
+export function getHybridSetOpenInProgress(projectId: backend.ProjectId) {
+  return `projects/${projectId}/hybrid_set_open_in_progress`
+}
+/** Relative HTTP path to the "hybrid set opened" endpoint of the Cloud backend API. */
+export function getHybridSetOpened(projectId: backend.ProjectId) {
+  return `projects/${projectId}/hybrid_set_opened`
+}
+/** Relative HTTP path to the "hybrid ping" endpoint of the Cloud backend API. */
+export function getHybridProjectPing(projectId: backend.ProjectId) {
+  return `projects/${projectId}/hybrid_ping`
 }
 
 /** Unique identifier for a directory. */

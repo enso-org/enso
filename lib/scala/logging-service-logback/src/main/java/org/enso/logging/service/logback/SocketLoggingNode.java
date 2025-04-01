@@ -76,7 +76,10 @@ public class SocketLoggingNode implements Runnable {
         event = (ILoggingEvent) hardenedLoggingEventInputStream.readObject();
         if (projectId == null) {
           try {
-            projectId = UUID.fromString(event.getMDCPropertyMap().get("project.id"));
+            var property = event.getMDCPropertyMap().get("project.id");
+            if (property != null) {
+              projectId = UUID.fromString(property);
+            }
           } catch (IllegalArgumentException e) {
             // ignore
           }
@@ -91,7 +94,7 @@ public class SocketLoggingNode implements Runnable {
         }
       }
     } catch (java.io.EOFException e) {
-      if (state.isBefore(State.CLOSING)) {
+      if (state.isBefore(State.CLOSING) && projectId != null) {
         logger.debug("Caught java.io.EOFException closing connection.", e);
       }
     } catch (java.net.SocketException e) {

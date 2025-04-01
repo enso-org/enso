@@ -169,7 +169,6 @@ export default {
         'drive-labels-column': 'var(--drive-labels-column-width)',
         'drive-accessed-by-projects-column': 'var(--drive-accessed-by-projects-column-width)',
         'drive-accessed-data-column': 'var(--drive-accessed-data-column-width)',
-        'drive-docs-column': 'var(--drive-docs-column-width)',
       },
       minWidth: ({ theme }) => ({ ...theme('width') }),
       maxWidth: ({ theme }) => ({ ...theme('width') }),
@@ -186,7 +185,6 @@ export default {
         'chat-thread-list': 'var(--chat-thread-list-height)',
         'payment-form': 'var(--payment-form-height)',
         'paragraph-input': 'var(--paragraph-input-height)',
-        'dropdown-items': 'var(--dropdown-items-height)',
         'manage-permissions-modal-permissions-list':
           'var(--manage-permissions-modal-permissions-list-height)',
         'manage-labels-list': 'var(--manage-labels-list-height)',
@@ -204,7 +202,6 @@ export default {
         icons: 'var(--icons-gap)',
         colors: 'var(--colors-gap)',
         'samples-icon-with-text': 'var(--samples-icon-with-text-gap)',
-        'icon-with-text': 'var(--icon-with-text-gap)',
         'input-with-button': 'var(--input-with-button-gap)',
         'user-bar': 'var(--user-bar-gap)',
         'top-bar': 'var(--top-bar-gap)',
@@ -234,7 +231,6 @@ export default {
         'name-column-icon': 'var(--name-column-icon-gap)',
         'permission-type-button': 'var(--permission-type-button-gap)',
         'modal-tabs': 'var(--modal-tabs-gap)',
-        'dropdown-arrow': 'var(--dropdown-arrow-gap)',
         'context-menus': 'var(--context-menus-gap)',
         'asset-panel': 'var(--asset-panel-gap)',
         'search-suggestions': 'var(--search-suggestions-gap)',
@@ -634,7 +630,7 @@ inset 0 -36px 51px -51px #00000014`,
             '@apply inline-block rounded-full px-4 py-1 selectable': '',
           },
           '.icon-with-text': {
-            '@apply flex items-center justify-center gap-icon-with-text': '',
+            '@apply flex items-center justify-center gap-2': '',
           },
 
           // === Text-related classes ===

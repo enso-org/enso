@@ -19,7 +19,6 @@ import * as modalProvider from '#/providers/ModalProvider'
 import ProjectsProvider, {
   useClearLaunchedProjects,
   usePage,
-  useProjectsStore,
   useSetPage,
   type TabType,
 } from '#/providers/ProjectsProvider'
@@ -91,8 +90,6 @@ function fileURLToPath(url: string): string | null {
 function DashboardInner(props: DashboardProps) {
   const { initialProjectName: initialProjectNameRaw, ydocUrl } = props
   const localBackend = backendProvider.useLocalBackend()
-  const { modalRef } = modalProvider.useModalRef()
-  const { updateModal, unsetModal } = modalProvider.useSetModal()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
 
@@ -103,13 +100,11 @@ function DashboardInner(props: DashboardProps) {
   const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
 
   const categoriesAPI = useCategoriesAPI()
-
-  const projectsStore = useProjectsStore()
   const page = usePage()
-
   const setPage = useSetPage()
+
   const openEditor = projectHooks.useOpenEditor()
-  const openProject = projectHooks.useOpenProject()
+  const openProjectLocally = projectHooks.useOpenProjectLocally()
   const closeProject = projectHooks.useCloseProject()
   const closeAllProjects = projectHooks.useCloseAllProjects()
   const clearLaunchedProjects = useClearLaunchedProjects()
@@ -126,12 +121,14 @@ function DashboardInner(props: DashboardProps) {
           localBackend.rootPath(),
           projectName,
         )
-        openProject({
-          type: backendModule.BackendType.local,
-          id: localBackendModule.newProjectId(projectManager.UUID(id), localBackend.rootPath()),
-          title: projectName,
-          parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
-        })
+        await openProjectLocally(
+          {
+            id: localBackendModule.newProjectId(projectManager.UUID(id), localBackend.rootPath()),
+            title: projectName,
+            parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
+          },
+          backendModule.BackendType.local,
+        )
       }
       return null
     },
@@ -147,39 +144,20 @@ function DashboardInner(props: DashboardProps) {
         projectManager.Path(project.parentDirectory),
       )
 
-      openProject({
-        type: backendModule.BackendType.local,
-        id: projectId,
-        title: project.name,
-        parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
-      })
+      void openProjectLocally(
+        {
+          id: projectId,
+          title: project.name,
+          parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
+        },
+        backendModule.BackendType.local,
+      )
     })
 
     return () => {
       window.projectManagementApi?.setOpenProjectHandler(() => {})
     }
-  }, [openEditor, openProject, categoriesAPI])
-
-  React.useEffect(
-    () =>
-      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-        closeModal: () => {
-          updateModal((oldModal) => {
-            if (oldModal == null) {
-              const currentPage = projectsStore.getState().page
-              if (currentPage === 'settings') {
-                setPage('drive')
-              }
-            }
-            return null
-          })
-          if (modalRef.current == null) {
-            return false
-          }
-        },
-      }),
-    [inputBindings, modalRef, updateModal, setPage, projectsStore],
-  )
+  }, [openEditor, openProjectLocally, categoriesAPI])
 
   React.useEffect(() => {
     if (detect.isOnElectron()) {
@@ -194,6 +172,14 @@ function DashboardInner(props: DashboardProps) {
       })
     }
   }, [inputBindings])
+
+  React.useEffect(
+    () =>
+      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+        closeModal: () => modalProvider.unsetModal(),
+      }),
+    [inputBindings],
+  )
 
   const onSignOut = eventCallbacks.useEventCallback(() => {
     setPage('drive')
@@ -211,7 +197,7 @@ function DashboardInner(props: DashboardProps) {
         className="flex min-h-full flex-col text-xs text-primary"
         onContextMenu={(event) => {
           event.preventDefault()
-          unsetModal()
+          modalProvider.unsetModal()
         }}
       >
         <aria.Tabs

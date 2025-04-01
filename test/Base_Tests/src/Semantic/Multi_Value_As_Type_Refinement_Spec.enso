@@ -165,7 +165,7 @@ add_specs suite_builder =
             (c:A&B&C).b_method . should_equal "B method"
             (c:A&B&C).c_method . should_equal "C method"
 
-        group_builder.specify "default to_text should delegate to one of values" pending="To text doesn't dispatch properly #11827" <|
+        group_builder.specify "default to_text should delegate to one of values" <|
             ab = make_a_and_b
             ab.to_text . should_equal "(A_Ctor 1)"
 

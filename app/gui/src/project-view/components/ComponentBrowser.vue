@@ -1,20 +1,19 @@
 <script setup lang="ts">
-import { componentBrowserBindings } from '@/bindings'
+import { componentBrowserBindings, listBindings } from '@/bindings'
 import { type Component } from '@/components/ComponentBrowser/component'
 import ComponentEditor from '@/components/ComponentBrowser/ComponentEditor.vue'
 import ComponentList from '@/components/ComponentBrowser/ComponentList.vue'
-import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import { useResizeObserver } from '@/composables/events'
 import type { useNavigator } from '@/composables/navigator'
 import { groupColorStyle } from '@/composables/nodeColors'
+import { Action, registerHandlers } from '@/providers/action'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
-import { useProjectStore } from '@/stores/project'
 import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { type Typename } from '@/stores/suggestionDatabase/entry'
@@ -24,30 +23,31 @@ import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { DEFAULT_ICON, iconOfNode, suggestionEntryToIcon } from '@/util/getIconName'
 import { debouncedGetter } from '@/util/reactivity'
 import type { ComponentInstance } from 'vue'
-import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
+import { computed, onMounted, onUnmounted, ref, toValue, watch, watchEffect } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
+import { Range } from 'ydoc-shared/util/data/range'
+import { Ok } from 'ydoc-shared/util/data/result'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
+import { NODE_CONTENT_PADDING } from './GraphEditor/GraphNode.vue'
 
 // Difference in position between the component browser and a node for the input of the component browser to
 // be placed at the same position as the node.
-const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(-4, -4)
+const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(0, 0)
 const PAN_MARGINS = {
   top: 48,
   bottom: 40,
   left: 80,
   right: 40,
 }
-const COMPONENT_EDITOR_PADDING = 12
-const ICON_WIDTH = 16
+const COMPONENT_EDITOR_PADDING = NODE_CONTENT_PADDING
+const ICON_WIDTH = 24
 // Component editor is larger than a typical node, so the edge should touch it a bit higher.
-const EDGE_Y_OFFSET = -6
+const EDGE_Y_OFFSET = -8
 
 const cssComponentEditorPadding = `${COMPONENT_EDITOR_PADDING}px`
 
-const projectStore = useProjectStore()
 const suggestionDbStore = useSuggestionDbStore()
 const graphStore = useGraphStore()
 const interaction = injectInteractionHandler()
@@ -177,15 +177,6 @@ const selectedSuggestion = computed(() => {
 
 const input = useComponentBrowserInput()
 
-const currentFiltering = computed(() => {
-  if (input.mode.mode === 'componentBrowsing') {
-    const currentModule = projectStore.moduleProjectPath
-    return new Filtering(input.mode.filter, currentModule?.ok ? currentModule.value : undefined)
-  } else {
-    return undefined
-  }
-})
-
 onUnmounted(() => {
   graphStore.cbEditedEdge = undefined
 })
@@ -241,27 +232,12 @@ const nodeColor = computed(() => {
   return 'var(--node-color-no-type)'
 })
 
-const selectedSuggestionIcon = computed(() => {
-  return selectedSuggestion.value ? suggestionEntryToIcon(selectedSuggestion.value) : undefined
-})
-
-const icon = computed(() => {
-  if (!input.selfArgument) return undefined
-  if (input.mode.mode === 'componentBrowsing' && selectedSuggestionIcon.value)
-    return selectedSuggestionIcon.value
-  if (props.usage.type === 'editNode') {
-    return iconOfNode(props.usage.node, graphStore.db)
-  }
-  return DEFAULT_ICON
-})
-
 // === Preview ===
 
 const previewedCode = debouncedGetter<string>(() => input.code, 200)
 
 const previewedSuggestionReturnType = computed(() => {
-  const id = input.mode.mode === 'codeEditing' ? input.mode.appliedSuggestion : undefined
-  const appliedEntry = id != null ? suggestionDbStore.entries.get(id) : undefined
+  const appliedEntry = input.mode.mode === 'codeEditing' ? input.mode.appliedSuggestion : undefined
   const entry =
     appliedEntry ? appliedEntry
     : props.usage.type === 'editNode' ? graphStore.db.getNodeMainSuggestion(props.usage.node)
@@ -300,53 +276,92 @@ watch(
 
 // === Accepting Entry ===
 
-function acceptSuggestion(component: Opt<Component> = null) {
-  const suggestionId = component?.suggestionId ?? selectedSuggestionId.value
-  if (suggestionId == null) return acceptInput()
-  const result = input.applySuggestion(suggestionId)
+function applyComponent(component: Opt<Component> = null) {
+  component ??= selected.value
+  if (component == null) {
+    input.switchToCodeEditMode()
+    return Ok()
+  }
+  if (component.suggestionId != null) {
+    return input.applySuggestion(component.suggestionId)
+  } else {
+    // Component without suggestion database entry, for example "literal" component.
+    input.content = { text: component.label, selection: Range.emptyAt(component.label.length) }
+    input.switchToCodeEditMode()
+    return Ok()
+  }
+}
+
+function acceptComponent(component: Opt<Component> = null) {
+  const result = applyComponent(component)
   if (result.ok) acceptInput()
   else result.error.log('Cannot apply suggestion')
 }
 
-function applySuggestion(component: Opt<Component> = null) {
-  const suggestionId = component?.suggestionId ?? selectedSuggestionId.value
-  if (suggestionId == null) return input.switchToCodeEditMode()
-  const result = input.applySuggestion(suggestionId)
-  if (!result.ok) result.error.log('Cannot apply suggestion')
-}
-
 function acceptInput() {
   const appliedReturnType =
-    input.mode.mode === 'codeEditing' && input.mode.appliedSuggestion != null ?
-      suggestionDbStore.entries.get(input.mode.appliedSuggestion)?.returnType(projectNames)
+    input.mode.mode === 'codeEditing' ?
+      input.mode.appliedSuggestion?.returnType(projectNames)
     : undefined
   emit('accepted', input.code.trim(), input.importsToAdd(), appliedReturnType)
   interaction.ended(cbOpen)
 }
 
-// === Key Events Handler ===
+// === Action Handlers ===
+
+const outsideComponentBrowsing = computed(() => input.mode.mode != 'componentBrowsing')
+const actions = registerHandlers({
+  'componentBrowser.editSuggestion': {
+    action: () => {
+      const result = applyComponent()
+      if (!result.ok) result.error.log('Cannot apply component')
+    },
+    disabled: outsideComponentBrowsing,
+  },
+  'componentBrowser.acceptSuggestion': {
+    action: () => acceptComponent(),
+    disabled: outsideComponentBrowsing,
+  },
+  'componentBrowser.acceptInputAsCode': {
+    action: acceptInput,
+    disabled: outsideComponentBrowsing,
+  },
+  'componentBrowser.switchToCodeEditMode': {
+    disabled: outsideComponentBrowsing,
+    action: input.switchToCodeEditMode,
+  },
+})
+
+function performActionIfNotDisabled(action: Action & { action: () => void }) {
+  if (toValue(action.hidden) || toValue(action.disabled)) return false
+  else return action.action()
+}
 
 const handler = componentBrowserBindings.handler({
   applySuggestion() {
-    if (input.mode.mode != 'componentBrowsing') return false
-    applySuggestion()
+    return performActionIfNotDisabled(actions['componentBrowser.editSuggestion'])
   },
   acceptSuggestion() {
-    if (input.mode.mode != 'componentBrowsing') return false
-    acceptSuggestion()
+    return performActionIfNotDisabled(actions['componentBrowser.acceptSuggestion'])
   },
   acceptCode() {
     if (input.mode.mode != 'codeEditing') return false
     acceptInput()
   },
-  acceptInput() {
-    if (input.mode.mode != 'componentBrowsing' && input.mode.mode != 'codeEditing') return false
-    acceptInput()
-  },
+  acceptInput,
   acceptAIPrompt() {
     if (input.mode.mode == 'aiPrompt') input.applyAIPrompt()
     else return false
   },
+  switchToCodeEditMode() {
+    return performActionIfNotDisabled(actions['componentBrowser.switchToCodeEditMode'])
+  },
+  switchPanelFocus() {
+    componentList.value?.switchPanelFocus()
+  },
+})
+
+const listsHandler = listBindings.handler({
   moveUp() {
     componentList.value?.moveUp()
   },
@@ -364,7 +379,7 @@ const handler = componentBrowserBindings.handler({
     :data-self-argument="input.selfArgument"
     tabindex="-1"
     @focusout="handleDefocus"
-    @keydown="handler"
+    @keydown="handler($event) !== false || listsHandler($event)"
     @pointerdown.stop.prevent
     @pointerup.stop.prevent
     @click.stop.prevent
@@ -397,28 +412,11 @@ const handler = componentBrowserBindings.handler({
       ref="inputElement"
       v-model="input.content"
       class="component-editor"
-      :navigator="props.navigator"
-      :icon="icon"
+      :usage="usage"
+      :mode="input.mode"
       :nodeColor="nodeColor"
       :style="{ '--component-editor-padding': cssComponentEditorPadding }"
-    >
-      <SvgButton
-        name="add_to_graph_editor"
-        :title="
-          input.mode.mode === 'componentBrowsing' && selected != null ?
-            'Accept Suggested Component'
-          : 'Accept'
-        "
-        @click.stop="input.mode.mode === 'componentBrowsing' ? acceptSuggestion() : acceptInput()"
-      />
-      <SvgButton
-        name="edit"
-        :disabled="input.mode.mode === 'codeEditing'"
-        :title="selected != null ? 'Edit Suggested Component' : 'Code Edit Mode'"
-        data-testid="switchToEditMode"
-        @click.stop="applySuggestion()"
-      />
-    </ComponentEditor>
+    />
     <div
       v-if="input.mode.mode === 'codeEditing' && !isVisualizationVisible"
       class="show-visualization"
@@ -430,11 +428,11 @@ const handler = componentBrowserBindings.handler({
       />
     </div>
     <ComponentList
-      v-if="input.mode.mode === 'componentBrowsing' && currentFiltering"
+      v-if="input.mode.mode === 'componentBrowsing'"
       ref="componentList"
-      :filtering="currentFiltering"
-      :autoSelectFirstComponent="true"
-      @acceptSuggestion="acceptSuggestion($event)"
+      :filter="input.mode.filter"
+      :literal="input.mode.literal"
+      @acceptSuggestion="acceptComponent($event)"
       @update:selectedComponent="selected = $event"
     />
   </div>
@@ -443,7 +441,7 @@ const handler = componentBrowserBindings.handler({
 <style scoped>
 .ComponentBrowser {
   --radius-default: 20px;
-  --background-color: #eaeaea;
+  --background-color: #fff;
   --doc-panel-bottom-clip: 4px;
   min-width: 295px;
   width: min-content;
@@ -463,6 +461,7 @@ const handler = componentBrowserBindings.handler({
 
 .component-editor {
   position: relative;
+  z-index: 1;
 }
 
 .visualization-preview {

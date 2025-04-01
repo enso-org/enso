@@ -3,12 +3,15 @@ import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
 import { getMessageOrToString } from '#/utilities/error'
 import { useMutationState, type Mutation, type QueryClient } from '@tanstack/react-query'
 import {
+  DuplicateAssetError,
   FilterBy,
+  type AnyAsset,
   type AssetId,
   type default as Backend,
   type DirectoryId,
   type LabelName,
 } from 'enso-common/src/services/Backend'
+import { resolveDuplications } from '../modals/DuplicateAssetsModal'
 
 /** Call "delete" mutations for a list of assets. */
 export function deleteAssetsMutationOptions(backend: Backend) {
@@ -128,12 +131,17 @@ export function copyAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
     mutationKey: [backend.type, 'copyAssets'],
     mutationFn: async ([ids, parentId]: [ids: readonly AssetId[], parentId: DirectoryId]) => {
-      const results = await Promise.allSettled(
-        ids.map((id) => backend.copyAsset(id, parentId, '(unknown)', '(unknown)')),
-      )
+      /**
+       * Copy an asset and return a promise that resolves to the asset or an error.
+       */
+      const copyAsset = async (id: AssetId) => backend.copyAsset(id, parentId)
+
+      const results = await Promise.allSettled(ids.map((id) => copyAsset(id)))
+
       const errors = results.flatMap((result): unknown =>
         result.status === 'rejected' ? [result.reason] : [],
       )
+
       if (errors.length !== 0) {
         throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
           errors,
@@ -141,6 +149,7 @@ export function copyAssetsMutationOptions(backend: Backend) {
           total: ids.length,
         })
       }
+
       return results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
     },
     meta: {
@@ -151,6 +160,35 @@ export function copyAssetsMutationOptions(backend: Backend) {
   })
 }
 
+/** The type of a "move assets" mutation. */
+type CopyAssetsMutation = Mutation<
+  null,
+  Error,
+  readonly [ids: readonly AssetId[], parentId: DirectoryId]
+>
+
+/** Return matching in-flight "move assets" mutations. */
+export function useCopyAssetsMutationState<Result>(
+  backend: Backend,
+  options: {
+    predicate?: (mutation: CopyAssetsMutation) => boolean
+    select?: (mutation: CopyAssetsMutation) => Result
+  } = {},
+) {
+  const { predicate, select } = options
+  return useMutationState({
+    filters: {
+      ...copyAssetsMutationOptions(backend),
+      predicate: (mutation: CopyAssetsMutation) =>
+        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+    },
+    // This is UNSAFE when the `Result` parameter is explicitly specified in the
+    // generic parameter list.
+    // eslint-disable-next-line no-restricted-syntax
+    select: select as (mutation: Mutation<unknown, Error, unknown, unknown>) => Result,
+  })
+}
+
 /** Call "move" mutations for a list of assets. */
 export function moveAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
@@ -158,12 +196,55 @@ export function moveAssetsMutationOptions(backend: Backend) {
     mutationFn: async ([ids, parentId]: [ids: readonly AssetId[], parentId: DirectoryId]) => {
       const results = await Promise.allSettled(
         ids.map((id) =>
-          backend.updateAsset(id, { description: null, parentDirectoryId: parentId }, '(unknown)'),
+          backend
+            .updateAsset(
+              id,
+              { description: null, parentDirectoryId: parentId, title: null },
+              '(unknown)',
+            )
+            .catch((error) => {
+              if (error instanceof DuplicateAssetError) {
+                return { id, error }
+              }
+              throw error
+            }),
         ),
       )
+
+      const duplicateErrors = results
+        .filter((result) => result.status === 'fulfilled')
+        .map((result) =>
+          typeof result.value === 'object' && 'error' in result.value ? result.value : null,
+        )
+        .filter((error) => error != null)
+
       const errors = results.flatMap((result): unknown =>
         result.status === 'rejected' ? [result.reason] : [],
       )
+
+      if (duplicateErrors.length !== 0) {
+        const resolutions = await resolveDuplications({
+          targetId: parentId,
+          conflictingIds: duplicateErrors.map((error) => error.id),
+        })
+
+        const renames = resolutions.filter((resolution) => resolution.conclusion === 'rename')
+
+        await Promise.allSettled(
+          renames.map((resolution) =>
+            backend.updateAsset(
+              resolution.assetId,
+              {
+                parentDirectoryId: parentId,
+                description: null,
+                title: resolution.newName,
+              },
+              resolution.newName,
+            ),
+          ),
+        )
+      }
+
       if (errors.length !== 0) {
         throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
           errors,
@@ -171,6 +252,7 @@ export function moveAssetsMutationOptions(backend: Backend) {
           total: ids.length,
         })
       }
+
       return results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
     },
     meta: {
@@ -180,6 +262,35 @@ export function moveAssetsMutationOptions(backend: Backend) {
       ],
       awaitInvalidates: true,
     },
+  })
+}
+
+/** The type of a "move assets" mutation. */
+type MoveAssetsMutation = Mutation<
+  null,
+  Error,
+  readonly [ids: readonly AssetId[], parentId: DirectoryId]
+>
+
+/** Return matching in-flight "move assets" mutations. */
+export function useMoveAssetsMutationState<Result>(
+  backend: Backend,
+  options: {
+    predicate?: (mutation: MoveAssetsMutation) => boolean
+    select?: (mutation: MoveAssetsMutation) => Result
+  } = {},
+) {
+  const { predicate, select } = options
+  return useMutationState({
+    filters: {
+      ...moveAssetsMutationOptions(backend),
+      predicate: (mutation: MoveAssetsMutation) =>
+        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+    },
+    // This is UNSAFE when the `Result` parameter is explicitly specified in the
+    // generic parameter list.
+    // eslint-disable-next-line no-restricted-syntax
+    select: select as (mutation: Mutation<unknown, Error, unknown, unknown>) => Result,
   })
 }
 
@@ -224,10 +335,7 @@ export function downloadAssetsMutationOptions(backend: Backend) {
 export function addAssetsLabelsMutationOptions(backend: Backend) {
   return mutationOptions({
     mutationFn: async ([infos, labelNames]: [
-      infos: readonly {
-        id: AssetId
-        labels: readonly LabelName[] | null
-      }[],
+      infos: readonly Pick<AnyAsset, 'id' | 'labels'>[],
       labelNames: readonly LabelName[],
     ]) => {
       const results = await Promise.allSettled(
@@ -267,10 +375,7 @@ export function addAssetsLabelsMutationOptions(backend: Backend) {
 export function removeAssetsLabelsMutationOptions(backend: Backend) {
   return mutationOptions({
     mutationFn: async ([infos, labelNames]: [
-      infos: readonly {
-        id: AssetId
-        labels: readonly LabelName[] | null
-      }[],
+      infos: readonly Pick<AnyAsset, 'id' | 'labels'>[],
       labelNames: readonly LabelName[],
     ]) => {
       const results = await Promise.allSettled(

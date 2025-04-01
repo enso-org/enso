@@ -1,5 +1,6 @@
 package org.enso.librarymanager
 
+import org.enso.pkg.PackageManager
 import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.librarymanager.resolved.{
   FilesystemLibraryReadAccess,
@@ -17,7 +18,22 @@ case class ResolvedLibrary(
   name: LibraryName,
   version: LibraryVersion,
   root: LibraryRoot
-)
+) {
+  override def toString() = toString(false)
+
+  def toString(aotCheck: Boolean) = {
+    if (aotCheck) {
+      val aotReady = PackageManager.Default
+        .loadPackage(root.location.toFile)
+        .toOption
+        .map(_.isAotReady())
+        .getOrElse(false)
+      s"${name} @ ${version} is ${if (!aotReady) "not" else ""} AOT ready"
+    } else {
+      s"${name} @ ${version}"
+    }
+  }
+}
 object ResolvedLibrary {
 
   /** Extension methods of [[ResolvedLibrary]]. */

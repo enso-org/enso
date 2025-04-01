@@ -88,8 +88,12 @@ class ImportExportTest
 
   after {
     ctx.leave()
-    out.reset()
+    ctx.close()
+    langCtx.shutdown()
+    ctx = null
+    out.close()
     ProjectUtils.deleteRecursively(tmpDir)
+    pkg = null
   }
 
   implicit private class CreateModule(moduleCode: String) {

@@ -59,12 +59,17 @@ public final class RuntimeCache implements java.util.function.Function<String, O
 
   @Override
   public Object apply(String uuid) {
-    var key = UUID.fromString(uuid);
-    var ref = expressions.get(key);
-    var res = ref != null ? ref.get() : null;
-    var callback = observer;
-    if (callback != null) {
-      callback.accept(key);
+    Object res;
+    try {
+      var key = UUID.fromString(uuid);
+      var ref = expressions.get(key);
+      res = ref != null ? ref.get() : null;
+      var callback = observer;
+      if (callback != null) {
+        callback.accept(key);
+      }
+    } catch (IllegalArgumentException ex) {
+      res = null;
     }
     return res;
   }

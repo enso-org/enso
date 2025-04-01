@@ -34,6 +34,8 @@ public class ToStringMethodGenerator {
     sb.append("  return toSingleLine(ret);").append(System.lineSeparator());
     sb.append("}").append(System.lineSeparator());
 
+    sb.append(System.lineSeparator());
+
     sb.append(toSingleLineMethod()).append(System.lineSeparator());
     return sb.toString();
   }

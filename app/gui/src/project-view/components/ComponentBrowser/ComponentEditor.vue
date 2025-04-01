@@ -1,17 +1,20 @@
 <script setup lang="ts">
+import type { ComponentBrowserMode, Usage } from '@/components/ComponentBrowser/input'
 import SvgIcon from '@/components/SvgIcon.vue'
-import AutoSizedInput, { type Range } from '@/components/widgets/AutoSizedInput.vue'
-import type { useNavigator } from '@/composables/navigator'
-import type { Icon } from '@/util/iconMetadata/iconName'
+import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
+import { useGraphStore } from '@/stores/graph'
+import { DEFAULT_ICON, iconOfNode, suggestionEntryToIcon } from '@/util/getIconName'
+import { qnLastSegment } from '@/util/qualifiedName'
 import { computed, ref, watch, type DeepReadonly } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
+import { type Range } from 'ydoc-shared/util/data/range'
 
 const content = defineModel<DeepReadonly<{ text: string; selection: Range | undefined }>>({
   required: true,
 })
 const props = defineProps<{
-  navigator: ReturnType<typeof useNavigator>
-  icon: Icon | undefined
+  usage: Usage
+  mode: ComponentBrowserMode
   nodeColor: string
 }>()
 
@@ -35,6 +38,29 @@ watch(
   },
 )
 
+const graphStore = useGraphStore()
+
+const icon = computed(() => {
+  if (props.mode.mode === 'componentBrowsing') return 'find'
+  if (props.usage.type === 'editNode') {
+    return iconOfNode(props.usage.node, graphStore.db)
+  }
+  if (props.mode.mode === 'codeEditing' && props.mode.appliedSuggestion) {
+    return suggestionEntryToIcon(props.mode.appliedSuggestion)
+  }
+  return DEFAULT_ICON
+})
+
+const label = computed(() => {
+  if (props.mode.mode !== 'componentBrowsing') return undefined
+  if (props.mode.filter.selfArg == null) return 'Input Components'
+  if (props.mode.filter.selfArg.type === 'known' && props.mode.filter.selfArg.typename.path) {
+    return `${qnLastSegment(props.mode.filter.selfArg.typename.path)} Components`
+  }
+
+  return undefined
+})
+
 defineExpose({
   blur: () => inputField.value?.blur(),
   focus: () => inputField.value?.focus(),
@@ -43,16 +69,17 @@ defineExpose({
 const rootStyle = computed(() => {
   return {
     '--node-group-color': props.nodeColor,
-    '--port-edge-width': `${4 * props.navigator.scale}px`,
   }
 })
 </script>
 
 <template>
   <div class="ComponentEditor define-node-colors" :style="rootStyle">
-    <div v-if="props.icon" class="iconPort">
-      <SvgIcon :name="props.icon" class="nodeIcon" />
+    <div :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }">
+      <SvgIcon :name="icon" />
     </div>
+    <span v-if="label" class="selfArgInfo" v-text="label" />
+    <SvgIcon v-if="label" class="selfArgInfoArrow" name="folder_closed" />
     <AutoSizedInput
       ref="inputField"
       v-model="fieldContent.text"
@@ -64,21 +91,16 @@ const rootStyle = computed(() => {
       @pointerup.stop
       @click.stop
     />
-    <div class="buttonPanel">
-      <slot></slot>
-    </div>
   </div>
 </template>
 
 <style scoped>
 .ComponentEditor {
-  --port-padding: 6px;
-  --icon-height: 16px;
-  --icon-text-gap: 6px;
-  border-radius: var(--radius-default);
+  --port-padding: 4px;
+  --icon-size: 16px;
+  border-radius: 22px;
   background-color: var(--background-color);
-  padding: 0 var(--component-editor-padding);
-  height: 40px;
+  padding: var(--component-editor-padding);
   display: flex;
   flex-direction: row;
   gap: 8px;
@@ -94,26 +116,20 @@ const rootStyle = computed(() => {
   flex-grow: 1;
 }
 
-.iconPort {
+.componentEditorIcon {
   position: relative;
   text-align: center;
   border-radius: var(--radius-full);
   padding: var(--port-padding);
-  margin: 0 var(--icon-text-gap) 0 calc(0px - var(--port-padding));
-  background-color: var(--color-node-port);
+  margin: 0;
   isolation: isolate;
+  &.port {
+    background-color: var(--color-node-port);
+    color: white;
+  }
 }
 
-.nodeIcon {
-  color: white;
-  width: var(--icon-height);
-  height: var(--icon-height);
-}
-
-.buttonPanel {
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-  flex-grow: 0;
+.selfArgInfoArrow {
+  margin: 0 -4px;
 }
 </style>

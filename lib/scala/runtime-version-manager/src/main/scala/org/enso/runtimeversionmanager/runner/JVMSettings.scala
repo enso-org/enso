@@ -12,8 +12,7 @@ package org.enso.runtimeversionmanager.runner
 case class JVMSettings(
   javaCommandOverride: Option[JavaExecCommand],
   jvmOptions: Seq[(String, String)],
-  extraOptions: Seq[(String, String)],
-  nativeImage: Boolean
+  extraOptions: Seq[(String, String)]
 )
 
 object JVMSettings {
@@ -28,14 +27,12 @@ object JVMSettings {
   def apply(
     useSystemJVM: Boolean,
     jvmOptions: Seq[(String, String)],
-    extraOptions: Seq[(String, String)],
-    nativeImage: Boolean = false
+    extraOptions: Seq[(String, String)]
   ): JVMSettings =
     new JVMSettings(
       if (useSystemJVM) Some(JavaExecCommand.defaultSystem) else None,
       jvmOptions,
-      extraOptions,
-      nativeImage
+      extraOptions
     )
 
   // See propositions in #9475 for alternatives
@@ -56,8 +53,7 @@ object JVMSettings {
     JVMSettings(
       useSystemJVM = false,
       jvmOptions   = jvmOptions.result(),
-      extraOptions = Seq(nioOpen),
-      nativeImage  = false
+      extraOptions = Seq(nioOpen)
     )
   }
 

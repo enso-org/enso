@@ -4,10 +4,10 @@ import org.enso.table.data.column.storage.type.StorageType;
 
 /** Indicates that a value given to a builder did not fit its expected type. */
 public class ValueTypeMismatchException extends RuntimeException {
-  private final StorageType expectedType;
+  private final StorageType<?> expectedType;
   private final Object value;
 
-  public ValueTypeMismatchException(StorageType expectedType, Object value) {
+  public ValueTypeMismatchException(StorageType<?> expectedType, Object value) {
     super(
         "Invalid value type. Expected "
             + expectedType
@@ -21,7 +21,7 @@ public class ValueTypeMismatchException extends RuntimeException {
     this.value = value;
   }
 
-  public StorageType getExpectedType() {
+  public StorageType<?> getExpectedType() {
     return expectedType;
   }
 

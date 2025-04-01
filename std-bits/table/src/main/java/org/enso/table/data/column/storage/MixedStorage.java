@@ -19,7 +19,7 @@ import org.graalvm.polyglot.Context;
  * specific type.
  */
 public final class MixedStorage extends ObjectStorage implements ColumnStorageWithInferredStorage {
-  private StorageType inferredType;
+  private StorageType<?> inferredType;
 
   /**
    * Holds a specialized storage for the inferred type, if available.
@@ -48,16 +48,9 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
     return new MixedStorage(data);
   }
 
-  private boolean isNumeric(StorageType type) {
-    return type instanceof IntegerType
-        || type instanceof FloatType
-        || type instanceof BigIntegerType
-        || type instanceof BigDecimalType;
-  }
-
-  private StorageType commonNumericType(StorageType a, StorageType b) {
-    assert isNumeric(a);
-    assert isNumeric(b);
+  private StorageType<?> commonNumericType(StorageType<?> a, StorageType<?> b) {
+    assert a.isNumeric();
+    assert b.isNumeric();
     if (a instanceof BigDecimalType || b instanceof BigDecimalType) {
       return BigDecimalType.INSTANCE;
     } else if (a instanceof FloatType || b instanceof FloatType) {
@@ -72,9 +65,9 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
   }
 
   @Override
-  public StorageType inferPreciseType() {
+  public StorageType<?> inferPreciseType() {
     if (inferredType == null) {
-      StorageType currentType = null;
+      StorageType<?> currentType = null;
 
       Context context = Context.getCurrent();
       for (long i = 0; i < getSize(); i++) {
@@ -87,7 +80,7 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
         if (currentType == null) {
           currentType = itemType;
         } else if (!currentType.equals(itemType)) {
-          if (isNumeric(currentType) && isNumeric(itemType)) {
+          if (currentType.isNumeric() && itemType.isNumeric()) {
             currentType = commonNumericType(currentType, itemType);
           } else {
             currentType = AnyObjectType.INSTANCE;
@@ -108,7 +101,7 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
   }
 
   @Override
-  public StorageType inferPreciseTypeShrunk() {
+  public StorageType<?> inferPreciseTypeShrunk() {
     Storage<?> specialized = getInferredStorage();
     if (specialized == null) {
       // If no specialized type is available, it means that:
@@ -123,7 +116,7 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
 
   public Storage<?> getInferredStorage() {
     if (!hasSpecializedStorageBeenInferred) {
-      StorageType inferredType = inferPreciseType();
+      StorageType<?> inferredType = inferPreciseType();
       if (inferredType instanceof AnyObjectType) {
         cachedInferredStorage = null;
       } else {

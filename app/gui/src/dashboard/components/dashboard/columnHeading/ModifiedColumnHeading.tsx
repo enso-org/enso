@@ -1,12 +1,12 @@
 /** @file A heading for the "Modified" column. */
-import SortAscendingIcon from '#/assets/sort_ascending.svg'
 import TimeIcon from '#/assets/time.svg'
 import { Button, Text } from '#/components/AriaComponents'
+import { Icon } from '#/components/Icon'
 import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
 import { Column } from '#/components/dashboard/column/columnUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '#/providers/TextProvider'
-import { SortDirection, nextSortDirection } from '#/utilities/sorting'
+import { SortDirection, iconIdFor, nextSortDirection } from '#/utilities/sorting'
 import { twJoin } from '#/utilities/tailwindMerge'
 
 /** A heading for the "Modified" column. */
@@ -46,7 +46,7 @@ export default function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
           getText('stopSortingByModificationDate')
         : getText('sortByModificationDateDescending')
       }
-      className="group flex h-table-row w-full cursor-pointer items-center gap-icon-with-text"
+      className="group flex h-table-row w-full cursor-pointer items-center gap-2"
     >
       <Button
         variant="icon"
@@ -56,24 +56,22 @@ export default function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
         onPress={hideThisColumn}
       />
       <Button
+        fullWidth
         size="custom"
         variant="custom"
-        className="flex grow justify-start gap-icon-with-text"
+        addonEnd={
+          <Icon
+            icon={iconIdFor(sortInfo?.direction, isSortActive)}
+            className={twJoin(
+              'ml-1 transition-all duration-arrow',
+              isSortActive ? 'selectable active' : 'opacity-0 group-hover:selectable',
+            )}
+          />
+        }
+        className="flex justify-start"
         onPress={cycleSortDirection}
       >
-        <Text weight="bold" truncate="1" color="custom">
-          {getText('modifiedColumnName')}
-        </Text>
-
-        <img
-          alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
-          src={SortAscendingIcon}
-          className={twJoin(
-            'transition-all duration-arrow',
-            isSortActive ? 'selectable active' : 'opacity-0 group-hover:selectable',
-            isDescending && 'rotate-180',
-          )}
-        />
+        <Text weight="bold">{getText('modifiedColumnName')}</Text>
       </Button>
     </div>
   )

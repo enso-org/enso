@@ -1,12 +1,11 @@
 package org.enso.interpreter.instrument.command;
 
-import com.oracle.truffle.api.TruffleLogger;
 import java.util.UUID;
-import java.util.logging.Level;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
 import org.enso.interpreter.instrument.job.DeserializeLibrarySuggestionsJob;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.polyglot.runtime.Runtime$Api$InvalidateModulesIndexResponse;
+import org.slf4j.LoggerFactory;
 import scala.Option;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
@@ -29,9 +28,9 @@ public final class InvalidateModulesIndexCommand extends AsynchronousCommand {
   public Future<BoxedUnit> executeAsynchronously(RuntimeContext ctx, ExecutionContext ec) {
     return Future.apply(
         () -> {
-          TruffleLogger logger = ctx.executionService().getLogger();
+          var logger = LoggerFactory.getLogger(InvalidateModulesIndexCommand.class);
           try {
-            logger.log(Level.FINE, "Invalidating modules, cancelling background jobs");
+            logger.debug("Invalidating modules, cancelling background jobs");
             ctx.jobControlPlane().stopBackgroundJobs();
             ctx.jobControlPlane()
                 .abortBackgroundJobs(

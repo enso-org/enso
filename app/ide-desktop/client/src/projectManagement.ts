@@ -11,6 +11,7 @@
  */
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs'
+import * as https from 'node:https'
 import * as os from 'node:os'
 import * as pathModule from 'node:path'
 import type * as stream from 'node:stream'
@@ -32,6 +33,9 @@ export const PACKAGE_METADATA_RELATIVE_PATH = 'package.yaml'
 export const PROJECT_METADATA_RELATIVE_PATH = '.enso/project.json'
 /** The filename suffix for the project bundle, including the leading period character. */
 const BUNDLED_PROJECT_SUFFIX = '.enso-project'
+
+const SAMPLES_URL = 'https://github.com/enso-org/project-templates/archive/refs/heads/main.tar.gz'
+const SAMPLES_DIRECTORY_NAME = 'Samples'
 
 // ===================
 // === ProjectInfo ===
@@ -410,6 +414,40 @@ export function isProjectInstalled(
   return pathModule.resolve(projectRootParent) === pathModule.resolve(directory)
 }
 
+/** Create a .tar.gz enso-project bundle. */
+export function createBundle(directory: string): Promise<Buffer> {
+  const readableStream = tar.c(
+    {
+      z: true,
+      C: directory,
+    },
+    ['.'],
+  )
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = []
+    readableStream.on('data', (data) => chunks.push(data))
+    readableStream.on('end', () => resolve(Buffer.concat(chunks)))
+    readableStream.on('error', reject)
+  })
+}
+
+/** Unpack a .tar.gz enso-project bundle into a temporary directory */
+export async function unpackBundle(
+  bundle: stream.Readable,
+  targetDirectory: string,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    bundle
+      .pipe(
+        tar.x({
+          C: targetDirectory,
+        }),
+      )
+      .on('end', () => resolve(targetDirectory))
+      .on('error', (err) => reject(err))
+  })
+}
+
 // ==================
 // === Project ID ===
 // ==================
@@ -459,4 +497,41 @@ export function bumpMetadata(
     lastOpened: new Date().toISOString(),
   })).id
   return { id, name, parentDirectory }
+}
+
+/** Download project templates GitHub repo into the Samples directory if one not exists. */
+export async function downloadSamples(): Promise<void> {
+  logger.log('Downloading samples.')
+
+  const samplesDirectory = pathModule.join(getProjectsDirectory(), SAMPLES_DIRECTORY_NAME)
+
+  return new Promise((resolve, reject) => {
+    fs.access(samplesDirectory, fs.constants.F_OK, (err) => {
+      if (err == null) {
+        return resolve()
+      }
+      fs.mkdir(samplesDirectory, { recursive: true }, (err) => {
+        if (err != null) {
+          logger.error(err)
+          return reject(err)
+        }
+        https.get(SAMPLES_URL, (redirectResponse) => {
+          const location = redirectResponse.headers.location
+          if (location) {
+            https.get(location, (response) => {
+              response
+                .pipe(
+                  tar.x({
+                    C: samplesDirectory,
+                    strip: 1,
+                  }),
+                )
+                .on('end', () => resolve())
+                .on('error', reject)
+            })
+          }
+        })
+      })
+    })
+  })
 }

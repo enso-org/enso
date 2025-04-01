@@ -2,7 +2,10 @@
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
 import BlockTypeDropdown from '@/components/MarkdownEditor/BlockTypeDropdown.vue'
-import { ensoMarkdown } from '@/components/MarkdownEditor/markdown'
+import { ensoMarkdown, useMarkdownFormatting } from '@/components/MarkdownEditor/codemirror'
+import { type BlockType } from '@/components/MarkdownEditor/codemirror/formatting'
+import SvgButton from '@/components/SvgButton.vue'
+import ToggleIcon from '@/components/ToggleIcon.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { useCodeMirror } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
@@ -13,30 +16,33 @@ import { minimalSetup } from 'codemirror'
 import { computed, onMounted, ref, useCssModule, useTemplateRef, type ComponentInstance } from 'vue'
 import * as Y from 'yjs'
 
-const { content } = defineProps<{
+const { content, toolbar, contentTestId } = defineProps<{
   content: Y.Text | string
-  toolbarContainer?: HTMLElement | undefined
+  toolbar: boolean
+  contentTestId?: string | undefined
 }>()
+defineOptions({
+  inheritAttrs: false,
+})
 
 const focused = ref(false)
 const editing = computed(() => !readonly.value && focused.value)
 
 const vueHost = new VueHostInstance()
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
-const { editorView, readonly, putTextAt, toggleHeader, toggleQuote, toggleList } = useCodeMirror(
-  editorRoot,
-  {
-    content: () => content,
-    extensions: [
-      minimalSetup,
-      EditorView.lineWrapping,
-      highlightStyle(useCssModule()),
-      EditorView.clipboardInputFilter.of(transformPastedText),
-      ensoMarkdown(),
-    ],
-    vueHost: () => vueHost,
-  },
-)
+const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
+  content: () => content,
+  extensions: [
+    minimalSetup,
+    EditorView.lineWrapping,
+    highlightStyle(useCssModule()),
+    EditorView.clipboardInputFilter.of(transformPastedText),
+    ensoMarkdown(),
+  ],
+  vueHost: () => vueHost,
+  contentTestId,
+})
+const { italic, bold, insertLink, blockType, insertCodeBlock } = useMarkdownFormatting(editorView)
 
 useLinkTitles(editorView, { readonly })
 
@@ -64,13 +70,38 @@ defineExpose({
 
 <template>
   <div class="MarkdownEditorRoot">
-    <div class="toolbar">
+    <div v-if="toolbar" class="toolbar" @pointerdown.prevent>
       <slot name="toolbarLeft" />
-      <BlockTypeDropdown
-        @toggleHeader="toggleHeader($event)"
-        @toggleQuote="toggleQuote()"
-        @toggleList="toggleList($event)"
-      />
+      <template v-if="!readonly">
+        <BlockTypeDropdown
+          :modelValue="blockType.value ?? 'Unknown'"
+          @update:modelValue="blockType.set($event as BlockType)"
+        />
+        <ToggleIcon
+          icon="italic"
+          :disabled="!editing || !italic.set"
+          :modelValue="italic.value"
+          @update:modelValue="italic.set!"
+        />
+        <ToggleIcon
+          icon="bold"
+          :disabled="!editing || !bold.set"
+          :modelValue="bold.value"
+          @update:modelValue="bold.set!"
+        />
+        <SvgButton
+          name="connector_add"
+          :disabled="insertLink == null"
+          title="Insert link"
+          @click.stop="insertLink?.()"
+        />
+        <SvgButton
+          name="code"
+          :disabled="insertCodeBlock == null"
+          title="Insert code block"
+          @click.stop="insertCodeBlock?.()"
+        />
+      </template>
       <slot name="toolbarRight" />
     </div>
     <slot name="belowToolbar" />
@@ -96,7 +127,6 @@ defineExpose({
 
 .toolbar {
   height: 48px;
-  padding-left: 18px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -108,7 +138,6 @@ defineExpose({
 .scrollArea {
   width: 100%;
   overflow-y: auto;
-  padding-left: 10px;
   /* Prevent touchpad back gesture, which can be triggered while panning. */
   overscroll-behavior-x: none;
   flex-grow: 1;
@@ -117,6 +146,12 @@ defineExpose({
 :deep(.cm-content) {
   /*noinspection CssUnresolvedCustomProperty,CssNoGenericFontName*/
   font-family: var(--font-sans);
+}
+
+/*noinspection CssUnusedSymbol*/
+:deep(.cm-line) {
+  padding-left: 0;
+  padding-right: 0;
 }
 
 /*noinspection CssUnusedSymbol*/
@@ -206,7 +241,7 @@ defineExpose({
     }
   }
 
-  .list:not(.content) {
+  .list:not(*) {
     /* Hide indentation spaces */
     display: none;
   }

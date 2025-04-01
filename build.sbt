@@ -316,7 +316,7 @@ lazy val enso = (project in file("."))
     `engine-common`,
     `engine-runner`,
     `engine-runner-common`,
-    `enso-generic-jdbc-connection-spec-dependencies`,
+    `generic-jdbc-connection-spec-dependencies`,
     `enso-test-java-helpers`,
     `snowflake-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
@@ -327,16 +327,15 @@ lazy val enso = (project in file("."))
     `interpreter-dsl-test`,
     `jna-wrapper`,
     `json-rpc-server`,
-    `json-rpc-server-test`,
     `language-server`,
     `language-server-deps-wrapper`,
     launcher,
     `library-manager`,
-    `library-manager-test`,
     `locking-test-helper`,
     `logging-config`,
     `logging-service`,
     `logging-service-logback`,
+    `logging-service-telemetry`,
     `logging-truffle-connector`,
     `logging-utils`,
     `logging-utils-akka`,
@@ -369,7 +368,6 @@ lazy val enso = (project in file("."))
     `runtime-parser`,
     `runtime-suggestions`,
     `runtime-version-manager`,
-    `runtime-version-manager-test`,
     `runtime-test-instruments`,
     `scala-libs-wrapper`,
     `scala-yaml`,
@@ -556,7 +554,8 @@ val scalaCollectionCompatVersion  = "2.8.1"
 
 // === std-lib ================================================================
 
-val antlrVersion            = "4.13.0"
+// Has to match Truffle's ANTLR dependency version to avoid spurious warnings in Native Image
+val antlrVersion            = "4.12.0"
 val awsJavaSdkV1Version     = "1.12.480"
 val awsJavaSdkV2Version     = "2.25.36"
 val icuVersion              = "73.1"
@@ -969,7 +968,7 @@ lazy val pkg = (project in file("lib/scala/pkg"))
   .settings(
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
-    compileOrder := CompileOrder.ScalaThenJava,
+    mixedJavaScalaProjectSetting,
     version := "0.1",
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
     libraryDependencies ++= Seq(
@@ -1121,7 +1120,8 @@ lazy val `logging-service-logback` = project
     Compile / shouldCompileModuleInfoManually := true,
     Compile / internalModuleDependencies := Seq(
       (`logging-service` / Compile / exportedModule).value,
-      (`logging-config` / Compile / exportedModule).value
+      (`logging-config` / Compile / exportedModule).value,
+      (`logging-utils` / Compile / exportedModule).value
     ),
     Test / shouldCompileModuleInfoManually := true,
     Test / javaModuleName := "org.enso.logging.service.logback.test.provider",
@@ -1132,6 +1132,33 @@ lazy val `logging-service-logback` = project
   )
   .dependsOn(`logging-config`)
   .dependsOn(`logging-service`)
+
+lazy val `logging-service-telemetry` = project
+  .in(file("lib/java/logging-service-telemetry"))
+  .enablePlugins(JPMSPlugin)
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    scalaModuleDependencySetting,
+    mixedJavaScalaProjectSetting,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.slf4j"                              % "slf4j-api"               % slf4jVersion,
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros"   % jsoniterVersion,
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"     % jsoniterVersion,
+      "org.netbeans.api"                       % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+    ),
+    Compile / javaModuleName := "org.enso.logging.service.telemetry",
+    Compile / moduleDependencies ++= logbackPkg ++ Seq(
+      "org.slf4j"        % "slf4j-api"               % slf4jVersion,
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
+    ),
+    Compile / internalModuleDependencies ++= Seq(
+      (`scala-libs-wrapper` / Compile / exportedModule).value,
+      (`logging-service-logback` / Compile / exportedModule).value
+    )
+  )
+  .dependsOn(`logging-service-logback`)
 
 lazy val `logging-utils-akka` = project
   .in(file("lib/scala/logging-utils-akka"))
@@ -1785,16 +1812,15 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(cli)
   .dependsOn(`task-progress-notifications`)
   .dependsOn(`polyglot-api`)
-  .dependsOn(`runtime-version-manager`)
   .dependsOn(`library-manager`)
   .dependsOn(`logging-utils-akka`)
   .dependsOn(`logging-service`)
   .dependsOn(pkg)
-  .dependsOn(`json-rpc-server`)
   .dependsOn(`logging-service-logback` % Runtime)
-  .dependsOn(`json-rpc-server-test` % Test)
+  .dependsOn(`logging-service-telemetry` % Runtime)
+  .dependsOn(`json-rpc-server` % "compile->compile;test->test")
   .dependsOn(testkit % Test)
-  .dependsOn(`runtime-version-manager-test` % Test)
+  .dependsOn(`runtime-version-manager` % "compile->compile;test->test")
   .dependsOn(`logging-service-logback` % "test->test")
   .dependsOn(`ydoc-polyfill` % Test)
   .dependsOn(`profiling-utils` % Test)
@@ -1818,7 +1844,8 @@ lazy val `json-rpc-server` = project
       "com.github.sbt"              % "junit-interface" % junitIfVersion        % Test,
       "org.apache.httpcomponents"   % "httpclient"      % httpComponentsVersion % Test,
       "org.apache.httpcomponents"   % "httpcore"        % httpComponentsVersion % Test,
-      "commons-io"                  % "commons-io"      % commonsIoVersion      % Test
+      "commons-io"                  % "commons-io"      % commonsIoVersion      % Test,
+      "org.gnieh"                  %% "diffson-circe"   % diffsonVersion        % Test
     ),
     Compile / moduleDependencies ++=
       Seq(
@@ -1829,21 +1856,6 @@ lazy val `json-rpc-server` = project
       (`akka-wrapper` / Compile / exportedModule).value
     )
   )
-
-lazy val `json-rpc-server-test` = project
-  .in(file("lib/scala/json-rpc-server-test"))
-  .settings(
-    frgaalJavaCompilerSetting,
-    libraryDependencies ++= akka,
-    libraryDependencies ++= circe,
-    libraryDependencies ++= Seq(
-      "io.circe" %% "circe-literal" % circeVersion,
-      akkaTestkit,
-      "org.scalatest" %% "scalatest"     % scalatestVersion,
-      "org.gnieh"     %% "diffson-circe" % diffsonVersion
-    )
-  )
-  .dependsOn(`json-rpc-server`)
 
 // An automatic JPMS module
 lazy val testkit = project
@@ -2079,7 +2091,7 @@ lazy val `persistance-dsl` = (project in file("lib/java/persistance-dsl"))
     )
   )
 
-lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
+lazy val `interpreter-dsl` = (project in file("lib/java/interpreter-dsl"))
   .enablePlugins(JPMSPlugin)
   .settings(
     version := "0.1",
@@ -2177,12 +2189,15 @@ lazy val `engine-common` = project
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
+      "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion % "provided"
     ),
     Compile / moduleDependencies ++= {
       Seq(
-        "org.graalvm.polyglot" % "polyglot"  % graalMavenPackagesVersion,
-        "org.slf4j"            % "slf4j-api" % slf4jVersion
+        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
+        "org.slf4j"            % "slf4j-api"   % slf4jVersion
       )
     },
     Compile / internalModuleDependencies := Seq(
@@ -2480,8 +2495,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "ENSO_EDITION_PATH" -> file("distribution/editions").getCanonicalPath
     )
   )
-  .dependsOn(`json-rpc-server-test` % Test)
-  .dependsOn(`json-rpc-server`)
+  .dependsOn(`json-rpc-server` % "compile->compile;test->test")
   .dependsOn(`task-progress-notifications`)
   .dependsOn(`library-manager`)
   .dependsOn(`connected-lock-manager-server`)
@@ -2498,8 +2512,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(filewatcher)
   .dependsOn(testkit % Test)
   .dependsOn(`logging-service-logback` % "test->test")
-  .dependsOn(`library-manager-test` % Test)
-  .dependsOn(`runtime-version-manager-test` % Test)
+  .dependsOn(`library-manager` % "test->test")
+  .dependsOn(`runtime-version-manager` % "test->test")
   .dependsOn(`ydoc-polyfill`)
 
 lazy val cleanInstruments = taskKey[Unit](
@@ -2833,7 +2847,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-base` / Compile / packageBin)
       .dependsOn(`enso-test-java-helpers` / Compile / packageBin)
       .dependsOn(
-        `enso-generic-jdbc-connection-spec-dependencies` / Compile / packageBin
+        `generic-jdbc-connection-spec-dependencies` / Compile / packageBin
       )
       .dependsOn(`snowflake-test-java-helpers` / Compile / packageBin)
       .dependsOn(`benchmark-java-helpers` / Compile / packageBin)
@@ -2882,23 +2896,26 @@ lazy val `runtime-integration-tests` =
       annotationProcSetting,
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ Seq(
-        "org.graalvm.polyglot" % "polyglot"                     % graalMavenPackagesVersion % "provided",
-        "org.graalvm.sdk"      % "polyglot-tck"                 % graalMavenPackagesVersion % "provided",
-        "org.graalvm.truffle"  % "truffle-api"                  % graalMavenPackagesVersion % "provided",
-        "org.graalvm.truffle"  % "truffle-dsl-processor"        % graalMavenPackagesVersion % "provided",
-        "org.graalvm.truffle"  % "truffle-tck"                  % graalMavenPackagesVersion,
-        "org.graalvm.truffle"  % "truffle-tck-common"           % graalMavenPackagesVersion,
-        "org.graalvm.truffle"  % "truffle-tck-tests"            % graalMavenPackagesVersion,
-        "org.netbeans.api"     % "org-openide-util-lookup"      % netbeansApiVersion,
-        "org.netbeans.api"     % "org-netbeans-modules-sampler" % netbeansApiVersion,
-        "org.scalacheck"      %% "scalacheck"                   % scalacheckVersion         % Test,
-        "org.scalactic"       %% "scalactic"                    % scalacticVersion          % Test,
-        "org.scalatest"       %% "scalatest"                    % scalatestVersion          % Test,
-        "junit"                % "junit"                        % junitVersion              % Test,
-        "com.github.sbt"       % "junit-interface"              % junitIfVersion            % Test,
-        "org.hamcrest"         % "hamcrest-all"                 % hamcrestVersion           % Test,
-        "org.yaml"             % "snakeyaml"                    % snakeyamlVersion,
-        "org.slf4j"            % "slf4j-api"                    % slf4jVersion
+        "org.graalvm.polyglot"       % "polyglot"                     % graalMavenPackagesVersion % "provided",
+        "org.graalvm.sdk"            % "polyglot-tck"                 % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle"        % "truffle-api"                  % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle"        % "truffle-dsl-processor"        % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle"        % "truffle-tck"                  % graalMavenPackagesVersion,
+        "org.graalvm.truffle"        % "truffle-tck-common"           % graalMavenPackagesVersion,
+        "org.graalvm.truffle"        % "truffle-tck-tests"            % graalMavenPackagesVersion,
+        "org.netbeans.api"           % "org-openide-util-lookup"      % netbeansApiVersion,
+        "org.netbeans.api"           % "org-netbeans-modules-sampler" % netbeansApiVersion,
+        "org.scalacheck"            %% "scalacheck"                   % scalacheckVersion         % Test,
+        "org.scalactic"             %% "scalactic"                    % scalacticVersion          % Test,
+        "org.scalatest"             %% "scalatest"                    % scalatestVersion          % Test,
+        "junit"                      % "junit"                        % junitVersion              % Test,
+        "com.github.sbt"             % "junit-interface"              % junitIfVersion            % Test,
+        "org.hamcrest"               % "hamcrest-all"                 % hamcrestVersion           % Test,
+        "com.fasterxml.jackson.core" % "jackson-core"                 % jacksonVersion            % Test,
+        "com.fasterxml.jackson.core" % "jackson-annotations"          % jacksonVersion            % Test,
+        "com.fasterxml.jackson.core" % "jackson-databind"             % jacksonVersion            % Test,
+        "org.yaml"                   % "snakeyaml"                    % snakeyamlVersion,
+        "org.slf4j"                  % "slf4j-api"                    % slf4jVersion
       ),
       Test / fork := true,
       Test / parallelExecution := false,
@@ -2975,7 +2992,8 @@ lazy val `runtime-integration-tests` =
         (`semver` / Compile / exportedModule).value,
         (`downloader` / Compile / exportedModule).value,
         (`logging-config` / Compile / exportedModule).value,
-        (`logging-service` / Compile / exportedModule).value
+        (`logging-service` / Compile / exportedModule).value,
+        (`logging-service-telemetry` / Compile / exportedModule).value
       ),
       Test / patchModules := {
         // Patch test-classes into the runtime module. This is standard way to deal with the
@@ -3008,6 +3026,7 @@ lazy val `runtime-integration-tests` =
         (`runtime-instrument-common` / javaModuleName).value,
         (`text-buffer` / javaModuleName).value,
         (`logging-service-logback` / Test / javaModuleName).value,
+        (`logging-service-telemetry` / Compile / javaModuleName).value,
         "ch.qos.logback.classic",
         "truffle.tck.tests"
       ),
@@ -3028,7 +3047,8 @@ lazy val `runtime-integration-tests` =
             "org.openide.util.lookup.RELEASE180",
             "ch.qos.logback.classic",
             (`logging-service-logback` / Compile / javaModuleName).value,
-            (`logging-service-logback` / Test / javaModuleName).value
+            (`logging-service-logback` / Test / javaModuleName).value,
+            (`logging-service-telemetry` / Compile / javaModuleName).value
           ),
           testInstrumentsModName -> Seq(runtimeModName)
         )
@@ -3048,6 +3068,9 @@ lazy val `runtime-integration-tests` =
           ),
           (`runtime` / javaModuleName).value + "/org.enso.compiler.test" -> Seq(
             "ALL-UNNAMED"
+          ),
+          (`logging-service-telemetry` / Compile / javaModuleName).value + "/org.enso.logging.service.telemetry" -> Seq(
+            (`runtime` / javaModuleName).value
           )
         )
         // Make sure that all the packages in test source directory are exported
@@ -3062,6 +3085,8 @@ lazy val `runtime-integration-tests` =
     .dependsOn(`runtime`)
     .dependsOn(`runtime-test-instruments`)
     .dependsOn(`logging-service-logback` % "test->test")
+    .dependsOn(`logging-service-telemetry` % "test->compile")
+    .dependsOn(`logging-utils` % Test)
     .dependsOn(testkit % Test)
     .dependsOn(`connected-lock-manager-server`)
     .dependsOn(`test-utils`)
@@ -3227,9 +3252,13 @@ lazy val `runtime-benchmarks` =
           case List(name) => name
           case _          => throw new IllegalArgumentException("Expected one argument.")
         }
-        Def.task {
-          (Compile / run).toTask(" " + name).value
-        }
+        Def
+          .task {
+            (Compile / run).toTask(" " + name).value
+          }
+          .dependsOn(
+            buildEngineDistribution
+          )
       }.evaluated
     )
     .dependsOn(`benchmarks-common`)
@@ -3820,7 +3849,7 @@ lazy val `engine-runner` = project
       val NI_MODULES =
         "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise"
       val JDK_MODULES =
-        "jdk.localedata,jdk.httpserver,java.naming,java.net.http,java.desktop"
+        "java.desktop,java.naming,java.net.http,jdk.charsets,jdk.crypto.ec,jdk.localedata,jdk.httpserver,java.rmi"
       val DEBUG_MODULES  = "jdk.jdwp.agent"
       val PYTHON_MODULES = "jdk.security.auth,java.naming"
 
@@ -3892,7 +3921,6 @@ lazy val `engine-runner` = project
             ),
             additionalOptions = Seq(
               "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
-              "-H:IncludeResources=.*Main.enso$",
               "-H:+AddAllCharsets",
               "-H:+IncludeAllLocales",
               // Workaround a problem with build-/runtime-initialization conflict
@@ -4056,7 +4084,7 @@ lazy val launcher = project
   .dependsOn(`logging-service`)
   .dependsOn(`logging-service-logback` % "test->test;runtime->runtime")
   .dependsOn(`distribution-manager` % Test)
-  .dependsOn(`runtime-version-manager-test` % Test)
+  .dependsOn(`runtime-version-manager` % "test->test")
 
 lazy val `distribution-manager` = project
   .in(file("lib/scala/distribution-manager"))
@@ -4293,13 +4321,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         "org.slf4j.nop/org.slf4j.nop" -> Seq("org.slf4j")
       )
     },
-    javaOptions ++= {
-      Seq(
-        // To enable logging in benchmarks, add ch.qos.logback module on the modulePath
-        //"-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider"
-        "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider"
-      )
-    },
+    javaOptions ++= testLogProviderOptions,
     javaOptions ++= benchOnlyOptions
   )
   .settings(
@@ -4317,9 +4339,13 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         case List(name) => name
         case _          => throw new IllegalArgumentException("Expected one argument.")
       }
-      Def.task {
-        (Compile / run).toTask(" " + name).value
-      }
+      Def
+        .task {
+          (Compile / run).toTask(" " + name).value
+        }
+        .dependsOn(
+          buildEngineDistribution
+        )
     }.evaluated
   )
   .dependsOn(`bench-processor`)
@@ -4474,7 +4500,7 @@ lazy val `edition-updater` = project
   .dependsOn(editions)
   .dependsOn(downloader)
   .dependsOn(`distribution-manager`)
-  .dependsOn(`library-manager-test` % Test)
+  .dependsOn(`library-manager` % "test->test")
 
 lazy val `edition-uploader` = project
   .in(file("lib/scala/edition-uploader"))
@@ -4514,49 +4540,19 @@ lazy val `library-manager` = project
       (`logging-utils` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`scala-yaml` / Compile / exportedModule).value
-    )
+    ),
+    commands += WithDebugCommand.withDebug,
+    Test / javaOptions ++= testLogProviderOptions,
+    Test / test := (Test / test).tag(simpleLibraryServerTag).value,
+    Test / fork := true
   )
   .dependsOn(`version-output`) // Note [Default Editions]
   .dependsOn(editions)
   .dependsOn(cli)
   .dependsOn(`distribution-manager`)
   .dependsOn(downloader)
-  .dependsOn(testkit % Test)
-
-lazy val `library-manager-test` = project
-  .in(file("lib/scala/library-manager-test"))
-  .enablePlugins(JPMSPlugin)
-  .configs(Test)
-  .settings(
-    frgaalJavaCompilerSetting,
-    scalaModuleDependencySetting,
-    compileOrder := CompileOrder.ScalaThenJava,
-    Test / fork := true,
-    commands += WithDebugCommand.withDebug,
-    Test / javaOptions ++= testLogProviderOptions,
-    Test / test := (Test / test).tag(simpleLibraryServerTag).value,
-    libraryDependencies ++= Seq(
-      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
-    ),
-    Compile / internalModuleDependencies := Seq(
-      (`library-manager` / Compile / exportedModule).value,
-      (`cli` / Compile / exportedModule).value,
-      (`distribution-manager` / Compile / exportedModule).value,
-      (`library-manager` / Compile / exportedModule).value,
-      (`process-utils` / Compile / exportedModule).value,
-      (`pkg` / Compile / exportedModule).value,
-      (`semver` / Compile / exportedModule).value,
-      (`downloader` / Compile / exportedModule).value,
-      (`editions` / Compile / exportedModule).value,
-      (`version-output` / Compile / exportedModule).value,
-      (`testkit` / Compile / exportedModule).value
-    )
-  )
-  .dependsOn(`library-manager`)
-  .dependsOn(`process-utils`)
-  .dependsOn(`logging-utils` % "test->test")
-  .dependsOn(testkit)
+  .dependsOn(testkit % "test->test")
+  .dependsOn(`process-utils` % "test->compile")
   .dependsOn(`logging-service-logback` % "test->test")
 
 lazy val `connected-lock-manager` = project
@@ -4642,6 +4638,13 @@ lazy val `runtime-version-manager` = project
       (`version-output` / Compile / exportedModule).value
     )
   )
+  .settings(
+    Test / parallelExecution := false,
+    (Test / test) := (Test / test)
+      .dependsOn(`locking-test-helper` / assembly)
+      .value,
+    Test / javaOptions ++= testLogProviderOptions
+  )
   .dependsOn(pkg)
   .dependsOn(downloader)
   .dependsOn(cli)
@@ -4649,6 +4652,8 @@ lazy val `runtime-version-manager` = project
   .dependsOn(`version-output`)
   .dependsOn(`edition-updater`)
   .dependsOn(`distribution-manager`)
+  .dependsOn(testkit % "test->test")
+  .dependsOn(`logging-service-logback` % "test->test")
 
 /** `process-utils` provides utilities for correctly managing process execution such as providing
   *  handlers for its stdout/stderr.
@@ -4661,28 +4666,6 @@ lazy val `process-utils` = project
     scalaModuleDependencySetting,
     compileOrder := CompileOrder.ScalaThenJava
   )
-
-lazy val `runtime-version-manager-test` = project
-  .in(file("lib/scala/runtime-version-manager-test"))
-  .configs(Test)
-  .settings(
-    frgaalJavaCompilerSetting,
-    libraryDependencies ++= Seq(
-      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      "org.scalatest"              %% "scalatest"     % scalatestVersion,
-      "commons-io"                  % "commons-io"    % commonsIoVersion
-    )
-  )
-  .settings(Test / parallelExecution := false)
-  .settings(
-    (Test / test) := (Test / test)
-      .dependsOn(`locking-test-helper` / assembly)
-      .value
-  )
-  .dependsOn(`runtime-version-manager`)
-  .dependsOn(testkit)
-  .dependsOn(cli)
-  .dependsOn(`distribution-manager`)
 
 lazy val `locking-test-helper` = project
   .in(file("lib/scala/locking-test-helper"))
@@ -4789,7 +4772,8 @@ lazy val `enso-test-java-helpers` = project
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
 
-lazy val `enso-generic-jdbc-connection-spec-dependencies` = project
+lazy val `generic-jdbc-connection-spec-dependencies` = project
+  .in(file("lib/java/generic-jdbc-connection-spec-dependencies"))
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -5485,17 +5469,31 @@ runEngineDistribution := {
   )
 }
 
+lazy val buildProjectManagerDistributionCond =
+  taskKey[Unit](
+    "Builds the project manager distribution either via NativeImage, or just assembly Jar"
+  )
+buildProjectManagerDistributionCond := Def.taskIf {
+  if (shouldBuildNativeImage.value) {
+    buildProjectManagerDistribution.value
+  } else {
+    (`project-manager` / assembly).value
+  }
+}.value
+
 lazy val runProjectManagerDistribution =
   inputKey[Unit](
     "Run or --debug the project manager distribution with arguments"
   )
 runProjectManagerDistribution := {
-  buildEngineDistribution.value
-  buildProjectManagerDistribution.value
+  buildEngineDistributionNoIndex.value
+  buildProjectManagerDistributionCond.value
+  val projectManagerJar = (`project-manager` / assembly).value.getAbsoluteFile()
   val args: Seq[String] = spaceDelimited("<arg>").parsed
   DistributionPackage.runProjectManagerPackage(
     engineDistributionRoot.value,
     projectManagerDistributionRoot.value,
+    projectManagerJar,
     args,
     streams.value.log
   )
@@ -5576,7 +5574,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-table` / Compile / packageBin).value
     case "TestHelpers" =>
       (`enso-test-java-helpers` / Compile / packageBin).value
-      (`enso-generic-jdbc-connection-spec-dependencies` / Compile / packageBin).value
+      (`generic-jdbc-connection-spec-dependencies` / Compile / packageBin).value
       (`snowflake-test-java-helpers` / Compile / packageBin).value
       (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
       (`benchmark-java-helpers` / Compile / packageBin).value
@@ -5591,7 +5589,7 @@ pkgStdLibInternal := Def.inputTask {
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
-      (`enso-generic-jdbc-connection-spec-dependencies` / Compile / packageBin).value
+      (`generic-jdbc-connection-spec-dependencies` / Compile / packageBin).value
       (`snowflake-test-java-helpers` / Compile / packageBin).value
       (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
       (`benchmark-java-helpers` / Compile / packageBin).value

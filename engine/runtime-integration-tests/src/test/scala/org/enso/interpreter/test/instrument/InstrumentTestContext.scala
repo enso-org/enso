@@ -27,18 +27,21 @@ abstract class InstrumentTestContext(packageName: String) {
   val pkg: Package[File] =
     PackageManager.Default.create(tmpDir.toFile, packageName, "Enso_Test")
 
-  protected val context: Context
+  protected def context(): Context
 
   protected var executionContext: PolyglotContext = null
 
   def init(): Unit = {
-    assert(context != null)
-    executionContext = new PolyglotContext(context)
-    context.initialize(LanguageInfo.ID)
+    assert(context() != null)
+    executionContext = new PolyglotContext(context())
+    context().initialize(LanguageInfo.ID)
   }
 
   protected val runtimeServerEmulator: RuntimeServerEmulator =
     new RuntimeServerEmulator(messageQueue, lockManager)
+
+  final def send(msg: Api.Request): Unit =
+    runtimeServerEmulator.sendToRuntime(msg)
 
   def receiveNone: Option[Api.Response] = {
     Option(messageQueue.poll())
@@ -112,7 +115,7 @@ abstract class InstrumentTestContext(packageName: String) {
   ): List[Api.Response] = {
     var count: Int                     = n
     var lastSeen: Option[Api.Response] = None
-    Iterator
+    val collected = Iterator
       .continually(receiveWithTimeout(timeoutSeconds))
       .filter(f)
       .takeWhile {
@@ -127,7 +130,13 @@ abstract class InstrumentTestContext(packageName: String) {
       }
       .flatten
       .filter(excludeLibraryLoadingPayload)
-      .toList ++ lastSeen
+      .toList
+
+    if (lastSeen.isEmpty || lastSeen == collected.lastOption) {
+      collected
+    } else {
+      collected ++ lastSeen
+    }
   }
 
   private def excludeLibraryLoadingPayload(response: Api.Response): Boolean =
@@ -138,9 +147,15 @@ abstract class InstrumentTestContext(packageName: String) {
         true
     }
 
+  final def writeMain(contents: String): File =
+    Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
+
+  final def executionComplete(contextId: java.util.UUID): Api.Response =
+    Api.Response(Api.ExecutionComplete(contextId))
+
   def close(): Unit = {
-    if (context != null) {
-      context.close()
+    if (context() != null) {
+      context().close()
     }
     Await.ready(runtimeServerEmulator.terminate(), 5.seconds)
     lockManager.reset()

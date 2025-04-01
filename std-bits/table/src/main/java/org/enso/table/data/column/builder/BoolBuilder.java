@@ -113,17 +113,17 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
   }
 
   @Override
-  public boolean canRetypeTo(StorageType type) {
+  public boolean canRetypeTo(StorageType<?> type) {
     return false;
   }
 
   @Override
-  public Builder retypeTo(StorageType type) {
+  public Builder retypeTo(StorageType<?> type) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public StorageType getType() {
+  public StorageType<?> getType() {
     return BooleanType.INSTANCE;
   }
 }

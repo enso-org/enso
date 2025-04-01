@@ -52,7 +52,7 @@ public class MetaIsATest {
   @AfterClass
   public static void disposeCtx() {
     if (generator != null) {
-      generator.dispose();
+      generator.close();
       generator = null;
     }
     isACheck = null;

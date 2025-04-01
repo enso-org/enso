@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
 use crate::ci::input;
-use crate::ci_gen::job::plain_job;
 use crate::ci_gen::job::prepare_packaging_steps;
 use crate::ci_gen::job::RunsOn;
 use crate::engine::env;
@@ -21,12 +20,14 @@ use ide_ci::actions::workflow::definition::setup_corepack;
 use ide_ci::actions::workflow::definition::setup_node;
 use ide_ci::actions::workflow::definition::shell;
 use ide_ci::actions::workflow::definition::wrap_expression;
+use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Branches;
 use ide_ci::actions::workflow::definition::Concurrency;
 use ide_ci::actions::workflow::definition::Event;
 use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
 use ide_ci::actions::workflow::definition::JobSecrets;
+use ide_ci::actions::workflow::definition::Permission;
 use ide_ci::actions::workflow::definition::PullRequest;
 use ide_ci::actions::workflow::definition::PullRequestActivityType;
 use ide_ci::actions::workflow::definition::Push;
@@ -379,7 +380,7 @@ pub fn setup_script_steps() -> Vec<Step> {
         setup_bazel_env(),
         setup_bazel(),
         setup_artifact_api(),
-        checkout_repo_step(),
+        checkout_repo_step(None),
         setup_node(),
         setup_corepack(),
     ];
@@ -431,14 +432,28 @@ pub struct PublishRelease;
 
 impl JobArchetype for PublishRelease {
     fn job(&self, target: Target) -> Job {
-        let mut ret = plain_job(target, "Publish release", "release publish");
-        ret.expose_secret_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, crate::aws::env::AWS_ACCESS_KEY_ID);
-        ret.expose_secret_as(
+        let mut job = RunStepsBuilder::new("release publish")
+            .customize(move |step| {
+                let mut steps = vec![];
+
+                let download_edition_file = step::download_artifact("Download Edition File")
+                    .with_custom_argument("name", crate::paths::EDITION_FILE_ARTIFACT_NAME)
+                    .with_custom_argument("path", "distribution/editions");
+                steps.push(download_edition_file);
+
+                steps.push(step);
+
+                steps
+            })
+            .build_job("Publish release", target);
+
+        job.expose_secret_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, crate::aws::env::AWS_ACCESS_KEY_ID);
+        job.expose_secret_as(
             secret::ARTEFACT_S3_SECRET_ACCESS_KEY,
             crate::aws::env::AWS_SECRET_ACCESS_KEY,
         );
-        ret.env(crate::aws::env::AWS_REGION, "us-west-1");
-        ret
+        job.env(crate::aws::env::AWS_REGION, "us-west-1");
+        job
     }
 }
 
@@ -590,6 +605,7 @@ pub fn add_backend_checks_customized(
     workflow: &mut Workflow,
     target: Target,
     graal_edition: graalvm::Edition,
+    native_image_mode: bool,
     continue_on_error: impl Fn(&Target) -> Option<bool>,
 ) {
     workflow.add_customized(target, job::CiCheckBackend { graal_edition }, |job| {
@@ -600,7 +616,7 @@ pub fn add_backend_checks_customized(
     });
     workflow.add_customized(
         target,
-        job::StandardLibraryTests { graal_edition, cloud_tests_enabled: false },
+        job::StandardLibraryTests { graal_edition, cloud_tests_enabled: false, native_image_mode },
         |job| {
             job.continue_on_error = continue_on_error(&target);
         },
@@ -612,8 +628,9 @@ pub fn add_backend_checks(
     workflow: &mut Workflow,
     target: Target,
     graal_edition: graalvm::Edition,
+    native_image_mode: bool,
 ) {
-    add_backend_checks_customized(workflow, target, graal_edition, |_| None);
+    add_backend_checks_customized(workflow, target, graal_edition, native_image_mode, |_| None);
 }
 
 pub fn workflow_call_job(name: impl Into<String>, path: impl Into<String>) -> Job {
@@ -786,7 +803,7 @@ pub fn engine_checks() -> Result<Workflow> {
     workflow.add(PRIMARY_TARGET, job::VerifyLicensePackages);
     workflow.add(PRIMARY_TARGET, job::StandardLibraryApiCheck);
     for target in PR_REQUIRED_TARGETS {
-        add_backend_checks(&mut workflow, target, graalvm::Edition::Community);
+        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, false);
     }
     Ok(workflow)
 }
@@ -804,9 +821,13 @@ pub fn engine_checks_optional() -> Result<Workflow> {
         ..default()
     };
     for target in PR_OPTIONAL_TARGETS {
-        add_backend_checks_customized(&mut workflow, target, graalvm::Edition::Community, |_| {
-            Some(true)
-        });
+        add_backend_checks_customized(
+            &mut workflow,
+            target,
+            graalvm::Edition::Community,
+            false,
+            |_| Some(true),
+        );
     }
     Ok(workflow)
 }
@@ -820,13 +841,18 @@ pub fn engine_checks_nightly() -> Result<Workflow> {
     let mut workflow = Workflow { name: "Engine Nightly Checks".into(), on, ..default() };
 
     // Oracle GraalVM jobs run only on Linux
-    add_backend_checks(&mut workflow, PRIMARY_TARGET, graalvm::Edition::Enterprise);
+    add_backend_checks(&mut workflow, PRIMARY_TARGET, graalvm::Edition::Enterprise, true);
 
     // Run macOS AArch64 tests only once a day, as we have only one self-hosted runner for this.
     for target in PR_CHECKED_TARGETS {
-        add_backend_checks(&mut workflow, target, graalvm::Edition::Community);
+        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, true);
     }
-    add_backend_checks(&mut workflow, (OS::MacOS, Arch::AArch64), graalvm::Edition::Community);
+    add_backend_checks(
+        &mut workflow,
+        (OS::MacOS, Arch::AArch64),
+        graalvm::Edition::Community,
+        true,
+    );
     Ok(workflow)
 }
 
@@ -847,9 +873,51 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
     workflow.add(target, job::StandardLibraryTests {
         graal_edition:       graalvm::Edition::Community,
         cloud_tests_enabled: true,
+        native_image_mode:   true,
     });
     Ok(workflow)
 }
+
+/// Workflow that cheks whether some API signature files in any of the standard
+/// libraries changed, and if so, appends a corresponding label to the PR.
+fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
+    let lib_names = vec![
+        "AWS",
+        "Base",
+        "Database",
+        "Google_Api",
+        "Image",
+        "Microsoft",
+        "Snowflake",
+        "Table",
+        "Tableau",
+        "Test",
+        "Visualization",
+    ];
+    let on = Event {
+        push:              Some(Push { inner_branches: Branches::new(["develop"]), ..default() }),
+        pull_request:      Some(PullRequest::default()),
+        workflow_dispatch: Some(WorkflowDispatch::default()),
+        workflow_call:     Some(WorkflowCall::default()),
+        schedule:          vec![],
+    };
+    let mut permissions: BTreeMap<Permission, Access> = BTreeMap::new();
+    permissions.insert(Permission::Checks, Access::Write);
+    permissions.insert(Permission::PullRequests, Access::Write);
+    let mut workflow = Workflow {
+    name: "🏷 Standard Library Labels".into(),
+    on,
+    description: Some("Check if the API signature files in any of the standard libraries changed and if so, append a corresponding label to the PR.".into()),
+    permissions,
+    ..default()
+  };
+    for lib_name in lib_names {
+        let lib_api_check = job::StandardLibraryLabelCheck { lib_name: lib_name.to_string() };
+        workflow.add(PRIMARY_TARGET, lib_api_check);
+    }
+    Ok(workflow)
+}
+
 
 pub fn engine_benchmark() -> Result<Workflow> {
     let report_path = "engine/runtime-benchmarks/bench-report.xml";
@@ -953,6 +1021,7 @@ pub fn generate(
         (repo_root.wasm_checks_yml.to_path_buf(), wasm_checks()?),
         (repo_root.engine_benchmark_yml.to_path_buf(), engine_benchmark()?),
         (repo_root.std_libs_benchmark_yml.to_path_buf(), std_libs_benchmark()?),
+        (repo_root.std_libs_labels_yml.to_path_buf(), stdlib_api_change_labels_workflow()?),
         (repo_root.release_yml.to_path_buf(), release()?),
         (repo_root.promote_yml.to_path_buf(), promote()?),
     ];

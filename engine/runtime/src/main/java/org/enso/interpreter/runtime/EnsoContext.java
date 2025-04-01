@@ -5,7 +5,6 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.ThreadLocalAction;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
@@ -18,7 +17,6 @@ import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.io.TruffleProcessBuilder;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.object.Shape;
 import com.oracle.truffle.api.profiles.ValueProfile;
 import com.oracle.truffle.api.source.Source;
 import java.io.BufferedReader;
@@ -35,10 +33,10 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.RuntimeOptions;
@@ -94,7 +92,6 @@ public final class EnsoContext {
   private @CompilationFinal DefaultPackageRepository packageRepository;
   private @CompilationFinal TopLevelScope topScope;
   private final ThreadManager threadManager;
-  private final ThreadExecutors threadExecutors;
   private final ResourceManager resourceManager;
   private final boolean isInlineCachingDisabled;
   private final boolean isIrCachingDisabled;
@@ -108,7 +105,9 @@ public final class EnsoContext {
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
 
-  private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
+  @CompilationFinal(dimensions = 1)
+  private Object[] extraValues = new Object[0];
+
   private ExecutionEnvironment globalExecutionEnvironment;
 
   private final int warningsLimit;
@@ -137,8 +136,8 @@ public final class EnsoContext {
     this.err = new PrintStream(environment.err());
     this.in = environment.in();
     this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
-    this.threadManager = new ThreadManager(environment);
-    this.threadExecutors = new ThreadExecutors(this);
+    var threadExecutors = new ThreadExecutors(environment, logger);
+    this.threadManager = new ThreadManager(threadExecutors, getJobParallelism(), environment);
     this.resourceManager = new ResourceManager(this);
     this.isInlineCachingDisabled = getOption(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     var isParallelismEnabled = getOption(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
@@ -242,6 +241,28 @@ public final class EnsoContext {
   }
 
   /**
+   * Enters this context and then executes provided {@code action}.
+   *
+   * @param <T> type the action computes
+   * @param who the node who's asking to perform the action
+   * @param action the action to execute
+   * @return returns the value of the {@code action}
+   */
+  public final <T> T withinCtx(Node who, Supplier<T> action) {
+    var tc = environment.getContext();
+    if (tc.isActive()) {
+      return action.get();
+    } else {
+      var prev = tc.enter(who);
+      try {
+        return action.get();
+      } finally {
+        tc.leave(who, prev);
+      }
+    }
+  }
+
+  /**
    * @param node the location of context access. Pass {@code null} if not in a node.
    * @return the proper context instance for the current {@link
    *     com.oracle.truffle.api.TruffleContext}.
@@ -291,7 +312,6 @@ public final class EnsoContext {
 
   /** Performs eventual cleanup before the context is disposed of. */
   public void shutdown() {
-    threadExecutors.shutdown();
     threadManager.shutdown();
     resourceManager.shutdown();
     compiler.shutdown(shouldWaitForPendingSerializationJobs);
@@ -709,6 +729,16 @@ public final class EnsoContext {
   }
 
   /**
+   * Gather information about progress. Should execution observe events from Enso Progress API and
+   * report them?
+   *
+   * @return true if progress reporting is on
+   */
+  public boolean isProgressReportEnabled() {
+    return getOption(RuntimeOptions.ENABLE_PROGRESS_REPORT_KEY);
+  }
+
+  /**
    * Checks whether global caches are to be used.
    *
    * @return true if so
@@ -759,33 +789,8 @@ public final class EnsoContext {
 
   /** The job parallelism or 1 */
   public int getJobParallelism() {
-    var n = getOption(RuntimeOptions.JOB_PARALLELISM_KEY);
-    var base = n == null ? 1 : n.intValue();
-    var optimal = Math.round(base * 0.5);
-    return optimal < 1 ? 1 : (int) optimal;
-  }
-
-  /**
-   * @param name human-readable name of the pool
-   * @param min minimal number of threads kept-alive in the pool
-   * @param max maximal number of available threads
-   * @param maxQueueSize maximal number of pending tasks
-   * @param systemThreads use system threads or polyglot threads
-   * @return new execution service for this context
-   */
-  public ExecutorService newCachedThreadPool(
-      String name, int min, int max, int maxQueueSize, boolean systemThreads) {
-    return threadExecutors.newCachedThreadPool(name, systemThreads, min, max, maxQueueSize);
-  }
-
-  /**
-   * @param parallel amount of parallelism for the pool
-   * @param name human-readable name of the pool
-   * @param systemThreads use system threads or polyglot threads
-   * @return new execution service for this context
-   */
-  public ExecutorService newFixedThreadPool(int parallel, String name, boolean systemThreads) {
-    return threadExecutors.newFixedThreadPool(parallel, name, systemThreads);
+    int n = getOption(RuntimeOptions.JOB_PARALLELISM_KEY);
+    return Math.max(1, n);
   }
 
   /**
@@ -882,8 +887,14 @@ public final class EnsoContext {
 
   /** Set the runtime execution environment of this context. */
   public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
-    this.globalExecutionEnvironment = executionEnvironment;
-    language.setExecutionEnvironment(executionEnvironment);
+    var tc = environment.getContext();
+    var prev = tc.enter(null);
+    try {
+      this.globalExecutionEnvironment = executionEnvironment;
+      language.setExecutionEnvironment(executionEnvironment);
+    } finally {
+      tc.leave(null, prev);
+    }
   }
 
   /**
@@ -925,14 +936,6 @@ public final class EnsoContext {
     return this.warningsLimit;
   }
 
-  public Shape getRootStateShape() {
-    return rootStateShape;
-  }
-
-  public State emptyState() {
-    return State.create(this);
-  }
-
   /**
    * @return the notification handler.
    */
@@ -959,16 +962,6 @@ public final class EnsoContext {
 
   public boolean isCreateThreadAllowed() {
     return environment.isCreateThreadAllowed();
-  }
-
-  public Thread createThread(boolean systemThread, Runnable run) {
-    return systemThread
-        ? environment.createSystemThread(run)
-        : environment.newTruffleThreadBuilder(run).build();
-  }
-
-  public Future<Void> submitThreadLocal(Thread[] threads, ThreadLocalAction action) {
-    return environment.submitThreadLocal(threads, action);
   }
 
   public CallTarget parseInternal(Source src, String... argNames) {
@@ -1018,7 +1011,7 @@ public final class EnsoContext {
       msg = msg + sep + message;
     }
     var err = getBuiltins().error().makeAssertionError(msg);
-    throw new PanicException(err, e, node);
+    throw new PanicException(this, err, e, node);
   }
 
   private <T> T getOption(OptionKey<T> key) {
@@ -1040,5 +1033,57 @@ public final class EnsoContext {
   /** Access to state associated with this context and current thread. */
   public State currentState() {
     return singleStateProfile.profile(language.currentState());
+  }
+
+  private Object extraValues(int index, Supplier<?> init) {
+    if (index >= extraValues.length || extraValues[index] == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      extraValues = Arrays.copyOf(extraValues, Extra.COUNTER.get());
+      extraValues[index] = init.get();
+      assert extraValues[index] != null;
+    }
+    return extraValues[index];
+  }
+
+  /**
+   * Key to associate additional value with {@link EnsoContext}. Create a {@code private static
+   * final} instance in any class and then use it <em>"as a key"</em> to access value of the
+   * specified type associated with the context.
+   *
+   * @param <T> the type of the value to access
+   */
+  public static final class Extra<T> {
+    private static final AtomicInteger COUNTER = new AtomicInteger();
+    private final int index;
+    private final Class<T> type;
+    private final Supplier<T> init;
+
+    /**
+     * Defines new value associated with the context.Use as:
+     *
+     * <pre>
+     * private static final ValueKey&lt;Integer&gt; MY_COUNTER = new Value<>(Integer.class);
+     * </pre>
+     *
+     * @param type the type of the value to {@link #set} and {@link #get}.
+     * @param initialValue function to use to compute initial value
+     */
+    public Extra(Class<T> type, Supplier<T> initialValue) {
+      this.type = type;
+      this.index = COUNTER.getAndIncrement();
+      this.init = initialValue;
+    }
+
+    /**
+     * Obtains (readily for <em>fast path</em>) value associated with this key stored in this
+     * context. Creates initial value, if it hasn't yet been created.
+     *
+     * @param ctx the context
+     * @return the value associated with this key in the given context
+     */
+    public T get(EnsoContext ctx) {
+      var value = ctx.extraValues(index, init);
+      return type.cast(value);
+    }
   }
 }

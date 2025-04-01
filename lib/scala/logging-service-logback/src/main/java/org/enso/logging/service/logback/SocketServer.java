@@ -52,11 +52,9 @@ public class SocketServer extends Thread {
       logger.debug("Listening on port " + port);
       serverSocket = getServerSocketFactory().createServerSocket(port);
       while (!closed) {
-        logger.debug("Waiting to accept a new client.");
         signalAlmostReadiness();
         Socket socket = serverSocket.accept();
-        logger.debug("Connected to client at " + socket.getInetAddress());
-        logger.debug("Starting new socket node.");
+        logger.debug("Connected to client at " + socket.getInetAddress() + ":" + socket.getPort());
         SocketLoggingNode newSocketNode = new SocketLoggingNode(this, socket, lc);
         synchronized (socketNodeList) {
           socketNodeList.add(newSocketNode);
@@ -126,7 +124,7 @@ public class SocketServer extends Thread {
     if (projectId != null) {
       synchronized (socketNodeList) {
         for (SocketLoggingNode sn : socketNodeList) {
-          if (sn.projectId.equals(projectId)) sn.closing();
+          if (sn.projectId != null && sn.projectId.equals(projectId)) sn.closing();
         }
       }
     }

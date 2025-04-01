@@ -1,5 +1,5 @@
 import { type ProjectNameStore } from '@/stores/projectNames'
-import { type Group, SuggestionDb } from '@/stores/suggestionDatabase'
+import { type GroupInfo, SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   documentationData,
   type DocumentationData,
@@ -38,7 +38,7 @@ import {
 } from 'ydoc-shared/languageServerTypes/suggestions'
 
 interface UpdateContext {
-  groups: DeepReadonly<Group[]>
+  groups: DeepReadonly<GroupInfo[]>
   projectNames: ProjectNameStore
 }
 
@@ -59,6 +59,10 @@ abstract class BaseSuggestionEntry implements SuggestionEntryCommon {
   get documentation() {
     return this.documentationData.documentation
   }
+
+  get docSummaryHtml() {
+    return this.documentationData.docSummaryHtml
+  }
   get aliases() {
     return this.documentationData.aliases
   }
@@ -67,6 +71,9 @@ abstract class BaseSuggestionEntry implements SuggestionEntryCommon {
   }
   get groupIndex() {
     return this.documentationData.groupIndex
+  }
+  get suggestedRank() {
+    return this.documentationData.suggestedRank
   }
   get isPrivate() {
     return this.documentationData.isPrivate
@@ -78,7 +85,7 @@ abstract class BaseSuggestionEntry implements SuggestionEntryCommon {
     return this.definedIn.append(this.name)
   }
 
-  setDocumentation(documentation: string | undefined, groups: DeepReadonly<Group[]>) {
+  setDocumentation(documentation: string | undefined, groups: DeepReadonly<GroupInfo[]>) {
     this.documentationData = documentationData(documentation, this.definedIn.project, groups)
   }
   setLsModule(lsModule: ProjectPath) {
@@ -528,7 +535,7 @@ function modifyArgument(
 export class SuggestionUpdateProcessor {
   /** Constructor. */
   constructor(
-    private readonly groups: ToValue<DeepReadonly<Group[]>>,
+    private readonly groups: ToValue<DeepReadonly<GroupInfo[]>>,
     private readonly projectNames: ProjectNameStore,
   ) {}
 

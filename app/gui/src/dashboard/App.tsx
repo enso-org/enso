@@ -98,10 +98,6 @@ import { CloudBrowserDisabledLayout } from '#/providers/AuthProvider'
 import { useMutation } from '@tanstack/react-query'
 import { useOffline } from './hooks/offlineHooks'
 
-// ============================
-// === Global configuration ===
-// ============================
-
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
@@ -127,20 +123,12 @@ LocalStorage.registerKey('inputBindings', {
 LocalStorage.registerKey('localRootDirectory', { schema: z.string() })
 LocalStorage.registerKey('preferredTimeZone', { schema: z.string() })
 
-// ======================
-// === getMainPageUrl ===
-// ======================
-
 /** Returns the URL to the main page. This is the current URL, with the current route removed. */
 function getMainPageUrl() {
   const mainPageUrl = new URL(window.location.href)
   mainPageUrl.pathname = mainPageUrl.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
   return mainPageUrl
 }
-
-// ===========
-// === App ===
-// ===========
 
 /** Global configuration for the `App` component. */
 export interface AppProps {
@@ -215,25 +203,6 @@ export default function App(props: AppProps) {
   const { getText } = textProvider.useText()
   const queryClient = reactQuery.useQueryClient()
 
-  // Force all queries to be stale
-  // We don't use the `staleTime` option because it's not performant
-  // and triggers unnecessary setTimeouts.
-  reactQuery.useQuery({
-    queryKey: ['refresh'],
-    queryFn: () => {
-      queryClient
-        .getQueryCache()
-        .getAll()
-        .forEach((query) => {
-          query.isStale = () => true
-        })
-
-      return null
-    },
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    refetchInterval: 2 * 60 * 1000,
-  })
-
   const { mutate: executeBackgroundUpdate } = useMutation({
     mutationKey: ['refetch-queries', { isOffline }],
     scope: { id: 'refetch-queries' },
@@ -266,7 +235,11 @@ export default function App(props: AppProps) {
         transition={toastify.Slide}
         limit={3}
       />
-      <router.BrowserRouter basename={getMainPageUrl().pathname}>
+      <router.BrowserRouter
+        basename={getMainPageUrl().pathname}
+        // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <LocalStorageProvider>
           <ModalProvider>
             <AppRouter
@@ -280,10 +253,6 @@ export default function App(props: AppProps) {
     </>
   )
 }
-
-// =================
-// === AppRouter ===
-// =================
 
 /** Props for an {@link AppRouter}. */
 export interface AppRouterProps extends AppProps {
@@ -394,11 +363,6 @@ function AppRouter(props: AppRouterProps) {
   }, [localStorage, inputBindingsRaw])
 
   const mainPageUrl = getMainPageUrl()
-
-  // Subscribe to `localStorage` updates to trigger a rerender when the terms of service
-  // or privacy policy have been accepted.
-  localStorageProvider.useLocalStorageState('termsOfService')
-  localStorageProvider.useLocalStorageState('privacyPolicy')
 
   const authService = useInitAuthService(props)
 

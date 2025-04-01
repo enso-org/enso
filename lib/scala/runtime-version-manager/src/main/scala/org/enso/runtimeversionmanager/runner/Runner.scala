@@ -10,8 +10,10 @@ import org.slf4j.event.Level
 import java.net.URI
 import org.enso.runtimeversionmanager.components.{Engine, RuntimeVersionManager}
 import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
+import org.enso.runtimeversionmanager.runner.Runner.ENSO_CLOUD_PROJECT_DIRECTORY_PATH_ENV_NAME
 
 import java.nio.file.Path
+
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future, TimeoutException}
 import scala.util.Try
@@ -43,6 +45,7 @@ class Runner(
     path: Path,
     name: String,
     engineVersion: SemVer,
+    jvmMode: Boolean,
     normalizedName: Option[String],
     projectTemplate: Option[String],
     authorName: Option[String],
@@ -78,6 +81,7 @@ class Runner(
       }
       RunSettings(
         engineVersion,
+        jvmMode,
         arguments,
         workingDirectory         = None,
         connectLoggerIfAvailable = false
@@ -115,8 +119,6 @@ class Runner(
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
     Try {
-      val workingDirectory =
-        Path.of(projectPath).toAbsolutePath.normalize.getParent
       val arguments = Seq(
         "--server",
         "--root-id",
@@ -140,11 +142,17 @@ class Runner(
           .map(port => Seq("--secure-data-port", port.toString))
           .getOrElse(Seq.empty) ++
         Option.unless(logMasking)(Seq("--no-log-masking")).getOrElse(Seq.empty)
+
+      val projectDirectory = Path.of(projectPath).toAbsolutePath.normalize
       RunSettings(
         version,
+        options.jvmModeEnabled,
         arguments ++ additionalArguments,
-        workingDirectory         = Some(workingDirectory),
-        connectLoggerIfAvailable = true
+        workingDirectory         = Some(projectDirectory.getParent),
+        connectLoggerIfAvailable = true,
+        extraEnv = Seq(
+          ENSO_CLOUD_PROJECT_DIRECTORY_PATH_ENV_NAME -> projectDirectory.toString
+        )
       )
     }
 
@@ -199,12 +207,14 @@ class Runner(
           logger.info(
             "Using explicit " + JVM_PATH_ENV_VAR + " JVM: " + p
           )
-          p.toString()
+          p.toString
         }
         .orElse(cmd.javaHome)
 
       val extraEnvironmentOverrides =
-        javaHome.map("JAVA_HOME" -> _).toSeq ++ distributionSettings.toSeq
+        javaHome
+          .map("JAVA_HOME" -> _)
+          .toSeq ++ distributionSettings.toSeq ++ runSettings.extraEnv
 
       action(
         RawCommand(
@@ -224,18 +234,29 @@ class Runner(
       case None =>
         runtimeVersionManager.withEngineAndRuntime(engineVersion) {
           (engine, runtime) =>
-            NativeExecCommand.apply(
-              engineVersion.toString,
-              engine,
-              logger
-            ) match {
-              case Some(cmd) =>
-                prepareAndRunCommand(engine, cmd)
-              case None =>
-                prepareAndRunCommand(
-                  engine,
-                  JavaExecCommand.forRuntime(runtime)
-                )
+            val ensoLauncher = Option(System.getenv(Runner.LAUNCHER_ENV_NAME))
+            val requiresJVMRunner =
+              ensoLauncher.exists(_.equals("shell")) || runSettings.jvmMode
+            if (requiresJVMRunner) {
+              prepareAndRunCommand(
+                engine,
+                JavaExecCommand.forRuntime(runtime)
+              )
+            } else {
+              NativeExecCommand.apply(
+                engineVersion.toString,
+                engine,
+                logger
+              ) match {
+                case Some(cmd) =>
+                  prepareAndRunCommand(engine, cmd)
+                case None =>
+                  // Fallback, JVM-mode
+                  prepareAndRunCommand(
+                    engine,
+                    JavaExecCommand.forRuntime(runtime)
+                  )
+              }
             }
         }
     }
@@ -302,4 +323,13 @@ class Runner(
         globalConfigurationManager.defaultVersion
     }
   }
+}
+
+object Runner {
+
+  private val LAUNCHER_ENV_NAME = "ENSO_LAUNCHER"
+
+  /** The variable is used in stdlib to resolve relative paths. */
+  private val ENSO_CLOUD_PROJECT_DIRECTORY_PATH_ENV_NAME =
+    "ENSO_CLOUD_PROJECT_DIRECTORY_PATH"
 }

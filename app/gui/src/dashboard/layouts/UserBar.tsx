@@ -1,7 +1,6 @@
 /** @file A toolbar containing chat and the user menu. */
 import { SUBSCRIBE_PATH } from '#/appUtils'
 import ChatIcon from '#/assets/chat.svg'
-import DefaultUserIcon from '#/assets/default_user.svg'
 import ArrowDownIcon from '#/assets/expand_arrow_down.svg'
 import Offline from '#/assets/offline_filled.svg'
 import { Button, DialogTrigger, Menu, Popover, Text } from '#/components/AriaComponents'
@@ -19,10 +18,12 @@ import { isAbsoluteUrl } from '#/utilities/url'
 import type { TextId } from 'enso-common/src/text'
 import { AnimatePresence, motion } from 'framer-motion'
 import { z } from 'zod'
+import { ProfilePicture } from '../components/ProfilePicture/ProfilePicture'
 
 /** Whether the chat button should be visible. Temporarily disabled. */
 const SHOULD_SHOW_CHAT_BUTTON: boolean = false
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const TOPBAR_LINKS_SCHEMA = z.object({
   items: z.array(
     z
@@ -77,8 +78,7 @@ export default function UserBar(props: UserBarProps) {
   const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
   const { isOffline } = useOffline()
 
-  const shouldShowUpgradeButton =
-    user.isOrganizationAdmin && user.plan !== Plan.enterprise && user.plan !== Plan.team
+  const shouldShowUpgradeButton = user.isOrganizationAdmin && user.plan === Plan.free
 
   const upgradeButtonVariant = user.plan === Plan.free ? 'primary' : 'outline'
   // eslint-disable-next-line no-restricted-syntax
@@ -151,11 +151,8 @@ export default function UserBar(props: UserBarProps) {
           <Button
             size="custom"
             variant="icon"
-            isActive
-            icon={<img src={user.profilePicture ?? DefaultUserIcon} className="aspect-square" />}
+            icon={<ProfilePicture picture={user.profilePicture} name={user.name} />}
             aria-label={getText('userMenuLabel')}
-            className="overflow-clip rounded-full opacity-100"
-            contentClassName="size-8"
           />
 
           <UserMenu goToSettingsPage={goToSettingsPage} onSignOut={onSignOut} />
@@ -193,7 +190,7 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
         if ('url' in item) {
           if ('menu' in item) {
             return (
-              <Button.GroupJoin buttonVariants={{ variant: 'icon' }}>
+              <Button.GroupJoin key={item.name} buttonVariants={{ variant: 'icon' }}>
                 <Button href={item.url} {...getSafetyProps(item.url)}>
                   {getText(item.name)}
                 </Button>
@@ -201,9 +198,13 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
                 <Menu.Trigger>
                   <Button icon={ArrowDownIcon} aria-label={getText('more')} />
 
-                  <Menu>
+                  <Menu placement="bottom right">
                     {item.menu.map((menuItem) => (
-                      <Menu.Item href={menuItem.url} {...getSafetyProps(menuItem.url)}>
+                      <Menu.Item
+                        key={menuItem.name}
+                        href={menuItem.url}
+                        {...getSafetyProps(menuItem.url)}
+                      >
                         {getText(menuItem.name)}
                       </Menu.Item>
                     ))}
@@ -214,12 +215,16 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
           }
         } else {
           return (
-            <Menu.Trigger>
+            <Menu.Trigger key={item.name}>
               <Button icon={ArrowDownIcon}>{getText(item.name)}</Button>
 
-              <Menu>
+              <Menu placement="bottom right">
                 {item.menu.map((menuItem) => (
-                  <Menu.Item href={menuItem.url} {...getSafetyProps(menuItem.url)}>
+                  <Menu.Item
+                    key={menuItem.name}
+                    href={menuItem.url}
+                    {...getSafetyProps(menuItem.url)}
+                  >
                     {getText(menuItem.name)}
                   </Menu.Item>
                 ))}
@@ -229,7 +234,7 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
         }
 
         return (
-          <Button href={item.url} {...getSafetyProps(item.url)}>
+          <Button key={item.name} href={item.url} {...getSafetyProps(item.url)}>
             {getText(item.name)}
           </Button>
         )

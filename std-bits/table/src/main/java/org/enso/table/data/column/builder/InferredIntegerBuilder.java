@@ -92,7 +92,7 @@ public final class InferredIntegerBuilder implements Builder {
   }
 
   @Override
-  public StorageType getType() {
+  public StorageType<?> getType() {
     if (bigIntegerBuilder != null) {
       return BigIntegerType.INSTANCE;
     } else {

@@ -12,7 +12,7 @@ import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { type MethodPointer } from '@/util/methodPointer'
 import { AsyncQueue } from '@/util/net'
-import { type ProjectPath } from '@/util/projectPath'
+import { ProjectPath } from '@/util/projectPath'
 import { type QualifiedName } from '@/util/qualifiedName'
 import { markRaw, proxyRefs, readonly, ref } from 'vue'
 import { LanguageServer } from 'ydoc-shared/languageServer'
@@ -65,6 +65,15 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     if (id != null) return this.get(id)
   }
 
+  /** Same as {@link getEntryByProjectPath}, but usable from dev console for debugging. */
+  debugGetEntryByProjectNameAndPath(
+    projectName: QualifiedName | undefined,
+    path: QualifiedName | undefined,
+  ): SuggestionEntry | undefined {
+    const id = this.findByProjectPath(ProjectPath.create(projectName, path))
+    if (id != null) return this.get(id)
+  }
+
   /** Get ID of method/function by MethodPointer structure (received through expression updates). */
   findByMethodPointer(method: MethodPointer): SuggestionId | undefined {
     return this.findByProjectPath(method.definedOnType.append(method.name))
@@ -90,12 +99,12 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
 }
 
 /**
- * Component Group.
+ * Description of a Component Group.
  *
  * These are groups displayed in the Component Browser. Also, nodes being a call to method from
  * given group will inherit its color.
  */
-export interface Group {
+export interface GroupInfo {
   color?: string
   name: string
   project: QualifiedName
@@ -185,7 +194,7 @@ async function loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown
     return []
   }
   return groups.value.componentGroups.map(
-    (group): Group => ({
+    (group): GroupInfo => ({
       name: group.name,
       ...(group.color ? { color: group.color } : {}),
       project: group.library as QualifiedName,
@@ -199,7 +208,7 @@ export const [provideSuggestionDbStore, useSuggestionDbStore] = createContextSto
   'suggestionDatabase',
   (projectStore: ProjectStore, projectNames: ProjectNameStore) => {
     const entries = new SuggestionDb()
-    const groups = ref<Group[]>([])
+    const groups = ref<GroupInfo[]>([])
 
     const updateProcessor = loadGroups(
       projectStore.lsRpcConnection,

@@ -30,10 +30,6 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { createStore, useStore } from '#/utilities/zustand'
 import { AnimatePresence, motion } from 'framer-motion'
 
-// =============
-// === Types ===
-// =============
-
 /** The reason behind a new query. */
 enum QuerySource {
   /**
@@ -57,10 +53,6 @@ export interface Suggestion {
   readonly deleteFromQuery: (query: AssetQuery) => AssetQuery
 }
 
-// ============
-// === Tags ===
-// ============
-
 /** Props for a {@link Tags}. */
 interface InternalTagsProps {
   readonly isCloud: boolean
@@ -69,6 +61,7 @@ interface InternalTagsProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const searchbarSuggestionsStore = createStore<{
   readonly suggestions: readonly Suggestion[]
   readonly setSuggestions: (suggestions: readonly Suggestion[]) => void
@@ -82,6 +75,7 @@ export const searchbarSuggestionsStore = createStore<{
 /**
  * Sets the suggestions.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSetSuggestions() {
   return useStore(searchbarSuggestionsStore, (state) => state.setSuggestions, {
     unsafeEnableTransition: true,
@@ -136,10 +130,6 @@ function Tags(props: InternalTagsProps) {
     </div>
   )
 }
-
-// ======================
-// === AssetSearchBar ===
-// ======================
 
 /** Props for a {@link AssetSearchBar}. */
 export interface AssetSearchBarProps {
@@ -347,7 +337,7 @@ function AssetSearchBar(props: AssetSearchBarProps) {
               innerProps,
               {
                 className:
-                  'z-1 group flex grow items-center gap-asset-search-bar rounded-full px-1.5 py-1 text-primary border-0.5 border-primary/20',
+                  'z-1 group flex grow items-center gap-asset-search-bar rounded-full px-1.5 py-[3.5px] text-primary border-0.5 border-primary/20',
                 ref: rootRef,
                 onFocus: () => {
                   setAreSuggestionsVisible(true)
@@ -411,7 +401,7 @@ interface AssetSearchBarInputProps {
 /**
  * Renders the search field.
  */
-// eslint-disable-next-line no-restricted-syntax
+
 const AssetSearchBarInput = React.memo(function AssetSearchBarInput(
   props: AssetSearchBarInputProps,
 ) {

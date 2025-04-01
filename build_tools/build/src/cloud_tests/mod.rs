@@ -33,6 +33,11 @@ pub async fn prepare_credentials_file(auth_config: AuthConfig) -> Result<NamedTe
     Ok(credentials_temp_file)
 }
 
+pub async fn build_credentials_file(auth_config: AuthConfig, path: &Path) -> Result<()> {
+    let credentials = build_credentials(auth_config).await?;
+    save_credentials(&credentials, path)
+}
+
 #[derive(Debug)]
 pub struct AuthConfig {
     web_client_id: String,

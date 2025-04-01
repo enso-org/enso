@@ -113,6 +113,7 @@ pub mod syntax;
 
 /// Popular utilities, imported by most modules of this crate.
 pub mod prelude {
+    pub use enso_parser_macros::*;
     pub use enso_prelude::*;
     pub use enso_reflect as reflect;
     pub use enso_reflect::Reflect;

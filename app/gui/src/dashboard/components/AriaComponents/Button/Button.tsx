@@ -10,14 +10,21 @@ import {
 } from 'react'
 
 import * as aria from '#/components/aria'
-import { useVisualTooltip } from '#/components/AriaComponents/Text'
 import { Tooltip, TooltipTrigger } from '#/components/AriaComponents/Tooltip'
+import { useVisualTooltip } from '#/components/AriaComponents/VisualTooltip'
 import { Icon as IconComponent } from '#/components/Icon'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
+import { useContextProps } from '../../hooks/useContextProps'
+import { useDialogContext } from '../Dialog'
 import { ButtonGroup, ButtonGroupJoin } from './ButtonGroup'
-import { useJoinedButtonPrivateContext, useMergedButtonStyles } from './shared'
+import {
+  ButtonContext,
+  ButtonGroupProvider,
+  useJoinedButtonPrivateContext,
+  useMergedButtonStyles,
+} from './shared'
 import type { ButtonProps } from './types'
 import { BUTTON_STYLES } from './variants'
 
@@ -28,10 +35,16 @@ const ICON_LOADER_DELAY = 150
 // eslint-disable-next-line no-restricted-syntax
 export const Button = memo(
   forwardRef(function Button<IconType extends string>(
-    props: ButtonProps<IconType>,
-    ref: ForwardedRef<HTMLButtonElement>,
+    propsReplacement: ButtonProps<IconType>,
+    refReplacement: ForwardedRef<HTMLButtonElement>,
   ) {
+    // @ts-expect-error ts errors are expected here because we are merging props with different types
+    // eslint-disable-next-line prefer-const
+    let [props, ref] = useContextProps(propsReplacement, refReplacement, ButtonContext)
     props = useMergedButtonStyles(props)
+
+    const dialogContext = useDialogContext()
+
     const {
       className,
       contentClassName,
@@ -39,6 +52,7 @@ export const Button = memo(
       variant,
       icon,
       loading,
+      isLoading,
       isActive,
       showIconOnHover,
       iconPosition,
@@ -88,22 +102,26 @@ export const Button = memo(
 
     const tooltipElement = shouldShowTooltip ? (tooltip ?? ariaProps['aria-label']) : null
 
-    const isLoading = (() => {
+    const isLoadingFinal = (() => {
       if (typeof loading === 'boolean') {
         return loading
+      }
+
+      if (typeof isLoading === 'boolean') {
+        return isLoading
       }
 
       return implicitlyLoading
     })()
 
-    const isDisabled = props.isDisabled ?? isLoading
+    const isDisabled = props.isDisabled ?? isLoadingFinal
     const shouldUseVisualTooltip = shouldShowTooltip && isDisabled
     const extraClickZone = extraClickZoneProp ?? variant === 'icon'
 
     useLayoutEffect(() => {
       const delay = ICON_LOADER_DELAY
 
-      if (isLoading) {
+      if (isLoadingFinal) {
         const loaderAnimation = loaderRef.current?.animate(
           [{ opacity: 0 }, { opacity: 0, offset: 1 }, { opacity: 1 }],
           { duration: delay, easing: 'linear', delay: 0, fill: 'forwards' },
@@ -125,7 +143,7 @@ export const Button = memo(
       } else {
         return () => {}
       }
-    }, [isLoading, loaderPosition])
+    }, [isLoadingFinal, loaderPosition])
 
     const handlePress = useEventCallback((event: aria.PressEvent): void => {
       if (!isDisabled) {
@@ -138,13 +156,17 @@ export const Button = memo(
             setImplicitlyLoading(false)
           })
         }
+
+        if (dialogContext != null && 'formMethod' in props && props.formMethod === 'dialog') {
+          dialogContext.close()
+        }
       }
     })
 
     const styles = variants({
       isDisabled,
       isActive,
-      loading: isLoading,
+      loading: isLoadingFinal,
       fullWidth,
       size,
       rounded,
@@ -161,7 +183,7 @@ export const Button = memo(
       targetRef: contentRef,
       children: tooltipElement,
       isDisabled: !shouldUseVisualTooltip,
-      ...(tooltipPlacement && { overlayPositionProps: { placement: tooltipPlacement } }),
+      overlayPositionProps: { placement: tooltipPlacement ?? 'top' },
     })
 
     const shouldDisplayBorder = isJoined && (position === 'first' || position === 'middle')
@@ -172,7 +194,7 @@ export const Button = memo(
         ref={ref}
         // @ts-expect-error ts errors are expected here because we are merging props with different types
         {...aria.mergeProps<aria.ButtonProps>()(goodDefaults, ariaProps, {
-          isPending: isLoading,
+          isPending: isLoadingFinal,
           isDisabled,
           // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
           // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
@@ -193,7 +215,7 @@ export const Button = memo(
               return false
             }
 
-            return isLoading && loaderPosition === 'full'
+            return isLoadingFinal && loaderPosition === 'full'
           }
 
           return (
@@ -257,18 +279,18 @@ export const Button = memo(
 ) as unknown as (<IconType extends string>(
   props: ButtonProps<IconType> & { ref?: ForwardedRef<HTMLButtonElement> },
 ) => ReactNode) & {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+  /* eslint-disable @typescript-eslint/naming-convention */
   Group: typeof ButtonGroup
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   GroupJoin: typeof ButtonGroupJoin
+  GroupProvider: typeof ButtonGroupProvider
+  /* eslint-enable @typescript-eslint/naming-convention */
 }
 
 Button.Group = ButtonGroup
 Button.GroupJoin = ButtonGroupJoin
+Button.GroupProvider = ButtonGroupProvider
 
-/**
- * Props for {@link ButtonContent}.
- */
+/** Props for {@link ButtonContent}. */
 interface ButtonContentProps {
   readonly hideLoader: boolean
   readonly isIconOnly: boolean
@@ -281,17 +303,12 @@ interface ButtonContentProps {
   readonly addonEnd?: ReactElement | string | false | null | undefined
 }
 
-/**
- * Checks if an addon is present.
- */
+/** Check if an addon is present. */
 function hasAddon(addon: ButtonContentProps['addonEnd']): boolean {
   return addon != null && addon !== false && addon !== ''
 }
 
-/**
- * Renders the content of a button.
- */
-// eslint-disable-next-line no-restricted-syntax
+/** Render the content of a button. */
 const ButtonContent = memo(function ButtonContent(props: ButtonContentProps) {
   const {
     isIconOnly,
@@ -333,15 +350,13 @@ const ButtonContent = memo(function ButtonContent(props: ButtonContentProps) {
         styles={styles}
         hideLoader={hideLoader}
       />
-      <span className={styles.text()}>{children}</span>
+      {children}
       {hasAddon(addonEnd) && <div className={styles.addonEnd()}>{addonEnd}</div>}
     </>
   )
 })
 
-/**
- * Props for {@link Icon}.
- */
+/** Props for {@link Icon}. */
 interface IconProps {
   readonly isLoading: boolean
   readonly loaderPosition: 'full' | 'icon'
@@ -350,9 +365,7 @@ interface IconProps {
   readonly hideLoader: boolean
 }
 
-/**
- * Renders an icon for a button.
- */
+/** Renders an icon for a button. */
 const Icon = memo(function Icon(props: IconProps) {
   const { isLoading, loaderPosition, icon, styles, hideLoader } = props
 

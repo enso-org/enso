@@ -40,7 +40,7 @@ import org.graalvm.polyglot.Value;
  * call appropriate methods to obtain such values. It's up to the tests to use these values
  * meaningfully.
  */
-public final class ValuesGenerator {
+public final class ValuesGenerator implements AutoCloseable {
   private final Context ctx;
   private final Set<Language> languages;
   private final Map<String, ValueInfo> values = new HashMap<>();
@@ -852,7 +852,7 @@ public final class ValuesGenerator {
           v(
                   null,
                   "import Standard.Base.Runtime.Managed_Resource.Managed_Resource",
-                  "Managed_Resource.register '/' (x -> x)")
+                  "Managed_Resource.register ['/'] (x -> x)")
               .type());
       collect.add(typeNothing());
     }
@@ -1009,7 +1009,7 @@ public final class ValuesGenerator {
     return v;
   }
 
-  public void dispose() {
+  public void close() {
     values.clear();
     multiValues.clear();
     computed.clear();

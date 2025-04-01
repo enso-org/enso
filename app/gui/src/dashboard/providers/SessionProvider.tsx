@@ -32,10 +32,6 @@ import { toast } from 'react-toastify'
 import { useSetModal } from './ModalProvider'
 import { useText } from './TextProvider'
 
-// ======================
-// === SessionContext ===
-// ======================
-
 /** State contained in a {@link SessionContext}. */
 interface SessionContextType {
   readonly session: cognito.UserSession | null
@@ -63,10 +59,6 @@ interface SessionContextType {
 }
 
 const SessionContext = React.createContext<SessionContextType | null>(null)
-
-// =======================
-// === SessionProvider ===
-// =======================
 
 /** Props for a {@link SessionProvider}. */
 export interface SessionProviderProps {
@@ -115,9 +107,9 @@ export default function SessionProvider(props: SessionProviderProps) {
   const queryClient = reactQuery.useQueryClient()
   const toastAndLog = useToastAndLog()
 
-  const sessionQuery = createSessionQuery(authService)
+  const sessionQueryOptions = createSessionQuery(authService)
 
-  const session = reactQuery.useSuspenseQuery(sessionQuery)
+  const session = reactQuery.useSuspenseQuery(sessionQueryOptions)
 
   const refreshUserSessionMutation = reactQuery.useMutation({
     mutationKey: ['refreshUserSession', { expireAt: session.data?.expireAt }],
@@ -126,12 +118,12 @@ export default function SessionProvider(props: SessionProviderProps) {
       if (data) {
         httpClient?.setSessionToken(data.accessToken)
       }
-      return queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey })
+      return queryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
     },
     onError: (error) => {
       // Something went wrong with the refresh token, so we need to sign the user out.
       toastAndLog('sessionExpiredError', error)
-      queryClient.setQueryData(sessionQuery.queryKey, null)
+      queryClient.setQueryData(sessionQueryOptions.queryKey, null)
       return logoutMutation.mutateAsync()
     },
   })
@@ -162,6 +154,7 @@ export default function SessionProvider(props: SessionProviderProps) {
       void queryClient.clearWithPersister()
     },
     onError: () => toast.error(getText('signOutError')),
+    meta: { invalidates: [sessionQueryOptions.queryKey], awaitInvalidates: true },
   })
 
   const signUp = useEventCallback(
@@ -209,7 +202,7 @@ export default function SessionProvider(props: SessionProviderProps) {
       }
 
       return queryClient
-        .invalidateQueries({ queryKey: sessionQuery.queryKey })
+        .invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
         .then(() => ({ challenge, user }) as const)
     } else {
       throw new Error(result.val.message)
@@ -282,7 +275,7 @@ export default function SessionProvider(props: SessionProviderProps) {
         switch (event) {
           case listen.AuthEvent.signIn:
           case listen.AuthEvent.signOut: {
-            void queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey })
+            void queryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
             break
           }
           case listen.AuthEvent.customOAuthState:
@@ -293,7 +286,7 @@ export default function SessionProvider(props: SessionProviderProps) {
             // will not work.
             // See https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
             history.replaceState({}, '', mainPageUrl)
-            void queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey })
+            void queryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
             break
           }
           default: {
@@ -301,7 +294,7 @@ export default function SessionProvider(props: SessionProviderProps) {
           }
         }
       }),
-    [registerAuthEventListener, mainPageUrl, queryClient, sessionQuery.queryKey],
+    [registerAuthEventListener, mainPageUrl, queryClient, sessionQueryOptions.queryKey],
   )
 
   const organizationId = useEventCallback(() => authService.organizationId())
@@ -436,14 +429,11 @@ function SessionRefresher(props: SessionRefresherProps) {
   return null
 }
 
-// ==================
-// === useSession ===
-// ==================
-
 /**
  * React context hook returning the session of the authenticated user.
  * @throws {Error} when used outside a {@link SessionProvider}.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSession() {
   const context = React.useContext(SessionContext)
 
@@ -455,6 +445,7 @@ export function useSession() {
 /**
  * Returns API to work with a session.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSessionAPI(): Omit<SessionContextType, 'session'> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { session, ...api } = useSession()
@@ -466,6 +457,7 @@ export function useSessionAPI(): Omit<SessionContextType, 'session'> {
  * React context hook returning the session of the authenticated user.
  * @throws {Error} if the session is not defined.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSessionStrict() {
   const { session } = useSession()
 
