@@ -152,7 +152,7 @@ const rowModelType = computed(() => (props.isServerSideModel ? 'serverSide' : 'c
 const gridKey = ref(0)
 
 const forceGridRefresh = () => {
-  //when using the ag gris severSide model this forces the grid to 'refresh' and call getRows
+  //when using the ag grid severSide model this forces the grid to 'refresh' and call getRows
   gridKey.value++
 }
 
