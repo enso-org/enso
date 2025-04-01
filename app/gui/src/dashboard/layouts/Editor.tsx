@@ -68,7 +68,7 @@ function Editor(props: EditorProps) {
     if (isProjectClosed && !preventAutoStart) {
       startProject(project)
     }
-  }, [isProjectClosed, startProject, project])
+  }, [isProjectClosed, startProject, project, preventAutoStart])
 
   useTimeoutCallback({
     callback: () => {
