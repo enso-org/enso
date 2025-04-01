@@ -29,7 +29,7 @@ final class LinuxTrashBin implements TrashBin {
   private static final String PATH_INFO = "info";
   private final LinuxDirectories directories;
 
-  public static LinuxTrashBin getInstance() {
+  static LinuxTrashBin getInstance() {
     return INSTANCE;
   }
 
