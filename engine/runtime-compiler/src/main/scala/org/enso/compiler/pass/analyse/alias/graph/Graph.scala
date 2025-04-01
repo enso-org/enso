@@ -307,6 +307,9 @@ object Graph {
   /** Creates new empty, graph */
   private[graph] def create(): Graph = new Graph()
 
+  /** Creates new graph with provided scope */
+  private[graph] def create(scope: Scope): Graph = new Graph(scope)
+
   /** The type of symbols on the graph. */
   type Symbol = String
 
