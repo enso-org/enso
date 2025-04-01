@@ -27,7 +27,9 @@ export type ProjectViewTabProps = React.ComponentProps<typeof ProjectViewTab>
 export interface EditorProps {
   readonly isOpeningFailed: boolean
   readonly openingError: Error | null
-  readonly startProject: (project: LaunchedProject) => void
+  readonly startProject: (
+    project: LaunchedProject & { readonly suppressHybridProjectOpen?: boolean },
+  ) => void
   readonly project: LaunchedProject
   readonly hidden: boolean
   readonly ydocUrl: string | null
@@ -79,13 +81,14 @@ function Editor(props: EditorProps) {
   const { isProjectClosed, isProjectOpening, isProjectOpened, isProjectClosing } = projectQuery.data
 
   React.useEffect(() => {
+    const isHybridProjectOpen = hybridProjectOpenQuery.data === true
     if (
       // Open project unless it is not supposed to be reopened.
       (isProjectClosed && !preventAutoReopen) ||
       // Open hybrid project if it is still marked as opened.
-      hybridProjectOpenQuery.data === true
+      isHybridProjectOpen
     ) {
-      startProject(project)
+      startProject({ ...project, suppressHybridProjectOpen: isHybridProjectOpen })
     }
   }, [isProjectClosed, startProject, project, preventAutoReopen, hybridProjectOpenQuery.data])
 

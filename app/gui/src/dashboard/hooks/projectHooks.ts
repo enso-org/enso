@@ -222,7 +222,8 @@ export function useOpenProjectMutation() {
       type,
       parentId,
       inBackground = false,
-    }: LaunchedProject & { inBackground?: boolean }) => {
+      suppressHybridProjectOpen: _ = false,
+    }: LaunchedProject & { inBackground?: boolean; suppressHybridProjectOpen?: boolean }) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
@@ -254,8 +255,11 @@ export function useOpenProjectMutation() {
 
       void client.cancelQueries({ queryKey })
     },
-    onSuccess: async (_, { type, id, title, parentId, hybrid }) => {
-      if (hybrid) {
+    onSuccess: async (
+      _,
+      { type, id, title, parentId, hybrid, suppressHybridProjectOpen = false },
+    ) => {
+      if (hybrid && !suppressHybridProjectOpen) {
         await remoteBackend.setHybridOpened(hybrid.cloudProjectId, title)
       }
       await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
