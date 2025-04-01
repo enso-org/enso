@@ -4185,11 +4185,16 @@ lazy val `change-directory` =
       }.value,
       Test / test := Def
         .task {
+          val logger = streams.value.log
           val exeSuffix = if (Platform.isWindows) ".exe" else ""
           val exeFile =
             (Test / target).value / ("test-change-directory" + exeSuffix)
           val binPath = exeFile.getAbsolutePath
-          binPath ! streams.value.log
+          val res = binPath ! logger
+          if (res != 0) {
+            logger.error("Some test in change-directory failed")
+            throw new TestsFailedException()
+          }
         }
         .dependsOn(Test / buildNativeImage)
         .value,
