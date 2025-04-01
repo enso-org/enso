@@ -5,6 +5,7 @@ import invariant from 'tiny-invariant'
 import * as z from 'zod'
 
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
+import { useMounted } from '#/hooks/mountHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as backendModule from '#/services/Backend'
@@ -108,6 +109,15 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
       return array.includes(TAB_TYPES, value) || launchedProjects.some((p) => p.id === value)
     },
   )
+
+  useMounted(() => {
+    setLaunchedProjects(
+      launchedProjects.filter(
+        // Disallow Cloud projects and Hybrid projects from auto-opening.
+        (project) => project.type === backendModule.BackendType.local && project.hybrid == null,
+      ),
+    )
+  })
 
   const addLaunchedProject = eventCallbacks.useEventCallback((project: LaunchedProject) => {
     setLaunchedProjects((current) => [...current, project])
