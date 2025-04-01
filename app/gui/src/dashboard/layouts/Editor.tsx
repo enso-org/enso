@@ -42,6 +42,7 @@ function Editor(props: EditorProps) {
   const { getText } = textProvider.useText()
 
   const backend = backendProvider.useBackendForProjectType(project.type)
+  const remoteBackend = backendProvider.useRemoteBackend()
 
   const projectStatusQuery = projectHooks.createGetProjectDetailsQuery({
     assetId: project.id,
@@ -62,13 +63,31 @@ function Editor(props: EditorProps) {
     },
   })
 
+  const hybridProjectStatusQuery = projectHooks.createGetProjectDetailsQuery({
+    // This is SAFE, if and only if `enabled` below is `project.hybrid != null`.
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    assetId: project.hybrid!.cloudProjectId,
+    backend: remoteBackend,
+  })
+
+  const hybridProjectOpenQuery = reactQuery.useQuery({
+    ...hybridProjectStatusQuery,
+    select: (data) => projectHooks.OPENED_PROJECT_STATES.has(data.state.type),
+    enabled: project.hybrid != null,
+  })
+
   const { isProjectClosed, isProjectOpening, isProjectOpened, isProjectClosing } = projectQuery.data
 
   React.useEffect(() => {
-    if (isProjectClosed && !preventAutoReopen) {
+    if (
+      // Open project unless it is not supposed to be reopened.
+      (isProjectClosed && !preventAutoReopen) ||
+      // Open hybrid project if it is still marked as opened.
+      hybridProjectOpenQuery.data === true
+    ) {
       startProject(project)
     }
-  }, [isProjectClosed, startProject, project, preventAutoReopen])
+  }, [isProjectClosed, startProject, project, preventAutoReopen, hybridProjectOpenQuery.data])
 
   useTimeoutCallback({
     callback: () => {

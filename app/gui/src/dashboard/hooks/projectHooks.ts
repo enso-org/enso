@@ -432,7 +432,7 @@ export function useOpenHybridProject() {
             recentProjects: false,
           })
           project = assets.filter((item) => item.type === backendModule.AssetType.project).at(0)
-          if (project !== undefined) {
+          if (project) {
             break
           }
         }
@@ -447,12 +447,7 @@ export function useOpenHybridProject() {
         })
       } catch (error) {
         toastAndLog('openProjectError', error, asset.title)
-        closeProject({
-          id: asset.id,
-          title: asset.title,
-          parentId: asset.parentId,
-          type: backendModule.BackendType.local,
-        })
+        closeProject({ ...asset, type: backendModule.BackendType.local })
       }
     },
   )
@@ -467,7 +462,12 @@ export function useOpenProjectNatively() {
       asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>,
       backendType: backendModule.BackendType,
     ) => {
-      openProject({ ...asset, type: backendType })
+      openProject({
+        id: asset.id,
+        title: asset.title,
+        parentId: asset.parentId,
+        type: backendType,
+      })
     },
   )
 }
@@ -488,7 +488,12 @@ export function useOpenProjectLocally() {
         await openHybridProject(asset)
         return
       } else {
-        openProject({ ...asset, type: backendType })
+        openProject({
+          id: asset.id,
+          title: asset.title,
+          parentId: asset.parentId,
+          type: backendType,
+        })
       }
     },
   )
