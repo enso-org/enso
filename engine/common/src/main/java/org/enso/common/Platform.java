@@ -12,9 +12,7 @@ public enum Platform {
 
   private static final Platform OPERATING_SYSTEM = detectOperatingSystem();
 
-  private Platform() {}
-
-  public static Platform detectOperatingSystem() {
+  private static Platform detectOperatingSystem() {
     var osName = System.getProperty(OS_NAME);
     var lowerOsName = osName.toLowerCase();
 

@@ -7,7 +7,7 @@ import org.enso.common.Platform;
 /** Provides information about user directories. */
 public sealed interface Directories permits LinuxDirectories, MacOsDirectories, WindowsDirectories {
   static Directories getForCurrentPlatform() {
-    return switch (Platform.detectOperatingSystem()) {
+    return switch (Platform.getOperatingSystem()) {
       case Platform.LINUX -> LinuxDirectories.getInstance();
       case Platform.MACOS -> MacOsDirectories.getInstance();
       case Platform.WINDOWS -> WindowsDirectories.getInstance();

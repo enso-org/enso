@@ -6,7 +6,7 @@ import org.enso.common.Platform;
 /** Operations with system trash */
 public sealed interface TrashBin permits LinuxTrashBin, WindowsTrashBin, MacTrashBin {
   static TrashBin getForCurrentPlatform() {
-    return switch (Platform.detectOperatingSystem()) {
+    return switch (Platform.getOperatingSystem()) {
       case Platform.LINUX -> LinuxTrashBin.getInstance();
       case Platform.MACOS -> MacTrashBin.getInstance();
       case Platform.WINDOWS -> WindowsTrashBin.getInstance();
