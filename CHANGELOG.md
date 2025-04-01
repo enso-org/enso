@@ -302,7 +302,6 @@
 - [The reload button clears the AuthenticationProvider, EnsoSecretReader and
   AuditLog caches.][12541]
 
-
 [11235]: https://github.com/enso-org/enso/pull/11235
 [11255]: https://github.com/enso-org/enso/pull/11255
 [11371]: https://github.com/enso-org/enso/pull/11371
