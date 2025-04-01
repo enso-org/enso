@@ -6,13 +6,13 @@ import Standard.Base.Runtime.Context
 
 from Standard.Table import Table
 
-import project.Connection.Connection_Options.Connection_Options
-import project.Internal.Column_Fetcher as Column_Fetcher_Module
-import project.Internal.JDBC_Connection
-import project.Internal.SQL_Warning_Helper
-import project.Internal.Statement_Setter.Statement_Setter
-import project.SQL_Query.SQL_Query
-from project.Internal.Result_Set import read_column, result_set_to_table
+import Standard.Database.Connection.Connection_Options.Connection_Options
+import Standard.Database.Internal.Column_Fetcher as Column_Fetcher_Module
+import Standard.Database.Internal.JDBC_Connection
+import Standard.Database.Internal.SQL_Warning_Helper
+import Standard.Database.Internal.Statement_Setter.Statement_Setter
+import Standard.Database.SQL_Query.SQL_Query
+from Standard.Database.Internal.Result_Set import read_column, result_set_to_table
 
 polyglot java import java.sql.DatabaseMetaData
 
