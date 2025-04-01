@@ -270,7 +270,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               hidden={hidden}
               action="close"
               doAction={() => {
-                closeProject({
+                void closeProject({
                   id: asset.id,
                   title: asset.title,
                   parentId: asset.parentId,
