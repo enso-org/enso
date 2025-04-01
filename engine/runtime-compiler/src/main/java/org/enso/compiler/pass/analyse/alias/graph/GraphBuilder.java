@@ -92,6 +92,16 @@ public final class GraphBuilder {
     graph.resolveLocalUsage(use);
   }
 
+  /**
+   * Freezes the associated graph from further modifications.
+   *
+   * @return this
+   */
+  public final GraphBuilder freeze() {
+    graph.freeze();
+    return this;
+  }
+
   public Graph toGraph() {
     return graph;
   }

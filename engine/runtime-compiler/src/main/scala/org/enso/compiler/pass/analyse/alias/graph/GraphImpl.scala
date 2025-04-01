@@ -21,7 +21,7 @@ sealed private[graph] class GraphImpl(
   private var targetLinks: Map[GraphImpl.Id, Set[Graph.Link]] =
     new HashMap()
 
-  private[graph] def rootScope: GraphImpl.Scope =
+  final def rootScope: GraphImpl.Scope =
     this.rootScopeImpl.asInstanceOf[GraphImpl.Scope]
 
   {
@@ -333,7 +333,8 @@ object GraphImpl {
     def childScopes    = _childScopes
     def occurrences    = _occurrences
     def allDefinitions = _allDefinitions
-    def parent         = if (this._parent eq null) None else Some(_parent)
+    def parent: Option[Scope] =
+      if (this._parent eq null) None else Some(_parent)
 
     /** Counts the number of scopes from this scope to the root.
       *
