@@ -6,15 +6,12 @@ import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
 final class LinuxDirectories implements Directories {
-  private static LinuxDirectories instance;
+  private static final LinuxDirectories INSTANCE = new LinuxDirectories();
 
   private LinuxDirectories() {}
 
   static LinuxDirectories getInstance() {
-    if (instance == null) {
-      instance = new LinuxDirectories();
-    }
-    return instance;
+    return INSTANCE;
   }
 
   private static final String[] PROCESS_XDG_DOCUMENTS = new String[] {"xdg-user-dir", "DOCUMENTS"};
