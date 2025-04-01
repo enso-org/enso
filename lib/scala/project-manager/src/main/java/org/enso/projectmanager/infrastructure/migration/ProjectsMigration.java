@@ -22,7 +22,7 @@ public final class ProjectsMigration {
 
   public static void migrate(configuration.StorageConfig storageConfig) {
     var oldProjectsPath =
-        Directories.getForCurrentPlatform()
+        Directories.CURRENT
             .getUserHome()
             .resolve("enso")
             .resolve("projects")

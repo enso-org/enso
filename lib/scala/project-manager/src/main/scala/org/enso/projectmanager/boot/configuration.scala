@@ -71,7 +71,7 @@ object configuration {
     def userProjectsPath: File = {
       val projectsRootDirectory =
         projectsRoot.getOrElse(
-          Directories.getForCurrentPlatform.getDocuments.toFile
+          Directories.CURRENT.getDocuments.toFile
         )
       new File(projectsRootDirectory, projectsDirectory)
     }

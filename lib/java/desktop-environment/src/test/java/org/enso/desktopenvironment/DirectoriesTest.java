@@ -8,7 +8,7 @@ import org.junit.Test;
 
 public class DirectoriesTest {
 
-  private static final Directories directories = Directories.getForCurrentPlatform();
+  private static final Directories directories = Directories.CURRENT;
 
   @Test
   public void getUserHome() {

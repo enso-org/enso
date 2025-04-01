@@ -11,7 +11,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class TrashBinTest {
 
-  private static final TrashBin TRASH_BIN = TrashBin.getForCurrentPlatform();
+  private static final TrashBin TRASH_BIN = TrashBin.CURRENT;
 
   @Rule public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
