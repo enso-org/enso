@@ -1,6 +1,6 @@
 package org.enso.projectmanager.boot
 
-import org.enso.desktopenvironment.Directories
+import org.enso.desktopenvironment.{DesktopEnvironment, Directories}
 import org.slf4j.event.Level
 
 import java.io.{File, IOException}
@@ -71,7 +71,7 @@ object configuration {
     def userProjectsPath: File = {
       val projectsRootDirectory =
         projectsRoot.getOrElse(
-          Directories.CURRENT.getDocuments.toFile
+          DesktopEnvironment.getDirectories.getDocuments.toFile
         )
       new File(projectsRootDirectory, projectsDirectory)
     }

@@ -13,11 +13,11 @@ public class PlatformTest {
 
   @Test
   public void getDirectories() {
-    Assert.assertNotNull(Directories.CURRENT);
+    Assert.assertNotNull(DesktopEnvironment.getDirectories());
   }
 
   @Test
   public void getTrashBin() {
-    Assert.assertNotNull(TrashBin.CURRENT);
+    Assert.assertNotNull(DesktopEnvironment.getTrashBin());
   }
 }
