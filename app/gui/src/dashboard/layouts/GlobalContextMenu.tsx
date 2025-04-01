@@ -17,12 +17,13 @@ import {
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import CreateCredentialModal from '#/modals/UpsertCredentialModal'
+import CreateCredentialModal from '#/modals/CreateCredentialModal'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { BackendType, CredentialMetadata, type DirectoryId } from '#/services/Backend'
+import type { CredentialMetadata } from '#/services/Backend';
+import { BackendType, type DirectoryId } from '#/services/Backend'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 
 /** Props for a {@link GlobalContextMenu}. */

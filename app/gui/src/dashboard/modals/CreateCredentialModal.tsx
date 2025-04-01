@@ -36,7 +36,7 @@ export default function CreateCredentialModal(props: CreateCredentialModalProps)
   const [selectedChildIndex, setSelectedChildIndex] = useState<number>(0)
   const selectedItem = CREDENTIAL_INFOS[selectedChildIndex] ?? CREDENTIAL_INFOS[0]
   const content = (
-    <div className="w-full h-full">
+    <div className="w-full">
       <Dropdown
         aria-label={getText('credentialTypeLabel')}
         items={CREDENTIAL_INFOS}
@@ -48,17 +48,9 @@ export default function CreateCredentialModal(props: CreateCredentialModalProps)
       >
         {({ item }) => <Text slot="label">{getText(item.nameId)}</Text>}
       </Dropdown>
-      <Text>{selectedItem.nameId}</Text>
+      {selectedItem.form()}
     </div>
   )
-
-  /*
-  <CredentialsFormButtons 
-        isCreating={true}
-        canCancel={true}
-        canReset={false}
-      />
-      */
 
   return noDialog ? content : (
       <Dialog

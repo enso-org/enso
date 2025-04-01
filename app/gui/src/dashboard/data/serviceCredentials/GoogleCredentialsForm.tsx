@@ -4,25 +4,39 @@
  * Remember to ensure this component is added to `CREDENTIAL_INFOS` in `constants.ts`.
  */
 
-import { Checkbox } from '#/components/AriaComponents'
+import { Checkbox, Form, Input } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
-import type { CredentialsFormProps } from './types'
-import { CheckboxGroup } from '#/components/AriaComponents/Checkbox/CheckboxGroup'
+import { z } from 'zod'
+import { CredentialsFormButtons } from './CredentialsFormButtons'
+
+const FORM_SCHEMA = z.object({
+  title: z.string(),
+  scopes: z.array(z.string()),
+})
 
 /** Dialog for a Google credential. */
-export function GoogleCredentialsDialog(_props: CredentialsFormProps) {
+export function GoogleCredentialsForm() {
   const { getText } = useText()
+  
+  const form = Form.useForm({
+    method: 'dialog',
+    schema: FORM_SCHEMA,
+    onSubmit: (values) => {
+      console.log(values)
+    },
+  })
+
+  /*
+  <Checkbox.Group form={form} name="scopes">
+        <Checkbox value="sheets">{getText('googleCredentialSheetsScope')}</Checkbox>
+        <Checkbox value="analytics">{getText('googleCredentialAnalyticsScope')}</Checkbox>
+      </Checkbox.Group>*/
+
   return (
-    <div className="w-full">
-      {/* `name` field is pre-filtered to only fields with a matching type! */}
-      <CheckboxGroup name="scopes">
-        <Checkbox value="https://www.googleapis.com/auth/spreadsheets">
-          {getText('googleCredentialSheetsScope')}
-        </Checkbox>
-        <Checkbox value="https://www.googleapis.com/auth/analytics">
-          {getText('googleCredentialAnalyticsScope')}
-        </Checkbox>
-      </CheckboxGroup>
-    </div>
+    <Form form={form} className="w-full">
+      <Input form={form} name="title" label={getText('name')} />
+      
+      <CredentialsFormButtons isCreating={true} canCancel={false} canReset={false} />
+    </Form>
   )
 }

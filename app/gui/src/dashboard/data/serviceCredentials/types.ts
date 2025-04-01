@@ -2,11 +2,6 @@
 import type { CredentialMetadata, SecretId } from 'enso-common/src/services/Backend'
 import type { TextId } from 'enso-common/src/text'
 
-/** Props for a credentials form. */
-export interface CredentialsFormProps {
-  readonly value?: unknown
-}
-
 /** Information to describe a credential in the list of credentials. */
 export interface CredentialInfo {
   readonly nameId: TextId & `${string}CredentialType`
@@ -15,5 +10,5 @@ export interface CredentialInfo {
   /** A SVG data url. */
   readonly icon: string | undefined
   readonly makeAuthUrl: (id: SecretId, metadata: CredentialMetadata) => string,
-  readonly component: (props: CredentialsFormProps) => JSX.Element
+  readonly form: () => JSX.Element
 }
