@@ -7,10 +7,7 @@ import { DialogTrigger, GridList, GridListItem } from '#/components/aria'
 import { useText } from '#/providers/TextProvider'
 import { useState } from 'react'
 import { NotificationItem } from './NotificationItem'
-import {
-  useComputedNotifications,
-  useNotificationState,
-} from './computedNotificationHooks'
+import { useComputedNotifications, useNotificationState } from './computedNotificationHooks'
 import type { NotificationInfo } from './types'
 
 const DIALOG_OFFSET = 16
