@@ -23,7 +23,7 @@ export function SnowflakeCredentialsForm(props: CredentialFormProps) {
 
   return (
     <Form form={form} className="w-full">
-      <Input form={form} name="title" label={getText('name')} />
+      <Input form={form} name="name" label={getText('name')} />
       <Input form={form} name="account" label={getText('account')} />
       <Input form={form} name="clientId" label={getText('clientId')} />
       <Input form={form} name="clientSecret" label={getText('clientSecret')} />

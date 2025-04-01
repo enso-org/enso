@@ -7,7 +7,7 @@ import type { CredentialRecipe } from "./types";
 import { getOauthCallbackPath } from "#/services/remoteBackendPaths";
 
 export const FORM_SCHEMA = z.object({
-  title: z.string().min(1),
+  name: z.string().min(1),
   account: z.string().min(1),
   clientId: z.string().min(1),
   clientSecret: z.string().min(1),
@@ -30,7 +30,7 @@ export function submitForm(createCredentials: (recipe: CredentialRecipe) => Prom
       /* eslint-enable @typescript-eslint/naming-convention, camelcase */
     }
     return createCredentials({
-      title: values.title,
+      name: values.name,
       input,
       makeAuthUrl: (secretId: SecretId, nonce: string) => {
         const state = btoa(JSON.stringify({ secretId, nonce }))

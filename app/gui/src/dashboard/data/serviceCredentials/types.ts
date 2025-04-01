@@ -6,7 +6,7 @@ import type { TextId } from 'enso-common/src/text'
  * TODO
  */
 export interface CredentialRecipe {
-  readonly title: string
+  readonly name: string
   readonly input: CredentialInput
   readonly makeAuthUrl: (secretId: SecretId, nonce: string) => string
 }

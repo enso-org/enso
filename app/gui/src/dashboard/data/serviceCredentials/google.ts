@@ -11,7 +11,7 @@ import type { CredentialRecipe } from './types'
 
 
 export const FORM_SCHEMA = z.object({
-  title: z.string().min(1),
+  name: z.string().min(1),
   scopes: z.array(z.string()).refine((scopes) => scopes.length > 0, {message: i18n.getText(i18n.resolveDictionary(), 'googleCredentialScopesEmptyError')}),
 })
 
@@ -48,7 +48,7 @@ export function submitForm(createCredentials: (recipe: CredentialRecipe) => Prom
     scopes: oauthScopes
   }
   return createCredentials({
-    title: values.title,
+    name: values.name,
     input,
     makeAuthUrl: (secretId: SecretId, nonce: string) => {
       invariant($config.GOOGLE_OAUTH_CLIENT_ID != null, 'Google OAuth client id is missing')

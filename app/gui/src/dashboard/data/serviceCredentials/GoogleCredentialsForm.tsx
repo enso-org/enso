@@ -24,7 +24,7 @@ export function GoogleCredentialsForm(props: CredentialFormProps) {
 
   return (
     <Form form={form} className="w-full">
-      <Input form={form} name="title" label={getText('name')} />
+      <Input form={form} name="name" label={getText('name')} />
       <Checkbox.Group form={form} name="scopes" label={getText('googleCredentialScopes')} defaultValue={["sheets"]}>
         <Checkbox value="sheets">{getText('googleCredentialSheetsScope')}</Checkbox>
         <Checkbox value="analytics">{getText('googleCredentialAnalyticsScope')}</Checkbox>
