@@ -11,7 +11,7 @@ export const FORM_SCHEMA = z.object({
   account: z.string().min(1),
   clientId: z.string().min(1),
   clientSecret: z.string().min(1),
-  role: z.string().nullable().transform((s) => s == null || s.length === 0 ? null : s)
+  role: z.string().min(1)
 })
 
 /**
@@ -32,7 +32,7 @@ export function submitForm(createCredentials: (recipe: CredentialRecipe) => Prom
       input,
       makeAuthUrl: (secretId: SecretId, nonce: string) => {
         const state = btoa(JSON.stringify({ secretId, nonce }))
-        const scope = "refresh_token" + (role == null ? "" : " session:role:" + role)
+        const scope = "refresh_token" + (" session:role:" + role)
         const query = new URLSearchParams({
           /* eslint-disable @typescript-eslint/naming-convention, camelcase */
           client_id: values.clientId,
