@@ -16,7 +16,7 @@ class RuntimeManagementTest extends InterpreterTest {
   override def contextModifiers: Option[Context#Builder => Context#Builder] =
     Some(b => {
       b.allowCreateThread(true)
-        .option(RuntimeOptions.JOB_PARALLELISM, "" + parallelism)
+        .option(RuntimeOptions.GUEST_PARALLELISM, "" + parallelism)
     })
 
   override def specify(implicit
