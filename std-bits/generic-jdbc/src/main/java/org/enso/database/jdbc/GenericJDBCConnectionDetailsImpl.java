@@ -6,7 +6,7 @@ import org.enso.database.DatabaseConnectionDetailsSPI;
 public final class GenericJDBCConnectionDetailsImpl extends DatabaseConnectionDetailsSPI {
   @Override
   protected String getModuleName() {
-    return "Standard.Database.JDBC.Generic_JDBC_Connection";
+    return "Standard.Generic_JDBC.Generic_JDBC_Connection";
   }
 
   @Override

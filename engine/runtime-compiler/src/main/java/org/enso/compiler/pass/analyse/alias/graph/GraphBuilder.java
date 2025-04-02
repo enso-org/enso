@@ -31,6 +31,8 @@ public final class GraphBuilder {
    * @return builder operating on the graph {@code g} starting at scope {@code s}
    */
   public static GraphBuilder create(Graph g, Graph.Scope s) {
+    assert g != null;
+    assert s != null;
     return new GraphBuilder(g, s);
   }
 
@@ -41,26 +43,6 @@ public final class GraphBuilder {
    */
   public GraphBuilder addChild() {
     return new GraphBuilder(graph, scope.addChild());
-  }
-
-  /**
-   * Adds occurrence to current scope.
-   *
-   * @return this builder with modified scope
-   */
-  public GraphBuilder add(GraphOccurrence occ) {
-    this.scope.add(occ);
-    return this;
-  }
-
-  /**
-   * Adds definition to current scope.
-   *
-   * @return this builder with modified scope
-   */
-  public GraphBuilder addDefinition(GraphOccurrence.Def def) {
-    this.scope.addDefinition(def);
-    return this;
   }
 
   /**
@@ -81,21 +63,29 @@ public final class GraphBuilder {
   /** Creates new definition for */
   public GraphOccurrence.Def newDef(
       String symbol, java.util.UUID identifier, scala.Option<java.util.UUID> externalId) {
-    return newDef(symbol, identifier, externalId, false);
+    return newDef(symbol, identifier, externalId, false, true);
   }
 
   public GraphOccurrence.Def newDef(
       String symbol,
       java.util.UUID identifier,
       scala.Option<java.util.UUID> externalId,
-      boolean suspended) {
-    return new GraphOccurrence.Def(graph.nextId(), symbol, identifier, externalId, suspended);
+      boolean suspended,
+      boolean addToScope) {
+    var def = new GraphOccurrence.Def(graph.nextId(), symbol, identifier, externalId, suspended);
+    if (addToScope) {
+      scope.add(def);
+    }
+    scope.addDefinition(def);
+    return def;
   }
 
   /** Factory method to create new [GraphOccurrence.Use]. */
   public GraphOccurrence.Use newUse(
       String symbol, java.util.UUID identifier, scala.Option<java.util.UUID> externalId) {
-    return new GraphOccurrence.Use(graph.nextId(), symbol, identifier, externalId);
+    var use = new GraphOccurrence.Use(graph.nextId(), symbol, identifier, externalId);
+    scope.add(use);
+    return use;
   }
 
   public void resolveLocalUsage(GraphOccurrence.Use use) {

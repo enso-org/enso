@@ -23,7 +23,7 @@ export interface TextProps
   readonly lineClamp?: number
   readonly tooltip?: TooltipElementType
   readonly tooltipTriggerRef?: React.RefObject<HTMLElement>
-  readonly tooltipDisplay?: visualTooltip.VisualTooltipOptions['display']
+  readonly tooltipDisplay?: visualTooltip.VisualTooltipOptions['display'] | 'never'
   readonly tooltipPlacement?: aria.Placement
   readonly tooltipOffset?: number
   readonly tooltipCrossOffset?: number
@@ -86,10 +86,15 @@ export const TEXT_STYLE = twv.tv({
       lowercase: 'lowercase',
       uppercase: 'uppercase',
     },
+    align: {
+      left: 'text-left',
+      center: 'text-center',
+      right: 'text-right',
+    },
     truncate: {
       true: 'block truncate',
       /* eslint-disable @typescript-eslint/naming-convention */
-      '1': 'line-clamp-1',
+      '1': 'block truncate',
       '2': 'line-clamp-2',
       '3': 'line-clamp-3',
       '4': 'line-clamp-4',
@@ -167,6 +172,7 @@ export const Text = memo(
       tooltipCrossOffset,
       textSelection,
       disableLineHeightCompensation = false,
+      align,
       ...ariaProps
     } = props
 
@@ -190,22 +196,24 @@ export const Text = memo(
           textContext.isInsideTextComponent
         : disableLineHeightCompensation,
       className,
+      align,
     })
 
     const isTooltipDisabled = useEventCallback(() => {
       if (tooltipDisplay === 'whenOverflowing') {
         return truncate == null
-      } else if (tooltipDisplay === 'always') {
-        return tooltipElement === false || tooltipElement == null
-      } else {
-        return false
       }
+      if (tooltipDisplay === 'always') {
+        return tooltipElement === false || tooltipElement == null
+      }
+
+      return tooltipDisplay === 'never'
     })
 
     const { tooltip, targetProps } = visualTooltip.useVisualTooltip({
       isDisabled: isTooltipDisabled(),
       targetRef: textElementRef,
-      display: tooltipDisplay,
+      display: tooltipDisplay === 'never' ? () => false : tooltipDisplay,
       children: tooltipElement,
       ...(tooltipPlacement || tooltipOffset != null || tooltipCrossOffset != null ?
         {

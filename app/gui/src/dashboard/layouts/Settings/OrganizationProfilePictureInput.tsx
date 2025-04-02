@@ -1,8 +1,6 @@
 /** @file The input for viewing and changing the organization's profile picture. */
 import { useMutation } from '@tanstack/react-query'
 
-import DefaultUserIcon from '#/assets/default_user.svg'
-
 import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -11,6 +9,8 @@ import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 
 import { Form, HiddenFile } from '#/components/AriaComponents'
+import { ProfilePicture } from '#/components/ProfilePicture'
+import { StatelessSpinner } from '#/components/StatelessSpinner'
 import type Backend from '#/services/Backend'
 
 /** Props for a {@link OrganizationProfilePictureInput}. */
@@ -30,30 +30,41 @@ export default function OrganizationProfilePictureInput(
     backendMutationOptions(backend, 'uploadOrganizationPicture'),
   )
 
-  const form = Form.useForm({
-    schema: (z) => z.object({ picture: z.instanceof(File) }),
-    onSubmit: async ({ picture }) => {
-      await uploadOrganizationPicture.mutateAsync([{ fileName: picture.name }, picture])
-    },
-  })
-
   return (
-    <Form form={form}>
+    <Form
+      schema={(z) => z.object({ picture: z.instanceof(File) })}
+      onSubmit={({ picture }) =>
+        uploadOrganizationPicture.mutateAsync([{ fileName: picture.name }, picture])
+      }
+    >
       <FocusRing within>
         <aria.Label
           data-testid="organization-profile-picture-input"
-          className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame"
+          className="relative flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center rounded-full transition-colors hover:bg-frame"
         >
-          <img
-            src={organization?.picture ?? DefaultUserIcon}
+          {uploadOrganizationPicture.isPending && (
+            <StatelessSpinner
+              state="loading-medium"
+              className="absolute -inset-1"
+              thickness={0.5}
+            />
+          )}
+
+          <ProfilePicture
+            picture={organization?.picture}
+            name={organization?.name ?? ''}
+            size="large"
             className="pointer-events-none h-full w-full"
           />
-          <HiddenFile autoSubmit form={form} name="picture" />
+
+          <HiddenFile autoSubmit name="picture" />
         </aria.Label>
       </FocusRing>
       <aria.Text className="w-profile-picture-caption py-profile-picture-caption-y">
         {getText('organizationProfilePictureWarning')}
       </aria.Text>
+
+      <Form.FormError />
     </Form>
   )
 }
