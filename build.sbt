@@ -4181,8 +4181,7 @@ lazy val `change-directory` =
             "--report-unsupported-elements-at-runtime",
             "-ea",
             "--features=org.enso.change.directory.TestCollectorFeature"
-          ),
-          verbose = true
+          )
         )
       }.value,
       Test / test := Def
