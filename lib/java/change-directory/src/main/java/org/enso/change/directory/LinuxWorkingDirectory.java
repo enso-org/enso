@@ -1,5 +1,6 @@
 package org.enso.change.directory;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
@@ -68,10 +69,10 @@ public final class LinuxWorkingDirectory implements WorkingDirectory {
   @Override
   public boolean exists(String dir, String file) {
     String full;
-    if (dir.endsWith("/")) {
-      full = new String(dir + file);
+    if (dir.endsWith(File.separator)) {
+      full = dir + file;
     } else {
-      full = dir + "/" + file;
+      full = dir + File.separator + file;
     }
     try (var cPath = CTypeConversion.toCString(full)) {
       var res = access(cPath.get(), R_OK());
