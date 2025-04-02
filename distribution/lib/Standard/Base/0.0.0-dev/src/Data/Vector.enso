@@ -1024,15 +1024,15 @@ type Vector a
          user expects that two vectors should have the same amount of elements;
          if they do not, the behaviour is the same as if it was set to `True` -
          i.e. the unmatched elements are kept with `Nothing` values for the
-         other `Vector`, but a `Row_Count_Mismatch` problem is also reported.
+         other vector, but a `Row_Count_Mismatch` problem is also reported.
        - on_problems: Specifies how to handle any problems that arise in
          `function`.
 
-       The result of this function is a `Vector` containing results of calling
+       The result of this function is a vector containing results of calling
        `function`. For `keep_unmatched=True`, the length of the resulting
-       `Vector` is the maximum of the lengths of the input `Vector`s.  For
-       `keep_unmatched=False`, the length of the resulting `Vector` is the
-       minimum of the lengths of the input `Vector`s.
+       vector is the maximum of the lengths of the input vectors.  For
+       `keep_unmatched=False`, the length of the resulting vector is the
+       minimum of the lengths of the input vectors.
 
        ! Error Conditions
 
