@@ -65,9 +65,18 @@ const label = computed(() => {
   return undefined
 })
 
+const focus = editorView.focus.bind(editorView)
+
 defineExpose({
   blur: editorView.contentDOM.blur.bind(editorView.contentDOM),
-  focus: editorView.focus.bind(editorView),
+  focus,
+  /**
+   * Focus the editor asynchronously.
+   *
+   * THe editor cannot be focused until after it is mounted, because it is inserted into the DOM
+   * dynamically. This function focuses the editor when it is ready.
+   */
+  delayedFocus: () => setTimeout(focus),
 })
 
 const rootStyle = computed(() => {

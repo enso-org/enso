@@ -143,7 +143,7 @@ function panIntoView() {
 onMounted(() => {
   interaction.setCurrent(cbOpen)
   input.reset(props.usage)
-  setTimeout(() => inputElement.value?.focus())
+  inputElement.value?.delayedFocus()
   panIntoView()
 })
 
