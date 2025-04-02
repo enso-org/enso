@@ -1,7 +1,6 @@
 ## Enso Signatures 1.0
 ## module Standard.Visualization.Table.Visualization
-- apply_filter_to_table table:Standard.Base.Any.Any i:Standard.Base.Any.Any filter_col:Standard.Base.Any.Any filter_condition:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- apply_single_filter_to_table table:Standard.Base.Any.Any filter_col:Standard.Base.Any.Any filter_condition:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- apply_filter_to_table table:Standard.Base.Any.Any i:Standard.Base.Any.Any filter_cols:Standard.Base.Any.Any filter_conditions:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - apply_sort_to_table table:Standard.Base.Any.Any sort_col_index_list:Standard.Base.Any.Any sort_direction_list:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - get_distinct_values_for_column table:Standard.Base.Any.Any column_index:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - get_rows_for_table table:Standard.Base.Any.Any start_number:Standard.Base.Any.Any sort_col_index_list:Standard.Base.Any.Any= sort_direction_list:Standard.Base.Any.Any= filter_col:Standard.Base.Any.Any= filter_condition:Standard.Base.Any.Any= -> Standard.Base.Any.Any
