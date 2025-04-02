@@ -47,7 +47,7 @@ add_specs suite_builder setup =
                 t3 = t1.zip t2
                 expect_column_names ["X", "Y", "Z", "W"] t3
                 t3.row_count . should_equal 3
-                r = materialize t3 . rows . map .to_vector
+                r = materialize t3 . rows . map (_.to Vector)
                 r.length . should_equal 3
                 r0 = [1, 4, 'a', 'x']
                 r1 = [2, 5, 'b', 'y']
@@ -62,7 +62,7 @@ add_specs suite_builder setup =
                 t3 = c1.zip c2
                 expect_column_names ["X", "Z"] t3
                 t3.row_count . should_equal 3
-                r = materialize t3 . rows . map .to_vector
+                r = materialize t3 . rows . map (_.to Vector)
                 r.length . should_equal 3
                 r0 = [1,  'a']
                 r1 = [2,  'b']
@@ -77,7 +77,7 @@ add_specs suite_builder setup =
                 t3 = c1.zip c2
                 expect_column_names ["X", "Z"] t3
                 t3.row_count . should_equal 3
-                r = materialize t3 . rows . map .to_vector
+                r = materialize t3 . rows . map (_.to Vector)
                 r.length . should_equal 3
                 r0 = [1,  'a']
                 r1 = [2,  'b']
@@ -95,7 +95,7 @@ add_specs suite_builder setup =
             t5 = t3.zip t4
             expect_column_names ["X", "Y", "Z", "W"] t5
             t5.row_count . should_equal 2
-            r = materialize t5 . rows . map .to_vector
+            r = materialize t5 . rows . map (_.to Vector)
             r.length . should_equal 2
 
             r0 = [2, 5, 'b', 'd']
@@ -113,7 +113,7 @@ add_specs suite_builder setup =
             t5 = c3.zip c4
             expect_column_names ["X", "Z"] t5
             t5.row_count . should_equal 2
-            r = materialize t5 . rows . map .to_vector
+            r = materialize t5 . rows . map (_.to Vector)
             r.length . should_equal 2
 
             r0 = [2, 'b']
@@ -164,8 +164,8 @@ add_specs suite_builder setup =
             t3 = c1.zip c2 keep_unmatched=True on_problems=..Report_Error
             Problems.assume_no_problems t3
             expect_column_names ["X", "Z"] t3
-            t3.at "X" . to_vector . should_equal [1, 2, 3]
-            t3.at "Z" . to_vector . should_equal ['a', Nothing, Nothing]
+            t3.at "X" . to Vector . should_equal [1, 2, 3]
+            t3.at "Z" . to Vector . should_equal ['a', Nothing, Nothing]
 
         group_builder.specify "should allow to drop the unmatched rows" <|
             t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
@@ -222,24 +222,24 @@ add_specs suite_builder setup =
             t3 = c1.zip empty
             expect_column_names ["X", "Z"] t3
             t3.row_count . should_equal 2
-            t3.at "X" . to_vector . should_equal [1, 2]
-            t3.at "Z" . to_vector . should_equal [Nothing, Nothing]
+            t3.at "X" . to Vector . should_equal [1, 2]
+            t3.at "Z" . to Vector . should_equal [Nothing, Nothing]
 
             t4 = empty.zip c1
             expect_column_names ["Z", "X"] t4
             t4.row_count . should_equal 2
-            t4.at "X" . to_vector . should_equal [1, 2]
-            t4.at "Z" . to_vector . should_equal [Nothing, Nothing]
+            t4.at "X" . to Vector . should_equal [1, 2]
+            t4.at "Z" . to Vector . should_equal [Nothing, Nothing]
 
             t5 = c1.zip empty keep_unmatched=False
             expect_column_names ["X", "Z"] t5
             t5.row_count . should_equal 0
-            t5.at "X" . to_vector . should_equal []
+            t5.at "X" . to Vector . should_equal []
 
             t6 = empty.zip c1 keep_unmatched=False
             expect_column_names ["Z", "X"] t6
             t6.row_count . should_equal 0
-            t6.at "X" . to_vector . should_equal []
+            t6.at "X" . to Vector . should_equal []
 
         group_builder.specify "should not report unmatched rows for rows that simply are all null" <|
             t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
@@ -292,8 +292,8 @@ add_specs suite_builder setup =
             t2.row_count . should_equal 2
             t2.at "X" . to_vector . should_equal [1, 2]
             t2.at "Y" . to_vector . should_equal [4, 5]
-            t2.at "Right X" . to_vector . should_equal [1, 2]
-            t2.at "Right Y" . to_vector . should_equal [4, 5]
+            t2.at "Right X" . to Vector . should_equal [1, 2]
+            t2.at "Right Y" . to Vector . should_equal [4, 5]
 
         group_builder.specify "should allow to zip the column with itself" <|
             ## Even though this does not seem very useful, we should verify that

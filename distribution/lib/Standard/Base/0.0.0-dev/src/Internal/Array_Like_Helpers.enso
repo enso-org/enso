@@ -85,8 +85,7 @@ slice vector start end = @Builtin_Method "Array_Like_Helpers.slice"
 vector_from_function : Integer -> (Integer -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
 vector_from_function length constructor on_problems = @Builtin_Method "Array_Like_Helpers.vector_from_function"
 
-## PRIVATE
-   Performs a pair-wise operation passed in `function` on consecutive
+## Performs a pair-wise operation passed in `function` on consecutive
    elements of `self` and `that`.
    See `Vector.zip` for full documentation.
 zip this that (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = False) (keep_unmatched : Boolean | Report_Unmatched = False) on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
