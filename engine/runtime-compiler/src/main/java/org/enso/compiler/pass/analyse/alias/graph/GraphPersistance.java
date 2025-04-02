@@ -2,7 +2,7 @@ package org.enso.compiler.pass.analyse.alias.graph;
 
 import java.io.IOException;
 import org.enso.persist.Persistance;
-import scala.Tuple2$;
+import scala.collection.immutable.HashMap;
 
 public final class GraphPersistance {
   private GraphPersistance() {}
@@ -18,9 +18,17 @@ public final class GraphPersistance {
     protected GraphImpl.Scope readObject(Input in) throws IOException {
       var childScopes = in.readInline(scala.collection.immutable.List.class);
       var occurrencesValues = (scala.collection.immutable.Set<GraphOccurrence>) in.readObject();
-      var occurrences = occurrencesValues.map(v -> Tuple2$.MODULE$.apply(v.id(), v)).toMap(null);
       var allDefinitions = in.readInline(scala.collection.immutable.List.class);
-      var parent = new GraphImpl.Scope(childScopes, occurrences, allDefinitions);
+      var parent = new GraphImpl.Scope(childScopes, new HashMap<>(), allDefinitions);
+      occurrencesValues.foreach(
+          v -> {
+            var associated = v.withScope(parent);
+            if (associated instanceof GraphOccurrence.Use use) {
+              assert use.scope() == parent;
+            }
+            return null;
+          });
+
       childScopes.forall(
           (object) -> {
             var ch = (GraphImpl.Scope) object;

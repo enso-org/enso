@@ -83,7 +83,7 @@ public final class GraphBuilder {
   /** Factory method to create new [GraphOccurrence.Use]. */
   public GraphOccurrence.Use newUse(
       String symbol, java.util.UUID identifier, scala.Option<java.util.UUID> externalId) {
-    return new GraphOccurrence.Use(scope, graph.nextId(), symbol, identifier, externalId);
+    return GraphOccurrence.createUse(scope, graph.nextId(), symbol, identifier, externalId);
   }
 
   public void resolveLocalUsage(GraphOccurrence.Use use) {
