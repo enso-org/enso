@@ -5,6 +5,7 @@ import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.rules.TestRule;
@@ -58,6 +59,10 @@ public final class ContextUtilsRule implements TestRule {
   public EnsoContext leakContext() {
     var ctx = currentCtx();
     return ContextUtils.leakContext(ctx);
+  }
+
+  public Engine getEngine() {
+    return currentCtx().getEngine();
   }
 
   /**
