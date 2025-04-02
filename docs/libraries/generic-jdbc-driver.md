@@ -31,6 +31,24 @@ mode.
 
 ## Using JDBC Drivers
 
+### Set JVM Mode
+
+To use JDBC, Enso has to run in 'JVM Mode' which allows it to load the drivers
+at runtime.
+
+Edit the `package.yaml` file in the root of your project directory and add a
+line containing `jvm: true`:
+
+```
+name: MyProject
+namespace: local
+version: 0.0.1
+prefer-local-libraries: 'true'
+jvm: true
+```
+
+You must close and open the project in Enso for this change to take effect.
+
 ### Install The Driver
 
 Download the JDBC driver and install it in the `polyglot/java` subdirectory of
