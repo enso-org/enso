@@ -4178,6 +4178,7 @@ lazy val `change-directory` =
             "org.enso.change.directory"
           ),
           additionalOptions = Seq(
+            "--report-unsupported-elements-at-runtime",
             "-ea",
             "--features=org.enso.change.directory.TestCollectorFeature"
           ),
