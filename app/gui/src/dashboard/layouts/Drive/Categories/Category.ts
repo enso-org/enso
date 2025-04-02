@@ -4,10 +4,9 @@ import invariant from 'tiny-invariant'
 import * as z from 'zod'
 
 import { deleteAssetsMutationOptions, moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useFullUserSession } from '#/providers/AuthProvider'
-import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import { useBackend, useLocalBackend } from '#/providers/BackendProvider'
 import type { UserId } from '#/services/Backend'
 import {
   FilterBy,
@@ -222,11 +221,8 @@ export function canTransferBetweenCategories(from: Category, to: Category) {
 
 /** A function to transfer a list of assets between categories. */
 export function useTransferBetweenCategories(currentCategory: Category) {
-  const remoteBackend = useRemoteBackend()
   const localBackend = useLocalBackend()
   const backend = useBackend(currentCategory)
-  const { user } = useFullUserSession()
-  const { data: organization = null } = useBackendQuery(remoteBackend, 'getOrganization', [])
   const deleteAssetsMutation = useMutation(deleteAssetsMutationOptions(backend))
   const undoDeleteAssetMutation = useMutation(backendMutationOptions(backend, 'undoDeleteAsset'))
   const moveAssetsMutation = useMutation(moveAssetsMutationOptions(backend))
