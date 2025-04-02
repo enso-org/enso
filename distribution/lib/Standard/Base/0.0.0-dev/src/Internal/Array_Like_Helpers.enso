@@ -88,7 +88,7 @@ vector_from_function length constructor on_problems = @Builtin_Method "Array_Lik
 ## Performs a pair-wise operation passed in `function` on consecutive
    elements of `self` and `that`.
    See `Vector.zip` for full documentation.
-zip this that (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = False) (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
+zip this that (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = False) (keep_unmatched : Boolean | Report_Unmatched = False) on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
     left_len = this.length
     right_len = that.length
 
