@@ -17,6 +17,9 @@ import org.junit.runners.model.Statement;
  * {@link org.junit.ClassRule}, {@link Context} will be initialized just once for the whole test
  * class. If used as {@link org.junit.Rule}, a new {@link Context} will be initialized for each test
  * method.
+ *
+ * <p>Note that {@link ContextUtilsRule} cannot be used inside methods annotated with {@link
+ * org.junit.runners.Parameterized.Parameters}.
  */
 public final class ContextUtilsRule implements TestRule {
   private static final ThreadLocal<Context> CURRENT = new ThreadLocal<>();
@@ -51,11 +54,21 @@ public final class ContextUtilsRule implements TestRule {
     return new CustomStatement(base, description);
   }
 
+  /**
+   * @see ContextUtils#evalModule(Context, CharSequence)
+   */
   public Value evalModule(CharSequence src) {
     var ctx = currentCtx();
     return ContextUtils.evalModule(ctx, src);
   }
 
+  public Context context() {
+    return currentCtx();
+  }
+
+  /**
+   * @see ContextUtils#leakContext(Context)
+   */
   public EnsoContext leakContext() {
     var ctx = currentCtx();
     return ContextUtils.leakContext(ctx);
@@ -66,23 +79,14 @@ public final class ContextUtilsRule implements TestRule {
   }
 
   /**
-   * Evaluates the given source as if it was in a module with given name.
-   *
-   * @param src The source code of the module
-   * @param name name of the module defining the source
-   * @param methodName name of main method to invoke
-   * @return The value returned from the main method of the unnamed module.
+   * @see ContextUtils#evalModule(Context, CharSequence, String, String)
    */
   public Value evalModule(CharSequence src, String name, String methodName) {
     return ContextUtils.evalModule(currentCtx(), src, name, methodName);
   }
 
   /**
-   * Evaluates the given source as if it was in a module with given name.
-   *
-   * @param src The source code of the module
-   * @param methodName name of main method to invoke
-   * @return The value returned from the main method of the unnamed module.
+   * @see ContextUtils#evalModule(Context, Source, String)
    */
   public Value evalModule(Source src, String methodName) {
     return ContextUtils.evalModule(currentCtx(), src, methodName);
@@ -97,17 +101,18 @@ public final class ContextUtilsRule implements TestRule {
   }
 
   /**
-   * Unwraps the `receiver` field from the Value. This is a hack to allow us to test execute methods
-   * of artificially created ASTs, e.g., single nodes. More specifically, only unwrapped values are
-   * eligible to be passed to node's execute methods, we cannot pass {@link Value} directly to the
-   * node's execute methods.
-   *
-   * <p>Does something similar to what {@link
-   * com.oracle.truffle.tck.DebuggerTester#getSourceImpl(Source)} does, but uses a different hack
-   * than reflective access.
+   * @see ContextUtils#evalModule(Context, CharSequence, String)
    */
   public Object unwrapValue(Value value) {
     return ContextUtils.unwrapValue(currentCtx(), value);
+  }
+
+  public Value createValue(String src, String imports) {
+    return ContextUtils.createValue(currentCtx(), src, imports);
+  }
+
+  public Value createValue(String src) {
+    return ContextUtils.createValue(currentCtx(), src);
   }
 
   public Value asValue(Object obj) {
@@ -115,12 +120,7 @@ public final class ContextUtilsRule implements TestRule {
   }
 
   /**
-   * Executes the given callable in the current context.A necessity for executing artificially
-   * created Truffle ASTs.
-   *
-   * @param <T> type of the return value
-   * @param callable action to invoke with given return type
-   * @return Object returned from {@code callable} wrapped in {@link Value}.
+   * @see ContextUtils#executeInContext(Context, Callable)
    */
   public <T> Value executeInContext(Callable<T> callable) {
     var ctx = currentCtx();

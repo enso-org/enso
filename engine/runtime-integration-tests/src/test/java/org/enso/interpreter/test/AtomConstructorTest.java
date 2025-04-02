@@ -13,28 +13,14 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.enso.test.utils.ContextUtilsRule;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class AtomConstructorTest {
-
-  private static Context ctx;
+  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
 
   public AtomConstructorTest() {}
-
-  @BeforeClass
-  public static void initContext() {
-    ctx = ContextUtils.createDefaultContext();
-  }
-
-  @AfterClass
-  public static void closeContext() {
-    ctx.close();
-    ctx = null;
-  }
 
   @Test
   public void testGetUncached() {
@@ -42,9 +28,9 @@ public class AtomConstructorTest {
         type NoPrime
             A a b c
         """;
-    var module = ctx.eval("enso", code);
+    var module = ctxRule.eval("enso", code);
     var consA = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "NoPrime.A");
-    var raw = ContextUtils.unwrapValue(ctx, consA);
+    var raw = ctxRule.unwrapValue(consA);
 
     assertTrue("It is atom constructor: " + raw, raw instanceof AtomConstructor);
     var cons = (AtomConstructor) raw;
@@ -61,9 +47,9 @@ public class AtomConstructorTest {
         type X
             A a b c
         """;
-    var module = ctx.eval("enso", code);
+    var module = ctxRule.eval("enso", code);
     var xA = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "X.A");
-    var raw = ContextUtils.unwrapValue(ctx, xA);
+    var raw = ctxRule.unwrapValue(xA);
 
     assertTrue("It is atom constructor: " + raw, raw instanceof AtomConstructor);
     var cons = (AtomConstructor) raw;
@@ -141,8 +127,7 @@ public class AtomConstructorTest {
   }
 
   private static void assertLessArguments(String msg, Function<Object[], Atom> factory) {
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           try {
             var zero = factory.apply(new Object[0]);
@@ -182,18 +167,18 @@ public class AtomConstructorTest {
     for (var i = 0; i < constructors.length; i++) {
       sb.append("    V").append(i).append(" a\n");
     }
-    var module = ctx.eval("enso", sb.toString());
+    var module = ctxRule.eval("enso", sb.toString());
     for (var i = 0; i < constructors.length; i++) {
       var c = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "T.V" + i);
-      constructors[i] = (AtomConstructor) ContextUtils.unwrapValue(ctx, c);
+      constructors[i] = (AtomConstructor) ctxRule.unwrapValue(c);
     }
 
-    var typeValue = ctx.asValue(constructors[0].getType());
+    var typeValue = ctxRule.asValue(constructors[0].getType());
     var node = AtomNewInstanceNode.create();
 
     for (var i = 0; i < constructors.length; i++) {
       var atom = node.newInstance(constructors[i], i);
-      var atomValue = ctx.asValue(atom);
+      var atomValue = ctxRule.asValue(atom);
       assertEquals("Value is of right type", typeValue, atomValue.getMetaObject());
       var value = StructsLibrary.getUncached().getField(atom, 0);
       assertEquals("The right value found", i, value);

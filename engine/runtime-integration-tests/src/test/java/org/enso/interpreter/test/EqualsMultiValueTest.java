@@ -1,7 +1,5 @@
 package org.enso.interpreter.test;
 
-import static org.enso.test.utils.ContextUtils.createDefaultContext;
-import static org.enso.test.utils.ContextUtils.executeInContext;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -12,25 +10,23 @@ import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.enso.test.utils.TestRootNode;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class EqualsMultiValueTest {
-  private static Context context;
+  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
   private static EqualsNode equalsNode;
   private static TestRootNode testRootNode;
   private static HostValueToEnsoNode hostValueToEnsoNode;
 
   @BeforeClass
   public static void initContextAndData() {
-    context = createDefaultContext();
-    executeInContext(
-        context,
+    ctxRule.executeInContext(
         () -> {
           testRootNode = new TestRootNode(EqualsMultiValueTest::equalityCheck);
           equalsNode = EqualsNode.create();
@@ -41,9 +37,7 @@ public class EqualsMultiValueTest {
   }
 
   @AfterClass
-  public static void disposeContext() {
-    context.close();
-    context = null;
+  public static void disposeNodes() {
     equalsNode = null;
     testRootNode = null;
     hostValueToEnsoNode = null;
@@ -51,10 +45,9 @@ public class EqualsMultiValueTest {
 
   @Test
   public void testEqualityIntegerAndMultiValue() {
-    executeInContext(
-        context,
+    ctxRule.executeInContext(
         () -> {
-          var builtins = ContextUtils.leakContext(context).getBuiltins();
+          var builtins = ctxRule.leakContext().getBuiltins();
           var intType = builtins.number().getInteger();
           var textText = builtins.text();
           var fourExtraText =
@@ -73,10 +66,9 @@ public class EqualsMultiValueTest {
 
   @Test
   public void testEqualityTextAndExtraIntegerMultiValue() {
-    executeInContext(
-        context,
+    ctxRule.executeInContext(
         () -> {
-          var builtins = ContextUtils.leakContext(context).getBuiltins();
+          var builtins = ctxRule.leakContext().getBuiltins();
           var intType = builtins.number().getInteger();
           var textType = builtins.text();
           var bothTypes = new Type[] {textType, intType};
@@ -109,10 +101,9 @@ public class EqualsMultiValueTest {
 
   @Test
   public void testEqualityIntegerAndMultiValueWithBoth() {
-    executeInContext(
-        context,
+    ctxRule.executeInContext(
         () -> {
-          var builtins = ContextUtils.leakContext(context).getBuiltins();
+          var builtins = ctxRule.leakContext().getBuiltins();
           var intType = builtins.number().getInteger();
           var textText = builtins.text();
           var hi = Text.create("Hi");
@@ -144,10 +135,9 @@ public class EqualsMultiValueTest {
 
   @Test
   public void testEqualityIntegerAndMultiValueWithIntText() {
-    executeInContext(
-        context,
+    ctxRule.executeInContext(
         () -> {
-          var builtins = ContextUtils.leakContext(context).getBuiltins();
+          var builtins = ctxRule.leakContext().getBuiltins();
           var intType = builtins.number().getInteger();
           var textText = builtins.text();
           var fourExtraText =
@@ -166,10 +156,9 @@ public class EqualsMultiValueTest {
 
   @Test
   public void twoMultiValues() {
-    executeInContext(
-        context,
+    ctxRule.executeInContext(
         () -> {
-          var builtins = ContextUtils.leakContext(context).getBuiltins();
+          var builtins = ctxRule.leakContext().getBuiltins();
           var intType = builtins.number().getInteger();
           var textText = builtins.text();
           var fourExtraText =
@@ -262,14 +251,13 @@ public class EqualsMultiValueTest {
             .replace("${complexNew}", complexNew);
 
     var src = Source.newBuilder("enso", code, "complex.enso").build();
-    var complexModule = context.eval(src);
+    var complexModule = ctxRule.eval(src);
     var complexFourValue =
         complexModule.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Complex.new 4");
 
-    executeInContext(
-        context,
+    ctxRule.executeInContext(
         () -> {
-          var complexFour = ContextUtils.unwrapValue(context, complexFourValue);
+          var complexFour = ctxRule.unwrapValue(complexFourValue);
 
           assertTrue("4 == 4t", equalityCheck(4L, complexFour));
           assertFalse("5 != 4t", equalityCheck(5L, complexFour));

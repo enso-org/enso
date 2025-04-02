@@ -7,11 +7,12 @@ import java.util.ArrayList;
 import java.util.List;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
@@ -22,13 +23,13 @@ import org.junit.runner.RunWith;
  */
 @RunWith(Theories.class)
 public class VectorSortTest {
-  private static Context context;
+  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
   private static Value sortFunc;
   private static Value equalsFunc;
 
   @BeforeClass
-  public static void initCtxAndNodes() {
-    context = ContextUtils.createDefaultContext();
+  public static void initNodes() {
+    var context = ctxRule.context();
     var code =
         """
     from Standard.Base import all
@@ -52,10 +53,8 @@ public class VectorSortTest {
   }
 
   @AfterClass
-  public static void disposeCtx() {
+  public static void disposeNodes() {
     values.clear();
-    context.close();
-    context = null;
     sortFunc = null;
     equalsFunc = null;
   }
@@ -64,8 +63,7 @@ public class VectorSortTest {
 
   @Theory
   public void testSortHandlesAllValues(Value value1, Value value2) {
-    ContextUtils.executeInContext(
-        context,
+    ctxRule.executeInContext(
         () -> {
           Assume.assumeFalse(isNan(value1) || isNan(value2));
           Value res = sortFunc.execute(value1, value2);
