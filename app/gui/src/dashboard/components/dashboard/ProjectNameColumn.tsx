@@ -53,11 +53,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   }
 
   const doRename = async (newTitle: string) => {
-    await updateProjectMutation.mutateAsync([
-      item.id,
-      { ami: null, ideVersion: null, projectName: newTitle },
-      item.title,
-    ])
+    await updateProjectMutation.mutateAsync([item.id, { projectName: newTitle }, item.title])
     setIsEditing(false)
   }
 
