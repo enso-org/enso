@@ -1,0 +1,19 @@
+from Standard.Base import all
+
+## Read fixed-width files into a Table.
+type Delimited_Format
+    ## Read fixed-width files into a Table.
+
+    Value (layout:Delimited_Layout)
+
+type Delimited_Column_Description
+    Start_And_Width (start:Integer) (width:Integer)
+    Width (width:Integer)
+
+type Delimited_Layout_Entry
+    Value (name:Text) (start:Integer) (width:Integer)
+
+type Delimited_Layout
+    Value (entries : Vector Delimited_Layout_Entry)
+
+    from_descriptions : Vector Delimited_Column_Description -> Delimited_Layout =

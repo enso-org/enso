@@ -1,0 +1,38 @@
+from Standard.Base import all
+
+from Standard.Test import all
+import Standard.Test.Test_Environment
+
+add_specs suite_builder =
+    data_dir = enso_project.data / "fixed-width"
+    data0 = data_dir / "fixed0.txt"
+
+    suite_builder.group "Read fixed-width files" group_builder->
+        group_builder.specify "Should be able to read a fixed-width file with an explicit format" <|
+            let layout = Delimited_Layout.Value <|
+                  [Delimited_Column_Description.Start_And_Width 0 4]
+                + [Delimited_Column_Description.Width 1]
+                + [Delimited_Column_Description.Width 3]
+                + [Delimited_Column_Description.Width 3]
+                + [Delimited_Column_Description.Width 1]
+                + [Delimited_Column_Description.Width 1]
+                + [Delimited_Column_Description.Width 5]
+                + [Delimited_Column_Description.Width 3]
+            t = File.read (..Fixed_Width format) data0
+            t.at "col0" . to Vector . should_equal ["1234", "2345"]
+            t.at "col1" . to Vector . should_equal ["a", "i"]
+            t.at "col2" . to Vector . should_equal ["567", "678"]
+            t.at "col3" . to Vector . should_equal ["bcd", "jkl"]
+            t.at "col4" . to Vector . should_equal ["8", "9"]
+            t.at "col5" . to Vector . should_equal ["e", "m"]
+            t.at "col6" . to Vector . should_equal ["98765", "87654"]
+            t.at "col7" . to Vector . should_equal ["fgh", "nop"]
+
+        ##
+            group_builder.specify "Should be able to read a fixed-width file with sparse columns" <|
+            group_builder.specify "Should be able to specify only column ends" <|
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
