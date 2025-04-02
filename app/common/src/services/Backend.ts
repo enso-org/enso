@@ -339,15 +339,7 @@ export interface UpdatedProject {
 }
 
 /** A user/organization's project containing and/or currently executing code. */
-export interface ProjectRaw extends ListedProjectRaw {
-  readonly ide_version: VersionNumber | null
-  readonly engine_version: VersionNumber | null
-}
-
-/** A user/organization's project containing and/or currently executing code. */
 export interface Project extends ListedProject {
-  readonly ideVersion: VersionNumber | null
-  readonly engineVersion: VersionNumber | null
   readonly openedBy?: EmailAddress
   /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
   readonly url?: HttpsUrl
