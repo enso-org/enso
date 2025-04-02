@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeMirrorInlineRoot from '@/components/CodeMirrorInlineRoot.vue'
+import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
@@ -9,7 +9,7 @@ import { targetIsOutside } from '@/util/autoBlur'
 import { selectOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { type Extension } from '@codemirror/state'
-import { computed, ref, useCssModule, useTemplateRef, watch, type ComponentInstance } from 'vue'
+import { computed, ref, useTemplateRef, watch, watchEffect, type ComponentInstance } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -26,27 +26,45 @@ const inputTextLiteral = computed((): Ast.TextLiteral | undefined => {
   if (valueStr == null) return undefined
   return Ast.TextLiteral.tryParse(valueStr)
 })
+const openToken = computed(() => inputTextLiteral.value?.open ?? emptyTextLiteral.value.open)
+const closeToken = computed(() =>
+  isBlock.value ? undefined : (inputTextLiteral.value?.close ?? openToken.value),
+)
+const isBlock = computed<boolean>(() => (inputTextLiteral.value?.open?.code().length ?? 1) > 1)
+const editedTextIsMultiline = ref(isTextMultiline(textContents.value))
+const isMultiline = computed<boolean>(() => isBlock.value || editedTextIsMultiline.value)
 
 const placeholder = computed(() =>
   WidgetInput.isPlaceholder(props.input) ? (inputTextLiteral.value?.rawTextContent ?? '') : '',
 )
 
-const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorInlineRoot>>('editorRoot')
+const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 
 const { syncExt, connectSync } = useStringSync()
 const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   content: textContents.value,
   placeholder,
-  extensions: [syncExt, selectOnMouseFocus, highlightStyle(useCssModule())],
+  extensions: [syncExt],
   readonly: false,
   contentTestId: 'widget-text-content',
-  singleLine: true,
+  lineMode: computed(() => (isMultiline.value ? 'multi' : 'auto')),
 })
-watch(() => props.input[TextLanguage], setExtraExtensions, { immediate: true })
+watchEffect(() =>
+  setExtraExtensions([
+    highlightStyle(editorRoot.value?.highlightClasses ?? {}),
+    ...(props.input[TextLanguage] ? [props.input[TextLanguage]] : []),
+    ...(isMultiline.value ? [] : [selectOnMouseFocus]),
+  ]),
+)
+
+function isTextMultiline(text: string) {
+  return !!text.match(/[\r\n]/)
+}
 
 const { getText, setText, onTextEdited } = connectSync(editorView)
 watch(textContents, setText)
 onTextEdited((text) => editing.edit(makeLiteralFromUserInput(text)))
+onTextEdited((text) => (editedTextIsMultiline.value = isTextMultiline(text)))
 
 const previousValue = ref<string>()
 
@@ -116,8 +134,12 @@ function makeLiteralFromUserInput(value: string): Ast.Owned<Ast.MutableTextLiter
   }
 }
 
-const openToken = computed(() => inputTextLiteral.value?.open ?? emptyTextLiteral.value.open)
-const closeToken = computed(() => inputTextLiteral.value?.close ?? openToken.value)
+function onEnter(event: KeyboardEvent) {
+  if (!event.shiftKey) {
+    event.stopPropagation()
+    accepted()
+  }
+}
 </script>
 
 <script lang="ts">
@@ -151,23 +173,30 @@ export const widgetDefinition = defineWidget(
   <label
     ref="widgetRoot"
     class="WidgetText widgetRounded"
+    :class="{ singleLine: !isMultiline }"
     @pointerdown.stop.prevent="focusEditor"
     @click.stop
   >
-    <NodeWidget v-if="openToken" :input="WidgetInput.FromAst(openToken)" />
+    <NodeWidget v-if="openToken" :input="WidgetInput.FromAst(openToken)" class="delimiter open" />
     <!-- Do not finish edit on blur here!
 
     It is tempting, but it breaks the cooperation with possible drop-down widget. Blur may be done on
     pointerdown, and if it would end the interaction, the drop down would also be hidden, making 
     any `click` event on it impossible.
     -->
-    <CodeMirrorInlineRoot
+    <CodeMirrorRoot
       ref="editorRoot"
-      @keydown.enter.stop="accepted"
-      @keydown.tab.stop="accepted"
       @focusin="editing.start()"
+      @keydown.enter.capture="onEnter"
+      @keydown.tab.stop.capture="accepted"
+      @keydown.up.stop
+      @keydown.down.stop
     />
-    <NodeWidget v-if="closeToken" :input="WidgetInput.FromAst(closeToken)" />
+    <NodeWidget
+      v-if="closeToken"
+      :input="WidgetInput.FromAst(closeToken)"
+      class="delimiter close"
+    />
   </label>
 </template>
 
@@ -175,11 +204,11 @@ export const widgetDefinition = defineWidget(
 .WidgetText {
   display: inline-flex;
   background: var(--color-widget);
-  border-radius: var(--radius-full);
   user-select: none;
   justify-content: center;
   align-items: center;
   min-width: var(--node-port-height);
+  border-radius: var(--radius-default);
 
   &:has(> :focus) {
     outline: none;
@@ -199,40 +228,35 @@ export const widgetDefinition = defineWidget(
   }
 }
 
-:deep(.cm-scroller) {
+.singleLine :deep(.cm-scroller) {
   font-weight: 800;
+}
+
+/**
+ * In multiline mode the widget is still sized to content (unless max-height is exceeded), but the
+ * content is padded to be slightly larger than its scroller so that the scrollbar shows.
+ */
+.WidgetText:not(.singleLine) {
+  & :deep(.cm-scroller) {
+    min-height: 2.5em;
+    max-height: 20em;
+  }
+  & :deep(.cm-content) {
+    padding: 1em 0;
+    margin: -0.7em 0;
+  }
+  & .delimiter {
+    font-size: 1.4em;
+    &.open {
+      align-self: flex-start;
+    }
+    &.close {
+      align-self: flex-end;
+    }
+  }
 }
 
 .GraphNode:not(.selected) .WidgetText :deep(.cm-content) * {
   color: inherit;
-}
-</style>
-
-<!--suppress CssUnusedSymbol -->
-<style module>
-.keyword,
-.moduleKeyword,
-.modifier {
-  color: #708;
-}
-.number {
-  color: #164;
-}
-.string {
-  color: #a11;
-}
-.escape {
-  color: #e40;
-}
-.variableName,
-.definition-variableName {
-  color: #00f;
-}
-.lineComment,
-.docComment {
-  color: #940;
-}
-.invalid {
-  color: #f00;
 }
 </style>

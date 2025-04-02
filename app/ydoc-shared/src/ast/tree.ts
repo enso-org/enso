@@ -1919,19 +1919,28 @@ export class MutableTextLiteral extends TextLiteral implements MutableExpression
    * transformed to use escape sequences when necessary.
    */
   setRawTextContent(rawText: string) {
-    let boundary = this.boundaryTokenCode()
-    const isInterpolated = this.isInterpolated()
-    const mustBecomeInterpolated = !isInterpolated && (!boundary || rawText.match(/["\n\r]/))
-    if (mustBecomeInterpolated) {
-      boundary = "'"
-      this.setBoundaries(boundary)
-    }
-    const literalContents =
-      isInterpolated || mustBecomeInterpolated ? escapeTextLiteral(rawText) : rawText
-    const parsed = parseExpression(`${boundary}${literalContents}${boundary}`)
-    assert(parsed instanceof TextLiteral)
-    const elements = parsed.elements.map((e) => mapRefs(e, concreteToOwned(this.module)))
-    this.setElements(elements)
+    console.log('setRawTextContent', rawText)
+    if (!this.boundaryTokenCode() || (this.boundaryTokenCode() === '"' && rawText.match(/["\n\r]/)))
+      this.setBoundaries("'")
+    const boundary = this.boundaryTokenCode()!
+    const isBlock = boundary.length > 1
+    const literalContents = this.isInterpolated() ? escapeTextLiteral(rawText, isBlock) : rawText
+    const parsed = TextLiteral.tryParse(
+      isBlock ?
+        `${boundary}\n${literalContents.split('\n').join('\n    ')}`
+      : `${boundary}${literalContents}${boundary}`,
+      this.module,
+    )
+    assertDefined(parsed)
+    const elementsWithDummyLinebreaks = parsed.elements.map((e) =>
+      mapRefs(e, concreteToOwned(this.module)),
+    )
+    const elementsWithAbstractLineBreaks = elementsWithDummyLinebreaks.map((e) =>
+      e.type === 'token' && e.token.node.typeName === 'Newline' ?
+        { ...e, token: { node: e.token.node, whitespace: undefined } }
+      : e,
+    )
+    this.setElements(elementsWithAbstractLineBreaks)
   }
 }
 export interface MutableTextLiteral extends TextLiteral, MutableExpression {}
