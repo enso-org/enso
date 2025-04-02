@@ -3916,7 +3916,7 @@ lazy val `engine-runner` = project
         // Limit max memory limit
         val macArmOnCI =
           sys.env.get("CI").isDefined && Platform.isMacOS && Platform.isArm64
-        val maxLimit = if (macArmOnCI) Some(10240) else Some(15608)
+        val maxLimit = if (macArmOnCI) Some(12288) else Some(15608)
         NativeImage
           .buildNativeImage(
             "enso",
