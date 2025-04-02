@@ -199,35 +199,10 @@ export function useLocalCategoryList() {
   const localBackend = useLocalBackend()
   const [localRootDirectory] = useLocalStorageState('localRootDirectory')
   const rootPath = localRootDirectory != null ? Path(localRootDirectory) : localBackend?.rootPath()
-  invariant(rootPath != null, 'Local directory must have a root path.')
-
-  const localCategory: LocalCategory = {
-    type: 'local',
-    id: 'local',
-    label: getText('localCategory'),
-    icon: ComputerIcon,
-    homeDirectoryId: newDirectoryId(rootPath),
-    rootPath,
-  }
-
-  const predefinedLocalCategories: AnyLocalCategory[] = [localCategory]
-
   const [localRootDirectories, setLocalRootDirectories] = useLocalStorageState(
     'localRootDirectories',
     [],
   )
-
-  const localCategories = localRootDirectories.map<LocalDirectoryCategory>((directory) => ({
-    type: 'local-directory',
-    id: newDirectoryId(Path(directory)),
-    rootPath: Path(directory),
-    homeDirectoryId: newDirectoryId(Path(directory)),
-    label: getFileName(directory),
-    icon: FolderFilledIcon,
-  }))
-
-  const categories =
-    localBackend == null ? [] : ([...predefinedLocalCategories, ...localCategories] as const)
 
   const addDirectory = useEventCallback((directory: string) => {
     setLocalRootDirectories([...localRootDirectories, directory])
@@ -264,10 +239,10 @@ export function useLocalCategoryList() {
       categories.filter((category) => category.type === type) as CategoryByType<T>[],
   )
 
-  if (localBackend == null) {
+  if (rootPath == null) {
     return {
       // We don't have any categories if localBackend is not available.
-      categories,
+      categories: [],
       localCategory: null,
       directories: null,
       // noop if localBackend is not available.
@@ -280,6 +255,29 @@ export function useLocalCategoryList() {
       getCategoryByDirectoryId: () => null,
     }
   }
+
+  const localCategory: LocalCategory = {
+    type: 'local',
+    id: 'local',
+    label: getText('localCategory'),
+    icon: ComputerIcon,
+    homeDirectoryId: newDirectoryId(rootPath),
+    rootPath,
+  }
+
+  const predefinedLocalCategories: AnyLocalCategory[] = [localCategory]
+
+  const localCategories = localRootDirectories.map<LocalDirectoryCategory>((directory) => ({
+    type: 'local-directory',
+    id: newDirectoryId(Path(directory)),
+    rootPath: Path(directory),
+    homeDirectoryId: newDirectoryId(Path(directory)),
+    label: getFileName(directory),
+    icon: FolderFilledIcon,
+  }))
+
+  const categories =
+    localBackend == null ? [] : ([...predefinedLocalCategories, ...localCategories] as const)
 
   return {
     categories,
