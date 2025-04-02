@@ -1116,6 +1116,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         userGroups: null,
         isOrganizationAdmin: true,
         isEnsoTeamMember: true,
+        plan: backend.Plan.solo,
       }
       return currentUser
     })

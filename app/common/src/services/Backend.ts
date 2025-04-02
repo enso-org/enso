@@ -920,6 +920,9 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.specialUp]: -1,
 }
 
+/** A state associated with a credential. */
+export type CredentialSecretState = 'Expired' | 'Ready' | 'WaitingForAuthentication'
+
 /**
  * Metadata uniquely identifying a directory entry.
  * These can be Projects, Files, Secrets, or other directories.
@@ -937,8 +940,14 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly permissions: readonly AssetPermission[] | null
   readonly labels?: readonly LabelName[] | undefined
   readonly description?: string | undefined
+  /** Asset data for a project */
   readonly projectState: Type extends AssetType.project ? ProjectStateType : null
+  /** Asset data for a file */
   readonly extension: Type extends AssetType.file ? string : null
+  /** Asset data for a credential (secret) */
+  readonly serviceName: Type extends AssetType.secret ? string | null : null
+  readonly expirationDate: Type extends AssetType.secret ? dateTime.Rfc3339DateTime | null : null
+  readonly state: Type extends AssetType.secret ? CredentialSecretState | null : null
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
@@ -1011,6 +1020,9 @@ export function createPlaceholderFileAsset(title: string, parentId: DirectoryId)
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: fileExtension(title),
+    serviceName: null,
+    expirationDate: null,
+    state: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1030,6 +1042,9 @@ export function createPlaceholderProjectAsset(title: string, parentId: Directory
       volumeId: '',
     },
     extension: null,
+    serviceName: null,
+    expirationDate: null,
+    state: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1049,6 +1064,9 @@ export function createPlaceholderDirectoryAsset(
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
+    serviceName: null,
+    expirationDate: null,
+    state: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1065,6 +1083,9 @@ export function createPlaceholderSecretAsset(title: string, parentId: DirectoryI
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
+    serviceName: null,
+    expirationDate: null,
+    state: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1084,6 +1105,9 @@ export function createPlaceholderDatalinkAsset(
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
+    serviceName: null,
+    expirationDate: null,
+    state: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1103,6 +1127,9 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
     permissions: [],
     projectState: null,
     extension: null,
+    serviceName: null,
+    expirationDate: null,
+    state: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1127,6 +1154,9 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
     permissions: [],
     projectState: null,
     extension: null,
+    serviceName: null,
+    expirationDate: null,
+    state: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1151,6 +1181,9 @@ export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorA
     permissions: [],
     projectState: null,
     extension: null,
+    serviceName: null,
+    expirationDate: null,
+    state: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
