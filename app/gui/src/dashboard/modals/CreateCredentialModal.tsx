@@ -32,7 +32,9 @@ export default function CreateCredentialModal(props: CreateCredentialModalProps)
     }
 
     const secretId = await doCreate(recipe.name, metadata)
+    console.log("Created secret ", secretId)
     const url = recipe.makeAuthUrl(secretId, nonce)
+    console.log("Redirecting to ", url)
     openInNewBrowserTab(url)
   }
 

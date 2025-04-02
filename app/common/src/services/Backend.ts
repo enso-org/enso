@@ -1428,8 +1428,8 @@ export interface CreateSecretRequestBody {
 export interface SnowflakeCredentialInput {
   readonly type: 'Snowflake'
   readonly account: string
-  readonly client_id: string
-  readonly client_secret: string
+  readonly clientId: string
+  readonly clientSecret: string
   readonly role: string | null
 }
 

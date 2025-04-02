@@ -4,7 +4,7 @@
 import type { SecretId, SnowflakeCredentialInput } from "#/services/Backend";
 import { z } from "zod";
 import type { CredentialRecipe } from "./types";
-import { getOauthCallbackPath } from "#/services/remoteBackendPaths";
+import { getOauthRedirectUri } from './utilities'
 
 export const FORM_SCHEMA = z.object({
   name: z.string().min(1),
@@ -21,13 +21,11 @@ export function submitForm(createCredentials: (recipe: CredentialRecipe) => Prom
     const account = values.account
     const role = values.role
     const input: SnowflakeCredentialInput = {
-      /* eslint-disable @typescript-eslint/naming-convention, camelcase */
       type: 'Snowflake',
       account,
-      client_id: values.clientId,
-      client_secret: values.clientSecret,
+      clientId: values.clientId,
+      clientSecret: values.clientSecret,
       role,
-      /* eslint-enable @typescript-eslint/naming-convention, camelcase */
     }
     return createCredentials({
       name: values.name,
@@ -39,7 +37,7 @@ export function submitForm(createCredentials: (recipe: CredentialRecipe) => Prom
           /* eslint-disable @typescript-eslint/naming-convention, camelcase */
           client_id: values.clientId,
           response_type: 'code',
-          redirect_uri: getOauthCallbackPath('Snowflake'),
+          redirect_uri: getOauthRedirectUri('Snowflake'),
           state,
           scope
           /* eslint-enable @typescript-eslint/naming-convention, camelcase */
