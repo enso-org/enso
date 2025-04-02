@@ -77,6 +77,7 @@ public sealed interface GraphOccurrence permits GraphOccurrence.Def, GraphOccurr
   @Persistable(id = 1264, allowInlining = false)
   public static final class Use implements GraphOccurrence {
     private final int id;
+    private final GraphImpl.Scope scope;
     private final String symbol;
     private final @Identifier UUID identifier;
     private final @ExternalID UUID externalId;
@@ -92,11 +93,18 @@ public sealed interface GraphOccurrence permits GraphOccurrence.Def, GraphOccurr
      * @param identifier the identifier of the symbol
      * @param externalId the external identifier for the IR node defining the symbol
      */
-    Use(int id, String symbol, UUID identifier, scala.Option<UUID> externalId) {
+    Use(
+        GraphImpl.Scope scope,
+        int id,
+        String symbol,
+        UUID identifier,
+        scala.Option<UUID> externalId) {
+      this.scope = scope;
       this.id = id;
       this.symbol = symbol;
       this.externalId = externalId.nonEmpty() ? externalId.get() : null;
       this.identifier = identifier;
+      scope.add(this);
     }
 
     @Override
@@ -115,6 +123,10 @@ public sealed interface GraphOccurrence permits GraphOccurrence.Def, GraphOccurr
 
     public scala.Option<UUID> externalId() {
       return scala.Option.apply(externalId);
+    }
+
+    final GraphImpl.Scope scope() {
+      return this.scope;
     }
 
     public static scala.Option<scala.Tuple4<Integer, String, UUID, scala.Option<UUID>>> unapply(
