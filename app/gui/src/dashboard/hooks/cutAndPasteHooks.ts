@@ -7,7 +7,7 @@ import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import type { DrivePastePayload } from '#/providers/DriveProvider'
 import type Backend from '#/services/Backend'
 import type { DirectoryId } from '#/services/Backend'
-import { PasteData } from '#/utilities/pasteData'
+import type { PasteData } from '#/utilities/pasteData'
 import { isTeamParentsPath, isUserParentsPath } from '#/utilities/permissions'
 import { useMutation } from '@tanstack/react-query'
 

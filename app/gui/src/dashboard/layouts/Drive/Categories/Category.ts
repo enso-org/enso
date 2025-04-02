@@ -242,7 +242,6 @@ export function useTransferBetweenCategories(currentCategory: Category) {
             deleteAssetsMutation.mutate([[...keys], false])
           } else if (to.type === 'cloud' || to.type === 'team' || to.type === 'user') {
             newParentId ??= to.homeDirectoryId
-            invariant(newParentId != null, 'The Cloud backend is missing a root directory.')
             moveAssetsMutation.mutate([[...keys], newParentId])
           }
           break
@@ -250,9 +249,9 @@ export function useTransferBetweenCategories(currentCategory: Category) {
         case 'trash': {
           if (to.type === 'cloud' || to.type === 'team' || to.type === 'user') {
             newParentId ??= to.homeDirectoryId
-            invariant(newParentId != null, 'The Cloud backend is missing a root directory.')
-            moveAssetsMutation.mutate([[...keys], newParentId])
-            undoDeleteAssetMutation.mutate()
+            for (const key of [...keys]) {
+              undoDeleteAssetMutation.mutate([key, { parentId: newParentId }, '(unknown)'])
+            }
           }
           break
         }
