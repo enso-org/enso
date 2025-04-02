@@ -1,12 +1,10 @@
 /** @file A modal for creating and editing a credential. */
-import { uuidv4 } from 'lib0/random.js'
 import { Dialog, Dropdown, Text } from '#/components/AriaComponents'
-import type { CredentialRecipe} from '#/data/serviceCredentials';
 import { CREDENTIAL_INFOS } from '#/data/serviceCredentials'
 import { useText } from '#/providers/TextProvider'
 import type { CredentialMetadata, SecretId } from '#/services/Backend'
-import { openInNewBrowserTab } from '#/utilities/window'
 import { useState } from 'react'
+import { makeCredentialCreationHandler } from '#/data/serviceCredentials/logic';
 
 /** Props for a {@link CreateCredentialModal}. */
 export interface CreateCredentialModalProps {
@@ -21,24 +19,8 @@ export default function CreateCredentialModal(props: CreateCredentialModalProps)
     doCreate
   } = props
   const { getText } = useText()
-
-  // TODO maybe move this?
-  const submitCredentialForm = async (recipe: CredentialRecipe) => {
-    console.log("Creating credentials", recipe.name, recipe.input)
-    const nonce = uuidv4()
-    const metadata: CredentialMetadata = {
-      nonce,
-      input: recipe.input
-    }
-
-    const secretId = await doCreate(recipe.name, metadata)
-    console.log("Created secret ", secretId)
-    const url = recipe.makeAuthUrl(secretId, nonce)
-    console.log("Redirecting to ", url)
-    openInNewBrowserTab(url)
-  }
-
   const [selectedChildIndex, setSelectedChildIndex] = useState<number>(0)
+  const createCredentialsHandler = makeCredentialCreationHandler(doCreate)
 
   const selectedItem = CREDENTIAL_INFOS[selectedChildIndex]
   const content = (
@@ -54,7 +36,7 @@ export default function CreateCredentialModal(props: CreateCredentialModalProps)
       >
         {({ item }) => <Text slot="label">{getText(item.nameId)}</Text>}
       </Dropdown>
-      {selectedItem && (<selectedItem.form createCredentials={submitCredentialForm}/>)}
+      {selectedItem && (<selectedItem.form createCredentials={createCredentialsHandler}/>)}
     </div>
   )
 
