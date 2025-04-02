@@ -23,7 +23,7 @@ public class TestChangeDirectory {
   @Test
   public void curDir() {
     ensureInNativeImage();
-    var nativeApi = WorkingDirectory.getForCurrentPlatform();
+    var nativeApi = WorkingDirectories.getCurrent();
     var curDir = nativeApi.currentWorkingDir();
     var expectedDir = System.getProperty("user.dir");
     assertEquals(expectedDir, curDir);
@@ -34,7 +34,7 @@ public class TestChangeDirectory {
     ensureInNativeImage();
     var tmpDir = Files.createTempDirectory("TestChangeDirectory");
     var tmpDirAbs = tmpDir.toAbsolutePath().toString();
-    var nativeApi = WorkingDirectory.getForCurrentPlatform();
+    var nativeApi = WorkingDirectories.getCurrent();
     var succeeded = nativeApi.changeWorkingDir(tmpDirAbs);
     assertTrue(succeeded);
     var curDir = nativeApi.currentWorkingDir();
@@ -46,7 +46,7 @@ public class TestChangeDirectory {
     var tmpDir = Files.createTempDirectory("changeDir_NonExistingDir");
     var wasDeleted = tmpDir.toFile().delete();
     assertTrue(wasDeleted);
-    var nativeApi = WorkingDirectory.getForCurrentPlatform();
+    var nativeApi = WorkingDirectories.getCurrent();
     var succeeded = nativeApi.changeWorkingDir(tmpDir.toAbsolutePath().toString());
     assertFalse(succeeded);
   }
@@ -55,7 +55,7 @@ public class TestChangeDirectory {
   public void testExists() throws IOException {
     ensureInNativeImage();
     var tmpDir = Files.createTempDirectory("TestChangeDirectory_testExists");
-    var nativeApi = WorkingDirectory.getForCurrentPlatform();
+    var nativeApi = WorkingDirectories.getCurrent();
     var dir = tmpDir.resolve("..").toRealPath().toString();
     var file = tmpDir.getFileName().toString();
     var dirExists = nativeApi.exists(dir, file);
@@ -68,7 +68,7 @@ public class TestChangeDirectory {
     var wasDeleted = tmpDir.toFile().delete();
     assertTrue(wasDeleted);
     var dir = tmpDir.subpath(0, tmpDir.getNameCount() - 1);
-    var nativeApi = WorkingDirectory.getForCurrentPlatform();
+    var nativeApi = WorkingDirectories.getCurrent();
     var dirExists =
         nativeApi.exists(dir.toAbsolutePath().toString(), tmpDir.getFileName().toString());
     assertFalse(dirExists);
