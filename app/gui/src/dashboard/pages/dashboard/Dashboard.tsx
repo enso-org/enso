@@ -6,7 +6,6 @@ import * as React from 'react'
 
 import * as detect from 'enso-common/src/detect'
 
-import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { CategoriesProvider } from '#/layouts/Drive/Categories/categoriesHooks'
 import DriveProvider from '#/providers/DriveProvider'
@@ -30,6 +29,8 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
+import { useMount } from '#/hooks/mountHooks'
+import { useUnmount } from '#/hooks/unmountHooks'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
@@ -38,7 +39,7 @@ import { vueComponent } from '#/utilities/vue'
 import VueTabView from '@/../components/TabView.vue'
 import { usePrefetchQuery } from '@tanstack/react-query'
 
-const TabView = vueComponent(VueTabView).default
+const TabView = vueComponent(VueTabView, {}).default
 
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
@@ -50,6 +51,12 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
+  useMount(() => {
+    console.log('Dashboard MOUNT')
+  })
+  useUnmount(() => {
+    console.log('Dashboard UNMOUNT')
+  })
   return (
     /* Ideally this would be in `Drive.tsx`, but it currently must be all the way out here
      * due to modals being in `TheModal`. */
@@ -96,15 +103,16 @@ function DashboardInner(props: DashboardProps) {
   const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
 
   const categoriesAPI = useCategoriesAPI()
-  const page = usePage()
-  const setPage = useSetPage()
-  const launchedProjects = useLaunchedProjects()
 
   const openEditor = projectHooks.useOpenEditor()
   const openProjectLocally = projectHooks.useOpenProjectLocally()
-  const closeProject = projectHooks.useCloseProject()
-  const closeAllProjects = projectHooks.useCloseAllProjects()
-  const clearLaunchedProjects = useClearLaunchedProjects()
+
+  useMount(() => {
+    console.log('DashboardInner MOUNT')
+  })
+  useUnmount(() => {
+    console.log('DashboardInner UNMOUNT')
+  })
 
   usePrefetchQuery({
     queryKey: ['loadInitialLocalProject'],
@@ -178,15 +186,12 @@ function DashboardInner(props: DashboardProps) {
     [inputBindings],
   )
 
-  const onSignOut = eventCallbacks.useEventCallback(() => {
-    setPage('drive')
-    closeAllProjects()
-    clearLaunchedProjects()
-  })
-
-  const goToSettings = eventCallbacks.useEventCallback(() => {
-    setPage('settings')
-  })
+  // const [page, setPage] = React.useState('drive')
+  const page = usePage()
+  const setPage = useSetPage()
+  const launchedProjects = useLaunchedProjects()
+  const closeAllProjects = projectHooks.useCloseAllProjects()
+  const clearLaunchedProjects = useClearLaunchedProjects()
 
   return (
     <Page hideInfoBar hideChat>
@@ -200,9 +205,12 @@ function DashboardInner(props: DashboardProps) {
         <TabView
           initialProjectName={initialProjectName}
           ydocUrl={ydocUrl}
+          setIsChatOpen={setIsHelpChatOpen}
           page={page}
           setPage={setPage}
           launchedProjects={launchedProjects}
+          closeAllProjects={closeAllProjects}
+          clearLaunchedProjects={clearLaunchedProjects}
         />
         {/* <aria.Tabs
           className="relative flex min-h-full grow select-none flex-col container-size"
