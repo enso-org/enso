@@ -125,7 +125,8 @@
 - [Added `add_group_number` for Postgres and SQLite.][12574]
 - [Added `add_group_number` for Snowflake and SQLServer.][12590]
 - [Added `skip_nothing` and `report_unmatched` arguments to `Vector.zip`][12626]
-- [Changed in-memory `Column.zip` to match `Table.zip`, removing the `function` parameter]][12626]
+- [Changed in-memory `Column.zip` to match `Table.zip`, removing the `function`
+  parameter][12626]
 - [Added Regex_match for Postgres][12663]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
