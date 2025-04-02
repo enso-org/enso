@@ -1,5 +1,6 @@
 package org.enso.change.directory;
 
+import java.io.File;
 import java.util.List;
 import org.enso.common.Platform;
 import org.graalvm.nativeimage.c.CContext;
@@ -20,7 +21,7 @@ public final class WindowsWorkingDirectory implements WorkingDirectory {
     String path;
     try (var ptrHolder = CTypeConversion.toCBytes(buf)) {
       var ptr = ptrHolder.get();
-      var ret = GetCurrentDirectory(4096, ptr);
+      var ret = GetCurrentDirectoryA(4096, ptr);
       if (ret == 0) {
         LOGGER.error("GetCurrentDirectory failed with {}", ret);
         return null;
@@ -34,7 +35,7 @@ public final class WindowsWorkingDirectory implements WorkingDirectory {
   @Override
   public boolean changeWorkingDir(String path) {
     try (var cPath = CTypeConversion.toCString(path + "\0")) {
-      var res = SetCurrentDirectory(cPath.get());
+      var res = SetCurrentDirectoryA(cPath.get());
       if (res == 0) {
         LOGGER.error("SetCurrrentDirectory to {} failed with {}", path, res);
         return false;
@@ -48,14 +49,44 @@ public final class WindowsWorkingDirectory implements WorkingDirectory {
 
   @Override
   public boolean exists(String dir, String file) {
-    throw new UnsupportedOperationException("unimplemented");
+    String full;
+    if (dir.endsWith(File.separator)) {
+      full = dir + file;
+    } else {
+      full = dir + File.separator + file;
+    }
+    try (var cPath = CTypeConversion.toCString(full)) {
+      var res = PathFileExistsA(cPath.get());
+      return res != 0;
+    } catch (Throwable t) {
+      LOGGER.error("Cannot check if {} exists on Windows", full, t);
+      return false;
+    }
   }
 
+  /**
+   * <a
+   * href="https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getcurrentdirectory">Official
+   * docs</a>
+   */
   @CFunction
-  static native int GetCurrentDirectory(int nBufferLength, CCharPointer lpBuffer);
+  static native int GetCurrentDirectoryA(int nBufferLength, CCharPointer lpBuffer);
 
+  /**
+   * <a
+   * href="https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setcurrentdirectory">Official
+   * docs</a>
+   */
   @CFunction
-  static native int SetCurrentDirectory(CCharPointer lpPathName);
+  static native int SetCurrentDirectoryA(CCharPointer lpPathName);
+
+  /**
+   * <a
+   * href="https://learn.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathfileexistsa">Official
+   * docs</a>
+   */
+  @CFunction
+  static native int PathFileExistsA(CCharPointer pszPath);
 
   static final class Directives implements CContext.Directives {
     @Override
@@ -65,12 +96,12 @@ public final class WindowsWorkingDirectory implements WorkingDirectory {
 
     @Override
     public List<String> getHeaderFiles() {
-      return List.of("<windows.h>");
+      return List.of("<windows.h>", "<shlwapi.h>");
     }
 
     @Override
     public List<String> getLibraries() {
-      return List.of("shell32");
+      return List.of("Kernel32", "Shlwapi");
     }
   }
 }
