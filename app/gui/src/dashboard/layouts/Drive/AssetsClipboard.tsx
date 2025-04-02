@@ -7,6 +7,7 @@ import { INITIAL_ROW_STATE } from '#/components/dashboard/AssetRow/assetRowUtils
 import AssetNameColumn from '#/components/dashboard/column/NameColumn'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useSyncRef } from '#/hooks/syncRefHooks'
 import type { AssetsTableState } from '#/layouts/AssetsTable'
 import { canTransferBetweenCategories, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
@@ -20,8 +21,7 @@ import type { AssetRowsDragPayload } from '#/utilities/drag'
 import { ASSET_ROWS, setDragImageToBlank } from '#/utilities/drag'
 import type { PasteType } from '#/utilities/pasteData'
 import { noop } from '@vueuse/core'
-import type { DragEvent } from 'react'
-import { useEffect } from 'react'
+import { useEffect, type DragEvent } from 'react'
 import { twJoin } from 'tailwind-merge'
 
 /** Props for a {@link AssetsClipboard}. */
@@ -42,15 +42,25 @@ export function AssetsClipboard(props: AssetClipboardProps) {
       }),
     defaultValues: { pasteType: 'copy' },
   })
+  const formRef = useSyncRef(form)
 
   const pasteData = usePasteData()
+  const setPasteData = useSetPasteData()
+  const pasteDataRef = useSyncRef(pasteData)
   const pasteType = Form.useWatch({ control: form.control, name: 'pasteType' })
+  const pasteTypeRef = useSyncRef(pasteType)
 
   useEffect(() => {
-    if (pasteData && pasteType !== pasteData.type) {
-      form.resetField('pasteType', { defaultValue: pasteData.type })
+    if (pasteData && pasteTypeRef.current !== pasteData.type) {
+      formRef.current.resetField('pasteType', { defaultValue: pasteData.type })
     }
-  }, [form, pasteData, pasteType])
+  }, [formRef, pasteData, pasteTypeRef])
+
+  useEffect(() => {
+    if (pasteDataRef.current && pasteType !== pasteDataRef.current.type) {
+      setPasteData({ ...pasteDataRef.current, type: pasteType })
+    }
+  }, [pasteType, pasteDataRef, setPasteData])
 
   return (
     <div className="flex flex-none flex-col">
