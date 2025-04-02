@@ -8,7 +8,7 @@ import { Form, Input } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
 import { CredentialsFormButtons } from './CredentialsFormButtons'
 import type { CredentialFormProps } from './types'
-import { FORM_SCHEMA, submitForm } from './snowflake'
+import * as snowflake from './snowflake'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks';
 
 /** Dialog for a Snowflake credential. */
@@ -19,10 +19,10 @@ export function SnowflakeCredentialsForm(props: CredentialFormProps) {
 
   const form = Form.useForm({
     method: 'dialog',
-    schema: FORM_SCHEMA,
+    schema: snowflake.FORM_SCHEMA,
     onSubmit: async (values) => {
       try {
-        await submitForm(createCredentials, values)
+        await snowflake.submitForm(createCredentials, values)
       } catch (error) {
         toastAndLog(null, error)
       }

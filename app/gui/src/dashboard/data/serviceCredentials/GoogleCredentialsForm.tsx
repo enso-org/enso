@@ -7,7 +7,7 @@
 import { Checkbox, Form, Input } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
 import { CredentialsFormButtons } from './CredentialsFormButtons'
-import { FORM_SCHEMA, submitForm } from './google'
+import * as google from './google'
 import type { CredentialFormProps } from './types'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks';
 
@@ -19,10 +19,10 @@ export function GoogleCredentialsForm(props: CredentialFormProps) {
   
   const form = Form.useForm({
     method: 'dialog',
-    schema: FORM_SCHEMA,
+    schema: google.FORM_SCHEMA,
     onSubmit: async (values) => {
       try {
-        await submitForm(createCredentials, values)
+        await google.submitForm(createCredentials, values)
       } catch (error) {
         toastAndLog(null, error)
       }
