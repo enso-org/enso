@@ -945,9 +945,9 @@ export interface Asset<Type extends AssetType = AssetType> {
   /** Asset data for a file */
   readonly extension: Type extends AssetType.file ? string : null
   /** Asset data for a credential (secret) */
-  readonly serviceName: Type extends AssetType.secret ? string | null : null
-  readonly expirationDate: Type extends AssetType.secret ? dateTime.Rfc3339DateTime | null : null
-  readonly state: Type extends AssetType.secret ? CredentialSecretState | null : null
+  readonly serviceName?: Type extends AssetType.secret ? string : undefined
+  readonly expirationDate?: Type extends AssetType.secret ? dateTime.Rfc3339DateTime : undefined
+  readonly state?: Type extends AssetType.secret ? CredentialSecretState : undefined
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
@@ -1004,6 +1004,11 @@ export function isPlaceholderId(id: AssetId) {
   return typeof id !== 'string' && PLACEHOLDER_SIGNATURE in id
 }
 
+/** Whether a given asset represents a credential. */
+export function isAssetCredential(asset: Asset) {
+  return asset.serviceName !== undefined
+}
+
 /** Extract the file extension from a file name. */
 function fileExtension(fileNameOrPath: string) {
   return fileNameOrPath.match(/[.]([^.]+?)$/)?.[1] ?? ''
@@ -1020,9 +1025,6 @@ export function createPlaceholderFileAsset(title: string, parentId: DirectoryId)
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: fileExtension(title),
-    serviceName: null,
-    expirationDate: null,
-    state: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1042,9 +1044,6 @@ export function createPlaceholderProjectAsset(title: string, parentId: Directory
       volumeId: '',
     },
     extension: null,
-    serviceName: null,
-    expirationDate: null,
-    state: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1064,9 +1063,6 @@ export function createPlaceholderDirectoryAsset(
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
-    serviceName: null,
-    expirationDate: null,
-    state: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1083,9 +1079,6 @@ export function createPlaceholderSecretAsset(title: string, parentId: DirectoryI
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
-    serviceName: null,
-    expirationDate: null,
-    state: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1105,9 +1098,6 @@ export function createPlaceholderDatalinkAsset(
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
-    serviceName: null,
-    expirationDate: null,
-    state: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1127,9 +1117,6 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
     permissions: [],
     projectState: null,
     extension: null,
-    serviceName: null,
-    expirationDate: null,
-    state: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1154,9 +1141,6 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
     permissions: [],
     projectState: null,
     extension: null,
-    serviceName: null,
-    expirationDate: null,
-    state: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1181,9 +1165,6 @@ export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorA
     permissions: [],
     projectState: null,
     extension: null,
-    serviceName: null,
-    expirationDate: null,
-    state: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }

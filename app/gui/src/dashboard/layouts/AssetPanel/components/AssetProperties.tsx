@@ -33,6 +33,7 @@ import {
   BackendType,
   getAssetPermissionId,
   getAssetPermissionName,
+  isAssetCredential,
   Plan,
   type AnyAsset,
   type DatalinkId,
@@ -395,7 +396,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
         </div>
       )}
 
-      {isSecret && (
+      {isSecret && !isAssetCredential(item) && (
         <div className={styles.section()} {...secretSpotlight.props}>
           <Heading
             level={2}

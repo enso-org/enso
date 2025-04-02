@@ -181,6 +181,7 @@
   "resolveProjectAssetPathBackendError": "Could not get asset",
   "directoryAssetType": "folder",
   "directoryDoesNotExistError": "Unable to find directory. Does it exist?",
+  "cannotEditCredentialError": "Editing credentials is currently not supported. Please create a new one.",
   "projectAssetType": "project",
   "fileAssetType": "file",
   "datalinkAssetType": "Datalink",

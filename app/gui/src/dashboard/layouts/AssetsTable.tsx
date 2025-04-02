@@ -113,6 +113,7 @@ import {
   BackendType,
   getAssetPermissionName,
   IS_OPENING_OR_OPENED,
+  isAssetCredential,
   type AnyAsset,
 } from '#/services/Backend'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
@@ -668,22 +669,26 @@ function AssetsTable(props: AssetsTableProps) {
                 break
               }
               case AssetType.secret: {
-                event.preventDefault()
-                event.stopPropagation()
-                const id = item.id
-                setModal(
-                  <UpsertSecretModal
-                    id={item.id}
-                    name={item.title}
-                    doCreate={async (title, value) => {
-                      try {
-                        await updateSecretMutation.mutateAsync([id, { title, value }, item.title])
-                      } catch (error) {
-                        toastAndLog(null, error)
-                      }
-                    }}
-                  />,
-                )
+                if (!isAssetCredential(item)) {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  const id = item.id
+                  setModal(
+                    <UpsertSecretModal
+                      id={item.id}
+                      name={item.title}
+                      doCreate={async (title, value) => {
+                        try {
+                          await updateSecretMutation.mutateAsync([id, { title, value }, item.title])
+                        } catch (error) {
+                          toastAndLog(null, error)
+                        }
+                      }}
+                    />,
+                  )
+                } else {
+                  toast.warning(getText('cannotEditCredentialError'))
+                }
                 break
               }
               case AssetType.file:
