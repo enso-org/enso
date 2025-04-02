@@ -938,7 +938,7 @@ type Array
          of both elements.
 
              [1, 2, 3].to_array.zip [4, 5, 6].to_array == [[1, 4].to_array, [2, 5].to_array, [3, 6].to_array].to_array
-    zip self that:(Array|Vector) (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = False) (keep_unmatched : Boolean | Report_Unmatched = False) on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
+    zip self that:(Array|Vector) (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = False) (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) on_problems:(Problem_Behavior | No_Wrap)=..Report_Error -> Vector =
         Array_Like_Helpers.zip self that function skip_nothing keep_unmatched on_problems
 
     ## ICON convert

@@ -1065,7 +1065,7 @@ type Vector a
          of both elements.
 
              [1, 2, 3].zip [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
-    zip self that:Vector (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = False) (keep_unmatched : Boolean | Report_Unmatched = False) on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
+    zip self that:Vector (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = False) (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) on_problems:(Problem_Behavior | No_Wrap)=..Report_Error -> Vector =
         Array_Like_Helpers.zip self that function skip_nothing keep_unmatched on_problems
 
     ## GROUP Calculations
