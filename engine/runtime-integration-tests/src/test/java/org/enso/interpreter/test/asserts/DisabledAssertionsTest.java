@@ -5,43 +5,34 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import org.enso.common.LanguageInfo;
-import org.enso.common.MethodNames.TopScope;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class DisabledAssertionsTest {
-  private static Context ctx;
+  @ClassRule
+  public static final ContextUtilsRule ctxRule =
+      ContextUtilsRule.createCustom(DisabledAssertionsTest::setupCtx);
 
-  @BeforeClass
-  public static void setupCtx() {
-    ctx =
-        ContextUtils.defaultContextBuilder().environment("ENSO_ENABLE_ASSERTIONS", "false").build();
-  }
-
-  @AfterClass
-  public static void disposeCtx() {
-    ctx.close(true);
-    ctx = null;
+  private static Context setupCtx() {
+    return ContextUtils.defaultContextBuilder()
+        .environment("ENSO_ENABLE_ASSERTIONS", "false")
+        .build();
   }
 
   @Test
   public void assertionsCanBeDisabledWithEnvVar() {
-    EnsoContext ensoCtx =
-        ctx.getBindings(LanguageInfo.ID).invokeMember(TopScope.LEAK_CONTEXT).asHostObject();
+    var ensoCtx = ctxRule.leakContext();
     assertFalse(ensoCtx.isAssertionsEnabled());
   }
 
   @Test
   public void actionInAssertIsNotComputedWhenAssertionsAreDisabled() {
     Value res =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
 from Standard.Base import Runtime
 import Standard.Base.Runtime.Ref.Ref

@@ -5,10 +5,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.enso.test.utils.ContextUtilsRule;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 /**
@@ -16,18 +14,7 @@ import org.junit.Test;
  * com.oracle.truffle.api.interop.InteropLibrary interop} protocol.
  */
 public class InvokeBuiltinMethodViaInteropTest {
-  private static Context ctx;
-
-  @BeforeClass
-  public static void setUp() {
-    ctx = ContextUtils.createDefaultContext();
-  }
-
-  @AfterClass
-  public static void tearDown() {
-    ctx.close();
-    ctx = null;
-  }
+  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
 
   @Test
   public void invokeGetMethodOnRef() {
@@ -37,12 +24,11 @@ public class InvokeBuiltinMethodViaInteropTest {
 
         main = Ref.new 42
         """;
-    var ref = ContextUtils.evalModule(ctx, code);
-    ContextUtils.executeInContext(
-        ctx,
+    var ref = ctxRule.evalModule(code);
+    ctxRule.executeInContext(
         () -> {
           var interop = InteropLibrary.getUncached();
-          var refUnwrapped = ContextUtils.unwrapValue(ctx, ref);
+          var refUnwrapped = ctxRule.unwrapValue(ref);
           assertThat(
               "Ref builtin object should not have any members",
               interop.hasMembers(refUnwrapped),
@@ -72,9 +58,8 @@ public class InvokeBuiltinMethodViaInteropTest {
         main =
             File.current_directory
         """;
-    var file = ContextUtils.evalModule(ctx, code);
-    ContextUtils.executeInContext(
-        ctx,
+    var file = ctxRule.evalModule(code);
+    ctxRule.executeInContext(
         () -> {
           var fileType = file.getMetaObject();
           assertThat(fileType, is(notNullValue()));
@@ -91,9 +76,8 @@ public class InvokeBuiltinMethodViaInteropTest {
     var code = """
         main = [1,2,3]
         """;
-    var vec = ContextUtils.evalModule(ctx, code);
-    ContextUtils.executeInContext(
-        ctx,
+    var vec = ctxRule.evalModule(code);
+    ctxRule.executeInContext(
         () -> {
           var vecType = vec.getMetaObject();
           assertThat(vecType, is(notNullValue()));
@@ -111,12 +95,11 @@ public class InvokeBuiltinMethodViaInteropTest {
    */
   @Test
   public void extensionMethodOnBuiltinTypeIsNotResolved() {
-    var text = ContextUtils.evalModule(ctx, "main = 'Hello'");
-    ContextUtils.executeInContext(
-        ctx,
+    var text = ctxRule.evalModule("main = 'Hello'");
+    ctxRule.executeInContext(
         () -> {
           var interop = InteropLibrary.getUncached();
-          var textUnwrapped = ContextUtils.unwrapValue(ctx, text);
+          var textUnwrapped = ctxRule.unwrapValue(text);
           var textMeta = interop.getMetaObject(textUnwrapped);
           assertThat(
               "Text type should not be able to resolve 'reverse' method",
@@ -128,14 +111,13 @@ public class InvokeBuiltinMethodViaInteropTest {
 
   @Test
   public void invokePlusOnTextWithParameter() {
-    var text1 = ContextUtils.evalModule(ctx, "main = 'First'");
-    var text2 = ContextUtils.evalModule(ctx, "main = 'Second'");
-    ContextUtils.executeInContext(
-        ctx,
+    var text1 = ctxRule.evalModule("main = 'First'");
+    var text2 = ctxRule.evalModule("main = 'Second'");
+    ctxRule.executeInContext(
         () -> {
           var interop = InteropLibrary.getUncached();
-          var text1Unwrapped = ContextUtils.unwrapValue(ctx, text1);
-          var text2Unwrapped = ContextUtils.unwrapValue(ctx, text2);
+          var text1Unwrapped = ctxRule.unwrapValue(text1);
+          var text2Unwrapped = ctxRule.unwrapValue(text2);
           var textMeta = interop.getMetaObject(text1Unwrapped);
           assertThat(
               "Text type should have a '+' method",

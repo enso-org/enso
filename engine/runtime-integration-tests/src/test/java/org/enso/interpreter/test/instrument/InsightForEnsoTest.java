@@ -6,25 +6,30 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.Map;
 import java.util.function.Function;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class InsightForEnsoTest {
-  private Context ctx;
-  private AutoCloseable insightHandle;
-  private final ByteArrayOutputStream out = new ByteArrayOutputStream();
+  private static AutoCloseable insightHandle;
+  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-  @Before
-  public void initContext() throws Exception {
-    this.ctx = ContextUtils.defaultContextBuilder().out(out).build();
+  @ClassRule
+  public static final ContextUtilsRule ctxRule =
+      ContextUtilsRule.createCustom(InsightForEnsoTest::initContext);
+
+  public static Context initContext() {
+    var ctx = ContextUtils.defaultContextBuilder().out(out).build();
 
     var engine = ctx.getEngine();
     Map<String, Language> langs = engine.getLanguages();
@@ -36,33 +41,42 @@ public class InsightForEnsoTest {
             engine.getInstruments().get("insight").lookup(Function.class);
     assertNotNull(fn);
 
-    var insightScript =
-        Source.newBuilder(
-                "js",
-                """
-        insight.on('enter', (ctx, frame) => {
-            print(`${ctx.name} at ${ctx.source.name}:${ctx.line}:`);
-            let dump = "";
-            for (let p in frame) {
-                frame.unknown // used to yield NullPointerException
-                dump += ` ${p}=${frame[p]}`;
-            }
-            print(dump);
-        }, {
-            roots : true
-        });
-        """,
-                "trace.js")
-            .build();
-    this.insightHandle = fn.apply(insightScript);
+    Source insightScript;
+    try {
+      insightScript =
+          Source.newBuilder(
+                  "js",
+                  """
+      insight.on('enter', (ctx, frame) => {
+          print(`${ctx.name} at ${ctx.source.name}:${ctx.line}:`);
+          let dump = "";
+          for (let p in frame) {
+              frame.unknown // used to yield NullPointerException
+              dump += ` ${p}=${frame[p]}`;
+          }
+          print(dump);
+      }, {
+          roots : true
+      });
+      """,
+                  "trace.js")
+              .build();
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    }
+    insightHandle = fn.apply(insightScript);
+    return ctx;
   }
 
   @After
-  public void disposeContext() throws Exception {
-    this.insightHandle.close();
-    this.out.reset();
-    this.ctx.close();
-    this.ctx = null;
+  public void resetOut() {
+    out.reset();
+  }
+
+  @AfterClass
+  public static void dispose() throws Exception {
+    out.close();
+    insightHandle.close();
   }
 
   @Test
@@ -81,7 +95,7 @@ public class InsightForEnsoTest {
                 "factorial.enso")
             .build();
 
-    var m = ctx.eval(code);
+    var m = ctxRule.eval(code);
     var fac = m.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fac");
     var res = fac.execute(5);
     assertEquals(120, res.asInt());
@@ -140,7 +154,7 @@ public class InsightForEnsoTest {
                 "complex.enso")
             .build();
 
-    var m = ctx.eval(code);
+    var m = ctxRule.eval(code);
     var alloc1 = m.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "alloc1");
     var alloc2 = m.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "alloc2");
     var alloc3 = m.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "alloc3");

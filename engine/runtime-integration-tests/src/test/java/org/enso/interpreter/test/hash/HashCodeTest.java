@@ -16,12 +16,12 @@ import org.enso.interpreter.node.expression.builtin.meta.HashCodeNodeGen;
 import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.test.ValuesGenerator;
-import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.enso.test.utils.TestRootNode;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
@@ -29,8 +29,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(Theories.class)
 public class HashCodeTest {
-  private static Context context;
-
+  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
   private static HashCodeNode hashCodeNode;
   private static EqualsNode equalsNode;
   private static HostValueToEnsoNode hostValueToEnsoNode;
@@ -38,9 +37,7 @@ public class HashCodeTest {
 
   @BeforeClass
   public static void initContextAndData() {
-    context = ContextUtils.createDefaultContext();
-    ContextUtils.executeInContext(
-        context,
+    ctxRule.executeInContext(
         () -> {
           hashCodeNode = HashCodeNode.build();
           equalsNode = EqualsNode.create();
@@ -61,8 +58,6 @@ public class HashCodeTest {
 
   @AfterClass
   public static void disposeContext() {
-    context.close();
-    context = null;
     unwrappedValues = null;
     hashCodeNode = null;
     equalsNode = null;
@@ -80,7 +75,7 @@ public class HashCodeTest {
     List<Value> values = new ArrayList<>();
     try (ValuesGenerator valGenerator =
         ValuesGenerator.create(
-            context, ValuesGenerator.Language.ENSO, ValuesGenerator.Language.JAVA)) {
+            ctxRule.context(), ValuesGenerator.Language.ENSO, ValuesGenerator.Language.JAVA)) {
       values.addAll(valGenerator.numbers());
       values.addAll(valGenerator.booleans());
       values.addAll(valGenerator.textual());
@@ -96,7 +91,7 @@ public class HashCodeTest {
       values.addAll(valGenerator.warnings());
       try {
         return values.stream()
-            .map(value -> ContextUtils.unwrapValue(context, value))
+            .map(value -> ctxRule.unwrapValue(value))
             .map(unwrappedValue -> hostValueToEnsoNode.execute(unwrappedValue))
             .collect(Collectors.toList())
             .toArray(new Object[] {});
@@ -110,7 +105,6 @@ public class HashCodeTest {
   public void hashCodeContractTheory(Object firstValue, Object secondValue) {
     InteropLibrary interop = InteropLibrary.getUncached();
     executeInContextWithNode(
-        context,
         (frame) -> {
           var firstHash = hashCodeNode.execute(firstValue);
           var secondHash = hashCodeNode.execute(secondValue);
@@ -143,8 +137,7 @@ public class HashCodeTest {
 
   @Theory
   public void hashCodeIsConsistent(Object value) {
-    ContextUtils.executeInContext(
-        context,
+    ctxRule.executeInContext(
         () -> {
           long firstHash = hashCodeNode.execute(value);
           long secondHash = hashCodeNode.execute(value);
@@ -155,8 +148,7 @@ public class HashCodeTest {
 
   @Theory
   public void hashCodeCachedNodeIsConsistentWithUncached(Object value) {
-    ContextUtils.executeInContext(
-        context,
+    ctxRule.executeInContext(
         () -> {
           long uncachedRes = HashCodeNodeGen.getUncached().execute(value);
           long cachedRes = hashCodeNode.execute(value);
@@ -180,8 +172,8 @@ public class HashCodeTest {
     return obj == EnsoContext.get(null).getNothing();
   }
 
-  private static Object executeInContextWithNode(Context ctx, Function<VirtualFrame, Object> fn) {
-    var ret = ContextUtils.executeInContext(ctx, () -> testRootNode.getCallTarget().call(fn));
+  private static Object executeInContextWithNode(Function<VirtualFrame, Object> fn) {
+    var ret = ctxRule.executeInContext(() -> testRootNode.getCallTarget().call(fn));
     return ret;
   }
 }

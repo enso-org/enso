@@ -5,42 +5,31 @@ import static org.junit.Assert.assertTrue;
 
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.StandardTags;
-import java.nio.file.Paths;
 import java.util.Map;
-import java.util.logging.Level;
-import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.test.Metadata;
 import org.enso.interpreter.test.instruments.NodeCountingTestInstrument;
+import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.io.IOAccess;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class WarningInstrumentationTest {
 
-  private Context context;
-  private NodeCountingTestInstrument instrument;
+  @ClassRule
+  public static final ContextUtilsRule ctxRule =
+      ContextUtilsRule.createCustom(WarningInstrumentationTest::initContext);
 
-  @Before
-  public void initContext() {
-    context =
-        Context.newBuilder()
-            .allowExperimentalOptions(true)
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(System.err)
-            .allowExperimentalOptions(true)
-            .allowIO(IOAccess.ALL)
-            .allowAllAccess(true)
-            .build();
+  private static NodeCountingTestInstrument instrument;
+
+  private static Context initContext() {
+    var context = ContextUtils.createDefaultContext();
 
     var engine = context.getEngine();
     Map<String, Language> langs = engine.getLanguages();
@@ -58,13 +47,12 @@ public class WarningInstrumentationTest {
             .tagIsNot(AvoidIdInstrumentationTag.class)
             .build();
     instrument.enable(builder);
+    return context;
   }
 
-  @After
-  public void disposeContext() {
+  @AfterClass
+  public static void disposeContext() {
     instrument = null;
-    context.close();
-    context = null;
   }
 
   @Test
@@ -88,16 +76,16 @@ public class WarningInstrumentationTest {
                 """;
     var code = metadata.appendToCode(rawCode);
     var src = Source.newBuilder("enso", code, "TestWarning.enso").build();
-    var module = context.eval(src);
+    var module = ctxRule.eval(src);
     var res = module.invokeMember("eval_expression", "run");
     res.execute("A");
 
     var calls = instrument.registeredCalls();
 
-    assertEquals(calls.keySet().size(), 3);
-    assertEquals(calls.get(idOp1).functionName(), "new");
-    assertEquals(calls.get(idOp2).functionName(), "attach");
+    assertEquals(3, calls.keySet().size());
+    assertEquals("new", calls.get(idOp1).functionName());
+    assertEquals("attach", calls.get(idOp2).functionName());
     assertTrue(calls.get(idOp3).typeName().contains("Table"));
-    assertEquals(calls.get(idOp3).functionName(), "get");
+    assertEquals("get", calls.get(idOp3).functionName());
   }
 }

@@ -7,10 +7,11 @@ import java.io.IOException;
 import java.util.List;
 import org.enso.common.LanguageInfo;
 import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -20,24 +21,22 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class SuccessfulAssertionExpressionTest {
 
-  private static Context ctx;
+  @ClassRule
+  public static final ContextUtilsRule ctxRule =
+      ContextUtilsRule.createCustom(SuccessfulAssertionExpressionTest::setupCtx);
 
   private static ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-  @BeforeClass
-  public static void setupCtx() {
-    ctx =
-        ContextUtils.defaultContextBuilder(LanguageInfo.ID)
-            .environment("ENSO_ENABLE_ASSERTIONS", "true")
-            .out(out)
-            .err(out)
-            .build();
+  private static Context setupCtx() {
+    return ContextUtils.defaultContextBuilder(LanguageInfo.ID)
+        .environment("ENSO_ENABLE_ASSERTIONS", "true")
+        .out(out)
+        .err(out)
+        .build();
   }
 
   @AfterClass
   public static void disposeCtx() throws IOException {
-    ctx.close(true);
-    ctx = null;
     out.close();
     out = null;
   }
@@ -73,7 +72,7 @@ eq_method x y =
     sb.append(imports).append("\n");
     sb.append("main = Runtime.assert (").append(succExpr).append(")\n");
     var code = sb.toString();
-    var res = ContextUtils.evalModule(ctx, code);
+    var res = ctxRule.evalModule(code);
     assertTrue(res.isNull());
   }
 }

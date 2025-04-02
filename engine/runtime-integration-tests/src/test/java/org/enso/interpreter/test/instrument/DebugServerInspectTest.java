@@ -11,30 +11,31 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayOutputStream;
 import org.enso.common.DebugServerInfo;
 import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.hamcrest.core.AllOf;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class DebugServerInspectTest {
-  private static Context ctx;
   private static ByteArrayOutputStream out = new ByteArrayOutputStream();
   private static ByteArrayOutputStream err = new ByteArrayOutputStream();
 
-  @BeforeClass
-  public static void initContext() throws Exception {
+  @ClassRule
+  public static final ContextUtilsRule ctxRule =
+      ContextUtilsRule.createCustom(DebugServerInspectTest::initContext);
+
+  private static Context initContext() {
     var b = ContextUtils.defaultContextBuilder().out(out).err(err);
     b.option(DebugServerInfo.METHOD_BREAKPOINT_OPTION, "ScriptTest.inspect");
-    ctx = b.build();
+    return b.build();
   }
 
   @AfterClass
   public static void closeContext() throws Exception {
-    ctx.close();
-    ctx = null;
     out.close();
     out = null;
     err.close();
@@ -60,7 +61,7 @@ public class DebugServerInspectTest {
             v = [j, d, t]
             v
         """;
-    var r = ContextUtils.evalModule(ctx, code, "ScriptTest.enso", "inspect");
+    var r = ctxRule.evalModule(code, "ScriptTest.enso", "inspect");
     assertTrue("Got array back: " + r, r.hasArrayElements());
     assertEquals("Got three elements", 3, r.getArraySize());
     assertEquals("One", 1, r.getArrayElement(0).asInt());
@@ -95,7 +96,7 @@ public class DebugServerInspectTest {
             v = [j, d, t]
             v
         """;
-    var r = ContextUtils.evalModule(ctx, code, "ScriptTest.enso", "inspect");
+    var r = ctxRule.evalModule(code, "ScriptTest.enso", "inspect");
     assertTrue("Got error back: " + r, r.isException());
     try {
       throw r.throwException();
@@ -131,7 +132,7 @@ public class DebugServerInspectTest {
             d = Error.throw 2
             j
         """;
-    var r = ContextUtils.evalModule(ctx, code, "ScriptTest.enso", "inspect");
+    var r = ctxRule.evalModule(code, "ScriptTest.enso", "inspect");
     assertTrue("Got error back: " + r, r.isException());
     assertEquals("But it is also the right value", 1, r.asInt());
     assertEquals(
@@ -160,7 +161,7 @@ public class DebugServerInspectTest {
             two = Warning.attach (My_Warning.Value "TWO") half
             [one, half, two]
         """;
-    var r = ContextUtils.evalModule(ctx, code, "ScriptTest.enso", "inspect");
+    var r = ctxRule.evalModule(code, "ScriptTest.enso", "inspect");
     assertTrue("Got array back: " + r, r.hasArrayElements());
     assertEquals("Got three elements", 3, r.getArraySize());
     assertEquals("One", 1, r.getArrayElement(0).asInt());
