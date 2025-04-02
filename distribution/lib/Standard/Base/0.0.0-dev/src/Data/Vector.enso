@@ -1,5 +1,5 @@
 import project.Any.Any
-import project.Constants.Report_Unmatched
+import project.Data.Vector.Report_Unmatched
 import project.Data.Array.Array
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Index_Sub_Range.Index_Sub_Range
@@ -1576,6 +1576,10 @@ type Map_Error
 type No_Wrap
     ## PRIVATE
     Value
+
+## A value that marks the mode that allows column mismatches but reports them as
+   a problem.
+type Report_Unmatched
 
 ## PRIVATE
 Wrapped_Error.from (that : Map_Error) = Wrapped_Error.Value that that.inner_error
