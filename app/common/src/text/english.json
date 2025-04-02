@@ -239,6 +239,7 @@
   "dropItemsHereToSetClipboard": "Drop items here to set clipboard",
   "clipboardDropZone": "Clipboard drop zone",
   "pasteTypeSelector": "Paste type selector",
+  "cannotPasteHere": "Cannot paste here!",
   "otp": "OTP",
   "totp": "TOTP",
   "display": "Display",

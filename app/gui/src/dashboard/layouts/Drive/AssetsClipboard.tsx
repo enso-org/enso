@@ -109,9 +109,7 @@ function AssetsClipboardItems(props: AssetsClipboardItemsProps) {
     ) ?
       pasteData
     : null
-  const effectivePasteAssets = [...(effectivePasteData?.data.ids ?? [])]
-    .map(getAsset)
-    .filter((x) => x != null)
+  const pasteAssets = [...(pasteData?.data.ids ?? [])].map(getAsset).filter((x) => x != null)
 
   const itemCount = effectivePasteData?.data.ids.size ?? 0
   const clipboardContentsDescription = getText(
@@ -157,23 +155,23 @@ function AssetsClipboardItems(props: AssetsClipboardItemsProps) {
       getDropOperation={(types) => (types.has(ASSETS_MIME_TYPE) ? 'move' : 'cancel')}
       className={twJoin(
         'group flex min-h-20 w-full rounded-2xl border-dashed border-primary/20',
-        !effectivePasteData && 'items-center border-2',
+        !pasteData && 'items-center border-2',
       )}
       onDrop={onDrop}
     >
-      {!effectivePasteData && (
+      {!pasteData && (
         <Text className="cursor-copy text-center text-primary/40 transition-colors group-hover:text-primary">
           {getText('dropItemsHereToSetClipboard')}
         </Text>
       )}
-      {effectivePasteData && (
+      {pasteData && (
         <>
           <div
             aria-label={clipboardContentsDescription}
-            draggable
-            className="relative w-full pt-2"
+            draggable={effectivePasteData != null}
+            className="relative flex w-full flex-col items-center"
             onDragStart={(event: DragEvent<HTMLDivElement>) => {
-              const nodes = effectivePasteAssets
+              const nodes = pasteAssets
               const payload: AssetRowsDragPayload = nodes.map((node) => ({
                 key: node.id,
                 asset: node,
@@ -213,29 +211,29 @@ function AssetsClipboardItems(props: AssetsClipboardItemsProps) {
               )
             }}
           >
-            {effectivePasteAssets
-              .slice(0, 3)
-              .reverse()
-              .map((node) => (
-                <AssetNameColumn
-                  isNavigating={false}
-                  key={node.id}
-                  item={node}
-                  isOpened={false}
-                  backendType={backend.type}
-                  state={partialState}
-                  rowState={INITIAL_ROW_STATE}
-                  // The drag placeholder cannot be interacted with.
-                  isPlaceholder={false}
-                  setSelected={noop}
-                  setRowState={noop}
-                  isEditable={false}
-                  labels={[]}
-                />
-              ))}
+            <Text className={effectivePasteData == null ? 'rounded-full bg-invert px-2' : ''}>
+              {effectivePasteData == null ? getText('cannotPasteHere') : '\u200a'}
+            </Text>
+            {pasteAssets.slice(0, 3).map((node) => (
+              <AssetNameColumn
+                isNavigating={false}
+                key={node.id}
+                item={node}
+                isOpened={false}
+                backendType={backend.type}
+                state={partialState}
+                rowState={INITIAL_ROW_STATE}
+                // The drag placeholder cannot be interacted with.
+                isPlaceholder={false}
+                setSelected={noop}
+                setRowState={noop}
+                isEditable={false}
+                labels={[]}
+              />
+            ))}
 
-            <Underlay className="absolute -right-1 top-0 rounded-full">
-              <Badge color="primary">{effectivePasteData.data.ids.size}</Badge>
+            <Underlay className="absolute -right-1 top-2 rounded-full">
+              <Badge color="primary">{pasteData.data.ids.size}</Badge>
             </Underlay>
           </div>
         </>
