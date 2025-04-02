@@ -138,7 +138,7 @@ public final class ContextUtilsRule implements TestRule {
     }
 
     @Override
-    public void evaluate() {
+    public void evaluate() throws Throwable {
       log(description);
       var prev = CURRENT.get();
       try (var ctx = contextSupplier.get()) {
@@ -146,9 +146,15 @@ public final class ContextUtilsRule implements TestRule {
         CURRENT.set(ctx);
         base.evaluate();
       } catch (Throwable t) {
-        throw new FailureWithOutput("Compiler output: " + out.toString(), t);
+        if (out != null) {
+          throw new FailureWithOutput("Compiler output: " + out, t);
+        } else {
+          throw t;
+        }
       } finally {
-        out.reset();
+        if (out != null) {
+          out.reset();
+        }
         CURRENT.set(prev);
       }
     }
