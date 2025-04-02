@@ -11,12 +11,12 @@ import { Button, DialogTrigger } from '#/components/AriaComponents'
 import ContextMenu from '#/components/ContextMenu'
 import type * as column from '#/components/dashboard/column'
 import Label from '#/components/dashboard/Label'
-import MenuEntry from '#/components/MenuEntry'
 
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 
 import * as backendModule from '#/services/Backend'
 
+import ContextMenuEntry from '#/components/ContextMenuEntry'
 import { useStore } from '#/hooks/storeHooks'
 import { useDriveStore } from '#/providers/DriveProvider'
 import * as permissions from '#/utilities/permissions'
@@ -100,7 +100,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
               }
               setModal(
                 <ContextMenu aria-label={getText('labelContextMenuLabel')} event={event}>
-                  <MenuEntry
+                  <ContextMenuEntry
                     action="delete"
                     label={getText('deleteLabelShortcut')}
                     doAction={doDelete}

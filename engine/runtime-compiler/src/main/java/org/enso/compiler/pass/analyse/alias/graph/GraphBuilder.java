@@ -5,12 +5,12 @@ package org.enso.compiler.pass.analyse.alias.graph;
  * and their usages from the actual querying of those symbols.
  */
 public final class GraphBuilder {
-  private final Graph graph;
-  private final Graph.Scope scope;
+  private final GraphImpl graph;
+  private final GraphImpl.Scope scope;
 
   private GraphBuilder(Graph graph, Graph.Scope scope) {
-    this.graph = graph;
-    this.scope = scope;
+    this.graph = (GraphImpl) graph;
+    this.scope = (GraphImpl.Scope) scope;
   }
 
   /**
@@ -31,6 +31,8 @@ public final class GraphBuilder {
    * @return builder operating on the graph {@code g} starting at scope {@code s}
    */
   public static GraphBuilder create(Graph g, Graph.Scope s) {
+    assert g != null;
+    assert s != null;
     return new GraphBuilder(g, s);
   }
 
@@ -41,26 +43,6 @@ public final class GraphBuilder {
    */
   public GraphBuilder addChild() {
     return new GraphBuilder(graph, scope.addChild());
-  }
-
-  /**
-   * Adds occurrence to current scope.
-   *
-   * @return this builder with modified scope
-   */
-  public GraphBuilder add(GraphOccurrence occ) {
-    this.scope.add(occ);
-    return this;
-  }
-
-  /**
-   * Adds definition to current scope.
-   *
-   * @return this builder with modified scope
-   */
-  public GraphBuilder addDefinition(GraphOccurrence.Def def) {
-    this.scope.addDefinition(def);
-    return this;
   }
 
   /**
@@ -81,25 +63,43 @@ public final class GraphBuilder {
   /** Creates new definition for */
   public GraphOccurrence.Def newDef(
       String symbol, java.util.UUID identifier, scala.Option<java.util.UUID> externalId) {
-    return newDef(symbol, identifier, externalId, false);
+    return newDef(symbol, identifier, externalId, false, true);
   }
 
   public GraphOccurrence.Def newDef(
       String symbol,
       java.util.UUID identifier,
       scala.Option<java.util.UUID> externalId,
-      boolean suspended) {
-    return new GraphOccurrence.Def(graph.nextId(), symbol, identifier, externalId, suspended);
+      boolean suspended,
+      boolean addToScope) {
+    var def = new GraphOccurrence.Def(graph.nextId(), symbol, identifier, externalId, suspended);
+    if (addToScope) {
+      scope.add(def);
+    }
+    scope.addDefinition(def);
+    return def;
   }
 
   /** Factory method to create new [GraphOccurrence.Use]. */
   public GraphOccurrence.Use newUse(
       String symbol, java.util.UUID identifier, scala.Option<java.util.UUID> externalId) {
-    return new GraphOccurrence.Use(graph.nextId(), symbol, identifier, externalId);
+    var use = new GraphOccurrence.Use(graph.nextId(), symbol, identifier, externalId);
+    scope.add(use);
+    return use;
   }
 
   public void resolveLocalUsage(GraphOccurrence.Use use) {
     graph.resolveLocalUsage(use);
+  }
+
+  /**
+   * Freezes the associated graph from further modifications.
+   *
+   * @return this
+   */
+  public final GraphBuilder freeze() {
+    graph.freeze();
+    return this;
   }
 
   public Graph toGraph() {

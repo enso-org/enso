@@ -1,16 +1,13 @@
 /** @file A block of text with a copy button. */
-
-import * as React from 'react'
-
-import * as copyHook from '#/hooks/copyHooks'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import * as twv from '#/utilities/tailwindVariants'
+import { useCopy } from '#/hooks/copyHooks'
+import { useText } from '#/providers/TextProvider'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import type { ReactNode } from 'react'
 import { Button } from '../Button'
 import { TEXT_STYLE } from '../Text'
 
-const COPY_BLOCK_STYLES = twv.tv({
+// eslint-disable-next-line react-refresh/only-export-components
+export const COPY_BLOCK_STYLES = tv({
   base: TEXT_STYLE({
     class: 'max-w-full bg-primary/5 border-primary/10',
   }),
@@ -33,8 +30,8 @@ const COPY_BLOCK_STYLES = twv.tv({
 })
 
 /** Props for a {@link CopyBlock}. */
-export interface CopyBlockProps {
-  readonly title?: React.ReactNode
+export interface CopyBlockProps extends VariantProps<typeof COPY_BLOCK_STYLES> {
+  readonly title?: ReactNode
   readonly copyText: string
   readonly className?: string
   readonly onCopy?: () => void
@@ -42,22 +39,22 @@ export interface CopyBlockProps {
 
 /** A block of text with a copy button. */
 export function CopyBlock(props: CopyBlockProps) {
-  const { copyText, className, onCopy = () => {} } = props
+  const { copyText, className, onCopy = () => {}, variants = COPY_BLOCK_STYLES } = props
 
-  const { getText } = textProvider.useText()
-  const { mutateAsync, isSuccess } = copyHook.useCopy({ copyText, onCopy })
+  const { getText } = useText()
+  const { mutateAsync, isSuccess } = useCopy({ onCopy })
 
-  const { copyTextBlock, base } = COPY_BLOCK_STYLES()
+  const styles = variants()
 
   return (
     <Button
       variant="custom"
       size="custom"
-      onPress={() => mutateAsync()}
+      onPress={() => mutateAsync(copyText)}
       tooltip={isSuccess ? getText('copied') : getText('copy')}
-      className={base({ className })}
+      className={styles.base({ className })}
     >
-      <span className={copyTextBlock()}>{copyText}</span>
+      <span className={styles.copyTextBlock()}>{copyText}</span>
     </Button>
   )
 }
