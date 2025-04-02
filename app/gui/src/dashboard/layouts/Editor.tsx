@@ -67,8 +67,8 @@ function Editor(props: EditorProps) {
 
   const hybridProjectStatusQuery = projectHooks.createGetProjectDetailsQuery({
     // This is SAFE, if and only if `enabled` below is `project.hybrid != null`.
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    assetId: project.hybrid!.cloudProjectId,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-non-null-asserted-optional-chain
+    assetId: project.hybrid?.cloudProjectId!,
     backend: remoteBackend,
   })
 
