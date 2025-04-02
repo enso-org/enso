@@ -418,6 +418,59 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
         </div>
       )}
 
+      {isSecret && isAssetCredential(item) && (
+        <div className={styles.section()} {...secretSpotlight.props}>
+        <Heading
+          level={2}
+          className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
+        >
+          {getText('configuration')}
+        </Heading>
+        <table>
+          <tbody>
+          <tr className="h-row">
+            <td className="my-auto min-w-side-panel-label p-0">
+              <Text>{getText('credentialServiceName')}</Text>
+            </td>
+            <td className="w-full p-0">
+              <div className="flex items-center gap-2">
+                <Text className="w-0 grow" truncate="1">
+                  {item.serviceName}
+                </Text>
+              </div>
+            </td>
+          </tr>
+          <tr className="h-row">
+            <td className="my-auto min-w-side-panel-label p-0">
+              <Text>{getText('credentialState')}</Text>
+            </td>
+            <td className="w-full p-0">
+              <div className="flex items-center gap-2">
+                <Text className="w-0 grow" truncate="1">
+                  {item.state && getText(`credentialState${item.state}`)}
+                </Text>
+              </div>
+            </td>
+          </tr>
+          {item.expirationDate && (
+            <tr className="h-row">
+              <td className="my-auto min-w-side-panel-label p-0">
+                <Text>{getText('credentialExpiresAt')}</Text>
+              </td>
+              <td className="w-full p-0">
+                <div className="flex items-center gap-2">
+                  <Text className="w-0 grow" truncate="1">
+                    {toReadableIsoString(new Date(item.expirationDate))}
+                  </Text>
+                </div>
+              </td>
+            </tr>
+          )}
+          </tbody>
+        </table>
+      </div>
+      )}
+
       {isDatalink && (
         <div className={styles.section()} {...datalinkSpotlight.props}>
           <Heading

@@ -313,6 +313,12 @@
   "googleCredentialSheetsWriteScope": "Write sheets",
   "googleCredentialSheetsDriveBrowseScope": "Browse files on drive",
   "googleCredentialAnalyticsScope": "Analytics",
+  "credentialServiceName": "Credential for service",
+  "credentialState": "State",
+  "credentialStateReady": "Ready to be used",
+  "credentialStateWaitingForAuthentication": "Authentication not finished",
+  "credentialStateExpired": "Expired",
+  "credentialExpiresAt": "Expires at",
 
   "enterSecretPath": "Enter secret path",
   "enterText": "Enter text",
