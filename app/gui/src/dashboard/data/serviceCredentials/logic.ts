@@ -1,19 +1,21 @@
 /** @file Common logic for the credential creation form. */
 
-import type { CredentialMetadata, SecretId } from "#/services/Backend"
-import { openInNewBrowserTab } from "#/utilities/window"
-import { uuidv4 } from "lib0/random.js"
-import type { CredentialRecipe } from "./types"
+import type { CredentialMetadata, SecretId } from '#/services/Backend'
+import { openInNewBrowserTab } from '#/utilities/window'
+import { uuidv4 } from 'lib0/random.js'
+import type { CredentialRecipe } from './types'
 
 /**
  * Takes a function that creates new credentials and transforms it into a createCredentials callback that works with the recipe and handles the common logic of generating the nonce and opening the browser.
  */
-export function makeCredentialCreationHandler(doCreate: (name: string, value: CredentialMetadata) => Promise<SecretId>) {
+export function makeCredentialCreationHandler(
+  doCreate: (name: string, value: CredentialMetadata) => Promise<SecretId>,
+) {
   return async (recipe: CredentialRecipe) => {
     const nonce = uuidv4()
     const metadata: CredentialMetadata = {
       nonce,
-      input: recipe.input
+      input: recipe.input,
     }
 
     const secretId = await doCreate(recipe.name, metadata)

@@ -5,11 +5,11 @@
  */
 
 import { Form, Input } from '#/components/AriaComponents'
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useText } from '#/providers/TextProvider'
 import { CredentialsFormButtons } from './CredentialsFormButtons'
-import type { CredentialFormProps } from './types'
 import * as snowflake from './snowflake'
-import { useToastAndLog } from '#/hooks/toastAndLogHooks';
+import type { CredentialFormProps } from './types'
 
 /** Dialog for a Snowflake credential. */
 export function SnowflakeCredentialsForm(props: CredentialFormProps) {
@@ -33,8 +33,19 @@ export function SnowflakeCredentialsForm(props: CredentialFormProps) {
     <Form form={form} className="w-full">
       <Input form={form} name="name" label={getText('name')} />
       <Input form={form} name="account" label={getText('snowflakeCredentialAccount')} />
-      <Input form={form} name="clientId" label={getText('snowflakeCredentialClientId')} autoComplete="off" />
-      <Input form={form} name="clientSecret" label={getText('snowflakeCredentialClientSecret')} type="password" autoComplete="new-password" />
+      <Input
+        form={form}
+        name="clientId"
+        label={getText('snowflakeCredentialClientId')}
+        autoComplete="off"
+      />
+      <Input
+        form={form}
+        name="clientSecret"
+        label={getText('snowflakeCredentialClientSecret')}
+        type="password"
+        autoComplete="new-password"
+      />
       <Input form={form} name="role" label={getText('snowflakeCredentialRole')} />
       <CredentialsFormButtons isCreating={true} canCancel={false} canReset={false} />
     </Form>

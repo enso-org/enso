@@ -50,7 +50,8 @@ interface BaseFormProps<Schema extends components.TSchema>
  * Props for the Form component with parent form
  * or if form is passed as a prop.
  */
-export interface FormPropsWithParentForm<Schema extends components.TSchema> extends BaseFormProps<Schema> {
+export interface FormPropsWithParentForm<Schema extends components.TSchema>
+  extends BaseFormProps<Schema> {
   readonly form: components.UseFormReturn<Schema>
   readonly schema?: never
   readonly formOptions?: never

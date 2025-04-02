@@ -4,7 +4,7 @@ import type { TextId } from 'enso-common/src/text'
 
 /**
  * A 'recipe' for creating a credential of given type.
- * 
+ *
  * It describes the user settings for the credentials and the algorithm for generating the URL to open in the browser.
  */
 export interface CredentialRecipe {
