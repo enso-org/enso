@@ -81,3 +81,16 @@ const currentComponent = computed(() => {
     </ReactSuspense>
   </KeepAlive>
 </template>
+
+<style scoped>
+.bar {
+  display: flex;
+  flex-direction: row;
+  height: 3rem;
+}
+
+.tab {
+  padding: 0 16px;
+  height: 100%;
+}
+</style>
