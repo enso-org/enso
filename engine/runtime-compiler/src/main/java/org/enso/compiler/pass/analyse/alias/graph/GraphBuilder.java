@@ -5,12 +5,12 @@ package org.enso.compiler.pass.analyse.alias.graph;
  * and their usages from the actual querying of those symbols.
  */
 public final class GraphBuilder {
-  private final Graph graph;
-  private final Graph.Scope scope;
+  private final GraphImpl graph;
+  private final GraphImpl.Scope scope;
 
   private GraphBuilder(Graph graph, Graph.Scope scope) {
-    this.graph = graph;
-    this.scope = scope;
+    this.graph = (GraphImpl) graph;
+    this.scope = (GraphImpl.Scope) scope;
   }
 
   /**
@@ -90,6 +90,16 @@ public final class GraphBuilder {
 
   public void resolveLocalUsage(GraphOccurrence.Use use) {
     graph.resolveLocalUsage(use);
+  }
+
+  /**
+   * Freezes the associated graph from further modifications.
+   *
+   * @return this
+   */
+  public final GraphBuilder freeze() {
+    graph.freeze();
+    return this;
   }
 
   public Graph toGraph() {

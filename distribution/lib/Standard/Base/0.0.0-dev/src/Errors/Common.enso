@@ -622,3 +622,12 @@ type Failed_To_Load
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self = "Failed to load file at path: "+self.path.to_display_text+": "+self.cause.to_display_text
+
+type Mixed_Signed_And_Unsigned_Bytes
+    ## PRIVATE
+       Indicates that a collection of bytes contains both unsigned and signed bytes.
+    Error
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = "Collection contains both signed (value < 0) and unsigned (value > 127) bytes. Please use one convention consistently."
