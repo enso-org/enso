@@ -289,5 +289,30 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           labels: -libs-API-change-Visualization
+  stdlib-api-check-Generic_JDBC-linux-amd64:
+    name: Generic_JDBC-change-labels
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
+      - id: Generic_JDBC-changed-files
+        name: Generic_JDBC-changed-files
+        uses: step-security/changed-files@v45
+        with:
+          files: distribution/lib/Standard/Generic_JDBC/**/docs/api/**.md
+      - name: List all changed files in Generic_JDBC
+        run: "\n        if [[ \"${{ steps.Generic_JDBC-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        env:
+          ALL_CHANGED_FILES: ${{ steps.Generic_JDBC-changed-files.outputs.all_changed_files }}
+      - if: steps.Generic_JDBC-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-Generic_JDBC label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-Generic_JDBC
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

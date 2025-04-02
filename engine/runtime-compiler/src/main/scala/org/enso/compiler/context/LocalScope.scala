@@ -94,7 +94,7 @@ class LocalScope(
     * @return a child of this scope
     */
   def createChild(): LocalScope = createChild(() => {
-    GraphBuilder.create(null, scope).addChild().toScope()
+    GraphBuilder.create(aliasingGraph(), scope).addChild().toScope()
   })
 
   /** Creates a child using a known aliasing scope.
@@ -178,8 +178,7 @@ object LocalScope {
   /** Empty and immutable singleton scope.
     */
   val empty: LocalScope = {
-    val graph = new AliasGraph
-    graph.freeze()
+    val graph              = GraphBuilder.create().freeze().toGraph
     val info               = DataflowAnalysis.DependencyInfo()
     val emptyVariableNames = FrameVariableNames.create(List())
     new LocalScope(
@@ -196,7 +195,7 @@ object LocalScope {
     * @return a new empty scope ready for additional modifications.
     */
   def createEmpty: LocalScope = {
-    val graph = new AliasGraph
+    val graph = GraphBuilder.create().toGraph
     val info  = DataflowAnalysis.DependencyInfo()
     new LocalScope(
       None,

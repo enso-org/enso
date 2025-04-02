@@ -33,7 +33,6 @@ import { useFullUserSession } from '#/providers/AuthProvider'
 import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import {
@@ -41,13 +40,11 @@ import {
   BackendType,
   type AnyAsset,
   type AssetId,
-  type DirectoryAsset,
   type DirectoryId,
+  type FilterBy,
   type User,
   type UserGroupInfo,
 } from '#/services/Backend'
-import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
-import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
 import { useMemo } from 'react'
 import { z } from 'zod'
@@ -321,6 +318,7 @@ export function useListDirectoryRefetchInterval() {
 /** Options for {@link listDirectoryQueryOptions}. */
 export interface ListDirectoryQueryOptions {
   readonly backend: Backend
+  readonly filterBy?: FilterBy | null | undefined
   readonly parentId: DirectoryId
   readonly category: Category
   /**
@@ -332,7 +330,13 @@ export interface ListDirectoryQueryOptions {
 
 /** Build a query options object to fetch the children of a directory. */
 export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
-  const { backend, parentId, category, refetchInterval } = options
+  const {
+    backend,
+    parentId,
+    category,
+    refetchInterval,
+    filterBy = CATEGORY_TO_FILTER_BY[category.type],
+  } = options
 
   const rootPath = 'rootPath' in category ? category.rootPath : undefined
 
@@ -344,7 +348,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
       {
         rootPath,
         labels: null,
-        filterBy: CATEGORY_TO_FILTER_BY[category.type],
+        filterBy,
         recentProjects: category.type === 'recent',
       },
     ] as const,
@@ -355,7 +359,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
           {
             parentId,
             rootPath,
-            filterBy: CATEGORY_TO_FILTER_BY[category.type],
+            filterBy,
             labels: null,
             recentProjects: category.type === 'recent',
           },
@@ -434,95 +438,6 @@ export function unsafe_assetFromCacheQueryOptions(options: AssetFromCacheQueryOp
 
 /** The type of directory listings in the React Query cache. */
 type DirectoryQuery = readonly AnyAsset<AssetType>[] | undefined
-
-/** Options for {@link useAsset}. */
-export interface UseAssetOptions extends ListDirectoryQueryOptions {
-  readonly assetId: AssetId
-}
-
-/** Data for a specific asset. */
-export function useAsset(options: UseAssetOptions) {
-  const { parentId, assetId } = options
-
-  const { data: asset } = useQuery({
-    ...listDirectoryQueryOptions(options),
-    select: (data) => data.find((child) => child.id === assetId),
-  })
-
-  if (asset) {
-    return asset
-  }
-
-  const shared = {
-    parentId,
-    projectState: null,
-    extension: null,
-    description: '',
-    modifiedAt: toRfc3339(new Date()),
-    permissions: [],
-    labels: [],
-    parentsPath: backendModule.ParentsPath(''),
-    virtualParentsPath: backendModule.VirtualParentsPath(''),
-  } satisfies Partial<DirectoryAsset>
-  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-  switch (true) {
-    case assetId === USERS_DIRECTORY_ID: {
-      return {
-        ...shared,
-        id: assetId,
-        title: 'Users',
-        type: AssetType.directory,
-      } satisfies DirectoryAsset
-    }
-    case assetId === TEAMS_DIRECTORY_ID: {
-      return {
-        ...shared,
-        id: assetId,
-        title: 'Teams',
-        type: AssetType.directory,
-      } satisfies DirectoryAsset
-    }
-    case backendModule.isLoadingAssetId(assetId): {
-      return {
-        ...shared,
-        id: assetId,
-        title: '',
-        type: AssetType.specialLoading,
-      } satisfies backendModule.SpecialLoadingAsset
-    }
-    case backendModule.isEmptyAssetId(assetId): {
-      return {
-        ...shared,
-        id: assetId,
-        title: '',
-        type: AssetType.specialEmpty,
-      } satisfies backendModule.SpecialEmptyAsset
-    }
-    case backendModule.isErrorAssetId(assetId): {
-      return {
-        ...shared,
-        id: assetId,
-        title: '',
-        type: AssetType.specialError,
-      } satisfies backendModule.SpecialErrorAsset
-    }
-    default: {
-      return
-    }
-  }
-}
-
-/** Non-nullable for a specific asset. */
-export function useAssetStrict(options: UseAssetOptions) {
-  const asset = useAsset(options)
-
-  invariant(
-    asset,
-    `Expected asset to be defined, but got undefined, Asset ID: ${JSON.stringify(options.assetId)}`,
-  )
-
-  return asset
-}
 
 /** Return matching in-flight mutations matching the given filters. */
 export function useBackendMutationState<Method extends BackendMutationMethod, Result>(
@@ -784,54 +699,6 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
   })
 
   return { ...createPermissionMutation, mutate, mutateAsync }
-}
-
-/** Duplicate a specific version of a project. */
-export function duplicateProjectMutationOptions(
-  backend: Backend,
-  queryClient: QueryClient,
-  openProject: (project: LaunchedProject) => void,
-) {
-  return mutationOptions({
-    meta: {
-      invalidates: [[backend.type, 'listDirectory']],
-      awaitInvalidates: true,
-    },
-    mutationFn: async ([id, originalTitle, parentId, versionId]: [
-      id: backendModule.ProjectId,
-      originalTitle: string,
-      parentId: backendModule.DirectoryId,
-      versionId: backendModule.S3ObjectVersionId,
-    ]) => {
-      const siblings = await queryClient.ensureQueryData(
-        backendQueryOptions(backend, 'listDirectory', [
-          {
-            parentId,
-            labels: null,
-            filterBy: backendModule.FilterBy.active,
-            recentProjects: false,
-          },
-          '(unknown)',
-        ]),
-      )
-      const siblingTitles = new Set(siblings.map((sibling) => sibling.title))
-      let index = 1
-      let title = `${originalTitle} (${index})`
-      while (siblingTitles.has(title)) {
-        index += 1
-        title = `${originalTitle} (${index})`
-      }
-
-      await backend.duplicateProject(id, versionId, title).then((project) => {
-        openProject({
-          type: backend.type,
-          parentId,
-          title,
-          id: project.projectId,
-        })
-      })
-    },
-  })
 }
 
 /** Build a query options object to list executions for a project. */

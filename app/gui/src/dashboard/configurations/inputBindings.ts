@@ -122,16 +122,13 @@ export const BINDINGS = inputBindings.defineBindings({
     rebindable: true,
     icon: ArrowRightIcon,
   },
-  aboutThisApp: {
-    name: 'About Enso',
-    bindings: ['Mod+/'],
-    rebindable: true,
-    icon: LogoIcon,
-  },
-  ensoDevtools: {
-    name: 'Enso Devtools',
+  aboutThisApp: { name: 'About Enso', bindings: ['Mod+/'], rebindable: true, icon: LogoIcon },
+  ensoDevtools: { name: 'Enso Devtools', bindings: [], rebindable: false, icon: LogoIcon },
+  copyId: {
+    name: 'Copy Id',
     bindings: [],
     rebindable: false,
-    icon: LogoIcon,
+    icon: CopyAsPathIcon,
+    color: 'rgb(73 159 75)',
   },
 })
