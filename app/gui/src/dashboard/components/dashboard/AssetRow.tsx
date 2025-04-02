@@ -508,10 +508,13 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                 const ids = payload
                   .filter((payloadItem) => payloadItem.asset.parentId !== directoryId)
                   .map((dragItem) => dragItem.key)
-                cutAndPaste(directoryId, {
-                  backendType: backend.type,
-                  ids: new Set(ids),
-                  category,
+                void cutAndPaste(directoryId, {
+                  type: 'move',
+                  data: {
+                    backendType: backend.type,
+                    ids: new Set(ids),
+                    category,
+                  },
                 })
               } else if (event.dataTransfer.types.includes('Files')) {
                 event.preventDefault()

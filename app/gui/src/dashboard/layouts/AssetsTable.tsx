@@ -51,7 +51,6 @@ import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
   addAssetsLabelsMutationOptions,
-  copyAssetsMutationOptions,
   moveAssetsMutationOptions,
   removeAssetsLabelsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
@@ -253,7 +252,6 @@ function AssetsTable(props: AssetsTableProps) {
   const uploadFiles = useUploadFiles(backend, category)
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
   const cutAndPaste = useCutAndPaste(backend, category)
-  const copyAssetsMutation = useMutation(copyAssetsMutationOptions(backend))
   const moveAssetsMutation = useMutation(moveAssetsMutationOptions(backend))
   const addAssetsLabelsMutation = useMutation(addAssetsLabelsMutationOptions(backend))
   const removeAssetsLabelsMutation = useMutation(removeAssetsLabelsMutationOptions(backend))
@@ -819,11 +817,7 @@ function AssetsTable(props: AssetsTableProps) {
       if (pasteData.data.ids.has(newParentId)) {
         toast.error('Cannot paste a folder into itself.')
       } else {
-        if (pasteData.type === 'copy') {
-          copyAssetsMutation.mutate([[...pasteData.data.ids], newParentId])
-        } else {
-          cutAndPaste(newParentId, pasteData.data)
-        }
+        void cutAndPaste(newParentId, pasteData)
         setPasteData(null)
       }
     }
@@ -1302,6 +1296,11 @@ function AssetsTable(props: AssetsTableProps) {
             setIsDraggingFiles(false)
           }}
           onDrop={(event) => {
+            const pasteData = getPasteData()
+            if (pasteData != null) {
+              void cutAndPaste(currentDirectoryId, pasteData)
+              setPasteData(null)
+            }
             const payload = ASSET_ROWS.lookup(event)
             const filtered = payload?.filter((item) => item.asset.parentId !== currentDirectoryId)
             if (filtered != null && filtered.length > 0) {

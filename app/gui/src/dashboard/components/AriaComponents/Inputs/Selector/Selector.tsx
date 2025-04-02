@@ -49,8 +49,8 @@ export const SELECTOR_STYLES = tv({
     },
     readOnly: { true: 'cursor-default' },
     size: {
-      medium: { base: '' },
-      small: { base: '' },
+      medium: '',
+      small: '',
     },
     rounded: {
       none: 'rounded-none',
@@ -63,9 +63,8 @@ export const SELECTOR_STYLES = tv({
       full: 'rounded-full',
     },
     variant: {
-      outline: {
-        base: 'border-[0.5px] border-primary/20',
-      },
+      outline: 'border-[0.5px] border-primary/20',
+      ghost: 'border-[0.5px] border-primary/20',
     },
   },
   defaultVariants: {

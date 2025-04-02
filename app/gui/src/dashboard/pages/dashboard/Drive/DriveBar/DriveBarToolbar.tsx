@@ -10,13 +10,7 @@ import AddKeyIcon from '#/assets/add_key.svg'
 import DataDownloadIcon from '#/assets/data_download.svg'
 import DataUploadIcon from '#/assets/data_upload.svg'
 import Plus2Icon from '#/assets/plus2.svg'
-import {
-  Button,
-  ButtonGroup,
-  DialogTrigger,
-  Text,
-  useVisualTooltip,
-} from '#/components/AriaComponents'
+import { Button, ButtonGroup, DialogTrigger, useVisualTooltip } from '#/components/AriaComponents'
 import { ErrorBoundary, InlineErrorDisplay } from '#/components/ErrorBoundary'
 import {
   deleteAssetsMutationOptions,
@@ -35,16 +29,12 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { AssetPanelToggle } from '#/layouts/AssetPanel'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
-import {
-  canTransferBetweenCategories,
-  isCloudCategory,
-  type Category,
-} from '#/layouts/CategorySwitcher/Category'
+import { isCloudCategory, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
-import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
+import { useCanDownload, useDriveStore } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
@@ -92,15 +82,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     targetRef: createAssetButtonsRef,
     overlayPositionProps: { placement: 'top' },
   })
-
-  const pasteData = usePasteData()
-  const effectivePasteData =
-    (
-      pasteData?.data.backendType === backend.type &&
-      canTransferBetweenCategories(pasteData.data.category, category)
-    ) ?
-      pasteData
-    : null
 
   const downloadAssetsMutation = useMutation(downloadAssetsMutationOptions(backend))
   const newFolder = useNewFolder(backend, category)
@@ -158,21 +139,10 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     </>
   )
 
-  const pasteDataStatus = effectivePasteData && (
-    <div className="flex items-center">
-      <Text>
-        {effectivePasteData.type === 'copy' ?
-          getText('xItemsCopied', effectivePasteData.data.ids.size)
-        : getText('xItemsCut', effectivePasteData.data.ids.size)}
-      </Text>
-    </div>
-  )
-
   switch (category.type) {
     case 'recent': {
       return (
         <ButtonGroup className="grow-0">
-          {pasteDataStatus}
           {searchBar}
           {assetPanelToggle}
         </ButtonGroup>
@@ -187,7 +157,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
             category={category}
             rootDirectoryId={rootDirectoryId}
           >
-            {pasteDataStatus}
             {searchBar}
             {assetPanelToggle}
           </TrashFolderToolbar>
@@ -282,7 +251,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
             </div>
             {createAssetsVisualTooltip.tooltip}
           </ButtonGroup>
-          {pasteDataStatus}
           {searchBar}
         </div>
       )

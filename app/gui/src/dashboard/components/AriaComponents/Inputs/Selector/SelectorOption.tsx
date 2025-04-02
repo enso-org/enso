@@ -35,13 +35,13 @@ export const SELECTOR_OPTION_STYLES = tv({
       small: { base: 'min-h-6', radio: 'px-[7px] py-[1.5px]' },
     },
     isHovered: {
-      true: { radio: '' },
-      false: { radio: '' },
+      true: '',
+      false: '',
     },
     isSelected: {
       // specified in compoundVariants
-      true: { radio: '' },
-      false: { radio: '' },
+      true: '',
+      false: '',
     },
     isFocusVisible: {
       // specified in compoundVariants
@@ -49,20 +49,19 @@ export const SELECTOR_OPTION_STYLES = tv({
         radio:
           'outline outline-2 outline-transparent outline-offset-[-6px] focus-visible:outline-primary focus-visible:outline-offset-[2px] transition-[outline-offset] duration-200',
       },
-      false: { radio: '' },
+      false: '',
     },
 
     isPressed: {
       // specified in compoundVariants
-      true: { radio: '' },
-      false: { radio: '' },
+      true: '',
+      false: '',
     },
 
     variant: {
       // specified in compoundVariants
-      outline: {
-        base: '',
-      },
+      outline: '',
+      ghost: { animation: 'bg-invert outline outline-1 outline-primary/30' },
     },
   },
   slots: {
@@ -136,6 +135,27 @@ export const SELECTOR_OPTION_STYLES = tv({
     },
     {
       variant: 'outline',
+      isSelected: false,
+      class: { radio: TEXT_STYLE({ variant: 'body', color: 'primary' }) },
+    },
+    {
+      variant: 'ghost',
+      isSelected: true,
+      class: { radio: TEXT_STYLE({ variant: 'body' }) },
+    },
+    {
+      variant: 'ghost',
+      isHovered: true,
+      isSelected: false,
+      class: { hover: 'bg-invert/50' },
+    },
+    {
+      variant: 'ghost',
+      isPressed: true,
+      class: { hover: 'bg-invert scale-x-[0.95] scale-y-[0.85]' },
+    },
+    {
+      variant: 'ghost',
       isSelected: false,
       class: { radio: TEXT_STYLE({ variant: 'body', color: 'primary' }) },
     },

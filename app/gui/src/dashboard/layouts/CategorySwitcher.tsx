@@ -136,19 +136,19 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
           const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
           const payload: unknown = JSON.parse(text)
           return Array.isArray(payload) ?
-              payload.flatMap((key) =>
+              payload.flatMap((id) =>
                 // This is SAFE, assuming only this app creates payloads with
                 // the specific mimetype above.
                 // eslint-disable-next-line no-restricted-syntax
-                typeof key === 'string' ? [key as backend.AssetId] : [],
+                typeof id === 'string' ? [id as backend.AssetId] : [],
               )
             : []
         } else {
           return []
         }
       }),
-    ).then((keys) => {
-      transferBetweenCategories(currentCategory, category, keys.flat(1))
+    ).then((ids) => {
+      transferBetweenCategories(currentCategory, category, ids.flat(1))
     })
   })
 
