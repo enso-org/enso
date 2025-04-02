@@ -244,33 +244,20 @@ apply_sort_to_table table sort_col_index_list sort_direction_list =
 
 ## PRIVATE
 
-   applies one filter to the table.
-
-   Arguments:
-   - table: table to sort
-   - filter_col: the column index to filter
-   - filter_action: filter action
-   - filter_val: values to filter
-apply_single_filter_to_table : Table -> Text -> Filter_Condition -> Table
-apply_single_filter_to_table table filter_col filter_condition =
-    table.filter (filter_col+1) (filter_condition) 
-
-## PRIVATE
-
    applies the filter model to the table.
 
    Arguments:
    - table: table to sort
    - i: initially 0 and incremented for number of filters
-   - filter_col: indexes of columns with sorts applies
-   - filter_condition: list of filter conditions
+   - filter_cols: indexes of columns with sorts applies
+   - filter_conditions: list of filter conditions
 apply_filter_to_table : Table -> Integer -> Vector -> Vector -> Table
-apply_filter_to_table table i filter_col filter_conditions = 
-    if i == filter_col.length then table else
-        col = filter_col.get i
-        condition = filter_condition.get i
-        filtered_table = apply_single_filter_to_table table col condition
-        @Tail_Call apply_filter_to_table filtered_table i+1 filter_col filter_condition
+apply_filter_to_table table i filter_cols filter_conditions = 
+    if i == filter_cols.length then table else
+        col = filter_cols.get i
+        condition = filter_conditions.get i
+        filtered_table = table.filter (col+1) (condition) 
+        @Tail_Call apply_filter_to_table filtered_table i+1 filter_cols filter_conditions
 
 ## PRIVATE
 
@@ -291,7 +278,7 @@ get_rows_for_table table start_number sort_col_index_list=Nothing sort_direction
     get_vector c         = Warning.set (Vector.new bucket_size i-> make_json_for_value (c.get (i + start_number))) []
     columns              = sorted_table.columns
     rows = columns.map get_vector
-    result = JS_Object.from_pairs [["rows", rows], ["filtered_tab", filtered_table.to_text], ["filter_condi", filter_condition.to_text]]
+    result = JS_Object.from_pairs [["rows", rows]]
     result.to_text
 
 ## PRIVATE
