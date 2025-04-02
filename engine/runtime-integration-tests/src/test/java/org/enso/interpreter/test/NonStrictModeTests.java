@@ -6,25 +6,23 @@ import static org.junit.Assert.assertNotNull;
 import java.util.Map;
 import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class NonStrictModeTests {
-  private static Context nonStrictCtx;
-  private static MockLogHandler logHandler;
+  private static final MockLogHandler logHandler = new MockLogHandler();
 
-  @BeforeClass
-  public static void initCtx() {
-    logHandler = new MockLogHandler();
-    nonStrictCtx = createNonStrictContext();
-  }
+  @ClassRule
+  public static final ContextUtilsRule ctxRule =
+      ContextUtilsRule.createCustom(NonStrictModeTests::createNonStrictContext);
 
-  protected static Context createNonStrictContext() {
+  private static Context createNonStrictContext() {
     var context =
         ContextUtils.defaultContextBuilder()
             .logHandler(logHandler)
@@ -36,9 +34,7 @@ public class NonStrictModeTests {
   }
 
   @AfterClass
-  public static void disposeCtx() {
-    nonStrictCtx.close();
-    nonStrictCtx = null;
+  public static void dispose() {
     logHandler.close();
   }
 
@@ -61,7 +57,7 @@ public class NonStrictModeTests {
 
         main = 42
         """;
-    Value res = ContextUtils.evalModule(nonStrictCtx, src);
+    Value res = ctxRule.evalModule(src);
     assertEquals(42, res.asInt());
 
     // Even if the conversion is unused and non-strict mode, we still get a diagnostic report:
@@ -91,7 +87,7 @@ public class NonStrictModeTests {
         main = (Foo.from (Bar.Mk_Bar 42)) . data
         """;
 
-    Value res = ContextUtils.evalModule(nonStrictCtx, src);
+    Value res = ctxRule.evalModule(src);
     assertEquals(142, res.asInt());
 
     logHandler.assertMessage(
@@ -109,7 +105,7 @@ public class NonStrictModeTests {
 
         main = 2+2
         """;
-    Value res = ContextUtils.evalModule(nonStrictCtx, src);
+    Value res = ctxRule.evalModule(src);
     assertEquals(4, res.asInt());
 
     String line1 =

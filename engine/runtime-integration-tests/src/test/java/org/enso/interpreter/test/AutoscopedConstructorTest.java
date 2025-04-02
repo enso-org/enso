@@ -10,24 +10,18 @@ import static org.junit.Assert.fail;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import org.enso.common.MethodNames;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class AutoscopedConstructorTest {
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
-  private static Context ctx;
 
-  public AutoscopedConstructorTest() {}
-
-  @BeforeClass
-  public static void prepareCtx() {
-    ctx = ContextUtils.createDefaultContext(out);
-  }
+  @ClassRule
+  public static final ContextUtilsRule ctxRule = ContextUtilsRule.createWithCapturedOut(out);
 
   @After
   public void resetOut() {
@@ -35,9 +29,7 @@ public class AutoscopedConstructorTest {
   }
 
   @AfterClass
-  public static void disposeCtx() throws IOException {
-    ctx.close();
-    ctx = null;
+  public static void disposeOut() throws IOException {
     out.close();
   }
 
@@ -45,7 +37,8 @@ public class AutoscopedConstructorTest {
   public void lazyConstructorWithNoArgument() {
     try {
       var create =
-          ctx.eval(
+          ctxRule
+              .eval(
                   "enso",
                   """
                   type N
@@ -68,7 +61,8 @@ public class AutoscopedConstructorTest {
   public void lazyConstructorWithSingleArg() {
     try {
       var create =
-          ctx.eval(
+          ctxRule
+              .eval(
                   "enso",
                   """
                   type M
@@ -91,7 +85,8 @@ public class AutoscopedConstructorTest {
   public void lazyConstructorWithTwoArgs() {
     try {
       var create =
-          ctx.eval(
+          ctxRule
+              .eval(
                   "enso",
                   """
                   type M
@@ -113,7 +108,8 @@ public class AutoscopedConstructorTest {
   public void lazyConstructorWithTwoArgsCurried() {
     try {
       var create =
-          ctx.eval(
+          ctxRule
+              .eval(
                   "enso",
                   """
                   type M
@@ -139,7 +135,8 @@ public class AutoscopedConstructorTest {
   public void lazyConstructorWithTwoArgsNamed() {
     try {
       var create =
-          ctx.eval(
+          ctxRule
+              .eval(
                   "enso",
                   """
                   type M
@@ -163,7 +160,7 @@ public class AutoscopedConstructorTest {
   public void lazyConstructorWithNamedDefaultedArguments() {
     try {
       var module =
-          ctx.eval(
+          ctxRule.eval(
               "enso",
               """
               type M
@@ -233,7 +230,8 @@ public class AutoscopedConstructorTest {
 
     try {
       var create =
-          ctx.eval("enso", sb.toString())
+          ctxRule
+              .eval("enso", sb.toString())
               .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
       assertTrue("Can evaluate", create.canExecute());
       for (var i = 1; i < count; i++) {
@@ -252,7 +250,8 @@ public class AutoscopedConstructorTest {
   public void wrongConstructorNameYieldsTypeError() {
     try {
       var create =
-          ctx.eval(
+          ctxRule
+              .eval(
                   "enso",
                   """
                   type N
@@ -288,7 +287,8 @@ public class AutoscopedConstructorTest {
     create = materialize t
     """;
 
-    var create = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
+    var create =
+        ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
 
     assertEquals("A", create.getMetaObject().getMetaSimpleName());
   }
@@ -308,7 +308,8 @@ public class AutoscopedConstructorTest {
     create = materialize t
     """;
 
-    var create = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
+    var create =
+        ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
 
     assertEquals("A", create.getMetaObject().getMetaSimpleName());
   }
@@ -330,7 +331,7 @@ public class AutoscopedConstructorTest {
 
     try {
       var create =
-          ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
+          ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
       fail("Got value, but expecting an exception: " + create);
     } catch (PolyglotException ex) {
       assertThat(ex.getMessage(), containsString("Cannot find constructor ..My_Other among A."));

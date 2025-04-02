@@ -3,6 +3,7 @@ package org.enso.test.utils;
 import java.io.ByteArrayOutputStream;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -54,6 +55,11 @@ public final class ContextUtilsRule implements TestRule {
     return ContextUtils.evalModule(ctx, src);
   }
 
+  public EnsoContext leakContext() {
+    var ctx = currentCtx();
+    return ContextUtils.leakContext(ctx);
+  }
+
   /**
    * Evaluates the given source as if it was in a module with given name.
    *
@@ -66,8 +72,23 @@ public final class ContextUtilsRule implements TestRule {
     return ContextUtils.evalModule(currentCtx(), src, name, methodName);
   }
 
+  /**
+   * Evaluates the given source as if it was in a module with given name.
+   *
+   * @param src The source code of the module
+   * @param methodName name of main method to invoke
+   * @return The value returned from the main method of the unnamed module.
+   */
+  public Value evalModule(Source src, String methodName) {
+    return ContextUtils.evalModule(currentCtx(), src, methodName);
+  }
+
   public Value eval(Source src) {
     return currentCtx().eval(src);
+  }
+
+  public Value eval(String languageId, CharSequence code) {
+    return currentCtx().eval(languageId, code);
   }
 
   /**
@@ -82,6 +103,10 @@ public final class ContextUtilsRule implements TestRule {
    */
   public Object unwrapValue(Value value) {
     return ContextUtils.unwrapValue(currentCtx(), value);
+  }
+
+  public Value asValue(Object obj) {
+    return currentCtx().asValue(obj);
   }
 
   /**

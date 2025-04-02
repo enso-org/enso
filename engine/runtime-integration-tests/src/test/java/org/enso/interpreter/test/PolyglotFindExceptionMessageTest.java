@@ -4,27 +4,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import org.enso.common.HostEnsoUtils;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class PolyglotFindExceptionMessageTest {
-  private static Context ctx;
-
-  @BeforeClass
-  public static void initCtx() {
-    ctx = ContextUtils.createDefaultContext();
-  }
-
-  @AfterClass
-  public static void disposeCtx() {
-    ctx.close();
-    ctx = null;
-  }
+  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
 
   @Test
   public void testJavaScriptException() {
@@ -37,7 +24,7 @@ public class PolyglotFindExceptionMessageTest {
     """;
 
     try {
-      Value res = ContextUtils.evalModule(ctx, src);
+      Value res = ctxRule.evalModule(src);
       fail("No result expected: " + res);
     } catch (PolyglotException ex) {
       assertExceptionMessage("Error: Wrong!", ex);

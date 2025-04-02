@@ -10,12 +10,13 @@ import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.test.TypeInferenceTest;
 import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 /**
@@ -23,18 +24,21 @@ import org.junit.Test;
  * occurs in the runtime.
  */
 public class TypeInferenceConsistencyTest {
-  private static Context ctx;
   private static final ByteArrayOutputStream output = new ByteArrayOutputStream();
 
-  @BeforeClass
-  public static void prepareCtx() {
-    ctx =
+  @ClassRule
+  public static final ContextUtilsRule ctxRule =
+      ContextUtilsRule.createCustom(TypeInferenceConsistencyTest::createCtx);
+
+  private static Context createCtx() {
+    var ctx =
         ContextUtils.defaultContextBuilder()
             .option(RuntimeOptions.STRICT_ERRORS, "true")
             .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true")
             .out(output)
             .err(output)
             .build();
+    return ctx;
   }
 
   @After
@@ -42,15 +46,13 @@ public class TypeInferenceConsistencyTest {
     output.reset();
   }
 
-  private String getOutput() {
-    return output.toString();
+  @AfterClass
+  public static void disposeOut() throws IOException {
+    output.close();
   }
 
-  @AfterClass
-  public static void disposeCtx() throws IOException {
-    ctx.close();
-    ctx = null;
-    output.close();
+  private String getOutput() {
+    return output.toString();
   }
 
   @Test
@@ -64,7 +66,7 @@ public class TypeInferenceConsistencyTest {
             .buildLiteral();
 
     try {
-      var module = ctx.eval(src);
+      var module = ctxRule.eval(src);
       var res = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
@@ -97,7 +99,7 @@ public class TypeInferenceConsistencyTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var result = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo (x -> x + 1)");
     assertEquals(124, result.asLong());
 
@@ -124,7 +126,7 @@ public class TypeInferenceConsistencyTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var r1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo (x -> x + 1)");
     assertEquals(124, r1.asLong());
 
@@ -157,7 +159,7 @@ public class TypeInferenceConsistencyTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var r1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo (x -> x + 1)");
     assertEquals(124, r1.asLong());
 
@@ -189,7 +191,7 @@ public class TypeInferenceConsistencyTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     try {
       var r1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo 1");
       fail("Expecting an exception, not: " + r1);
@@ -232,7 +234,7 @@ public class TypeInferenceConsistencyTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var result = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
     assertEquals("(My_Type.Value 101)", result.as(Object.class).toString());
 
@@ -246,7 +248,7 @@ public class TypeInferenceConsistencyTest {
   */
   @Test
   public void precedenceOfMethodsOnAny() throws URISyntaxException {
-    var module = ctx.eval(TypeInferenceTest.anyPrecedenceTestSource());
+    var module = ctxRule.eval(TypeInferenceTest.anyPrecedenceTestSource());
     var result = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
     var str = result.as(Object.class).toString();
     // See TypeInferenceTest.precedenceOfMethodsOnAny for the dissection of each value and
@@ -272,7 +274,7 @@ public class TypeInferenceConsistencyTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var result = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
     assertEquals("101", result.as(Object.class));
   }

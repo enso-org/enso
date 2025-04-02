@@ -2,50 +2,21 @@ package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Source;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 
 public class AnyToTest {
-  private static Context ctx;
-
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-  @BeforeClass
-  public static void initCtx() {
-    ctx = ContextUtils.createDefaultContext(out);
-  }
-
-  @AfterClass
-  public static void disposeCtx() throws IOException {
-    ctx.close();
-    ctx = null;
-    out.close();
-  }
-
-  @Before
-  public void resetOutput() {
-    out.reset();
-  }
-
-  private String getStdOut() {
-    return out.toString(StandardCharsets.UTF_8);
-  }
+  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
 
   @Test
   public void multiValueToInteger() throws Exception {
-    var ensoCtx = ContextUtils.leakContext(ctx);
+    var ensoCtx = ctxRule.leakContext();
     var types =
         new Type[] {ensoCtx.getBuiltins().number().getInteger(), ensoCtx.getBuiltins().text()};
     var code =
@@ -60,16 +31,14 @@ public class AnyToTest {
         99 -> eq
 
     """;
-    var conv =
-        ContextUtils.evalModule(ctx, Source.newBuilder("enso", code, "conv.enso").build(), "conv");
+    var conv = ctxRule.evalModule(Source.newBuilder("enso", code, "conv.enso").build(), "conv");
     var both =
         EnsoMultiValue.NewNode.getUncached()
             .newValue(types, types.length, 0, new Object[] {2L, Text.create("Two")});
     var eq =
-        ContextUtils.executeInContext(
-            ctx,
+        ctxRule.executeInContext(
             () -> {
-              var bothValue = ctx.asValue(both);
+              var bothValue = ctxRule.asValue(both);
               var asIntegerTo = conv.execute(0, bothValue);
               var asIntegerCast = conv.execute(1, bothValue);
               var equals = conv.execute(99, null);
@@ -91,7 +60,7 @@ public class AnyToTest {
   }
 
   private void multiValueToText(int dispatchLength) throws Exception {
-    var ensoCtx = ContextUtils.leakContext(ctx);
+    var ensoCtx = ctxRule.leakContext();
     var types =
         new Type[] {ensoCtx.getBuiltins().number().getInteger(), ensoCtx.getBuiltins().text()};
     var code =
@@ -106,16 +75,14 @@ public class AnyToTest {
         99 -> eq
 
     """;
-    var conv =
-        ContextUtils.evalModule(ctx, Source.newBuilder("enso", code, "conv.enso").build(), "conv");
+    var conv = ctxRule.evalModule(Source.newBuilder("enso", code, "conv.enso").build(), "conv");
     var both =
         EnsoMultiValue.NewNode.getUncached()
             .newValue(types, dispatchLength, 0, new Object[] {2L, Text.create("Two")});
     var eq =
-        ContextUtils.executeInContext(
-            ctx,
+        ctxRule.executeInContext(
             () -> {
-              var bothValue = ctx.asValue(both);
+              var bothValue = ctxRule.asValue(both);
               var asIntegerCast = conv.execute(3, bothValue);
               var asIntegerTo = conv.execute(2, bothValue);
               var equals = conv.execute(99, null);

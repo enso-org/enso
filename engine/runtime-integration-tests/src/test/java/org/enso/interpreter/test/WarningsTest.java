@@ -15,7 +15,6 @@ import java.util.List;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.hash.HashMapGetNode;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
@@ -27,27 +26,28 @@ import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
 import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.hamcrest.core.AllOf;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class WarningsTest {
 
-  private static Context ctx;
   private static ValuesGenerator generator;
   private static Value wrap;
-  private static EnsoContext ensoContext;
 
-  @BeforeClass
-  public static void initEnsoContext() {
-    ctx = ContextUtils.createDefaultContext();
+  @ClassRule
+  public static final ContextUtilsRule ctxRule =
+      ContextUtilsRule.createCustom(WarningsTest::initEnsoContext);
+
+  private static Context initEnsoContext() {
+    var ctx = ContextUtils.createDefaultContext();
     generator = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
-    ensoContext = ContextUtils.leakContext(ctx);
     var module =
         ctx.eval(
             "enso",
@@ -57,25 +57,21 @@ public class WarningsTest {
     wrap msg value = Warning.attach msg value
     """);
     wrap = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "wrap");
+    return ctx;
   }
 
   @AfterClass
-  public static void disposeContext() {
+  public static void disposeGenerator() {
     generator.close();
-    ctx.close();
-    ctx = null;
-    ensoContext.shutdown();
-    ensoContext = null;
     wrap = null;
   }
 
   @Test
   public void doubleWithWarningsWrap() {
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
-          var warn1 = Warning.create(ensoContext, "w1", this);
-          var warn2 = Warning.create(ensoContext, "w2", this);
+          var warn1 = Warning.create(ctxRule.leakContext(), "w1", this);
+          var warn2 = Warning.create(ctxRule.leakContext(), "w2", this);
           var value = 42L;
 
           var with1 =
@@ -179,7 +175,7 @@ public class WarningsTest {
         Warning.attach (My_Warning.Value "ONE") 1
     """;
 
-    var module = ctx.eval(LanguageInfo.ID, code);
+    var module = ctxRule.eval(LanguageInfo.ID, code);
     var ownWarning = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
 
     assertTrue("Warning is seen as exception", ownWarning.isException());
@@ -239,7 +235,7 @@ public class WarningsTest {
             _ : Integer -> Error.throw (Illegal_Argument.Error "asdf")
     """;
 
-    var module = ctx.eval(LanguageInfo.ID, code);
+    var module = ctxRule.eval(LanguageInfo.ID, code);
     var errorWithWarning = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "err_warn");
     assertFalse("Something is returned", errorWithWarning.isNull());
     assertTrue("But it represents an exception object", errorWithWarning.isException());
@@ -249,11 +245,10 @@ public class WarningsTest {
 
   @Test
   public void warningsArray_readViaInterop_shouldNotRemoveWarnings() {
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
-          var warn1 = Warning.create(ensoContext, 1L, null);
-          var warn2 = Warning.create(ensoContext, 2L, null);
+          var warn1 = Warning.create(ctxRule.leakContext(), 1L, null);
+          var warn2 = Warning.create(ctxRule.leakContext(), 2L, null);
           var arr = ArrayLikeHelpers.wrapEnsoObjects(warn1, warn2);
           var interop = InteropLibrary.getUncached();
           var warn1FromArr = interop.readArrayElement(arr, 0);
@@ -272,16 +267,15 @@ public class WarningsTest {
 
   @Test
   public void warningsArray_collectWarningsViaWarningsLibrary() {
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           var appendWarnNode = AppendWarningNode.getUncached();
           var warnsLib = WarningsLibrary.getUncached();
           var hashMapSizeNode = HashMapSizeNode.getUncached();
           var hashMapGetNode = HashMapGetNode.getUncached();
 
-          var warn1 = Warning.create(ensoContext, 1L, null);
-          var warn2 = Warning.create(ensoContext, 2L, null);
+          var warn1 = Warning.create(ctxRule.leakContext(), 1L, null);
+          var warn2 = Warning.create(ctxRule.leakContext(), 2L, null);
           var warnsMap = createWarningsMap(List.of(warn1, warn2));
           var text1 = Text.create("1");
           var text2 = Text.create("2");
@@ -302,11 +296,11 @@ public class WarningsTest {
 
   @Test
   public void nothingWithWarn_IsNotRemovedByHostValueToEnsoNode() {
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           var hostValueToEnsoNode = HostValueToEnsoNode.getUncached();
-          var warn = Warning.create(ensoContext, ensoContext.getNothing(), null);
+          var warn =
+              Warning.create(ctxRule.leakContext(), ctxRule.leakContext().getNothing(), null);
           var converted = hostValueToEnsoNode.execute(warn);
           assertThat(converted, is(sameInstance(warn)));
           return null;
@@ -315,10 +309,10 @@ public class WarningsTest {
 
   @Test
   public void nothingWithWarn_FromMapToArray() {
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
-          var warn = Warning.create(ensoContext, ensoContext.getNothing(), null);
+          var warn =
+              Warning.create(ctxRule.leakContext(), ctxRule.leakContext().getNothing(), null);
           var warnsMap = createWarningsMap(List.of(warn));
           var warns = Warning.fromMapToArray(warnsMap);
           assertThat(warns.length, is(1));
