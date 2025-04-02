@@ -11,11 +11,12 @@ export const FORM_SCHEMA = z.object({
   account: z.string().min(1),
   clientId: z.string().min(1),
   clientSecret: z.string().min(1),
+  // The role could be optional, but my tests showed that if it was missing, the authentication was failing with weird errors. So let's require the role for now.
   role: z.string().min(1)
 })
 
 /**
- * TODO
+ * The logic for submitting the Snowflake credential form.
  */
 export function submitForm(createCredentials: (recipe: CredentialRecipe) => Promise<void>, values: z.infer<typeof FORM_SCHEMA>): Promise<void> {
     const account = values.account

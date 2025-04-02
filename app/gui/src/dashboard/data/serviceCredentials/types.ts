@@ -3,7 +3,9 @@ import type { CredentialInput, SecretId } from 'enso-common/src/services/Backend
 import type { TextId } from 'enso-common/src/text'
 
 /**
- * TODO
+ * A 'recipe' for creating a credential of given type.
+ * 
+ * It describes the user settings for the credentials and the algorithm for generating the URL to open in the browser.
  */
 export interface CredentialRecipe {
   readonly name: string
@@ -12,7 +14,7 @@ export interface CredentialRecipe {
 }
 
 /**
- * TODO
+ * The props for any credential form that is used when creating new credentials.
  */
 export interface CredentialFormProps {
   readonly createCredentials: (recipe: CredentialRecipe) => Promise<void>

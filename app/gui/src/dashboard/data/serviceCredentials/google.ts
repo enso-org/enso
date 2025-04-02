@@ -26,14 +26,16 @@ export const SCOPE_MAPPING = {
 }
 
 /**
- * TODO
+ * Checks if the given name is matching with a valid scope key.
+ * 
+ * It is needed because the checkbox group in the form returns an array of strings, and we need to refine the type of the keys.
  */
 function isValidScope(name: string): name is keyof typeof SCOPE_MAPPING {
   return Object.keys(SCOPE_MAPPING).includes(name)
 }
 
 /**
- * TODO
+ * The logic for submitting the Google credential form.
  */
 export function submitForm(createCredentials: (recipe: CredentialRecipe) => Promise<void>, values: z.infer<typeof FORM_SCHEMA>): Promise<void> {
   invariant($config.GOOGLE_OAUTH_CLIENT_ID != null, 'Google OAuth client id is missing')
