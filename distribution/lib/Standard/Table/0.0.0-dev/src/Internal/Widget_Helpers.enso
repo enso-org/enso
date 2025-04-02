@@ -148,41 +148,46 @@ make_filter_condition_selector table display:Display=..Always cache=Nothing =
     options = Vector.build builder->
         builder.append (Option "..Equal" parameters=[["to", column_chooser]])
         builder.append (Option "..Not_Equal" parameters=[["to", column_chooser]])
-
-        if column_value_type.has_ordering && column_value_type!=Value_Type.Boolean then
-            builder.append (Option "..Less" parameters=[["than", column_chooser]])
-            builder.append (Option "..Equal_Or_Less" parameters=[["than", column_chooser]])
-            builder.append (Option "..Greater" parameters=[["than", column_chooser]])
-            builder.append (Option "..Equal_Or_Greater" parameters=[["than", column_chooser]])
-            builder.append (Option "..Between" parameters=[["lower", column_chooser], ["upper", column_chooser]])
-
-        if include_text then
-            builder.append (Option "..Equal_Ignore_Case" parameters=[["to", column_chooser]])
-            builder.append (Option "..Starts_With" parameters=[["prefix", column_chooser]])
-            builder.append (Option "..Ends_With" parameters=[["suffix", column_chooser]])
-            builder.append (Option "..Contains" parameters=[["substring", column_chooser]])
-            builder.append (Option "..Like" parameters=[["pattern", column_chooser]])
-            builder.append (Option "..Regex_Match" "..Regex_Match (regex '.*')" parameters=[["pattern", regex_chooser]])
-
         builder.append (Option "..Is_Nothing")
         builder.append (Option "..Not_Nothing")
-
-        if include_boolean then
-            builder.append (Option "..Is_True")
-            builder.append (Option "..Is_False")
-
         value_editor = Widget.Vector_Editor item_editor=column_chooser display=Display.Always item_default='""'
         builder.append (Option "..Is_In" parameters=[["values", value_editor]])
 
-        if include_floating then
-            builder.append (Option "..Is_Finite")
-            builder.append (Option "..Is_Infinite")
-            builder.append (Option "..Is_Nan")
-            builder.append (Option "..Not_Nan")
+        if column_value_type.has_ordering && column_value_type!=Value_Type.Boolean then
+            comparison_options = Vector.build comparison_builder->
+                comparison_builder.append (Option "..Less" parameters=[["than", column_chooser]])
+                comparison_builder.append (Option "..Equal_Or_Less" parameters=[["than", column_chooser]])
+                comparison_builder.append (Option "..Greater" parameters=[["than", column_chooser]])
+                comparison_builder.append (Option "..Equal_Or_Greater" parameters=[["than", column_chooser]])
+                comparison_builder.append (Option "..Between" parameters=[["lower", column_chooser], ["upper", column_chooser]])
+            builder.append (Option "Comparisons" comparison_options)
 
         if include_text then
-            builder.append (Option "..Is_Empty")
-            builder.append (Option "..Not_Empty")
+            text_options = Vector.build text_builder->
+                text_builder.append (Option "..Is_Empty")
+                text_builder.append (Option "..Not_Empty")
+                text_builder.append (Option "..Equal_Ignore_Case" parameters=[["to", column_chooser]])
+                text_builder.append (Option "..Starts_With" parameters=[["prefix", column_chooser]])
+                text_builder.append (Option "..Ends_With" parameters=[["suffix", column_chooser]])
+                text_builder.append (Option "..Contains" parameters=[["substring", column_chooser]])
+                text_builder.append (Option "..Like" parameters=[["pattern", column_chooser]])
+                text_builder.append (Option "..Regex_Match" "..Regex_Match (regex '.*')" parameters=[["pattern", regex_chooser]])
+            builder.append (Option "Text" text_options)
+
+        if include_boolean then
+            boolean_options = Vector.build boolean_builder->
+                boolean_builder.append (Option "..Is_True")
+                boolean_builder.append (Option "..Is_False")
+            builder.append (Option "Boolean" boolean_options)
+
+        if include_floating then
+            numeric_options = Vector.build numeric_builder->
+                numeric_builder.append (Option "..Is_Finite")
+                numeric_builder.append (Option "..Is_Infinite")
+                numeric_builder.append (Option "..Is_Nan")
+                numeric_builder.append (Option "..Not_Nan")
+            builder.append (Option "Numeric" numeric_options)
+
     Single_Choice options display=display
 
 ## PRIVATE
