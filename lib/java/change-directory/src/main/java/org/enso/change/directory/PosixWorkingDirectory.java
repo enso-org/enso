@@ -15,13 +15,13 @@ import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@CContext(LinuxWorkingDirectory.Directives.class)
-public final class LinuxWorkingDirectory implements WorkingDirectory {
-  static final LinuxWorkingDirectory INSTANCE = new LinuxWorkingDirectory();
+@CContext(PosixWorkingDirectory.Directives.class)
+public final class PosixWorkingDirectory implements WorkingDirectory {
+  static final PosixWorkingDirectory INSTANCE = new PosixWorkingDirectory();
   private static final String PWD = "pwd";
-  private static final Logger LOGGER = LoggerFactory.getLogger(LinuxWorkingDirectory.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PosixWorkingDirectory.class);
 
-  private LinuxWorkingDirectory() {}
+  private PosixWorkingDirectory() {}
 
   @Override
   public boolean changeWorkingDir(String path) {
