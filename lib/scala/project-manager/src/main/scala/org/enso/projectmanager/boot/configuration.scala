@@ -1,6 +1,6 @@
 package org.enso.projectmanager.boot
 
-import org.enso.desktopenvironment.{DesktopEnvironment, Directories}
+import org.enso.desktopenvironment.DesktopEnvironment
 import org.slf4j.event.Level
 
 import java.io.{File, IOException}
