@@ -440,7 +440,7 @@ export function useOpenHybridProject() {
         invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
         openProject({
           id: project.id,
-          title: project.title,
+          title: asset.title,
           parentId: project.parentId,
           type: backendModule.BackendType.local,
           hybrid: { cloudProjectId: asset.id, parentId: localProject.parentId },

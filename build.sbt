@@ -3913,11 +3913,16 @@ lazy val `engine-runner` = project
     },
     rebuildNativeImage := Def
       .taskDyn {
+        // Limit max memory limit
+        val macArmOnCI =
+          sys.env.get("CI").isDefined && Platform.isMacOS && Platform.isArm64
+        val maxLimit = if (macArmOnCI) Some(10240) else Some(15608)
         NativeImage
           .buildNativeImage(
             "enso",
-            targetDir     = engineDistributionRoot.value / "bin",
-            staticOnLinux = false,
+            buildMemoryLimitMegabytes = maxLimit,
+            targetDir                 = engineDistributionRoot.value / "bin",
+            staticOnLinux             = false,
             // sqlite-jdbc includes `--enable-url-protocols=jar` in its native-image.properites file,
             // which breaks all our class loading. We still want to run `SqliteJdbcFeature` which extracts a proper
             // native library from the jar.
