@@ -1433,7 +1433,7 @@ export interface CreateSecretRequestBody {
   readonly parentDirectoryId: DirectoryId | null
 }
 
-/** Metadata for a Snowflake credential. */
+/** User settings for a Snowflake credential. */
 export interface SnowflakeCredentialInput {
   readonly type: 'Snowflake'
   readonly account: string
@@ -1442,16 +1442,16 @@ export interface SnowflakeCredentialInput {
   readonly role: string | null
 }
 
-/** Metadata for a Google credential. */
+/** User settings for a Google credential. */
 export interface GoogleCredentialInput {
   readonly type: 'Google'
   readonly scopes: readonly string[]
 }
 
-/** Metadata for an arbitrary credential. */
+/** User settings for an arbitrary credential. */
 export type CredentialInput = SnowflakeCredentialInput | GoogleCredentialInput
 
-/** Metadata for an arbitrary credential, plus a nonce for authentication purposes. */
+/** Metadata for an arbitrary credential, including a nonce for authentication purposes. */
 export interface CredentialMetadata {
   readonly nonce: string
   readonly input: CredentialInput
