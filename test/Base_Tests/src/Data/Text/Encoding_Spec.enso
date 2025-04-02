@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Mixed_Signed_And_Unsigned_Bytes
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -370,6 +371,14 @@ add_specs suite_builder =
             tester result = result . should_equal invalid_windows_out
             problems = [Encoding_Error.Error "Encoding issues at 16."]
             Problems.test_problem_handling action problems tester
+
+        group_builder.specify "should allow mixed signed and unsigned bytes in Vector.write_bytes, but attach a warning" <|
+            t1 = Text.from_bytes [65, 33, 221, -34]
+            t2 = Text.from_bytes [65, 33, 221, 222]
+            t1 . should_equal t2
+            t1.bytes . should_equal t2.bytes
+            Problems.expect_only_warning Mixed_Signed_And_Unsigned_Bytes t1
+            Problems.assume_no_problems t2
 
 main filter=Nothing =
     suite = Test.build suite_builder->

@@ -1,4 +1,4 @@
-package org.enso.compiler.pass.analyse.test
+package org.enso.compiler.pass.analyse.alias.graph.test
 
 import org.enso.compiler.Passes
 import org.enso.compiler.pass.analyse.FramePointer
@@ -13,7 +13,11 @@ import org.enso.compiler.core.ir.{
   Name
 }
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.pass.analyse.alias.graph.{Graph, GraphOccurrence}
+import org.enso.compiler.pass.analyse.alias.graph.{
+  Graph,
+  GraphImpl,
+  GraphOccurrence
+}
 import org.enso.compiler.pass.analyse.alias.AliasMetadata
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.analyse.{
@@ -106,6 +110,7 @@ class FramePointerAnalysisTest extends CompilerTest {
         .unsafeGetMetadata(AliasAnalysis, "should exist")
         .asInstanceOf[AliasMetadata.RootScope]
         .graph
+        .asInstanceOf[GraphImpl]
       val xDefIr = findAssociatedIr(
         aliasGraph.symbolToIds[GraphOccurrence.Def]("x").head,
         ir
@@ -150,28 +155,29 @@ class FramePointerAnalysisTest extends CompilerTest {
       val mainScope = ir.bindings.head
         .unsafeGetMetadata(AliasAnalysis, "should exist")
         .asInstanceOf[AliasMetadata.RootScope]
-      val allFps = collectAllFramePointers(ir)
+      val mainGraph = mainScope.graph.asInstanceOf[GraphImpl]
+      val allFps    = collectAllFramePointers(ir)
       allFps.size shouldBe 4
       val xDefIr = findAssociatedIr(
-        mainScope.graph.symbolToIds[GraphOccurrence.Def]("x").head,
+        mainGraph.symbolToIds[GraphOccurrence.Def]("x").head,
         ir
       )
       expectFramePointer(xDefIr, new FramePointer(0, 1))
 
       val nestedDefIr = findAssociatedIr(
-        mainScope.graph.symbolToIds[GraphOccurrence.Def]("nested").head,
+        mainGraph.symbolToIds[GraphOccurrence.Def]("nested").head,
         ir
       )
       expectFramePointer(nestedDefIr, new FramePointer(0, 2))
 
       val xUseIr = findAssociatedIr(
-        mainScope.graph.symbolToIds[GraphOccurrence.Use]("x").head,
+        mainGraph.symbolToIds[GraphOccurrence.Use]("x").head,
         ir
       )
       expectFramePointer(xUseIr, new FramePointer(2, 1))
 
       val nestedUseIr = findAssociatedIr(
-        mainScope.graph.symbolToIds[GraphOccurrence.Use]("nested").head,
+        mainGraph.symbolToIds[GraphOccurrence.Use]("nested").head,
         ir
       )
       expectFramePointer(nestedUseIr, new FramePointer(0, 2))

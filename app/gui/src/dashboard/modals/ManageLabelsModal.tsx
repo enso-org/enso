@@ -10,6 +10,7 @@ import FocusArea from '#/components/styled/FocusArea'
 import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { useAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { unsetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
@@ -43,7 +44,9 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
  * Internal implementation of a {@link ManageLabelsModal}.
  */
 function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
-  const { backend, item } = props
+  const { backend, item: itemRaw } = props
+
+  const item = useAsset(itemRaw.id) ?? itemRaw
 
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
@@ -65,11 +68,9 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
       const labelName = LabelName(name)
       try {
         await createTagMutation.mutateAsync([{ value: labelName, color: color ?? leastUsedColor }])
-        await associateTagMutation.mutateAsync([
-          item.id,
-          [...(item.labels ?? []), labelName],
-          item.title,
-        ])
+        const newLabels = [...(item.labels ?? []), labelName]
+        await associateTagMutation.mutateAsync([item.id, newLabels, item.title])
+        form.resetField('labels', { defaultValue: newLabels })
         unsetModal()
       } catch (error) {
         toastAndLog(null, error)
@@ -91,7 +92,11 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
   const canCreateNewLabel = canSelectColor
 
   return (
-    <Form form={form} className="relative flex flex-col gap-modal rounded-default p-modal">
+    <Form
+      key={JSON.stringify(item.labels)}
+      form={form}
+      className="relative flex flex-col gap-modal rounded-default p-modal"
+    >
       <Text.Heading slot="title" level={2} variant="subtitle">
         {getText('labels')}
       </Text.Heading>

@@ -2,54 +2,79 @@ package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.ThreadLocalAction;
 import com.oracle.truffle.api.TruffleLanguage.Env;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.function.Supplier;
 import org.enso.interpreter.runtime.control.ThreadInterruptedException;
 
 /** Manages threads running guest code, exposing a safepoint-like functionality. */
-public class ThreadManager {
-  private final ReentrantLock lock = new ReentrantLock();
-  private final Env env;
-
+public final class ThreadManager {
+  private final ThreadExecutors threads;
+  private final ExecutorService questCode;
   private final ConcurrentHashMap<Thread, Boolean> interruptFlags = new ConcurrentHashMap<>();
-  private static final Object ENTERED = new Object();
-  private static final Object NO_OP = new Object();
 
-  public ThreadManager(Env env) {
-    this.env = env;
+  ThreadManager(ThreadExecutors th, int throughput, Env env) {
+    this.threads = th;
+    this.questCode = th.newFixedThreadPool(throughput, "guest-code", false);
   }
 
   /**
-   * Registers the current thread as running guest code.
+   * Schedules a computation of provided action on one of available <em>guest threads</em>.
    *
-   * <p>From this point on, the thread is assumed to be controlled by the Enso runtime and e.g. will
-   * be waited on in safepoints.
-   *
-   * <p>{@link #leave(Object)} must be called immediately after guest execution is finished in the
-   * given thread, otherwise a deadlock may occur.
-   *
-   * @return a token object that must be passed to {@link #leave(Object)}. This object is opaque,
-   *     with no guarantees on its structure.
+   * @param <T> type of the value to operate on
+   * @param action the action to perform to obtain a value
+   * @return observable future filled with the computed value
    */
-  public Object enter() {
-    if (interruptFlags.get(Thread.currentThread()) == null) {
-      interruptFlags.put(Thread.currentThread(), false);
-      return ENTERED;
+  public final <T> CompletableFuture<T> submit(Supplier<T> action) {
+    var notYetEntered = interruptFlags.get(Thread.currentThread()) == null;
+    if (notYetEntered) {
+      Supplier<T> wrap =
+          () -> {
+            interruptFlags.put(Thread.currentThread(), false);
+            try {
+              return action.get();
+            } finally {
+              interruptFlags.remove(Thread.currentThread());
+            }
+          };
+      return CompletableFuture.supplyAsync(wrap, questCode);
+    } else {
+      try {
+        return CompletableFuture.completedFuture(action.get());
+      } catch (Exception ex) {
+        return CompletableFuture.failedFuture(ex);
+      }
     }
-    return NO_OP;
   }
 
   /**
-   * Deregisters the current thread from the control of the Enso runtime.
+   * Creates new cached pool of system threads associated with this context.
    *
-   * <p>The thread may no longer execute Enso code, until {@link #enter()} is called again.
-   *
-   * @param token the token returned by the corresponding call to {@link #enter()}.
+   * @param name human-readable name of the pool
+   * @param min minimal number of threads kept-alive in the pool
+   * @param max maximal number of available threads
+   * @param maxQueueSize maximal number of pending tasks
+   * @return new execution service for this context
    */
-  public void leave(Object token) {
-    if (token != NO_OP) {
-      interruptFlags.remove(Thread.currentThread());
-    }
+  public ExecutorService newCachedThreadPool(String name, int min, int max, int maxQueueSize) {
+    // only allow creation of systemThreads
+    // non-system threads have to be managed and controlled internally
+    return threads.newCachedThreadPool(name, true, min, max, maxQueueSize);
+  }
+
+  /**
+   * Creates new fixed pool of system threads associated with this context.
+   *
+   * @param parallel amount of parallelism for the pool
+   * @param name human-readable name of the pool
+   * @return new execution service for this context
+   */
+  public ExecutorService newFixedThreadPool(int parallel, String name) {
+    // only allow creation of systemThreads
+    // non-system threads have to be managed and controlled internally
+    return threads.newFixedThreadPool(parallel, name, true);
   }
 
   /**
@@ -62,41 +87,49 @@ public class ThreadManager {
    * <p>This method may not be called from a thread that is itself managed by this system, as doing
    * so may result in a deadlock.
    */
-  public void interruptThreads() {
-    lock.lock();
-    try {
-      interruptFlags.replaceAll((t, b) -> true);
-      Object p = enter();
-      try {
-        env.submitThreadLocal(
-            null,
-            new ThreadLocalAction(true, false) {
-              @Override
-              protected void perform(ThreadLocalAction.Access access) {
-                Boolean interrupt = interruptFlags.get(access.getThread());
-                if (Boolean.TRUE.equals(interrupt)) {
-                  throw new ThreadInterruptedException();
-                }
-              }
-            });
-      } finally {
-        leave(p);
-      }
-    } finally {
-      lock.unlock();
-    }
+  public final void interruptThreads() {
+    interruptFlags.replaceAll((t, b) -> true);
+    submitThreadLocal(
+        null,
+        new ThreadLocalAction(true, false) {
+          @Override
+          protected void perform(ThreadLocalAction.Access access) {
+            Boolean interrupt = interruptFlags.get(access.getThread());
+            if (Boolean.TRUE.equals(interrupt)) {
+              throw new ThreadInterruptedException();
+            }
+          }
+        });
   }
 
   /** Requests that all threads are shutdown. */
-  public void shutdown() {
-    var threads = interruptFlags.keySet();
-    threads.forEach(
-        t -> {
-          try {
-            t.join();
-          } catch (InterruptedException e) {
-            e.printStackTrace();
-          }
-        });
+  public final void shutdown() {
+    threads.shutdown();
+    var hasBeenInterrupted = Thread.interrupted();
+    for (var t : interruptFlags.keySet()) {
+      try {
+        t.join();
+      } catch (InterruptedException e) {
+        hasBeenInterrupted = true;
+      }
+    }
+    if (hasBeenInterrupted) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  /**
+   * Invokes {@link Env#submitThreadLocal}.
+   *
+   * @param threads {@code null} or list of threads to execute action at
+   * @param action the action to execute at given threads
+   * @return future to check whether action has been executed
+   */
+  public final Future<Void> submitThreadLocal(Thread[] threads, ThreadLocalAction action) {
+    return this.threads.submitThreadLocal(threads, action);
+  }
+
+  final Thread createThread(boolean systemThread, Runnable run) {
+    return this.threads.createThread(systemThread, run);
   }
 }

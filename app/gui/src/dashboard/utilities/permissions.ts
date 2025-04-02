@@ -48,8 +48,7 @@ export function tryCreateOwnerPermission(
     case 'local':
     case 'local-directory':
     default: {
-      const isFreeOrSolo =
-        user.plan == null || user.plan === backend.Plan.free || user.plan === backend.Plan.solo
+      const isFreeOrSolo = user.plan === backend.Plan.free || user.plan === backend.Plan.solo
       const owner = isFreeOrSolo ? user : (newOwnerFromPath(path, users, userGroups) ?? user)
       if ('userId' in owner) {
         const { organizationId, userId, name, email } = owner
@@ -93,6 +92,11 @@ export function canPermissionModifyDirectoryContents(permission: PermissionActio
     permission === PermissionAction.admin ||
     permission === PermissionAction.edit
   )
+}
+
+/** Replace the first owner permission with the permission of a new user or team. */
+export function tryGetOwnerPermission(asset: backend.AnyAsset) {
+  return asset.permissions?.find((permission) => permission.permission === PermissionAction.own)
 }
 
 /** Replace the first owner permission with the permission of a new user or team. */

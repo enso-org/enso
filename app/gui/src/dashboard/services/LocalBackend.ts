@@ -798,7 +798,7 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
-  override restoreProject() {
+  override restoreAsset() {
     return this.invalidOperation()
   }
 

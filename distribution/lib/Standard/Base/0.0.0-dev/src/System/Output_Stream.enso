@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
+import project.Data.Number_Utils
 import project.Data.Pair.Pair
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
@@ -71,9 +72,10 @@ type Output_Stream
     write_bytes self contents = self.stream_resource . with raw_stream->
         java_stream = Stream_Utils.asOutputStream raw_stream
         self.error_handler <|
-            java_stream.write contents
-            java_stream.flush
-            Nothing
+            Number_Utils.convert_unsigned_byte_array_to_signed contents byte_array-> byte_array.if_not_error <|
+                java_stream.write byte_array
+                java_stream.flush
+                Nothing
 
     ## PRIVATE
        ADVANCED
