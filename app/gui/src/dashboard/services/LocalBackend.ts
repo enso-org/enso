@@ -358,17 +358,8 @@ export default class LocalBackend extends Backend {
       if (project == null) {
         throw new Error(`Could not get details of project.`)
       } else {
-        const version =
-          project.engineVersion == null ?
-            null
-          : {
-              lifecycle: backend.detectVersionLifecycle(project.engineVersion),
-              value: project.engineVersion,
-            }
         return {
           name: project.name,
-          engineVersion: version,
-          ideVersion: version,
           jsonAddress: null,
           binaryAddress: null,
           ydocAddress: null,
@@ -382,14 +373,6 @@ export default class LocalBackend extends Backend {
       const cachedProject = await state.data
       return {
         name: cachedProject.projectName,
-        engineVersion: {
-          lifecycle: backend.detectVersionLifecycle(cachedProject.engineVersion),
-          value: cachedProject.engineVersion,
-        },
-        ideVersion: {
-          lifecycle: backend.detectVersionLifecycle(cachedProject.engineVersion),
-          value: cachedProject.engineVersion,
-        },
         jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
         binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
         ydocAddress: null,
