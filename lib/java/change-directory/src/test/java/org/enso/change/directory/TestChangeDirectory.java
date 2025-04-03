@@ -23,10 +23,11 @@ public class TestChangeDirectory {
   }
 
   private static void ensureOnUnix() {
-    var onUnix = switch (Platform.getOperatingSystem()) {
-      case MACOS, LINUX -> true;
-      case WINDOWS -> false;
-    };
+    var onUnix =
+        switch (Platform.getOperatingSystem()) {
+          case MACOS, LINUX -> true;
+          case WINDOWS -> false;
+        };
     assumeTrue(
         "This test should only be run on Unix-like systems. Please run it on a Unix-like system.",
         onUnix);
