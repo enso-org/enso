@@ -1,10 +1,7 @@
 /** @file Events related to changes in the asset list. */
 import { copyAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import {
-  useTransferBetweenCategories,
-  type Category,
-} from '#/layouts/Drive/CategorySwitcher'
+import { useTransferBetweenCategories, type Category } from '#/layouts/Drive/CategorySwitcher'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import type { DrivePastePayload } from '#/providers/DriveProvider'
 import type Backend from '#/services/Backend'
