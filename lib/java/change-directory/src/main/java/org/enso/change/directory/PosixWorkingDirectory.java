@@ -25,7 +25,7 @@ public final class PosixWorkingDirectory implements WorkingDirectory {
 
   @Override
   public boolean changeWorkingDir(String path) {
-    try (var cPath = CTypeConversion.toCString(path + "\0")) {
+    try (var cPath = CTypeConversion.toCString(path)) {
       int res = chdir(cPath.get());
       if (res != 0) {
         LOGGER.error("chdir({}) syscall returned {}", path, res);
