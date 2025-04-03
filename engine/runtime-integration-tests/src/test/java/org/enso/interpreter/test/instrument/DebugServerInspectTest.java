@@ -10,8 +10,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import org.enso.common.DebugServerInfo;
-import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.hamcrest.core.AllOf;

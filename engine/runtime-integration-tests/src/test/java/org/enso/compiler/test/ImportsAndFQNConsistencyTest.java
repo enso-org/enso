@@ -17,10 +17,9 @@ import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
 import org.enso.compiler.data.BindingsMap.ResolvedModule;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
@@ -40,11 +39,11 @@ import scala.jdk.javaapi.CollectionConverters;
  */
 @RunWith(Parameterized.class)
 public class ImportsAndFQNConsistencyTest {
-  private static Context ctx;
 
   /** Used for description in {@link PrintCodeRule} test rule. */
   private static String code;
 
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
   @Rule public final TestRule printCodeRule = new PrintCodeRule();
 
   /**
@@ -95,17 +94,6 @@ main = 42
     }
   }
 
-  @BeforeClass
-  public static void initCtx() {
-    ctx = ContextUtils.createDefaultContext();
-  }
-
-  @AfterClass
-  public static void disposeCtx() {
-    ctx.close();
-    ctx = null;
-  }
-
   private final Symbol symbol;
 
   public ImportsAndFQNConsistencyTest(Symbol symbol) {
@@ -113,7 +101,7 @@ main = 42
   }
 
   private void evalCode(Symbol symbol) {
-    var res = ContextUtils.evalModule(ctx, code);
+    var res = ctxRule.evalModule(code);
     assertThat(res.isString(), is(true));
     assertThat(res.asString(), is(symbol.getLastPathItem()));
   }

@@ -34,8 +34,7 @@ public class ModuleTest {
   private File f;
 
   @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.createCustom(ModuleTest::createCtx);
+  public static final ContextRule ctxRule = ContextRule.createCustom(ModuleTest::createCtx);
 
   private static Context createCtx() {
     Engine eng =

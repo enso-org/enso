@@ -14,8 +14,8 @@ import java.io.IOException;
 import java.util.List;
 import org.enso.common.LanguageInfo;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
@@ -27,8 +27,7 @@ import org.junit.Test;
 public class AssertionsTest {
 
   @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.createCustom(AssertionsTest::setupCtx);
+  public static final ContextRule ctxRule = ContextRule.createCustom(AssertionsTest::setupCtx);
 
   private static ByteArrayOutputStream out = new ByteArrayOutputStream();
 

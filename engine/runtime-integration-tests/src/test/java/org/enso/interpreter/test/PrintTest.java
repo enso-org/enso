@@ -17,8 +17,7 @@ import org.junit.Test;
 public class PrintTest {
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-  @ClassRule
-  public static final ContextRule ctxRule = ContextRule.createWithCapturedOut(out);
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createWithCapturedOut(out);
 
   @Before
   public void cleanOut() {

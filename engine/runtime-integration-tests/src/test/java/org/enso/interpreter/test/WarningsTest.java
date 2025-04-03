@@ -42,8 +42,7 @@ public class WarningsTest {
   private static Value wrap;
 
   @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.createCustom(WarningsTest::initEnsoContext);
+  public static final ContextRule ctxRule = ContextRule.createCustom(WarningsTest::initEnsoContext);
 
   private static Context initEnsoContext() {
     var ctx = ContextUtils.createDefaultContext();

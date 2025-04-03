@@ -16,8 +16,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class RefTest {
-  @ClassRule
-  public static final ContextRule ctxRule = ContextRule.createCustom(RefTest::initCtx);
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createCustom(RefTest::initCtx);
 
   private static Value refType;
 

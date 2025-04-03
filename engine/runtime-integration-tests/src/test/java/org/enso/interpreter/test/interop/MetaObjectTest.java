@@ -38,8 +38,7 @@ public class MetaObjectTest {
   private static ValuesGenerator generator;
 
   @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.createCustom(MetaObjectTest::prepareCtx);
+  public static final ContextRule ctxRule = ContextRule.createCustom(MetaObjectTest::prepareCtx);
 
   private static Context prepareCtx() {
     var ctx = ContextUtils.createDefaultContext();

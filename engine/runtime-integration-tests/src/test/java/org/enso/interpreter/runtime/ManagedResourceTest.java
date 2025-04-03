@@ -23,8 +23,7 @@ import org.junit.Test;
 
 public class ManagedResourceTest {
   @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.createCustom(ManagedResourceTest::initCtx);
+  public static final ContextRule ctxRule = ContextRule.createCustom(ManagedResourceTest::initCtx);
 
   private static Value newResource;
   private static Value createResource;

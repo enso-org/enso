@@ -16,8 +16,7 @@ import org.junit.Test;
 public class BuiltinsJavaInteropTest {
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-  @ClassRule
-  public static final ContextRule ctxRule = ContextRule.createWithCapturedOut(out);
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createWithCapturedOut(out);
 
   @After
   public void resetOutput() {

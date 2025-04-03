@@ -20,8 +20,7 @@ import org.junit.Test;
 public class ModuleSourcesTest {
 
   @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.createCustom(ModuleSourcesTest::createCtx);
+  public static final ContextRule ctxRule = ContextRule.createCustom(ModuleSourcesTest::createCtx);
 
   private File f;
 

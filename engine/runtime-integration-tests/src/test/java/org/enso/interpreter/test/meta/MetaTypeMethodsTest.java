@@ -32,8 +32,7 @@ import org.junit.Test;
  */
 public class MetaTypeMethodsTest {
   @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.createCustom(MetaTypeMethodsTest::initCtx);
+  public static final ContextRule ctxRule = ContextRule.createCustom(MetaTypeMethodsTest::initCtx);
 
   private static GetTypeMethodsNode getTypeMethodsNode;
   private static TestRootNode testRootNode;
