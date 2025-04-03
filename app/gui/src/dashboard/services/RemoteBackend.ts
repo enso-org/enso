@@ -1003,11 +1003,18 @@ export default class RemoteBackend extends Backend {
       presigned: `${getPresignedUrl}`,
     }).toString()
     const path = `${remoteBackendPaths.getProjectDetailsPath(projectId)}?${paramsString}`
-    const response = await this.get<backend.Project>(path)
+    const response = await this.get<backend.ProjectRaw>(path)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'getProjectDetailsBackendError')
     } else {
-      return await response.json()
+      const project = await response.json()
+      const { address, ...rest } = project
+      return {
+        ...rest,
+        jsonAddress: address != null ? backend.Address(`${address}json`) : null,
+        binaryAddress: address != null ? backend.Address(`${address}binary`) : null,
+        ydocAddress: address != null ? backend.Address(`${address}project`) : null,
+      }
     }
   }
 
