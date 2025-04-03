@@ -1,8 +1,11 @@
 package org.enso.compiler.pass.analyse.alias;
 
 import org.enso.compiler.core.CompilerStub;
+import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.pass.IRPass;
+import org.enso.compiler.pass.analyse.AliasAnalysis;
+import org.enso.compiler.pass.analyse.AliasAnalysis$;
 import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.analyse.alias.graph.GraphBuilder;
 import scala.Option;
@@ -15,6 +18,11 @@ public abstract sealed class AliasMetadata implements IRPass.IRMetadata
 
   private AliasMetadata(Graph g) {
     this.graph = g;
+  }
+
+  public static <I extends IR> I updateMetadata(I ir, AliasMetadata data) {
+    ir.passData().update(AliasAnalysis$.MODULE$, data);
+    return ir;
   }
 
   public final Graph graph() {
