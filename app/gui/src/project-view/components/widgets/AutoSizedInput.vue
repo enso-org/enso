@@ -1,44 +1,24 @@
 <script setup lang="ts">
-import { useEvent } from '@/composables/events'
 import { useAutoBlur } from '@/util/autoBlur'
 import { getTextWidthByFont } from '@/util/measurement'
-import { computed, ref, watch, type StyleValue } from 'vue'
-import { Range } from 'ydoc-shared/util/data/range'
+import { computed, ref, type StyleValue } from 'vue'
 
-const [model, modifiers] = defineModel<string>()
-const [selection] = defineModel<Range | undefined>('selection')
-const {
-  autoSelect = false,
-  placeholder = '',
-  acceptOnEnter = true,
-} = defineProps<{
-  autoSelect?: boolean
+const model = defineModel<string>()
+const { placeholder = '' } = defineProps<{
   placeholder?: string | undefined
-  acceptOnEnter?: boolean
 }>()
 const emit = defineEmits<{
   input: [value: string | undefined]
-  change: [value: string | undefined]
 }>()
 
-const innerModel = modifiers.lazy ? ref(model.value) : model
-if (modifiers.lazy) watch(model, (newVal) => (innerModel.value = newVal))
-function onChange() {
-  if (modifiers.lazy) model.value = innerModel.value
-  emit('change', innerModel.value)
-}
-
 function onInput() {
-  readInputFieldSelection()
-  emit('input', innerModel.value)
+  emit('input', model.value)
 }
 
 const inputNode = ref<HTMLInputElement>()
 useAutoBlur(inputNode)
 function onFocus() {
-  if (autoSelect) {
-    inputNode.value?.select()
-  }
+  inputNode.value?.select()
 }
 
 const cssFont = computed(() => {
@@ -51,43 +31,13 @@ const cssFont = computed(() => {
 const ADDED_WIDTH_PX = 2
 
 const getTextWidth = (text: string) => getTextWidthByFont(text, cssFont.value)
-const inputWidth = computed(() => getTextWidth(innerModel.value || placeholder) + ADDED_WIDTH_PX)
+const inputWidth = computed(() => getTextWidth(model.value || placeholder) + ADDED_WIDTH_PX)
 const inputStyle = computed<StyleValue>(() => ({ width: `${inputWidth.value}px` }))
 
 function onEnterDown(event: KeyboardEvent) {
-  if (acceptOnEnter) {
-    event.stopPropagation()
-    inputNode.value?.blur()
-  }
+  event.stopPropagation()
+  inputNode.value?.blur()
 }
-
-function readInputFieldSelection() {
-  if (inputNode.value?.selectionStart != null && inputNode.value.selectionEnd != null) {
-    selection.value = Range.tryFromBounds(
-      inputNode.value.selectionStart,
-      inputNode.value.selectionEnd,
-    )
-  } else {
-    selection.value = undefined
-  }
-}
-
-// HTMLInputElement's same event is not supported in chrome yet. We just react for any
-// selectionchange in the document and check if the input selection changed.
-// BUT some operations like deleting does not emit 'selectionChange':
-// https://bugs.chromium.org/p/chromium/issues/detail?id=725890
-// Therefore we must also refresh selection after changing input.
-useEvent(document, 'selectionchange', readInputFieldSelection)
-
-watch(selection, (newPos) => {
-  // If boundaries didn't change, don't overwrite selection dir.
-  if (
-    inputNode.value?.selectionStart !== newPos?.from ||
-    inputNode.value?.selectionEnd !== newPos?.to
-  ) {
-    inputNode.value?.setSelectionRange(newPos?.from ?? null, newPos?.to ?? null)
-  }
-})
 
 defineExpose({
   inputWidth,
@@ -95,17 +45,14 @@ defineExpose({
   select: () => inputNode.value?.select(),
   focus: () => inputNode.value?.focus(),
   blur: () => inputNode.value?.blur(),
-  cancel: () => {
-    innerModel.value = model.value
-    inputNode.value?.blur()
-  },
+  cancel: () => inputNode.value?.blur(),
 })
 </script>
 
 <template>
   <input
     ref="inputNode"
-    v-model="innerModel"
+    v-model="model"
     class="AutoSizedInput input"
     :placeholder="placeholder"
     :style="inputStyle"
@@ -118,7 +65,6 @@ defineExpose({
     @keydown.arrow-right.stop
     @keydown.enter="onEnterDown"
     @input="onInput"
-    @change="onChange"
     @focus="onFocus"
   />
 </template>
