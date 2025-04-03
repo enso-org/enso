@@ -35,7 +35,6 @@ const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
   },
 })
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const ACTION_TO_TEXT_ID: Readonly<
   Record<
     inputBindings.DashboardBindingKey,

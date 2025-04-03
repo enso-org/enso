@@ -433,7 +433,6 @@ function SessionRefresher(props: SessionRefresherProps) {
  * React context hook returning the session of the authenticated user.
  * @throws {Error} when used outside a {@link SessionProvider}.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useSession() {
   const context = React.useContext(SessionContext)
 
@@ -445,7 +444,6 @@ export function useSession() {
 /**
  * Returns API to work with a session.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useSessionAPI(): Omit<SessionContextType, 'session'> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { session, ...api } = useSession()
@@ -457,7 +455,6 @@ export function useSessionAPI(): Omit<SessionContextType, 'session'> {
  * React context hook returning the session of the authenticated user.
  * @throws {Error} if the session is not defined.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useSessionStrict() {
   const { session } = useSession()
 

@@ -13,7 +13,6 @@ export interface MultiSelectorOptionProps
   readonly label: string
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const MULTI_SELECTOR_OPTION_STYLES = tv({
   base: TEXT_STYLE({
     className:

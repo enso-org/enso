@@ -16,7 +16,6 @@ export interface BadgeProps extends VariantProps<typeof BADGE_STYLES> {
   readonly icon?: IconPropSvgUse<never> | undefined
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const BADGE_STYLES = tv({
   base: 'flex items-center justify-center border-[0.5px] min-w-6 h-fit flex-none',
   variants: {

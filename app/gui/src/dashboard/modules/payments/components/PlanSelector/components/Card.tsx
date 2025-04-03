@@ -29,7 +29,6 @@ export interface CardProps extends React.PropsWithChildren, VariantProps<typeof 
   readonly className?: string
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const CARD_STYLES = tv({
   base: 'flex flex-col border-0.5',
   variants: {

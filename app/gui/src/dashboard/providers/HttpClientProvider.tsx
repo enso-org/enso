@@ -26,7 +26,6 @@ export function HttpClientProvider(props: HttpClientProviderProps) {
 }
 
 /** Returns the HTTP client. */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useHttpClient() {
   return React.useContext(HTTPClientContext)
 }
@@ -35,7 +34,6 @@ export function useHttpClient() {
  * Returns the HTTP client.
  * @throws If the HTTP client is not found in context.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useHttpClientStrict() {
   const httpClient = useHttpClient()
 

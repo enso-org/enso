@@ -6,7 +6,6 @@ import type { ReactNode } from 'react'
 import { Button } from '../Button'
 import { TEXT_STYLE } from '../Text'
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const COPY_BLOCK_STYLES = tv({
   base: TEXT_STYLE({
     class: 'max-w-full bg-primary/5 border-primary/10',

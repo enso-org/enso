@@ -47,7 +47,6 @@ import {
 } from './FeatureFlagsProvider'
 
 /** Possible types of {@link BaseUserSession}. */
-// eslint-disable-next-line react-refresh/only-export-components
 export enum UserSessionType {
   offline = 'offline',
   partial = 'partial',
@@ -350,7 +349,6 @@ export default function AuthProvider(props: AuthProviderProps) {
  * never the context component.
  * @throws {Error} when used outside a {@link AuthProvider}.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = React.useContext(AuthContext)
 
@@ -560,7 +558,6 @@ export function CloudBrowserDisabledLayout(props: CloudBrowserDisabledLayoutProp
  * A React context hook returning the user session
  * for a user that has not yet completed registration.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function usePartialUserSession() {
   const { session } = useAuth()
 
@@ -570,13 +567,11 @@ export function usePartialUserSession() {
 }
 
 /** A React context hook returning the user session for a user that may or may not be logged in. */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useUserSession() {
   return useAuth().session
 }
 
 /** A React context hook returning the user session for a user that is fully logged in. */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useFullUserSession(): FullUserSession {
   const { session } = useAuth()
 
@@ -586,7 +581,6 @@ export function useFullUserSession(): FullUserSession {
 }
 
 /** A React context hook returning the user session for a user that is fully logged in. */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useUser() {
   const { user } = useFullUserSession()
 

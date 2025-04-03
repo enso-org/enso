@@ -19,7 +19,6 @@ import type { Placement, TestIdProps } from '../types'
 import { MenuItem } from './MenuItem'
 import { MenuTrigger } from './MenuTrigger'
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const MENU_STYLES = tv({
   base: 'flex flex-col [clip-path:inset(0_0_0_0_round_.75rem)] overflow-x-hidden',
   slots: {
@@ -27,7 +26,6 @@ export const MENU_STYLES = tv({
   },
 })
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const MENU_SECTION_STYLES = tv({
   base: 'flex flex-col',
   slots: {
@@ -35,7 +33,6 @@ export const MENU_SECTION_STYLES = tv({
   },
 })
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const MENU_SEPARATOR_STYLES = tv({
   extend: SEPARATOR_STYLES,
   base: 'my-1.5 mx-2',

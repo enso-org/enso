@@ -29,7 +29,6 @@ export interface TextProps
   readonly tooltipCrossOffset?: number
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const TEXT_STYLE = twv.tv({
   base: '',
   variants: {

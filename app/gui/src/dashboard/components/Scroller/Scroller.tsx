@@ -19,7 +19,6 @@ import {
 } from 'react'
 import type { TestIdProps } from '../AriaComponents'
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const SCROLLER_STYLES = tv({
   base: 'relative w-auto min-w-0',
   variants: {

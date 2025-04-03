@@ -31,7 +31,6 @@ export interface SwitchProps<Schema extends TSchema, TFieldName extends FieldPat
   readonly labelPosition?: 'after' | 'before' | undefined
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const SWITCH_STYLES = tv({
   base: '',
   variants: {

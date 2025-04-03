@@ -21,7 +21,6 @@ const CheckboxContext = createContext<CheckboxContextType>({
 })
 
 /** Gets the context for the checkbox. */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useCheckboxContext() {
   return useContext(CheckboxContext)
 }
@@ -31,7 +30,6 @@ export function useCheckboxContext() {
  * Returns store no matter if the checkbox is inside a group or not.
  * If the checkbox is not inside a group, the `insideGroup` property will be `false`.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useCheckboxGroupState() {
   const { store } = useCheckboxContext()
   return store

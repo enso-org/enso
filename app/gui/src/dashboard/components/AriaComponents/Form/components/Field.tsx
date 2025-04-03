@@ -43,7 +43,6 @@ export interface FieldChildrenRenderProps {
   readonly error?: string | null | undefined
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const FIELD_STYLES = tv({
   base: 'flex flex-col gap-0.5 items-start',
   variants: {
@@ -150,7 +149,6 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
   )
 })
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const FIELD_ERROR_STYLES = tv({
   base: text.TEXT_STYLE({ variant: 'body', color: 'danger', className: 'block' }),
   variants: { fullWidth: { true: 'w-full' } },

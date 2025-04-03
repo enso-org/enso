@@ -20,7 +20,6 @@ export interface AddPaymentMethodFormProps<
 }
 
 /** The validation schema for this form. */
-// eslint-disable-next-line react-refresh/only-export-components
 export function createAddPaymentMethodFormSchema(z: typeof schema, getText: GetText) {
   return z.object({
     card: z

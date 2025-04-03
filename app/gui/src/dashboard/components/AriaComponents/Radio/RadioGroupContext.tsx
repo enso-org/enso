@@ -68,7 +68,6 @@ export interface UseRadioGroupContextProps {
 }
 
 /** Provides useful information about sibling Radio elements within a RadioGroup */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useRadioGroupContext(props: UseRadioGroupContextProps) {
   const { value } = props
   const context = React.useContext(RadioGroupContext)

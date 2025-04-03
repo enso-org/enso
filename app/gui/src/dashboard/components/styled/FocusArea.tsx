@@ -33,7 +33,6 @@ export interface FocusAreaProps {
 }
 
 /** An area that can be focused within. */
-// eslint-disable-next-line react-refresh/only-export-components
 function FocusArea(props: FocusAreaProps) {
   const { active = true, direction, children } = props
   const { focusChildClass = 'focus-child', focusDefaultClass = 'focus-default' } = props
@@ -140,5 +139,4 @@ function FocusArea(props: FocusAreaProps) {
 }
 
 /** An area that can be focused within. */
-// eslint-disable-next-line react-refresh/only-export-components
 export default withFocusScope(FocusArea)

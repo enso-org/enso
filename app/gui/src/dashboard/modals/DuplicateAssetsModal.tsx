@@ -695,7 +695,6 @@ export interface ResolveDuplicationsOptions
 /**
  * Function for resolving duplicates.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export async function resolveDuplications(props: ResolveDuplicationsOptions) {
   const { targetId, conflictingIds } = props
 

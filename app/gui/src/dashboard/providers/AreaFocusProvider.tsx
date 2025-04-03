@@ -26,7 +26,6 @@ export default function AreaFocusProvider(props: AreaFocusProviderProps) {
 }
 
 /** Whether the containing area is focused. */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useAreaFocus() {
   return React.useContext(AreaFocusContext).areaFocus
 }

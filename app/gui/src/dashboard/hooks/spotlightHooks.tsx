@@ -62,7 +62,6 @@ interface SpotlightProps {
 }
 
 /** A spotlight element. */
-// eslint-disable-next-line react-refresh/only-export-components
 function Spotlight(props: SpotlightProps) {
   const { element, close, paddingPx = 0 } = props
 
