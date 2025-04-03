@@ -1,19 +1,27 @@
 from Standard.Base import all
 
 ## Read fixed-width files into a Table.
-type Delimited_Format
+type Fixed_Width_Format
     ## Read fixed-width files into a Table.
 
-    Value (layout:Delimited_Layout)
+    Fixed_Width (layout:Fixed_Width_Layout)
 
-type Delimited_Column_Description
+    ## PRIVATE
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> Fixed_Width_Format | Nothing
+    resolve constructor =
+        _ = constructor
+        Nothing
+
+type Fixed_Width_Column_Description
     Start_And_Width (start:Integer) (width:Integer)
     Width (width:Integer)
 
-type Delimited_Layout_Entry
+type Fixed_Width_Layout_Entry
     Value (name:Text) (start:Integer) (width:Integer)
 
-type Delimited_Layout
-    Value (entries : Vector Delimited_Layout_Entry)
+type Fixed_Width_Layout
+    Value (entries : Vector Fixed_Width_Layout_Entry)
 
-    from_descriptions : Vector Delimited_Column_Description -> Delimited_Layout =
+    from_descriptions (descs : Vector Fixed_Width_Column_Description) -> Fixed_Width_Layout =
+        Fixed_Width_Layout.Value []

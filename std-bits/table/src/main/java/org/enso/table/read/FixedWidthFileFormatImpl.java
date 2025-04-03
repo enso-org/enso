@@ -6,12 +6,12 @@ import org.enso.base.file_format.FileFormatSPI;
 public final class FixedWidthFileFormatImpl extends FileFormatSPI {
   @Override
   protected String getModuleName() {
-    return "Standard.Table.FixedWidth.FixedWidth_Format";
+    return "Standard.Table.Fixed_Width.Fixed_Width_Format";
   }
 
   @Override
   protected String getTypeName() {
-    return "FixedWidth_Format";
+    return "Fixed_Width_Format";
   }
 
   @Override
