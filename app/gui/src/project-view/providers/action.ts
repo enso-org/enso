@@ -13,12 +13,13 @@ import { ToValue } from '@/util/reactivity'
 import { BindingInfo } from '@/util/shortcuts'
 import { ref } from 'vue'
 import { ForbidExcessProps } from 'ydoc-shared/util/types'
+import { ActionContext, injectActionContext } from './actionContext'
 
 /**
  * A definition of some action available via shortcut, button, and/or menu entry.
  */
 export interface Action {
-  action?: () => void
+  action?: (ctx: ActionContext | undefined) => void
   icon: Icon
   shortcut?: BindingInfo
   testid?: string
@@ -27,7 +28,7 @@ export interface Action {
   disabled?: ToValue<boolean>
   toggled?: ToValue<boolean>
 }
-export type ActionHandler = Partial<Action> & { action: () => void }
+export type ActionHandler = Partial<Action> & { action: (ctx: ActionContext | undefined) => void }
 
 const actions = {
   'graphEditor.showHelp': {
@@ -237,16 +238,28 @@ export function toggledAction(toggleState = ref(false)) {
   }
 }
 
+type ResolvedAction = Action & { action: () => void }
+
 /**
- * Potentially resolve an action by name from context. Raises an assertion if such action is not found.
+ * Potentially resolve an action by name from context. Raises an error if such action is not found.
  */
-export function resolveAction(actionOrName: Action | ActionName): Action {
+export function resolveAction(actionOrName: Action | ActionName): ResolvedAction {
+  let action: Action
+
   if (typeof actionOrName === 'string') {
     const actions = injectActions()
-    assert(actions != null, 'Trying to reference an action by name, but actions not injected.')
-    return actions[actionOrName]
+    assert(
+      actions != null,
+      `Trying to reference an action by name '${actionOrName}', but actions not injected.`,
+    )
+    action = actions[actionOrName]
   } else {
-    return actionOrName
+    action = actionOrName
+  }
+  const ctx = injectActionContext(true)
+  return {
+    ...action,
+    action: () => action.action?.(ctx),
   }
 }
 

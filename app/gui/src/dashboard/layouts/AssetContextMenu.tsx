@@ -4,7 +4,7 @@ import * as React from 'react'
 import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 
-import * as copyHooks from '#/hooks/copyHooks'
+import { useCopy } from '#/hooks/copyHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -88,9 +88,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const downloadAssetsMutation = reactQuery.useMutation(downloadAssetsMutationOptions(backend))
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const path = asset.ensoPathValue
-  const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
+  const copyMutation = useCopy()
   const uploadFileToCloudMutation = useUploadFileWithToastMutation(remoteBackend)
   const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined
+  const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
 
   const newProject = useNewProject(backend, category)
 
@@ -175,10 +176,20 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
 
   const canUploadToCloud = user.plan !== backendModule.Plan.free
 
+  const copyIdEntry = showDeveloperIds && (
+    <ContextMenuEntry
+      hidden={hidden}
+      color="accent"
+      action="copyId"
+      doAction={() => copyMutation.mutateAsync(asset.id)}
+    />
+  )
+
   return (
     category.type === 'trash' ?
       !ownsThisAsset ? null
       : <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden} event={event}>
+          {copyIdEntry}
           <ContextMenuEntry
             hidden={hidden}
             action="undelete"
@@ -208,6 +219,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         </ContextMenu>
     : !canManageThisAsset ? null
     : <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden} event={event}>
+        {copyIdEntry}
         {asset.type === backendModule.AssetType.datalink && (
           <ContextMenuEntry
             hidden={hidden}
@@ -414,7 +426,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <ContextMenuEntry
             hidden={hidden}
             action="copyAsPath"
-            doAction={copyMutation.mutateAsync}
+            doAction={() => copyMutation.mutateAsync(path)}
           />
         )}
         {!isRunningProject && !isOtherUserUsingProject && (

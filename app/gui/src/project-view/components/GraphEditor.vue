@@ -3,7 +3,6 @@ import {
   codeEditorBindings,
   documentationEditorBindings,
   graphBindings,
-  interactionBindings,
   undoBindings,
 } from '@/bindings'
 import BottomPanel from '@/components/BottomPanel.vue'
@@ -11,6 +10,7 @@ import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import type { Usage } from '@/components/ComponentBrowser/input'
 import { usePlacement } from '@/components/ComponentBrowser/placement'
+import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import DocumentationEditor from '@/components/DocumentationEditor.vue'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
@@ -30,7 +30,7 @@ import { useDoubleClick } from '@/composables/doubleClick'
 import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/composables/events'
 import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
-import { registerHandlers, toggledAction } from '@/providers/action'
+import { ActionName, registerHandlers, toggledAction } from '@/providers/action'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -38,7 +38,6 @@ import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
-import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { injectKeyboard } from '@/providers/keyboard'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import type { Node, NodeId } from '@/stores/graph'
@@ -61,6 +60,7 @@ import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
 import { Err, Ok, unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
+import { VueInstance } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { set } from 'lib0'
 import {
@@ -71,6 +71,7 @@ import {
   shallowRef,
   toRaw,
   toRef,
+  useTemplateRef,
   watch,
   type ComponentInstance,
 } from 'vue'
@@ -98,8 +99,9 @@ onUnmounted(() => {
 
 // === Navigator ===
 
-const viewportNode = ref<HTMLElement>()
-onMounted(() => viewportNode.value?.focus())
+const viewportNode = useTemplateRef<VueInstance>('viewportNode')
+const viewportElem = computed(() => unrefElement<HTMLElement>(viewportNode))
+onMounted(() => viewportElem.value?.focus())
 const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keyboard, {
   predicate: (e) => (e instanceof KeyboardEvent ? nodeSelection.selected.size === 0 : true),
 })
@@ -228,9 +230,14 @@ const actionHandlers = registerHandlers({
   },
   'graph.renameProject': toggledAction(projectNameEdited),
   'graph.addComponent': {
-    action: () => {
+    action: (ctx) => {
       nodeSelection.deselectAll()
-      createWithComponentBrowser({ placement: { type: 'viewport' } })
+      const clientPos = ctx?.openPosition
+      const placement: PlacementStrategy =
+        clientPos ?
+          { type: 'fixed', position: graphNavigator.clientToScenePos(Vec2.FromXY(clientPos)) }
+        : { type: 'viewport' }
+      createWithComponentBrowser({ placement })
     },
   },
   'graph.toggleCodeEditor': {
@@ -285,32 +292,17 @@ const actionHandlers = registerHandlers({
   ),
 })
 
-// === Interactions ===
-
-const interaction = provideInteractionHandler()
-const interactionBindingsHandler = interactionBindings.handler({
-  cancel: () => interaction.handleCancel(),
-})
-
+// See also https://github.com/enso-org/enso/issues/10414
 useEvent(
   window,
   'keydown',
   (event) =>
-    interactionBindingsHandler(event) ||
     (!keyboardBusy() && undoBindingsHandler(event)) ||
     (!keyboardBusy() && graphBindingsHandler(event)) ||
     (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event)) ||
     (!keyboardBusyExceptIn(documentationEditorArea.value) && documentationEditorHandler(event)) ||
     (!keyboardBusy() && graphNavigator.keyboardEvents.keydown(event)),
 )
-
-useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointerdown'), {
-  capture: true,
-})
-
-useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
-  capture: true,
-})
 
 function tryGetSelectionDocUrl() {
   const selected = nodeSelection.tryGetSoleSelection()
@@ -641,7 +633,7 @@ async function handleFileDrop(event: DragEvent) {
 // === Color Picker ===
 
 provideNodeColors(graphStore, (variable) =>
-  viewportNode.value ? getComputedStyle(viewportNode.value).getPropertyValue(variable) : '',
+  viewportElem.value ? getComputedStyle(viewportElem.value).getPropertyValue(variable) : '',
 )
 
 const groupColors = computed(() => {
@@ -651,6 +643,19 @@ const groupColors = computed(() => {
   }
   return styles
 })
+
+const contextMenuActions: ActionName[] = [
+  'graph.navigateUp',
+  'graph.renameProject',
+  'graph.refreshExecution',
+  'graph.recomputeAll',
+  'graph.undo',
+  'graph.redo',
+  'graph.addComponent',
+  'graph.fitAll',
+  'graph.toggleCodeEditor',
+  'graph.toggleDocumentationEditor',
+]
 </script>
 
 <template>
@@ -663,7 +668,12 @@ const groupColors = computed(() => {
     @drop.prevent="handleFileDrop($event)"
   >
     <div class="vertical">
-      <div ref="viewportNode" class="viewport" @click="handleClick">
+      <ContextMenuTrigger
+        ref="viewportNode"
+        class="viewport"
+        :actions="contextMenuActions"
+        @click="handleClick"
+      >
         <GraphMissingView v-if="graphMissing" />
         <template v-else>
           <GraphNodes
@@ -671,6 +681,7 @@ const groupColors = computed(() => {
             @enterNode="(id) => stackNavigator.enterNode(id)"
             @createNodes="createNodesFromSource"
             @toggleDocPanel="toggleRightDockHelpPanel"
+            @contextmenu.stop.prevent
           />
           <GraphEdges
             :navigator="graphNavigator"
@@ -698,13 +709,15 @@ const groupColors = computed(() => {
           v-model:showDocumentationEditor="rightDock.visible"
           :zoomLevel="100.0 * graphNavigator.targetScale"
           :class="{ extraRightSpace: !rightDock.visible }"
+          :menuActions="contextMenuActions"
+          @contextmenu.stop.prevent
         />
         <SceneScroller
           :navigator="graphNavigator"
           :scrollableArea="Rect.Bounding(...graphStore.visibleNodeAreas)"
         />
         <GraphMouse />
-      </div>
+      </ContextMenuTrigger>
       <BottomPanel v-model:show="showCodeEditor">
         <Suspense>
           <CodeEditor ref="codeEditor" />
@@ -747,8 +760,9 @@ const groupColors = computed(() => {
   }
 }
 
-.viewport {
+.viewport.viewport {
   position: relative; /* Needed for safari when using contain: layout */
+  display: block;
   contain: layout;
   overflow: clip;
   touch-action: none;

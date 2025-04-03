@@ -25,9 +25,9 @@ interface CreateCheckoutSessionMutation {
 
 /** Props for {@link PlanSelector} */
 export interface PlanSelectorProps extends VariantProps<typeof PLAN_SELECTOR_STYLES> {
+  readonly userPlan: Plan
   readonly showFreePlan?: boolean
   readonly hasTrial?: boolean
-  readonly userPlan?: Plan | undefined
   readonly isOrganizationAdmin?: boolean
   readonly plan?: Plan | null | undefined
   readonly onSubscribeSuccess?: (plan: Plan, paymentMethodId: string) => void
@@ -107,8 +107,7 @@ export function PlanSelector(props: PlanSelectorProps) {
           const planProps = getComponentPerPlan(newPlan, getText)
 
           if (showFreePlan || newPlan !== Plan.free) {
-            const isCurrentPlan =
-              newPlan === userPlan || (newPlan === Plan.free && userPlan === undefined)
+            const isCurrentPlan = newPlan === userPlan
 
             return (
               <Card
@@ -154,7 +153,7 @@ export function PlanSelector(props: PlanSelectorProps) {
                       }
                     }}
                     plan={newPlan}
-                    userHasSubscription={userPlan != null && userPlan !== Plan.free}
+                    userHasSubscription={userPlan !== Plan.free}
                     isCurrent={isCurrentPlan}
                     isDowngrade={userPaywallLevel > paywallLevel}
                     defaultOpen={newPlan === plan}

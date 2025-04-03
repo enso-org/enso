@@ -79,7 +79,7 @@ test('Widget in plain AST', async ({ page }) => {
   const textNode = locate.graphNodeByBinding(page, 'text')
   const textWidget = textNode.locator('.WidgetText')
   await expect(textWidget).toBeVisible()
-  await expect(textWidget.locator('input')).toHaveValue('test')
+  await expect(textWidget.getByTestId('widget-text-content')).toHaveText('test')
 })
 
 test('Multi-selection widget', async ({ page }) => {
@@ -105,7 +105,7 @@ test('Multi-selection widget', async ({ page }) => {
   await dropDown.expectVisibleWithOptions(['Column A', 'Column B'])
   await expect(dropDown.rootWidget).toHaveClass(/multiSelect/)
   const vector = node.locator('.WidgetVector')
-  const vectorItems = vector.getByTestId('list-item-content').locator('.WidgetPort input')
+  const vectorItems = vector.getByTestId('list-item-content').getByTestId('widget-text-content')
   await expect(vector).toBeVisible()
   await expect(dropDown.selectedItems).toHaveCount(0)
   await expect(vectorItems).toHaveCount(0)
@@ -115,7 +115,7 @@ test('Multi-selection widget', async ({ page }) => {
   await expect(dropDown.selectedItem('Column A')).toExist()
   await expect(vector).toBeVisible()
   await expect(vectorItems).toHaveCount(1)
-  await expect(vectorItems.first()).toHaveValue('Column A')
+  await expect(vectorItems.first()).toHaveText('Column A')
   await dropDown.expectVisibleWithOptions(['Column A', 'Column B'])
 
   // Add-item button opens dropdown, after closing with escape.
@@ -128,8 +128,8 @@ test('Multi-selection widget', async ({ page }) => {
   // Enable another item.
   await dropDown.clickOption('Column B')
   await expect(vectorItems).toHaveCount(2)
-  await expect(vectorItems.first()).toHaveValue('Column A')
-  await expect(vectorItems.nth(1)).toHaveValue('Column B')
+  await expect(vectorItems.first()).toHaveText('Column A')
+  await expect(vectorItems.nth(1)).toHaveText('Column B')
   await expect(dropDown.dropDown).toBeVisible()
   await expect(dropDown.items).toHaveCount(2)
   await expect(dropDown.selectedItems).toHaveCount(2)
@@ -137,13 +137,13 @@ test('Multi-selection widget', async ({ page }) => {
   // Clicking to edit an item opens the dropdown, after closing with escape.
   await page.keyboard.press('Escape')
   await dropDown.expectNotVisible()
-  await expect(vectorItems.first()).toHaveValue('Column A')
+  await expect(vectorItems.first()).toHaveText('Column A')
   await vectorItems.first().click()
   await expect(vectorItems.first()).toBeFocused()
   await expect(dropDown.dropDown).toBeVisible()
 
   // Clicking to edit a different item doesn't close the dropdown.
-  await expect(vectorItems.nth(1)).toHaveValue('Column B')
+  await expect(vectorItems.nth(1)).toHaveText('Column B')
   await vectorItems.nth(1).click()
   await expect(vectorItems.nth(1)).toBeFocused()
   await expect(dropDown.dropDown).toBeVisible()
@@ -151,7 +151,7 @@ test('Multi-selection widget', async ({ page }) => {
   // Disable an item.
   await dropDown.clickOption('Column A')
   await expect(vectorItems).toHaveCount(1)
-  await expect(vectorItems.first()).toHaveValue('Column B')
+  await expect(vectorItems.first()).toHaveText('Column B')
   await expect(dropDown.dropDown).toBeVisible()
   await expect(dropDown.items).toHaveCount(2)
   await expect(dropDown.selectedItems).toHaveCount(1)
@@ -180,7 +180,7 @@ test('Multi-selection widget: Item edits', async ({ page }) => {
     .graphNodeByBinding(page, 'selected')
     .locator('.WidgetTopLevelArgument')
     .filter({ has: page.getByText('columns') })
-  const vectorItems = columnsArg.getByTestId('list-item-content').locator('.WidgetPort input')
+  const vectorItems = columnsArg.getByTestId('list-item-content').getByTestId('widget-text-content')
   const dropDown = new DropDownLocator(columnsArg)
   await dropDown.clickWidget()
   await dropDown.clickOption('Column A')
@@ -189,7 +189,7 @@ test('Multi-selection widget: Item edits', async ({ page }) => {
   // Edit an item
   await expect(dropDown.selectedItem('Column A')).toExist()
   await expect(dropDown.selectedItem('Column B')).toExist()
-  await expect(vectorItems.first()).toHaveValue('Column A')
+  await expect(vectorItems.first()).toHaveText('Column A')
   await vectorItems.first().fill('Something Else')
   await expect(dropDown.selectedItem('Column A')).toBeHidden()
   await expect(dropDown.selectedItem('Column B')).toExist()
@@ -300,7 +300,7 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   const pathDropdown = new DropDownLocator(pathArg)
   await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
   await pathDropdown.clickOption('File 2')
-  await expect(pathArg.locator('.WidgetText > input')).toHaveValue('File 2')
+  await expect(pathArg.getByTestId('widget-text-content')).toHaveText('File 2')
 
   // Change value on `path` (dynamic config)
   await mockMethodCallInfo(page, 'data', {
@@ -314,7 +314,7 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   await page.getByText('path').click()
   await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
   await pathDropdown.clickOption('File 1')
-  await expect(pathArg.locator('.WidgetText > input')).toHaveValue('File 1')
+  await expect(pathArg.getByTestId('widget-text-content')).toHaveText('File 1')
 })
 
 test('Selection widget with text widget as input', async ({ page }) => {
@@ -324,11 +324,11 @@ test('Selection widget with text widget as input', async ({ page }) => {
   const topLevelArgs = node.locator('.WidgetTopLevelArgument')
   const pathArg = topLevelArgs.filter({ has: page.getByText('path') })
   const pathDropdown = new DropDownLocator(pathArg)
-  const pathArgInput = pathArg.locator('.WidgetText > input')
+  const pathArgInput = pathArg.getByTestId('widget-text-content')
   await pathArg.click()
   await pathDropdown.expectVisible()
   await pathDropdown.clickOption('File 2')
-  await expect(pathArgInput).toHaveValue('File 2')
+  await expect(pathArgInput).toHaveText('File 2')
 
   // Editing text input shows and filters drop down
   await pathArgInput.click()
@@ -342,7 +342,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
   // Esc should cancel editing and close drop down
   await page.keyboard.press('Escape')
   await expect(pathArgInput).not.toBeFocused()
-  await expect(pathArgInput).toHaveValue('File 2')
+  await expect(pathArgInput).toHaveText('File 2')
   await expect(pathDropdown.dropDown).not.toBeVisible()
 
   // Choosing entry should finish editing
@@ -352,7 +352,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
   await pathDropdown.expectVisibleWithOptions(['File 1', 'File 2'])
   await pathDropdown.clickOption('File 1')
   await expect(pathArgInput).not.toBeFocused()
-  await expect(pathArgInput).toHaveValue('File 1')
+  await expect(pathArgInput).toHaveText('File 1')
   await expect(pathDropdown.dropDown).not.toBeVisible()
 
   // Clicking-off and pressing enter should accept text as-is
@@ -361,16 +361,16 @@ test('Selection widget with text widget as input', async ({ page }) => {
   await page.keyboard.insertText('File')
   await page.keyboard.press('Enter')
   await expect(pathArgInput).not.toBeFocused()
-  await expect(pathArgInput).toHaveValue('File')
+  await expect(pathArgInput).toHaveText('File')
   await expect(pathDropdown.dropDown).not.toBeVisible()
 
   await pathArgInput.click()
   await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
   await page.keyboard.insertText('Foo')
-  await expect(pathArgInput).toHaveValue('Foo')
+  await expect(pathArgInput).toHaveText('Foo')
   await actions.clickAtBackground(page)
   await expect(pathArgInput).not.toBeFocused()
-  await expect(pathArgInput).toHaveValue('Foo')
+  await expect(pathArgInput).toHaveText('Foo')
   await expect(pathDropdown.dropDown).not.toBeVisible()
 })
 
@@ -393,7 +393,7 @@ test('File Browser widget', async ({ page }) => {
   await pathArg.click()
   await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
   await pathDropdown.clickOption(CHOOSE_LOCAL_FILE)
-  await expect(pathArg.locator('.WidgetText > input')).toHaveValue('/path/to/some/mock/file')
+  await expect(pathArg.getByTestId('widget-text-content')).toHaveText('/path/to/some/mock/file')
 })
 
 test('Manage aggregates in `aggregate` node', async ({ page }) => {
@@ -481,7 +481,7 @@ test('Manage aggregates in `aggregate` node', async ({ page }) => {
     '.',
     'Count_Distinct',
   ])
-  await expect(columnsArg.locator('.WidgetText > input').first()).toHaveValue('column 1')
+  await expect(columnsArg.getByTestId('widget-text-content').first()).toHaveText('column 1')
 
   // Add another aggregate
   await locate.addItemButton(columnsArg).click()
@@ -523,7 +523,7 @@ test('Manage aggregates in `aggregate` node', async ({ page }) => {
     '.',
     'Group_By',
   ])
-  await expect(secondItem.locator('.WidgetText > input').first()).toHaveValue('column 2')
+  await expect(secondItem.getByTestId('widget-text-content').first()).toHaveText('column 2')
 
   // Switch aggregates
   //TODO[ao] I have no idea how to emulate drag. Simple dragTo does not work (some element seem to capture event).
@@ -642,7 +642,7 @@ test('Text widget can be refocused after focus is lost in an unexpected way (#12
 }) => {
   await actions.goToGraph(page)
   const textNode = locate.graphNodeByBinding(page, 'text')
-  const textInput = textNode.locator('.WidgetText input')
+  const textInput = textNode.getByTestId('widget-text-content')
   await textInput.click()
   await expect(textInput).toBeFocused()
   await page.evaluate(() => (document.activeElement! as HTMLElement).blur())

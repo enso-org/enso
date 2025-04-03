@@ -3,9 +3,6 @@
         "name": "[Lorg.enso.text.buffer.Node;"
     },
     {
-        "name": "org.enso.base.Array_Utils"
-    },
-    {
         "name": "org.enso.base.CompareException"
     },
     {

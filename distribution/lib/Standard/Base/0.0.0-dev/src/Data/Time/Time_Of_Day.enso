@@ -55,7 +55,7 @@ new_builtin hour minute second nanosecond = @Builtin_Method "Time_Of_Day.new_bui
 @Builtin_Type
 type Time_Of_Day
     ## GROUP DateTime
-       ICON time
+       ICON time2
        Obtains the current time from the system clock in the default time-zone.
 
        > Example
@@ -67,8 +67,8 @@ type Time_Of_Day
     now : Time_Of_Day
     now = @Builtin_Method "Time_Of_Day.now"
 
-    ## GROUP DateTime
-       ICON time
+    ## GROUP Constants
+       ICON time2
        Obtains an instance of `Time_Of_Day` from an hour, minute, second
        and nanosecond.
 

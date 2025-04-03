@@ -6,6 +6,7 @@ import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Deprecated.Deprecated
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -110,7 +111,7 @@ type Decimal
 
          When creating a `Decimal` from a literal floating-point value, the
          preferred method is to express the literal as a string and use
-         `Decimal.from_text`, since this will give a `Decimal` that matches the
+         `Decimal.parse`, since this will give a `Decimal` that matches the
          value precisely.
 
          To convert a `Float` or `Integer` to a `Decimal`, use its `.to_decimal`
@@ -126,7 +127,7 @@ type Decimal
            is thrown.
          - If the construction of the Decimal results in a loss of precision, a
            `Loss_Of_Numeric_Precision` warning is attached. This can happen in
-           the followoing ways:
+           the following ways:
            - A `Float` value is implicitly converted to a `Decimal` (either by
              calling `Decimal.from` or by passing the `Float` as a parameter of
              type `Decimal`)
@@ -145,7 +146,7 @@ type Decimal
         ^ Example
           Create a `Decimal` from a `Text`.
 
-              c = Decimal.from_text "12.345"
+              c = Decimal.parse "12.345"
 
         ^ Example
           Create a `Decimal` from an `Integer`.
@@ -165,16 +166,20 @@ type Decimal
     new (x : Text | Integer | Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error | Number_Parse_Error =
         handle_java_exception <|
             case x of
-                _ : Text -> Decimal.from_text x mc
+                _ : Text -> Decimal.parse x mc=mc
                 _ : Integer -> Decimal.from_integer x mc
                 _ : Float -> Decimal.from_float x mc explicit=False
 
-    ## GROUP Conversions
+    ## ALIAS from text
+       GROUP Conversions
        ICON convert
-       Construct a `Decimal` from a `Text`.
+       Parses a string into a `Decimal`, returning a `Number_Parse_Error` if the
+       text does not represent a valid `Decimal`.
 
        Arguments:
-       - s: The `Text` to construct a `Decimal` from.
+       - text: The text to parse into a `Decimal`.
+       - locale: The locale that specifies the format to use when parsing.
+       - format: The Java-style format to use to parse the string.
        - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
          If a `Math_Context` is used, there is a possibility of a loss of
          precision.
@@ -188,7 +193,7 @@ type Decimal
 
          When creating a `Decimal` from a literal floating-point value, the
          preferred method is to express the literal as a string and use
-         `Decimal.from_text`, since this will give a `Decimal` that matches the
+         `Decimal.parse`, since this will give a `Decimal` that matches the
          value precisely.
 
          To convert a `Float` or `Integer` to a `Decimal`, use its `.to_decimal`
@@ -202,9 +207,11 @@ type Decimal
 
          - If a `Text` argument is incorrectly formatted, a `Number_Parse_Error`
            is thrown.
+         - If `format` is incorrectly formatted (or does not match the `locale`,
+           an `Illegal_Argument` is thrown.
          - If the construction of the Decimal results in a loss of precision, a
            `Loss_Of_Numeric_Precision` warning is attached. This can happen in
-           the followoing ways:
+           the following ways:
            - A `Float` value is implicitly converted to a `Decimal` (either by
              calling `Decimal.from` or by passing the `Float` as a parameter of
              type `Decimal`)
@@ -217,24 +224,46 @@ type Decimal
            converted from a `Float` (either by calling `Decimal.from` or by
            passing the `Float` as a parameter of type `Decimal`), an
            `Illegal_Argument` error is thrown.
-         - If a floating-poing argument is `NaN` or `+/- Inf`, an
+         - If a floating-point argument is `NaN` or `+/- Inf`, an
            `Illegal_Argument` error is thrown.
 
-        ^ Example
-          Create a `Decimal` from a `Text`.
+       > Example
+         Create a `Decimal` from a `Text` using default locale.
 
-              d = Decimal.from_text "12.345"
+              d = Decimal.parse "12.345"
+       > Example
+         Parse a `Decimal` with the US locale.
 
-        ^ Example
-          Create a `Decimal` from a `Text`.
+             Decimal.parse "123,456,789.87654" locale=Locale.us
+             # => 123456789.87654
 
-              d = dec "12.345"
-    from_text : Text -> Math_Context | Nothing -> Decimal ! Number_Parse_Error
-    from_text (s : Text) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Number_Parse_Error =
-        handle_java_exception <| handle_number_format_exception <|
-            case mc of
-                _ : Math_Context -> Decimal.Value <| handle_precision_loss s <| Decimal_Utils.fromString s mc.math_context
-                _ : Nothing -> Decimal.Value (Decimal_Utils.fromString s)
+       > Example
+         Parse a `Decimal` with the Italy locale.
+
+             Decimal.parse "123.456.789,87654" locale=Locale.italy
+             # => 123456789.87654
+
+       > Example
+         Parse a `Decimal` with an explicit negative number format.
+
+             Decimal.parse "(123,456,789.654)" format="###,###.##;(###,###.##)"
+             # => -123456789.654
+    parse : Text -> Locale -> Text -> Math_Context | Nothing -> Decimal ! Number_Parse_Error | Illegal_Argument
+    parse (text : Text) (locale:Locale=Locale.default) (format:Text="") (mc : Math_Context | Nothing = Nothing) -> Decimal ! Number_Parse_Error | Illegal_Argument =
+        Illegal_Argument.handle_java_exception <| handle_java_exception <| handle_number_format_exception <|
+            number_format_parse txt =
+                # `getInstance` returns `DecimalFormat` or a subclass of `DecimalFormat`.
+                decimal_format = NumberFormat.getInstance locale.java_locale
+                decimal_format.applyLocalizedPattern format
+                decimal_format.setParseBigDecimal True
+                Panic.catch ParseException (Decimal.Value (decimal_format.parse txt)) _->
+                    Error.throw (Number_Parse_Error.Error text)
+            decimal = case format == "" && locale == Locale.default of
+                True -> Panic.catch ParseException (Decimal.Value (Decimal_Utils.fromString text)) _->
+                    number_format_parse text
+                False -> number_format_parse text
+            if mc == Nothing then decimal else
+                Decimal.Value <| handle_precision_loss text <| Decimal_Utils.applyMathContext decimal.big_decimal mc.math_context
 
     ## GROUP conversions
        ICON convert
@@ -250,7 +279,7 @@ type Decimal
 
          When creating a `Decimal` from a literal floating-point value, the
          preferred method is to express the literal as a string and use
-         `Decimal.from_text`, since this will give a `Decimal` that matches the
+         `Decimal.parse`, since this will give a `Decimal` that matches the
          value precisely.
 
          To convert a `Float` or `Integer` to a `Decimal`, use its `.to_decimal`
@@ -320,7 +349,7 @@ type Decimal
 
          When creating a `Decimal` from a literal floating-point value, the
          preferred method is to express the literal as a string and use
-         `Decimal.from_text`, since this will give a `Decimal` that matches the
+         `Decimal.parse`, since this will give a `Decimal` that matches the
          value precisely.
 
          To convert a `Float` or `Integer` to a `Decimal`, use its `.to_decimal`
@@ -1106,62 +1135,23 @@ type Decimal
         formatter = DecimalFormat.new format symbols
         formatter.format self.big_decimal
 
-    ## ALIAS from text
+    ## PRIVATE
+       DEPRECATED
        GROUP conversions
        ICON convert
 
        Parses a string into a `Decimal`, returning a `Number_Parse_Error` if the
-       text does not represent a valid `Decimal`.
+       text does not represent a valid `Decimal`. This has been deprecated in
+       favour of `Decimal.parse`.
 
        Arguments:
        - text: The text to parse into a `Decimal`.
        - locale: The locale that specifies the format to use when parsing.
        - format: The Java-style format to use to parse the string.
-
-       ! Error Conditions
-
-         - If `text` is incorrectly formatted, a `Number_Parse_Error` is thrown.
-         - If `format` is incorrectly formatted (or does not match the `locale`,
-           an `Illegal_Argument` is thrown.
-
-       > Example
-         Parse a `Decimal` with no local specifier.
-
-             Decimal.parse "123456789.87654"
-             # => 123456789.87654
-
-       > Example
-         Parse a `Decimal` with the default locale.
-
-             Decimal.parse "123,456,789.87654" locale=Locale.default
-             # => 123456789.87654
-
-       > Example
-         Parse a `Decimal` with the US locale.
-
-             Decimal.parse "123,456,789.87654" locale=Locale.us
-             # => 123456789.87654
-
-       > Example
-         Parse a `Decimal` with the Italy locale.
-
-             Decimal.parse "123.456.789,87654" locale=Locale.italy
-             # => 123456789.87654
-
-       > Example
-         Parse a `Decimal` with an explicit negative number format.
-
-             Decimal.parse "(123,456,789.654)" format="###,###.##;(###,###.##)"
-             # => -123456789.654
-    parse : Text -> Locale -> Text -> Decimal ! Number_Parse_Error | Illegal_Argument
-    parse text:Text locale:Locale=Locale.default format:Text="" -> Decimal ! Number_Parse_Error | Illegal_Argument =
-        Illegal_Argument.handle_java_exception <|
-            # `getInstance` returns `DecimalFormat` or a subclass of `DecimalFormat`.
-            decimal_format = NumberFormat.getInstance locale.java_locale
-            decimal_format.applyLocalizedPattern format
-            decimal_format.setParseBigDecimal True
-            Panic.catch ParseException (Decimal.Value (decimal_format.parse text)) _->
-                Error.throw (Number_Parse_Error.Error text)
+    from_text : Text -> Locale -> Text -> Decimal ! Number_Parse_Error | Illegal_Argument
+    from_text text:Text locale:Locale=Locale.default format:Text="" -> Decimal ! Number_Parse_Error | Illegal_Argument =
+        Warning.attach (Deprecated.Warning "Standard.Base.Data.Decimal.Decimal" "from_text" "Deprecated: use `Decimal.parse` instead.") <|
+            Decimal.parse text locale format
 
     ## PRIVATE
     precision : Integer
@@ -1244,8 +1234,7 @@ type Decimal
     to_text_without_scientific_notation : Text
     to_text_without_scientific_notation self -> Text = self.big_decimal.toPlainString
 
-## GROUP Math
-   ICON input_number
+## ICON input_number
    Construct a `Decimal` from a `Text`, `Integer` or `Float`.
 
    Arguments:
@@ -1283,11 +1272,9 @@ type Decimal
            c = dec 12.345
 dec : Text | Integer | Float -> Math_Context | Nothing -> Decimal ! Arithmetic_Error | Number_Parse_Error
 dec (x : Text | Integer | Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error | Number_Parse_Error =
-    handle_java_exception <|
-        case x of
-            _ : Text -> Decimal.from_text x mc
-            _ : Integer -> Decimal.from_integer x mc
-            _ : Float -> Decimal.from_float x mc explicit=True
+    case x of
+        _ : Float -> Decimal.from_float x mc
+        _ -> Decimal.new x mc
 
 ## PRIVATE
 handle_number_format_exception ~action =
@@ -1322,7 +1309,7 @@ Comparable.from (that : Decimal) = Comparable.new that Decimal_Comparator
 Comparable.from (that : Number) = Comparable.new that Decimal_Comparator
 
 ## PRIVATE
-Decimal.from (that : Text) = Decimal.from_text that
+Decimal.from (that : Text) = Decimal.parse that
 
 ## PRIVATE
 Decimal.from (that : Integer) = Decimal.new that

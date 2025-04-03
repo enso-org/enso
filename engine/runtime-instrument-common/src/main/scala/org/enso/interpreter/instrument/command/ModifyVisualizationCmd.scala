@@ -31,7 +31,8 @@ class ModifyVisualizationCmd(
   ): Future[Unit] = {
     logger.debug(
       "Modify visualization cmd for request id [{}] and visualization id [{}]",
-      Array[Object](maybeRequestId, request.visualizationId)
+      maybeRequestId,
+      request.visualizationId
     )
     val existingVisualization = ctx.contextManager.getVisualizationById(
       request.visualizationConfig.executionContextId,

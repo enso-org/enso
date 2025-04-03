@@ -1,39 +1,64 @@
 <script setup lang="ts">
-import { ref, watch, type ComponentInstance } from 'vue'
-import AutoSizedInput from './widgets/AutoSizedInput.vue'
+import CodeMirrorInlineRoot from '@/components/CodeMirrorInlineRoot.vue'
+import { selectOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemirror'
+import { useTemplateRef, watch, type ComponentInstance } from 'vue'
 
 const model = defineModel<string>({ required: true })
-const _props = defineProps<{ active: boolean; editing: boolean }>()
+const { active, editing } = defineProps<{ active: boolean; editing: boolean }>()
 
-const input = ref<ComponentInstance<typeof AutoSizedInput>>()
-watch(input, (input, old) => {
-  if (old == null && input != null) input.focus()
+const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorInlineRoot>>('editorRoot')
+
+const { syncExt, connectSync } = useStringSync()
+const { editorView } = useCodeMirror(editorRoot, {
+  content: model.value,
+  extensions: [syncExt, selectOnMouseFocus],
+  readonly: false,
+  singleLine: true,
+})
+
+const { getText, setText } = connectSync(editorView)
+watch(model, setText)
+function onEditorBlur() {
+  model.value = getText()
+}
+
+function accept() {
+  editorView.contentDOM.blur()
+}
+
+function focusEditor() {
+  editorView.dispatch({ selection: { anchor: 0, head: editorView.state.doc.length } })
+  editorView.focus()
+}
+
+watch(editorRoot, (editorRoot) => {
+  if (editorRoot) focusEditor()
 })
 </script>
 
 <template>
-  <div :class="['NavBreadcrumb', { inactive: !active }]">
-    <AutoSizedInput v-if="editing" ref="input" v-model.lazy="model" :autoSelect="true" />
-    <span v-else v-text="model"></span>
+  <div class="NavBreadcrumb" :class="{ inactive: !active }">
+    <CodeMirrorInlineRoot
+      v-if="editing"
+      ref="editorRoot"
+      @focusout="onEditorBlur"
+      @keydown.enter.stop="accept"
+      @keydown.tab.stop="accept"
+    />
+    <template v-else>{{ model }}</template>
   </div>
 </template>
 
 <style scoped>
-span {
-  display: inline-block;
-  height: 24px;
-  padding: 1px 0px;
-}
-
 .NavBreadcrumb {
+  padding-bottom: 2px;
   user-select: none;
   border-radius: var(--radius-full);
+}
 
-  > .blur-container {
-    border-radius: var(--radius-full);
-    background-color: var(--color-frame-bg);
-    backdrop-filter: var(--backdrop-blur);
-  }
+.CodeMirrorInlineRoot {
+  pointer-events: auto;
+  cursor: text;
 }
 
 .inactive {

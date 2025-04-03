@@ -19,7 +19,8 @@ import type {
   SetFilterValuesFuncParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
-import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
+import { ComponentInstance, computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
+import { ComponentExposed } from 'vue-component-type-helpers'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import {
   convertFilterModel,
@@ -154,6 +155,10 @@ const defaultColDef: Ref<ColDef> = ref({
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
+const nodeType = ref<string | undefined>(undefined)
+const grid = ref<
+  ComponentInstance<typeof AgGridTableView> & ComponentExposed<typeof AgGridTableView>
+>()
 const allRowCount = computed(() =>
   typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
 )
@@ -180,6 +185,14 @@ const statusBar = computed(() =>
     }
   : null,
 )
+
+watchEffect(() => {
+  // if the column definitions remain the same but there has been updates upstream ag grid doesn't know to re fetch the row data to the updated data
+  if (nodeType.value != config.nodeType) {
+    grid.value?.forceGridRefresh()
+    nodeType.value = config.nodeType
+  }
+})
 
 const textFormatterSelected = ref<TextFormatOptions>('partial')
 
@@ -266,11 +279,9 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
     const index = props.data.header?.findIndex((h: string) => colName === h)
     const server = createServer()
     const response = await server.getSetFilterValues(index)
-    setTimeout(() => {
-      if (response.success) {
-        params.success(response.data)
-      }
-    }, 500)
+    if (response.success) {
+      params.success(response.data)
+    }
   }
 }
 
@@ -321,9 +332,16 @@ function createServer() {
         valueList,
       )
       const response = await config.executeExpression(expressionFunction)
-      return {
-        success: true,
-        data: response.value.rows,
+      if (response.ok) {
+        return {
+          success: true,
+          data: response.value.rows,
+        }
+      } else {
+        return {
+          success: false,
+          data: null,
+        }
       }
     },
   }
@@ -339,13 +357,12 @@ function createServerSideDatasource(): IServerSideDatasource {
       const server = createServer()
       const response: Response = await server.getData(params.request)
       const rows = createRowsForTable(response.data, 0, true)
-      setTimeout(() => {
-        if (response.success) {
-          params.success({ rowData: rows })
-        } else {
-          params.fail()
-        }
-      }, 500)
+
+      if (response.success) {
+        params.success({ rowData: rows })
+      } else {
+        params.fail()
+      }
     },
   }
 }
@@ -594,7 +611,10 @@ function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef 
       params.node?.rowPinned === 'top' ?
         null
       : `Double click to view this ${tooltipValue ?? 'value'} in a separate component`,
-    cellRenderer: (params: ICellRendererParams) => `<div class='link'> ${params.value} </div>`,
+    cellRenderer: (params: ICellRendererParams) =>
+      params.value !== null && params.value !== undefined ?
+        `<div class='link'> ${params.value} </div>`
+      : null,
     filter: fieldName != INDEX_FIELD_NAME,
   }
 }
@@ -745,8 +765,12 @@ watchEffect(() => {
         ]
       : dataHeader
     if (!data_.is_using_server_sort_and_filter) {
+      const hasIndexRow = config.nodeType === TABLE_NODE_TYPE
+      const shift = hasIndexRow ? 1 : 0
       rowData.value =
-        data_.data ? createRowsForTable(data_.data, 1, data_.is_using_server_sort_and_filter) : []
+        data_.data ?
+          createRowsForTable(data_.data, shift, data_.is_using_server_sort_and_filter)
+        : []
     }
   }
   const headerGroupingMap = new Map()
@@ -956,6 +980,7 @@ config.setToolbar(
      suspense), but for some reason it causes reactivity loop - see https://github.com/enso-org/enso/issues/10782 -->
     <Suspense>
       <AgGridTableView
+        ref="grid"
         class="scrollable grid"
         :columnDefs="columnDefs"
         :rowData="rowData"

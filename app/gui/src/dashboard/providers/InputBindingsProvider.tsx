@@ -45,6 +45,7 @@ export default function InputBindingsProvider(props: InputBindingsProviderProps)
  * Exposes a property to get the input bindings namespace.
  * @throws {Error} when used outside of its context.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useInputBindings() {
   return React.useContext(InputBindingsContext)
 }
