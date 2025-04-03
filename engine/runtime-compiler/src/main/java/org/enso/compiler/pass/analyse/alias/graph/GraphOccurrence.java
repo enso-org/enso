@@ -75,6 +75,11 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
       return isLazy;
     }
 
+    @Override
+    public String toString() {
+      return "Def{" + "id=" + id + ", symbol=" + symbol + ", isLazy=" + isLazy + '}';
+    }
+
     public static scala.Option<scala.Tuple5<Integer, String, UUID, scala.Option<UUID>, Boolean>>
         unapply(Object obj) {
       if (obj instanceof Def d) {
@@ -151,6 +156,11 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
 
     final GraphImpl.Scope scope() {
       return this.scope;
+    }
+
+    @Override
+    public String toString() {
+      return "Use{" + "id=" + id + ", symbol=" + symbol + '}';
     }
 
     public static scala.Option<scala.Tuple4<Integer, String, UUID, scala.Option<UUID>>> unapply(
