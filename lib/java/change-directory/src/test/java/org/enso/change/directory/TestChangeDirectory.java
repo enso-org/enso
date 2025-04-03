@@ -56,7 +56,7 @@ public class TestChangeDirectory {
   public void changeDir() throws IOException {
     ensureInNativeImage();
     var tmpDir = Files.createTempDirectory("TestChangeDirectory");
-    var tmpDirAbs = tmpDir.toAbsolutePath().toString();
+    var tmpDirAbs = tmpDir.toAbsolutePath().toRealPath().toString();
     var nativeApi = WorkingDirectories.getCurrent();
     var succeeded = nativeApi.changeWorkingDir(tmpDirAbs);
     assertTrue(succeeded);
