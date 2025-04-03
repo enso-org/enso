@@ -7,7 +7,9 @@ import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
 import { selectOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemirror'
-import { computed, ref, useTemplateRef, watch, type ComponentInstance } from 'vue'
+import { highlightStyle } from '@/util/codemirror/highlight'
+import { type Extension } from '@codemirror/state'
+import { computed, ref, useCssModule, useTemplateRef, watch, type ComponentInstance } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -32,14 +34,15 @@ const placeholder = computed(() =>
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorInlineRoot>>('editorRoot')
 
 const { syncExt, connectSync } = useStringSync()
-const { editorView } = useCodeMirror(editorRoot, {
+const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   content: textContents.value,
   placeholder,
-  extensions: [syncExt, selectOnMouseFocus],
+  extensions: [syncExt, selectOnMouseFocus, highlightStyle(useCssModule())],
   readonly: false,
   contentTestId: 'widget-text-content',
   singleLine: true,
 })
+watch(() => props.input[TextLanguage], setExtraExtensions, { immediate: true })
 
 const { getText, setText, onTextEdited } = connectSync(editorView)
 watch(textContents, setText)
@@ -118,6 +121,13 @@ const closeToken = computed(() => inputTextLiteral.value?.close ?? openToken.val
 </script>
 
 <script lang="ts">
+export const TextLanguage: unique symbol = Symbol.for('WidgetInput:TextLanguage')
+declare module '@/providers/widgetRegistry' {
+  export interface WidgetInput {
+    [TextLanguage]?: Extension
+  }
+}
+
 // Computed used intentionally to delay computation until wasm package is loaded.
 const emptyTextLiteral = computed(() => Ast.TextLiteral.new(''))
 
@@ -191,5 +201,38 @@ export const widgetDefinition = defineWidget(
 
 :deep(.cm-scroller) {
   font-weight: 800;
+}
+
+.GraphNode:not(.selected) .WidgetText :deep(.cm-content) * {
+  color: inherit;
+}
+</style>
+
+<!--suppress CssUnusedSymbol -->
+<style module>
+.keyword,
+.moduleKeyword,
+.modifier {
+  color: #708;
+}
+.number {
+  color: #164;
+}
+.string {
+  color: #a11;
+}
+.escape {
+  color: #e40;
+}
+.variableName,
+.definition-variableName {
+  color: #00f;
+}
+.lineComment,
+.docComment {
+  color: #940;
+}
+.invalid {
+  color: #f00;
 }
 </style>
