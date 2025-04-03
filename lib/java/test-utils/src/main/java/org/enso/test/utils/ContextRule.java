@@ -147,7 +147,6 @@ public final class ContextRule implements TestRule {
 
     @Override
     public void evaluate() throws Throwable {
-      log(description);
       var prev = CURRENT.get();
       try (var ctx = contextSupplier.get()) {
         System.out.println("[ContextUtilsRule] Creating new Context");
