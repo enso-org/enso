@@ -138,7 +138,7 @@ public class TypeMembersTest {
         () -> {
           var typeUnwrapped = ctxRule.unwrapValue(type);
           var memberNames = getAllMemberNames(typeUnwrapped);
-          var anyMethods = ContextUtils.allMethodsFromAny(ctxRule.context());
+          var anyMethods = ctxRule.allMethodsFromAny();
           for (var anyMethod : anyMethods) {
             assertThat("Has method from Any", memberNames, hasItem(containsString(anyMethod)));
           }

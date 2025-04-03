@@ -251,7 +251,7 @@ public class AtomInteropTest {
         () -> {
           var atom = ctxRule.unwrapValue(myTypeAtom);
           var memberNames = getAllMemberNames(atom);
-          var anyBuiltinMethods = ContextUtils.builtinMethodsFromAny(ctxRule.context());
+          var anyBuiltinMethods = ctxRule.builtinMethodsFromAny();
           for (var method : anyBuiltinMethods) {
             assertThat(
                 "Builtin method (from Any) is a member of atom", memberNames, hasItem(method));
@@ -280,7 +280,7 @@ public class AtomInteropTest {
           """);
           var atom = ctxRule.unwrapValue(myTypeAtom);
           var memberNames = getAllMemberNames(atom);
-          var anyMethods = ContextUtils.allMethodsFromAny(ctxRule.context());
+          var anyMethods = ctxRule.allMethodsFromAny();
           for (var method : anyMethods) {
             assertThat(
                 "Non-builtin method (from Any) is a member of atom", memberNames, hasItem(method));

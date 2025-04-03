@@ -1,6 +1,7 @@
 package org.enso.test.utils;
 
 import java.io.ByteArrayOutputStream;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -134,6 +135,35 @@ public final class ContextRule implements TestRule {
     var ctx = CURRENT.get();
     assert ctx != null : "ContextUtilsRule must be used with @ClassRule or @Rule";
     return ctx;
+  }
+
+  /**
+   * Parses the given module and returns a method by the given name from the module.
+   *
+   * @param moduleSrc Source of the whole module
+   * @return Reference to the method.
+   */
+  public Value getMethodFromModule(String moduleSrc, String methodName) {
+    return ContextUtils.getMethodFromModule(currentCtx(), moduleSrc, methodName);
+  }
+
+  /**
+   * Returns set of all the builtin methods from Any. These methods are present even if the module
+   * was not imported - they are present on the Any builtin type. This is in contrast to {@link
+   * #allMethodsFromAny()} which requires the {@code Standard.Base.Any} module to be first
+   * imported.
+   */
+  public Set<String> builtinMethodsFromAny() {
+    return ContextUtils.builtinMethodsFromAny(currentCtx());
+  }
+
+  /**
+   * Returns set of all the methods on the {@code Standard.Base.Any} type. This includes both
+   * builtin and non-builtin types. For this to work, {@code Standard.Base.Any} module must be
+   * imported first in the context, otherwise an assertion will fail.
+   */
+  public Set<String> allMethodsFromAny() {
+    return ContextUtils.allMethodsFromAny(currentCtx());
   }
 
   private final class CustomStatement extends Statement {

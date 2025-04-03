@@ -35,7 +35,7 @@ public final class ContextUtils {
     return context;
   }
 
-  public static Context createDefaultContext(OutputStream out) {
+  static Context createDefaultContext(OutputStream out) {
     var context = defaultContextBuilder().out(out).build();
     final Map<String, Language> langs = context.getEngine().getLanguages();
     assert langs.get("enso") != null : "Enso found in languages: " + langs;
@@ -123,7 +123,7 @@ public final class ContextUtils {
    * @param src One-line assignment into a variable
    * @param imports Imports, may be empty.
    */
-  public static Value createValue(Context ctx, String src, String imports) {
+  static Value createValue(Context ctx, String src, String imports) {
     if (src.lines().count() > 1 || imports == null) {
       throw new IllegalArgumentException("src should have one line, imports must not be null");
     }
@@ -136,7 +136,7 @@ public final class ContextUtils {
     return tmpModule.invokeMember(Module.EVAL_EXPRESSION, "my_var");
   }
 
-  public static Value createValue(Context ctx, String src) {
+  static Value createValue(Context ctx, String src) {
     return createValue(ctx, src, "");
   }
 
@@ -160,7 +160,7 @@ public final class ContextUtils {
    * @param methodName name of main method to invoke
    * @return The value returned from the main method of the unnamed module.
    */
-  public static Value evalModule(Context ctx, CharSequence src, String name, String methodName) {
+  static Value evalModule(Context ctx, CharSequence src, String name, String methodName) {
     Source s;
     if (name == null) {
       s = Source.create("enso", src);
@@ -207,7 +207,7 @@ public final class ContextUtils {
    * @param moduleSrc Source of the whole module
    * @return Reference to the method.
    */
-  public static Value getMethodFromModule(Context ctx, String moduleSrc, String methodName) {
+  static Value getMethodFromModule(Context ctx, String moduleSrc, String methodName) {
     Value module = ctx.eval(Source.create("enso", moduleSrc));
     return module.invokeMember(Module.EVAL_EXPRESSION, methodName);
   }
@@ -218,7 +218,7 @@ public final class ContextUtils {
    * #allMethodsFromAny(Context)} which requires the {@code Standard.Base.Any} module to be first
    * imported.
    */
-  public static Set<String> builtinMethodsFromAny(Context ctx) {
+  static Set<String> builtinMethodsFromAny(Context ctx) {
     var ensoCtx = ContextUtils.leakContext(ctx);
     // This is a builtin Any type, so only the builtin methods will be included.
     var anyBuiltinType = ensoCtx.getBuiltins().any();
@@ -234,7 +234,7 @@ public final class ContextUtils {
    * builtin and non-builtin types. For this to work, {@code Standard.Base.Any} module must be
    * imported first in the context, otherwise an assertion will fail.
    */
-  public static Set<String> allMethodsFromAny(Context ctx) {
+  static Set<String> allMethodsFromAny(Context ctx) {
     // Includes, e.g., `Any.to`.
     var ensoCtx = ContextUtils.leakContext(ctx);
     var anyMod = ensoCtx.findModule("Standard.Base.Any");

@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.Assume;
@@ -29,7 +28,6 @@ public class VectorSortTest {
 
   @BeforeClass
   public static void initNodes() {
-    var context = ctxRule.context();
     var code =
         """
     from Standard.Base import all
@@ -37,12 +35,12 @@ public class VectorSortTest {
     sort val1 val2 = [val1, val2].sort
     equals val1 val2 = val1 == val2
     """;
-    sortFunc = ContextUtils.getMethodFromModule(context, code, "sort");
-    equalsFunc = ContextUtils.getMethodFromModule(context, code, "equals");
+    sortFunc = ctxRule.getMethodFromModule(code, "sort");
+    equalsFunc = ctxRule.getMethodFromModule(code, "equals");
 
     values = new ArrayList<>();
     try (ValuesGenerator valuesGenerator =
-        ValuesGenerator.create(context, Language.ENSO, Language.JAVA)) {
+        ValuesGenerator.create(ctxRule.context(), Language.ENSO, Language.JAVA)) {
       values.addAll(valuesGenerator.numbers());
       values.addAll(valuesGenerator.vectors());
       values.addAll(valuesGenerator.arrayLike());

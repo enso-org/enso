@@ -11,7 +11,6 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.io.ByteArrayOutputStream;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.hamcrest.Matchers;
@@ -37,7 +36,7 @@ public class IfThenElseTest {
     check x = if x then "Yes" else "No"
     """;
 
-    var check = ContextUtils.getMethodFromModule(ctxRule.context(), code, "check");
+    var check = ctxRule.getMethodFromModule(code, "check");
 
     assertEquals("Yes", check.execute(true).asString());
     assertEquals("No", check.execute(false).asString());
@@ -49,7 +48,7 @@ public class IfThenElseTest {
     check x = if x then "Yes"
     """;
 
-    var check = ContextUtils.getMethodFromModule(ctxRule.context(), code, "check");
+    var check = ctxRule.getMethodFromModule(code, "check");
 
     assertEquals("Yes", check.execute(true).asString());
     assertTrue("Expect Nothing", check.execute(false).isNull());
@@ -63,7 +62,7 @@ public class IfThenElseTest {
         "Good:"+xt
     """;
 
-    var check = ContextUtils.getMethodFromModule(ctxRule.context(), code, "check");
+    var check = ctxRule.getMethodFromModule(code, "check");
 
     assertEquals("Good:True", check.execute(true).asString());
     assertTrue("Expect Nothing", check.execute(false).isNull());
@@ -77,7 +76,7 @@ public class IfThenElseTest {
         xt = x.to_text
         "Bad:"+xt
     """;
-    var check = ContextUtils.getMethodFromModule(ctxRule.context(), code, "check");
+    var check = ctxRule.getMethodFromModule(code, "check");
 
     assertEquals("OKeyish:True", check.execute(true).asString());
     assertEquals("Bad:False", check.execute(false).asString());
@@ -96,7 +95,7 @@ public class IfThenElseTest {
         xt
     """;
 
-      var check = ContextUtils.getMethodFromModule(ctxRule.context(), code, "check");
+      var check = ctxRule.getMethodFromModule(code, "check");
       fail("Expecting error, but got: " + check);
     } catch (PolyglotException ex) {
       assertThat(
@@ -113,7 +112,7 @@ public class IfThenElseTest {
     check x = if x then "Yes" else "No"
     """;
 
-    var check = ContextUtils.getMethodFromModule(ctxRule.context(), code, "check");
+    var check = ctxRule.getMethodFromModule(code, "check");
 
     try {
       var res = check.execute("Yes").asString();
@@ -141,7 +140,7 @@ public class IfThenElseTest {
     check x = if toBool x then "Yes" else "No"
     """;
 
-    var check = ContextUtils.getMethodFromModule(ctxRule.context(), code, "check");
+    var check = ctxRule.getMethodFromModule(code, "check");
 
     assertEquals("Yes", check.execute("Ano").asString());
     assertEquals("No", check.execute("Ne").asString());
@@ -157,7 +156,7 @@ public class IfThenElseTest {
     check x = if x then "Yes" else "No"
     """;
 
-    var check = ContextUtils.getMethodFromModule(ctxRule.context(), code, "check");
+    var check = ctxRule.getMethodFromModule(code, "check");
 
     var t = new BoolObject(true);
     var f = new BoolObject(false);
@@ -194,14 +193,14 @@ public class IfThenElseTest {
     check x = if x then "Yes" else "No"
     """;
 
-    var check = ContextUtils.getMethodFromModule(ctxRule.context(), code, "check");
+    var check = ctxRule.getMethodFromModule(code, "check");
 
     var warnCode = """
     from Standard.Base import all
 
     warn w v = Warning.attach w v
     """;
-    var warn = ContextUtils.getMethodFromModule(ctxRule.context(), warnCode, "warn");
+    var warn = ctxRule.getMethodFromModule(warnCode, "warn");
 
     var t = warn.execute("Maybe", true);
     var f = warn.execute("Maybe not", false);
@@ -223,14 +222,14 @@ public class IfThenElseTest {
     check x y n = if x then y else n
     """;
 
-    var check = ContextUtils.getMethodFromModule(ctxRule.context(), code, "check");
+    var check = ctxRule.getMethodFromModule(code, "check");
 
     var warnCode = """
     from Standard.Base import all
 
     warn w v = Warning.attach w v
     """;
-    var warn = ContextUtils.getMethodFromModule(ctxRule.context(), warnCode, "warn");
+    var warn = ctxRule.getMethodFromModule(warnCode, "warn");
 
     var y = warn.execute("Good", "Yes");
     var n = warn.execute("Bad", "No");
@@ -252,14 +251,14 @@ public class IfThenElseTest {
     check x y n = if x then y else n
     """;
 
-    var check = ContextUtils.getMethodFromModule(ctxRule.context(), code, "check");
+    var check = ctxRule.getMethodFromModule(code, "check");
 
     var warnCode = """
     from Standard.Base import all
 
     warn w v = Warning.attach w v
     """;
-    var warn = ContextUtils.getMethodFromModule(ctxRule.context(), warnCode, "warn");
+    var warn = ctxRule.getMethodFromModule(warnCode, "warn");
 
     var y = warn.execute("Good", "Yes");
     var n = warn.execute("Bad", "No");
