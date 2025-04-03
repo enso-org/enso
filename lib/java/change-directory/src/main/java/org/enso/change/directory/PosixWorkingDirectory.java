@@ -45,7 +45,8 @@ public final class PosixWorkingDirectory implements WorkingDirectory {
       cwd = invokeCwd();
     } catch (Throwable t) {
       LOGGER.error("Cannot invoke `getcwd` on Unix", t);
-      return System.getProperty("user.dir");
+      System.err.println("Cannot invoke `getcwd` on Unix. " + t.getMessage());
+      throw t;
     }
     return cwd;
   }
@@ -84,11 +85,14 @@ public final class PosixWorkingDirectory implements WorkingDirectory {
       var retPtr = getcwd(ptr, 4096);
       if (retPtr.isNull()) {
         LOGGER.error("getcwd() syscall returned null");
+        System.err.println("getcwd() syscall returned null");
       }
       if (!retPtr.equal(ptr)) {
         LOGGER.error("getcwd() syscall returned different pointer");
+        System.err.println("getcwd() syscall returned different pointer");
       }
       path = new String(buf);
+      System.out.println("path = " + path);
     }
     return path.trim();
   }
