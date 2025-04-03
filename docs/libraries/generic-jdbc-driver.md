@@ -54,10 +54,9 @@ You must close and open the project in Enso for this change to take effect.
 Download the JDBC driver and install it in the `polyglot/java` subdirectory of
 the Enso project.
 
-For example, after installing the JDBC driver for [the H2
-database](https://www.h2database.com/), your project struture would look like
-this:
-
+For example, after installing the JDBC driver for
+[the H2 database](https://www.h2database.com/), your project struture would look
+like this:
 
 ```
 ├── package.yaml
