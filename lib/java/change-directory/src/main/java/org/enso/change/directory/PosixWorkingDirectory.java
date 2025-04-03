@@ -32,7 +32,7 @@ public final class PosixWorkingDirectory implements WorkingDirectory {
       if (!ImageInfo.inImageRuntimeCode()) {
         LOGGER.warn("Changing working directory is not supported in non-AOT mode", e);
       } else {
-        LOGGER.error("Cannot change working directory to " + path + " on Linux", e);
+        LOGGER.error("Cannot change working directory to " + path + " on Unix", e);
       }
       return false;
     }
@@ -44,7 +44,7 @@ public final class PosixWorkingDirectory implements WorkingDirectory {
     try {
       cwd = invokeCwd();
     } catch (Throwable t) {
-      LOGGER.error("Cannot invoke `getcwd` on Linux", t);
+      LOGGER.error("Cannot invoke `getcwd` on Unix", t);
       return System.getProperty("user.dir");
     }
     return cwd;
