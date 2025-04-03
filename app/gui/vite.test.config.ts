@@ -57,7 +57,7 @@ export default mergeConfig(
           new URL('./integration-test/dashboard/mock/stripe.ts', import.meta.url),
         ),
         '@stripe/react-stripe-js': fileURLToPath(
-          new URL('./integration-test/dashboard/mock/react-stripe.tsx', import.meta.url),
+          new URL('./integration-test/dashboard/mock/react-stripe/index.ts', import.meta.url),
         ),
       },
       extensions: [
