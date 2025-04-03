@@ -85,8 +85,8 @@ public class TestChangeDirectory {
     var symlink = tmpDir.resolve("symlink");
     Files.createSymbolicLink(symlink, realDir);
     var nativeApi = WorkingDirectories.getCurrent();
-    var realDirPath = realDir.toAbsolutePath().toString();
-    var symLinkPath = symlink.toAbsolutePath().toString();
+    var realDirPath = realDir.toAbsolutePath().toRealPath().toString();
+    var symLinkPath = symlink.toAbsolutePath().toRealPath().toString();
     var dirChanged = nativeApi.changeWorkingDir(symLinkPath);
     assertTrue(dirChanged);
     var curDir = nativeApi.currentWorkingDir();
