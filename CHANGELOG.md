@@ -125,7 +125,8 @@
 - [Added `add_group_number` for Postgres and SQLite.][12574]
 - [Added `add_group_number` for Snowflake and SQLServer.][12590]
 - [Added Regex_match for Postgres][12663]
-- [Use `Rounding_Mode` in all `round` methods][12641]
+- [Replace `use_bankers` flag with `Rounding_Mode` in all `round`
+  methods][12641]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
