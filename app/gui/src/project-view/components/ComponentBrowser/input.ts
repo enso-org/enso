@@ -268,6 +268,7 @@ export function useComponentBrowserInput(
       (result) => {
         if (result.ok) {
           text.value = result.value
+          selection.value = Range.emptyAt(result.value.length)
         } else {
           toastError.reportError(result.error, 'Applying AI prompt failed')
         }
