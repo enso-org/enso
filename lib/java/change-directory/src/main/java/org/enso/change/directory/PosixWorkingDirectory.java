@@ -1,10 +1,7 @@
 package org.enso.change.directory;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import org.enso.common.Platform;
 import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.nativeimage.c.CContext;
@@ -18,7 +15,6 @@ import org.slf4j.LoggerFactory;
 @CContext(PosixWorkingDirectory.Directives.class)
 public final class PosixWorkingDirectory implements WorkingDirectory {
   static final PosixWorkingDirectory INSTANCE = new PosixWorkingDirectory();
-  private static final String PWD = "pwd";
   private static final Logger LOGGER = LoggerFactory.getLogger(PosixWorkingDirectory.class);
 
   private PosixWorkingDirectory() {}
@@ -44,13 +40,6 @@ public final class PosixWorkingDirectory implements WorkingDirectory {
 
   @Override
   public String currentWorkingDir() {
-    String pwd;
-    try {
-      pwd = invokePwd();
-    } catch (IOException | InterruptedException e) {
-      LOGGER.error("Cannot invoke `pwd` on Linux", e);
-      return System.getProperty("user.dir");
-    }
     String cwd;
     try {
       cwd = invokeCwd();
@@ -58,12 +47,7 @@ public final class PosixWorkingDirectory implements WorkingDirectory {
       LOGGER.error("Cannot invoke `getcwd` on Linux", t);
       return System.getProperty("user.dir");
     }
-    Objects.requireNonNull(pwd);
-    Objects.requireNonNull(cwd);
-    if (!pwd.equals(cwd)) {
-      LOGGER.error("pwd and getcwd return different paths: {} != {}", pwd, cwd);
-    }
-    return pwd;
+    return cwd;
   }
 
   @Override
@@ -91,15 +75,6 @@ public final class PosixWorkingDirectory implements WorkingDirectory {
 
   @CFunction
   static native CCharPointer getcwd(CCharPointer buf, int size);
-
-  private String invokePwd() throws IOException, InterruptedException {
-    var process = new ProcessBuilder(PWD).start();
-    process.waitFor(3, TimeUnit.SECONDS);
-    var pwd =
-        new String(
-            process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-    return pwd.trim();
-  }
 
   private String invokeCwd() {
     byte[] buf = new byte[4096];
