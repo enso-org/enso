@@ -270,7 +270,8 @@ case object FramePointerAnalysis extends IRPass {
     graph: Graph
   ): Unit = {
     getAliasAnalysisMeta(ir) match {
-      case Some(AliasMetadata.Occurrence(_, id)) =>
+      case Some(occ: AliasMetadata.Occurrence) =>
+        val id = occ.id()
         graph.scopeFor(id) match {
           case Some(scope) =>
             graph.getOccurrence(id) match {
