@@ -1,19 +1,21 @@
 /** @file A single breadcrumb item. */
 import {
+  Button,
+  IconDisplay,
+  Text,
+  type Addon,
+  type IconProp,
+  type TestIdProps,
+  type TooltipElementType,
+} from '#/components/AriaComponents'
+import {
   BreadcrumbItemContext,
   type BreadcrumbItemContextType,
 } from '#/components/Breadcrumbs/constant'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { useMutation } from '@tanstack/react-query'
-import {
-  useContext,
-  useRef,
-  type CSSProperties,
-  type Key,
-  type PropsWithChildren,
-  type ReactNode,
-} from 'react'
+import { useContext, useRef, type CSSProperties, type Key, type PropsWithChildren } from 'react'
 import {
   useBreadcrumbItem,
   useDrop,
@@ -23,8 +25,6 @@ import {
 } from 'react-aria'
 import type * as aria from 'react-aria-components'
 import invariant from 'tiny-invariant'
-import { Button, Text, type Addon, type IconProp, type TestIdProps } from '../AriaComponents'
-import { Icon as IconComponent } from '../Icon'
 import { BREADCRUMB_ITEM_STYLES } from './variants'
 
 /** Render props for {@link BreadcrumbItem}. */
@@ -48,7 +48,9 @@ export interface BreadcrumbItemProps<IconType extends string>
   readonly isDisabled?: boolean
   readonly className?: string | ((renderProps: BreadcrumbItemRenderProps) => string)
   readonly style?: CSSProperties | ((renderProps: BreadcrumbItemRenderProps) => CSSProperties)
-  readonly children: ReactNode | ((renderProps: BreadcrumbItemRenderProps) => ReactNode)
+  readonly children:
+    | TooltipElementType
+    | ((renderProps: BreadcrumbItemRenderProps) => TooltipElementType)
   readonly isLoading?: boolean
   readonly isDroppable?: boolean
 }
@@ -119,13 +121,6 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
     await Promise.all([onAction(id), onPressRaw?.(event) ?? Promise.resolve()])
   })
 
-  const iconComponent = (() => {
-    if (typeof icon === 'function') {
-      return icon(renderProps)
-    }
-    return icon
-  })()
-
   const shouldFail = onActionSpecified && id == null
 
   invariant(
@@ -145,33 +140,30 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
 
   const styles = variants({ isCurrent, isDropTarget })
 
+  const renderedIcon = typeof icon === 'function' ? icon(renderProps) : icon
+  const renderedChildren = typeof children === 'function' ? children(renderProps) : children
+
   const container =
     isCurrent ?
-      <Text
-        className={styles.link()}
-        nowrap
-        truncate="1"
+      <IconDisplay
         data-current
         aria-current="page"
         textSelection="none"
         elementType="a"
+        icon={renderedIcon}
+        className={styles.iconDisplay()}
       >
-        <span className={styles.container()}>
-          <IconComponent className={styles.icon()} size="medium" renderProps={renderProps}>
-            {icon}
-          </IconComponent>
-          {typeof children === 'function' ? children(renderProps) : children}
-        </span>
-      </Text>
+        {renderedChildren}
+      </IconDisplay>
     : <Button
         {...linkProps}
         loading={dropMutation.isPending}
         loaderPosition="icon"
         onPress={onPress}
-        icon={iconComponent}
+        icon={renderedIcon}
       >
         <Text className={styles.link()} nowrap truncate="1" disableLineHeightCompensation>
-          {typeof children === 'function' ? children(renderProps) : children}
+          {renderedChildren}
         </Text>
       </Button>
 

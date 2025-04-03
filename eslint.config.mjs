@@ -205,6 +205,11 @@ const config = [
   ...pluginVue.configs['flat/recommended'],
   ...vueTsEslintConfig(),
   {
+    linterOptions: {
+      reportUnusedDisableDirectives: 'error',
+    },
+  },
+  {
     // files: ['{**,src}/*.{vue,js,jsx,cjs,mjs,ts,tsx,cts,mts}'],
     languageOptions: {
       parserOptions: {
@@ -285,6 +290,10 @@ const config = [
   },
   reactRefresh.configs.vite,
   // === Dashboard Rules ===
+  {
+    ...reactRefresh.configs.vite,
+    files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
+  },
   {
     files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
     settings: {

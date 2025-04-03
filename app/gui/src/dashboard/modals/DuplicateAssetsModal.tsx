@@ -6,7 +6,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import AssetSummary from '#/components/dashboard/AssetSummary'
-import Modal from '#/components/Modal'
+import { Modal } from '#/components/Modal'
 
 import * as backendModule from '#/services/Backend'
 
@@ -25,14 +25,10 @@ import { listDirectoryQueryOptions, unsafe_assetFromCacheQueryOptions } from '#/
 import { useMount } from '#/hooks/mountHooks'
 import { useCategory } from '#/layouts/Drive/CategorySwitcher/hooks'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
+import { FilterBy } from '#/services/Backend'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
-import {
-  useMutation,
-  useQueryClient,
-  useSuspenseQueries,
-  useSuspenseQuery,
-} from '@tanstack/react-query'
+import { useMutation, useQueryClient, useSuspenseQueries } from '@tanstack/react-query'
 import { Fragment } from 'react'
 import invariant from 'tiny-invariant'
 
@@ -416,16 +412,32 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
 
   const queryClient = useQueryClient()
 
-  const { data: siblingFiles } = useSuspenseQuery({
-    ...listDirectoryQueryOptions({
-      category,
-      backend: associatedBackend,
-      parentId: targetId,
-    }),
-    select: (data) => {
-      // We use titles as keys, because they are always unique, and we want to find duplicates by title.
-      const map = new Map(data.map((asset) => [asset.title, asset]))
-      return { map, siblings: data }
+  const siblingFiles = useSuspenseQueries({
+    queries: [
+      listDirectoryQueryOptions({
+        category,
+        backend: associatedBackend,
+        parentId: targetId,
+        refetchInterval: null,
+      }),
+      listDirectoryQueryOptions({
+        category,
+        backend: associatedBackend,
+        parentId: targetId,
+        filterBy: FilterBy.trashed,
+        refetchInterval: null,
+      }),
+    ],
+    combine: (queries) => {
+      const map = new Map<string, backendModule.AnyAsset>()
+      const siblings = []
+      for (const query of queries) {
+        for (const asset of query.data) {
+          map.set(asset.title, asset)
+          siblings.push(asset)
+        }
+      }
+      return { map, siblings: queries[0].data }
     },
   })
 
@@ -436,16 +448,20 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
     combine: (queries) => queries.map((query) => query.data).filter((asset) => asset != null),
   })
 
-  useMount(() => {
-    const onlyExistingConflicts = conflictingAssets.filter(
-      (asset) => siblingFiles.map.get(asset.title) != null,
-    )
+  const onlyExistingConflicts = conflictingAssets.filter(
+    (asset) => siblingFiles.map.get(asset.title) != null,
+  )
 
-    // If there are no conflicts, we can just skip the modal and return nothing.
+  // If there are no conflicts, we can just skip the modal and return nothing.
+  useMount(() => {
     if (onlyExistingConflicts.length === 0) {
       void props.onSubmit([])
     }
   })
+
+  if (onlyExistingConflicts.length === 0) {
+    return null
+  }
 
   return (
     <Form

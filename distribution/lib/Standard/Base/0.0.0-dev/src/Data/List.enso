@@ -1,3 +1,14 @@
+## The basic cons-list type.
+
+   A cons-list allows storage of an arbitrary number of elements.
+
+   Prepending to the list can be achieved by using the `Cons` constructor,
+   while an empty list is represented by `Nil`.
+
+   > Example
+     A list containing the elements `1`, `2`, and `3`, in this order is:
+         Cons 1 (Cons 2 (Cons 3 Nil))
+
 import project.Any.Any
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Numbers.Integer
@@ -18,16 +29,6 @@ from project.Data.Filter_Condition import unify_condition_or_predicate, unify_co
 from project.Data.List.List import Cons, Nil
 from project.Metadata import Display, Widget
 
-## The basic cons-list type.
-
-   A cons-list allows storage of an arbitrary number of elements.
-
-   Prepending to the list can be achieved by using the `Cons` constructor,
-   while an empty list is represented by `Nil`.
-
-   > Example
-     A list containing the elements `1`, `2`, and `3`, in this order is:
-         Cons 1 (Cons 2 (Cons 3 Nil))
 ## Cons lists.
 type List
 

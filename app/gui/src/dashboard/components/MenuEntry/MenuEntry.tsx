@@ -1,31 +1,25 @@
 /** @file An entry in a menu. */
-import * as React from 'react'
-
-import * as detect from 'enso-common/src/detect'
-import type * as text from 'enso-common/src/text'
-
 import BlankIcon from '#/assets/blank.svg'
-
-import type * as inputBindings from '#/configurations/inputBindings'
-
-import * as focusHooks from '#/hooks/focusHooks'
-
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import { Button, ButtonProps, mergeProps } from '#/components/aria'
+import type { TextProps } from '#/components/AriaComponents'
+import { Text, useDialogContext, useVisualTooltip } from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
+import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry/constants'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
-
-import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry/constants'
+import type { DashboardBindingKey } from '#/configurations/inputBindings'
+import { useFocusChild } from '#/hooks/focusHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
-import * as tailwindVariants from '#/utilities/tailwindVariants'
+import { useInputBindings } from '#/providers/InputBindingsProvider'
+import { unsetModal } from '#/providers/ModalProvider'
+import { useText } from '#/providers/TextProvider'
+import { document } from '#/utilities/sanitizedEventTargets'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import { isOnMacOS, isOnWindows } from 'enso-common/src/detect'
+import type { TextId } from 'enso-common/src/text'
+import { useEffect, useRef } from 'react'
 
-const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
+const MENU_ENTRY_VARIANTS = tv({
   base: 'flex h-row grow place-content-between items-center rounded-inherit p-menu-entry text-left group-disabled:opacity-30 group-enabled:active group-enabled:hover:bg-hover-bg',
   variants: {
     variant: {
@@ -36,10 +30,10 @@ const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
 })
 
 /** Props for a {@link MenuEntry}. */
-export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MENU_ENTRY_VARIANTS> {
+export interface MenuEntryProps extends VariantProps<typeof MENU_ENTRY_VARIANTS> {
   readonly icon?: string | undefined
   readonly hidden?: boolean | undefined
-  readonly action: inputBindings.DashboardBindingKey
+  readonly action: DashboardBindingKey
   /** Overrides the text for the menu entry. */
   readonly label?: string | undefined
   readonly tooltip?: string | null | undefined
@@ -47,6 +41,7 @@ export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MEN
   readonly isDisabled?: boolean | undefined
   readonly title?: string | undefined
   readonly doAction: () => void
+  readonly color?: TextProps['color'] | undefined
 }
 
 /** An item in a menu. */
@@ -60,22 +55,22 @@ export function MenuEntry(props: MenuEntryProps) {
     doAction,
     icon,
     tooltip: tooltipValue,
+    color,
     ...variantProps
   } = props
-  const { getText } = textProvider.useText()
-  const { unsetModal } = modalProvider.useSetModal()
-  const dialogContext = ariaComponents.useDialogContext()
-  const inputBindings = inputBindingsProvider.useInputBindings()
-  const focusChildProps = focusHooks.useFocusChild()
+  const { getText } = useText()
+  const dialogContext = useDialogContext()
+  const inputBindings = useInputBindings()
+  const focusChildProps = useFocusChild()
   const info = inputBindings.metadata[action]
-  const buttonRef = React.useRef<HTMLButtonElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
   const isDisabledRef = useSyncRef(isDisabled)
 
-  const labelTextId: text.TextId = (() => {
+  const labelTextId: TextId = (() => {
     if (action === 'openInFileBrowser') {
       return (
-        detect.isOnMacOS() ? 'openInFileBrowserShortcutMacOs'
-        : detect.isOnWindows() ? 'openInFileBrowserShortcutWindows'
+        isOnMacOS() ? 'openInFileBrowserShortcutMacOs'
+        : isOnWindows() ? 'openInFileBrowserShortcutWindows'
         : 'openInFileBrowserShortcut'
       )
     } else {
@@ -83,9 +78,9 @@ export function MenuEntry(props: MenuEntryProps) {
     }
   })()
 
-  React.useEffect(
+  useEffect(
     () =>
-      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+      inputBindings.attach(document.body, 'keydown', {
         [action]: () => {
           if (isDisabledRef.current) return
           doAction()
@@ -94,7 +89,7 @@ export function MenuEntry(props: MenuEntryProps) {
     [inputBindings, action, doAction, isDisabledRef],
   )
 
-  const { tooltip, targetProps } = ariaComponents.useVisualTooltip({
+  const { tooltip, targetProps } = useVisualTooltip({
     isDisabled: tooltipValue == null,
     targetRef: buttonRef,
     display: 'always',
@@ -109,9 +104,9 @@ export function MenuEntry(props: MenuEntryProps) {
   return (
     <>
       <FocusRing>
-        <aria.Button
+        <Button
           ref={buttonRef}
-          {...aria.mergeProps<aria.ButtonProps>()(focusChildProps, {
+          {...mergeProps<ButtonProps>()(focusChildProps, {
             isDisabled,
             className: 'group flex w-full rounded-menu-entry',
             onPress: () => {
@@ -132,13 +127,13 @@ export function MenuEntry(props: MenuEntryProps) {
                 color={info.color}
                 className="size-4 text-primary"
               />
-              <ariaComponents.Text slot="label">
+              <Text color={color} slot="label">
                 {label ?? getText(labelTextId)}
-              </ariaComponents.Text>
+              </Text>
             </div>
             <KeyboardShortcut action={action} />
           </div>
-        </aria.Button>
+        </Button>
       </FocusRing>
       {tooltip}
     </>

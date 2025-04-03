@@ -11,8 +11,8 @@ import * as projectManager from '#/services/ProjectManager'
 import { APP_BASE_URL } from '#/utilities/appBaseUrl'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
-import { fileExtension, getFileName, getFolderPath } from '#/utilities/fileInfo'
-import { getDirectoryAndName, joinPath, Path } from '#/utilities/path'
+import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/utilities/fileInfo'
+import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 
@@ -158,97 +158,93 @@ export class LocalBackend extends Backend {
       const entries = await this.projectManager.listDirectory(parentIdRaw)
       result = entries
         .map((entry) => {
+          const virtualParentsPath = (() => {
+            let path = entry.path.replace(rootPath, '')
+
+            if (path.startsWith('/')) {
+              path = path.slice(1)
+            }
+
+            if (path.endsWith('/')) {
+              path = path.slice(0, -1)
+            }
+
+            return path
+          })()
+
+          const parentsPath = (() => {
+            const parentsPathArray: backend.DirectoryId[] = [newDirectoryId(rootPath)]
+            const splitPath = virtualParentsPath.split('/')
+
+            let previousPath = ''
+
+            for (const directory of splitPath) {
+              if (directory === '') {
+                continue
+              }
+
+              previousPath = backend.Path(previousPath + '/' + directory)
+
+              if (previousPath.endsWith('/')) {
+                previousPath = previousPath.slice(0, -1)
+              }
+
+              parentsPathArray.push(newDirectoryId(backend.Path(rootPath + previousPath)))
+            }
+
+            return parentsPathArray.slice(0, -1).join('/')
+          })()
+
+          const ensoPathRaw = normalizePath(entry.path)
+          const ensoPath = backend.EnsoPath(ensoPathRaw)
+          const shared = {
+            permissions: [],
+            projectState: null,
+            extension: null,
+            parentsPath: backend.ParentsPath(parentsPath),
+            virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
+            ensoPath,
+            ensoPathValue: backend.EnsoPathValue(ensoPathRaw),
+          } satisfies Partial<backend.DirectoryAsset>
+
           switch (entry.type) {
             case projectManager.FileSystemEntryType.DirectoryEntry: {
               const id = newDirectoryId(entry.path)
 
-              const virtualParentsPath = (() => {
-                let path = entry.path.replace(rootPath, '')
-
-                if (path.startsWith('/')) {
-                  path = path.slice(1)
-                }
-
-                if (path.endsWith('/')) {
-                  path = path.slice(0, -1)
-                }
-
-                return path
-              })()
-
-              const parentsPath = (() => {
-                const parentsPathArray: backend.DirectoryId[] = [newDirectoryId(rootPath)]
-                const splitPath = virtualParentsPath.split('/')
-
-                let previousPath = ''
-
-                for (const directory of splitPath) {
-                  if (directory === '') {
-                    continue
-                  }
-
-                  previousPath = Path(previousPath + '/' + directory)
-
-                  if (previousPath.endsWith('/')) {
-                    previousPath = previousPath.slice(0, -1)
-                  }
-
-                  parentsPathArray.push(newDirectoryId(Path(rootPath + previousPath)))
-                }
-
-                return parentsPathArray.slice(0, -1).join('/')
-              })()
-
               return {
+                ...shared,
                 id,
                 type: backend.AssetType.directory,
                 modifiedAt: entry.attributes.lastModifiedTime,
                 parentId,
                 title: getFileName(entry.path),
-                permissions: [],
-                projectState: null,
-                extension: null,
-                labels: [],
-                description: null,
-                parentsPath: backend.ParentsPath(parentsPath),
-                virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
               } satisfies backend.DirectoryAsset
             }
             case projectManager.FileSystemEntryType.ProjectEntry: {
               return {
+                ...shared,
                 type: backend.AssetType.project,
                 id: newProjectId(entry.metadata.id, extractTypeAndId(parentId).id),
                 title: entry.metadata.name,
                 modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
                 parentId,
-                permissions: [],
                 projectState: {
                   type:
                     this.projectManager.projects.get(entry.metadata.id)?.state ??
                     backend.ProjectState.closed,
                   volumeId: '',
                 },
-                extension: null,
-                labels: [],
-                description: null,
-                parentsPath: backend.ParentsPath(''),
-                virtualParentsPath: backend.VirtualParentsPath(''),
               } satisfies backend.ProjectAsset
             }
             case projectManager.FileSystemEntryType.FileEntry: {
               return {
+                ...shared,
                 type: backend.AssetType.file,
                 id: newFileId(entry.path),
                 title: getFileName(entry.path),
                 modifiedAt: entry.attributes.lastModifiedTime,
                 parentId,
-                permissions: [],
-                projectState: null,
                 extension: fileExtension(entry.path),
-                labels: [],
-                description: null,
-                parentsPath: backend.ParentsPath(''),
-                virtualParentsPath: backend.VirtualParentsPath(''),
               } satisfies backend.FileAsset
             }
           }
@@ -802,7 +798,7 @@ export class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
-  override restoreProject() {
+  override restoreAsset() {
     return this.invalidOperation()
   }
 

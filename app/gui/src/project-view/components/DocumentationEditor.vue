@@ -77,7 +77,12 @@ const handler = documentationEditorBindings.handler({
       @dragover.prevent
       @drop.prevent="tryUploadDroppedImage($event)"
     >
-      <MarkdownEditor ref="markdownEditor" :content="yText" :transformImageUrl="transformImageUrl">
+      <MarkdownEditor
+        ref="markdownEditor"
+        :content="yText"
+        :transformImageUrl="transformImageUrl"
+        contentTestId="documentation-editor-content"
+      >
         <template #toolbarLeft>
           <FullscreenButton v-model="fullscreen" />
         </template>
@@ -99,5 +104,7 @@ const handler = documentationEditorBindings.handler({
   background-color: #fff;
   height: 100%;
   width: 100%;
+  padding-left: 16px;
+  padding-right: 2px;
 }
 </style>

@@ -16,11 +16,11 @@ import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinn
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
-import { useBackendQuery } from '#/hooks/backendHooks'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import { useMemo } from 'react'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+
+export const CLOSED_PROJECT_STATE = { type: backendModule.ProjectState.closed } as const
 
 /**
  * The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState},
@@ -71,7 +71,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
   const isDisabled = isDisabledRaw || isUnconditionallyDisabled
 
-  const openProject = projectHooks.useOpenProject()
+  const openProjectLocally = projectHooks.useOpenProjectLocally()
   const closeProject = projectHooks.useCloseProject()
 
   const { user } = authProvider.useFullUserSession()
@@ -94,20 +94,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const isOtherUserUsingProject =
     isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user.email
 
-  const { data: users } = useBackendQuery(backend, 'listUsers', [], {
-    enabled: isOtherUserUsingProject,
-  })
-
-  const userOpeningProject = useMemo(
-    () =>
-      !isOtherUserUsingProject ? null : (
-        users?.find((otherUser) => otherUser.email === item.projectState.openedBy)
-      ),
-    [isOtherUserUsingProject, item.projectState.openedBy, users],
-  )
-
   const userOpeningProjectTooltip =
-    userOpeningProject == null ? null : getText('xIsUsingTheProject', userOpeningProject.name)
+    item.projectState.openedBy == null ?
+      null
+    : getText('xIsUsingTheProject', item.projectState.openedBy)
   const disabledTooltip = isUnconditionallyDisabled ? getText('downloadToOpenWorkflow') : null
 
   const state = (() => {
@@ -144,8 +134,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
     }
   })()
 
-  const doOpenProject = useEventCallback(() => {
-    openProject({ ...item, type: backend.type })
+  const doOpenProject = useEventCallback(async () => {
+    await openProjectLocally(item, backend.type)
   })
   const doCloseProject = useEventCallback(() => {
     closeProject({ ...item, type: backend.type })

@@ -12,7 +12,7 @@ export const BREADCRUMB_ITEM_STYLES = tv({
     link: 'block max-w-48 min-w-4 w-auto',
     more: 'aspect-square',
     container: 'flex items-center gap-2',
-    icon: '-mb-0.5',
+    iconDisplay: 'h-8',
   },
   variants: {
     isCurrent: {

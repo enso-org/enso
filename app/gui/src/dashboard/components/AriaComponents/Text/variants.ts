@@ -25,13 +25,13 @@ export const TEXT_STYLE = tv({
     // leading should always be after the text size to make sure it is not stripped by twMerge
     variant: {
       custom: '',
-      body: 'text-xs leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-medium',
+      body: 'text-xs leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px',
       // eslint-disable-next-line @typescript-eslint/naming-convention
       'body-sm':
-        'text-[10.5px] leading-[16px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-medium',
-      h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px] macos:before:h-[3px] macos:after:h-[3px] font-bold',
+        'text-[10.5px] leading-[16px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px]',
+      h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px] macos:before:h-[3px] macos:after:h-[3px]',
       subtitle:
-        'text-[13.5px] leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-bold',
+        'text-[13.5px] leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px]',
       caption:
         'text-[8.5px] leading-[12px] before:h-[1px] after:h-[1px] macos:before:h-[0.5px] macos:after:h-[1.5px]',
       overline:
@@ -39,6 +39,7 @@ export const TEXT_STYLE = tv({
     },
     weight: {
       custom: '',
+      default: '',
       bold: 'font-bold',
       semibold: 'font-semibold',
       extraBold: 'font-extrabold',
@@ -56,10 +57,15 @@ export const TEXT_STYLE = tv({
       lowercase: 'lowercase',
       uppercase: 'uppercase',
     },
+    align: {
+      left: 'text-left',
+      center: 'text-center',
+      right: 'text-right',
+    },
     truncate: {
       true: 'block truncate',
       /* eslint-disable @typescript-eslint/naming-convention */
-      '1': 'line-clamp-1',
+      '1': 'block truncate',
       '2': 'line-clamp-2',
       '3': 'line-clamp-3',
       '4': 'line-clamp-4',
@@ -91,7 +97,7 @@ export const TEXT_STYLE = tv({
   defaultVariants: {
     variant: 'body',
     font: 'default',
-    weight: 'medium',
+    weight: 'default',
     transform: 'none',
     color: 'primary',
     italic: false,
@@ -100,4 +106,12 @@ export const TEXT_STYLE = tv({
     disableLineHeightCompensation: false,
     textSelection: 'auto',
   },
+  compoundVariants: [
+    { variant: 'body', weight: 'default', className: 'font-medium' },
+    { variant: 'body-sm', weight: 'default', className: 'font-medium' },
+    { variant: 'h1', weight: 'default', className: 'font-bold' },
+    { variant: 'subtitle', weight: 'default', className: 'font-bold' },
+    { variant: 'caption', weight: 'default', className: 'font-medium' },
+    { variant: 'overline', weight: 'default', className: 'font-medium' },
+  ],
 })

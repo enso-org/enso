@@ -1,10 +1,10 @@
 /** @file Rendering for a settings section. */
-import { Suspense, useMemo } from 'react'
+import { useMemo } from 'react'
 
 import { twMerge } from 'tailwind-merge'
 
 import { ErrorBoundary } from '#/components/ErrorBoundary'
-import { Loader } from '#/components/Loader'
+import { Suspense } from '#/components/Suspense'
 import { usePaywall } from '#/hooks/billing'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import type { SettingsContext, SettingsSectionData, SettingsTabData } from './data'
@@ -57,34 +57,34 @@ export default function SettingsTab(props: SettingsTabProps) {
 
   if (paywallFeature) {
     return <SettingsPaywall feature={paywallFeature} />
-  } else {
-    const content =
-      columns.length === 1 ?
-        <div
-          className={twMerge('flex max-w-[512px] grow flex-col gap-8', classes[0])}
-          {...contentProps}
-        >
-          {sections.map((section) => (
-            <SettingsSection key={section.nameId} context={context} data={section} />
-          ))}
-        </div>
-      : <div
-          className="grid min-h-full max-w-[1024px] grow grid-cols-1 gap-8 lg:h-auto lg:grid-cols-2"
-          {...contentProps}
-        >
-          {columns.map((sectionsInColumn, i) => (
-            <div key={i} className={twMerge('flex h-fit flex-1 flex-col gap-8', classes[i])}>
-              {sectionsInColumn.map((section) => (
-                <SettingsSection key={section.nameId} context={context} data={section} />
-              ))}
-            </div>
-          ))}
-        </div>
-
-    return (
-      <ErrorBoundary>
-        <Suspense fallback={<Loader size="medium" minHeight="h64" />}>{content}</Suspense>
-      </ErrorBoundary>
-    )
   }
+
+  const content =
+    columns.length === 1 ?
+      <div
+        className={twMerge('flex max-w-[512px] flex-none grow flex-col gap-8', classes[0])}
+        {...contentProps}
+      >
+        {sections.map((section) => (
+          <SettingsSection key={section.nameId} context={context} data={section} />
+        ))}
+      </div>
+    : <div
+        className="grid min-h-full max-w-[1024px] flex-none grow grid-cols-1 gap-8 lg:h-auto lg:grid-cols-2"
+        {...contentProps}
+      >
+        {columns.map((sectionsInColumn, i) => (
+          <div key={i} className={twMerge('flex h-fit flex-1 flex-col gap-8', classes[i])}>
+            {sectionsInColumn.map((section) => (
+              <SettingsSection key={section.nameId} context={context} data={section} />
+            ))}
+          </div>
+        ))}
+      </div>
+
+  return (
+    <ErrorBoundary>
+      <Suspense>{content}</Suspense>
+    </ErrorBoundary>
+  )
 }

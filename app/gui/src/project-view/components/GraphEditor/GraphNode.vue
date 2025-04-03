@@ -1,3 +1,11 @@
+<script lang="ts">
+const MAXIMUM_CLICK_LENGTH_MS = 300
+const MAXIMUM_CLICK_DISTANCE_SQ = 50
+export const NODE_CONTENT_PADDING = 4
+export const NODE_CONTENT_PADDING_PX = `${NODE_CONTENT_PADDING}px`
+const MENU_CLOSE_TIMEOUT_MS = 300
+</script>
+
 <script setup lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import ComponentMenu from '@/components/ComponentMenu.vue'
@@ -25,6 +33,7 @@ import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectKeyboard } from '@/providers/keyboard'
+import { provideResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
@@ -36,17 +45,11 @@ import { onWindowBlur } from '@/util/autoBlur'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { computed, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
+import { ComponentInstance, computed, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
 import type { ExternalId, VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
-const MAXIMUM_CLICK_LENGTH_MS = 300
-const MAXIMUM_CLICK_DISTANCE_SQ = 50
-const CONTENT_PADDING = 4
-const CONTENT_PADDING_PX = `${CONTENT_PADDING}px`
-const MENU_CLOSE_TIMEOUT_MS = 300
-
 const contentNodeStyle = {
-  padding: CONTENT_PADDING_PX,
+  padding: NODE_CONTENT_PADDING_PX,
 }
 
 const props = defineProps<{
@@ -93,7 +96,9 @@ onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
+const widgetTree = ref<ComponentInstance<typeof ComponentWidgetTree>>()
 const nodeSize = useResizeObserver(rootNode)
+const widgetTreeSize = useResizeObserver(widgetTree)
 
 function inputExternalIds() {
   const externalIds = new Array<ExternalId>()
@@ -190,8 +195,9 @@ watchEffect(() => {
   const inZone = (pos: Vec2 | undefined) =>
     pos != null &&
     pos.sub(nodePosition.value).x <
-      CONTENT_PADDING + ICON_WIDTH + GRAB_HANDLE_X_MARGIN_L + GRAB_HANDLE_X_MARGIN_R
+      NODE_CONTENT_PADDING + ICON_WIDTH + GRAB_HANDLE_X_MARGIN_L + GRAB_HANDLE_X_MARGIN_R
   const hovered =
+    nodeHovered.value ||
     menuHovered.value ||
     inZone(nodeHoverPos.value) ||
     (menuEnabledByHover.value && inZone(selectionHoverPos.value))
@@ -222,7 +228,10 @@ function ensureSelected() {
 const outputHovered = computed(() => graph.nodeOutputVisible.get(nodeId.value) ?? false)
 const keyboard = injectKeyboard()
 
-const visualizationWidth = computed(() => props.node.vis?.width ?? null)
+const visualizationWidth = computed({
+  get: () => props.node.vis?.width ?? null,
+  set: (value) => value && emit('update:visualizationWidth', value),
+})
 const visualizationHeight = computed(() => props.node.vis?.height ?? null)
 const isVisualizationEnabled = computed({
   get: () => props.node.vis?.visible ?? false,
@@ -255,6 +264,16 @@ watch(isVisualizationPreviewed, (newVal, oldVal) => {
     graph.db.moveNodeToTop(nodeId.value)
   }
 })
+
+const scale = computed(() => navigator?.scale ?? 1)
+provideResizableWidgetRegistry(
+  computed({
+    get: () => visualizationWidth.value && visualizationWidth.value * scale.value,
+    set: (width) => (visualizationWidth.value = width && width / scale.value),
+  }),
+  () => NODE_CONTENT_PADDING * scale.value,
+  () => widgetTreeSize.value.x,
+)
 
 const transform = computed(() => {
   const { x, y } = nodePosition.value
@@ -398,8 +417,6 @@ const nodeStyle = computed(() => {
     '--node-group-color': baseColor.value,
     ...(props.node.zIndex ? { 'z-index': props.node.zIndex } : {}),
     '--viz-below-node': `${graphSelectionSize.value.y - nodeSize.value.y}px`,
-    '--node-size-x': `${nodeSize.value.x}px`,
-    '--node-size-y': `${nodeSize.value.y}px`,
   }
 })
 
@@ -428,9 +445,9 @@ function selectBeforeAction<Handlers extends { [K in string]?: ActionHandler }>(
 ) {
   for (const actionName in handlers) {
     const origAction = handlers[actionName]!.action
-    handlers[actionName]!.action = () => {
+    handlers[actionName]!.action = (...args) => {
       setSoleSelected()
-      origAction?.()
+      origAction?.(...args)
     }
   }
   return handlers
@@ -502,6 +519,7 @@ onWindowBlur(() => {
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
+      v-model:width="visualizationWidth"
       :nodeSize="nodeSize"
       :scale="navigator?.scale ?? 1"
       :nodePosition="nodePosition"
@@ -509,7 +527,6 @@ onWindowBlur(() => {
       :currentType="props.node.vis?.identifier"
       :dataSource="dataSource"
       :typename="typename"
-      :width="visualizationWidth"
       :height="visualizationHeight"
       :isFocused="isOnlyOneSelected"
       :isPreview="isVisualizationPreviewed"
@@ -520,7 +537,6 @@ onWindowBlur(() => {
       @update:rect="updateVisualizationRect"
       @update:id="emit('update:visualizationId', $event)"
       @update:enabled="emit('update:visualizationEnabled', $event)"
-      @update:width="emit('update:visualizationWidth', $event)"
       @update:height="emit('update:visualizationHeight', $event)"
       @update:nodePosition="graph.setNodePosition(nodeId, $event)"
       @createNodes="emit('createNodes', $event)"
@@ -558,6 +574,7 @@ onWindowBlur(() => {
         @pointermove="updateNodeHover"
       >
         <ComponentWidgetTree
+          ref="widgetTree"
           :ast="props.node.innerExpr"
           :nodeId="nodeId"
           :rootElement="rootNode"

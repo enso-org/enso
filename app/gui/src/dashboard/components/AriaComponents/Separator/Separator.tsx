@@ -11,7 +11,7 @@ export interface SeparatorProps extends AriaSeparatorProps, VariantProps<typeof 
   readonly className?: string | undefined
 }
 
-/** A separator component. */
+/** A visual separator. */
 export function Separator(props: SeparatorProps) {
   const {
     orientation = 'horizontal',

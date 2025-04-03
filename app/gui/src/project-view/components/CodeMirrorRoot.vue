@@ -6,36 +6,29 @@ defineExpose({ rootElement })
 </script>
 
 <template>
-  <div
-    ref="rootElement"
-    class="CodeMirror"
-    @keydown.arrow-left.stop
-    @keydown.arrow-right.stop
-    @keydown.arrow-up.stop
-    @keydown.arrow-down.stop
-    @keydown.enter.stop
-    @keydown.backspace.stop
-    @keydown.delete.stop
-    @wheel.stop.passive
-    @contextmenu.stop
-  ></div>
+  <div ref="rootElement" class="CodeMirrorRoot" @wheel.stop.passive @contextmenu.stop>
+    <slot />
+  </div>
 </template>
 
+<!--suppress CssUnusedSymbol-->
 <style scoped>
-.CodeMirror {
-  width: 100%;
-  height: 100%;
+.CodeMirrorRoot {
+  display: contents;
 }
 
 :deep(.cm-scroller) {
   /* Prevent touchpad back gesture, which can be triggered while panning. */
   overscroll-behavior: none;
+  /* By default it uses `monospace`, but even when we want the editor to be monospace we use more specific fonts. */
+  font-family: unset;
 }
 
 :deep(.cm-editor) {
   position: relative;
-  width: 100%;
+  contain: content;
   height: 100%;
+  width: 100%;
   outline: none;
 }
 </style>

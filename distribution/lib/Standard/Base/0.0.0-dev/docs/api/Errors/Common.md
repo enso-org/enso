@@ -53,6 +53,9 @@
     - Error argument_name:Standard.Base.Data.Text.Text function_name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= call_location:(Standard.Base.Runtime.Source_Location.Source_Location|Standard.Base.Nothing.Nothing)= message:Standard.Base.Data.Text.Text=
     - throw argument_name:Standard.Base.Data.Text.Text message_override:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
+- type Mixed_Signed_And_Unsigned_Bytes
+    - Error
+    - to_display_text self -> Standard.Base.Any.Any
 - type Module_Does_Not_Exist
     - Error name:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any

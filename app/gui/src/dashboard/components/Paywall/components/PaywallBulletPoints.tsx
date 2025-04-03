@@ -1,24 +1,14 @@
-/**
- * @file
- *
- * A component that renders a list of bullet points for a paywall.
- */
-import * as React from 'react'
-
-import * as tw from 'tailwind-merge'
-
-import type * as text from 'enso-common/src/text'
-
+/** @file A list of bullet points for a paywall. */
 import Check from '#/assets/check_mark.svg'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
+import { Text } from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
+import { useText } from '#/providers/TextProvider'
+import { twMerge } from '#/utilities/tailwindMerge'
+import type { TextId } from 'enso-common/src/text'
 
 /** Props for a {@link PaywallBulletPoints}. */
 export interface PaywallBulletPointsProps {
-  readonly bulletPointsTextId: text.TextId
+  readonly bulletPointsTextId: TextId
   readonly className?: string
 }
 
@@ -26,7 +16,7 @@ export interface PaywallBulletPointsProps {
 export function PaywallBulletPoints(props: PaywallBulletPointsProps) {
   const { bulletPointsTextId, className } = props
 
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const bulletPoints = getText(bulletPointsTextId)
     .split(';')
     .map((bulletPoint) => bulletPoint.trim())
@@ -35,7 +25,7 @@ export function PaywallBulletPoints(props: PaywallBulletPointsProps) {
     return null
   } else {
     return (
-      <ul className={tw.twMerge('m-0 flex w-full list-inside list-none flex-col gap-1', className)}>
+      <ul className={twMerge('m-0 flex w-full list-inside list-none flex-col gap-1', className)}>
         {bulletPoints.map((bulletPoint) => (
           <li key={bulletPoint} className="flex items-start gap-1.5">
             <div className="m-0 flex">
@@ -46,9 +36,9 @@ export function PaywallBulletPoints(props: PaywallBulletPointsProps) {
               </div>
             </div>
 
-            <ariaComponents.Text className="flex-grow" variant="body">
+            <Text className="flex-grow" variant="body">
               {bulletPoint}
-            </ariaComponents.Text>
+            </Text>
           </li>
         ))}
       </ul>

@@ -17,9 +17,7 @@ export interface FetchVersionContentOptions {
   readonly metadata?: boolean
 }
 
-/**
- * Return the query options for fetching the content of a version.
- */
+/** Return the query options for fetching the content of a version. */
 export function versionContentQueryOptions(params: FetchVersionContentOptions) {
   return reactQuery.queryOptions({
     queryKey: [
@@ -31,11 +29,10 @@ export function versionContentQueryOptions(params: FetchVersionContentOptions) {
       },
     ] as const,
     queryFn: ({ queryKey }) => {
-      const [, { method, versionId, projectId }] = queryKey
-      return params.backend[method](projectId, versionId)
+      const [, { versionId, projectId }] = queryKey
+      return params.backend.getFileContent(projectId, versionId)
     },
     select: (data) => (params.metadata === true ? data : omitMetadata(data)),
-    staleTime: TWO_MINUTES_MS,
   })
 }
 

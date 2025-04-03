@@ -8,7 +8,7 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
-import ContextMenuEntry from '#/components/ContextMenuEntry'
+import { ContextMenuEntry } from '#/components/ContextMenuEntry'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 

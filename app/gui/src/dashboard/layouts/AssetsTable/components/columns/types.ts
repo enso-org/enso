@@ -9,7 +9,6 @@ export enum Column {
   path = 'path',
   accessedByProjects = 'accessedByProjects',
   accessedData = 'accessedData',
-  docs = 'docs',
 }
 
 /** Columns that can be used as a sort column. */

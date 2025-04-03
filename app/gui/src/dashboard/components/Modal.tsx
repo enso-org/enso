@@ -1,11 +1,11 @@
 /** @file Base modal component that provides the full-screen element that blocks mouse events. */
 import { ClearPressResponder } from '#/components/aria'
 import { FocusRoot } from '#/components/styled/FocusRoot'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as tailwindVariants from '#/utilities/tailwindVariants'
-import * as React from 'react'
+import { unsetModal } from '#/providers/ModalProvider'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import type { CSSProperties, MouseEventHandler, PropsWithChildren } from 'react'
 
-const MODAL_VARIANTS = tailwindVariants.tv({
+const MODAL_VARIANTS = tv({
   base: 'inset z-1',
   variants: {
     centered: { true: 'size-screen fixed grid place-items-center' },
@@ -14,15 +14,15 @@ const MODAL_VARIANTS = tailwindVariants.tv({
 
 /** Props for a {@link Modal}. */
 export interface ModalProps
-  extends Readonly<React.PropsWithChildren>,
-    Readonly<tailwindVariants.VariantProps<typeof MODAL_VARIANTS>> {
+  extends Readonly<PropsWithChildren>,
+    Readonly<VariantProps<typeof MODAL_VARIANTS>> {
   /** If `true`, disables `data-testid` because it will not be visible. */
   readonly hidden?: boolean
   readonly centered?: boolean | undefined
-  readonly style?: React.CSSProperties
+  readonly style?: CSSProperties
   readonly className?: string
-  readonly onClick?: React.MouseEventHandler<HTMLDivElement>
-  readonly onContextMenu?: React.MouseEventHandler<HTMLDivElement>
+  readonly onClick?: MouseEventHandler<HTMLDivElement>
+  readonly onContextMenu?: MouseEventHandler<HTMLDivElement>
 }
 
 /**
@@ -30,9 +30,8 @@ export interface ModalProps
  * background transparency can be enabled with Tailwind's `bg-opacity` classes, like
  * `className="bg-opacity-50"`.
  */
-export default function Modal(props: ModalProps) {
+export function Modal(props: ModalProps) {
   const { hidden = false, children, style, onClick, onContextMenu, ...variantProps } = props
-  const { unsetModal } = modalProvider.useSetModal()
 
   return (
     // Required so that `Button`s and `Checkbox`es contained inside do not trigger any

@@ -1,5 +1,6 @@
 /** @file Text component */
 import { mergeProps, type TextProps as AriaTextProps, type Placement } from '#/components/aria'
+import type { TooltipElementType } from '#/components/AriaComponents/VisualTooltip'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
@@ -10,7 +11,6 @@ import {
   type FC,
   type HTMLAttributes,
   type PropsWithChildren,
-  type ReactElement,
   type Ref,
   type RefAttributes,
   type RefObject,
@@ -28,9 +28,9 @@ export interface TextProps
     TestIdProps {
   readonly elementType?: keyof HTMLElementTagNameMap
   readonly lineClamp?: number
-  readonly tooltip?: ReactElement | string | false | null
+  readonly tooltip?: TooltipElementType
   readonly tooltipTriggerRef?: RefObject<HTMLElement>
-  readonly tooltipDisplay?: VisualTooltipOptions['display']
+  readonly tooltipDisplay?: VisualTooltipOptions['display'] | 'never'
   readonly tooltipPlacement?: Placement
   readonly tooltipOffset?: number
   readonly tooltipCrossOffset?: number
@@ -63,6 +63,7 @@ export const Text = memo(
       tooltipCrossOffset,
       textSelection,
       disableLineHeightCompensation = false,
+      align,
       variants = TEXT_STYLE,
       ...ariaProps
     } = props
@@ -87,22 +88,24 @@ export const Text = memo(
           textContext.isInsideTextComponent
         : disableLineHeightCompensation,
       className,
+      align,
     })
 
     const isTooltipDisabled = useEventCallback(() => {
       if (tooltipDisplay === 'whenOverflowing') {
         return truncate == null
-      } else if (tooltipDisplay === 'always') {
-        return tooltipElement === false || tooltipElement == null
-      } else {
-        return false
       }
+      if (tooltipDisplay === 'always') {
+        return tooltipElement === false || tooltipElement == null
+      }
+
+      return tooltipDisplay === 'never'
     })
 
     const { tooltip, targetProps } = useVisualTooltip({
       isDisabled: isTooltipDisabled(),
       targetRef: textElementRef,
-      display: tooltipDisplay,
+      display: tooltipDisplay === 'never' ? () => false : tooltipDisplay,
       children: tooltipElement,
       ...(tooltipPlacement || tooltipOffset != null || tooltipCrossOffset != null ?
         {

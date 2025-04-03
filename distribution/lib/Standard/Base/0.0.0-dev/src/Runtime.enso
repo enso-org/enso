@@ -110,7 +110,6 @@ no_inline_with_arg function arg = Runtime_Helpers.no_inline_with_arg function ar
    ADVANCED
 
    Value associated with a UUID if any
-
 value_for_uuid id:Text -> Any = Meta_Helpers.instrumentor_builtin "uuid" id
 
 ## PRIVATE
@@ -160,7 +159,6 @@ type Context
        ADVANCED
 
        Returns the name of the context.
-
     name : Text
     name self =
         case self of

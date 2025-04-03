@@ -1,40 +1,14 @@
 /** @file A block of text with a copy button. */
-
-import * as React from 'react'
-
-import * as copyHook from '#/hooks/copyHooks'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import * as twv from '#/utilities/tailwindVariants'
-import { Button } from '../Button'
-import { TEXT_STYLE } from '../Text'
-
-const COPY_BLOCK_STYLES = twv.tv({
-  base: TEXT_STYLE({
-    class: 'max-w-full bg-primary/5 border-primary/10',
-  }),
-  variants: {
-    size: {
-      small: 'py-[1.5px] px-[5.5px]',
-      medium: 'py-[3.5px] px-[7.5px]',
-      large: 'py-[5.5px] px-[11.5px]',
-    },
-    rounded: {
-      custom: '',
-      small: 'rounded-sm',
-      medium: 'rounded-md',
-      large: 'rounded-lg',
-      full: 'rounded-full',
-    },
-  },
-  slots: { copyTextBlock: 'flex-auto text-nowrap overflow-x-auto scroll-hidden w-full' },
-  defaultVariants: { size: 'medium', rounded: 'full' },
-})
+import { Button } from '#/components/AriaComponents/Button'
+import { useCopy } from '#/hooks/copyHooks'
+import { useText } from '#/providers/TextProvider'
+import { type VariantProps } from '#/utilities/tailwindVariants'
+import type { ReactNode } from 'react'
+import { COPY_BLOCK_STYLES } from './variants'
 
 /** Props for a {@link CopyBlock}. */
-export interface CopyBlockProps {
-  readonly title?: React.ReactNode
+export interface CopyBlockProps extends VariantProps<typeof COPY_BLOCK_STYLES> {
+  readonly title?: ReactNode
   readonly copyText: string
   readonly className?: string
   readonly onCopy?: () => void
@@ -42,22 +16,22 @@ export interface CopyBlockProps {
 
 /** A block of text with a copy button. */
 export function CopyBlock(props: CopyBlockProps) {
-  const { copyText, className, onCopy = () => {} } = props
+  const { copyText, className, onCopy = () => {}, variants = COPY_BLOCK_STYLES } = props
 
-  const { getText } = textProvider.useText()
-  const { mutateAsync, isSuccess } = copyHook.useCopy({ copyText, onCopy })
+  const { getText } = useText()
+  const { mutateAsync, isSuccess } = useCopy({ onCopy })
 
-  const { copyTextBlock, base } = COPY_BLOCK_STYLES()
+  const styles = variants()
 
   return (
     <Button
       variant="custom"
       size="custom"
-      onPress={() => mutateAsync()}
+      onPress={() => mutateAsync(copyText)}
       tooltip={isSuccess ? getText('copied') : getText('copy')}
-      className={base({ className })}
+      className={styles.base({ className })}
     >
-      <span className={copyTextBlock()}>{copyText}</span>
+      <span className={styles.copyTextBlock()}>{copyText}</span>
     </Button>
   )
 }

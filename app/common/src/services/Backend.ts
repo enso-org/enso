@@ -149,6 +149,14 @@ export const ParentsPath = newtype.newtypeConstructor<ParentsPath>()
 export type VirtualParentsPath = newtype.Newtype<string, 'VirtualParentsPath'>
 export const VirtualParentsPath = newtype.newtypeConstructor<VirtualParentsPath>()
 
+/** The path of this asset, including the root directory. */
+export type EnsoPath = newtype.Newtype<string, 'EnsoPath'>
+export const EnsoPath = newtype.newtypeConstructor<EnsoPath>()
+
+/** The path string of this asset, including the root directory. */
+export type EnsoPathValue = newtype.Newtype<string, 'EnsoPathValue'>
+export const EnsoPathValue = newtype.newtypeConstructor<EnsoPathValue>()
+
 const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
 
 /**
@@ -213,7 +221,7 @@ export interface User extends UserInfo {
    */
   readonly userGroups: readonly UserGroupId[] | null
   readonly removeAt?: dateTime.Rfc3339DateTime | null
-  readonly plan?: Plan | undefined
+  readonly plan: Plan
   /**
    * Contains the user groups that the user is a member of.
    * Has enriched metadata, like the name of the group and the home directory ID.
@@ -843,10 +851,6 @@ export function findLeastUsedColor(labels: Iterable<Label>) {
   return minColor == null ? COLORS[0] : (COLOR_STRING_TO_COLOR.get(minColor) ?? COLORS[0])
 }
 
-// =================
-// === AssetType ===
-// =================
-
 export enum SpecialAssetType {
   loading = 'specialLoading',
   empty = 'specialEmpty',
@@ -916,10 +920,6 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.specialUp]: -1,
 }
 
-// =============
-// === Asset ===
-// =============
-
 /**
  * Metadata uniquely identifying a directory entry.
  * These can be Projects, Files, Secrets, or other directories.
@@ -935,12 +935,16 @@ export interface Asset<Type extends AssetType = AssetType> {
    */
   readonly parentId: DirectoryId
   readonly permissions: readonly AssetPermission[] | null
-  readonly labels: readonly LabelName[] | null
-  readonly description: string | null
+  readonly labels?: readonly LabelName[] | undefined
+  readonly description?: string | undefined
   readonly projectState: Type extends AssetType.project ? ProjectStateType : null
   readonly extension: Type extends AssetType.file ? string : null
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
+  /** The display path. */
+  readonly ensoPath?: EnsoPath | undefined
+  /** The actual path (URL encoded when on the Remote backend). */
+  readonly ensoPathValue?: EnsoPathValue | undefined
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
@@ -1007,8 +1011,6 @@ export function createPlaceholderFileAsset(title: string, parentId: DirectoryId)
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: fileExtension(title),
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1028,8 +1030,6 @@ export function createPlaceholderProjectAsset(title: string, parentId: Directory
       volumeId: '',
     },
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1049,8 +1049,6 @@ export function createPlaceholderDirectoryAsset(
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1067,8 +1065,6 @@ export function createPlaceholderSecretAsset(title: string, parentId: DirectoryI
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1088,8 +1084,6 @@ export function createPlaceholderDatalinkAsset(
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1109,8 +1103,6 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
     permissions: [],
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1135,8 +1127,6 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
     permissions: [],
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1161,8 +1151,6 @@ export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorA
     permissions: [],
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1277,6 +1265,14 @@ export interface S3ObjectVersion {
   readonly isLatest: boolean
   /** An archive containing the all the project files object in the S3 bucket. */
   readonly key: string
+  readonly user?: OtherUser
+}
+
+/** A user other than the current user */
+export interface OtherUser {
+  readonly name: string
+  readonly email: EmailAddress
+  readonly profilePicture: HttpsUrl | null
 }
 
 /** A list of asset versions. */
@@ -1297,10 +1293,10 @@ export function compareAssetPermissions(a: AssetPermission, b: AssetPermission) 
   } else {
     // NOTE [NP]: Although `userId` is unique, and therefore sufficient to sort permissions, sort
     // name first, so that it's easier to find a permission in a long list (i.e., for readability).
-    const aName = 'user' in a ? a.user.name : a.userGroup.name
-    const bName = 'user' in b ? b.user.name : b.userGroup.name
-    const aUserId = 'user' in a ? a.user.userId : a.userGroup.id
-    const bUserId = 'user' in b ? b.user.userId : b.userGroup.id
+    const aName = getAssetPermissionName(a)
+    const bName = getAssetPermissionName(b)
+    const aUserId = getAssetPermissionId(a)
+    const bUserId = getAssetPermissionId(b)
     return (
       aName < bName ? -1
       : aName > bName ? 1
@@ -1382,6 +1378,7 @@ export interface UpdateFileRequestBody {
 export interface UpdateAssetRequestBody {
   readonly parentDirectoryId: DirectoryId | null
   readonly description: string | null
+  readonly title: string | null
 }
 
 /** HTTP request body for the "delete asset" endpoint. */
@@ -1790,12 +1787,7 @@ export default abstract class Backend {
   /** Restore an arbitrary asset from the trash. */
   abstract undoDeleteAsset(assetId: AssetId, title: string): Promise<void>
   /** Copy an arbitrary asset to another directory. */
-  abstract copyAsset(
-    assetId: AssetId,
-    parentDirectoryId: DirectoryId,
-    title: string,
-    parentDirectoryTitle: string,
-  ): Promise<CopyAssetResponse>
+  abstract copyAsset(assetId: AssetId, parentDirectoryId: DirectoryId): Promise<CopyAssetResponse>
   /** Return a list of projects belonging to the current user. */
   abstract listProjects(): Promise<readonly ListedProject[]>
   /** Create a project for the current user. */
@@ -1836,12 +1828,8 @@ export default abstract class Backend {
     projectTitle: string,
   ): Promise<ProjectExecution>
   /** Restore a project from a different version. */
-  abstract restoreProject(
-    projectId: ProjectId,
-    versionId: S3ObjectVersionId,
-    title: string,
-  ): Promise<void>
-  /** Duplicate a specific version of a project. */
+  abstract restoreAsset(assetId: AssetId, versionId: S3ObjectVersionId): Promise<void>
+  /** Duplicate a specific version of an asset. */
   abstract duplicateProject(
     projectId: ProjectId,
     versionId: S3ObjectVersionId,

@@ -2,7 +2,7 @@
 import ProjectIcon from '#/components/dashboard/ProjectIcon'
 import EditableSpan from '#/components/EditableSpan'
 import { backendMutationOptions } from '#/hooks/backendHooks'
-import { useOpenProject } from '#/hooks/projectHooks'
+import { useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
@@ -30,7 +30,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { getText } = useText()
   const getAssetChildren = useGetAssetChildren()
 
-  const doOpenProject = useOpenProject()
+  const openProjectLocally = useOpenProjectLocally()
   const ownPermission = tryFindSelfPermission(user, item.permissions)
   const canExecute =
     isEditable &&
@@ -65,16 +65,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           event.stopPropagation()
         }
       }}
-      onClick={(event) => {
+      onClick={async (event) => {
         if (rowState.isEditingName || isOtherUserUsingProject) {
           // The project should neither be edited nor opened in these cases.
         } else if (isDoubleClick(event) && canExecute) {
-          doOpenProject({
-            id: item.id,
-            type: backendType,
-            parentId: item.parentId,
-            title: item.title,
-          })
+          await openProjectLocally(item, backendType)
         }
       }}
     >

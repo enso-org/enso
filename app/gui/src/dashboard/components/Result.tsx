@@ -3,34 +3,34 @@ import Success from '#/assets/check_mark.svg'
 import Error from '#/assets/cross.svg'
 import { Text } from '#/components/AriaComponents/Text'
 import type { TestIdProps } from '#/components/AriaComponents/types'
-import * as loader from '#/components/Loader'
 import SvgMask from '#/components/SvgMask'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import * as React from 'react'
+import type { JSX, PropsWithChildren, ReactElement } from 'react'
+import { Loader } from './Loader'
 
 const INFO_ICON = (
   // eslint-disable-next-line no-restricted-syntax
   <Text variant="custom" className="pb-0.5 text-xl leading-[0]" aria-hidden>
-    !
+    i
   </Text>
 )
 
 const STATUS_ICON_MAP: Readonly<Record<Status, StatusIcon>> = {
   loading: {
-    icon: <loader.Loader minHeight="h8" />,
+    icon: <Loader minHeight="h8" />,
     colorClassName: 'text-primary',
     bgClassName: 'bg-transparent',
   },
   info: {
     icon: INFO_ICON,
     colorClassName: 'text-primary',
-    bgClassName: 'bg-primary/30',
+    bgClassName: 'bg-primary/15',
   },
   error: { icon: Error, colorClassName: 'text-red-500', bgClassName: 'bg-red-500' },
   success: { icon: Success, colorClassName: 'text-green-500', bgClassName: 'bg-green' },
   // pending is the same as loading. Used for mutations.
   pending: {
-    icon: <loader.Loader minHeight="h8" />,
+    icon: <Loader minHeight="h8" />,
     colorClassName: 'text-primary',
     bgClassName: 'bg-transparent',
   },
@@ -70,24 +70,24 @@ export type Status = 'error' | 'idle' | 'info' | 'loading' | 'pending' | 'succes
 
 /** The corresponding icon and color for each status. */
 interface StatusIcon {
-  readonly icon: React.ReactElement | string
+  readonly icon: ReactElement | string
   readonly colorClassName: string
   readonly bgClassName: string
 }
 
 /** Props for a {@link Result}. */
 export interface ResultProps
-  extends React.PropsWithChildren,
+  extends PropsWithChildren,
     VariantProps<typeof RESULT_STYLES>,
     TestIdProps {
   readonly className?: string
-  readonly title?: React.JSX.Element | string
-  readonly subtitle?: React.JSX.Element | string
+  readonly title?: JSX.Element | string
+  readonly subtitle?: JSX.Element | string
   /**
    * The status of the result.
    * @default 'success'
    */
-  readonly status?: React.ReactElement | Status
+  readonly status?: ReactElement | Status
   readonly icon?: string | false
 }
 

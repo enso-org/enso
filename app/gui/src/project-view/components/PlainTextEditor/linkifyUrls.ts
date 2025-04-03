@@ -62,7 +62,7 @@ const MATCHERS = [
 ]
 
 function decorate(view: EditorView): DecorationSet {
-  const makeAttributes = view.state.facet(linkAttributesFactory)
+  const makeAttributes = view.state.field(linkAttributesFactory)
   if (!makeAttributes) return Decoration.none
   const decorations = new RangeSetBuilder<Decoration>()
   for (const visibleRange of view.visibleRanges) {

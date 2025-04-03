@@ -19,7 +19,7 @@ export function useModalRef() {
  * @deprecated Use directly imported `setModal`, `updateModal`, and `unsetModal` functions instead.
  */
 export function useSetModal() {
-  return { setModal, updateModal, unsetModal } as const
+  return { setModal, unsetModal } as const
 }
 
 /**
@@ -29,15 +29,6 @@ export function useSetModal() {
 export function setModal(modal: ModalOrCallback) {
   const modalsStore = ModalsStore.getState()
   modalsStore.setModal(modal)
-}
-
-/**
- * Update the currently active modal.
- * @throws An error if no modal is set.
- */
-export function updateModal(modal: ModalOrCallback) {
-  const modalsStore = ModalsStore.getState()
-  modalsStore.updateModal(modal)
 }
 
 /**

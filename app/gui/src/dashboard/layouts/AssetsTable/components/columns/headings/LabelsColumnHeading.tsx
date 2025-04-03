@@ -17,7 +17,7 @@ export default function LabelsColumnHeading(props: AssetColumnHeadingProps) {
   })
 
   return (
-    <div className="isolate flex h-table-row w-full items-center gap-icon-with-text">
+    <div className="isolate flex h-table-row w-full items-center gap-2">
       <Button
         variant="icon"
         icon={TagIcon}

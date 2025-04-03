@@ -11,7 +11,7 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import { Button, ButtonGroup } from '#/components/AriaComponents'
-import Modal from '#/components/Modal'
+import { Modal } from '#/components/Modal'
 
 import type Backend from '#/services/Backend'
 

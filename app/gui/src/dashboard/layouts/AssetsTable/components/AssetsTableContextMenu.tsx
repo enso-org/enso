@@ -3,12 +3,13 @@
  * are selected.
  */
 import { Separator } from '#/components/AriaComponents'
-import ContextMenu from '#/components/ContextMenu'
-import ContextMenuEntry from '#/components/ContextMenuEntry'
+import { ContextMenu } from '#/components/ContextMenu'
+import { ContextMenuEntry } from '#/components/ContextMenuEntry'
 import {
   deleteAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
+import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import {
   canTransferBetweenCategories,
@@ -19,7 +20,8 @@ import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/providers/DriveProvider'
-import { useSetModal } from '#/providers/ModalProvider'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
@@ -61,7 +63,6 @@ export function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
     doPaste,
   } = props
 
-  const { setModal, unsetModal } = useSetModal()
   const { getText } = useText()
 
   const isCloud = isCloudCategory(category)
@@ -71,6 +72,8 @@ export function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
   const driveStore = useDriveStore()
   const deleteAssetsMutation = useMutation(deleteAssetsMutationOptions(backend))
   const restoreAssetsMutation = useMutation(restoreAssetsMutationOptions(backend))
+  const showDeveloperIds = useFeatureFlag('showDeveloperIds')
+  const copyMutation = useCopy()
 
   const hasPasteData = useStore(driveStore, ({ pasteData }) => {
     const effectivePasteData =
@@ -115,6 +118,16 @@ export function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
     }
   })
 
+  const copyIdsMenuEntry = showDeveloperIds && (
+    <ContextMenuEntry
+      hidden={hidden}
+      action="copyId"
+      color="accent"
+      label={getText('copyAllIdsShortcut')}
+      doAction={() => copyMutation.mutateAsync(selectedAssets.map((asset) => asset.id).join('\n'))}
+    />
+  )
+
   const pasteAllMenuEntry = hasPasteData && (
     <ContextMenuEntry
       hidden={hidden}
@@ -139,6 +152,7 @@ export function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
           hidden={hidden}
           event={event}
         >
+          {copyIdsMenuEntry}
           <ContextMenuEntry
             hidden={hidden}
             action="undelete"
@@ -181,12 +195,23 @@ export function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
   }
 
   if (category.type === 'recent') {
-    return null
+    return (
+      showDeveloperIds && (
+        <ContextMenu
+          aria-label={getText('assetsTableContextMenuLabel')}
+          hidden={hidden}
+          event={event}
+        >
+          {copyIdsMenuEntry}
+        </ContextMenu>
+      )
+    )
   }
 
   return (
     <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden} event={event}>
       <>
+        {copyIdsMenuEntry}
         {selectedAssets.length !== 0 && (
           <ContextMenuEntry
             hidden={hidden}

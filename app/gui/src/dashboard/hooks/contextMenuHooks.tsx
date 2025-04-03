@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as modalProvider from '#/providers/ModalProvider'
 
-import ContextMenu from '#/components/ContextMenu'
+import { ContextMenu } from '#/components/ContextMenu'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 

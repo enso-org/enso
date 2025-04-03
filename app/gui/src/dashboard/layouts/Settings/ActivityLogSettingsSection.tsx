@@ -1,15 +1,10 @@
 /** @file Settings tab for viewing and editing account information. */
-import * as React from 'react'
-
-import { fromDate, getLocalTimeZone, today, ZonedDateTime } from '@internationalized/date'
-import * as z from 'zod'
-
 import DataUploadIcon from '#/assets/data_upload.svg'
 import KeyIcon from '#/assets/key.svg'
 import Play2Icon from '#/assets/play2.svg'
-import SortAscendingIcon from '#/assets/sort_ascending.svg'
 import TrashIcon from '#/assets/trash.svg'
 import { Button, DatePicker, Dropdown, Form, Text } from '#/components/AriaComponents'
+import { Icon } from '#/components/Icon'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { FocusArea } from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
@@ -17,9 +12,12 @@ import { useBackendQuery } from '#/hooks/backendHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { EVENT_TYPES, EventType, type Event } from '#/services/Backend'
-import { nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
+import { iconIdFor, nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { formatDateTime } from 'enso-common/src/utilities/data/dateTime'
+import { fromDate, getLocalTimeZone, today, ZonedDateTime } from '@internationalized/date'
+import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
+import { useMemo, useState, type PropsWithChildren } from 'react'
+import * as z from 'zod'
 
 const EVENT_TYPE_ICON: Record<EventType, string> = {
   [EventType.GetSecret]: KeyIcon,
@@ -61,13 +59,13 @@ export interface ActivityLogSettingsSectionProps {
 export default function ActivityLogSettingsSection(props: ActivityLogSettingsSectionProps) {
   const { backend } = props
   const { getText } = useText()
-  const [types, setTypes] = React.useState<readonly EventType[]>([])
-  const [typeIndices, setTypeIndices] = React.useState<readonly number[]>([])
-  const [emails, setEmails] = React.useState<readonly string[]>([])
-  const [emailIndices, setEmailIndices] = React.useState<readonly number[]>([])
-  const [sortInfo, setSortInfo] = React.useState<SortInfo<ActivityLogSortableColumn> | null>(null)
+  const [types, setTypes] = useState<readonly EventType[]>([])
+  const [typeIndices, setTypeIndices] = useState<readonly number[]>([])
+  const [emails, setEmails] = useState<readonly string[]>([])
+  const [emailIndices, setEmailIndices] = useState<readonly number[]>([])
+  const [sortInfo, setSortInfo] = useState<SortInfo<ActivityLogSortableColumn> | null>(null)
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
-  const allEmails = React.useMemo(() => (users ?? []).map((user) => user.email), [users])
+  const allEmails = useMemo(() => (users ?? []).map((user) => user.email), [users])
   const logsQuery = useBackendQuery(backend, 'getLogEvents', [])
   const logs = logsQuery.data
 
@@ -76,7 +74,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const endDate = form.watch('endDate')
   const maxDate = today(getLocalTimeZone())
 
-  const filteredLogs = React.useMemo(() => {
+  const filteredLogs = useMemo(() => {
     const typesSet = new Set(types.length > 0 ? types : EVENT_TYPES)
     const emailsSet = new Set(emails.length > 0 ? emails : allEmails)
     return logs == null ? null : (
@@ -92,7 +90,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       )
   }, [logs, types, emails, startDate, endDate, allEmails])
 
-  const sortedLogs = React.useMemo(() => {
+  const sortedLogs = useMemo(() => {
     if (sortInfo == null || filteredLogs == null) {
       return filteredLogs
     } else {
@@ -213,7 +211,20 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     getText('stopSortingByName')
                   : getText('sortByNameDescending')
                 }
-                className="gap-icon-with-text group flex h-table-row w-full items-center justify-start border-0 px-name-column-x"
+                addonEnd={
+                  <Icon
+                    icon={iconIdFor(
+                      sortInfo?.direction,
+                      sortInfo?.field === ActivityLogSortableColumn.type,
+                    )}
+                    className={twMerge(
+                      'ml-1 transition-all duration-arrow',
+                      sortInfo?.field !== ActivityLogSortableColumn.type &&
+                        'opacity-0 group-hover:opacity-50',
+                    )}
+                  />
+                }
+                className="group flex h-table-row w-full items-center justify-start gap-2 border-0 px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.type ?
@@ -229,23 +240,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   }
                 }}
               >
-                <Text className="text-sm">{getText('type')}</Text>
-                <img
-                  alt={
-                    sortInfo?.field === ActivityLogSortableColumn.type && isDescending ?
-                      getText('sortDescending')
-                    : getText('sortAscending')
-                  }
-                  src={SortAscendingIcon}
-                  className={twMerge(
-                    'transition-all duration-arrow',
-                    sortInfo?.field !== ActivityLogSortableColumn.type &&
-                      'opacity-0 group-hover:opacity-50',
-                    sortInfo?.field === ActivityLogSortableColumn.type &&
-                      isDescending &&
-                      'rotate-180',
-                  )}
-                />
+                <Text weight="bold">{getText('type')}</Text>
               </Button>
             </ActivityLogHeaderCell>
             <ActivityLogHeaderCell className="w-48">
@@ -258,7 +253,20 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     getText('stopSortingByEmail')
                   : getText('sortByEmailDescending')
                 }
-                className="gap-icon-with-text group flex h-table-row w-full items-center justify-start border-0 px-name-column-x"
+                addonEnd={
+                  <Icon
+                    icon={iconIdFor(
+                      sortInfo?.direction,
+                      sortInfo?.field === ActivityLogSortableColumn.email,
+                    )}
+                    className={twMerge(
+                      'ml-1 transition-all duration-arrow',
+                      sortInfo?.field !== ActivityLogSortableColumn.email &&
+                        'opacity-0 group-hover:opacity-50',
+                    )}
+                  />
+                }
+                className="group flex h-table-row w-full items-center justify-start gap-2 border-0 px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.email ?
@@ -274,23 +282,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   }
                 }}
               >
-                <Text className="text-sm">{getText('email')}</Text>
-                <img
-                  alt={
-                    sortInfo?.field === ActivityLogSortableColumn.email && isDescending ?
-                      getText('sortDescending')
-                    : getText('sortAscending')
-                  }
-                  src={SortAscendingIcon}
-                  className={twMerge(
-                    'transition-all duration-arrow',
-                    sortInfo?.field !== ActivityLogSortableColumn.email &&
-                      'opacity-0 group-hover:opacity-50',
-                    sortInfo?.field === ActivityLogSortableColumn.email &&
-                      isDescending &&
-                      'rotate-180',
-                  )}
-                />
+                <Text weight="bold">{getText('email')}</Text>
               </Button>
             </ActivityLogHeaderCell>
             <ActivityLogHeaderCell className="w-36">
@@ -304,7 +296,20 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     getText('stopSortingByTimestamp')
                   : getText('sortByTimestampDescending')
                 }
-                className="gap-icon-with-text group flex h-table-row w-full items-center justify-start border-0 px-name-column-x"
+                addonEnd={
+                  <Icon
+                    icon={iconIdFor(
+                      sortInfo?.direction,
+                      sortInfo?.field === ActivityLogSortableColumn.timestamp,
+                    )}
+                    className={twMerge(
+                      'ml-1 transition-all duration-arrow',
+                      sortInfo?.field !== ActivityLogSortableColumn.timestamp &&
+                        'opacity-0 group-hover:opacity-50',
+                    )}
+                  />
+                }
+                className="group flex h-table-row w-full items-center justify-start gap-2 border-0 px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.timestamp ?
@@ -320,23 +325,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   }
                 }}
               >
-                <Text className="text-sm">{getText('timestamp')}</Text>
-                <img
-                  alt={
-                    sortInfo?.field === ActivityLogSortableColumn.timestamp && isDescending ?
-                      getText('sortDescending')
-                    : getText('sortAscending')
-                  }
-                  src={SortAscendingIcon}
-                  className={twMerge(
-                    'transition-all duration-arrow',
-                    sortInfo?.field !== ActivityLogSortableColumn.timestamp &&
-                      'opacity-0 group-hover:opacity-50',
-                    sortInfo?.field === ActivityLogSortableColumn.timestamp &&
-                      isDescending &&
-                      'rotate-180',
-                  )}
-                />
+                <Text weight="bold">{getText('timestamp')}</Text>
               </Button>
             </ActivityLogHeaderCell>
           </tr>
@@ -360,7 +349,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 <ActivityLogTableCell>{EVENT_TYPE_NAME[log.metadata.type]}</ActivityLogTableCell>
                 <ActivityLogTableCell>{log.userEmail}</ActivityLogTableCell>
                 <ActivityLogTableCell>
-                  {log.timestamp ? formatDateTime(new Date(log.timestamp)) : ''}
+                  {log.timestamp ? toReadableIsoString(new Date(log.timestamp)) : ''}
                 </ActivityLogTableCell>
               </tr>
             ))
@@ -372,7 +361,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
 }
 
 /** Props for a {@link ActivityLogHeaderCell}. */
-export interface ActivityLogHeaderCellProps extends Readonly<React.PropsWithChildren> {
+export interface ActivityLogHeaderCellProps extends Readonly<PropsWithChildren> {
   readonly className?: string
 }
 
@@ -393,7 +382,7 @@ function ActivityLogHeaderCell(props: ActivityLogHeaderCellProps) {
 }
 
 /** Props for a {@link ActivityLogTableCell}. */
-export type ActivityLogTableCellProps = Readonly<React.PropsWithChildren>
+export type ActivityLogTableCellProps = Readonly<PropsWithChildren>
 
 /** A styled table cell for an {@link ActivityLogSettingsSection}. */
 function ActivityLogTableCell(props: ActivityLogTableCellProps) {

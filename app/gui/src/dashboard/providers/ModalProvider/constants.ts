@@ -30,7 +30,6 @@ export const ModalsStore = createStore<{
   readonly key: number
   readonly modal: Modal | null
   readonly setModal: (modal: ModalOrCallback | null) => void
-  readonly updateModal: (modal: ModalOrCallback) => void
 }>((set, get) => ({
   key: 0,
   modal: null,
@@ -43,19 +42,6 @@ export const ModalsStore = createStore<{
       set({ modal: modal(existingModal), key: nextKey })
     } else {
       set({ modal, key: nextKey })
-    }
-  },
-  updateModal: (modal) => {
-    const existingModal = get().modal
-
-    if (existingModal == null) {
-      throw new Error('Calling updateModal while no modal is set is forbidden.')
-    }
-
-    if (typeof modal === 'function') {
-      set({ modal: modal(existingModal) })
-    } else {
-      set({ modal })
     }
   },
 }))

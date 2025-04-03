@@ -69,8 +69,6 @@ type Array
     to_array : Array
     to_array self = self
 
-    ## For compatibility with Vector
-
     ## ALIAS order_by
        GROUP Calculations
        ICON order

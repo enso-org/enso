@@ -1,4 +1,4 @@
-/** @file Breadcrumbs component implementation. */
+/** @file A breadcrumb nagivation component. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import {
@@ -72,9 +72,7 @@ export function Breadcrumbs(props: BreadcrumbsProps) {
   )
 }
 
-/**
- * Props for {@link BreadcrumbInner}
- */
+/** Props for {@link BreadcrumbInner}. */
 interface BreadcrumbInnerProps extends TestIdProps, AriaBreadcrumbsProps, PropsWithChildren {
   readonly className?: string
 }
@@ -95,17 +93,13 @@ function BreadcrumbInner(props: BreadcrumbInnerProps) {
   )
 }
 
-/**
- * Props for {@link BreadcrumbSeparator}
- */
+/** Props for {@link BreadcrumbSeparator}. */
 interface BreadcrumbSeparatorProps<Icon extends string> {
   readonly icon?: IconProp<Icon, never>
   readonly className?: string
 }
 
-/**
- * A separator between breadcrumb items.
- */
+/** A separator between breadcrumb items. */
 // eslint-disable-next-line no-restricted-syntax
 const BreadcrumbSeparator = memo(function BreadcrumbSeparator<Icon extends string>(
   props: BreadcrumbSeparatorProps<Icon>,

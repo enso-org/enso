@@ -1,4 +1,4 @@
-/** @file Common types for ARIA components. */
+/** @file Common types for WAI-ARIA components. */
 import type { Icon as PossibleIcon } from '@/util/iconMetadata/iconName'
 import type { ReactElement } from 'react'
 export type { Placement } from 'react-aria'
@@ -27,8 +27,8 @@ export type LegacyAvailableIconReturn<Icon extends string> =
 export type AvailableIconReturn = ReactElement | SvgUseIcon | false | null | undefined
 
 /**
- * Generic type for any icon
- * @deprecated Prefer defined keys over importing from `#/assets/*.svg
+ * Any legacy icon.
+ * @deprecated Prefer defined keys over importing from `#/assets/*.svg`.
  */
 export type LegacyIconProp<Icon extends string, Render> =
   | LegacyAvailableIconReturn<Icon>

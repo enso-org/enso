@@ -1,6 +1,6 @@
 /** @file Constants for `MenuEntry`. */
-import type { DashboardBindingKey } from '#/configurations/inputBindings'
-import type { TextId } from 'enso-common/src/text'
+import { DashboardBindingKey } from '#/configurations/inputBindings'
+import { TextId } from 'enso-common/src/text'
 
 export const ACTION_TO_TEXT_ID: Readonly<
   Record<DashboardBindingKey, Extract<TextId, `${DashboardBindingKey}Shortcut`>>
@@ -44,4 +44,5 @@ export const ACTION_TO_TEXT_ID: Readonly<
   aboutThisApp: 'aboutThisAppShortcut',
   openInFileBrowser: 'openInFileBrowserShortcut',
   ensoDevtools: 'ensoDevtoolsShortcut',
+  copyId: 'copyIdShortcut',
 } satisfies { [Key in DashboardBindingKey]: `${Key}Shortcut` }

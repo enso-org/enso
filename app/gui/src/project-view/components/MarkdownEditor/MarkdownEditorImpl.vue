@@ -16,10 +16,14 @@ import { minimalSetup } from 'codemirror'
 import { computed, onMounted, ref, useCssModule, useTemplateRef, type ComponentInstance } from 'vue'
 import * as Y from 'yjs'
 
-const { content, toolbar } = defineProps<{
+const { content, toolbar, contentTestId } = defineProps<{
   content: Y.Text | string
   toolbar: boolean
+  contentTestId?: string | undefined
 }>()
+defineOptions({
+  inheritAttrs: false,
+})
 
 const focused = ref(false)
 const editing = computed(() => !readonly.value && focused.value)
@@ -36,6 +40,7 @@ const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
     ensoMarkdown(),
   ],
   vueHost: () => vueHost,
+  contentTestId,
 })
 const { italic, bold, insertLink, blockType, insertCodeBlock } = useMarkdownFormatting(editorView)
 
@@ -100,15 +105,14 @@ defineExpose({
       <slot name="toolbarRight" />
     </div>
     <slot name="belowToolbar" />
-    <div class="scrollArea">
-      <CodeMirrorRoot
-        ref="editorRoot"
-        v-bind="$attrs"
-        :class="{ MarkdownEditor: true, editing }"
-        @focusout="focused = false"
-      />
+    <CodeMirrorRoot
+      ref="editorRoot"
+      v-bind="$attrs"
+      :class="{ editing }"
+      @focusout="focused = false"
+    >
       <VueHostRender :host="vueHost" />
-    </div>
+    </CodeMirrorRoot>
   </div>
 </template>
 
@@ -122,7 +126,6 @@ defineExpose({
 
 .toolbar {
   height: 48px;
-  padding-left: 18px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -131,30 +134,32 @@ defineExpose({
   z-index: 250;
 }
 
-.scrollArea {
-  width: 100%;
-  overflow-y: auto;
-  padding-left: 10px;
-  /* Prevent touchpad back gesture, which can be triggered while panning. */
-  overscroll-behavior-x: none;
-  flex-grow: 1;
-}
-
-:deep(.cm-content) {
-  /*noinspection CssUnresolvedCustomProperty,CssNoGenericFontName*/
-  font-family: var(--font-sans);
-}
-
 /*noinspection CssUnusedSymbol*/
-:deep(.cm-editor) {
-  opacity: 1;
-  color: black;
-  font-size: 12px;
-}
+.CodeMirrorRoot {
+  & :deep(.cm-content) {
+    /*noinspection CssUnresolvedCustomProperty,CssNoGenericFontName*/
+    font-family: var(--font-sans);
+  }
 
-/*noinspection CssUnusedSymbol*/
-:deep(img.uploading) {
-  opacity: 0.5;
+  /*noinspection CssUnusedSymbol*/
+  & :deep(.cm-line) {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /*noinspection CssUnusedSymbol*/
+  & :deep(.cm-editor) {
+    flex-grow: 1;
+
+    opacity: 1;
+    color: black;
+    font-size: 12px;
+  }
+
+  /*noinspection CssUnusedSymbol*/
+  & :deep(img.uploading) {
+    opacity: 0.5;
+  }
 }
 </style>
 
@@ -209,8 +214,8 @@ defineExpose({
 
 /* === View-mode === */
 
-:global(.MarkdownEditor:not(.editing) .cm-line),
-:global(.MarkdownEditor .cm-line:not(.cm-has-cursor)) {
+:global(.CodeMirrorRoot:not(.editing) .cm-line),
+:global(.CodeMirrorRoot .cm-line:not(.cm-has-cursor)) {
   :global(.cm-image-markup) {
     display: none;
   }

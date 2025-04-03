@@ -1,6 +1,3 @@
-/**
- * @file
- *
- * Barrel export file for CopyBlock component.
- */
+/** @file Barrel export file for CopyBlock component. */
 export * from './CopyBlock'
+export * from './variants'

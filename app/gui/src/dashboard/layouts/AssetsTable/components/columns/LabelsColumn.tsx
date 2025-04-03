@@ -1,10 +1,9 @@
 /** @file A column listing the labels on this asset. */
 import Plus2Icon from '#/assets/plus2.svg'
 import { Button, DialogTrigger } from '#/components/AriaComponents'
-import ContextMenu from '#/components/ContextMenu'
+import { ContextMenu } from '#/components/ContextMenu'
+import { ContextMenuEntry } from '#/components/ContextMenuEntry'
 import Label from '#/components/dashboard/Label'
-import { MenuEntry } from '#/components/MenuEntry'
-import * as backendHooks from '#/hooks/backendHooks'
 import { useStore } from '#/hooks/storeHooks'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import * as authProvider from '#/providers/AuthProvider'
@@ -19,21 +18,21 @@ import type { AssetColumnProps } from './columnProps'
 
 /** A column listing the labels on this asset. */
 export default function LabelsColumn(props: AssetColumnProps) {
-  const { item, state } = props
+  const { item, state, labels } = props
   const { backend, category, setQuery } = state
   const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const { data: labels } = backendHooks.useBackendQuery(backend, 'listTags', [])
   const driveStore = useDriveStore()
   const showDraggedLabelsFallback = useStore(
     driveStore,
     ({ selectedIds, isDraggingOverSelectedRow }) =>
       isDraggingOverSelectedRow && selectedIds.has(item.id),
   )
-  const labelsByName = React.useMemo(() => {
-    return new Map(labels?.map((label) => [label.value, label]))
-  }, [labels])
+  const labelsByName = React.useMemo(
+    () => new Map(labels.map((label) => [label.value, label])),
+    [labels],
+  )
   const self = permissions.tryFindSelfPermission(user, item.permissions)
   const managesThisAsset =
     category.type !== 'trash' &&
@@ -95,7 +94,7 @@ export default function LabelsColumn(props: AssetColumnProps) {
               }
               setModal(
                 <ContextMenu aria-label={getText('labelContextMenuLabel')} event={event}>
-                  <MenuEntry
+                  <ContextMenuEntry
                     action="delete"
                     label={getText('deleteLabelShortcut')}
                     doAction={doDelete}

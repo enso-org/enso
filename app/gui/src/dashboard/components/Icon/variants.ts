@@ -2,7 +2,7 @@
 import { tv } from '#/utilities/tailwindVariants'
 
 export const ICON_STYLES = tv({
-  base: 'flex-none aspect-square [&>svg]:stroke-current [&>svg]:w-full [&>svg]:h-full',
+  base: 'flex-none aspect-square w-full h-full [&>svg]:stroke-current [&>svg]:w-full [&>svg]:h-full',
   variants: {
     color: {
       custom: '',
@@ -10,7 +10,7 @@ export const ICON_STYLES = tv({
       danger: 'text-danger',
       success: 'text-accent-dark',
       accent: 'text-accent-dark',
-      muted: 'text-primary/40',
+      muted: 'text-primary/50',
       disabled: 'text-disabled',
       invert: 'text-invert',
       inherit: 'text-inherit',

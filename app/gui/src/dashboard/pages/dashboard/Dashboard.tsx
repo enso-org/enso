@@ -10,7 +10,6 @@ import type * as assetTable from '#/layouts/AssetsTable'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import { CategoriesProvider, useCategoriesAPI } from '#/layouts/Drive/CategorySwitcher'
-import { useRefetchDirectories } from '#/layouts/Drive/fetchDirectoriesHooks'
 import { UserBar } from '#/layouts/UserBar'
 import * as backendProvider from '#/providers/BackendProvider'
 import { DriveProvider } from '#/providers/DriveProvider'
@@ -20,13 +19,17 @@ import {
   ProjectsProvider,
   useClearLaunchedProjects,
   usePage,
-  useProjectsStore,
   useSetPage,
   type TabType,
 } from '#/providers/ProjectsProvider'
-import { BackendType, Path } from '#/services/Backend'
-import { newDirectoryId, newProjectId } from '#/services/LocalBackend'
+import { Path } from '#/services/Backend'
+import { newProjectId } from '#/services/LocalBackend'
 import { UUID } from '#/services/ProjectManager'
+
+import * as backendModule from '#/services/Backend'
+import * as localBackendModule from '#/services/LocalBackend'
+import * as projectManager from '#/services/ProjectManager'
+
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import { document } from '#/utilities/sanitizedEventTargets'
@@ -84,8 +87,6 @@ function fileURLToPath(url: string): string | null {
 function DashboardInner(props: DashboardProps) {
   const { initialProjectName: initialProjectNameRaw, ydocUrl } = props
   const localBackend = backendProvider.useLocalBackend()
-  const { modalRef } = modalProvider.useModalRef()
-  const { updateModal, unsetModal } = modalProvider.useSetModal()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
 
@@ -96,16 +97,11 @@ function DashboardInner(props: DashboardProps) {
   const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
 
   const categoriesAPI = useCategoriesAPI()
-
-  useRefetchDirectories(BackendType.local)
-  useRefetchDirectories(BackendType.remote)
-
-  const projectsStore = useProjectsStore()
   const page = usePage()
-
   const setPage = useSetPage()
+
   const openEditor = projectHooks.useOpenEditor()
-  const openProject = projectHooks.useOpenProject()
+  const openProjectLocally = projectHooks.useOpenProjectLocally()
   const closeProject = projectHooks.useCloseProject()
   const closeAllProjects = projectHooks.useCloseAllProjects()
   const clearLaunchedProjects = useClearLaunchedProjects()
@@ -122,12 +118,14 @@ function DashboardInner(props: DashboardProps) {
           localBackend.rootPath(),
           projectName,
         )
-        openProject({
-          type: BackendType.local,
-          id: newProjectId(UUID(id), localBackend.rootPath()),
-          title: projectName,
-          parentId: newDirectoryId(localBackend.rootPath()),
-        })
+        await openProjectLocally(
+          {
+            id: localBackendModule.newProjectId(projectManager.UUID(id), localBackend.rootPath()),
+            title: projectName,
+            parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
+          },
+          backendModule.BackendType.local,
+        )
       }
       return null
     },
@@ -140,40 +138,20 @@ function DashboardInner(props: DashboardProps) {
 
       const projectId = newProjectId(UUID(project.id), Path(project.parentDirectory))
 
-      openProject({
-        type: BackendType.local,
-        id: projectId,
-        title: project.name,
-        parentId: newDirectoryId(Path(project.parentDirectory)),
-      })
+      void openProjectLocally(
+        {
+          id: projectId,
+          title: project.name,
+          parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
+        },
+        backendModule.BackendType.local,
+      )
     })
 
     return () => {
       window.projectManagementApi?.setOpenProjectHandler(() => {})
     }
-  }, [openEditor, openProject, categoriesAPI])
-
-  React.useEffect(
-    () =>
-      inputBindings.attach(document.body, 'keydown', {
-        closeModal: () => {
-          updateModal((oldModal) => {
-            if (oldModal == null) {
-              const currentPage = projectsStore.getState().page
-              if (currentPage === 'settings') {
-                setPage('drive')
-              }
-            }
-            return null
-          })
-
-          if (modalRef.current == null) {
-            return false
-          }
-        },
-      }),
-    [inputBindings, modalRef, updateModal, setPage, projectsStore],
-  )
+  }, [openEditor, openProjectLocally, categoriesAPI])
 
   React.useEffect(() => {
     if (isOnElectron()) {
@@ -205,7 +183,7 @@ function DashboardInner(props: DashboardProps) {
         className="flex min-h-full flex-col text-xs text-primary"
         onContextMenu={(event) => {
           event.preventDefault()
-          unsetModal()
+          modalProvider.unsetModal()
         }}
       >
         <aria.Tabs

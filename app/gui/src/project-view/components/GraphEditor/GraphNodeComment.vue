@@ -22,22 +22,23 @@ syncRef(editing, useFocusDelayed(textEditorContent).focused)
     class="GraphNodeComment"
     @keydown.enter.capture.stop="editing = false"
   >
-    <PlainTextEditor ref="textEditor" :content="documentation" />
+    <PlainTextEditor
+      ref="textEditor"
+      :content="documentation"
+      contentTestId="graph-node-comment-content"
+    />
   </div>
 </template>
 
 <style scoped>
 :deep(.cm-content) {
-  display: inline-block;
   min-width: 22px;
   border-radius: var(--radius-default);
   background-color: var(--node-color-no-type);
   opacity: 0.8;
   color: var(--color-text-inversed);
   font-weight: 400;
-}
-
-:deep(.cm-line) {
-  padding: 0 8px 0 8px;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 </style>

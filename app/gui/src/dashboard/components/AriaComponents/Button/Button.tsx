@@ -179,7 +179,7 @@ export const Button = memo(
       targetRef: contentRef,
       children: tooltipElement,
       isDisabled: !shouldUseVisualTooltip,
-      ...(tooltipPlacement && { overlayPositionProps: { placement: tooltipPlacement } }),
+      overlayPositionProps: { placement: tooltipPlacement ?? 'top' },
     })
 
     const shouldDisplayBorder = isJoined && (position === 'first' || position === 'middle')
@@ -346,7 +346,7 @@ const ButtonContent = memo(function ButtonContent(props: ButtonContentProps) {
         styles={styles}
         hideLoader={hideLoader}
       />
-      <span className={styles.text()}>{children}</span>
+      {children}
       {hasAddon(addonEnd) && <div className={styles.addonEnd()}>{addonEnd}</div>}
     </>
   )

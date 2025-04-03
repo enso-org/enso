@@ -1,26 +1,23 @@
 /** @file A context menu. */
-import * as React from 'react'
-
-import * as detect from 'enso-common/src/detect'
-
 import { FocusArea } from '#/components/styled/FocusArea'
-
 import { forwardRef } from '#/utilities/react'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
-import Modal from './Modal'
+import { twMerge } from '#/utilities/tailwindMerge'
+import { isOnMacOS } from 'enso-common/src/detect'
+import type { ForwardedRef, MouseEvent, PropsWithChildren } from 'react'
+import { Modal } from './Modal'
 
 /** Props for a `ContextMenu`. */
-export interface ContextMenuProps extends Readonly<React.PropsWithChildren> {
+export interface ContextMenuProps extends Readonly<PropsWithChildren> {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly 'aria-label': string
   readonly hidden?: boolean
-  readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
+  readonly event: Pick<MouseEvent, 'pageX' | 'pageY'>
 }
 
 /** A context menu that opens at the current mouse position. */
-export default forwardRef(function ContextMenu(
+export const ContextMenu = forwardRef(function ContextMenu(
   props: ContextMenuProps,
-  ref: React.ForwardedRef<HTMLDivElement>,
+  ref: ForwardedRef<HTMLDivElement>,
 ) {
   const { hidden = false, children, event } = props
 
@@ -35,9 +32,7 @@ export default forwardRef(function ContextMenu(
           data-testid="context-menu"
           ref={ref}
           style={{ left: event.pageX, top: event.pageY }}
-          className={tailwindMerge.twMerge(
-            'pointer-events-none sticky flex w-min items-start gap-context-menus',
-          )}
+          className={twMerge('pointer-events-none sticky flex w-min items-start gap-context-menus')}
           onClick={(clickEvent) => {
             clickEvent.stopPropagation()
           }}
@@ -50,9 +45,9 @@ export default forwardRef(function ContextMenu(
               >
                 <div
                   aria-label={props['aria-label']}
-                  className={tailwindMerge.twMerge(
+                  className={twMerge(
                     'relative flex flex-col rounded-default p-context-menu',
-                    detect.isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu',
+                    isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu',
                   )}
                 >
                   {children}

@@ -1,29 +1,29 @@
 /** @file An element that prevents navigation outside of itself. */
-import * as aria from '#/components/aria'
+import { FocusScope } from '#/components/aria'
 import { withFocusScope } from '#/components/styled/withFocusScope'
-import * as navigator2DProvider from '#/providers/Navigator2DProvider'
-import * as detect from 'enso-common/src/detect'
-import * as React from 'react'
+import { useNavigator2D } from '#/providers/Navigator2DProvider'
+import { IS_DEV_MODE } from 'enso-common/src/detect'
+import { useMemo, useRef, type JSX, type KeyboardEventHandler, type RefCallback } from 'react'
 
 /** Props passed to the inner handler of a {@link FocusRoot}. */
 export interface FocusRootInnerProps {
-  readonly ref: React.RefCallback<HTMLElement | SVGElement | null>
-  readonly onKeyDown?: React.KeyboardEventHandler<HTMLElement>
+  readonly ref: RefCallback<HTMLElement | SVGElement | null>
+  readonly onKeyDown?: KeyboardEventHandler<HTMLElement>
 }
 
 /** Props for a {@link FocusRoot} */
 export interface FocusRootProps {
   readonly active?: boolean
-  readonly children: (props: FocusRootInnerProps) => React.JSX.Element
+  readonly children: (props: FocusRootInnerProps) => JSX.Element
 }
 
 /** An element that prevents navigation outside of itself. */
 function FocusRootInternal(props: FocusRootProps) {
   const { active = true, children } = props
-  const navigator2D = navigator2DProvider.useNavigator2D()
-  const cleanupRef = React.useRef(() => {})
+  const navigator2D = useNavigator2D()
+  const cleanupRef = useRef(() => {})
 
-  const cachedChildren = React.useMemo(
+  const cachedChildren = useMemo(
     () =>
       children({
         ref: (element) => {
@@ -33,7 +33,7 @@ function FocusRootInternal(props: FocusRootProps) {
           } else {
             cleanupRef.current = () => {}
           }
-          if (element != null && detect.IS_DEV_MODE) {
+          if (element != null && IS_DEV_MODE) {
             if (active) {
               element.dataset.focusRoot = ''
             } else {
@@ -51,9 +51,9 @@ function FocusRootInternal(props: FocusRootProps) {
   )
 
   return !active ? cachedChildren : (
-      <aria.FocusScope contain restoreFocus autoFocus>
+      <FocusScope contain restoreFocus autoFocus>
         {cachedChildren}
-      </aria.FocusScope>
+      </FocusScope>
     )
 }
 

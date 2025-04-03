@@ -51,6 +51,8 @@ pub struct Gui;
 
 #[derive(ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BuildMode {
+    Npekin,
+    Pbuchu,
     Staging,
     Production,
 }
@@ -58,6 +60,8 @@ pub enum BuildMode {
 impl Display for BuildMode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Npekin => write!(f, "npekin"),
+            Self::Pbuchu => write!(f, "pbuchu"),
             Self::Staging => write!(f, "staging"),
             Self::Production => write!(f, "production"),
         }

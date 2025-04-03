@@ -1,34 +1,22 @@
-/**
- * @file
- *
- * A context menu entry that opens a paywall dialog.
- */
-
-import * as React from 'react'
-
+/** @file A context menu entry that opens a paywall dialog. */
 import LockIcon from '#/assets/lock.svg'
-
-import type * as billingHooks from '#/hooks/billing'
-
-import * as modalProvider from '#/providers/ModalProvider'
-
-import type * as contextMenuEntry from '#/components/ContextMenuEntry'
+import type { ContextMenuEntryProps as ContextMenuEntryBaseProps } from '#/components/ContextMenuEntry'
 import ContextMenuEntryBase from '#/components/ContextMenuEntry'
-
+import type { PaywallFeatureName } from '#/hooks/billing'
+import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
-import * as paywallDialog from './PaywallDialog'
+import { PaywallDialog } from './PaywallDialog'
 
 /** Props for {@link ContextMenuEntry}. */
-export interface ContextMenuEntryProps
-  extends Omit<contextMenuEntry.ContextMenuEntryProps, 'isDisabled'> {
-  readonly feature: billingHooks.PaywallFeatureName
+export interface ContextMenuEntryProps extends Omit<ContextMenuEntryBaseProps, 'isDisabled'> {
+  readonly feature: PaywallFeatureName
   readonly isUnderPaywall: boolean
 }
 
 /** A context menu entry that opens a paywall dialog. */
 export function ContextMenuEntry(props: ContextMenuEntryProps) {
   const { feature, isUnderPaywall, doAction, icon, ...rest } = props
-  const { setModal } = modalProvider.useSetModal()
+  const { setModal } = useSetModal()
   const { getText } = useText()
 
   return (
@@ -38,9 +26,7 @@ export function ContextMenuEntry(props: ContextMenuEntryProps) {
       tooltip={isUnderPaywall ? getText('upgradeToUseCloud') : null}
       doAction={() => {
         if (isUnderPaywall) {
-          setModal(
-            <paywallDialog.PaywallDialog modalProps={{ defaultOpen: true }} feature={feature} />,
-          )
+          setModal(<PaywallDialog modalProps={{ defaultOpen: true }} feature={feature} />)
         } else {
           doAction()
         }

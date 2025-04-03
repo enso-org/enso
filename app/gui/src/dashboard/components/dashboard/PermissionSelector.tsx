@@ -5,7 +5,7 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import PermissionTypeSelector from '#/components/dashboard/PermissionTypeSelector'
-import Modal from '#/components/Modal'
+import { Modal } from '#/components/Modal'
 
 import type * as backend from '#/services/Backend'
 

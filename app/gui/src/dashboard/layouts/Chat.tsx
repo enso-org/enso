@@ -176,7 +176,7 @@ function ChatMessage(props: ChatMessageProps) {
         <div className="mx-chat-message-info-x leading-cozy">
           <div className="font-bold">{message.name}</div>
           <div className="text-primary text-opacity-unimportant">
-            {dateTime.formatDateTimeChatFriendly(new Date(message.timestamp))}
+            {dateTime.toReadableIsoString(new Date(message.timestamp))}
           </div>
         </div>
       </div>
@@ -246,7 +246,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
         <ariaComponents.Button
           size="custom"
           variant="custom"
-          className="flex grow items-center gap-icon-with-text"
+          className="flex grow items-center gap-2"
           onPress={() => {
             setIsThreadListVisible((visible) => !visible)
           }}

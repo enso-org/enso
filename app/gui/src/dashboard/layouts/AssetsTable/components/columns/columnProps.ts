@@ -1,6 +1,6 @@
 /** @file Props types for columns. */
 import type { Category } from '#/layouts/Drive/CategorySwitcher'
-import type { AnyAsset, BackendType } from '#/services/Backend'
+import type { AnyAsset, BackendType, Label } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
 import type { Dispatch, JSX, SetStateAction } from 'react'
 import type { AssetRowState, AssetsTableState } from '../../types'
@@ -11,6 +11,7 @@ export interface AssetColumnProps {
   readonly isOpened: boolean
   readonly isNavigating: boolean
   readonly item: AnyAsset
+  readonly labels: readonly Label[]
   readonly backendType: BackendType
   readonly setSelected: (selected: boolean) => void
   readonly state: AssetsTableState

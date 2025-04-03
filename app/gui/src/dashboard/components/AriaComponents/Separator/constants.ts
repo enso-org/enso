@@ -1,5 +1,11 @@
 /** @file Constants related to `Separator`. */
-import { tv } from '#/utilities/tailwindVariants'
+import { type SeparatorProps as AriaSeparatorProps } from '#/components/aria'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+
+/** The props for {@link Separator} component. */
+export interface SeparatorProps extends AriaSeparatorProps, VariantProps<typeof SEPARATOR_STYLES> {
+  readonly className?: string | undefined
+}
 
 /** The styles for the {@link Separator} component. */
 export const SEPARATOR_STYLES = tv({

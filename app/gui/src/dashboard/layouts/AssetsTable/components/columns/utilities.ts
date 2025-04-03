@@ -40,7 +40,6 @@ export function getColumnList(
     // Bring back these columns when they are ready for use again.
     // isCloud && Column.accessedByProjects,
     // isCloud && Column.accessedData,
-    isCloud && Column.docs,
   ] as const
 
   return columns.flatMap((column) => (column !== false ? [column] : []))
