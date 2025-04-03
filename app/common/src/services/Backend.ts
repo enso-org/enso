@@ -1010,7 +1010,9 @@ export function isPlaceholderId(id: AssetId) {
 }
 
 /** Whether a given asset represents a credential. */
-export function isAssetCredential(asset: Asset): asset is SecretAsset & { credentialMetadata: CredentialMetadata } {
+export function isAssetCredential(
+  asset: Asset,
+): asset is SecretAsset & { credentialMetadata: CredentialMetadata } {
   return asset.type === 'secret' && asset.credentialMetadata !== undefined
 }
 
