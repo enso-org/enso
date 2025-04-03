@@ -17,7 +17,7 @@ type Rounding_Mode
        the nearest even neighbor.
     Bankers
 
-    to_java_rounding_mode self -> RoundingMode =
+    private to_java_rounding_mode self -> RoundingMode =
         case self of
             Rounding_Mode.Half_Up -> RoundingMode.HALF_UP
             Rounding_Mode.Bankers -> RoundingMode.HALF_EVEN
