@@ -122,7 +122,10 @@ public final class PosixWorkingDirectory implements WorkingDirectory {
 
     @Override
     public boolean isInConfiguration() {
-      return Platform.getOperatingSystem().isLinux();
+      return switch (Platform.getOperatingSystem()) {
+        case LINUX, MACOS -> true;
+        case WINDOWS -> false;
+      };
     }
 
     @Override
