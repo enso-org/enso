@@ -1,9 +1,9 @@
+/** @file A wrapper that resets the button group context. */
 import { ButtonGroupContext } from '#/components/AriaComponents/Button/constants'
-import {
-  EMPTY_CONTEXT,
-  JoinedButtonPrivateContextProvider,
-} from '#/components/AriaComponents/Button/shared'
+import { JoinedButtonPrivateContextProvider } from '#/components/AriaComponents/Button/shared'
 import type { PropsWithChildren } from 'react'
+
+const EMPTY_CONTEXT = {}
 
 /** A wrapper that resets the button group context. */
 export function ResetButtonGroupContext(props: PropsWithChildren) {

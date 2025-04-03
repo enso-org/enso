@@ -5,7 +5,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '#/providers/TextProvider'
 import { SortDirection, iconIdFor, nextSortDirection } from '#/utilities/sorting'
 import { twJoin } from '#/utilities/tailwindMerge'
-import { AssetColumnHeadingProps } from '../columnProps'
+import type { AssetColumnHeadingProps } from '../columnProps'
 import { Column } from '../types'
 
 /** A heading for the "Name" column. */

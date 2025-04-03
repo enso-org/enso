@@ -1,7 +1,7 @@
 /** @file A text display with an icon. */
 import { Text, type TextProps } from '#/components/AriaComponents/Text'
 import type { IconProp } from '#/components/AriaComponents/types'
-import { TooltipElementType, VisualTooltip } from '#/components/AriaComponents/VisualTooltip'
+import { VisualTooltip, type TooltipElementType } from '#/components/AriaComponents/VisualTooltip'
 import { Icon } from '#/components/Icon'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 

@@ -1,13 +1,14 @@
+/** @file A function to transfer a list of assets between categories. */
 import { deleteAssetsMutationOptions, moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useBackendQuery } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
-import { AssetId, DirectoryId } from '#/services/Backend'
+import type { AssetId, DirectoryId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 import { useMutation } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
-import { Category } from './Category'
+import type { Category } from './Category'
 
 /** A function to transfer a list of assets between categories. */
 export function useTransferBetweenCategories(currentCategory: Category) {

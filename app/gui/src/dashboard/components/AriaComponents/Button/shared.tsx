@@ -56,8 +56,6 @@ export function ButtonGroupProvider(props: ButtonGroupContextType & Readonly<Pro
   return <ButtonGroupContext.Provider value={contextValue}>{children}</ButtonGroupContext.Provider>
 }
 
-export const EMPTY_CONTEXT: ButtonGroupContextType = {}
-
 /** A provider for the joined button private context. */
 export function JoinedButtonPrivateContextProvider(
   props: PrivateJoinedButtonProps & Readonly<PropsWithChildren>,

@@ -20,8 +20,6 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 
-export const CLOSED_PROJECT_STATE = { type: backendModule.ProjectState.closed } as const
-
 /**
  * The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState},
  * when using the remote backend.

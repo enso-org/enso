@@ -1,6 +1,6 @@
 /** @file An entry in a menu. */
 import BlankIcon from '#/assets/blank.svg'
-import { Button, ButtonProps, mergeProps } from '#/components/aria'
+import { Button, mergeProps, type ButtonProps } from '#/components/aria'
 import type { TextProps } from '#/components/AriaComponents'
 import { Text, useDialogContext, useVisualTooltip } from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
