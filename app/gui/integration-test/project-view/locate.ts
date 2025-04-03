@@ -85,9 +85,8 @@ export const componentMenu = componentLocator('.ComponentMenu')
 export const addNewNodeButton = testIdLocator('add-component-button')
 export const componentBrowser = componentLocator('.ComponentBrowser')
 export const nodeOutputPort = componentLocator('.outputPortHoverArea')
-export const editorRoot = componentLocator('.CodeMirror')
 export const nodeComment = componentLocator('.GraphNodeComment')
-export const nodeCommentContent = componentLocator('.GraphNodeComment div[contentEditable]')
+export const nodeCommentContent = testIdLocator('graph-node-comment-content')
 
 /**
  * A not-selected variant of Component Browser Entry.
@@ -134,7 +133,6 @@ export function deleteItemButton(page: Locator | Page) {
 }
 
 export const navBreadcrumb = componentLocator('.NavBreadcrumb')
-export const componentBrowserInput = componentLocator('.ComponentEditor')
 
 function visualizationLocator(visSelector: string) {
   // Playwright pierces shadow roots, but not within a single XPath.

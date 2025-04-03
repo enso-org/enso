@@ -78,7 +78,7 @@ export function useEnsoDiagnostics(
   })
   return [
     stateExt,
-    linter((view) => view.state.facet(getDiagnostics) ?? [], {
+    linter((view) => view.state.field(getDiagnostics) ?? [], {
       needsRefresh: diagnosticsChanged,
     }),
   ]
