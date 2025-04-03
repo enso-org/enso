@@ -10,8 +10,8 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.Function;
 import org.enso.common.MethodNames;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
@@ -25,8 +25,8 @@ public class InsightForEnsoTest {
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
   @ClassRule
-  public static final ContextUtilsRule ctxRule =
-      ContextUtilsRule.createCustom(InsightForEnsoTest::initContext);
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(InsightForEnsoTest::initContext);
 
   public static Context initContext() {
     var ctx = ContextUtils.defaultContextBuilder().out(out).build();

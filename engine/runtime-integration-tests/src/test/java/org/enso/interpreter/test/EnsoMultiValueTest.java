@@ -6,7 +6,7 @@ import static org.junit.Assert.fail;
 import java.util.HashSet;
 import java.util.List;
 import org.enso.pkg.QualifiedName;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
 import org.graalvm.polyglot.TypeLiteral;
@@ -17,7 +17,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class EnsoMultiValueTest {
   @Rule public final TemporaryFolder dir = new TemporaryFolder();
-  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   @Test
   public void keepIdentityOfAandB() throws Exception {

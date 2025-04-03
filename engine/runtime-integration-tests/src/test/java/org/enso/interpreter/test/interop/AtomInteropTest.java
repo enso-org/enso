@@ -18,8 +18,8 @@ import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
@@ -30,7 +30,7 @@ import org.junit.Test;
  * org.enso.interpreter.runtime.data.atom.Atom atoms}.
  */
 public class AtomInteropTest {
-  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   @Test
   public void atomMemberNames_AreNotQualified() {

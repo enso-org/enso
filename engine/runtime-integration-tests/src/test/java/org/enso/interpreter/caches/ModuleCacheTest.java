@@ -9,8 +9,8 @@ import org.enso.common.CompilationStage;
 import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.test.CompilerTests;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.junit.ClassRule;
@@ -18,8 +18,8 @@ import org.junit.Test;
 
 public class ModuleCacheTest {
   @ClassRule
-  public static final ContextUtilsRule ctxRule =
-      ContextUtilsRule.createCustom(ModuleCacheTest::initializeContext);
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(ModuleCacheTest::initializeContext);
 
   public ModuleCacheTest() {}
 

@@ -18,7 +18,7 @@ import org.enso.common.RuntimeOptions;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap$ModuleReference$Concrete;
 import org.enso.pkg.QualifiedName;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.PolyglotException;
@@ -34,8 +34,8 @@ public class ModuleTest {
   private File f;
 
   @ClassRule
-  public static final ContextUtilsRule ctxRule =
-      ContextUtilsRule.createCustom(ModuleTest::createCtx);
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(ModuleTest::createCtx);
 
   private static Context createCtx() {
     Engine eng =

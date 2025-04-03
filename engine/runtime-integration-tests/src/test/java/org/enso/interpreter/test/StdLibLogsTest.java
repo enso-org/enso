@@ -8,7 +8,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import java.util.List;
 import org.enso.common.MethodNames;
 import org.enso.logging.service.logback.MemoryAppender;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 public class StdLibLogsTest {
 
   private static Value mod;
-  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   @BeforeClass
   public static void initEnsoContext() {

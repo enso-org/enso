@@ -7,13 +7,13 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import java.util.List;
 import org.enso.logging.service.logback.MemoryAppender;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.Source;
 import org.junit.*;
 import org.slf4j.LoggerFactory;
 
 public class StdLibLoggingTest {
-  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   private final Source logExample =
       Source.newBuilder(

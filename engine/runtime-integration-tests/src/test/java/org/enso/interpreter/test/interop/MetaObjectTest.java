@@ -24,8 +24,8 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -38,8 +38,8 @@ public class MetaObjectTest {
   private static ValuesGenerator generator;
 
   @ClassRule
-  public static final ContextUtilsRule ctxRule =
-      ContextUtilsRule.createCustom(MetaObjectTest::prepareCtx);
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(MetaObjectTest::prepareCtx);
 
   private static Context prepareCtx() {
     var ctx = ContextUtils.createDefaultContext();

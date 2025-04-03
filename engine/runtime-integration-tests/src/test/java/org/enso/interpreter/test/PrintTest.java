@@ -7,7 +7,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import org.enso.common.MethodNames;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.Before;
@@ -18,7 +18,7 @@ public class PrintTest {
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
   @ClassRule
-  public static final ContextUtilsRule ctxRule = ContextUtilsRule.createWithCapturedOut(out);
+  public static final ContextRule ctxRule = ContextRule.createWithCapturedOut(out);
 
   @Before
   public void cleanOut() {

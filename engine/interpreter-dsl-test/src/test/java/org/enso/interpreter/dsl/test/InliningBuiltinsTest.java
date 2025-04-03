@@ -8,12 +8,12 @@ import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.node.InlineableNode;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class InliningBuiltinsTest {
-  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   /**
    * @see InliningBuiltinsInNode#execute(long, long)

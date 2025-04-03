@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.logging.Level;
 import org.enso.common.RuntimeOptions;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.enso.text.buffer.Rope$;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
@@ -20,8 +20,8 @@ import org.junit.Test;
 public class ModuleSourcesTest {
 
   @ClassRule
-  public static final ContextUtilsRule ctxRule =
-      ContextUtilsRule.createCustom(ModuleSourcesTest::createCtx);
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(ModuleSourcesTest::createCtx);
 
   private File f;
 

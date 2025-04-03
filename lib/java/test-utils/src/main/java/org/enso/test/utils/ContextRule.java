@@ -21,35 +21,35 @@ import org.junit.runners.model.Statement;
  * <p>This class simply delegates most of the methods either directly to {@link Context} or to
  * {@link ContextUtils}.
  *
- * <p>Note that {@link ContextUtilsRule} cannot be used inside methods annotated with {@link
+ * <p>Note that {@link ContextRule} cannot be used inside methods annotated with {@link
  * org.junit.runners.Parameterized.Parameters}.
  */
-public final class ContextUtilsRule implements TestRule {
+public final class ContextRule implements TestRule {
   private static final ThreadLocal<Context> CURRENT = new ThreadLocal<>();
   private final Supplier<Context> contextSupplier;
   private final ByteArrayOutputStream out;
 
-  private ContextUtilsRule(Supplier<Context> contextSupplier, ByteArrayOutputStream out) {
+  private ContextRule(Supplier<Context> contextSupplier, ByteArrayOutputStream out) {
     this.contextSupplier = contextSupplier;
     this.out = out;
   }
 
-  public static ContextUtilsRule createDefault() {
+  public static ContextRule createDefault() {
     var out = new ByteArrayOutputStream();
     Supplier<Context> supplier =
         () -> {
           return ContextUtils.defaultContextBuilder().out(out).err(out).build();
         };
-    return new ContextUtilsRule(supplier, out);
+    return new ContextRule(supplier, out);
   }
 
-  public static ContextUtilsRule createCustom(Supplier<Context> contextSupplier) {
-    return new ContextUtilsRule(contextSupplier, null);
+  public static ContextRule createCustom(Supplier<Context> contextSupplier) {
+    return new ContextRule(contextSupplier, null);
   }
 
-  public static ContextUtilsRule createWithCapturedOut(ByteArrayOutputStream out) {
+  public static ContextRule createWithCapturedOut(ByteArrayOutputStream out) {
     Supplier<Context> supplier = () -> ContextUtils.createDefaultContext(out);
-    return new ContextUtilsRule(supplier, out);
+    return new ContextRule(supplier, out);
   }
 
   @Override

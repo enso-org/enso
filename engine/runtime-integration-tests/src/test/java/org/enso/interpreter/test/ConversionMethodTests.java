@@ -6,7 +6,7 @@ import static org.junit.Assert.fail;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.Value;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -19,7 +19,7 @@ public class ConversionMethodTests {
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
   @ClassRule
-  public static final ContextUtilsRule ctxRule = ContextUtilsRule.createWithCapturedOut(out);
+  public static final ContextRule ctxRule = ContextRule.createWithCapturedOut(out);
 
   @AfterClass
   public static void disposeOut() throws IOException {

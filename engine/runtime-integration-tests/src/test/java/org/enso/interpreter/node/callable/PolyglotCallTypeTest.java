@@ -7,12 +7,12 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import java.math.BigInteger;
 import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class PolyglotCallTypeTest {
-  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   public PolyglotCallTypeTest() {}
 

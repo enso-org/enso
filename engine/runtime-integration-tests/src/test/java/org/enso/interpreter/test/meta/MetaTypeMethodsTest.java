@@ -15,8 +15,8 @@ import org.enso.interpreter.node.expression.builtin.meta.GetTypeMethodsNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
 import org.enso.test.utils.TestRootNode;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -32,8 +32,8 @@ import org.junit.Test;
  */
 public class MetaTypeMethodsTest {
   @ClassRule
-  public static final ContextUtilsRule ctxRule =
-      ContextUtilsRule.createCustom(MetaTypeMethodsTest::initCtx);
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(MetaTypeMethodsTest::initCtx);
 
   private static GetTypeMethodsNode getTypeMethodsNode;
   private static TestRootNode testRootNode;

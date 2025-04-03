@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -24,8 +24,8 @@ import org.junit.Test;
 
 public class MetaIsATest {
   @ClassRule
-  public static final ContextUtilsRule ctxRule =
-      ContextUtilsRule.createCustom(MetaIsATest::prepareCtx);
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(MetaIsATest::prepareCtx);
 
   private static Value isACheck;
   private static Value warningCheck;

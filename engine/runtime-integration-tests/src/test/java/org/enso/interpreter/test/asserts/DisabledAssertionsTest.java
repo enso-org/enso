@@ -5,8 +5,8 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
@@ -14,8 +14,8 @@ import org.junit.Test;
 
 public class DisabledAssertionsTest {
   @ClassRule
-  public static final ContextUtilsRule ctxRule =
-      ContextUtilsRule.createCustom(DisabledAssertionsTest::setupCtx);
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(DisabledAssertionsTest::setupCtx);
 
   private static Context setupCtx() {
     return ContextUtils.defaultContextBuilder()

@@ -9,8 +9,8 @@ import java.net.URISyntaxException;
 import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.test.TypeInferenceTest;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -27,8 +27,8 @@ public class TypeInferenceConsistencyTest {
   private static final ByteArrayOutputStream output = new ByteArrayOutputStream();
 
   @ClassRule
-  public static final ContextUtilsRule ctxRule =
-      ContextUtilsRule.createCustom(TypeInferenceConsistencyTest::createCtx);
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(TypeInferenceConsistencyTest::createCtx);
 
   private static Context createCtx() {
     var ctx =

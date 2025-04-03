@@ -11,7 +11,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayOutputStream;
 import org.enso.common.DebugServerInfo;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.hamcrest.core.AllOf;
@@ -25,8 +25,8 @@ public class DebugServerInspectTest {
   private static ByteArrayOutputStream err = new ByteArrayOutputStream();
 
   @ClassRule
-  public static final ContextUtilsRule ctxRule =
-      ContextUtilsRule.createCustom(DebugServerInspectTest::initContext);
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(DebugServerInspectTest::initContext);
 
   private static Context initContext() {
     var b = ContextUtils.defaultContextBuilder().out(out).err(err);

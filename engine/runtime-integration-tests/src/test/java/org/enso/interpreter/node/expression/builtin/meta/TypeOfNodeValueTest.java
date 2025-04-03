@@ -9,7 +9,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.TestRootNode;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -17,7 +17,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class TypeOfNodeValueTest {
-  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
   private static RootCallTarget testTypesCall;
 
   @BeforeClass

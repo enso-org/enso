@@ -14,8 +14,8 @@ import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.test.instruments.NodeCountingTestInstrument;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.junit.AfterClass;
@@ -26,8 +26,8 @@ import org.junit.Test;
 public class AvoidIdInstrumentationTagTest {
 
   @ClassRule
-  public static final ContextUtilsRule ctxRule =
-      ContextUtilsRule.createCustom(AvoidIdInstrumentationTagTest::initContext);
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(AvoidIdInstrumentationTagTest::initContext);
 
   private static NodeCountingTestInstrument nodes;
 

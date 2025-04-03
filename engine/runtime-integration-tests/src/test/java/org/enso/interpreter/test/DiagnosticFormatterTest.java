@@ -16,7 +16,7 @@ import org.enso.common.MethodNames.Module;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.interpreter.runtime.util.DiagnosticFormatter;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.io.IOAccess;
@@ -28,8 +28,8 @@ public class DiagnosticFormatterTest {
   private static final ByteArrayOutputStream output = new ByteArrayOutputStream();
 
   @ClassRule
-  public static final ContextUtilsRule ctxRule =
-      ContextUtilsRule.createCustom(DiagnosticFormatterTest::initCtx);
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(DiagnosticFormatterTest::initCtx);
 
   public static Context initCtx() {
     return Context.newBuilder()

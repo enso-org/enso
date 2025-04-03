@@ -6,14 +6,14 @@ import static org.junit.Assert.assertTrue;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.Source;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class FunctionIdentityTest {
 
-  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   @Test
   public void functionWithArgIdentity() throws Exception {

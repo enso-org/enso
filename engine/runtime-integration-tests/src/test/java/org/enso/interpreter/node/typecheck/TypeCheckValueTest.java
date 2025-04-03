@@ -7,13 +7,13 @@ import com.oracle.truffle.api.CallTarget;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.TestRootNode;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class TypeCheckValueTest {
-  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   @Test
   public void avoidDoubleWrappingOfEnsoMultiValue() {

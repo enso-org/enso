@@ -11,7 +11,7 @@ import static org.junit.Assert.fail;
 import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import org.enso.common.MethodNames;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.junit.After;
@@ -23,7 +23,7 @@ public class InterpreterSymbolResolutionTest {
   private static ByteArrayOutputStream out = new ByteArrayOutputStream();
 
   @ClassRule
-  public static final ContextUtilsRule ctxRule = ContextUtilsRule.createWithCapturedOut(out);
+  public static final ContextRule ctxRule = ContextRule.createWithCapturedOut(out);
 
   @After
   public void clear() {

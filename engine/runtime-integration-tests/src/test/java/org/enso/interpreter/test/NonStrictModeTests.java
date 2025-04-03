@@ -5,8 +5,8 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.Map;
 import org.enso.common.RuntimeOptions;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Value;
@@ -19,8 +19,8 @@ public class NonStrictModeTests {
   private static final MockLogHandler logHandler = new MockLogHandler();
 
   @ClassRule
-  public static final ContextUtilsRule ctxRule =
-      ContextUtilsRule.createCustom(NonStrictModeTests::createNonStrictContext);
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(NonStrictModeTests::createNonStrictContext);
 
   private static Context createNonStrictContext() {
     var context =

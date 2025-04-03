@@ -8,7 +8,7 @@ import static org.junit.Assert.fail;
 
 import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -19,7 +19,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class BinaryDispatchTest {
-  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
   private static Value module;
 
   public BinaryDispatchTest() {}

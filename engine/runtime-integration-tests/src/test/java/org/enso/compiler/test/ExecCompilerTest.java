@@ -17,7 +17,7 @@ import org.enso.common.MethodNames;
 import org.enso.common.MethodNames.Module;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.ir.expression.errors.Conversion.DeclaredAsPrivate$;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -31,8 +31,8 @@ import org.junit.Test;
 
 public class ExecCompilerTest {
   @ClassRule
-  public static final ContextUtilsRule ctxRule =
-      ContextUtilsRule.createCustom(ExecCompilerTest::initEnsoContext);
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(ExecCompilerTest::initEnsoContext);
 
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
 

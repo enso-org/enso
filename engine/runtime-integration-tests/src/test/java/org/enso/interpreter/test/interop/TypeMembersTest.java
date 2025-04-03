@@ -17,8 +17,8 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -26,7 +26,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 public class TypeMembersTest {
-  @Rule public final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
+  @Rule public final ContextRule ctxRule = ContextRule.createDefault();
 
   @Test
   public void checkAtomMembers() throws Exception {

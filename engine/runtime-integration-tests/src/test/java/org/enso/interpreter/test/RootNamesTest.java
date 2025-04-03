@@ -11,7 +11,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
@@ -23,7 +23,7 @@ public class RootNamesTest {
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
   @Rule
-  public final ContextUtilsRule ctxRule = ContextUtilsRule.createCustom(RootNamesTest::createCtx);
+  public final ContextRule ctxRule = ContextRule.createCustom(RootNamesTest::createCtx);
 
   @Before
   public void cleanOut() {

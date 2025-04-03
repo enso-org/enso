@@ -7,8 +7,8 @@ import static org.junit.Assert.assertNull;
 
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -17,7 +17,7 @@ import org.junit.Test;
 
 public class RefTest {
   @ClassRule
-  public static final ContextUtilsRule ctxRule = ContextUtilsRule.createCustom(RefTest::initCtx);
+  public static final ContextRule ctxRule = ContextRule.createCustom(RefTest::initCtx);
 
   private static Value refType;
 

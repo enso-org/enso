@@ -6,8 +6,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import org.enso.common.LanguageInfo;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -22,8 +22,8 @@ import org.junit.runners.Parameterized.Parameters;
 public class SuccessfulAssertionExpressionTest {
 
   @ClassRule
-  public static final ContextUtilsRule ctxRule =
-      ContextUtilsRule.createCustom(SuccessfulAssertionExpressionTest::setupCtx);
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(SuccessfulAssertionExpressionTest::setupCtx);
 
   private static ByteArrayOutputStream out = new ByteArrayOutputStream();
 

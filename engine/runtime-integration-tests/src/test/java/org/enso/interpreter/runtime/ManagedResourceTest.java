@@ -11,8 +11,8 @@ import java.io.IOException;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import org.enso.common.MethodNames;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -23,8 +23,8 @@ import org.junit.Test;
 
 public class ManagedResourceTest {
   @ClassRule
-  public static final ContextUtilsRule ctxRule =
-      ContextUtilsRule.createCustom(ManagedResourceTest::initCtx);
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(ManagedResourceTest::initCtx);
 
   private static Value newResource;
   private static Value createResource;

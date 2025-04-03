@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.stream.Stream;
 import org.enso.common.MethodNames;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -23,7 +23,7 @@ public class BinaryOpFloatTest {
   private static final String[] OPERATIONS = {
     " +", " -", " ^", " *", " %", " <=", " <", " >=", " >", " /"
   };
-  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
   private static Value wrapReal;
 
   @Parameterized.Parameters(name = "({1}){0} ({2})")

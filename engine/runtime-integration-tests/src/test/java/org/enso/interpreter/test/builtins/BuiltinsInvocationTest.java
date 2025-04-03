@@ -3,13 +3,13 @@ package org.enso.interpreter.test.builtins;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class BuiltinsInvocationTest {
-  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   @Test
   public void invokeBuiltinWithWrongArguments_ShouldNotCrash() {

@@ -15,7 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.logging.Level;
 import org.enso.common.RuntimeOptions;
-import org.enso.test.utils.ContextUtilsRule;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -26,8 +26,8 @@ import org.junit.Test;
 
 public class ExecStrictCompilerTest {
   @ClassRule
-  public static final ContextUtilsRule ctxRule =
-      ContextUtilsRule.createCustom(ExecStrictCompilerTest::initEnsoContext);
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(ExecStrictCompilerTest::initEnsoContext);
 
   private static final ByteArrayOutputStream MESSAGES = new ByteArrayOutputStream();
 

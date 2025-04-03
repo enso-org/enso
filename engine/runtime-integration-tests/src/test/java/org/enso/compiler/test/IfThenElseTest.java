@@ -10,8 +10,8 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.io.ByteArrayOutputStream;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.hamcrest.Matchers;
@@ -25,7 +25,7 @@ public class IfThenElseTest {
   private static final ByteArrayOutputStream MESSAGES = new ByteArrayOutputStream();
 
   @ClassRule
-  public static final ContextUtilsRule ctxRule = ContextUtilsRule.createWithCapturedOut(MESSAGES);
+  public static final ContextRule ctxRule = ContextRule.createWithCapturedOut(MESSAGES);
 
   @After
   public void cleanMessages() {

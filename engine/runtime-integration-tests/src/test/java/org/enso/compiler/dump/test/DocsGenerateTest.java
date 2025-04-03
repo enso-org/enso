@@ -21,8 +21,8 @@ import org.enso.compiler.docs.DocsGenerate;
 import org.enso.compiler.docs.DocsVisit;
 import org.enso.editions.LibraryName;
 import org.enso.pkg.QualifiedName;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
 import org.junit.ClassRule;
@@ -31,7 +31,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class DocsGenerateTest {
   @ClassRule public static final TemporaryFolder TEMP = new TemporaryFolder();
-  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   public DocsGenerateTest() {}
 

@@ -25,8 +25,8 @@ import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
@@ -42,8 +42,8 @@ public class WarningsTest {
   private static Value wrap;
 
   @ClassRule
-  public static final ContextUtilsRule ctxRule =
-      ContextUtilsRule.createCustom(WarningsTest::initEnsoContext);
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(WarningsTest::initEnsoContext);
 
   private static Context initEnsoContext() {
     var ctx = ContextUtils.createDefaultContext();
