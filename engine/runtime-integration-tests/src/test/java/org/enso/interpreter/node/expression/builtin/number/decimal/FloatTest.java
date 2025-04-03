@@ -9,26 +9,24 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.test.WrappedPrimitive;
-import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.enso.test.utils.TestRootNode;
-import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 /** Tests Truffle nodes for integer operations. */
 public class FloatTest {
 
+  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
   private static AbsNode absNode;
   private static AddNode addNode;
   private static TestRootNode root;
-  private static Context ctx;
 
   @BeforeClass
   public static void setup() {
-    ctx = ContextUtils.createDefaultContext();
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           absNode = AbsNode.build();
           addNode = AddNode.build();
@@ -41,8 +39,9 @@ public class FloatTest {
 
   @AfterClass
   public static void teardown() {
-    ctx.close();
-    ctx = null;
+    absNode = null;
+    addNode = null;
+    root = null;
   }
 
   private static final EnsoBigInteger bigInt =
@@ -52,8 +51,7 @@ public class FloatTest {
 
   @Test
   public void testAbs23() {
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           assertEquals(23.1, absNode.execute(23.1), 0.01);
           assertEquals(23.1, absNode.execute(-23.1), 0.01);
@@ -63,8 +61,7 @@ public class FloatTest {
 
   @Test
   public void testAdd21And1Point0() {
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           assertEquals(23.1, addNode.execute(22.0, 1.1), 0.01);
           return null;
@@ -73,8 +70,7 @@ public class FloatTest {
 
   @Test
   public void testAdd21And1() {
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           assertEquals(23.1, addNode.execute(22.1, 1L), 0.01);
           return null;
@@ -83,11 +79,10 @@ public class FloatTest {
 
   @Test
   public void testAddMulti21And1() {
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           var nn = EnsoMultiValue.NewNode.getUncached();
-          var leak = ContextUtils.leakContext(ctx);
+          var leak = ctxRule.leakContext();
           var floatType = leak.getBuiltins().number().getFloat();
           var textType = leak.getBuiltins().text();
           var both = new Type[] {floatType, textType};
@@ -99,8 +94,7 @@ public class FloatTest {
 
   @Test
   public void testAddInterop21And1() {
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           var twentyOne = new WrappedPrimitive(21.1);
           assertEquals(23.1, addNode.execute(2.0, twentyOne), 0.01);
@@ -110,8 +104,7 @@ public class FloatTest {
 
   @Test
   public void testAddDoubleAndText() {
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           assertThrows(PanicException.class, () -> addNode.execute(23.1, "Hello"));
           return null;

@@ -9,52 +9,45 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
-import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.enso.test.utils.TestRootNode;
-import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class TypeOfNodeValueTest {
+  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
   private static RootCallTarget testTypesCall;
-  private static Context ctx;
 
-  private static Context ctx() {
-    if (ctx == null) {
-      ctx = ContextUtils.defaultContextBuilder().build();
-      ContextUtils.executeInContext(
-          ctx,
-          () -> {
-            var node = TypeOfNode.create();
-            var root =
-                new TestRootNode(
-                    (frame) -> {
-                      var arg = frame.getArguments()[0];
-                      var allTypes = (boolean) frame.getArguments()[1];
-                      var t = node.findTypeOrError(arg);
-                      var all = node.findAllTypesOrNull(arg, allTypes);
-                      return new Object[] {t, all};
-                    });
-            root.insertChildren(node);
-            testTypesCall = root.getCallTarget();
-            return null;
-          });
-    }
-    return ctx;
+  @BeforeClass
+  public static void init() {
+    ctxRule.executeInContext(
+        () -> {
+          var node = TypeOfNode.create();
+          var root =
+              new TestRootNode(
+                  (frame) -> {
+                    var arg = frame.getArguments()[0];
+                    var allTypes = (boolean) frame.getArguments()[1];
+                    var t = node.findTypeOrError(arg);
+                    var all = node.findAllTypesOrNull(arg, allTypes);
+                    return new Object[] {t, all};
+                  });
+          root.insertChildren(node);
+          testTypesCall = root.getCallTarget();
+          return null;
+        });
   }
 
   @AfterClass
   public static void disposeCtx() throws Exception {
-    if (ctx != null) {
-      ctx.close();
-      ctx = null;
-    }
+    testTypesCall = null;
   }
 
   @Test
   public void typeOfUnresolvedConstructor() {
-    ContextUtils.executeInContext(
-        ctx(),
+    ctxRule.executeInContext(
         () -> {
           var cnstr = UnresolvedConstructor.build(null, "Unknown_Name");
           var arr = (Object[]) testTypesCall.call(cnstr, true);
@@ -69,8 +62,7 @@ public class TypeOfNodeValueTest {
 
   @Test
   public void typeOfUnresolvedSymbol() {
-    ContextUtils.executeInContext(
-        ctx(),
+    ctxRule.executeInContext(
         () -> {
           var cnstr = UnresolvedSymbol.build("Unknown_Name", null);
           var arr = (Object[]) testTypesCall.call(cnstr, true);
@@ -85,8 +77,7 @@ public class TypeOfNodeValueTest {
 
   @Test
   public void multiValueWithHiddenType() {
-    ContextUtils.executeInContext(
-        ctx(),
+    ctxRule.executeInContext(
         () -> {
           var ensoCtx = EnsoContext.get(testTypesCall.getRootNode());
           var types =

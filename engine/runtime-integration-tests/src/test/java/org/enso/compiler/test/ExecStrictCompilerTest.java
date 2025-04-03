@@ -15,23 +15,24 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.logging.Level;
 import org.enso.common.RuntimeOptions;
-import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class ExecStrictCompilerTest {
-  private static Context ctx;
+  @ClassRule
+  public static final ContextUtilsRule ctxRule =
+      ContextUtilsRule.createCustom(ExecStrictCompilerTest::initEnsoContext);
+
   private static final ByteArrayOutputStream MESSAGES = new ByteArrayOutputStream();
 
-  @BeforeClass
-  public static void initEnsoContext() {
-    ctx =
+  private static Context initEnsoContext() {
+    var ctx =
         Context.newBuilder()
             .allowExperimentalOptions(true)
             .allowIO(IOAccess.ALL)
@@ -46,6 +47,7 @@ public class ExecStrictCompilerTest {
             .allowAllAccess(true)
             .build();
     assertNotNull("Enso language is supported", ctx.getEngine().getLanguages().get("enso"));
+    return ctx;
   }
 
   @After
@@ -53,16 +55,10 @@ public class ExecStrictCompilerTest {
     MESSAGES.reset();
   }
 
-  @AfterClass
-  public static void closeEnsoContext() {
-    ctx.close();
-    ctx = null;
-  }
-
   @Test
   public void redefinedArgument() {
     try {
-      var module = ctx.eval("enso", """
+      var module = ctxRule.eval("enso", """
       type My_Type
           Value a b c a
       """);
@@ -98,7 +94,7 @@ public class ExecStrictCompilerTest {
                 "wrong_cons.enso")
             .build();
     try {
-      var module = ctx.eval(code);
+      var module = ctxRule.eval(code);
       fail("Expecting no returned value: " + module);
     } catch (PolyglotException ex) {
       assertTrue("Syntax error", ex.isSyntaxError());
@@ -124,7 +120,7 @@ public class ExecStrictCompilerTest {
     """;
     var src = Source.newBuilder("enso", code, "extension.enso").build();
     try {
-      var module = ctx.eval(src);
+      var module = ctxRule.eval(src);
       fail("Unexpected result: " + module);
     } catch (PolyglotException ex) {
       var firstLine = ex.getMessage().split("\n")[0];
@@ -146,7 +142,7 @@ public class ExecStrictCompilerTest {
         main =
             bar foo
         """;
-    var res = ContextUtils.evalModule(ctx, code);
+    var res = ctxRule.evalModule(code);
     assertTrue("Compiles and returns result", res.isNumber());
     assertEquals("Returns correct result", 11, res.asInt());
   }
@@ -161,7 +157,7 @@ public class ExecStrictCompilerTest {
         main =
             naming_helper
         """;
-    var res = ContextUtils.evalModule(ctx, code);
+    var res = ctxRule.evalModule(code);
     assertThat(res, is(notNullValue()));
     var errors = MESSAGES.toString(StandardCharsets.UTF_8);
     assertThat(

@@ -8,36 +8,33 @@ import static org.junit.Assert.assertNull;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class RefTest {
-  private static Context ctx;
-  private static EnsoContext ensoCtx;
+  @ClassRule
+  public static final ContextUtilsRule ctxRule = ContextUtilsRule.createCustom(RefTest::initCtx);
+
   private static Value refType;
 
-  @BeforeClass
-  public static void initCtx() throws Exception {
-    ctx = ContextUtils.createDefaultContext();
-    ensoCtx = ContextUtils.leakContext(ctx);
+  private static Context initCtx() {
+    var ctx = ContextUtils.createDefaultContext();
     refType =
         ContextUtils.evalModule(
             ctx, """
         import Standard.Base.Runtime.Ref.Ref
         main = Ref
         """);
+    return ctx;
   }
 
   @AfterClass
   public static void closeCtx() throws Exception {
-    ctx.close();
-    ctx = null;
     refType = null;
-    ensoCtx.shutdown();
-    ensoCtx = null;
   }
 
   private static Value getRef(Value ref) {

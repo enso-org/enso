@@ -7,38 +7,21 @@ import com.oracle.truffle.api.CallTarget;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.enso.test.utils.TestRootNode;
-import org.graalvm.polyglot.Context;
-import org.junit.AfterClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class TypeCheckValueTest {
-  private static Context ctx;
-
-  private static Context ctx() {
-    if (ctx == null) {
-      ctx = ContextUtils.defaultContextBuilder().build();
-    }
-    return ctx;
-  }
-
-  @AfterClass
-  public static void closeCtx() {
-    if (ctx != null) {
-      ctx.close();
-    }
-    ctx = null;
-  }
+  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
 
   @Test
   public void avoidDoubleWrappingOfEnsoMultiValue() {
     var convert = allOfIntegerAndText();
 
-    ContextUtils.executeInContext(
-        ctx(),
+    ctxRule.executeInContext(
         () -> {
-          var builtins = ContextUtils.leakContext(ctx).getBuiltins();
+          var builtins = ctxRule.leakContext().getBuiltins();
           var hi = Text.create("Hi");
           var m1 =
               EnsoMultiValue.NewNode.getUncached()
@@ -57,10 +40,9 @@ public class TypeCheckValueTest {
 
   private static CallTarget allOfIntegerAndText() {
     var call = new CallTarget[1];
-    ContextUtils.executeInContext(
-        ctx(),
+    ctxRule.executeInContext(
         () -> {
-          var builtins = ContextUtils.leakContext(ctx).getBuiltins();
+          var builtins = ctxRule.leakContext().getBuiltins();
           var intNode = TypeCheckValueNode.single("int", builtins.number().getInteger());
           var textNode = TypeCheckValueNode.single("text", builtins.text());
           var bothNode = TypeCheckValueNode.allOf("int&text", intNode, textNode);

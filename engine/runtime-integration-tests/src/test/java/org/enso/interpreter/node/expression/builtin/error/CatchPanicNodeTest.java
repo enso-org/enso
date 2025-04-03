@@ -13,25 +13,23 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
-import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.enso.test.utils.TestRootNode;
-import org.graalvm.polyglot.Context;
 import org.hamcrest.Matchers;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class CatchPanicNodeTest {
-  private static Context context;
+  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
   private static CatchPanicNode catchPanicNode;
   private static HostValueToEnsoNode hostValueToEnsoNode;
   private static TestRootNode testRootNode;
 
   @BeforeClass
   public static void initContextAndData() {
-    context = ContextUtils.createDefaultContext();
-    ContextUtils.executeInContext(
-        context,
+    ctxRule.executeInContext(
         () -> {
           catchPanicNode = CatchPanicNode.build();
           hostValueToEnsoNode = HostValueToEnsoNode.build();
@@ -43,14 +41,14 @@ public class CatchPanicNodeTest {
 
   @AfterClass
   public static void disposeContext() {
-    context.close();
-    context = null;
+    catchPanicNode = null;
+    hostValueToEnsoNode = null;
+    testRootNode = null;
   }
 
   @Test
-  public void passNothingThru() throws Exception {
-    ContextUtils.executeInContext(
-        context,
+  public void passNothingThru() {
+    ctxRule.executeInContext(
         () -> {
           var ctx = EnsoContext.get(catchPanicNode);
           var any = ctx.getBuiltins().any();
@@ -62,9 +60,8 @@ public class CatchPanicNodeTest {
   }
 
   @Test
-  public void passTextThru() throws Exception {
-    ContextUtils.executeInContext(
-        context,
+  public void passTextThru() {
+    ctxRule.executeInContext(
         () -> {
           var ctx = EnsoContext.get(catchPanicNode);
           var any = ctx.getBuiltins().any();
@@ -76,9 +73,8 @@ public class CatchPanicNodeTest {
   }
 
   @Test
-  public void passEvaluatedThunkThru() throws Exception {
-    ContextUtils.executeInContext(
-        context,
+  public void passEvaluatedThunkThru() {
+    ctxRule.executeInContext(
         () -> {
           var ctx = EnsoContext.get(catchPanicNode);
           var any = ctx.getBuiltins().any();
@@ -92,9 +88,8 @@ public class CatchPanicNodeTest {
   }
 
   @Test
-  public void catchAnyPanic() throws Exception {
-    ContextUtils.executeInContext(
-        context,
+  public void catchAnyPanic() {
+    ctxRule.executeInContext(
         () -> {
           var ctx = EnsoContext.get(catchPanicNode);
           var any = ctx.getBuiltins().any();
@@ -129,9 +124,8 @@ public class CatchPanicNodeTest {
   }
 
   @Test
-  public void catchAnyPanicSentinel() throws Exception {
-    ContextUtils.executeInContext(
-        context,
+  public void catchAnyPanicSentinel() {
+    ctxRule.executeInContext(
         () -> {
           var ctx = EnsoContext.get(catchPanicNode);
           var any = ctx.getBuiltins().any();
@@ -154,9 +148,7 @@ public class CatchPanicNodeTest {
                   });
           var fn =
               new TestRootNode(
-                  (frame) -> {
-                    return new PanicSentinel(new PanicException(thrown, null), null);
-                  });
+                  (frame) -> new PanicSentinel(new PanicException(thrown, null), null));
           var thunk = Function.thunk(fn.getCallTarget(), null);
           var handler = new Function(handlerFn.getCallTarget(), null, schema("err"));
           var result = catchPanicNode.execute(null, any, thunk, handler);
@@ -166,9 +158,8 @@ public class CatchPanicNodeTest {
   }
 
   @Test
-  public void catchSpecificPanic() throws Exception {
-    ContextUtils.executeInContext(
-        context,
+  public void catchSpecificPanic() {
+    ctxRule.executeInContext(
         () -> {
           var ctx = EnsoContext.get(catchPanicNode);
           var textType = ctx.getBuiltins().text();
@@ -203,9 +194,8 @@ public class CatchPanicNodeTest {
   }
 
   @Test
-  public void catchSpecificPanicSentinel() throws Exception {
-    ContextUtils.executeInContext(
-        context,
+  public void catchSpecificPanicSentinel() {
+    ctxRule.executeInContext(
         () -> {
           var ctx = EnsoContext.get(catchPanicNode);
           var textType = ctx.getBuiltins().text();
@@ -240,9 +230,8 @@ public class CatchPanicNodeTest {
   }
 
   @Test
-  public void dontCatchSpecificPanic() throws Exception {
-    ContextUtils.executeInContext(
-        context,
+  public void dontCatchSpecificPanic() {
+    ctxRule.executeInContext(
         () -> {
           var ctx = EnsoContext.get(catchPanicNode);
           var numberType = ctx.getBuiltins().number().getNumber();
@@ -282,9 +271,8 @@ public class CatchPanicNodeTest {
   }
 
   @Test
-  public void dontCatchSpecificPanicSentinel() throws Exception {
-    ContextUtils.executeInContext(
-        context,
+  public void dontCatchSpecificPanicSentinel() {
+    ctxRule.executeInContext(
         () -> {
           var ctx = EnsoContext.get(catchPanicNode);
           var numberType = ctx.getBuiltins().number().getNumber();
