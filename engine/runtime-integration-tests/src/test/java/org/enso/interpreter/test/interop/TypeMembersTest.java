@@ -18,26 +18,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class TypeMembersTest {
-  private Context ctx;
-
-  @Before
-  public void prepareCtx() {
-    ctx = ContextUtils.createDefaultContext();
-  }
-
-  @After
-  public void disposeCtx() {
-    ctx.close();
-    ctx = null;
-  }
+  @Rule public final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
 
   @Test
   public void checkAtomMembers() throws Exception {
@@ -71,7 +60,7 @@ public class TypeMembersTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
 
     var headAtom = module.invokeMember("eval_expression", "list1");
     var seven = module.invokeMember("eval_expression", "list1.head");
@@ -110,7 +99,7 @@ public class TypeMembersTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var compileError = module.invokeMember("eval_expression", "v");
     assertEquals(
         "all members",
@@ -121,13 +110,12 @@ public class TypeMembersTest {
   @Test
   public void builtinMethodIsPresent() {
     var refType =
-        ContextUtils.evalModule(
-            ctx, """
+        ctxRule.evalModule(
+            """
         import Standard.Base.Runtime.Ref.Ref
         main = Ref
         """);
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           assertThat(refType.hasMember("new"), is(true));
           return null;
@@ -137,8 +125,7 @@ public class TypeMembersTest {
   @Test
   public void inheritedMembersFromAnyAreIncluded() {
     var type =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         from Standard.Base.Any import all
 
@@ -147,12 +134,11 @@ public class TypeMembersTest {
 
         main = My_Type
         """);
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
-          var typeUnwrapped = ContextUtils.unwrapValue(ctx, type);
+          var typeUnwrapped = ctxRule.unwrapValue(type);
           var memberNames = getAllMemberNames(typeUnwrapped);
-          var anyMethods = ContextUtils.allMethodsFromAny(ctx);
+          var anyMethods = ContextUtils.allMethodsFromAny(ctxRule.context());
           for (var anyMethod : anyMethods) {
             assertThat("Has method from Any", memberNames, hasItem(containsString(anyMethod)));
           }
@@ -163,8 +149,7 @@ public class TypeMembersTest {
   @Test
   public void typeMemberNames_AreNotQualified() {
     var type =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         from Standard.Base.Any import all
 
@@ -173,10 +158,9 @@ public class TypeMembersTest {
 
         main = My_Type
         """);
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
-          var typeUnwrapped = ContextUtils.unwrapValue(ctx, type);
+          var typeUnwrapped = ctxRule.unwrapValue(type);
           var memberNames = getAllMemberNames(typeUnwrapped);
           assertThat(
               "Member names are not qualified", memberNames, not(hasItem(containsString("."))));
@@ -187,8 +171,7 @@ public class TypeMembersTest {
   @Test
   public void canInvokeInheritedStaticMethod_OnType() {
     var myType =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         from Standard.Base.Any import all
 
@@ -197,8 +180,7 @@ public class TypeMembersTest {
 
         main = My_Type
         """);
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           var displayTextRes = myType.invokeMember("to_display_text");
           assertThat("Has correct result type", displayTextRes.isString(), is(true));

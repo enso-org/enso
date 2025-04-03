@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,23 +14,31 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class MetaIsATest {
-  private static Context ctx;
+  @ClassRule
+  public static final ContextUtilsRule ctxRule =
+      ContextUtilsRule.createCustom(MetaIsATest::prepareCtx);
+
   private static Value isACheck;
   private static Value warningCheck;
   private static ValuesGenerator generator;
 
-  @BeforeClass
-  public static void prepareCtx() throws Exception {
-    ctx = ContextUtils.createDefaultContext();
-    final URI uri = new URI("memory://choose.enso");
+  private static Context prepareCtx() {
+    var ctx = ContextUtils.createDefaultContext();
+    final URI uri;
+    try {
+      uri = new URI("memory://choose.enso");
+    } catch (URISyntaxException e) {
+      throw new AssertionError(e);
+    }
     final Source src =
         Source.newBuilder(
                 "enso",
@@ -47,6 +56,7 @@ public class MetaIsATest {
     isACheck = module.invokeMember("eval_expression", "check");
     warningCheck = module.invokeMember("eval_expression", "check_warning");
     assertTrue("it is a function", isACheck.canExecute());
+    return ctx;
   }
 
   @AfterClass
@@ -57,8 +67,6 @@ public class MetaIsATest {
     }
     isACheck = null;
     warningCheck = null;
-    ctx.close();
-    ctx = null;
   }
 
   /**
@@ -73,7 +81,7 @@ public class MetaIsATest {
 
   private ValuesGenerator generator() {
     if (generator == null) {
-      generator = createGenerator(ctx);
+      generator = createGenerator(ctxRule.context());
     }
     return generator;
   }
@@ -261,7 +269,7 @@ public class MetaIsATest {
       if (v.equals(generator().typeAny())) {
         continue;
       }
-      var unwrappedV = ContextUtils.unwrapValue(ctx, v);
+      var unwrappedV = ctxRule.unwrapValue(v);
       if (unwrappedV instanceof Type type && type.isEigenType()) {
         // Skip singleton types
         continue;

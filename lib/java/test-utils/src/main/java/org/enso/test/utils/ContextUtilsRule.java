@@ -18,6 +18,9 @@ import org.junit.runners.model.Statement;
  * class. If used as {@link org.junit.Rule}, a new {@link Context} will be initialized for each test
  * method.
  *
+ * <p>This class simply delegates most of the methods either directly to {@link Context} or to
+ * {@link ContextUtils}.
+ *
  * <p>Note that {@link ContextUtilsRule} cannot be used inside methods annotated with {@link
  * org.junit.runners.Parameterized.Parameters}.
  */

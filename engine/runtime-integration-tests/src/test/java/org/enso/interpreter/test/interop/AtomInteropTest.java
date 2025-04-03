@@ -1,7 +1,5 @@
 package org.enso.interpreter.test.interop;
 
-import static org.enso.test.utils.ContextUtils.executeInContext;
-import static org.enso.test.utils.ContextUtils.unwrapValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -21,10 +19,10 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import java.util.ArrayList;
 import java.util.List;
 import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextUtilsRule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 /**
@@ -32,24 +30,12 @@ import org.junit.Test;
  * org.enso.interpreter.runtime.data.atom.Atom atoms}.
  */
 public class AtomInteropTest {
-  private Context ctx;
-
-  @Before
-  public void initCtx() {
-    ctx = ContextUtils.createDefaultContext();
-  }
-
-  @After
-  public void disposeCtx() {
-    ctx.close();
-    ctx = null;
-  }
+  @ClassRule public static final ContextUtilsRule ctxRule = ContextUtilsRule.createDefault();
 
   @Test
   public void atomMemberNames_AreNotQualified() {
     var myTypeAtom =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         import Standard.Base.Any.Any
 
@@ -67,8 +53,7 @@ public class AtomInteropTest {
   @Test
   public void atomMembersAreConstructorFields_SingleConstructor() {
     var myTypeAtom =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             Cons field_1 field_2
@@ -89,8 +74,7 @@ public class AtomInteropTest {
   @Test
   public void atomIsNotMetaObject() {
     var myTypeAtom =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             Cons field_1 field_2
@@ -105,8 +89,7 @@ public class AtomInteropTest {
   @Test
   public void typeHasAnyAsSuperType() {
     var myTypeAtom =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             Cons
@@ -125,8 +108,7 @@ public class AtomInteropTest {
   @Test
   public void atomMembersAreConstructorFields_ManyConstructors() {
     var myTypeAtom =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             Cons_1 f1 f2 f3 f4 f5 f6
@@ -144,8 +126,7 @@ public class AtomInteropTest {
   @Test
   public void methodIsAtomMember() {
     var myTypeAtom =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             Cons a b
@@ -160,8 +141,7 @@ public class AtomInteropTest {
   @Test
   public void methodIsAtomMember_InteropLibrary() {
     var myTypeAtom =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             Cons a b
@@ -169,10 +149,9 @@ public class AtomInteropTest {
 
         main = My_Type.Cons "a" "b"
         """);
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
-          var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+          var atom = ctxRule.unwrapValue(myTypeAtom);
           var interop = InteropLibrary.getUncached();
           assertThat("Atom has members", interop.hasMembers(atom), is(true));
           assertThat("Method is readable", interop.isMemberReadable(atom, "method"), is(true));
@@ -185,15 +164,14 @@ public class AtomInteropTest {
   @Test
   public void fieldsFromPrivateConstructorAreInternalMembers() {
     var myTypeAtom =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             private Cons a
 
         main = My_Type.Cons "a"
         """);
-    var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+    var atom = ctxRule.unwrapValue(myTypeAtom);
     var interop = InteropLibrary.getUncached();
     assertThat("field a is internal", interop.isMemberInternal(atom, "a"), is(true));
   }
@@ -201,18 +179,16 @@ public class AtomInteropTest {
   @Test
   public void fieldFromPrivateConstructorIsReadable() {
     var myTypeAtom =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             private Cons a
 
         main = My_Type.Cons "a"
         """);
-    executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
-          var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+          var atom = ctxRule.unwrapValue(myTypeAtom);
           var interop = InteropLibrary.getUncached();
           assertThat(
               "Field from private constructor is readable",
@@ -237,8 +213,7 @@ public class AtomInteropTest {
   @Test
   public void allMethodsAreInternalMembers() {
     var myTypeAtom =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             Cons a
@@ -247,7 +222,7 @@ public class AtomInteropTest {
 
         main = My_Type.Cons "a"
         """);
-    var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+    var atom = ctxRule.unwrapValue(myTypeAtom);
     var interop = InteropLibrary.getUncached();
     assertThat(
         "public method is internal member", interop.isMemberInternal(atom, "pub_method"), is(true));
@@ -265,20 +240,18 @@ public class AtomInteropTest {
   @Test
   public void internalMembersIncludeMethodsFromAny_WithoutImport() throws Exception {
     var myTypeAtom =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             Cons a
 
         main = My_Type.Cons "a"
         """);
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
-          var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+          var atom = ctxRule.unwrapValue(myTypeAtom);
           var memberNames = getAllMemberNames(atom);
-          var anyBuiltinMethods = ContextUtils.builtinMethodsFromAny(ctx);
+          var anyBuiltinMethods = ContextUtils.builtinMethodsFromAny(ctxRule.context());
           for (var method : anyBuiltinMethods) {
             assertThat(
                 "Builtin method (from Any) is a member of atom", memberNames, hasItem(method));
@@ -293,12 +266,10 @@ public class AtomInteropTest {
    */
   @Test
   public void internalMembersIncludeMethodsFromAny_WithImport() throws Exception {
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           var myTypeAtom =
-              ContextUtils.evalModule(
-                  ctx,
+              ctxRule.evalModule(
                   """
           from Standard.Base.Any import all
 
@@ -307,9 +278,9 @@ public class AtomInteropTest {
 
           main = My_Type.Cons "a"
           """);
-          var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+          var atom = ctxRule.unwrapValue(myTypeAtom);
           var memberNames = getAllMemberNames(atom);
-          var anyMethods = ContextUtils.allMethodsFromAny(ctx);
+          var anyMethods = ContextUtils.allMethodsFromAny(ctxRule.context());
           for (var method : anyMethods) {
             assertThat(
                 "Non-builtin method (from Any) is a member of atom", memberNames, hasItem(method));
@@ -322,8 +293,7 @@ public class AtomInteropTest {
   public void allMembersAreReadableAndInvocable()
       throws UnsupportedMessageException, InvalidArrayIndexException {
     var myTypeAtom =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             Cons a
@@ -332,10 +302,9 @@ public class AtomInteropTest {
 
         main = My_Type.Cons "a"
         """);
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
-          var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+          var atom = ctxRule.unwrapValue(myTypeAtom);
           var interop = InteropLibrary.getUncached();
           var members = interop.getMembers(atom, true);
           for (long i = 0; i < interop.getArraySize(members); i++) {
@@ -356,8 +325,7 @@ public class AtomInteropTest {
   @Test
   public void constructorIsNotAtomMember() {
     var myTypeAtom =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             Cons a b
@@ -371,18 +339,16 @@ public class AtomInteropTest {
   @Test
   public void fieldIsInvocable() {
     var myTypeAtom =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             Cons a b
 
         main = My_Type.Cons 1 2
         """);
-    executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
-          var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+          var atom = ctxRule.unwrapValue(myTypeAtom);
           var interop = InteropLibrary.getUncached();
           assertThat("Field a is invocable", interop.isMemberInvocable(atom, "a"), is(true));
           var aField = interop.invokeMember(atom, "a");
@@ -395,18 +361,16 @@ public class AtomInteropTest {
   @Test
   public void fieldIsReadable() {
     var myTypeAtom =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             Cons a
 
         main = My_Type.Cons 1
         """);
-    executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
-          var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+          var atom = ctxRule.unwrapValue(myTypeAtom);
           var interop = InteropLibrary.getUncached();
           assertThat("Field a is readable", interop.isMemberReadable(atom, "a"), is(true));
           return null;
@@ -416,8 +380,7 @@ public class AtomInteropTest {
   @Test
   public void staticMethodIsNotAtomMember() {
     var myTypeAtom =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             Cons
@@ -433,12 +396,10 @@ public class AtomInteropTest {
 
   @Test
   public void constructorIsNotAtomMember_InteropLibrary() {
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           var myTypeAtom =
-              ContextUtils.evalModule(
-                  ctx,
+              ctxRule.evalModule(
                   """
           type My_Type
               Cons a b
@@ -446,7 +407,7 @@ public class AtomInteropTest {
 
           main = My_Type.Cons "a" "b"
           """);
-          var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
+          var atom = ctxRule.unwrapValue(myTypeAtom);
           var interop = InteropLibrary.getUncached();
           assertThat("Cons is not atom member", interop.isMemberExisting(atom, "Cons"), is(false));
           return null;
@@ -456,8 +417,7 @@ public class AtomInteropTest {
   @Test
   public void typeMembersAreConstructors() {
     var myType =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             Cons_1
@@ -476,8 +436,7 @@ public class AtomInteropTest {
   @Test
   public void invokeLazyField_DoesNotCauseStackOverflow() {
     var atom =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         from Standard.Base.Any import all
 
@@ -491,10 +450,9 @@ public class AtomInteropTest {
         main =
             natural
         """);
-    executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
-          var atomUnwrapped = unwrapValue(ctx, atom);
+          var atomUnwrapped = ctxRule.unwrapValue(atom);
           var interop = InteropLibrary.getUncached();
           var next = interop.invokeMember(atomUnwrapped, "next");
           assertThat("Returns next atom", interop.hasMembers(next), is(true));
@@ -505,8 +463,7 @@ public class AtomInteropTest {
   @Test
   public void invokeVsReadAndExecute() {
     var atom =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         from Standard.Base.Any import all
 
@@ -520,10 +477,9 @@ public class AtomInteropTest {
             gen n = Generator.Value n (gen n+1)
             gen 2
         """);
-    executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
-          var atomUnwrapped = unwrapValue(ctx, atom);
+          var atomUnwrapped = ctxRule.unwrapValue(atom);
           var interop = InteropLibrary.getUncached();
 
           assertTrue(
