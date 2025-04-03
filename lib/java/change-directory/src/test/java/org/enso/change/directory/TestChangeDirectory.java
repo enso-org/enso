@@ -75,6 +75,26 @@ public class TestChangeDirectory {
   }
 
   @Test
+  public void changeDir_Symlink() throws IOException {
+    ensureInNativeImage();
+    ensureOnUnix();
+    var tmpDir = Files.createTempDirectory("changeDir_Symlink");
+    var realDir = tmpDir.resolve("real-dir");
+    var dirCreated = realDir.toFile().mkdir();
+    assertTrue(dirCreated);
+    var symlink = tmpDir.resolve("symlink");
+    Files.createSymbolicLink(symlink, realDir);
+    var nativeApi = WorkingDirectories.getCurrent();
+    var realDirPath = realDir.toAbsolutePath().toString();
+    var symLinkPath = symlink.toAbsolutePath().toString();
+    var dirChanged = nativeApi.changeWorkingDir(symLinkPath);
+    assertTrue(dirChanged);
+    var curDir = nativeApi.currentWorkingDir();
+    assertEquals(
+        "currentWorkingDir should report real path, with resolved symlinks", realDirPath, curDir);
+  }
+
+  @Test
   public void testExists() throws IOException {
     ensureInNativeImage();
     var tmpDir = Files.createTempDirectory("TestChangeDirectory_testExists");
