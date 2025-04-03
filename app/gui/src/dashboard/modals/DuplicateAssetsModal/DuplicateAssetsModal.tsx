@@ -686,26 +686,3 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
   )
 }
 
-/**
- * Options for resolving duplicates.
- */
-export interface ResolveDuplicationsOptions
-  extends Pick<ResolveDuplicationsProps, 'conflictingIds' | 'targetId'> {}
-
-/**
- * Function for resolving duplicates.
- */
-export async function resolveDuplications(props: ResolveDuplicationsOptions) {
-  const { targetId, conflictingIds } = props
-
-  return new Promise<readonly ResolvedDuplication[]>((resolve, reject) => {
-    setModal(
-      <ResolveDuplicationsModal
-        targetId={targetId}
-        conflictingIds={conflictingIds}
-        onSubmit={resolve}
-        onCancel={reject}
-      />,
-    )
-  }).finally(unsetModal)
-}
