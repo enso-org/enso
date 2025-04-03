@@ -1,8 +1,5 @@
 package org.enso.interpreter.test.interop;
 
-import static org.enso.test.utils.ContextUtils.createDefaultContext;
-import static org.enso.test.utils.ContextUtils.executeInContext;
-import static org.enso.test.utils.ContextUtils.unwrapValue;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -17,10 +14,11 @@ import java.util.function.BiConsumer;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames.Module;
 import org.enso.interpreter.runtime.data.Type;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,7 +48,7 @@ public final class MethodInvocationOnTypeConsistencyTest {
       my_type_atom = My_Type.Cons 1
       """;
 
-  private static Context ctx;
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
   private static Value module;
   private static Type anyType;
   private static Type myType;
@@ -60,30 +58,21 @@ public final class MethodInvocationOnTypeConsistencyTest {
 
   @BeforeClass
   public static void initCtx() {
-    if (ctx != null) {
-      return;
-    }
-    ctx = createDefaultContext();
-    module = ctx.eval(LanguageInfo.ID, SRC);
+    module = ctxRule.eval(LanguageInfo.ID, SRC);
     var anyTypeVal = module.invokeMember(Module.EVAL_EXPRESSION, "any_type");
     var myTypeVal = module.invokeMember(Module.EVAL_EXPRESSION, "my_type");
     var myTypeAtomVal = module.invokeMember(Module.EVAL_EXPRESSION, "my_type_atom");
-    executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
-          anyType = (Type) unwrapValue(ctx, anyTypeVal);
-          myType = (Type) unwrapValue(ctx, myTypeVal);
-          myTypeAtom = unwrapValue(ctx, myTypeAtomVal);
+          anyType = (Type) ctxRule.unwrapValue(anyTypeVal);
+          myType = (Type) ctxRule.unwrapValue(myTypeVal);
+          myTypeAtom = ctxRule.unwrapValue(myTypeAtomVal);
           return null;
         });
   }
 
   @AfterClass
   public static void closeCtx() {
-    if (ctx != null) {
-      ctx.close();
-      ctx = null;
-    }
     module = null;
     anyType = null;
     myType = null;
@@ -139,8 +128,7 @@ public final class MethodInvocationOnTypeConsistencyTest {
   @Test
   @Ignore("https://github.com/enso-org/enso/pull/12099#issuecomment-2654281345")
   public void methodInvocationViaInterop_IsConsistentWithPureEnso() {
-    executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           assertConsistentInvoke(
               testArgs.ensoInvokeArgs, testArgs.interopInvokeArgs, testArgs.resultChecker);
@@ -155,7 +143,7 @@ public final class MethodInvocationOnTypeConsistencyTest {
     var resFromEnso = invokeViaEnso(ensoInvokeArgs);
     resultChecker.accept(resFromEnso, "Result from pure Enso invocation check:");
     var resFromInterop = invokeViaInterop(interopInvokeArgs);
-    resultChecker.accept(ctx.asValue(resFromInterop), "Result from Interop invocation check:");
+    resultChecker.accept(ctxRule.asValue(resFromInterop), "Result from Interop invocation check:");
   }
 
   private Object invokeViaInterop(InteropInvokeArgs args) {

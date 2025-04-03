@@ -43,7 +43,14 @@ public class ImportsAndFQNConsistencyTest {
   /** Used for description in {@link PrintCodeRule} test rule. */
   private static String code;
 
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule
+  public static final ContextRule ctxRule =
+      ContextRule.createCustom(
+          () ->
+              ContextUtils.defaultContextBuilder(LanguageInfo.ID)
+                  .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
+                  .build());
+
   @Rule public final TestRule printCodeRule = new PrintCodeRule();
 
   /**
@@ -52,46 +59,41 @@ public class ImportsAndFQNConsistencyTest {
    */
   @Parameters(name = "exported symbol '{0}'")
   public static List<Symbol> symbolsToTest() {
-    try (var ctx =
-        ContextUtils.defaultContextBuilder(LanguageInfo.ID)
-            .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
-            .build()) {
-      var ensoCtx = ContextUtils.leakContext(ctx);
-      var src = """
+    var ensoCtx = ctxRule.leakContext();
+    var src = """
 from Standard.Base import all
 from Standard.Table import all
 main = 42
 """;
-      // Ensure that the context is initialized first.
-      var res = ContextUtils.evalModule(ctx, src);
-      assertThat(res.isNumber(), is(true));
-      List<Symbol> symbolsToTest = new ArrayList<>();
-      gatherExportedSymbols(ensoCtx, List.of("Standard.Base.Main", "Standard.Table.Main")).stream()
-          .map(Symbol::new)
-          .forEach(
-              exportedSymbol -> {
-                var mod = ensoCtx.findModule(exportedSymbol.getModuleName());
-                if (mod.isPresent()) {
-                  var builtin =
-                      ensoCtx.getBuiltins().getBuiltinType(exportedSymbol.getLastPathItem());
-                  if (builtin == null) {
-                    if (mod.get().isSynthetic()) {
+    // Ensure that the context is initialized first.
+    var res = ctxRule.evalModule(src);
+    assertThat(res.isNumber(), is(true));
+    List<Symbol> symbolsToTest = new ArrayList<>();
+    gatherExportedSymbols(ensoCtx, List.of("Standard.Base.Main", "Standard.Table.Main")).stream()
+        .map(Symbol::new)
+        .forEach(
+            exportedSymbol -> {
+              var mod = ensoCtx.findModule(exportedSymbol.getModuleName());
+              if (mod.isPresent()) {
+                var builtin =
+                    ensoCtx.getBuiltins().getBuiltinType(exportedSymbol.getLastPathItem());
+                if (builtin == null) {
+                  if (mod.get().isSynthetic()) {
+                    symbolsToTest.add(exportedSymbol);
+                    return;
+                  }
+                  // The symbol is not a builtin type
+                  var modIr = mod.get().getIr();
+                  if (modIr != null) {
+                    var bindings = mod.get().getIr().bindings();
+                    if (shouldIncludeSymbolForTest(bindings, exportedSymbol.getLastPathItem())) {
                       symbolsToTest.add(exportedSymbol);
-                      return;
-                    }
-                    // The symbol is not a builtin type
-                    var modIr = mod.get().getIr();
-                    if (modIr != null) {
-                      var bindings = mod.get().getIr().bindings();
-                      if (shouldIncludeSymbolForTest(bindings, exportedSymbol.getLastPathItem())) {
-                        symbolsToTest.add(exportedSymbol);
-                      }
                     }
                   }
                 }
-              });
-      return symbolsToTest;
-    }
+              }
+            });
+    return symbolsToTest;
   }
 
   private final Symbol symbol;

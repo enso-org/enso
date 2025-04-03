@@ -9,10 +9,9 @@ import java.util.Objects;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.Value;
-import org.junit.AfterClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -26,7 +25,7 @@ import org.junit.runners.Parameterized.Parameters;
  */
 @RunWith(Parameterized.class)
 public class TypesExposeConstructorsTest {
-  private static Context ctx;
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   private final TypeWithWrapper typeWithWrapper;
 
@@ -34,32 +33,17 @@ public class TypesExposeConstructorsTest {
     this.typeWithWrapper = typeWithWrapper;
   }
 
-  private static Context ctx() {
-    if (ctx == null) {
-      ctx = ContextUtils.createDefaultContext();
-    }
-    return ctx;
-  }
-
-  @AfterClass
-  public static void disposeCtx() {
-    if (ctx != null) {
-      ctx.close();
-      ctx = null;
-    }
-  }
-
   @Parameters(name = "{index}: {0}")
   public static Iterable<TypeWithWrapper> collectTypes() {
     var collectedTypes = new ArrayList<TypeWithWrapper>();
-    ContextUtils.executeInContext(
-        ctx(),
+    ctxRule.executeInContext(
         () -> {
-          try (ValuesGenerator valuesGenerator = ValuesGenerator.create(ctx(), Language.ENSO)) {
+          try (ValuesGenerator valuesGenerator =
+              ValuesGenerator.create(ctxRule.context(), Language.ENSO)) {
             valuesGenerator.allTypes().stream()
                 .map(
                     tp -> {
-                      var unwrappedTp = ContextUtils.unwrapValue(ctx(), tp);
+                      var unwrappedTp = ctxRule.unwrapValue(tp);
                       if (unwrappedTp instanceof Type type) {
                         return new TypeWithWrapper(type, tp);
                       } else {

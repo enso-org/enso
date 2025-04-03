@@ -10,10 +10,9 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.Value;
-import org.junit.AfterClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -26,7 +25,7 @@ import org.junit.runners.Parameterized.Parameters;
  */
 @RunWith(Parameterized.class)
 public class BuiltinTypesExposeMethodsTest {
-  private static Context ctx;
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   private final Value type;
 
@@ -34,19 +33,12 @@ public class BuiltinTypesExposeMethodsTest {
     this.type = type;
   }
 
-  private static Context ctx() {
-    if (ctx == null) {
-      ctx = ContextUtils.createDefaultContext();
-    }
-    return ctx;
-  }
-
   @Parameters(name = "{index}: {0}")
   public static Iterable<Value> generateBuiltinObjects() {
     var builtinTypes = new ArrayList<Value>();
-    try (ValuesGenerator valuesGenerator = ValuesGenerator.create(ctx(), Language.ENSO)) {
-      ContextUtils.executeInContext(
-          ctx(),
+    try (ValuesGenerator valuesGenerator =
+        ValuesGenerator.create(ctxRule.context(), Language.ENSO)) {
+      ctxRule.executeInContext(
           () -> {
             valuesGenerator.allTypes().stream()
                 .filter(
@@ -62,22 +54,13 @@ public class BuiltinTypesExposeMethodsTest {
   }
 
   private static Type getType(Value object) {
-    var unwrapped = ContextUtils.unwrapValue(ctx(), object);
+    var unwrapped = ctxRule.unwrapValue(object);
     return TypeOfNode.getUncached().findTypeOrNull(unwrapped);
-  }
-
-  @AfterClass
-  public static void disposeCtx() {
-    if (ctx != null) {
-      ctx.close();
-      ctx = null;
-    }
   }
 
   @Test
   public void builtinExposeMethods() {
-    ContextUtils.executeInContext(
-        ctx(),
+    ctxRule.executeInContext(
         () -> {
           assertThat(type, is(notNullValue()));
           var typeDefScope = getType(type).getDefinitionScope();
@@ -112,7 +95,7 @@ public class BuiltinTypesExposeMethodsTest {
     if (!type.isBuiltin()) {
       return true;
     }
-    var builtins = ContextUtils.leakContext(ctx()).getBuiltins();
+    var builtins = ctxRule.leakContext().getBuiltins();
     var typesToSkip =
         List.of(
             builtins.function(), builtins.dataflowError(), builtins.warning(), builtins.nothing());
