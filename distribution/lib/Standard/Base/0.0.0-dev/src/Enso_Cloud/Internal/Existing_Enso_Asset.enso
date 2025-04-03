@@ -139,11 +139,11 @@ type Asset_Metadata
         description = get_optional_field "description" json expected_type=Text
         labels = get_optional_field "labels" json expected_type=Vector if_missing=[]
 
-        service_name = get_optional_field "serviceName" json expected_type=Text
-        credential_metadata = service_name.if_not_nothing <|
-            # If `serviceName` is present, then `state` should also be present
-            state = get_required_field "state" json expected_type=Text
-            expiration_date_text = get_optional_field "expirationDate" json expected_type=Text
+        credential_metadata_field = get_optional_field "credentialMetadata" json expected_type=JS_Object
+        credential_metadata = credential_metadata_field.if_not_nothing <|
+            service_name = get_required_field "serviceName" credential_metadata_field expected_type=Text
+            state = get_required_field "state" credential_metadata_field expected_type=Text
+            expiration_date_text = get_optional_field "expirationDate" credential_metadata_field expected_type=Text
             expiration_date = expiration_date_text.if_not_nothing <|
                 Date_Time.parse expiration_date_text Date_Time_Formatter.iso_offset_date_time
                     . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
