@@ -56,10 +56,6 @@ const STYLES = tv({
   ],
 })
 
-// ===================
-// === ButtonGroup ===
-// ===================
-
 /** Props for a {@link ButtonGroup}. */
 interface ButtonGroupProps
   extends React.PropsWithChildren,

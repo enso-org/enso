@@ -6,10 +6,6 @@ import * as focusHooks from '#/hooks/focusHooks'
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 
-// ================
-// === TextLink ===
-// ================
-
 /** Props for a {@link TextLink}. */
 export interface TextLinkProps {
   readonly to: string

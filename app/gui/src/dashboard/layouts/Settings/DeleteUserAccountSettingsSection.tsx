@@ -1,5 +1,4 @@
 /** @file Settings tab for deleting the current user. */
-import * as React from 'react'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -9,10 +8,6 @@ import * as ariaComponents from '#/components/AriaComponents'
 import { FocusArea } from '#/components/styled/FocusArea'
 
 import ConfirmDeleteUserModal from '#/modals/ConfirmDeleteUserModal'
-
-// ========================================
-// === DeleteUserAccountSettingsSection ===
-// ========================================
 
 /** Settings tab for deleting the current user. */
 export default function DeleteUserAccountSettingsSection() {

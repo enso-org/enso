@@ -7,16 +7,8 @@
  */
 import * as amplify from '@aws-amplify/core'
 
-// =================
-// === Constants ===
-// =================
-
 /** Name of the string identifying the "hub" that AWS Amplify issues authentication events on. */
 const AUTHENTICATION_HUB = 'auth'
-
-// =================
-// === AuthEvent ===
-// =================
 
 /**
  * Authentication state change events.
@@ -39,10 +31,6 @@ export enum AuthEvent {
 function isAuthEvent(value: string): value is AuthEvent {
   return Object.values<string>(AuthEvent).includes(value)
 }
-
-// =================================
-// === RegisterAuthEventListener ===
-// =================================
 
 /**
  * Callback called in response to authentication state changes.

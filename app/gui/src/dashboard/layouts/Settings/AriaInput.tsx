@@ -23,10 +23,6 @@ const SETTINGS_FIELD_STYLES = tv({
   },
 })
 
-// =========================
-// === SettingsAriaInput ===
-// =========================
-
 /** Props for a {@link SettingsAriaInput}. */
 export interface SettingsAriaInputProps<
   Schema extends TSchema,

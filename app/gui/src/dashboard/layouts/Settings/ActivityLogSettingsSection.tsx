@@ -21,10 +21,6 @@ import { nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sor
 import { twMerge } from '#/utilities/tailwindMerge'
 import { formatDateTime } from 'enso-common/src/utilities/data/dateTime'
 
-// =================
-// === Constants ===
-// =================
-
 const EVENT_TYPE_ICON: Record<EventType, string> = {
   [EventType.GetSecret]: KeyIcon,
   [EventType.DeleteAssets]: TrashIcon,
@@ -49,20 +45,12 @@ function createActivityLogSchema() {
   })
 }
 
-// =================================
-// === ActivityLogSortableColumn ===
-// =================================
-
 /** Sortable columns in an activity log table. */
 enum ActivityLogSortableColumn {
   type = 'type',
   email = 'email',
   timestamp = 'timestamp',
 }
-
-// ==================================
-// === ActivityLogSettingsSection ===
-// ==================================
 
 /** Props for a {@link ActivityLogSettingsSection}. */
 export interface ActivityLogSettingsSectionProps {
@@ -225,7 +213,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     getText('stopSortingByName')
                   : getText('sortByNameDescending')
                 }
-                className="group flex h-table-row w-full items-center justify-start gap-icon-with-text border-0 px-name-column-x"
+                className="gap-icon-with-text group flex h-table-row w-full items-center justify-start border-0 px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.type ?
@@ -270,7 +258,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     getText('stopSortingByEmail')
                   : getText('sortByEmailDescending')
                 }
-                className="group flex h-table-row w-full items-center justify-start gap-icon-with-text border-0 px-name-column-x"
+                className="gap-icon-with-text group flex h-table-row w-full items-center justify-start border-0 px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.email ?
@@ -316,7 +304,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     getText('stopSortingByTimestamp')
                   : getText('sortByTimestampDescending')
                 }
-                className="group flex h-table-row w-full items-center justify-start gap-icon-with-text border-0 px-name-column-x"
+                className="gap-icon-with-text group flex h-table-row w-full items-center justify-start border-0 px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.timestamp ?
@@ -383,10 +371,6 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   )
 }
 
-// =============================
-// === ActivityLogHeaderCell ===
-// =============================
-
 /** Props for a {@link ActivityLogHeaderCell}. */
 export interface ActivityLogHeaderCellProps extends Readonly<React.PropsWithChildren> {
   readonly className?: string
@@ -407,10 +391,6 @@ function ActivityLogHeaderCell(props: ActivityLogHeaderCellProps) {
     </td>
   )
 }
-
-// ============================
-// === ActivityLogTableCell ===
-// ============================
 
 /** Props for a {@link ActivityLogTableCell}. */
 export type ActivityLogTableCellProps = Readonly<React.PropsWithChildren>

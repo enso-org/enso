@@ -26,10 +26,6 @@ export const DOCS_CLASS_NAME = 'text-tag-text bg-permission-docs'
 /** CSS classes for the execute permission. */
 export const EXEC_CLASS_NAME = 'text-tag-text bg-permission-exec'
 
-// ================================
-// === tryCreateOwnerPermission ===
-// ================================
-
 /**
  * Return an array containing the owner permission if `owner` is not `null`,
  * else return an empty array (`[]`).
@@ -65,10 +61,6 @@ export function tryCreateOwnerPermission(
   }
 }
 
-// ==========================
-// === findSelfPermission ===
-// ==========================
-
 /** Try to find a permission belonging to the user. */
 export function tryFindSelfPermission(
   self: User,
@@ -94,10 +86,6 @@ export function tryFindSelfPermission(
   return selfPermission
 }
 
-// ============================================
-// === canPermissionModifyDirectoryContents ===
-// ============================================
-
 /** Whether the given permission means the user can edit the list of assets of the directory. */
 export function canPermissionModifyDirectoryContents(permission: PermissionAction) {
   return (
@@ -106,10 +94,6 @@ export function canPermissionModifyDirectoryContents(permission: PermissionActio
     permission === PermissionAction.edit
   )
 }
-
-// ==============================
-// === replaceOwnerPermission ===
-// ==============================
 
 /** Replace the first owner permission with the permission of a new user or team. */
 export function replaceOwnerPermission(

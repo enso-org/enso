@@ -1,5 +1,4 @@
 /** @file A modal for showing logs for a project. */
-import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 
@@ -11,10 +10,6 @@ import * as ariaComponents from '#/components/AriaComponents'
 
 import type * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
-
-// ========================
-// === ProjectLogsModal ===
-// ========================
 
 /** Props for a {@link ProjectLogsModal}. */
 export interface ProjectLogsModalProps {

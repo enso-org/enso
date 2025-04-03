@@ -96,10 +96,6 @@ const DROPDOWN_STYLES = tv({
   },
 })
 
-// ================
-// === Dropdown ===
-// ================
-
 /** Props for a list item child. */
 interface InternalChildProps<T> {
   readonly item: T

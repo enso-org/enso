@@ -1,9 +1,5 @@
 /** @file Utilities related to sorting. */
 
-// =====================
-// === SortDirection ===
-// =====================
-
 /** Sort direction. */
 export enum SortDirection {
   ascending = 'ascending',
@@ -27,10 +23,6 @@ export function nextSortDirection(sortDirection: SortDirection | null) {
     }
   }
 }
-
-// ================
-// === SortInfo ===
-// ================
 
 /** Sort information. */
 export interface SortInfo<Field> {

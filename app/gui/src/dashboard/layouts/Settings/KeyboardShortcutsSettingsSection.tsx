@@ -19,10 +19,6 @@ import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useText } from '#/providers/TextProvider'
 import { unsafeEntries } from '#/utilities/object'
 
-// ========================================
-// === KeyboardShortcutsSettingsSection ===
-// ========================================
-
 /** Settings tab for viewing and editing keyboard shortcuts. */
 export default function KeyboardShortcutsSettingsSection() {
   const [refresh, doRefresh] = useRefresh()

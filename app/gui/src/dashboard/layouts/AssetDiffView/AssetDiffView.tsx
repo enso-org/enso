@@ -7,10 +7,6 @@ import type * as backendService from '#/services/Backend'
 import type Backend from '#/services/Backend'
 import { StatelessSpinner } from '../../components/StatelessSpinner'
 
-// =====================
-// === AssetDiffView ===
-// =====================
-
 /** Props for an {@link AssetDiffView}. */
 export interface AssetDiffViewProps {
   readonly versionId: backendService.S3ObjectVersionId

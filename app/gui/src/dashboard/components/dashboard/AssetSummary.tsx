@@ -14,10 +14,6 @@ import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import { Badge } from '../Badge'
 import { Icon } from '../Icon'
 
-// ====================
-// === AssetSummary ===
-// ====================
-
 /** Props for an {@link AssetSummary}. */
 export interface AssetSummaryProps {
   readonly asset: backend.AnyAsset

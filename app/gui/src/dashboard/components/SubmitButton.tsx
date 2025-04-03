@@ -1,12 +1,7 @@
 /** @file A styled submit button. */
-import * as React from 'react'
 
 import { Button } from '#/components/AriaComponents'
 import { submitForm } from '#/utilities/event'
-
-// ====================
-// === SubmitButton ===
-// ====================
 
 /** Props for a {@link SubmitButton}. */
 export interface SubmitButtonProps {

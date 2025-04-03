@@ -11,10 +11,6 @@ import type Backend from '#/services/Backend'
 import { findLeastUsedColor } from '#/services/Backend'
 import { useMutation } from '@tanstack/react-query'
 
-// =====================
-// === NewLabelModal ===
-// =====================
-
 /** Props for a {@link NewLabelModal}. */
 export interface NewLabelModalProps {
   readonly backend: Backend

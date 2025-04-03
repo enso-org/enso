@@ -65,16 +65,8 @@ const RESULT_STYLES = tv({
   defaultVariants: { centered: 'all' },
 })
 
-// ==============
-// === Status ===
-// ==============
-
 /** Possible statuses for a result. */
 export type Status = 'error' | 'idle' | 'info' | 'loading' | 'pending' | 'success'
-
-// ==================
-// === StatusIcon ===
-// ==================
 
 /** The corresponding icon and color for each status. */
 interface StatusIcon {
@@ -82,10 +74,6 @@ interface StatusIcon {
   readonly colorClassName: string
   readonly bgClassName: string
 }
-
-// ==============
-// === Result ===
-// ==============
 
 /** Props for a {@link Result}. */
 export interface ResultProps

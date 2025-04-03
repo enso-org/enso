@@ -123,20 +123,12 @@ LocalStorage.registerKey('inputBindings', {
 LocalStorage.registerKey('localRootDirectory', { schema: z.string() })
 LocalStorage.registerKey('preferredTimeZone', { schema: z.string() })
 
-// ======================
-// === getMainPageUrl ===
-// ======================
-
 /** Returns the URL to the main page. This is the current URL, with the current route removed. */
 function getMainPageUrl() {
   const mainPageUrl = new URL(window.location.href)
   mainPageUrl.pathname = mainPageUrl.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
   return mainPageUrl
 }
-
-// ===========
-// === App ===
-// ===========
 
 /** Global configuration for the `App` component. */
 export interface AppProps {

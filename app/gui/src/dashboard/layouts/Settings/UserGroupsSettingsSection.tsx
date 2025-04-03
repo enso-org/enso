@@ -31,10 +31,6 @@ import { twMerge } from '#/utilities/tailwindMerge'
 import UserGroupRow from './UserGroupRow'
 import UserGroupUserRow from './UserGroupUserRow'
 
-// =================================
-// === UserGroupsSettingsSection ===
-// =================================
-
 /** Props for a {@link UserGroupsSettingsSection}. */
 export interface UserGroupsSettingsSectionProps {
   readonly backend: Backend

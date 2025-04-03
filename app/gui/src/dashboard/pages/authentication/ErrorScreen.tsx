@@ -1,15 +1,10 @@
 /** @file A screen displaying an error. */
-import * as React from 'react'
 
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 
 import * as errorModule from '#/utilities/error'
-
-// ===================
-// === ErrorScreen ===
-// ===================
 
 /** Props for an {@link ErrorScreen}. */
 export interface ErrorScreenProps {

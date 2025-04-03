@@ -9,10 +9,6 @@ import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
 
-// ================
-// === Newtypes ===
-// ================
-
 /** A keyboard key obtained from `KeyboardEvent.key`. */
 type KeyName = newtype.Newtype<string, 'keyboard key'>
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -25,10 +21,6 @@ const ModifierFlags = newtype.newtypeConstructor<ModifierFlags>()
 type PointerButtonFlags = newtype.Newtype<number, 'pointer button flags'>
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 const PointerButtonFlags = newtype.newtypeConstructor<PointerButtonFlags>()
-
-// =============
-// === Types ===
-// =============
 
 /** All possible modifier keys. */
 export type ModifierKey = keyof typeof RAW_MODIFIER_FLAG
@@ -70,10 +62,6 @@ export interface Mousebind {
   readonly key: PointerButtonFlags
   readonly modifierFlags: ModifierFlags
 }
-
-// ======================
-// === Modifier flags ===
-// ======================
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const RAW_MODIFIER_FLAG = {
@@ -186,10 +174,6 @@ function buttonToPointerButtonFlags(button: number) {
     }
   }
 }
-
-// ==========================
-// === Autocomplete types ===
-// ==========================
 
 const ALL_MODIFIERS =
   detect.isOnMacOS() ?

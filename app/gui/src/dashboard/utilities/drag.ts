@@ -5,10 +5,6 @@ import type * as backend from '#/services/Backend'
 
 import * as uniqueString from 'enso-common/src/utilities/uniqueString'
 
-// ===========================
-// === setDragImageToBlank ===
-// ===========================
-
 /** Set the drag image to blank, so a custom div can be used instead. */
 export function setDragImageToBlank(event: React.DragEvent) {
   const blankElement = document.createElement('div')
@@ -18,10 +14,6 @@ export function setDragImageToBlank(event: React.DragEvent) {
   event.dataTransfer.setDragImage(image, 0, 0)
   blankElement.remove()
 }
-
-// ==========================
-// === DragPayloadManager ===
-// ==========================
 
 /** Associates drag events with payload data. */
 class DragPayloadManager<Payload> {
@@ -60,10 +52,6 @@ class DragPayloadManager<Payload> {
   }
 }
 
-// ============================
-// === AssetRowsDragPayload ===
-// ============================
-
 export const ASSET_ROWS = new DragPayloadManager<AssetRowsDragPayload>(
   'application/x-enso-asset-list',
 )
@@ -76,10 +64,6 @@ interface AssetRowsDragPayloadItem {
 
 /** Data for a {@link DragEvent} started from an `AssetsTable`. */
 export type AssetRowsDragPayload = readonly AssetRowsDragPayloadItem[]
-
-// ========================
-// === LabelDragPayload ===
-// ========================
 
 export const LABELS = new DragPayloadManager<LabelsDragPayload>('application/x-enso-label')
 

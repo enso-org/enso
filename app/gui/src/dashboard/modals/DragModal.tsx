@@ -8,16 +8,8 @@ import { DIALOG_BACKGROUND, Underlay } from '../components/AriaComponents'
 import { Badge } from '../components/Badge'
 import Portal from '../components/Portal'
 
-// =================
-// === Constants ===
-// =================
-
 /** The default offset (up and to the right) of the drag element. */
 const DEFAULT_OFFSET_PX = 16
-
-// =================
-// === DragModal ===
-// =================
 
 /** Props for a {@link DragModal}. */
 export interface DragModalProps
