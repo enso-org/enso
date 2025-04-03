@@ -1,7 +1,7 @@
 /** @file A context menu entry that opens a paywall dialog. */
 import LockIcon from '#/assets/lock.svg'
 import type { ContextMenuEntryProps as ContextMenuEntryBaseProps } from '#/components/ContextMenuEntry'
-import ContextMenuEntryBase from '#/components/ContextMenuEntry'
+import { ContextMenuEntry as ContextMenuEntryBase } from '#/components/ContextMenuEntry'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'

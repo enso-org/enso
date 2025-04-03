@@ -24,7 +24,7 @@ import { Icon } from '#/components/Icon'
 import { listDirectoryQueryOptions, unsafe_assetFromCacheQueryOptions } from '#/hooks/backendHooks'
 import { useMount } from '#/hooks/mountHooks'
 import { useCategory } from '#/layouts/Drive/CategorySwitcher/hooks'
-import { setModal, unsetModal } from '#/providers/ModalProvider'
+import { unsetModal } from '#/providers/ModalProvider'
 import { FilterBy } from '#/services/Backend'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
@@ -64,7 +64,7 @@ export interface DuplicateAssetsModalProps {
  * A modal for creating a new label.
  * @deprecated Use {@link resolveDuplications} instead.
  */
-export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
+export function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const { conflictingFiles: conflictingFilesRaw } = props
   const { conflictingProjects: conflictingProjectsRaw, doUpdateConflicting } = props
   const { siblingFileNames: siblingFileNamesRaw } = props
@@ -685,4 +685,3 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
     </Form>
   )
 }
-

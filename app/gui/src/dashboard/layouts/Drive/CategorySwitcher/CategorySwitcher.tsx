@@ -10,6 +10,7 @@ import { Badge } from '#/components/Badge'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
+import { useTransferBetweenCategories } from '#/layouts/Drive/CategorySwitcher/useTransferBetweenCategories'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
@@ -22,7 +23,7 @@ import { memo, useTransition, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { twJoin } from 'tailwind-merge'
 import { areCategoriesEqual, canTransferBetweenCategories, type Category } from './Category'
-import { useCloudCategoryList, useLocalCategoryList, useTransferBetweenCategories } from './hooks'
+import { useCloudCategoryList, useLocalCategoryList } from './hooks'
 
 /** Metadata for a categoryModule.categoryType. */
 interface CategoryMetadata {

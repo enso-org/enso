@@ -11,20 +11,17 @@ import FolderFilledIcon from '#/assets/folder_filled.svg'
 import PeopleIcon from '#/assets/people.svg'
 import RecentIcon from '#/assets/recent.svg'
 import Trash2Icon from '#/assets/trash2.svg'
-import { deleteAssetsMutationOptions, moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
-import { useBackendQuery } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useFullUserSession, useUser } from '#/providers/AuthProvider'
-import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import { useUser } from '#/providers/AuthProvider'
+import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { Path, type AssetId, type DirectoryId } from '#/services/Backend'
+import { Path, type DirectoryId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 import { userIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import { LocalStorage } from '#/utilities/LocalStorage'
-import { useMutation } from '@tanstack/react-query'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
 import { z } from 'zod'
@@ -292,50 +289,4 @@ export function useCategoriesAPI() {
   const context = useContext(CategoriesContext)
   invariant(context != null, 'useCategory must be used within a CategoriesProvider')
   return context
-}
-
-/** A function to transfer a list of assets between categories. */
-export function useTransferBetweenCategories(currentCategory: Category) {
-  const remoteBackend = useRemoteBackend()
-  const localBackend = useLocalBackend()
-  const backend = useBackend(currentCategory)
-  const { user } = useFullUserSession()
-  const { data: organization = null } = useBackendQuery(remoteBackend, 'getOrganization', [])
-  const deleteAssetsMutation = useMutation(deleteAssetsMutationOptions(backend))
-  const moveAssetsMutation = useMutation(moveAssetsMutationOptions(backend))
-
-  return useEventCallback(
-    (from: Category, to: Category, keys: Iterable<AssetId>, newParentId?: DirectoryId | null) => {
-      switch (from.type) {
-        case 'cloud':
-        case 'recent':
-        case 'team':
-        case 'user': {
-          if (to.type === 'trash') {
-            deleteAssetsMutation.mutate([[...keys], false])
-          } else if (to.type === 'cloud' || to.type === 'team' || to.type === 'user') {
-            newParentId ??=
-              to.type === 'cloud' ?
-                remoteBackend.rootDirectoryId(user, organization)
-              : to.homeDirectoryId
-            invariant(newParentId != null, 'The Cloud backend is missing a root directory.')
-            moveAssetsMutation.mutate([[...keys], newParentId])
-          }
-          break
-        }
-        case 'trash': {
-          break
-        }
-        case 'local':
-        case 'local-directory': {
-          if (to.type === 'local' || to.type === 'local-directory') {
-            const parentDirectory = to.type === 'local' ? localBackend?.rootPath() : to.rootPath
-            invariant(parentDirectory != null, 'The Local backend is missing a root directory.')
-            newParentId ??= newDirectoryId(parentDirectory)
-            moveAssetsMutation.mutate([[...keys], newParentId])
-          }
-        }
-      }
-    },
-  )
 }

@@ -4,7 +4,7 @@ import { backendMutationOptions, useEnsureListDirectory } from '#/hooks/backendH
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog, useToastAndLogWithId } from '#/hooks/toastAndLogHooks'
 import type { Category } from '#/layouts/Drive/CategorySwitcher'
-import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
+import { DuplicateAssetsModal } from '#/modals/DuplicateAssetsModal'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
