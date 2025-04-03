@@ -9,7 +9,6 @@ import BlankIcon from '#/assets/blank.svg'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 
-import type { DrivePastePayload } from '#/providers/DriveProvider'
 import {
   useDriveStore,
   useSetCurrentDirectoryId,
@@ -56,6 +55,7 @@ import {
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useTransition } from 'react'
+import type { PasteActionOptions } from '../../hooks/cutAndPasteHooks'
 
 /** Common properties for state and setters passed to event handlers on an {@link AssetRow}. */
 export interface AssetRowInnerProps {
@@ -77,11 +77,7 @@ export interface AssetRowProps {
   readonly columns: columnUtils.Column[]
   readonly isKeyboardSelected: boolean
   readonly labels: readonly Label[]
-  readonly cutAndPaste: (
-    newParentKey: backendModule.DirectoryId,
-    newParentId: backendModule.DirectoryId,
-    pasteData: DrivePastePayload,
-  ) => void
+  readonly paste: (options: PasteActionOptions) => void
   readonly grabKeyboardFocus: (item: backendModule.AnyAsset) => void
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
   readonly select: (item: backendModule.AnyAsset) => void
@@ -100,11 +96,6 @@ export interface AssetRowProps {
   readonly onDrop?: (
     event: React.DragEvent<HTMLTableRowElement>,
     item: backendModule.AnyAsset,
-  ) => void
-  readonly onCutAndPaste?: (
-    newParentKey: backendModule.DirectoryId,
-    newParentId: backendModule.DirectoryId,
-    pasteData: DrivePastePayload,
   ) => void
   readonly uploadFiles: (
     files: readonly File[],
@@ -229,7 +220,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
     isPlaceholder,
     type,
     item,
-    cutAndPaste,
+    paste,
     labels,
     grabKeyboardFocus,
     uploadFiles,
@@ -274,9 +265,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === item.id)
   const isEditingName = innerRowState.isEditingName || isNewlyCreated
 
-  const rowState = React.useMemo(() => {
-    return object.merge(innerRowState, { isEditingName })
-  }, [isEditingName, innerRowState])
+  const rowState = object.merge(innerRowState, { isEditingName })
 
   const isDeletingSingleAsset =
     useBackendMutationState(backend, 'deleteAsset', {
@@ -296,7 +285,8 @@ export function RealAssetRow(props: RealAssetRowProps) {
     }).length !== 0
   const isRestoringMultipleAssets =
     useRestoreAssetsMutationState(backend, {
-      predicate: ({ state: { variables: assetIds = [] } }) => assetIds.includes(item.id),
+      predicate: ({ state: { variables = { ids: [], parentId: null } } }) =>
+        variables.ids.includes(item.id),
       select: () => null,
     }).length !== 0
   const isRestoring = isRestoringSingleAsset || isRestoringMultipleAssets
@@ -313,11 +303,14 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
   const isUpdating = isUpdatingSingleAsset || isMovingMultipleAssets
 
-  const insertionVisibility = useStore(driveStore, (driveState) =>
-    driveState.pasteData?.type === 'move' && driveState.pasteData.data.ids.has(id) ?
-      Visibility.faded
-    : Visibility.visible,
-  )
+  const insertionVisibility = useStore(driveStore, (driveState) => {
+    return (
+        driveState.pasteData?.type === 'move' &&
+          driveState.pasteData.data.assets.some((asset) => asset.id === item.id)
+      ) ?
+        Visibility.faded
+      : Visibility.visible
+  })
   const visibility =
     isDeleting || isRestoring || isUpdating ? Visibility.faded : insertionVisibility
 
@@ -543,17 +536,21 @@ export function RealAssetRow(props: RealAssetRowProps) {
               const directoryId =
                 item.type === backendModule.AssetType.directory ? item.id : parentId
               const payload = drag.ASSET_ROWS.lookup(event)
+
               if (payload != null && payload.every((innerItem) => innerItem.key !== directoryId)) {
                 event.preventDefault()
                 event.stopPropagation()
                 unsetModal()
-                const ids = payload
+                const assets = payload
                   .filter((payloadItem) => payloadItem.asset.parentId !== directoryId)
-                  .map((dragItem) => dragItem.key)
-                cutAndPaste(directoryId, directoryId, {
-                  backendType: backend.type,
-                  ids: new Set(ids),
-                  category,
+                  .map((dragItem) => dragItem.asset)
+
+                paste({
+                  fromCategory: category,
+                  toCategory: category,
+                  newParentId: directoryId,
+                  pasteData: { backendType: backend.type, assets, category },
+                  method: 'move',
                 })
               } else if (event.dataTransfer.types.includes('Files')) {
                 event.preventDefault()

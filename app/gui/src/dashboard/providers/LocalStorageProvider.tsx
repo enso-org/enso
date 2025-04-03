@@ -24,7 +24,7 @@ export type LocalStorageProviderProps = Readonly<React.PropsWithChildren>
 export default function LocalStorageProvider(props: LocalStorageProviderProps) {
   const { children } = props
 
-  const localStorage = React.useMemo(() => LocalStorage.getInstance(), [])
+  const localStorage = LocalStorage.getInstance()
 
   return (
     <LocalStorageContext.Provider value={{ localStorage }}>{children}</LocalStorageContext.Provider>
