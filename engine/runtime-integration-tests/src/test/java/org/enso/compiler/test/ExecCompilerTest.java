@@ -52,7 +52,7 @@ public class ExecCompilerTest {
             .allowAllAccess(true)
             .build();
     assertNotNull(
-        "Enso language is supported", ctxRule.getEngine().getLanguages().get(LanguageInfo.ID));
+        "Enso language is supported", ctx.getEngine().getLanguages().get(LanguageInfo.ID));
     return ctx;
   }
 
