@@ -55,16 +55,13 @@ public class TestChangeDirectory {
   @Test
   public void changeDir() throws IOException {
     ensureInNativeImage();
-    System.out.println("=== Start TestChangeDirectory.changeDir ===");
     var tmpDir = Files.createTempDirectory("TestChangeDirectory");
     var tmpDirAbs = tmpDir.toAbsolutePath().toString();
-    System.out.println("tmpDirAbs = " + tmpDirAbs);
     var nativeApi = WorkingDirectories.getCurrent();
     var succeeded = nativeApi.changeWorkingDir(tmpDirAbs);
     assertTrue(succeeded);
     var curDir = nativeApi.currentWorkingDir();
     assertEquals(tmpDirAbs, curDir);
-    System.out.println("=== End TestChangeDirectory.changeDir ===");
   }
 
   @Test
