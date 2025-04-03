@@ -26,9 +26,9 @@ import org.junit.runners.model.Statement;
  * org.junit.runners.Parameterized.Parameters}.
  */
 public final class ContextRule implements TestRule {
-  private static final ThreadLocal<Context> CURRENT = new ThreadLocal<>();
   private final Supplier<Context> contextSupplier;
   private final ByteArrayOutputStream out;
+  private Context context;
 
   private ContextRule(Supplier<Context> contextSupplier, ByteArrayOutputStream out) {
     this.contextSupplier = contextSupplier;
@@ -104,9 +104,6 @@ public final class ContextRule implements TestRule {
     return currentCtx().eval(languageId, code);
   }
 
-  /**
-   * @see ContextUtils#evalModule(Context, CharSequence, String)
-   */
   public Object unwrapValue(Value value) {
     return ContextUtils.unwrapValue(currentCtx(), value);
   }
@@ -131,10 +128,11 @@ public final class ContextRule implements TestRule {
     return ContextUtils.executeInContext(ctx, callable);
   }
 
-  private static Context currentCtx() {
-    var ctx = CURRENT.get();
-    assert ctx != null : "ContextUtilsRule must be used with @ClassRule or @Rule";
-    return ctx;
+  private Context currentCtx() {
+    if (context == null) {
+      context = contextSupplier.get();
+    }
+    return context;
   }
 
   /**
@@ -150,8 +148,7 @@ public final class ContextRule implements TestRule {
   /**
    * Returns set of all the builtin methods from Any. These methods are present even if the module
    * was not imported - they are present on the Any builtin type. This is in contrast to {@link
-   * #allMethodsFromAny()} which requires the {@code Standard.Base.Any} module to be first
-   * imported.
+   * #allMethodsFromAny()} which requires the {@code Standard.Base.Any} module to be first imported.
    */
   public Set<String> builtinMethodsFromAny() {
     return ContextUtils.builtinMethodsFromAny(currentCtx());
@@ -177,10 +174,7 @@ public final class ContextRule implements TestRule {
 
     @Override
     public void evaluate() throws Throwable {
-      var prev = CURRENT.get();
-      try (var ctx = contextSupplier.get()) {
-        System.out.println("[ContextUtilsRule] Creating new Context");
-        CURRENT.set(ctx);
+      try (var ctx = currentCtx()) {
         base.evaluate();
       } catch (Throwable t) {
         if (out != null) {
@@ -189,10 +183,13 @@ public final class ContextRule implements TestRule {
           throw t;
         }
       } finally {
+        if (context != null) {
+          context.close();
+          context = null;
+        }
         if (out != null) {
           out.reset();
         }
-        CURRENT.set(prev);
       }
     }
 
