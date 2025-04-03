@@ -331,16 +331,18 @@ object GraphImpl {
     *                       Note that there may not be a link for all these definitions.
     */
   sealed class Scope(
-    private[GraphImpl] var _childScopes: List[Scope]                  = List(),
-    private[GraphImpl] var _occurrences: Map[Id, GraphOccurrence]     = HashMap(),
-    private[GraphImpl] var _allDefinitions: List[GraphOccurrence.Def] = List()
+    private[GraphImpl] var _childScopes: List[Scope]              = List(),
+    private[GraphImpl] var _occurrences: Map[Id, GraphOccurrence] = HashMap(),
+    private[GraphImpl] val _allDefinitions: java.util.List[
+      GraphOccurrence.Def
+    ] = new java.util.ArrayList()
   ) extends Graph.Scope {
 
     private[GraphImpl] var _parent: Scope = null
 
     def childScopes    = _childScopes
     def occurrences    = _occurrences
-    def allDefinitions = _allDefinitions
+    def allDefinitions = java.util.Collections.unmodifiableList(_allDefinitions)
     def parent: Option[Scope] =
       if (this._parent eq null) None else Some(_parent)
 
@@ -445,7 +447,7 @@ object GraphImpl {
       * @param definition The definition to add.
       */
     private[graph] def addDefinition(definition: GraphOccurrence.Def): Unit = {
-      _allDefinitions = allDefinitions ++ List(definition)
+      _allDefinitions.add(definition)
     }
 
     /** Finds an occurrence for the provided ID in the current scope, if it

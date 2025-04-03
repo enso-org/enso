@@ -18,7 +18,7 @@ public final class GraphPersistance {
     protected GraphImpl.Scope readObject(Input in) throws IOException {
       var childScopes = in.readInline(scala.collection.immutable.List.class);
       var occurrencesValues = (scala.collection.immutable.Set<GraphOccurrence>) in.readObject();
-      var allDefinitions = in.readInline(scala.collection.immutable.List.class);
+      var allDefinitions = in.readInline(java.util.List.class);
       var parent = new GraphImpl.Scope(childScopes, new HashMap<>(), allDefinitions);
       occurrencesValues.foreach(
           v -> {
@@ -41,7 +41,7 @@ public final class GraphPersistance {
     protected void writeObject(GraphImpl.Scope obj, Output out) throws IOException {
       out.writeInline(scala.collection.immutable.List.class, obj.childScopes());
       out.writeObject(obj.occurrences().values().toSet());
-      out.writeInline(scala.collection.immutable.List.class, obj.allDefinitions());
+      out.writeInline(java.util.List.class, obj.allDefinitions());
     }
   }
 

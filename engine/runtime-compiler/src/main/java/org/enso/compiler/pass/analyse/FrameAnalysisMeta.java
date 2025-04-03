@@ -6,7 +6,6 @@ import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence;
-import org.enso.scala.wrapper.ScalaConversions;
 
 public sealed interface FrameAnalysisMeta extends ProcessingPass.Metadata
     permits FramePointer, FrameVariableNames {
@@ -34,7 +33,7 @@ public sealed interface FrameAnalysisMeta extends ProcessingPass.Metadata
   }
 
   static void updateSymbolNames(IR e, Graph.Scope s) {
-    var symbols = s.allDefinitions().map(d -> d.symbol());
+    var symbols = s.allDefinitions().stream().map(d -> d.symbol()).toList();
     updateMetadata(e, FrameVariableNames.create(symbols));
   }
 
@@ -94,7 +93,7 @@ public sealed interface FrameAnalysisMeta extends ProcessingPass.Metadata
     assert scope.allDefinitions().contains(defOcc)
         : "The given scope must contain the given Def occurrence";
 
-    var allDefs = ScalaConversions.asJava(scope.allDefinitions());
+    var allDefs = scope.allDefinitions();
     for (int i = 0; i < allDefs.size(); i++) {
       GraphOccurrence.Def def = allDefs.get(i);
       if (def.id() == defOcc.id()) {
