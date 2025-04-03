@@ -51,7 +51,7 @@ import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import type { CredentialMetadata, DirectoryId } from '#/services/Backend'
+import type { CredentialConfig, DirectoryId } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
@@ -115,7 +115,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     return await newSecretRaw(name, value, currentDirectoryId)
   })
   const newCredentialRaw = useNewCredential(backend)
-  const newCredential = useEventCallback(async (name: string, value: CredentialMetadata) => {
+  const newCredential = useEventCallback(async (name: string, value: CredentialConfig) => {
     return await newCredentialRaw(name, value, currentDirectoryId)
   })
   const newDatalinkRaw = useNewDatalink(backend)

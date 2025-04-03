@@ -164,6 +164,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     self?.permission === permissions.PermissionAction.admin ||
     self?.permission === permissions.PermissionAction.edit
   const isSecret = item.type === AssetType.secret
+  const isCredential = isAssetCredential(item)
   const isDatalink = item.type === AssetType.datalink
   const isCloud = backend.type === BackendType.remote
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
@@ -396,7 +397,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
         </div>
       )}
 
-      {isSecret && !isAssetCredential(item) && (
+      {isSecret && !isCredential && (
         <div className={styles.section()} {...secretSpotlight.props}>
           <Heading
             level={2}
@@ -418,7 +419,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
         </div>
       )}
 
-      {isSecret && isAssetCredential(item) && (
+      {isSecret && isCredential && (
         <div className={styles.section()} {...secretSpotlight.props}>
           <Heading
             level={2}
@@ -435,7 +436,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                 <td className="w-full p-0">
                   <div className="flex items-center gap-2">
                     <Text className="w-0 grow" truncate="1">
-                      {item.serviceName}
+                      {item.credentialMetadata.serviceName}
                     </Text>
                   </div>
                 </td>
@@ -447,12 +448,12 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                 <td className="w-full p-0">
                   <div className="flex items-center gap-2">
                     <Text className="w-0 grow" truncate="1">
-                      {item.state && getText(`credentialState${item.state}`)}
+                      {getText(`credentialState${item.credentialMetadata.state}`)}
                     </Text>
                   </div>
                 </td>
               </tr>
-              {item.expirationDate && (
+              {item.credentialMetadata.expirationDate && (
                 <tr className="h-row">
                   <td className="my-auto min-w-side-panel-label p-0">
                     <Text>{getText('credentialExpiresAt')}</Text>
@@ -460,7 +461,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                   <td className="w-full p-0">
                     <div className="flex items-center gap-2">
                       <Text className="w-0 grow" truncate="1">
-                        {toReadableIsoString(new Date(item.expirationDate))}
+                        {toReadableIsoString(new Date(item.credentialMetadata.expirationDate))}
                       </Text>
                     </div>
                   </td>

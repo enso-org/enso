@@ -3,13 +3,13 @@ import { Dialog, Dropdown, Text } from '#/components/AriaComponents'
 import { CREDENTIAL_INFOS } from '#/data/serviceCredentials'
 import { makeCredentialCreationHandler } from '#/data/serviceCredentials/logic'
 import { useText } from '#/providers/TextProvider'
-import type { CredentialMetadata, SecretId } from '#/services/Backend'
+import type { CredentialConfig, SecretId } from '#/services/Backend'
 import { useState } from 'react'
 
 /** Props for a {@link CreateCredentialModal}. */
 export interface CreateCredentialModalProps {
   readonly noDialog?: boolean
-  readonly doCreate: (name: string, value: CredentialMetadata) => Promise<SecretId>
+  readonly doCreate: (name: string, value: CredentialConfig) => Promise<SecretId>
 }
 
 /** A modal for creating a credential. */

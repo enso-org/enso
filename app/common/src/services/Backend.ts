@@ -923,6 +923,13 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
 /** A state associated with a credential. */
 export type CredentialSecretState = 'Expired' | 'Ready' | 'WaitingForAuthentication'
 
+/** Metadata associated with a credential asset. */
+export interface CredentialMetadata {
+  readonly serviceName: string
+  readonly expirationDate?: dateTime.Rfc3339DateTime
+  readonly state: CredentialSecretState
+}
+
 /**
  * Metadata uniquely identifying a directory entry.
  * These can be Projects, Files, Secrets, or other directories.
@@ -945,9 +952,7 @@ export interface Asset<Type extends AssetType = AssetType> {
   /** Asset data for a file */
   readonly extension: Type extends AssetType.file ? string : null
   /** Asset data for a credential (secret) */
-  readonly serviceName?: Type extends AssetType.secret ? string : undefined
-  readonly expirationDate?: Type extends AssetType.secret ? dateTime.Rfc3339DateTime : undefined
-  readonly state?: Type extends AssetType.secret ? CredentialSecretState : undefined
+  readonly credentialMetadata?: Type extends AssetType.secret ? CredentialMetadata : undefined
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
@@ -1005,8 +1010,8 @@ export function isPlaceholderId(id: AssetId) {
 }
 
 /** Whether a given asset represents a credential. */
-export function isAssetCredential(asset: Asset) {
-  return asset.serviceName !== undefined
+export function isAssetCredential(asset: Asset): asset is SecretAsset & { credentialMetadata: CredentialMetadata } {
+  return asset.type === 'secret' && asset.credentialMetadata !== undefined
 }
 
 /** Extract the file extension from a file name. */
@@ -1466,7 +1471,7 @@ export interface GoogleCredentialInput {
 export type CredentialInput = SnowflakeCredentialInput | GoogleCredentialInput
 
 /** Metadata for an arbitrary credential, including a nonce for authentication purposes. */
-export interface CredentialMetadata {
+export interface CredentialConfig {
   readonly nonce: string
   readonly input: CredentialInput
 }
@@ -1474,7 +1479,7 @@ export interface CredentialMetadata {
 /** HTTP request body for the "create credential" endpoint. */
 export interface CreateCredentialRequestBody {
   readonly name: string
-  readonly value: CredentialMetadata
+  readonly value: CredentialConfig
   readonly parentDirectoryId: DirectoryId | null
 }
 
