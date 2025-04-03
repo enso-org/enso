@@ -23,9 +23,7 @@ public final class GraphPersistance {
       occurrencesValues.foreach(
           v -> {
             var associated = v.withScope(parent);
-            if (associated instanceof GraphOccurrence.Use use) {
-              assert use.scope() == parent;
-            }
+            assert associated.scope() == parent;
             return null;
           });
 

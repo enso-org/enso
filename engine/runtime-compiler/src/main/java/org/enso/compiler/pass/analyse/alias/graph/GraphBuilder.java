@@ -72,7 +72,9 @@ public final class GraphBuilder {
       scala.Option<java.util.UUID> externalId,
       boolean suspended,
       boolean addToScope) {
-    var def = new GraphOccurrence.Def(graph.nextId(), symbol, identifier, externalId, suspended);
+    var def =
+        new GraphOccurrence.Def(graph.nextId(), symbol, identifier, externalId, suspended)
+            .withScope(scope);
     if (addToScope) {
       scope.add(def);
     }

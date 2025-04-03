@@ -102,7 +102,7 @@ sealed private[graph] class GraphImpl(
   final def resolveLocalUsage(
     occurrence: GraphOccurrence.Use
   ): Option[Graph.Link] = {
-    Option(occurrence.scope()).flatMap(_.resolveUsage(occurrence).map { link =>
+    Option(occurrence.scope()).flatMap(_.asInstanceOf[GraphImpl.Scope].resolveUsage(occurrence).map { link =>
       addSourceTargetLink(link)
       links += link
       link

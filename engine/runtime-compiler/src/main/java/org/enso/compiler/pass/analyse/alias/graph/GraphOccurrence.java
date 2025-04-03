@@ -22,14 +22,32 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
 
   abstract GraphOccurrence withScope(GraphImpl.Scope scope);
 
+  public abstract Graph.Scope scope();
+
   /** The definition of a symbol in the aliasing graph. */
   @Persistable(id = 1265, allowInlining = false)
   public static final class Def extends GraphOccurrence {
+    private final GraphImpl.Scope scope;
     private final int id;
     private final String symbol;
     private final @Identifier UUID identifier;
     private final @ExternalID UUID externalId;
     private final boolean isLazy;
+
+    private Def(
+        GraphImpl.Scope scope,
+        int id,
+        String symbol,
+        UUID identifier,
+        scala.Option<UUID> externalId,
+        boolean isLazy) {
+      this.scope = scope;
+      this.id = id;
+      this.externalId = externalId.nonEmpty() ? externalId.get() : null;
+      this.identifier = identifier;
+      this.isLazy = isLazy;
+      this.symbol = symbol;
+    }
 
     /**
      * The definition of a symbol in the aliasing graph.
@@ -41,16 +59,17 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
      * @param isLazy whether or not the symbol is defined as lazy
      */
     Def(int id, String symbol, UUID identifier, scala.Option<UUID> externalId, boolean isLazy) {
-      this.id = id;
-      this.externalId = externalId.nonEmpty() ? externalId.get() : null;
-      this.identifier = identifier;
-      this.isLazy = isLazy;
-      this.symbol = symbol;
+      this(null, id, symbol, identifier, externalId, isLazy);
     }
 
     @Override
     Def withScope(GraphImpl.Scope scope) {
-      return this;
+      return new Def(scope, id, symbol, identifier, Option.apply(externalId), isLazy);
+    }
+
+    @Override
+    public Graph.Scope scope() {
+      return scope;
     }
 
     @Override
@@ -137,6 +156,11 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
     }
 
     @Override
+    public Graph.Scope scope() {
+      return scope;
+    }
+
+    @Override
     public int id() {
       return this.id;
     }
@@ -152,10 +176,6 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
 
     public scala.Option<UUID> externalId() {
       return scala.Option.apply(externalId);
-    }
-
-    final GraphImpl.Scope scope() {
-      return this.scope;
     }
 
     @Override
