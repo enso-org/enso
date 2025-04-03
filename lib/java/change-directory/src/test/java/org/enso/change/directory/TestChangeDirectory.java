@@ -7,6 +7,8 @@ import static org.junit.Assume.assumeTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.concurrent.TimeUnit;
+import org.enso.common.Platform;
 import org.graalvm.nativeimage.ImageInfo;
 import org.junit.Test;
 
@@ -20,6 +22,16 @@ public class TestChangeDirectory {
         inNativeImage);
   }
 
+  private static void ensureOnUnix() {
+    var onUnix = switch (Platform.getOperatingSystem()) {
+      case MACOS, LINUX -> true;
+      case WINDOWS -> false;
+    };
+    assumeTrue(
+        "This test should only be run on Unix-like systems. Please run it on a Unix-like system.",
+        onUnix);
+  }
+
   @Test
   public void curDir() {
     ensureInNativeImage();
@@ -27,6 +39,16 @@ public class TestChangeDirectory {
     var curDir = nativeApi.currentWorkingDir();
     var expectedDir = System.getProperty("user.dir");
     assertEquals(expectedDir, curDir);
+  }
+
+  @Test
+  public void curDir_IsSameAsPwdOnUnix() throws IOException, InterruptedException {
+    ensureInNativeImage();
+    ensureOnUnix();
+    var nativeApi = WorkingDirectories.getCurrent();
+    var curDir = nativeApi.currentWorkingDir();
+    var pwd = invokePwd();
+    assertEquals(pwd, curDir);
   }
 
   @Test
@@ -72,5 +94,14 @@ public class TestChangeDirectory {
     var dirExists =
         nativeApi.exists(dir.toAbsolutePath().toString(), tmpDir.getFileName().toString());
     assertFalse(dirExists);
+  }
+
+  private String invokePwd() throws IOException, InterruptedException {
+    var process = new ProcessBuilder("pwd").start();
+    process.waitFor(3, TimeUnit.SECONDS);
+    var pwd =
+        new String(
+            process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+    return pwd.trim();
   }
 }
