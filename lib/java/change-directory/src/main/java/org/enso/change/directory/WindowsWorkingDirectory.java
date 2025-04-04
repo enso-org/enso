@@ -1,5 +1,6 @@
 package org.enso.change.directory;
 
+import java.io.File;
 import java.util.List;
 import org.enso.common.Platform;
 import org.graalvm.nativeimage.c.CContext;
@@ -10,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @CContext(WindowsWorkingDirectory.Directives.class)
-public final class WindowsWorkingDirectory extends WorkingDirectory {
+public final class WindowsWorkingDirectory implements WorkingDirectory {
   static final WindowsWorkingDirectory INSTANCE = new WindowsWorkingDirectory();
   private static final Logger LOGGER = LoggerFactory.getLogger(WindowsWorkingDirectory.class);
 
@@ -47,23 +48,18 @@ public final class WindowsWorkingDirectory extends WorkingDirectory {
   }
 
   @Override
-  public boolean existsImpl(String path) {
-    try (var cPath = CTypeConversion.toCString(path)) {
+  public boolean exists(String dir, String file) {
+    String full;
+    if (dir.endsWith(File.separator)) {
+      full = dir + file;
+    } else {
+      full = dir + File.separator + file;
+    }
+    try (var cPath = CTypeConversion.toCString(full)) {
       var res = PathFileExistsA(cPath.get());
       return res != 0;
     } catch (Throwable t) {
-      LOGGER.error("Cannot check if {} exists on Windows", path, t);
-      return false;
-    }
-  }
-
-  @Override
-  public boolean isDirectory(String path) {
-    try (var cPath = CTypeConversion.toCString(path)) {
-      var res = PathIsDirectoryA(cPath.get());
-      return res != 0;
-    } catch (Throwable t) {
-      LOGGER.error("Cannot check if {} is a directory on Windows", path, t);
+      LOGGER.error("Cannot check if {} exists on Windows", full, t);
       return false;
     }
   }
@@ -91,9 +87,6 @@ public final class WindowsWorkingDirectory extends WorkingDirectory {
    */
   @CFunction
   static native int PathFileExistsA(CCharPointer pszPath);
-
-  @CFunction
-  static native int PathIsDirectoryA(CCharPointer pszPath);
 
   static final class Directives implements CContext.Directives {
     @Override
