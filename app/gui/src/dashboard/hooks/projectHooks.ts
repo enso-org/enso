@@ -22,6 +22,7 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
+import { useUploadFileWithToastMutation } from './backendUploadFilesHooks'
 
 /** Default interval for refetching project status when the project is opened. */
 const OPENED_INTERVAL_MS = 30_000
@@ -277,6 +278,8 @@ export function useCloseProjectMutation() {
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const setProjectAsset = useSetProjectAsset()
+  const uploadFileMutation = useUploadFileWithToastMutation(remoteBackend)
+  const toastAndLog = useToastAndLog()
 
   return reactQuery.useMutation({
     mutationKey: ['closeProject'],
@@ -302,7 +305,7 @@ export function useCloseProjectMutation() {
 
       void client.cancelQueries({ queryKey })
     },
-    onSuccess: async (_, { type, id, parentId, hybrid }) => {
+    onSuccess: async (_, { type, id, title, parentId, hybrid }) => {
       await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       setProjectAsset(type, id, parentId, (asset) => ({
         ...asset,
@@ -310,7 +313,21 @@ export function useCloseProjectMutation() {
       }))
 
       if (hybrid) {
-        await remoteBackend.uploadProject(hybrid.cloudProjectId, parentId)
+        const safeTitle = backendModule.escapeSpecialCharacters(title)
+        const fileName = `${safeTitle}.enso-project`
+        const file = await remoteBackend.getProjectArchive(parentId, fileName)
+        await uploadFileMutation
+          .mutateAsync([
+            {
+              fileId: hybrid.cloudProjectId,
+              fileName: fileName,
+              parentDirectoryId: hybrid.cloudParentId,
+            },
+            file,
+          ])
+          .catch((error) => {
+            toastAndLog('uploadProjectError', error)
+          })
 
         invariant(localBackend != null, 'LocalBackend is null')
         await localBackend.deleteAsset(hybrid.parentId, { force: true }, null)
@@ -319,9 +336,23 @@ export function useCloseProjectMutation() {
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
-    onError: async (_, { type, id, parentId, hybrid }) => {
+    onError: async (_, { type, id, title, parentId, hybrid }) => {
       if (hybrid) {
-        await remoteBackend.uploadProject(hybrid.cloudProjectId, parentId)
+        const safeTitle = backendModule.escapeSpecialCharacters(title)
+        const fileName = `${safeTitle}.enso-project`
+        const file = await remoteBackend.getProjectArchive(parentId, fileName)
+        await uploadFileMutation
+          .mutateAsync([
+            {
+              fileId: hybrid.cloudProjectId,
+              fileName: fileName,
+              parentDirectoryId: hybrid.cloudParentId,
+            },
+            file,
+          ])
+          .catch((error) => {
+            toastAndLog('uploadProjectError', error)
+          })
 
         invariant(localBackend != null, 'LocalBackend is null')
         await localBackend.deleteAsset(hybrid.parentId, { force: true }, null)
@@ -450,6 +481,7 @@ export function useOpenHybridProject() {
           type: backendModule.BackendType.local,
           hybrid: {
             cloudProjectId: asset.id,
+            cloudParentId: asset.parentId,
             parentId: localProject.parentId,
             cloudProjectDirectoryPath,
           },

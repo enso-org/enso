@@ -40,6 +40,7 @@ const PROJECT_SCHEMA = z
     hybrid: z.optional(
       z.object({
         cloudProjectId: PROJECT_ID_SCHEMA,
+        cloudParentId: DIRECTORY_ID_SCHEMA,
         parentId: DIRECTORY_ID_SCHEMA,
         cloudProjectDirectoryPath: z.string(),
       }),
