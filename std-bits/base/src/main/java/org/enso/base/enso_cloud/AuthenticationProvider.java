@@ -65,16 +65,4 @@ public class AuthenticationProvider implements ReloadDetector.HasClearableCache 
   public void clearCache() {
     reset();
   }
-
-  /** Public for testing. */
-  public boolean isCachedTestOnly() {
-    return authenticationServiceAsEnso != null;
-  }
-
-  /** Public for testing. */
-  // This is necessary because there is no other way to trigger a reload cache
-  // clear without re-filling the cache.
-  public void clearOnReloadTestOnly() {
-    ReloadDetector.clearOnReload(this);
-  }
 }
