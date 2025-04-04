@@ -5020,7 +5020,7 @@ lazy val `std-google-api` = project
       "com.google.apis"       % "google-api-services-sheets" % googleApiServicesSheetsVersion exclude ("com.google.code.findbugs", "jsr305"),
       "com.google.analytics"  % "google-analytics-admin"     % googleAnalyticsAdminVersion exclude ("com.google.code.findbugs", "jsr305"),
       "com.google.analytics"  % "google-analytics-data"      % googleAnalyticsDataVersion exclude ("com.google.code.findbugs", "jsr305"),
-      "io.grpc"               % "grpc-netty-shaded"          % grpcVersion
+      "io.grpc"               % "grpc-netty-shaded"          % grpcVersion exclude ("com.google.code.findbugs", "jsr305")
     ),
     // Extract native libraries from grpc-netty-shaded-***.jar, and put them under
     // Standard/Google_Api/polyglot/lib directory. The minimized jar will

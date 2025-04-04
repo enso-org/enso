@@ -68,6 +68,7 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'google-api-services-sheets', licensed under the The Apache Software License, Version 2.0, is distributed with the Google_Api.
 The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.apis.google-api-services-sheets-v4-rev20250106-2.0.0`.
 
 
 'google-auth-library-credentials', licensed under the BSD New license, is distributed with the Google_Api.
