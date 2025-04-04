@@ -22,8 +22,8 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
-import { useUploadFileWithToastMutation } from './backendUploadFilesHooks'
 import { useMutationCallback } from '../utilities/tanstackQuery'
+import { useUploadFileWithToastMutation } from './backendUploadFilesHooks'
 
 /** Default interval for refetching project status when the project is opened. */
 const OPENED_INTERVAL_MS = 30_000
