@@ -727,6 +727,7 @@ lazy val componentModulesPaths =
   val thirdPartyModFiles = thirdPartyMods.map(_.data)
   val ourMods = Seq(
     (`common-polyglot-core-utils` / Compile / exportedModuleBin).value,
+    (`change-directory` / Compile / exportedModuleBin).value,
     (`engine-common` / Compile / exportedModuleBin).value,
     (`engine-runner` / Compile / exportedModuleBin).value,
     (`engine-runner-common` / Compile / exportedModuleBin).value,
@@ -3736,6 +3737,7 @@ lazy val `engine-runner` = project
       (`profiling-utils` / Compile / exportedModule).value,
       (`semver` / Compile / exportedModule).value,
       (`cli` / Compile / exportedModule).value,
+      (`change-directory` / Compile / exportedModule).value,
       (`distribution-manager` / Compile / exportedModule).value,
       (`editions` / Compile / exportedModule).value,
       (`edition-updater` / Compile / exportedModule).value,
@@ -3969,6 +3971,7 @@ lazy val `engine-runner` = project
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(cli)
+  .dependsOn(`change-directory`)
   .dependsOn(`profiling-utils`)
   .dependsOn(`library-manager`)
   .dependsOn(`distribution-manager`)

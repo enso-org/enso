@@ -1,5 +1,6 @@
 module org.enso.runner {
   requires commons.cli;
+  requires org.enso.change.directory;
   requires org.enso.cli;
   requires org.enso.distribution;
   requires org.enso.editions;
