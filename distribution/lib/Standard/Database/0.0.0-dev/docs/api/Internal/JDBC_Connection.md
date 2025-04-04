@@ -17,8 +17,10 @@
     - with_prepared_statement self query:Standard.Base.Any.Any statement_setter:Standard.Base.Any.Any action:Standard.Base.Any.Any skip_log:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - close_connection connection:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - create url:Standard.Base.Any.Any properties:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- from_java java_jdbc_connection:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - get_pragma_value jdbc_connection:Standard.Base.Any.Any sql:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - handle_sql_errors ~action:Standard.Base.Any.Any related_query:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - log_sql_if_enabled jdbc_connection:Standard.Base.Any.Any ~query_text:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - profile_sql_if_enabled jdbc_connection:Standard.Database.Internal.JDBC_Connection.JDBC_Connection ~query_text:Standard.Base.Data.Text.Text ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- properties_as_java_props properties:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - set_statement_values stmt:Standard.Base.Any.Any statement_setter:Standard.Base.Any.Any values:Standard.Base.Any.Any expected_type_hints:Standard.Base.Any.Any= -> Standard.Base.Any.Any
