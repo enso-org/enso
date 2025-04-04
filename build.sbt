@@ -4818,7 +4818,8 @@ lazy val `snowflake-test-java-helpers` = project
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
-      file("test/Snowflake_Tests/polyglot/java/snowflake-test-helpers.jar")
+      file("test/Snowflake_Tests/polyglot/java/snowflake-test-helpers.jar"),
+    libraryDependencies ++= bouncyCastle
   )
   .dependsOn(`std-snowflake` % "provided")
 
@@ -5146,7 +5147,7 @@ lazy val `std-snowflake` = project
       `std-snowflake-polyglot-root` / "std-snowflake.jar",
     libraryDependencies ++= Seq(
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "net.snowflake"    % "snowflake-jdbc"          % snowflakeJDBCVersion
+      "net.snowflake"    % "snowflake-jdbc-thin"     % snowflakeJDBCVersion
     ),
     Compile / packageBin := {
       val result = (Compile / packageBin).value
