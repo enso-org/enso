@@ -10,6 +10,7 @@ from Standard.Table import Table
 polyglot java import java.io.IOException
 
 polyglot java import org.enso.google.GoogleSheetsHelpers
+polyglot java import org.enso.google.WrappedGoogleCredentials
 
 type Google_Sheets
     ## PRIVATE
@@ -55,10 +56,10 @@ private _handle_exceptions ~action =
         Error.throw (Google_Api_Error.Error caught_panic.payload.to_text caught_panic.payload)
 
 private _wrap_credentials credential:File|Enso_Secret =
-    case secret_file of
+    case credential of
         secret : Enso_Secret ->
             WrappedGoogleCredentials.SecretCredentials.new (as_credential_reference secret)
-        _ ->
+        secret_file : File ->
             secret_file.with_input_stream [File_Access.Read] stream->
-                stream.with_java_stream is->
-                    WrappedGoogleCredentials.LocalFileCredentials.new (GoogleCredential.fromStream is)
+                stream.with_java_stream java_input_stream->
+                    WrappedGoogleCredentials.LocalFileCredentials.fromStream java_input_stream
