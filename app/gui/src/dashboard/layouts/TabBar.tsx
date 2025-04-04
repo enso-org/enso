@@ -10,10 +10,9 @@ import * as projectHooks from '#/hooks/projectHooks'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import { Tab as TabAria, TabList, type TabListProps } from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
-import type { TabListProps } from '#/components/styled/Tabs'
-import { Tab as TabAria, TabList } from '#/components/styled/Tabs'
 import SvgMask from '#/components/SvgMask'
 
 import { AnimatedBackground } from '#/components/AnimatedBackground'

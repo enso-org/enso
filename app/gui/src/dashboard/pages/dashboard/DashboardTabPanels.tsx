@@ -3,8 +3,8 @@
 import type * as aria from '#/components/aria'
 
 import { Activity } from '#/components/Activity'
+import { TabPanel, type TabPanelRenderProps } from '#/components/aria'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
-import { TabPanel, type TabPanelRenderProps } from '#/components/styled/Tabs'
 import { Suspense } from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectMutation, useRenameProjectMutation } from '#/hooks/projectHooks'
@@ -14,7 +14,6 @@ import type { ProjectId } from '#/services/Backend'
 import { omit } from 'enso-common/src/utilities/data/object'
 import { lazy, type ReactNode } from 'react'
 import { Collection } from 'react-aria-components'
-import { twJoin } from 'tailwind-merge'
 
 /** The props for the {@link DashboardTabPanels} component. */
 export interface DashboardTabPanelsProps {
@@ -50,7 +49,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
   const tabPanels = [
     {
       id: 'drive',
-      className: twJoin('flex min-h-0 grow [&[data-inert]]:hidden'),
+      className: 'flex min-h-0 grow [&[data-inert]]:hidden',
       wrapInActivity: true,
       shouldForceMount: true,
       children: (
