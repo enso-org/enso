@@ -186,17 +186,10 @@ export default function projectManagerShimMiddleware(
 
         break
       }
-      case '/api/cloud/upload-project': {
+      case '/api/cloud/get-project-archive': {
         const url = new URL(`https://example.com/${requestUrl}`)
-        const uploadUrl = url.searchParams.get('uploadUrl')
         const projectDir = url.searchParams.get('directory')
 
-        if (uploadUrl == null) {
-          response
-            .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
-            .end('Request is missing search parameter `uploadUrl`.')
-          break
-        }
         if (projectDir == null) {
           response
             .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
@@ -207,34 +200,12 @@ export default function projectManagerShimMiddleware(
         projectManagement
           .createBundle(projectDir)
           .then((projectBundle) => {
-            const headers = {
-              authorization: request.headers.authorization,
-            }
-            const uploadRequest = https.request(
-              uploadUrl,
-              { method: 'POST', headers },
-              (actualResponse) => {
-                if (!response.writableFinished) {
-                  response.writeHead(
-                    // This is SAFE. The documentation says:
-                    // Only valid for response obtained from ClientRequest.
-                    actualResponse.statusCode!,
-                    actualResponse.statusMessage,
-                    actualResponse.headers,
-                  )
-                  actualResponse.pipe(response, { end: true })
-                }
-              },
-            )
-            uploadRequest.write(projectBundle, (err) => {
-              if (err) {
-                console.error(err)
-                response
-                  .writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR)
-                  .end('Failed to write project bundle.')
-              }
-            })
-            uploadRequest.end()
+            response
+              .writeHead(HTTP_STATUS_OK, {
+                ...COMMON_HEADERS,
+                'Content-Length': String(projectBundle.byteLength),
+              })
+              .end(projectBundle)
           })
           .catch((err) => {
             console.error(err)

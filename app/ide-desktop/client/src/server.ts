@@ -253,17 +253,10 @@ export class Server {
 
           break
         }
-        case '/api/cloud/upload-project': {
+        case '/api/cloud/get-project-archive': {
           const url = new URL(`https://example.com/${requestUrl}`)
-          const uploadUrl = url.searchParams.get('uploadUrl')
           const projectDir = url.searchParams.get('directory')
 
-          if (uploadUrl == null) {
-            response
-              .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
-              .end('Request is missing search parameter `uploadUrl`.')
-            break
-          }
           if (projectDir == null) {
             response
               .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
@@ -274,34 +267,12 @@ export class Server {
           projectManagement
             .createBundle(projectDir)
             .then((projectBundle) => {
-              const headers = {
-                authorization: request.headers.authorization,
-              }
-              const uploadRequest = https.request(
-                uploadUrl,
-                { method: 'POST', headers },
-                (actualResponse) => {
-                  if (!response.writableFinished) {
-                    response.writeHead(
-                      // This is SAFE. The documentation says:
-                      // Only valid for response obtained from ClientRequest.
-                      actualResponse.statusCode!,
-                      actualResponse.statusMessage,
-                      actualResponse.headers,
-                    )
-                    actualResponse.pipe(response, { end: true })
-                  }
-                },
-              )
-              uploadRequest.write(projectBundle, (err) => {
-                if (err) {
-                  logger.error(err)
-                  response
-                    .writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR)
-                    .end('Failed to write project bundle.')
-                }
-              })
-              uploadRequest.end()
+              response
+                .writeHead(HTTP_STATUS_OK, {
+                  ...COOP_COEP_CORP_HEADERS,
+                  'Content-Length': String(projectBundle.byteLength),
+                })
+                .end(projectBundle)
             })
             .catch((err) => {
               logger.error(err)
