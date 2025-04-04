@@ -192,17 +192,21 @@ sealed private[graph] class ScopeImpl(
     */
   private[analyse] def resolveUsage(
     occurrence: GraphOccurrence.Use,
+    d: GraphOccurrence.Def,
     parentCounter: Int = 0
   ): Option[Graph.Link] = {
-    val definition = occurrences.values.find {
-      case GraphOccurrence.Def(_, name, _, _, _) =>
-        name == occurrence.symbol
-      case _ => false
-    }
+    val definition =
+      if (d != null) Some(d)
+      else
+        occurrences.values.find {
+          case GraphOccurrence.Def(_, name, _, _, _) =>
+            name == occurrence.symbol
+          case _ => false
+        }
 
     definition match {
       case None =>
-        parent.flatMap(_.resolveUsage(occurrence, parentCounter + 1))
+        parent.flatMap(_.resolveUsage(occurrence, d, parentCounter + 1))
       case Some(target) =>
         Some(Graph.Link(occurrence.id, parentCounter, target.id()))
     }

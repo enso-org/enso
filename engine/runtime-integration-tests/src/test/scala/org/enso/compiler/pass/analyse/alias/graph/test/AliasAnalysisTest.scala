@@ -160,10 +160,10 @@ class AliasAnalysisTest extends CompilerTest {
       childOfChild
         .toScope()
         .asInstanceOf[ScopeImpl]
-        .resolveUsage(bUse) shouldEqual Some(
+        .resolveUsage(bUse, null) shouldEqual Some(
         Link(bUseId, 0, bDefId)
       )
-      childOfChildOfChild.resolveUsage(aUse) shouldEqual Some(
+      childOfChildOfChild.resolveUsage(aUse, null) shouldEqual Some(
         Link(aUseId, 3, aDefId)
       )
     }
@@ -274,9 +274,9 @@ class AliasAnalysisTest extends CompilerTest {
     val cUseId = cUse.id
     // childScope.add(cUse)
 
-    val use1Link = graph.resolveLocalUsage(aUse1)
-    val use2Link = graph.resolveLocalUsage(aUse2)
-    val cUseLink = graph.resolveLocalUsage(cUse)
+    val use1Link = graph.resolveLocalUsage(aUse1, null)
+    val use2Link = graph.resolveLocalUsage(aUse2, null)
+    val cUseLink = graph.resolveLocalUsage(cUse, null)
 
     "allow itself to be deep copied" in {
       val graphCopy = graph.copy

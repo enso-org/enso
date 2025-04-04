@@ -7,11 +7,13 @@ import java.util.Map;
  * and their usages from the actual querying of those symbols.
  */
 public final class GraphBuilder {
+  private final GraphBuilder parent;
   private final GraphImpl graph;
   private final ScopeImpl scope;
   private final Map<String, GraphOccurrence.Def> defs = new java.util.HashMap<>();
 
-  private GraphBuilder(Graph graph, Graph.Scope scope) {
+  private GraphBuilder(GraphBuilder parent, Graph graph, Graph.Scope scope) {
+    this.parent = parent;
     this.graph = (GraphImpl) graph;
     this.scope = (ScopeImpl) scope;
     this.scope
@@ -46,7 +48,7 @@ public final class GraphBuilder {
   public static GraphBuilder create(Graph g, Graph.Scope s) {
     assert g != null;
     assert s != null;
-    return new GraphBuilder(g, s);
+    return new GraphBuilder(null, g, s);
   }
 
   /**
@@ -55,7 +57,7 @@ public final class GraphBuilder {
    * @return new builder for newly created scope, but the same graph
    */
   public GraphBuilder addChild() {
-    return new GraphBuilder(graph, scope.addChild());
+    return new GraphBuilder(this, graph, scope.addChild());
   }
 
   /**
@@ -91,6 +93,7 @@ public final class GraphBuilder {
     if (addToScope) {
       scope.add(def);
       var prev = defs.put(symbol, def);
+      // System.err.println(" defining " + symbol + " !");
       assert prev == null;
     }
     scope.addDefinition(def);
@@ -104,7 +107,19 @@ public final class GraphBuilder {
   }
 
   public void resolveLocalUsage(GraphOccurrence.Use use) {
-    graph.resolveLocalUsage(use);
+    GraphOccurrence.Def d = null;
+    var b = this;
+    while (b != null) {
+      d = b.defs.get(use.symbol());
+      if (d != null) {
+        break;
+      }
+      b = b.parent;
+    }
+    // System.err.println("seek for " + use.symbol() + " found " + d);
+    if (d != null) {
+      graph.resolveLocalUsage(use, d);
+    }
   }
 
   /**
