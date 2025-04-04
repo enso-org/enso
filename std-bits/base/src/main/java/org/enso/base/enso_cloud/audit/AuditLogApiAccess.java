@@ -219,6 +219,14 @@ public final class AuditLogApiAccess implements ReloadDetector.HasClearableCache
    */
   private record RequestConfig(URI apiUri, String accessToken) {}
 
+  public String getAccessTokenTestOnly() {
+    if (cachedRequestConfig == null) {
+      return null;
+    } else {
+      return cachedRequestConfig.accessToken();
+    }
+  }
+
   private void sendLogRequest(HttpRequest request, int retryCount) throws RequestFailureException {
     try {
       try {
@@ -275,17 +283,5 @@ public final class AuditLogApiAccess implements ReloadDetector.HasClearableCache
   @Override /* HasClearableCache */
   public void clearCache() {
     resetCache();
-  }
-
-  /** Public for testing. */
-  public boolean isCachedTestOnly() {
-    return cachedRequestConfig != null;
-  }
-
-  /** Public for testing. */
-  // This is necessary because there is no other way to trigger a reload cache
-  // clear without re-filling the cache.
-  public void clearOnReloadTestOnly() {
-    ReloadDetector.clearOnReload(this);
   }
 }

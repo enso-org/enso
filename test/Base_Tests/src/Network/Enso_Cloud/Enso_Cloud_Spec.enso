@@ -166,6 +166,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
             cache.isCachedTestOnly "key1" . should_be_false
 
         group_builder.specify "AuthenticationProvider cache should be cleared when a reload is detected" pending=setup.pending <| setup.with_prepared_environment <|
+            ## We detect the cache clearing by modifying the credentials on disk
+               and observing when they are reloaded
             access_token0 = "access-token-0"
             access_token1 = "access-token-1"
             creds0 = Mock_Credentials.default "url" . set_access_token access_token0
