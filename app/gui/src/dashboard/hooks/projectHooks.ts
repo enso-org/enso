@@ -221,11 +221,13 @@ export function useOpenProjectMutation() {
       id,
       type,
       parentId,
+      hybrid,
       inBackground = false,
     }: LaunchedProject & { inBackground?: boolean }) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
+      const cloudProjectDirectoryPath = hybrid ? hybrid.cloudProjectDirectoryPath : null
 
       return backend.openProject(
         id,
@@ -238,6 +240,7 @@ export function useOpenProjectMutation() {
             expireAt: session.expireAt,
             refreshUrl: session.refreshUrl,
           },
+          cloudProjectDirectoryPath,
           parentId,
         },
         title,
@@ -417,11 +420,13 @@ export function useOpenHybridProject() {
   const closeProject = useCloseProject()
 
   return eventCallbacks.useEventCallback(
-    async (asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>) => {
+    async (asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>) => {
       try {
         invariant(localBackend != null, 'Local Backend is null')
         await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
         const localProject = await remoteBackend.downloadProject(asset.id)
+        invariant(asset.ensoPath, 'Enso path is not defined')
+        const cloudProjectDirectoryPath = asset.ensoPath.slice(0, asset.ensoPath.lastIndexOf('/'))
 
         let project
         for (const parentId of [localProject.targetId, localProject.parentId]) {
@@ -443,7 +448,11 @@ export function useOpenHybridProject() {
           title: asset.title,
           parentId: project.parentId,
           type: backendModule.BackendType.local,
-          hybrid: { cloudProjectId: asset.id, parentId: localProject.parentId },
+          hybrid: {
+            cloudProjectId: asset.id,
+            parentId: localProject.parentId,
+            cloudProjectDirectoryPath,
+          },
         })
       } catch (error) {
         toastAndLog('openProjectError', error, asset.title)

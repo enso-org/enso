@@ -41,6 +41,7 @@ const PROJECT_SCHEMA = z
       z.object({
         cloudProjectId: PROJECT_ID_SCHEMA,
         parentId: DIRECTORY_ID_SCHEMA,
+        cloudProjectDirectoryPath: z.string(),
       }),
     ),
   })
