@@ -21,6 +21,30 @@ export const textEditorsBindings = defineKeybinds('text-editors', {
   openLink: ['Mod+PointerMain'],
 })
 
+/**
+ * Bindings applicable to all text editors, that are handled by the browser's default behavior (and
+ * therefore cannot be changed to a different key).
+ */
+export const textEditorsStandardCommonBindings = defineKeybinds('text-editors-standard-bindings', {
+  moveLeft: ['ArrowLeft'],
+  moveRight: ['ArrowRight'],
+  deleteBack: ['Backspace'],
+  deleteForward: ['Delete'],
+})
+
+/**
+ * Bindings applicable to multiline text editors, that are handled by the browser's default behavior
+ * (and therefore cannot be changed to a different key).
+ */
+export const textEditorsStandardMultilineBindings = defineKeybinds(
+  'text-editors-standard-multiline-bindings',
+  {
+    moveUp: ['ArrowUp'],
+    moveDown: ['ArrowDown'],
+    newline: ['Enter'],
+  },
+)
+
 export const listBindings = defineKeybinds('list', {
   moveUp: ['ArrowUp'],
   moveDown: ['ArrowDown'],

@@ -62,7 +62,7 @@ function decorateLink(
   _vueHost: VueHost,
   state: EditorState,
 ) {
-  const makeAttributes = state.facet(linkAttributesFactory)
+  const makeAttributes = state.field(linkAttributesFactory)
   if (!makeAttributes) return
   const parsed =
     nodeRef.name === 'Link' ? parseLinkLike(nodeRef, doc)
