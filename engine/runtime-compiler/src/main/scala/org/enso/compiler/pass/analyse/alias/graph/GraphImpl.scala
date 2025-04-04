@@ -2,7 +2,6 @@ package org.enso.compiler
 package pass.analyse
 package alias.graph
 
-import org.enso.compiler.core.CompilerError
 import org.enso.compiler.debug.Debug
 
 import scala.collection.immutable.HashMap
@@ -12,7 +11,7 @@ import scala.annotation.unused
 
 /** A graph containing aliasing information for a given root scope in Enso. */
 sealed private[graph] class GraphImpl(
-  private val rootScopeImpl: Graph.Scope = new GraphImpl.Scope(),
+  private val rootScopeImpl: Graph.Scope = new ScopeImpl(),
   private var _nextIdCounter: Int        = 0,
   private var links: Set[Graph.Link]     = Set()
 ) extends Graph {
@@ -20,11 +19,11 @@ sealed private[graph] class GraphImpl(
     new HashMap()
   private var targetLinks: Map[GraphImpl.Id, Set[Graph.Link]] =
     new HashMap()
-  private val toScope: java.util.Map[GraphImpl.Id, GraphImpl.Scope] =
+  private val toScope: java.util.Map[GraphImpl.Id, ScopeImpl] =
     new java.util.HashMap()
 
-  final def rootScope: GraphImpl.Scope =
-    this.rootScopeImpl.asInstanceOf[GraphImpl.Scope]
+  final def rootScope: ScopeImpl =
+    this.rootScopeImpl.asInstanceOf[ScopeImpl]
 
   {
     links.foreach(addSourceTargetLink)
@@ -86,7 +85,7 @@ sealed private[graph] class GraphImpl(
     *
     * @return a unique identifier for this graph
     */
-  private[graph] def nextId(scope: GraphImpl.Scope): GraphImpl.Id = {
+  private[graph] def nextId(scope: ScopeImpl): GraphImpl.Id = {
     val nextId = _nextIdCounter
     if (nextId < 0) {
       throw new IllegalStateException("Cannot emit new IDs. Frozen!")
@@ -108,7 +107,7 @@ sealed private[graph] class GraphImpl(
     occurrence: GraphOccurrence.Use
   ): Option[Graph.Link] = {
     Option(occurrence.scope()).flatMap(
-      _.asInstanceOf[GraphImpl.Scope].resolveUsage(occurrence).map { link =>
+      _.asInstanceOf[ScopeImpl].resolveUsage(occurrence).map { link =>
         addSourceTargetLink(link)
         links += link
         link
@@ -202,7 +201,7 @@ sealed private[graph] class GraphImpl(
     * @param id the id to find the scope for
     * @return the scope where `id` occurs
     */
-  final def scopeFor(id: GraphImpl.Id): Option[GraphImpl.Scope] = {
+  final def scopeFor(id: GraphImpl.Id): Option[ScopeImpl] = {
     val fastOrNull = toScope.get(id)
     if (fastOrNull == null) {
       val slow = rootScope.scopeFor(id)
@@ -224,7 +223,7 @@ sealed private[graph] class GraphImpl(
     */
   private[analyse] def scopesFor[T <: GraphOccurrence: ClassTag](
     symbol: GraphImpl.Symbol
-  ): List[GraphImpl.Scope] = {
+  ): List[ScopeImpl] = {
     rootScope.scopesForSymbol[T](symbol)
   }
 
@@ -275,7 +274,7 @@ sealed private[graph] class GraphImpl(
     definition: GraphOccurrence
   ): Set[GraphOccurrence] = {
     def getShadowedIds(
-      scope: GraphImpl.Scope
+      scope: ScopeImpl
     ): Set[GraphOccurrence] = {
       scope.occurrences.values.collect {
         case d: GraphOccurrence.Def if d.symbol == definition.symbol => d
@@ -332,361 +331,4 @@ object GraphImpl {
   /** The type of identifiers on the graph. */
   type Id = Int
 
-  /** A representation of a local scope in Enso.
-    *
-    * @param childScopes all scopes that are _direct_ children of `this`
-    * @param occurrences all symbol occurrences in `this` scope indexed by the identifier of the name
-    * @param allDefinitions all definitions in this scope, including synthetic ones.
-    *                       Note that there may not be a link for all these definitions.
-    */
-  sealed class Scope(
-    private[GraphImpl] var _childScopes: List[Scope]              = List(),
-    private[GraphImpl] var _occurrences: Map[Id, GraphOccurrence] = HashMap(),
-    private[GraphImpl] val _allDefinitions: java.util.List[
-      GraphOccurrence.Def
-    ] = new java.util.ArrayList()
-  ) extends Graph.Scope {
-
-    private[GraphImpl] var _parent: Scope = null
-
-    def childScopes    = _childScopes
-    def occurrences    = _occurrences
-    def allDefinitions = java.util.Collections.unmodifiableList(_allDefinitions)
-    def parent: Option[Scope] =
-      if (this._parent eq null) None else Some(_parent)
-
-    /** Counts the number of scopes from this scope to the root.
-      *
-      * This count includes the root scope, but not the current scope.
-      *
-      * @return the number of scopes from this scope to the root
-      */
-    private[analyse] def scopesToRoot: Int = {
-      parent.flatMap(scope => Some(scope.scopesToRoot + 1)).getOrElse(0)
-    }
-
-    /** Sets the parent of the scope.
-      *
-      * The parent scope must not be redefined.
-      *
-      * @return this scope with parent scope set
-      */
-    final def withParent(parentScope: Graph.Scope): this.type = {
-      if (this._parent ne parentScope) {
-        org.enso.common.Asserts.assertInJvm(parent.isEmpty)
-        this._parent = parentScope.asInstanceOf[GraphImpl.Scope]
-      }
-      this
-    }
-
-    /** Creates a structural copy of this scope, ensuring that replicated
-      * scopes are memoised.
-      *
-      * @return a copy of `this`
-      */
-    final def deepCopy(
-      mapping: mutable.Map[Graph.Scope, Graph.Scope] = mutable.Map()
-    ): Graph.Scope = {
-      mapping.get(this) match {
-        case Some(newCorrespondingScope) => newCorrespondingScope
-        case None =>
-          val childScopeCopies: mutable.ListBuffer[Scope] =
-            mutable.ListBuffer()
-          this.childScopes.foreach(scope =>
-            childScopeCopies += scope
-              .deepCopy(mapping)
-              .asInstanceOf[GraphImpl.Scope]
-          )
-          val newScope =
-            new Scope(
-              childScopeCopies.toList,
-              occurrences,
-              new java.util.ArrayList(_allDefinitions)
-            )
-          mapping.put(this, newScope)
-          newScope
-      }
-    }
-
-    /** Checks whether `this` is equal to `obj`.
-      *
-      * @param obj the object to compare `this` against
-      * @return `true` if `this == obj`, otherwise `false`
-      */
-    override def equals(obj: Any): Boolean =
-      obj match {
-        case that: Scope =>
-          if (this.childScopes.length == that.childScopes.length) {
-            val childScopesEqual =
-              this.childScopes.zip(that.childScopes).forall(t => t._1 == t._2)
-            val occurrencesEqual = this.occurrences == that.occurrences
-
-            childScopesEqual && occurrencesEqual
-          } else {
-            false
-          }
-        case _ => false
-      }
-
-    /** Creates and returns a scope that is a child of this one.
-      *
-      * @return a scope that is a child of `this`
-      */
-    private[graph] def addChild(): Scope = {
-      val scope = new Scope()
-      scope._parent = this
-      _childScopes ::= scope
-
-      scope
-    }
-
-    /** Adds the specified symbol occurrence to this scope.
-      *
-      * @param occurrence the occurrence to add
-      */
-    private[graph] def add(occurrence: GraphOccurrence): Unit = {
-      if (occurrences.contains(occurrence.id)) {
-        throw new CompilerError(
-          s"Multiple occurrences found for ID ${occurrence.id}."
-        )
-      } else {
-        _occurrences += ((occurrence.id, occurrence))
-      }
-    }
-
-    /** Adds a definition, including a definition with synthetic name, without
-      * any links.
-      *
-      * @param definition The definition to add.
-      */
-    private[graph] def addDefinition(definition: GraphOccurrence.Def): Unit = {
-      _allDefinitions.add(definition)
-    }
-
-    /** Finds an occurrence for the provided ID in the current scope, if it
-      * exists.
-      *
-      * @param id the occurrence identifier
-      * @return the occurrence for `id`, if it exists
-      */
-    private[analyse] def getOccurrence(
-      id: GraphImpl.Id
-    ): Option[GraphOccurrence] = {
-      occurrences.get(id)
-    }
-
-    /** Finds any occurrences for the provided symbol in the current scope, if
-      * it exists.
-      *
-      * @param symbol the symbol of the occurrence
-      * @tparam T the role for the symbol
-      * @return the occurrences for `name`, if they exist
-      */
-    private[analyse] def getOccurrences[T <: GraphOccurrence: ClassTag](
-      symbol: GraphImpl.Symbol
-    ): Set[GraphOccurrence] = {
-      occurrences.values.collect {
-        case o: T if o.symbol == symbol => o
-      }.toSet
-    }
-
-    /** Checks whether a symbol occurs in a given role in the current scope.
-      *
-      * @param symbol the symbol to check for
-      * @tparam T the role for it to occur in
-      * @return `true` if `symbol` occurs in role `T` in this scope, `false`
-      *         otherwise
-      */
-    final def hasSymbolOccurrenceAs[T <: GraphOccurrence: ClassTag](
-      symbol: GraphImpl.Symbol
-    ): Boolean = {
-      occurrences.values.collectFirst {
-        case x: T if x.symbol == symbol => x
-      }.nonEmpty
-    }
-
-    /** Resolves usages of symbols into links where possible, creating an edge
-      * from the usage site to the definition site.
-      *
-      * @param occurrence the symbol usage
-      * @param parentCounter the number of scopes that the link has traversed
-      * @return the link from `occurrence` to the definition of that symbol, if it
-      *         exists
-      */
-    private[analyse] def resolveUsage(
-      occurrence: GraphOccurrence.Use,
-      parentCounter: Int = 0
-    ): Option[Graph.Link] = {
-      val definition = occurrences.values.find {
-        case GraphOccurrence.Def(_, name, _, _, _) =>
-          name == occurrence.symbol
-        case _ => false
-      }
-
-      definition match {
-        case None =>
-          parent.flatMap(_.resolveUsage(occurrence, parentCounter + 1))
-        case Some(target) =>
-          Some(Graph.Link(occurrence.id, parentCounter, target.id()))
-      }
-    }
-
-    /** Creates a string representation of the scope.
-      *
-      * @return a string representation of `this`
-      */
-    override def toString: String =
-      s"Scope(occurrences = ${occurrences.values}, childScopes = $childScopes)"
-
-    /** Counts the number of scopes in this scope.
-      *
-      * @return the number of scopes that are either this scope or children of
-      *         it
-      */
-    private[analyse] def scopeCount: Int = {
-      childScopes.map(_.scopeCount).sum + 1
-    }
-
-    /** Determines the maximum nesting depth of scopes through this scope.
-      *
-      * @return the maximum nesting depth of scopes through this scope.
-      */
-    private[analyse] def maxNesting: Int = {
-      childScopes.map(_.maxNesting).foldLeft(0)(Math.max) + 1
-    }
-
-    /** Gets the scope where a given ID is defined in the graph.
-      *
-      * @param id the id to find the scope for
-      * @return the scope where `id` occurs
-      */
-    private[analyse] def scopeFor(id: GraphImpl.Id): Option[Scope] = {
-      if (!occurrences.contains(id)) {
-        if (childScopes.isEmpty) {
-          None
-        } else {
-          var childCandidate: Scope = null
-          val iter                  = childScopes.iterator
-          var moreThanOne           = false
-          while (iter.hasNext && !moreThanOne) {
-            iter.next().scopeFor(id) match {
-              case Some(s) =>
-                if (childCandidate == null) {
-                  childCandidate = s
-                } else {
-                  moreThanOne = true
-                }
-              case None =>
-            }
-          }
-
-          if (childCandidate == null) {
-            None
-          } else if (moreThanOne) {
-            throw new CompilerError(s"ID $id defined in multiple scopes.")
-          } else {
-            Some(childCandidate)
-          }
-        }
-      } else {
-        Some(this)
-      }
-    }
-
-    /** Gets the n-th parent of `this` scope.
-      *
-      * @param n the number of scopes to walk up
-      * @return the n-th parent of `this` scope, if present
-      */
-    private[analyse] def nThParent(n: Int): Option[Scope] = {
-      if (n == 0) Some(this) else this.parent.flatMap(_.nThParent(n - 1))
-    }
-
-    /** Finds the scopes in which a symbol occurs with a given role.
-      *
-      * Users of this function _must_ explicitly specify `T`, otherwise the
-      * results will be an empty list.
-      *
-      * @param symbol the symbol
-      * @tparam T the role in which `name` occurs
-      * @return all the scopes where `name` occurs with role `T`
-      */
-    private[analyse] def scopesForSymbol[T <: GraphOccurrence: ClassTag](
-      symbol: GraphImpl.Symbol
-    ): List[Scope] = {
-      val occursInThisScope = hasSymbolOccurrenceAs[T](symbol)
-
-      val occurrencesInChildScopes =
-        childScopes.flatMap(_.scopesForSymbol[T](symbol))
-
-      if (occursInThisScope) {
-        this +: occurrencesInChildScopes
-      } else {
-        occurrencesInChildScopes
-      }
-    }
-
-    /** Gets the set of all symbols in this scope and its children.
-      *
-      * @return the set of symbols
-      */
-    private[analyse] def symbols: Set[GraphImpl.Symbol] = {
-      val symbolsInThis        = occurrences.values.map(_.symbol).toSet
-      val symbolsInChildScopes = childScopes.flatMap(_.symbols)
-
-      symbolsInThis ++ symbolsInChildScopes
-    }
-
-    /** Goes from a symbol to all identifiers that relate to that symbol in
-      * the role specified by `T`.
-      *
-      * @param symbol the symbol to find identifiers for
-      * @tparam T the role in which `symbol` should occur
-      * @return a list of identifiers for that symbol
-      */
-    private[analyse] def symbolToIds[T <: GraphOccurrence: ClassTag](
-      symbol: GraphImpl.Symbol
-    ): List[GraphImpl.Id] = {
-      val scopes =
-        scopesForSymbol[T](symbol).flatMap(_.getOccurrences[T](symbol))
-      scopes.map(_.id)
-    }
-
-    /** Goes from an identifier to the associated symbol.
-      *
-      * @param id the identifier of an occurrence
-      * @return the symbol associated with `id`, if it exists
-      */
-    private[analyse] def idToSymbol(
-      id: GraphImpl.Id
-    ): Option[GraphImpl.Symbol] = {
-      scopeFor(id).flatMap(_.getOccurrence(id)).map(_.symbol)
-    }
-
-    /** Checks if `this` scope is a child of the provided `scope`.
-      *
-      * @param scope the potential parent scope
-      * @return `true` if `this` is a child of `scope`, otherwise `false`
-      */
-    private[analyse] def isChildOf(scope: Scope): Boolean = {
-      val isDirectChildOf = scope.childScopes.contains(this)
-
-      val isChildOfChildren = scope.childScopes
-        .map(scope => this.isChildOf(scope))
-        .foldLeft(false)(_ || _)
-
-      isDirectChildOf || isChildOfChildren
-    }
-
-    private def removeScopeFromParent(scope: Scope): Unit = {
-      _childScopes = childScopes.filter(_ != scope)
-    }
-
-    /** Disassociates this Scope from its parent.
-      */
-    private[compiler] def removeScopeFromParent(): Unit = {
-      org.enso.common.Asserts.assertInJvm(this.parent.nonEmpty)
-      this.parent.foreach(_.removeScopeFromParent(this))
-    }
-  }
 }

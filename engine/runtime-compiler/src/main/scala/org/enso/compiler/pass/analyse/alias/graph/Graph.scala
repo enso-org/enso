@@ -39,7 +39,7 @@ object Graph {
 
   /** Creates new graph with provided scope */
   private[graph] def create(scope: Graph.Scope): Graph = new GraphImpl(
-    scope.asInstanceOf[GraphImpl.Scope]
+    scope.asInstanceOf[ScopeImpl]
   )
 
   abstract class Scope {

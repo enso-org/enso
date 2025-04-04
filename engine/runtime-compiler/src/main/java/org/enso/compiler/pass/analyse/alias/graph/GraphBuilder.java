@@ -8,12 +8,12 @@ import java.util.Map;
  */
 public final class GraphBuilder {
   private final GraphImpl graph;
-  private final GraphImpl.Scope scope;
+  private final ScopeImpl scope;
   private final Map<String, GraphOccurrence.Def> defs = new java.util.HashMap<>();
 
   private GraphBuilder(Graph graph, Graph.Scope scope) {
     this.graph = (GraphImpl) graph;
-    this.scope = (GraphImpl.Scope) scope;
+    this.scope = (ScopeImpl) scope;
     this.scope
         ._occurrences()
         .values()
