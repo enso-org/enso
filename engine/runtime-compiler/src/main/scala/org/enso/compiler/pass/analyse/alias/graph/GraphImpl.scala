@@ -203,8 +203,17 @@ sealed private[graph] class GraphImpl(
     * @return the scope where `id` occurs
     */
   final def scopeFor(id: GraphImpl.Id): Option[GraphImpl.Scope] = {
-    val s = toScope.get(id)
-    Option(s)
+    val fastOrNull = toScope.get(id)
+    if (fastOrNull == null) {
+      val slow = rootScope.scopeFor(id)
+      if (slow.isDefined) {
+        toScope.put(id, slow.orNull)
+      }
+
+      slow
+    } else {
+      Option(fastOrNull)
+    }
   }
 
   /** Finds the scopes in which a name occurs with a given role.
