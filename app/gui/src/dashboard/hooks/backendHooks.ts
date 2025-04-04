@@ -45,10 +45,10 @@ import {
   type User,
   type UserGroupInfo,
 } from '#/services/Backend'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
 import { useMemo } from 'react'
 import { z } from 'zod'
-import { useMutationCallback } from '../utilities/tanstackQuery'
 
 const PROJECT_EXECUTIONS_STALE_TIME = 60_000
 
