@@ -5,4 +5,4 @@
 - type Google_Sheets
     - Service java_service:Standard.Base.Any.Any
     - get_table self sheet_id:Standard.Base.Any.Any sheet_range:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - initialize secret_file:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - initialize credentials:Standard.Base.Any.Any -> Standard.Base.Any.Any
