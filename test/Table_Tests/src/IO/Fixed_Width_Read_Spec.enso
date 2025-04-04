@@ -26,6 +26,14 @@ add_specs suite_builder =
             t.at "col7" . to Vector . should_equal ["fgh", "nop"]
 
         ##
+            group_builder.specify "Should be able to read fixed-width data from a stream with an explicit format" <|
+            problems
+            skip_rows
+            row_limit
+            value_formatter
+            on_invalid_rows
+            line ending style
+            max row size
             group_builder.specify "Should be able to read a fixed-width file with sparse columns" <|
             group_builder.specify "Should be able to specify only column ends" <|
 
