@@ -199,6 +199,12 @@ object NativeImage {
           excludeConfigs.flatMap(ex => Seq("--exclude-config") ++ ex.split(","))
         else Seq.empty
 
+      val deadlockWatchdogOpts = Seq(
+        "-H:-DeadlockWatchdogExitOnTimeout",
+        "-H:DeadlockWatchdogInterval=30",
+        "-H:+UnlockExperimentalVMOptions"
+      )
+
       var args: Seq[String] =
         excludeConfigsOpt ++
         Seq("-cp", cpStr) ++
@@ -212,6 +218,7 @@ object NativeImage {
         runtimeMemoryOptions ++
         additionalOptions ++
         additionalOpts.value ++
+        deadlockWatchdogOpts ++
         Seq("-o", targetLoc.toString)
 
       args = mainClass match {
