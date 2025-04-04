@@ -534,7 +534,7 @@ class FramePointerAnalysisTest extends CompilerTest {
   ): IR = {
     val irs = moduleIr.preorder().collect { childIr =>
       childIr.getMetadata(AliasAnalysis) match {
-        case Some(AliasMetadata.Occurrence(_, occId)) if occId == id =>
+        case Some(occ: AliasMetadata.Occurrence) if occ.id == id =>
           childIr
       }
     }
