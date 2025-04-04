@@ -44,7 +44,7 @@ object Graph {
 
   abstract class Scope {
     def parent:         Option[Scope]
-    def allDefinitions: List[GraphOccurrence.Def]
+    def allDefinitions: java.util.List[GraphOccurrence.Def]
     def occurrences:    Map[Id, GraphOccurrence]
 
     def deepCopy(

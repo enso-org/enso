@@ -4,24 +4,50 @@ import java.util.UUID;
 import org.enso.compiler.core.ExternalID;
 import org.enso.compiler.core.Identifier;
 import org.enso.persist.Persistable;
+import scala.Option;
 
 /**
  * An occurrence of a given symbol in the aliasing graph. Note that this is not present in the
  * metadata attached to the [[org.enso.compiler.core.IR]] elements, but only in the alias [[Graph]].
  */
-public sealed interface GraphOccurrence permits GraphOccurrence.Def, GraphOccurrence.Use {
+public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphOccurrence.Use {
+  static Use createUse(
+      GraphImpl.Scope scope, int nextId, String symbol, UUID identifier, Option<UUID> externalId) {
+    return new Use(scope, nextId, symbol, identifier, externalId);
+  }
+
   public abstract int id();
 
   public abstract String symbol();
 
+  abstract GraphOccurrence withScope(GraphImpl.Scope scope);
+
+  public abstract Graph.Scope scope();
+
   /** The definition of a symbol in the aliasing graph. */
   @Persistable(id = 1265, allowInlining = false)
-  public static final class Def implements GraphOccurrence {
+  public static final class Def extends GraphOccurrence {
+    private final GraphImpl.Scope scope;
     private final int id;
     private final String symbol;
     private final @Identifier UUID identifier;
     private final @ExternalID UUID externalId;
     private final boolean isLazy;
+
+    private Def(
+        GraphImpl.Scope scope,
+        int id,
+        String symbol,
+        UUID identifier,
+        scala.Option<UUID> externalId,
+        boolean isLazy) {
+      this.scope = scope;
+      this.id = id;
+      this.externalId = externalId.nonEmpty() ? externalId.get() : null;
+      this.identifier = identifier;
+      this.isLazy = isLazy;
+      this.symbol = symbol;
+    }
 
     /**
      * The definition of a symbol in the aliasing graph.
@@ -33,11 +59,17 @@ public sealed interface GraphOccurrence permits GraphOccurrence.Def, GraphOccurr
      * @param isLazy whether or not the symbol is defined as lazy
      */
     Def(int id, String symbol, UUID identifier, scala.Option<UUID> externalId, boolean isLazy) {
-      this.id = id;
-      this.externalId = externalId.nonEmpty() ? externalId.get() : null;
-      this.identifier = identifier;
-      this.isLazy = isLazy;
-      this.symbol = symbol;
+      this(null, id, symbol, identifier, externalId, isLazy);
+    }
+
+    @Override
+    Def withScope(GraphImpl.Scope scope) {
+      return new Def(scope, id, symbol, identifier, Option.apply(externalId), isLazy);
+    }
+
+    @Override
+    public Graph.Scope scope() {
+      return scope;
     }
 
     @Override
@@ -62,6 +94,11 @@ public sealed interface GraphOccurrence permits GraphOccurrence.Def, GraphOccurr
       return isLazy;
     }
 
+    @Override
+    public String toString() {
+      return "Def{" + "id=" + id + ", symbol=" + symbol + ", isLazy=" + isLazy + '}';
+    }
+
     public static scala.Option<scala.Tuple5<Integer, String, UUID, scala.Option<UUID>, Boolean>>
         unapply(Object obj) {
       if (obj instanceof Def d) {
@@ -75,8 +112,9 @@ public sealed interface GraphOccurrence permits GraphOccurrence.Def, GraphOccurr
 
   /** A usage of a symbol in the aliasing graph */
   @Persistable(id = 1264, allowInlining = false)
-  public static final class Use implements GraphOccurrence {
+  public static final class Use extends GraphOccurrence {
     private final int id;
+    private final GraphImpl.Scope scope;
     private final String symbol;
     private final @Identifier UUID identifier;
     private final @ExternalID UUID externalId;
@@ -92,11 +130,34 @@ public sealed interface GraphOccurrence permits GraphOccurrence.Def, GraphOccurr
      * @param identifier the identifier of the symbol
      * @param externalId the external identifier for the IR node defining the symbol
      */
-    Use(int id, String symbol, UUID identifier, scala.Option<UUID> externalId) {
+    private Use(
+        GraphImpl.Scope scope,
+        int id,
+        String symbol,
+        UUID identifier,
+        scala.Option<UUID> externalId) {
+      this.scope = scope;
       this.id = id;
       this.symbol = symbol;
       this.externalId = externalId.nonEmpty() ? externalId.get() : null;
       this.identifier = identifier;
+      if (scope != null) {
+        scope.add(this);
+      }
+    }
+
+    Use(int id, String symbol, UUID identifier, scala.Option<UUID> externalId) {
+      this(null, id, symbol, identifier, externalId);
+    }
+
+    @Override
+    final Use withScope(GraphImpl.Scope scope) {
+      return new Use(scope, id, symbol, identifier, Option.apply(externalId));
+    }
+
+    @Override
+    public Graph.Scope scope() {
+      return scope;
     }
 
     @Override
@@ -115,6 +176,11 @@ public sealed interface GraphOccurrence permits GraphOccurrence.Def, GraphOccurr
 
     public scala.Option<UUID> externalId() {
       return scala.Option.apply(externalId);
+    }
+
+    @Override
+    public String toString() {
+      return "Use{" + "id=" + id + ", symbol=" + symbol + '}';
     }
 
     public static scala.Option<scala.Tuple4<Integer, String, UUID, scala.Option<UUID>>> unapply(
