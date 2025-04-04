@@ -11,7 +11,6 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
-import * as router from 'react-router-dom'
 
 import * as backendProvider from '#/providers/BackendProvider'
 
@@ -19,8 +18,7 @@ import * as backendProvider from '#/providers/BackendProvider'
  * This component logs the user opening and closing the app.
  * It uses the remote backend to log the events.
  */
-export function OpenAppWatcher() {
-  const context = router.useOutletContext()
+export function OpenAppWatcher({ children }: React.PropsWithChildren<object>) {
   const remoteBackend = backendProvider.useRemoteBackend()
 
   const { mutate: logUserOpenAppMutate } = reactQuery.useMutation({
@@ -54,5 +52,5 @@ export function OpenAppWatcher() {
     }
   }, [logUserCloseAppMutate])
 
-  return <router.Outlet context={context} />
+  return <>{children}</>
 }

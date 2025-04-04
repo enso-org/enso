@@ -4,7 +4,7 @@
  */
 import * as React from 'react'
 
-import * as sentry from '@sentry/react'
+import * as sentry from '@sentry/vue'
 import * as reactQuery from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 

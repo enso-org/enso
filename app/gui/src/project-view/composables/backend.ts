@@ -6,7 +6,7 @@ import type {
   UseQueryOptions,
   UseQueryReturnType,
 } from '@tanstack/vue-query'
-import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import type { BackendMutationMethod, BackendQueryMethod } from 'enso-common/src/backendQuery'
 import {
   backendBaseOptions,
@@ -31,7 +31,7 @@ function backendQueryOptions<Method extends BackendQueryMethod>(
   args: ToValue<Parameters<Backend[Method]> | undefined>,
   backend: Backend | null,
 ) {
-  return queryOptions({
+  return {
     ...backendBaseOptions(backend),
     ...(methodDefaultOptions[method] ?? {}),
     queryKey: computed(() => {
@@ -40,7 +40,7 @@ function backendQueryOptions<Method extends BackendQueryMethod>(
     }),
     queryFn: () => backend && (backend[method] as any).apply(backend, toValue(args)!),
     enabled: computed(() => !!backend && !!toValue(args)),
-  })
+  }
 }
 
 type MutationOptions<Method extends BackendMutationMethod> = ToValue<

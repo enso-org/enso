@@ -41,16 +41,8 @@ import { usePrefetchQuery } from '@tanstack/react-query'
 
 const TabView = vueComponent(VueTabView, {}).default
 
-/** Props for {@link Dashboard}s that are common to all platforms. */
-export interface DashboardProps {
-  /** Whether the application may have the local backend running. */
-  readonly supportsLocalBackend: boolean
-  readonly initialProjectName: string | null
-  readonly ydocUrl: string | null
-}
-
 /** The component that contains the entire UI. */
-export default function Dashboard(props: DashboardProps) {
+export default function Dashboard() {
   useMount(() => {
     console.log('Dashboard MOUNT')
   })
@@ -64,7 +56,7 @@ export default function Dashboard(props: DashboardProps) {
       {({ resetAssetTableState }) => (
         <CategoriesProvider onCategoryChange={resetAssetTableState}>
           <ProjectsProvider>
-            <DashboardInner {...props} />
+            <DashboardInner />
           </ProjectsProvider>
         </CategoriesProvider>
       )}
@@ -72,35 +64,11 @@ export default function Dashboard(props: DashboardProps) {
   )
 }
 
-/** Extract proper path from `file://` URL. */
-function fileURLToPath(url: string): string | null {
-  if (URL.canParse(url)) {
-    const parsed = new URL(url)
-    if (parsed.protocol === 'file:') {
-      return decodeURIComponent(
-        detect.platform() === detect.Platform.windows ?
-          // On Windows, we must remove leading `/` from URL.
-          parsed.pathname.slice(1)
-        : parsed.pathname,
-      )
-    } else {
-      return null
-    }
-  } else {
-    return null
-  }
-}
-
 /** The component that contains the entire UI. */
-function DashboardInner(props: DashboardProps) {
-  const { initialProjectName: initialProjectNameRaw, ydocUrl } = props
+function DashboardInner() {
   const localBackend = backendProvider.useLocalBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
-
-  const initialLocalProjectPath =
-    initialProjectNameRaw != null ? fileURLToPath(initialProjectNameRaw) : null
-  const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
 
   const categoriesAPI = useCategoriesAPI()
 
@@ -203,8 +171,6 @@ function DashboardInner(props: DashboardProps) {
         }}
       >
         <TabView
-          initialProjectName={initialProjectName}
-          ydocUrl={ydocUrl}
           setIsChatOpen={setIsHelpChatOpen}
           page={page}
           setPage={setPage}

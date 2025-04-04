@@ -1,20 +1,14 @@
 import '#/styles.css'
 import '#/tailwind.css'
-import * as sentry from '@sentry/react'
+import * as sentry from '@sentry/vue'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import * as detect from 'enso-common/src/detect'
 import { createQueryClient } from 'enso-common/src/queryClient'
 import { MotionGlobalConfig } from 'framer-motion'
 import * as idbKeyval from 'idb-keyval'
-import { useEffect } from 'react'
-import {
-  createRoutesFromChildren,
-  matchRoutes,
-  useLocation,
-  useNavigationType,
-} from 'react-router-dom'
 import { createApp } from 'vue'
 import App from './App.vue'
+import router from './router.tsx'
 
 const HTTP_STATUS_BAD_REQUEST = 400
 const API_HOST = $config.API_URL != null ? new URL($config.API_URL).host : null
@@ -36,6 +30,7 @@ function main() {
 
   const app = createApp(App, appProps)
   app.use(VueQueryPlugin, { queryClient })
+  app.use(router)
   app.mount('#enso-app')
 }
 
@@ -83,13 +78,7 @@ function setupSentry() {
       environment: $config.ENVIRONMENT ?? 'dev',
       release: $config.VERSION ?? 'dev',
       integrations: [
-        sentry.reactRouterV6BrowserTracingIntegration({
-          useEffect,
-          useLocation,
-          useNavigationType,
-          createRoutesFromChildren,
-          matchRoutes,
-        }),
+        sentry.browserTracingIntegration({ router }),
         sentry.extraErrorDataIntegration({ captureErrorCause: true }),
         sentry.replayIntegration(),
         new sentry.BrowserProfilingIntegration(),

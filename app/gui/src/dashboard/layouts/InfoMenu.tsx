@@ -11,7 +11,7 @@ import { useAuth } from '#/providers/AuthProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useSessionAPI } from '#/providers/SessionProvider.tsx'
 import { useText } from '#/providers/TextProvider'
-import { useNavigate } from 'react-router-dom'
+import { useRouterInReact } from '../../router'
 import { LOGIN_PATH } from '../appUtils'
 
 /** Props for an {@link InfoMenu}. */
@@ -23,7 +23,7 @@ export interface InfoMenuProps {
 export default function InfoMenu(props: InfoMenuProps) {
   const { hidden = false } = props
 
-  const navigate = useNavigate()
+  const { router } = useRouterInReact()
   const { signOut } = useSessionAPI()
   const { session } = useAuth()
   const { setModal } = useSetModal()
@@ -51,11 +51,7 @@ export default function InfoMenu(props: InfoMenuProps) {
             {session && (
               <MenuEntry
                 action="signOut"
-                doAction={() =>
-                  signOut().then(() => {
-                    navigate(LOGIN_PATH)
-                  })
-                }
+                doAction={() => signOut().then(() => router.push(LOGIN_PATH))}
               />
             )}
           </div>

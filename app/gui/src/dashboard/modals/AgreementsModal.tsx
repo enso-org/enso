@@ -1,10 +1,9 @@
 /** @file Modal for accepting the terms of service. */
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { Outlet } from 'react-router'
+import * as React from 'react'
 import * as z from 'zod'
 
 import { Button, Checkbox, Dialog, Form, Text } from '#/components/AriaComponents'
-import { useAuth } from '#/providers/AuthProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
@@ -59,9 +58,8 @@ LocalStorage.registerKey('termsOfService', { schema: TOS_SCHEMA })
 LocalStorage.registerKey('privacyPolicy', { schema: PRIVACY_POLICY_SCHEMA })
 
 /** Modal for accepting the terms of service. */
-export function AgreementsModal() {
+export function AgreementsModal({ children }: React.PropsWithChildren<object>) {
   const { getText } = useText()
-  const { session } = useAuth()
 
   const [cachedTosHash, setCachedTosHash] = useLocalStorageState('termsOfService')
   const [cachedPrivacyPolicyHash, setCachedPrivacyPolicyHash] =
@@ -169,5 +167,5 @@ export function AgreementsModal() {
     )
   }
 
-  return <Outlet context={session} />
+  return <>{children}</>
 }

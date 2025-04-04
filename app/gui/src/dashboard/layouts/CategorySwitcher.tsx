@@ -1,8 +1,6 @@
 /** @file Switcher to choose the currently visible assets table category. */
 import * as React from 'react'
 
-import { useSearchParams } from 'react-router-dom'
-
 import { SEARCH_PARAMS_PREFIX } from '#/appUtils'
 import FolderAddIcon from '#/assets/folder_add.svg'
 import Minus2Icon from '#/assets/minus2.svg'
@@ -29,6 +27,7 @@ import { twJoin } from 'tailwind-merge'
 import { AnimatedBackground } from '../components/AnimatedBackground'
 import { useEventCallback } from '../hooks/eventCallbackHooks'
 
+import { useRouterInReact } from '../../router'
 import { useSetCurrentDirectoryId } from '../providers/DriveProvider'
 import { useCloudCategoryList, useLocalCategoryList } from './Drive/Categories/categoriesHooks'
 
@@ -221,9 +220,8 @@ export interface CategorySwitcherProps {
 /** A switcher to choose the currently visible assets table categoryModule.categoryType. */
 function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategoryId } = props
-
+  const { router } = useRouterInReact()
   const { getText } = textProvider.useText()
-  const [, setSearchParams] = useSearchParams()
 
   const { isOffline } = offlineHooks.useOffline()
 
@@ -317,9 +315,11 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                 aria-label={getText('changeLocalRootDirectoryInSettings')}
                 className="my-auto opacity-0 transition-opacity group-hover:opacity-100"
                 onPress={() => {
-                  setSearchParams({
-                    [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify('local'),
-                    [`${SEARCH_PARAMS_PREFIX}page`]: JSON.stringify('settings'),
+                  void router.push({
+                    query: {
+                      [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify('local'),
+                      [`${SEARCH_PARAMS_PREFIX}page`]: JSON.stringify('settings'),
+                    },
                   })
                 }}
               />

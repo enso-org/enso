@@ -38,7 +38,6 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
-import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 import * as z from 'zod'
 
@@ -48,7 +47,7 @@ import * as appUtils from '#/appUtils'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
-import AuthProvider, * as authProvider from '#/providers/AuthProvider'
+import AuthProvider from '#/providers/AuthProvider'
 import BackendProvider, { useLocalBackend } from '#/providers/BackendProvider'
 import { useHttpClientStrict } from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -59,27 +58,11 @@ import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import SessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
-import ForgotPassword from '#/pages/authentication/ForgotPassword'
-import Login from '#/pages/authentication/Login'
-import Registration from '#/pages/authentication/Registration'
-import ResetPassword from '#/pages/authentication/ResetPassword'
-import RestoreAccount from '#/pages/authentication/RestoreAccount'
-import * as setup from '#/pages/authentication/Setup'
-import Dashboard from '#/pages/dashboard/Dashboard'
-import * as subscribe from '#/pages/subscribe/Subscribe'
-import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
-
-import * as openAppWatcher from '#/layouts/OpenAppWatcher'
 import VersionChecker from '#/layouts/VersionChecker'
 
-import * as errorBoundary from '#/components/ErrorBoundary'
-import * as suspense from '#/components/Suspense'
 import { RouterProvider } from 'react-aria-components'
 
 import AboutModal from '#/modals/AboutModal'
-import { AgreementsModal } from '#/modals/AgreementsModal'
-import { SetupOrganizationAfterSubscribe } from '#/modals/SetupOrganizationAfterSubscribe'
 
 import LocalBackend from '#/services/LocalBackend'
 import ProjectManager, * as projectManager from '#/services/ProjectManager'
@@ -93,10 +76,13 @@ import { Path } from '#/utilities/path'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 
 import { useInitAuthService } from '#/authentication/service'
-import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
-import { CloudBrowserDisabledLayout } from '#/providers/AuthProvider'
 import { useMutation } from '@tanstack/react-query'
+import { RouterView as RouterViewVue } from 'vue-router'
+import { useRouterInReact } from '../router.tsx'
 import { useOffline } from './hooks/offlineHooks'
+import { vueComponent } from './utilities/vue'
+
+export const RouterView = vueComponent(RouterViewVue).default
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -141,11 +127,8 @@ export interface AppProps {
    * the installed app on macOS and Windows.
    */
   readonly supportsDeepLinks: boolean
-  /** The name of the project to open on startup, if any. */
-  readonly initialProjectName: string | null
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly projectManagerUrl: string | null
-  readonly ydocUrl: string | null
 }
 
 /**
@@ -235,21 +218,15 @@ export default function App(props: AppProps) {
         transition={toastify.Slide}
         limit={3}
       />
-      <router.BrowserRouter
-        basename={getMainPageUrl().pathname}
-        // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
-        <LocalStorageProvider>
-          <ModalProvider>
-            <AppRouter
-              {...props}
-              projectManagerInstance={projectManagerInstance}
-              projectManagerRootDirectory={projectManagerRootDirectory}
-            />
-          </ModalProvider>
-        </LocalStorageProvider>
-      </router.BrowserRouter>
+      <LocalStorageProvider>
+        <ModalProvider>
+          <AppRouter
+            {...props}
+            projectManagerInstance={projectManagerInstance}
+            projectManagerRootDirectory={projectManagerRootDirectory}
+          />
+        </ModalProvider>
+      </LocalStorageProvider>
     </>
   )
 }
@@ -271,7 +248,8 @@ function AppRouter(props: AppRouterProps) {
   const { onAuthenticated, projectManagerInstance } = props
   const httpClient = useHttpClientStrict()
   const logger = useLogger()
-  const navigate = router.useNavigate()
+  const { router } = useRouterInReact()
+  const navigate = router.push.bind(router)
 
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -424,86 +402,86 @@ function AppRouter(props: AppRouterProps) {
     }
   }, [])
 
-  const routes = (
-    <router.Routes>
-      {/* Login & registration pages are visible to unauthenticated users. */}
-      <router.Route element={<authProvider.GuestLayout />}>
-        <router.Route path={appUtils.REGISTRATION_PATH} element={<Registration />} />
-        <router.Route path={appUtils.LOGIN_PATH} element={<Login />} />
-      </router.Route>
+  // const routes = (
+  //   <router.Routes>
+  //     {/* Login & registration pages are visible to unauthenticated users. */}
+  //     <router.Route element={<authProvider.GuestLayout />}>
+  //       <router.Route path={appUtils.REGISTRATION_PATH} element={<Registration />} />
+  //       <router.Route path={appUtils.LOGIN_PATH} element={<Login />} />
+  //     </router.Route>
 
-      {/* Protected pages are visible to authenticated users. */}
-      <router.Route element={<authProvider.NotDeletedUserLayout />}>
-        <router.Route element={<authProvider.ProtectedLayout />}>
-          <router.Route element={<AgreementsModal />}>
-            <router.Route
-              element={<CloudBrowserDisabledLayout redirectPath={appUtils.SETUP_PATH} />}
-            >
-              <router.Route element={<SetupOrganizationAfterSubscribe />}>
-                <router.Route element={<InvitedToOrganizationModal />}>
-                  <router.Route element={<openAppWatcher.OpenAppWatcher />}>
-                    <router.Route
-                      path={appUtils.DASHBOARD_PATH}
-                      element={<Dashboard {...props} />}
-                    />
+  //     {/* Protected pages are visible to authenticated users. */}
+  //     <router.Route element={<authProvider.NotDeletedUserLayout />}>
+  //       <router.Route element={<authProvider.ProtectedLayout />}>
+  //         <router.Route element={<AgreementsModal />}>
+  //           <router.Route
+  //             element={<CloudBrowserDisabledLayout redirectPath={appUtils.SETUP_PATH} />}
+  //           >
+  //             <router.Route element={<SetupOrganizationAfterSubscribe />}>
+  //               <router.Route element={<InvitedToOrganizationModal />}>
+  //                 <router.Route element={<openAppWatcher.OpenAppWatcher />}>
+  //                   <router.Route
+  //                     path={appUtils.DASHBOARD_PATH}
+  //                     element={<Dashboard {...props} />}
+  //                   />
 
-                    <router.Route
-                      path={appUtils.SUBSCRIBE_PATH}
-                      element={
-                        <errorBoundary.ErrorBoundary>
-                          <suspense.Suspense>
-                            <subscribe.Subscribe />
-                          </suspense.Suspense>
-                        </errorBoundary.ErrorBoundary>
-                      }
-                    />
-                  </router.Route>
-                </router.Route>
-              </router.Route>
-            </router.Route>
-          </router.Route>
+  //                   <router.Route
+  //                     path={appUtils.SUBSCRIBE_PATH}
+  //                     element={
+  //                       <errorBoundary.ErrorBoundary>
+  //                         <suspense.Suspense>
+  //                           <subscribe.Subscribe />
+  //                         </suspense.Suspense>
+  //                       </errorBoundary.ErrorBoundary>
+  //                     }
+  //                   />
+  //                 </router.Route>
+  //               </router.Route>
+  //             </router.Route>
+  //           </router.Route>
+  //         </router.Route>
 
-          <router.Route
-            path={appUtils.SUBSCRIBE_SUCCESS_PATH}
-            element={
-              <errorBoundary.ErrorBoundary>
-                <suspense.Suspense>
-                  <subscribeSuccess.SubscribeSuccess />
-                </suspense.Suspense>
-              </errorBoundary.ErrorBoundary>
-            }
-          />
-        </router.Route>
-      </router.Route>
+  //         <router.Route
+  //           path={appUtils.SUBSCRIBE_SUCCESS_PATH}
+  //           element={
+  //             <errorBoundary.ErrorBoundary>
+  //               <suspense.Suspense>
+  //                 <subscribeSuccess.SubscribeSuccess />
+  //               </suspense.Suspense>
+  //             </errorBoundary.ErrorBoundary>
+  //           }
+  //         />
+  //       </router.Route>
+  //     </router.Route>
 
-      <router.Route element={<AgreementsModal />}>
-        <router.Route element={<authProvider.AnyLoggedInUserLayout />}>
-          <router.Route element={<authProvider.NotDeletedUserLayout />}>
-            <router.Route
-              element={<CloudBrowserDisabledLayout redirectPath={appUtils.SETUP_PATH} />}
-            >
-              <router.Route path={appUtils.SETUP_PATH} element={<setup.Setup />} />
-            </router.Route>
-          </router.Route>
-        </router.Route>
-      </router.Route>
+  //     <router.Route element={<AgreementsModal />}>
+  //       <router.Route element={<authProvider.AnyLoggedInUserLayout />}>
+  //         <router.Route element={<authProvider.NotDeletedUserLayout />}>
+  //           <router.Route
+  //             element={<CloudBrowserDisabledLayout redirectPath={appUtils.SETUP_PATH} />}
+  //           >
+  //             <router.Route path={appUtils.SETUP_PATH} element={<setup.Setup />} />
+  //           </router.Route>
+  //         </router.Route>
+  //       </router.Route>
+  //     </router.Route>
 
-      {/* Other pages are visible to unauthenticated and authenticated users. */}
-      <router.Route path={appUtils.CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
-      <router.Route path={appUtils.FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
-      <router.Route path={appUtils.RESET_PASSWORD_PATH} element={<ResetPassword />} />
+  //     {/* Other pages are visible to unauthenticated and authenticated users. */}
+  //     <router.Route path={appUtils.CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
+  //     <router.Route path={appUtils.FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
+  //     <router.Route path={appUtils.RESET_PASSWORD_PATH} element={<ResetPassword />} />
 
-      {/* Soft-deleted user pages are visible to users who have been soft-deleted. */}
-      <router.Route element={<authProvider.ProtectedLayout />}>
-        <router.Route element={<authProvider.SoftDeletedUserLayout />}>
-          <router.Route path={appUtils.RESTORE_USER_PATH} element={<RestoreAccount />} />
-        </router.Route>
-      </router.Route>
+  //     {/* Soft-deleted user pages are visible to users who have been soft-deleted. */}
+  //     <router.Route element={<authProvider.ProtectedLayout />}>
+  //       <router.Route element={<authProvider.SoftDeletedUserLayout />}>
+  //         <router.Route path={appUtils.RESTORE_USER_PATH} element={<RestoreAccount />} />
+  //       </router.Route>
+  //     </router.Route>
 
-      {/* 404 page */}
-      <router.Route path="*" element={<router.Navigate to="/" replace />} />
-    </router.Routes>
-  )
+  //     {/* 404 page */}
+  //     <router.Route path="*" element={<router.Navigate to="/" replace />} />
+  //   </router.Routes>
+  //)
 
   return (
     <RouterProvider navigate={navigate}>
@@ -520,7 +498,7 @@ function AppRouter(props: AppRouterProps) {
             <InputBindingsProvider inputBindings={inputBindings}>
               <LocalBackendPathSynchronizer />
               <VersionChecker />
-              {routes}
+              <RouterView />
             </InputBindingsProvider>
           </AuthProvider>
         </BackendProvider>

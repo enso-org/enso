@@ -63,8 +63,6 @@ export default function ReactRoot(props: ReactRootProps) {
   const shouldUseAuthentication = config.authentication.enabled
   const projectManagerUrl =
     (config.engine.projectManagerUrl || resolveEnvUrl($config.PROJECT_MANAGER_URL)) ?? null
-  const ydocUrl = (config.engine.ydocUrl || resolveEnvUrl($config.YDOC_SERVER_URL)) ?? null
-  const initialProjectName = config.startup.project || null
   const isCloudBuild = $config.CLOUD_BUILD === 'true'
 
   return (
@@ -81,8 +79,6 @@ export default function ReactRoot(props: ReactRootProps) {
                       supportsLocalBackend={!isCloudBuild}
                       isAuthenticationDisabled={!shouldUseAuthentication}
                       projectManagerUrl={projectManagerUrl}
-                      ydocUrl={ydocUrl}
-                      initialProjectName={initialProjectName}
                       onAuthenticated={onAuthenticated}
                     />
                   </HttpClientProvider>

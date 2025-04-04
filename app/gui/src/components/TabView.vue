@@ -9,8 +9,10 @@ import { useBackendInVue } from '#/providers/BackendProvider'
 import { LaunchedProject, LaunchedProjectId, TabType } from '#/providers/ProjectsProvider'
 import { BackendType } from '#/services/Backend'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { injectGuiConfig } from '@/providers/guiConfig'
 import { assert } from '@/util/assert'
 import { useQuery } from '@tanstack/vue-query'
+import * as detect from 'enso-common/src/detect'
 import { applyPureReactInVue, lazyReactInVue } from 'veaury'
 import { computed, h, onMounted, onUnmounted, watch } from 'vue'
 
@@ -25,27 +27,52 @@ const ReactSuspenseInVue = applyPureReactInVue(ReactSuspense)
 </script>
 
 <script setup lang="ts">
-const {
-  initialProjectName,
-  ydocUrl,
-  page,
-  setPage,
-  launchedProjects,
-  closeAllProjects,
-  clearLaunchedProjects,
-  setIsChatOpen,
-} = defineProps<{
-  initialProjectName: string | null
-  ydocUrl: string | null
-  page: LaunchedProjectId | TabType | null
-  setPage(page: LaunchedProjectId | TabType): void
-  launchedProjects: LaunchedProject[]
-  closeAllProjects(): void
-  clearLaunchedProjects(): void
-  setIsChatOpen(value: boolean): void
-}>()
+const { page, setPage, launchedProjects, closeAllProjects, clearLaunchedProjects, setIsChatOpen } =
+  defineProps<{
+    page: LaunchedProjectId | TabType | null
+    setPage(page: LaunchedProjectId | TabType): void
+    launchedProjects: LaunchedProject[]
+    closeAllProjects(): void
+    clearLaunchedProjects(): void
+    setIsChatOpen(value: boolean): void
+  }>()
+
+// TODO: duplicated in ReactRoot: make some composable with all this settings, maybe?
+function resolveEnvUrl(url: string | undefined) {
+  return url?.replace('__HOSTNAME__', window.location.hostname)
+}
 
 const backend = useBackendInVue()
+const config = injectGuiConfig()
+
+const initialProjectName = computed(() => {
+  const nameRaw = config.value.startup.project
+  const path = nameRaw != null ? fileURLToPath(nameRaw) : null
+  return path != null ? null : nameRaw
+})
+
+const ydocUrl = computed(
+  () => (config.value.engine.ydocUrl || resolveEnvUrl($config.YDOC_SERVER_URL)) ?? null,
+)
+
+/** Extract proper path from `file://` URL. */
+function fileURLToPath(url: string): string | null {
+  if (URL.canParse(url)) {
+    const parsed = new URL(url)
+    if (parsed.protocol === 'file:') {
+      return decodeURIComponent(
+        detect.platform() === detect.Platform.windows ?
+          // On Windows, we must remove leading `/` from URL.
+          parsed.pathname.slice(1)
+        : parsed.pathname,
+      )
+    } else {
+      return null
+    }
+  } else {
+    return null
+  }
+}
 
 const lastProject = computed(() => launchedProjects[launchedProjects.length - 1])
 const lastProjectDetailsOptions = computed(() =>

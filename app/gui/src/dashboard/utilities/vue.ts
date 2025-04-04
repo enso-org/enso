@@ -6,7 +6,10 @@ import type { AllowedComponentProps, VNodeProps } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
 
 /** Extracts the properties defined by a component, excluding various Vue internals. */
-type VueComponentProps<T> = Omit<ComponentProps<T>, keyof AllowedComponentProps | keyof VNodeProps>
+export type VueComponentProps<T> = Omit<
+  ComponentProps<T>,
+  keyof AllowedComponentProps | keyof VNodeProps
+>
 
 /**
  * Creates a React component wrapping a Vue component.

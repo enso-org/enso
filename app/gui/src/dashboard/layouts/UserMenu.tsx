@@ -11,7 +11,7 @@ import { useText } from '#/providers/TextProvider'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
-import { useNavigate } from 'react-router-dom'
+import { useRouterInReact } from '../../router'
 import { LOGIN_PATH } from '../appUtils'
 import { useToggleEnsoDevtools } from '../components/Devtools'
 import { ProfilePicture } from '../components/ProfilePicture'
@@ -29,7 +29,7 @@ export interface UserMenuProps {
 export default function UserMenu(props: UserMenuProps) {
   const { hidden = false, goToSettingsPage, onSignOut } = props
 
-  const navigate = useNavigate()
+  const { router } = useRouterInReact()
   const localBackend = useLocalBackend()
   const { signOut } = useSessionAPI()
   const { user } = useFullUserSession()
@@ -75,9 +75,7 @@ export default function UserMenu(props: UserMenuProps) {
         action="signOut"
         doAction={() => {
           onSignOut()
-          void signOut().then(() => {
-            navigate(LOGIN_PATH)
-          })
+          void signOut().then(() => router.push(LOGIN_PATH))
         }}
       />
     </>
