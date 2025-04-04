@@ -312,7 +312,7 @@ export function useCloseProjectMutation() {
       if (hybrid) {
         const safeTitle = backendModule.escapeSpecialCharacters(title)
         const fileName = `${safeTitle}.enso-project`
-        let file = await remoteBackend.getProjectArchive(parentId, fileName)
+        const file = await remoteBackend.getProjectArchive(parentId, fileName)
         await uploadFileMutation
           .mutateAsync([
             {
@@ -337,7 +337,7 @@ export function useCloseProjectMutation() {
       if (hybrid) {
         const safeTitle = backendModule.escapeSpecialCharacters(title)
         const fileName = `${safeTitle}.enso-project`
-        let file = await remoteBackend.getProjectArchive(parentId, fileName)
+        const file = await remoteBackend.getProjectArchive(parentId, fileName)
         await uploadFileMutation
           .mutateAsync([
             {
