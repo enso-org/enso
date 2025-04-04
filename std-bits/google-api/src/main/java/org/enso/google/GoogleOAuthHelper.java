@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Map;
 import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper;
 
-public class GoogleOAuthHelper {
-  public static GoogleCredentials createCredential(
+class GoogleOAuthHelper {
+  static GoogleCredentials createCredential(
       ExternalLibraryCredentialHelper.CredentialReference credentialReference) {
     credentialReference.expectForService("Google");
     return new CloudRenewableGoogleCredentials(credentialReference);

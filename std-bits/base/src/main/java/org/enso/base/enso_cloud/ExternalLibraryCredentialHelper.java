@@ -22,11 +22,7 @@ public class ExternalLibraryCredentialHelper {
     public void expectForService(String expectedServiceName) {
       if (!serviceName.equals(expectedServiceName)) {
         throw new IllegalArgumentException(
-            "Expected credentials for "
-                + expectedServiceName
-                + ", but was: "
-                + serviceName
-                + ".");
+            "Expected credentials for " + expectedServiceName + ", but was: " + serviceName + ".");
       }
     }
   }
