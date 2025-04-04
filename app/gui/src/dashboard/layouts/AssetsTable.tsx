@@ -844,11 +844,11 @@ function AssetsTable(props: AssetsTableProps) {
 
   const onDropzoneDragOver = (event: DragEvent<Element>) => {
     const payload = ASSET_ROWS.lookup(event)
-    const filtered = payload?.filter((item) => item.asset.parentId !== currentDirectoryId)
-    if (filtered != null && filtered.length > 0) {
+    // Unconditionally handle drag event even if drop target is invalid
+    // otherwise the drag modal stays around.
+    if (payload || event.dataTransfer.types.includes('Files')) {
       event.preventDefault()
-    } else if (event.dataTransfer.types.includes('Files')) {
-      event.preventDefault()
+      return
     }
   }
 
@@ -1304,12 +1304,12 @@ function AssetsTable(props: AssetsTableProps) {
             setIsDraggingFiles(false)
           }}
           onDrop={(event) => {
+            unsetModal()
             const payload = ASSET_ROWS.lookup(event)
             const filtered = payload?.filter((item) => item.asset.parentId !== currentDirectoryId)
             if (filtered != null && filtered.length > 0) {
               event.preventDefault()
               event.stopPropagation()
-              unsetModal()
 
               moveAssetsMutation.mutate([
                 filtered.map((dragItem) => dragItem.asset.id),
