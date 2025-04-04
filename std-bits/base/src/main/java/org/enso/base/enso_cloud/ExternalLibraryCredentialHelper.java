@@ -18,7 +18,18 @@ import java.util.List;
  * <p>It will only allow access from trusted code locations.
  */
 public class ExternalLibraryCredentialHelper {
-  public record CredentialReference(String secretId, String serviceName) {}
+  public record CredentialReference(String secretId, String serviceName) {
+    public void expectForService(String expectedServiceName) {
+      if (!serviceName.equals(expectedServiceName)) {
+        throw new IllegalArgumentException(
+            "Expected credentials for "
+                + expectedServiceName
+                + ", but was: "
+                + serviceName
+                + ".");
+      }
+    }
+  }
 
   public record AccessToken(String token, ZonedDateTime expirationDate) {}
 

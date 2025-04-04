@@ -21,6 +21,7 @@ import org.graalvm.collections.Pair;
 public final class SnowflakeCloudCredentials {
   private static SnowflakeCredentialConfig unsafeReadCredential(
       ExternalLibraryCredentialHelper.CredentialReference credentialReference) {
+    credentialReference.expectForService("Snowflake");
     ExternalLibraryCredentialHelper.CredentialConfig config =
         ExternalLibraryCredentialHelper.readCredential(credentialReference);
     var input = parseInputPart(config.input());
