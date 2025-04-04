@@ -12,7 +12,6 @@ import {
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
-import * as objects from 'enso-common/src/utilities/data/object'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 import { assert } from './assert'
 
@@ -63,12 +62,11 @@ type ArgWidgetConfiguration = WidgetConfiguration & { display?: DisplayMode }
 type WidgetInputValue = Ast.Expression | Ast.Token | string | undefined
 abstract class Argument {
   protected constructor(
-    public readonly callId: string,
-    public readonly kind: ApplicationKind,
-    public readonly dynamicConfig: ArgWidgetConfiguration | undefined,
-    public readonly index: number | undefined,
-    public readonly argInfo: SuggestionEntryArgument | undefined,
-    private readonly metadata: Partial<WidgetInput> = {},
+    public callId: string,
+    public kind: ApplicationKind,
+    public dynamicConfig: ArgWidgetConfiguration | undefined,
+    public index: number | undefined,
+    public argInfo: SuggestionEntryArgument | undefined,
   ) {}
 
   abstract get portId(): PortId
@@ -83,16 +81,13 @@ abstract class Argument {
   }
 
   toWidgetInput(): WidgetInput {
-    return objects.merge(
-      {
-        portId: this.portId,
-        value: this.value,
-        expectedType: this.argInfo?.reprType,
-        [ArgumentInfoKey]: { info: this.argInfo, appKind: this.kind, argId: this.argId },
-        dynamicConfig: this.dynamicConfig,
-      },
-      this.metadata,
-    )
+    return {
+      portId: this.portId,
+      value: this.value,
+      expectedType: this.argInfo?.reprType,
+      [ArgumentInfoKey]: { info: this.argInfo, appKind: this.kind, argId: this.argId },
+      dynamicConfig: this.dynamicConfig,
+    }
   }
 }
 
@@ -101,8 +96,8 @@ abstract class Argument {
  * represented in the AST.
  */
 export class ArgumentPlaceholder extends Argument {
-  declare public readonly index: number
-  declare public readonly argInfo: SuggestionEntryArgument
+  declare public index: number
+  declare public argInfo: SuggestionEntryArgument
   /** TODO: Add docs */
   constructor(
     callId: string,
@@ -110,7 +105,7 @@ export class ArgumentPlaceholder extends Argument {
     dynamicConfig: ArgWidgetConfiguration | undefined,
     index: number,
     argInfo: SuggestionEntryArgument,
-    public readonly insertAsNamed: boolean,
+    public insertAsNamed: boolean,
   ) {
     super(callId, kind, dynamicConfig, index, argInfo)
   }
@@ -144,7 +139,7 @@ export class ArgumentAst extends Argument {
     dynamicConfig: ArgWidgetConfiguration | undefined,
     index: number | undefined,
     argInfo: SuggestionEntryArgument | undefined,
-    public readonly ast: Ast.Expression,
+    public ast: Ast.Expression,
   ) {
     super(callId, kind, dynamicConfig, index, argInfo)
   }
@@ -226,17 +221,12 @@ interface CallInfo {
 /** TODO: Add docs */
 export class ArgumentApplication {
   private constructor(
-    public readonly appTree: Ast.Expression,
-    public readonly target:
-      | ArgumentApplication
-      | Ast.Expression
-      | ArgumentPlaceholder
-      | ArgumentAst,
-    public readonly infixOperator: Ast.Token | undefined,
-    public readonly argument: ArgumentAst | ArgumentPlaceholder,
-    public readonly calledFunction: CallableSuggestionEntry | undefined,
-    public readonly isInnermost: boolean,
-    public readonly argumentMetadata: Partial<WidgetInput> = {},
+    public appTree: Ast.Expression,
+    public target: ArgumentApplication | Ast.Expression | ArgumentPlaceholder | ArgumentAst,
+    public infixOperator: Ast.Token | undefined,
+    public argument: ArgumentAst | ArgumentPlaceholder,
+    public calledFunction: CallableSuggestionEntry | undefined,
+    public isInnermost: boolean,
   ) {}
 
   private static FromInterpretedInfix(interpreted: InterpretedInfix, callInfo: CallInfo) {
@@ -446,27 +436,6 @@ export class ArgumentApplication {
       value: this.appTree,
       [ArgumentApplicationKey]: this,
     }
-  }
-
-  /** @returns The {@link WidgetInput} for the argument. */
-  argumentWidgetInput(): WidgetInput {
-    return objects.merge(this.argument.toWidgetInput(), this.argumentMetadata)
-  }
-
-  /**
-   * @returns This {@link ArgumentApplication}, modified to apply the given {@link WidgetInput}
-   * properties (e.g. widget-defined extensions) to the argument.
-   */
-  withArgumentMetadata(metadata: Partial<WidgetInput>): ArgumentApplication {
-    return new ArgumentApplication(
-      this.appTree,
-      this.target,
-      this.infixOperator,
-      this.argument,
-      this.calledFunction,
-      this.isInnermost,
-      objects.merge(this.argumentMetadata, metadata),
-    )
   }
 
   /** TODO: Add docs */

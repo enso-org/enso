@@ -71,7 +71,7 @@ export const widgetDefinition = defineWidget(
     <SizeTransition width leftGap>
       <NodeWidget
         v-if="tree.extended || !application.argument.hideByDefault"
-        :input="application.argumentWidgetInput()"
+        :input="application.argument.toWidgetInput()"
         nest
       />
     </SizeTransition>

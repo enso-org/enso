@@ -20,10 +20,7 @@ export function unsafeKeyValuePair<Key extends PropertyKey, Value>(key: Key, val
  */
 export function merge<T extends object>(object: T, update: Partial<T>): T {
   for (const key of Reflect.ownKeys(update)) {
-    if (
-      !(key in object) ||
-      !Object.is(update[key as keyof typeof update], object[key as keyof typeof object])
-    ) {
+    if (!(key in object) || !Object.is(update[key as keyof T], object[key as keyof T])) {
       // This is FINE, as the matching `return` is below this `return`.
       return Object.assign({ ...object }, update)
     }
