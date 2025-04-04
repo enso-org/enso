@@ -38,7 +38,6 @@ const prefixFixture = {
       'a',
       { kind: 'Multiple_Choice', display: widgetCfg.DisplayMode.Always, label: null, values: [] },
     ],
-    ['b', { kind: 'Code_Input', display: widgetCfg.DisplayMode.Always }],
     ['c', { kind: 'Boolean_Input', display: widgetCfg.DisplayMode.Always }],
   ]),
 }
@@ -52,7 +51,6 @@ const infixFixture = {
       'lhs',
       { kind: 'Multiple_Choice', display: widgetCfg.DisplayMode.Always, label: null, values: [] },
     ],
-    ['rhs', { kind: 'Code_Input', display: widgetCfg.DisplayMode.Always }],
   ]),
 }
 

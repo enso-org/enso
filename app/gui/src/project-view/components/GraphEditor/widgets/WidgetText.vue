@@ -8,7 +8,6 @@ import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
 import { selectOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
-import { type Extension } from '@codemirror/state'
 import { computed, ref, useTemplateRef, watch, watchEffect, type ComponentInstance } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -17,6 +16,10 @@ const widgetRoot = ref<HTMLElement>()
 
 const textContents = computed(() =>
   props.input.value instanceof Ast.TextLiteral ? props.input.value.rawTextContent : '',
+)
+
+const syntaxLanguage = computed(() =>
+  props.input.dynamicConfig?.kind === 'Text_Input' ? props.input.dynamicConfig.syntax : undefined,
 )
 
 /** Widget Input as Text Literal; undefined if there's no value, or the value is not a Text literal. */
@@ -40,6 +43,16 @@ const placeholder = computed(() =>
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 
+const languageExtension = computed(() => {
+  switch (syntaxLanguage.value) {
+    case 'enso-table-expression':
+      // TODO
+      return
+    default:
+      return
+  }
+})
+
 const { syncExt, connectSync } = useStringSync()
 const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   content: textContents.value,
@@ -52,7 +65,7 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
 watchEffect(() =>
   setExtraExtensions([
     highlightStyle(editorRoot.value?.highlightClasses ?? {}),
-    ...(props.input[TextLanguage] ? [props.input[TextLanguage]] : []),
+    ...[languageExtension.value ?? []],
     ...(isMultiline.value ? [] : [selectOnMouseFocus]),
   ]),
 )
@@ -143,13 +156,6 @@ function onEnter(event: KeyboardEvent) {
 </script>
 
 <script lang="ts">
-export const TextLanguage: unique symbol = Symbol.for('WidgetInput:TextLanguage')
-declare module '@/providers/widgetRegistry' {
-  export interface WidgetInput {
-    [TextLanguage]?: Extension
-  }
-}
-
 // Computed used intentionally to delay computation until wasm package is loaded.
 const emptyTextLiteral = computed(() => Ast.TextLiteral.new(''))
 
@@ -186,6 +192,7 @@ export const widgetDefinition = defineWidget(
     -->
     <CodeMirrorRoot
       ref="editorRoot"
+      :data-syntax-language="syntaxLanguage"
       @focusin="editing.start()"
       @keydown.enter.capture="onEnter"
       @keydown.tab.stop.capture="accepted"
@@ -243,7 +250,7 @@ export const widgetDefinition = defineWidget(
   }
   & :deep(.cm-content) {
     padding: 1em 0;
-    margin: -0.7em 0;
+    margin: -0.8em 0;
   }
   & .delimiter {
     font-size: 1.4em;

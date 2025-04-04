@@ -1919,7 +1919,6 @@ export class MutableTextLiteral extends TextLiteral implements MutableExpression
    * transformed to use escape sequences when necessary.
    */
   setRawTextContent(rawText: string) {
-    console.log('setRawTextContent', rawText)
     if (!this.boundaryTokenCode() || (this.boundaryTokenCode() === '"' && rawText.match(/["\n\r]/)))
       this.setBoundaries("'")
     const boundary = this.boundaryTokenCode()!

@@ -389,7 +389,6 @@ function keyBindings({
   lineMode,
 }: { lineMode?: 'single' | 'multi' | 'auto' | undefined } = {}): Extension {
   const mode = lineMode ?? 'multi'
-  console.warn('keyBindings', mode)
   return [
     Prec.lowest(keymap.of(standardKeymap)),
     Prec.low(
