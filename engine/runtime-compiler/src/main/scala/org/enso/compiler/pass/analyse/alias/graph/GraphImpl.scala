@@ -389,7 +389,11 @@ object GraphImpl {
               .asInstanceOf[GraphImpl.Scope]
           )
           val newScope =
-            new Scope(childScopeCopies.toList, occurrences, allDefinitions)
+            new Scope(
+              childScopeCopies.toList,
+              occurrences,
+              new java.util.ArrayList(_allDefinitions)
+            )
           mapping.put(this, newScope)
           newScope
       }
