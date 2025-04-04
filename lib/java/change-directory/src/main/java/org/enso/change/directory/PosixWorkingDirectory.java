@@ -1,6 +1,5 @@
 package org.enso.change.directory;
 
-import java.io.File;
 import java.util.List;
 import org.enso.common.Platform;
 import org.graalvm.nativeimage.ImageInfo;
@@ -9,11 +8,12 @@ import org.graalvm.nativeimage.c.constant.CConstant;
 import org.graalvm.nativeimage.c.function.CFunction;
 import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
+import org.graalvm.nativeimage.c.type.VoidPointer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @CContext(PosixWorkingDirectory.Directives.class)
-public final class PosixWorkingDirectory implements WorkingDirectory {
+public final class PosixWorkingDirectory extends WorkingDirectory {
   static final PosixWorkingDirectory INSTANCE = new PosixWorkingDirectory();
   private static final Logger LOGGER = LoggerFactory.getLogger(PosixWorkingDirectory.class);
 
@@ -51,16 +51,26 @@ public final class PosixWorkingDirectory implements WorkingDirectory {
   }
 
   @Override
-  public boolean exists(String dir, String file) {
-    String full;
-    if (dir.endsWith(File.separator)) {
-      full = dir + file;
-    } else {
-      full = dir + File.separator + file;
-    }
-    try (var cPath = CTypeConversion.toCString(full)) {
+  public boolean existsImpl(String path) {
+    try (var cPath = CTypeConversion.toCString(path)) {
       var res = access(cPath.get(), R_OK());
       return res == 0;
+    }
+  }
+
+  @Override
+  public boolean isDirectory(String path) {
+    try (var cPath = CTypeConversion.toCString(path)) {
+      var dir = opendir(cPath.get());
+      if (dir.isNull()) {
+        return false;
+      } else {
+        var res = closedir(dir);
+        if (res != 0) {
+          LOGGER.error("closedir() syscall returned {}", res);
+        }
+        return true;
+      }
     }
   }
 
@@ -75,6 +85,14 @@ public final class PosixWorkingDirectory implements WorkingDirectory {
 
   @CFunction
   static native CCharPointer getcwd(CCharPointer buf, int size);
+
+  // https://man7.org/linux/man-pages/man3/opendir.3.html
+  @CFunction
+  static native VoidPointer opendir(CCharPointer name);
+
+  // https://man7.org/linux/man-pages/man3/closedir.3.html
+  @CFunction
+  static native int closedir(VoidPointer dirp);
 
   private String invokeCwd() {
     byte[] buf = new byte[4096];
@@ -105,7 +123,7 @@ public final class PosixWorkingDirectory implements WorkingDirectory {
 
     @Override
     public List<String> getHeaderFiles() {
-      return List.of("<unistd.h>");
+      return List.of("<unistd.h>", "<dirent.h>", "<sys/types.h>");
     }
 
     @Override

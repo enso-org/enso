@@ -117,6 +117,29 @@ public class TestChangeDirectory {
     assertFalse(dirExists);
   }
 
+  @Test
+  public void testIsDirectory() {
+    var nativeApi = WorkingDirectories.getCurrent();
+    var curDir = System.getProperty("user.dir");
+    assertTrue(nativeApi.isDirectory(curDir));
+  }
+
+  @Test
+  public void testIsDirectory_CreateTmp() throws IOException {
+    var nativeApi = WorkingDirectories.getCurrent();
+    var tmpDir = Files.createTempDirectory("testIsDirectory");
+    var tmpDirAbs = tmpDir.toFile().getCanonicalPath();
+    assertTrue(nativeApi.isDirectory(tmpDirAbs));
+  }
+
+  @Test
+  public void testIsDirectory_NotADirectory() throws IOException {
+    var nativeApi = WorkingDirectories.getCurrent();
+    var tmpFile = Files.createTempFile(null, null);
+    var absPath = tmpFile.toFile().getCanonicalPath();
+    assertFalse(nativeApi.isDirectory(absPath));
+  }
+
   private String invokePwd() throws IOException, InterruptedException {
     var process = new ProcessBuilder("pwd").start();
     process.waitFor(3, TimeUnit.SECONDS);
