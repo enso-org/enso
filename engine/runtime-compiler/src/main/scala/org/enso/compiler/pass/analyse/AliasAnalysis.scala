@@ -2,7 +2,6 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.expression.errors.Redefined
 import org.enso.compiler.core.ir.expression.{
   errors,
@@ -188,7 +187,7 @@ case object AliasAnalysis extends IRPass {
                 case occ: alias.AliasMetadata.Occurrence =>
                   occ.copy(graph = copyRootScopeGraph)
               }
-              copyNode.updateMetadata(new MetadataPair(this, newMeta))
+              alias.AliasMetadata.updateMetadata(copyNode, newMeta)
             case None =>
           }
         }
@@ -237,17 +236,16 @@ case object AliasAnalysis extends IRPass {
       case m: definition.Method.Conversion =>
         m.body match {
           case _: Function =>
-            m.copy(
+            val c = m.copy(
               body = analyseExpression(
                 m.body,
                 builder,
                 lambdaReuseScope = true
               )
-            ).updateMetadata(
-              new MetadataPair(
-                this,
-                alias.AliasMetadata.RootScope(builder.toGraph())
-              )
+            )
+            alias.AliasMetadata.updateMetadata(
+              c,
+              new alias.AliasMetadata.RootScope(builder.toGraph())
             )
           case _ =>
             throw new CompilerError(
@@ -257,17 +255,16 @@ case object AliasAnalysis extends IRPass {
       case m: definition.Method.Explicit =>
         m.body match {
           case _: Function =>
-            m.copy(
+            val c = m.copy(
               body = analyseExpression(
                 m.body,
                 builder,
                 lambdaReuseScope = true
               )
-            ).updateMetadata(
-              new MetadataPair(
-                this,
-                alias.AliasMetadata.RootScope(builder.toGraph())
-              )
+            )
+            alias.AliasMetadata.updateMetadata(
+              c,
+              new alias.AliasMetadata.RootScope(builder.toGraph())
             )
           case _ =>
             throw new CompilerError(
@@ -279,45 +276,41 @@ case object AliasAnalysis extends IRPass {
           "Method definition sugar should not occur during alias analysis."
         )
       case t: Definition.Type =>
-        t.copy(
+        val ct = t.copy(
           params = analyseArgumentDefs(
             t.params,
             builder
           ),
           members = t.members.map(d => {
             val graph = GraphBuilder.create()
-            d.copy(
+            val cd = d.copy(
               arguments = analyseArgumentDefs(
                 d.arguments,
                 graph
               ),
               annotations = d.annotations.map { ann =>
-                ann
+                val c = ann
                   .copy(
                     expression = analyseExpression(
                       ann.expression,
                       builder
                     )
                   )
-                  .updateMetadata(
-                    new MetadataPair(
-                      this,
-                      alias.AliasMetadata.RootScope(builder.toGraph())
-                    )
-                  )
+                alias.AliasMetadata.updateMetadata(
+                  c,
+                  new alias.AliasMetadata.RootScope(builder.toGraph())
+                )
               }
-            ).updateMetadata(
-              new MetadataPair(
-                this,
-                alias.AliasMetadata.RootScope(graph.toGraph())
-              )
+            )
+            alias.AliasMetadata.updateMetadata(
+              cd,
+              new alias.AliasMetadata.RootScope(graph.toGraph())
             )
           })
-        ).updateMetadata(
-          new MetadataPair(
-            this,
-            alias.AliasMetadata.RootScope(builder.toGraph())
-          )
+        )
+        alias.AliasMetadata.updateMetadata(
+          ct,
+          new alias.AliasMetadata.RootScope(builder.toGraph())
         )
       case _: Definition.SugaredType =>
         throw new CompilerError(
@@ -339,19 +332,17 @@ case object AliasAnalysis extends IRPass {
           "analysis."
         )
       case ann: Name.GenericAnnotation =>
-        ann
+        val ac = ann
           .copy(expression =
             analyseExpression(
               ann.expression,
               builder
             )
           )
-          .updateMetadata(
-            new MetadataPair(
-              this,
-              alias.AliasMetadata.RootScope(builder.toGraph())
-            )
-          )
+        alias.AliasMetadata.updateMetadata(
+          ac,
+          new alias.AliasMetadata.RootScope(builder.toGraph())
+        )
       case err: Error => err
     }
   }
@@ -390,7 +381,7 @@ case object AliasAnalysis extends IRPass {
         val currentScope =
           if (!block.suspended) builder else builder.addChild()
 
-        block
+        val bc = block
           .copy(
             expressions = block.expressions.map((expression: Expression) =>
               analyseExpression(
@@ -403,12 +394,10 @@ case object AliasAnalysis extends IRPass {
               currentScope
             )
           )
-          .updateMetadata(
-            new MetadataPair(
-              this,
-              new alias.AliasMetadata.ChildScope(currentScope)
-            )
-          )
+        alias.AliasMetadata.updateMetadata(
+          bc,
+          alias.AliasMetadata.ChildScope.from(currentScope)
+        )
       case binding @ Expression.Binding(name, expression, _, _) =>
         if (builder.findDef(name.name) == -1) {
           val isSuspended = expression match {
@@ -423,17 +412,19 @@ case object AliasAnalysis extends IRPass {
             true
           )
 
-          binding
+          val bc = binding
             .copy(
               expression = analyseExpression(
                 expression,
                 builder
               )
             )
+          alias.AliasMetadata
             .updateMetadata(
-              new MetadataPair(
-                this,
-                alias.AliasMetadata.Occurrence(builder.toGraph(), occurrence.id)
+              bc,
+              new alias.AliasMetadata.Occurrence(
+                builder.toGraph(),
+                occurrence.id
               )
             )
         } else {
@@ -480,15 +471,17 @@ case object AliasAnalysis extends IRPass {
           label.getExternalId
         )
 
-        member
+        val mc = member
           .copy(
             memberType = analyseExpression(memberType, memberTypeScope),
             value      = analyseExpression(value, valueScope)
           )
+        alias.AliasMetadata
           .updateMetadata(
-            new MetadataPair(
-              this,
-              alias.AliasMetadata.Occurrence(builder.toGraph(), definition.id)
+            mc,
+            new alias.AliasMetadata.Occurrence(
+              builder.toGraph(),
+              definition.id
             )
           )
       case x =>
@@ -533,11 +526,12 @@ case object AliasAnalysis extends IRPass {
             // definition for frame index metadata
            */
         )
-        arg
+        alias.AliasMetadata
           .updateMetadata(
-            new MetadataPair(
-              this,
-              alias.AliasMetadata.Occurrence(builder.toGraph(), definition.id)
+            arg,
+            new alias.AliasMetadata.Occurrence(
+              builder.toGraph(),
+              definition.id
             )
           )
           .copyWithAscribedType(
@@ -565,27 +559,29 @@ case object AliasAnalysis extends IRPass {
             true
           )
 
-          arg
+          val ac = arg
             .copy(
               newDefault,
               arg.ascribedType.map(analyseExpression(_, builder))
             )
-            .updateMetadata(
-              new MetadataPair(
-                this,
-                alias.AliasMetadata.Occurrence(builder.toGraph(), definition.id)
-              )
+          alias.AliasMetadata.updateMetadata(
+            ac,
+            new alias.AliasMetadata.Occurrence(
+              builder.toGraph(),
+              definition.id
             )
+          )
         } else {
-          arg
+          val ac = arg
             .copyWithAscribedType(
               Some(Redefined.Arg(name, arg.identifiedLocation))
             )
+          alias.AliasMetadata
             .updateMetadata(
-              new MetadataPair(
-                this,
-                alias.AliasMetadata
-                  .Occurrence(builder.toGraph(), nameOccursInScope)
+              ac,
+              new alias.AliasMetadata.Occurrence(
+                builder.toGraph(),
+                nameOccursInScope
               )
             )
         }
@@ -615,16 +611,12 @@ case object AliasAnalysis extends IRPass {
         app.copyWithItems(app.items.map(analyseExpression(_, builder)))
       case tSet: Application.Typeset =>
         val newScope = builder.addChild()
-        tSet
+        val tc = tSet
           .copyWithExpression(
             tSet.expression.map(analyseExpression(_, newScope))
           )
-          .updateMetadata(
-            new MetadataPair(
-              this,
-              new alias.AliasMetadata.ChildScope(newScope)
-            )
-          )
+        alias.AliasMetadata
+          .updateMetadata(tc, alias.AliasMetadata.ChildScope.from(newScope))
       case _: Operator.Binary =>
         throw new CompilerError(
           "Binary operator occurred during Alias Analysis."
@@ -651,14 +643,10 @@ case object AliasAnalysis extends IRPass {
         case _: Literal => builder
         case _          => builder.addChild()
       }
-      arg
+      val ac = arg
         .copy(analyseExpression(arg.value, currentScope))
-        .updateMetadata(
-          new MetadataPair(
-            this,
-            new alias.AliasMetadata.ChildScope(currentScope)
-          )
-        )
+      alias.AliasMetadata
+        .updateMetadata(ac, alias.AliasMetadata.ChildScope.from(currentScope))
     }
   }
 
@@ -680,7 +668,7 @@ case object AliasAnalysis extends IRPass {
 
     function match {
       case lambda: Function.Lambda =>
-        lambda
+        val lc = lambda
           .copy(
             arguments = analyseArgumentDefs(lambda.arguments, currentScope),
             body = analyseExpression(
@@ -688,13 +676,8 @@ case object AliasAnalysis extends IRPass {
               currentScope
             )
           )
-          .updateMetadata(
-            new MetadataPair(
-              this,
-              alias.AliasMetadata
-                .ChildScope(currentScope.toGraph(), currentScope.toScope())
-            )
-          )
+        alias.AliasMetadata
+          .updateMetadata(lc, alias.AliasMetadata.ChildScope.from(currentScope))
       case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during alias analysis."
@@ -738,11 +721,9 @@ case object AliasAnalysis extends IRPass {
         }
         occurrence.id
       }
-    name.updateMetadata(
-      new MetadataPair(
-        this,
-        alias.AliasMetadata.Occurrence(builder.toGraph(), occurrenceId)
-      )
+    alias.AliasMetadata.updateMetadata(
+      name,
+      new alias.AliasMetadata.Occurrence(builder.toGraph(), occurrenceId)
     )
   }
 
@@ -781,7 +762,7 @@ case object AliasAnalysis extends IRPass {
   ): Case.Branch = {
     val currentScope = builder.addChild()
 
-    branch
+    val bc = branch
       .copy(
         pattern = analysePattern(branch.pattern, currentScope),
         expression = analyseExpression(
@@ -789,12 +770,8 @@ case object AliasAnalysis extends IRPass {
           currentScope
         )
       )
-      .updateMetadata(
-        new MetadataPair(
-          this,
-          new alias.AliasMetadata.ChildScope(currentScope)
-        )
-      )
+    alias.AliasMetadata
+      .updateMetadata(bc, alias.AliasMetadata.ChildScope.from(currentScope))
   }
 
   /** Performs alias analysis on a pattern.

@@ -42,6 +42,7 @@ const PROJECT_SCHEMA = z
         cloudProjectId: PROJECT_ID_SCHEMA,
         cloudParentId: DIRECTORY_ID_SCHEMA,
         parentId: DIRECTORY_ID_SCHEMA,
+        cloudProjectDirectoryPath: z.string(),
       }),
     ),
   })
