@@ -29,7 +29,6 @@ import project.Column_Ref.Column_Ref
 import project.Columns_To_Add.Columns_To_Add
 import project.Columns_To_Keep.Columns_To_Keep
 import project.Constants.Previous_Value
-import project.Constants.Report_Unmatched
 import project.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
@@ -2974,9 +2973,9 @@ type Table
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
        ICON join2-1
-       Joins two tables by zipping rows from both tables table together - the
-       first row of the left table is correlated with the first one of the right
-       one etc.
+       Joins two tables by zipping rows from both tables together - the first
+       row of the left table is correlated with the first one of the right one
+       etc.
 
        Arguments:
        - right: The table to join with.
@@ -3021,7 +3020,7 @@ type Table
        ? Row Ordering For Database Tables
 
          The ordering of rows in the resulting table is not specified.
-    @keep_unmatched (make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Report_Unmatched.to Meta.Type . qualified_name]])
+    @keep_unmatched Widget_Helpers.make_keep_unmatched_selector
     zip self (right : Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table =
         keep_unmatched_bool = case keep_unmatched of
             Report_Unmatched -> True
