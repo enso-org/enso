@@ -1,5 +1,7 @@
 package org.enso.compiler.pass.analyse.alias.graph;
 
+import java.util.Map;
+
 /**
  * Builder of {@link Graph}. Separates the concerns of building a graph of local symbol definitions
  * and their usages from the actual querying of those symbols.
@@ -7,10 +9,21 @@ package org.enso.compiler.pass.analyse.alias.graph;
 public final class GraphBuilder {
   private final GraphImpl graph;
   private final GraphImpl.Scope scope;
+  private final Map<String, GraphOccurrence.Def> defs = new java.util.HashMap<>();
 
   private GraphBuilder(Graph graph, Graph.Scope scope) {
     this.graph = (GraphImpl) graph;
     this.scope = (GraphImpl.Scope) scope;
+    this.scope
+        ._occurrences()
+        .values()
+        .foreach(
+            o -> {
+              if (o instanceof GraphOccurrence.Def d) {
+                defs.put(d.symbol(), d);
+              }
+              return null;
+            });
   }
 
   /**
@@ -52,9 +65,9 @@ public final class GraphBuilder {
    * @return -1 if not such symbol found, otherwise ID of the symbol
    */
   public int findDef(String name) {
-    var first = this.scope.occurrences().values().find(occ -> occ.symbol().equals(name));
-    if (first.nonEmpty() && first.get() instanceof GraphOccurrence.Def def) {
-      return def.id();
+    var d = defs.get(name);
+    if (d != null) {
+      return d.id();
     } else {
       return -1;
     }
@@ -77,6 +90,8 @@ public final class GraphBuilder {
             .withScope(scope);
     if (addToScope) {
       scope.add(def);
+      var prev = defs.put(symbol, def);
+      assert prev == null;
     }
     scope.addDefinition(def);
     return def;
