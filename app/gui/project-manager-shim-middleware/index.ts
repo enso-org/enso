@@ -563,10 +563,24 @@ function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): ProjectMeta
 }
 
 /**
- * Checks if files that start with the dot.
- * Note on Windows does not check the hidden property.
+ * Check whether the file entry should be hidden from the user.
  */
 function isHidden(filePath: string): boolean {
+  return isDotfile(filePath) || isCloudProject(filePath)
+}
+
+/**
+ * Check if files that start with the dot.
+ * Note on Windows does not check the hidden property.
+ */
+function isDotfile(filePath: string): boolean {
   const dotfile = /(^|[\\/])\.[^\\/]+$/g
   return dotfile.test(filePath)
+}
+
+/**
+ * Check if the path is a temporary path for cloud project running in hybrid mode.
+ */
+function isCloudProject(filePath: string): boolean {
+  return filePath.includes('cloud-project-')
 }
