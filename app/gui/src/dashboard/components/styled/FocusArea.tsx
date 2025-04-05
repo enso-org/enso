@@ -7,12 +7,10 @@ import AreaFocusProvider from '#/providers/AreaFocusProvider'
 import FocusClassesProvider, { useFocusClasses } from '#/providers/FocusClassProvider'
 import type { FocusDirection } from '#/providers/FocusDirectionProvider'
 import FocusDirectionProvider from '#/providers/FocusDirectionProvider'
-import { useNavigator2D } from '#/providers/Navigator2DProvider'
 
-import { type DOMAttributes, useFocusManager, useFocusWithin } from '#/components/aria'
+import { type DOMAttributes, useFocusWithin } from '#/components/aria'
 import { withFocusScope } from '#/components/styled/withFocusScope'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useSyncRef } from '#/hooks/syncRefHooks'
 
 /** Props returned by {@link useFocusWithin}. */
 export interface FocusWithinProps {
@@ -32,11 +30,15 @@ export interface FocusAreaProps {
   readonly children: (props: FocusWithinProps) => JSX.Element
 }
 
-/** An area that can be focused within. */
+/**
+ * An area that can be focused within.
+ * This component is mostly useless now, but it's fine -
+ * in the most of cases we have proper keyboard navigation without it.
+ */
 // eslint-disable-next-line react-refresh/only-export-components
 function FocusArea(props: FocusAreaProps) {
   const { active = true, direction, children } = props
-  const { focusChildClass = 'focus-child', focusDefaultClass = 'focus-default' } = props
+  const { focusChildClass = 'focus-child' } = props
   const { focusChildClass: outerFocusChildClass } = useFocusClasses()
   const [areaFocus, setAreaFocus] = useState(false)
 
@@ -46,12 +48,8 @@ function FocusArea(props: FocusAreaProps) {
   })
 
   const { focusWithinProps } = useFocusWithin({ onFocusWithinChange: onChangeFocusWithin })
-  const focusManager = useFocusManager()
-  const navigator2D = useNavigator2D()
   const rootRef = useRef<HTMLElement | SVGElement | null>(null)
   const cleanupRef = useRef(() => {})
-  const focusChildClassRef = useSyncRef(focusChildClass)
-  const focusDefaultClassRef = useSyncRef(focusDefaultClass)
 
   // The following group of functions are for suppressing `react-compiler` lints.
   const cleanup = useEventCallback(() => {
@@ -60,26 +58,6 @@ function FocusArea(props: FocusAreaProps) {
   const setRootRef = useEventCallback((value: HTMLElement | SVGElement | null) => {
     rootRef.current = value
   })
-  const setCleanupRef = useEventCallback((value: () => void) => {
-    cleanupRef.current = value
-  })
-
-  const focusFirst = useEventCallback(() =>
-    focusManager?.focusFirst({
-      accept: (other) => other.classList.contains(focusChildClassRef.current),
-    }),
-  )
-  const focusLast = useEventCallback(() =>
-    focusManager?.focusLast({
-      accept: (other) => other.classList.contains(focusChildClassRef.current),
-    }),
-  )
-  const focusCurrent = useEventCallback(
-    () =>
-      focusManager?.focusFirst({
-        accept: (other) => other.classList.contains(focusDefaultClassRef.current),
-      }) ?? focusFirst(),
-  )
 
   const cachedChildren = useMemo(
     () =>
@@ -90,19 +68,6 @@ function FocusArea(props: FocusAreaProps) {
         ref: (element) => {
           setRootRef(element)
           cleanup()
-          if (active && element != null && focusManager != null) {
-            setCleanupRef(
-              navigator2D.register(element, {
-                focusPrimaryChild: focusCurrent,
-                focusWhenPressed:
-                  direction === 'horizontal' ?
-                    { right: focusFirst, left: focusLast }
-                  : { down: focusFirst, up: focusLast },
-              }),
-            )
-          } else {
-            setCleanupRef(() => {})
-          }
           if (element != null && IS_DEV_MODE) {
             if (active) {
               element.dataset.focusArea = ''
@@ -113,20 +78,7 @@ function FocusArea(props: FocusAreaProps) {
         },
         ...focusWithinProps,
       } as FocusWithinProps),
-    [
-      children,
-      focusWithinProps,
-      setRootRef,
-      cleanup,
-      active,
-      focusManager,
-      setCleanupRef,
-      navigator2D,
-      focusCurrent,
-      direction,
-      focusFirst,
-      focusLast,
-    ],
+    [active, children, cleanup, focusWithinProps, setRootRef],
   )
 
   const result = (

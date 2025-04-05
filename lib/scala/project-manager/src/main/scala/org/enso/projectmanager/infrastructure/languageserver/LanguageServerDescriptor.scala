@@ -33,8 +33,8 @@ import scala.concurrent.duration.FiniteDuration
   *                                       if the child component should connect
   *                                       to the logging service, it should
   *                                       contain the URI to connect to
-  * @param skipGraalVMUpdater indicates if the check and installation of GraalVM
-  *                              should be skipped
+  * @param skipGraalVMUpdater indicates if the check and installation of GraalVM should be skipped
+  * @param extraEnv extra environment variables
   */
 case class LanguageServerDescriptor(
   name: String,
@@ -50,5 +50,6 @@ case class LanguageServerDescriptor(
   profilingPath: Option[Path],
   profilingTime: Option[FiniteDuration],
   deferredLoggingServiceEndpoint: Future[Option[URI]],
-  skipGraalVMUpdater: Boolean
+  skipGraalVMUpdater: Boolean,
+  extraEnv: Seq[(String, String)]
 )

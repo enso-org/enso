@@ -33,7 +33,8 @@ type Generic_JDBC_Connection
        as in-memory `Table`s, rather than as `DB_Table`s.
 
        The JDBC driver must be available on the JVM classpath (for example, in a
-       `polyglot/java` folder within the project).
+       `polyglot/java` folder within the project). JDBC drivers can only be used
+       in JVM mode.
 
        Arguments:
        - url: The JDBC URL describing the database to connect to.

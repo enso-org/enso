@@ -9,3 +9,4 @@
     - to_dictionary self -> Standard.Base.Any.Any
     - to_js_object self -> Standard.Base.Any.Any
     - to_vector self -> Standard.Base.Any.Any
+- Standard.Base.Data.Vector.Vector.from that:Standard.Table.Row.Row -> Standard.Base.Data.Vector.Vector

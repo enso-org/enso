@@ -65,3 +65,7 @@ type Row
     to_js_object self =
         pairs = self.table.column_names.map n-> [n, self.get n]
         JS_Object.from_pairs pairs
+
+## PRIVATE
+   Conversion method to a Column to a Vector.
+Vector.from (that:Row) = that.to_vector

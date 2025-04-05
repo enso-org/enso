@@ -129,7 +129,7 @@ asset_type_from_id id:Text -> Enso_Asset_Type =
    The asset metadata that is currently automatically included as part of the path resolution response.
 type Asset_Metadata
     ## PRIVATE
-    Value modified_at:Date_Time description:Text|Nothing labels:Vector
+    Value modified_at:Date_Time description:Text|Nothing labels:Vector credential_metadata:Credential_Secret_Metadata|Nothing
 
     ## PRIVATE
     from_json json -> Asset_Metadata =
@@ -138,7 +138,21 @@ type Asset_Metadata
             . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
         description = get_optional_field "description" json expected_type=Text
         labels = get_optional_field "labels" json expected_type=Vector if_missing=[]
-        Asset_Metadata.Value modified_at description labels
+
+        credential_metadata_field = get_optional_field "credentialMetadata" json expected_type=JS_Object
+        credential_metadata = credential_metadata_field.if_not_nothing <|
+            service_name = get_required_field "serviceName" credential_metadata_field expected_type=Text
+            state = get_required_field "state" credential_metadata_field expected_type=Text
+            expiration_date_text = get_optional_field "expirationDate" credential_metadata_field expected_type=Text
+            expiration_date = expiration_date_text.if_not_nothing <|
+                Date_Time.parse expiration_date_text Date_Time_Formatter.iso_offset_date_time
+                    . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
+            Credential_Secret_Metadata.Value service_name state expiration_date
+        Asset_Metadata.Value modified_at description labels credential_metadata
+
+## PRIVATE
+type Credential_Secret_Metadata
+    Value service_name:Text state:Text expiration_date:Date_Time|Nothing
 
 ## PRIVATE
 type Asset_Cache

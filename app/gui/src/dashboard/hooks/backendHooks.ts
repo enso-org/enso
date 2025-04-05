@@ -45,6 +45,7 @@ import {
   type User,
   type UserGroupInfo,
 } from '#/services/Backend'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
 import { useMemo } from 'react'
 import { z } from 'zod'
@@ -538,7 +539,10 @@ export function useNewFolder(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
   const setNewestFolderId = useSetNewestFolderId()
   const setSelectedAssets = useSetSelectedAssets()
-  const createDirectoryMutation = useMutation(backendMutationOptions(backend, 'createDirectory'))
+
+  const createDirectoryMutation = useMutationCallback(
+    backendMutationOptions(backend, 'createDirectory'),
+  )
 
   return useEventCallback(async (parentId: DirectoryId) => {
     const siblings = await ensureListDirectory(parentId)
@@ -552,13 +556,13 @@ export function useNewFolder(backend: Backend, category: Category) {
     const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
     const placeholderItem = backendModule.createPlaceholderDirectoryAsset(title, parentId)
 
-    return await createDirectoryMutation
-      .mutateAsync([{ parentId: placeholderItem.parentId, title: placeholderItem.title }])
-      .then((result) => {
-        setNewestFolderId(result.id)
-        setSelectedAssets([{ type: AssetType.directory, ...result }])
-        return result
-      })
+    return await createDirectoryMutation([
+      { parentId: placeholderItem.parentId, title: placeholderItem.title },
+    ]).then((result) => {
+      setNewestFolderId(result.id)
+      setSelectedAssets([{ type: AssetType.directory, ...result }])
+      return result
+    })
   })
 }
 

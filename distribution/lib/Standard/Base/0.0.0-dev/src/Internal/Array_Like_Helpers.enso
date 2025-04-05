@@ -1,6 +1,7 @@
 private
 
 import project.Any.Any
+import project.Data.Vector.Report_Unmatched
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Dictionary.Dictionary
@@ -16,6 +17,7 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Additional_Warnings
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Length_Mismatch
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
@@ -82,6 +84,51 @@ slice vector start end = @Builtin_Method "Array_Like_Helpers.slice"
        ignored.
 vector_from_function : Integer -> (Integer -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
 vector_from_function length constructor on_problems = @Builtin_Method "Array_Like_Helpers.vector_from_function"
+
+## Performs a pair-wise operation passed in `function` on consecutive
+   elements of `self` and `that`.
+   See `Vector.zip` for full documentation.
+zip this that (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = False) (keep_unmatched : Boolean | Report_Unmatched = False) on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
+    left_len = this.length
+    right_len = that.length
+
+    keep_unmatched_bool = case keep_unmatched of
+        Report_Unmatched -> True
+        b : Boolean -> b
+    report_mismatch = keep_unmatched == Report_Unmatched
+
+    len = if keep_unmatched_bool then left_len.max right_len else left_len.min right_len
+    min_len = left_len.min right_len
+
+    f = case keep_unmatched_bool of
+        True -> case skip_nothing of
+            True -> i->
+                left_value = if i < left_len then this.at i else Nothing
+                right_value = if i < right_len then that.at i else Nothing
+                if left_value.is_nothing || right_value.is_nothing then Nothing else
+                    function left_value right_value
+            False -> i->
+                if i < min_len then function (this.at i) (that.at i) else
+                    left_value = if i >= left_len then Nothing else this.at i
+                    right_value = if i >= right_len then Nothing else that.at i
+                    function left_value right_value
+        False -> case skip_nothing of
+            True -> i->
+                left_value = this.at i
+                right_value = that.at i
+                if left_value.is_nothing || right_value.is_nothing then Nothing else
+                    function left_value right_value
+            False -> i->
+                function (this.at i) (that.at i)
+
+    # If on_problems == No_Wrap, then don't try to attach anything
+    problem_attacher = if on_problems == No_Wrap.Value then (x->x) else
+        x->
+            problems = if (left_len == right_len) || report_mismatch.not then [] else [Length_Mismatch.Error left_len right_len]
+            on_problems.attach_problems_before problems x
+
+    problem_attacher <|
+        Array_Like_Helpers.vector_from_function len f on_problems
 
 ## PRIVATE
    Creates a new vector where for each range, a corresponding section of the

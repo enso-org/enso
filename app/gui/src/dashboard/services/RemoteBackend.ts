@@ -1567,15 +1567,20 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Upload the project. */
-  async uploadProject(id: backend.ProjectId, directoryId: backend.DirectoryId): Promise<void> {
-    const uploadPath = remoteBackendPaths.getProjectUploadPath(id)
+  /** Get the enso-project archive contents. */
+  async getProjectArchive(directoryId: backend.DirectoryId, fileName: string): Promise<File> {
     const queryString = new URLSearchParams({
-      uploadUrl: `${$config.API_URL}/${uploadPath}`,
       directory: extractIdFromDirectoryId(directoryId),
     })
 
-    await this.client.get(`./api/cloud/upload-project?${queryString}`)
+    const response = await this.client.get(`./api/cloud/get-project-archive?${queryString}`)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'resolveProjectAssetPathBackendError')
+    }
+
+    const responseBody = await response.arrayBuffer()
+
+    return new File([responseBody], fileName)
   }
 
   /** Fetch the URL of the customer portal. */

@@ -118,6 +118,10 @@ describe('Function documentation (Markdown)', () => {
       markdown: 'My function\nSecond paragraph',
     },
     {
+      source: '## # Header\n   Paragraph',
+      markdown: '# Header\nParagraph',
+    },
+    {
       source: '## Trailing whitespace \n\n   Second paragraph',
       markdown: 'Trailing whitespace \nSecond paragraph',
     },
@@ -181,15 +185,18 @@ describe('Function documentation (Markdown)', () => {
     },
   ]
 
-  test.each(cases)('Enso source comments to prerendered markdown', ({ source, markdown }) => {
-    const moduleSource = `${source}\nmain =\n    x = 1`
-    const topLevel = parseModule(moduleSource)
-    topLevel.module.setRoot(topLevel)
-    const main = iter.first(topLevel.statements())
-    assert(main instanceof MutableFunctionDef)
-    expect(main.name.code()).toBe('main')
-    expect(main.mutableDocumentationMarkdown().toJSON()).toBe(markdown)
-  })
+  test.each(cases)(
+    'Enso source comments to prerendered markdown (`abstractMarkdown`)',
+    ({ source, markdown }) => {
+      const moduleSource = `${source}\nmain =\n    x = 1`
+      const topLevel = parseModule(moduleSource)
+      topLevel.module.setRoot(topLevel)
+      const main = iter.first(topLevel.statements())
+      assert(main instanceof MutableFunctionDef)
+      expect(main.name.code()).toBe('main')
+      expect(main.mutableDocumentationMarkdown().toJSON()).toBe(markdown)
+    },
+  )
 
   test.each(cases)('Markdown to Enso source', ({ source, markdown, normalized }) => {
     const functionCode = 'main =\n    x = 1'
