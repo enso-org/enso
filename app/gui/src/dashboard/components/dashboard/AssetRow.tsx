@@ -40,8 +40,9 @@ import {
 import { useBackendMutationState } from '#/hooks/backendHooks'
 import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import { useAsset, useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
+import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type { Label } from '#/services/Backend'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
@@ -65,6 +66,7 @@ export interface AssetRowInnerProps {
 
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps {
+  readonly item: backendModule.AnyAsset
   readonly isOpened: boolean
   readonly isPlaceholder: boolean
   readonly id: backendModule.AssetId
@@ -107,12 +109,15 @@ export interface AssetRowProps {
     files: readonly File[],
     parentId: backendModule.DirectoryId,
   ) => Promise<void>
+  readonly renameAsset: (assetId: backendModule.AssetId, newTitle: string) => Promise<void>
+  readonly closeProject: (project: LaunchedProject) => Promise<void>
+  readonly openProject: (projectId: backendModule.ProjectId) => Promise<void>
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 
 export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
-  const { type, columns, id } = props
+  const { type, columns, id, item } = props
 
   switch (type) {
     case backendModule.AssetType.specialLoading:
@@ -129,7 +134,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     default: {
       // This is safe because we filter out special asset types in the switch statement above.
       // eslint-disable-next-line no-restricted-syntax
-      return <RealAssetRow {...props} id={id as backendModule.RealAssetId} />
+      return <RealAssetRow {...props} id={id as backendModule.RealAssetId} item={item} />
     }
   }
 })
@@ -157,7 +162,7 @@ const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialR
       return (
         <tr>
           <td colSpan={columnsLength} className="border-r p-0">
-            <div className="flex h-table-row w-container items-center justify-center rounded-full">
+            <div className="flex h-table-row items-center justify-center rounded-full">
               <IndefiniteSpinner size={24} />
             </div>
           </td>
@@ -207,29 +212,10 @@ const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialR
 })
 
 /** Props for a {@link RealAssetRow}. */
-type RealAssetRowProps = AssetRowProps & { readonly id: backendModule.RealAssetId }
+type RealAssetRowProps = AssetRowProps
 
 /** Render a real asset row. */
-const RealAssetRow = React.memo(function RealAssetRow(props: RealAssetRowProps) {
-  const { id } = props
-
-  const asset = useAsset(id)
-
-  // should never happen since we only render real assets and they are always defined
-  if (asset == null) {
-    return null
-  }
-
-  return <RealAssetInternalRow {...props} asset={asset} />
-})
-
-/** Internal props for a {@link RealAssetRow}. */
-export interface RealAssetRowInternalProps extends AssetRowProps {
-  readonly asset: backendModule.AnyAsset
-}
-
-/** Internal implementation of a {@link RealAssetRow}. */
-export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
+export function RealAssetRow(props: RealAssetRowProps) {
   const {
     id,
     parentId,
@@ -241,11 +227,14 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     onClick,
     isPlaceholder,
     type,
-    asset,
+    item,
     cutAndPaste,
     labels,
     grabKeyboardFocus,
     uploadFiles,
+    renameAsset,
+    closeProject,
+    openProject,
   } = props
   const { category, backend, currentDirectoryId, doCopy, doCut, doPaste } = state
 
@@ -281,7 +270,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   )
   const setLabelsDragPayload = useSetLabelsDragPayload()
 
-  const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === asset.id)
+  const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === item.id)
   const isEditingName = innerRowState.isEditingName || isNewlyCreated
 
   const rowState = React.useMemo(() => {
@@ -290,34 +279,34 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
 
   const isDeletingSingleAsset =
     useBackendMutationState(backend, 'deleteAsset', {
-      predicate: ({ state: { variables } }) => variables?.[0] === asset.id,
+      predicate: ({ state: { variables } }) => variables?.[0] === item.id,
       select: () => null,
     }).length !== 0
   const isDeletingMultipleAssets =
     useDeleteAssetsMutationState(backend, {
-      predicate: ({ state: { variables: [assetIds = []] = [] } }) => assetIds.includes(asset.id),
+      predicate: ({ state: { variables: [assetIds = []] = [] } }) => assetIds.includes(item.id),
       select: () => null,
     }).length !== 0
   const isDeleting = isDeletingSingleAsset || isDeletingMultipleAssets
   const isRestoringSingleAsset =
     useBackendMutationState(backend, 'undoDeleteAsset', {
-      predicate: ({ state: { variables } }) => variables?.[0] === asset.id,
+      predicate: ({ state: { variables } }) => variables?.[0] === item.id,
       select: () => null,
     }).length !== 0
   const isRestoringMultipleAssets =
     useRestoreAssetsMutationState(backend, {
-      predicate: ({ state: { variables: assetIds = [] } }) => assetIds.includes(asset.id),
+      predicate: ({ state: { variables: assetIds = [] } }) => assetIds.includes(item.id),
       select: () => null,
     }).length !== 0
   const isRestoring = isRestoringSingleAsset || isRestoringMultipleAssets
   const isUpdatingSingleAsset =
     useBackendMutationState(backend, 'updateAsset', {
-      predicate: ({ state: { variables } }) => variables?.[0] === asset.id,
+      predicate: ({ state: { variables } }) => variables?.[0] === item.id,
       select: () => null,
     }).length !== 0
   const isMovingMultipleAssets =
     useMoveAssetsMutationState(backend, {
-      predicate: ({ state: { variables: [assetIds = []] = [] } }) => assetIds.includes(asset.id),
+      predicate: ({ state: { variables: [assetIds = []] = [] } }) => assetIds.includes(item.id),
       select: () => null,
     }).length !== 0
 
@@ -335,8 +324,8 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     const { selectedAssets } = driveStore.getState()
     setSelectedAssets(
       newSelected ?
-        [...selectedAssets, asset]
-      : selectedAssets.filter((otherAsset) => otherAsset.id !== asset.id),
+        [...selectedAssets, item]
+      : selectedAssets.filter((otherAsset) => otherAsset.id !== item.id),
     )
   })
 
@@ -349,17 +338,17 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   React.useEffect(() => {
     if (isKeyboardSelected) {
       rootRef.current?.focus()
-      grabKeyboardFocusRef.current(asset)
+      grabKeyboardFocusRef.current(item)
     }
-  }, [grabKeyboardFocusRef, isKeyboardSelected, asset])
+  }, [grabKeyboardFocusRef, isKeyboardSelected, item])
 
   const onDragOver = (event: React.DragEvent<Element>) => {
-    const directoryId = asset.type === backendModule.AssetType.directory ? id : parentId
+    const directoryId = item.type === backendModule.AssetType.directory ? id : parentId
     const { labelsDragPayload, isDraggingOverSelectedRow } = driveStore.getState()
     if (labelsDragPayload) {
       event.preventDefault()
       event.stopPropagation()
-      setDragTargetAssetId(asset.id)
+      setDragTargetAssetId(item.id)
       if (selected !== isDraggingOverSelectedRow) {
         setIsDraggingOverSelectedRow(selected)
       }
@@ -386,14 +375,14 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
           return true
         }
         // Assume user path; check permissions
-        const permission = tryFindSelfPermission(user, asset.permissions)
+        const permission = tryFindSelfPermission(user, item.permissions)
         return permission != null && canPermissionModifyDirectoryContents(permission.permission)
       })
     })()
 
     if ((isPayloadMatch && canPaste) || event.dataTransfer.types.includes('Files')) {
       event.preventDefault()
-      if (asset.type === backendModule.AssetType.directory && state.category.type !== 'trash') {
+      if (item.type === backendModule.AssetType.directory && state.category.type !== 'trash') {
         setIsDraggedOver(true)
       }
     }
@@ -406,7 +395,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     case backendModule.AssetType.datalink:
     case backendModule.AssetType.secret: {
       const innerProps: AssetRowInnerProps = {
-        asset,
+        asset: item,
         state,
         rowState,
         setRowState,
@@ -418,12 +407,12 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
             data-testid="asset-row"
             tabIndex={0}
             data-selected={selected}
-            data-id={asset.id}
+            data-id={item.id}
             onDoubleClick={() => {
-              if (asset.type === backendModule.AssetType.directory) {
+              if (item.type === backendModule.AssetType.directory) {
                 startNavigation(() => {
                   setCurrentDirectoryId({
-                    current: asset.id,
+                    current: item.id,
                     parent: parentId,
                   })
                 })
@@ -438,7 +427,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
               }
             }}
             className={tailwindMerge.twMerge(
-              'h-table-row rounded-full transition-all ease-in-out rounded-rows-child',
+              'h-table-row rounded-full transition-all ease-in-out rounded-rows-child [contain-intrinsic-size:44px] [content-visibility:auto]',
               visibility,
               (isDraggedOver || selected) && 'selected',
             )}
@@ -447,7 +436,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
               unsetModal()
               onClick(innerProps, event)
               if (
-                asset.type === backendModule.AssetType.directory &&
+                item.type === backendModule.AssetType.directory &&
                 eventModule.isDoubleClick(event) &&
                 !rowState.isEditingName
               ) {
@@ -463,7 +452,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                 event.preventDefault()
                 event.stopPropagation()
                 if (!selected) {
-                  select(asset)
+                  select(item)
                 }
                 setModal(
                   <AssetContextMenu
@@ -487,13 +476,13 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
               }
 
               if (
-                asset.type === backendModule.AssetType.project &&
-                BUSY_PROJECT_STATES.has(asset.projectState.type)
+                item.type === backendModule.AssetType.project &&
+                BUSY_PROJECT_STATES.has(item.projectState.type)
               ) {
                 event.preventDefault()
               }
 
-              props.onDragStart?.(event, asset)
+              props.onDragStart?.(event, item)
             }}
             onDragEnter={(event) => {
               if (dragOverTimeoutHandle.current != null) {
@@ -511,7 +500,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
             onDragEnd={(event) => {
               setIsDraggedOver(false)
               setLabelsDragPayload(null)
-              props.onDragEnd?.(event, asset)
+              props.onDragEnd?.(event, item)
             }}
             onDragLeave={(event) => {
               if (
@@ -528,16 +517,16 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                 setIsDraggedOver(false)
                 setDragTargetAssetId(null)
               }
-              props.onDragLeave?.(event, asset)
+              props.onDragLeave?.(event, item)
             }}
             onDrop={(event) => {
               if (state.category.type === 'trash' || state.category.type === 'recent') {
                 return
               }
-              props.onDrop?.(event, asset)
+              props.onDrop?.(event, item)
               setIsDraggedOver(false)
               const directoryId =
-                asset.type === backendModule.AssetType.directory ? asset.id : parentId
+                item.type === backendModule.AssetType.directory ? item.id : parentId
               const payload = drag.ASSET_ROWS.lookup(event)
               if (payload != null && payload.every((innerItem) => innerItem.key !== directoryId)) {
                 event.preventDefault()
@@ -568,12 +557,15 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                     isPlaceholder={isPlaceholder}
                     isOpened={isOpened}
                     backendType={backend.type}
-                    item={asset}
+                    item={item}
                     setSelected={setSelected}
                     state={state}
                     rowState={rowState}
                     setRowState={setRowState}
                     isEditable={state.category.type !== 'trash'}
+                    renameAsset={renameAsset}
+                    closeProject={closeProject}
+                    openProject={openProject}
                   />
                 </td>
               )

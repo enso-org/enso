@@ -48,7 +48,7 @@ test('edit name (context menu)', ({ page }) =>
       const calls = api.trackCalls()
       await nameEl.press('Enter')
       await expect(row).toHaveText(new RegExp('^' + NEW_NAME))
-      expect(calls.updateDirectory).toMatchObject([{ title: NEW_NAME }])
+      expect(calls.updateAsset).toMatchObject([{ title: NEW_NAME }])
     }))
 
 test('edit name (keyboard)', ({ page }) =>
@@ -65,7 +65,7 @@ test('edit name (keyboard)', ({ page }) =>
       const calls = api.trackCalls()
       await nameEl.press('Enter')
       await expect(row).toHaveText(new RegExp('^' + NEW_NAME_2))
-      expect(calls.updateDirectory).toMatchObject([{ title: NEW_NAME_2 }])
+      expect(calls.updateAsset).toMatchObject([{ title: NEW_NAME_2 }])
     }))
 
 test('cancel editing name (context menu)', ({ page }) =>
@@ -83,7 +83,7 @@ test('cancel editing name (context menu)', ({ page }) =>
       const calls = api.trackCalls()
       await locateEditingCross(row).click()
       await expect(row).toHaveText(new RegExp('^' + oldName))
-      expect(calls.updateDirectory).toMatchObject([])
+      expect(calls.updateAsset).toMatchObject([])
     }))
 
 test('cancel editing name (keyboard)', ({ page }) => {
@@ -102,7 +102,7 @@ test('cancel editing name (keyboard)', ({ page }) => {
       const calls = api.trackCalls()
       await nameEl.press('Escape')
       await expect(row).toHaveText(new RegExp('^' + oldName))
-      expect(calls.updateDirectory).toMatchObject([])
+      expect(calls.updateAsset).toMatchObject([])
     })
 })
 
@@ -122,7 +122,7 @@ test('change to blank name (context menu)', ({ page }) =>
       const calls = api.trackCalls()
       await locateEditingCross(row).click()
       await expect(row).toHaveText(new RegExp('^' + oldName))
-      expect(calls.updateDirectory).toMatchObject([])
+      expect(calls.updateAsset).toMatchObject([])
     }))
 
 test('change to blank name (keyboard)', ({ page }) =>
@@ -140,7 +140,7 @@ test('change to blank name (keyboard)', ({ page }) =>
       const calls = api.trackCalls()
       await nameEl.press('Enter')
       await expect(row).toHaveText(new RegExp('^' + oldName))
-      expect(calls.updateDirectory).toMatchObject([])
+      expect(calls.updateAsset).toMatchObject([])
     }))
 
 test('edit name, error message is visible', ({ page }) => {

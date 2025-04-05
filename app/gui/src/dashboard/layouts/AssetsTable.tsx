@@ -20,7 +20,7 @@ import {
   type SetStateAction,
 } from 'react'
 
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import * as z from 'zod'
 
@@ -65,7 +65,7 @@ import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useCutAndPaste } from '#/hooks/cutAndPasteHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useIntersectionRatio } from '#/hooks/intersectionHooks'
-import { useOpenProjectLocally } from '#/hooks/projectHooks'
+import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -102,11 +102,10 @@ import {
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useSetModal } from '#/providers/ModalProvider'
-import { useNavigator2D } from '#/providers/Navigator2DProvider'
 import { useLaunchedProjects } from '#/providers/ProjectsProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import type { AssetId, DirectoryId } from '#/services/Backend'
+import type { AssetId, DirectoryId, ProjectId } from '#/services/Backend'
 import {
   assetIsProject,
   AssetType,
@@ -120,14 +119,15 @@ import AssetQuery from '#/utilities/AssetQuery'
 import { ASSET_ROWS, setDragImageToBlank, type AssetRowsDragPayload } from '#/utilities/drag'
 import { isElementTextInput, isTextInputEvent } from '#/utilities/event'
 import { fileExtension } from '#/utilities/fileInfo'
-import { noop } from '#/utilities/functions'
+import { noop, noopPromise } from '#/utilities/functions'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
 import { PermissionAction } from '#/utilities/permissions'
 import { withPresence } from '#/utilities/set'
+import type { SortInfo } from '#/utilities/sorting'
+import { twMerge } from '#/utilities/tailwindMerge'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import invariant from 'tiny-invariant'
-import type { SortInfo } from '../utilities/sorting'
-import { twMerge } from '../utilities/tailwindMerge'
 import {
   SUGGESTIONS_FOR_HAS,
   SUGGESTIONS_FOR_NEGATIVE_TYPE,
@@ -188,7 +188,7 @@ export interface AssetRowState {
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
-  readonly hidden: boolean
+  readonly hidden?: boolean
   readonly query: AssetQuery
   readonly setQuery: Dispatch<SetStateAction<AssetQuery>>
   readonly category: Category
@@ -204,7 +204,7 @@ export interface AssetManagementApi {
 
 /** The table of project assets. */
 function AssetsTable(props: AssetsTableProps) {
-  const { hidden, query, setQuery, category, assetManagementApiRef } = props
+  const { hidden = false, query, setQuery, category, assetManagementApiRef } = props
   const { initialProjectName } = props
 
   const openedProjects = useLaunchedProjects()
@@ -221,7 +221,6 @@ function AssetsTable(props: AssetsTableProps) {
   const { localStorage } = useLocalStorage()
   const { getText } = useText()
   const inputBindings = useInputBindings()
-  const navigator2D = useNavigator2D()
   const toastAndLog = useToastAndLog()
   const didLoadingProjectManagerFail = useDidLoadingProjectManagerFail()
   const reconnectToProjectManager = useReconnectToProjectManager()
@@ -251,12 +250,12 @@ function AssetsTable(props: AssetsTableProps) {
   const setPasteData = useSetPasteData()
 
   const uploadFiles = useUploadFiles(backend, category)
-  const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
+  const updateSecretMutation = useMutationCallback(backendMutationOptions(backend, 'updateSecret'))
   const cutAndPaste = useCutAndPaste(backend, category)
-  const copyAssetsMutation = useMutation(copyAssetsMutationOptions(backend))
-  const moveAssetsMutation = useMutation(moveAssetsMutationOptions(backend))
-  const addAssetsLabelsMutation = useMutation(addAssetsLabelsMutationOptions(backend))
-  const removeAssetsLabelsMutation = useMutation(removeAssetsLabelsMutationOptions(backend))
+  const copyAssetsMutation = useMutationCallback(copyAssetsMutationOptions(backend))
+  const moveAssetsMutation = useMutationCallback(moveAssetsMutationOptions(backend))
+  const addAssetsLabelsMutation = useMutationCallback(addAssetsLabelsMutationOptions(backend))
+  const removeAssetsLabelsMutation = useMutationCallback(removeAssetsLabelsMutationOptions(backend))
 
   const { currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
     category,
@@ -613,19 +612,6 @@ function AssetsTable(props: AssetsTableProps) {
     },
   )
 
-  useEffect(() => {
-    const body = bodyRef.current
-    if (body == null) {
-      return
-    } else {
-      return navigator2D.register(body, {
-        focusPrimaryChild: () => {
-          setMostRecentlySelectedIndex(0, true)
-        },
-      })
-    }
-  }, [navigator2D, setMostRecentlySelectedIndex])
-
   const onKeyDown = useEventCallback((event: KeyboardEvent) => {
     const isTextInputFocused = isElementTextInput(document.activeElement)
     const isEventTextInputEvent =
@@ -677,7 +663,7 @@ function AssetsTable(props: AssetsTableProps) {
                     name={item.title}
                     doCreate={async (title, value) => {
                       try {
-                        await updateSecretMutation.mutateAsync([id, { title, value }, item.title])
+                        await updateSecretMutation([id, { title, value }, item.title])
                       } catch (error) {
                         toastAndLog(null, error)
                       }
@@ -787,6 +773,32 @@ function AssetsTable(props: AssetsTableProps) {
     }
   }, [setMostRecentlySelectedIndex])
 
+  const renameAssetMutationCallback = useMutationCallback(
+    backendMutationOptions(backend, 'updateAsset'),
+  )
+  const closeProjectMutationCallback = useCloseProject()
+
+  const doRenameAsset = useEventCallback((assetId: AssetId, newTitle: string) => {
+    return renameAssetMutationCallback([
+      assetId,
+      { title: newTitle, parentDirectoryId: null, description: null },
+      assetId,
+    ])
+  })
+
+  const doOpenProject = useEventCallback((projectId: ProjectId) => {
+    const project = assets.find((asset) => asset.id === projectId)
+
+    if (project == null) {
+      return Promise.resolve()
+    }
+
+    return openProjectLocally(
+      { id: projectId, title: project.title, parentId: project.parentId },
+      backend.type,
+    )
+  })
+
   const doCopy = useEventCallback(() => {
     unsetModal()
     const { selectedIds } = driveStore.getState()
@@ -820,7 +832,7 @@ function AssetsTable(props: AssetsTableProps) {
         toast.error('Cannot paste a folder into itself.')
       } else {
         if (pasteData.type === 'copy') {
-          copyAssetsMutation.mutate([[...pasteData.data.ids], newParentId])
+          void copyAssetsMutation([[...pasteData.data.ids], newParentId])
         } else {
           cutAndPaste(newParentKey, newParentId, pasteData.data)
         }
@@ -906,29 +918,6 @@ function AssetsTable(props: AssetsTableProps) {
       sortInfo,
     ],
   )
-
-  useEffect(() => {
-    // In some browsers, at least in Chrome 126,
-    // in some situations, when an element has a
-    // 'container-size' style, and the parent element is hidden,
-    // the browser can't calculate the element's size
-    // and thus the element doesn't appear when we unhide the parent.
-    // The only way to fix that is to force browser to recalculate styles
-    // So the trick is to change a property, trigger style recalc(`getBoundlingClientRect()`)
-    // and remove the property.
-    // since everything is happening synchronously, user won't see a broken layout during recalculation
-    if (!hidden && rootRef.current) {
-      for (let i = 0; i < rootRef.current.children.length; i++) {
-        const element = rootRef.current.children[i]
-
-        if (element instanceof HTMLElement) {
-          element.style.width = '0px'
-          element.getBoundingClientRect()
-          element.style.width = ''
-        }
-      }
-    }
-  }, [hidden])
 
   const calculateNewSelection = useEventCallback(
     (
@@ -1135,10 +1124,13 @@ function AssetsTable(props: AssetsTableProps) {
               state={state}
               rowState={INITIAL_ROW_STATE}
               // The drag placeholder cannot be interacted with.
+              isEditable={false}
               isPlaceholder={false}
               setSelected={noop}
               setRowState={noop}
-              isEditable={false}
+              renameAsset={noopPromise}
+              closeProject={noopPromise}
+              openProject={noopPromise}
               labels={[]}
             />
           ))}
@@ -1175,9 +1167,9 @@ function AssetsTable(props: AssetsTableProps) {
       event.preventDefault()
       event.stopPropagation()
       if (shouldAdd) {
-        addAssetsLabelsMutation.mutate([selectedItems, labelsDragPayload.labels])
+        void addAssetsLabelsMutation([selectedItems, labelsDragPayload.labels])
       } else {
-        removeAssetsLabelsMutation.mutate([selectedItems, labelsDragPayload.labels])
+        void removeAssetsLabelsMutation([selectedItems, labelsDragPayload.labels])
       }
       setLabelsDragPayload(null)
     }
@@ -1239,6 +1231,7 @@ function AssetsTable(props: AssetsTableProps) {
         type={item.type}
         parentId={item.parentId}
         state={state}
+        item={item}
         isKeyboardSelected={
           keyboardSelectedIndex != null && item === visibleItems[keyboardSelectedIndex]
         }
@@ -1251,6 +1244,9 @@ function AssetsTable(props: AssetsTableProps) {
         onDragEnd={onRowDragEnd}
         onDrop={onRowDrop}
         uploadFiles={uploadFiles}
+        renameAsset={doRenameAsset}
+        closeProject={closeProjectMutationCallback}
+        openProject={doOpenProject}
       />
     )
   })
@@ -1311,7 +1307,7 @@ function AssetsTable(props: AssetsTableProps) {
               event.stopPropagation()
               unsetModal()
 
-              moveAssetsMutation.mutate([
+              void moveAssetsMutation([
                 filtered.map((dragItem) => dragItem.asset.id),
                 currentDirectoryId,
               ])
@@ -1383,7 +1379,7 @@ function AssetsTable(props: AssetsTableProps) {
 
       <FocusArea direction="vertical">
         {(innerProps) => (
-          <IsolateLayout className="isolate h-full w-full">
+          <IsolateLayout className="isolate h-full w-full" useRAF>
             <div
               {...mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
                 className:
