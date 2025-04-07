@@ -3,6 +3,7 @@ package org.enso.change.directory;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.IOException;
@@ -68,13 +69,16 @@ public class TestChangeDirectory {
 
   @Test
   public void changeDir_Symlink() throws IOException {
-    ensureOnUnix();
     var tmpDir = TMP_DIR.newFolder().toPath();
     var realDir = tmpDir.resolve("real-dir");
     var dirCreated = realDir.toFile().mkdir();
     assertTrue(dirCreated);
     var symlink = tmpDir.resolve("symlink");
-    Files.createSymbolicLink(symlink, realDir);
+    try {
+      Files.createSymbolicLink(symlink, realDir);
+    } catch (UnsupportedOperationException e) {
+      assumeFalse("Symlink creation is not supported on this platform, skipping the test", true);
+    }
     var realDirPath = realDir.toAbsolutePath().toRealPath().toString();
     var symLinkPath = symlink.toAbsolutePath().toRealPath().toString();
     var dirChanged = nativeApi.changeWorkingDir(symLinkPath);
