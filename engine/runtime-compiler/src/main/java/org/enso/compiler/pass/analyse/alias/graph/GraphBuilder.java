@@ -12,6 +12,13 @@ public final class GraphBuilder {
   private final ScopeImpl scope;
   private final Map<String, GraphOccurrence.Def> defs = new java.util.HashMap<>();
 
+  private GraphBuilder() {
+    var topLevel = Graph$.MODULE$.create();
+    this.parent = null;
+    this.graph = (GraphImpl) topLevel;
+    this.scope = (ScopeImpl) topLevel.rootScope();
+  }
+
   private GraphBuilder(GraphBuilder parent, Graph graph, Graph.Scope scope) {
     this.parent = parent;
     this.graph = (GraphImpl) graph;
@@ -27,8 +34,7 @@ public final class GraphBuilder {
    * @return empty builder
    */
   public static GraphBuilder create() {
-    var topLevel = Graph$.MODULE$.create();
-    return create(topLevel, topLevel.rootScope());
+    return new GraphBuilder();
   }
 
   /**
@@ -144,6 +150,7 @@ public final class GraphBuilder {
           .foreach(
               o -> {
                 if (o instanceof GraphOccurrence.Def d) {
+                  assert d.scope() == scope;
                   defs.put(d.symbol(), d);
                 }
                 return null;
