@@ -57,12 +57,6 @@
         ]
     },
     {
-        "name":"org.enso.aws.ClientBuilder"
-    },
-    {
-        "name":"org.enso.aws.DefaultRegionProvider"
-    },
-    {
         "name":"org.enso.aws.ProfileReader"
     },
     {
