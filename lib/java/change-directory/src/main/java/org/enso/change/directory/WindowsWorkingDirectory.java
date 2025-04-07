@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @CContext(WindowsWorkingDirectory.Directives.class)
-public final class WindowsWorkingDirectory implements WorkingDirectory {
+final class WindowsWorkingDirectory implements WorkingDirectory {
   static final WindowsWorkingDirectory INSTANCE = new WindowsWorkingDirectory();
   private static final Logger LOGGER = LoggerFactory.getLogger(WindowsWorkingDirectory.class);
 
@@ -34,7 +34,7 @@ public final class WindowsWorkingDirectory implements WorkingDirectory {
 
   @Override
   public boolean changeWorkingDir(String path) {
-    try (var cPath = CTypeConversion.toCString(path + "\0")) {
+    try (var cPath = CTypeConversion.toCString(path)) {
       var res = SetCurrentDirectoryA(cPath.get());
       if (res == 0) {
         LOGGER.error("SetCurrrentDirectory to {} failed with {}", path, res);

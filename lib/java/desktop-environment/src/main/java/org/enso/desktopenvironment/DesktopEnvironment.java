@@ -2,7 +2,7 @@ package org.enso.desktopenvironment;
 
 import org.enso.common.Platform;
 
-public final class DesktopEnvironment {
+final class DesktopEnvironment {
   private static final Directories DIRECTORIES;
   private static final TrashBin TRASH_BIN;
 

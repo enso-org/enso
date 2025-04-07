@@ -1,6 +1,7 @@
 package org.enso.change.directory;
 
-public interface WorkingDirectory {
+public abstract class WorkingDirectory {
+    WorkingDirectory() {}
   boolean changeWorkingDir(String path);
 
   String currentWorkingDir();

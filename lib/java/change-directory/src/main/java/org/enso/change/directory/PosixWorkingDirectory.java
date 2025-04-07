@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @CContext(PosixWorkingDirectory.Directives.class)
-public final class PosixWorkingDirectory implements WorkingDirectory {
+final class PosixWorkingDirectory implements WorkingDirectory {
   static final PosixWorkingDirectory INSTANCE = new PosixWorkingDirectory();
   private static final Logger LOGGER = LoggerFactory.getLogger(PosixWorkingDirectory.class);
 
