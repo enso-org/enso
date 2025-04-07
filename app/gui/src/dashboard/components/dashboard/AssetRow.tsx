@@ -359,7 +359,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   const dragDelayProps = useDragDelayAction(
     asset.type === backendModule.AssetType.directory ?
       () => {
-        React.startTransition(() => {
+        startNavigation(() => {
           setDirectoryId({ current: asset.id, parent: asset.parentId })
         })
       }
