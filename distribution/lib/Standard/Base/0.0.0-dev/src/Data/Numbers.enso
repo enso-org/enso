@@ -14,7 +14,7 @@ import project.Internal.Rounding_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Numeric.Internal.Round_Internal import resolve_deprecated_rounding_mode 
+from project.Data.Numeric.Rounding_Mode import resolve_deprecated_rounding_mode
 from project.Internal.Number_Builtins import all
 from project.Internal.Ordering_Helpers import Positive_Integer_Comparator
 from project.Widget_Helpers import make_number_format_selector
@@ -1114,13 +1114,14 @@ type Integer
          Round to the nearest hundred, using Banker's Rounding.
 
             12250 . round -2 rounding_mode=Rounding_Mode.Bankers == 12200
-    round self (decimal_places:Integer=0) (rounding_mode:Rounding_Mode=Rounding_Mode.Half_Up) -> Integer ! Illegal_Argument =
+    round self (decimal_places:Integer=0) (rounding_mode : Rounding_Mode | Boolean = Rounding_Mode.Half_Up) -> Integer ! Illegal_Argument =
         ## We reject values outside the range of `long` here, so we don't also
            do this check in the Java.
-        Rounding_Helpers.check_round_input self <|
-            report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
-            Panic.catch Unsupported_Argument_Types handler=report_unsupported
-                round_integer_builtin self decimal_places (rounding_mode == Rounding_Mode.Bankers)
+        resolve_deprecated_rounding_mode "Standard.Base.Data.Numbers.Integer" rounding_mode rounding_mode->
+            Rounding_Helpers.check_round_input self <|
+                report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
+                Panic.catch Unsupported_Argument_Types handler=report_unsupported
+                    round_integer_builtin self decimal_places (rounding_mode == Rounding_Mode.Bankers)
 
     ## GROUP Operators
        ICON operators

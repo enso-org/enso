@@ -6,6 +6,7 @@ import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Rounding_Helpers
+from Standard.Base.Data.Numeric.Rounding_Mode import resolve_deprecated_rounding_mode
 from Standard.Base.Metadata.Widget import Numeric_Input, Text_Input
 from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make_format_chooser, make_regex_text_widget
 
@@ -885,17 +886,18 @@ type DB_Column
              import Standard.Examples
 
              example_round = Examples.decimal_column.round 2
-    round self decimal_places:Integer=0 rounding_mode:Rounding_Mode=Rounding_Mode.Half_Up -> DB_Column ! Illegal_Argument | Invalid_Value_Type =
-        Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
-            if self.should_use_builtin_round decimal_places rounding_mode then self.round_builtin decimal_places rounding_mode else
-                self.short_circuit_special_floating_point <|
-                    case self.value_type of
-                        Value_Type.Integer _ -> self.round_integer decimal_places rounding_mode
-                        Value_Type.Float _ -> self.round_float decimal_places rounding_mode
-                        Value_Type.Decimal _ _ -> self.round_decimal decimal_places rounding_mode
-                        _ ->
-                            expected = "Decimal, Float, or Integer"
-                            Error.throw (Invalid_Value_Type.Column expected self.value_type self.name)
+    round self decimal_places:Integer=0 (rounding_mode : Rounding_Mode | Boolean = Rounding_Mode.Half_Up) -> DB_Column ! Illegal_Argument | Invalid_Value_Type =
+        resolve_deprecated_rounding_mode "Standard.Database.DB_Column.DB_Column" rounding_mode rounding_mode->
+            Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
+                if self.should_use_builtin_round decimal_places rounding_mode then self.round_builtin decimal_places rounding_mode else
+                    self.short_circuit_special_floating_point <|
+                        case self.value_type of
+                            Value_Type.Integer _ -> self.round_integer decimal_places rounding_mode
+                            Value_Type.Float _ -> self.round_float decimal_places rounding_mode
+                            Value_Type.Decimal _ _ -> self.round_decimal decimal_places rounding_mode
+                            _ ->
+                                expected = "Decimal, Float, or Integer"
+                                Error.throw (Invalid_Value_Type.Column expected self.value_type self.name)
 
     ## PRIVATE
        Determine whether to use built-in rounding. We use built-in rounding if:
