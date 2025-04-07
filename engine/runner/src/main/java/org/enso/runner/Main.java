@@ -1539,7 +1539,6 @@ public class Main {
   private void maybeChangeWorkingDirToProjectRoot(String fileToRun) {
     assert fileToRun != null;
     if (!ImageInfo.inImageRuntimeCode()) {
-      logger.warn("Changing working directory only supported in native image");
       return;
     }
     var projectRoot = findProjectRoot(fileToRun);
