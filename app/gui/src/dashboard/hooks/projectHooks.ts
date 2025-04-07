@@ -314,7 +314,7 @@ export function useCloseProjectMutation() {
 
       void client.cancelQueries({ queryKey })
     },
-    onSuccess: async (_, { type, id, title, parentId, hybrid }) => {
+    onSuccess: async (_, { type, id, parentId, hybrid }) => {
       await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       setProjectAsset(type, id, parentId, (asset) => ({
         ...asset,
@@ -322,8 +322,7 @@ export function useCloseProjectMutation() {
       }))
 
       if (hybrid) {
-        const safeTitle = backendModule.escapeSpecialCharacters(title)
-        const fileName = `${safeTitle}.enso-project`
+        const fileName = 'project_root.enso-project'
         const file = await remoteBackend.getProjectArchive(parentId, fileName)
         await uploadFileMutation
           .mutateAsync([
@@ -345,10 +344,9 @@ export function useCloseProjectMutation() {
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
-    onError: async (_, { type, id, title, parentId, hybrid }) => {
+    onError: async (_, { type, id, parentId, hybrid }) => {
       if (hybrid) {
-        const safeTitle = backendModule.escapeSpecialCharacters(title)
-        const fileName = `${safeTitle}.enso-project`
+        const fileName = 'project_root.enso-project'
         const file = await remoteBackend.getProjectArchive(parentId, fileName)
         await uploadFileMutation
           .mutateAsync([

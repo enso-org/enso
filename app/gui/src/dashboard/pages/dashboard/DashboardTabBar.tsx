@@ -58,7 +58,6 @@ export function DashboardTabBar(props: DashboardTabBarProps) {
         'data-testid': 'editor-tab-button',
         labelId: 'editorPageName' satisfies TextId,
         isActive: page === project.id,
-        children: project.title,
         project,
         onClose,
         onLoadEnd,
