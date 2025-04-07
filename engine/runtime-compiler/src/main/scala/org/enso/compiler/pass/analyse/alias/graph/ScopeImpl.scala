@@ -199,7 +199,7 @@ sealed private[graph] class ScopeImpl(
     parentCounter: Int = 0
   ): Option[Graph.Link] = {
     val definition =
-      if (hint != null && hint.scope() == this) {
+      if (hint != null && (hint.scope() eq this)) {
         Some(hint)
       } else {
         occurrences.values.find {
