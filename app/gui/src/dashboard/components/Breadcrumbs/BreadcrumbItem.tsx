@@ -1,8 +1,11 @@
 /** @file A single breadcrumb item. */
+import { mergeProps } from '#/components/aria'
+import { useDragDelayAction, type DragDelayCallback } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { noop } from '#/utilities/functions'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { useMutation } from '@tanstack/react-query'
+import type { HTMLAttributes } from 'react'
 import {
   createContext,
   useContext,
@@ -79,6 +82,7 @@ export interface BreadcrumbItemProps<IconType extends string>
     | ((renderProps: BreadcrumbItemRenderProps) => TooltipElementType)
   readonly isLoading?: boolean
   readonly isDroppable?: boolean
+  readonly onDragDelay?: DragDelayCallback<HTMLElement> | undefined
 }
 
 /**
@@ -139,6 +143,7 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
     referrerPolicy,
     onPress: onPressRaw,
     isDroppable = true,
+    onDragDelay,
   } = props
   const { id, ...breadcrumbItemProps } = props
 
@@ -160,15 +165,19 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
     },
   })
 
-  // `dropProps` is type-safe, ESLint is being silly.
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const { dropProps, isDropTarget } = useDrop({
+  const useDropResult: {
+    readonly dropProps: HTMLAttributes<HTMLElement>
+    readonly isDropTarget: boolean
+  } = useDrop({
     isDisabled: !onDropSpecified || isDisabled || !isDroppable,
     ref,
     onDrop: (e) => {
       dropMutation.mutate({ id, e })
     },
   })
+  const { dropProps, isDropTarget } = useDropResult
+
+  const dragDelayProps = useDragDelayAction(onDragDelay)
 
   const onPress = useEventCallback(async (event: PressEvent) => {
     if (id == null) {
@@ -231,7 +240,7 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
       })}
       style={typeof style === 'function' ? style(renderProps) : style}
       {...(id != null ? { id: id.toString() } : {})}
-      {...dropProps}
+      {...mergeProps<HTMLAttributes<HTMLElement>>()(dropProps, dragDelayProps)}
     >
       <div className={styles.container()} {...itemProps}>
         <Button.GroupJoin verticalAlign="center" buttonVariants={{ variant: 'icon', isDisabled }}>
