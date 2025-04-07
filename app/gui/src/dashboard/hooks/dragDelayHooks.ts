@@ -25,7 +25,7 @@ export function useDragDelayAction<T>(
   const handle = useRef<number | null>(null)
 
   const cancelPreviousCallback = useEventCallback(() => {
-    if (handle.current !== null) {
+    if (handle.current != null) {
       clearTimeout(handle.current)
     }
     handle.current = null
@@ -71,7 +71,7 @@ export function useAriaDragDelayAction(
   const handle = useRef<number | null>(null)
 
   const cancelPreviousCallback = useEventCallback(() => {
-    if (handle.current !== null) {
+    if (handle.current != null) {
       clearTimeout(handle.current)
     }
     handle.current = null
