@@ -16,22 +16,16 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class ConversionMethodTests {
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createWithCapturedOut(out);
-
-  @AfterClass
-  public static void disposeOut() throws IOException {
-    out.close();
-  }
 
   @After
   public void resetOutput() {
-    out.reset();
+    ctxRule.resetOut();
   }
 
   private String getStdOut() {
-    return out.toString(StandardCharsets.UTF_8);
+    return ctxRule.getOut();
   }
 
   @Test

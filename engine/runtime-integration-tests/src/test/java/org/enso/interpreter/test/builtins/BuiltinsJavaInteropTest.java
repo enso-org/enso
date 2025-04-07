@@ -14,14 +14,7 @@ import org.junit.Test;
  * accept Enso values in different ways.
  */
 public class BuiltinsJavaInteropTest {
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createWithCapturedOut(out);
-
-  @After
-  public void resetOutput() {
-    out.reset();
-  }
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   /**
    * This test reflects the state of many Java methods in stdlibs that accept Enso values as {@link

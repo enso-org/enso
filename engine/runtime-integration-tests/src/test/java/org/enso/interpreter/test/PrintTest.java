@@ -15,19 +15,17 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class PrintTest {
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createWithCapturedOut(out);
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   @Before
   public void cleanOut() {
-    out.reset();
+    ctxRule.resetOut();
   }
 
   private void checkPrint(String code, String expected) throws Exception {
     Value result = evalCode(code, "test");
     assertTrue("should return Nothing", result.isNull());
-    String log = out.toString(StandardCharsets.UTF_8).trim();
+    String log = ctxRule.getOut().trim();
     assertEquals(expected, log);
   }
 

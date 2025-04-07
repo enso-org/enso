@@ -20,13 +20,11 @@ import org.junit.Test;
 
 /** Tests symbol resolution in the interpreter. */
 public class InterpreterSymbolResolutionTest {
-  private static ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createWithCapturedOut(out);
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   @After
   public void clear() {
-    out.reset();
+    ctxRule.resetOut();
   }
 
   @Test
@@ -152,7 +150,7 @@ public class InterpreterSymbolResolutionTest {
     } catch (PolyglotException ex) {
       assertThat(ex.isSyntaxError(), is(true));
       assertThat(
-          out.toString(), allOf(containsString("The name"), containsString("could not be found")));
+          ctxRule.getOut(), allOf(containsString("The name"), containsString("could not be found")));
     }
   }
 }

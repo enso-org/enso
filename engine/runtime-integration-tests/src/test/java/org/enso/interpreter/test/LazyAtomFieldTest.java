@@ -17,13 +17,11 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class LazyAtomFieldTest {
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createWithCapturedOut(out);
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   @Before
   public void resetOut() {
-    out.reset();
+    ctxRule.resetOut();
   }
 
   @Test
@@ -68,7 +66,7 @@ public class LazyAtomFieldTest {
     var meanings = evalCode(code, "meanings");
     assertEquals(42, meanings.asInt());
 
-    String log = out.toString(StandardCharsets.UTF_8);
+    String log = ctxRule.getOut();
     var lazyReadyAndThen =
         log.lines().dropWhile(l -> l.contains("Lazy value ready")).collect(Collectors.toList());
     var computingX = lazyReadyAndThen.stream().filter(l -> l.contains("Computing x done")).count();
@@ -109,7 +107,7 @@ public class LazyAtomFieldTest {
 
     var both = evalCode(code, "both");
     var sum = both.execute(100);
-    String log = out.toString(StandardCharsets.UTF_8);
+    String log = ctxRule.getOut();
     assertEquals(log, 5050, sum.asLong());
   }
 

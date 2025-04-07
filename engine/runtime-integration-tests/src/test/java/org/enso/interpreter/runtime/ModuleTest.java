@@ -36,6 +36,23 @@ public class ModuleTest {
   @ClassRule
   public static final ContextRule ctxRule = ContextRule.createCustom(ModuleTest::createCtx);
 
+  @ClassRule
+  public static final ContextRule myCtxRule = ContextRule.newBuilder()
+      .withModifiedContext(ctxBldr -> {
+        Engine eng =
+            Engine.newBuilder()
+                .allowExperimentalOptions(true)
+                .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+                .option(RuntimeOptions.STRICT_ERRORS, "false")
+                .logHandler(System.err)
+                .option(
+                    RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+                    Paths.get("../../distribution/component").toFile().getAbsolutePath())
+                .build();
+        return ctxBldr.engine(eng).allowIO(IOAccess.ALL).allowAllAccess(true);
+      })
+      .build();
+
   private static Context createCtx() {
     Engine eng =
         Engine.newBuilder()

@@ -1,8 +1,10 @@
 package org.enso.test.utils;
 
 import java.io.ByteArrayOutputStream;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.graalvm.polyglot.Context;
@@ -21,9 +23,6 @@ import org.junit.runners.model.Statement;
  *
  * <p>This class simply delegates most of the methods either directly to {@link Context} or to
  * {@link ContextUtils}.
- *
- * <p>Note that {@link ContextRule} cannot be used inside methods annotated with {@link
- * org.junit.runners.Parameterized.Parameters}.
  */
 public final class ContextRule implements TestRule {
   private final Supplier<Context> contextSupplier;
@@ -32,7 +31,7 @@ public final class ContextRule implements TestRule {
 
   private ContextRule(Supplier<Context> contextSupplier, ByteArrayOutputStream out) {
     this.contextSupplier = contextSupplier;
-    this.out = out;
+    this.out = Objects.requireNonNull(out);
   }
 
   public static ContextRule createDefault() {
@@ -48,9 +47,20 @@ public final class ContextRule implements TestRule {
     return new ContextRule(contextSupplier, null);
   }
 
-  public static ContextRule createWithCapturedOut(ByteArrayOutputStream out) {
-    Supplier<Context> supplier = () -> ContextUtils.createDefaultContext(out);
-    return new ContextRule(supplier, out);
+  /**
+   * Returns the combined stdout and stderr streams captured by this rule.
+   */
+  public String getOut() {
+    return out.toString();
+  }
+
+  /**
+   * Resets (clears) ste stdout and stderr streams captured by this rule.
+   * This may be handy if the rule is annotated with {@link org.junit.ClassRule}, and you need
+   * to clean the output after every test in {@link org.junit.After} method.
+   */
+  public void resetOut() {
+    out.reset();
   }
 
   @Override

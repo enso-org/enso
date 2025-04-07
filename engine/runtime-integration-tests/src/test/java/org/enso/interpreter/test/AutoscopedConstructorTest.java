@@ -18,18 +18,11 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class AutoscopedConstructorTest {
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createWithCapturedOut(out);
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   @After
   public void resetOut() {
-    out.reset();
-  }
-
-  @AfterClass
-  public static void disposeOut() throws IOException {
-    out.close();
+    ctxRule.resetOut();
   }
 
   @Test
@@ -52,7 +45,7 @@ public class AutoscopedConstructorTest {
       assertEquals("False", create.execute(42).asString());
 
     } catch (PolyglotException e) {
-      fail(e.getMessage() + " for \n" + out.toString());
+      fail(e.getMessage() + " for \n" + ctxRule.getOut());
     }
   }
 
@@ -76,7 +69,7 @@ public class AutoscopedConstructorTest {
       assertEquals("42", create.execute(42).toString());
 
     } catch (PolyglotException e) {
-      fail(e.getMessage() + " for \n" + out.toString());
+      fail(e.getMessage() + " for \n" + ctxRule.getOut());
     }
   }
 
@@ -99,7 +92,7 @@ public class AutoscopedConstructorTest {
       assertTrue("Can evaluate", create.canExecute());
       assertEquals("[6, 7]", create.execute(6, 7).toString());
     } catch (PolyglotException e) {
-      fail(e.getMessage() + " for \n" + out.toString());
+      fail(e.getMessage() + " for \n" + ctxRule.getOut());
     }
   }
 
@@ -126,7 +119,7 @@ public class AutoscopedConstructorTest {
       assertTrue("Can evaluate", create.canExecute());
       assertEquals("[7, 6]", create.execute(7, 6).toString());
     } catch (PolyglotException e) {
-      fail(e.getMessage() + " for \n" + out.toString());
+      fail(e.getMessage() + " for \n" + ctxRule.getOut());
     }
   }
 
@@ -151,7 +144,7 @@ public class AutoscopedConstructorTest {
       assertTrue("Can evaluate", create.canExecute());
       assertEquals("[7, 6]", create.execute(6, 7).toString());
     } catch (PolyglotException e) {
-      fail(e.getMessage() + " for \n" + out.toString());
+      fail(e.getMessage() + " for \n" + ctxRule.getOut());
     }
   }
 
@@ -198,7 +191,7 @@ public class AutoscopedConstructorTest {
       assertEquals("[8, 2, 3, 7]", c41.execute(8, 7).toString());
       assertEquals("[8, 2, 7, 4]", c31.execute(8, 7).toString());
     } catch (PolyglotException e) {
-      fail(e.getMessage() + " for \n" + out.toString());
+      fail(e.getMessage() + " for \n" + ctxRule.getOut());
     }
   }
 

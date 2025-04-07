@@ -19,22 +19,15 @@ import org.junit.Test;
 
 public class JavaInteropTest {
 
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createWithCapturedOut(out);
-
-  @AfterClass
-  public static void disposeOut() throws IOException {
-    out.close();
-  }
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   @After
   public void resetOutput() {
-    out.reset();
+    ctxRule.resetOut();
   }
 
   private String[] getStdOutLines() {
-    return out.toString(StandardCharsets.UTF_8).trim().split(System.lineSeparator());
+    return ctxRule.getOut().trim().split(System.lineSeparator());
   }
 
   private void checkPrint(String code, List<String> expected) {

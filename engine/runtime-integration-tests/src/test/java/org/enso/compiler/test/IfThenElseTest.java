@@ -21,14 +21,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 public class IfThenElseTest {
-  private static final ByteArrayOutputStream MESSAGES = new ByteArrayOutputStream();
-
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createWithCapturedOut(MESSAGES);
-
-  @After
-  public void cleanMessages() {
-    MESSAGES.reset();
-  }
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   @Test
   public void simpleIfThenElse() {
