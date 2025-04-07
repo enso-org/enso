@@ -1,10 +1,11 @@
 package org.enso.change.directory;
 
 public abstract class WorkingDirectory {
-    WorkingDirectory() {}
-  boolean changeWorkingDir(String path);
+  WorkingDirectory() {}
 
-  String currentWorkingDir();
+  public abstract boolean changeWorkingDir(String path);
 
-  boolean exists(String dir, String file);
+  public abstract String currentWorkingDir();
+
+  public abstract boolean exists(String dir, String file);
 }

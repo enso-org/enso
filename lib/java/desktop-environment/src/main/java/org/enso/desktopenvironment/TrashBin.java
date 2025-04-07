@@ -1,9 +1,18 @@
 package org.enso.desktopenvironment;
 
 import java.nio.file.Path;
+import org.enso.common.Platform;
 
 /** Operations with system trash */
 public sealed interface TrashBin permits LinuxTrashBin, WindowsTrashBin, MacTrashBin {
+
+  static TrashBin getCurrent() {
+    return switch (Platform.getOperatingSystem()) {
+      case LINUX -> LinuxTrashBin.getInstance();
+      case WINDOWS -> WindowsTrashBin.getInstance();
+      case MACOS -> MacTrashBin.getInstance();
+    };
+  }
   /**
    * @return {@code true} if the trash functionality is supported on this platform.
    */

@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @CContext(WindowsWorkingDirectory.Directives.class)
-final class WindowsWorkingDirectory implements WorkingDirectory {
+final class WindowsWorkingDirectory extends WorkingDirectory {
   static final WindowsWorkingDirectory INSTANCE = new WindowsWorkingDirectory();
   private static final Logger LOGGER = LoggerFactory.getLogger(WindowsWorkingDirectory.class);
 
