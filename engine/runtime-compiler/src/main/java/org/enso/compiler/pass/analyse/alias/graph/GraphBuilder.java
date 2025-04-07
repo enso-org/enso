@@ -23,9 +23,6 @@ public final class GraphBuilder {
     this.parent = parent;
     this.graph = (GraphImpl) graph;
     this.scope = (ScopeImpl) scope;
-    if (parent == null) {
-      fillInDefinitions(this.scope, defs);
-    }
   }
 
   /**
@@ -47,7 +44,9 @@ public final class GraphBuilder {
   public static GraphBuilder create(Graph g, Graph.Scope s) {
     assert g != null;
     assert s != null;
-    return new GraphBuilder(null, g, s);
+    var b = new GraphBuilder(null, g, s);
+    // fillInDefinitions(b.scope, b.defs);
+    return b;
   }
 
   /**
@@ -101,24 +100,15 @@ public final class GraphBuilder {
 
   /** Factory method to create new [GraphOccurrence.Use]. */
   public GraphOccurrence.Use newUse(
-      String symbol, java.util.UUID identifier, scala.Option<java.util.UUID> externalId) {
-    return GraphOccurrence.createUse(scope, graph.nextId(scope), symbol, identifier, externalId);
-  }
-
-  public void resolveLocalUsage(GraphOccurrence.Use use) {
-    GraphOccurrence.Def d = null;
-    var b = this;
-    while (b != null) {
-      d = b.defs.get(use.symbol());
-      if (d != null) {
-        break;
-      }
-      b = b.parent;
+      String symbol,
+      java.util.UUID identifier,
+      scala.Option<java.util.UUID> externalId,
+      boolean resolve) {
+    var use = GraphOccurrence.createUse(scope, graph.nextId(scope), symbol, identifier, externalId);
+    if (resolve) {
+      graph.resolveLocalUsage(use, null);
     }
-    // System.err.println("seek for " + use.symbol() + " found " + d);
-    if (d != null) {
-      graph.resolveLocalUsage(use, d);
-    }
+    return use;
   }
 
   /**

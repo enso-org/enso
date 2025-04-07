@@ -105,13 +105,13 @@ class AliasAnalysisTest extends CompilerTest {
     val bDef   = childOfChild.newDef("b", genId, None)
     val bDefId = bDef.id
 
-    val aUse   = childOfChildOfChildBuilder.newUse("a", genId, None)
+    val aUse   = childOfChildOfChildBuilder.newUse("a", genId, None, false)
     val aUseId = aUse.id
 
-    val bUse   = childOfChild.newUse("b", genId, None)
+    val bUse   = childOfChild.newUse("b", genId, None, false)
     val bUseId = bUse.id
 
-    val cUse   = child2.newUse("c", genId, None)
+    val cUse   = child2.newUse("c", genId, None, false)
     val cUseId = cUse.id
 
     "have a number of scopes of 1 without children" in {
@@ -256,23 +256,18 @@ class AliasAnalysisTest extends CompilerTest {
 
     val aDef   = builder.newDef("a", genId, None)
     val aDefId = aDef.id
-    // builder.add(aDef)
 
     val bDef = builder.newDef("b", genId, None)
     bDef.getClass()
-    // builder.add(bDef)
 
-    val aUse1   = builder.newUse("a", genId, None)
+    val aUse1   = builder.newUse("a", genId, None, false)
     val aUse1Id = aUse1.id
-    // builder.add(aUse1)
 
-    val aUse2   = childScope.newUse("a", genId, None)
+    val aUse2   = childScope.newUse("a", genId, None, false)
     val aUse2Id = aUse2.id
-    // childScope.add(aUse2)
 
-    val cUse   = childScope.newUse("c", genId, None)
+    val cUse   = childScope.newUse("c", genId, None, false)
     val cUseId = cUse.id
-    // childScope.add(cUse)
 
     val use1Link = graph.resolveLocalUsage(aUse1, null)
     val use2Link = graph.resolveLocalUsage(aUse2, null)

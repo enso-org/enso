@@ -714,11 +714,9 @@ case object AliasAnalysis extends IRPass {
           builder.newUse(
             name.name,
             name.getId,
-            name.getExternalId
+            name.getExternalId,
+            !isConstructorNameInPatternContext && !name.isMethod
           )
-        if (!isConstructorNameInPatternContext && !name.isMethod) {
-          builder.resolveLocalUsage(occurrence)
-        }
         occurrence.id
       }
     alias.AliasMetadata.updateMetadata(
