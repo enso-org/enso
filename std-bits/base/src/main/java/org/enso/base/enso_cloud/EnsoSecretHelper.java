@@ -71,7 +71,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
   /** Makes a request with secrets in the query string or headers. * */
   public static EnsoHttpResponse makeRequest(
       HttpClient client,
-      Builder builder,
+      Builder origBuilder,
       URIWithSecrets uri,
       List<Pair<String, HideableValue>> headers,
       boolean useCache)
@@ -79,6 +79,8 @@ public final class EnsoSecretHelper extends SecretValueResolver {
           IOException,
           InterruptedException,
           ResponseTooLargeException {
+    // Clone incoming builder so we can't leak secrets through it
+    var builder = origBuilder.copy();
 
     // Build a new URI with the query arguments.
     URI resolvedURI = resolveURI(uri);

@@ -34,7 +34,7 @@ val graalVersion = "21.0.2"
 // Version used for the Graal/Truffle related Maven packages
 // Keep in sync with GraalVM.version. Do not change the name of this variable,
 // it is used by the Rust build script via regex matching.
-val graalMavenPackagesVersion = "24.0.0"
+val graalMavenPackagesVersion = "24.2.0"
 val targetJavaVersion         = "17"
 val defaultDevEnsoVersion     = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
@@ -590,7 +590,7 @@ val ioSentry = Seq(
 
 // === Bouncy Castle ==========================================================
 
-val bouncyCastleVersion = "1.76"
+val bouncyCastleVersion = "1.78.1"
 val bouncyCastle = Seq(
   "org.bouncycastle" % "bcutil-jdk18on" % bouncyCastleVersion,
   "org.bouncycastle" % "bcpkix-jdk18on" % bouncyCastleVersion,
@@ -607,15 +607,14 @@ val jline = Seq(
 )
 
 // === Google =================================================================
-val googleApiClientVersion         = "2.2.0"
-val googleApiServicesSheetsVersion = "v4-rev612-1.25.0"
-val googleAnalyticsAdminVersion    = "0.62.0"
-val googleAnalyticsDataVersion     = "0.63.0"
-val grpcVersion                    = "1.67.1"
+val googleApiClientVersion         = "2.7.1"
+val googleApiServicesSheetsVersion = "v4-rev20250106-2.0.0"
+val googleAnalyticsAdminVersion    = "0.66.0"
+val googleAnalyticsDataVersion     = "0.67.0"
+val grpcVersion                    = "1.69.0"
 
 // === Other ==================================================================
 
-val bcpkixJdk15Version      = "1.70"
 val declineVersion          = "2.4.1"
 val diffsonVersion          = "4.4.0"
 val directoryWatcherVersion = "0.18.0"
@@ -3916,7 +3915,7 @@ lazy val `engine-runner` = project
         // Limit max memory limit
         val macArmOnCI =
           sys.env.get("CI").isDefined && Platform.isMacOS && Platform.isArm64
-        val maxLimit = if (macArmOnCI) Some(10240) else Some(15608)
+        val maxLimit = if (macArmOnCI) Some(14336) else Some(15608)
         NativeImage
           .buildNativeImage(
             "enso",
@@ -5020,7 +5019,7 @@ lazy val `std-google-api` = project
       "com.google.apis"       % "google-api-services-sheets" % googleApiServicesSheetsVersion exclude ("com.google.code.findbugs", "jsr305"),
       "com.google.analytics"  % "google-analytics-admin"     % googleAnalyticsAdminVersion exclude ("com.google.code.findbugs", "jsr305"),
       "com.google.analytics"  % "google-analytics-data"      % googleAnalyticsDataVersion exclude ("com.google.code.findbugs", "jsr305"),
-      "io.grpc"               % "grpc-netty-shaded"          % grpcVersion
+      "io.grpc"               % "grpc-netty-shaded"          % grpcVersion exclude ("com.google.code.findbugs", "jsr305")
     ),
     // Extract native libraries from grpc-netty-shaded-***.jar, and put them under
     // Standard/Google_Api/polyglot/lib directory. The minimized jar will
@@ -5063,6 +5062,7 @@ lazy val `std-google-api` = project
       .dependsOn(cleanPolyglotRoot)
       .value
   )
+  .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
 
 lazy val `std-database` = project

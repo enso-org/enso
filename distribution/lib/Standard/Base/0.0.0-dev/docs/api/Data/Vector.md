@@ -19,6 +19,7 @@
     - to_display_text self -> Standard.Base.Any.Any
 - type No_Wrap
     - Value
+- type Report_Unmatched
 - type Vector a:Standard.Base.Any.Any
     - + self that:(Standard.Base.Data.Vector.Vector|Standard.Base.Data.Array.Array) -> Standard.Base.Any.Any
     - all self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
@@ -76,5 +77,5 @@
     - to_vector self -> Standard.Base.Any.Any
     - transpose self -> Standard.Base.Any.Any
     - unify_vector_or_element value:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - zip self that:Standard.Base.Data.Vector.Vector function:Standard.Base.Any.Any= on_problems:(Standard.Base.Errors.Problem_Behavior.Problem_Behavior|Standard.Base.Data.Vector.No_Wrap)= -> Standard.Base.Any.Any
+    - zip self that:Standard.Base.Data.Vector.Vector function:Standard.Base.Any.Any= skip_nothing:Standard.Base.Data.Boolean.Boolean= keep_unmatched:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Data.Vector.Report_Unmatched)= on_problems:(Standard.Base.Errors.Problem_Behavior.Problem_Behavior|Standard.Base.Data.Vector.No_Wrap)= -> Standard.Base.Data.Vector.Vector
 - Standard.Base.Errors.Wrapped_Error.Wrapped_Error.from that:Standard.Base.Data.Vector.Map_Error -> Standard.Base.Errors.Wrapped_Error.Wrapped_Error
