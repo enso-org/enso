@@ -1,0 +1,14 @@
+private
+
+import project.Data.Numeric.Rounding_Mode.Rounding_Mode
+import project.Data.Text.Text
+import project.Errors.Deprecated.Deprecated
+import project.Warning.Warning
+from project.Data.Boolean import Boolean, False, True
+
+resolve_deprecated_rounding_mode (type_name:Text) (rounding_mode : Rounding_Mode | Boolean) ~action =
+    case rounding_mode of
+        _ : Boolean ->
+            rounding_mode_resolved = if rounding_mode then Rounding_Mode.Bankers else Rounding_Mode.Half_Up
+            Warning.attach (Deprecated.Warning type_name "round" "use_bankers:Boolean is deprecated, use Rounding_Mode instead") (action rounding_mode_resolved)
+        _ -> action rounding_mode

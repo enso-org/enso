@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import all
@@ -14,21 +15,25 @@ type Batch_Runner
             values_vec.zip dps_vec v-> dp-> f v dp rounding_mode
         Batch_Runner.Value batch f
 
-    run self (rounding_mode : Rounding_Mode) (action : Batch_Builder -> Nothing) =
+    run self (rounding_mode : Rounding_Mode | Boolean) (action : Batch_Builder -> Nothing) =
         configs = Vector.build vector_builder->
             action (Batch_Builder.Value vector_builder . round)
         values_vec   = configs.map c-> c.at 0
         dps_vec      = configs.map c-> c.at 1
         expected_vec = configs.map c-> c.at 2
         epsilon_vec  = configs.map c-> c.at 3
+        warning_vec  = configs.map c-> c.at 4
         got_vec = self.run_batch values_vec dps_vec rounding_mode
         got_vec.each_with_index ix-> got->
             expected = expected_vec.at ix
             value = values_vec.at ix
             dp = dps_vec.at ix
             epsilon = epsilon_vec.at ix
+            warning = warning_vec.at ix
             Test.with_clue "round("+value.to_text+", "+dp.to_text+", rounding_mode="+rounding_mode.to_text+") -> " <|
                 got.should_equal expected epsilon
+                if warning.is_nothing.not then
+                    Problems.expect_warning warning got
 
 type Batch_Builder
     Value vector_builder
@@ -39,8 +44,8 @@ type Batch_Builder
 type Check_Instance
     Value vector_builder value dp
 
-    should_equal self (expected : Number) (epsilon:Float=0) =
-        self.vector_builder.append [self.value, self.dp, expected, epsilon]
+    should_equal self (expected : Number) (epsilon:Float=0) (with_warning=Nothing) =
+        self.vector_builder.append [self.value, self.dp, expected, epsilon, with_warning]
 
 ## PRIVATE
 add_specs group_builder batch_runner run_advanced =
@@ -272,6 +277,10 @@ add_specs group_builder batch_runner run_advanced =
             round_fun -12249 -2 . should_equal -12200
             round_fun -12250 -2 . should_equal -12200
             round_fun -12251 -2 . should_equal -12300
+
+    group_builder.specify "Accepts deprecated use_bankers boolean argument, with a warning" <|
+        batch_runner.run rounding_mode=True round_fun->
+            round_fun -3.5 . should_equal -4 with_warning=Deprecated
 
     group_builder.specify "Handles incorrect argument types" <|
         Test.expect_panic_with (batch_runner.run_one 123 "two") Type_Error

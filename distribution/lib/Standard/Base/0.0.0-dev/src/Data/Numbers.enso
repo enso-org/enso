@@ -14,6 +14,7 @@ import project.Internal.Rounding_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Numeric.Internal.Round_Internal import resolve_deprecated_rounding_mode 
 from project.Internal.Number_Builtins import all
 from project.Internal.Ordering_Helpers import Positive_Integer_Comparator
 from project.Widget_Helpers import make_number_format_selector
@@ -709,10 +710,11 @@ type Float
 
             2.5 . round rounding_mode=Rounding_Mode.Bankers == 2
     round : Integer -> Boolean -> Integer | Float ! Illegal_Argument
-    round self (decimal_places:Integer=0) (rounding_mode:Rounding_Mode=Rounding_Mode.Half_Up) =
-        report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
-        Panic.catch Unsupported_Argument_Types handler=report_unsupported
-            round_float_builtin self decimal_places (rounding_mode == Rounding_Mode.Bankers)
+    round self (decimal_places:Integer=0) (rounding_mode : Rounding_Mode | Boolean = Rounding_Mode.Half_Up) =
+        resolve_deprecated_rounding_mode "Standard.Base.Data.Numbers.Float" rounding_mode rounding_mode->
+            report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
+            Panic.catch Unsupported_Argument_Types handler=report_unsupported
+                round_float_builtin self decimal_places (rounding_mode == Rounding_Mode.Bankers)
 
     ## GROUP Operators
        ICON operators
