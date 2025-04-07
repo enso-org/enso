@@ -135,7 +135,6 @@ defineExpose({
   <AutoSizedInput
     ref="inputComponent"
     v-model="editedValue"
-    autoSelect
     class="NumericInputWidget"
     :class="{ slider: sliderWidth != null }"
     :style="{ ...inputStyle, '--slider-width': sliderWidth }"

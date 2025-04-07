@@ -51,11 +51,12 @@ class ProjectOpenHandler[F[+_, +_]: Exec: CovariantFlatMap: Sync](
       projectsDirectory <-
         Sync[F].effect(params.projectsDirectory.map(Files.getAbsoluteFile))
       server <- projectService.openProject(
-        progressTracker        = self,
-        clientId               = clientId,
-        projectId              = params.projectId,
-        missingComponentAction = missingComponentAction,
-        projectsDirectory      = projectsDirectory
+        progressTracker           = self,
+        clientId                  = clientId,
+        projectId                 = params.projectId,
+        missingComponentAction    = missingComponentAction,
+        cloudProjectDirectoryPath = params.cloudProjectDirectoryPath,
+        projectsDirectory         = projectsDirectory
       )
     } yield ProjectOpen.Result(
       engineVersion                     = server.engineVersion,

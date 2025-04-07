@@ -118,6 +118,35 @@ function toRawMarkdown(elements: undefined | TextToken<ConcreteRefs>[]): {
 // === Markdown ===
 
 /**
+ * @returns Whether following text after a soft break will be interpreted as a continuation of the
+ * node, rather than a separate paragraph node.
+ *
+ * This must match the behavior covered by the "Soft break" tests in `ensoMarkdown.test.ts`.
+ */
+function requiresNewlineBeforeFollowingParagraph(nodeType: string) {
+  switch (nodeType) {
+    case 'ATXHeading1':
+    case 'ATXHeading2':
+    case 'ATXHeading3':
+    case 'ATXHeading4':
+    case 'ATXHeading5':
+    case 'ATXHeading6':
+    case 'Blockquote':
+    case 'FencedCode':
+    case 'Table':
+      return false
+    case 'Paragraph':
+    case 'BulletList':
+    case 'OrderedList':
+      return true
+    default:
+      // The safer default is to treat the newline as creating a new element, not a wrapped
+      // continuation of the previous element.
+      return false
+  }
+}
+
+/**
  * Convert the Markdown input to a format with "prerendered" linebreaks: Hard-wrapped lines within
  * a paragraph will be joined, and only a single linebreak character is used to separate paragraphs.
  */
@@ -131,7 +160,13 @@ export function prerenderMarkdown(markdown: string): string {
     if (prevTo < cursor.from) {
       const textBetween = markdown.slice(prevTo, cursor.from)
       prerendered +=
-        cursor.name === 'Paragraph' && prevName !== 'Table' ? textBetween.slice(0, -1) : textBetween
+        (
+          cursor.name === 'Paragraph' &&
+          prevName &&
+          requiresNewlineBeforeFollowingParagraph(prevName)
+        ) ?
+          textBetween.slice(0, -1)
+        : textBetween
     }
     const text = markdown.slice(cursor.from, cursor.to)
     prerendered += cursor.name === 'Paragraph' ? text.replaceAll(/ *\n */g, ' ') : text

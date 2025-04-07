@@ -67,9 +67,7 @@ export function DashboardTabBar(props: DashboardTabBarProps) {
           icon: NetworkIcon,
           'data-testid': 'editor-tab-button',
           labelId: 'editorPageName' satisfies TextId,
-          // This is fine, `page` may also be a `ProjectId`.
           isActive: page === project.id,
-          children: project.title,
           project,
           onClose,
           onLoadEnd,
