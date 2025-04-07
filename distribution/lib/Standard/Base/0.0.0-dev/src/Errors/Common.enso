@@ -623,6 +623,17 @@ type Failed_To_Load
     to_display_text : Text
     to_display_text self = "Failed to load file at path: "+self.path.to_display_text+": "+self.cause.to_display_text
 
+type Length_Mismatch
+    ## Indicates that the lengths of zipped Vectors do not match.
+    private Error (left_length : Integer) (right_length : Integer)
+
+    ## PRIVATE
+
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "The Vector lengths do not match: "+self.left_length.to_text+" does not equal "+self.right_length.to_text+"."
+
 type Mixed_Signed_And_Unsigned_Bytes
     ## PRIVATE
        Indicates that a collection of bytes contains both unsigned and signed bytes.

@@ -124,7 +124,8 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
         version             = descriptor.engineVersion,
         logLevel            = inheritedLogLevel,
         logMasking          = Masking.isMaskingEnabled,
-        additionalArguments = additionalArguments
+        additionalArguments = additionalArguments,
+        extraEnv            = descriptor.extraEnv
       )
       .get
     runner.withCommand(runSettings, descriptor.jvmSettings) { command =>

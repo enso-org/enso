@@ -15,7 +15,8 @@ import { useDriveStore } from '#/providers/DriveProvider'
 import { useText } from '#/providers/TextProvider'
 import { isDirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useTransition } from 'react'
 import { toast } from 'react-toastify'
 
@@ -35,7 +36,7 @@ export function DriveBarNavigation() {
 
   const driveStore = useDriveStore()
 
-  const moveAssetsMutation = useMutation({
+  const moveAssetsMutation = useMutationCallback({
     ...moveAssetsMutationOptions(associatedBackend),
     onSuccess: () => {
       driveStore.setState({ selectedIds: new Set(), visuallySelectedKeys: new Set() })
@@ -130,7 +131,7 @@ export function DriveBarNavigation() {
       return
     }
 
-    await moveAssetsMutation.mutateAsync([[...selectedIds], id])
+    await moveAssetsMutation([[...selectedIds], id])
   })
 
   const navigateToParent = useEventCallback(() => {
