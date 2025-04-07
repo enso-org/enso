@@ -22,11 +22,13 @@ export function useDragDelayAction<T>(
 ) {
   const { delayMs = DEFAULT_DELAY_MS } = options
 
-  const handle = useRef(0)
+  const handle = useRef<number | null>(null)
 
   const cancelPreviousCallback = useEventCallback(() => {
-    clearTimeout(handle.current)
-    handle.current = 0
+    if (handle.current !== null) {
+      clearTimeout(handle.current)
+    }
+    handle.current = null
   })
 
   return {
@@ -66,11 +68,13 @@ export function useAriaDragDelayAction(
 ) {
   const { delayMs = DEFAULT_DELAY_MS } = options
 
-  const handle = useRef(0)
+  const handle = useRef<number | null>(null)
 
   const cancelPreviousCallback = useEventCallback(() => {
-    clearTimeout(handle.current)
-    handle.current = 0
+    if (handle.current !== null) {
+      clearTimeout(handle.current)
+    }
+    handle.current = null
   })
 
   return {
