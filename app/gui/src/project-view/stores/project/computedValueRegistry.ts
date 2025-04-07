@@ -13,9 +13,11 @@ import type {
   MethodCall as LSMethodCall,
   ProfilingInfo,
 } from 'ydoc-shared/languageServerTypes'
+import { isSome } from 'ydoc-shared/util/data/opt'
 
 export interface ExpressionInfo {
   typename: ProjectPath | undefined
+  hiddenTypes: ProjectPath[]
   rawTypename: string | undefined
   methodCall: MethodCall | undefined
   payload: ExpressionUpdatePayload
@@ -79,6 +81,7 @@ function updateInfo(
 ) {
   const newInfo = combineInfo(info, update, projectNames)
   if (newInfo.typename !== info.typename) info.typename = newInfo.typename
+  if (newInfo.hiddenTypes !== info.hiddenTypes) info.hiddenTypes = newInfo.hiddenTypes
   if (newInfo.rawTypename !== info.rawTypename) info.rawTypename = newInfo.rawTypename
   if (newInfo.methodCall !== info.methodCall) info.methodCall = newInfo.methodCall
   if (newInfo.payload !== info.payload) info.payload = newInfo.payload
@@ -86,6 +89,7 @@ function updateInfo(
   // Ensure new fields can't be added to `ExpressionInfo` without this code being updated.
   const _allFieldsHandled = {
     typename: newInfo.typename,
+    hiddenTypes: newInfo.hiddenTypes,
     rawTypename: newInfo.rawTypename,
     methodCall: newInfo.methodCall,
     payload: newInfo.payload,
@@ -127,6 +131,17 @@ function combineInfo(
   if (typename && !typename.ok) {
     typename.error.log('Discarding invalid type in expression update')
   }
+  if (update.hiddenType.length > 0) {
+    console.log('Hidden types', update.hiddenType, update.expressionId)
+  }
+  const hiddenTypes = update.hiddenType.map((t) => {
+    const path = projectNames.parseProjectPathRaw(t)
+    if (!path.ok) {
+      path.error.log('Discarding invalid type in expression update')
+      return undefined
+    }
+    return path.value
+  })
   const newMethodCall =
     update.methodCall ? translateMethodCall(update.methodCall, projectNames) : undefined
   if (newMethodCall && !newMethodCall.ok) {
@@ -134,6 +149,7 @@ function combineInfo(
   }
   return {
     typename: typename ? unwrapOr(typename, undefined) : undefined,
+    hiddenTypes: hiddenTypes.filter(isSome),
     rawTypename,
     methodCall:
       newMethodCall?.ok ? newMethodCall.value

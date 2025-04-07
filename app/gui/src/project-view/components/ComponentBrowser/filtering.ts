@@ -9,6 +9,7 @@ export type SelfArg =
   | {
       type: 'known'
       typename: ProjectPath
+      hiddenTypes: ProjectPath[]
     }
   | { type: 'unknown' }
 
@@ -44,6 +45,7 @@ interface MatchedParts {
 
 export interface MatchResult extends MatchedParts {
   score: number
+  fromType: ProjectPath | undefined
 }
 
 class FilteringName {
@@ -179,7 +181,12 @@ class FilteringWithPattern {
     return null
   }
 
-  tryMatch(name: string, aliases: string[], memberOf: ProjectPath): MatchResult | null {
+  tryMatch(
+    name: string,
+    aliases: string[],
+    memberOf: ProjectPath,
+    additionalSelfTypes: ProjectPath[],
+  ): MatchResult | null {
     const nameMatch: (NameMatchResult & { alias?: string }) | null =
       this.nameFilter.tryMatch(name) ?? this.firstMatchingAlias(aliases)
     const ownerNameMatch = this.ownerNameFilter.tryMatch(
@@ -188,7 +195,8 @@ class FilteringWithPattern {
     if (!nameMatch && !ownerNameMatch) return null
     if (this.bothFiltersMustMatch && (!nameMatch || !ownerNameMatch)) return null
 
-    const result: MatchResult = { score: 0 }
+    const fromType = additionalSelfTypes.find((t) => t.equals(memberOf)) ? memberOf : undefined
+    const result: MatchResult = { score: 0, fromType }
     if (nameMatch) {
       result.score += nameMatch.score
       if ('alias' in nameMatch) {
@@ -251,15 +259,18 @@ export class Filtering {
   private selfTypeMatches(
     entry: SuggestionEntry,
     additionalSelfTypes: ProjectPath[],
-  ): { score: number } | null {
+  ): { score: number; fromType: ProjectPath | undefined } | null {
     if (this.selfArg == null)
-      return entry.kind !== SuggestionKind.Method || entry.selfType == null ? { score: 0 } : null
+      return entry.kind !== SuggestionKind.Method || entry.selfType == null ?
+          { score: 0, fromType: undefined }
+        : null
     if (entry.kind !== SuggestionKind.Method || entry.selfType == null) return null
-    if (this.selfArg.type !== 'known') return { score: 0 }
+    if (this.selfArg.type !== 'known') return { score: 0, fromType: undefined }
     const entrySelfType = entry.selfType
-    if (entrySelfType.equals(this.selfArg.typename)) return { score: 0 }
-    if (entrySelfType.equals(ANY_TYPE) || additionalSelfTypes.some((t) => entrySelfType.equals(t)))
-      return { score: DIFFERENT_TYPE_PENALTY }
+    if (entrySelfType.equals(this.selfArg.typename)) return { score: 0, fromType: undefined }
+    const additionalSelfType = additionalSelfTypes.find((t) => entrySelfType.equals(t))
+    if (entrySelfType.equals(ANY_TYPE) || additionalSelfType != null)
+      return { score: DIFFERENT_TYPE_PENALTY, fromType: additionalSelfType }
     return null
   }
 
@@ -271,7 +282,7 @@ export class Filtering {
   private mainViewFilter(entry: SuggestionEntry): MatchResult | null {
     const hasGroup = entry.groupIndex != null
     const isInTopModule = entry.definedIn.isTopElement()
-    if (hasGroup || isInTopModule) return { score: 0 }
+    if (hasGroup || isInTopModule) return { score: 0, fromType: entry.definedIn }
     else return null
   }
 
@@ -286,7 +297,12 @@ export class Filtering {
     const selfTypeMatch = this.selfTypeMatches(entry, additionalSelfTypes)
     if (selfTypeMatch == null) return null
     if (this.pattern) {
-      const patternMatch = this.pattern.tryMatch(entry.name, entry.aliases, entry.memberOf)
+      const patternMatch = this.pattern.tryMatch(
+        entry.name,
+        entry.aliases,
+        entry.memberOf,
+        additionalSelfTypes,
+      )
       if (!patternMatch) return null
       if (this.isLocal(entry)) patternMatch.score *= 2
       patternMatch.score += selfTypeMatch.score
