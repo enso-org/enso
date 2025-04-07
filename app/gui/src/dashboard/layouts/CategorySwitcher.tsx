@@ -33,7 +33,7 @@ import { useCloudCategoryList, useLocalCategoryList } from './Drive/Categories/c
 interface CategoryMetadata {
   readonly isNested?: boolean
   readonly category: Category
-  readonly icon: ariaComponents.IconProp & string
+  readonly icon: ariaComponents.SvgUseIcon | (string & {})
   readonly label: string
   readonly buttonLabel: string
   readonly dropZoneLabel: string
