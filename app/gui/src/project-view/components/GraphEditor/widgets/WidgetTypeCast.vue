@@ -17,17 +17,21 @@ const isSelfArgument = computed(() => {
   return selfId === tree.potentialSelfArgumentId
 })
 
-const input = computed(() => {
+const annotatedExpression = computed<Ast.TypeAnnotated>(() => {
   if (
     props.input.value instanceof Ast.Group &&
     props.input.value.expression instanceof Ast.TypeAnnotated
   ) {
     return props.input.value.expression
-  } else if (props.input.value instanceof Ast.TypeAnnotated) {
-    return props.input.value
+  } else {
+    return props.input.value as Ast.TypeAnnotated
   }
-  return undefined
 })
+
+const expressionInput = computed(() =>
+  WidgetInput.WithPort(WidgetInput.FromAst(annotatedExpression.value.expression)),
+)
+const typeNodeInput = computed(() => WidgetInput.FromAst(annotatedExpression.value.typeNode))
 </script>
 
 <script lang="ts">
@@ -36,15 +40,14 @@ export const widgetDefinition = defineWidget(
   {
     priority: 1000,
     score: (info) => {
+      // Only groups with TypeAnnotated expression are valid.
       if (
         info.input.value instanceof Ast.Group &&
-        info.input.value.expression instanceof Ast.TypeAnnotated
+        !(info.input.value.expression instanceof Ast.TypeAnnotated)
       ) {
-        return Score.Perfect
-      } else if (info.input.value instanceof Ast.TypeAnnotated) {
-        return Score.Perfect
-      } else {
         return Score.Mismatch
+      } else {
+        return Score.Perfect
       }
     },
   },
@@ -54,12 +57,9 @@ export const widgetDefinition = defineWidget(
 
 <template>
   <div class="WidgetTypeCast">
-    <NodeWidget
-      v-if="input && !isSelfArgument"
-      :input="WidgetInput.WithPort(WidgetInput.FromAst(input?.expression))"
-    />
-    <span class="token">:</span>
-    <NodeWidget class="token" v-if="input" :input="WidgetInput.FromAst(input?.typeNode)" />
+    <NodeWidget v-if="!isSelfArgument" :input="expressionInput" />
+    <span class="typeAnnotation">:</span>
+    <NodeWidget class="typeAnnotation" :input="typeNodeInput" />
   </div>
 </template>
 
@@ -71,7 +71,7 @@ export const widgetDefinition = defineWidget(
   gap: 0;
 }
 
-.token {
+.typeAnnotation {
   opacity: 0.6;
 }
 </style>

@@ -396,39 +396,20 @@ export class WidgetRegistry {
     let bestScore = Score.Mismatch
     let foundLeafMatch = false
 
-    const printInput = (input: T['value']) => {
-      if (typeof input === 'string') {
-        return input
-      } else if (input instanceof Ast.Ast || input instanceof Ast.Token) {
-        return input.code()
-      } else {
-        return 'undefined'
-      }
-    }
-    console.groupCollapsed('Selecting widget for', printInput(props.input.value))
     // Iterate over all loaded widget kinds in order of decreasing priority.
     for (const widgetModule of this.sortedModules.value) {
-      console.log('Considering', widgetModule.default.__name)
       // Skip matching widgets that are declared as already used.
-      if (alreadyUsed && alreadyUsed.has(widgetModule.default)) {
-        console.log('Skipping because already used')
-        continue
-      }
+      if (alreadyUsed && alreadyUsed.has(widgetModule.default)) continue
 
       // Skip widgets that don't match the input type.
-      if (!widgetModule.widgetDefinition.match(props.input)) {
-        console.log('Skipping because no match')
-        continue
-      }
+      if (!widgetModule.widgetDefinition.match(props.input)) continue
 
       // Perform a match and update the best widget if the match is better than the previous one.
       const score = widgetModule.widgetDefinition.score(props, this.db)
       if (score > Score.Mismatch) {
-        console.log('Match, but not perfect')
         foundLeafMatch ||= widgetModule.widgetDefinition.allowAsLeaf
       }
       if (score > bestScore) {
-        console.log('New best score', score)
         bestScore = score
         best = widgetModule
       }
@@ -437,25 +418,12 @@ export class WidgetRegistry {
       // We don’t care if this match allows being a leaf or not – we already know
       // there are other matched widgets without this restriction.
       if (bestScore === Score.Perfect && foundLeafMatch) {
-        console.log('Found perfect match', best?.default.__name)
-        console.groupEnd()
         return best
       }
     }
 
     // We didn’t find any widget that supports being a leaf, we can’t select any.
-    if (!foundLeafMatch) {
-      console.log('No leaf match found')
-      console.groupEnd()
-      return undefined
-    }
-
-    if (best != null) {
-      console.log('Best match', best.default.__name)
-    } else {
-      console.log('No match found')
-    }
-    console.groupEnd()
+    if (!foundLeafMatch) return undefined
 
     return best
   }
