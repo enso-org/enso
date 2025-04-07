@@ -34,7 +34,7 @@ val graalVersion = "21.0.2"
 // Version used for the Graal/Truffle related Maven packages
 // Keep in sync with GraalVM.version. Do not change the name of this variable,
 // it is used by the Rust build script via regex matching.
-val graalMavenPackagesVersion = "24.0.0"
+val graalMavenPackagesVersion = "24.2.0"
 val targetJavaVersion         = "17"
 val defaultDevEnsoVersion     = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
@@ -162,6 +162,10 @@ GatherLicenses.distributions := Seq(
     Distribution.sbtProjects(`project-manager`)
   ),
   makeStdLibDistribution("Base", Distribution.sbtProjects(`std-base`)),
+  makeStdLibDistribution(
+    "Generic_JDBC",
+    Distribution.sbtProjects(`std-generic-jdbc`)
+  ),
   makeStdLibDistribution(
     "Google_Api",
     Distribution.sbtProjects(`std-google-api`)
@@ -377,6 +381,7 @@ lazy val enso = (project in file("."))
     `std-base`,
     `std-benchmarks`,
     `std-database`,
+    `std-generic-jdbc`,
     `std-google-api`,
     `std-image`,
     `std-microsoft`,
@@ -585,7 +590,7 @@ val ioSentry = Seq(
 
 // === Bouncy Castle ==========================================================
 
-val bouncyCastleVersion = "1.76"
+val bouncyCastleVersion = "1.78.1"
 val bouncyCastle = Seq(
   "org.bouncycastle" % "bcutil-jdk18on" % bouncyCastleVersion,
   "org.bouncycastle" % "bcpkix-jdk18on" % bouncyCastleVersion,
@@ -602,15 +607,14 @@ val jline = Seq(
 )
 
 // === Google =================================================================
-val googleApiClientVersion         = "2.2.0"
-val googleApiServicesSheetsVersion = "v4-rev612-1.25.0"
-val googleAnalyticsAdminVersion    = "0.62.0"
-val googleAnalyticsDataVersion     = "0.63.0"
-val grpcVersion                    = "1.67.1"
+val googleApiClientVersion         = "2.7.1"
+val googleApiServicesSheetsVersion = "v4-rev20250106-2.0.0"
+val googleAnalyticsAdminVersion    = "0.66.0"
+val googleAnalyticsDataVersion     = "0.67.0"
+val grpcVersion                    = "1.69.0"
 
 // === Other ==================================================================
 
-val bcpkixJdk15Version      = "1.70"
 val declineVersion          = "2.4.1"
 val diffsonVersion          = "4.4.0"
 val directoryWatcherVersion = "0.18.0"
@@ -2854,6 +2858,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`exploratory-benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(`std-image` / Compile / packageBin)
       .dependsOn(`std-database` / Compile / packageBin)
+      .dependsOn(`std-generic-jdbc` / Compile / packageBin)
       .dependsOn(`std-google-api` / Compile / packageBin)
       .dependsOn(`std-table` / Compile / packageBin)
       .dependsOn(`std-aws` / Compile / packageBin)
@@ -3907,11 +3912,16 @@ lazy val `engine-runner` = project
     },
     rebuildNativeImage := Def
       .taskDyn {
+        // Limit max memory limit
+        val macArmOnCI =
+          sys.env.get("CI").isDefined && Platform.isMacOS && Platform.isArm64
+        val maxLimit = if (macArmOnCI) Some(14336) else Some(15608)
         NativeImage
           .buildNativeImage(
             "enso",
-            targetDir     = engineDistributionRoot.value / "bin",
-            staticOnLinux = false,
+            buildMemoryLimitMegabytes = maxLimit,
+            targetDir                 = engineDistributionRoot.value / "bin",
+            staticOnLinux             = false,
             // sqlite-jdbc includes `--enable-url-protocols=jar` in its native-image.properites file,
             // which breaks all our class loading. We still want to run `SqliteJdbcFeature` which extracts a proper
             // native library from the jar.
@@ -4682,6 +4692,10 @@ val `base-polyglot-root`  = stdLibComponentRoot("Base") / "polyglot" / "java"
 val `table-polyglot-root` = stdLibComponentRoot("Table") / "polyglot" / "java"
 val `image-polyglot-root` = stdLibComponentRoot("Image") / "polyglot" / "java"
 val `image-native-libs`   = stdLibComponentRoot("Image") / "polyglot" / "lib"
+val `generic-jdbc-polyglot-root` =
+  stdLibComponentRoot("Generic_JDBC") / "polyglot" / "java"
+val `generic-jdbc-native-libs` =
+  stdLibComponentRoot("Generic_JDBC") / "polyglot" / "lib"
 val `google-api-polyglot-root` =
   stdLibComponentRoot("Google_Api") / "polyglot" / "java"
 val `google-api-native-libs` =
@@ -4795,6 +4809,7 @@ lazy val `generic-jdbc-connection-spec-dependencies` = project
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
+  .dependsOn(`std-database` % "provided")
 
 lazy val `snowflake-test-java-helpers` = project
   .in(file("test/Snowflake_Tests/polyglot-sources/snowflake-test-java-helpers"))
@@ -4959,6 +4974,36 @@ lazy val `std-image` = project
   )
   .dependsOn(`std-base` % "provided")
 
+lazy val `std-generic-jdbc` = project
+  .in(file("std-bits") / "generic-jdbc")
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
+    Compile / packageBin / artifactPath :=
+      `generic-jdbc-polyglot-root` / "std-generic-jdbc.jar",
+    libraryDependencies ++= Seq(
+      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided"
+    ),
+    Compile / packageBin := {
+      val result = (Compile / packageBin).value
+      StdBits
+        .copyDependencies(
+          `generic-jdbc-polyglot-root`,
+          Seq("std-generic-jdbc.jar"),
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+  .dependsOn(`std-database` % "provided")
+
 lazy val `std-google-api` = project
   .in(file("std-bits") / "google-api")
   .settings(
@@ -4974,7 +5019,7 @@ lazy val `std-google-api` = project
       "com.google.apis"       % "google-api-services-sheets" % googleApiServicesSheetsVersion exclude ("com.google.code.findbugs", "jsr305"),
       "com.google.analytics"  % "google-analytics-admin"     % googleAnalyticsAdminVersion exclude ("com.google.code.findbugs", "jsr305"),
       "com.google.analytics"  % "google-analytics-data"      % googleAnalyticsDataVersion exclude ("com.google.code.findbugs", "jsr305"),
-      "io.grpc"               % "grpc-netty-shaded"          % grpcVersion
+      "io.grpc"               % "grpc-netty-shaded"          % grpcVersion exclude ("com.google.code.findbugs", "jsr305")
     ),
     // Extract native libraries from grpc-netty-shaded-***.jar, and put them under
     // Standard/Google_Api/polyglot/lib directory. The minimized jar will
@@ -5017,6 +5062,7 @@ lazy val `std-google-api` = project
       .dependsOn(cleanPolyglotRoot)
       .value
   )
+  .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
 
 lazy val `std-database` = project
@@ -5505,6 +5551,7 @@ val stdBitsProjects =
     "AWS",
     "Base",
     "Database",
+    "Generic_JDBC",
     "Google_Api",
     "Image",
     "Microsoft",
@@ -5566,6 +5613,8 @@ pkgStdLibInternal := Def.inputTask {
       (`std-base` / Compile / packageBin).value
     case "Database" =>
       (`std-database` / Compile / packageBin).value
+    case "Generic_JDBC" =>
+      (`std-generic-jdbc` / Compile / packageBin).value
     case "Google_Api" =>
       (`std-google-api` / Compile / packageBin).value
     case "Image" =>
@@ -5596,6 +5645,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-table` / Compile / packageBin).value
       (`std-database` / Compile / packageBin).value
       (`std-image` / Compile / packageBin).value
+      (`std-generic-jdbc` / Compile / packageBin).value
       (`std-google-api` / Compile / packageBin).value
       (`std-aws` / Compile / packageBin).value
       (`std-snowflake` / Compile / packageBin).value

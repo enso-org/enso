@@ -178,7 +178,12 @@ public final class ExecutionService {
     var pending =
         submitExecution(
             () -> {
-              SourceSection src = call.getFunction().getSourceSection();
+              SourceSection src;
+              try {
+                src = call.getFunction().getSourceSection();
+              } catch (UnsupportedMessageException ex) {
+                src = null;
+              }
               if (src == null) {
                 throw new SourceNotFoundException(call.getFunction().getName());
               }
@@ -503,8 +508,8 @@ public final class ExecutionService {
         if (source != null) {
           return source.getLanguage();
         }
-      } catch (UnsupportedMessageException ignored) {
-        CompilerDirectives.shouldNotReachHere("Message support already checked.");
+      } catch (UnsupportedMessageException ex) {
+        // fallthru
       }
     }
     return null;
@@ -518,14 +523,18 @@ public final class ExecutionService {
    */
   public SourceSection getSourceLocation(Object o) {
     var iop = InteropLibrary.getUncached(o);
-    if (iop.hasSourceLocation(o)) {
-      try {
-        return iop.getSourceLocation(o);
-      } catch (UnsupportedMessageException ignored) {
-        CompilerDirectives.shouldNotReachHere("Message support already checked.");
-      }
-    }
-    return null;
+    return context.withinCtx(
+        iop,
+        () -> {
+          if (iop.hasSourceLocation(o)) {
+            try {
+              return iop.getSourceLocation(o);
+            } catch (UnsupportedMessageException ex) {
+              // fallthru
+            }
+          }
+          return null;
+        });
   }
 
   public boolean isExitException(AbstractTruffleException ex) {

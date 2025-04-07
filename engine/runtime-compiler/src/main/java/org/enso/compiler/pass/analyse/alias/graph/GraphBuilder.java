@@ -1,16 +1,29 @@
 package org.enso.compiler.pass.analyse.alias.graph;
 
+import java.util.Map;
+
 /**
  * Builder of {@link Graph}. Separates the concerns of building a graph of local symbol definitions
  * and their usages from the actual querying of those symbols.
  */
 public final class GraphBuilder {
-  private final Graph graph;
-  private final Graph.Scope scope;
+  private final GraphImpl graph;
+  private final GraphImpl.Scope scope;
+  private final Map<String, GraphOccurrence.Def> defs = new java.util.HashMap<>();
 
   private GraphBuilder(Graph graph, Graph.Scope scope) {
-    this.graph = graph;
-    this.scope = scope;
+    this.graph = (GraphImpl) graph;
+    this.scope = (GraphImpl.Scope) scope;
+    this.scope
+        ._occurrences()
+        .values()
+        .foreach(
+            o -> {
+              if (o instanceof GraphOccurrence.Def d) {
+                defs.put(d.symbol(), d);
+              }
+              return null;
+            });
   }
 
   /**
@@ -31,6 +44,8 @@ public final class GraphBuilder {
    * @return builder operating on the graph {@code g} starting at scope {@code s}
    */
   public static GraphBuilder create(Graph g, Graph.Scope s) {
+    assert g != null;
+    assert s != null;
     return new GraphBuilder(g, s);
   }
 
@@ -44,35 +59,15 @@ public final class GraphBuilder {
   }
 
   /**
-   * Adds occurrence to current scope.
-   *
-   * @return this builder with modified scope
-   */
-  public GraphBuilder add(GraphOccurrence occ) {
-    this.scope.add(occ);
-    return this;
-  }
-
-  /**
-   * Adds definition to current scope.
-   *
-   * @return this builder with modified scope
-   */
-  public GraphBuilder addDefinition(GraphOccurrence.Def def) {
-    this.scope.addDefinition(def);
-    return this;
-  }
-
-  /**
    * Finds definition ID of provided symbol.
    *
    * @param name the name of the symbol
    * @return -1 if not such symbol found, otherwise ID of the symbol
    */
   public int findDef(String name) {
-    var first = this.scope.occurrences().values().find(occ -> occ.symbol().equals(name));
-    if (first.nonEmpty() && first.get() instanceof GraphOccurrence.Def def) {
-      return def.id();
+    var d = defs.get(name);
+    if (d != null) {
+      return d.id();
     } else {
       return -1;
     }
@@ -81,25 +76,45 @@ public final class GraphBuilder {
   /** Creates new definition for */
   public GraphOccurrence.Def newDef(
       String symbol, java.util.UUID identifier, scala.Option<java.util.UUID> externalId) {
-    return newDef(symbol, identifier, externalId, false);
+    return newDef(symbol, identifier, externalId, false, true);
   }
 
   public GraphOccurrence.Def newDef(
       String symbol,
       java.util.UUID identifier,
       scala.Option<java.util.UUID> externalId,
-      boolean suspended) {
-    return new GraphOccurrence.Def(graph.nextId(), symbol, identifier, externalId, suspended);
+      boolean suspended,
+      boolean addToScope) {
+    var id = graph.nextId(addToScope ? scope : null);
+    var def =
+        new GraphOccurrence.Def(id, symbol, identifier, externalId, suspended).withScope(scope);
+    if (addToScope) {
+      scope.add(def);
+      var prev = defs.put(symbol, def);
+      assert prev == null;
+    }
+    scope.addDefinition(def);
+    return def;
   }
 
   /** Factory method to create new [GraphOccurrence.Use]. */
   public GraphOccurrence.Use newUse(
       String symbol, java.util.UUID identifier, scala.Option<java.util.UUID> externalId) {
-    return new GraphOccurrence.Use(graph.nextId(), symbol, identifier, externalId);
+    return GraphOccurrence.createUse(scope, graph.nextId(scope), symbol, identifier, externalId);
   }
 
   public void resolveLocalUsage(GraphOccurrence.Use use) {
     graph.resolveLocalUsage(use);
+  }
+
+  /**
+   * Freezes the associated graph from further modifications.
+   *
+   * @return this
+   */
+  public final GraphBuilder freeze() {
+    graph.freeze();
+    return this;
   }
 
   public Graph toGraph() {

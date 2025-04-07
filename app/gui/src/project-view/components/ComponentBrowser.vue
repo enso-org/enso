@@ -143,7 +143,7 @@ function panIntoView() {
 onMounted(() => {
   interaction.setCurrent(cbOpen)
   input.reset(props.usage)
-  inputElement.value?.focus()
+  inputElement.value?.delayedFocus()
   panIntoView()
 })
 
@@ -411,7 +411,6 @@ const listsHandler = listBindings.handler({
     <ComponentEditor
       ref="inputElement"
       v-model="input.content"
-      class="component-editor"
       :usage="usage"
       :mode="input.mode"
       :nodeColor="nodeColor"
@@ -459,7 +458,7 @@ const listsHandler = listBindings.handler({
   opacity: 30%;
 }
 
-.component-editor {
+.ComponentEditor {
   position: relative;
   z-index: 1;
 }

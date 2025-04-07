@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import type { Item as Breadcrumb } from '@/components/DocumentationPanel/DocsBreadcrumbs.vue'
-import Breadcrumbs from '@/components/DocumentationPanel/DocsBreadcrumbs.vue'
+import Breadcrumbs, {
+  type Item as Breadcrumb,
+} from '@/components/DocumentationPanel/DocsBreadcrumbs.vue'
 import DocsExamples from '@/components/DocumentationPanel/DocsExamples.vue'
 import DocsHeader from '@/components/DocumentationPanel/DocsHeader.vue'
 import DocsList from '@/components/DocumentationPanel/DocsList.vue'
@@ -11,21 +12,24 @@ import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/Docume
 import { lookupDocumentation, placeholder } from '@/components/DocumentationPanel/ir'
 import SvgButton from '@/components/SvgButton.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
+import { useGraphStore } from '@/stores/graph'
 import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
-import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
+import { entryMethodPointer, suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { tryGetIndex } from '@/util/data/array'
 import { type Opt } from '@/util/data/opt'
-import { Ok } from '@/util/data/result'
+import { Ok, unwrapOr } from '@/util/data/result'
 import type { Icon as IconName } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
 import { qnSegments, qnSlice } from '@/util/qualifiedName'
 import { computed, watch } from 'vue'
+import FunctionSignatureEditor from './FunctionSignatureEditor.vue'
 
 const props = defineProps<{ selectedEntry: SuggestionId | undefined; aiMode?: boolean }>()
 const emit = defineEmits<{ 'update:selectedEntry': [value: SuggestionId | undefined] }>()
 const db = useSuggestionDbStore()
+const graph = useGraphStore(true)
 
 const documentation = computed<Docs>(() => {
   if (props.aiMode)
@@ -77,6 +81,13 @@ const icon = computed<IconName>(() => suggestion.value?.iconName ?? 'marketplace
 const documentationUrl = computed(
   () => suggestion.value && suggestionDocumentationUrl(suggestion.value),
 )
+
+const methodPointer = computed(() => entryMethodPointer(suggestion.value))
+const signatureAst = computed(() => {
+  if (graph == null || methodPointer.value == null) return
+  return unwrapOr(graph.getMethodAst(methodPointer.value), undefined)
+})
+const markdownDocs = computed(() => signatureAst.value?.mutableDocumentationMarkdown())
 
 const historyStack = new HistoryStack()
 
@@ -144,6 +155,13 @@ function openDocs(url: string) {
         @click.stop="openDocs(documentationUrl)"
       />
     </div>
+    <!-- todo panel -->
+    <FunctionSignatureEditor
+      v-if="signatureAst"
+      :functionAst="signatureAst"
+      :methodPointer="methodPointer"
+      :markdownDocs="markdownDocs"
+    ></FunctionSignatureEditor>
     <DocsTags
       v-if="sections.tags.length > 0"
       class="tags"

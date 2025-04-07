@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Number_Utils
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -18,8 +19,6 @@ import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Metadata import Display, Widget
-
-polyglot java import org.enso.base.Array_Utils
 
 ## ALIAS export, output, save, to_file
    GROUP Output
@@ -98,11 +97,12 @@ Text.write self (path : Writable_File) (encoding : Encoding = Encoding.utf_8) (o
 Vector.write_bytes : Writable_File -> Existing_File_Behavior -> Any ! Illegal_Argument | File_Error
 Vector.write_bytes self (path : Writable_File) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) =
     Panic.catch Unsupported_Argument_Types handler=(_ -> Error.throw (Illegal_Argument.Error "Only Vectors consisting of bytes (integers in the range from -128 to 127) are supported by the `write_bytes` method.")) <|
-        ## Convert to a byte array before writing - and fail early if there is any problem.
-        byte_array = Array_Utils.ensureByteArray self
-
-        # write_bytes does not allow dry run
-        r = path.write on_existing_file stream->
-            # If the write succeeded, we return the file that was written to (original file or a dry run file).
-            stream.write_bytes (Vector.from_polyglot_array byte_array)
-        r.if_not_error path.file_for_return
+        ## Output_Stream does this conversion, but we do it here as well so that
+           opening a file for a write that will fail won't overwrite existing
+           data.
+        Number_Utils.convert_unsigned_byte_array_to_signed self byte_array-> byte_array.if_not_error <|
+            # write_bytes does not allow dry run
+            r = path.write on_existing_file stream->
+                # If the write succeeded, we return the file that was written to (original file or a dry run file).
+                stream.write_bytes byte_array
+            r.if_not_error path.file_for_return

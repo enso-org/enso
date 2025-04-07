@@ -7,6 +7,7 @@ import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Additional_Warnings
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Length_Mismatch
 import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Common.Type_Error
@@ -808,6 +809,45 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         alter [1, 2, 3] . zip on_problems=No_Wrap.Value [4, 5, 6] (+) . should_equal [5, 7, 9]
         alter [1, 2, 3] . zip on_problems=No_Wrap.Value [4, 5, 6, 7] (+) . should_equal [5, 7, 9]
         alter [] . zip on_problems=No_Wrap.Value [4, 5, 6] (+) . should_equal []
+
+    group_builder.specify "should correctly zip Nothing elements with skip_nothing=False" <|
+        v1 = alter [1, Nothing, 3]
+        v2 = alter [10, 20, 30]
+        v1.zip v2 [_,_] . should_equal [[1, 10], [Nothing, 20], [3, 30]]
+
+    group_builder.specify "should correctly zip Nothing elements with skip_nothing=True" <|
+        v1 = alter [1, Nothing, 3]
+        v2 = alter [10, 20, 30]
+        v1.zip v2 [_,_] skip_nothing=True . should_equal [[1, 10], Nothing, [3, 30]]
+
+    group_builder.specify "should zip elements with keep_unmatched=False" <|
+        v1 = alter [1, 2, 3, 4]
+        v2 = alter [10, 20, 30]
+        v1.zip v2 [_,_] . should_equal [[1, 10], [2, 20], [3, 30]]
+        v2.zip v1 [_,_] . should_equal [[10, 1], [20, 2], [30, 3]]
+
+    group_builder.specify "should zip elements with keep_unmatched=True" <|
+        v1 = alter [1, 2, 3, 4]
+        v2 = alter [10, 20, 30]
+        v1.zip v2 [_,_] keep_unmatched=True . should_equal [[1, 10], [2, 20], [3, 30], [4, Nothing]]
+        v2.zip v1 [_,_] keep_unmatched=True . should_equal [[10, 1], [20, 2], [30, 3], [Nothing, 4]]
+
+    group_builder.specify "should zip elements with keep_unmatched=False and skip_nothing=True" <|
+        v1 = alter [1, Nothing, 3, Nothing, 4]
+        v2 = alter [10, 20, 30]
+        v1.zip v2 [_,_] skip_nothing=True . should_equal [[1, 10], Nothing, [3, 30]]
+        v2.zip v1 [_,_] skip_nothing=True . should_equal [[10, 1], Nothing, [30, 3]]
+
+    group_builder.specify "should zip elements with keep_unmatched=True and skip_nothing=True" <|
+        v1 = alter [1, Nothing, 3, Nothing, 4]
+        v2 = alter [10, 20, 30]
+        v1.zip v2 [_,_] keep_unmatched=True skip_nothing=True . should_equal [[1, 10], Nothing, [3, 30], Nothing, Nothing]
+        v2.zip v1 [_,_] keep_unmatched=True skip_nothing=True . should_equal [[10, 1], Nothing, [30, 3], Nothing, Nothing]
+
+    group_builder.specify "should zip elements and report a mismatch with with keep_unmatched=Report_Unmatched" <|
+        v1 = alter [1, 2, 3, 4]
+        v2 = alter [10, 20, 30]
+        v1.zip v2 [_,_] keep_unmatched=Report_Unmatched . should_fail_with Length_Mismatch
 
     group_builder.specify "should flat_map elements" <|
         alter [1, 2, 3] . flat_map (_ -> []) . should_equal []

@@ -13,8 +13,7 @@ import { fileExtension } from '#/utilities/fileInfo'
 import type { SortInfo } from '#/utilities/sorting'
 import { regexEscape } from '#/utilities/string'
 import { createStore, useStore } from '#/utilities/zustand.ts'
-import { useEffect } from 'react'
-import invariant from 'tiny-invariant'
+import { startTransition, useEffect } from 'react'
 
 /** Options for {@link useAssetsTableItems}. */
 export interface UseAssetsTableOptions {
@@ -58,22 +57,15 @@ export function useGetAssetChildren() {
   )
 }
 
-/** Return the asset with the given id, or throw an error if it is `undefined`. */
-export function useAssetStrict(id: AssetId) {
-  const asset = useAsset(id)
-  invariant(
-    asset,
-    `Expected asset to be defined, but got undefined, Asset ID: ${JSON.stringify(id)}`,
-  )
-  return asset
-}
-
 /** A hook to return the items in the assets table. */
 export function useAssetsTableItems(options: UseAssetsTableOptions) {
   const { parentId, assets: items, sortInfo, query } = options
 
   const { locale } = useText()
-  const setAssetItems = useStore(ASSET_ITEMS_STORE, (store) => store.setItems)
+
+  const setAssetItems = useStore(ASSET_ITEMS_STORE, (store) => store.setItems, {
+    unsafeEnableTransition: true,
+  })
 
   const filter = (() => {
     const globCache: Record<string, RegExp> = {}
@@ -181,7 +173,9 @@ export function useAssetsTableItems(options: UseAssetsTableOptions) {
   })()
 
   useEffect(() => {
-    setAssetItems(parentId, items)
+    startTransition(() => {
+      setAssetItems(parentId, items)
+    })
   }, [items, parentId, setAssetItems])
 
   const compare = sortInfo ? assetCompareFunction(sortInfo, locale) : null

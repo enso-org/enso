@@ -64,9 +64,8 @@ test('Warnings visualization', async ({ page }) => {
   await page.keyboard.press(`${CONTROL_KEY}+Shift+A`)
   // Create a node, attach a warning, open the warnings-visualization.
   await locate.addNewNodeButton(page).click()
-  const input = locate.componentBrowserInput(page).locator('input')
 
-  await input.fill('Warning.attach "Uh oh" 42')
+  await page.getByTestId('component-editor-content').fill('Warning.attach "Uh oh" 42')
   await page.keyboard.press('Enter')
   await expect(locate.componentBrowser(page)).toBeHidden()
   await actions.openVisualization(page, 'Warnings')

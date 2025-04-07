@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Common.Dry_Run_Operation
+import Standard.Base.Errors.Common.Mixed_Signed_And_Unsigned_Bytes
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -527,7 +528,48 @@ add_specs suite_builder =
             f.delete_if_exists
             f.exists.should_be_false
             [0, 1, 256].write_bytes f . should_fail_with Illegal_Argument
+            [0, 1, 257].write_bytes f . should_fail_with Illegal_Argument
             [0, 1, Nothing].write_bytes f . should_fail_with Illegal_Argument
+
+        group_builder.specify "should allow mixed signed and unsigned bytes in Output_Stream.write_bytes, but attach a warning" <|
+            f = transient / "work.txt"
+            bytes = [0, 1, 120, -125, 130, 255]
+            f.with_output_stream [File_Access.Create, File_Access.Write] stream->
+                result = stream.write_bytes bytes
+                result . should_succeed
+                Problems.expect_only_warning Mixed_Signed_And_Unsigned_Bytes result
+                stream.close
+            f.with_input_stream is->
+                is.read_bytes . should_equal [0, 1, 120, -125, -126, -127]
+
+        group_builder.specify "should allow unsigned bytes in Output_Stream.write_bytes, and attach no warning when not mixed with signed bytes" <|
+            f = transient / "work.txt"
+            bytes = [0, 1, 120, 130, 255]
+            f.with_output_stream [File_Access.Create, File_Access.Write] stream->
+                result = stream.write_bytes bytes
+                result . should_succeed
+                Problems.assume_no_problems result
+                stream.close
+            f.with_input_stream is->
+                is.read_bytes . should_equal [0, 1, 120, -126, -127]
+
+        group_builder.specify "should allow unsigned bytes in Vector.write_bytes, but attach a warning when mixed with signed bytes" <|
+            f = transient / "work.txt"
+            f.delete_if_exists
+            f.exists.should_be_false
+            v = [0, 1, 120, -125, 130, 255]
+            Problems.expect_only_warning Mixed_Signed_And_Unsigned_Bytes (v.write_bytes f)
+            f.with_input_stream is->
+                is.read_bytes . should_equal [0, 1, 120, -125, -126, -127]
+
+        group_builder.specify "should allow unsigned bytes in Vector.write_bytes, and attach no warning when not mixed with signed bytes" <|
+            f = transient / "work.txt"
+            f.delete_if_exists
+            f.exists.should_be_false
+            v = [0, 1, 120, 130, 255]
+            Problems.assume_no_problems (v.write_bytes f)
+            f.with_input_stream is->
+                is.read_bytes . should_equal [0, 1, 120, -126, -127]
 
         group_builder.specify "should not write if Output is disabled" <|
             f = transient / "write_bytes_disabled.txt"

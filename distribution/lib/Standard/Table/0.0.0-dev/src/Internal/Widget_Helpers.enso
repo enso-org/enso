@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
+from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Multiple_Choice, Numeric_Input, Single_Choice, Text_Input, Vector_Editor
 from Standard.Base.System.File_Format import format_types
@@ -311,6 +312,13 @@ make_replace_selector display:Display=..Always =
     name = Option "Pair" fqn+".Value" [["first", key_selector], ["second", value_selector]]
     item_editor = Single_Choice display=Display.Always values=[name]
     Vector_Editor item_editor=item_editor item_default="(Pair.Value 'Current' 'New')" display=display
+
+## PRVIATE
+   Make widget for choosing whether or not to ignore length differences in
+   columns and tables. The `Report_Unmatched` option additionally requests a
+   warning or error on such length differences.
+make_keep_unmatched_selector =
+    make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Report_Unmatched.to Meta.Type . qualified_name]]
 
 ## PRIVATE
 type Types_To_Include

@@ -221,7 +221,7 @@ export interface User extends UserInfo {
    */
   readonly userGroups: readonly UserGroupId[] | null
   readonly removeAt?: dateTime.Rfc3339DateTime | null
-  readonly plan?: Plan | undefined
+  readonly plan: Plan
   /**
    * Contains the user groups that the user is a member of.
    * Has enriched metadata, like the name of the group and the home directory ID.
@@ -1265,6 +1265,14 @@ export interface S3ObjectVersion {
   readonly isLatest: boolean
   /** An archive containing the all the project files object in the S3 bucket. */
   readonly key: string
+  readonly user?: OtherUser
+}
+
+/** A user other than the current user */
+export interface OtherUser {
+  readonly name: string
+  readonly email: EmailAddress
+  readonly profilePicture: HttpsUrl | null
 }
 
 /** A list of asset versions. */
@@ -1285,10 +1293,10 @@ export function compareAssetPermissions(a: AssetPermission, b: AssetPermission) 
   } else {
     // NOTE [NP]: Although `userId` is unique, and therefore sufficient to sort permissions, sort
     // name first, so that it's easier to find a permission in a long list (i.e., for readability).
-    const aName = 'user' in a ? a.user.name : a.userGroup.name
-    const bName = 'user' in b ? b.user.name : b.userGroup.name
-    const aUserId = 'user' in a ? a.user.userId : a.userGroup.id
-    const bUserId = 'user' in b ? b.user.userId : b.userGroup.id
+    const aName = getAssetPermissionName(a)
+    const bName = getAssetPermissionName(b)
+    const aUserId = getAssetPermissionId(a)
+    const bUserId = getAssetPermissionId(b)
     return (
       aName < bName ? -1
       : aName > bName ? 1
@@ -1370,6 +1378,7 @@ export interface UpdateFileRequestBody {
 export interface UpdateAssetRequestBody {
   readonly parentDirectoryId: DirectoryId | null
   readonly description: string | null
+  readonly title: string | null
 }
 
 /** HTTP request body for the "delete asset" endpoint. */
@@ -1402,6 +1411,8 @@ export interface OpenProjectRequestBody {
   readonly cognitoCredentials: CognitoCredentials | null
   /** Only used by the Local backend. */
   readonly parentId: DirectoryId
+  /** Required when running in hybrid mode. */
+  readonly cloudProjectDirectoryPath: string | null
 }
 
 /** HTTP request body for the "create project execution" endpoint. */
@@ -1778,12 +1789,7 @@ export default abstract class Backend {
   /** Restore an arbitrary asset from the trash. */
   abstract undoDeleteAsset(assetId: AssetId, title: string): Promise<void>
   /** Copy an arbitrary asset to another directory. */
-  abstract copyAsset(
-    assetId: AssetId,
-    parentDirectoryId: DirectoryId,
-    title: string,
-    parentDirectoryTitle: string,
-  ): Promise<CopyAssetResponse>
+  abstract copyAsset(assetId: AssetId, parentDirectoryId: DirectoryId): Promise<CopyAssetResponse>
   /** Return a list of projects belonging to the current user. */
   abstract listProjects(): Promise<readonly ListedProject[]>
   /** Create a project for the current user. */
@@ -1824,12 +1830,8 @@ export default abstract class Backend {
     projectTitle: string,
   ): Promise<ProjectExecution>
   /** Restore a project from a different version. */
-  abstract restoreProject(
-    projectId: ProjectId,
-    versionId: S3ObjectVersionId,
-    title: string,
-  ): Promise<void>
-  /** Duplicate a specific version of a project. */
+  abstract restoreAsset(assetId: AssetId, versionId: S3ObjectVersionId): Promise<void>
+  /** Duplicate a specific version of an asset. */
   abstract duplicateProject(
     projectId: ProjectId,
     versionId: S3ObjectVersionId,

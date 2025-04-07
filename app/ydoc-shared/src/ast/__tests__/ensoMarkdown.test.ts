@@ -1,6 +1,6 @@
-import { expect, test } from 'vitest'
+import { describe, expect, test } from 'vitest'
 import { type DebugTree, debugTree } from '../../util/lezer'
-import { ensoMarkdownParser } from '../ensoMarkdown'
+import { ensoMarkdownParser, ensoStandardMarkdownParser } from '../ensoMarkdown'
 
 function checkTree({
   source,
@@ -767,3 +767,31 @@ test.each([
     expected: ['Document', ['FencedCode', ['CodeMark', '```'], ['CodeText', 'Code']]],
   },
 ])('Markdown syntax tree: $source', checkTree)
+
+// === Standard markdown, standard representation ===
+
+// These cases test the behavior of the parser for our (CommonMark-compatible) serialization format.
+// Some of them cover behavior that the CommonMark standard leaves implementation-defined, and
+// otherwise they serve to document the nodes of the parser's tree.
+
+describe('Soft breaks', () => {
+  test.each([
+    'Paragraph\ncontinuation',
+    '- Bullet list\ncontinuation',
+    '1. Numbered list\ncontinuation',
+  ])('Soft break continues element: $source', (source) => {
+    const blockElements = debugTree(ensoStandardMarkdownParser.parse(source), source).length - 1
+    expect(blockElements).toBe(1)
+  })
+
+  test.each([
+    '# Header\nParagraph',
+    '```\nFenced code\n```\nParagraph',
+    '    Indented code\nParagraph',
+    '    Block quote\nParagraph',
+    '- List\n# Header',
+  ])('Soft break ends element: $source', (source) => {
+    const blockElements = debugTree(ensoStandardMarkdownParser.parse(source), source).length - 1
+    expect(blockElements).toBe(2)
+  })
+})
