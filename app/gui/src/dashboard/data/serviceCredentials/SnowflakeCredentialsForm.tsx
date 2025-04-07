@@ -4,7 +4,7 @@
  * Remember to ensure this component is added to `CREDENTIAL_INFOS` in `constants.ts`.
  */
 
-import { Form, Input } from '#/components/AriaComponents'
+import { Button, Form, Input } from '#/components/AriaComponents'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useText } from '#/providers/TextProvider'
 import { CredentialsFormButtons } from './CredentialsFormButtons'
@@ -31,6 +31,7 @@ export function SnowflakeCredentialsForm(props: CredentialFormProps) {
 
   return (
     <Form form={form} className="w-full">
+      <Button variant='link' href="https://help.enso.org/docs/external-services/snowflake-oauth" target='_blank'>{getText('snowflakeIntegrationGetHelp')}</Button>
       <Input form={form} name="name" label={getText('name')} />
       <Input form={form} name="account" label={getText('snowflakeCredentialAccount')} />
       <Input
