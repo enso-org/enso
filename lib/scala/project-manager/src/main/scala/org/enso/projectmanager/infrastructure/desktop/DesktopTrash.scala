@@ -1,6 +1,6 @@
 package org.enso.projectmanager.infrastructure.desktop
 
-import org.enso.desktopenvironment.{DesktopEnvironment, TrashBin}
+import org.enso.os.environment.trash.TrashBin
 import org.enso.projectmanager.control.effect.Sync
 
 import java.io.File

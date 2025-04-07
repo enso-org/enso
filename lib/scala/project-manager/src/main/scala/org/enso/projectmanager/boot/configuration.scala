@@ -1,8 +1,8 @@
 package org.enso.projectmanager.boot
 
-import org.enso.desktopenvironment.Directories
 import org.slf4j.event.Level
 
+import org.enso.os.environment.DesktopEnvironment
 import java.io.{File, IOException}
 import java.nio.file.Path
 import scala.concurrent.duration.FiniteDuration
@@ -73,7 +73,7 @@ object configuration {
     def userProjectsPath: File = {
       val projectsRootDirectory =
         projectsRoot.getOrElse(
-          Directories.getCurrent.getDocuments.toFile
+          DesktopEnvironment.getDirectories.getDocuments.toFile
         )
       new File(projectsRootDirectory, projectsDirectory)
     }

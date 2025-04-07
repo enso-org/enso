@@ -307,12 +307,10 @@ lazy val enso = (project in file("."))
     `benchmark-java-helpers`,
     `benchmarks-common`,
     `bench-processor`,
-    `change-directory`,
     cli,
     `common-polyglot-core-utils`,
     `connected-lock-manager`,
     `connected-lock-manager-server`,
-    `desktop-environment`,
     `directory-watcher-wrapper`,
     `distribution-manager`,
     downloader,
@@ -345,6 +343,7 @@ lazy val enso = (project in file("."))
     `logging-truffle-connector`,
     `logging-utils`,
     `logging-utils-akka`,
+    `os-environment`,
     `persistance`,
     `persistance-dsl`,
     pkg,
@@ -727,7 +726,6 @@ lazy val componentModulesPaths =
   val thirdPartyModFiles = thirdPartyMods.map(_.data)
   val ourMods = Seq(
     (`common-polyglot-core-utils` / Compile / exportedModuleBin).value,
-    (`change-directory` / Compile / exportedModuleBin).value,
     (`engine-common` / Compile / exportedModuleBin).value,
     (`engine-runner` / Compile / exportedModuleBin).value,
     (`engine-runner-common` / Compile / exportedModuleBin).value,
@@ -770,6 +768,7 @@ lazy val componentModulesPaths =
     (`logging-utils-akka` / Compile / exportedModuleBin).value,
     (`logging-service` / Compile / exportedModuleBin).value,
     (`logging-service-logback` / Compile / exportedModuleBin).value,
+    (`os-environment` / Compile / exportedModuleBin).value,
     (`pkg` / Compile / exportedModuleBin).value,
     (`refactoring-utils` / Compile / exportedModuleBin).value,
     (`task-progress-notifications` / Compile / exportedModuleBin).value,
@@ -1813,7 +1812,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       .value
   )
   .dependsOn(`akka-native`)
-  .dependsOn(`desktop-environment`)
+  .dependsOn(`os-environment`)
   .dependsOn(`version-output`)
   .dependsOn(editions)
   .dependsOn(`edition-updater`)
@@ -3767,7 +3766,7 @@ lazy val `engine-runner` = project
       (`profiling-utils` / Compile / exportedModule).value,
       (`semver` / Compile / exportedModule).value,
       (`cli` / Compile / exportedModule).value,
-      (`change-directory` / Compile / exportedModule).value,
+      (`os-environment` / Compile / exportedModule).value,
       (`distribution-manager` / Compile / exportedModule).value,
       (`editions` / Compile / exportedModule).value,
       (`edition-updater` / Compile / exportedModule).value,
@@ -4006,7 +4005,7 @@ lazy val `engine-runner` = project
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(cli)
-  .dependsOn(`change-directory`)
+  .dependsOn(`os-environment`)
   .dependsOn(`profiling-utils`)
   .dependsOn(`library-manager`)
   .dependsOn(`distribution-manager`)
@@ -4179,13 +4178,14 @@ lazy val `benchmarks-common` =
     )
     .dependsOn(`polyglot-api`)
 
-lazy val `change-directory` =
+lazy val `os-environment` =
   project
-    .in(file("lib/java/change-directory"))
+    .in(file("lib/java/os-environment"))
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
-      javaModuleName := "org.enso.change.directory",
+      scalaModuleDependencySetting,
+      javaModuleName := "org.enso.os.environment",
       libraryDependencies ++= Seq(
         "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
         "org.slf4j"       % "slf4j-api"       % slf4jVersion,
@@ -4208,17 +4208,17 @@ lazy val `change-directory` =
       Test / buildNativeImage := Def.taskDyn {
         val targetDir = (Test / target).value
         NativeImage.buildNativeImage(
-          "test-change-directory",
+          "test-os-env",
           staticOnLinux = true,
           targetDir     = targetDir,
-          mainClass     = Some("org.enso.change.directory.TestRunner"),
+          mainClass     = Some("org.enso.os.environment.TestRunner"),
           initializeAtRuntime = Seq(
-            "org.enso.change.directory"
+            "org.enso.os.environment.chdir"
           ),
           additionalOptions = Seq(
             "--report-unsupported-elements-at-runtime",
             "-ea",
-            "--features=org.enso.change.directory.TestCollectorFeature"
+            "--features=org.enso.os.environment.TestCollectorFeature"
           )
         )
       }.value,
@@ -4227,32 +4227,17 @@ lazy val `change-directory` =
           val logger    = streams.value.log
           val exeSuffix = if (Platform.isWindows) ".exe" else ""
           val exeFile =
-            (Test / target).value / ("test-change-directory" + exeSuffix)
+            (Test / target).value / ("test-os-env" + exeSuffix)
           val binPath = exeFile.getAbsolutePath
           val res     = binPath ! logger
           if (res != 0) {
-            logger.error("Some test in change-directory failed")
+            logger.error("Some test in os-environment failed")
             throw new TestsFailedException()
           }
         }
         .dependsOn(Test / buildNativeImage)
         .value,
       Test / fork := true
-    )
-    .dependsOn(`engine-common`)
-
-lazy val `desktop-environment` =
-  project
-    .in(file("lib/java/desktop-environment"))
-    .settings(
-      frgaalJavaCompilerSetting,
-      libraryDependencies ++= Seq(
-        "org.graalvm.sdk" % "graal-sdk"       % graalMavenPackagesVersion % "provided",
-        "commons-io"      % "commons-io"      % commonsIoVersion,
-        "org.slf4j"       % "slf4j-api"       % slf4jVersion,
-        "junit"           % "junit"           % junitVersion              % Test,
-        "com.github.sbt"  % "junit-interface" % junitIfVersion            % Test
-      )
     )
     .dependsOn(`engine-common`)
 
