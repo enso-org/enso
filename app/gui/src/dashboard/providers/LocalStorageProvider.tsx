@@ -37,8 +37,15 @@ export function useLocalStorage() {
   return React.useContext(LocalStorageContext)
 }
 
+/** Options for {@link useLocalStorageState}. */
+export interface LocalStorageStateOptions<K extends LocalStorageKey> {
+  readonly sanitize?: (value: LocalStorageData[K]) => LocalStorageData[K] | undefined
+}
+
 export function useLocalStorageState<K extends LocalStorageKey>(
   key: K,
+  defaultValue?: undefined,
+  options?: LocalStorageStateOptions<K>,
 ): readonly [
   value: LocalStorageData[K] | undefined,
   setValue: (newValue: React.SetStateAction<LocalStorageData[K] | undefined>) => void,
@@ -47,6 +54,7 @@ export function useLocalStorageState<K extends LocalStorageKey>(
 export function useLocalStorageState<K extends LocalStorageKey>(
   key: K,
   defaultValue: LocalStorageData[K],
+  options?: LocalStorageStateOptions<K>,
 ): readonly [
   value: LocalStorageData[K],
   setValue: (newValue: React.SetStateAction<LocalStorageData[K]>) => void,
@@ -57,15 +65,24 @@ export function useLocalStorageState<K extends LocalStorageKey>(
 export function useLocalStorageState<K extends LocalStorageKey>(
   key: K,
   defaultValue?: LocalStorageData[K],
+  options: LocalStorageStateOptions<K> = {},
 ): readonly [
   value: LocalStorageData[K] | undefined,
   setValue: (newValue: LocalStorageData[K] | undefined) => void,
 ] {
   const { localStorage } = useLocalStorage()
+  const { sanitize } = options
 
-  const [value, privateSetValue] = React.useState<LocalStorageData[K] | undefined>(
-    () => localStorage.get(key) ?? defaultValue,
-  )
+  const [value, privateSetValue] = React.useState<LocalStorageData[K] | undefined>(() => {
+    let savedValue: LocalStorageData[K] | undefined = localStorage.get(key)
+    if (savedValue !== undefined && sanitize) {
+      savedValue = sanitize(savedValue)
+    }
+    if (savedValue === undefined) {
+      return defaultValue
+    }
+    return savedValue
+  })
 
   const setValue = useEventCallback(
     (newValue: React.SetStateAction<LocalStorageData[K] | undefined>) => {

@@ -543,7 +543,7 @@ export function useOpenProjectLocally() {
 
   return eventCallbacks.useEventCallback(
     async (
-      asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>,
+      asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>,
       backendType: backendModule.BackendType,
     ) => {
       const isCloud = backendType === backendModule.BackendType.remote

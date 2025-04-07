@@ -29,6 +29,7 @@ import {
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
+import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
@@ -572,6 +573,7 @@ export function useNewProject(backend: Backend, category: Category) {
   const openProjectLocally = useOpenProjectLocally()
   const openProjectNatively = useOpenProjectNatively()
   const deleteAsset = useDeleteAsset(backend, category)
+  const getAsset = useGetAsset()
 
   const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
 
@@ -616,11 +618,15 @@ export function useNewProject(backend: Backend, category: Category) {
           throw error
         })
         .then((createdProject) => {
+          const parent = getAsset(parentId)
           const openProjectParams = {
             id: createdProject.projectId,
             parentId: placeholderItem.parentId,
             title: createdProject.name,
-          }
+            ...(parent?.ensoPath != null ?
+              { ensoPath: backendModule.EnsoPath(`${parent.ensoPath}/${createdProject.name}`) }
+            : {}),
+          } satisfies Partial<backendModule.ProjectAsset>
           if (runLocally) {
             // Open in background.
             void openProjectLocally(openProjectParams, backend.type)

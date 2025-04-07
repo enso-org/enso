@@ -5,7 +5,6 @@ import invariant from 'tiny-invariant'
 import * as z from 'zod'
 
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
-import { useMounted } from '#/hooks/mountHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as backendModule from '#/services/Backend'
@@ -104,6 +103,17 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
   const [launchedProjects, setLaunchedProjects] = localStorageProvider.useLocalStorageState(
     'launchedProjects',
     array.EMPTY_ARRAY,
+    {
+      sanitize: (savedLaunchedProjects) =>
+        savedLaunchedProjects.map((project) => {
+          if (project.type === backendModule.BackendType.local && project.hybrid == null) {
+            return project
+          } else {
+            // Disallow Cloud projects and Hybrid projects from auto-opening
+            return { ...project, preventAutoReopen: true }
+          }
+        }),
+    },
   )
   const [page, setPage] = searchParamsState.useSearchParamsState(
     'page',
@@ -112,19 +122,6 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
       return array.includes(TAB_TYPES, value) || launchedProjects.some((p) => p.id === value)
     },
   )
-
-  useMounted(() => {
-    setLaunchedProjects(
-      launchedProjects.map((project) => {
-        if (project.type === backendModule.BackendType.local && project.hybrid == null) {
-          return project
-        } else {
-          // Disallow Cloud projects and Hybrid projects from auto-opening
-          return { ...project, preventAutoReopen: true }
-        }
-      }),
-    )
-  })
 
   const addLaunchedProject = eventCallbacks.useEventCallback((project: LaunchedProject) => {
     setLaunchedProjects((current) => [...current, project])
