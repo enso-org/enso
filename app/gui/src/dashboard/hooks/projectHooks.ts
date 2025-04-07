@@ -505,12 +505,7 @@ export function useOpenHybridProject() {
         })
       } catch (error) {
         toastAndLog('openProjectError', error, asset.title)
-        await closeProject({
-          id: asset.id,
-          title: asset.title,
-          parentId: asset.parentId,
-          type: backendModule.BackendType.local,
-        })
+        await closeProject({ ...asset, type: backendModule.BackendType.local })
       }
     },
   )
@@ -525,12 +520,7 @@ export function useOpenProjectNatively() {
       asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>,
       backendType: backendModule.BackendType,
     ) => {
-      openProject({
-        id: asset.id,
-        title: asset.title,
-        parentId: asset.parentId,
-        type: backendType,
-      })
+      openProject({ ...asset, type: backendType })
     },
   )
 }
@@ -551,12 +541,7 @@ export function useOpenProjectLocally() {
         await openHybridProject(asset)
         return
       } else {
-        openProject({
-          id: asset.id,
-          title: asset.title,
-          parentId: asset.parentId,
-          type: backendType,
-        })
+        openProject({ ...asset, type: backendType })
       }
     },
   )
