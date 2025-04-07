@@ -10,8 +10,6 @@ import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.test.CompilerTests;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -19,15 +17,11 @@ import org.junit.Test;
 public class ModuleCacheTest {
   @ClassRule
   public static final ContextRule ctxRule =
-      ContextRule.createCustom(ModuleCacheTest::initializeContext);
+      ContextRule.newBuilder()
+          .withModifiedContext(ctxBldr -> ctxBldr.option(RuntimeOptions.DISABLE_IR_CACHES, "true"))
+          .build();
 
   public ModuleCacheTest() {}
-
-  private static Context initializeContext() {
-    return ContextUtils.defaultContextBuilder()
-        .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
-        .build();
-  }
 
   @Test
   public void testCompareList() throws Exception {

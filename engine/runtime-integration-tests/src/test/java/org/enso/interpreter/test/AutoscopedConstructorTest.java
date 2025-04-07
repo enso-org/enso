@@ -7,13 +7,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 

@@ -11,7 +11,6 @@ import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.test.Metadata;
 import org.enso.interpreter.test.instruments.NodeCountingTestInstrument;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
@@ -24,13 +23,11 @@ public class WarningInstrumentationTest {
 
   @ClassRule
   public static final ContextRule ctxRule =
-      ContextRule.createCustom(WarningInstrumentationTest::initContext);
+      ContextRule.newBuilder().initInContext(WarningInstrumentationTest::initContext).build();
 
   private static NodeCountingTestInstrument instrument;
 
-  private static Context initContext() {
-    var context = ContextUtils.createDefaultContext();
-
+  private static void initContext(Context context) {
     var engine = context.getEngine();
     Map<String, Language> langs = engine.getLanguages();
     Assert.assertNotNull("Enso found: " + langs, langs.get("enso"));
@@ -47,7 +44,6 @@ public class WarningInstrumentationTest {
             .tagIsNot(AvoidIdInstrumentationTag.class)
             .build();
     instrument.enable(builder);
-    return context;
   }
 
   @AfterClass

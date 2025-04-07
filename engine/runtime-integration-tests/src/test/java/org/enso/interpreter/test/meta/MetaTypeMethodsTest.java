@@ -32,14 +32,14 @@ import org.junit.Test;
  */
 public class MetaTypeMethodsTest {
   @ClassRule
-  public static final ContextRule ctxRule = ContextRule.createCustom(MetaTypeMethodsTest::initCtx);
+  public static final ContextRule ctxRule =
+      ContextRule.newBuilder().initInContext(MetaTypeMethodsTest::initCtx).build();
 
   private static GetTypeMethodsNode getTypeMethodsNode;
   private static TestRootNode testRootNode;
   private static ValuesGenerator valuesGenerator;
 
-  private static Context initCtx() {
-    var ctx = ContextUtils.createDefaultContext();
+  private static void initCtx(Context ctx) {
     valuesGenerator = ValuesGenerator.create(ctx, Language.ENSO);
     ContextUtils.executeInContext(
         ctx,
@@ -49,7 +49,6 @@ public class MetaTypeMethodsTest {
           testRootNode.insertChildren(getTypeMethodsNode);
           return null;
         });
-    return ctx;
   }
 
   @AfterClass

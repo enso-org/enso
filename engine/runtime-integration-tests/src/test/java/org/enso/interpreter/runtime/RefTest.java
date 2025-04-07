@@ -16,19 +16,19 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class RefTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createCustom(RefTest::initCtx);
+  @ClassRule
+  public static final ContextRule ctxRule =
+      ContextRule.newBuilder().initInContext(RefTest::initCtx).build();
 
   private static Value refType;
 
-  private static Context initCtx() {
-    var ctx = ContextUtils.createDefaultContext();
+  private static void initCtx(Context ctx) {
     refType =
         ContextUtils.evalModule(
             ctx, """
         import Standard.Base.Runtime.Ref.Ref
         main = Ref
         """);
-    return ctx;
   }
 
   @AfterClass

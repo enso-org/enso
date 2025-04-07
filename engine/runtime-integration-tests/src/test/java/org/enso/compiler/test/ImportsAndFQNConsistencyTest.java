@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.enso.common.LanguageInfo;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
@@ -18,7 +17,6 @@ import org.enso.compiler.data.BindingsMap.ResolvedModule;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,11 +43,9 @@ public class ImportsAndFQNConsistencyTest {
 
   @ClassRule
   public static final ContextRule ctxRule =
-      ContextRule.createCustom(
-          () ->
-              ContextUtils.defaultContextBuilder(LanguageInfo.ID)
-                  .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
-                  .build());
+      ContextRule.newBuilder()
+          .withModifiedContext(ctxBldr -> ctxBldr.option(RuntimeOptions.DISABLE_IR_CACHES, "false"))
+          .build();
 
   @Rule public final TestRule printCodeRule = new PrintCodeRule();
 

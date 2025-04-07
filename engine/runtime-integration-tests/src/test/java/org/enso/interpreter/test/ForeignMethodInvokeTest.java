@@ -15,8 +15,6 @@ import java.io.StringWriter;
 import java.util.concurrent.Executors;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -26,14 +24,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 public class ForeignMethodInvokeTest {
-  @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.createCustom(ForeignMethodInvokeTest::prepareCtx);
-
-  private static Context prepareCtx() {
-    var ctx = ContextUtils.defaultContextBuilder("enso", "js").build();
-    return ctx;
-  }
+  @ClassRule public static final ContextRule ctxRule = ContextRule.newBuilder("enso", "js").build();
 
   @Test
   public void testForeignFunctionParseFailure() throws Exception {

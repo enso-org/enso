@@ -1,14 +1,9 @@
 package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
-import java.util.Map;
 import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -20,18 +15,10 @@ public class NonStrictModeTests {
 
   @ClassRule
   public static final ContextRule ctxRule =
-      ContextRule.createCustom(NonStrictModeTests::createNonStrictContext);
-
-  private static Context createNonStrictContext() {
-    var context =
-        ContextUtils.defaultContextBuilder()
-            .logHandler(logHandler)
-            .option(RuntimeOptions.STRICT_ERRORS, "false")
-            .build();
-    final Map<String, Language> langs = context.getEngine().getLanguages();
-    assertNotNull("Enso found: " + langs, langs.get("enso"));
-    return context;
-  }
+      ContextRule.newBuilder()
+          .withModifiedContext(
+              b -> b.logHandler(logHandler).option(RuntimeOptions.STRICT_ERRORS, "false"))
+          .build();
 
   @AfterClass
   public static void dispose() {

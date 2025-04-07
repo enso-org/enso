@@ -6,8 +6,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -15,13 +13,9 @@ import org.junit.Test;
 public class DisabledAssertionsTest {
   @ClassRule
   public static final ContextRule ctxRule =
-      ContextRule.createCustom(DisabledAssertionsTest::setupCtx);
-
-  private static Context setupCtx() {
-    return ContextUtils.defaultContextBuilder()
-        .environment("ENSO_ENABLE_ASSERTIONS", "false")
-        .build();
-  }
+      ContextRule.newBuilder()
+          .withModifiedContext(b -> b.environment("ENSO_ENABLE_ASSERTIONS", "false"))
+          .build();
 
   @Test
   public void assertionsCanBeDisabledWithEnvVar() {

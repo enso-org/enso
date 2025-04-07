@@ -6,7 +6,6 @@ import static org.junit.Assert.assertTrue;
 
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
@@ -17,13 +16,12 @@ import org.junit.Test;
 public class DataflowErrorPropagationTest {
   @ClassRule
   public static final ContextRule ctxRule =
-      ContextRule.createCustom(DataflowErrorPropagationTest::prepareCtx);
+      ContextRule.newBuilder().initInContext(DataflowErrorPropagationTest::prepareCtx).build();
 
   private static Value suppressError;
   private static Value suppressErrorWithAssign;
 
-  private static Context prepareCtx() {
-    var ctx = ContextUtils.createDefaultContext();
+  private static void prepareCtx(Context ctx) {
     var code =
         """
     from Standard.Base import all
@@ -45,7 +43,6 @@ public class DataflowErrorPropagationTest {
     suppressErrorWithAssign =
         ctx.eval("enso", code)
             .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "suppress_error_with_assign");
-    return ctx;
   }
 
   @AfterClass

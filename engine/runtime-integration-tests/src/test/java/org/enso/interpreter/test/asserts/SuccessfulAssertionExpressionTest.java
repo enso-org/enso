@@ -2,15 +2,8 @@ package org.enso.interpreter.test.asserts;
 
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.List;
-import org.enso.common.LanguageInfo;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,28 +16,9 @@ public class SuccessfulAssertionExpressionTest {
 
   @ClassRule
   public static final ContextRule ctxRule =
-      ContextRule.createCustom(SuccessfulAssertionExpressionTest::setupCtx);
-
-  private static ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-  private static Context setupCtx() {
-    return ContextUtils.defaultContextBuilder(LanguageInfo.ID)
-        .environment("ENSO_ENABLE_ASSERTIONS", "true")
-        .out(out)
-        .err(out)
-        .build();
-  }
-
-  @AfterClass
-  public static void disposeCtx() throws IOException {
-    out.close();
-    out = null;
-  }
-
-  @After
-  public void resetOutput() {
-    out.reset();
-  }
+      ContextRule.newBuilder()
+          .withModifiedContext(b -> b.environment("ENSO_ENABLE_ASSERTIONS", "true"))
+          .build();
 
   private static final String imports =
       """

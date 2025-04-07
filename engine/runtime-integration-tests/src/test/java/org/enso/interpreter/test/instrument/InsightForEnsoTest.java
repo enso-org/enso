@@ -5,13 +5,11 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Function;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
@@ -22,15 +20,12 @@ import org.junit.Test;
 
 public class InsightForEnsoTest {
   private static AutoCloseable insightHandle;
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
   @ClassRule
   public static final ContextRule ctxRule =
-      ContextRule.createCustom(InsightForEnsoTest::initContext);
+      ContextRule.newBuilder().initInContext(InsightForEnsoTest::initContext).build();
 
-  public static Context initContext() {
-    var ctx = ContextUtils.defaultContextBuilder().out(out).build();
-
+  private static void initContext(Context ctx) {
     var engine = ctx.getEngine();
     Map<String, Language> langs = engine.getLanguages();
     assertNotNull("Enso found: " + langs, langs.get("enso"));
@@ -65,17 +60,15 @@ public class InsightForEnsoTest {
       throw new AssertionError(e);
     }
     insightHandle = fn.apply(insightScript);
-    return ctx;
   }
 
   @After
   public void resetOut() {
-    out.reset();
+    ctxRule.resetOut();
   }
 
   @AfterClass
   public static void dispose() throws Exception {
-    out.close();
     insightHandle.close();
   }
 
@@ -100,7 +93,7 @@ public class InsightForEnsoTest {
     var res = fac.execute(5);
     assertEquals(120, res.asInt());
 
-    var msgs = out.toString();
+    var msgs = ctxRule.getOut();
     assertNotEquals("Step one: " + msgs, -1, msgs.indexOf("n=5 v=1 acc=function"));
     assertNotEquals("Step two: " + msgs, -1, msgs.indexOf("n=4 v=5 acc=function"));
     assertNotEquals("3rd step: " + msgs, -1, msgs.indexOf("n=3 v=20 acc=function"));
@@ -166,7 +159,7 @@ public class InsightForEnsoTest {
     assertEquals(3, res.getMember("im").asInt());
     assertEquals(4, res.getMember("re").asInt());
 
-    var msgs = out.toString();
+    var msgs = ctxRule.getOut();
 
     var firstCons = msgs.indexOf("complex::complex.Complex::Number");
     var secondCons = msgs.lastIndexOf("complex::complex.Complex::Number");

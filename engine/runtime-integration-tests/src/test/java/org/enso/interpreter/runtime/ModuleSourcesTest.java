@@ -4,14 +4,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.logging.Level;
-import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextRule;
 import org.enso.text.buffer.Rope$;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Engine;
-import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -19,24 +13,9 @@ import org.junit.Test;
 
 public class ModuleSourcesTest {
 
-  @ClassRule
-  public static final ContextRule ctxRule = ContextRule.createCustom(ModuleSourcesTest::createCtx);
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   private File f;
-
-  private static Context createCtx() {
-    Engine eng =
-        Engine.newBuilder()
-            .allowExperimentalOptions(true)
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(System.err)
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .build();
-    var ctx = Context.newBuilder().engine(eng).allowIO(IOAccess.ALL).allowAllAccess(true).build();
-    return ctx;
-  }
 
   @Before
   public void prepareTest() throws IOException {

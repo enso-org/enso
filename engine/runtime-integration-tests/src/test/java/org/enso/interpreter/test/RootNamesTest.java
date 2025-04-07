@@ -4,14 +4,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
@@ -20,18 +18,16 @@ import org.junit.Rule;
 import org.junit.Test;
 
 public class RootNamesTest {
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-  @Rule public final ContextRule ctxRule = ContextRule.createCustom(RootNamesTest::createCtx);
+  @Rule
+  public final ContextRule ctxRule =
+      ContextRule.newBuilder().initInContext(RootNamesTest::initCtx).build();
 
   @Before
   public void cleanOut() {
-    out.reset();
+    ctxRule.resetOut();
   }
 
-  private static Context createCtx() {
-    var ctx = ContextUtils.defaultContextBuilder().out(out).build();
-
+  private static void initCtx(Context ctx) {
     var engine = ctx.getEngine();
     Map<String, Language> langs = engine.getLanguages();
     assertNotNull("Enso found: " + langs, langs.get("enso"));
@@ -60,7 +56,6 @@ public class RootNamesTest {
       throw new AssertionError(e);
     }
     fn.apply(insightScript);
-    return ctx;
   }
 
   @Test
@@ -84,7 +79,7 @@ public class RootNamesTest {
     var res = fac.execute(3);
     assertEquals(6, res.asInt());
 
-    var msgs = out.toString();
+    var msgs = ctxRule.getOut();
     var closures =
         msgs.lines()
             .filter(l -> l.startsWith("ENTER: "))
@@ -121,7 +116,7 @@ public class RootNamesTest {
     var powerOfEight = compute.execute(3, 5);
     assertEquals(64, powerOfEight.asInt());
 
-    var msgs = out.toString();
+    var msgs = ctxRule.getOut();
     var closures =
         msgs.lines()
             .filter(l -> l.startsWith("ENTER: "))

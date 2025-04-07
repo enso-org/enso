@@ -9,48 +9,21 @@ import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.List;
-import org.enso.common.LanguageInfo;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class AssertionsTest {
 
   @ClassRule
-  public static final ContextRule ctxRule = ContextRule.createCustom(AssertionsTest::setupCtx);
-
-  private static ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-  private static Context setupCtx() {
-    var ctx =
-        ContextUtils.defaultContextBuilder(LanguageInfo.ID)
-            .environment("ENSO_ENABLE_ASSERTIONS", "true")
-            .out(out)
-            .err(out)
-            .build();
-    return ctx;
-  }
-
-  @AfterClass
-  public static void disposeCtx() throws IOException {
-    out.close();
-    out = null;
-  }
-
-  @After
-  public void resetOutput() {
-    out.reset();
-  }
+  public static final ContextRule ctxRule =
+      ContextRule.newBuilder()
+          .withModifiedContext(b -> b.environment("ENSO_ENABLE_ASSERTIONS", "true"))
+          .build();
 
   @Test
   public void jvmAssertionsAreEnabled() {

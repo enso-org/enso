@@ -2,10 +2,8 @@ package org.enso.interpreter.test;
 
 import static org.junit.Assert.*;
 
-import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.Source;

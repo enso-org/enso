@@ -3,10 +3,8 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextRule;

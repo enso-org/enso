@@ -4,8 +4,8 @@ import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
@@ -25,42 +25,69 @@ import org.junit.runners.model.Statement;
  * {@link ContextUtils}.
  */
 public final class ContextRule implements TestRule {
-  private final Supplier<Context> contextSupplier;
-  private final ByteArrayOutputStream out;
+  private final ByteArrayOutputStream stdOut;
+  private final ByteArrayOutputStream stdErr;
+  private final Context.Builder ctxBldr;
   private Context context;
 
-  private ContextRule(Supplier<Context> contextSupplier, ByteArrayOutputStream out) {
-    this.contextSupplier = contextSupplier;
-    this.out = Objects.requireNonNull(out);
-  }
-
-  public static ContextRule createDefault() {
-    var out = new ByteArrayOutputStream();
-    Supplier<Context> supplier =
-        () -> {
-          return ContextUtils.defaultContextBuilder().out(out).err(out).build();
-        };
-    return new ContextRule(supplier, out);
-  }
-
-  public static ContextRule createCustom(Supplier<Context> contextSupplier) {
-    return new ContextRule(contextSupplier, null);
+  private ContextRule(
+      Context.Builder ctxBldr,
+      Context ctx,
+      ByteArrayOutputStream stdOut,
+      ByteArrayOutputStream stdErr) {
+    this.stdOut = Objects.requireNonNull(stdOut);
+    this.stdErr = Objects.requireNonNull(stdErr);
+    this.ctxBldr = Objects.requireNonNull(ctxBldr);
+    this.context = ctx;
   }
 
   /**
-   * Returns the combined stdout and stderr streams captured by this rule.
+   * The created builder starts with {@link ContextUtils#defaultContextBuilder(String...)} default
+   * polyglot context builder.
+   *
+   * @param permittedLanguages List of languages that are allowed to be used in the context. If
+   *     empty, all installed languages are enabled.
+   * @see Context#newBuilder(String...)
+   */
+  public static Builder newBuilder(String... permittedLanguages) {
+    return new Builder(permittedLanguages);
+  }
+
+  /** Shortcut for {@code ContextRule.newBuilder().build()}. */
+  public static ContextRule createDefault() {
+    var stdout = new ByteArrayOutputStream();
+    var stderr = new ByteArrayOutputStream();
+    var ctxBldr = ContextUtils.defaultContextBuilder();
+    ctxBldr.out(stdout).err(stderr);
+    return new ContextRule(ctxBldr, null, stdout, stderr);
+  }
+
+  /**
+   * Returns the combined stdout and stderr streams captured by this rule. Shortcut for {@code
+   * getStdOut() + getStdErr()}.
    */
   public String getOut() {
-    return out.toString();
+    return stdOut + stdErr.toString();
+  }
+
+  /** Returns the stdout stream captured by this rule. */
+  public String getStdOut() {
+    return stdOut.toString();
+  }
+
+  /** Returns the stderr stream captured by this rule. */
+  public String getStdErr() {
+    return stdErr.toString();
   }
 
   /**
-   * Resets (clears) ste stdout and stderr streams captured by this rule.
-   * This may be handy if the rule is annotated with {@link org.junit.ClassRule}, and you need
-   * to clean the output after every test in {@link org.junit.After} method.
+   * Resets (clears) ste stdout and stderr streams captured by this rule. This may be handy if the
+   * rule is annotated with {@link org.junit.ClassRule}, and you need to clean the output after
+   * every test in {@link org.junit.After} method.
    */
   public void resetOut() {
-    out.reset();
+    stdOut.reset();
+    stdErr.reset();
   }
 
   @Override
@@ -140,7 +167,7 @@ public final class ContextRule implements TestRule {
 
   private Context currentCtx() {
     if (context == null) {
-      context = contextSupplier.get();
+      context = ctxBldr.build();
     }
     return context;
   }
@@ -173,6 +200,47 @@ public final class ContextRule implements TestRule {
     return ContextUtils.allMethodsFromAny(currentCtx());
   }
 
+  public static final class Builder {
+    private Context.Builder polyglotCtxBldr;
+    private Context polyglotCtx;
+    private final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+    private final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+    private Builder(String... permittedLanguages) {
+      this.polyglotCtxBldr = ContextUtils.defaultContextBuilder(permittedLanguages);
+      this.polyglotCtxBldr.out(stdout).err(stderr);
+    }
+
+    public Builder withModifiedContext(Function<Context.Builder, Context.Builder> modifier) {
+      if (polyglotCtx != null) {
+        throw new IllegalStateException(
+            "Cannot modify context after it was created. Use withModifiedContext before calling"
+                + " initInContext.");
+      }
+      polyglotCtxBldr = modifier.apply(polyglotCtxBldr);
+      return this;
+    }
+
+    /**
+     * Calls the given {@code initializer} inside created {@link Context}. This is useful for test
+     * preparation that needs already created context. For example if you need to create some
+     * methods used throughout all the tests.
+     *
+     * <p>Note that this causes the context to be created immediately.
+     *
+     * @param initializer Callable that will be called inside the context.
+     */
+    public Builder initInContext(Consumer<Context> initializer) {
+      polyglotCtx = polyglotCtxBldr.build();
+      initializer.accept(polyglotCtx);
+      return this;
+    }
+
+    public ContextRule build() {
+      return new ContextRule(polyglotCtxBldr, polyglotCtx, stdout, stderr);
+    }
+  }
+
   private final class CustomStatement extends Statement {
     private final Statement base;
     private final Description description;
@@ -187,19 +255,13 @@ public final class ContextRule implements TestRule {
       try (var ctx = currentCtx()) {
         base.evaluate();
       } catch (Throwable t) {
-        if (out != null) {
-          throw new FailureWithOutput("Compiler output: " + out, t);
-        } else {
-          throw t;
-        }
+        throw new FailureWithOutput("Compiler output: " + stdOut, t);
       } finally {
         if (context != null) {
           context.close();
           context = null;
         }
-        if (out != null) {
-          out.reset();
-        }
+        resetOut();
       }
     }
 

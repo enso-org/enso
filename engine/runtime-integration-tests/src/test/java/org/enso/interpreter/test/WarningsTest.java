@@ -26,7 +26,6 @@ import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
@@ -42,10 +41,10 @@ public class WarningsTest {
   private static Value wrap;
 
   @ClassRule
-  public static final ContextRule ctxRule = ContextRule.createCustom(WarningsTest::initEnsoContext);
+  public static final ContextRule ctxRule =
+      ContextRule.newBuilder().initInContext(WarningsTest::initEnsoContext).build();
 
-  private static Context initEnsoContext() {
-    var ctx = ContextUtils.createDefaultContext();
+  private static void initEnsoContext(Context ctx) {
     generator = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
     var module =
         ctx.eval(
@@ -56,7 +55,6 @@ public class WarningsTest {
     wrap msg value = Warning.attach msg value
     """);
     wrap = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "wrap");
-    return ctx;
   }
 
   @AfterClass

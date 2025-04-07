@@ -3,9 +3,7 @@ package org.enso.interpreter.test.builtins;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import java.io.ByteArrayOutputStream;
 import org.enso.test.utils.ContextRule;
-import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 

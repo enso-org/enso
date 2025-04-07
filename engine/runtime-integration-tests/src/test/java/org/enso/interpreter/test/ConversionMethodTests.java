@@ -3,21 +3,16 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.Value;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class ConversionMethodTests {
   @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
-
 
   @After
   public void resetOutput() {

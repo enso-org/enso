@@ -2,20 +2,15 @@ package org.enso.interpreter.test;
 
 import static org.junit.Assert.*;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.test.TypeInferenceTest;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -24,35 +19,22 @@ import org.junit.Test;
  * occurs in the runtime.
  */
 public class TypeInferenceConsistencyTest {
-  private static final ByteArrayOutputStream output = new ByteArrayOutputStream();
-
   @ClassRule
   public static final ContextRule ctxRule =
-      ContextRule.createCustom(TypeInferenceConsistencyTest::createCtx);
-
-  private static Context createCtx() {
-    var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.STRICT_ERRORS, "true")
-            .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true")
-            .out(output)
-            .err(output)
-            .build();
-    return ctx;
-  }
+      ContextRule.newBuilder()
+          .withModifiedContext(
+              b ->
+                  b.option(RuntimeOptions.STRICT_ERRORS, "true")
+                      .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true"))
+          .build();
 
   @After
   public void cleanMessages() {
-    output.reset();
-  }
-
-  @AfterClass
-  public static void disposeOut() throws IOException {
-    output.close();
+    ctxRule.resetOut();
   }
 
   private String getOutput() {
-    return output.toString();
+    return ctxRule.getOut();
   }
 
   @Test

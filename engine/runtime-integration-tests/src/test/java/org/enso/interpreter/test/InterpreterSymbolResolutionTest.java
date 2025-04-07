@@ -8,7 +8,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextRule;
@@ -150,7 +149,8 @@ public class InterpreterSymbolResolutionTest {
     } catch (PolyglotException ex) {
       assertThat(ex.isSyntaxError(), is(true));
       assertThat(
-          ctxRule.getOut(), allOf(containsString("The name"), containsString("could not be found")));
+          ctxRule.getOut(),
+          allOf(containsString("The name"), containsString("could not be found")));
     }
   }
 }

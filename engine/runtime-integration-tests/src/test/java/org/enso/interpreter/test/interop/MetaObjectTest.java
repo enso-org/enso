@@ -25,7 +25,6 @@ import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -38,10 +37,10 @@ public class MetaObjectTest {
   private static ValuesGenerator generator;
 
   @ClassRule
-  public static final ContextRule ctxRule = ContextRule.createCustom(MetaObjectTest::prepareCtx);
+  public static final ContextRule ctxRule =
+      ContextRule.newBuilder().initInContext(MetaObjectTest::prepareCtx).build();
 
-  private static Context prepareCtx() {
-    var ctx = ContextUtils.createDefaultContext();
+  private static void prepareCtx(Context ctx) {
     var code =
         """
         from Standard.Base import Meta, Error
@@ -56,7 +55,6 @@ public class MetaObjectTest {
     }
     sn = ctx.eval(src).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
     assertTrue("It is a function", sn.canExecute());
-    return ctx;
   }
 
   @AfterClass

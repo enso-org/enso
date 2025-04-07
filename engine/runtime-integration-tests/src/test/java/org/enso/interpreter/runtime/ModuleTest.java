@@ -10,8 +10,6 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
@@ -19,11 +17,8 @@ import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap$ModuleReference$Concrete;
 import org.enso.pkg.QualifiedName;
 import org.enso.test.utils.ContextRule;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -34,39 +29,10 @@ public class ModuleTest {
   private File f;
 
   @ClassRule
-  public static final ContextRule ctxRule = ContextRule.createCustom(ModuleTest::createCtx);
-
-  @ClassRule
-  public static final ContextRule myCtxRule = ContextRule.newBuilder()
-      .withModifiedContext(ctxBldr -> {
-        Engine eng =
-            Engine.newBuilder()
-                .allowExperimentalOptions(true)
-                .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-                .option(RuntimeOptions.STRICT_ERRORS, "false")
-                .logHandler(System.err)
-                .option(
-                    RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                    Paths.get("../../distribution/component").toFile().getAbsolutePath())
-                .build();
-        return ctxBldr.engine(eng).allowIO(IOAccess.ALL).allowAllAccess(true);
-      })
-      .build();
-
-  private static Context createCtx() {
-    Engine eng =
-        Engine.newBuilder()
-            .allowExperimentalOptions(true)
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .option(RuntimeOptions.STRICT_ERRORS, "false")
-            .logHandler(System.err)
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .build();
-    var ctx = Context.newBuilder().engine(eng).allowIO(IOAccess.ALL).allowAllAccess(true).build();
-    return ctx;
-  }
+  public static final ContextRule ctxRule =
+      ContextRule.newBuilder()
+          .withModifiedContext(b -> b.option(RuntimeOptions.STRICT_ERRORS, "false"))
+          .build();
 
   @Before
   public void prepareTest() throws IOException {

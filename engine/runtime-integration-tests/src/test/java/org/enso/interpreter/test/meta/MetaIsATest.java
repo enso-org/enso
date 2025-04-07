@@ -14,7 +14,6 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -24,14 +23,14 @@ import org.junit.Test;
 
 public class MetaIsATest {
   @ClassRule
-  public static final ContextRule ctxRule = ContextRule.createCustom(MetaIsATest::prepareCtx);
+  public static final ContextRule ctxRule =
+      ContextRule.newBuilder().initInContext(MetaIsATest::prepareCtx).build();
 
   private static Value isACheck;
   private static Value warningCheck;
   private static ValuesGenerator generator;
 
-  private static Context prepareCtx() {
-    var ctx = ContextUtils.createDefaultContext();
+  private static void prepareCtx(Context ctx) {
     final URI uri;
     try {
       uri = new URI("memory://choose.enso");
@@ -55,7 +54,6 @@ public class MetaIsATest {
     isACheck = module.invokeMember("eval_expression", "check");
     warningCheck = module.invokeMember("eval_expression", "check_warning");
     assertTrue("it is a function", isACheck.canExecute());
-    return ctx;
   }
 
   @AfterClass

@@ -5,52 +5,31 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 import com.oracle.truffle.api.source.Source;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames.Module;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.interpreter.runtime.util.DiagnosticFormatter;
 import org.enso.test.utils.ContextRule;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
-import org.graalvm.polyglot.io.IOAccess;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class DiagnosticFormatterTest {
-  private static final ByteArrayOutputStream output = new ByteArrayOutputStream();
-
   @ClassRule
   public static final ContextRule ctxRule =
-      ContextRule.createCustom(DiagnosticFormatterTest::initCtx);
-
-  public static Context initCtx() {
-    return Context.newBuilder()
-        .allowExperimentalOptions(true)
-        .allowIO(IOAccess.ALL)
-        .allowAllAccess(true)
-        .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-        .logHandler(System.err)
-        .option(RuntimeOptions.STRICT_ERRORS, "true")
-        .option(
-            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-            Paths.get("../../distribution/component").toFile().getAbsolutePath())
-        .out(output)
-        .err(output)
-        .environment("NO_COLOR", "true")
-        .build();
-  }
+      ContextRule.newBuilder()
+          .withModifiedContext(
+              b -> b.option(RuntimeOptions.STRICT_ERRORS, "true").environment("NO_COLOR", "true"))
+          .build();
 
   @Before
   public void resetOut() {
-    output.reset();
+    ctxRule.resetOut();
   }
 
   @Test
@@ -67,7 +46,7 @@ tmp_test:1:8: error: The name `foo` could not be found.
       var module = ctxRule.eval(polyglotSrc);
       module.invokeMember(Module.EVAL_EXPRESSION, "main");
     } catch (PolyglotException e) {
-      assertThat(output.toString(), containsString(expectedDiagnostics));
+      assertThat(ctxRule.getOut(), containsString(expectedDiagnostics));
     }
     var moduleOpt = ctxRule.leakContext().getTopScope().getModule("tmp_test");
     assertThat(moduleOpt.isPresent(), is(true));

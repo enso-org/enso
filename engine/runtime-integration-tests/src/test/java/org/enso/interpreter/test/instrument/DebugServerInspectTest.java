@@ -8,44 +8,25 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
 import org.enso.common.DebugServerInfo;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.hamcrest.core.AllOf;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class DebugServerInspectTest {
-  private static ByteArrayOutputStream out = new ByteArrayOutputStream();
-  private static ByteArrayOutputStream err = new ByteArrayOutputStream();
-
   @ClassRule
   public static final ContextRule ctxRule =
-      ContextRule.createCustom(DebugServerInspectTest::initContext);
-
-  private static Context initContext() {
-    var b = ContextUtils.defaultContextBuilder().out(out).err(err);
-    b.option(DebugServerInfo.METHOD_BREAKPOINT_OPTION, "ScriptTest.inspect");
-    return b.build();
-  }
-
-  @AfterClass
-  public static void closeContext() throws Exception {
-    out.close();
-    out = null;
-    err.close();
-    err = null;
-  }
+      ContextRule.newBuilder()
+          .withModifiedContext(
+              b -> b.option(DebugServerInfo.METHOD_BREAKPOINT_OPTION, "ScriptTest.inspect"))
+          .build();
 
   @Before
   public void cleanSteams() {
-    out.reset();
-    err.reset();
+    ctxRule.resetOut();
   }
 
   @Test
@@ -67,19 +48,19 @@ public class DebugServerInspectTest {
     assertEquals("One", 1, r.getArrayElement(0).asInt());
     assertEquals("Two", 2, r.getArrayElement(1).asInt());
     assertEquals("Three", 3, r.getArrayElement(2).asInt());
-    assertEquals("No output printed", "", out.toString());
+    assertEquals("No output printed", "", ctxRule.getStdOut());
     assertThat(
         "Stderr contains some warnings",
-        err.toString(),
+        ctxRule.getStdErr(),
         AllOf.allOf(
             containsString("d = 2"),
             containsString("t = 3"),
             containsString("doubled value"),
             not(containsString("j = 1"))));
 
-    var at1 = err.toString().indexOf("d = 2");
+    var at1 = ctxRule.getStdErr().indexOf("d = 2");
     assertNotEquals("d = 2 found", -1, at1);
-    var at2 = err.toString().indexOf("d = 2", at1 + 1);
+    var at2 = ctxRule.getStdErr().indexOf("d = 2", at1 + 1);
     assertEquals("d = 2 not found for the second time", -1, at2);
   }
 
@@ -111,10 +92,10 @@ public class DebugServerInspectTest {
     assertTrue("No error at 2", r.getArrayElement(2).isException());
     assertEquals("(Error: 2)", r.getArrayElement(1).toString());
     assertEquals("(Error: 2)", r.getArrayElement(2).toString());
-    assertEquals("No output printed", "", out.toString());
+    assertEquals("No output printed", "", ctxRule.getStdOut());
     assertThat(
         "Stderr contains some errors",
-        err.toString(),
+        ctxRule.getStdErr(),
         AllOf.allOf(
             containsString("d = Error:2"),
             containsString("t = Error:2"),
@@ -138,10 +119,10 @@ public class DebugServerInspectTest {
     assertEquals(
         "Compilation warning printed",
         "ScriptTest:5:5: warning: Unused variable d.",
-        out.toString().trim());
+        ctxRule.getStdOut().trim());
     assertThat(
         "Stderr contains some errors",
-        err.toString(),
+        ctxRule.getStdErr(),
         AllOf.allOf(containsString("d = Error:2"), not(containsString("j = 1"))));
   }
 
@@ -167,18 +148,18 @@ public class DebugServerInspectTest {
     assertEquals("One", 1, r.getArrayElement(0).asInt());
     assertEquals("Half", 2, r.getArrayElement(1).asInt());
     assertEquals("Two", 2, r.getArrayElement(2).asInt());
-    assertEquals("No output printed", "", out.toString());
+    assertEquals("No output printed", "", ctxRule.getStdOut());
     assertThat(
         "Stderr contains some warnings about one\n",
-        err.toString(),
+        ctxRule.getStdErr(),
         containsString("one = 1\n ! Beware of ONE"));
     assertThat(
         "Stderr contains some warnings about half\n",
-        err.toString(),
+        ctxRule.getStdErr(),
         containsString("half = 2\n ! Beware of HALF"));
     assertThat(
         "Stderr contains some warnings",
-        err.toString(),
+        ctxRule.getStdErr(),
         containsString("two = 2\n ! Beware of HALF\n ! Beware of TWO"));
   }
 }

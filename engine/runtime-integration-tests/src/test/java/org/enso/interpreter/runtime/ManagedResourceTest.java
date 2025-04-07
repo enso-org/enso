@@ -12,7 +12,6 @@ import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -23,14 +22,14 @@ import org.junit.Test;
 
 public class ManagedResourceTest {
   @ClassRule
-  public static final ContextRule ctxRule = ContextRule.createCustom(ManagedResourceTest::initCtx);
+  public static final ContextRule ctxRule =
+      ContextRule.newBuilder().initInContext(ManagedResourceTest::initCtx).build();
 
   private static Value newResource;
   private static Value createResource;
   private static Value getResource;
 
-  private static Context initCtx() {
-    var ctx = ContextUtils.createDefaultContext();
+  private static void initCtx(Context ctx) {
     var code =
         """
               import Standard.Base.Runtime.Managed_Resource.Managed_Resource
@@ -54,7 +53,6 @@ public class ManagedResourceTest {
     newResource = gcEnso.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "make_new");
     createResource = gcEnso.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create_new");
     getResource = gcEnso.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "get_res");
-    return ctx;
   }
 
   @AfterClass

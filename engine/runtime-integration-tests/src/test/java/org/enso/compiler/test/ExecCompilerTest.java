@@ -4,27 +4,20 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
 import java.net.URI;
-import java.nio.file.Paths;
-import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.common.MethodNames.Module;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.ir.expression.errors.Conversion.DeclaredAsPrivate$;
 import org.enso.test.utils.ContextRule;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.io.IOAccess;
 import org.hamcrest.core.AllOf;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -32,38 +25,13 @@ import org.junit.Test;
 public class ExecCompilerTest {
   @ClassRule
   public static final ContextRule ctxRule =
-      ContextRule.createCustom(ExecCompilerTest::initEnsoContext);
-
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-  private static Context initEnsoContext() {
-    var ctx =
-        Context.newBuilder()
-            .allowExperimentalOptions(true)
-            .allowIO(IOAccess.ALL)
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .option(RuntimeOptions.STRICT_ERRORS, "false")
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(out)
-            .out(out)
-            .err(out)
-            .allowAllAccess(true)
-            .build();
-    assertNotNull(
-        "Enso language is supported", ctx.getEngine().getLanguages().get(LanguageInfo.ID));
-    return ctx;
-  }
-
-  @AfterClass
-  public static void closeOut() throws Exception {
-    out.close();
-  }
+      ContextRule.newBuilder()
+          .withModifiedContext(ctxBldr -> ctxBldr.option(RuntimeOptions.STRICT_ERRORS, "false"))
+          .build();
 
   @After
   public void cleanup() {
-    out.reset();
+    ctxRule.resetOut();
   }
 
   @Test
@@ -551,7 +519,7 @@ public class ExecCompilerTest {
     var expectedErrMsg = DeclaredAsPrivate$.MODULE$.explain();
     var runMethod = module.invokeMember(Module.EVAL_EXPRESSION, "run");
     runMethod.execute(0);
-    assertThat(out.toString(), containsString(expectedErrMsg));
+    assertThat(ctxRule.getOut(), containsString(expectedErrMsg));
   }
 
   @Test
