@@ -7,14 +7,13 @@ import type { DrivePastePayload } from '#/providers/DriveProvider'
 import type Backend from '#/services/Backend'
 import type { DirectoryId } from '#/services/Backend'
 import { isTeamParentsPath, isUserParentsPath } from '#/utilities/permissions'
-import { useMutation } from '@tanstack/react-query'
-
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 /**
  * A hook to copy or move assets as appropriate. Assets are moved, except when performing
  * a cut and paste between the Team Space and the User Space, in which case the asset is copied.
  */
 export function useCutAndPaste(backend: Backend, category: Category) {
-  const copyAssetsMutation = useMutation(copyAssetsMutationOptions(backend))
+  const copyAssetsMutation = useMutationCallback(copyAssetsMutationOptions(backend))
   const transferBetweenCategories = useTransferBetweenCategories(category)
   const getAsset = useGetAsset()
 
@@ -41,7 +40,7 @@ export function useCutAndPaste(backend: Backend, category: Category) {
             .map((otherItem) => otherItem.id)
         : ids
       if (teamToUserItems.length !== 0) {
-        copyAssetsMutation.mutate([teamToUserItems.map((item) => item.id), newParentId])
+        void copyAssetsMutation([teamToUserItems.map((item) => item.id), newParentId])
       }
       if (nonTeamToUserIds.length !== 0) {
         transferBetweenCategories(pasteData.category, category, pasteData.ids, newParentId)

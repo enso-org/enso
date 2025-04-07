@@ -1,3 +1,13 @@
+# Next Next Release
+
+#### Enso Language & Runtime
+
+- [Upgrading Truffle][12500] (including its
+  [JavaScript](https://www.graalvm.org/javascript/) and
+  [Python](https://www.graalvm.org/python/)) to version `24.2.0`.
+
+[12500]: https://github.com/enso-org/enso/pull/12500
+
 # Next Release
 
 #### Enso IDE
@@ -124,6 +134,9 @@
   regex_match in the expression language][12492]
 - [Added `add_group_number` for Postgres and SQLite.][12574]
 - [Added `add_group_number` for Snowflake and SQLServer.][12590]
+- [Added `skip_nothing` and `report_unmatched` arguments to `Vector.zip`][12626]
+- [Changed in-memory `Column.zip` to match `Table.zip`, removing the `function`
+  parameter][12626]
 - [Added Regex_match for Postgres][12663]
 - [Replace `use_bankers` flag with `Rounding_Mode` in all `round`
   methods][12641]
@@ -148,6 +161,7 @@
 [12492]: https://github.com/enso-org/enso/pull/12492
 [12574]: https://github.com/enso-org/enso/pull/12574
 [12590]: https://github.com/enso-org/enso/pull/12590
+[12626]: https://github.com/enso-org/enso/pull/12626
 [12663]: https://github.com/enso-org/enso/pull/12663
 [12641]: https://github.com/enso-org/enso/pull/12641
 

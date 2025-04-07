@@ -52,7 +52,8 @@ import type Backend from '#/services/Backend'
 import type { DirectoryId } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import type { PropsWithChildren } from 'react'
 
@@ -102,7 +103,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
       pasteData
     : null
 
-  const downloadAssetsMutation = useMutation(downloadAssetsMutationOptions(backend))
+  const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(backend))
   const newFolder = useNewFolder(backend, category)
   const uploadFilesRaw = useUploadFiles(backend, category)
   const uploadFiles = useEventCallback(async (files: readonly File[]) => {
@@ -118,7 +119,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   })
   const newProjectRaw = useNewProject(backend, category)
 
-  const newProjectMutation = useMutation({
+  const newProjectMutation = useMutationCallback({
     mutationKey: ['newProject'],
     mutationFn: async ([templateId, templateName]: [
       templateId: string | null | undefined,
@@ -136,7 +137,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
         }
       : {}),
       newProject: () => {
-        void newProjectMutation.mutateAsync([null, null])
+        void newProjectMutation([null, null])
       },
       uploadFiles: () => {
         void readUserSelectedFile().then((files) => uploadFiles(Array.from(files)))
@@ -211,7 +212,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
               variant="accent"
               icon={Plus2Icon}
               loaderPosition="icon"
-              onPress={() => newProjectMutation.mutateAsync([null, null])}
+              onPress={() => newProjectMutation([null, null])}
             >
               {getText('newEmptyProject')}
             </Button>
@@ -276,7 +277,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 onPress={async () => {
                   unsetModal()
                   const { selectedAssets } = driveStore.getState()
-                  await downloadAssetsMutation.mutateAsync(selectedAssets)
+                  await downloadAssetsMutation(selectedAssets)
                 }}
               />
             </div>
@@ -320,11 +321,11 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
   })
 
   const queryClient = useQueryClient()
-  const deleteAssetsMutation = useMutation(deleteAssetsMutationOptions(backend))
+  const deleteAssetsMutation = useMutationCallback(deleteAssetsMutationOptions(backend))
 
   const clearTrash = useEventCallback(async () => {
     const allTrashedItems = await getAllTrashedItems(queryClient, backend)
-    await deleteAssetsMutation.mutateAsync([allTrashedItems.map((item) => item.id), true])
+    await deleteAssetsMutation([allTrashedItems.map((item) => item.id), true])
   })
 
   return (

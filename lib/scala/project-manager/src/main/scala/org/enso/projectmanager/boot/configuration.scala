@@ -11,18 +11,20 @@ import scala.concurrent.duration.FiniteDuration
 object configuration {
 
   /** The options supplied (e.g. with the command line options when starting the
-    *  main project manager process.
+    * main project manager process.
     *
-    *  @param logLevel the logging level
-    *  @param profilingPath the path to the profiling out file
-    *  @param profilingTime the time limiting the profiling duration
+    * @param logLevel the logging level
+    * @param profilingPath the path to the profiling out file
+    * @param profilingTime the time limiting the profiling duration
     * @param jvmMode if true, enables JVM mode
+    * @param extraEnv extra environment variables
     */
   case class MainProcessConfig(
     logLevel: Level,
     profilingPath: Option[Path],
     profilingTime: Option[FiniteDuration],
-    jvmMode: Boolean
+    jvmMode: Boolean,
+    extraEnv: Seq[(String, String)]
   )
 
   /** A configuration object for properties of the Project Manager.

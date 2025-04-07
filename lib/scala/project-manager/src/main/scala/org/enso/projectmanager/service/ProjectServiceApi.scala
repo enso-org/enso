@@ -65,6 +65,7 @@ trait ProjectServiceApi[F[+_, +_]] {
     * @param clientId the requester id
     * @param projectId the project id
     * @param missingComponentAction specifies how to handle missing components
+    * @param cloudProjectDirectoryPath set cloud project directory when running project in hybrid mode
     * @return either failure or a socket of the Language Server
     */
   def openProject(
@@ -72,6 +73,7 @@ trait ProjectServiceApi[F[+_, +_]] {
     clientId: UUID,
     projectId: UUID,
     missingComponentAction: MissingComponentActions.MissingComponentAction,
+    cloudProjectDirectoryPath: Option[String],
     projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, RunningLanguageServerInfo]
 
