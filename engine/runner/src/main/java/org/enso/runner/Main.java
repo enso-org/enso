@@ -28,7 +28,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.enso.change.directory.WorkingDirectories;
+import org.enso.change.directory.WorkingDirectory;
 import org.enso.common.ContextFactory;
 import org.enso.common.DebugServerInfo;
 import org.enso.common.HostEnsoUtils;
@@ -1543,7 +1543,7 @@ public class Main {
       return;
     }
     var projectRoot = findProjectRoot(fileToRun);
-    var nativeApi = WorkingDirectories.getCurrent();
+    var nativeApi = WorkingDirectory.getInstance();
     if (projectRoot != null) {
       var parentDir = parentFile(projectRoot);
       assert parentDir != null;
@@ -1563,7 +1563,7 @@ public class Main {
    * @return null if project root was not found, a canonical path otherwise.
    */
   private static String findProjectRoot(String path) {
-    var nativeApi = WorkingDirectories.getCurrent();
+    var nativeApi = WorkingDirectory.getInstance();
     String curPath = path;
     while (curPath != null) {
       if (nativeApi.exists(curPath, "package.yaml") && nativeApi.exists(curPath, "src")) {

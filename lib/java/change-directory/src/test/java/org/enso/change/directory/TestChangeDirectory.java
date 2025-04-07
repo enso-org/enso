@@ -25,7 +25,7 @@ public class TestChangeDirectory {
   @BeforeClass
   public static void init() {
     ensureInNativeImage();
-    nativeApi = WorkingDirectories.getCurrent();
+    nativeApi = WorkingDirectory.getInstance();
   }
 
   @AfterClass
