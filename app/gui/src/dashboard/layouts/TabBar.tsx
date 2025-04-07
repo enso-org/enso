@@ -155,15 +155,15 @@ export function ProjectTab(props: ProjectTabProps) {
   })
 
   const {
-    data: isOpened,
+    data: { isOpened, title },
     isSuccess,
     isError,
-  } = reactQuery.useQuery({
-    ...projectHooks.createGetProjectDetailsQuery({
-      assetId: project.id,
-      backend,
+  } = reactQuery.useSuspenseQuery({
+    ...projectHooks.createGetProjectDetailsQuery({ assetId: project.id, backend }),
+    select: (data) => ({
+      title: data.name,
+      isOpened: projectHooks.OPENED_PROJECT_STATES.has(data.state.type),
     }),
-    select: (data) => projectHooks.OPENED_PROJECT_STATES.has(data.state.type),
   })
 
   const isReady = isSuccess && isOpened
@@ -193,7 +193,11 @@ export function ProjectTab(props: ProjectTabProps) {
     return SPINNER
   })()
 
-  return <Tab {...rest} icon={icon} onClose={stableOnClose} />
+  return (
+    <Tab {...rest} icon={icon} onClose={stableOnClose}>
+      {title}
+    </Tab>
+  )
 }
 
 TabBar.ProjectTab = ProjectTab
