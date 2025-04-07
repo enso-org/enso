@@ -35,6 +35,19 @@ public enum Platform {
     return OPERATING_SYSTEM;
   }
 
+  /**
+   * Has the same behavior as {@link java.io.File#separatorChar}. Use this method if you want to
+   * avoid initializing {@link java.io.File} class.
+   *
+   * @return the file separator character for the current operating system.
+   */
+  public static char separatorChar() {
+    return switch (OPERATING_SYSTEM) {
+      case LINUX, MACOS -> '/';
+      case WINDOWS -> '\\';
+    };
+  }
+
   public boolean isLinux() {
     return this == LINUX;
   }

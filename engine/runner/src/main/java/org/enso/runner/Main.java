@@ -1575,12 +1575,7 @@ public class Main {
   }
 
   private static String parentFile(String path) {
-    // Cannot use File.separator char here
-    var separatorChar =
-        switch (Platform.getOperatingSystem()) {
-          case LINUX, MACOS -> '/';
-          case WINDOWS -> '\\';
-        };
+    var separatorChar = Platform.separatorChar();
     var lastSlash = path.lastIndexOf(separatorChar);
     if (lastSlash == -1) {
       return null;
