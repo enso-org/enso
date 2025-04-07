@@ -4188,17 +4188,24 @@ lazy val `os-environment` =
       javaModuleName := "org.enso.os.environment",
       libraryDependencies ++= Seq(
         "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
+        "org.graalvm.sdk" % "graal-sdk"       % graalMavenPackagesVersion % "provided",
+        "commons-io"      % "commons-io"      % commonsIoVersion,
         "org.slf4j"       % "slf4j-api"       % slf4jVersion,
         "junit"           % "junit"           % junitVersion              % Test,
         "com.github.sbt"  % "junit-interface" % junitIfVersion            % Test
       ),
       Compile / moduleDependencies ++= Seq(
-        "org.slf4j"       % "slf4j-api"   % slf4jVersion,
-        "org.graalvm.sdk" % "nativeimage" % graalMavenPackagesVersion,
-        "org.graalvm.sdk" % "word"        % graalMavenPackagesVersion
+        "org.slf4j"            % "slf4j-api"   % slf4jVersion,
+        "commons-io"           % "commons-io"  % commonsIoVersion,
+        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
+        "com.typesafe"         % "config"      % typesafeConfigVersion,
+        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion
       ),
       Compile / internalModuleDependencies ++= Seq(
-        (`engine-common` / Compile / exportedModule).value
+        (`engine-common` / Compile / exportedModule).value,
+        (`logging-utils` / Compile / exportedModule).value,
+        (`logging-config` / Compile / exportedModule).value
       ),
       NativeImage.smallJdk := None,
       NativeImage.additionalCp := {
