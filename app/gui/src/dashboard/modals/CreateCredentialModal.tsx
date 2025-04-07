@@ -8,7 +8,6 @@ import { useState } from 'react'
 
 /** Props for a {@link CreateCredentialForm}. */
 export interface CreateCredentialFormProps {
-  readonly noDialog?: boolean
   readonly doCreate: (name: string, value: CredentialConfig) => Promise<SecretId>
 }
 
