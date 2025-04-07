@@ -1564,12 +1564,6 @@ public class Main {
    */
   private static String findProjectRoot(String path) {
     var nativeApi = WorkingDirectories.getCurrent();
-    // Cannot use File.separator char here
-    var separatorChar =
-        switch (Platform.getOperatingSystem()) {
-          case LINUX, MACOS -> '/';
-          case WINDOWS -> '\\';
-        };
     String curPath = path;
     while (curPath != null) {
       if (nativeApi.exists(curPath, "package.yaml") && nativeApi.exists(curPath, "src")) {
