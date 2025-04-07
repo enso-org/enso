@@ -57,4 +57,17 @@ public class GraphBuilderTest {
     var def = chScope.allDefinitions().get(0);
     assertSame(chScope, def.scope());
   }
+
+  @Test
+  public void freshGraphFromMultipleScopes() {
+    var root = GraphBuilder.create();
+    var x = root.newDef("x", null, Option.empty());
+    var child = root.addChild();
+    var y = child.newDef("y", null, Option.empty());
+
+    var fresh = GraphBuilder.create(child.toGraph(), child.toScope());
+
+    assertEquals("found in child scope", y.id(), fresh.findDef("y"));
+    assertEquals("found in parent scope", x.id(), fresh.findDef("x"));
+  }
 }

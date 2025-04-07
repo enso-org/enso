@@ -16,16 +16,9 @@ public final class GraphBuilder {
     this.parent = parent;
     this.graph = (GraphImpl) graph;
     this.scope = (ScopeImpl) scope;
-    this.scope
-        ._occurrences()
-        .values()
-        .foreach(
-            o -> {
-              if (o instanceof GraphOccurrence.Def d) {
-                defs.put(d.symbol(), d);
-              }
-              return null;
-            });
+    if (parent == null) {
+      fillInDefinitions(this.scope, defs);
+    }
   }
 
   /**
@@ -138,5 +131,23 @@ public final class GraphBuilder {
 
   public Graph.Scope toScope() {
     return scope;
+  }
+
+  private static void fillInDefinitions(ScopeImpl scope, Map<String, GraphOccurrence.Def> defs) {
+    if (scope != null) {
+      if (scope.parent().isDefined()) {
+        fillInDefinitions(scope.parent().get(), defs);
+      }
+      scope
+          ._occurrences()
+          .values()
+          .foreach(
+              o -> {
+                if (o instanceof GraphOccurrence.Def d) {
+                  defs.put(d.symbol(), d);
+                }
+                return null;
+              });
+    }
   }
 }
