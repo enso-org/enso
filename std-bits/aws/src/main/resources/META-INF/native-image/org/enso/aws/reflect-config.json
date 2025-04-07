@@ -57,15 +57,6 @@
         ]
     },
     {
-        "name":"org.enso.aws.ProfileReader"
-    },
-    {
-        "name":"org.enso.aws.file_system.S3DataLinkCache"
-    },
-    {
-        "name": "software.amazon.awssdk.services.s3.model.PutObjectAclRequest"
-    },
-    {
         "name": "software.amazon.awssdk.services.s3.model.HeadBucketResponse",
         "methods": [
             {
@@ -193,6 +184,17 @@
             {
                 "name": "name",
                 "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "software.amazon.awssdk.regions.Region",
+        "methods": [
+            {
+                "name": "id"
+            },
+            {
+                "name": "regions"
             }
         ]
     }
