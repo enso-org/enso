@@ -17,31 +17,32 @@ export function GoogleCredentialsForm(props: CredentialFormProps) {
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
 
-  const form = Form.useForm({
-    method: 'dialog',
-    schema: google.FORM_SCHEMA,
-    onSubmit: async (values) => {
-      try {
-        await google.submitForm(createCredentials, values)
-      } catch (error) {
-        toastAndLog(null, error)
-      }
-    },
-  })
-
   return (
-    <Form form={form} className="w-full">
-      <Input form={form} name="name" label={getText('name')} />
-      <Checkbox.Group
-        form={form}
-        name="scopes"
-        label={getText('googleCredentialScopes')}
-        defaultValue={['sheets']}
-      >
-        <Checkbox value="sheets">{getText('googleCredentialSheetsScope')}</Checkbox>
-        <Checkbox value="analytics">{getText('googleCredentialAnalyticsScope')}</Checkbox>
-      </Checkbox.Group>
-      <CredentialsFormButtons isCreating={true} canCancel={false} canReset={false} />
+    <Form
+      method="dialog"
+      schema={google.FORM_SCHEMA}
+      defaultValues={{
+        scopes: ['sheets'],
+      }}
+      className="w-full"
+      onSubmit={async (values) => {
+        try {
+          await google.submitForm(createCredentials, values)
+        } catch (error) {
+          toastAndLog(null, error)
+        }
+      }}
+    >
+      {(form) => (
+        <>
+          <Input form={form} name="name" label={getText('name')} />
+          <Checkbox.Group form={form} name="scopes" label={getText('googleCredentialScopes')}>
+            <Checkbox value="sheets">{getText('googleCredentialSheetsScope')}</Checkbox>
+            <Checkbox value="analytics">{getText('googleCredentialAnalyticsScope')}</Checkbox>
+          </Checkbox.Group>
+          <CredentialsFormButtons isCreating={true} canCancel={false} canReset={false} />
+        </>
+      )}
     </Form>
   )
 }

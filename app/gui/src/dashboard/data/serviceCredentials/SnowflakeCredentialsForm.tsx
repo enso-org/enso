@@ -17,38 +17,47 @@ export function SnowflakeCredentialsForm(props: CredentialFormProps) {
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
 
-  const form = Form.useForm({
-    method: 'dialog',
-    schema: snowflake.FORM_SCHEMA,
-    onSubmit: async (values) => {
-      try {
-        await snowflake.submitForm(createCredentials, values)
-      } catch (error) {
-        toastAndLog(null, error)
-      }
-    },
-  })
-
   return (
-    <Form form={form} className="w-full">
-      <Button variant='link' href="https://help.enso.org/docs/using-enso/connecting-to-snowflake#oauth-integration" target='_blank'>{getText('snowflakeIntegrationGetHelp')}</Button>
-      <Input form={form} name="name" label={getText('name')} />
-      <Input form={form} name="account" label={getText('snowflakeCredentialAccount')} />
-      <Input
-        form={form}
-        name="clientId"
-        label={getText('snowflakeCredentialClientId')}
-        autoComplete="off"
-      />
-      <Input
-        form={form}
-        name="clientSecret"
-        label={getText('snowflakeCredentialClientSecret')}
-        type="password"
-        autoComplete="new-password"
-      />
-      <Input form={form} name="role" label={getText('snowflakeCredentialRole')} />
-      <CredentialsFormButtons isCreating={true} canCancel={false} canReset={false} />
+    <Form
+      method="dialog"
+      schema={snowflake.FORM_SCHEMA}
+      className="w-full"
+      onSubmit={async (values) => {
+        try {
+          await snowflake.submitForm(createCredentials, values)
+        } catch (error) {
+          toastAndLog(null, error)
+        }
+      }}
+    >
+      {(form) => (
+        <>
+          <Button
+            variant="link"
+            href="https://help.enso.org/docs/using-enso/connecting-to-snowflake#oauth-integration"
+            target="_blank"
+          >
+            {getText('snowflakeIntegrationGetHelp')}
+          </Button>
+          <Input form={form} name="name" label={getText('name')} />
+          <Input form={form} name="account" label={getText('snowflakeCredentialAccount')} />
+          <Input
+            form={form}
+            name="clientId"
+            label={getText('snowflakeCredentialClientId')}
+            autoComplete="off"
+          />
+          <Input
+            form={form}
+            name="clientSecret"
+            label={getText('snowflakeCredentialClientSecret')}
+            type="password"
+            autoComplete="new-password"
+          />
+          <Input form={form} name="role" label={getText('snowflakeCredentialRole')} />
+          <CredentialsFormButtons isCreating={true} canCancel={false} canReset={false} />
+        </>
+      )}
     </Form>
   )
 }
