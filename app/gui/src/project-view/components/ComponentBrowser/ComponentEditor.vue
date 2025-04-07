@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import CodeMirrorInlineRoot from '@/components/CodeMirrorInlineRoot.vue'
+import ComponentEditorLabel from '@/components/ComponentBrowser/ComponentEditorLabel.vue'
 import type { ComponentBrowserMode, Usage } from '@/components/ComponentBrowser/input'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useGraphStore } from '@/stores/graph'
 import { useCodeMirror, useStringSync } from '@/util/codemirror'
 import { DEFAULT_ICON, iconOfNode, suggestionEntryToIcon } from '@/util/getIconName'
-import { qnLastSegment } from '@/util/qualifiedName'
 import { computed, useTemplateRef, watch, type ComponentInstance, type DeepReadonly } from 'vue'
 import { Range } from 'ydoc-shared/util/data/range'
 
@@ -55,16 +55,6 @@ const icon = computed(() => {
   return DEFAULT_ICON
 })
 
-const label = computed(() => {
-  if (props.mode.mode !== 'componentBrowsing') return undefined
-  if (props.mode.filter.selfArg == null) return 'Input Components'
-  if (props.mode.filter.selfArg.type === 'known' && props.mode.filter.selfArg.typename.path) {
-    return `${qnLastSegment(props.mode.filter.selfArg.typename.path)} Components`
-  }
-
-  return undefined
-})
-
 const focus = editorView.focus.bind(editorView)
 
 defineExpose({
@@ -91,8 +81,15 @@ const rootStyle = computed(() => {
     <div :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }">
       <SvgIcon :name="icon" />
     </div>
-    <span v-if="label" class="selfArgInfo" data-testid="component-editor-label" v-text="label" />
-    <SvgIcon v-if="label" class="selfArgInfoArrow" name="folder_closed" />
+    <ComponentEditorLabel
+      v-if="props.mode.mode === 'componentBrowsing'"
+      :selfArg="props.mode.filter.selfArg"
+    />
+    <SvgIcon
+      v-if="props.mode.mode === 'componentBrowsing'"
+      class="selfArgInfoArrow"
+      name="folder_closed"
+    />
     <CodeMirrorInlineRoot ref="editorRoot" />
   </div>
 </template>
