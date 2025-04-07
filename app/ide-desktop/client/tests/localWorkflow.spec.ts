@@ -55,7 +55,10 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }) => {
   await expect(page.locator('.NavBreadcrumb')).toHaveText(['New Project 1', 'collapsed'])
 
   // Rename collapsed function
-  await page.locator('.FunctionSignatureEditor .FunctionName').dblclick() // double click for select all.
+  await page
+    .locator('.FunctionSignatureEditor')
+    .getByTestId('widget-function-name-content')
+    .dblclick() // double click for select all.
   await page.keyboard.insertText('new_name')
   await page.keyboard.press('Enter')
   await expect(page.locator('.NavBreadcrumb')).toHaveText(['New Project 1', 'new_name'])
@@ -69,7 +72,7 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }) => {
   await page.keyboard.press('Escape') // deselect.
   await page.getByTestId('add-component-button').click()
   await expect(page.locator('.ComponentBrowser')).toBeVisible()
-  const input = page.locator('.ComponentBrowser input')
+  const input = page.getByTestId('component-editor-content')
   await input.fill(`'${TEXT_TO_WRITE}'`)
   await page.keyboard.press('Enter')
   await expect(page.locator('.GraphNode'), {}).toHaveCount(2)

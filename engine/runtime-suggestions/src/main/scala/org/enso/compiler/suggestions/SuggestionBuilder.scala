@@ -354,7 +354,10 @@ final class SuggestionBuilder[A: IndexedSource](
     doc: Option[String],
     typeSignature: Option[TypeSignatures.Metadata]
   ): Suggestion.Local = {
-    val typeSig            = buildTypeSignatureFromMetadata(typeSignature)
+    val typeSig = buildTypeSignatureFromMetadata(
+      typeSignature,
+      deconstructFunctionType = false
+    )
     val (_, returnTypeDef) = buildFunctionArguments(Seq(), typeSig)
     Suggestion.Local(
       externalId    = externalId,
@@ -493,23 +496,28 @@ final class SuggestionBuilder[A: IndexedSource](
     * @return the list of type arguments
     */
   private def buildTypeSignatureFromMetadata(
-    typeSignature: Option[TypeSignatures.Metadata]
+    typeSignature: Option[TypeSignatures.Metadata],
+    deconstructFunctionType: Boolean = true
   ): Vector[TypeArg] =
     typeSignature match {
       case Some(TypeSignatures.Signature(typeExpr, _)) =>
-        buildTypeSignature(typeExpr)
-      case _ =>
-        Vector()
+        buildTypeSignature(typeExpr) match {
+          case fn: TypeArg.Function if deconstructFunctionType =>
+            fn.arguments :+ fn.result
+          case tpe =>
+            Vector(tpe)
+        }
+      case None => Vector()
     }
 
   /** Build type signature from the type expression.
     *
     * @param typeExpr the type signature expression
-    * @return the list of type arguments
+    * @return reconstructed type signature
     */
   private def buildTypeSignature(
     typeExpr: Expression
-  ): Vector[TypeArg] = {
+  ): TypeArg = {
     def go(expr: Expression): TypeArg = expr match {
       case fn: Type.Function =>
         TypeArg.Function(fn.args.map(go).toVector, go(fn.result))
@@ -526,6 +534,8 @@ final class SuggestionBuilder[A: IndexedSource](
           go(bin.right.value),
           bin.operator.name
         )
+      case tpeError: Type.Error =>
+        buildTypeSignature(tpeError.typed)
       case tname: Name =>
         tname
           .getMetadata(TypeNames)
@@ -535,11 +545,7 @@ final class SuggestionBuilder[A: IndexedSource](
       case _ =>
         TypeArg.Value(QualifiedName.fromString(Any))
     }
-    val r = go(typeExpr)
-    r match {
-      case fn: TypeArg.Function => fn.arguments :+ fn.result
-      case _                    => Vector(r)
-    }
+    go(typeExpr)
   }
 
   /** Build arguments of a method.
@@ -735,7 +741,10 @@ final class SuggestionBuilder[A: IndexedSource](
     * @return the suggestion argument
     */
   private def buildArgument(arg: DefinitionArgument): Suggestion.Argument = {
-    buildTypeSignatureFromMetadata(arg.getMetadata(TypeSignatures)) match {
+    buildTypeSignatureFromMetadata(
+      arg.getMetadata(TypeSignatures),
+      deconstructFunctionType = false
+    ) match {
       case Vector(targ) =>
         buildTypedArgument(arg, targ)
       case _ =>

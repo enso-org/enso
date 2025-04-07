@@ -18,7 +18,7 @@ export interface DatalinkNameColumnProps extends AssetColumnProps {
  * This should never happen.
  */
 export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
-  const { item, rowState, setRowState, isEditable } = props
+  const { item, rowState, setRowState, isEditable, renameAsset } = props
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
 
   const setIsEditing = (isEditingName: boolean) => {
@@ -27,10 +27,10 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
     }
   }
 
-  // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
-  // context menu entry should be re-added.
-  // Backend implementation is tracked here: https://github.com/enso-org/cloud-v2/issues/505.
-  const doRename = () => Promise.resolve(null)
+  const doRename = async (newTitle: string) => {
+    await renameAsset(item.id, newTitle)
+    setIsEditing(false)
+  }
 
   return (
     <div
@@ -50,10 +50,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
       <img src={DatalinkIcon} className="m-name-column-icon size-4" />
       <EditableSpan
         editable={false}
-        onSubmit={async () => {
-          await doRename()
-          setIsEditing(false)
-        }}
+        onSubmit={doRename}
         onCancel={() => {
           setIsEditing(false)
         }}

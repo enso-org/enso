@@ -28,13 +28,13 @@ import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import UserBar from '#/layouts/UserBar'
 
-import * as aria from '#/components/aria'
 import Page from '#/components/Page'
 
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
+import { Tabs } from '#/components/aria'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
@@ -191,6 +191,14 @@ function DashboardInner(props: DashboardProps) {
     setPage('settings')
   })
 
+  const onSelectionChange = eventCallbacks.useEventCallback((newPage: React.Key) => {
+    // This is safe as we render only valid pages.
+    // eslint-disable-next-line no-restricted-syntax
+    setPage(newPage as TabType)
+  })
+
+  const selectedTab = React.useDeferredValue(page)
+
   return (
     <Page hideInfoBar hideChat>
       <div
@@ -200,14 +208,10 @@ function DashboardInner(props: DashboardProps) {
           modalProvider.unsetModal()
         }}
       >
-        <aria.Tabs
+        <Tabs
           className="relative flex min-h-full grow select-none flex-col container-size"
-          selectedKey={page}
-          onSelectionChange={(newPage) => {
-            // This is safe as we render only valid pages.
-            // eslint-disable-next-line no-restricted-syntax
-            setPage(newPage as TabType)
-          }}
+          selectedKey={selectedTab}
+          onSelectionChange={onSelectionChange}
         >
           <div className="flex">
             <DashboardTabBar onCloseProject={closeProject} onOpenEditor={openEditor} />
@@ -224,7 +228,8 @@ function DashboardInner(props: DashboardProps) {
             ydocUrl={ydocUrl}
             assetManagementApiRef={assetManagementApiRef}
           />
-        </aria.Tabs>
+        </Tabs>
+
         {$config.CHAT_URL != null ?
           <Chat
             isOpen={isHelpChatOpen}
