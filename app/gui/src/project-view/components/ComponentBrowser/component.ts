@@ -12,6 +12,7 @@ import { isSome } from '@/util/data/opt'
 import { displayedIconOf } from '@/util/getIconName'
 import { type Icon } from '@/util/iconMetadata/iconName'
 import { type ProjectPath } from '@/util/projectPath'
+import { qnLastSegment } from '@/util/qualifiedName'
 import * as map from 'lib0/map'
 import { Range } from 'ydoc-shared/util/data/range'
 
@@ -40,7 +41,10 @@ export interface SuggestedComponent extends Component {
 /** @returns the displayed label of given suggestion entry with information of highlighted ranges. */
 export function labelOfEntry(entry: SuggestionEntry, match: MatchResult): ComponentLabelInfo {
   if (entryIsStatic(entry)) {
-    const label = entryDisplayPath(entry)
+    const label =
+      match.fromType?.path ?
+        ':' + qnLastSegment(match.fromType.path) + '.' + entryDisplayPath(entry)
+      : entryDisplayPath(entry)
     if ((!match.ownerNameRanges && !match.nameRanges) || match.matchedAlias) {
       return {
         label,
@@ -57,10 +61,15 @@ export function labelOfEntry(entry: SuggestionEntry, match: MatchResult): Compon
         ...(match.nameRanges ?? []).map((range) => range.shift(nameOffset)),
       ],
     }
-  } else
+  } else {
+    const label =
+      match.fromType?.path ?
+        ':' + qnLastSegment(match.fromType.path) + '.' + entry.name
+      : entry.name
     return match.nameRanges ?
-        { label: entry.name, matchedAlias: match.matchedAlias, matchedRanges: match.nameRanges }
-      : { label: entry.name, matchedAlias: match.matchedAlias }
+        { label, matchedAlias: match.matchedAlias, matchedRanges: match.nameRanges }
+      : { label, matchedAlias: match.matchedAlias }
+  }
 }
 
 function formatLabel(labelInfo: ComponentLabelInfo): ComponentLabel {
@@ -123,6 +132,9 @@ export function makeComponentLists(
     if (filtering.selfArg?.type === 'known') {
       const entry = db.getEntryByProjectPath(filtering.selfArg.typename)
       if (entry) additionalSelfTypes.push(...db.ancestors(entry))
+      if (filtering.selfArg.hiddenTypes) {
+        additionalSelfTypes.push(...filtering.selfArg.hiddenTypes)
+      }
     }
 
     for (const [id, entry] of db.entries()) {

@@ -134,8 +134,11 @@ export function useComponentBrowserInput(
     if (!sourceNodeIdentifier.value) return null
     const definition = graphDb.getIdentDefiningNode(sourceNodeIdentifier.value)
     if (definition == null) return null
-    const typename = graphDb.getExpressionInfo(definition)?.typename
-    return typename ? { type: 'known', typename } : { type: 'unknown' }
+    const info = graphDb.getExpressionInfo(definition)
+    if (info == null) return null
+    const typename = info.typename
+    const hiddenTypes = info.hiddenTypes
+    return typename ? { type: 'known', typename, hiddenTypes } : { type: 'unknown' }
   })
 
   /** Apply given suggested entry to the input. */
