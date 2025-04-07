@@ -261,14 +261,18 @@ function AssetsTable(props: AssetsTableProps) {
     category,
   })
   const listDirectoryRefetchInterval = useListDirectoryRefetchInterval()
-  const { data: assets = [] } = useSuspenseQuery(
-    listDirectoryQueryOptions({
+  const { data: assets = [] } = useSuspenseQuery({
+    ...listDirectoryQueryOptions({
       backend,
       parentId: currentDirectoryId,
       category,
       refetchInterval: listDirectoryRefetchInterval,
     }),
-  )
+    retry: () => {
+      setCurrentDirectoryId({ current: null, parent: null })
+      return false
+    },
+  })
 
   const { visibleItems } = useAssetsTableItems({
     parentId: currentDirectoryId,
