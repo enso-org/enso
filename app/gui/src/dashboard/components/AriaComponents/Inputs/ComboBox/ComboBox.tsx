@@ -114,6 +114,7 @@ export const ComboBox = forwardRef(function ComboBox<
     toTooltip,
     noResetButton = false,
     variants = COMBO_BOX_STYLES,
+    contextualHelp,
     addonStart,
     addonEnd,
   } = props
@@ -158,6 +159,7 @@ export const ComboBox = forwardRef(function ComboBox<
       isInvalid={fieldState.invalid}
       aria-details={props['aria-details']}
       ref={ref}
+      contextualHelp={contextualHelp}
       style={props.style}
     >
       <Form.Controller

@@ -136,47 +136,49 @@ export const Checkbox = Object.assign(
         className: _,
         // eslint-disable-next-line @typescript-eslint/naming-convention
         style: __,
-        ...fieldProps
+        contextualHelp,
+      ...fieldProps
 
         // This is safe, because we know that the checkbox is standalone, and
         // name is specified in the props.
         // eslint-disable-next-line no-restricted-syntax
       } = props as StandaloneCheckboxProps<Schema, TFieldName>
 
-      return (
-        <Form.Controller
-          name={name}
-          control={formInstance.control}
-          {...(defaultValueOverride != null && { defaultValue: defaultValueOverride })}
-          render={({ field, fieldState }) => {
-            const defaultValue = defaultValueOverride ?? formInstance.control._defaultValues[name]
-            return (
-              <>
-                <CheckboxStandaloneProvider
+    return (
+      <Form.Controller
+        name={name}
+        control={formInstance.control}
+        {...(defaultValueOverride != null && { defaultValue: defaultValueOverride })}
+        render={({ field, fieldState }) => {
+          const defaultValue = defaultValueOverride ?? formInstance.control._defaultValues[name]
+          return (
+            <>
+              <CheckboxStandaloneProvider
+                name={name}
+                field={field}
+                defaultValue={defaultValue}
+                onChange={(value) => {
+                  field.onChange({ target: { value } })
+                  void formInstance.trigger(name)
+                }}
+              >
+                <Form.Field
+                  {...fieldProps}
+                  form={formInstance}
                   name={name}
-                  field={field}
-                  defaultValue={defaultValue}
-                  onChange={(value) => {
-                    field.onChange({ target: { value } })
-                    void formInstance.trigger(name)
-                  }}
+                  isInvalid={isInvalid ?? fieldState.invalid}
+                  variants={fieldVariants}
+                  contextualHelp={contextualHelp}
                 >
-                  <Form.Field
-                    {...fieldProps}
-                    form={formInstance}
-                    name={name}
-                    isInvalid={isInvalid ?? fieldState.invalid}
-                    variants={fieldVariants}
-                  >
-                    <CheckboxInternal ref={ref} value={name} {...props} />
-                  </Form.Field>
-                </CheckboxStandaloneProvider>
-              </>
-            )
-          }}
-        />
-      )
-    }
+                  <CheckboxInternal ref={ref} value={name} {...props} />
+                </Form.Field>
+              </CheckboxStandaloneProvider>
+            </>
+          )
+        }}
+      />
+    )
+  }
 
     return <CheckboxInternal ref={ref} {...props} />
   }),

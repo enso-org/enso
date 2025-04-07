@@ -344,7 +344,7 @@ export function FormDropdown<
   TFieldName extends FieldPath<Schema, Constraint>,
   Constraint,
 >(props: FormDropdownProps<Schema, TFieldName, Constraint>) {
-  const { name, children, rounded, size, variants, ...inputProps } = props
+  const { name, children, rounded, size, variants, contextualHelp, ...inputProps } = props
   const { items } = inputProps
 
   const form = Form.useFormContext(props.form)
@@ -363,6 +363,7 @@ export function FormDropdown<
       })}
       name={props.name}
       isRequired={props.isRequired}
+      contextualHelp={contextualHelp}
     >
       <Form.Controller
         control={form.control}
