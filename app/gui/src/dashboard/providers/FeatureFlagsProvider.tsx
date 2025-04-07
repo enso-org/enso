@@ -13,9 +13,7 @@ import { persist } from 'zustand/middleware'
 const MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS = 100
 const DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS = 3_000
 
-/**
- * Feature flags for internal testing.
- */
+/** Feature flags for internal testing. */
 export function featureFlagsForInternalTesting() {
   return {
     enableCloudExecution: true,
@@ -33,6 +31,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   enableAsyncExecution: z.boolean(),
   enableAdvancedProjectExecutionOptions: z.boolean(),
   enableHybridExecution: z.boolean(),
+  showDeveloperIds: z.boolean(),
 })
 
 /** Feature flags. */
@@ -59,6 +58,7 @@ const flagsStore = createStore<FeatureFlagsStore>()(
         enableAsyncExecution: true,
         enableAdvancedProjectExecutionOptions: false,
         enableHybridExecution: IS_DEV_MODE,
+        showDeveloperIds: false,
       },
       setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))

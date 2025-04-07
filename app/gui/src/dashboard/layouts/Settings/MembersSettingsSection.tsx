@@ -150,10 +150,6 @@ export default function MembersSettingsSection() {
   )
 }
 
-// ==============================
-// === ResendInvitationButton ===
-// ==============================
-
 /** Props for the ResendInvitationButton component. */
 interface ResendInvitationButtonProps {
   readonly invitation: backendModule.Invitation
@@ -185,10 +181,6 @@ function ResendInvitationButton(props: ResendInvitationButtonProps) {
   )
 }
 
-// ==========================
-// === RemoveMemberButton ===
-// ==========================
-
 /** Props for a {@link RemoveMemberButton}. */
 interface RemoveMemberButtonProps {
   readonly backend: RemoteBackend
@@ -217,10 +209,6 @@ function RemoveMemberButton(props: RemoveMemberButtonProps) {
     </ariaComponents.Button>
   )
 }
-
-// ==============================
-// === RemoveInvitationButton ===
-// ==============================
 
 /** Props for a {@link RemoveInvitationButton}. */
 interface RemoveInvitationButtonProps {

@@ -14,10 +14,6 @@ import { useText } from '#/providers/TextProvider'
 import { useNavigate } from 'react-router-dom'
 import { LOGIN_PATH } from '../appUtils'
 
-// ================
-// === InfoMenu ===
-// ================
-
 /** Props for an {@link InfoMenu}. */
 export interface InfoMenuProps {
   readonly hidden?: boolean

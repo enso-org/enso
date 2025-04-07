@@ -164,6 +164,10 @@ GatherLicenses.distributions := Seq(
   ),
   makeStdLibDistribution("Base", Distribution.sbtProjects(`std-base`)),
   makeStdLibDistribution(
+    "Generic_JDBC",
+    Distribution.sbtProjects(`std-generic-jdbc`)
+  ),
+  makeStdLibDistribution(
     "Google_Api",
     Distribution.sbtProjects(`std-google-api`)
   ),
@@ -337,6 +341,7 @@ lazy val enso = (project in file("."))
     `logging-config`,
     `logging-service`,
     `logging-service-logback`,
+    `logging-service-telemetry`,
     `logging-truffle-connector`,
     `logging-utils`,
     `logging-utils-akka`,
@@ -378,6 +383,7 @@ lazy val enso = (project in file("."))
     `std-base`,
     `std-benchmarks`,
     `std-database`,
+    `std-generic-jdbc`,
     `std-google-api`,
     `std-image`,
     `std-microsoft`,
@@ -524,11 +530,6 @@ val helidon = Seq(
 // === Jackson ================================================================
 
 val jacksonVersion = "2.15.2"
-val jackson = Seq(
-  "com.fasterxml.jackson.core" % "jackson-core"        % jacksonVersion,
-  "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion,
-  "com.fasterxml.jackson.core" % "jackson-databind"    % jacksonVersion
-)
 
 // === JAXB ================================================================
 
@@ -608,11 +609,11 @@ val jline = Seq(
 )
 
 // === Google =================================================================
-val googleApiClientVersion         = "2.2.0"
-val googleApiServicesSheetsVersion = "v4-rev612-1.25.0"
-val googleAnalyticsAdminVersion    = "0.62.0"
-val googleAnalyticsDataVersion     = "0.63.0"
-val grpcVersion                    = "1.67.1"
+val googleApiClientVersion         = "2.7.1"
+val googleApiServicesSheetsVersion = "v4-rev20250106-2.0.0"
+val googleAnalyticsAdminVersion    = "0.66.0"
+val googleAnalyticsDataVersion     = "0.67.0"
+val grpcVersion                    = "1.69.0"
 
 // === Other ==================================================================
 
@@ -693,7 +694,6 @@ lazy val componentModulesPaths =
     GraalVM.toolsPkgs ++
     scalaReflect ++
     helidon ++
-    jackson ++
     scalaLibrary ++
     ioSentry ++
     logbackPkg ++
@@ -1119,8 +1119,8 @@ lazy val `logging-service-logback` = project
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
       "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
-    ) ++ logbackPkg ++ ioSentry ++ jackson,
-    Compile / moduleDependencies ++= logbackPkg ++ ioSentry ++ jackson ++ Seq(
+    ) ++ logbackPkg ++ ioSentry,
+    Compile / moduleDependencies ++= logbackPkg ++ ioSentry ++ Seq(
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
@@ -1140,6 +1140,33 @@ lazy val `logging-service-logback` = project
   )
   .dependsOn(`logging-config`)
   .dependsOn(`logging-service`)
+
+lazy val `logging-service-telemetry` = project
+  .in(file("lib/java/logging-service-telemetry"))
+  .enablePlugins(JPMSPlugin)
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    scalaModuleDependencySetting,
+    mixedJavaScalaProjectSetting,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.slf4j"                              % "slf4j-api"               % slf4jVersion,
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros"   % jsoniterVersion,
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"     % jsoniterVersion,
+      "org.netbeans.api"                       % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+    ),
+    Compile / javaModuleName := "org.enso.logging.service.telemetry",
+    Compile / moduleDependencies ++= logbackPkg ++ Seq(
+      "org.slf4j"        % "slf4j-api"               % slf4jVersion,
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
+    ),
+    Compile / internalModuleDependencies ++= Seq(
+      (`scala-libs-wrapper` / Compile / exportedModule).value,
+      (`logging-service-logback` / Compile / exportedModule).value
+    )
+  )
+  .dependsOn(`logging-service-logback`)
 
 lazy val `logging-utils-akka` = project
   .in(file("lib/scala/logging-utils-akka"))
@@ -1798,6 +1825,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(`logging-service`)
   .dependsOn(pkg)
   .dependsOn(`logging-service-logback` % Runtime)
+  .dependsOn(`logging-service-telemetry` % Runtime)
   .dependsOn(`json-rpc-server` % "compile->compile;test->test")
   .dependsOn(testkit % Test)
   .dependsOn(`runtime-version-manager` % "compile->compile;test->test")
@@ -2264,9 +2292,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
-    libraryDependencies ++= akka ++ circe ++ bouncyCastle.map(
-      _ % Test
-    ) ++ jackson.map(_ % Test) ++ Seq(
+    libraryDependencies ++= akka ++ circe ++ bouncyCastle.map(_ % Test) ++ Seq(
       "org.slf4j"                   % "slf4j-api"            % slf4jVersion,
       "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,
       "io.circe"                   %% "circe-generic-extras" % circeGenericExtrasVersion,
@@ -2365,7 +2391,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "com.ibm.icu"            % "icu4j"                        % icuVersion             % Test
     ),
     Test / moduleDependencies := {
-      GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ ioSentry ++ bouncyCastle ++ scalaLibrary ++ scalaReflect ++ jackson ++ Seq(
+      GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ ioSentry ++ bouncyCastle ++ scalaLibrary ++ scalaReflect ++ Seq(
         "org.slf4j"              % "slf4j-api"                    % slf4jVersion,
         "org.netbeans.api"       % "org-netbeans-modules-sampler" % netbeansApiVersion,
         "com.google.flatbuffers" % "flatbuffers-java"             % flatbuffersVersion,
@@ -2836,6 +2862,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`exploratory-benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(`std-image` / Compile / packageBin)
       .dependsOn(`std-database` / Compile / packageBin)
+      .dependsOn(`std-generic-jdbc` / Compile / packageBin)
       .dependsOn(`std-google-api` / Compile / packageBin)
       .dependsOn(`std-table` / Compile / packageBin)
       .dependsOn(`std-aws` / Compile / packageBin)
@@ -2915,7 +2942,7 @@ lazy val `runtime-integration-tests` =
       ),
       Test / javaOptions ++= testLogProviderOptions,
       Test / moduleDependencies := {
-        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ ioSentry ++ scalaLibrary ++ scalaReflect ++ jackson ++ Seq(
+        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ ioSentry ++ scalaLibrary ++ scalaReflect ++ Seq(
           "org.apache.commons"     % "commons-lang3"                % commonsLangVersion,
           "org.apache.commons"     % "commons-compress"             % commonsCompressVersion,
           "commons-io"             % "commons-io"                   % commonsIoVersion,
@@ -2974,7 +3001,8 @@ lazy val `runtime-integration-tests` =
         (`semver` / Compile / exportedModule).value,
         (`downloader` / Compile / exportedModule).value,
         (`logging-config` / Compile / exportedModule).value,
-        (`logging-service` / Compile / exportedModule).value
+        (`logging-service` / Compile / exportedModule).value,
+        (`logging-service-telemetry` / Compile / exportedModule).value
       ),
       Test / patchModules := {
         // Patch test-classes into the runtime module. This is standard way to deal with the
@@ -3007,6 +3035,7 @@ lazy val `runtime-integration-tests` =
         (`runtime-instrument-common` / javaModuleName).value,
         (`text-buffer` / javaModuleName).value,
         (`logging-service-logback` / Test / javaModuleName).value,
+        (`logging-service-telemetry` / Compile / javaModuleName).value,
         "ch.qos.logback.classic",
         "truffle.tck.tests"
       ),
@@ -3026,9 +3055,9 @@ lazy val `runtime-integration-tests` =
             "truffle.tck.tests",
             "org.openide.util.lookup.RELEASE180",
             "ch.qos.logback.classic",
-            "com.fasterxml.jackson.databind",
             (`logging-service-logback` / Compile / javaModuleName).value,
-            (`logging-service-logback` / Test / javaModuleName).value
+            (`logging-service-logback` / Test / javaModuleName).value,
+            (`logging-service-telemetry` / Compile / javaModuleName).value
           ),
           testInstrumentsModName -> Seq(runtimeModName)
         )
@@ -3049,7 +3078,7 @@ lazy val `runtime-integration-tests` =
           (`runtime` / javaModuleName).value + "/org.enso.compiler.test" -> Seq(
             "ALL-UNNAMED"
           ),
-          (`logging-service-logback` / Compile / javaModuleName).value + "/org.enso.logging.service.logback.telemetry" -> Seq(
+          (`logging-service-telemetry` / Compile / javaModuleName).value + "/org.enso.logging.service.telemetry" -> Seq(
             (`runtime` / javaModuleName).value
           )
         )
@@ -3065,6 +3094,7 @@ lazy val `runtime-integration-tests` =
     .dependsOn(`runtime`)
     .dependsOn(`runtime-test-instruments`)
     .dependsOn(`logging-service-logback` % "test->test")
+    .dependsOn(`logging-service-telemetry` % "test->compile")
     .dependsOn(`logging-utils` % Test)
     .dependsOn(testkit % Test)
     .dependsOn(`connected-lock-manager-server`)
@@ -3082,7 +3112,7 @@ lazy val `runtime-benchmarks` =
       annotationProcSetting,
       // Note that withDebug command only makes sense if you use `@Fork(0)` in your benchmarks.
       commands += WithDebugCommand.withDebug,
-      libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ helidon ++ ioSentry ++ logbackPkg ++ jackson ++ Seq(
+      libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ helidon ++ ioSentry ++ logbackPkg ++ Seq(
         "org.openjdk.jmh"     % "jmh-core"                     % jmhVersion,
         "org.openjdk.jmh"     % "jmh-generator-annprocess"     % jmhVersion,
         "jakarta.xml.bind"    % "jakarta.xml.bind-api"         % jaxbVersion,
@@ -3102,7 +3132,7 @@ lazy val `runtime-benchmarks` =
       ),
       parallelExecution := false,
       Compile / moduleDependencies ++= {
-        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ ioSentry ++ scalaReflect ++ jackson ++ Seq(
+        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ ioSentry ++ scalaReflect ++ Seq(
           "org.apache.commons"     % "commons-lang3"                % commonsLangVersion,
           "org.apache.commons"     % "commons-compress"             % commonsCompressVersion,
           "commons-io"             % "commons-io"                   % commonsIoVersion,
@@ -3887,11 +3917,16 @@ lazy val `engine-runner` = project
     },
     rebuildNativeImage := Def
       .taskDyn {
+        // Limit max memory limit
+        val macArmOnCI =
+          sys.env.get("CI").isDefined && Platform.isMacOS && Platform.isArm64
+        val maxLimit = if (macArmOnCI) Some(14336) else Some(15608)
         NativeImage
           .buildNativeImage(
             "enso",
-            targetDir     = engineDistributionRoot.value / "bin",
-            staticOnLinux = false,
+            buildMemoryLimitMegabytes = maxLimit,
+            targetDir                 = engineDistributionRoot.value / "bin",
+            staticOnLinux             = false,
             // sqlite-jdbc includes `--enable-url-protocols=jar` in its native-image.properites file,
             // which breaks all our class loading. We still want to run `SqliteJdbcFeature` which extracts a proper
             // native library from the jar.
@@ -4726,6 +4761,10 @@ val `base-polyglot-root`  = stdLibComponentRoot("Base") / "polyglot" / "java"
 val `table-polyglot-root` = stdLibComponentRoot("Table") / "polyglot" / "java"
 val `image-polyglot-root` = stdLibComponentRoot("Image") / "polyglot" / "java"
 val `image-native-libs`   = stdLibComponentRoot("Image") / "polyglot" / "lib"
+val `generic-jdbc-polyglot-root` =
+  stdLibComponentRoot("Generic_JDBC") / "polyglot" / "java"
+val `generic-jdbc-native-libs` =
+  stdLibComponentRoot("Generic_JDBC") / "polyglot" / "lib"
 val `google-api-polyglot-root` =
   stdLibComponentRoot("Google_Api") / "polyglot" / "java"
 val `google-api-native-libs` =
@@ -4839,6 +4878,7 @@ lazy val `generic-jdbc-connection-spec-dependencies` = project
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
+  .dependsOn(`std-database` % "provided")
 
 lazy val `snowflake-test-java-helpers` = project
   .in(file("test/Snowflake_Tests/polyglot-sources/snowflake-test-java-helpers"))
@@ -5003,6 +5043,36 @@ lazy val `std-image` = project
   )
   .dependsOn(`std-base` % "provided")
 
+lazy val `std-generic-jdbc` = project
+  .in(file("std-bits") / "generic-jdbc")
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
+    Compile / packageBin / artifactPath :=
+      `generic-jdbc-polyglot-root` / "std-generic-jdbc.jar",
+    libraryDependencies ++= Seq(
+      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided"
+    ),
+    Compile / packageBin := {
+      val result = (Compile / packageBin).value
+      StdBits
+        .copyDependencies(
+          `generic-jdbc-polyglot-root`,
+          Seq("std-generic-jdbc.jar"),
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+  .dependsOn(`std-database` % "provided")
+
 lazy val `std-google-api` = project
   .in(file("std-bits") / "google-api")
   .settings(
@@ -5018,7 +5088,7 @@ lazy val `std-google-api` = project
       "com.google.apis"       % "google-api-services-sheets" % googleApiServicesSheetsVersion exclude ("com.google.code.findbugs", "jsr305"),
       "com.google.analytics"  % "google-analytics-admin"     % googleAnalyticsAdminVersion exclude ("com.google.code.findbugs", "jsr305"),
       "com.google.analytics"  % "google-analytics-data"      % googleAnalyticsDataVersion exclude ("com.google.code.findbugs", "jsr305"),
-      "io.grpc"               % "grpc-netty-shaded"          % grpcVersion
+      "io.grpc"               % "grpc-netty-shaded"          % grpcVersion exclude ("com.google.code.findbugs", "jsr305")
     ),
     // Extract native libraries from grpc-netty-shaded-***.jar, and put them under
     // Standard/Google_Api/polyglot/lib directory. The minimized jar will
@@ -5061,6 +5131,7 @@ lazy val `std-google-api` = project
       .dependsOn(cleanPolyglotRoot)
       .value
   )
+  .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
 
 lazy val `std-database` = project
@@ -5549,6 +5620,7 @@ val stdBitsProjects =
     "AWS",
     "Base",
     "Database",
+    "Generic_JDBC",
     "Google_Api",
     "Image",
     "Microsoft",
@@ -5610,6 +5682,8 @@ pkgStdLibInternal := Def.inputTask {
       (`std-base` / Compile / packageBin).value
     case "Database" =>
       (`std-database` / Compile / packageBin).value
+    case "Generic_JDBC" =>
+      (`std-generic-jdbc` / Compile / packageBin).value
     case "Google_Api" =>
       (`std-google-api` / Compile / packageBin).value
     case "Image" =>
@@ -5640,6 +5714,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-table` / Compile / packageBin).value
       (`std-database` / Compile / packageBin).value
       (`std-image` / Compile / packageBin).value
+      (`std-generic-jdbc` / Compile / packageBin).value
       (`std-google-api` / Compile / packageBin).value
       (`std-aws` / Compile / packageBin).value
       (`std-snowflake` / Compile / packageBin).value

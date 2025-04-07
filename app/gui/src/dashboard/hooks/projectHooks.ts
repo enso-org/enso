@@ -18,9 +18,12 @@ import {
   type LaunchedProjectId,
 } from '#/providers/ProjectsProvider'
 
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
+import { useMutationCallback } from '../utilities/tanstackQuery'
+import { useUploadFileWithToastMutation } from './backendUploadFilesHooks'
 
 /** Default interval for refetching project status when the project is opened. */
 const OPENED_INTERVAL_MS = 30_000
@@ -45,8 +48,7 @@ export interface CreateOpenedProjectQueryOptions {
 
 /** Whether the user can open projects. */
 export function useCanOpenProjects() {
-  const enableCloudExecution = useFeatureFlag('enableCloudExecution')
-  return enableCloudExecution
+  return useFeatureFlag('enableCloudExecution')
 }
 
 /** Return a function to update a project asset in the TanStack Query cache. */
@@ -95,6 +97,11 @@ export const STATIC_PROJECT_STATES = new Set([
 export const CREATED_PROJECT_STATES = new Set([
   backendModule.ProjectState.created,
   backendModule.ProjectState.new,
+])
+export const BUSY_PROJECT_STATES = new Set([
+  ...Array.from(OPENING_PROJECT_STATES),
+  ...Array.from(CLOSING_PROJECT_STATES),
+  backendModule.ProjectState.opened,
 ])
 
 /** Stale time for local projects, set to 10 seconds. */
@@ -216,11 +223,13 @@ export function useOpenProjectMutation() {
       id,
       type,
       parentId,
+      hybrid,
       inBackground = false,
     }: LaunchedProject & { inBackground?: boolean }) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
+      const cloudProjectDirectoryPath = hybrid ? hybrid.cloudProjectDirectoryPath : null
 
       return backend.openProject(
         id,
@@ -233,6 +242,7 @@ export function useOpenProjectMutation() {
             expireAt: session.expireAt,
             refreshUrl: session.refreshUrl,
           },
+          cloudProjectDirectoryPath,
           parentId,
         },
         title,
@@ -260,6 +270,10 @@ export function useOpenProjectMutation() {
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
+    meta: {
+      invalidates: [['listDirectory']],
+      awaitInvalidates: true,
+    },
   })
 }
 
@@ -269,8 +283,10 @@ export function useCloseProjectMutation() {
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const setProjectAsset = useSetProjectAsset()
+  const uploadFileMutation = useUploadFileWithToastMutation(remoteBackend)
+  const toastAndLog = useToastAndLog()
 
-  return reactQuery.useMutation({
+  return useMutationCallback({
     mutationKey: ['closeProject'],
     mutationFn: async ({ type, id, title, hybrid }: LaunchedProject) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
@@ -294,7 +310,7 @@ export function useCloseProjectMutation() {
 
       void client.cancelQueries({ queryKey })
     },
-    onSuccess: async (_, { type, id, parentId, hybrid }) => {
+    onSuccess: async (_, { type, id, title, parentId, hybrid }) => {
       await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       setProjectAsset(type, id, parentId, (asset) => ({
         ...asset,
@@ -302,7 +318,21 @@ export function useCloseProjectMutation() {
       }))
 
       if (hybrid) {
-        await remoteBackend.uploadProject(hybrid.cloudProjectId, parentId)
+        const safeTitle = backendModule.escapeSpecialCharacters(title)
+        const fileName = `${safeTitle}.enso-project`
+        const file = await remoteBackend.getProjectArchive(parentId, fileName)
+        await uploadFileMutation
+          .mutateAsync([
+            {
+              fileId: hybrid.cloudProjectId,
+              fileName: fileName,
+              parentDirectoryId: hybrid.cloudParentId,
+            },
+            file,
+          ])
+          .catch((error) => {
+            toastAndLog('uploadProjectError', error)
+          })
 
         invariant(localBackend != null, 'LocalBackend is null')
         await localBackend.deleteAsset(hybrid.parentId, { force: true }, null)
@@ -311,9 +341,23 @@ export function useCloseProjectMutation() {
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
-    onError: async (_, { type, id, parentId, hybrid }) => {
+    onError: async (_, { type, id, title, parentId, hybrid }) => {
       if (hybrid) {
-        await remoteBackend.uploadProject(hybrid.cloudProjectId, parentId)
+        const safeTitle = backendModule.escapeSpecialCharacters(title)
+        const fileName = `${safeTitle}.enso-project`
+        const file = await remoteBackend.getProjectArchive(parentId, fileName)
+        await uploadFileMutation
+          .mutateAsync([
+            {
+              fileId: hybrid.cloudProjectId,
+              fileName: fileName,
+              parentDirectoryId: hybrid.cloudParentId,
+            },
+            file,
+          ])
+          .catch((error) => {
+            toastAndLog('uploadProjectError', error)
+          })
 
         invariant(localBackend != null, 'LocalBackend is null')
         await localBackend.deleteAsset(hybrid.parentId, { force: true }, null)
@@ -321,6 +365,10 @@ export function useCloseProjectMutation() {
 
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
+    },
+    meta: {
+      invalidates: [['listDirectory']],
+      awaitInvalidates: true,
     },
   })
 }
@@ -352,11 +400,15 @@ export function useRenameProjectMutation() {
         queryKey: createGetProjectDetailsQuery.getQueryKey(project.id),
       })
     },
+    meta: {
+      invalidates: [['listDirectory']],
+      awaitInvalidates: true,
+    },
   })
 }
 
 /** A callback to open a project. */
-export function useOpenProject() {
+function useOpenProject() {
   const client = reactQuery.useQueryClient()
   const canOpenProjects = useCanOpenProjects()
   const projectsStore = useProjectsStore()
@@ -385,15 +437,13 @@ export function useOpenProject() {
     const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
 
     if (!isOpeningTheSameProject) {
-      openProjectMutation.mutate(project, {
-        onSuccess: () => {
-          addLaunchedProject(project)
-        },
+      void openProjectMutation.mutateAsync(project).then(() => {
+        addLaunchedProject(project)
       })
 
       const openingProjectMutation = client.getMutationCache().find({
         mutationKey: ['openProject'],
-        // this is unsafe, but we can't do anything about it
+        // This is unsafe, but we can't do anything about it.
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         predicate: (mutation) => mutation.state.variables?.id === project.id,
       })
@@ -403,6 +453,99 @@ export function useOpenProject() {
       })
     }
   })
+}
+
+/** Return a hook to open a project in Hybrid Mode. */
+export function useOpenHybridProject() {
+  const localBackend = backendProvider.useLocalBackend()
+  const remoteBackend = backendProvider.useRemoteBackend()
+  const toastAndLog = useToastAndLog()
+  const openProject = useOpenProject()
+  const closeProject = useCloseProject()
+
+  return eventCallbacks.useEventCallback(
+    async (asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>) => {
+      try {
+        invariant(localBackend != null, 'Local Backend is null')
+        await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
+        const localProject = await remoteBackend.downloadProject(asset.id)
+        invariant(asset.ensoPath, 'Enso path is not defined')
+        const cloudProjectDirectoryPath = asset.ensoPath.slice(0, asset.ensoPath.lastIndexOf('/'))
+
+        let project
+        for (const parentId of [localProject.targetId, localProject.parentId]) {
+          const assets = await localBackend.listDirectory({
+            parentId: parentId,
+            filterBy: null,
+            labels: null,
+            recentProjects: false,
+          })
+          project = assets.filter((item) => item.type === backendModule.AssetType.project).at(0)
+          if (project !== undefined) {
+            break
+          }
+        }
+
+        invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
+        openProject({
+          id: project.id,
+          title: asset.title,
+          parentId: project.parentId,
+          type: backendModule.BackendType.local,
+          hybrid: {
+            cloudProjectId: asset.id,
+            cloudParentId: asset.parentId,
+            parentId: localProject.parentId,
+            cloudProjectDirectoryPath,
+          },
+        })
+      } catch (error) {
+        toastAndLog('openProjectError', error, asset.title)
+        await closeProject({
+          id: asset.id,
+          title: asset.title,
+          parentId: asset.parentId,
+          type: backendModule.BackendType.local,
+        })
+      }
+    },
+  )
+}
+
+/** Return a hook to open a project natively - Cloud mode for cloud projects, Local mode for local projects. */
+export function useOpenProjectNatively() {
+  const openProject = useOpenProject()
+
+  return eventCallbacks.useEventCallback(
+    (
+      asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>,
+      backendType: backendModule.BackendType,
+    ) => {
+      openProject({ ...asset, type: backendType })
+    },
+  )
+}
+
+/** Return a hook to open a project locally - meaning Hybrid Mode is used for Cloud projects. */
+export function useOpenProjectLocally() {
+  const openProject = useOpenProject()
+  const enableHybridExecution = useFeatureFlag('enableHybridExecution')
+  const openHybridProject = useOpenHybridProject()
+
+  return eventCallbacks.useEventCallback(
+    async (
+      asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>,
+      backendType: backendModule.BackendType,
+    ) => {
+      const isCloud = backendType === backendModule.BackendType.remote
+      if (isCloud && enableHybridExecution) {
+        await openHybridProject(asset)
+        return
+      } else {
+        openProject({ ...asset, type: backendType })
+      }
+    },
+  )
 }
 
 /** A function to open the editor. */
@@ -421,7 +564,7 @@ export function useCloseProject() {
   const setPage = useSetPage()
   const projectsStore = useProjectsStore()
 
-  return eventCallbacks.useEventCallback((project: LaunchedProject) => {
+  return eventCallbacks.useEventCallback(async (project: LaunchedProject) => {
     client
       .getMutationCache()
       .findAll({
@@ -433,7 +576,7 @@ export function useCloseProject() {
         mutation.destroy()
       })
 
-    closeProjectMutation.mutate(project)
+    const promise = closeProjectMutation(project)
 
     client
       .getMutationCache()
@@ -452,6 +595,8 @@ export function useCloseProject() {
     if (projectsStore.getState().page === project.id) {
       setPage('drive')
     }
+
+    await promise
   })
 }
 
@@ -464,7 +609,7 @@ export function useCloseAllProjects() {
     const launchedProjects = projectsStore.getState().launchedProjects
 
     for (const launchedProject of launchedProjects) {
-      closeProject(launchedProject)
+      void closeProject(launchedProject)
     }
   })
 }

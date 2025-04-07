@@ -4,10 +4,6 @@ import { DialogTrigger } from '#/components/AriaComponents'
 import * as modalProvider from '#/providers/ModalProvider'
 import { AnimatePresence, motion } from 'framer-motion'
 
-// ================
-// === TheModal ===
-// ================
-
 /** Renders the modal instance from the modal React Context (if any). */
 export default function TheModal() {
   const { modal, key } = modalProvider.useModal()

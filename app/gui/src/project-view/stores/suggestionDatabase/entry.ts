@@ -157,8 +157,8 @@ export function entryIsStatic(
 }
 
 /** Get the MethodPointer pointing to definition represented by the entry. */
-export function entryMethodPointer(entry: SuggestionEntry): MethodPointer | undefined {
-  if (entry.kind !== SuggestionKind.Method) return
+export function entryMethodPointer(entry: SuggestionEntry | undefined): MethodPointer | undefined {
+  if (entry == null || entry.kind !== SuggestionKind.Method) return
   return {
     module: entry.definedIn,
     definedOnType: entry.memberOf,

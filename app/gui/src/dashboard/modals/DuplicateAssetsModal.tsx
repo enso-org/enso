@@ -25,20 +25,12 @@ import { listDirectoryQueryOptions, unsafe_assetFromCacheQueryOptions } from '#/
 import { useMount } from '#/hooks/mountHooks'
 import { useCategory } from '#/layouts/Drive/Categories/categoriesHooks'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
+import { FilterBy } from '#/services/Backend'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
-import {
-  useMutation,
-  useQueryClient,
-  useSuspenseQueries,
-  useSuspenseQuery,
-} from '@tanstack/react-query'
+import { useMutation, useQueryClient, useSuspenseQueries } from '@tanstack/react-query'
 import { Fragment } from 'react'
 import invariant from 'tiny-invariant'
-
-// =============
-// === Types ===
-// =============
 
 /**
  * An object containing the current asset, and the asset that is about to be uploaded,
@@ -53,10 +45,6 @@ export interface ConflictingAsset<
   readonly new: Asset
   readonly file: File
 }
-
-// =================================
-// === UpdateOrRenameAssetsModal ===
-// =================================
 
 /** Props for a {@link DuplicateAssetsModal}. */
 export interface DuplicateAssetsModalProps {
@@ -424,16 +412,32 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
 
   const queryClient = useQueryClient()
 
-  const { data: siblingFiles } = useSuspenseQuery({
-    ...listDirectoryQueryOptions({
-      category,
-      backend: associatedBackend,
-      parentId: targetId,
-    }),
-    select: (data) => {
-      // We use titles as keys, because they are always unique, and we want to find duplicates by title.
-      const map = new Map(data.map((asset) => [asset.title, asset]))
-      return { map, siblings: data }
+  const siblingFiles = useSuspenseQueries({
+    queries: [
+      listDirectoryQueryOptions({
+        category,
+        backend: associatedBackend,
+        parentId: targetId,
+        refetchInterval: null,
+      }),
+      listDirectoryQueryOptions({
+        category,
+        backend: associatedBackend,
+        parentId: targetId,
+        filterBy: FilterBy.trashed,
+        refetchInterval: null,
+      }),
+    ],
+    combine: (queries) => {
+      const map = new Map<string, backendModule.AnyAsset>()
+      const siblings = []
+      for (const query of queries) {
+        for (const asset of query.data) {
+          map.set(asset.title, asset)
+          siblings.push(asset)
+        }
+      }
+      return { map, siblings: queries[0].data }
     },
   })
 
@@ -444,16 +448,20 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
     combine: (queries) => queries.map((query) => query.data).filter((asset) => asset != null),
   })
 
-  useMount(() => {
-    const onlyExistingConflicts = conflictingAssets.filter(
-      (asset) => siblingFiles.map.get(asset.title) != null,
-    )
+  const onlyExistingConflicts = conflictingAssets.filter(
+    (asset) => siblingFiles.map.get(asset.title) != null,
+  )
 
-    // If there are no conflicts, we can just skip the modal and return nothing.
+  // If there are no conflicts, we can just skip the modal and return nothing.
+  useMount(() => {
     if (onlyExistingConflicts.length === 0) {
       void props.onSubmit([])
     }
   })
+
+  if (onlyExistingConflicts.length === 0) {
+    return null
+  }
 
   return (
     <Form
@@ -687,6 +695,7 @@ export interface ResolveDuplicationsOptions
 /**
  * Function for resolving duplicates.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export async function resolveDuplications(props: ResolveDuplicationsOptions) {
   const { targetId, conflictingIds } = props
 

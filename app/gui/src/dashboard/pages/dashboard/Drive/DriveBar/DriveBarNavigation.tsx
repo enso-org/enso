@@ -15,7 +15,8 @@ import { useDriveStore } from '#/providers/DriveProvider'
 import { useText } from '#/providers/TextProvider'
 import { isDirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useTransition } from 'react'
 import { toast } from 'react-toastify'
 
@@ -35,7 +36,7 @@ export function DriveBarNavigation() {
 
   const driveStore = useDriveStore()
 
-  const moveAssetsMutation = useMutation({
+  const moveAssetsMutation = useMutationCallback({
     ...moveAssetsMutationOptions(associatedBackend),
     onSuccess: () => {
       driveStore.setState({ selectedIds: new Set(), visuallySelectedKeys: new Set() })
@@ -50,12 +51,15 @@ export function DriveBarNavigation() {
     },
   })
 
+  const parentDirectoryQueryOptions = listDirectoryQueryOptions({
+    backend: associatedBackend,
+    parentId: parentDirectoryId,
+    category,
+    refetchInterval: null,
+  })
+
   const { data: directoryData } = useSuspenseQuery({
-    ...listDirectoryQueryOptions({
-      backend: associatedBackend,
-      parentId: parentDirectoryId,
-      category,
-    }),
+    ...parentDirectoryQueryOptions,
     select: (data) => {
       if (parentDirectoryId === currentDirectoryId) {
         return null
@@ -127,7 +131,7 @@ export function DriveBarNavigation() {
       return
     }
 
-    await moveAssetsMutation.mutateAsync([[...selectedIds], id])
+    await moveAssetsMutation([[...selectedIds], id])
   })
 
   const navigateToParent = useEventCallback(() => {
@@ -198,17 +202,13 @@ export function DriveBarNavigation() {
   }
 }
 
-/**
- * Props for {@link DriveBarBreadcrumbsItem}.
- */
+/** Props for {@link DriveBarBreadcrumbsItem}. */
 interface DriveBarBreadcrumbsItemProps<IconType extends string>
   extends BreadcrumbItemProps<IconType> {
   readonly navigateToDirectory: (id: React.Key) => void
 }
 
-/**
- * A breadcrumb item for the drive bar.
- */
+/** A breadcrumb item for the drive bar. */
 function DriveBarBreadcrumbsItem<IconType extends string>(
   props: DriveBarBreadcrumbsItemProps<IconType>,
 ) {
@@ -235,17 +235,13 @@ function DriveBarBreadcrumbsItem<IconType extends string>(
   )
 }
 
-/**
- * Props for {@link UpButton}.
- */
+/** Props for {@link UpButton}. */
 interface UpButtonProps {
   readonly navigateToParent: () => void
   readonly isDisabled: boolean
 }
 
-/**
- * A button for navigating to the parent directory.
- */
+/** A button for navigating to the parent directory. */
 function UpButton(props: UpButtonProps) {
   const { navigateToParent, isDisabled } = props
   const { getText } = useText()

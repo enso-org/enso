@@ -1,6 +1,4 @@
 /** @file Displays a non-interactable icon for an asset based on its type and name. */
-import * as React from 'react'
-
 import BlankIcon from '#/assets/blank.svg'
 import DatalinkIcon from '#/assets/datalink.svg'
 import FolderIcon from '#/assets/folder.svg'

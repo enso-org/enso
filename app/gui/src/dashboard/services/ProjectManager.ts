@@ -186,10 +186,6 @@ export interface DuplicatedProject {
   readonly projectNormalizedName: string
 }
 
-// ====================
-// === ProjectState ===
-// ====================
-
 /** A project that is currently opening. */
 interface OpenInProgressProjectState {
   readonly state: backend.ProjectState.openInProgress
@@ -212,6 +208,7 @@ type ProjectState = OpenedProjectState | OpenInProgressProjectState
 export interface OpenProjectParams {
   readonly projectId: UUID
   readonly missingComponentAction: MissingComponentAction
+  readonly cloudProjectDirectoryPath?: string
   readonly projectsDirectory?: string
 }
 

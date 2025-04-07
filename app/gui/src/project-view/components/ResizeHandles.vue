@@ -2,11 +2,12 @@
 import { usePointer } from '@/composables/events'
 import { selectFields } from '@/util/data/object'
 import { Rect, type BoundsSet } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
 
-const bounds = defineModel<Rect>({ required: true })
-const props = defineProps<BoundsSet>()
+const props = defineProps<BoundsSet & { modelValue: Rect }>()
 const emit = defineEmits<{
   'update:resizing': [BoundsSet]
+  'update:modelValue': [Rect, delta: Vec2]
 }>()
 
 let initialBounds: Rect | undefined = undefined
@@ -20,25 +21,27 @@ function resizeHandler(resizeX: 'left' | 'right' | false, resizeY: 'top' | 'bott
   return usePointer((pos, _, type) => {
     switch (type) {
       case 'start':
-        initialBounds = bounds.value
+        initialBounds = props.modelValue
         emit('update:resizing', resizing)
         break
       case 'move':
-        if (!initialBounds) break
-        bounds.value = initialBounds.withBoundsClamped(
-          selectFields(resizing, {
-            top: initialBounds.top + pos.relative.y,
-            bottom: initialBounds.bottom + pos.relative.y,
-            left: initialBounds.left + pos.relative.x,
-            right: initialBounds.right + pos.relative.x,
-          }),
-        )
+        if (initialBounds) {
+          const newBounds = initialBounds.withBoundsClamped(
+            selectFields(resizing, {
+              top: initialBounds.top + pos.relative.y,
+              bottom: initialBounds.bottom + pos.relative.y,
+              left: initialBounds.left + pos.relative.x,
+              right: initialBounds.right + pos.relative.x,
+            }),
+          )
+          emit('update:modelValue', newBounds, pos.relative)
+        }
         break
       case 'stop':
         emit('update:resizing', {})
         break
       case 'cancel':
-        if (initialBounds) bounds.value = initialBounds
+        if (initialBounds) emit('update:modelValue', initialBounds, Vec2.Zero)
         emit('update:resizing', {})
         break
     }

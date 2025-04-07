@@ -1785,7 +1785,7 @@ final class TreeToIr {
       return new Import.Module(
           qualifiedName, rename, isAll || onlyNames.isDefined() || hidingNames.isDefined(),
           onlyNames,
-          hidingNames, getIdentifiedLocation(imp), false,
+          hidingNames, false, getIdentifiedLocation(imp),
           meta()
       );
     } catch (SyntaxException err) {

@@ -26,10 +26,6 @@ export const DOCS_CLASS_NAME = 'text-tag-text bg-permission-docs'
 /** CSS classes for the execute permission. */
 export const EXEC_CLASS_NAME = 'text-tag-text bg-permission-exec'
 
-// ================================
-// === tryCreateOwnerPermission ===
-// ================================
-
 /**
  * Return an array containing the owner permission if `owner` is not `null`,
  * else return an empty array (`[]`).
@@ -52,8 +48,7 @@ export function tryCreateOwnerPermission(
     case 'local':
     case 'local-directory':
     default: {
-      const isFreeOrSolo =
-        user.plan == null || user.plan === backend.Plan.free || user.plan === backend.Plan.solo
+      const isFreeOrSolo = user.plan === backend.Plan.free || user.plan === backend.Plan.solo
       const owner = isFreeOrSolo ? user : (newOwnerFromPath(path, users, userGroups) ?? user)
       if ('userId' in owner) {
         const { organizationId, userId, name, email } = owner
@@ -64,10 +59,6 @@ export function tryCreateOwnerPermission(
     }
   }
 }
-
-// ==========================
-// === findSelfPermission ===
-// ==========================
 
 /** Try to find a permission belonging to the user. */
 export function tryFindSelfPermission(
@@ -94,10 +85,6 @@ export function tryFindSelfPermission(
   return selfPermission
 }
 
-// ============================================
-// === canPermissionModifyDirectoryContents ===
-// ============================================
-
 /** Whether the given permission means the user can edit the list of assets of the directory. */
 export function canPermissionModifyDirectoryContents(permission: PermissionAction) {
   return (
@@ -107,9 +94,10 @@ export function canPermissionModifyDirectoryContents(permission: PermissionActio
   )
 }
 
-// ==============================
-// === replaceOwnerPermission ===
-// ==============================
+/** Replace the first owner permission with the permission of a new user or team. */
+export function tryGetOwnerPermission(asset: backend.AnyAsset) {
+  return asset.permissions?.find((permission) => permission.permission === PermissionAction.own)
+}
 
 /** Replace the first owner permission with the permission of a new user or team. */
 export function replaceOwnerPermission(

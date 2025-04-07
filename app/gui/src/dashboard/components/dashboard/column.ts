@@ -3,11 +3,11 @@ import { memo, type Dispatch, type JSX, type SetStateAction } from 'react'
 
 import type { AssetRowState, AssetsTableState } from '#/layouts/AssetsTable'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import type { AnyAsset, BackendType } from '#/services/Backend'
+import type { LaunchedProject } from '#/providers/ProjectsProvider'
+import type { AnyAsset, AssetId, BackendType, Label, ProjectId } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
 import type { SortableColumn } from './column/columnUtils'
 import { Column } from './column/columnUtils'
-import DocsColumn from './column/DocsColumn'
 import LabelsColumn from './column/LabelsColumn'
 import ModifiedColumn from './column/ModifiedColumn'
 import NameColumn from './column/NameColumn'
@@ -27,6 +27,10 @@ export interface AssetColumnProps {
   readonly setRowState: Dispatch<SetStateAction<AssetRowState>>
   readonly isEditable: boolean
   readonly isPlaceholder: boolean
+  readonly labels: readonly Label[]
+  readonly renameAsset: (assetId: AssetId, newTitle: string) => Promise<void>
+  readonly closeProject: (project: LaunchedProject) => Promise<void>
+  readonly openProject: (projectId: ProjectId) => Promise<void>
 }
 
 /** Props for a {@link AssetColumn}. */
@@ -45,10 +49,6 @@ export interface AssetColumn {
   readonly render: (props: AssetColumnProps) => JSX.Element
 }
 
-// =======================
-// === COLUMN_RENDERER ===
-// =======================
-
 /** React components for every column. */
 export const COLUMN_RENDERER: Readonly<
   Record<Column, React.MemoExoticComponent<(props: AssetColumnProps) => React.JSX.Element>>
@@ -59,6 +59,5 @@ export const COLUMN_RENDERER: Readonly<
   [Column.labels]: memo(LabelsColumn),
   [Column.accessedByProjects]: memo(PlaceholderColumn),
   [Column.accessedData]: memo(PlaceholderColumn),
-  [Column.docs]: memo(DocsColumn),
   [Column.path]: memo(PathColumn),
 }

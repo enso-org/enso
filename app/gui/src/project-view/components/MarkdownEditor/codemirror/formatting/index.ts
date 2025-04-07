@@ -14,14 +14,8 @@ import {
 } from '@/components/MarkdownEditor/codemirror/formatting/inline'
 import { type SupportedBlockType as BlockType } from '@/components/MarkdownEditor/markdown/types'
 import { assert } from '@/util/assert'
-import {
-  type EditorState,
-  type Extension,
-  Facet,
-  Prec,
-  type TransactionSpec,
-} from '@codemirror/state'
-import { type EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view'
+import { type EditorState, type Extension, Facet, type TransactionSpec } from '@codemirror/state'
+import { EditorView } from '@codemirror/view'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { computed, proxyRefs, readonly, type Ref, ref } from 'vue'
 export { type BlockType }
@@ -86,7 +80,7 @@ export function markdownFormatting(): Extension {
   const reactiveFormattingFacetExt = reactiveFormattingFacet.of(reactiveFormatting)
   return [
     reactiveFormattingFacetExt,
-    viewObserverExt((update) => {
+    EditorView.updateListener.of((update) => {
       if (!update.docChanged && !update.selectionSet) return
       const formatting = getInlineFormatting(update.view.state)
       for (const key of objects.unsafeKeys(reactiveFormatting.inline))
@@ -95,17 +89,4 @@ export function markdownFormatting(): Extension {
       reactiveFormatting.unformattable.value = formatting === undefined
     }),
   ]
-}
-
-/** Returns an extension that calls the given callback when the view is updated. */
-function viewObserverExt(onUpdate: (update: ViewUpdate) => void): Extension {
-  return Prec.lowest(
-    ViewPlugin.fromClass(
-      class {
-        update(update: ViewUpdate) {
-          onUpdate(update)
-        }
-      },
-    ),
-  )
 }

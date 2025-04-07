@@ -1,16 +1,7 @@
 /** @file A wrapper for a twemoji image. */
-import * as React from 'react'
-
-// =================
-// === Constants ===
-// =================
 
 /** The base of hexadecimal numbers. */
 const HEXADECIMAL = 16
-
-// ===============
-// === Twemoji ===
-// ===============
 
 /** Props for a {@link Twemoji}. */
 export interface TwemojiProps {

@@ -12,8 +12,9 @@ from project.Errors import SQL_Error
 
 polyglot java import org.enso.database.DatabaseConnectionDetailsSPI
 
-## GROUP Standard.Base.Input
-   ICON data_input
+## GROUP Standard.Base.Database
+   ICON drive
+   SUGGESTED 5
    Tries to connect to the database.
 
    Arguments:
