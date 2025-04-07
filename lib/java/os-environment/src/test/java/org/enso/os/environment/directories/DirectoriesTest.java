@@ -2,7 +2,6 @@ package org.enso.os.environment.directories;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import org.enso.common.Platform;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -18,9 +17,6 @@ public class DirectoriesTest {
 
   @Test
   public void getDocuments() throws IOException {
-    // getDocuments fails on Windows CI
-    if (Platform.getOperatingSystem().isWindows()) return;
-
     var documents = directories.getDocuments();
     Assert.assertTrue(
         "User documents is not a directory" + documents, Files.isDirectory(documents));
