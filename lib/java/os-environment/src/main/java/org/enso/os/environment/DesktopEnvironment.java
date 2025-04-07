@@ -3,7 +3,7 @@ package org.enso.os.environment;
 import org.enso.os.environment.directories.Directories;
 import org.enso.os.environment.trash.TrashBin;
 
-final class DesktopEnvironment {
+public final class DesktopEnvironment {
   private static final Directories DIRECTORIES = Directories.getCurrent();
   private static final TrashBin TRASH_BIN = TrashBin.getCurrent();
 

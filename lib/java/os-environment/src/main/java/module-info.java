@@ -10,4 +10,6 @@ module org.enso.os.environment {
 
   exports org.enso.os.environment;
   exports org.enso.os.environment.chdir;
+  exports org.enso.os.environment.trash;
+  exports org.enso.os.environment.directories;
 }
