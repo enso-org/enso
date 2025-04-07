@@ -3,6 +3,7 @@ import * as detect from 'enso-common/src/detect'
 
 import AddDatalinkIcon from '#/assets/add_datalink.svg'
 import AddFolderIcon from '#/assets/add_folder.svg'
+import AddCredentialIcon from '#/assets/add_credential.svg'
 import AddKeyIcon from '#/assets/add_key.svg'
 import AddNetworkIcon from '#/assets/add_network.svg'
 import AppDownloadIcon from '#/assets/app_download.svg'
@@ -85,7 +86,7 @@ export const BINDINGS = inputBindings.defineBindings({
   newCredential: {
     name: 'New Credential',
     bindings: [],
-    icon: AddKeyIcon,
+    icon: AddCredentialIcon,
   },
   newDatalink: {
     name: 'New Datalink',

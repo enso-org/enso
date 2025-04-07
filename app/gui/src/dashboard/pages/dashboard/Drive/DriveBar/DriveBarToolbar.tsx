@@ -6,6 +6,7 @@ import * as React from 'react'
 
 import AddDatalinkIcon from '#/assets/add_datalink.svg'
 import AddFolderIcon from '#/assets/add_folder.svg'
+import AddCredentialIcon from '#/assets/add_credential.svg'
 import AddKeyIcon from '#/assets/add_key.svg'
 import DataDownloadIcon from '#/assets/data_download.svg'
 import DataUploadIcon from '#/assets/data_upload.svg'
@@ -241,7 +242,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   isDisabled={!isCloud}
                   variant="icon"
                   size="medium"
-                  icon={AddKeyIcon}
+                  icon={AddCredentialIcon}
                   aria-label={
                     isCloud ? getText('newCredential') : getText('newCredentialOnlyCloud')
                   }
