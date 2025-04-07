@@ -5,7 +5,6 @@ import {
   useMutationState,
   useQuery,
   useQueryClient,
-  useSuspenseQuery,
   type DefaultError,
   type Mutation,
   type MutationKey,
@@ -16,7 +15,6 @@ import {
   type UseQueryOptions,
   type UseQueryResult,
 } from '@tanstack/react-query'
-import invariant from 'tiny-invariant'
 
 import {
   backendQueryOptions as backendQueryOptionsBase,
@@ -32,7 +30,6 @@ import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import {
@@ -462,24 +459,6 @@ export function useBackendMutationState<Method extends BackendMutationMethod, Re
     // eslint-disable-next-line no-restricted-syntax
     select: select as (mutation: Mutation<unknown, Error, unknown, unknown>) => Result,
   })
-}
-
-/** Get the root directory ID given the current backend and category. */
-export function useRootDirectoryId(backend: Backend, category: Category) {
-  const { user } = useFullUserSession()
-  const { data: organization } = useSuspenseQuery({
-    queryKey: [backend.type, 'getOrganization'],
-    queryFn: () => backend.getOrganization(),
-  })
-  const [localRootDirectory] = useLocalStorageState('localRootDirectory')
-
-  const localRootPath = localRootDirectory != null ? backendModule.Path(localRootDirectory) : null
-  const id =
-    'homeDirectoryId' in category ?
-      category.homeDirectoryId
-    : backend.rootDirectoryId(user, organization, localRootPath)
-  invariant(id, 'Missing root directory')
-  return id
 }
 
 /** Return query data for the children of a directory, fetching it if it does not exist. */

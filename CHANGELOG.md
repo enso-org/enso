@@ -1,3 +1,13 @@
+# Next Next Release
+
+#### Enso Language & Runtime
+
+- [Upgrading Truffle][12500] (including its
+  [JavaScript](https://www.graalvm.org/javascript/) and
+  [Python](https://www.graalvm.org/python/)) to version `24.2.0`.
+
+[12500]: https://github.com/enso-org/enso/pull/12500
+
 # Next Release
 
 #### Enso IDE
