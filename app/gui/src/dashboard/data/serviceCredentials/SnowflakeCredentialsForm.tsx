@@ -7,7 +7,7 @@
 import { Button, Form, Input } from '#/components/AriaComponents'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useText } from '#/providers/TextProvider'
-import { CredentialsFormButtons } from './CredentialsFormButtons'
+import { CredentialsFormFooter } from './CredentialsFormFooter'
 import * as snowflake from './snowflake'
 import type { CredentialFormProps } from './types'
 
@@ -55,7 +55,7 @@ export function SnowflakeCredentialsForm(props: CredentialFormProps) {
             autoComplete="new-password"
           />
           <Input form={form} name="role" label={getText('snowflakeCredentialRole')} />
-          <CredentialsFormButtons isCreating={true} canCancel={false} canReset={false} />
+          <CredentialsFormFooter isCreating={true} canCancel={false} canReset={false} />
         </>
       )}
     </Form>

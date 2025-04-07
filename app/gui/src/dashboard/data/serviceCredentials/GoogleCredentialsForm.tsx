@@ -7,7 +7,7 @@
 import { Checkbox, Form, Input } from '#/components/AriaComponents'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useText } from '#/providers/TextProvider'
-import { CredentialsFormButtons } from './CredentialsFormButtons'
+import { CredentialsFormFooter } from './CredentialsFormFooter'
 import * as google from './google'
 import type { CredentialFormProps } from './types'
 
@@ -40,7 +40,7 @@ export function GoogleCredentialsForm(props: CredentialFormProps) {
             <Checkbox value="sheets">{getText('googleCredentialSheetsScope')}</Checkbox>
             <Checkbox value="analytics">{getText('googleCredentialAnalyticsScope')}</Checkbox>
           </Checkbox.Group>
-          <CredentialsFormButtons isCreating={true} canCancel={false} canReset={false} />
+          <CredentialsFormFooter isCreating={true} canCancel={false} canReset={false} />
         </>
       )}
     </Form>
