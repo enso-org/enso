@@ -31,7 +31,7 @@ export function SnowflakeCredentialsForm(props: CredentialFormProps) {
 
   return (
     <Form form={form} className="w-full">
-      <Button variant='link' href="https://help.enso.org/docs/external-services/snowflake-oauth" target='_blank'>{getText('snowflakeIntegrationGetHelp')}</Button>
+      <Button variant='link' href="https://help.enso.org/docs/using-enso/connecting-to-snowflake#oauth-integration" target='_blank'>{getText('snowflakeIntegrationGetHelp')}</Button>
       <Input form={form} name="name" label={getText('name')} />
       <Input form={form} name="account" label={getText('snowflakeCredentialAccount')} />
       <Input
