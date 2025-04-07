@@ -793,14 +793,11 @@ function AssetsTable(props: AssetsTableProps) {
   const doOpenProject = useEventCallback((projectId: ProjectId) => {
     const project = assets.find((asset) => asset.id === projectId)
 
-    if (project == null) {
+    if (project == null || project.type !== AssetType.project) {
       return Promise.resolve()
     }
 
-    return openProjectLocally(
-      { id: projectId, title: project.title, parentId: project.parentId },
-      backend.type,
-    )
+    return openProjectLocally(project, backend.type)
   })
 
   const doCopy = useEventCallback(() => {
