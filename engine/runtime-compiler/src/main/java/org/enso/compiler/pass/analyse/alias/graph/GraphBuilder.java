@@ -81,8 +81,10 @@ public final class GraphBuilder {
       boolean suspended,
       boolean addToScope) {
     var id = graph.nextId(addToScope ? scope : null);
+    var slotIdx = addToScope ? scope.allDefinitions().size() : -1;
     var def =
-        new GraphOccurrence.Def(id, symbol, identifier, externalId, suspended).withScope(scope);
+        new GraphOccurrence.Def(id, slotIdx, symbol, identifier, externalId, suspended)
+            .withScope(scope);
     if (addToScope) {
       scope.add(def);
       var prev = defs.put(symbol, def);

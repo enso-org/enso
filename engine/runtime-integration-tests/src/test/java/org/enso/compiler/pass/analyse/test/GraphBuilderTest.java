@@ -70,4 +70,16 @@ public class GraphBuilderTest {
     assertEquals("found in child scope", y.id(), fresh.findDef("y"));
     assertEquals("found in parent scope", x.id(), fresh.findDef("x"));
   }
+
+  @Test
+  public void indexInAScope() {
+    var root = GraphBuilder.create();
+    var x = root.newDef("x", null, Option.empty());
+    var child = root.addChild();
+    var y = child.newDef("y", null, Option.empty());
+    var z = root.newDef("z", null, Option.empty());
+    assertEquals("Zero index", 0, x.slotIndx());
+    assertEquals("One index", 1, z.slotIndx());
+    assertEquals("Zero index again", 0, y.slotIndx());
+  }
 }

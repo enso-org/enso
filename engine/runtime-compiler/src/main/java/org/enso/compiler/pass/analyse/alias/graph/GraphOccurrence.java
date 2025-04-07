@@ -29,6 +29,7 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
   public static final class Def extends GraphOccurrence {
     private final ScopeImpl scope;
     private final int id;
+    private final int slotIndx;
     private final String symbol;
     private final @Identifier UUID identifier;
     private final @ExternalID UUID externalId;
@@ -37,12 +38,14 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
     private Def(
         ScopeImpl scope,
         int id,
+        int slotIndx,
         String symbol,
         UUID identifier,
         scala.Option<UUID> externalId,
         boolean isLazy) {
       this.scope = scope;
       this.id = id;
+      this.slotIndx = slotIndx;
       this.externalId = externalId.nonEmpty() ? externalId.get() : null;
       this.identifier = identifier;
       this.isLazy = isLazy;
@@ -58,13 +61,19 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
      * @param externalId the external identifier for the IR node defining the symbol
      * @param isLazy whether or not the symbol is defined as lazy
      */
-    Def(int id, String symbol, UUID identifier, scala.Option<UUID> externalId, boolean isLazy) {
-      this(null, id, symbol, identifier, externalId, isLazy);
+    Def(
+        int id,
+        int slotIndx,
+        String symbol,
+        UUID identifier,
+        scala.Option<UUID> externalId,
+        boolean isLazy) {
+      this(null, id, slotIndx, symbol, identifier, externalId, isLazy);
     }
 
     @Override
     Def withScope(ScopeImpl scope) {
-      return new Def(scope, id, symbol, identifier, Option.apply(externalId), isLazy);
+      return new Def(scope, id, slotIndx, symbol, identifier, Option.apply(externalId), isLazy);
     }
 
     @Override
@@ -75,6 +84,10 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
     @Override
     public int id() {
       return this.id;
+    }
+
+    public final int slotIndx() {
+      return slotIndx;
     }
 
     @Override
