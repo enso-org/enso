@@ -4,7 +4,6 @@ package alias.graph
 
 import org.enso.compiler.debug.Debug
 
-import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.reflect.ClassTag
 import scala.annotation.unused
@@ -15,10 +14,12 @@ sealed private[graph] class GraphImpl(
   private var _nextIdCounter: Int        = 0,
   private var links: Set[Graph.Link]     = Set()
 ) extends Graph {
-  private var sourceLinks: Map[GraphImpl.Id, Set[Graph.Link]] =
-    new HashMap()
-  private var targetLinks: Map[GraphImpl.Id, Set[Graph.Link]] =
-    new HashMap()
+  private var sourceLinks
+    : java.util.Map[GraphImpl.Id, java.util.LinkedHashSet[Graph.Link]] =
+    new java.util.HashMap()
+  private var targetLinks
+    : java.util.Map[GraphImpl.Id, java.util.LinkedHashSet[Graph.Link]] =
+    new java.util.HashMap()
   private val toScope: java.util.Map[GraphImpl.Id, ScopeImpl] =
     new java.util.HashMap()
 
@@ -33,6 +34,19 @@ sealed private[graph] class GraphImpl(
     */
   private[graph] def nextIdCounter: Int = _nextIdCounter
 
+  private def clone(
+    m: java.util.Map[GraphImpl.Id, java.util.LinkedHashSet[Graph.Link]]
+  ): java.util.Map[GraphImpl.Id, java.util.LinkedHashSet[Graph.Link]] = {
+    val c =
+      new java.util.HashMap[GraphImpl.Id, java.util.LinkedHashSet[Graph.Link]]
+    val it = m.entrySet().iterator()
+    while (it.hasNext()) {
+      val e = it.next()
+      c.put(e.getKey(), new java.util.LinkedHashSet(e.getValue()))
+    }
+    c
+  }
+
   /** @return a deep structural copy of `this` */
   final def deepCopy(
     scope_mapping: mutable.Map[Graph.Scope, Graph.Scope] = mutable.Map()
@@ -42,8 +56,8 @@ sealed private[graph] class GraphImpl(
       this._nextIdCounter
     )
     copy.links       = this.links
-    copy.sourceLinks = this.sourceLinks
-    copy.targetLinks = this.targetLinks
+    copy.sourceLinks = clone(this.sourceLinks)
+    copy.targetLinks = clone(this.targetLinks)
     copy
   }
 
@@ -63,8 +77,8 @@ sealed private[graph] class GraphImpl(
       _nextIdCounter
     )
     graph.links       = links
-    graph.sourceLinks = sourceLinks
-    graph.targetLinks = targetLinks
+    graph.sourceLinks = clone(sourceLinks)
+    graph.targetLinks = clone(targetLinks)
 
     graph
   }
@@ -119,12 +133,19 @@ sealed private[graph] class GraphImpl(
   private def addSourceTargetLink(link: Graph.Link): Unit = {
     // commented out: used from DebugEvalNode
     // org.enso.common.Asserts.assertInJvm(!frozen)
-    sourceLinks = sourceLinks.updatedWith(link.source)(v =>
-      v.map(s => s + link).orElse(Some(Set(link)))
-    )
-    targetLinks = targetLinks.updatedWith(link.target)(v =>
-      v.map(s => s + link).orElse(Some(Set(link)))
-    )
+    var s = sourceLinks.get(link.source)
+    if (s == null) {
+      s = new java.util.LinkedHashSet[Graph.Link]()
+      sourceLinks.put(link.source, s)
+    }
+    s.add(link)
+
+    var t = targetLinks.get(link.target)
+    if (t == null) {
+      t = new java.util.LinkedHashSet[Graph.Link]()
+      targetLinks.put(link.target, t)
+    }
+    t.add(link)
   }
 
   /** Returns a string representation of the graph.
@@ -148,12 +169,23 @@ sealed private[graph] class GraphImpl(
     * @param id the identifier for the symbol
     * @return a list of links in which `id` occurs
     */
-  final def linksFor(id: GraphImpl.Id): Set[Graph.Link] = {
-    sourceLinks.getOrElse(id, Set.empty[Graph.Link]) ++ targetLinks
-      .getOrElse(
-        id,
-        Set()
-      )
+  final def linksFor(id: GraphImpl.Id): java.util.Set[Graph.Link] = {
+    val s = sourceLinks.get(id)
+    val t = targetLinks.get(id)
+    if (s == null || t == null) {
+      if (s != null) {
+        java.util.Collections.unmodifiableSet(s)
+      } else if (t != null) {
+        java.util.Collections.unmodifiableSet(t)
+      } else {
+        java.util.Collections.emptySet()
+      }
+    } else {
+      val b = new java.util.LinkedHashSet[Graph.Link]
+      b.addAll(s)
+      b.addAll(t)
+      b
+    }
   }
 
   /** Finds all links in the graph where `symbol` appears in the role
@@ -188,13 +220,19 @@ sealed private[graph] class GraphImpl(
     * @return the definition link for `id` if it exists
     */
   final def defLinkFor(id: GraphImpl.Id): Option[Graph.Link] = {
-    linksFor(id).find { edge =>
-      val occ = getOccurrence(edge.target)
-      occ match {
+    val it = linksFor(id).iterator()
+    while (it.hasNext()) {
+      val edge = it.next()
+      val occ  = getOccurrence(edge.target)
+      val found = occ match {
         case Some(GraphOccurrence.Def(_, _, _, _, _)) => true
         case _                                        => false
       }
+      if (found) {
+        return Some(edge)
+      }
     }
+    None
   }
 
   /** Gets the scope where a given ID is defined in the graph.

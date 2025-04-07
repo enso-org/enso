@@ -392,6 +392,8 @@ case object LambdaConsolidate extends IRPass {
         // Empty set is used to indicate that it isn't shadowed
         val usageIds =
           if (isShadowed) {
+            aliasInfo.getClass
+            /*
             aliasInfo.graph
               .linksFor(aliasInfo.id)
               .filter(_.target == aliasInfo.id)
@@ -402,6 +404,8 @@ case object LambdaConsolidate extends IRPass {
                     ) =>
                   identifier
               }
+             */
+            Set[UUID @Identifier]()
           } else Set[UUID @Identifier]()
 
         usageIds
