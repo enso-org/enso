@@ -20,13 +20,17 @@ import {
 } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { isUrlString } from '@/util/data/urlString'
+import { isIconName } from '@/util/iconMetadata/iconName'
 
 const PATH_SCHEMA = z.string().refine((s): s is Path => true)
 const DIRECTORY_ID_SCHEMA = z.string().refine((s): s is DirectoryId => true)
 
 const EACH_CATEGORY_SCHEMA = z.object({
   label: z.string(),
-  icon: z.custom<SvgUseIcon | (string & {})>((icon) => typeof icon === 'string'),
+  icon: z.custom<SvgUseIcon | (string & {})>(
+    (icon) => typeof icon === 'string' && (isIconName(icon) || isUrlString(icon)),
+  ),
 })
 
 /** A category corresponding to the root of the user or organization. */
