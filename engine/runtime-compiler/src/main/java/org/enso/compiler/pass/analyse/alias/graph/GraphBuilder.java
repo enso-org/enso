@@ -64,13 +64,8 @@ public final class GraphBuilder {
    * @param name the name of the symbol
    * @return -1 if not such symbol found, otherwise ID of the symbol
    */
-  public int findDef(String name) {
-    var d = defs.get(name);
-    if (d != null) {
-      return d.id();
-    } else {
-      return -1;
-    }
+  public GraphOccurrence.Def findDef(String name) {
+    return defs.get(name);
   }
 
   /** Creates new definition for */
