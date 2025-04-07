@@ -39,6 +39,7 @@ import {
 } from 'vue'
 import { Awareness } from 'y-protocols/awareness.js'
 import { assert } from 'ydoc-shared/util/assert'
+import { Range } from 'ydoc-shared/util/data/range'
 import * as Y from 'yjs'
 
 function disableEditContextApi() {
@@ -208,10 +209,14 @@ export function useStringSync() {
         return view.state.doc.toString()
       }
 
-      function setText(text: string): void {
+      function setText(text: string, selection?: Range): void {
+        const safeSelection = selection?.clip(Range.fromStartAndLength(0, text.length))
+        if (selection && !selection.rangeEquals(safeSelection))
+          console.warn('Clipping invalid selection', { text, selection })
         view.dispatch({
           changes: { from: 0, to: view.state.doc.length, insert: text },
-          selection: { anchor: 0 },
+          selection:
+            safeSelection ? { anchor: safeSelection.from, head: safeSelection.to } : { anchor: 0 },
         })
       }
 
