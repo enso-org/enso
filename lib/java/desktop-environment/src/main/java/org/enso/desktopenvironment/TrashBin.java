@@ -13,6 +13,7 @@ public sealed interface TrashBin permits LinuxTrashBin, WindowsTrashBin, MacTras
       case MACOS -> MacTrashBin.getInstance();
     };
   }
+
   /**
    * @return {@code true} if the trash functionality is supported on this platform.
    */

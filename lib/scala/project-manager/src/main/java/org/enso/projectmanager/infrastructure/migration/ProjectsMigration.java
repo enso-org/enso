@@ -22,11 +22,7 @@ public final class ProjectsMigration {
 
   public static void migrate(configuration.StorageConfig storageConfig) {
     var oldProjectsPath =
-        Directories.getCurrent()
-            .getUserHome()
-            .resolve("enso")
-            .resolve("projects")
-            .toFile();
+        Directories.getCurrent().getUserHome().resolve("enso").resolve("projects").toFile();
     if (oldProjectsPath.isDirectory()) {
       try {
         File newProjectsPath = storageConfig.userProjectsPath();
