@@ -132,7 +132,6 @@ defineExpose({
   align-items: center;
   flex-direction: row;
   gap: 8px;
-  z-index: 250;
 }
 
 .scrollArea {
