@@ -4219,11 +4219,7 @@ lazy val `os-environment` =
           staticOnLinux = true,
           targetDir     = targetDir,
           mainClass     = Some("org.enso.os.environment.TestRunner"),
-          initializeAtRuntime = Seq(
-            "org.enso.os.environment.chdir"
-          ),
           additionalOptions = Seq(
-            "--report-unsupported-elements-at-runtime",
             "-ea",
             "--features=org.enso.os.environment.TestCollectorFeature"
           )

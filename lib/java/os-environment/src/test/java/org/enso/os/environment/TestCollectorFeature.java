@@ -1,16 +1,12 @@
 package org.enso.os.environment;
 
-import java.util.List;
 import org.graalvm.nativeimage.hosted.Feature;
 import org.graalvm.nativeimage.hosted.RuntimeReflection;
 
 public final class TestCollectorFeature implements Feature {
-  private static final List<String> TEST_CLASSES =
-      List.of("org.enso.os.environment.chdir.TestChangeDirectory");
-
   @Override
   public void beforeAnalysis(BeforeAnalysisAccess access) {
-    for (var testClass : TEST_CLASSES) {
+    for (var testClass : ListOfTests.TEST_CLASSES) {
       var testClazz = access.findClassByName(testClass);
       if (testClazz == null) {
         throw new IllegalStateException("Test class " + testClass + " not found");
@@ -23,6 +19,6 @@ public final class TestCollectorFeature implements Feature {
       RuntimeReflection.registerAllFields(testClazz);
       RuntimeReflection.registerAllMethods(testClazz);
     }
-    System.err.println("Registered test classes for reflection: " + TEST_CLASSES);
+    System.err.println("Registered test classes for reflection: " + ListOfTests.TEST_CLASSES);
   }
 }
