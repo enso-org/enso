@@ -4,9 +4,9 @@
  */
 import * as React from 'react'
 
+import AddCredentialIcon from '#/assets/add_credential.svg'
 import AddDatalinkIcon from '#/assets/add_datalink.svg'
 import AddFolderIcon from '#/assets/add_folder.svg'
-import AddCredentialIcon from '#/assets/add_credential.svg'
 import AddKeyIcon from '#/assets/add_key.svg'
 import DataDownloadIcon from '#/assets/data_download.svg'
 import DataUploadIcon from '#/assets/data_upload.svg'

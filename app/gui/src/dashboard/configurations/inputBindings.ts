@@ -1,9 +1,9 @@
 /** @file Shortcuts for the dashboard application. */
 import * as detect from 'enso-common/src/detect'
 
+import AddCredentialIcon from '#/assets/add_credential.svg'
 import AddDatalinkIcon from '#/assets/add_datalink.svg'
 import AddFolderIcon from '#/assets/add_folder.svg'
-import AddCredentialIcon from '#/assets/add_credential.svg'
 import AddKeyIcon from '#/assets/add_key.svg'
 import AddNetworkIcon from '#/assets/add_network.svg'
 import AppDownloadIcon from '#/assets/app_download.svg'
