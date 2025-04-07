@@ -19,6 +19,7 @@
 - make_format_chooser_for_type value_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - make_grouping_method_selector table:Standard.Table.Table.Table display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
 - make_join_condition_selector table:Standard.Base.Any.Any display:Standard.Base.Metadata.Display= cache:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- make_keep_unmatched_selector -> Standard.Base.Any.Any
 - make_order_by_selector table:Standard.Base.Any.Any display:Standard.Base.Metadata.Display= name_only:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
 - make_rename_name_vector_selector table:Standard.Base.Any.Any display:Standard.Base.Metadata.Display= cache:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - make_replace_selector display:Standard.Base.Metadata.Display= -> Standard.Base.Any.Any

@@ -4,8 +4,17 @@ import { memo, useCallback, useRef, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 
 import { AnimatedBackground } from '#/components/AnimatedBackground'
-import type { TabListProps, TabPanelProps, TabPanelRenderProps, TabProps } from '#/components/aria'
-import { Tab, TabList, TabPanel, Tabs, type TabsProps } from '#/components/aria'
+import {
+  Tab,
+  TabList,
+  TabPanel,
+  Tabs,
+  type TabListProps,
+  type TabPanelProps,
+  type TabPanelRenderProps,
+  type TabProps,
+  type TabsProps,
+} from '#/components/aria'
 import { useVisualTooltip } from '#/components/AriaComponents'
 import { Suspense } from '#/components/Suspense'
 import SvgMask from '#/components/SvgMask'

@@ -15,7 +15,7 @@ test('Main method documentation', async ({ page }) => {
   await expect(rightDock).toBeVisible()
 
   // Right-dock displays main method documentation.
-  await expect(locate.editorRoot(rightDock)).toContainText('The main method')
+  await expect(page.getByTestId('documentation-editor-content')).toContainText('The main method')
   // All three images are loaded properly
   await expect(rightDock.getByAltText('Image')).toHaveCount(3)
   for (const img of await rightDock.getByAltText('Image').all())
@@ -23,8 +23,8 @@ test('Main method documentation', async ({ page }) => {
 
   // Nested lists are rendered with hierarchical indentation
   const listItemPos = (text: string) =>
-    locate
-      .editorRoot(rightDock)
+    page
+      .getByTestId('documentation-editor-content')
       .locator('span.cm-BulletList-item span')
       .getByText(text, { exact: true })
       .boundingBox()
@@ -134,22 +134,25 @@ test('Documentation reflects entered function', async ({ page }) => {
   await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1'])
 
   // Editor should contain collapsed function's docs
-  await expect(locate.editorRoot(locate.rightDock(page))).toHaveText('A collapsed function')
+  await expect(page.getByTestId('documentation-editor-content')).toHaveText('A collapsed function')
 })
 
 test('Link in documentation is rendered and interactive', async ({ page, context }) => {
   await actions.goToGraph(page)
   await page.keyboard.press(`${CONTROL_KEY}+D`)
   await expect(locate.rightDock(page)).toBeVisible()
-  const docs = locate.editorRoot(locate.rightDock(page)).first()
-  await expect(docs.locator('a')).toHaveAccessibleDescription(/Click to edit.*Click to open link/)
-  await expect(docs.locator('a')).toHaveText('https://example.com')
-  await docs.locator('a').click()
-  await expect(docs.locator('.LinkEditPopup')).toExist()
+  const rightDock = locate.rightDock(page)
+  const docsContent = page.getByTestId('documentation-editor-content')
+  await expect(docsContent.locator('a')).toHaveAccessibleDescription(
+    /Click to edit.*Click to open link/,
+  )
+  await expect(docsContent.locator('a')).toHaveText('https://example.com')
+  await docsContent.locator('a').click()
+  await expect(rightDock.locator('.LinkEditPopup')).toExist()
   await locate.graphEditor(page).click()
-  await expect(docs.locator('.LinkEditPopup')).not.toBeVisible()
+  await expect(rightDock.locator('.LinkEditPopup')).not.toBeVisible()
   const newPagePromise = new Promise<true>((resolve) => context.once('page', () => resolve(true)))
-  await docs.locator('a').click({ modifiers: ['ControlOrMeta'] })
+  await docsContent.locator('a').click({ modifiers: ['ControlOrMeta'] })
   await expect(() => newPagePromise).toPass({ timeout: 5000 })
 })
 
@@ -157,20 +160,21 @@ test('Insert link button inserts link and focuses editor', async ({ page }) => {
   await actions.goToGraph(page)
   await page.keyboard.press(`${CONTROL_KEY}+D`)
   await expect(locate.rightDock(page)).toBeVisible()
-  const docs = locate.editorRoot(locate.rightDock(page)).first()
-  await expect(docs.locator('.cm-line')).toExist()
+  const rightDock = locate.rightDock(page)
+  const docsContent = page.getByTestId('documentation-editor-content')
+  await expect(docsContent.locator('.cm-line')).toExist()
 
   // Delete all text and defocus the editor
-  await docs.locator('.cm-line').first().click()
+  await docsContent.locator('.cm-line').first().click()
   await page.keyboard.press(`${CONTROL_KEY}+A`)
   await page.keyboard.press(DELETE_KEY)
-  await expect(docs.locator('.cm-line')).toBeEmpty()
-  await docs.blur()
+  await expect(docsContent.locator('.cm-line')).toBeEmpty()
+  await docsContent.blur()
 
   // Push the button
   await locate.rightDock(page).getByRole('button', { name: 'Insert link' }).click()
 
   // The link exists and is being edited
-  await expect(docs.locator('a')).toExist()
-  await expect(docs.locator('.LinkEditPopup')).toExist()
+  await expect(docsContent.locator('a')).toExist()
+  await expect(rightDock.locator('.LinkEditPopup')).toExist()
 })

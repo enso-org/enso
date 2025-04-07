@@ -20,6 +20,8 @@ sealed private[graph] class GraphImpl(
     new HashMap()
   private var targetLinks: Map[GraphImpl.Id, Set[Graph.Link]] =
     new HashMap()
+  private val toScope: java.util.Map[GraphImpl.Id, GraphImpl.Scope] =
+    new java.util.HashMap()
 
   final def rootScope: GraphImpl.Scope =
     this.rootScopeImpl.asInstanceOf[GraphImpl.Scope]
@@ -84,12 +86,15 @@ sealed private[graph] class GraphImpl(
     *
     * @return a unique identifier for this graph
     */
-  private[graph] def nextId(): GraphImpl.Id = {
+  private[graph] def nextId(scope: GraphImpl.Scope): GraphImpl.Id = {
     val nextId = _nextIdCounter
     if (nextId < 0) {
       throw new IllegalStateException("Cannot emit new IDs. Frozen!")
     }
     _nextIdCounter += 1
+    if (scope != null) {
+      toScope.put(nextId, scope)
+    }
     nextId
   }
 
@@ -102,11 +107,13 @@ sealed private[graph] class GraphImpl(
   final def resolveLocalUsage(
     occurrence: GraphOccurrence.Use
   ): Option[Graph.Link] = {
-    scopeFor(occurrence.id).flatMap(_.resolveUsage(occurrence).map { link =>
-      addSourceTargetLink(link)
-      links += link
-      link
-    })
+    Option(occurrence.scope()).flatMap(
+      _.asInstanceOf[GraphImpl.Scope].resolveUsage(occurrence).map { link =>
+        addSourceTargetLink(link)
+        links += link
+        link
+      }
+    )
   }
 
   private def addSourceTargetLink(link: Graph.Link): Unit = {
@@ -196,7 +203,17 @@ sealed private[graph] class GraphImpl(
     * @return the scope where `id` occurs
     */
   final def scopeFor(id: GraphImpl.Id): Option[GraphImpl.Scope] = {
-    rootScope.scopeFor(id)
+    val fastOrNull = toScope.get(id)
+    if (fastOrNull == null) {
+      val slow = rootScope.scopeFor(id)
+      if (slow.isDefined) {
+        toScope.put(id, slow.orNull)
+      }
+
+      slow
+    } else {
+      Option(fastOrNull)
+    }
   }
 
   /** Finds the scopes in which a name occurs with a given role.
@@ -323,16 +340,18 @@ object GraphImpl {
     *                       Note that there may not be a link for all these definitions.
     */
   sealed class Scope(
-    private[GraphImpl] var _childScopes: List[Scope]                  = List(),
-    private[GraphImpl] var _occurrences: Map[Id, GraphOccurrence]     = HashMap(),
-    private[GraphImpl] var _allDefinitions: List[GraphOccurrence.Def] = List()
+    private[GraphImpl] var _childScopes: List[Scope]              = List(),
+    private[GraphImpl] var _occurrences: Map[Id, GraphOccurrence] = HashMap(),
+    private[GraphImpl] val _allDefinitions: java.util.List[
+      GraphOccurrence.Def
+    ] = new java.util.ArrayList()
   ) extends Graph.Scope {
 
     private[GraphImpl] var _parent: Scope = null
 
     def childScopes    = _childScopes
     def occurrences    = _occurrences
-    def allDefinitions = _allDefinitions
+    def allDefinitions = java.util.Collections.unmodifiableList(_allDefinitions)
     def parent: Option[Scope] =
       if (this._parent eq null) None else Some(_parent)
 
@@ -379,7 +398,11 @@ object GraphImpl {
               .asInstanceOf[GraphImpl.Scope]
           )
           val newScope =
-            new Scope(childScopeCopies.toList, occurrences, allDefinitions)
+            new Scope(
+              childScopeCopies.toList,
+              occurrences,
+              new java.util.ArrayList(_allDefinitions)
+            )
           mapping.put(this, newScope)
           newScope
       }
@@ -437,7 +460,7 @@ object GraphImpl {
       * @param definition The definition to add.
       */
     private[graph] def addDefinition(definition: GraphOccurrence.Def): Unit = {
-      _allDefinitions = allDefinitions ++ List(definition)
+      _allDefinitions.add(definition)
     }
 
     /** Finds an occurrence for the provided ID in the current scope, if it
