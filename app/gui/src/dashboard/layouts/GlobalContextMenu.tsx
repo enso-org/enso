@@ -17,7 +17,7 @@ import {
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import CreateCredentialModal from '#/modals/CreateCredentialModal'
+import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'

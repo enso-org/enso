@@ -43,7 +43,7 @@ import {
 } from '#/layouts/CategorySwitcher/Category'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-import CreateCredentialModal from '#/modals/CreateCredentialModal'
+import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'

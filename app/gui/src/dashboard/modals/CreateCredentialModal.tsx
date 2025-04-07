@@ -6,21 +6,22 @@ import { useText } from '#/providers/TextProvider'
 import type { CredentialConfig, SecretId } from '#/services/Backend'
 import { useState } from 'react'
 
-/** Props for a {@link CreateCredentialModal}. */
-export interface CreateCredentialModalProps {
+/** Props for a {@link CreateCredentialForm}. */
+export interface CreateCredentialFormProps {
   readonly noDialog?: boolean
   readonly doCreate: (name: string, value: CredentialConfig) => Promise<SecretId>
 }
 
 /** A modal for creating a credential. */
-export default function CreateCredentialModal(props: CreateCredentialModalProps) {
-  const { noDialog = false, doCreate } = props
+export function CreateCredentialForm(props: CreateCredentialFormProps) {
+  const { doCreate } = props
   const { getText } = useText()
   const [selectedChildIndex, setSelectedChildIndex] = useState<number>(0)
   const createCredentialsHandler = makeCredentialCreationHandler(doCreate)
 
   const selectedItem = CREDENTIAL_INFOS[selectedChildIndex]
-  const content = (
+
+  return (
     <div className="w-full">
       <Dropdown
         aria-label={getText('credentialTypeLabel')}
@@ -36,10 +37,18 @@ export default function CreateCredentialModal(props: CreateCredentialModalProps)
       {selectedItem && <selectedItem.form createCredentials={createCredentialsHandler} />}
     </div>
   )
+}
 
-  return noDialog ? content : (
-      <Dialog title={getText('newCredential')} isDismissable={false}>
-        {content}
-      </Dialog>
-    )
+/** Props for a {@link CreateCredentialModal}. */
+export interface CreateCredentialModalProps extends CreateCredentialFormProps {}
+
+/** A modal for creating a credential. */
+export function CreateCredentialModal(props: CreateCredentialModalProps) {
+  const { getText } = useText()
+
+  return (
+    <Dialog title={getText('newCredential')} isDismissable={false}>
+      <CreateCredentialForm {...props} />
+    </Dialog>
+  )
 }
