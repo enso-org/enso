@@ -19,10 +19,13 @@ sealed private[graph] class ScopeImpl(
   private[graph] var _childScopes: List[ScopeImpl] = List(),
   private[graph] var _occurrences: Map[GraphImpl.Id, GraphOccurrence] =
     HashMap(),
-  private[graph] val _allDefinitions: java.util.List[
+  _defs: java.util.List[
     GraphOccurrence.Def
   ] = new java.util.ArrayList()
 ) extends Graph.Scope {
+  private[graph] val _allDefinitions: java.util.List[
+    GraphOccurrence.Def
+  ] = new java.util.ArrayList(_defs.stream.map(_.withScope(this)).toList)
 
   private[graph] var _parent: ScopeImpl = null
 

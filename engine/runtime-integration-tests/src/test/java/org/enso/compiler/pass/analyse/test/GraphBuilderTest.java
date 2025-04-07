@@ -1,6 +1,7 @@
 package org.enso.compiler.pass.analyse.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import org.enso.compiler.pass.analyse.alias.graph.GraphBuilder;
@@ -8,6 +9,7 @@ import org.enso.compiler.pass.analyse.alias.graph.GraphImpl;
 import org.enso.compiler.pass.analyse.alias.graph.ScopeImpl;
 import org.junit.Test;
 import scala.Option;
+import scala.collection.mutable.HashMap;
 
 public class GraphBuilderTest {
   @Test
@@ -24,17 +26,35 @@ public class GraphBuilderTest {
   }
 
   @Test
-  public void twoVariablesInTwoScope() {
+  public void twoVariablesInTwoScopes() {
+    doTwoVariablesInTwoScopes(false);
+  }
+
+  @Test
+  public void twoVariablesInTwoScopedWithCopy() {
+    doTwoVariablesInTwoScopes(true);
+  }
+
+  private void doTwoVariablesInTwoScopes(boolean deepCopy) {
     var root = GraphBuilder.create();
     var x = root.newDef("x", null, Option.empty());
     var child = root.addChild();
     var y = child.newDef("y", null, Option.empty());
 
     var g = (GraphImpl) root.toGraph();
+    var map = new HashMap<GraphImpl.Scope, GraphImpl.Scope>();
+
+    if (deepCopy) {
+      g = (GraphImpl) g.deepCopy(map);
+    }
+
     assertEquals("Two scopes", 2, g.numScopes());
     var s = (ScopeImpl) g.rootScope();
     assertEquals("One variable", 1, s.allDefinitions().size());
     assertEquals("One child scope", 1, s.childScopes().size());
-    assertEquals("One variable in child", 1, s.childScopes().apply(0).allDefinitions().size());
+    var chScope = s.childScopes().apply(0);
+    assertEquals("One variable in child", 1, chScope.allDefinitions().size());
+    var def = chScope.allDefinitions().get(0);
+    assertSame(chScope, def.scope());
   }
 }
