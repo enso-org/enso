@@ -24,12 +24,10 @@ import {
   getAllTrashedItems,
 } from '#/hooks/backendBatchedHooks'
 import {
+  backendMutationOptions,
   listDirectoryQueryOptions,
-  useNewCredential,
-  useNewDatalink,
   useNewFolder,
   useNewProject,
-  useNewSecret,
 } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -51,7 +49,7 @@ import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import type { CredentialConfig, DirectoryId } from '#/services/Backend'
+import type { DirectoryId } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
@@ -111,18 +109,9 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const uploadFiles = useEventCallback(async (files: readonly File[]) => {
     await uploadFilesRaw(files, currentDirectoryId)
   })
-  const newSecretRaw = useNewSecret(backend)
-  const newSecret = useEventCallback(async (name: string, value: string) => {
-    return await newSecretRaw(name, value, currentDirectoryId)
-  })
-  const newCredentialRaw = useNewCredential(backend)
-  const newCredential = useEventCallback(async (name: string, value: CredentialConfig) => {
-    return await newCredentialRaw(name, value, currentDirectoryId)
-  })
-  const newDatalinkRaw = useNewDatalink(backend)
-  const newDatalink = useEventCallback(async (name: string, value: unknown) => {
-    return await newDatalinkRaw(name, value, currentDirectoryId)
-  })
+  const newSecret = useMutationCallback(backendMutationOptions(backend, 'createSecret'))
+  const newCredential = useMutationCallback(backendMutationOptions(backend, 'createCredential'))
+  const newDatalink = useMutationCallback(backendMutationOptions(backend, 'createDatalink'))
   const newProjectRaw = useNewProject(backend, category)
 
   const newProjectMutation = useMutationCallback({
@@ -243,7 +232,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   id={null}
                   name={null}
                   doCreate={async (name, value) => {
-                    await newSecret(name, value)
+                    await newSecret([{ name, value, parentDirectoryId: currentDirectoryId }])
                   }}
                 />
               </DialogTrigger>
@@ -257,7 +246,11 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                     isCloud ? getText('newCredential') : getText('newCredentialOnlyCloud')
                   }
                 />
-                <CreateCredentialModal doCreate={newCredential} />
+                <CreateCredentialModal
+                  doCreate={async (name, value) =>
+                    await newCredential([{ name, value, parentDirectoryId: currentDirectoryId }])
+                  }
+                />
               </DialogTrigger>
               <DialogTrigger>
                 <Button
@@ -269,7 +262,14 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 />
                 <UpsertDatalinkModal
                   doCreate={async (name, value) => {
-                    await newDatalink(name, value)
+                    await newDatalink([
+                      {
+                        name,
+                        value,
+                        parentDirectoryId: currentDirectoryId,
+                        datalinkId: null,
+                      },
+                    ])
                   }}
                 />
               </DialogTrigger>
