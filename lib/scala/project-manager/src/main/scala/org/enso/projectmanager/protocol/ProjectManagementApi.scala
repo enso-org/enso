@@ -111,7 +111,8 @@ object ProjectManagementApi {
       projectsDirectory: Option[String],
       missingComponentAction: Option[
         MissingComponentActions.MissingComponentAction
-      ]
+      ],
+      cloudProjectDirectoryPath: Option[String]
     )
 
     case class Result(

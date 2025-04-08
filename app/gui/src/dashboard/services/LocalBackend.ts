@@ -419,6 +419,11 @@ export default class LocalBackend extends Backend {
       await this.projectManager.openProject({
         projectId: id,
         missingComponentAction: projectManager.MissingComponentAction.install,
+        ...(body?.cloudProjectDirectoryPath != null ?
+          {
+            cloudProjectDirectoryPath: body.cloudProjectDirectoryPath,
+          }
+        : {}),
         ...(body?.parentId != null ?
           { projectsDirectory: extractTypeAndId(body.parentId).id }
         : {}),
@@ -897,6 +902,11 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override createSecret() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override createCredential() {
     return this.invalidOperation()
   }
 

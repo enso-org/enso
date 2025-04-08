@@ -8,6 +8,7 @@ module org.enso.runner {
   requires org.enso.librarymanager;
   requires org.enso.logging.config;
   requires org.enso.logging.utils;
+  requires org.enso.os.environment;
   requires org.enso.runtime.parser;
   requires org.enso.runtime.version.manager;
   requires org.enso.runner.common;

@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.analyse.alias.graph.test
 
+import scala.jdk.CollectionConverters._
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
@@ -950,8 +951,8 @@ class AliasAnalysisTest extends CompilerTest {
         .unsafeAs[AliasMetadata.ChildScope]
         .scope
 
-      lambdaScope.allDefinitions.length shouldBe 2
-      val defSymbols = lambdaScope.allDefinitions
+      lambdaScope.allDefinitions.size shouldBe 2
+      val defSymbols = lambdaScope.allDefinitions.asScala
         .map(definition => definition.symbol)
       defSymbols should equal(List("self", "x"))
     }
@@ -1185,9 +1186,9 @@ class AliasAnalysisTest extends CompilerTest {
         .get
         .unsafeAs[AliasMetadata.ChildScope]
         .scope
-      consBranchScope.allDefinitions.length shouldBe 2
+      consBranchScope.allDefinitions.size shouldBe 2
 
-      val defSymbols = consBranchScope.allDefinitions
+      val defSymbols = consBranchScope.allDefinitions.asScala
         .map(definition => definition.symbol)
       defSymbols should equal(List("a", "b"))
     }

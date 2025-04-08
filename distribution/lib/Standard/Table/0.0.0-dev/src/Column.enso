@@ -6,6 +6,7 @@ import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Floating_Point_Equality
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -13,6 +14,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Polyglot_Helpers
 import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
+from Standard.Base.Metadata import Display, make_single_choice
 from Standard.Base.Metadata.Widget import Numeric_Input, Text_Input
 from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make_format_chooser, make_regex_text_widget
 
@@ -2099,52 +2101,57 @@ type Column
         new_st = self.to_vector.map on_problems=No_Wrap.Value new_fn
         Column.from_vector self.name new_st value_type=expected_value_type
 
-    ## ALIAS combine, join by row position, merge
+    ## ALIAS join by row position
+       GROUP Standard.Base.Calculations
        ICON join2-1
-
-       Applies `function` to consecutive pairs of elements of `self` and `that`
-       and returns a column of results.
+       Joins this column with another column (or table) by zipping rows from
+       both together - the first row of the left column is correlated with the
+       first one of the right one etc. `zip` always returns a `Table`.
 
        Arguments:
-       - that: The column to zip with `self`.
-       - function: A binary function that is applied to corresponding pairs of
-         elements of `self` and `that` to produce a value.
-       - skip_nothing: controls whether missing values should be passed to the
-         `function`. The default value of `True` will skip the rows for which
-         the value in either column is missing and automatically append
-         `Nothing` to the result table. If set to `False`, every pair of values
-         is passed to `function`.
-       - expected_value_type: The expected value type of the resulting column.
-         If `Auto`, the value type will be inferred from the values returned by
-         `function`.
+       - right: The column or table to join with.
+       - keep_unmatched: If set to `True`, the result will include as many rows
+         as the larger of the two columns - the last rows of the larger column
+         will have nulls for the smaller one. If set to `False`, the
+         result will have as many rows as the smaller of the two columns - the
+         additional rows of the larger column will be discarded. The default
+         value is `Report_Unmatched` which means that the user expects that two
+         columns should have the same amount of rows; if they do not, the
+         behaviour is the same as if it was set to `True` - i.e. the unmatched
+         rows are kept with `Nothing` values for the other column, but a
+         `Row_Count_Mismatch` problem is also reported.
+       - right_prefix: The prefix added to right column column names in case of
+         name conflict. See "Column Renaming" below for more information.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
 
-       ! Error Conditions
+         - If the columns have different number of rows and `keep_unmatched` is
+           set to `Report_Unmatched`, the join will report `Row_Count_Mismatch`.
 
-         - If any of the values returned by `function` do not fit the expected
-           value type, an `Invalid_Value_Type` error is raised.
-         - If the `function` raises a dataflow error on any row, the first such
-           error is propagated.
-         - If an invocation of the `function` returns a value with warnings,
-           these warnings are attached to the overall result.
+       ? Column Renaming
 
-       > Example
-         Zip two columns together as pairs.
+         If columns from the two columns have colliding names, a prefix (by
+         default `Right `) is added to the name of the column from the right
+         column. The left column remains unchanged. It is possible that the new
+         name will be in use, in this case it will be resolved using the normal
+         renaming strategy - adding subsequent ` 1`, ` 2` etc.
 
-             import Standard.Examples
+       ? Row Ordering For In-Memory Columns
 
-             example_zip =
-                Examples.integer_column.zip Examples.text_column_1 [_, _]
-    zip self that:Column (function : Any -> Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> Column ! Invalid_Value_Type =
-        new_fn = case skip_nothing of
-            True ->
-                x -> y ->
-                    if x.is_nothing then Nothing else
-                        if y.is_nothing then Nothing else
-                            function x y
-            False -> function
-        new_name = naming_helper.binary_operation_name "x" self that
-        vec = self.to_vector.zip on_problems=No_Wrap.Value that.to_vector new_fn
-        Column.from_vector new_name vec value_type=expected_value_type
+         This operation requires a well-defined order of rows in the input
+         columns. In-memory columns rely on the ordering stemming directly from
+         their layout in memory. Database columns may not impose a deterministic
+         ordering. The existing ordering can be overridden by specifying
+         a different ordering using `Column.sort`. If no primary key was
+         defined nor any ordering was specified explicitly by the user, the
+         order of columns is undefined and the operation will fail, reporting a
+         `Undefined_Column_Order` problem and returning an empty table.
+    @keep_unmatched Widget_Helpers.make_keep_unmatched_selector
+    zip self (right : Column | Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table =
+        right_table = case right of
+            _ : Table -> right
+            _ : Column -> right.to_table
+        self.to_table.zip right_table keep_unmatched right_prefix on_problems
 
     ## GROUP Standard.Base.Metadata
        ICON text_input

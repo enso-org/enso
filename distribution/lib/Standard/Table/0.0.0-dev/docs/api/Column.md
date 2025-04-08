@@ -107,7 +107,7 @@
     - value_type self -> Standard.Table.Value_Type.Value_Type
     - var_args_functions -> Standard.Base.Any.Any
     - year self -> Standard.Base.Any.Any
-    - zip self that:Standard.Table.Column.Column function:Standard.Base.Any.Any skip_nothing:Standard.Base.Data.Boolean.Boolean= expected_value_type:(Standard.Table.Value_Type.Value_Type|Standard.Table.Value_Type.Auto)= -> Standard.Base.Any.Any
+    - zip self right:(Standard.Table.Column.Column|Standard.Table.Table.Table)= keep_unmatched:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Data.Vector.Report_Unmatched)= right_prefix:Standard.Base.Data.Text.Text= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
     - || self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
 - apply_unary_map column:Standard.Table.Column.Column new_name:Standard.Base.Data.Text.Text function:Standard.Base.Any.Any expected_result_type:(Standard.Table.Value_Type.Value_Type|Standard.Base.Nothing.Nothing)= nothing_unchanged:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
 - apply_unary_operation column:Standard.Table.Column.Column operation:Standard.Table.Column.UnaryOperation new_name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= ~if_unsupported:Standard.Base.Any.Any= -> Standard.Base.Any.Any
