@@ -17,6 +17,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -44,8 +45,8 @@ public class TestTelemetry {
   private static final long APPENDER_KEEP_ALIVE = 20;
 
   private static HybridHTTPServer server;
-  private static ExecutorService serverExecutor;
-  private static ThreadPoolExecutor appenderExecutor;
+  private static MockServerExecutor serverExecutor;
+  private static ThreadPoolExecutor logProcessorExecutor;
   private static LogJobsProcessor logJobsProcessor;
   private static Credentials credentials;
 
@@ -53,15 +54,15 @@ public class TestTelemetry {
 
   @BeforeClass
   public static void initServer() throws URISyntaxException, IOException {
-    serverExecutor = Executors.newSingleThreadExecutor();
-    appenderExecutor =
+    serverExecutor = new MockServerExecutor();
+    logProcessorExecutor =
         new ThreadPoolExecutor(
             0, 1, APPENDER_KEEP_ALIVE, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
     var cloudMockSetup = new CloudMockSetup(false);
     server =
         HTTPTestHelperServer.createServer("localhost", port, serverExecutor, false, cloudMockSetup);
     credentials = mockCredentials();
-    logJobsProcessor = new LogJobsProcessor(appenderExecutor, logUri, credentials);
+    logJobsProcessor = new LogJobsProcessor(logProcessorExecutor, logUri, credentials);
     server.start();
   }
 
@@ -71,8 +72,8 @@ public class TestTelemetry {
     server = null;
     serverExecutor.shutdown();
     serverExecutor = null;
-    appenderExecutor.shutdown();
-    appenderExecutor = null;
+    logProcessorExecutor.shutdown();
+    logProcessorExecutor = null;
     logJobsProcessor = null;
     credentials = null;
   }
@@ -81,8 +82,7 @@ public class TestTelemetry {
   public void sendSingleTelemetryLog() throws InterruptedException, IOException {
     var message = new LogMessage("TestLogger", "msg: name={}", new Object[] {"Pavel"});
     logJobsProcessor.enqueueMessage(message);
-    // TODO: Remove explicit thread sleep - add some monitor to SimpleHttpServer?
-    Thread.sleep(200);
+    serverExecutor.waitForLastTask();
     var receivedLogs = getLogs();
     assertThat(receivedLogs.size(), is(1));
     var receivedLog = receivedLogs.get(0);
@@ -134,6 +134,42 @@ public class TestTelemetry {
     @Override
     public void execute(Runnable command) {
       command.run();
+    }
+  }
+
+  private static final class MockServerExecutor implements Executor {
+    private final ExecutorService underlyingExecutor = Executors.newSingleThreadExecutor();
+    private final CountDownLatch notifier = new CountDownLatch(1);
+
+    @Override
+    public void execute(Runnable command) {
+      Runnable wrappedRunnable =
+          () -> {
+            command.run();
+            notifier.countDown();
+          };
+      underlyingExecutor.submit(wrappedRunnable);
+    }
+
+    /** Block until last runnable is finished. Throws AssertionError if timeout occurs. */
+    public void waitForLastTask() {
+      try {
+        var ret = notifier.await(2, TimeUnit.SECONDS);
+        assertThat("Timeout should not occur - task should be normally finished", ret, is(true));
+      } catch (InterruptedException e) {
+        throw new AssertionError(e);
+      }
+    }
+
+    void shutdown() {
+      underlyingExecutor.shutdown();
+      try {
+        if (!underlyingExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+          underlyingExecutor.shutdownNow();
+        }
+      } catch (InterruptedException e) {
+        underlyingExecutor.shutdownNow();
+      }
     }
   }
 
