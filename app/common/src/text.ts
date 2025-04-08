@@ -106,6 +106,7 @@ interface PlaceholderOverrides {
   readonly getDatalinkBackendError: [datalinkTitle: string]
   readonly deleteDatalinkBackendError: [datalinkTitle: string]
   readonly createSecretBackendError: [secretTitle: string]
+  readonly createCredentialBackendError: [credentialTitle: string]
   readonly getSecretBackendError: [secretTitle: string]
   readonly updateSecretBackendError: [secretTitle: string]
   readonly createLabelBackendError: [labelName: string]

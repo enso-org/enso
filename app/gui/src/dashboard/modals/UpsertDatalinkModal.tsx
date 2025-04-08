@@ -1,4 +1,4 @@
-/** @file A modal for creating a Datalink. */
+/** @file A modal for creating and editing a Datalink. */
 import { ButtonGroup, Dialog, DialogDismiss, Form, Input } from '#/components/AriaComponents'
 import { DatalinkFormInput } from '#/components/dashboard/DatalinkInput'
 import SCHEMA from '#/data/datalinkSchema.json' with { type: 'json' }
@@ -14,7 +14,7 @@ export interface UpsertDatalinkModalProps {
   readonly doCreate: (name: string, datalink: unknown) => Promise<void> | void
 }
 
-/** A modal for creating a Datalink. */
+/** A modal for creating and editing a Datalink. */
 export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
   const { doCreate } = props
 

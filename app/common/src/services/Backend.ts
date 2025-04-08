@@ -269,7 +269,7 @@ export enum ProjectState {
 /** Wrapper around a project state value. */
 export interface ProjectStateType {
   readonly type: ProjectState
-  readonly volumeId: string
+  readonly volumeId?: string
   readonly instanceId?: string
   readonly executeAsync?: boolean
   readonly address?: string
@@ -330,22 +330,25 @@ export interface ListedProject extends CreatedProject {
 }
 
 /** A `Project` returned by `updateProject`. */
-export interface UpdatedProject extends BaseProject {
-  readonly ami: Ami | null
-  readonly ideVersion: VersionNumber | null
-  readonly engineVersion: VersionNumber | null
+export interface UpdatedProject {
+  readonly organizationId: OrganizationId
+  readonly projectId: ProjectId
+  readonly name: string
+  readonly state: ProjectStateType
+  readonly packageName: string
 }
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface ProjectRaw extends ListedProjectRaw {
-  readonly ide_version: VersionNumber | null
-  readonly engine_version: VersionNumber | null
+  readonly currentSessionId?: ProjectSessionId
+  readonly openedBy?: EmailAddress
+  /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
+  readonly url?: HttpsUrl
 }
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface Project extends ListedProject {
-  readonly ideVersion: VersionNumber | null
-  readonly engineVersion: VersionNumber | null
+  readonly currentSessionId?: ProjectSessionId
   readonly openedBy?: EmailAddress
   /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
   readonly url?: HttpsUrl
@@ -920,6 +923,16 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.specialUp]: -1,
 }
 
+/** A state associated with a credential. */
+export type CredentialSecretState = 'Expired' | 'Ready' | 'WaitingForAuthentication'
+
+/** Metadata associated with a credential asset. */
+export interface CredentialMetadata {
+  readonly serviceName: string
+  readonly expirationDate?: dateTime.Rfc3339DateTime
+  readonly state: CredentialSecretState
+}
+
 /**
  * Metadata uniquely identifying a directory entry.
  * These can be Projects, Files, Secrets, or other directories.
@@ -937,8 +950,12 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly permissions: readonly AssetPermission[] | null
   readonly labels?: readonly LabelName[] | undefined
   readonly description?: string | undefined
+  /** Asset data for a project */
   readonly projectState: Type extends AssetType.project ? ProjectStateType : null
+  /** Asset data for a file */
   readonly extension: Type extends AssetType.file ? string : null
+  /** Asset data for a credential (secret) */
+  readonly credentialMetadata?: Type extends AssetType.secret ? CredentialMetadata : undefined
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
@@ -995,6 +1012,13 @@ export function isPlaceholderId(id: AssetId) {
   return typeof id !== 'string' && PLACEHOLDER_SIGNATURE in id
 }
 
+/** Whether a given asset represents a credential. */
+export function isAssetCredential(
+  asset: Asset,
+): asset is SecretAsset & { credentialMetadata: CredentialMetadata } {
+  return asset.type === 'secret' && asset.credentialMetadata !== undefined
+}
+
 /** Extract the file extension from a file name. */
 function fileExtension(fileNameOrPath: string) {
   return fileNameOrPath.match(/[.]([^.]+?)$/)?.[1] ?? ''
@@ -1026,10 +1050,7 @@ export function createPlaceholderProjectAsset(title: string, parentId: Directory
     parentId,
     permissions: [],
     modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: {
-      type: ProjectState.new,
-      volumeId: '',
-    },
+    projectState: { type: ProjectState.new },
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
@@ -1408,8 +1429,6 @@ export interface CreateProjectRequestBody {
  */
 export interface UpdateProjectRequestBody {
   readonly projectName: string | null
-  readonly ami: Ami | null
-  readonly ideVersion: VersionNumber | null
 }
 
 /** HTTP request body for the "open project" endpoint. */
@@ -1431,10 +1450,46 @@ export interface UpdateProjectExecutionRequestBody {
   readonly enabled?: boolean | undefined
 }
 
+/** HTTP request body for the "create secret or credential" endpoint. */
+export type CreateSecretOrCredentialRequestBody =
+  | CreateSecretRequestBody
+  | CreateCredentialRequestBody
+
 /** HTTP request body for the "create secret" endpoint. */
 export interface CreateSecretRequestBody {
   readonly name: string
   readonly value: string
+  readonly parentDirectoryId: DirectoryId | null
+}
+
+/** User settings for a Snowflake credential. */
+export interface SnowflakeCredentialInput {
+  readonly type: 'Snowflake'
+  readonly account: string
+  readonly clientId: string
+  readonly clientSecret: string
+  readonly role: string | null
+}
+
+/** User settings for a Google credential. */
+export interface GoogleCredentialInput {
+  readonly type: 'Google'
+  readonly scopes: readonly string[]
+}
+
+/** User settings for an arbitrary credential. */
+export type CredentialInput = SnowflakeCredentialInput | GoogleCredentialInput
+
+/** Metadata for an arbitrary credential, including a nonce for authentication purposes. */
+export interface CredentialConfig {
+  readonly nonce: string
+  readonly input: CredentialInput
+}
+
+/** HTTP request body for the "create credential" endpoint. */
+export interface CreateCredentialRequestBody {
+  readonly name: string
+  readonly value: CredentialConfig
   readonly parentDirectoryId: DirectoryId | null
 }
 
@@ -1895,6 +1950,8 @@ export default abstract class Backend {
   abstract deleteDatalink(datalinkId: DatalinkId, title: string | null): Promise<void>
   /** Create a secret environment variable. */
   abstract createSecret(body: CreateSecretRequestBody): Promise<SecretId>
+  /** Create an OAuth credential. */
+  abstract createCredential(body: CreateCredentialRequestBody): Promise<SecretId>
   /** Return a secret environment variable. */
   abstract getSecret(secretId: SecretId, title: string): Promise<Secret>
   /** Change the value of a secret. */

@@ -31,12 +31,15 @@ const EACH_CATEGORY_SCHEMA = z.object({
   icon: z.custom<SvgUseIcon | (string & {})>(
     (icon) => typeof icon === 'string' && (isIconName(icon) || isUrlString(icon)),
   ),
-  homeDirectoryId: DIRECTORY_ID_SCHEMA,
 })
 
 /** A category corresponding to the root of the user or organization. */
 const CLOUD_CATEGORY_SCHEMA = z
-  .object({ type: z.literal('cloud'), id: z.literal('cloud') })
+  .object({
+    type: z.literal('cloud'),
+    id: z.literal('cloud'),
+    homeDirectoryId: DIRECTORY_ID_SCHEMA,
+  })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()
 /** A category corresponding to the root of the user or organization. */
@@ -44,7 +47,11 @@ export type CloudCategory = z.infer<typeof CLOUD_CATEGORY_SCHEMA>
 
 /** A category containing recently opened Cloud projects. */
 const RECENT_CATEGORY_SCHEMA = z
-  .object({ type: z.literal('recent'), id: z.literal('recent') })
+  .object({
+    type: z.literal('recent'),
+    id: z.literal('recent'),
+    homeDirectoryId: z.null(),
+  })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()
 /** A category containing recently opened Cloud projects. */
@@ -52,7 +59,11 @@ export type RecentCategory = z.infer<typeof RECENT_CATEGORY_SCHEMA>
 
 /** A category containing recently deleted Cloud items. */
 const TRASH_CATEGORY_SCHEMA = z
-  .object({ type: z.literal('trash'), id: z.literal('trash') })
+  .object({
+    type: z.literal('trash'),
+    id: z.literal('trash'),
+    homeDirectoryId: z.null(),
+  })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()
 /** A category containing recently deleted Cloud items. */
@@ -65,6 +76,7 @@ export const USER_CATEGORY_SCHEMA = z
     user: z.custom<User>(() => true),
     id: z.custom<UserId>(() => true),
     rootPath: PATH_SCHEMA,
+    homeDirectoryId: DIRECTORY_ID_SCHEMA,
   })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()
@@ -77,6 +89,7 @@ export const TEAM_CATEGORY_SCHEMA = z
     id: z.custom<UserGroupId>(() => true),
     team: z.custom<UserGroup>(() => true),
     rootPath: PATH_SCHEMA,
+    homeDirectoryId: DIRECTORY_ID_SCHEMA,
   })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()
@@ -90,6 +103,7 @@ const LOCAL_CATEGORY_SCHEMA = z
     type: z.literal('local'),
     id: z.literal('local'),
     rootPath: PATH_SCHEMA,
+    homeDirectoryId: DIRECTORY_ID_SCHEMA,
   })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()
@@ -102,6 +116,7 @@ export const LOCAL_DIRECTORY_CATEGORY_SCHEMA = z
     type: z.literal('local-directory'),
     id: z.custom<DirectoryId>(() => true),
     rootPath: PATH_SCHEMA,
+    homeDirectoryId: DIRECTORY_ID_SCHEMA,
   })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()
