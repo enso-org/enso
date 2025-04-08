@@ -125,6 +125,7 @@ export project.Data.Time.Period.Period
 export project.Data.Time.Time_Of_Day.Time_Of_Day
 export project.Data.Time.Time_Period.Time_Period
 export project.Data.Time.Time_Zone.Time_Zone
+export project.Data.Vector.Report_Unmatched
 export project.Data.Vector.Vector
 export project.Data.XML.XML_Document
 export project.Data.XML.XML_Element

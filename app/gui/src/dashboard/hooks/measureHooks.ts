@@ -163,10 +163,6 @@ export function useMeasureCallback(options: Options & Required<Pick<Options, 'on
   const resizeDebounce =
     typeof debounce === 'number' || debounce === false ? debounce : debounce.resize
 
-  const callback = useEventCallback(() => {
-    frame.read(measureCallback)
-  })
-
   const measureCallback = useEventCallback(() => {
     const element = state.current.element
 
@@ -209,7 +205,7 @@ export function useMeasureCallback(options: Options & Required<Pick<Options, 'on
   const [resizeObserver] = useState(() => new ResizeObserver(measureCallback))
   const [mutationObserver] = useState(() => new MutationObserver(measureCallback))
 
-  const forceRefresh = useDebouncedCallback(callback, 0)
+  const forceRefresh = useDebouncedCallback(measureCallback, 0)
 
   // cleanup current scroll-listeners / observers
   const removeListeners = useEventCallback(() => {
@@ -271,6 +267,7 @@ export function useMeasureCallback(options: Options & Required<Pick<Options, 'on
     capture: true,
     isDisabled: !scroll,
   })
+
   useEventListener('resize', resizeDebounceCallback, window, { passive: true })
 
   // respond to changes that are relevant for the listeners

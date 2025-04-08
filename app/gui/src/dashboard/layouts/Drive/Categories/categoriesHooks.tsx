@@ -18,19 +18,21 @@ import { useUser } from '#/providers/AuthProvider'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
-import { useBackend, useLocalBackend } from '#/providers/BackendProvider'
+import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { type DirectoryId, Path } from '#/services/Backend'
+import { DirectoryId, Path, Plan } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
-import { userIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
 import { z } from 'zod'
+import { createStore } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type {
   AnyCategory,
   AnyCloudCategory,
@@ -58,6 +60,20 @@ const LOCAL_ROOT_DIRECTORIES_SCHEMA = z.string().array().readonly()
 
 LocalStorage.registerKey('localRootDirectories', { schema: LOCAL_ROOT_DIRECTORIES_SCHEMA })
 
+/** State for {@link categoryIdStore}. */
+interface CategoryIdStoreState {
+  readonly categoryId: CategoryId | null
+}
+
+const categoryIdStore = createStore<CategoryIdStoreState>()(
+  persist(
+    (): CategoryIdStoreState => ({
+      categoryId: null,
+    }),
+    { name: 'enso-category-id', version: 1 },
+  ),
+)
+
 /**
  * Result of the useCloudCategoryList hook.
  */
@@ -70,15 +86,33 @@ export type CloudCategoryResult = ReturnType<typeof useCloudCategoryList>
 export function useCloudCategoryList() {
   const user = useUser()
   const { getText } = useText()
+  const backend = useRemoteBackend()
+  const { data: organization } = useSuspenseQuery({
+    queryKey: [backend.type, 'getOrganization'],
+    queryFn: () => backend.getOrganization(),
+  })
 
-  const { userId } = user
+  const homeDirectoryId = (() => {
+    switch (user.plan) {
+      case Plan.free:
+      case Plan.solo: {
+        return user.rootDirectoryId
+      }
+      case Plan.team:
+      case Plan.enterprise: {
+        return organization == null ?
+            user.rootDirectoryId
+          : DirectoryId(`directory-${organization.id.replace(/^organization-/, '')}` as const)
+      }
+    }
+  })()
 
   const cloudCategory: CloudCategory = {
     type: 'cloud',
     id: 'cloud',
     label: getText('cloudCategory'),
     icon: CloudIcon,
-    homeDirectoryId: userIdToDirectoryId(userId),
+    homeDirectoryId,
   }
 
   const recentCategory: RecentCategory = {
@@ -86,6 +120,7 @@ export function useCloudCategoryList() {
     id: 'recent',
     label: getText('recentCategory'),
     icon: RecentIcon,
+    homeDirectoryId,
   }
 
   const trashCategory: TrashCategory = {
@@ -93,6 +128,7 @@ export function useCloudCategoryList() {
     id: 'trash',
     label: getText('trashCategory'),
     icon: Trash2Icon,
+    homeDirectoryId,
   }
 
   const predefinedCloudCategories: AnyCloudCategory[] = [
@@ -101,16 +137,15 @@ export function useCloudCategoryList() {
     trashCategory,
   ]
 
-  const teamCategories =
-    user.groups?.map<TeamCategory>((group) => ({
-      type: 'team',
-      id: group.id,
-      team: group,
-      rootPath: Path(`enso://Teams/${group.name}`),
-      homeDirectoryId: group.homeDirectoryId,
-      label: getText('teamCategory', group.name),
-      icon: PeopleIcon,
-    })) ?? []
+  const teamCategories = (user.groups ?? []).map<TeamCategory>((group) => ({
+    type: 'team',
+    id: group.id,
+    team: group,
+    rootPath: Path(`enso://Teams/${group.name}`),
+    homeDirectoryId: group.homeDirectoryId,
+    label: getText('teamCategory', group.name),
+    icon: PeopleIcon,
+  }))
 
   const categories = [...predefinedCloudCategories, ...teamCategories] satisfies AnyCloudCategory[]
 
@@ -162,34 +197,12 @@ export type LocalCategoryResult = ReturnType<typeof useLocalCategoryList>
 export function useLocalCategoryList() {
   const { getText } = useText()
   const localBackend = useLocalBackend()
-
-  const localCategory: LocalCategory = {
-    type: 'local',
-    id: 'local',
-    label: getText('localCategory'),
-    icon: ComputerIcon,
-    homeDirectoryId: newDirectoryId(localBackend?.rootPath() ?? Path('')),
-    rootPath: localBackend?.rootPath() ?? Path(''),
-  }
-
-  const predefinedLocalCategories: AnyLocalCategory[] = [localCategory]
-
+  const [localRootDirectory] = useLocalStorageState('localRootDirectory')
+  const rootPath = localRootDirectory != null ? Path(localRootDirectory) : localBackend?.rootPath()
   const [localRootDirectories, setLocalRootDirectories] = useLocalStorageState(
     'localRootDirectories',
     [],
   )
-
-  const localCategories = localRootDirectories.map<LocalDirectoryCategory>((directory) => ({
-    type: 'local-directory',
-    id: newDirectoryId(Path(directory)),
-    rootPath: Path(directory),
-    homeDirectoryId: newDirectoryId(Path(directory)),
-    label: getFileName(directory),
-    icon: FolderFilledIcon,
-  }))
-
-  const categories =
-    localBackend == null ? [] : ([...predefinedLocalCategories, ...localCategories] as const)
 
   const addDirectory = useEventCallback((directory: string) => {
     setLocalRootDirectories([...localRootDirectories, directory])
@@ -226,10 +239,10 @@ export function useLocalCategoryList() {
       categories.filter((category) => category.type === type) as CategoryByType<T>[],
   )
 
-  if (localBackend == null) {
+  if (rootPath == null) {
     return {
       // We don't have any categories if localBackend is not available.
-      categories,
+      categories: [],
       localCategory: null,
       directories: null,
       // noop if localBackend is not available.
@@ -242,6 +255,29 @@ export function useLocalCategoryList() {
       getCategoryByDirectoryId: () => null,
     }
   }
+
+  const localCategory: LocalCategory = {
+    type: 'local',
+    id: 'local',
+    label: getText('localCategory'),
+    icon: ComputerIcon,
+    homeDirectoryId: newDirectoryId(rootPath),
+    rootPath,
+  }
+
+  const predefinedLocalCategories: AnyLocalCategory[] = [localCategory]
+
+  const localCategories = localRootDirectories.map<LocalDirectoryCategory>((directory) => ({
+    type: 'local-directory',
+    id: newDirectoryId(Path(directory)),
+    rootPath: Path(directory),
+    homeDirectoryId: newDirectoryId(Path(directory)),
+    label: getFileName(directory),
+    icon: FolderFilledIcon,
+  }))
+
+  const categories =
+    localBackend == null ? [] : ([...predefinedLocalCategories, ...localCategories] as const)
 
   return {
     categories,
@@ -314,27 +350,44 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
   const localBackend = useLocalBackend()
   const { isOffline } = useOffline()
 
-  const [categoryId, privateSetCategoryId, resetCategoryId] = useSearchParamsState<CategoryId>(
-    'driveCategory',
-    () => {
-      if (isOffline && localBackend != null) {
-        return 'local'
-      }
+  const [categoryId, privateSetCategoryId, privateResetCategoryId] =
+    useSearchParamsState<CategoryId>(
+      'driveCategory',
+      () => {
+        const savedId = categoryIdStore.getState().categoryId
 
-      return localBackend != null ? 'local' : 'cloud'
-    },
-    // This is safe, because we enshure the type inside the function
-    // eslint-disable-next-line no-restricted-syntax
-    (value): value is CategoryId => findCategoryById(value as CategoryId) != null,
-  )
+        if (savedId != null && findCategoryById(savedId) != null) {
+          return savedId
+        }
+
+        if (isOffline && localBackend != null) {
+          return 'local'
+        }
+
+        return localBackend != null ? 'local' : 'cloud'
+      },
+      // This is safe, because we enshure the type inside the function
+      // eslint-disable-next-line no-restricted-syntax
+      (value): value is CategoryId => findCategoryById(value as CategoryId) != null,
+    )
 
   const setCategoryId = useEventCallback((nextCategoryId: CategoryId) => {
     const previousCategory = findCategoryById(categoryId)
     privateSetCategoryId(nextCategoryId)
+    categoryIdStore.setState({
+      categoryId: nextCategoryId,
+    })
 
     // This is safe, because we know that the result will have the correct type.
     // eslint-disable-next-line no-restricted-syntax
     onCategoryChange(previousCategory, findCategoryById(nextCategoryId) as Category)
+  })
+
+  const resetCategoryId = useEventCallback((replace?: boolean) => {
+    privateResetCategoryId(replace)
+    categoryIdStore.setState({
+      categoryId: null,
+    })
   })
 
   const category = findCategoryById(categoryId)

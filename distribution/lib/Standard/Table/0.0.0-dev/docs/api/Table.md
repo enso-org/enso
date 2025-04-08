@@ -89,7 +89,7 @@
     - union self tables:(Standard.Table.Table.Table|Standard.Base.Data.Vector.Vector) columns_to_keep:Standard.Table.Columns_To_Keep.Columns_To_Keep= match_columns:Standard.Table.Match_Columns.Match_Columns= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
     - use_first_row_as_names self on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
     - write self path:Standard.Base.System.File.Generic.Writable_File.Writable_File format:Standard.Base.Any.Any= on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= match_columns:Standard.Table.Match_Columns.Match_Columns= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
-    - zip self right:Standard.Table.Table.Table= keep_unmatched:(Standard.Base.Data.Boolean.Boolean|Standard.Table.Constants.Report_Unmatched)= right_prefix:Standard.Base.Data.Text.Text= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
+    - zip self right:Standard.Table.Table.Table= keep_unmatched:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Data.Vector.Report_Unmatched)= right_prefix:Standard.Base.Data.Text.Text= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
 - from_java_table java_table:Standard.Base.Any.Any -> Standard.Table.Table.Table
 - make_fill_nothing_default_widget table:Standard.Base.Any.Any cache:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - make_join_helpers left_table:Standard.Base.Any.Any right_table:Standard.Base.Any.Any -> Standard.Base.Any.Any
