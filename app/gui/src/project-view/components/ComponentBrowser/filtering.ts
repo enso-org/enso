@@ -153,11 +153,28 @@ class FilteringName {
 }
 
 class FilteringWithPattern {
-  nameFilter: FilteringName
+  nameFilter: FilteringName | null
   ownerNameFilter: FilteringName
   bothFiltersMustMatch: boolean
 
   constructor(pattern: string) {
+    if (pattern.startsWith(':')) {
+      pattern = pattern.slice(1)
+      const split = pattern.lastIndexOf('.')
+      if (split >= 0) {
+        // If there is a dot in the pattern, the segment before must match owner name,
+        // and the segment after - the entry name
+        this.nameFilter = new FilteringName(pattern.slice(split + 1))
+        this.ownerNameFilter = new FilteringName(pattern.slice(0, split))
+        this.bothFiltersMustMatch = true
+      } else {
+        // the pattern has to match the owner name
+        this.nameFilter = null
+        this.ownerNameFilter = new FilteringName(pattern)
+        this.bothFiltersMustMatch = false
+      }
+      return
+    }
     const split = pattern.lastIndexOf('.')
     if (split >= 0) {
       // If there is a dot in the pattern, the segment before must match owner name,
@@ -175,7 +192,7 @@ class FilteringWithPattern {
 
   private firstMatchingAlias(aliases: string[]) {
     for (const alias of aliases) {
-      const match = this.nameFilter.tryMatch(alias)
+      const match = this.nameFilter?.tryMatch(alias)
       if (match != null) return { alias, ...match }
     }
     return null
@@ -188,7 +205,7 @@ class FilteringWithPattern {
     additionalSelfTypes: ProjectPath[],
   ): MatchResult | null {
     const nameMatch: (NameMatchResult & { alias?: string }) | null =
-      this.nameFilter.tryMatch(name) ?? this.firstMatchingAlias(aliases)
+      this.nameFilter?.tryMatch(name) ?? this.firstMatchingAlias(aliases)
     const ownerNameMatch = this.ownerNameFilter.tryMatch(
       memberOf.path ? qnLastSegment(memberOf.path) : 'Main',
     )
@@ -282,7 +299,7 @@ export class Filtering {
   private mainViewFilter(entry: SuggestionEntry): MatchResult | null {
     const hasGroup = entry.groupIndex != null
     const isInTopModule = entry.definedIn.isTopElement()
-    if (hasGroup || isInTopModule) return { score: 0, fromType: entry.definedIn }
+    if (hasGroup || isInTopModule) return { score: 0, fromType: undefined }
     else return null
   }
 
