@@ -29,7 +29,7 @@ const { editorView } = useCodeMirror(editorRoot, {
   singleLine: true,
 })
 
-const { onUserAction } = connectSync(editorView)
+const { onUserAction, setText } = connectSync(editorView)
 onUserAction(
   (text, selection) =>
     (content.value = {
@@ -37,12 +37,7 @@ onUserAction(
       selection: Range.unsafeFromBounds(selection.from, selection.to),
     }),
 )
-watch(content, ({ text, selection }) =>
-  editorView.dispatch({
-    changes: { from: 0, to: editorView.state.doc.length, insert: text },
-    selection: selection ? { anchor: selection.from, head: selection.to } : { anchor: 0 },
-  }),
-)
+watch(content, ({ text, selection }) => setText(text, selection))
 
 const icon = computed(() => {
   if (props.mode.mode === 'componentBrowsing') return 'find'

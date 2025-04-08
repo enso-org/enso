@@ -229,7 +229,7 @@ function DriveBarBreadcrumbsItem<IconType extends string>(
   })
 
   return (
-    <Breadcrumbs.Item {...props} onPress={onPress} isLoading={isLoading}>
+    <Breadcrumbs.Item {...props} onPress={onPress} isLoading={isLoading} onDragDelay={onPress}>
       {props.children}
     </Breadcrumbs.Item>
   )

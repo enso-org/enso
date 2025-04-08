@@ -264,10 +264,18 @@ apply_filter_to_table table i filter_cols filter_conditions =
    Prepares the row data table for visualizations using the server side row model.
 
    Arguments:
-   - start_number: the start index of the next 100 rows to get
+   - x: a table or column to get the rows for 
+   - start_number: the start index of the next 1000 rows to get
+   - sort_col_index_list: list of column indexes that have a sort applied 
+   - sort_direction_list: direction of the sort for the columns 
+   - filter_col: list of column indexes that have a filter applied 
+   - filter_condition: list f filter conditions for the columns 
 get_rows_for_table : Any -> Integer -> Vector | Nothing -> Vector | Nothing -> Vector | Nothing -> Vector | Nothing -> JS_Object
-get_rows_for_table table start_number sort_col_index_list=Nothing sort_direction_list=Nothing filter_col=Nothing filter_condition=Nothing =
+get_rows_for_table table_or_column start_number sort_col_index_list=Nothing sort_direction_list=Nothing filter_col=Nothing filter_condition=Nothing =
     max_rows=1000
+    table = case table_or_column of
+        c : Column -> c.to_table
+        _ -> table_or_column
     col_name = table.make_temp_column_name
     table_with_index = table.add_row_number col_name
     table_with_index_ordered = table_with_index.reorder_columns [col_name] ..Before_Other_Columns

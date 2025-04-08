@@ -1,6 +1,6 @@
 package org.enso.projectmanager.boot.configuration
 
-import org.enso.desktopenvironment.Platform
+import org.enso.os.environment.DesktopEnvironment
 
 import java.io.{File, IOException}
 
@@ -21,7 +21,7 @@ case class StorageConfig(
   def userProjectsPath: File = {
     val projectsRootDirectory =
       projectsRoot.getOrElse(
-        Platform.getOperatingSystem.getDirectories.getDocuments.toFile
+        DesktopEnvironment.getDirectories.getDocuments.toFile
       )
     new File(projectsRootDirectory, projectsDirectory)
   }

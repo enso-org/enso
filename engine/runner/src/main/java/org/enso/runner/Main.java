@@ -32,10 +32,12 @@ import org.enso.common.ContextFactory;
 import org.enso.common.DebugServerInfo;
 import org.enso.common.HostEnsoUtils;
 import org.enso.common.LanguageInfo;
+import org.enso.common.Platform;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.editions.DefaultEdition;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
+import org.enso.os.environment.chdir.WorkingDirectory;
 import org.enso.pkg.Contact;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.PackageManager$;
@@ -50,6 +52,7 @@ import org.enso.runner.common.ProfilingConfig;
 import org.enso.runner.common.WrongOption;
 import org.enso.version.BuildVersion;
 import org.enso.version.VersionDescription;
+import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.PolyglotException.StackFrame;
 import org.graalvm.polyglot.SourceSection;
@@ -1448,6 +1451,10 @@ public class Main {
   private void launch(String[] args) throws IOException, InterruptedException, URISyntaxException {
     var line = preprocessArguments(args);
 
+    if (line.hasOption(RUN_OPTION)) {
+      maybeChangeWorkingDirToProjectRoot(line.getOptionValue(RUN_OPTION));
+    }
+
     var logMasking = new boolean[1];
     var logLevel = setupLogging(line, logMasking);
     var props = parseSystemProperties(line);
@@ -1511,6 +1518,68 @@ public class Main {
     } catch (Exception e) {
       printHelp();
       throw exitFail(e.getMessage());
+    }
+  }
+
+  /**
+   * This method has to be called as early as possible. It attempts to find the project root
+   * directory of the given file, and if the project root is found, it uses native code to change
+   * the working directory to the project root. In order for the JVM's {@code java.io} to reflect
+   * the working directory change, this methods must be called before any class from {@code java.io}
+   * is accessed.
+   *
+   * <p>Note that invoking native code is the only reliable way to change the working directory in
+   * the current process.
+   *
+   * <p>For detailed explanation see this <a
+   * href="https://github.com/enso-org/enso/pull/12618#issuecomment-2778451448">GH comment</a>.
+   *
+   * @param fileToRun the file to run, value of the {@code --run} option.
+   */
+  private void maybeChangeWorkingDirToProjectRoot(String fileToRun) {
+    assert fileToRun != null;
+    if (!ImageInfo.inImageRuntimeCode()) {
+      return;
+    }
+    var projectRoot = findProjectRoot(fileToRun);
+    var nativeApi = WorkingDirectory.getInstance();
+    if (projectRoot != null) {
+      var parentDir = parentFile(projectRoot);
+      assert parentDir != null;
+      var curDir = nativeApi.currentWorkingDir();
+      if (!parentDir.equals(curDir)) {
+        var dirChanged = nativeApi.changeWorkingDir(parentDir);
+        if (!dirChanged) {
+          logger.error("Cannot change working directory to {}", parentDir);
+        }
+      }
+    }
+  }
+
+  /**
+   * Attempts to find project root directory. Does not use anything from {@code java.io} on purpose.
+   *
+   * @return null if project root was not found, a canonical path otherwise.
+   */
+  private static String findProjectRoot(String path) {
+    var nativeApi = WorkingDirectory.getInstance();
+    String curPath = path;
+    while (curPath != null) {
+      if (nativeApi.exists(curPath, "package.yaml") && nativeApi.exists(curPath, "src")) {
+        return curPath;
+      }
+      curPath = parentFile(curPath);
+    }
+    return null;
+  }
+
+  private static String parentFile(String path) {
+    var separatorChar = Platform.separatorChar();
+    var lastSlash = path.lastIndexOf(separatorChar);
+    if (lastSlash == -1) {
+      return null;
+    } else {
+      return path.substring(0, lastSlash);
     }
   }
 
