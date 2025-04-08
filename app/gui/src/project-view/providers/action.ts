@@ -30,7 +30,7 @@ export interface Action {
 }
 export type ActionHandler = Partial<Action> & { action: (ctx: ActionContext | undefined) => void }
 
-const actions = {
+const ACTIONS = {
   'graphEditor.showHelp': {
     icon: 'help',
     description: 'Show help',
@@ -177,7 +177,7 @@ const actions = {
  * TODO[ao]: Also integrate it with shortcut management, preferably when working on
  * https://github.com/enso-org/enso/issues/12242
  */
-export type ActionName = keyof typeof actions
+export type ActionName = keyof typeof ACTIONS
 type Actions = Record<ActionName, Action>
 
 const [provideActions, injectActions] = createContextStore('Actions', (a: Actions) => a)
@@ -188,7 +188,7 @@ const [provideActions, injectActions] = createContextStore('Actions', (a: Action
  * Every panel may modify the data providing action handlers using {@link registerHandlers} method.
  */
 export function initializeActions() {
-  provideActions(actions)
+  provideActions(ACTIONS)
 }
 
 /**
@@ -210,7 +210,7 @@ export function initializeActions() {
 export function registerHandlers<Handlers extends Partial<Record<keyof Actions, ActionHandler>>>(
   handlers: ForbidExcessProps<Handlers, Actions>,
 ): Actions & Handlers {
-  const actions = injectActions()
+  const actions = injectActions(true) ?? ACTIONS
   const newActions: Actions = { ...actions }
 
   function isKey(k: PropertyKey): k is keyof Actions {

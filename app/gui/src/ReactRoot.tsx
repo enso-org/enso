@@ -6,11 +6,12 @@ import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { OfflineNotificationManager } from '#/components/OfflineNotificationManager'
 import { Suspense } from '#/components/Suspense'
 import UIProviders from '#/components/UIProviders'
+import { useMount } from '#/hooks/mountHooks'
+import { useUnmount } from '#/hooks/unmountHooks'
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import { HttpClientProvider } from '#/providers/HttpClientProvider'
 import LoggerProvider from '#/providers/LoggerProvider'
 import HttpClient from '#/utilities/HttpClient'
-import { ApplicationConfigValue } from '@/util/config'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { QueryClient } from '@tanstack/vue-query'
 import { IS_DEV_MODE, isOnElectron, isOnLinux } from 'enso-common/src/detect'
@@ -18,7 +19,6 @@ import { StrictMode } from 'react'
 import invariant from 'tiny-invariant'
 
 interface ReactRootProps {
-  config: ApplicationConfigValue
   queryClient: QueryClient
   classSet: Map<string, number>
   onAuthenticated: (accessToken: string | null) => void
@@ -43,7 +43,14 @@ function generateSessionID() {
  * A component gathering all views written currently in React with necessary contexts.
  */
 export default function ReactRoot(props: ReactRootProps) {
-  const { config, queryClient, onAuthenticated } = props
+  const { queryClient, onAuthenticated } = props
+
+  useMount(() => {
+    console.log('ReactRoot MOUNT')
+  })
+  useUnmount(() => {
+    console.log('ReactRoot UNMOUNT')
+  })
 
   const sessionID = generateSessionID()
 
@@ -60,9 +67,6 @@ export default function ReactRoot(props: ReactRootProps) {
   const portalRoot = document.querySelector('#enso-portal-root')
   invariant(portalRoot instanceof HTMLElement, 'PortalRoot element not found')
 
-  const shouldUseAuthentication = config.authentication.enabled
-  const projectManagerUrl =
-    (config.engine.projectManagerUrl || resolveEnvUrl($config.PROJECT_MANAGER_URL)) ?? null
   const isCloudBuild = $config.CLOUD_BUILD === 'true'
 
   return (
@@ -77,8 +81,6 @@ export default function ReactRoot(props: ReactRootProps) {
                     <App
                       supportsDeepLinks={supportsDeepLinks}
                       supportsLocalBackend={!isCloudBuild}
-                      isAuthenticationDisabled={!shouldUseAuthentication}
-                      projectManagerUrl={projectManagerUrl}
                       onAuthenticated={onAuthenticated}
                     />
                   </HttpClientProvider>

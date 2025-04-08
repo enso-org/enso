@@ -17,8 +17,8 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { applyPureReactInVue } from 'veaury'
 import { computed, onMounted } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
+import { ContextsForReactProvider } from './providers/react'
 import ReactRoot from './ReactRoot'
-import { RouterProviderForReact } from './router.tsx'
 
 const { projectViewOnly, onAuthenticated } = defineProps<{
   // Used in Project View integration tests. Once both test projects will be merged, this should be
@@ -76,13 +76,13 @@ onMounted(() => {
 <template>
   <div :class="['App', ...classSet.keys()]">
     <ProjectView v-if="projectViewOnly" v-bind="projectViewOnly.options" />
-    <RouterProviderForReact v-else>
+    <ContextsForReactProvider>
       <ReactRootWrapper
         :config="appConfigValue"
         :queryClient="queryClient"
         @authenticated="onAuthenticated ?? (() => {})"
       />
-    </RouterProviderForReact>
+    </ContextsForReactProvider>
   </div>
   <div id="floatingLayer" />
   <TooltipDisplayer :registry="appTooltips" />

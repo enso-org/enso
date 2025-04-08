@@ -87,16 +87,6 @@ const ProjectsContext = React.createContext<ProjectsContextType | null>(null)
 
 const PageContext = React.createContext<LaunchedProjectId | TabType | null>(null)
 const LaunchedProjectsContext = React.createContext<readonly LaunchedProject[] | null>(null)
-// const [useProjectVueContext, ProjectsVueContextProvider] = createCrossingProviderForPureVueInReact(
-//   () => {
-//     return {
-//       page: usePage(),
-//       setPage: useSetPage(),
-//       launchedProjects: useLaunchedProjects(),
-//     }
-//   },
-// )
-// export { useProjectVueContext }
 
 /** Props for a {@link ProjectsProvider}. */
 export type ProjectsProviderProps = Readonly<React.PropsWithChildren>
@@ -192,6 +182,7 @@ export function usePage() {
 export function useSetPage() {
   const { setPage } = useProjectsStore()
   return eventCallbacks.useEventCallback((page: LaunchedProjectId | TabType) => {
+    console.log('SET PAGE', page)
     setPage(page)
   })
 }

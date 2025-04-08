@@ -7,7 +7,7 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
-import { useRouterInReact } from '../../../router'
+import { useRouterInReact } from '../../../providers/react'
 
 /**
  * The number of emails to display in the success message.

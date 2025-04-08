@@ -23,7 +23,7 @@ import { noop } from '#/utilities/functions'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 import { unsafeWriteValue } from '#/utilities/write'
 import { toast } from 'react-toastify'
-import { useRouterInReact } from '../../../router'
+import { useRouterInReact } from '../../../providers/react'
 
 /** Create the schema for this form. */
 function createResetPasswordFormSchema(getText: GetText) {

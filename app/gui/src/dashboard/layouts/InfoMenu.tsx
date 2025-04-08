@@ -11,7 +11,7 @@ import { useAuth } from '#/providers/AuthProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useSessionAPI } from '#/providers/SessionProvider.tsx'
 import { useText } from '#/providers/TextProvider'
-import { useRouterInReact } from '../../router'
+import { useRouterInReact } from '../../providers/react'
 import { LOGIN_PATH } from '../appUtils'
 
 /** Props for an {@link InfoMenu}. */

@@ -13,7 +13,7 @@ import * as lazyMemo from '#/hooks/useLazyMemoHooks'
 import * as safeJsonParse from '#/utilities/safeJsonParse'
 import { useCallback } from 'react'
 import { type RouteLocationOptions } from 'vue-router'
-import { useRouterInReact } from '../../router'
+import { useRouterInReact } from '../../providers/react'
 
 /** The return type of the `useSearchParamsState` hook. */
 type SearchParamsStateReturnType<T> = Readonly<
@@ -40,7 +40,7 @@ export function useSearchParamsState<T = unknown>(
   defaultValue: T | (() => T),
   predicate: (unknown: unknown) => unknown is T = (unknown): unknown is T => true,
 ): SearchParamsStateReturnType<T> {
-  const { router, route } = useRouterInReact()
+  const { router, searchParams } = useRouterInReact()
 
   // const searchParams = new URLSearchParams(search)
 
@@ -51,15 +51,17 @@ export function useSearchParamsState<T = unknown>(
         | ((currentSearchParams: URLSearchParams) => URLSearchParams),
       options: RouteLocationOptions,
     ) => {
-      const params = new URLSearchParams(window.location.search)
+      const params = searchParams
 
       if (nextSearchParams instanceof Function) {
         nextSearchParams = nextSearchParams(params)
       }
 
-      void router.push({ path: `?${nextSearchParams.toString()}`, ...options })
+      const query = Object.fromEntries(nextSearchParams.entries())
+      console.log('NAVIGATING')
+      void router.push({ query, ...options })
     },
-    [router],
+    [router, searchParams],
   )
 
   const prefixedKey = `${appUtils.SEARCH_PARAMS_PREFIX}${key}`
@@ -77,7 +79,7 @@ export function useSearchParamsState<T = unknown>(
   })
 
   const rawValue = (() => {
-    const maybeValue = route.query[prefixedKey]
+    const maybeValue = searchParams.get(prefixedKey)
     const defaultValueFrom = lazyDefaultValueInitializer()
 
     return maybeValue != null ?

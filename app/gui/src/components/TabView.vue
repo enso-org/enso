@@ -1,85 +1,56 @@
 <script lang="ts">
-import { Suspense as ReactSuspense } from '#/components/Suspense'
 import { createGetProjectDetailsQuery, OPENED_PROJECT_STATES } from '#/hooks/projectHooks'
 // import DriveReact from '#/layouts/Drive'
 // import EditorReact from '#/layouts/Editor'
 // import SettingsReact from '#/layouts/Settings'
 import UserBarReact from '#/layouts/UserBar'
-import { useBackendInVue } from '#/providers/BackendProvider'
 import { LaunchedProject, LaunchedProjectId, TabType } from '#/providers/ProjectsProvider'
 import { BackendType } from '#/services/Backend'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { injectGuiConfig } from '@/providers/guiConfig'
-import { assert } from '@/util/assert'
 import { useQuery } from '@tanstack/vue-query'
-import * as detect from 'enso-common/src/detect'
-import { applyPureReactInVue, lazyReactInVue } from 'veaury'
-import { computed, h, onMounted, onUnmounted, watch } from 'vue'
+import { applyPureReactInVue } from 'veaury'
+import { computed, onMounted, onUnmounted, watch } from 'vue'
+import { injectBackendInVue } from './KeepAliveRouterView.vue'
+import { Drive, Editor, Settings } from './TabView/reactTabs'
 
-const LazyDrive = lazyReactInVue(() => import('#/layouts/Drive'))
-const LazyEditor = lazyReactInVue(() => import('#/layouts/Editor'))
-const LazySettings = lazyReactInVue(() => import('#/layouts/Settings'))
+// const LazyDrive = lazyReactInVue(() => import('#/layouts/Drive'))
+// const LazyEditor = lazyReactInVue(() => import('#/layouts/Editor'))
+// const LazySettings = lazyReactInVue(() => import('#/layouts/Settings'))
 // const Drive = applyPureReactInVue(DriveReact)
 // const Editor = applyPureReactInVue(EditorReact)
 // const Settings = applyPureReactInVue(SettingsReact)
 const UserBar = applyPureReactInVue(UserBarReact)
-const ReactSuspenseInVue = applyPureReactInVue(ReactSuspense)
+// const ReactSuspenseInVue = applyPureReactInVue(ReactSuspense)
 </script>
 
 <script setup lang="ts">
-const { page, setPage, launchedProjects, closeAllProjects, clearLaunchedProjects, setIsChatOpen } =
-  defineProps<{
-    page: LaunchedProjectId | TabType | null
-    setPage(page: LaunchedProjectId | TabType): void
-    launchedProjects: LaunchedProject[]
-    closeAllProjects(): void
-    clearLaunchedProjects(): void
-    setIsChatOpen(value: boolean): void
-  }>()
+const {
+  initialProjectName,
+  page,
+  setPage,
+  launchedProjects,
+  closeAllProjects,
+  clearLaunchedProjects,
+  setIsChatOpen,
+} = defineProps<{
+  initialProjectName: string | null
+  page: LaunchedProjectId | TabType | null
+  setPage(page: LaunchedProjectId | TabType): void
+  launchedProjects: LaunchedProject[]
+  closeAllProjects(): void
+  clearLaunchedProjects(): void
+  setIsChatOpen(value: boolean): void
+}>()
 
-// TODO: duplicated in ReactRoot: make some composable with all this settings, maybe?
-function resolveEnvUrl(url: string | undefined) {
-  return url?.replace('__HOSTNAME__', window.location.hostname)
-}
-
-const backend = useBackendInVue()
-const config = injectGuiConfig()
-
-const initialProjectName = computed(() => {
-  const nameRaw = config.value.startup.project
-  const path = nameRaw != null ? fileURLToPath(nameRaw) : null
-  return path != null ? null : nameRaw
-})
-
-const ydocUrl = computed(
-  () => (config.value.engine.ydocUrl || resolveEnvUrl($config.YDOC_SERVER_URL)) ?? null,
-)
-
-/** Extract proper path from `file://` URL. */
-function fileURLToPath(url: string): string | null {
-  if (URL.canParse(url)) {
-    const parsed = new URL(url)
-    if (parsed.protocol === 'file:') {
-      return decodeURIComponent(
-        detect.platform() === detect.Platform.windows ?
-          // On Windows, we must remove leading `/` from URL.
-          parsed.pathname.slice(1)
-        : parsed.pathname,
-      )
-    } else {
-      return null
-    }
-  } else {
-    return null
-  }
-}
+const backend = injectBackendInVue()
 
 const lastProject = computed(() => launchedProjects[launchedProjects.length - 1])
 const lastProjectDetailsOptions = computed(() =>
   lastProject.value ?
     createGetProjectDetailsQuery({
       assetId: lastProject.value.id,
-      backend: lastProject.value.type === BackendType.local ? backend.local : backend.remote,
+      backend:
+        lastProject.value.type === BackendType.local ? backend.localBackend : backend.remoteBackend,
     })
   : { queryKey: [] },
 )
@@ -100,20 +71,20 @@ const onSignOut = () => {
   clearLaunchedProjects()
 }
 
-const currentComponent = computed(() => {
-  switch (page) {
-    case null:
-    case 'drive':
-      return h(ReactSuspenseInVue, [h(LazyDrive, { initialProjectName })])
-    case 'settings':
-      return LazySettings
-    default: {
-      const project = launchedProjects.find((p) => p.id === page)
-      assert(project != null)
-      return h(LazyEditor, { project, ydocUrl })
-    }
-  }
-})
+// const currentComponent = computed(() => {
+//   switch (page) {
+//     case null:
+//     case 'drive':
+//       return [Drive, null] //h(ReactSuspenseInVue, [h(LazyDrive, { initialProjectName })])
+//     case 'settings':
+//       return [Settings, null]
+//     default: {
+//       const project = launchedProjects.find((p) => p.id === page)
+//       assert(project != null)
+//       return [Editor, project]
+//     }
+//   }
+// })
 onMounted(() => console.error('TabView MOUNT'))
 onUnmounted(() => console.error('TabView UNMOUNT'))
 </script>
@@ -140,8 +111,16 @@ onUnmounted(() => console.error('TabView UNMOUNT'))
       />
     </div>
   </div>
+
+  <!-- TODO: make it better -->
   <KeepAlive>
-    <component :is="currentComponent" class="panel" />
+    <Drive v-if="page === 'drive'" :initialProjectName="initialProjectName" class="panel" />
+  </KeepAlive>
+  <KeepAlive v-for="project in launchedProjects">
+    <Editor v-if="page === project.id" :project="project" class="panel" />
+  </KeepAlive>
+  <KeepAlive>
+    <Settings v-if="page === 'settings'" class="panel" />
   </KeepAlive>
 </template>
 

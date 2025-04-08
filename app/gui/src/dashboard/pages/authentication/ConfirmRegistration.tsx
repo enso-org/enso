@@ -14,7 +14,7 @@ import { useText } from '#/providers/TextProvider'
 import { noop } from '#/utilities/functions'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useMutation } from '@tanstack/react-query'
-import { useRouterInReact } from '../../../router'
+import { useRouterInReact } from '../../../providers/react'
 import AuthenticationPage from './AuthenticationPage'
 
 const REDIRECT_TIMEOUT = 5_000

@@ -17,7 +17,6 @@ import { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
-import type Backend from '#/services/Backend'
 import { Path } from '#/services/ProjectManager'
 import { includesPredicate } from '#/utilities/array'
 import { regexEscape } from '#/utilities/string'
@@ -33,11 +32,6 @@ import {
 import SettingsSidebar from './Sidebar'
 import SettingsTab from './Tab'
 import SettingsTabType from './TabType'
-
-/** Props for a {@link Settings}. */
-export interface SettingsProps {
-  readonly backend: Backend | null
-}
 
 /** Settings screen. */
 export default function Settings() {

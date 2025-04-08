@@ -77,12 +77,14 @@ import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 
 import { useInitAuthService } from '#/authentication/service'
 import { useMutation } from '@tanstack/react-query'
-import { RouterView as RouterViewVue } from 'vue-router'
-import { useRouterInReact } from '../router.tsx'
+import { VueContainer } from 'veaury'
+import KeepAliveRouterView from '../components/KeepAliveRouterView.vue'
+import { useConfigInReact, useRouterInReact } from '../providers/react'
+import { useMount } from './hooks/mountHooks'
 import { useOffline } from './hooks/offlineHooks'
-import { vueComponent } from './utilities/vue'
+import { useUnmount } from './hooks/unmountHooks'
 
-export const RouterView = vueComponent(RouterViewVue).default
+// export const RouterView = applyVueInReact(RouterViewVue)
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -120,15 +122,12 @@ function getMainPageUrl() {
 export interface AppProps {
   /** Whether the application may have the local backend running. */
   readonly supportsLocalBackend: boolean
-  /** If true, the app can only be used in offline mode. */
-  readonly isAuthenticationDisabled: boolean
   /**
    * Whether the application supports deep links. This is only true when using
    * the installed app on macOS and Windows.
    */
   readonly supportsDeepLinks: boolean
   readonly onAuthenticated: (accessToken: string | null) => void
-  readonly projectManagerUrl: string | null
 }
 
 /**
@@ -139,6 +138,13 @@ export interface AppProps {
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app.
  */
 export default function App(props: AppProps) {
+  useMount(() => {
+    console.log('App MOUNT')
+  })
+  useUnmount(() => {
+    console.log('App UNMOUNT')
+  })
+  const config = useConfigInReact()
   const {
     data: { projectManagerRootDirectory, projectManagerInstance },
   } = reactQuery.useSuspenseQuery<{
@@ -148,7 +154,7 @@ export default function App(props: AppProps) {
     queryKey: [
       'root-directory',
       {
-        projectManagerUrl: props.projectManagerUrl,
+        projectManagerUrl: config.projectManagerUrl,
         supportsLocalBackend: props.supportsLocalBackend,
       },
     ] as const,
@@ -164,13 +170,13 @@ export default function App(props: AppProps) {
       },
     },
     queryFn: async () => {
-      if (props.supportsLocalBackend && props.projectManagerUrl != null) {
+      if (props.supportsLocalBackend && config.projectManagerUrl != null) {
         const response = await fetch(`${appBaseUrl.APP_BASE_URL}/api/root-directory`)
         const text = await response.text()
         const rootDirectory = projectManager.Path(text)
 
         return {
-          projectManagerInstance: new ProjectManager(props.projectManagerUrl, rootDirectory),
+          projectManagerInstance: new ProjectManager(config.projectManagerUrl, rootDirectory),
           projectManagerRootDirectory: rootDirectory,
         }
       } else {
@@ -250,6 +256,13 @@ function AppRouter(props: AppRouterProps) {
   const logger = useLogger()
   const { router } = useRouterInReact()
   const navigate = router.push.bind(router)
+
+  useMount(() => {
+    console.log('AppRouter MOUNT')
+  })
+  useUnmount(() => {
+    console.log('AppRouter UNMOUNT')
+  })
 
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -498,7 +511,11 @@ function AppRouter(props: AppRouterProps) {
             <InputBindingsProvider inputBindings={inputBindings}>
               <LocalBackendPathSynchronizer />
               <VersionChecker />
-              <RouterView />
+              <VueContainer
+                component={KeepAliveRouterView}
+                localBackend={localBackend}
+                remoteBackend={remoteBackend}
+              />
             </InputBindingsProvider>
           </AuthProvider>
         </BackendProvider>

@@ -21,7 +21,7 @@ import Registration from '#/pages/authentication/Registration'
 import ResetPassword from '#/pages/authentication/ResetPassword'
 import RestoreAccount from '#/pages/authentication/RestoreAccount'
 import { Setup } from '#/pages/authentication/Setup'
-import Dashboard from '#/pages/dashboard/Dashboard'
+// import Dashboard from '#/pages/dashboard/Dashboard'
 import { Subscribe } from '#/pages/subscribe/Subscribe'
 import { SubscribeSuccess } from '#/pages/subscribe/SubscribeSuccess'
 import {
@@ -34,9 +34,9 @@ import {
 } from '#/providers/AuthProvider'
 import { PropsWithChildren, ReactNode } from 'react'
 import { applyPureReactInVue } from 'veaury'
-import { createRouter, createWebHistory, RouteRecordRaw, useRoute, useRouter } from 'vue-router'
+import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
+import Dashboard from './components/Dashboard.vue'
 import ReactLayoutWrapper from './components/ReactLayoutWrapper.vue'
-import { createContextForReact } from './providers/react'
 
 function CloudBrowserDisabledLayout(props: PropsWithChildren) {
   return (
@@ -108,17 +108,17 @@ const routes = [
         [
           {
             path: DASHBOARD_PATH,
-            component: applyPureReactInVue(Dashboard),
+            component: Dashboard,
           },
           {
             path: SUBSCRIBE_PATH,
-            component: applyPureReactInVue(BoundedSubscribe), // TODO: Error boundary and suspense
+            component: applyPureReactInVue(BoundedSubscribe),
           },
         ],
       ),
       {
         path: SUBSCRIBE_SUCCESS_PATH,
-        component: applyPureReactInVue(BoundedSubscribeSuccess), // TODO: Error boundary and suspense
+        component: applyPureReactInVue(BoundedSubscribeSuccess),
       },
     ],
   ),
@@ -159,22 +159,6 @@ const routes = [
     redirect: '/',
   },
 ]
-
-export const [useRouterInReact, RouterProviderForReact] = createContextForReact(() => {
-  const route = useRoute()
-  const queryFlatList = Object.entries(route.query).flatMap(([key, value]) => {
-    if (value instanceof Array) {
-      return value.map((singleVal) => [key, singleVal ?? ''])
-    } else {
-      return [[key, value ?? '']]
-    }
-  })
-  return {
-    router: useRouter(),
-    route,
-    searchParams: new URLSearchParams(queryFlatList),
-  }
-})
 
 export default createRouter({
   history: createWebHistory(),

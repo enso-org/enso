@@ -38,6 +38,7 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { vueComponent } from '#/utilities/vue'
 import VueTabView from '@/../components/TabView.vue'
 import { usePrefetchQuery } from '@tanstack/react-query'
+import { useConfigInReact } from '../../../providers/react'
 
 const TabView = vueComponent(VueTabView, {}).default
 
@@ -64,10 +65,35 @@ export default function Dashboard() {
   )
 }
 
+/** Extract proper path from `file://` URL. */
+function fileURLToPath(url: string): string | null {
+  if (URL.canParse(url)) {
+    const parsed = new URL(url)
+    if (parsed.protocol === 'file:') {
+      return decodeURIComponent(
+        detect.platform() === detect.Platform.windows ?
+          // On Windows, we must remove leading `/` from URL.
+          parsed.pathname.slice(1)
+        : parsed.pathname,
+      )
+    } else {
+      return null
+    }
+  } else {
+    return null
+  }
+}
+
 /** The component that contains the entire UI. */
 function DashboardInner() {
   const localBackend = backendProvider.useLocalBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const config = useConfigInReact()
+
+  const initialProjectNameRaw = config.params.startup.project
+  const initialLocalProjectPath = fileURLToPath(initialProjectNameRaw)
+  const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
+
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
 
   const categoriesAPI = useCategoriesAPI()
@@ -154,9 +180,10 @@ function DashboardInner() {
     [inputBindings],
   )
 
-  // const [page, setPage] = React.useState('drive')
+  // const [page, setPage1] = React.useState('drive')
   const page = usePage()
   const setPage = useSetPage()
+  // const setPage = (page) => (setPage1(page), setPage2(page))
   const launchedProjects = useLaunchedProjects()
   const closeAllProjects = projectHooks.useCloseAllProjects()
   const clearLaunchedProjects = useClearLaunchedProjects()
@@ -171,6 +198,7 @@ function DashboardInner() {
         }}
       >
         <TabView
+          initialProjectName={initialProjectName}
           setIsChatOpen={setIsHelpChatOpen}
           page={page}
           setPage={setPage}

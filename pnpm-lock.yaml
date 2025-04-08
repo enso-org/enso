@@ -363,8 +363,8 @@ importers:
         specifier: ^13.12.0
         version: 13.12.0
       veaury:
-        specifier: '=2.4.1'
-        version: 2.4.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: '=2.4.4'
+        version: 2.4.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       vue:
         specifier: ^3.5.13
         version: 3.5.13(typescript@5.7.2)
@@ -7561,8 +7561,8 @@ packages:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
 
-  veaury@2.4.1:
-    resolution: {integrity: sha512-E5VA0aFSk5brksOOS/rUkt3mYeDmLYTDQRWCwvRi3U+s9RN3EzJIZbXGr1K4/mla4YZ3HmZ0chZ3LEBPlOB7IA==}
+  veaury@2.4.4:
+    resolution: {integrity: sha512-oI/49V6HqMxzM2u48MZIk9o2iOPs5ymAN89vMDmcJG5yJDKiOaPtmqeYqNwfpJIxmYTHyq4yuycLt/0Ul7kr/g==}
     peerDependencies:
       react: '>= 16.4.0'
       react-dom: '>= 16.4.0'
@@ -16200,7 +16200,7 @@ snapshots:
 
   vary@1.1.2: {}
 
-  veaury@2.4.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  veaury@2.4.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)

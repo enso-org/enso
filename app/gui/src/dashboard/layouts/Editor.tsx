@@ -12,6 +12,7 @@ import * as twMerge from '#/utilities/tailwindMerge'
 import { vueComponent } from '#/utilities/vue'
 import * as reactQuery from '@tanstack/react-query'
 import * as React from 'react'
+import { useConfigInReact } from '../../providers/react'
 import { useTimeoutCallback } from '../hooks/timeoutHooks'
 
 const ProjectViewTab = React.lazy(() =>
@@ -25,7 +26,6 @@ export type ProjectViewTabProps = React.ComponentProps<typeof ProjectViewTab>
 export interface EditorProps {
   readonly project: LaunchedProject
   readonly hidden?: boolean
-  readonly ydocUrl: string | null
 }
 
 /** The container that launches the IDE. */
@@ -147,10 +147,11 @@ interface EditorInternalProps extends Omit<EditorProps, 'project'> {
 
 /** An internal editor. */
 function EditorInternal(props: EditorInternalProps) {
-  const { hidden = false, ydocUrl, renameProject, openedProject, backendType } = props
+  const { hidden = false, renameProject, openedProject, backendType } = props
 
   const { getText } = textProvider.useText()
   const gtagEvent = gtagHooks.useGtagEvent()
+  const config = useConfigInReact()
 
   const localBackend = backendProvider.useLocalBackend()
   const remoteBackend = backendProvider.useRemoteBackend()
@@ -168,7 +169,7 @@ function EditorInternal(props: EditorInternalProps) {
   const appProps = React.useMemo<ProjectViewTabProps>(() => {
     const jsonAddress = openedProject.jsonAddress
     const binaryAddress = openedProject.binaryAddress
-    const ydocAddress = openedProject.ydocAddress ?? ydocUrl ?? ''
+    const ydocAddress = openedProject.ydocAddress ?? config.ydocUrl ?? ''
     const projectBackend =
       backendType === backendModule.BackendType.remote ? remoteBackend : localBackend
 
@@ -192,7 +193,7 @@ function EditorInternal(props: EditorInternalProps) {
     }
   }, [
     openedProject,
-    ydocUrl,
+    config,
     getText,
     hidden,
     onRenameProject,
