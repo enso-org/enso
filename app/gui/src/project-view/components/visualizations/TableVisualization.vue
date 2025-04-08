@@ -19,7 +19,16 @@ import type {
   SetFilterValuesFuncParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
-import { ComponentInstance, computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
+import {
+  ComponentInstance,
+  computed,
+  onMounted,
+  ref,
+  shallowRef,
+  watch,
+  watchEffect,
+  type Ref,
+} from 'vue'
 import { ComponentExposed } from 'vue-component-type-helpers'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import {
@@ -108,6 +117,7 @@ interface UnknownTable {
   data_quality_metrics?: DataQualityMetric[]
   is_using_server_sort_and_filter: boolean
   requires_number_format: boolean[]
+  requires_row_refresh?: string
 }
 
 type DataQualityMetric = {
@@ -163,12 +173,30 @@ const grid = ref<
 const allRowCount = computed(() =>
   typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
 )
+
+const rowRefreshTimestamp = computed(() =>
+  typeof props.data === 'object' && 'requires_row_refresh' in props.data ?
+    props.data.requires_row_refresh
+  : null,
+)
+
 const isSSRM = computed(
   () =>
     typeof props.data === 'object' &&
     'is_using_server_sort_and_filter' in props.data &&
     props.data.is_using_server_sort_and_filter,
 )
+
+const ssrmServer = computed(() => {
+  return isSSRM.value && createServer()
+})
+
+const refreshDataSource = ref(0)
+const ssrmDatasource = computed(() => {
+  const value = refreshDataSource.value
+  return isSSRM.value && createServerSideDatasource()
+})
+
 const statusBar = computed(() =>
   allRowCount.value ?
     {
@@ -187,8 +215,13 @@ const statusBar = computed(() =>
   : null,
 )
 
+// if there are upstream updates only to the row information the timestamp change indicates the grid needs to re get rows for any potetial changes
+watch(rowRefreshTimestamp, () => {
+  refreshDataSource.value++
+})
+
 watchEffect(() => {
-  // if the column definitions remain the same but there has been updates upstream ag grid doesn't know to re fetch the row data to the updated data
+  // if the column definitions remain the same but there has been updates upstream ag grid doesn't know to change it's row model or to fetch new data
   if (nodeType.value != config.nodeType) {
     grid.value?.forceGridRefresh()
     nodeType.value = config.nodeType
@@ -219,7 +252,7 @@ function setRowLimit(newRowLimit: number) {
   }
 }
 
-watchEffect(() =>
+watchEffect(() => 
   config.setPreprocessor(
     'Standard.Visualization.Table.Visualization',
     'prepare_visualization',
@@ -278,10 +311,12 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
   const colName = params.colDef.field
   if (typeof props.data === 'object' && 'header' in props.data) {
     const index = props.data.header?.findIndex((h: string) => colName === h)
-    const server = createServer()
-    const response = await server.getSetFilterValues(index)
-    if (response.success) {
-      params.success(response.data)
+    const server = ssrmServer.value
+    if (server) {
+      const response = await server.getSetFilterValues(index)
+      if (response.success) {
+        params.success(response.data)
+      }
     }
   }
 }
@@ -355,14 +390,16 @@ interface Response {
 function createServerSideDatasource(): IServerSideDatasource {
   return {
     getRows: async (params) => {
-      const server = createServer()
-      const response: Response = await server.getData(params.request)
-      const rows = createRowsForTable(response.data, 0, true)
+      const server = ssrmServer.value
+      if (server) {
+        const response: Response = await server.getData(params.request)
+        const rows = createRowsForTable(response.data, 0, true)
 
-      if (response.success) {
-        params.success({ rowData: rows })
-      } else {
-        params.fail()
+        if (response.success) {
+          params.success({ rowData: rows })
+        } else {
+          params.fail()
+        }
       }
     },
   }
@@ -990,7 +1027,7 @@ config.setToolbar(
         :rowData="rowData"
         :defaultColDef="defaultColDef"
         :textFormatOption="textFormatterSelected"
-        :datasource="createServerSideDatasource()"
+        :datasource="ssrmDatasource"
         :rowCount="allRowCount"
         :isServerSideModel="isSSRM"
         :statusBar="statusBar"
