@@ -234,7 +234,7 @@ public final class EnsoContext {
               Level.WARNING,
               "Initializing the context in a different working directory than the one containing"
                   + " the project root. This may lead to relative paths not behaving as advertised"
-                  + " by `File.new`. Please run the engine inside of `{}` directory.",
+                  + " by `File.new`. Please run the engine inside of `{0}` directory.",
               maskedPath);
         }
       } catch (IOException e) {

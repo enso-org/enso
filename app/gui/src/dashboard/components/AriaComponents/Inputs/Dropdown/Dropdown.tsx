@@ -374,7 +374,9 @@ export function FormDropdown<
             <>
               <Dropdown
                 {...inputProps}
-                selectedIndex={items.indexOf(value)}
+                selectedIndex={items.findIndex(
+                  (otherItem) => JSON.stringify(value) === JSON.stringify(otherItem),
+                )}
                 onChange={onChange}
                 rounded={rounded}
                 size={size}

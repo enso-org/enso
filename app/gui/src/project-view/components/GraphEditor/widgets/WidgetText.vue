@@ -42,7 +42,7 @@ const { editorView } = useCodeMirror(editorRoot, {
 })
 
 const { getText, setText, onTextEdited } = connectSync(editorView)
-watch(textContents, setText)
+watch(textContents, (text) => setText(text))
 onTextEdited((text) => editing.edit(makeLiteralFromUserInput(text)))
 
 const previousValue = ref<string>()

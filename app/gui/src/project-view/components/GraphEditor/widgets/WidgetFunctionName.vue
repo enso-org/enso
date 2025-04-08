@@ -47,7 +47,7 @@ const { editorView } = useCodeMirror(editorRoot, {
 })
 
 const { getText, setText } = connectSync(editorView)
-watch(nameCode, setText)
+watch(nameCode, (text) => setText(text))
 
 async function newNameAccepted() {
   const newName = getText()

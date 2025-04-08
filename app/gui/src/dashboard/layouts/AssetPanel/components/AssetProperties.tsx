@@ -33,6 +33,7 @@ import {
   BackendType,
   getAssetPermissionId,
   getAssetPermissionName,
+  isAssetCredential,
   Plan,
   type AnyAsset,
   type DatalinkId,
@@ -163,6 +164,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     self?.permission === permissions.PermissionAction.admin ||
     self?.permission === permissions.PermissionAction.edit
   const isSecret = item.type === AssetType.secret
+  const isCredential = isAssetCredential(item)
   const isDatalink = item.type === AssetType.datalink
   const isCloud = backend.type === BackendType.remote
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
@@ -395,7 +397,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
         </div>
       )}
 
-      {isSecret && (
+      {isSecret && !isCredential && (
         <div className={styles.section()} {...secretSpotlight.props}>
           <Heading
             level={2}
@@ -414,6 +416,59 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
               await updateSecretMutation.mutateAsync([item.id, { title, value }, title])
             }}
           />
+        </div>
+      )}
+
+      {isSecret && isCredential && (
+        <div className={styles.section()} {...secretSpotlight.props}>
+          <Heading
+            level={2}
+            className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
+          >
+            {getText('configuration')}
+          </Heading>
+          <table>
+            <tbody>
+              <tr className="h-row">
+                <td className="my-auto min-w-side-panel-label p-0">
+                  <Text>{getText('credentialServiceName')}</Text>
+                </td>
+                <td className="w-full p-0">
+                  <div className="flex items-center gap-2">
+                    <Text className="w-0 grow" truncate="1">
+                      {item.credentialMetadata.serviceName}
+                    </Text>
+                  </div>
+                </td>
+              </tr>
+              <tr className="h-row">
+                <td className="my-auto min-w-side-panel-label p-0">
+                  <Text>{getText('credentialState')}</Text>
+                </td>
+                <td className="w-full p-0">
+                  <div className="flex items-center gap-2">
+                    <Text className="w-0 grow" truncate="1">
+                      {getText(`credentialState${item.credentialMetadata.state}`)}
+                    </Text>
+                  </div>
+                </td>
+              </tr>
+              {item.credentialMetadata.expirationDate && (
+                <tr className="h-row">
+                  <td className="my-auto min-w-side-panel-label p-0">
+                    <Text>{getText('credentialExpiresAt')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <div className="flex items-center gap-2">
+                      <Text className="w-0 grow" truncate="1">
+                        {toReadableIsoString(new Date(item.credentialMetadata.expirationDate))}
+                      </Text>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       )}
 
