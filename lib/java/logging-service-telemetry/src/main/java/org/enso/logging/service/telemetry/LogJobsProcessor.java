@@ -1,0 +1,178 @@
+package org.enso.logging.service.telemetry;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.ThreadPoolExecutor;
+import org.enso.logging.service.telemetry.ApiMessage.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/** Responsible for sending {@link LogMessage} to the endpoint asynchronously. */
+public final class LogJobsProcessor {
+  /**
+   * We still want to limit the batch size to some reasonable number - sending too many logs in one
+   * request could also be problematic.
+   */
+  private static final int MAX_BATCH_SIZE = 100;
+
+  private static final int MAX_RETRIES = 5;
+  private static final Logger LOGGER = LoggerFactory.getLogger(LogJobsProcessor.class);
+
+  private final ThreadPoolExecutor backgroundThreadService;
+  private final URI endpoint;
+  private final Credentials credentials;
+  private final LogJobsQueue logQueue = new LogJobsQueue();
+  private HttpClient httpClient;
+
+  /**
+   * Set to true once an error is encountered when sending a request. In such case, it is most
+   * probably that no further requests will be successful. This flag is used to terminate the
+   * background thread.
+   */
+  private boolean requestSendingFailure;
+
+  public LogJobsProcessor(ThreadPoolExecutor executor, URI endpoint, Credentials credentials) {
+    this.backgroundThreadService = Objects.requireNonNull(executor);
+    this.endpoint = Objects.requireNonNull(endpoint);
+    this.credentials = Objects.requireNonNull(credentials);
+  }
+
+  public void enqueueMessage(LogMessage message) {
+    int queuedJobs = logQueue.enqueue(message);
+    if (queuedJobs == 1 && backgroundThreadService.getQueue().isEmpty()) {
+      // If we are the first message in the queue, we need to start the background thread.
+      // It is possible that a job was already running, but adding a new one will not hurt - once
+      // the queue is empty, the currently running job will finish and any additional jobs will also
+      // terminate immediately.
+      if (!requestSendingFailure) {
+        backgroundThreadService.execute(this::logThreadEntryPoint);
+      }
+    }
+
+    /*
+     * Liveness is guaranteed, because the queue size always increments exactly by 1,
+     * so `enqueue` returns 1 if and only if the queue was empty beforehand.
+     *
+     * If the queue was empty before adding a message, we always schedule a `logThreadEntryPoint` to run,
+     * unless it was already pending on the job queue.
+     *
+     * Any running `logThreadEntryPoint` will not finish until the queue is empty.
+     * So after every append, either a job is already running or scheduled to be run.
+     */
+  }
+
+  /** Runs as long as there are any pending log messages queued and sends them in batches. */
+  private void logThreadEntryPoint() {
+    while (true) {
+      List<LogMessage> pendingMessages = logQueue.popEnqueuedJobs(MAX_BATCH_SIZE);
+      if (pendingMessages.isEmpty()) {
+        // If there are no more pending messages, we can stop the thread for now.
+        // If during this teardown a new message is added, it will see no elements on `logQueue` and
+        // thus,
+        // `logQueue.enqueue` will return 1, thus ensuring that at least one new job is scheduled.
+        return;
+      }
+      try {
+        sendBatch(pendingMessages);
+      } catch (RequestFailureException e) {
+        LOGGER.warn("Stopping the Telemetry appender - requests cannot be send", e);
+        requestSendingFailure = true;
+        return;
+      }
+    }
+  }
+
+  /**
+   * Sends a batch of log messages.
+   *
+   * <p>The batch must not be empty and all messages must share the same request config.
+   */
+  private void sendBatch(List<LogMessage> batch) throws RequestFailureException {
+    assert !batch.isEmpty() : "The batch must not be empty.";
+
+    var request = buildRequest(batch);
+    if (request == null) {
+      LOGGER.warn("Failed to build request for log messages. Skipping {} messages", batch.size());
+    } else {
+      sendLogRequest(request, MAX_RETRIES);
+    }
+  }
+
+  private HttpRequest buildRequest(List<LogMessage> logEvents) throws RequestFailureException {
+    var payload = buildPayload(logEvents);
+    if (payload != null) {
+      return HttpRequest.newBuilder()
+          .uri(endpoint)
+          .header("Authorization", "Bearer " + credentials.accessToken())
+          .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
+          .build();
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * Transforms the given log events into JSON payloads.
+   *
+   * @return null if none of the log events could be transformed into a payload.
+   */
+  private String buildPayload(List<LogMessage> messages) {
+    var logs = new ArrayList<Log>();
+    for (var logMessage : messages) {
+      var payloadForLogEvent = LogFormatter.transform(logMessage);
+      if (payloadForLogEvent != null) {
+        logs.add(payloadForLogEvent);
+      }
+    }
+    if (logs.size() != messages.size()) {
+      LOGGER.warn("Failed to build payload for some log events");
+    }
+    if (logs.isEmpty()) {
+      return null;
+    } else {
+      var payload = ApiMessage.createPayload(logs);
+      return ApiMessage.serializePayload(payload);
+    }
+  }
+
+  private void sendLogRequest(HttpRequest request, int retryCount) throws RequestFailureException {
+    assert request != null;
+    try {
+      try {
+        if (httpClient == null) {
+          httpClient = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
+        }
+        HttpResponse<String> response =
+            httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+          throw new RequestFailureException(
+              "Unexpected status code: " + response.statusCode() + " " + response.body(), null);
+        }
+      } catch (IOException | InterruptedException e) {
+        var errorMessage = e.getMessage() != null ? e.getMessage() : e.toString();
+        throw new RequestFailureException("Failed to send log messages: " + errorMessage, e);
+      }
+    } catch (RequestFailureException e) {
+      if (retryCount < 0) {
+        LOGGER.debug("Failed to send log messages after retrying", e);
+        throw e;
+      } else {
+        LOGGER.debug("Exception when sending log messages. Retrying...", e);
+        sendLogRequest(request, retryCount - 1);
+      }
+    }
+  }
+
+  private static final class RequestFailureException extends Exception {
+    public RequestFailureException(String message, Throwable cause) {
+      super(message, cause);
+    }
+  }
+}
