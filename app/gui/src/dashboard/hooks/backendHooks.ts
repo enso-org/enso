@@ -317,7 +317,7 @@ export function useListDirectoryRefetchInterval() {
 export interface ListDirectoryQueryOptions {
   readonly backend: Backend
   readonly filterBy?: FilterBy | null | undefined
-  readonly parentId: DirectoryId
+  readonly parentId: DirectoryId | null
   readonly category: Category
   /**
    * When using React, use {@link useListDirectoryRefetchInterval} to 0.
@@ -361,7 +361,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
             labels: null,
             recentProjects: category.type === 'recent',
           },
-          parentId,
+          parentId ?? '(unknown)',
         )
       } catch (error) {
         if (error instanceof Error) {
