@@ -19,6 +19,7 @@ const {
   page,
   setPage,
   launchedProjects,
+  closeProject,
   closeAllProjects,
   clearLaunchedProjects,
   setIsChatOpen,
@@ -27,6 +28,7 @@ const {
   page: LaunchedProjectId | TabType | null
   setPage(page: LaunchedProjectId | TabType): void
   launchedProjects: LaunchedProject[]
+  closeProject(project: LaunchedProject): void
   closeAllProjects(): void
   clearLaunchedProjects(): void
   setIsChatOpen(value: boolean): void
@@ -46,6 +48,7 @@ const lastProjectDetailsOptions = computed(() =>
 )
 const lastProjectDetails = useQuery(lastProjectDetailsOptions as any)
 
+// Automatically open tab once just opened project loads.
 watch(
   () => OPENED_PROJECT_STATES.has(lastProjectDetails.data.value?.state.type),
   (isOpened, wasOpened) => {
@@ -76,7 +79,7 @@ onUnmounted(() => console.error('TabView UNMOUNT'))
       >
         <SvgIcon name="graph_editor" />
         <span>{{ project.title }}</span>
-        <SvgIcon name="close" />
+        <SvgIcon name="close" @click="closeProject(project)" />
       </div>
       <div v-if="page === 'settings'" class="tab">Settings</div>
       <div class="filler" />
@@ -86,21 +89,26 @@ onUnmounted(() => console.error('TabView UNMOUNT'))
         @signOut="onSignOut"
       />
     </div>
+    <!-- TODO: make it better? -->
+    <KeepAlive>
+      <Drive v-if="page === 'drive'" :initialProjectName="initialProjectName" class="panel" />
+    </KeepAlive>
+    <KeepAlive v-for="project in launchedProjects" :key="project.id">
+      <Editor v-if="page === project.id" :project="project" class="panel" />
+    </KeepAlive>
+    <KeepAlive>
+      <Settings v-if="page === 'settings'" class="panel" />
+    </KeepAlive>
   </div>
-
-  <!-- TODO: make it better? -->
-  <KeepAlive>
-    <Drive v-if="page === 'drive'" :initialProjectName="initialProjectName" class="panel" />
-  </KeepAlive>
-  <KeepAlive v-for="project in launchedProjects" :key="project.id">
-    <Editor v-if="page === project.id" :project="project" class="panel" />
-  </KeepAlive>
-  <KeepAlive>
-    <Settings v-if="page === 'settings'" class="panel" />
-  </KeepAlive>
 </template>
 
 <style scoped>
+.TabView {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .bar {
   background-color: rgba(0, 0, 0, 0.1);
   display: flex;

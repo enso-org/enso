@@ -185,6 +185,7 @@ function DashboardInner() {
   const setPage = useSetPage()
   // const setPage = (page) => (setPage1(page), setPage2(page))
   const launchedProjects = useLaunchedProjects()
+  const closeProject = projectHooks.useCloseProject()
   const closeAllProjects = projectHooks.useCloseAllProjects()
   const clearLaunchedProjects = useClearLaunchedProjects()
 
@@ -203,6 +204,7 @@ function DashboardInner() {
           page={page}
           setPage={setPage}
           launchedProjects={launchedProjects}
+          closeProject={closeProject}
           closeAllProjects={closeAllProjects}
           clearLaunchedProjects={clearLaunchedProjects}
         />
