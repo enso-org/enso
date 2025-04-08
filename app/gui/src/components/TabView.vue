@@ -3,6 +3,7 @@ import { createGetProjectDetailsQuery, OPENED_PROJECT_STATES } from '#/hooks/pro
 import UserBarReact from '#/layouts/UserBar'
 import { LaunchedProject, LaunchedProjectId, TabType } from '#/providers/ProjectsProvider'
 import { BackendType } from '#/services/Backend'
+import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { applyPureReactInVue } from 'veaury'
@@ -48,16 +49,16 @@ const lastProjectDetailsOptions = computed(() =>
   : { queryKey: [] },
 )
 const lastProjectDetails = useQuery(lastProjectDetailsOptions as any)
+const isProjectReady = computed(() =>
+  OPENED_PROJECT_STATES.has(lastProjectDetails.data.value?.state.type),
+)
 
 // Automatically open tab once just opened project loads.
-watch(
-  () => OPENED_PROJECT_STATES.has(lastProjectDetails.data.value?.state.type),
-  (isOpened, wasOpened) => {
-    if (isOpened === true && wasOpened === false && lastProject.value != null) {
-      setPage(lastProject.value.id)
-    }
-  },
-)
+watch(isProjectReady, (isReady, wasReady) => {
+  if (isReady === true && wasReady === false && lastProject.value != null) {
+    setPage(lastProject.value.id)
+  }
+})
 
 const onSignOut = () => {
   setPage('drive')
@@ -80,7 +81,8 @@ onUnmounted(() => console.error('TabView UNMOUNT'))
         :selected="page === project.id"
         @update:selected="$event && setPage(project.id)"
       >
-        <SvgIcon name="graph_editor" />
+        <SvgIcon v-if="isProjectReady" name="graph_editor" />
+        <LoadingSpinner v-else :size="16" />
         <span>{{ project.title }}</span>
         <SvgIcon name="close" @click="closeProject(project)" />
       </SelectableTab>
