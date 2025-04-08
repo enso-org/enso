@@ -456,6 +456,8 @@ type Table
        Returns the number of columns in the table.
     column_count self -> Integer = self.java_table.getColumns.length
 
+    ## PRIVATE
+       Unique Identifier for the table.
     table_version_hash self -> Text = self.java_table.getVersionId
 
     ## ALIAS select fields
