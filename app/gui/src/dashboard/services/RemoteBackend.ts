@@ -1267,6 +1267,22 @@ export default class RemoteBackend extends Backend {
   }
 
   /**
+   * Create an OAuth credential.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async createCredential(
+    body: backend.CreateCredentialRequestBody,
+  ): Promise<backend.SecretId> {
+    const path = remoteBackendPaths.CREATE_CREDENTIAL_PATH
+    const response = await this.post<backend.SecretId>(path, body)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'createCredentialBackendError', body.name)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
    * Return a secret environment variable.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */

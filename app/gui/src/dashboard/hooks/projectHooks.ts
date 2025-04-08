@@ -22,6 +22,7 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
+import { useMutationCallback } from '../utilities/tanstackQuery'
 import { useUploadFileWithToastMutation } from './backendUploadFilesHooks'
 
 /** Default interval for refetching project status when the project is opened. */
@@ -269,6 +270,10 @@ export function useOpenProjectMutation() {
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
+    meta: {
+      invalidates: [['listDirectory']],
+      awaitInvalidates: true,
+    },
   })
 }
 
@@ -281,7 +286,7 @@ export function useCloseProjectMutation() {
   const uploadFileMutation = useUploadFileWithToastMutation(remoteBackend)
   const toastAndLog = useToastAndLog()
 
-  return reactQuery.useMutation({
+  return useMutationCallback({
     mutationKey: ['closeProject'],
     mutationFn: async ({ type, id, title, hybrid }: LaunchedProject) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
@@ -305,7 +310,7 @@ export function useCloseProjectMutation() {
 
       void client.cancelQueries({ queryKey })
     },
-    onSuccess: async (_, { type, id, title, parentId, hybrid }) => {
+    onSuccess: async (_, { type, id, parentId, hybrid }) => {
       await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       setProjectAsset(type, id, parentId, (asset) => ({
         ...asset,
@@ -313,8 +318,7 @@ export function useCloseProjectMutation() {
       }))
 
       if (hybrid) {
-        const safeTitle = backendModule.escapeSpecialCharacters(title)
-        const fileName = `${safeTitle}.enso-project`
+        const fileName = 'project_root.enso-project'
         const file = await remoteBackend.getProjectArchive(parentId, fileName)
         await uploadFileMutation
           .mutateAsync([
@@ -336,10 +340,9 @@ export function useCloseProjectMutation() {
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
-    onError: async (_, { type, id, title, parentId, hybrid }) => {
+    onError: async (_, { type, id, parentId, hybrid }) => {
       if (hybrid) {
-        const safeTitle = backendModule.escapeSpecialCharacters(title)
-        const fileName = `${safeTitle}.enso-project`
+        const fileName = 'project_root.enso-project'
         const file = await remoteBackend.getProjectArchive(parentId, fileName)
         await uploadFileMutation
           .mutateAsync([
@@ -360,6 +363,10 @@ export function useCloseProjectMutation() {
 
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
+    },
+    meta: {
+      invalidates: [['listDirectory']],
+      awaitInvalidates: true,
     },
   })
 }
@@ -390,6 +397,10 @@ export function useRenameProjectMutation() {
       return client.invalidateQueries({
         queryKey: createGetProjectDetailsQuery.getQueryKey(project.id),
       })
+    },
+    meta: {
+      invalidates: [['listDirectory']],
+      awaitInvalidates: true,
     },
   })
 }
@@ -488,7 +499,7 @@ export function useOpenHybridProject() {
         })
       } catch (error) {
         toastAndLog('openProjectError', error, asset.title)
-        closeProject({
+        await closeProject({
           id: asset.id,
           title: asset.title,
           parentId: asset.parentId,
@@ -551,7 +562,7 @@ export function useCloseProject() {
   const setPage = useSetPage()
   const projectsStore = useProjectsStore()
 
-  return eventCallbacks.useEventCallback((project: LaunchedProject) => {
+  return eventCallbacks.useEventCallback(async (project: LaunchedProject) => {
     client
       .getMutationCache()
       .findAll({
@@ -563,7 +574,7 @@ export function useCloseProject() {
         mutation.destroy()
       })
 
-    closeProjectMutation.mutate(project)
+    const promise = closeProjectMutation(project)
 
     client
       .getMutationCache()
@@ -582,6 +593,8 @@ export function useCloseProject() {
     if (projectsStore.getState().page === project.id) {
       setPage('drive')
     }
+
+    await promise
   })
 }
 
@@ -594,7 +607,7 @@ export function useCloseAllProjects() {
     const launchedProjects = projectsStore.getState().launchedProjects
 
     for (const launchedProject of launchedProjects) {
-      closeProject(launchedProject)
+      void closeProject(launchedProject)
     }
   })
 }

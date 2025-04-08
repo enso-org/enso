@@ -16,7 +16,21 @@ import {
   type LabelName,
 } from 'enso-common/src/services/Backend'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
+import { persist } from 'zustand/middleware'
 import { useSearchParamsState } from '../hooks/searchParamsStateHooks'
+
+/** State for {@link categoryIdStore}. */
+type CurrentDirectoryIdStoreState = CurrentDirectoryIdContextType['currentDirectoryId']
+
+const currentDirectoryIdStore = createStore<CurrentDirectoryIdStoreState>()(
+  persist(
+    (): CurrentDirectoryIdStoreState => ({
+      current: null,
+      parent: null,
+    }),
+    { name: 'enso-current-directory-id', version: 1 },
+  ),
+)
 
 /** Attached data for a paste payload. */
 export interface DrivePastePayload {
@@ -106,7 +120,7 @@ export default function DriveProvider(props: ProjectsProviderProps) {
 
   const [currentDirectoryId, privateSetCurrentDirectoryId] = useSearchParamsState<
     CurrentDirectoryIdContextType['currentDirectoryId']
-  >('currentDirectoryId', { current: null, parent: null })
+  >('currentDirectoryId', () => currentDirectoryIdStore.getState())
 
   const [store] = React.useState(() =>
     createStore<DriveStore>((set, get) => ({
@@ -178,11 +192,13 @@ export default function DriveProvider(props: ProjectsProviderProps) {
   const resetAssetTableState = useEventCallback(() => {
     store.getState().removeSelection()
     privateSetCurrentDirectoryId({ current: null, parent: null })
+    currentDirectoryIdStore.setState({ current: null, parent: null })
   })
 
   const setCurrentDirectoryId = useEventCallback(
     ({ current, parent }: { current: DirectoryId | null; parent: DirectoryId | null }) => {
       privateSetCurrentDirectoryId({ current, parent })
+      currentDirectoryIdStore.setState({ current, parent })
       store.getState().removeSelection()
     },
   )

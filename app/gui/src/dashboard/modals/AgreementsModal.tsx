@@ -8,6 +8,7 @@ import { useAuth } from '#/providers/AuthProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
+import { memo } from 'react'
 
 const TEN_MINUTES_MS = 600_000
 const TOS_SCHEMA = z.object({ versionHash: z.string() })
@@ -59,7 +60,7 @@ LocalStorage.registerKey('termsOfService', { schema: TOS_SCHEMA })
 LocalStorage.registerKey('privacyPolicy', { schema: PRIVACY_POLICY_SCHEMA })
 
 /** Modal for accepting the terms of service. */
-export function AgreementsModal() {
+export const AgreementsModal = memo(function AgreementsModal() {
   const { getText } = useText()
   const { session } = useAuth()
 
@@ -170,4 +171,4 @@ export function AgreementsModal() {
   }
 
   return <Outlet context={session} />
-}
+})
