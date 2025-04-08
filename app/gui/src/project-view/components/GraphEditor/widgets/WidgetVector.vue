@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import ListWidget from '@/components/widgets/ListWidget.vue'
+import DraggableList from '@/components/widgets/DraggableList.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import type { PortId } from '@/providers/portInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
+import { injectWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
 import { computed, shallowRef, toRef, toValue, watchEffect, type WatchSource } from 'vue'
 import { isAstId } from 'ydoc-shared/ast'
 
 const props = defineProps(widgetProps(widgetDefinition))
+const tree = injectWidgetTree()
 
 const itemConfig = computed(() =>
   props.input.dynamicConfig?.kind === 'Vector_Editor' ?
@@ -35,7 +37,7 @@ const value = computed({
   set(value) {
     // This doesn't preserve AST identities, because the values are not `Ast.Owned`.
     // Getting/setting an Array is incompatible with ideal synchronization anyway;
-    // `ListWidget` needs to operate on the `Ast.Vector` for edits to be merged as `Y.Array` operations.
+    // `DraggableList` needs to operate on the `Ast.Vector` for edits to be merged as `Y.Array` operations.
     const newAst = Ast.Vector.build(value, (element, tempModule) => tempModule.copy(element))
     props.onUpdate({
       portUpdate: { value: newAst, origin: props.input.portId },
@@ -121,20 +123,40 @@ const DEFAULT_ITEM = computed(() => Ast.Wildcard.new())
 </script>
 
 <template>
-  <ListWidget
-    v-model="value"
-    :newItem="newItem"
-    :getKey="(ast: Ast.Expression) => ast.id"
-    dragMimeType="application/x-enso-ast-node"
-    :toPlainText="(ast: Ast.Expression) => ast.code()"
-    :toDragPayload="(ast: Ast.Expression) => Ast.serializeExpression(ast)"
-    :fromDragPayload="Ast.deserializeExpression"
-    :toDragPosition="(p) => navigator?.clientToScenePos(p) ?? p"
-    class="WidgetVector"
-    contenteditable="false"
-  >
-    <template #default="{ item }">
-      <NodeWidget :input="itemInput(item)" nest />
-    </template>
-  </ListWidget>
+  <div class="WidgetVector">
+    <span class="token widgetApplyPadding">[</span>
+    <DraggableList
+      v-model="value"
+      axis="x"
+      :newItem="newItem"
+      :showHandles="tree.extended"
+      :getKey="(ast: Ast.Expression) => ast.id"
+      dragMimeType="application/x-enso-ast-node"
+      :toPlainText="(ast: Ast.Expression) => ast.code()"
+      :toDragPayload="(ast: Ast.Expression) => Ast.serializeExpression(ast)"
+      :fromDragPayload="Ast.deserializeExpression"
+      :toDragPosition="(p) => navigator?.clientToScenePos(p) ?? p"
+      contenteditable="false"
+    >
+      <template #default="{ item }">
+        <NodeWidget :input="itemInput(item)" nest />
+      </template>
+      <template #separator>
+        <div class="token widgetApplyPadding">,&nbsp;</div>
+      </template>
+    </DraggableList>
+    <span class="token widgetApplyPadding">]</span>
+  </div>
 </template>
+<style scoped>
+.WidgetVector {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.token {
+  opacity: 0.33;
+  user-select: none;
+}
+</style>
