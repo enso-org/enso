@@ -4,6 +4,7 @@
  */
 import * as React from 'react'
 
+import AddCredentialIcon from '#/assets/add_credential.svg'
 import AddDatalinkIcon from '#/assets/add_datalink.svg'
 import AddFolderIcon from '#/assets/add_folder.svg'
 import AddKeyIcon from '#/assets/add_key.svg'
@@ -24,11 +25,10 @@ import {
   getAllTrashedItems,
 } from '#/hooks/backendBatchedHooks'
 import {
+  backendMutationOptions,
   listDirectoryQueryOptions,
-  useNewDatalink,
   useNewFolder,
   useNewProject,
-  useNewSecret,
 } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -42,6 +42,7 @@ import {
 } from '#/layouts/CategorySwitcher/Category'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
+import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
@@ -109,14 +110,9 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const uploadFiles = useEventCallback(async (files: readonly File[]) => {
     await uploadFilesRaw(files, currentDirectoryId)
   })
-  const newSecretRaw = useNewSecret(backend)
-  const newSecret = useEventCallback(async (name: string, value: string) => {
-    return await newSecretRaw(name, value, currentDirectoryId)
-  })
-  const newDatalinkRaw = useNewDatalink(backend)
-  const newDatalink = useEventCallback(async (name: string, value: unknown) => {
-    return await newDatalinkRaw(name, value, currentDirectoryId)
-  })
+  const newSecret = useMutationCallback(backendMutationOptions(backend, 'createSecret'))
+  const newCredential = useMutationCallback(backendMutationOptions(backend, 'createCredential'))
+  const newDatalink = useMutationCallback(backendMutationOptions(backend, 'createDatalink'))
   const newProjectRaw = useNewProject(backend, category)
 
   const newProjectMutation = useMutationCallback({
@@ -237,8 +233,24 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   id={null}
                   name={null}
                   doCreate={async (name, value) => {
-                    await newSecret(name, value)
+                    await newSecret([{ name, value, parentDirectoryId: currentDirectoryId }])
                   }}
+                />
+              </DialogTrigger>
+              <DialogTrigger>
+                <Button
+                  isDisabled={!isCloud}
+                  variant="icon"
+                  size="medium"
+                  icon={AddCredentialIcon}
+                  aria-label={
+                    isCloud ? getText('newCredential') : getText('newCredentialOnlyCloud')
+                  }
+                />
+                <CreateCredentialModal
+                  doCreate={async (name, value) =>
+                    await newCredential([{ name, value, parentDirectoryId: currentDirectoryId }])
+                  }
                 />
               </DialogTrigger>
               <DialogTrigger>
@@ -251,7 +263,14 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 />
                 <UpsertDatalinkModal
                   doCreate={async (name, value) => {
-                    await newDatalink(name, value)
+                    await newDatalink([
+                      {
+                        name,
+                        value,
+                        parentDirectoryId: currentDirectoryId,
+                        datalinkId: null,
+                      },
+                    ])
                   }}
                 />
               </DialogTrigger>
