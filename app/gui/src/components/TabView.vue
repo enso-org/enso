@@ -9,6 +9,7 @@ import { applyPureReactInVue } from 'veaury'
 import { computed, onMounted, onUnmounted, watch } from 'vue'
 import { injectBackendInVue } from './KeepAliveRouterView.vue'
 import { Drive, Editor, Settings } from './TabView/reactTabs'
+import SelectableTab from './TabView/SelectableTab.vue'
 
 const UserBar = applyPureReactInVue(UserBarReact)
 </script>
@@ -70,18 +71,20 @@ onUnmounted(() => console.error('TabView UNMOUNT'))
 <template>
   <div class="TabView">
     <div class="bar">
-      <div class="tab" @click="setPage('drive')"><SvgIcon name="drive" /><span>Drive</span></div>
-      <div
+      <SelectableTab :selected="page === 'drive'" @update:selected="$event && setPage('drive')">
+        <SvgIcon name="drive" /><span>Data Catalog</span>
+      </SelectableTab>
+      <SelectableTab
         v-for="project in launchedProjects"
         :key="project.id"
-        class="tab"
-        @click="setPage(project.id)"
+        :selected="page === project.id"
+        @update:selected="$event && setPage(project.id)"
       >
         <SvgIcon name="graph_editor" />
         <span>{{ project.title }}</span>
         <SvgIcon name="close" @click="closeProject(project)" />
-      </div>
-      <div v-if="page === 'settings'" class="tab">Settings</div>
+      </SelectableTab>
+      <SelectableTab v-if="page === 'settings'" :selected="true">Settings</SelectableTab>
       <div class="filler" />
       <UserBar
         :goToSettingsPage="() => setPage('settings')"
@@ -89,16 +92,17 @@ onUnmounted(() => console.error('TabView UNMOUNT'))
         @signOut="onSignOut"
       />
     </div>
-    <!-- TODO: make it better? -->
-    <KeepAlive>
-      <Drive v-if="page === 'drive'" :initialProjectName="initialProjectName" class="panel" />
-    </KeepAlive>
-    <KeepAlive v-for="project in launchedProjects" :key="project.id">
-      <Editor v-if="page === project.id" :project="project" class="panel" />
-    </KeepAlive>
-    <KeepAlive>
-      <Settings v-if="page === 'settings'" class="panel" />
-    </KeepAlive>
+    <div class="panel">
+      <KeepAlive>
+        <Drive v-if="page === 'drive'" :initialProjectName="initialProjectName" />
+      </KeepAlive>
+      <KeepAlive v-for="project in launchedProjects" :key="project.id">
+        <Editor v-if="page === project.id" :project="project" />
+      </KeepAlive>
+      <KeepAlive>
+        <Settings v-if="page === 'settings'" />
+      </KeepAlive>
+    </div>
   </div>
 </template>
 
@@ -115,18 +119,18 @@ onUnmounted(() => console.error('TabView UNMOUNT'))
   flex-direction: row;
   align-items: center;
   height: 3rem;
-}
-
-.tab {
-  padding: 0 16px;
-  height: 100%;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 12px;
+  min-height: 3rem;
+  position: relative;
+  padding: 0 8px;
 }
 
 .filler {
   flex-grow: 1;
+}
+
+.panel {
+  flex-grow: 1;
+  min-height: 0;
+  display: flex;
 }
 </style>
