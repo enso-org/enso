@@ -221,7 +221,7 @@ watch(tableVersionHash, () => {
 })
 
 watchEffect(() => {
-  // if the column definitions remain the same but there has been updates upstream ag grid doesn't know to change it's row model or to fetch new data
+  // if the column definitions remain the same but there has been updates upstream ag grid doesn't know to change its row model or to fetch new data
   if (nodeType.value != config.nodeType) {
     grid.value?.forceGridRefresh()
     nodeType.value = config.nodeType
