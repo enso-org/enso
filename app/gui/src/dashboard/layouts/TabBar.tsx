@@ -16,6 +16,7 @@ import { StatelessSpinner } from '#/components/StatelessSpinner'
 import SvgMask from '#/components/SvgMask'
 
 import { AnimatedBackground } from '#/components/AnimatedBackground'
+import { Await } from '#/components/Await'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useBackendForProjectType } from '#/providers/BackendProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
@@ -154,19 +155,15 @@ export function ProjectTab(props: ProjectTabProps) {
     onClose?.(project)
   })
 
-  const {
-    data: { isOpened, title },
-    isSuccess,
-    isError,
-  } = reactQuery.useSuspenseQuery({
+  const { data, isSuccess, isError, promise } = reactQuery.useQuery({
     ...projectHooks.createGetProjectDetailsQuery({ assetId: project.id, backend }),
-    select: (data) => ({
-      title: data.name,
-      isOpened: projectHooks.OPENED_PROJECT_STATES.has(data.state.type),
+    select: (projectDetails) => ({
+      title: projectDetails.name,
+      isOpened: projectHooks.OPENED_PROJECT_STATES.has(projectDetails.state.type),
     }),
   })
 
-  const isReady = isSuccess && isOpened
+  const isReady = isSuccess && data.isOpened
 
   React.useEffect(() => {
     if (isReady && !didNotifyOnLoadEnd.current) {
@@ -195,7 +192,9 @@ export function ProjectTab(props: ProjectTabProps) {
 
   return (
     <Tab {...rest} icon={icon} onClose={stableOnClose}>
-      {title}
+      <Await promise={promise} fallback={null}>
+        {({ title }) => title}
+      </Await>
     </Tab>
   )
 }
