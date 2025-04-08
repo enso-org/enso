@@ -42,7 +42,6 @@ import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackend
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useMutation } from '@tanstack/react-query'
 import { useSetAssetPanelProps, useSetIsAssetPanelTemporarilyVisible } from './AssetPanel'
 
 /** Props for a {@link AssetContextMenu}. */
@@ -86,7 +85,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const deleteAssetsMutation = useMutationCallback(deleteAssetsMutationOptions(backend))
   const restoreAssetsMutation = useMutationCallback(restoreAssetsMutationOptions(backend))
   const copyAssetsMutation = useMutationCallback(copyAssetsMutationOptions(backend))
-  const downloadAssetsMutation = useMutation(downloadAssetsMutationOptions(backend))
+  const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(backend))
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const path = asset.ensoPathValue
   const copyMutation = useCopy()
@@ -428,7 +427,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             isDisabled={asset.type === backendModule.AssetType.secret}
             action="download"
             doAction={() => {
-              downloadAssetsMutation.mutate([{ id: asset.id, title: asset.title }])
+              void downloadAssetsMutation([{ id: asset.id, title: asset.title }])
             }}
           />
         )}
