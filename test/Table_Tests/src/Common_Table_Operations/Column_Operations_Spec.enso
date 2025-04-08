@@ -174,7 +174,7 @@ add_column_operation_specs suite_builder setup =
             materialized = new_table.read
             Runtime.assert (materialized.row_count == 1)
             materialized.first_row.to_vector
-        Round_Spec.add_specs group_builder (Round_Spec.Batch_Runner.Value round_batch round_one) run_advanced=setup.test_selection.run_advanced_edge_case_tests
+        Round_Spec.add_specs True group_builder (Round_Spec.Batch_Runner.Value round_batch round_one) run_advanced=setup.test_selection.run_advanced_edge_case_tests
 
         group_builder.specify "Decimal places out of range" <|
             3.1 . round 16 . should_fail_with Illegal_Argument

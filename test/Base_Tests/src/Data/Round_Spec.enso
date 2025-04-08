@@ -48,7 +48,7 @@ type Check_Instance
         self.vector_builder.append [self.value, self.dp, expected, epsilon, with_warning]
 
 ## PRIVATE
-add_specs group_builder batch_runner run_advanced =
+add_specs is_database group_builder batch_runner run_advanced =
     pending_advanced = if run_advanced.not then "Advanced edge tests are disabled in this run."
     group_builder.specify "Can round positive decimals correctly" <|
         batch_runner.run rounding_mode=Rounding_Mode.Half_Up round_fun->
@@ -278,7 +278,8 @@ add_specs group_builder batch_runner run_advanced =
             round_fun -12250 -2 . should_equal -12200
             round_fun -12251 -2 . should_equal -12300
 
-    group_builder.specify "Accepts deprecated use_bankers boolean argument, with a warning" <|
+    deprecated_argument_pending = if is_database then "https://github.com/enso-org/enso/issues/12787" else Nothing
+    group_builder.specify "Accepts deprecated use_bankers boolean argument, with a warning" pending=deprecated_argument_pending <|
         batch_runner.run rounding_mode=True round_fun->
             round_fun -3.5 . should_equal -4 with_warning=Deprecated
 
