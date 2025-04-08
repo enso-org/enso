@@ -3,7 +3,7 @@ package org.enso.aws.regions;
 import java.util.List;
 import software.amazon.awssdk.regions.Region;
 
-public class AWSRegion {
+public final class AWSRegion {
 
   private final Region region;
 

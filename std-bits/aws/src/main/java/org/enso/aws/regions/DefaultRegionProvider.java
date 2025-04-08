@@ -6,7 +6,7 @@ import software.amazon.awssdk.regions.providers.AwsRegionProviderChain;
 import software.amazon.awssdk.regions.providers.DefaultAwsRegionProviderChain;
 
 /** Implements the resolution of AWS Region for Enso AWS_Region.Default and Default_With_Profile. */
-public class DefaultRegionProvider extends AwsRegionProviderChain {
+public final class DefaultRegionProvider extends AwsRegionProviderChain {
   private DefaultRegionProvider(String profileName, AWSRegion fallback) {
     super(makeAwsDefault(profileName), new FallbackProvider(fallback));
   }
