@@ -269,7 +269,7 @@ export enum ProjectState {
 /** Wrapper around a project state value. */
 export interface ProjectStateType {
   readonly type: ProjectState
-  readonly volumeId: string
+  readonly volumeId?: string
   readonly instanceId?: string
   readonly executeAsync?: boolean
   readonly address?: string
@@ -330,22 +330,25 @@ export interface ListedProject extends CreatedProject {
 }
 
 /** A `Project` returned by `updateProject`. */
-export interface UpdatedProject extends BaseProject {
-  readonly ami: Ami | null
-  readonly ideVersion: VersionNumber | null
-  readonly engineVersion: VersionNumber | null
+export interface UpdatedProject {
+  readonly organizationId: OrganizationId
+  readonly projectId: ProjectId
+  readonly name: string
+  readonly state: ProjectStateType
+  readonly packageName: string
 }
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface ProjectRaw extends ListedProjectRaw {
-  readonly ide_version: VersionNumber | null
-  readonly engine_version: VersionNumber | null
+  readonly currentSessionId?: ProjectSessionId
+  readonly openedBy?: EmailAddress
+  /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
+  readonly url?: HttpsUrl
 }
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface Project extends ListedProject {
-  readonly ideVersion: VersionNumber | null
-  readonly engineVersion: VersionNumber | null
+  readonly currentSessionId?: ProjectSessionId
   readonly openedBy?: EmailAddress
   /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
   readonly url?: HttpsUrl
@@ -1046,10 +1049,7 @@ export function createPlaceholderProjectAsset(title: string, parentId: Directory
     parentId,
     permissions: [],
     modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: {
-      type: ProjectState.new,
-      volumeId: '',
-    },
+    projectState: { type: ProjectState.new },
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
@@ -1421,8 +1421,6 @@ export interface CreateProjectRequestBody {
  */
 export interface UpdateProjectRequestBody {
   readonly projectName: string | null
-  readonly ami: Ami | null
-  readonly ideVersion: VersionNumber | null
 }
 
 /** HTTP request body for the "open project" endpoint. */
