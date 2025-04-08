@@ -10,9 +10,9 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type HTMLAttributes,
   type Key,
   type PropsWithChildren,
-  type HTMLAttributes,
 } from 'react'
 import {
   useBreadcrumbItem,
