@@ -38,6 +38,7 @@ import {
   useRestoreAssetsMutationState,
 } from '#/hooks/backendBatchedHooks'
 import { useBackendMutationState } from '#/hooks/backendHooks'
+import { useDragDelayAction } from '#/hooks/dragDelayHooks'
 import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
@@ -342,6 +343,18 @@ export function RealAssetRow(props: RealAssetRowProps) {
     }
   }, [grabKeyboardFocusRef, isKeyboardSelected, item])
 
+  const setDirectoryId = useSetCurrentDirectoryId()
+
+  const dragDelayProps = useDragDelayAction(
+    item.type === backendModule.AssetType.directory ?
+      () => {
+        startNavigation(() => {
+          setDirectoryId({ current: item.id, parent: item.parentId })
+        })
+      }
+    : undefined,
+  )
+
   const onDragOver = (event: React.DragEvent<Element>) => {
     const directoryId = item.type === backendModule.AssetType.directory ? id : parentId
     const { labelsDragPayload, isDraggingOverSelectedRow } = driveStore.getState()
@@ -490,6 +503,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
               }
               // Required because `dragover` does not fire on `mouseenter`.
               onDragOver(event)
+              dragDelayProps.onDragEnter(event)
             }}
             onDragOver={(event) => {
               if (state.category.type === 'trash') {
@@ -518,6 +532,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
                 setDragTargetAssetId(null)
               }
               props.onDragLeave?.(event, item)
+              dragDelayProps.onDragLeave(event)
             }}
             onDrop={(event) => {
               if (state.category.type === 'trash' || state.category.type === 'recent') {
