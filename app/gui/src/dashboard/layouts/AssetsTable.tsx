@@ -45,7 +45,6 @@ import Label from '#/components/dashboard/Label'
 import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { IsolateLayout } from '#/components/IsolateLayout'
 import { SelectionBrush, type OnDragParams } from '#/components/SelectionBrush'
-import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
@@ -1360,88 +1359,75 @@ function AssetsTable(props: AssetsTableProps) {
         data-testid="extra-columns"
         className="absolute right-3 top-0.5 isolate z-1 flex self-end bg-dashboard p-2"
       >
-        <FocusArea direction="horizontal">
-          {(columnsBarProps) => (
-            <div
-              className="inline-flex gap-icons"
-              {...mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
-                onFocus: () => {
-                  setKeyboardSelectedIndex(null)
-                },
-              })}
-            >
-              {hiddenColumns.map((column) => (
-                <HiddenColumn
-                  key={column}
-                  column={column}
-                  enabledColumns={enabledColumns}
-                  onColumnClick={setEnabledColumns}
-                />
-              ))}
-            </div>
-          )}
-        </FocusArea>
+        <div
+          className="inline-flex gap-icons"
+          onFocus={() => {
+            setKeyboardSelectedIndex(null)
+          }}
+        >
+          {hiddenColumns.map((column) => (
+            <HiddenColumn
+              key={column}
+              column={column}
+              enabledColumns={enabledColumns}
+              onColumnClick={setEnabledColumns}
+            />
+          ))}
+        </div>
       </div>
 
-      <FocusArea direction="vertical">
-        {(innerProps) => (
-          <IsolateLayout className="isolate h-full w-full" useRAF>
-            <div
-              {...mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
-                className:
-                  'flex-1 overflow-auto container-size w-full h-full scroll-p-24 scroll-smooth',
-                onKeyDown,
-                onBlur: (event) => {
-                  if (
-                    event.relatedTarget instanceof HTMLElement &&
-                    !event.currentTarget.contains(event.relatedTarget)
-                  ) {
-                    setKeyboardSelectedIndex(null)
-                  }
-                },
-                onDragEnter: updateIsDraggingFiles,
-                onDragOver: updateIsDraggingFiles,
-                onDragEnd: () => {
-                  setIsDraggingFiles(false)
-                },
-                ref: rootRef,
-              })}
-            >
-              {!hidden && hiddenContextMenu}
-              <SelectionBrush
-                targetRef={rootRef}
-                onDrag={onSelectionDrag}
-                onDragEnd={onSelectionDragEnd}
-                onDragCancel={onSelectionDragCancel}
-                preventDrag={preventSelection}
-              />
-              <div
-                className="flex h-max min-h-full w-max min-w-full flex-col"
-                onContextMenu={(event) => {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  setModal(
-                    <AssetsTableContextMenu
-                      backend={backend}
-                      category={category}
-                      event={event}
-                      doCopy={doCopy}
-                      doCut={doCut}
-                      currentDirectoryId={currentDirectoryId}
-                      doPaste={doPaste}
-                    />,
-                  )
-                }}
-              >
-                <div className="flex h-full w-min min-w-full grow flex-col px-1">
-                  {table}
-                  <AssetsTableAssetsUnselector />
-                </div>
-              </div>
+      <IsolateLayout className="isolate h-full w-full" useRAF>
+        <div
+          ref={rootRef}
+          className="h-full w-full flex-1 scroll-p-24 overflow-auto scroll-smooth container-size"
+          onKeyDown={onKeyDown}
+          onBlur={(event) => {
+            if (
+              event.relatedTarget instanceof HTMLElement &&
+              !event.currentTarget.contains(event.relatedTarget)
+            ) {
+              setKeyboardSelectedIndex(null)
+            }
+          }}
+          onDragEnter={updateIsDraggingFiles}
+          onDragOver={updateIsDraggingFiles}
+          onDragEnd={() => {
+            setIsDraggingFiles(false)
+          }}
+        >
+          {!hidden && hiddenContextMenu}
+          <SelectionBrush
+            targetRef={rootRef}
+            onDrag={onSelectionDrag}
+            onDragEnd={onSelectionDragEnd}
+            onDragCancel={onSelectionDragCancel}
+            preventDrag={preventSelection}
+          />
+          <div
+            className="flex h-max min-h-full w-max min-w-full flex-col"
+            onContextMenu={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              setModal(
+                <AssetsTableContextMenu
+                  backend={backend}
+                  category={category}
+                  event={event}
+                  doCopy={doCopy}
+                  doCut={doCut}
+                  currentDirectoryId={currentDirectoryId}
+                  doPaste={doPaste}
+                />,
+              )
+            }}
+          >
+            <div className="flex h-full w-min min-w-full grow flex-col px-1">
+              {table}
+              <AssetsTableAssetsUnselector />
             </div>
-          </IsolateLayout>
-        )}
-      </FocusArea>
+          </div>
+        </div>
+      </IsolateLayout>
 
       {isDraggingFiles && !isMainDropzoneVisible && (
         <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">

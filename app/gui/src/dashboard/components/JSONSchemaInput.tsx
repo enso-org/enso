@@ -103,7 +103,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                     value={typeof value === 'string' ? value : ''}
                     size={1}
                     className={twMerge(
-                      'focus-child h-6 w-full grow rounded-input border-0.5 border-primary/20 bg-transparent px-2 outline-offset-2 transition-[border-color,outline] duration-200 read-only:read-only focus:border-primary/50 focus:outline focus:outline-2 focus:outline-offset-0 focus:outline-primary',
+                      'h-6 w-full grow rounded-input border-0.5 border-primary/20 bg-transparent px-2 outline-offset-2 transition-[border-color,outline] duration-200 read-only:read-only focus:border-primary/50 focus:outline focus:outline-2 focus:outline-offset-0 focus:outline-primary',
                       validationErrorClassName,
                     )}
                     placeholder={getText('enterText')}
@@ -129,7 +129,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   value={typeof value === 'number' ? value : ''}
                   size={1}
                   className={twMerge(
-                    'focus-child h-6 w-full grow rounded-input border-0.5 border-primary/20 bg-transparent px-2 outline-offset-2 transition-[border-color,outline] duration-200 read-only:read-only focus:border-primary/50 focus:outline focus:outline-2 focus:outline-offset-0 focus:outline-primary',
+                    'h-6 w-full grow rounded-input border-0.5 border-primary/20 bg-transparent px-2 outline-offset-2 transition-[border-color,outline] duration-200 read-only:read-only focus:border-primary/50 focus:outline focus:outline-2 focus:outline-offset-0 focus:outline-primary',
                     validationErrorClassName,
                   )}
                   placeholder={getText('enterNumber')}
@@ -156,7 +156,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   value={typeof value === 'number' ? value : ''}
                   size={1}
                   className={twMerge(
-                    'focus-child h-6 w-full grow rounded-input border-0.5 border-primary/20 bg-transparent px-2 outline-offset-2 transition-[border-color,outline] duration-200 read-only:read-only focus:border-primary/50 focus:outline focus:outline-2 focus:outline-offset-0 focus:outline-primary',
+                    'h-6 w-full grow rounded-input border-0.5 border-primary/20 bg-transparent px-2 outline-offset-2 transition-[border-color,outline] duration-200 read-only:read-only focus:border-primary/50 focus:outline focus:outline-2 focus:outline-offset-0 focus:outline-primary',
                     validationErrorClassName,
                   )}
                   placeholder={getText('enterInteger')}

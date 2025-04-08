@@ -11,7 +11,6 @@ import TrashIcon from '#/assets/trash.svg'
 import { Button, DatePicker, Dropdown, Form, Text } from '#/components/AriaComponents'
 import { Icon } from '#/components/Icon'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
-import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 import { useBackendQuery } from '#/hooks/backendHooks'
 import { useText } from '#/providers/TextProvider'
@@ -132,73 +131,63 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
 
   return (
     <div className="flex flex-col gap-4">
-      <FocusArea direction="horizontal">
-        {(innerProps) => (
-          <Form form={form} className="flex flex-row flex-wrap gap-3" {...innerProps}>
-            <div className="flex items-center gap-2">
-              <Text className="whitespace-nowrap">{getText('startDate')}</Text>
-              <DatePicker
-                form={form}
-                name="startDate"
-                size="small"
-                maxValue={maxDate}
-                className="w-36"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Text className="whitespace-nowrap">{getText('endDate')}</Text>
-              <DatePicker
-                form={form}
-                name="endDate"
-                size="small"
-                maxValue={maxDate}
-                className="w-36"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Text className="whitespace-nowrap">{getText('types')}</Text>
-              <Dropdown
-                aria-label={getText('types')}
-                multiple
-                items={EVENT_TYPES}
-                selectedIndices={typeIndices}
-                renderMultiple={({ items }) =>
-                  items.length === 0 || items.length === EVENT_TYPES.length ?
-                    'All'
-                  : (items[0] != null ? EVENT_TYPE_NAME[items[0]] : '') +
-                    (items.length <= 1 ? '' : ` (+${items.length - 1})`)
-                }
-                onChange={(items, indices) => {
-                  setTypes(items)
-                  setTypeIndices(indices)
-                }}
-              >
-                {({ item }) => EVENT_TYPE_NAME[item]}
-              </Dropdown>
-            </div>
-            <div className="flex items-center gap-2">
-              <Text className="whitespace-nowrap">{getText('users')}</Text>
-              <Dropdown
-                aria-label={getText('users')}
-                multiple
-                items={allEmails}
-                selectedIndices={emailIndices}
-                renderMultiple={({ items }) =>
-                  items.length === 0 || items.length === allEmails.length ?
-                    'All'
-                  : (items[0] ?? '') + (items.length <= 1 ? '' : `(+${items.length - 1})`)
-                }
-                onChange={(items, indices) => {
-                  setEmails(items)
-                  setEmailIndices(indices)
-                }}
-              >
-                {({ item }) => item}
-              </Dropdown>
-            </div>
-          </Form>
-        )}
-      </FocusArea>
+      <Form form={form} className="flex flex-row flex-wrap gap-3">
+        <div className="flex items-center gap-2">
+          <Text className="whitespace-nowrap">{getText('startDate')}</Text>
+          <DatePicker
+            form={form}
+            name="startDate"
+            size="small"
+            maxValue={maxDate}
+            className="w-36"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Text className="whitespace-nowrap">{getText('endDate')}</Text>
+          <DatePicker form={form} name="endDate" size="small" maxValue={maxDate} className="w-36" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Text className="whitespace-nowrap">{getText('types')}</Text>
+          <Dropdown
+            aria-label={getText('types')}
+            multiple
+            items={EVENT_TYPES}
+            selectedIndices={typeIndices}
+            renderMultiple={({ items }) =>
+              items.length === 0 || items.length === EVENT_TYPES.length ?
+                'All'
+              : (items[0] != null ? EVENT_TYPE_NAME[items[0]] : '') +
+                (items.length <= 1 ? '' : ` (+${items.length - 1})`)
+            }
+            onChange={(items, indices) => {
+              setTypes(items)
+              setTypeIndices(indices)
+            }}
+          >
+            {({ item }) => EVENT_TYPE_NAME[item]}
+          </Dropdown>
+        </div>
+        <div className="flex items-center gap-2">
+          <Text className="whitespace-nowrap">{getText('users')}</Text>
+          <Dropdown
+            aria-label={getText('users')}
+            multiple
+            items={allEmails}
+            selectedIndices={emailIndices}
+            renderMultiple={({ items }) =>
+              items.length === 0 || items.length === allEmails.length ?
+                'All'
+              : (items[0] ?? '') + (items.length <= 1 ? '' : `(+${items.length - 1})`)
+            }
+            onChange={(items, indices) => {
+              setEmails(items)
+              setEmailIndices(indices)
+            }}
+          >
+            {({ item }) => item}
+          </Dropdown>
+        </div>
+      </Form>
       <table className="table-fixed self-start rounded-rows">
         <thead>
           <tr className="h-table-row">

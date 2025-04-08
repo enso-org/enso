@@ -6,7 +6,6 @@ import { useMutation } from '@tanstack/react-query'
 import { ButtonGroup, Checkbox, Form, Input, Popover, Text } from '#/components/AriaComponents'
 import ColorPicker from '#/components/ColorPicker'
 import Label from '#/components/dashboard/Label'
-import FocusArea from '#/components/styled/FocusArea'
 import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -100,50 +99,39 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
       <Text.Heading slot="title" level={2} variant="subtitle">
         {getText('labels')}
       </Text.Heading>
-      <FocusArea direction="horizontal">
-        {(innerProps) => (
-          <ButtonGroup className="relative" {...innerProps}>
-            <Input
-              form={form}
-              name="name"
-              autoFocus
-              type="text"
-              size="small"
-              placeholder={getText('labelSearchPlaceholder')}
-            />
-            <Form.Submit isDisabled={!canCreateNewLabel}>{getText('create')}</Form.Submit>
-          </ButtonGroup>
-        )}
-      </FocusArea>
+      <ButtonGroup className="relative">
+        <Input
+          form={form}
+          name="name"
+          autoFocus
+          type="text"
+          size="small"
+          placeholder={getText('labelSearchPlaceholder')}
+        />
+        <Form.Submit isDisabled={!canCreateNewLabel}>{getText('create')}</Form.Submit>
+      </ButtonGroup>
       {canSelectColor && <ColorPicker setColor={setColor} className="w-full" />}
-      <FocusArea direction="vertical">
-        {(innerProps) => (
-          <Checkbox.Group
-            form={form}
-            name="labels"
-            className="max-h-manage-labels-list overflow-auto"
-            onChange={async (values) => {
-              await associateTagMutation.mutateAsync([item.id, values.map(LabelName), item.title])
-            }}
-            {...innerProps}
-          >
-            <>
-              {allLabels
-                ?.filter((label) => regex.test(label.value))
-                .map((label) => {
-                  const isActive = labels.includes(label.value)
-                  return (
-                    <Checkbox key={label.id} value={String(label.value)}>
-                      <Label active={isActive} color={label.color} onPress={() => {}}>
-                        {label.value}
-                      </Label>
-                    </Checkbox>
-                  )
-                })}
-            </>
-          </Checkbox.Group>
-        )}
-      </FocusArea>
+      <Checkbox.Group
+        form={form}
+        name="labels"
+        className="max-h-manage-labels-list overflow-auto"
+        onChange={async (values) => {
+          await associateTagMutation.mutateAsync([item.id, values.map(LabelName), item.title])
+        }}
+      >
+        {allLabels
+          ?.filter((label) => regex.test(label.value))
+          .map((label) => {
+            const isActive = labels.includes(label.value)
+            return (
+              <Checkbox key={label.id} value={String(label.value)}>
+                <Label active={isActive} color={label.color} onPress={() => {}}>
+                  {label.value}
+                </Label>
+              </Checkbox>
+            )
+          })}
+      </Checkbox.Group>
     </Form>
   )
 }

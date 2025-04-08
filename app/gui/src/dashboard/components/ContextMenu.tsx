@@ -3,8 +3,6 @@ import * as React from 'react'
 
 import * as detect from 'enso-common/src/detect'
 
-import FocusArea from '#/components/styled/FocusArea'
-
 import { forwardRef } from '#/utilities/react'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Modal from './Modal'
@@ -42,24 +40,17 @@ export default forwardRef(function ContextMenu(
             clickEvent.stopPropagation()
           }}
         >
-          <FocusArea direction="vertical">
-            {(innerProps) => (
-              <div
-                className="pointer-events-auto relative rounded-default before:absolute before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
-                {...innerProps}
-              >
-                <div
-                  aria-label={props['aria-label']}
-                  className={tailwindMerge.twMerge(
-                    'relative flex flex-col rounded-default p-context-menu',
-                    detect.isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu',
-                  )}
-                >
-                  {children}
-                </div>
-              </div>
-            )}
-          </FocusArea>
+          <div className="pointer-events-auto relative rounded-default before:absolute before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default">
+            <div
+              aria-label={props['aria-label']}
+              className={tailwindMerge.twMerge(
+                'relative flex flex-col rounded-default p-context-menu',
+                detect.isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu',
+              )}
+            >
+              {children}
+            </div>
+          </div>
         </div>
       </Modal>
     )
