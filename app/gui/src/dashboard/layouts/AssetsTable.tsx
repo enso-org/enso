@@ -112,6 +112,7 @@ import {
   BackendType,
   getAssetPermissionName,
   IS_OPENING_OR_OPENED,
+  isAssetCredential,
   type AnyAsset,
 } from '#/services/Backend'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
@@ -658,22 +659,26 @@ function AssetsTable(props: AssetsTableProps) {
                 break
               }
               case AssetType.secret: {
-                event.preventDefault()
-                event.stopPropagation()
-                const id = item.id
-                setModal(
-                  <UpsertSecretModal
-                    id={item.id}
-                    name={item.title}
-                    doCreate={async (title, value) => {
-                      try {
-                        await updateSecretMutation([id, { title, value }, item.title])
-                      } catch (error) {
-                        toastAndLog(null, error)
-                      }
-                    }}
-                  />,
-                )
+                if (isAssetCredential(item)) {
+                  toast.warning(getText('cannotEditCredentialError'))
+                } else {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  const id = item.id
+                  setModal(
+                    <UpsertSecretModal
+                      id={item.id}
+                      name={item.title}
+                      doCreate={async (title, value) => {
+                        try {
+                          await updateSecretMutation([id, { title, value }, item.title])
+                        } catch (error) {
+                          toastAndLog(null, error)
+                        }
+                      }}
+                    />,
+                  )
+                }
                 break
               }
               case AssetType.file:
@@ -793,14 +798,11 @@ function AssetsTable(props: AssetsTableProps) {
   const doOpenProject = useEventCallback((projectId: ProjectId) => {
     const project = assets.find((asset) => asset.id === projectId)
 
-    if (project == null) {
+    if (project == null || project.type !== AssetType.project) {
       return Promise.resolve()
     }
 
-    return openProjectLocally(
-      { id: projectId, title: project.title, parentId: project.parentId },
-      backend.type,
-    )
+    return openProjectLocally(project, backend.type)
   })
 
   const doCopy = useEventCallback(() => {
@@ -860,11 +862,11 @@ function AssetsTable(props: AssetsTableProps) {
 
   const onDropzoneDragOver = (event: DragEvent<Element>) => {
     const payload = ASSET_ROWS.lookup(event)
-    const filtered = payload?.filter((item) => item.asset.parentId !== currentDirectoryId)
-    if (filtered != null && filtered.length > 0) {
+    // Unconditionally handle drag event even if drop target is invalid
+    // otherwise the drag modal stays around.
+    if (payload || event.dataTransfer.types.includes('Files')) {
       event.preventDefault()
-    } else if (event.dataTransfer.types.includes('Files')) {
-      event.preventDefault()
+      return
     }
   }
 
@@ -1304,12 +1306,12 @@ function AssetsTable(props: AssetsTableProps) {
             setIsDraggingFiles(false)
           }}
           onDrop={(event) => {
+            unsetModal()
             const payload = ASSET_ROWS.lookup(event)
             const filtered = payload?.filter((item) => item.asset.parentId !== currentDirectoryId)
             if (filtered != null && filtered.length > 0) {
               event.preventDefault()
               event.stopPropagation()
-              unsetModal()
 
               void moveAssetsMutation([
                 filtered.map((dragItem) => dragItem.asset.id),

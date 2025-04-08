@@ -173,7 +173,7 @@ const statusBar = computed(() =>
   allRowCount.value ?
     {
       statusPanels:
-        config.nodeType === TABLE_NODE_TYPE ?
+        config.nodeType === TABLE_NODE_TYPE || config.nodeType === COLUMN_NODE_TYPE ?
           [
             {
               statusPanel: TableVizStatusBar,
@@ -769,7 +769,10 @@ watchEffect(() => {
         ]
       : dataHeader
     if (!data_.is_using_server_sort_and_filter) {
-      const hasIndexRow = config.nodeType === TABLE_NODE_TYPE
+      const hasIndexRow =
+        config.nodeType === TABLE_NODE_TYPE ||
+        config.nodeType === COLUMN_NODE_TYPE ||
+        config.nodeType === DB_TABLE_NODE_TYPE
       const shift = hasIndexRow ? 1 : 0
       rowData.value =
         data_.data ?
