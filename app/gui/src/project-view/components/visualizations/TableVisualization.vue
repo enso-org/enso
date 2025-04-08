@@ -117,7 +117,7 @@ interface UnknownTable {
   data_quality_metrics?: DataQualityMetric[]
   is_using_server_sort_and_filter: boolean
   requires_number_format: boolean[]
-  requires_row_refresh?: string
+  table_version_hash?: string
 }
 
 type DataQualityMetric = {
@@ -174,9 +174,9 @@ const allRowCount = computed(() =>
   typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
 )
 
-const rowRefreshTimestamp = computed(() =>
-  typeof props.data === 'object' && 'requires_row_refresh' in props.data ?
-    props.data.requires_row_refresh
+const tableVersionHash = computed(() =>
+  typeof props.data === 'object' && 'table_version_hash' in props.data ?
+    props.data.table_version_hash
   : null,
 )
 
@@ -215,8 +215,8 @@ const statusBar = computed(() =>
   : null,
 )
 
-// if there are upstream updates only to the row information the timestamp change indicates the grid needs to re get rows for any potetial changes
-watch(rowRefreshTimestamp, () => {
+// if there are upstream updates only to the row information the table version hash change indicates the grid needs to re get rows for any potetial changes
+watch(tableVersionHash, () => {
   refreshDataSource.value++
 })
 
@@ -252,7 +252,7 @@ function setRowLimit(newRowLimit: number) {
   }
 }
 
-watchEffect(() => 
+watchEffect(() =>
   config.setPreprocessor(
     'Standard.Visualization.Table.Visualization',
     'prepare_visualization',
