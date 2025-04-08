@@ -80,7 +80,6 @@ impl BuiltEnso {
 
     pub async fn run_benchmarks(&self, opt: BenchmarkOptions) -> Result {
         let filename = format!("enso{}", if TARGET_OS == OS::Windows { ".exe" } else { "" });
-        let base_working_directory = self.paths.repo_root.test.benchmarks.try_parent()?;
         let enso = self
             .paths
             .repo_root
@@ -91,7 +90,6 @@ impl BuiltEnso {
             .join(filename);
         let benchmarks = Command::new(&enso)
             .args(["--jvm", "--run", self.paths.repo_root.test.benchmarks.as_str()])
-            .current_dir(base_working_directory)
             .set_env(ENSO_BENCHMARK_TEST_DRY_RUN, &Boolean::from(opt.dry_run))?
             .run_ok()
             .await;
@@ -105,12 +103,10 @@ impl BuiltEnso {
         environment_overrides: Vec<(String, String)>,
     ) -> Result<Command> {
         let mut command = self.cmd()?;
-        let base_working_directory = test_path.try_parent()?;
         command
             .arg(ir_caches)
             .arg("--run")
             .arg(test_path.as_ref())
-            .current_dir(base_working_directory)
             // This flag enables assertions in the JVM. Some of our stdlib tests had in the past
             // failed on Graal/Truffle assertions, so we want to have them triggered.
             .set_env(JAVA_OPTS, &ide_ci::programs::java::Option::EnableAssertions.as_ref())?;
