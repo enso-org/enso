@@ -380,6 +380,7 @@
   "userCategoryDropZoneLabel": "Move to $0's home directory",
   "teamCategoryDropZoneLabel": "Move to $0 team's directory",
   "localCategoryDropZoneLabel": "Move to Local category",
+  "exclusiveToCloud": "Exclusive to Cloud",
   "newFolder": "New Folder",
   "newProject": "New Project",
   "uploadFiles": "Import",

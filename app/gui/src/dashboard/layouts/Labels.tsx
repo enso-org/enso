@@ -1,7 +1,7 @@
 /** @file A list of selectable labels. */
 import PlusIcon from '#/assets/plus.svg'
 import Trash2Icon from '#/assets/trash2.svg'
-import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
+import { Button, DialogTrigger, IconDisplay, Text } from '#/components/AriaComponents'
 import Label from '#/components/dashboard/Label'
 import { Scroller } from '#/components/Scroller'
 import FocusArea from '#/components/styled/FocusArea'
@@ -12,7 +12,7 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import DragModal from '#/modals/DragModal'
 import NewLabelModal from '#/modals/NewLabelModal'
 import { useDriveStore, useSetLabelsDragPayload } from '#/providers/DriveProvider'
-import { useSetModal } from '#/providers/ModalProvider'
+import { setModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { shallowEqual } from '#/utilities/array'
@@ -30,11 +30,10 @@ export interface LabelsProps {
 }
 
 /** A list of selectable labels. */
-export default function Labels(props: LabelsProps) {
+export function Labels(props: LabelsProps) {
   const { backend, query, setQuery, draggable = true } = props
   const currentLabels = query.labels
   const currentNegativeLabels = query.negativeLabels
-  const { setModal } = useSetModal()
   const { getText } = useText()
   const driveStore = useDriveStore()
   const getAsset = useGetAsset()
@@ -150,5 +149,23 @@ export default function Labels(props: LabelsProps) {
         </div>
       )}
     </FocusArea>
+  )
+}
+
+export function LabelsDisabled() {
+  const { getText } = useText()
+
+  return (
+    <div className="flex flex-none flex-col">
+      <section data-testid="labels" className="flex flex-col items-start gap-2">
+        <Text variant="subtitle" elementType="h3" weight="semibold">
+          {getText('labels')}
+        </Text>
+
+        <IconDisplay color="muted" className="self-center" icon="cloud">
+          {getText('exclusiveToCloud')}
+        </IconDisplay>
+      </section>
+    </div>
   )
 }
