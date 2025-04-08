@@ -1082,6 +1082,14 @@
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPatternType$Enum"
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STTableStyleType$Enum",
+        "fields": [
+            {
+                "name":"table"
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTBookViewImpl",
         "methods": [
             {
@@ -1533,6 +1541,28 @@
         ]
     },
     {
+        "name":"org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTTableStyleElementImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTTableStyleImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTTableStylesImpl",
         "methods": [
             {
@@ -1665,6 +1695,17 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STDxfIdImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STFillIdImpl",
         "methods": [
             {
@@ -1732,6 +1773,17 @@
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STRefImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STTableStyleTypeImpl",
         "methods": [
             {
                 "name": "<init>",
