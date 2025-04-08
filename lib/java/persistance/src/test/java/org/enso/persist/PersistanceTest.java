@@ -161,7 +161,7 @@ public class PersistanceTest {
   }
 
   // @start region="annotation"
-  @Persistable(clazz = Service.class, id = 432434)
+  @Persistable(id = 432434)
   @Persistable(clazz = IntegerSupply.class, id = 432435)
   public record Service(int value) implements Supplier<Integer> {
     @Override
