@@ -57,6 +57,7 @@ public abstract class Persistance<T> implements Cloneable {
     this.clazz = clazz;
     this.includingSubclasses = includingSubclasses;
     this.id = id;
+    PerMap.registerPersistance(this);
   }
 
   final Persistance<?> newClone() {

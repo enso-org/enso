@@ -9,9 +9,16 @@ import java.util.UUID;
 import java.util.function.Function;
 import org.enso.common.CachePreferences;
 import org.enso.persist.Persistance;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class PassPersistanceTest {
+  @BeforeClass
+  public static void initializePersistables() {
+    org.enso.compiler.core.ir.Persistables.initialize();
+    org.enso.compiler.pass.analyse.Persistables.initialize();
+  }
+
   @Test
   public void cachePreferences() throws Exception {
     var idSelf = UUID.randomUUID();

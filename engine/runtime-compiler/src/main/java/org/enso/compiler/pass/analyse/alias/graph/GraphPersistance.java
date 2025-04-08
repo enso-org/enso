@@ -1,13 +1,14 @@
 package org.enso.compiler.pass.analyse.alias.graph;
 
 import java.io.IOException;
+import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 import scala.collection.immutable.HashMap;
 
 public final class GraphPersistance {
   private GraphPersistance() {}
 
-  @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
+  @Persistable(id = 1267)
   public static final class PersistAliasAnalysisGraphScope extends Persistance<GraphImpl.Scope> {
     public PersistAliasAnalysisGraphScope() {
       super(GraphImpl.Scope.class, false, 1267);
@@ -45,7 +46,7 @@ public final class GraphPersistance {
     }
   }
 
-  @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
+  @Persistable(id = 1268)
   public static final class PersistAliasAnalysisGraph extends Persistance<GraphImpl> {
     public PersistAliasAnalysisGraph() {
       super(GraphImpl.class, false, 1268);
