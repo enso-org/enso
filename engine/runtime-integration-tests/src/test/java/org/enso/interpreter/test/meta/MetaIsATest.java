@@ -20,7 +20,12 @@ import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class MetaIsATest {
   @ClassRule
   public static final ContextRule ctxRule =
@@ -28,7 +33,16 @@ public class MetaIsATest {
 
   private static Value isACheck;
   private static Value warningCheck;
-  private static ValuesGenerator generator;
+  @Parameter public GeneratorWithName generator;
+
+  @Parameters(name = "{0}")
+  public static List<GeneratorWithName> generators() {
+    var ctx = ctxRule.context();
+    return List.of(
+        new GeneratorWithName(
+            "Enso values", ValuesGenerator.create(ctx, Language.ENSO, Language.JAVA)),
+        new GeneratorWithName("Polyglot values", ValuesGenerator.create(ctx, Language.values())));
+  }
 
   private static void prepareCtx(Context ctx) {
     final URI uri;
@@ -58,29 +72,12 @@ public class MetaIsATest {
 
   @AfterClass
   public static void disposeCtx() {
-    if (generator != null) {
-      generator.close();
-      generator = null;
-    }
     isACheck = null;
     warningCheck = null;
   }
 
-  /**
-   * Override to create different values generator.
-   *
-   * @param context the context to allocate values in
-   * @return an instance of values generator
-   */
-  ValuesGenerator createGenerator(Context context) {
-    return ValuesGenerator.create(context, Language.ENSO, Language.JAVA);
-  }
-
   private ValuesGenerator generator() {
-    if (generator == null) {
-      generator = createGenerator(ctxRule.context());
-    }
-    return generator;
+    return generator.generator;
   }
 
   @Test
@@ -233,7 +230,7 @@ public class MetaIsATest {
     final List<Value> values = generator().constructorsAndValuesAndSumType();
     for (var v1 : values) {
       for (var v2 : values) {
-        assertTypeWithCheck(generator, v1, v2, found);
+        assertTypeWithCheck(generator(), v1, v2, found);
       }
     }
     assertEquals("Just one: " + found, 1, found.size());
@@ -290,7 +287,7 @@ public class MetaIsATest {
       var typeCaseOf = generator().withType(t);
 
       for (var v : generator().allValues()) {
-        assertTypeAndValue(typeCaseOf, v, t, f, generator);
+        assertTypeAndValue(typeCaseOf, v, t, f, generator());
       }
     }
     if (f.length() > 0) {
@@ -332,6 +329,13 @@ public class MetaIsATest {
           .append(test)
           .append(" Meta.is_a ")
           .append(res);
+    }
+  }
+
+  public record GeneratorWithName(String name, ValuesGenerator generator) {
+    @Override
+    public String toString() {
+      return name;
     }
   }
 }
