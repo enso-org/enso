@@ -108,8 +108,8 @@ import {
   BackendType,
   getAssetPermissionName,
   IS_OPENING_OR_OPENED,
-  isDirectoryId,
   isAssetCredential,
+  isDirectoryId,
   type AnyAsset,
 } from '#/services/Backend'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
