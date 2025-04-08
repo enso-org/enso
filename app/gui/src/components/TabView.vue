@@ -1,8 +1,5 @@
 <script lang="ts">
 import { createGetProjectDetailsQuery, OPENED_PROJECT_STATES } from '#/hooks/projectHooks'
-// import DriveReact from '#/layouts/Drive'
-// import EditorReact from '#/layouts/Editor'
-// import SettingsReact from '#/layouts/Settings'
 import UserBarReact from '#/layouts/UserBar'
 import { LaunchedProject, LaunchedProjectId, TabType } from '#/providers/ProjectsProvider'
 import { BackendType } from '#/services/Backend'
@@ -13,14 +10,7 @@ import { computed, onMounted, onUnmounted, watch } from 'vue'
 import { injectBackendInVue } from './KeepAliveRouterView.vue'
 import { Drive, Editor, Settings } from './TabView/reactTabs'
 
-// const LazyDrive = lazyReactInVue(() => import('#/layouts/Drive'))
-// const LazyEditor = lazyReactInVue(() => import('#/layouts/Editor'))
-// const LazySettings = lazyReactInVue(() => import('#/layouts/Settings'))
-// const Drive = applyPureReactInVue(DriveReact)
-// const Editor = applyPureReactInVue(EditorReact)
-// const Settings = applyPureReactInVue(SettingsReact)
 const UserBar = applyPureReactInVue(UserBarReact)
-// const ReactSuspenseInVue = applyPureReactInVue(ReactSuspense)
 </script>
 
 <script setup lang="ts">
@@ -71,20 +61,6 @@ const onSignOut = () => {
   clearLaunchedProjects()
 }
 
-// const currentComponent = computed(() => {
-//   switch (page) {
-//     case null:
-//     case 'drive':
-//       return [Drive, null] //h(ReactSuspenseInVue, [h(LazyDrive, { initialProjectName })])
-//     case 'settings':
-//       return [Settings, null]
-//     default: {
-//       const project = launchedProjects.find((p) => p.id === page)
-//       assert(project != null)
-//       return [Editor, project]
-//     }
-//   }
-// })
 onMounted(() => console.error('TabView MOUNT'))
 onUnmounted(() => console.error('TabView UNMOUNT'))
 </script>
@@ -112,11 +88,11 @@ onUnmounted(() => console.error('TabView UNMOUNT'))
     </div>
   </div>
 
-  <!-- TODO: make it better -->
+  <!-- TODO: make it better? -->
   <KeepAlive>
     <Drive v-if="page === 'drive'" :initialProjectName="initialProjectName" class="panel" />
   </KeepAlive>
-  <KeepAlive v-for="project in launchedProjects">
+  <KeepAlive v-for="project in launchedProjects" :key="project.id">
     <Editor v-if="page === project.id" :project="project" class="panel" />
   </KeepAlive>
   <KeepAlive>
