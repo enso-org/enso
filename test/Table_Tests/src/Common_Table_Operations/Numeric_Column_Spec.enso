@@ -57,6 +57,7 @@ add_numeric_columns_specs suite_builder setup =
 
 check_column column check =
     Test.with_clue "(regular column) " <| check column
-    Test.with_clue "(1-value column) " <| check (column.take 1)
+    # Sort is needed in DB for take to work
+    Test.with_clue "(1-value column) " <| check (column.sort.take 1)
     Test.with_clue "(1-column table as column) " <| check (column.to_table)
-    Test.with_clue "(1-value 1-column table as column) " <| check (column.to_table.take 1)
+    Test.with_clue "(1-value 1-column table as column) " <| check (column.sort.to_table.take 1)
