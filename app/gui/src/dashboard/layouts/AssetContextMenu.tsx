@@ -1,7 +1,6 @@
 /** @file The context menu for an arbitrary {@link backendModule.Asset}. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 
 import { useCopy } from '#/hooks/copyHooks'
@@ -43,6 +42,7 @@ import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackend
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useMutation } from '@tanstack/react-query'
 import { useSetAssetPanelProps, useSetIsAssetPanelTemporarilyVisible } from './AssetPanel'
 
 /** Props for a {@link AssetContextMenu}. */
@@ -86,7 +86,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const deleteAssetsMutation = useMutationCallback(deleteAssetsMutationOptions(backend))
   const restoreAssetsMutation = useMutationCallback(restoreAssetsMutationOptions(backend))
   const copyAssetsMutation = useMutationCallback(copyAssetsMutationOptions(backend))
-  const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(backend))
+  const downloadAssetsMutation = useMutation(downloadAssetsMutationOptions(backend))
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const path = asset.ensoPathValue
   const copyMutation = useCopy()
@@ -133,22 +133,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         )
       })
 
-  const { data } = reactQuery.useQuery({
-    ...projectHooks.createGetProjectDetailsQuery({
-      // This is safe because we disable the query when the asset is not a project.
-      // see `enabled` property below.
-      // eslint-disable-next-line no-restricted-syntax
-      assetId: asset.id as backendModule.ProjectId,
-      backend,
-    }),
-    enabled: asset.type === backendModule.AssetType.project && canOpenProjects,
-  })
-
   const isRunningProject =
-    (asset.type === backendModule.AssetType.project &&
-      data &&
-      backendModule.IS_OPENING_OR_OPENED[data.state.type]) ??
-    false
+    asset.type === backendModule.AssetType.project &&
+    backendModule.IS_OPENING_OR_OPENED[asset.projectState.type]
 
   const canExecute =
     category.type !== 'trash' &&
@@ -441,7 +428,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             isDisabled={asset.type === backendModule.AssetType.secret}
             action="download"
             doAction={() => {
-              void downloadAssetsMutation([{ id: asset.id, title: asset.title }])
+              downloadAssetsMutation.mutate([{ id: asset.id, title: asset.title }])
             }}
           />
         )}
