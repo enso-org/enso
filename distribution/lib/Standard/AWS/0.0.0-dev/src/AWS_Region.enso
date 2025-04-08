@@ -37,9 +37,9 @@ type AWS_Region
     resolve_id self -> Text = case self of
         AWS_Region.Region id -> id
         AWS_Region.Default ->
-            DefaultRegionProvider.new Nothing fallback_region . getRegion . id
+            DefaultRegionProvider.default_region_for_profile Nothing fallback_region
         AWS_Region.Default_With_Profile profile_name ->
-            DefaultRegionProvider.new profile_name fallback_region . getRegion . id
+            DefaultRegionProvider.default_region_for_profile profile_name fallback_region
 
     ## PRIVATE
     as_java self -> AWSRegion =

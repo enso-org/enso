@@ -7,7 +7,7 @@ import software.amazon.awssdk.regions.providers.DefaultAwsRegionProviderChain;
 
 /** Implements the resolution of AWS Region for Enso AWS_Region.Default and Default_With_Profile. */
 public class DefaultRegionProvider extends AwsRegionProviderChain {
-  public DefaultRegionProvider(String profileName, AWSRegion fallback) {
+  private DefaultRegionProvider(String profileName, AWSRegion fallback) {
     super(makeAwsDefault(profileName), new FallbackProvider(fallback));
   }
 
@@ -30,5 +30,9 @@ public class DefaultRegionProvider extends AwsRegionProviderChain {
     public Region getRegion() {
       return AWSRegion.underlying(region);
     }
+  }
+
+  public static String default_region_for_profile(String profileName, AWSRegion fallback) {
+    return new DefaultRegionProvider(profileName, fallback).getRegion().id();
   }
 }

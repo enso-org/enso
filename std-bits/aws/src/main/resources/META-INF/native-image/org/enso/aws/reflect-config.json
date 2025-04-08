@@ -186,16 +186,5 @@
                 "parameterTypes": []
             }
         ]
-    },
-    {
-        "name": "software.amazon.awssdk.regions.Region",
-        "methods": [
-            {
-                "name": "id"
-            },
-            {
-                "name": "regions"
-            }
-        ]
     }
 ]
