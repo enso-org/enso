@@ -58,7 +58,7 @@ public final class ContextRule implements TestRule {
     var stdout = new ByteArrayOutputStream();
     var stderr = new ByteArrayOutputStream();
     var ctxBldr = ContextUtils.defaultContextBuilder();
-    ctxBldr.out(stdout).err(stderr);
+    ctxBldr.out(stdout).err(stderr).logHandler(stdout);
     return new ContextRule(ctxBldr, null, stdout, stderr);
   }
 
@@ -208,7 +208,7 @@ public final class ContextRule implements TestRule {
 
     private Builder(String... permittedLanguages) {
       this.polyglotCtxBldr = ContextUtils.defaultContextBuilder(permittedLanguages);
-      this.polyglotCtxBldr.out(stdout).err(stderr);
+      this.polyglotCtxBldr.out(stdout).err(stderr).logHandler(stdout);
     }
 
     public Builder withModifiedContext(Function<Context.Builder, Context.Builder> modifier) {
