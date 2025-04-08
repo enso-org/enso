@@ -4817,8 +4817,7 @@ lazy val `snowflake-test-java-helpers` = project
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
-      file("test/Snowflake_Tests/polyglot/java/snowflake-test-helpers.jar"),
-    libraryDependencies ++= bouncyCastle
+      file("test/Snowflake_Tests/polyglot/java/snowflake-test-helpers.jar")
   )
   .dependsOn(`std-snowflake` % "provided")
 
