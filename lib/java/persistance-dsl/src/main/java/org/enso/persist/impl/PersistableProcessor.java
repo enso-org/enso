@@ -116,12 +116,7 @@ public class PersistableProcessor extends AbstractProcessor {
     var tu = processingEnv.getTypeUtils();
     var Persistance = eu.getTypeElement("org.enso.persist.Persistance");
     var PersistanceRaw = tu.erasure(Persistance.asType());
-    if (tu.isSubtype(orig.asType(), PersistanceRaw)) {
-      registerPersistablesClass(orig, anno);
-      return true;
-    }
-    String typeElemName = readAnnoValue(anno, "clazz");
-    var canInline = !"false".equals(readAnnoValue(anno, "allowInlining"));
+    var typeElemName = readAnnoValue(anno, "clazz");
     if (typeElemName == null) {
       typeElemName = ((TypeElement) orig).getQualifiedName().toString();
     }
@@ -130,6 +125,12 @@ public class PersistableProcessor extends AbstractProcessor {
       processingEnv.getMessager().printMessage(Kind.ERROR, "Cannot find type for " + typeElemName);
       return false;
     }
+
+    if (tu.isSubtype(typeElem.asType(), PersistanceRaw)) {
+      registerPersistablesClass(typeElem, anno);
+      return true;
+    }
+    var canInline = !"false".equals(readAnnoValue(anno, "allowInlining"));
     var richerConstructor =
         new Comparator<Object>() {
           @Override
