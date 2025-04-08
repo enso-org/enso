@@ -137,7 +137,8 @@ public final class EnsoContext {
     this.in = environment.in();
     this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
     var threadExecutors = new ThreadExecutors(environment, logger);
-    this.threadManager = new ThreadManager(threadExecutors, getJobParallelism(), environment);
+    var guestParallelism = getOption(RuntimeOptions.GUEST_PARALLELISM_KEY);
+    this.threadManager = new ThreadManager(threadExecutors, guestParallelism, environment);
     this.resourceManager = new ResourceManager(this);
     this.isInlineCachingDisabled = getOption(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     var isParallelismEnabled = getOption(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
@@ -210,10 +211,12 @@ public final class EnsoContext {
     var preinit = environment.getOptions().get(RuntimeOptions.PREINITIALIZE_KEY);
     if (preinit != null && preinit.length() > 0) {
       var epb = environment.getInternalLanguages().get("epb");
-      @SuppressWarnings("unchecked")
-      var run = (Consumer<String>) environment.lookup(epb, Consumer.class);
-      if (run != null) {
-        run.accept(preinit);
+      if (epb != null) {
+        @SuppressWarnings("unchecked")
+        var run = (Consumer<String>) environment.lookup(epb, Consumer.class);
+        if (run != null) {
+          run.accept(preinit);
+        }
       }
     }
   }

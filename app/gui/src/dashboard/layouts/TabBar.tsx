@@ -10,7 +10,7 @@ import * as projectHooks from '#/hooks/projectHooks'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
+import { Tab as TabAria, TabList, type TabListProps } from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import SvgMask from '#/components/SvgMask'
@@ -25,7 +25,7 @@ import { twJoin } from '#/utilities/tailwindMerge'
 import { motion } from 'framer-motion'
 
 /** Props for a {@link TabBar}. */
-export interface TabBarProps<T extends object> extends aria.TabListProps<T> {
+export interface TabBarProps<T extends object> extends TabListProps<T> {
   readonly className?: string
 }
 
@@ -38,7 +38,7 @@ export default function TabBar<T extends object>(props: TabBarProps<T>) {
   return (
     <AnimatedBackground>
       <div className={classes}>
-        <aria.TabList<T> className="flex h-12 shrink-0 grow px-2" {...rest} />
+        <TabList<T> className="flex h-12 shrink-0 grow px-2" {...rest} />
       </div>
     </AnimatedBackground>
   )
@@ -82,7 +82,7 @@ export function Tab(props: TabProps) {
   }, [inputBindings, isActive, stableOnClose])
 
   return (
-    <aria.Tab
+    <TabAria
       data-testid={props['data-testid']}
       id={id}
       aria-label={getText(labelId)}
@@ -126,7 +126,7 @@ export function Tab(props: TabProps) {
           </div>
         </AnimatedBackground.Item>
       )}
-    </aria.Tab>
+    </TabAria>
   )
 }
 
@@ -155,15 +155,15 @@ export function ProjectTab(props: ProjectTabProps) {
   })
 
   const {
-    data: isOpened,
+    data: { isOpened, title },
     isSuccess,
     isError,
-  } = reactQuery.useQuery({
-    ...projectHooks.createGetProjectDetailsQuery({
-      assetId: project.id,
-      backend,
+  } = reactQuery.useSuspenseQuery({
+    ...projectHooks.createGetProjectDetailsQuery({ assetId: project.id, backend }),
+    select: (data) => ({
+      title: data.name,
+      isOpened: projectHooks.OPENED_PROJECT_STATES.has(data.state.type),
     }),
-    select: (data) => projectHooks.OPENED_PROJECT_STATES.has(data.state.type),
   })
 
   const isReady = isSuccess && isOpened
@@ -193,7 +193,11 @@ export function ProjectTab(props: ProjectTabProps) {
     return SPINNER
   })()
 
-  return <Tab {...rest} icon={icon} onClose={stableOnClose} />
+  return (
+    <Tab {...rest} icon={icon} onClose={stableOnClose}>
+      {title}
+    </Tab>
+  )
 }
 
 TabBar.ProjectTab = ProjectTab

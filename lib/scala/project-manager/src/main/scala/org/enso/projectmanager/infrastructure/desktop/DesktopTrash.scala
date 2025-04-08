@@ -1,6 +1,6 @@
 package org.enso.projectmanager.infrastructure.desktop
 
-import org.enso.desktopenvironment.{Platform, TrashBin}
+import org.enso.os.environment.trash.TrashBin
 import org.enso.projectmanager.control.effect.Sync
 
 import java.io.File
@@ -15,6 +15,6 @@ class DesktopTrash[F[+_, +_]: Sync](trash: TrashBin) extends TrashCan[F] {
 object DesktopTrash {
 
   def apply[F[+_, +_]: Sync]: DesktopTrash[F] = {
-    new DesktopTrash(Platform.getOperatingSystem.getTrashBin)
+    new DesktopTrash(TrashBin.getCurrent)
   }
 }

@@ -17,7 +17,7 @@ const { editorView } = useCodeMirror(editorRoot, {
 })
 
 const { getText, setText } = connectSync(editorView)
-watch(model, setText)
+watch(model, (text) => setText(text))
 function onEditorBlur() {
   model.value = getText()
 }

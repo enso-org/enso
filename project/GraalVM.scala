@@ -77,7 +77,9 @@ object GraalVM {
     "espresso".equals(System.getenv("ENSO_JAVA"))
 
   // Keep in sync with graalMavenPackagesVersion in build.sbt
-  private val version: String = "24.0.0"
+  private val version: String = "24.2.0"
+
+  final def mavenPackagesVersion: String = version
 
   /** The list of modules that are included in the `component` directory in engine distribution.
     * When invoking the `java` command, these modules need to be put on the module-path.
@@ -122,9 +124,9 @@ object GraalVM {
     Seq(
       "org.graalvm.python"   % "python-language"    % version,
       "org.graalvm.python"   % "python-resources"   % version,
-      "org.bouncycastle"     % "bcutil-jdk18on"     % "1.76",
-      "org.bouncycastle"     % "bcpkix-jdk18on"     % "1.76",
-      "org.bouncycastle"     % "bcprov-jdk18on"     % "1.76",
+      "org.bouncycastle"     % "bcutil-jdk18on"     % "1.78.1",
+      "org.bouncycastle"     % "bcpkix-jdk18on"     % "1.78.1",
+      "org.bouncycastle"     % "bcprov-jdk18on"     % "1.78.1",
       "org.graalvm.llvm"     % "llvm-api"           % version,
       "org.graalvm.truffle"  % "truffle-nfi"        % version,
       "org.graalvm.truffle"  % "truffle-nfi-libffi" % version,
@@ -159,11 +161,11 @@ object GraalVM {
 
   private val espressoPkgs =
     Seq(
-      "org.graalvm.truffle"  % "truffle-nfi"                            % version,
-      "org.graalvm.truffle"  % "truffle-nfi-libffi"                     % version,
-      "org.graalvm.espresso" % "espresso-language"                      % version,
-      "org.graalvm.espresso" % "espresso-libs-resources-linux-amd64"    % version,
-      "org.graalvm.espresso" % "espresso-runtime-resources-linux-amd64" % version
+      "org.graalvm.truffle"  % "truffle-nfi"                      % version,
+      "org.graalvm.truffle"  % "truffle-nfi-libffi"               % version,
+      "org.graalvm.espresso" % "espresso-language"                % version,
+      "org.graalvm.espresso" % "espresso-libs-resources"          % version,
+      "org.graalvm.espresso" % "espresso-runtime-resources-jdk21" % version
     )
 
   val toolsPkgs = chromeInspectorPkgs ++ debugAdapterProtocolPkgs ++ insightPkgs

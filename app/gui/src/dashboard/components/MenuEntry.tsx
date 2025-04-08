@@ -66,6 +66,7 @@ export const ACTION_TO_TEXT_ID: Readonly<
   newFolder: 'newFolderShortcut',
   newDatalink: 'newDatalinkShortcut',
   newSecret: 'newSecretShortcut',
+  newCredential: 'newCredentialShortcut',
   useInNewProject: 'useInNewProjectShortcut',
   closeModal: 'closeModalShortcut',
   cancelEditName: 'cancelEditNameShortcut',

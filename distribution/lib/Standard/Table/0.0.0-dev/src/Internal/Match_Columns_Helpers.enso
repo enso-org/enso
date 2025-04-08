@@ -4,7 +4,6 @@ import Standard.Base.Runtime.State
 from Standard.Base.Runtime import assert
 
 import project.Columns_To_Keep.Columns_To_Keep
-import project.Constants.Report_Unmatched
 import project.Match_Columns.Match_Columns
 from project.Errors import Column_Count_Mismatch, No_Output_Columns, Unmatched_Columns
 

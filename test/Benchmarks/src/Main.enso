@@ -44,6 +44,7 @@ import project.Vector.Distinct
 import project.Vector.Map_Error_Benchmark
 import project.Vector.Operations
 import project.Vector.Sort
+import project.Vector.Zip_Benchmark
 import project.Warnings
 from Standard.Base.Runtime import Debug
 
@@ -58,6 +59,7 @@ all_benchmarks =
         builder.append Map_Error_Benchmark.collect_benches
         builder.append Operations.collect_benches
         builder.append Sort.collect_benches
+        builder.append Zip_Benchmark.collect_benches
 
         # Map
         builder.append Hash_Map.collect_benches
