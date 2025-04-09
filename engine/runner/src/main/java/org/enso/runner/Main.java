@@ -657,7 +657,8 @@ public class Main {
       boolean shouldUseIrCaches,
       boolean enableStaticAnalysis,
       Level logLevel,
-      boolean logMasking) throws IOException {
+      boolean logMasking)
+      throws IOException {
     var fileAndProject = Utils.findFileAndProject(path, null);
     if (fileAndProject == null) {
       throw exitFail("No package exists at " + path + ".");
