@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import CodeMirrorInlineRoot from '@/components/CodeMirrorInlineRoot.vue'
+import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { selectOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemirror'
 import { useTemplateRef, watch, type ComponentInstance } from 'vue'
 
 const model = defineModel<string>({ required: true })
 const { active, editing } = defineProps<{ active: boolean; editing: boolean }>()
 
-const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorInlineRoot>>('editorRoot')
+const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 
 const { syncExt, connectSync } = useStringSync()
 const { editorView } = useCodeMirror(editorRoot, {
   content: model.value,
   extensions: [syncExt, selectOnMouseFocus],
   readonly: false,
-  singleLine: true,
+  lineMode: 'single',
 })
 
 const { getText, setText } = connectSync(editorView)
@@ -38,7 +38,7 @@ watch(editorRoot, (editorRoot) => {
 
 <template>
   <div class="NavBreadcrumb" :class="{ inactive: !active }">
-    <CodeMirrorInlineRoot
+    <CodeMirrorRoot
       v-if="editing"
       ref="editorRoot"
       @focusout="onEditorBlur"
@@ -56,9 +56,8 @@ watch(editorRoot, (editorRoot) => {
   border-radius: var(--radius-full);
 }
 
-.CodeMirrorInlineRoot {
+.CodeMirrorRoot {
   pointer-events: auto;
-  cursor: text;
 }
 
 .inactive {
