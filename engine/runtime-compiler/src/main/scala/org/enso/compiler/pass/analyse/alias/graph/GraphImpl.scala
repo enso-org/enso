@@ -4,6 +4,7 @@ package alias.graph
 
 import org.enso.compiler.debug.Debug
 
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 import scala.reflect.ClassTag
 import scala.annotation.unused
@@ -315,9 +316,14 @@ sealed private[graph] class GraphImpl(
     def getShadowedIds(
       scope: ScopeImpl
     ): Set[GraphOccurrence] = {
-      scope.occurrences.values.collect {
-        case d: GraphOccurrence.Def if d.symbol == definition.symbol => d
-      } ++ scope.parent.map(getShadowedIds).getOrElse(Set())
+      scope._occurrences.values.stream
+        .filter {
+          case d: GraphOccurrence.Def if d.symbol == definition.symbol => true
+          case _                                                       => false
+        }
+        .toList
+        .asScala
+        .toSet ++ scope.parent.map(getShadowedIds).getOrElse(Set())
     }.toSet
 
     definition match {
