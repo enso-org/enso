@@ -33,27 +33,28 @@ const {
   setIsChatOpen(value: boolean): void
 }>()
 
-const projectsReadyState = reactive(new Map<ProjectId, boolean>())
+const readyProjects = reactive(new Set<ProjectId>())
 
-// Automatically open tab once just opened project loads.
-const knownReadyProjects = new Set<ProjectId>()
-watch(projectsReadyState, (now) => {
-  let firstReadyProject: ProjectId | undefined
-  for (const [key, state] of now.entries()) {
-    console.log('Checking', state, knownReadyProjects.has(key), firstReadyProject)
-    if (state && !knownReadyProjects.has(key) && !firstReadyProject) {
-      firstReadyProject = key
+function setProjectReady(project: ProjectId, ready: boolean) {
+  if (ready) {
+    readyProjects.add(project)
+    setPage(project)
+  } else {
+    readyProjects.delete(project)
+  }
+}
+
+watch(
+  () => launchedProjects,
+  () => {
+    const openedProjects = new Set(launchedProjects.map((proj) => proj.id))
+    for (const proj of readyProjects) {
+      if (!openedProjects.has(proj)) {
+        readyProjects.delete(proj)
+      }
     }
-  }
-  for (const previouslyReady of knownReadyProjects) {
-    if (!projectsReadyState.get(previouslyReady)) {
-      knownReadyProjects.delete(previouslyReady)
-    }
-  }
-  if (firstReadyProject) {
-    setPage(firstReadyProject)
-  }
-})
+  },
+)
 
 const onSignOut = () => {
   setPage('drive')
@@ -76,7 +77,7 @@ onUnmounted(() => console.error('TabView UNMOUNT'))
         :selected="page === project.id"
         @update:selected="$event && setPage(project.id)"
       >
-        <SvgIcon v-if="projectsReadyState.get(project.id)" name="graph_editor" />
+        <SvgIcon v-if="readyProjects.has(project.id)" name="graph_editor" />
         <LoadingSpinner v-else :size="16" />
         <span>{{ project.title }}</span>
         <SvgIcon name="close" @click="closeProject(project)" />
@@ -98,9 +99,7 @@ onUnmounted(() => console.error('TabView UNMOUNT'))
         :key="project.id"
         :hidden="page !== project.id"
         :project="project"
-        @readyUpdate="
-          (console.log('READY UPDATE', $event), projectsReadyState.set(project.id, $event))
-        "
+        @readyUpdate="setProjectReady(project.id, $event)"
       />
       <KeepAlive>
         <Settings v-if="page === 'settings'" />
