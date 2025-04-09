@@ -315,11 +315,10 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
   const insertionVisibility = useStore(driveStore, (driveState) =>
     driveState.pasteData?.type === 'move' && driveState.pasteData.data.ids.has(id) ?
-      Visibility.faded
+      'opacity-50'
     : Visibility.visible,
   )
-  const visibility =
-    isDeleting || isRestoring || isUpdating ? Visibility.faded : insertionVisibility
+  const visibility = isDeleting || isRestoring || isUpdating ? 'opacity-50' : insertionVisibility
 
   const setSelected = useEventCallback((newSelected: boolean) => {
     const { selectedAssets } = driveStore.getState()
@@ -331,10 +330,10 @@ export function RealAssetRow(props: RealAssetRowProps) {
   })
 
   React.useEffect(() => {
-    if (selected && insertionVisibility !== Visibility.visible) {
+    if (selected && (isDeleting || isRestoring)) {
       setSelected(false)
     }
-  }, [selected, insertionVisibility, setSelected])
+  }, [selected, setSelected, isDeleting, isRestoring])
 
   React.useEffect(() => {
     if (isKeyboardSelected) {
