@@ -200,7 +200,7 @@ sealed private[graph] class ScopeImpl(
     * @tparam T the role for the symbol
     * @return the occurrences for `name`, if they exist
     */
-  private[analyse] def getOccurrences[T <: GraphOccurrence: ClassTag](
+  private[graph] def getOccurrences[T <: GraphOccurrence: ClassTag](
     symbol: GraphImpl.Symbol
   ): Set[T] = {
     allOccurrences().stream
@@ -237,13 +237,12 @@ sealed private[graph] class ScopeImpl(
     */
   private[analyse] def resolveUsage(
     occurrence: GraphOccurrence.Use,
-    hint: GraphOccurrence.Def,
     parentCounter: Int = 0
   ): Option[Graph.Link] = {
     val definition = Option(defsBySymbol.get(occurrence.symbol))
     definition match {
       case None =>
-        parent.flatMap(_.resolveUsage(occurrence, hint, parentCounter + 1))
+        parent.flatMap(_.resolveUsage(occurrence, parentCounter + 1))
       case Some(target) =>
         Some(Graph.Link(occurrence.id, parentCounter, target.id()))
     }
