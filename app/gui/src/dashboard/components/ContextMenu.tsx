@@ -26,7 +26,7 @@ export default forwardRef(function ContextMenu(
 
   return hidden ? children : (
       <Modal
-        className="absolute size-full overflow-hidden bg-dim"
+        className="absolute size-full overflow-hidden"
         onContextMenu={(innerEvent) => {
           innerEvent.preventDefault()
         }}
@@ -35,9 +35,7 @@ export default forwardRef(function ContextMenu(
           data-testid="context-menu"
           ref={ref}
           style={{ left: event.pageX, top: event.pageY }}
-          className={tailwindMerge.twMerge(
-            'pointer-events-none sticky flex w-min items-start gap-context-menus',
-          )}
+          className="pointer-events-none sticky flex w-min items-start gap-context-menus rounded-2xl shadow-soft"
           onClick={(clickEvent) => {
             clickEvent.stopPropagation()
           }}
