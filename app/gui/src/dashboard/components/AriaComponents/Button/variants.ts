@@ -171,31 +171,16 @@ export const BUTTON_STYLES = tv({
       },
     },
     extraClickZone: {
-      true: {
-        extraClickZone:
-          'flex relative after:absolute after:cursor-pointer group-disabled:after:cursor-not-allowed',
-      },
-      false: {
-        extraClickZone: 'after:inset-0',
-      },
-      xxsmall: {
-        extraClickZone: 'after:inset-[-2px]',
-      },
-      xsmall: {
-        extraClickZone: 'after:inset-[-4px]',
-      },
-      small: {
-        extraClickZone: 'after:inset-[-6px]',
-      },
-      medium: {
-        extraClickZone: 'after:inset-[-8px]',
-      },
-      large: {
-        extraClickZone: 'after:inset-[-10px]',
-      },
-      custom: {
-        extraClickZone: 'after:inset-[calc(var(--extra-click-zone-offset, 0) * -1)]',
-      },
+      true: { extraClickZone: '' },
+      false: { extraClickZone: 'after:inset-0' },
+      xxsmall: { extraClickZone: 'after:inset-[-2px]' },
+      xsmall: { extraClickZone: 'after:inset-[-4px]' },
+      small: { extraClickZone: 'after:inset-[-6px]' },
+      medium: { extraClickZone: 'after:inset-[-8px]' },
+      large: { extraClickZone: 'after:inset-[-10px]' },
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      'large-h': { extraClickZone: 'after:inset-x-[-10px]' },
+      custom: { extraClickZone: 'after:inset-[calc(var(--extra-click-zone-offset, 0) * -1)]' },
     },
   },
   slots: {
