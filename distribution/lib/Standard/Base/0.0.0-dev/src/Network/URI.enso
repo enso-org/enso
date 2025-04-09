@@ -64,7 +64,7 @@ type URI
                 truncated = if message.is_nothing || message.length > 100 then "Invalid URI '" + uri.to_display_text + "'" else
                     "URI syntax error: " + message
                 Error.throw (Syntax_Error.Error truncated)
-        if raw_uri.scheme == Nothing then URI.parse ("https://" + uri) else
+        if raw_uri.scheme == Nothing && (uri.starts_with "/" . not) then URI.parse ("https://" + uri) else
             raw_uri
 
     ## GROUP Metadata
