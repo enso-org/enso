@@ -36,8 +36,9 @@ tsconfig.json
 /app/gui/src/dashboard @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
 /app/gui/src/project-view @Frizi @farmaazon @vitvakatu @kazcw @AdRiley 
 /app/ide-desktop/ @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
+/app/ide-desktop/client/tasks/signArchivesMacOs.ts @jdunkerley @hubertp
 /app/ide-desktop/client/tests @Frizi @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
-/app/ydoc-server/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley 
+/app/ydoc-server/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley
 /app/ydoc-server-nodejs/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley 
 /app/ydoc-server-polyglot/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley 
 /app/ydoc-shared/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley 
