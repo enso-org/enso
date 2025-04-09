@@ -101,7 +101,7 @@ impl BuiltEnso {
         test_path: impl AsRef<Path>,
         ir_caches: IrCaches,
         environment_overrides: Vec<(String, String)>,
-        native_image: bool
+        native_image: bool,
     ) -> Result<Command> {
         let mut command = if native_image {
             let enso = self.wrapper_script_path();
