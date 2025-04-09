@@ -231,7 +231,6 @@ export default {
         'name-column-icon': 'var(--name-column-icon-gap)',
         'permission-type-button': 'var(--permission-type-button-gap)',
         'modal-tabs': 'var(--modal-tabs-gap)',
-        'context-menus': 'var(--context-menus-gap)',
         'asset-panel': 'var(--asset-panel-gap)',
         'search-suggestions': 'var(--search-suggestions-gap)',
         'chat-buttons': 'var(--chat-buttons-gap)',
