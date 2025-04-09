@@ -17,10 +17,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -82,7 +83,7 @@ public class TestTelemetry {
   public void sendSingleTelemetryLog() throws InterruptedException, IOException {
     var message = new LogMessage("TestLogger", "msg: name={}", new Object[] {"Pavel"});
     logJobsProcessor.enqueueMessage(message);
-    serverExecutor.waitForLastTask();
+    serverExecutor.waitForAllTasks();
     var receivedLogs = getLogs();
     assertThat(receivedLogs.size(), is(1));
     var receivedLog = receivedLogs.get(0);
@@ -139,25 +140,35 @@ public class TestTelemetry {
 
   private static final class MockServerExecutor implements Executor {
     private final ExecutorService underlyingExecutor = Executors.newSingleThreadExecutor();
-    private final CountDownLatch notifier = new CountDownLatch(1);
+    private final List<Future<?>> tasks = new ArrayList<>();
 
     @Override
     public void execute(Runnable command) {
-      Runnable wrappedRunnable =
-          () -> {
-            command.run();
-            notifier.countDown();
-          };
-      underlyingExecutor.submit(wrappedRunnable);
+      var task = underlyingExecutor.submit(command);
+      synchronized (tasks) {
+        tasks.add(task);
+        tasks.notifyAll();
+      }
     }
 
-    /** Block until last runnable is finished. Throws AssertionError if timeout occurs. */
-    public void waitForLastTask() {
-      try {
-        var ret = notifier.await(2, TimeUnit.SECONDS);
-        assertThat("Timeout should not occur - task should be normally finished", ret, is(true));
-      } catch (InterruptedException e) {
-        throw new AssertionError(e);
+    public void waitForAllTasks() {
+      synchronized (tasks) {
+        // There needs to be at least an initial task added to the list.
+        // If the list is empty, no work has yet been started.
+        while (tasks.isEmpty()) {
+          try {
+            tasks.wait();
+          } catch (InterruptedException e) {
+            throw new AssertionError(e);
+          }
+        }
+      }
+      for (var task : tasks) {
+        try {
+          task.get();
+        } catch (InterruptedException | ExecutionException e) {
+          throw new AssertionError(e);
+        }
       }
     }
 
