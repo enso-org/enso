@@ -104,6 +104,35 @@ public class TestTelemetry {
     assertThat(receivedLogs.isEmpty(), is(true));
   }
 
+  @Test
+  public void sendMultipleTelemetryLogs() {
+    var logJobs =
+        IntStream.range(0, 5)
+            .mapToObj(
+                i -> {
+                  var msg = new LogMessage("TestLogger-" + i, "msg: idx={}", new Object[] {i});
+                  return new LogJob(msg, new CompletableFuture<>());
+                })
+            .toList();
+    logJobs.forEach(logJobsProcessor::enqueueMessage);
+    for (LogJob logJob : logJobs) {
+      try {
+        logJob.completionNofitication().get();
+      } catch (InterruptedException e) {
+        throw new AssertionError("Should not be interrupted", e);
+      } catch (ExecutionException e) {
+        throw new AssertionError("Should not fail", e);
+      }
+    }
+    var logs = server.getLogs();
+    for (int i = 0; i < logs.size(); i++) {
+      var log = logs.get(i);
+      assertThat(log.message(), is("msg"));
+      assertThat(log.metadata().get("loggerName").asText(), containsString("TestLogger-" + i));
+      assertThat(log.metadata().get("idx").asInt(), is(i));
+    }
+  }
+
   private static Credentials mockCredentials() {
     var expireAt = ZonedDateTime.now().plusYears(1).format(DateTimeFormatter.ISO_INSTANT);
     var refreshUrl = refreshUri.toString();
