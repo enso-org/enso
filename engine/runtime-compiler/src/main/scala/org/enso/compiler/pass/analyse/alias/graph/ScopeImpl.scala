@@ -30,6 +30,16 @@ sealed private[graph] class ScopeImpl(
   private[graph] var _parent: ScopeImpl = null
 
   def childScopes = _childScopes
+
+  def forEachOccurenceDefinition(fn: (GraphOccurrence => Unit)): Unit = {
+    _occurrences.foreach {
+      case (id, x: GraphOccurrence.Def) =>
+        assert(id == x.id)
+        fn(x)
+      case _ =>
+    }
+  }
+
   def occurrences = _occurrences
   def allDefinitions =
     java.util.Collections.unmodifiableCollection(_allDefinitions)
