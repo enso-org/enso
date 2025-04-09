@@ -33,7 +33,7 @@ const openToken = computed(() => inputTextLiteral.value?.open ?? emptyTextLitera
 const closeToken = computed(() =>
   isBlock.value ? undefined : (inputTextLiteral.value?.close ?? openToken.value),
 )
-const isBlock = computed<boolean>(() => (inputTextLiteral.value?.open?.code().length ?? 1) > 1)
+const isBlock = computed<boolean>(() => !!inputTextLiteral.value?.isBlock)
 const editedTextIsMultiline = ref(isTextMultiline(textContents.value))
 const isMultiline = computed<boolean>(() => isBlock.value || editedTextIsMultiline.value)
 
@@ -246,10 +246,6 @@ export const widgetDefinition = defineWidget(
   & :deep(.cm-scroller) {
     min-height: 2.5em;
     max-height: 20em;
-  }
-  & :deep(.cm-content) {
-    padding: 1em 0;
-    margin: -0.8em 0;
   }
   & .delimiter {
     font-size: 1.4em;

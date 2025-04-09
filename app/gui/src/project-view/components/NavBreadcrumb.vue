@@ -58,7 +58,6 @@ watch(editorRoot, (editorRoot) => {
 
 .CodeMirrorRoot {
   pointer-events: auto;
-  cursor: text;
 }
 
 .inactive {

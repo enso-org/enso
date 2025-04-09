@@ -1817,6 +1817,10 @@ export class TextLiteral extends BaseExpression {
     return uninterpolatedText(this.fields.get('elements'), this.module)
   }
 
+  get isBlock(): boolean {
+    return (this.open?.code().length ?? 1) > 1
+  }
+
   /** TODO: Add docs */
   *concreteChildren({ verbatim, indent }: PrintContext): IterableIterator<RawConcreteChild> {
     const { open, newline, elements, close } = getAll(this.fields)
