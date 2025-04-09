@@ -14,7 +14,6 @@ import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Numeric.Internal.Decimal_Internal import Decimal_Comparator
-from project.Data.Numeric.Rounding_Mode import resolve_deprecated_rounding_mode
 from project.Data.Ordering import Comparable, Ordering
 from project.Errors.Common import Arithmetic_Error, Loss_Of_Numeric_Precision, Out_Of_Range, Unsupported_Argument_Types
 from project.Widget_Helpers import make_number_format_selector
@@ -1036,13 +1035,12 @@ type Decimal
 
              Decimal.new "2.5" . round rounding_mode=Rounding_Mode.Bankers
              # => 2
-    round : Integer -> Boolean -> Decimal
-    round self (decimal_places:Integer=0) (rounding_mode : Rounding_Mode | Boolean = Rounding_Mode.Half_Up) -> Decimal =
-        resolve_deprecated_rounding_mode "Standard.Base.Data.Decimal.Decimal" rounding_mode rounding_mode->
-            out_of_range = decimal_places > Java_Integer.MAX_VALUE || decimal_places < Java_Integer.MIN_VALUE
-            if out_of_range.not then Decimal.Value (Decimal_Utils.round self.big_decimal decimal_places (rounding_mode == Rounding_Mode.Bankers)) else
-                message = "round decimal_places must be between "+Java_Integer.MIN_VALUE.to_text+" and "+Java_Integer.MAX_VALUE.to_text+" (inclusive), but was "+decimal_places.to_text
-                Error.throw (Out_Of_Range.Error decimal_places message)
+    round : Integer -> Rounding_Mode -> Decimal
+    round self (decimal_places:Integer=0) (rounding_mode : Rounding_Mode = ..Half_Up) -> Decimal =
+        out_of_range = decimal_places > Java_Integer.MAX_VALUE || decimal_places < Java_Integer.MIN_VALUE
+        if out_of_range.not then Decimal.Value (Decimal_Utils.round self.big_decimal decimal_places (rounding_mode == Rounding_Mode.Bankers)) else
+            message = "round decimal_places must be between "+Java_Integer.MIN_VALUE.to_text+" and "+Java_Integer.MAX_VALUE.to_text+" (inclusive), but was "+decimal_places.to_text
+            Error.throw (Out_Of_Range.Error decimal_places message)
 
     ## GROUP Rounding
        ICON math
