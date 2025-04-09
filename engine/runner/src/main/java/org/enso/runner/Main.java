@@ -1150,13 +1150,12 @@ public class Main {
       var packagePath = line.getOptionValue(COMPILE_OPTION);
       var shouldCompileDependencies = !line.hasOption(NO_COMPILE_DEPENDENCIES_OPTION);
       var shouldUseGlobalCache = !line.hasOption(NO_GLOBAL_CACHE_OPTION);
-      var shouldUseIrCaches = !line.hasOption(NO_IR_CACHES_OPTION);
 
       compile(
           packagePath,
           shouldCompileDependencies,
           shouldUseGlobalCache,
-          shouldUseIrCaches,
+          shouldEnableIrCaches(line),
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
           logLevel,
           logMasking);
