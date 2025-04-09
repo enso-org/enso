@@ -6,8 +6,6 @@ import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { OfflineNotificationManager } from '#/components/OfflineNotificationManager'
 import { Suspense } from '#/components/Suspense'
 import UIProviders from '#/components/UIProviders'
-import { useMount } from '#/hooks/mountHooks'
-import { useUnmount } from '#/hooks/unmountHooks'
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import { HttpClientProvider } from '#/providers/HttpClientProvider'
 import LoggerProvider from '#/providers/LoggerProvider'
@@ -22,10 +20,6 @@ interface ReactRootProps {
   queryClient: QueryClient
   classSet: Map<string, number>
   onAuthenticated: (accessToken: string | null) => void
-}
-
-function resolveEnvUrl(url: string | undefined) {
-  return url?.replace('__HOSTNAME__', window.location.hostname)
 }
 
 function generateSessionID() {
@@ -44,13 +38,6 @@ function generateSessionID() {
  */
 export default function ReactRoot(props: ReactRootProps) {
   const { queryClient, onAuthenticated } = props
-
-  useMount(() => {
-    console.log('ReactRoot MOUNT')
-  })
-  useUnmount(() => {
-    console.log('ReactRoot UNMOUNT')
-  })
 
   const sessionID = generateSessionID()
 

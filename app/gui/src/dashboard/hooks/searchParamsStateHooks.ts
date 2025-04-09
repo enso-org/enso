@@ -58,7 +58,6 @@ export function useSearchParamsState<T = unknown>(
       }
 
       const query = Object.fromEntries(nextSearchParams.entries())
-      console.log('NAVIGATING')
       void router.push({ query, ...options })
     },
     [router, searchParams],

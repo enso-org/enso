@@ -16,7 +16,6 @@ export const [provideBackend, injectBackendInVue] = createContextStore(
 <script setup lang="ts">
 const props = defineProps<Backends>()
 
-console.log('PROVIDING BACKEND', props)
 provideBackend(props)
 </script>
 

@@ -76,7 +76,7 @@ import { Path } from '#/utilities/path'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 
 import { useInitAuthService } from '#/authentication/service'
-import { VueContainer } from '#/utilities/vue'
+import VueContainer from '#/utilities/VueContainer'
 import { useMutation } from '@tanstack/react-query'
 import { RouterView } from 'vue-router'
 import { useConfigInReact, useRouterInReact } from '../providers/react'

@@ -16,7 +16,7 @@ import { BackendType } from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
 import { ProjectManagerEvents } from '#/services/ProjectManager'
 import type RemoteBackend from '#/services/RemoteBackend'
-import { VueContainer } from '#/utilities/vue'
+import VueContainer from '#/utilities/VueContainer'
 
 /** State contained in a `BackendContext`. */
 export interface BackendContextType {
@@ -73,6 +73,8 @@ export default function BackendProvider(props: BackendProviderProps) {
   return (
     <BackendContext.Provider value={{ remoteBackend, localBackend }}>
       <VueContainer
+        // For some reason, VueBackendProvider is of an error type here.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         component={VueBackendProvider}
         localBackend={localBackend}
         remoteBackend={remoteBackend}
