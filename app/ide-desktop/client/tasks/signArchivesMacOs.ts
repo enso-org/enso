@@ -119,15 +119,11 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
     ],
     [
       'lib/Standard/Snowflake/*/polyglot/java/conscript-openjdk-uber-*.jar',
-      [
-        'META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib',
-      ],
+      ['META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib'],
     ],
     [
       'lib/Standard/Snowflake/*/polyglot/java/grpc-netty-shaded-*.jar',
-      [
-        'META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib',
-      ],
+      ['META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib'],
     ],
     [
       'lib/Standard/Google_Api/*/polyglot/java/grpc-netty-shaded-*.jar',
