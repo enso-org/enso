@@ -340,11 +340,9 @@ class EnsureCompiledJob(
             val idMap        = ctx.state.pendingEdits.removeIdMap(file)
             logger.trace(
               "Applying pending file [{}] edits [{}] idMap [{}]",
-              Array[Any](
-                MaskedPath(file.toPath),
-                pendingEdits.length,
-                idMap.map(_.values.length)
-              )
+              MaskedPath(file.toPath),
+              pendingEdits.length,
+              idMap.map(_.values.length)
             )
             val edits = pendingEdits.map(_.edit)
             val shouldExecute =

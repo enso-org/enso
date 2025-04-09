@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Processor;
@@ -32,6 +34,8 @@ import org.openide.util.lookup.ServiceProvider;
 @SupportedAnnotationTypes({"org.enso.persist.Persistable", "org.enso.persist.Persistable.Group"})
 @ServiceProvider(service = Processor.class)
 public class PersistableProcessor extends AbstractProcessor {
+  private final Map<String, Map<Integer, String>> registeredClasses = new TreeMap<>();
+
   @Override
   public SourceVersion getSupportedSourceVersion() {
     return SourceVersion.latest();
@@ -41,6 +45,7 @@ public class PersistableProcessor extends AbstractProcessor {
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
     var ok = true;
     var eu = processingEnv.getElementUtils();
+    var tu = processingEnv.getTypeUtils();
     var Persistable = eu.getTypeElement("org.enso.persist.Persistable");
     var PersistableGroup = eu.getTypeElement("org.enso.persist.Persistable.Group");
     try {
@@ -57,6 +62,33 @@ public class PersistableProcessor extends AbstractProcessor {
     } catch (IOException e) {
       ok = false;
       processingEnv.getMessager().printMessage(Kind.ERROR, e.getMessage());
+    }
+    if (roundEnv.processingOver()) {
+      for (var entry : registeredClasses.entrySet()) {
+        try {
+          var cn = entry.getKey() + ".Persistables";
+          var src = processingEnv.getFiler().createSourceFile(cn);
+          try (java.io.Writer w = src.openWriter()) {
+            w.append("package " + entry.getKey() + ";\n");
+            w.append("public final class Persistables {\n");
+            w.append("  private Persistables() {}\n");
+            w.append("  public static void initialize() {\n");
+            w.append("  }\n");
+            for (var idName : entry.getValue().entrySet()) {
+              w.append(
+                  "  private static final org.enso.persist.Persistance PERSIST_"
+                      + idName.getKey()
+                      + " = new "
+                      + idName.getValue()
+                      + "();\n");
+            }
+            w.append("}\n");
+          }
+        } catch (IOException ex) {
+          processingEnv.getMessager().printMessage(Kind.ERROR, ex.getMessage());
+          ok = false;
+        }
+      }
     }
     return ok;
   }
@@ -82,8 +114,9 @@ public class PersistableProcessor extends AbstractProcessor {
   private boolean generatePersistance(Element orig, AnnotationMirror anno) throws IOException {
     var eu = processingEnv.getElementUtils();
     var tu = processingEnv.getTypeUtils();
-    String typeElemName = readAnnoValue(anno, "clazz");
-    var canInline = !"false".equals(readAnnoValue(anno, "allowInlining"));
+    var Persistance = eu.getTypeElement("org.enso.persist.Persistance");
+    var PersistanceRaw = tu.erasure(Persistance.asType());
+    var typeElemName = readAnnoValue(anno, "clazz");
     if (typeElemName == null) {
       typeElemName = ((TypeElement) orig).getQualifiedName().toString();
     }
@@ -92,6 +125,12 @@ public class PersistableProcessor extends AbstractProcessor {
       processingEnv.getMessager().printMessage(Kind.ERROR, "Cannot find type for " + typeElemName);
       return false;
     }
+
+    if (tu.isSubtype(typeElem.asType(), PersistanceRaw)) {
+      registerPersistablesClass(typeElem, anno);
+      return true;
+    }
+    var canInline = !"false".equals(readAnnoValue(anno, "allowInlining"));
     var richerConstructor =
         new Comparator<Object>() {
           @Override
@@ -155,17 +194,18 @@ public class PersistableProcessor extends AbstractProcessor {
     var className = "Persist" + findNameInPackage(typeElem).replace(".", "_");
     var fo = processingEnv.getFiler().createSourceFile(pkgName + "." + className, orig);
     try (var w = fo.openWriter()) {
+      var id = readAnnoValue(anno, "id");
+      registerPersistablesClass(pkgName, className, Integer.parseInt(id));
+
       w.append("package ").append(pkgName).append(";\n");
       w.append("import java.io.IOException;\n");
       w.append("import org.enso.persist.Persistance;\n");
-      w.append("@org.openide.util.lookup.ServiceProvider(service=Persistance.class)\n");
       w.append("public final class ")
           .append(className)
           .append(" extends Persistance<")
           .append(typeElemName)
           .append("> {\n");
       w.append("  public ").append(className).append("() {\n");
-      var id = readAnnoValue(anno, "id");
       w.append("    super(")
           .append(typeElemName)
           .append(".class, false, ")
@@ -272,6 +312,33 @@ public class PersistableProcessor extends AbstractProcessor {
       w.append("}\n");
     }
     return true;
+  }
+
+  private void registerPersistablesClass(Element elem, AnnotationMirror anno) {
+    StringBuilder name = new StringBuilder();
+    for (; ; ) {
+      if (elem instanceof PackageElement pkg) {
+        var id = readAnnoValue(anno, "id");
+        registerPersistablesClass(pkg.toString(), name.toString(), Integer.parseInt(id));
+        break;
+      } else {
+        var sn = elem.getSimpleName().toString();
+        if (!name.isEmpty()) {
+          name.insert(0, '.');
+        }
+        name.insert(0, sn);
+        elem = elem.getEnclosingElement();
+      }
+    }
+  }
+
+  private void registerPersistablesClass(String pkgName, String className, int id) {
+    var pkg = registeredClasses.get(pkgName);
+    if (pkg == null) {
+      pkg = new TreeMap<>();
+      registeredClasses.put(pkgName, pkg);
+    }
+    pkg.put(id, className);
   }
 
   private boolean isVisibleFrom(Element e, Element from) {

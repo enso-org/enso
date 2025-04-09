@@ -10,7 +10,7 @@ import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.enso.common.Platform;
 import org.enso.os.environment.directories.Directories;
-import org.enso.projectmanager.boot.configuration;
+import org.enso.projectmanager.boot.configuration.StorageConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,7 +20,7 @@ public final class ProjectsMigration {
 
   private ProjectsMigration() {}
 
-  public static void migrate(configuration.StorageConfig storageConfig) {
+  public static void migrate(StorageConfig storageConfig) {
     var oldProjectsPath =
         Directories.getCurrent().getUserHome().resolve("enso").resolve("projects").toFile();
     if (oldProjectsPath.isDirectory()) {

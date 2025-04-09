@@ -175,12 +175,12 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
     }
 
     public Map<String, Object> listBindings(boolean onlyWarningsOrErrors) {
-      Map<String, FramePointer> flatScope =
-          nodeState.getLastScope().getLocalScope().flattenBindings();
-      Map<String, Object> result = new HashMap<>();
+      var last = nodeState.getLastScope();
+      var flatScope = last.getLocalScope().flattenBindings();
+      var result = new HashMap<String, Object>();
       for (Map.Entry<String, FramePointer> entry : flatScope.entrySet()) {
-        var valueOrNull =
-            readValue(nodeState.getLastScope().getFrame(), entry.getValue(), onlyWarningsOrErrors);
+        var fp = entry.getValue();
+        var valueOrNull = readValue(last.getFrame(), fp, onlyWarningsOrErrors);
         if (valueOrNull != null) {
           result.put(entry.getKey(), valueOrNull);
         }
