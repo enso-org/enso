@@ -167,7 +167,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     >
       <AnimatedBackground.Item
         isSelected={isCurrent}
-        className="w-auto max-w-[calc(100%-24px)]"
+        className="w-auto max-w-full"
         animationClassName="bg-invert rounded-full"
       >
         <ariaComponents.Button
@@ -350,7 +350,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                     extraClickZone={false}
                     icon={Minus2Icon}
                     aria-label={getText('removeDirectoryFromFavorites')}
-                    className="hidden group-hover:block"
+                    showIconOnHover
                   />
 
                   <ConfirmDeleteModal
