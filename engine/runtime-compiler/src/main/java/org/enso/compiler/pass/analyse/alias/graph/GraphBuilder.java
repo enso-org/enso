@@ -131,17 +131,14 @@ public final class GraphBuilder {
       if (scope.parent().isDefined()) {
         fillInDefinitions(scope.parent().get(), defs);
       }
-      scope
-          ._occurrences()
-          .values()
-          .foreach(
-              o -> {
-                if (o instanceof GraphOccurrence.Def d) {
-                  assert d.scope() == scope;
-                  defs.put(d.symbol(), d);
-                }
-                return null;
-              });
+      scope.forEachOccurenceDefinition(
+          o -> {
+            if (o instanceof GraphOccurrence.Def d) {
+              assert d.scope() == scope;
+              defs.put(d.symbol(), d);
+            }
+            return null;
+          });
     }
   }
 }

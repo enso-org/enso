@@ -17,8 +17,7 @@ import scala.reflect.ClassTag
   */
 sealed private[graph] class ScopeImpl(
   private[graph] var _childScopes: List[ScopeImpl] = List(),
-  private[graph] var _occurrences: Map[GraphImpl.Id, GraphOccurrence] =
-    HashMap(),
+  _occurs: Map[GraphImpl.Id, GraphOccurrence]      = HashMap(),
   _defs: java.util.Collection[GraphOccurrence.Def] = null
 ) extends Graph.Scope {
   private[graph] val _allDefinitions: java.util.List[
@@ -27,7 +26,8 @@ sealed private[graph] class ScopeImpl(
     if (_defs == null) new java.util.ArrayList()
     else new java.util.ArrayList(_defs.stream.map(_.withScope(this)).toList)
 
-  private[graph] var _parent: ScopeImpl = null
+  private[graph] var _parent: ScopeImpl                        = null
+  private var _occurrences: Map[GraphImpl.Id, GraphOccurrence] = _occurs
 
   def childScopes = _childScopes
 
