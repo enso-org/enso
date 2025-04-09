@@ -184,7 +184,6 @@ export function usePage() {
 export function useSetPage() {
   const { setPage } = useProjectsStore()
   return eventCallbacks.useEventCallback((page: LaunchedProjectId | TabType) => {
-    console.log('SET PAGE', page)
     setPage(page)
   })
 }

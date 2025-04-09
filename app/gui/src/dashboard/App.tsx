@@ -76,15 +76,11 @@ import { Path } from '#/utilities/path'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 
 import { useInitAuthService } from '#/authentication/service'
+import { VueContainer } from '#/utilities/vue'
 import { useMutation } from '@tanstack/react-query'
-import { VueContainer } from 'veaury'
-import KeepAliveRouterView from '../components/KeepAliveRouterView.vue'
+import { RouterView } from 'vue-router'
 import { useConfigInReact, useRouterInReact } from '../providers/react'
-import { useMount } from './hooks/mountHooks'
 import { useOffline } from './hooks/offlineHooks'
-import { useUnmount } from './hooks/unmountHooks'
-
-// export const RouterView = applyVueInReact(RouterViewVue)
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -138,12 +134,6 @@ export interface AppProps {
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app.
  */
 export default function App(props: AppProps) {
-  useMount(() => {
-    console.log('App MOUNT')
-  })
-  useUnmount(() => {
-    console.log('App UNMOUNT')
-  })
   const config = useConfigInReact()
   const {
     data: { projectManagerRootDirectory, projectManagerInstance },
@@ -256,13 +246,6 @@ function AppRouter(props: AppRouterProps) {
   const logger = useLogger()
   const { router } = useRouterInReact()
   const navigate = router.push.bind(router)
-
-  useMount(() => {
-    console.log('AppRouter MOUNT')
-  })
-  useUnmount(() => {
-    console.log('AppRouter UNMOUNT')
-  })
 
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -415,87 +398,6 @@ function AppRouter(props: AppRouterProps) {
     }
   }, [])
 
-  // const routes = (
-  //   <router.Routes>
-  //     {/* Login & registration pages are visible to unauthenticated users. */}
-  //     <router.Route element={<authProvider.GuestLayout />}>
-  //       <router.Route path={appUtils.REGISTRATION_PATH} element={<Registration />} />
-  //       <router.Route path={appUtils.LOGIN_PATH} element={<Login />} />
-  //     </router.Route>
-
-  //     {/* Protected pages are visible to authenticated users. */}
-  //     <router.Route element={<authProvider.NotDeletedUserLayout />}>
-  //       <router.Route element={<authProvider.ProtectedLayout />}>
-  //         <router.Route element={<AgreementsModal />}>
-  //           <router.Route
-  //             element={<CloudBrowserDisabledLayout redirectPath={appUtils.SETUP_PATH} />}
-  //           >
-  //             <router.Route element={<SetupOrganizationAfterSubscribe />}>
-  //               <router.Route element={<InvitedToOrganizationModal />}>
-  //                 <router.Route element={<openAppWatcher.OpenAppWatcher />}>
-  //                   <router.Route
-  //                     path={appUtils.DASHBOARD_PATH}
-  //                     element={<Dashboard {...props} />}
-  //                   />
-
-  //                   <router.Route
-  //                     path={appUtils.SUBSCRIBE_PATH}
-  //                     element={
-  //                       <errorBoundary.ErrorBoundary>
-  //                         <suspense.Suspense>
-  //                           <subscribe.Subscribe />
-  //                         </suspense.Suspense>
-  //                       </errorBoundary.ErrorBoundary>
-  //                     }
-  //                   />
-  //                 </router.Route>
-  //               </router.Route>
-  //             </router.Route>
-  //           </router.Route>
-  //         </router.Route>
-
-  //         <router.Route
-  //           path={appUtils.SUBSCRIBE_SUCCESS_PATH}
-  //           element={
-  //             <errorBoundary.ErrorBoundary>
-  //               <suspense.Suspense>
-  //                 <subscribeSuccess.SubscribeSuccess />
-  //               </suspense.Suspense>
-  //             </errorBoundary.ErrorBoundary>
-  //           }
-  //         />
-  //       </router.Route>
-  //     </router.Route>
-
-  //     <router.Route element={<AgreementsModal />}>
-  //       <router.Route element={<authProvider.AnyLoggedInUserLayout />}>
-  //         <router.Route element={<authProvider.NotDeletedUserLayout />}>
-  //           <router.Route
-  //             element={<CloudBrowserDisabledLayout redirectPath={appUtils.SETUP_PATH} />}
-  //           >
-  //             <router.Route path={appUtils.SETUP_PATH} element={<setup.Setup />} />
-  //           </router.Route>
-  //         </router.Route>
-  //       </router.Route>
-  //     </router.Route>
-
-  //     {/* Other pages are visible to unauthenticated and authenticated users. */}
-  //     <router.Route path={appUtils.CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
-  //     <router.Route path={appUtils.FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
-  //     <router.Route path={appUtils.RESET_PASSWORD_PATH} element={<ResetPassword />} />
-
-  //     {/* Soft-deleted user pages are visible to users who have been soft-deleted. */}
-  //     <router.Route element={<authProvider.ProtectedLayout />}>
-  //       <router.Route element={<authProvider.SoftDeletedUserLayout />}>
-  //         <router.Route path={appUtils.RESTORE_USER_PATH} element={<RestoreAccount />} />
-  //       </router.Route>
-  //     </router.Route>
-
-  //     {/* 404 page */}
-  //     <router.Route path="*" element={<router.Navigate to="/" replace />} />
-  //   </router.Routes>
-  //)
-
   return (
     <RouterProvider navigate={navigate}>
       <SessionProvider
@@ -511,11 +413,7 @@ function AppRouter(props: AppRouterProps) {
             <InputBindingsProvider inputBindings={inputBindings}>
               <LocalBackendPathSynchronizer />
               <VersionChecker />
-              <VueContainer
-                component={KeepAliveRouterView}
-                localBackend={localBackend}
-                remoteBackend={remoteBackend}
-              />
+              <VueContainer component={RouterView} />
             </InputBindingsProvider>
           </AuthProvider>
         </BackendProvider>

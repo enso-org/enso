@@ -8,7 +8,7 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { applyPureReactInVue } from 'veaury'
 import { computed, onMounted, onUnmounted, watch } from 'vue'
-import { injectBackendInVue } from './KeepAliveRouterView.vue'
+import { injectBackendInVue } from './BackendProvider.vue'
 import { Drive, Editor, Settings } from './TabView/reactTabs'
 import SelectableTab from './TabView/SelectableTab.vue'
 
@@ -29,7 +29,7 @@ const {
   initialProjectName: string | null
   page: LaunchedProjectId | TabType | null
   setPage(page: LaunchedProjectId | TabType): void
-  launchedProjects: LaunchedProject[]
+  launchedProjects: readonly LaunchedProject[]
   closeProject(project: LaunchedProject): void
   closeAllProjects(): void
   clearLaunchedProjects(): void
@@ -39,15 +39,16 @@ const {
 const backend = injectBackendInVue()
 
 const lastProject = computed(() => launchedProjects[launchedProjects.length - 1])
-const lastProjectDetailsOptions = computed(() =>
-  lastProject.value ?
-    createGetProjectDetailsQuery({
-      assetId: lastProject.value.id,
-      backend:
-        lastProject.value.type === BackendType.local ? backend.localBackend : backend.remoteBackend,
-    })
-  : { queryKey: [] },
-)
+const lastProjectDetailsOptions = computed(() => {
+  const projectBackend =
+    lastProject.value?.type === BackendType.local ? backend.localBackend : backend.remoteBackend
+  return lastProject.value && projectBackend ?
+      createGetProjectDetailsQuery({
+        assetId: lastProject.value.id,
+        backend: projectBackend,
+      })
+    : { queryKey: [], queryFn: () => null }
+})
 const lastProjectDetails = useQuery(lastProjectDetailsOptions as any)
 const isProjectReady = computed(() =>
   OPENED_PROJECT_STATES.has(lastProjectDetails.data.value?.state.type),

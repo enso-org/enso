@@ -29,31 +29,20 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
-<<<<<<< HEAD
-import { useMount } from '#/hooks/mountHooks'
-import { useUnmount } from '#/hooks/unmountHooks'
-=======
-import { Tabs } from '#/components/aria'
->>>>>>> 4f19c580b71beb9cdd93a6d2985d2e9a1be01c8f
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { vueComponent } from '#/utilities/vue'
-import VueTabView from '@/../components/TabView.vue'
 import { usePrefetchQuery } from '@tanstack/react-query'
 import { useConfigInReact } from '../../../providers/react'
 
-const TabView = vueComponent(VueTabView, {}).default
+const TabView = React.lazy(() =>
+  import('@/../components/TabView.vue').then(({ default: vue }) => vueComponent(vue)),
+)
 
 /** The component that contains the entire UI. */
 export default function Dashboard() {
-  useMount(() => {
-    console.log('Dashboard MOUNT')
-  })
-  useUnmount(() => {
-    console.log('Dashboard UNMOUNT')
-  })
   return (
     /* Ideally this would be in `Drive.tsx`, but it currently must be all the way out here
      * due to modals being in `TheModal`. */
@@ -104,13 +93,6 @@ function DashboardInner() {
 
   const openEditor = projectHooks.useOpenEditor()
   const openProjectLocally = projectHooks.useOpenProjectLocally()
-
-  useMount(() => {
-    console.log('DashboardInner MOUNT')
-  })
-  useUnmount(() => {
-    console.log('DashboardInner UNMOUNT')
-  })
 
   usePrefetchQuery({
     queryKey: ['loadInitialLocalProject'],
@@ -192,14 +174,6 @@ function DashboardInner() {
   const closeProject = projectHooks.useCloseProject()
   const closeAllProjects = projectHooks.useCloseAllProjects()
   const clearLaunchedProjects = useClearLaunchedProjects()
-
-  const onSelectionChange = eventCallbacks.useEventCallback((newPage: React.Key) => {
-    // This is safe as we render only valid pages.
-    // eslint-disable-next-line no-restricted-syntax
-    setPage(newPage as TabType)
-  })
-
-  const selectedTab = React.useDeferredValue(page)
 
   return (
     <Page hideInfoBar hideChat>

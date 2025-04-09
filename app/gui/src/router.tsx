@@ -21,7 +21,7 @@ import Registration from '#/pages/authentication/Registration'
 import ResetPassword from '#/pages/authentication/ResetPassword'
 import RestoreAccount from '#/pages/authentication/RestoreAccount'
 import { Setup } from '#/pages/authentication/Setup'
-// import Dashboard from '#/pages/dashboard/Dashboard'
+import Dashboard from '#/pages/dashboard/Dashboard'
 import { Subscribe } from '#/pages/subscribe/Subscribe'
 import { SubscribeSuccess } from '#/pages/subscribe/SubscribeSuccess'
 import {
@@ -35,7 +35,6 @@ import {
 import { PropsWithChildren, ReactNode } from 'react'
 import { applyPureReactInVue } from 'veaury'
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
-import Dashboard from './components/Dashboard.vue'
 import ReactLayoutWrapper from './components/ReactLayoutWrapper.vue'
 
 function CloudBrowserDisabledLayout(props: PropsWithChildren) {
@@ -99,7 +98,7 @@ const routes = [
     [
       applyLayouts(
         [
-          AgreementsModal,
+          (props) => <AgreementsModal {...props} />,
           CloudBrowserDisabledLayout,
           SetupOrganizationAfterSubscribe,
           InvitedToOrganizationModal,
@@ -108,7 +107,7 @@ const routes = [
         [
           {
             path: DASHBOARD_PATH,
-            component: Dashboard,
+            component: applyPureReactInVue(Dashboard),
           },
           {
             path: SUBSCRIBE_PATH,
@@ -123,7 +122,12 @@ const routes = [
     ],
   ),
   applyLayouts(
-    [AgreementsModal, AnyLoggedInUserLayout, NotDeletedUserLayout, CloudBrowserDisabledLayout],
+    [
+      (props) => <AgreementsModal {...props} />,
+      AnyLoggedInUserLayout,
+      NotDeletedUserLayout,
+      CloudBrowserDisabledLayout,
+    ],
     [
       {
         path: SETUP_PATH,

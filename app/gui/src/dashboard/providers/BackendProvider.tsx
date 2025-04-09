@@ -10,11 +10,13 @@ import * as common from 'enso-common'
 
 import { type Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 
+import VueBackendProvider from '#/../components/BackendProvider.vue'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { BackendType } from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
 import { ProjectManagerEvents } from '#/services/ProjectManager'
 import type RemoteBackend from '#/services/RemoteBackend'
+import { VueContainer } from '#/utilities/vue'
 
 /** State contained in a `BackendContext`. */
 export interface BackendContextType {
@@ -70,11 +72,17 @@ export default function BackendProvider(props: BackendProviderProps) {
 
   return (
     <BackendContext.Provider value={{ remoteBackend, localBackend }}>
-      <ProjectManagerContext.Provider
-        value={{ didLoadingProjectManagerFail, reconnectToProjectManager }}
+      <VueContainer
+        component={VueBackendProvider}
+        localBackend={localBackend}
+        remoteBackend={remoteBackend}
       >
-        {children}
-      </ProjectManagerContext.Provider>
+        <ProjectManagerContext.Provider
+          value={{ didLoadingProjectManagerFail, reconnectToProjectManager }}
+        >
+          {children}
+        </ProjectManagerContext.Provider>
+      </VueContainer>
     </BackendContext.Provider>
   )
 }
