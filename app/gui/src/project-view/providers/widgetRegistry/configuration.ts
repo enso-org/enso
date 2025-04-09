@@ -76,7 +76,6 @@ export type WidgetConfiguration =
   | SingleChoice
   | VectorEditor
   | MultipleChoice
-  | CodeInput
   | BooleanInput
   | NumericInput
   | TextInput
@@ -98,10 +97,6 @@ export interface MultipleChoice {
   values: Choice[]
 }
 
-export interface CodeInput {
-  kind: 'Code_Input'
-}
-
 export interface BooleanInput {
   kind: 'Boolean_Input'
 }
@@ -114,6 +109,7 @@ export interface NumericInput {
 
 export interface TextInput {
   kind: 'Text_Input'
+  syntax?: string | undefined
 }
 
 export interface FolderBrowse {
@@ -189,7 +185,6 @@ export const widgetConfigurationSchema: z.ZodType<
         values: z.array(choiceSchema),
       })
       .merge(withDisplay),
-    z.object({ kind: z.literal('Code_Input') }).merge(withDisplay),
     z.object({ kind: z.literal('Boolean_Input') }).merge(withDisplay),
     z
       .object({
@@ -198,7 +193,7 @@ export const widgetConfigurationSchema: z.ZodType<
         minimum: z.number().optional(),
       })
       .merge(withDisplay),
-    z.object({ kind: z.literal('Text_Input') }).merge(withDisplay),
+    z.object({ kind: z.literal('Text_Input'), syntax: z.string().optional() }).merge(withDisplay),
     z.object({ kind: z.literal('Folder_Browse') }).merge(withDisplay),
     z
       .object({ kind: z.literal('File_Browse'), existing_only: z.boolean().optional() })
