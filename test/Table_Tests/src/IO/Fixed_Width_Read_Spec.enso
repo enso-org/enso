@@ -1,6 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import all
+import Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout_Entry
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
@@ -9,23 +11,46 @@ type Lala
     Value
 
 add_specs suite_builder =
-    data_dir = enso_project.data / "fixed-width"
-    data0 = data_dir / "fixed0.txt"
+    #data_dir = enso_project.data / "fixed-width"
+    #data0 = data_dir / "fixed0.txt"
 
     suite_builder.group "Read fixed-width files" group_builder->
-        group_builder.specify "Should be able to read a fixed-width file with an explicit format" <|
-            layout = Fixed_Width_Layout.from_descriptions [Fixed_Width_Column_Description.Start_And_Width 0 4, Fixed_Width_Column_Description.Width 1, Fixed_Width_Column_Description.Width 3, Fixed_Width_Column_Description.Width 3, Fixed_Width_Column_Description.Width 1, Fixed_Width_Column_Description.Width 1, Fixed_Width_Column_Description.Width 5, Fixed_Width_Column_Description.Width 3]
-            t = data0.read (Fixed_Width_Format.Fixed_Width layout)
-            t.at "col0" . to Vector . should_equal ["1234", "2345"]
-            t.at "col1" . to Vector . should_equal ["a", "i"]
-            t.at "col2" . to Vector . should_equal ["567", "678"]
-            t.at "col3" . to Vector . should_equal ["bcd", "jkl"]
-            t.at "col4" . to Vector . should_equal ["8", "9"]
-            t.at "col5" . to Vector . should_equal ["e", "m"]
-            t.at "col6" . to Vector . should_equal ["98765", "87654"]
-            t.at "col7" . to Vector . should_equal ["fgh", "nop"]
+        group_builder.specify "Should make a layout from a description" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width "a" 0 4]
+                + [Fixed_Width_Column_Description.Width "b" 1]
+                + [Fixed_Width_Column_Description.Width "c" 3]
+                + [Fixed_Width_Column_Description.Width "d" 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            layout . should_equal Fixed_Width_Layout.Value []
+                + [Fixed_Width_Layout_Entry "a" 0 4]
+                + [Fixed_Width_Layout_Entry "b" 4 1]
+                + [Fixed_Width_Layout_Entry "c" 5 3]
+                + [Fixed_Width_Layout_Entry "d" 8 3]
+
+        group_builder.specify "Should reject a format that tries to go to an earlier column" <|
+            layout = Fixed_Width_Layout.from_descriptions []
+                + [Fixed_Width_Column_Description.Width "a" 4]
+                + [Fixed_Width_Column_Description.Start_And_Width "b" 3 1]
+                + [Fixed_Width_Column_Description.Width "c" 3]
+            layout.should_fail_with Illegal_Argument
+            layout.catch.message . should_contain "must start at column"
 
         ##
+            group_builder.specify "Should be able to read a fixed-width file with an explicit format" <|
+                layout = Fixed_Width_Layout.from_descriptions [Fixed_Width_Column_Description.Start_And_Width Nothing 0 4, Fixed_Width_Column_Description.Width Nothing 1, Fixed_Width_Column_Description.Width Nothing 3, Fixed_Width_Column_Description.Width Nothing 3, Fixed_Width_Column_Description.Width Nothing 1, Fixed_Width_Column_Description.Width Nothing 1, Fixed_Width_Column_Description.Width Nothing 5, Fixed_Width_Column_Description.Width Nothing 3]
+                t = data0.read (Fixed_Width_Format.Fixed_Width layout)
+                t.at "col0" . to Vector . should_equal ["1234", "2345"]
+                t.at "col1" . to Vector . should_equal ["a", "i"]
+                t.at "col2" . to Vector . should_equal ["567", "678"]
+                t.at "col3" . to Vector . should_equal ["bcd", "jkl"]
+                t.at "col4" . to Vector . should_equal ["8", "9"]
+                t.at "col5" . to Vector . should_equal ["e", "m"]
+                t.at "col6" . to Vector . should_equal ["98765", "87654"]
+                t.at "col7" . to Vector . should_equal ["fgh", "nop"]
+
+            group_builder.specify "Should use specified column names" <|
+            group_builder.specify "Should generate default column names" <|
             group_builder.specify "Should be able to read fixed-width data from a stream with an explicit format" <|
             problems
             skip_rows

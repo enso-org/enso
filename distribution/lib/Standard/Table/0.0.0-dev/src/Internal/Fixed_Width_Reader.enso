@@ -1,8 +1,15 @@
 from Standard.Base import all
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.Input_Stream.Input_Stream
 
 import project.Fixed_Width.Fixed_Width_Format.Fixed_Width_Format
 import project.Internal.Java_Problems
+from project.Errors import Empty_File_Error
+from project.Table import from_java_table
+
+polyglot java import java.io.IOException
+polyglot java import java.io.Reader
 
 ## PRIVATE
    Reads a fixed-width column file according to the provided format.
@@ -52,13 +59,15 @@ read_stream format stream on_problems:Problem_Behavior related_file=Nothing =
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-read_from_reader : Delimited_Format -> Reader -> Problem_Behavior -> Any
+read_from_reader : Fixed_Width_Format -> Reader -> Problem_Behavior -> Any
 read_from_reader format java_reader on_problems:Problem_Behavior =
     Illegal_Argument.handle_java_exception <| Empty_File_Error.handle_java_exception <|
         Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
             reader = prepare_reader format on_problems java_problem_aggregator
             java_table = reader.read java_reader
             from_java_table java_table
+
+prepare_reader _ _ _ = 1
 
 ## PRIVATE
 private handle_io_exception related_file ~action = Panic.catch IOException action cause->

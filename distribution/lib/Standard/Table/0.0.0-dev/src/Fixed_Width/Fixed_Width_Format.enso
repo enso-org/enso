@@ -1,4 +1,9 @@
 from Standard.Base import all
+import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
+import Standard.Base.System.Input_Stream.Input_Stream
+
+import project.Internal.Fixed_Width_Reader
+import project.Internal.Telemetry
 
 ## Read fixed-width files into a Table.
 type Fixed_Width_Format
@@ -28,11 +33,11 @@ type Fixed_Width_Format
     read_stream : Input_Stream -> File_Format_Metadata -> Any
     read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
         _ = metadata
-        Delimited_Reader.read_stream self stream on_problems=..Report_Warning
+        Fixed_Width_Reader.read_stream self stream on_problems=..Report_Warning
 
 type Fixed_Width_Column_Description
-    Start_And_Width (start:Integer) (width:Integer)
-    Width (width:Integer)
+    Start_And_Width (name:Text) (start:Integer) (width:Integer)
+    Width (name:Text) (width:Integer)
 
 type Fixed_Width_Layout_Entry
     Value (name:Text) (start:Integer) (width:Integer)
@@ -41,4 +46,21 @@ type Fixed_Width_Layout
     Value (entries : Vector Fixed_Width_Layout_Entry)
 
     from_descriptions (descs : Vector Fixed_Width_Column_Description) -> Fixed_Width_Layout =
-        Fixed_Width_Layout.Value []
+        starts = Vector.build builder->
+            go i current =
+                if i >= descs.length then Nothing else
+                    desc = descs.at i
+                    start = case desc of
+                        Fixed_Width_Column_Description.Start_And_Width _ start _ ->
+                            if start < current then Error.throw "Entry "+desc.to_text+" must start at column "+current.to_text+" or later" else
+                                start
+                        Fixed_Width_Column_Description.Width _ _ ->
+                            current
+                    builder.append start
+                    width = desc.width
+                    @Tail_Call go (i + 1) (start + width)
+            go 0 0
+
+        entries = starts.zip descs start-> desc->
+            Fixed_Width_Layout_Entry.Value desc.name start desc.width
+        Fixed_Width_Layout.Value entries
