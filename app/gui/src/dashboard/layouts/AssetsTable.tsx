@@ -1297,7 +1297,7 @@ function AssetsTable(props: AssetsTableProps) {
         <div
           data-testid="root-directory-dropzone"
           className={twMerge(
-            'sticky left-0 grid max-w-container grow place-items-center pb-40 pt-20',
+            'sticky left-1 grid max-w-[calc(100cqw_-_0.5rem)] grow place-items-center pb-40 pt-20',
             (category.type === 'recent' || category.type === 'trash') && 'hidden',
           )}
           onDragEnter={onDropzoneDragOver}
