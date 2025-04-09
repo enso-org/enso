@@ -118,11 +118,10 @@ sealed private[graph] class GraphImpl(
     * @return the link, if it exists
     */
   final def resolveLocalUsage(
-    occurrence: GraphOccurrence.Use,
-    df: GraphOccurrence.Def
+    occurrence: GraphOccurrence.Use
   ): Option[Graph.Link] = {
     Option(occurrence.scope()).flatMap(
-      _.asInstanceOf[ScopeImpl].resolveUsage(occurrence, df).map { link =>
+      _.asInstanceOf[ScopeImpl].resolveUsage(occurrence).map { link =>
         addSourceTargetLink(link)
         links += link
         link
