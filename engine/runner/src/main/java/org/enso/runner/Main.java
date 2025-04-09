@@ -570,7 +570,7 @@ public class Main {
   }
 
   /** Shuts down the logging service and terminates the process. */
-  RuntimeException doExit(int exitCode) {
+  static RuntimeException doExit(int exitCode) {
     RunnerLogging.tearDown();
     System.exit(exitCode);
     return null;
@@ -1208,7 +1208,21 @@ public class Main {
    * @param line the command-line
    * @return `true` if caching should be enabled, `false`, otherwise
    */
-  private static boolean shouldEnableIrCaches(CommandLine line) {
+  private boolean shouldEnableIrCaches(CommandLine line) {
+    // Temporarily, enabling static analysis disables IR caches.
+    if (line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION)) {
+      if (line.hasOption(IR_CACHES_OPTION)) {
+        throw exitFail(
+            "Currently --"
+                + ENABLE_STATIC_ANALYSIS_OPTION
+                + " requires IR caches to be disabled, so --"
+                + IR_CACHES_OPTION
+                + " option cannot be used in combination with this flag.");
+      }
+
+      return false;
+    }
+
     if (line.hasOption(IR_CACHES_OPTION)) {
       return true;
     } else if (line.hasOption(NO_IR_CACHES_OPTION)) {
