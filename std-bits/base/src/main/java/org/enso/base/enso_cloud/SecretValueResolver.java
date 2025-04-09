@@ -10,7 +10,7 @@ sealed class SecretValueResolver permits EnsoSecretHelper, ExternalLibrarySecret
   protected static String resolveValue(HideableValue value) {
     return switch (value) {
       case HideableValue.PlainValue plainValue -> plainValue.value();
-      case HideableValue.SecretValue secretValue -> EnsoSecretReader.readSecret(
+      case HideableValue.SecretValue secretValue -> EnsoSecretReader.INSTANCE.readSecret(
           secretValue.secretId());
       case HideableValue.ConcatValues concatValues -> {
         String left = resolveValue(concatValues.left());

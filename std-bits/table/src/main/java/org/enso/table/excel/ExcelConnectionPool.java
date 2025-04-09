@@ -228,8 +228,8 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
           LOGGER.error("Unable to close " + record, e);
         }
       }
-      records.clear();
     }
+    records.clear();
   }
 
   /** Public for testing. */
