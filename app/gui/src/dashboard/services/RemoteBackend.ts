@@ -1008,13 +1008,12 @@ export default class RemoteBackend extends Backend {
       return await this.throw(response, 'getProjectDetailsBackendError')
     } else {
       const project = await response.json()
+      const { address, ...rest } = project
       return {
-        ...project,
-        ideVersion: project.ide_version,
-        engineVersion: project.engine_version,
-        jsonAddress: project.address != null ? backend.Address(`${project.address}json`) : null,
-        binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
-        ydocAddress: project.address != null ? backend.Address(`${project.address}project`) : null,
+        ...rest,
+        jsonAddress: address != null ? backend.Address(`${address}json`) : null,
+        binaryAddress: address != null ? backend.Address(`${address}binary`) : null,
+        ydocAddress: address != null ? backend.Address(`${address}project`) : null,
       }
     }
   }
@@ -1261,6 +1260,22 @@ export default class RemoteBackend extends Backend {
     const response = await this.post<backend.SecretId>(path, body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createSecretBackendError', body.name)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Create an OAuth credential.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async createCredential(
+    body: backend.CreateCredentialRequestBody,
+  ): Promise<backend.SecretId> {
+    const path = remoteBackendPaths.CREATE_CREDENTIAL_PATH
+    const response = await this.post<backend.SecretId>(path, body)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'createCredentialBackendError', body.name)
     } else {
       return await response.json()
     }

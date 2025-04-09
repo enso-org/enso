@@ -78,13 +78,13 @@ object ProgramExecutionSupport {
     var enterables       = Map[UUID, FunctionCall]()
 
     val onCachedMethodCallCallback: Consumer[ExpressionValue] = { value =>
-      logger.trace(s"ON_CACHED_CALL ${value.getExpressionId}")
+      logger.trace("ON_CACHED_CALL {}", value.getExpressionId)
       sendExpressionUpdate(contextId, executionFrame.syncState, value)
     }
 
     val onCachedValueCallback: Consumer[ExpressionValue] = { value =>
       if (callStack.isEmpty) {
-        logger.trace(s"ON_CACHED_VALUE ${value.getExpressionId}")
+        logger.trace("ON_CACHED_VALUE {}", value.getExpressionId)
         sendExpressionUpdate(contextId, executionFrame.syncState, value)
         sendVisualizationUpdates(
           contextId,
@@ -97,7 +97,7 @@ object ProgramExecutionSupport {
 
     val onComputedValueCallback: Consumer[ExpressionValue] = { value =>
       if (callStack.isEmpty) {
-        logger.trace(s"ON_COMPUTED ${value.getExpressionId}")
+        logger.trace("ON_COMPUTED {}", value.getExpressionId)
 
         value.getValue match {
           case sentinel: PanicSentinel =>
@@ -260,7 +260,7 @@ object ProgramExecutionSupport {
     contextId: Api.ContextId,
     stack: List[InstrumentFrame]
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
-    logger.trace(s"Run program $contextId")
+    logger.trace(s"Run program {}", contextId)
     @scala.annotation.tailrec
     def unwind(
       stack: List[InstrumentFrame],
@@ -298,7 +298,7 @@ object ProgramExecutionSupport {
         ).toEither.left
           .map(onExecutionError(stackItem.item, _))
     } yield ()
-    logger.trace(s"Execution finished: $executionResult")
+    logger.trace("Execution finished: {}", executionResult)
     executionResult.fold(identity, _ => None)
   }
 
@@ -320,12 +320,16 @@ object ProgramExecutionSupport {
     val reason          = VisualizationResult.findExceptionMessage(error)
     def onFailure(): Option[Api.ExecutionResult] = error match {
       case _: ThreadInterruptedException =>
-        val message = s"Execution of function $itemName interrupted."
-        logger.trace(message)
+        logger.trace("Execution of function {} interrupted.", itemName)
         None
       case _ =>
-        val message = s"Execution of function $itemName failed ($reason)."
-        logger.trace(message, error)
+        val message = s""
+        logger.trace(
+          "Execution of function {} failed ({}).",
+          itemName,
+          reason,
+          error
+        )
         Some(ExecutionResult.Failure(message, None))
     }
     executionUpdate.orElse(onFailure())
@@ -509,7 +513,7 @@ object ProgramExecutionSupport {
               )
             )
           } else {
-            logger.trace("computation of expression has been interrupted")
+            logger.trace("Computation of expression has been interrupted")
             None
           }
         case warnings: WithWarnings
@@ -541,7 +545,8 @@ object ProgramExecutionSupport {
                       error => {
                         logger.trace(
                           "Failed to execute warning preview of expression [{}].",
-                          Array[Object](expressionId, error)
+                          expressionId,
+                          error
                         )
                         None
                       },
@@ -665,12 +670,10 @@ object ProgramExecutionSupport {
     Try {
       logger.trace(
         "Executing visualization [{}] on expression [{}] of [{}]...",
-        Array[Object](
-          visualization.id,
-          expressionId,
-          Try(TypeOfNode.getUncached.findTypeOrError(expressionValue))
-            .getOrElse(expressionValue.getClass)
-        )
+        visualization.id,
+        expressionId,
+        Try(TypeOfNode.getUncached.findTypeOrError(expressionValue))
+          .getOrElse(expressionValue.getClass)
       )
       val holder = ctx.contextManager.getVisualizationHolder(contextId)
 
@@ -688,10 +691,8 @@ object ProgramExecutionSupport {
         def processUUID(id: UUID): Unit = {
           logger.trace(
             "Associating visualization [{}] with additional ID [{}]",
-            Array[Object](
-              visualization.id,
-              id
-            )
+            visualization.id,
+            id
           )
 
           holder.upsert(visualization, id)
@@ -730,14 +731,12 @@ object ProgramExecutionSupport {
             TypeOfNode.getUncached.findTypeOrError(expressionValue)
           logger.warn(
             "Execution of visualization [{}] on value [{}] of [{}] failed. {} | {} | {}",
-            Array[Object](
-              visualizationId,
-              expressionId,
-              typeOfNode,
-              message,
-              expressionValue,
-              error
-            )
+            visualizationId,
+            expressionId,
+            typeOfNode,
+            message,
+            expressionValue,
+            error
           )
         }
         ctx.endpoint.sendToClient(

@@ -3,7 +3,7 @@
 - apply_filter_to_table table:Standard.Base.Any.Any i:Standard.Base.Any.Any filter_cols:Standard.Base.Any.Any filter_conditions:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - apply_sort_to_table table:Standard.Base.Any.Any sort_col_index_list:Standard.Base.Any.Any sort_direction_list:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - get_distinct_values_for_column table:Standard.Base.Any.Any column_index:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- get_rows_for_table table:Standard.Base.Any.Any start_number:Standard.Base.Any.Any sort_col_index_list:Standard.Base.Any.Any= sort_direction_list:Standard.Base.Any.Any= filter_col:Standard.Base.Any.Any= filter_condition:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- get_rows_for_table table_or_column:Standard.Base.Any.Any start_number:Standard.Base.Any.Any sort_col_index_list:Standard.Base.Any.Any= sort_direction_list:Standard.Base.Any.Any= filter_col:Standard.Base.Any.Any= filter_condition:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - make_json_for_dictionary dict:Standard.Base.Any.Any max_items:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - make_json_for_error error:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - make_json_for_js_object js_object:Standard.Base.Any.Any max_items:Standard.Base.Any.Any -> Standard.Base.Any.Any

@@ -27,6 +27,7 @@ add_specs suite_builder setup =
     materialize = setup.materialize
     create_connection_fn = setup.create_connection_func
     db_todo = if setup.is_database.not then Nothing else "Table.zip is still WIP for the DB backend."
+
     suite_builder.group prefix+"Table.zip" pending=db_todo group_builder->
         data = Data.setup create_connection_fn
 
@@ -36,6 +37,8 @@ add_specs suite_builder setup =
         table_builder cols =
             setup.table_builder cols connection=data.connection
 
+        column_builder col = table_builder [col] . at (col.at 0)
+
         if setup.is_database.not then
             group_builder.specify "should allow to zip two tables, preserving memory layout order" <|
                 t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
@@ -44,11 +47,41 @@ add_specs suite_builder setup =
                 t3 = t1.zip t2
                 expect_column_names ["X", "Y", "Z", "W"] t3
                 t3.row_count . should_equal 3
-                r = materialize t3 . rows . map .to_vector
+                r = materialize t3 . rows . map (_.to Vector)
                 r.length . should_equal 3
                 r0 = [1, 4, 'a', 'x']
                 r1 = [2, 5, 'b', 'y']
                 r2 = [3, 6, 'c', 'z']
+                expected_rows = [r0, r1, r2]
+                r.should_equal expected_rows
+
+            group_builder.specify "should allow to zip two column preserving memory layout order" <|
+                c1 = column_builder ["X", [1, 2, 3]]
+                c2 = column_builder ["Z", ['a', 'b', 'c']]
+
+                t3 = c1.zip c2
+                expect_column_names ["X", "Z"] t3
+                t3.row_count . should_equal 3
+                r = materialize t3 . rows . map (_.to Vector)
+                r.length . should_equal 3
+                r0 = [1,  'a']
+                r1 = [2,  'b']
+                r2 = [3,  'c']
+                expected_rows = [r0, r1, r2]
+                r.should_equal expected_rows
+
+            group_builder.specify "should allow to zip a column with a table" <|
+                c1 = column_builder ["X", [1, 2, 3]]
+                c2 = table_builder [["Z", ['a', 'b', 'c']]]
+
+                t3 = c1.zip c2
+                expect_column_names ["X", "Z"] t3
+                t3.row_count . should_equal 3
+                r = materialize t3 . rows . map (_.to Vector)
+                r.length . should_equal 3
+                r0 = [1,  'a']
+                r1 = [2,  'b']
+                r2 = [3,  'c']
                 expected_rows = [r0, r1, r2]
                 r.should_equal expected_rows
 
@@ -62,11 +95,29 @@ add_specs suite_builder setup =
             t5 = t3.zip t4
             expect_column_names ["X", "Y", "Z", "W"] t5
             t5.row_count . should_equal 2
-            r = materialize t5 . rows . map .to_vector
+            r = materialize t5 . rows . map (_.to Vector)
             r.length . should_equal 2
 
             r0 = [2, 5, 'b', 'd']
             r1 = [100, 4, 'a', 'x']
+            expected_rows = [r0, r1]
+            r.should_equal expected_rows
+
+        group_builder.specify "should allow to zip two columns, preserving the order defined by `sort`" <|
+            c1 = column_builder ["X", [100, 2]]
+            c2 = column_builder ["Z", ['a', 'b']]
+
+            c3 = c1.sort
+            c4 = c2.sort ..Descending
+
+            t5 = c3.zip c4
+            expect_column_names ["X", "Z"] t5
+            t5.row_count . should_equal 2
+            r = materialize t5 . rows . map (_.to Vector)
+            r.length . should_equal 2
+
+            r0 = [2, 'b']
+            r1 = [100, 'a']
             expected_rows = [r0, r1]
             r.should_equal expected_rows
 
@@ -105,6 +156,16 @@ add_specs suite_builder setup =
             t3.at "Y" . to_vector . should_equal [4, 5, 6]
             t3.at "Z" . to_vector . should_equal ['a', Nothing, Nothing]
             t3.at "W" . to_vector . should_equal ['x', Nothing, Nothing]
+
+        group_builder.specify "should allow to keep the unmatched rows padded with nulls without reporting problems (columns)" <|
+            c1 = column_builder ["X", [1, 2, 3]]
+            c2 = column_builder ["Z", ['a']]
+
+            t3 = c1.zip c2 keep_unmatched=True on_problems=..Report_Error
+            Problems.assume_no_problems t3
+            expect_column_names ["X", "Z"] t3
+            t3.at "X" . to Vector . should_equal [1, 2, 3]
+            t3.at "Z" . to Vector . should_equal ['a', Nothing, Nothing]
 
         group_builder.specify "should allow to drop the unmatched rows" <|
             t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
@@ -150,6 +211,35 @@ add_specs suite_builder setup =
             expect_column_names ["Z", "W", "X", "Y"] t6
             t6.row_count . should_equal 0
             t6.at "X" . to_vector . should_equal []
+
+        group_builder.specify "should work when zipping with an empty table (columns)" <|
+            c1 = column_builder ["X", [1, 2]]
+            c2 = column_builder ["Z", ['a']]
+            # Workaround to easily create empty table until table builder allows that directly.
+            empty = c2.to_table . filter "Z" Filter_Condition.Is_Nothing . at "Z"
+            empty.length . should_equal 0
+
+            t3 = c1.zip empty
+            expect_column_names ["X", "Z"] t3
+            t3.row_count . should_equal 2
+            t3.at "X" . to Vector . should_equal [1, 2]
+            t3.at "Z" . to Vector . should_equal [Nothing, Nothing]
+
+            t4 = empty.zip c1
+            expect_column_names ["Z", "X"] t4
+            t4.row_count . should_equal 2
+            t4.at "X" . to Vector . should_equal [1, 2]
+            t4.at "Z" . to Vector . should_equal [Nothing, Nothing]
+
+            t5 = c1.zip empty keep_unmatched=False
+            expect_column_names ["X", "Z"] t5
+            t5.row_count . should_equal 0
+            t5.at "X" . to Vector . should_equal []
+
+            t6 = empty.zip c1 keep_unmatched=False
+            expect_column_names ["Z", "X"] t6
+            t6.row_count . should_equal 0
+            t6.at "X" . to Vector . should_equal []
 
         group_builder.specify "should not report unmatched rows for rows that simply are all null" <|
             t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
@@ -202,8 +292,19 @@ add_specs suite_builder setup =
             t2.row_count . should_equal 2
             t2.at "X" . to_vector . should_equal [1, 2]
             t2.at "Y" . to_vector . should_equal [4, 5]
+            t2.at "Right X" . to Vector . should_equal [1, 2]
+            t2.at "Right Y" . to Vector . should_equal [4, 5]
+
+        group_builder.specify "should allow to zip the column with itself" <|
+            ## Even though this does not seem very useful, we should verify that
+               this edge case works correctly. It may especially be fragile in
+               the Database backend.
+            c1 = column_builder ["X", [1, 2]]
+            t2 = c1.zip c1
+            expect_column_names ["X", "Right X"] t2
+            t2.row_count . should_equal 2
+            t2.at "X" . to_vector . should_equal [1, 2]
             t2.at "Right X" . to_vector . should_equal [1, 2]
-            t2.at "Right Y" . to_vector . should_equal [4, 5]
 
         if setup.is_database.not then
             group_builder.specify "should correctly pad/truncate all kinds of column types" <|

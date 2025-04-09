@@ -9,6 +9,7 @@ import {
 } from 'enso-common/src/services/Backend'
 import { merge } from 'enso-common/src/utilities/data/object'
 import { Permission, PermissionAction } from 'enso-common/src/utilities/permissions'
+import invariant from 'tiny-invariant'
 export * from 'enso-common/src/utilities/permissions'
 
 /** CSS classes for each permission. */
@@ -144,10 +145,9 @@ export function isTeamPath(path: string) {
 
 /** Whether a path is inside a user's home directory. */
 export function isUserParentsPath(path: backend.ParentsPath, userIds: readonly backend.UserId[]) {
-  const assetUserOrTeamId = directoryIdToUserId(
-    // eslint-disable-next-line no-restricted-syntax
-    backend.DirectoryId((path.split('/')[0] ?? 'directory-') as never),
-  )
+  const rootFolder = path.split('/')[0]
+  invariant(backend.isDirectoryId(rootFolder), 'Asset in user folder must have a root folder')
+  const assetUserOrTeamId = directoryIdToUserId(rootFolder)
   return userIds.includes(assetUserOrTeamId)
 }
 
@@ -156,10 +156,9 @@ export function isTeamParentsPath(
   path: backend.ParentsPath,
   teamIds: readonly backend.UserGroupId[],
 ) {
-  const assetUserOrTeamId = directoryIdToUserGroupId(
-    // eslint-disable-next-line no-restricted-syntax
-    backend.DirectoryId((path.split('/')[0] ?? 'directory-') as never),
-  )
+  const rootFolder = path.split('/')[0]
+  invariant(backend.isDirectoryId(rootFolder), 'Asset in team folder must have a root folder')
+  const assetUserOrTeamId = directoryIdToUserGroupId(rootFolder)
   return teamIds.includes(assetUserOrTeamId)
 }
 

@@ -3,15 +3,14 @@ import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Metadata.Display
 from Standard.Base.Metadata import make_single_choice, Widget
 from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
+from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
 
 from Standard.Table import Table
 
-polyglot java import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
-polyglot java import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
-polyglot java import com.google.api.client.json.gson.GsonFactory
-polyglot java import com.google.api.services.sheets.v4.Sheets
-polyglot java import com.google.api.services.sheets.v4.SheetsScopes
-polyglot java import java.util.Collections
+polyglot java import java.io.IOException
+
+polyglot java import org.enso.google.GoogleSheetsHelpers
+polyglot java import org.enso.google.WrappedGoogleCredentials
 
 type Google_Sheets
     ## PRIVATE
@@ -21,18 +20,12 @@ type Google_Sheets
        Initializes the Google Sheets instance using the given credentials file.
 
        Arguments:
-       - secret_file: a file containing Google Service Account credentials to use to
+       - credentials: a Cloud secret or a file containing Google Service Account credentials to use to
          access Google services. The credentials file can be downloaded from the
          Google Admin Console when generating a key.
-    initialize : File -> Google_Sheets
-    initialize secret_file =
-        app_name = 'Enso'
-        credential = secret_file.with_input_stream [File_Access.Read] stream->
-            stream.with_java_stream is->
-                GoogleCredential.fromStream is . createScoped (Collections.singleton SheetsScopes.SPREADSHEETS)
-        http_transport = GoogleNetHttpTransport.newTrustedTransport
-        json_factory = GsonFactory.getDefaultInstance
-        service = Sheets.Builder.new http_transport json_factory credential . setApplicationName app_name . build
+    initialize : File|Enso_Secret -> Google_Sheets
+    initialize credentials =
+        service = GoogleSheetsHelpers.createService (_wrap_credentials credentials)
         Google_Sheets.Service service
 
     ## ICON data_input
@@ -45,8 +38,28 @@ type Google_Sheets
          `'Sheet1!A1:B7'`.
     get_table : Text -> Text -> Table
     get_table self sheet_id sheet_range =
-        request = self.java_service.spreadsheets.values.get sheet_id sheet_range . setMajorDimension 'COLUMNS' . setValueRenderOption 'UNFORMATTED_VALUE'
-        response = request.execute
-        values = Vector.from_polyglot_array response.getValues
-        columned = values.map v-> [v.first, v.drop 1]
-        Table.new columned
+        values = _handle_exceptions <|
+            self.java_service.getSheetRange sheet_id sheet_range
+        # The first entry is the column name (A, B, ...) and the rest are the values.
+        column_vectors = values.map v-> [v.first, v.drop 1]
+        # The column lengths may not necessarily be the same, but Table.new expects the same lengths, so we normalize:
+        row_count = column_vectors.map (p-> p.second.length) . compute ..Maximum
+        normalized = column_vectors.map p->
+            [p.first, p.second.pad row_count Nothing]
+        Table.new normalized
+
+type Google_Api_Error
+    Error message cause
+
+private _handle_exceptions ~action =
+    Panic.catch IOException action caught_panic->
+        Error.throw (Google_Api_Error.Error caught_panic.payload.to_text caught_panic.payload)
+
+private _wrap_credentials credential:File|Enso_Secret =
+    case credential of
+        secret : Enso_Secret ->
+            WrappedGoogleCredentials.SecretCredentials.new (as_credential_reference secret)
+        secret_file : File ->
+            secret_file.with_input_stream [File_Access.Read] stream->
+                stream.with_java_stream java_input_stream->
+                    WrappedGoogleCredentials.LocalFileCredentials.fromStream java_input_stream

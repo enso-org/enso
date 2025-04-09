@@ -11,6 +11,15 @@
         ]
     },
     {
+        "name": "java.util.Comparator",
+        "methods": [
+            {
+                "name": "naturalOrder",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
         "name": "org.enso.table.data.column.storage.Storage",
         "methods": [
             {
@@ -966,15 +975,6 @@
         ]
     },
     {
-        "name": "java.util.Comparator",
-        "methods": [
-            {
-                "name": "naturalOrder",
-                "parameterTypes": []
-            }
-        ]
-    },
-    {
         "name": "org.openxmlformats.schemas.drawingml.x2006.main.impl.ThemeDocumentImpl",
         "methods": [
             {
@@ -1052,12 +1052,60 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.MapInfoDocument"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.SingleXmlCellsDocument"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.SstDocument"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STAxis$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STAxis"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STBorderId"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STBorderStyle$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STBorderStyle"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCalcMode$Enum",
         "fields": [
             {
                 "name": "table"
             }
         ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCalcMode"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCellComments$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCellComments"
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCellFormulaType$Enum",
@@ -1068,6 +1116,18 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCellFormulaType"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCellRef"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCellSpans"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCellStyleXfId"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCellType$Enum",
         "fields": [
             {
@@ -1076,10 +1136,482 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCellType"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCfType$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCfType"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCfvoType$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCfvoType"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STComments$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STConditionalFormattingOperator$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STConditionalFormattingOperator"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDataConsolidateFunction$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDataConsolidateFunction"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDataValidationErrorStyle$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDataValidationErrorStyle"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDataValidationImeMode$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDataValidationOperator$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDataValidationOperator"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDataValidationType$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDataValidationType"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDvAspect$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDvAspect"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDxfId"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STFieldSortType$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STFillId"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STFontFamily"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STFontId"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STFontScheme$Enum"
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STFontScheme"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STFormula"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STHorizontalAlignment$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STHorizontalAlignment"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STIconSetType$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STIconSetType"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STItemType$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STItemType"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STNumFmtId"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STObjects$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STObjects"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STOleUpdate$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STOrientation$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STOrientation"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPageOrder$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPageOrder"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPane$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPane"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPaneState$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPaneState"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPatternType$Enum"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPatternType"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPhoneticAlignment$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPhoneticType$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPhoneticType"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPrintError$Enum"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPrintError"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STRef"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STRefMode$Enum"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STRefMode"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STSheetState$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STSheetState"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STSheetViewType$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STSheetViewType"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STShowDataAs$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STSortBy$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STSortMethod$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STSourceType$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STSourceType"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STSqref"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STTableStyleType$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STTableStyleType"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STTableType$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STTargetScreenSize$Enum"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STTextRotation$Member2"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STTextRotation$Member"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STTextRotation"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STTimePeriod$Enum"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STTimePeriod"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STTotalsRowFunction$Enum"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STTotalsRowFunction"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STUnderlineValues$Enum"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STUnderlineValues"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STUnsignedIntHex"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STUnsignedShortHex"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STUpdateLinks$Enum"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STUpdateLinks"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STVerticalAlignment$Enum"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STVerticalAlignment"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STVisibility$Enum"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STVisibility"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STXmlDataType"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.StyleSheetDocument"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.TableDocument"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.WorkbookDocument"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.WorksheetDocument"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CalcChainDocumentImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.ChartsheetDocumentImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CommentsDocumentImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTAuthorsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTAutoFilterImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTBookViewImpl",
@@ -1094,6 +1626,17 @@
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTBookViewsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTBooleanPropertyImpl",
         "methods": [
             {
                 "name": "<init>",
@@ -1137,6 +1680,61 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTBreakImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCacheFieldImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCacheFieldsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCacheSourceImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCalcCellImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCalcChainImpl",
         "methods": [
             {
@@ -1149,6 +1747,17 @@
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCalcPrImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCellAlignmentImpl",
         "methods": [
             {
                 "name": "<init>",
@@ -1181,6 +1790,17 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCellProtectionImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCellStyleXfsImpl",
         "methods": [
             {
@@ -1192,7 +1812,73 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCellWatchesImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCellWatchImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCellXfsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCfRuleImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCfvoImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTChartsheetImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTColFieldsImpl",
         "methods": [
             {
                 "name": "<init>",
@@ -1225,7 +1911,227 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTColorScaleImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTColorsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTColsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCommentImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCommentListImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCommentsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTConditionalFormattingImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTControlImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTControlsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCustomPropertiesImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCustomPropertyImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCustomSheetViewImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCustomSheetViewsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCustomWorkbookViewImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTCustomWorkbookViewsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTDataBarImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTDataConsolidateImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTDataFieldImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTDataFieldsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTDataValidationImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTDataValidationsImpl",
         "methods": [
             {
                 "name": "<init>",
@@ -1258,6 +2164,28 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTDialogsheetImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTDrawingImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTDxfImpl",
         "methods":[
             {
@@ -1270,6 +2198,204 @@
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTDxfsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTExtensionImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTExtensionListImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTExternalBookImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTExternalCellImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTExternalDefinedNameImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTExternalDefinedNamesImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTExternalLinkImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTExternalReferenceImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTExternalReferencesImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTExternalRowImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTExternalSheetDataImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTExternalSheetDataSetImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTExternalSheetNameImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTExternalSheetNamesImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTFieldImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTFileRecoveryPrImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTFileSharingImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTFileVersionImpl",
         "methods": [
             {
                 "name": "<init>",
@@ -1346,6 +2472,17 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTFontsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTFontSizeImpl",
         "methods": [
             {
@@ -1357,7 +2494,183 @@
         ]
     },
     {
-        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTFontsImpl",
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTFunctionGroupsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTHeaderFooterImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTHyperlinkImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTHyperlinksImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTIconSetImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTIgnoredErrorImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTIgnoredErrorsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTIndexedColorsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTIntPropertyImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTItemImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTItemsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTLegacyDrawingImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTLocationImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTMapImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTMapInfoImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTMergeCellImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTMergeCellsImpl",
         "methods": [
             {
                 "name": "<init>",
@@ -1390,7 +2703,117 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTOleObjectImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTOleObjectsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTOleSizeImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTOutlinePrImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTPageBreakImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTPageFieldImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTPageFieldsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTPageMarginsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTPageSetupImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTPageSetUpPrImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTPaneImpl",
         "methods": [
             {
                 "name": "<init>",
@@ -1412,6 +2835,182 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTPhoneticPrImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTPhoneticRunImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTPivotCacheDefinitionImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTPivotCacheImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTPivotCacheRecordsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTPivotCachesImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTPivotFieldImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTPivotFieldsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTPivotTableDefinitionImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTPivotTableStyleImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTPrintOptionsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTProtectedRangeImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTProtectedRangesImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTREltImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTRgbColorImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTRowFieldsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTRowImpl",
         "methods": [
             {
@@ -1423,7 +3022,73 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTRPrEltImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTRstImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTSchemaImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTSelectionImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTSharedItemsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTSheetBackgroundPictureImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTSheetCalcPrImpl",
         "methods": [
             {
                 "name": "<init>",
@@ -1478,6 +3143,39 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTSheetPrImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTSheetProtectionImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTSheetsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTSheetViewImpl",
         "methods": [
             {
@@ -1500,7 +3198,40 @@
         ]
     },
     {
-        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTSheetsImpl",
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTSingleXmlCellImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTSingleXmlCellsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTSortConditionImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTSortStateImpl",
         "methods": [
             {
                 "name": "<init>",
@@ -1533,7 +3264,139 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTTableColumnImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTTableColumnsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTTableFormulaImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTTableImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTTablePartImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTTablePartsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name":"org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTTableStyleElementImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTTableStyleImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTTableStyleInfoImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTTableStylesImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTUnderlinePropertyImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTVerticalAlignFontPropertyImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTWebPublishingImpl",
         "methods": [
             {
                 "name": "<init>",
@@ -1566,7 +3429,29 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTWorkbookProtectionImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTWorksheetImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTWorksheetSourceImpl,",
         "methods": [
             {
                 "name": "<init>",
@@ -1588,7 +3473,84 @@
         ]
     },
     {
-        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CalcChainDocumentImpl",
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTXmlCellPrImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTXmlColumnPrImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.CTXmlPrImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.ExternalLinkDocumentImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.MapInfoDocumentImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.SingleXmlCellsDocumentImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.SstDocumentImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STAxisImpl",
         "methods": [
             {
                 "name": "<init>",
@@ -1610,7 +3572,29 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STBorderStyleImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STCalcModeImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STCellCommentsImpl",
         "methods": [
             {
                 "name": "<init>",
@@ -1643,6 +3627,17 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STCellSpansImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STCellStyleXfIdImpl",
         "methods": [
             {
@@ -1655,6 +3650,105 @@
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STCellTypeImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STCfTypeImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STCfvoTypeImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STConditionalFormattingOperatorImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STDataConsolidateFunctionImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STDataValidationErrorStyleImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STDataValidationOperatorImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STDataValidationTypeImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STDvAspectImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STDxfIdImpl",
         "methods": [
             {
                 "name": "<init>",
@@ -1709,7 +3803,106 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STFormulaImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STHorizontalAlignmentImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STIconSetTypeImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STItemTypeImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STNumFmtIdImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STObjectsImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STOrientationImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STPageOrderImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STPaneImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STPaneStateImpl",
         "methods": [
             {
                 "name": "<init>",
@@ -1742,7 +3935,194 @@
         ]
     },
     {
-        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.SstDocumentImpl",
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STRefModeImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STSheetStateImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STSheetViewTypeImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STSourceTypeImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STSqrefImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STTableStyleTypeImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STTextRotationImpl$MemberImpl2",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STTextRotationImpl$MemberImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STTextRotationImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STTimePeriodImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STTotalsRowFunctionImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STUnderlineValuesImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STUnsignedIntHexImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STUnsignedShortHexImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STUpdateLinksImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STVerticalAlignmentImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STVisibilityImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.STXmlDataTypeImpl",
         "methods": [
             {
                 "name": "<init>",
@@ -1754,6 +4134,17 @@
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.StyleSheetDocumentImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "org.apache.xmlbeans.SchemaType"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.impl.TableDocumentImpl",
         "methods": [
             {
                 "name": "<init>",
