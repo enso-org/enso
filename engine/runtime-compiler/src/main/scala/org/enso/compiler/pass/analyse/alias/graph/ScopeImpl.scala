@@ -19,19 +19,32 @@ sealed private[graph] class ScopeImpl(
   private[graph] var _childScopes: List[ScopeImpl] = List(),
   private[graph] var _occurrences: Map[GraphImpl.Id, GraphOccurrence] =
     HashMap(),
-  _defs: java.util.List[
-    GraphOccurrence.Def
-  ] = new java.util.ArrayList()
+  _defs: java.util.Collection[GraphOccurrence.Def] = null
 ) extends Graph.Scope {
-  private[graph] val _allDefinitions: java.util.List[
+  private[graph] val _allDefinitions: java.util.Map[
+    Graph.Symbol,
     GraphOccurrence.Def
-  ] = new java.util.ArrayList(_defs.stream.map(_.withScope(this)).toList)
+  ] = toDefinitionsMap(_defs)
+
+  private def toDefinitionsMap(
+    defs: java.util.Collection[GraphOccurrence.Def]
+  ) = {
+    val map = new java.util.TreeMap[Graph.Symbol, GraphOccurrence.Def]()
+    if (defs != null) {
+        defs.forEach { d =>
+          val c = d.withScope(this)
+          map.put(c.symbol, c)
+        }
+    }
+    map
+  }
 
   private[graph] var _parent: ScopeImpl = null
 
-  def childScopes    = _childScopes
-  def occurrences    = _occurrences
-  def allDefinitions = java.util.Collections.unmodifiableList(_allDefinitions)
+  def childScopes = _childScopes
+  def occurrences = _occurrences
+  def allDefinitions =
+    java.util.Collections.unmodifiableCollection(_allDefinitions.values)
   def parent: Option[ScopeImpl] =
     if (this._parent eq null) None else Some(_parent)
 
@@ -81,7 +94,7 @@ sealed private[graph] class ScopeImpl(
           new ScopeImpl(
             childScopeCopies.toList,
             occurrences,
-            new java.util.ArrayList(_allDefinitions)
+            _allDefinitions.values
           )
         mapping.put(this, newScope)
         newScope
@@ -140,7 +153,7 @@ sealed private[graph] class ScopeImpl(
     * @param definition The definition to add.
     */
   private[graph] def addDefinition(definition: GraphOccurrence.Def): Unit = {
-    _allDefinitions.add(definition)
+    _allDefinitions.put(definition.symbol, definition)
   }
 
   /** Finds an occurrence for the provided ID in the current scope, if it
@@ -198,22 +211,11 @@ sealed private[graph] class ScopeImpl(
     hint: GraphOccurrence.Def,
     parentCounter: Int = 0
   ): Option[Graph.Link] = {
-    val definition =
-      if (hint != null && (hint.scope() eq this)) {
-        Some(hint)
-      } else {
-        occurrences.values.find {
-          case GraphOccurrence.Def(_, name, _, _, _) =>
-            name == occurrence.symbol
-          case _ => false
-        }
-      }
-
-    definition match {
-      case None =>
-        parent.flatMap(_.resolveUsage(occurrence, hint, parentCounter + 1))
-      case Some(target) =>
-        Some(Graph.Link(occurrence.id, parentCounter, target.id()))
+    val target = _allDefinitions.get(occurrence.symbol)
+    if (target == null) {
+      parent.flatMap(_.resolveUsage(occurrence, hint, parentCounter + 1))
+    } else {
+      Some(Graph.Link(occurrence.id, parentCounter, target.id()))
     }
   }
 

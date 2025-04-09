@@ -94,8 +94,9 @@ public sealed interface FrameAnalysisMeta extends ProcessingPass.Metadata
         : "The given scope must contain the given Def occurrence";
 
     var allDefs = scope.allDefinitions();
+    var it = allDefs.iterator();
     for (int i = 0; i < allDefs.size(); i++) {
-      GraphOccurrence.Def def = allDefs.get(i);
+      GraphOccurrence.Def def = it.next();
       if (def.id() == defOcc.id()) {
         return i + LocalScope.internalSlotsSize();
       }
