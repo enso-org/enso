@@ -46,11 +46,10 @@ const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('edi
 const languageExtension = computed(() => {
   switch (syntaxLanguage.value) {
     case 'enso-table-expression':
-      // TODO
-      return
-    default:
+      // TODO (#12304)
       return
   }
+  return undefined
 })
 
 const { syncExt, connectSync } = useStringSync()

@@ -1924,6 +1924,10 @@ export class MutableTextLiteral extends TextLiteral implements MutableExpression
     const boundary = this.boundaryTokenCode()!
     const isBlock = boundary.length > 1
     const literalContents = this.isInterpolated() ? escapeTextLiteral(rawText, isBlock) : rawText
+
+    // As a simple way to ensure the text elements are consistent with what the parser would
+    // produce, instead of creating them directly we generate code and parse it.
+
     const parsed = TextLiteral.tryParse(
       isBlock ?
         `${boundary}\n${literalContents.split('\n').join('\n    ')}`
@@ -1931,19 +1935,27 @@ export class MutableTextLiteral extends TextLiteral implements MutableExpression
       this.module,
     )
     assertDefined(parsed)
-    const elementsWithDummyLinebreaks = parsed.elements.map((e) =>
+    // First, we parse with the arbitrary concrete indentation level generated above.
+    const elementsWithArbitraryConcreteWhitespace = parsed.elements.map((e) =>
       mapRefs(e, concreteToOwned(this.module)),
     )
-    const elementsWithAbstractLineBreaks = elementsWithDummyLinebreaks.map((e) =>
-      e.type === 'token' && e.token.node.typeName === 'Newline' ?
-        { ...e, token: { node: e.token.node, whitespace: undefined } }
-      : e,
+    // Now strip indentation information to let the block be indented appropriately for its context.
+    const elementsWithAbstractWhitespace = elementsWithArbitraryConcreteWhitespace.map(
+      textElementRemoveConcreteWhitespace,
     )
-    this.setElements(elementsWithAbstractLineBreaks)
+    this.setElements(elementsWithAbstractWhitespace)
   }
 }
 export interface MutableTextLiteral extends TextLiteral, MutableExpression {}
 applyMixins(MutableTextLiteral, [MutableAst])
+
+function textElementRemoveConcreteWhitespace<T extends TreeRefs>(
+  element: TextElement<T>,
+): TextElement<T> {
+  return element.type === 'token' && element.token.node.typeName === 'Newline' ?
+      { ...element, token: { node: element.token.node, whitespace: undefined } }
+    : element
+}
 
 interface ExpressionStatementFields {
   docLine: DocLine | undefined

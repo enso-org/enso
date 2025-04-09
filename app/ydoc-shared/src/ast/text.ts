@@ -52,8 +52,8 @@ function escapeChar(char: string) {
 }
 
 /**
- * Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
- * Note: Escape sequences are NOT interpreted in raw (`""`) string literals.
+ * Escape a string so it can be safely spliced into an interpolated (`'` or `'''`) Enso string.
+ * Note: Escape sequences are NOT interpreted in raw (`"` or `"""`) string literals.
  */
 export function escapeTextLiteral(rawString: string, isBlock: boolean = false) {
   return rawString.replace(isBlock ? blockEscapeRegex : inlineEscapeRegex, escapeChar)
