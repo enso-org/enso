@@ -1,5 +1,7 @@
 package org.enso.compiler.pass.optimise
 
+import scala.jdk.CollectionConverters._
+
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.{CompilerError, IR, Identifier}
@@ -392,16 +394,23 @@ case object LambdaConsolidate extends IRPass {
         // Empty set is used to indicate that it isn't shadowed
         val usageIds =
           if (isShadowed) {
-            aliasInfo.graph
+            val occurs = aliasInfo.graph
               .linksFor(aliasInfo.id)
+              .stream
               .filter(_.target == aliasInfo.id)
               .map(link => aliasInfo.graph.getOccurrence(link.source))
-              .collect {
+              .map {
                 case Some(
                       GraphOccurrence.Use(_, _, identifier, _)
                     ) =>
-                  identifier
+                  Some(identifier)
+                case _ => None
               }
+              .filter(_.isDefined)
+              .map(_.get)
+              .toList
+            val res: Set[UUID @Identifier] = occurs.asScala.toList.toSet
+            res
           } else Set[UUID @Identifier]()
 
         usageIds

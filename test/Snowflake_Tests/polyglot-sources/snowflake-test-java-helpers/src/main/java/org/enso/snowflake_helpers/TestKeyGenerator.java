@@ -10,13 +10,13 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Security;
-import net.snowflake.client.jdbc.internal.org.bouncycastle.jce.provider.BouncyCastleProvider;
-import net.snowflake.client.jdbc.internal.org.bouncycastle.openssl.PKCS8Generator;
-import net.snowflake.client.jdbc.internal.org.bouncycastle.openssl.jcajce.JcaPEMWriter;
-import net.snowflake.client.jdbc.internal.org.bouncycastle.openssl.jcajce.JcaPKCS8Generator;
-import net.snowflake.client.jdbc.internal.org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder;
-import net.snowflake.client.jdbc.internal.org.bouncycastle.operator.OperatorCreationException;
-import net.snowflake.client.jdbc.internal.org.bouncycastle.operator.OutputEncryptor;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PKCS8Generator;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.bouncycastle.openssl.jcajce.JcaPKCS8Generator;
+import org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.OutputEncryptor;
 
 public class TestKeyGenerator {
   public static void generateKeyPairForTest(

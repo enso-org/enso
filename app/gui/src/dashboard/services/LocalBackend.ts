@@ -232,7 +232,6 @@ export default class LocalBackend extends Backend {
                   type:
                     this.projectManager.projects.get(entry.metadata.id)?.state ??
                     backend.ProjectState.closed,
-                  volumeId: '',
                 },
               } satisfies backend.ProjectAsset
             }
@@ -359,17 +358,8 @@ export default class LocalBackend extends Backend {
       if (project == null) {
         throw new Error(`Could not get details of project.`)
       } else {
-        const version =
-          project.engineVersion == null ?
-            null
-          : {
-              lifecycle: backend.detectVersionLifecycle(project.engineVersion),
-              value: project.engineVersion,
-            }
         return {
           name: project.name,
-          engineVersion: version,
-          ideVersion: version,
           jsonAddress: null,
           binaryAddress: null,
           ydocAddress: null,
@@ -383,14 +373,6 @@ export default class LocalBackend extends Backend {
       const cachedProject = await state.data
       return {
         name: cachedProject.projectName,
-        engineVersion: {
-          lifecycle: backend.detectVersionLifecycle(cachedProject.engineVersion),
-          value: cachedProject.engineVersion,
-        },
-        ideVersion: {
-          lifecycle: backend.detectVersionLifecycle(cachedProject.engineVersion),
-          value: cachedProject.engineVersion,
-        },
         jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
         binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
         ydocAddress: null,
@@ -446,44 +428,32 @@ export default class LocalBackend extends Backend {
     projectId: backend.ProjectId,
     body: backend.UpdateProjectRequestBody,
   ): Promise<backend.UpdatedProject> {
-    if (body.ami != null) {
-      throw new Error('Cannot change project AMI on local backend.')
+    const { id } = extractTypeAndId(projectId)
+    if (body.projectName != null) {
+      await this.projectManager.renameProject({
+        projectId: id,
+        name: projectManager.ProjectName(body.projectName),
+      })
+    }
+    const parentPath = getDirectoryAndName(this.projectManager.getProjectPath(id)).directoryPath
+    const result = await this.projectManager.listDirectory(parentPath)
+    const project = result.flatMap((listedProject) =>
+      (
+        listedProject.type === projectManager.FileSystemEntryType.ProjectEntry &&
+        listedProject.metadata.id === id
+      ) ?
+        [listedProject.metadata]
+      : [],
+    )[0]
+    if (project == null) {
+      throw new Error(`The project ID '${projectId}' is invalid.`)
     } else {
-      const { id } = extractTypeAndId(projectId)
-      if (body.projectName != null) {
-        await this.projectManager.renameProject({
-          projectId: id,
-          name: projectManager.ProjectName(body.projectName),
-        })
-      }
-      const parentPath = getDirectoryAndName(this.projectManager.getProjectPath(id)).directoryPath
-      const result = await this.projectManager.listDirectory(parentPath)
-      const project = result.flatMap((listedProject) =>
-        (
-          listedProject.type === projectManager.FileSystemEntryType.ProjectEntry &&
-          listedProject.metadata.id === id
-        ) ?
-          [listedProject.metadata]
-        : [],
-      )[0]
-      const version =
-        project?.engineVersion == null ?
-          null
-        : {
-            lifecycle: backend.detectVersionLifecycle(project.engineVersion),
-            value: project.engineVersion,
-          }
-      if (project == null) {
-        throw new Error(`The project ID '${projectId}' is invalid.`)
-      } else {
-        return {
-          ami: null,
-          engineVersion: version,
-          ideVersion: version,
-          name: project.name,
-          organizationId: backend.OrganizationId('organization-'),
-          projectId,
-        }
+      return {
+        name: project.name,
+        organizationId: backend.OrganizationId('organization-'),
+        projectId,
+        packageName: project.name,
+        state: { type: backend.ProjectState.closed },
       }
     }
   }

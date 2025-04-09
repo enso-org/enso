@@ -12,7 +12,7 @@ import scala.Option;
  */
 public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphOccurrence.Use {
   static Use createUse(
-      GraphImpl.Scope scope, int nextId, String symbol, UUID identifier, Option<UUID> externalId) {
+      ScopeImpl scope, int nextId, String symbol, UUID identifier, Option<UUID> externalId) {
     return new Use(scope, nextId, symbol, identifier, externalId);
   }
 
@@ -20,29 +20,32 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
 
   public abstract String symbol();
 
-  abstract GraphOccurrence withScope(GraphImpl.Scope scope);
+  abstract GraphOccurrence withScope(ScopeImpl scope);
 
   public abstract Graph.Scope scope();
 
   /** The definition of a symbol in the aliasing graph. */
   @Persistable(id = 1265, allowInlining = false)
   public static final class Def extends GraphOccurrence {
-    private final GraphImpl.Scope scope;
+    private final ScopeImpl scope;
     private final int id;
+    private final int slotIndx;
     private final String symbol;
     private final @Identifier UUID identifier;
     private final @ExternalID UUID externalId;
     private final boolean isLazy;
 
     private Def(
-        GraphImpl.Scope scope,
+        ScopeImpl scope,
         int id,
+        int slotIndx,
         String symbol,
         UUID identifier,
         scala.Option<UUID> externalId,
         boolean isLazy) {
       this.scope = scope;
       this.id = id;
+      this.slotIndx = slotIndx;
       this.externalId = externalId.nonEmpty() ? externalId.get() : null;
       this.identifier = identifier;
       this.isLazy = isLazy;
@@ -58,13 +61,19 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
      * @param externalId the external identifier for the IR node defining the symbol
      * @param isLazy whether or not the symbol is defined as lazy
      */
-    Def(int id, String symbol, UUID identifier, scala.Option<UUID> externalId, boolean isLazy) {
-      this(null, id, symbol, identifier, externalId, isLazy);
+    Def(
+        int id,
+        int slotIndx,
+        String symbol,
+        UUID identifier,
+        scala.Option<UUID> externalId,
+        boolean isLazy) {
+      this(null, id, slotIndx, symbol, identifier, externalId, isLazy);
     }
 
     @Override
-    Def withScope(GraphImpl.Scope scope) {
-      return new Def(scope, id, symbol, identifier, Option.apply(externalId), isLazy);
+    Def withScope(ScopeImpl scope) {
+      return new Def(scope, id, slotIndx, symbol, identifier, Option.apply(externalId), isLazy);
     }
 
     @Override
@@ -75,6 +84,10 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
     @Override
     public int id() {
       return this.id;
+    }
+
+    public final int slotIndx() {
+      return slotIndx;
     }
 
     @Override
@@ -114,7 +127,7 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
   @Persistable(id = 1264, allowInlining = false)
   public static final class Use extends GraphOccurrence {
     private final int id;
-    private final GraphImpl.Scope scope;
+    private final ScopeImpl scope;
     private final String symbol;
     private final @Identifier UUID identifier;
     private final @ExternalID UUID externalId;
@@ -131,11 +144,7 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
      * @param externalId the external identifier for the IR node defining the symbol
      */
     private Use(
-        GraphImpl.Scope scope,
-        int id,
-        String symbol,
-        UUID identifier,
-        scala.Option<UUID> externalId) {
+        ScopeImpl scope, int id, String symbol, UUID identifier, scala.Option<UUID> externalId) {
       this.scope = scope;
       this.id = id;
       this.symbol = symbol;
@@ -151,7 +160,7 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
     }
 
     @Override
-    final Use withScope(GraphImpl.Scope scope) {
+    final Use withScope(ScopeImpl scope) {
       return new Use(scope, id, symbol, identifier, Option.apply(externalId));
     }
 

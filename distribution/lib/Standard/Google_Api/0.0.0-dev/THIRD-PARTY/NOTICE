@@ -226,11 +226,6 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.grpc.grpc-util-1.69.0`.
 
 
-'grpc-xds', licensed under the Apache 2.0, is distributed with the Google_Api.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.grpc.grpc-xds-1.69.0`.
-
-
 'opencensus-api', licensed under the The Apache License, Version 2.0, is distributed with the Google_Api.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.opencensus.opencensus-api-0.31.1`.
