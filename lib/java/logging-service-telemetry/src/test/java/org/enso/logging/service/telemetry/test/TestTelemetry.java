@@ -18,6 +18,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 import org.enso.logging.service.telemetry.Credentials;
 import org.enso.logging.service.telemetry.LogJob;
 import org.enso.logging.service.telemetry.LogJobsProcessor;
@@ -26,28 +27,28 @@ import org.enso.shttp.HTTPTestHelperServer;
 import org.enso.shttp.HybridHTTPServer;
 import org.enso.shttp.cloud_mock.CloudMockSetup;
 import org.enso.testkit.RetryTestRule;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
 public class TestTelemetry {
+  @Rule public RetryTestRule retry = new RetryTestRule(3);
+
   private static final int port = 8083;
   private static final URI baseUri = URI.create("http://localhost:" + port + "/enso-cloud-mock");
   private static final URI logUri = URI.create(baseUri + "/logs");
   private static final URI refreshUri = URI.create(baseUri + "/enso-cloud-auth-renew");
   private static final long APPENDER_KEEP_ALIVE = 20;
+  private static final Credentials credentials = mockCredentials();
 
-  private static HybridHTTPServer server;
-  private static ExecutorService serverExecutor;
-  private static ThreadPoolExecutor logProcessorExecutor;
-  private static LogJobsProcessor logJobsProcessor;
-  private static Credentials credentials;
+  private HybridHTTPServer server;
+  private ExecutorService serverExecutor;
+  private ThreadPoolExecutor logProcessorExecutor;
+  private LogJobsProcessor logJobsProcessor;
 
-  @Rule public RetryTestRule retry = new RetryTestRule(3);
-
-  @BeforeClass
-  public static void initServer() throws URISyntaxException, IOException {
+  @Before
+  public void initServer() throws URISyntaxException, IOException {
     serverExecutor = Executors.newSingleThreadExecutor();
     logProcessorExecutor =
         new ThreadPoolExecutor(
@@ -55,21 +56,15 @@ public class TestTelemetry {
     var cloudMockSetup = new CloudMockSetup(false);
     server =
         HTTPTestHelperServer.createServer("localhost", port, serverExecutor, false, cloudMockSetup);
-    credentials = mockCredentials();
     logJobsProcessor = new LogJobsProcessor(logProcessorExecutor, logUri, credentials);
     server.start();
   }
 
-  @AfterClass
-  public static void stopServer() {
+  @After
+  public void stopServer() {
     server.stop();
-    server = null;
     serverExecutor.shutdown();
-    serverExecutor = null;
     logProcessorExecutor.shutdown();
-    logProcessorExecutor = null;
-    logJobsProcessor = null;
-    credentials = null;
   }
 
   @Test
