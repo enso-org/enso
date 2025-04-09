@@ -44,23 +44,16 @@ public class RuntimeServerInstrument extends TruffleInstrument {
   private Env env;
   private Handler handler;
   private EventBinding<Initializer> initializerEventBinding;
-  private ScheduledExecutorService jobExecutor;
 
   private ScheduledExecutorService getJobExecutor() {
-    if (jobExecutor == null) {
-      var ensoCtx = EnsoContext.get(null);
-      var jobParallelism = ensoCtx.getJobParallelism();
-      jobExecutor = ensoCtx.getThreadManager().newFixedThreadPool(jobParallelism, "job-pool");
-    }
-    return jobExecutor;
+    var ensoCtx = EnsoContext.get(null);
+    return ensoCtx.getThreadManager();
   }
 
   private void initializeExecutionService(ExecutionService service, TruffleContext context) {
     if (initializerEventBinding != null) {
       initializerEventBinding.dispose();
-      var exec = getJobExecutor();
-      assert exec != null;
-      handler.initializeExecutionService(service, jobExecutor, context);
+      handler.initializeExecutionService(service, getJobExecutor(), context);
     }
   }
 
