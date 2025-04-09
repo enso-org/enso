@@ -4,7 +4,7 @@
  * This component is used to suspend the rendering of a subtree until a promise is resolved.
  */
 import { unsafeWriteValue } from '#/utilities/write'
-import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { startTransition, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useAwait } from './Await'
 
 /**
@@ -24,10 +24,11 @@ export interface ActivityProps {
 
 /**
  * A component that pauses all activity inside it's subtree.
- *
  * ---
  * ## The component is EXPERIMENTAL, please use with caution.
  * ---
+ *
+ * This component should stay above Suspense components because otherwise user won't see a loader state.
  */
 export function Activity(props: ActivityProps) {
   const { mode, children } = props
@@ -55,7 +56,10 @@ export function Activity(props: ActivityProps) {
 
     return () => {
       resolve()
-      setPromise(null)
+
+      startTransition(() => {
+        setPromise(null)
+      })
     }
   }, [isActive])
 

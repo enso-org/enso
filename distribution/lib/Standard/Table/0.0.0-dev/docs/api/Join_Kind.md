@@ -7,4 +7,5 @@
     - Left_Outer
     - Right_Exclusive
     - Right_Outer
+    - default_widget display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
     - to_java self -> Standard.Base.Any.Any

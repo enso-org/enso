@@ -61,6 +61,7 @@ import org.slf4j.event.Level
 import org.slf4j.{LoggerFactory, MDC}
 
 import java.io.{File, PrintStream}
+import java.lang.management.ManagementFactory
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.Clock
@@ -80,6 +81,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     serverConfig,
     logLevel
   )
+
+  initialTelemetry()
 
   private val contextSupervisor = new ComponentSupervisor()
   private val utcClock          = Clock.systemUTC()
@@ -527,5 +530,35 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       .withFallback(empty)
       .getConfig("akka")
       .getConfig("https")
+  }
+
+  private def initialTelemetry(): Unit = {
+    val telemetryLog =
+      LoggerFactory.getLogger(
+        "org.enso.telemetry.languageserver.boot.MainModule"
+      )
+    val osBean     = ManagementFactory.getOperatingSystemMXBean
+    val mServer    = ManagementFactory.getPlatformMBeanServer
+    val memoryBean = ManagementFactory.getMemoryMXBean
+    val maxHeapMB  = (memoryBean.getHeapMemoryUsage.getMax / 1024) / 1024
+    val totalMem = mServer
+      .getAttribute(osBean.getObjectName, "TotalPhysicalMemorySize")
+      .asInstanceOf[Long]
+    val totalMemMB = totalMem / 1024 / 1024
+    ManagementFactory.getMemoryMXBean.getHeapMemoryUsage
+    telemetryLog.trace(
+      "Initializing main module of the Language Server: edition={}, graal_version={}, enso_version={}, is_release={}, AOT={}, os_name={}, os_arch={}, os_version={}, available_cpus={}, total_memory_MB={}, available_memory_MB={}",
+      BuildVersion.currentEdition(),
+      BuildVersion.graalVersion(),
+      BuildVersion.ensoVersion(),
+      BuildVersion.isRelease,
+      HostEnsoUtils.isAot,
+      osBean.getName,
+      osBean.getArch,
+      osBean.getVersion,
+      osBean.getAvailableProcessors,
+      totalMemMB,
+      maxHeapMB
+    )
   }
 }

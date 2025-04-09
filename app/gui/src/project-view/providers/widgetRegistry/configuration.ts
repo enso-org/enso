@@ -39,13 +39,28 @@ const displaySchema = withKindSchema.pipe(
 const withDisplay = z.object({ display: displaySchema })
 export type WithDisplay = z.infer<typeof withDisplay>
 
-/** A choosable item in SingleChoice widget. */
-const choiceSchema = z.object({
-  value: z.string(),
+const choiceValueSchema = z.lazy(() => z.union([z.string(), z.array(choiceSchema)]))
+export type ChoiceValue = z.infer<typeof choiceValueSchema>
+
+/** A choosable item in SingleChoice and MultipleChoice widgets. */
+const choiceSchema: z.ZodType<Choice> = z.object({
+  value: choiceValueSchema,
   label: z.string().nullable(),
   parameters: z.lazy(() => z.array(argumentSchema)),
+  icon: z.string().nullable().optional(),
 })
-export type Choice = z.infer<typeof choiceSchema>
+export type Choice = {
+  value: ChoiceValue
+  label: string | null
+  parameters: ArgsWidgetConfiguration
+  icon?: string | null | undefined
+}
+export type FlattenedChoice = {
+  value: string
+  label: string | null
+  parameters: ArgsWidgetConfiguration
+  icon?: string | null | undefined
+}
 
 /**
  * An external configuration for a widget retreived from the language server.
@@ -61,7 +76,6 @@ export type WidgetConfiguration =
   | SingleChoice
   | VectorEditor
   | MultipleChoice
-  | CodeInput
   | BooleanInput
   | NumericInput
   | TextInput
@@ -83,10 +97,6 @@ export interface MultipleChoice {
   values: Choice[]
 }
 
-export interface CodeInput {
-  kind: 'Code_Input'
-}
-
 export interface BooleanInput {
   kind: 'Boolean_Input'
 }
@@ -99,6 +109,7 @@ export interface NumericInput {
 
 export interface TextInput {
   kind: 'Text_Input'
+  syntax?: string | undefined
 }
 
 export interface FolderBrowse {
@@ -174,7 +185,6 @@ export const widgetConfigurationSchema: z.ZodType<
         values: z.array(choiceSchema),
       })
       .merge(withDisplay),
-    z.object({ kind: z.literal('Code_Input') }).merge(withDisplay),
     z.object({ kind: z.literal('Boolean_Input') }).merge(withDisplay),
     z
       .object({
@@ -183,7 +193,7 @@ export const widgetConfigurationSchema: z.ZodType<
         minimum: z.number().optional(),
       })
       .merge(withDisplay),
-    z.object({ kind: z.literal('Text_Input') }).merge(withDisplay),
+    z.object({ kind: z.literal('Text_Input'), syntax: z.string().optional() }).merge(withDisplay),
     z.object({ kind: z.literal('Folder_Browse') }).merge(withDisplay),
     z
       .object({ kind: z.literal('File_Browse'), existing_only: z.boolean().optional() })
@@ -217,22 +227,32 @@ export function functionCallConfiguration(
   }
 }
 
+/** Flatten possibly nested choice. */
+export function flattenChoice(choice: Choice): FlattenedChoice[] {
+  if (typeof choice.value === 'string') {
+    return [choice as FlattenedChoice]
+  }
+  return choice.value.flatMap(flattenChoice)
+}
+
 /** A configuration for the inner widget of a single-choice selection widget. */
 export function singleChoiceConfiguration(config: SingleChoice): OneOfFunctionCalls {
+  const possibleChoices = config.values.flatMap(flattenChoice)
   return {
     kind: 'OneOfFunctionCalls',
     possibleFunctions: new Map(
-      config.values.map((value) => [value.value, functionCallConfiguration(value.parameters)]),
+      possibleChoices.map((choice) => [choice.value, functionCallConfiguration(choice.parameters)]),
     ),
   }
 }
 
 /** A configuration for the inner widget of a multiple-choice selection widget. */
 export function multipleChoiceConfiguration(config: MultipleChoice): SomeOfFunctionCalls {
+  const possibleChoices = config.values.flatMap(flattenChoice)
   return {
     kind: 'SomeOfFunctionCalls',
     possibleFunctions: new Map(
-      config.values.map((value) => [value.value, functionCallConfiguration(value.parameters)]),
+      possibleChoices.map((choice) => [choice.value, functionCallConfiguration(choice.parameters)]),
     ),
   }
 }

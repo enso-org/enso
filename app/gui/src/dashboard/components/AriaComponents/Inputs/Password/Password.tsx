@@ -13,10 +13,6 @@ import {
 } from '#/components/AriaComponents'
 import { AnimatePresence, motion } from 'framer-motion'
 
-// ================
-// === Password ===
-// ================
-
 /** Props for a {@link Password}. */
 export interface PasswordProps<Schema extends TSchema, TFieldName extends FieldPath<Schema, string>>
   extends Omit<InputProps<Schema, TFieldName, string>, 'type'> {}

@@ -21,4 +21,4 @@ type Grouping_Method
          assigned to groups. Only affects the assignment of group numbers, not
          the ordering of the output rows. Defaults to the order of the rows in
          the table.
-    Equal_Count (group_count:Integer=(Missing_Argument.throw "group_count")) (order_by:(Vector | Text)=[])
+    Equal_Count (group_count:Integer=5) (order_by:(Vector | Text)=[])

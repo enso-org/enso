@@ -19,6 +19,7 @@ import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import invariant from 'tiny-invariant'
+import { z } from 'zod'
 
 /** HTTP status indicating that the request was successful. */
 const STATUS_SUCCESS_FIRST = 200
@@ -32,16 +33,6 @@ const STATUS_SERVER_ERROR = 500
 const STATUS_NOT_AUTHORIZED = 401
 /** HTTP status indicating that authorized user doesn't have access to the given resource */
 const STATUS_NOT_ALLOWED = 403
-const TYPE_TO_EXTENSION: Record<backend.AssetType, string> = {
-  directory: '/',
-  project: '.project',
-  secret: '.secret',
-  datalink: '.datalink',
-  file: '',
-  specialEmpty: '',
-  specialError: '',
-  specialLoading: '',
-}
 
 /** The format of all errors returned by the backend. */
 interface RemoteBackendError {
@@ -180,20 +171,6 @@ export function parentsPathsToPath(
   }
 }
 
-/** Convert a {@link backend.ParentsPath} and a {@link backend.VirtualParentsPath} to a full path. */
-export function computeFullRemotePath(
-  asset: Pick<backend.AnyAsset, 'parentsPath' | 'title' | 'type' | 'virtualParentsPath'>,
-  users: readonly backend.UserInfo[],
-  userGroups: readonly backend.UserGroupInfo[],
-) {
-  const { title, type, parentsPath, virtualParentsPath } = asset
-  const directoryPath = parentsPathsToPath(parentsPath, virtualParentsPath, users, userGroups)
-  if (directoryPath == null) {
-    return
-  }
-  return `${directoryPath}/${title}${TYPE_TO_EXTENSION[type]}`
-}
-
 /** HTTP response body for the "list users" endpoint. */
 export interface ListUsersResponseBody {
   readonly users: readonly backend.User[]
@@ -275,26 +252,26 @@ export default class RemoteBackend extends Backend {
       this.logger.error(textId.message)
 
       throw textId
-    } else {
-      const error =
-        response == null || response.headers.get('Content-Type') !== 'application/json' ?
-          { message: 'unknown error' }
-          // This is SAFE only when the response has been confirmed to have an erroring status code.
-          // eslint-disable-next-line no-restricted-syntax
-        : ((await response.json()) as RemoteBackendError)
-      const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
-      this.logger.error(message)
-
-      const status = response?.status
-
-      throw new backend.NetworkError(message, status)
     }
+
+    const error =
+      response == null || response.headers.get('Content-Type') !== 'application/json' ?
+        { message: 'unknown error' }
+        // This is SAFE only when the response has been confirmed to have an erroring status code.
+        // eslint-disable-next-line no-restricted-syntax
+      : ((await response.json()) as RemoteBackendError)
+
+    const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
+    this.logger.error(message)
+
+    const status = response?.status
+
+    throw new backend.NetworkError(message, status)
   }
 
   /** The path to the root directory of this {@link Backend}. */
   override rootPath(user: backend.User) {
     switch (user.plan) {
-      case undefined:
       case backend.Plan.free:
       case backend.Plan.solo: {
         return `enso://Users/${user.name}`
@@ -312,7 +289,6 @@ export default class RemoteBackend extends Backend {
     organization: backend.OrganizationInfo | null,
   ): backend.DirectoryId | null {
     switch (user.plan) {
-      case undefined:
       case backend.Plan.free:
       case backend.Plan.solo: {
         return user.rootDirectoryId
@@ -559,29 +535,44 @@ export default class RemoteBackend extends Backend {
     if (response.status === STATUS_NOT_FOUND) {
       // User info has not yet been created, we should redirect to the onboarding page.
       return null
-    } else if (response.status === STATUS_NOT_AUTHORIZED) {
+    }
+
+    if (response.status === STATUS_NOT_AUTHORIZED) {
       // User is not authorized, we should redirect to the login page.
       return await this.throw(
         response,
         new backend.NotAuthorizedError(this.getText('notAuthorizedBackendError')),
       )
-    } else if (!responseIsSuccessful(response)) {
+    }
+
+    if (!responseIsSuccessful(response)) {
       // Arbitrary error, might be a server error or a network error.
       return this.throw(response, 'usersMeBackendError')
-    } else {
-      const user = await response.json()
-
-      Object.defineProperty(user, 'isEnsoTeamMember', {
-        value: user.email.endsWith('@enso.org') || user.email.endsWith('@ensoanalytics.com'),
-        writable: false,
-        configurable: false,
-        enumerable: true,
-      })
-
-      this.user = user
-
-      return user
     }
+
+    const user = await response.json()
+
+    const plan = user.plan
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (plan == null) {
+      // @ts-expect-error The property is declared as read-only, but it's not enforced.
+      // We assume it's read-only for external use.
+      // backend may return null for the plan, but this means that the user is on the free plan.
+      // so we normalize it to the free plan.
+      user.plan = backend.Plan.free
+    }
+
+    Object.defineProperty(user, 'isEnsoTeamMember', {
+      value: user.email.endsWith('@enso.org') || user.email.endsWith('@ensoanalytics.com'),
+      writable: false,
+      configurable: false,
+      enumerable: true,
+    })
+
+    this.user = user
+
+    return user
   }
 
   /**
@@ -634,6 +625,9 @@ export default class RemoteBackend extends Backend {
         .map((asset) =>
           object.merge(asset, {
             permissions: [...(asset.permissions ?? [])].sort(backend.compareAssetPermissions),
+            ...(asset.ensoPath != null ?
+              { ensoPathValue: backend.EnsoPathValue(String(encodeURI(asset.ensoPath))) }
+            : {}),
           }),
         )
         .map((asset) => this.dynamicAssetUser(asset))
@@ -683,7 +677,9 @@ export default class RemoteBackend extends Backend {
   }
 
   /** List all previous versions of an asset. */
-  override async listAssetVersions(assetId: backend.AssetId): Promise<backend.AssetVersions> {
+  override async listAssetVersions(
+    assetId: backend.DatalinkId | backend.FileId | backend.ProjectId,
+  ): Promise<backend.AssetVersions> {
     const path = remoteBackendPaths.listAssetVersionsPath(assetId)
     const response = await this.get<backend.AssetVersions>(path)
     if (!responseIsSuccessful(response)) {
@@ -719,10 +715,15 @@ export default class RemoteBackend extends Backend {
   ) {
     const path = remoteBackendPaths.updateAssetPath(assetId)
     const response = await this.patch(path, body)
+
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'updateAssetBackendError', title)
-    } else {
-      return
+      await this.throw(response, 'updateAssetBackendError', title).catch((error) => {
+        if (isDuplicateAssetError(error)) {
+          throw new backend.DuplicateAssetError(error.message)
+        }
+
+        throw error
+      })
     }
   }
 
@@ -766,18 +767,23 @@ export default class RemoteBackend extends Backend {
   override async copyAsset(
     assetId: backend.AssetId,
     parentDirectoryId: backend.DirectoryId,
-    title: string,
-    parentDirectoryTitle: string,
   ): Promise<backend.CopyAssetResponse> {
     const response = await this.post<backend.CopyAssetResponse>(
       remoteBackendPaths.copyAssetPath(assetId),
       { parentDirectoryId },
     )
+
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'copyAssetBackendError', title, parentDirectoryTitle)
-    } else {
-      return await response.json()
+      return await this.throw(response, 'copyAssetBackendError').catch((error) => {
+        if (isDuplicateAssetError(error)) {
+          throw new backend.DuplicateAssetError(error.message)
+        }
+
+        throw error
+      })
     }
+
+    return await response.json()
   }
 
   /**
@@ -820,15 +826,14 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Restore a project from a different version. */
-  override async restoreProject(
-    projectId: backend.ProjectId,
+  override async restoreAsset(
+    assetId: backend.AssetId,
     versionId: backend.S3ObjectVersionId,
-    title: string,
   ): Promise<void> {
-    const path = remoteBackendPaths.restoreProjectPath(projectId)
+    const path = remoteBackendPaths.restoreAssetPath(assetId)
     const response = await this.post(path, { versionId })
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'restoreProjectBackendError', title)
+      return await this.throw(response, 'restoreAssetBackendError')
     } else {
       return
     }
@@ -1003,13 +1008,12 @@ export default class RemoteBackend extends Backend {
       return await this.throw(response, 'getProjectDetailsBackendError')
     } else {
       const project = await response.json()
+      const { address, ...rest } = project
       return {
-        ...project,
-        ideVersion: project.ide_version,
-        engineVersion: project.engine_version,
-        jsonAddress: project.address != null ? backend.Address(`${project.address}json`) : null,
-        binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
-        ydocAddress: project.address != null ? backend.Address(`${project.address}project`) : null,
+        ...rest,
+        jsonAddress: address != null ? backend.Address(`${address}json`) : null,
+        binaryAddress: address != null ? backend.Address(`${address}binary`) : null,
+        ydocAddress: address != null ? backend.Address(`${address}project`) : null,
       }
     }
   }
@@ -1256,6 +1260,22 @@ export default class RemoteBackend extends Backend {
     const response = await this.post<backend.SecretId>(path, body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createSecretBackendError', body.name)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Create an OAuth credential.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async createCredential(
+    body: backend.CreateCredentialRequestBody,
+  ): Promise<backend.SecretId> {
+    const path = remoteBackendPaths.CREATE_CREDENTIAL_PATH
+    const response = await this.post<backend.SecretId>(path, body)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'createCredentialBackendError', body.name)
     } else {
       return await response.json()
     }
@@ -1520,6 +1540,7 @@ export default class RemoteBackend extends Backend {
       case backend.AssetType.specialLoading:
       case backend.AssetType.specialEmpty:
       case backend.AssetType.specialError:
+      case backend.AssetType.specialUp:
       default: {
         invariant(`'${asset.type}' assets cannot be downloaded.`)
         break
@@ -1528,35 +1549,53 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Download the project to a temporary location. */
-  async downloadProject(id: backend.ProjectId): Promise<DirectoryId> {
+  async downloadProject(id: backend.ProjectId) {
+    /** The type of the response body of this endpoint. */
+    interface ResponseBody {
+      readonly targetDirectory: string
+      readonly parentDirectory: string
+    }
     const details = await this.getProjectDetails(id, true)
 
-    invariant(details.url != null, 'The download URL of the project must be present.')
+    if (details.url == null) {
+      this.logger.error(`Project ${id} details missing download URL.`)
+      return this.throw(null, 'getProjectDetailsBackendError')
+    }
 
     const queryString = new URLSearchParams({
       downloadUrl: details.url,
       projectId: id,
     })
 
-    const response = await this.client.get(`./api/cloud/download-project?${queryString}`)
-    const path = await response.text()
-
-    if (!response.ok) {
+    const response = await this.client.get<ResponseBody>(
+      `./api/cloud/download-project?${queryString}`,
+    )
+    if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
     }
 
-    return DirectoryId(`directory-${path}` as const)
+    const responseBody = await response.json()
+
+    return {
+      targetId: DirectoryId(`directory-${responseBody.targetDirectory}` as const),
+      parentId: DirectoryId(`directory-${responseBody.parentDirectory}` as const),
+    }
   }
 
-  /** Upload the project. */
-  async uploadProject(id: backend.ProjectId, directoryId: backend.DirectoryId): Promise<void> {
-    const uploadPath = remoteBackendPaths.getProjectUploadPath(id)
+  /** Get the enso-project archive contents. */
+  async getProjectArchive(directoryId: backend.DirectoryId, fileName: string): Promise<File> {
     const queryString = new URLSearchParams({
-      uploadUrl: `${$config.API_URL}/${uploadPath}`,
       directory: extractIdFromDirectoryId(directoryId),
     })
 
-    await this.client.get(`./api/cloud/upload-project?${queryString}`)
+    const response = await this.client.get(`./api/cloud/get-project-archive?${queryString}`)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'resolveProjectAssetPathBackendError')
+    }
+
+    const responseBody = await response.arrayBuffer()
+
+    return new File([responseBody], fileName)
   }
 
   /** Fetch the URL of the customer portal. */
@@ -1679,4 +1718,16 @@ export default class RemoteBackend extends Backend {
   private delete<T = void>(path: string, payload?: Record<string, unknown>) {
     return this.client.delete<T>(`${$config.API_URL}/${path}`, payload)
   }
+}
+
+/** The schema that checks if the error is a duplicate asset error. */
+const DUPLICATE_ASSET_ERROR_SCHEMA = z.object({
+  message: z.string().includes('A resource with that title already exists.'),
+})
+
+/**
+ * Check if the error is a duplicate asset error.
+ */
+function isDuplicateAssetError(error: unknown): error is Error {
+  return DUPLICATE_ASSET_ERROR_SCHEMA.safeParse(error).success
 }

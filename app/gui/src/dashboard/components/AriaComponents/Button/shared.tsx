@@ -19,6 +19,7 @@ export type ButtonContextType<IconType extends string> = ButtonProps<IconType> &
   readonly ref?: RefObject<HTMLButtonElement>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const ButtonContext = createContext<ButtonContextType<string> | null>(null)
 
 /**
@@ -91,6 +92,7 @@ export function ResetButtonGroupContext(props: PropsWithChildren) {
 /**
  * Hook to use the button group context
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useButtonGroupContext() {
   return useContext(ButtonGroupContext)
 }
@@ -98,6 +100,7 @@ export function useButtonGroupContext() {
 /**
  * Hook to merge button styles with the button group context
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useMergedButtonStyles<Props extends ButtonVariants>(props: Props) {
   const context = useButtonGroupContext()
 
@@ -127,6 +130,7 @@ export function JoinedButtonPrivateContextProvider(
 /**
  * Hook to get the joined button private context
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useJoinedButtonPrivateContext() {
   return useContext(JoinedButtonPrivateContext)
 }
@@ -134,6 +138,7 @@ export function useJoinedButtonPrivateContext() {
 /**
  * Hook to get the button context
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useButtonContext() {
   return useContext(ButtonContext)
 }

@@ -5,8 +5,7 @@ use crate::source::*;
 use crate::syntax::*;
 
 use crate::span_builder;
-use crate::syntax::token::TokenOperatorProperties;
-use crate::syntax::treebuilding::Spacing;
+use crate::syntax::expression::Spacing;
 
 #[cfg(feature = "debug")]
 use enso_parser_syntax_tree_visitor::Visitor;

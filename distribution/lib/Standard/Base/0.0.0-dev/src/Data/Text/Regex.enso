@@ -165,7 +165,7 @@ type Regex
     find_all self (input : Text) =
        self.match_all input . map match_to_group_maybe
 
-    ## ALIAS tokenize, parse
+    ## ALIAS parse, tokenize
        GROUP Conversions
        ICON split
        Splits the `input` text based on the pattern described by `self`.
@@ -210,7 +210,7 @@ type Regex
                     builder.append filler.text
             go it.next
 
-    ## ALIAS split, parse
+    ## ALIAS parse, split
        GROUP Conversions
        ICON split
        Takes an input string and returns all the matches as a `Vector Text`.

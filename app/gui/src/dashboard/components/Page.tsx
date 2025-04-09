@@ -10,10 +10,6 @@ import InfoBar from '#/layouts/InfoBar'
 import TheModal from '#/components/dashboard/TheModal'
 import Portal from '#/components/Portal'
 
-// ============
-// === Page ===
-// ============
-
 /** Props for a {@link Page}. */
 export interface PageProps extends Readonly<React.PropsWithChildren> {
   readonly hideInfoBar?: true

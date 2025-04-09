@@ -12,6 +12,7 @@ import org.enso.runtimeversionmanager.components.{Engine, RuntimeVersionManager}
 import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 
 import java.nio.file.Path
+
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future, TimeoutException}
 import scala.util.Try
@@ -103,7 +104,8 @@ class Runner(
       version,
       logLevel,
       logMasking,
-      additionalArguments
+      additionalArguments,
+      Seq()
     )
   }
 
@@ -114,11 +116,10 @@ class Runner(
     version: SemVer,
     logLevel: Level,
     logMasking: Boolean,
-    additionalArguments: Seq[String]
+    additionalArguments: Seq[String],
+    extraEnv: Seq[(String, String)]
   ): Try[RunSettings] =
     Try {
-      val workingDirectory =
-        Path.of(projectPath).toAbsolutePath.normalize.getParent
       val arguments = Seq(
         "--server",
         "--root-id",
@@ -142,12 +143,15 @@ class Runner(
           .map(port => Seq("--secure-data-port", port.toString))
           .getOrElse(Seq.empty) ++
         Option.unless(logMasking)(Seq("--no-log-masking")).getOrElse(Seq.empty)
+
+      val projectDirectory = Path.of(projectPath).toAbsolutePath.normalize
       RunSettings(
         version,
-        options.jvmMode,
+        options.jvmModeEnabled,
         arguments ++ additionalArguments,
-        workingDirectory         = Some(workingDirectory),
-        connectLoggerIfAvailable = true
+        workingDirectory         = Some(projectDirectory.getParent),
+        connectLoggerIfAvailable = true,
+        extraEnv                 = extraEnv
       )
     }
 
@@ -201,12 +205,14 @@ class Runner(
           logger.info(
             "Using explicit " + JVM_PATH_ENV_VAR + " JVM: " + p
           )
-          p.toString()
+          p.toString
         }
         .orElse(cmd.javaHome)
 
       val extraEnvironmentOverrides =
-        javaHome.map("JAVA_HOME" -> _).toSeq ++ distributionSettings.toSeq
+        javaHome
+          .map("JAVA_HOME" -> _)
+          .toSeq ++ distributionSettings.toSeq ++ runSettings.extraEnv
 
       action(
         RawCommand(
@@ -320,5 +326,4 @@ class Runner(
 object Runner {
 
   private val LAUNCHER_ENV_NAME = "ENSO_LAUNCHER"
-
 }

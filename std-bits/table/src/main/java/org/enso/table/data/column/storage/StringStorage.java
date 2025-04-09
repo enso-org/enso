@@ -12,12 +12,9 @@ import org.enso.table.data.column.operation.map.text.StringIsInOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
-import org.slf4j.Logger;
 
 /** A column storing strings. */
 public final class StringStorage extends SpecializedStorage<String> {
-
-  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(StringStorage.class);
 
   record DataQualityMetrics(Long untrimmedCount, Long whitespaceCount) {}
 

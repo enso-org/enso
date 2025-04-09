@@ -349,6 +349,7 @@ class RangeSplitter extends ExclusiveTreeVisitor {
       switch (node.name) {
         case 'CodeBlock':
         case 'FencedCode':
+        case 'Table':
           return false
         default:
       }
@@ -368,19 +369,22 @@ class RangeSplitter extends ExclusiveTreeVisitor {
       // TODO: Yield the intersection of the range with the link text.
       /* fallthrough */
       case 'Autolink':
-      case 'InlineCode': {
-        // Exclude the node from the range.
-        this.currentRange = this.trimRange(
-          nodeFromOutside ?
-            Range.unsafeFromBounds(node.to, this.currentRange!.to)
-          : Range.unsafeFromBounds(this.currentRange!.from, node.from),
-        )
+      case 'InlineCode':
+      case 'Table':
+        this.excludeNodeFromCurrentRange(node, nodeFromOutside)
         return false
-      }
       // FIXME: Maybe the default should be unformattable?
       default:
         return true
     }
+  }
+
+  private excludeNodeFromCurrentRange(node: SyntaxNodeRef, nodeFromOutside: boolean) {
+    this.currentRange = this.trimRange(
+      nodeFromOutside ?
+        Range.unsafeFromBounds(node.to, this.currentRange!.to)
+      : Range.unsafeFromBounds(this.currentRange!.from, node.from),
+    )
   }
 
   override leave() {
@@ -535,6 +539,15 @@ class AnalyzeSplits extends ExclusiveTreeVisitor {
       switch (node.name) {
         case 'Document':
         case 'Paragraph':
+        case 'ATXHeading1':
+        case 'ATXHeading2':
+        case 'ATXHeading3':
+        case 'ATXHeading4':
+        case 'ATXHeading5':
+        case 'ATXHeading6':
+        case 'Blockquote':
+        case 'OrderedList':
+        case 'ListItem':
           break
         case 'Emphasis':
         case 'StrongEmphasis':

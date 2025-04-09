@@ -30,20 +30,14 @@ import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import { OfflineError } from '#/utilities/HttpClient'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { useDeferredValue } from 'react'
 import { toast } from 'react-toastify'
 import { Suspense } from '../components/Suspense'
 import { useCategoriesAPI } from './Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from './Drive/directoryIdsHooks'
 
-// =============
-// === Drive ===
-// =============
-
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-  readonly hidden: boolean
   readonly initialProjectName: string | null
   readonly assetsManagementApiRef: React.Ref<assetsTable.AssetManagementApi>
 }
@@ -148,13 +142,7 @@ interface DriveAssetsViewProps extends DriveProps {
  * The assets view of the Drive.
  */
 function DriveAssetsView(props: DriveAssetsViewProps) {
-  const {
-    category,
-    setCategory,
-    hidden = false,
-    initialProjectName,
-    assetsManagementApiRef,
-  } = props
+  const { category, setCategory, initialProjectName, assetsManagementApiRef } = props
 
   const deferredCategory = useDeferredValue(category)
 
@@ -176,12 +164,12 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
   const { rootDirectoryId } = useDirectoryIds({ category })
 
   return (
-    <div className={tailwindMerge.twMerge('relative flex grow', hidden && 'hidden')}>
+    <div className="relative flex grow">
       <div
         data-testid="drive-view"
         className="mt-4 flex flex-1 flex-col gap-4 overflow-visible px-4"
       >
-        <div className="grid flex-1 grid-cols-[minmax(180px,auto)_minmax(0,1fr)] gap-3 overflow-hidden">
+        <div className="grid flex-1 grid-cols-[180px_minmax(0,1fr)] gap-3 overflow-hidden">
           <div className="grid-col-1 flex flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden pt-1">
             <CategorySwitcher category={category} setCategoryId={setCategory} />
 
@@ -212,7 +200,6 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
                 <ErrorBoundary>
                   <AssetsTable
                     assetManagementApiRef={assetsManagementApiRef}
-                    hidden={hidden}
                     query={query}
                     setQuery={setQuery}
                     category={deferredCategory}

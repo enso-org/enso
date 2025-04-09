@@ -7,7 +7,10 @@ import { useLinkTitles } from '@/util/codemirror/links'
 import { useTemplateRef, type ComponentInstance } from 'vue'
 import * as Y from 'yjs'
 
-const { content } = defineProps<{ content: Y.Text | string }>()
+const { content, contentTestId } = defineProps<{
+  content: Y.Text | string
+  contentTestId?: string | undefined
+}>()
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 const vueHost = new VueHostInstance()
@@ -15,6 +18,8 @@ const { editorView, readonly, contentElement } = useCodeMirror(editorRoot, {
   content: () => content,
   extensions: [linkifyUrls],
   vueHost: () => vueHost,
+  contentTestId,
+  lineMode: 'single',
 })
 
 useLinkTitles(editorView, { readonly })
@@ -25,8 +30,9 @@ defineExpose({
 </script>
 
 <template>
-  <CodeMirrorRoot ref="editorRoot" v-bind="$attrs" />
-  <VueHostRender :host="vueHost" />
+  <CodeMirrorRoot ref="editorRoot" @keydown.enter.stop>
+    <VueHostRender :host="vueHost" />
+  </CodeMirrorRoot>
 </template>
 
 <style scoped>

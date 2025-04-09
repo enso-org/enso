@@ -16,7 +16,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -129,13 +133,20 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public Thread createThread(Runnable r) {
-    return context.createThread(false, r);
+  public ExecutorService newParsingPool() {
+    return new ThreadPoolExecutor(
+        Compiler.startingThreadCount(),
+        Compiler.maximumThreadCount(),
+        Compiler.threadKeepalive(),
+        TimeUnit.SECONDS,
+        new LinkedBlockingDeque<>(),
+        (runnable) -> {
+          return context.getThreadManager().createThread(true, runnable);
+        });
   }
 
-  @Override
-  public Thread createSystemThread(Runnable r) {
-    return context.createThread(true, r);
+  final ExecutorService newSerializationPool() {
+    return context.getThreadManager().newFixedThreadPool(1, "SerializationPool background thread");
   }
 
   @Override

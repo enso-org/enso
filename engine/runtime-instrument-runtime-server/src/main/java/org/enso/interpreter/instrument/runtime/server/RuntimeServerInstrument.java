@@ -50,7 +50,7 @@ public class RuntimeServerInstrument extends TruffleInstrument {
     if (jobExecutor == null) {
       var ensoCtx = EnsoContext.get(null);
       var jobParallelism = ensoCtx.getJobParallelism();
-      jobExecutor = ensoCtx.newScheduledThreadPool(jobParallelism, "job-pool", false);
+      jobExecutor = ensoCtx.getThreadManager().newFixedThreadPool(jobParallelism, "job-pool");
     }
     return jobExecutor;
   }

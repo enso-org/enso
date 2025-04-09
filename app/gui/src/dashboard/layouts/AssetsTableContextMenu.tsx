@@ -23,18 +23,19 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
-import Separator from '#/components/styled/Separator'
+import { Separator } from '#/components/AriaComponents'
 import {
   deleteAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
+import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useFullUserSession } from '#/providers/AuthProvider'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
-import * as permissions from '#/utilities/permissions'
 import { useMutation } from '@tanstack/react-query'
+import { twJoin } from '../utilities/tailwindMerge'
 
 /** Props for an {@link AssetsTableContextMenu}. */
 export interface AssetsTableContextMenuProps {
@@ -69,7 +70,6 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     doPaste,
   } = props
 
-  const { user } = useFullUserSession()
   const { setModal, unsetModal } = useSetModal()
   const { getText } = useText()
 
@@ -80,25 +80,19 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const driveStore = useDriveStore()
   const deleteAssetsMutation = useMutation(deleteAssetsMutationOptions(backend))
   const restoreAssetsMutation = useMutation(restoreAssetsMutationOptions(backend))
+  const showDeveloperIds = useFeatureFlag('showDeveloperIds')
+  const copyMutation = useCopy()
 
   const hasPasteData = useStore(driveStore, ({ pasteData }) => {
     const effectivePasteData =
       (
         pasteData?.data.backendType === backend.type &&
-        canTransferBetweenCategories(pasteData.data.category, category, user)
+        canTransferBetweenCategories(pasteData.data.category, category)
       ) ?
         pasteData
       : null
     return (effectivePasteData?.data.ids.size ?? 0) > 0
   })
-
-  const ownsAllSelectedAssets =
-    !isCloud ||
-    selectedAssets.every(
-      ({ id }) =>
-        permissions.tryFindSelfPermission(user, getAsset(id)?.permissions)?.permission ===
-        permissions.PermissionAction.own,
-    )
 
   // This is not a React component even though it contains JSX.
   const doDeleteAll = useEventCallback(async () => {
@@ -132,6 +126,16 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     }
   })
 
+  const copyIdsMenuEntry = showDeveloperIds && (
+    <ContextMenuEntry
+      hidden={hidden}
+      action="copyId"
+      color="accent"
+      label={getText('copyAllIdsShortcut')}
+      doAction={() => copyMutation.mutateAsync(selectedAssets.map((asset) => asset.id).join('\n'))}
+    />
+  )
+
   const pasteAllMenuEntry = hasPasteData && (
     <ContextMenuEntry
       hidden={hidden}
@@ -156,6 +160,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
           hidden={hidden}
           event={event}
         >
+          {copyIdsMenuEntry}
           <ContextMenuEntry
             hidden={hidden}
             action="undelete"
@@ -165,34 +170,32 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
               restoreAssetsMutation.mutate(selectedAssets.map((asset) => asset.id))
             }}
           />
-          {isCloud && (
-            <ContextMenuEntry
-              hidden={hidden}
-              action="delete"
-              label={getText('deleteAllForeverShortcut')}
-              doAction={() => {
-                const asset = selectedAssets[0]
-                const soleAssetName = asset?.title ?? '(unknown)'
-                setModal(
-                  <ConfirmDeleteModal
-                    defaultOpen
-                    actionText={
-                      selectedAssets.length === 1 ?
-                        getText('deleteSelectedAssetForeverActionText', soleAssetName)
-                      : getText('deleteSelectedAssetsForeverActionText', selectedAssets.length)
-                    }
-                    doDelete={async () => {
-                      setSelectedAssets([])
-                      await deleteAssetsMutation.mutateAsync([
-                        selectedAssets.map((otherAsset) => otherAsset.id),
-                        true,
-                      ])
-                    }}
-                  />,
-                )
-              }}
-            />
-          )}
+          <ContextMenuEntry
+            hidden={hidden}
+            action="delete"
+            label={getText('deleteAllForeverShortcut')}
+            doAction={() => {
+              const asset = selectedAssets[0]
+              const soleAssetName = asset?.title ?? '(unknown)'
+              setModal(
+                <ConfirmDeleteModal
+                  defaultOpen
+                  actionText={
+                    selectedAssets.length === 1 ?
+                      getText('deleteSelectedAssetForeverActionText', soleAssetName)
+                    : getText('deleteSelectedAssetsForeverActionText', selectedAssets.length)
+                  }
+                  doDelete={async () => {
+                    setSelectedAssets([])
+                    await deleteAssetsMutation.mutateAsync([
+                      selectedAssets.map((otherAsset) => otherAsset.id),
+                      true,
+                    ])
+                  }}
+                />,
+              )
+            }}
+          />
           {pasteAllMenuEntry}
         </ContextMenu>
       )
@@ -200,64 +203,62 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   }
 
   if (category.type === 'recent') {
-    return null
-  }
-
-  const shouldShowAssetMenu = selectedAssets.length !== 0 || pasteAllMenuEntry !== false
-  const shouldShowGlobalMenu =
-    category.type !== 'cloud' || user.plan == null || user.plan === backendModule.Plan.solo
-  if (!shouldShowAssetMenu && !shouldShowGlobalMenu) {
-    return null
-  } else {
     return (
-      <ContextMenu
-        aria-label={getText('assetsTableContextMenuLabel')}
-        hidden={hidden}
-        event={event}
-      >
-        {shouldShowAssetMenu && (
-          <>
-            {selectedAssets.length !== 0 && ownsAllSelectedAssets && (
-              <ContextMenuEntry
-                hidden={hidden}
-                action="delete"
-                label={isCloud ? getText('moveAllToTrashShortcut') : getText('deleteAllShortcut')}
-                doAction={doDeleteAll}
-              />
-            )}
-            {selectedAssets.length !== 0 && isCloud && (
-              <ContextMenuEntry
-                hidden={hidden}
-                action="copy"
-                label={getText('copyAllShortcut')}
-                doAction={doCopy}
-              />
-            )}
-            {selectedAssets.length !== 0 && ownsAllSelectedAssets && (
-              <ContextMenuEntry
-                hidden={hidden}
-                action="cut"
-                label={getText('cutAllShortcut')}
-                doAction={doCut}
-              />
-            )}
-            {pasteAllMenuEntry}
-          </>
-        )}
-        {shouldShowAssetMenu && shouldShowGlobalMenu && <Separator hidden={hidden} />}
-        {shouldShowGlobalMenu && (
-          <GlobalContextMenu
-            noWrapper
-            hidden={hidden}
-            backend={backend}
-            category={category}
-            currentDirectoryId={currentDirectoryId}
-            directoryId={null}
-            doPaste={doPaste}
-            event={event}
-          />
-        )}
-      </ContextMenu>
+      showDeveloperIds && (
+        <ContextMenu
+          aria-label={getText('assetsTableContextMenuLabel')}
+          hidden={hidden}
+          event={event}
+        >
+          {copyIdsMenuEntry}
+        </ContextMenu>
+      )
     )
   }
+
+  return (
+    <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden} event={event}>
+      <>
+        {copyIdsMenuEntry}
+        {selectedAssets.length !== 0 && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="delete"
+            label={isCloud ? getText('moveAllToTrashShortcut') : getText('deleteAllShortcut')}
+            doAction={doDeleteAll}
+          />
+        )}
+        {selectedAssets.length !== 0 && isCloud && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="copy"
+            label={getText('copyAllShortcut')}
+            doAction={doCopy}
+          />
+        )}
+        {selectedAssets.length !== 0 && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="cut"
+            label={getText('cutAllShortcut')}
+            doAction={doCut}
+          />
+        )}
+        {pasteAllMenuEntry}
+      </>
+
+      <Separator className={twJoin('my-2 first:hidden', hidden && 'hidden')} />
+
+      <GlobalContextMenu
+        noWrapper
+        hidden={hidden}
+        backend={backend}
+        category={category}
+        currentDirectoryId={currentDirectoryId}
+        directoryId={null}
+        doPaste={doPaste}
+        event={event}
+      />
+    </ContextMenu>
+  )
 }

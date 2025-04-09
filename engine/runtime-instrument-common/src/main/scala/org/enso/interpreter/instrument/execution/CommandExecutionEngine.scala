@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument.execution
 
+import org.slf4j.LoggerFactory
 import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.command.{
   AsynchronousCommand,
@@ -28,35 +29,36 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
     interpreterContext.executionService.getContext
       .isInterpreterSequentialCommandExection()
 
-  private val locking = new ReentrantLocking(
-    interpreterContext.executionService.getLogger
-  )
+  private val locking = new ReentrantLocking()
 
   private val executionState = new ExecutionState()
 
   private val jobExecutionEngine =
     new JobExecutionEngine(interpreterContext, executionState, locking)
 
+  private def logger: org.slf4j.Logger =
+    LoggerFactory.getLogger(classOf[CommandExecutionEngine])
+
   private val commandExecutor =
     if (isSequential) {
-      interpreterContext.executionService.getLogger.fine(
+      logger.debug(
         "Executing commands sequentially"
       )
       jobExecutionEngine.jobExecutor
     } else {
-      interpreterContext.executionService.getLogger.fine(
+      logger.debug(
         "Executing commands in a separate command pool"
       )
-      interpreterContext.executionService.getContext
-        .newCachedThreadPool("command-pool", 2, 10, 50, false)
+      interpreterContext.executionService.getContext.getThreadManager
+        .newCachedThreadPool("command-pool", 2, 10, 50)
     }
 
   private val sequentialExecutionService =
-    interpreterContext.executionService.getContext.newScheduledThreadPool(
-      1,
-      "sequential-command-pool",
-      false
-    )
+    interpreterContext.executionService.getContext.getThreadManager
+      .newFixedThreadPool(
+        1,
+        "sequential-command-pool"
+      )
   private val sequentialExecutionContext =
     ExecutionContext.fromExecutor(sequentialExecutionService)
 

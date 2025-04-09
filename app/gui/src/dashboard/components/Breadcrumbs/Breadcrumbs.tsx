@@ -1,6 +1,4 @@
-/**
- * @file Breadcrumbs component implementation.
- */
+/** @file A breadcrumb nagivation component. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import {
@@ -17,19 +15,16 @@ import { Button, type IconProp, type TestIdProps } from '../AriaComponents'
 import { Icon } from '../Icon'
 import { BreadcrumbItem, BreadcrumbItemProvider } from './BreadcrumbItem'
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const BREADCRUMBS_STYLES = tv({
   base: 'flex items-center w-full',
   slots: { separator: 'text-primary last:hidden w-2.5 h-2.5 mt-[0.5px]' },
 })
 
-/**
- * The type of the `onDrop` callback.
- */
+/** The type of the `onDrop` callback. */
 export type OnDrop = (key: Key, e: DropEvent) => Promise<void> | void
 
-/**
- * Props for {@link Breadcrumbs}
- */
+/** Props for {@link Breadcrumbs}. */
 export interface BreadcrumbsProps
   extends AriaBreadcrumbsProps,
     VariantProps<typeof BREADCRUMBS_STYLES>,
@@ -42,9 +37,7 @@ export interface BreadcrumbsProps
   readonly onDrop?: OnDrop
 }
 
-/**
- * A breadcrumb navigation component.
- */
+/** A breadcrumb navigation component. */
 export function Breadcrumbs(props: BreadcrumbsProps) {
   const {
     children,
@@ -84,9 +77,7 @@ export function Breadcrumbs(props: BreadcrumbsProps) {
   )
 }
 
-/**
- * Props for {@link BreadcrumbInner}
- */
+/** Props for {@link BreadcrumbInner}. */
 interface BreadcrumbInnerProps extends TestIdProps, AriaBreadcrumbsProps, PropsWithChildren {
   readonly className?: string
 }
@@ -107,17 +98,13 @@ function BreadcrumbInner(props: BreadcrumbInnerProps) {
   )
 }
 
-/**
- * Props for {@link BreadcrumbSeparator}
- */
+/** Props for {@link BreadcrumbSeparator}. */
 interface BreadcrumbSeparatorProps<Icon extends string> {
   readonly icon?: IconProp<Icon, never>
   readonly className?: string
 }
 
-/**
- * A separator between breadcrumb items.
- */
+/** A separator between breadcrumb items. */
 // eslint-disable-next-line no-restricted-syntax
 const BreadcrumbSeparator = memo(function BreadcrumbSeparator<Icon extends string>(
   props: BreadcrumbSeparatorProps<Icon>,

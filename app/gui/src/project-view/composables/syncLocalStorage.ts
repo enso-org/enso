@@ -1,7 +1,6 @@
 import { useAbortScope } from '@/util/net'
 import { debouncedWatch, useLocalStorage } from '@vueuse/core'
 import { encoding } from 'lib0'
-import { Encoder } from 'lib0/encoding.js'
 import { computed, getCurrentInstance, ref, watch, withCtx } from 'vue'
 import { xxHash128 } from 'ydoc-shared/ast/ffi'
 import { AbortScope } from 'ydoc-shared/util/net'

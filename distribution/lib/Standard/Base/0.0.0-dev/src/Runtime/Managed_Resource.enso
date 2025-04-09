@@ -1,4 +1,8 @@
-## An API for manual resource management.
+## Resource provides an API for manual management of computation resources.
+
+   These include things like file handles, network sockets, and so on. This
+   API is intended for use by library developers to provide higher-level and
+   easier to use abstractions.
 
 import project.Any.Any
 import project.Data.Text.Text
@@ -10,12 +14,6 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
-
-## Resource provides an API for manual management of computation resources.
-
-   These include things like file handles, network sockets, and so on. This
-   API is intended for use by library developers to provide higher-level and
-   easier to use abstractions.
 
 ## A managed resource is a special type of resource that is subject to
    automated cleanup when it is no longer in use.

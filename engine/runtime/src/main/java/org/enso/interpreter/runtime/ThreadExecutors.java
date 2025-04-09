@@ -1,5 +1,8 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.ThreadLocalAction;
+import com.oracle.truffle.api.TruffleLanguage.Env;
+import com.oracle.truffle.api.TruffleLogger;
 import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -8,14 +11,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
+/** Internal holder of all threads associated with {@link EnsoContext}. */
 final class ThreadExecutors {
-  private final EnsoContext context;
+  private final TruffleLogger logger;
+  private final Env env;
   private final Map<ExecutorService, String> pools =
       Collections.synchronizedMap(new WeakHashMap<>());
   private final Map<Thread, String> threads = Collections.synchronizedMap(new WeakHashMap<>());
+  private int threadCounter;
 
-  ThreadExecutors(EnsoContext context) {
-    this.context = context;
+  ThreadExecutors(Env env, TruffleLogger logger) {
+    this.env = env;
+    this.logger = logger;
   }
 
   ExecutorService newCachedThreadPool(
@@ -47,7 +54,7 @@ final class ThreadExecutors {
         try {
           t.join();
         } catch (InterruptedException ex) {
-          context.getLogger().log(Level.WARNING, "Cannot shutdown {0} thread", t.getName());
+          logger.log(Level.WARNING, "Cannot shutdown {0} thread", t.getName());
         }
       }
     }
@@ -67,8 +74,28 @@ final class ThreadExecutors {
         success = false;
       }
       if (!success) {
-        context.getLogger().log(Level.WARNING, "Cannot shutdown {0} thread pool", next.getValue());
+        logger.log(Level.WARNING, "Cannot shutdown {0} thread pool", next.getValue());
       }
+    }
+  }
+
+  /**
+   * Invokes {@link Env#submitThreadLocal}.
+   *
+   * @param threads {@code null} or list of threads to execute action at
+   * @param action the action to execute at given threads
+   * @return future to check whether action has been executed
+   */
+  final Future<Void> submitThreadLocal(Thread[] threads, ThreadLocalAction action) {
+    return env.submitThreadLocal(threads, action);
+  }
+
+  final Thread createThread(boolean systemThread, Runnable run) {
+    if (systemThread) {
+      var t = new Thread(run, "Enso thread #" + ++threadCounter);
+      return t;
+    } else {
+      return env.newTruffleThreadBuilder(run).build();
     }
   }
 
@@ -84,7 +111,7 @@ final class ThreadExecutors {
 
     @Override
     public Thread newThread(Runnable r) {
-      var thread = context.createThread(system, r);
+      var thread = createThread(system, r);
       thread.setName(prefix + "-" + counter.incrementAndGet());
       threads.put(thread, thread.getName());
       return thread;

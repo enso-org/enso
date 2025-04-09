@@ -25,10 +25,6 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useSessionAPI } from '../../providers/SessionProvider'
 
-// ============================
-// === Global configuration ===
-// ============================
-
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
@@ -42,10 +38,6 @@ LocalStorage.registerKey('loginRedirect', {
 })
 
 const CONFIRM_SIGN_IN_INTERVAL = 5_000
-
-// ====================
-// === Registration ===
-// ====================
 
 /** A form for users to register an account. */
 export default function Registration() {

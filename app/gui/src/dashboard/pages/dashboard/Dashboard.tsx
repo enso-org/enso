@@ -19,7 +19,6 @@ import * as modalProvider from '#/providers/ModalProvider'
 import ProjectsProvider, {
   useClearLaunchedProjects,
   usePage,
-  useProjectsStore,
   useSetPage,
   type TabType,
 } from '#/providers/ProjectsProvider'
@@ -29,15 +28,14 @@ import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import UserBar from '#/layouts/UserBar'
 
-import * as aria from '#/components/aria'
 import Page from '#/components/Page'
 
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
+import { Tabs } from '#/components/aria'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
-import { useRefetchDirectories } from '#/layouts/Drive/fetchDirectoriesHooks'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -92,8 +90,6 @@ function fileURLToPath(url: string): string | null {
 function DashboardInner(props: DashboardProps) {
   const { initialProjectName: initialProjectNameRaw, ydocUrl } = props
   const localBackend = backendProvider.useLocalBackend()
-  const { modalRef } = modalProvider.useModalRef()
-  const { updateModal, unsetModal } = modalProvider.useSetModal()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
 
@@ -104,16 +100,11 @@ function DashboardInner(props: DashboardProps) {
   const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
 
   const categoriesAPI = useCategoriesAPI()
-
-  useRefetchDirectories(backendModule.BackendType.local)
-  useRefetchDirectories(backendModule.BackendType.remote)
-
-  const projectsStore = useProjectsStore()
   const page = usePage()
-
   const setPage = useSetPage()
+
   const openEditor = projectHooks.useOpenEditor()
-  const openProject = projectHooks.useOpenProject()
+  const openProjectLocally = projectHooks.useOpenProjectLocally()
   const closeProject = projectHooks.useCloseProject()
   const closeAllProjects = projectHooks.useCloseAllProjects()
   const clearLaunchedProjects = useClearLaunchedProjects()
@@ -130,12 +121,14 @@ function DashboardInner(props: DashboardProps) {
           localBackend.rootPath(),
           projectName,
         )
-        openProject({
-          type: backendModule.BackendType.local,
-          id: localBackendModule.newProjectId(projectManager.UUID(id), localBackend.rootPath()),
-          title: projectName,
-          parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
-        })
+        await openProjectLocally(
+          {
+            id: localBackendModule.newProjectId(projectManager.UUID(id), localBackend.rootPath()),
+            title: projectName,
+            parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
+          },
+          backendModule.BackendType.local,
+        )
       }
       return null
     },
@@ -151,39 +144,20 @@ function DashboardInner(props: DashboardProps) {
         projectManager.Path(project.parentDirectory),
       )
 
-      openProject({
-        type: backendModule.BackendType.local,
-        id: projectId,
-        title: project.name,
-        parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
-      })
+      void openProjectLocally(
+        {
+          id: projectId,
+          title: project.name,
+          parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
+        },
+        backendModule.BackendType.local,
+      )
     })
 
     return () => {
       window.projectManagementApi?.setOpenProjectHandler(() => {})
     }
-  }, [openEditor, openProject, categoriesAPI])
-
-  React.useEffect(
-    () =>
-      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-        closeModal: () => {
-          updateModal((oldModal) => {
-            if (oldModal == null) {
-              const currentPage = projectsStore.getState().page
-              if (currentPage === 'settings') {
-                setPage('drive')
-              }
-            }
-            return null
-          })
-          if (modalRef.current == null) {
-            return false
-          }
-        },
-      }),
-    [inputBindings, modalRef, updateModal, setPage, projectsStore],
-  )
+  }, [openEditor, openProjectLocally, categoriesAPI])
 
   React.useEffect(() => {
     if (detect.isOnElectron()) {
@@ -199,6 +173,14 @@ function DashboardInner(props: DashboardProps) {
     }
   }, [inputBindings])
 
+  React.useEffect(
+    () =>
+      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+        closeModal: () => modalProvider.unsetModal(),
+      }),
+    [inputBindings],
+  )
+
   const onSignOut = eventCallbacks.useEventCallback(() => {
     setPage('drive')
     closeAllProjects()
@@ -209,23 +191,27 @@ function DashboardInner(props: DashboardProps) {
     setPage('settings')
   })
 
+  const onSelectionChange = eventCallbacks.useEventCallback((newPage: React.Key) => {
+    // This is safe as we render only valid pages.
+    // eslint-disable-next-line no-restricted-syntax
+    setPage(newPage as TabType)
+  })
+
+  const selectedTab = React.useDeferredValue(page)
+
   return (
     <Page hideInfoBar hideChat>
       <div
         className="flex min-h-full flex-col text-xs text-primary"
         onContextMenu={(event) => {
           event.preventDefault()
-          unsetModal()
+          modalProvider.unsetModal()
         }}
       >
-        <aria.Tabs
+        <Tabs
           className="relative flex min-h-full grow select-none flex-col container-size"
-          selectedKey={page}
-          onSelectionChange={(newPage) => {
-            // This is safe as we render only valid pages.
-            // eslint-disable-next-line no-restricted-syntax
-            setPage(newPage as TabType)
-          }}
+          selectedKey={selectedTab}
+          onSelectionChange={onSelectionChange}
         >
           <div className="flex">
             <DashboardTabBar onCloseProject={closeProject} onOpenEditor={openEditor} />
@@ -242,7 +228,8 @@ function DashboardInner(props: DashboardProps) {
             ydocUrl={ydocUrl}
             assetManagementApiRef={assetManagementApiRef}
           />
-        </aria.Tabs>
+        </Tabs>
+
         {$config.CHAT_URL != null ?
           <Chat
             isOpen={isHelpChatOpen}

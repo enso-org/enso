@@ -3,10 +3,11 @@ package org.enso.table.data.column.operation;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CachedPropertyCheck<T> {
 
-  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(CachedPropertyCheck.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(CachedPropertyCheck.class);
 
   private final CompletableFuture<T> cachedFuture;
 

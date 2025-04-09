@@ -110,6 +110,7 @@ class ProjectFileRepository[
       pkg  <- pkgOpt
       meta <- metaOpt
     } yield {
+      val cfg = pkg.getConfig()
       Project(
         id                    = meta.id,
         name                  = pkg.name,
@@ -117,10 +118,11 @@ class ProjectFileRepository[
         namespace             = pkg.namespace,
         kind                  = meta.kind,
         created               = meta.created,
-        edition               = pkg.getConfig().edition,
+        edition               = cfg.edition,
         lastOpened            = meta.lastOpened,
         path                  = directory,
-        directoryCreationTime = directoryCreationTime
+        directoryCreationTime = directoryCreationTime,
+        jvmModeEnabled        = cfg.jvm
       )
     }
   }

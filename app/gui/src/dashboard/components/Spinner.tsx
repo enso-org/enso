@@ -8,6 +8,7 @@ import { twJoin } from 'tailwind-merge'
 /** The state of the spinner. It should go from `initial`, to `loading`, to `done`. */
 export type SpinnerState = 'done' | 'initial' | 'loading-fast' | 'loading-medium' | 'loading-slow'
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const SPINNER_CSS_CLASSES: Readonly<Record<SpinnerState, string>> = {
   initial: 'dasharray-5 ease-linear',
   /* eslint-disable-next-line @typescript-eslint/naming-convention */
@@ -25,12 +26,18 @@ export interface SpinnerProps {
   readonly padding?: number
   readonly className?: string
   readonly state: SpinnerState
+  readonly thickness?: number
 }
+
+/**
+ * The default size of the spinner.
+ */
+export const ROTATING_ELEMENT_SIZE = 24
 
 /** A spinning arc that animates using the `dasharray-<percentage>` custom Tailwind classes. */
 
 export const Spinner = React.memo(function Spinner(props: SpinnerProps) {
-  const { size, padding, className, state } = props
+  const { size, padding, className, state, thickness = 3 } = props
 
   const cssClasses = twJoin('pointer-events-none', className)
 
@@ -47,14 +54,14 @@ export const Spinner = React.memo(function Spinner(props: SpinnerProps) {
       data-testid="spinner"
     >
       <rect
-        x={1.5}
-        y={1.5}
-        width={21}
-        height={21}
-        rx={10.5}
+        x={thickness / 2}
+        y={thickness / 2}
+        width={ROTATING_ELEMENT_SIZE - thickness}
+        height={ROTATING_ELEMENT_SIZE - thickness}
+        rx={ROTATING_ELEMENT_SIZE / 2 - thickness / 2}
         stroke="currentColor"
         strokeLinecap="round"
-        strokeWidth={3}
+        strokeWidth={thickness}
         className={twJoin(
           'pointer-events-none origin-center !animate-spin-ease transition-stroke-dasharray [transition-duration:var(--spinner-slow-transition-duration)]',
           SPINNER_CSS_CLASSES[state],

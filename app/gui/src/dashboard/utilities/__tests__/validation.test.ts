@@ -3,10 +3,6 @@ import * as v from 'vitest'
 
 import * as validation from '#/utilities/validation'
 
-// =============
-// === Tests ===
-// =============
-
 /** Runs all tests. */
 v.test('password validation', () => {
   const regex = validation.PASSWORD_REGEX

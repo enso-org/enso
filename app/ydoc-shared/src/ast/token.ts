@@ -10,12 +10,12 @@ export import TokenType = RawAst.Token.Type
 export import tokenTypes = RawAst.Token.typeNames
 
 /** Whether the given value is a {@link Token}. */
-export function isToken(maybeToken: unknown): maybeToken is Token {
+export function isToken(maybeToken: Token | Ast): maybeToken is Token {
   return maybeToken instanceof Token
 }
 
 /** Whether the given {@link NodeChild} is a {@link NodeChild}<{@link Token}>. */
-export function isTokenChild(child: NodeChild<unknown>): child is NodeChild<Token> {
+export function isTokenChild(child: NodeChild<Token | Ast>): child is NodeChild<Token> {
   return isToken(child.node)
 }
 
@@ -41,11 +41,6 @@ export class Token implements SyncTokenId {
     readonly id: TokenId,
   ) {}
 
-  /** The id of this token. */
-  get externalId(): TokenId {
-    return this.id
-  }
-
   /** Construct a {@link Token} without a {@link TokenId}. */
   static new(code: string, type?: TokenType) {
     return new this(code, type, newTokenId())
@@ -68,7 +63,7 @@ export class Token implements SyncTokenId {
   }
 
   /** The name of the token type of this token. */
-  get typeName(): string {
+  get typeName(): (typeof RawAst.Token.typeNames)[number] | 'Raw' {
     if (this.tokenType_ != null) return RawAst.Token.typeNames[this.tokenType_]!
     else return 'Raw'
   }

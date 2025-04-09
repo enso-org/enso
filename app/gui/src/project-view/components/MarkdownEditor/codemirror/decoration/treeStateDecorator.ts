@@ -16,7 +16,7 @@ import { type Range } from 'ydoc-shared/util/data/range'
 export function treeStateDecorator(nodeDecorators: NodeDecorator[]): Extension {
   const stateDecorator = new TreeStateDecorator(nodeDecorators)
   function decorate(state: EditorState) {
-    const vueHost = state.facet(getVueHost)
+    const vueHost = state.field(getVueHost)
     return vueHost ?
         stateDecorator.decorate(syntaxTree(state), state.doc, vueHost)
       : Decoration.none

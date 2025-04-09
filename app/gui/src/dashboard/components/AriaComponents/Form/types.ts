@@ -14,11 +14,9 @@ import type * as styles from './styles'
 export type * from './components'
 
 /** Props for the Form component */
-export type FormProps<
-  Schema extends components.TSchema,
-  SubmitResult = void,
-> = BaseFormProps<Schema> &
-  (FormPropsWithOptions<Schema, SubmitResult> | FormPropsWithParentForm<Schema>)
+export type FormProps<Schema extends components.TSchema, SubmitResult = void> =
+  | FormPropsWithOptions<Schema, SubmitResult>
+  | FormPropsWithParentForm<Schema>
 
 /** Base props for the Form component. */
 interface BaseFormProps<Schema extends components.TSchema>
@@ -52,7 +50,8 @@ interface BaseFormProps<Schema extends components.TSchema>
  * Props for the Form component with parent form
  * or if form is passed as a prop.
  */
-interface FormPropsWithParentForm<Schema extends components.TSchema> {
+export interface FormPropsWithParentForm<Schema extends components.TSchema>
+  extends BaseFormProps<Schema> {
   readonly form: components.UseFormReturn<Schema>
   readonly schema?: never
   readonly formOptions?: never
@@ -67,8 +66,9 @@ interface FormPropsWithParentForm<Schema extends components.TSchema> {
  * Props for the Form component with schema and form options.
  * Creates a new form instance. This is the default way to use the form.
  */
-interface FormPropsWithOptions<Schema extends components.TSchema, SubmitResult = void>
-  extends components.OnSubmitCallbacks<Schema, SubmitResult> {
+export interface FormPropsWithOptions<Schema extends components.TSchema, SubmitResult = void>
+  extends BaseFormProps<Schema>,
+    components.OnSubmitCallbacks<Schema, SubmitResult> {
   readonly schema: Schema | ((schema: typeof components.schema) => Schema)
   readonly formOptions?: Omit<
     components.UseFormOptions<Schema, SubmitResult>,

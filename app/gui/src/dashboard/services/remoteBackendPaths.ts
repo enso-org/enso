@@ -52,6 +52,8 @@ export const UPLOAD_FILE_END_PATH = 'files/upload/end'
 export const CREATE_SECRET_PATH = 'secrets'
 /** Relative HTTP path to the "list secrets" endpoint of the Cloud backend API. */
 export const LIST_SECRETS_PATH = 'secrets'
+/** Relative HTTP path to the "create credential" endpoint of the Cloud backend API. */
+export const CREATE_CREDENTIAL_PATH = 'secrets'
 /** Relative HTTP path to the "list project sessions" endpoint of the Cloud backend API. */
 export const LIST_PROJECT_SESSIONS_PATH = 'project-sessions'
 /** Relative HTTP path to the "create datalink" endpoint of the Cloud backend API. */
@@ -109,10 +111,6 @@ export function getProjectContentPath(
 export function getProjectAssetPath(projectId: backend.ProjectId, relativePath: string) {
   return `projects/${projectId}/files/${relativePath.replace('./', '')}`
 }
-/** Relative HTTP path to the upload project endpoint of the Cloud backend API. */
-export function getProjectUploadPath(projectId: backend.ProjectId) {
-  return `projects/${projectId}/upload`
-}
 
 /** Relative HTTP path to the "update asset" endpoint of the Cloud backend API. */
 export function updateAssetPath(assetId: backend.AssetId) {
@@ -138,7 +136,6 @@ export function closeProjectPath(projectId: backend.ProjectId) {
 export function getProjectDetailsPath(projectId: backend.ProjectId) {
   return `projects/${projectId}`
 }
-
 /** Relative HTTP path to the "get project logs" endpoint of the Cloud backend API. */
 export function getProjectSessionLogsPath(projectSessionId: backend.ProjectSessionId) {
   return `project-sessions/${projectSessionId}/logs`
@@ -147,9 +144,9 @@ export function getProjectSessionLogsPath(projectSessionId: backend.ProjectSessi
 export function duplicateProjectPath(projectId: backend.ProjectId) {
   return `projects/${projectId}/versions/clone`
 }
-/** Relative HTTP path to the "restore project" endpoint of the Cloud backend API. */
-export function restoreProjectPath(projectId: backend.ProjectId) {
-  return `projects/${projectId}/versions/restore`
+/** Relative HTTP path to the "restore asset" endpoint of the Cloud backend API. */
+export function restoreAssetPath(assetId: backend.AssetId) {
+  return `assets/${assetId}/versions/restore`
 }
 /** Relative HTTP path to the "open project" endpoint of the Cloud backend API. */
 export function openProjectPath(projectId: backend.ProjectId) {
@@ -218,6 +215,11 @@ export function deleteUserGroupPath(groupId: backend.UserGroupId) {
 /** Relative HTTP path to the "get checkout session" endpoint of the Cloud backend API. */
 export function getCheckoutSessionPath(checkoutSessionId: backend.CheckoutSessionId) {
   return `${GET_CHECKOUT_SESSION_PATH}/${checkoutSessionId}`
+}
+/** Relative HTTP path to the "get oauth callback" endpoint of the Cloud backend API. */
+export function getOauthCallbackPath(service: backend.CredentialInput['type']) {
+  const normalized = service.toLowerCase()
+  return `oauth/${normalized}/callback`
 }
 
 /** Relative HTTP path to the "hybrid set open in progress" endpoint of the Cloud backend API. */

@@ -1,6 +1,7 @@
 /** @file Type definitions common between all backends. */
 
-import type { TextId } from '../text'
+import { z } from 'zod'
+import { getText, resolveDictionary, type TextId } from '../text'
 import * as array from '../utilities/data/array'
 import * as dateTime from '../utilities/data/dateTime'
 import * as newtype from '../utilities/data/newtype'
@@ -53,6 +54,10 @@ export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
 /** Unique identifier for an asset representing the nonexistent children of an empty directory. */
 export type EmptyAssetId = newtype.Newtype<string, 'EmptyAssetId'>
 export const EmptyAssetId = newtype.newtypeConstructor<EmptyAssetId>()
+
+/** Unique identifier for an asset representing the parent directory. */
+export type UpAssetId = newtype.Newtype<string, 'UpAssetId'>
+export const UpAssetId = newtype.newtypeConstructor<UpAssetId>()
 
 /**
  * Unique identifier for an asset representing the nonexistent children of a directory
@@ -144,6 +149,14 @@ export const ParentsPath = newtype.newtypeConstructor<ParentsPath>()
 export type VirtualParentsPath = newtype.Newtype<string, 'VirtualParentsPath'>
 export const VirtualParentsPath = newtype.newtypeConstructor<VirtualParentsPath>()
 
+/** The path of this asset, including the root directory. */
+export type EnsoPath = newtype.Newtype<string, 'EnsoPath'>
+export const EnsoPath = newtype.newtypeConstructor<EnsoPath>()
+
+/** The path string of this asset, including the root directory. */
+export type EnsoPathValue = newtype.Newtype<string, 'EnsoPathValue'>
+export const EnsoPathValue = newtype.newtypeConstructor<EnsoPathValue>()
+
 const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
 
 /**
@@ -208,7 +221,7 @@ export interface User extends UserInfo {
    */
   readonly userGroups: readonly UserGroupId[] | null
   readonly removeAt?: dateTime.Rfc3339DateTime | null
-  readonly plan?: Plan | undefined
+  readonly plan: Plan
   /**
    * Contains the user groups that the user is a member of.
    * Has enriched metadata, like the name of the group and the home directory ID.
@@ -256,7 +269,7 @@ export enum ProjectState {
 /** Wrapper around a project state value. */
 export interface ProjectStateType {
   readonly type: ProjectState
-  readonly volumeId: string
+  readonly volumeId?: string
   readonly instanceId?: string
   readonly executeAsync?: boolean
   readonly address?: string
@@ -317,22 +330,25 @@ export interface ListedProject extends CreatedProject {
 }
 
 /** A `Project` returned by `updateProject`. */
-export interface UpdatedProject extends BaseProject {
-  readonly ami: Ami | null
-  readonly ideVersion: VersionNumber | null
-  readonly engineVersion: VersionNumber | null
+export interface UpdatedProject {
+  readonly organizationId: OrganizationId
+  readonly projectId: ProjectId
+  readonly name: string
+  readonly state: ProjectStateType
+  readonly packageName: string
 }
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface ProjectRaw extends ListedProjectRaw {
-  readonly ide_version: VersionNumber | null
-  readonly engine_version: VersionNumber | null
+  readonly currentSessionId?: ProjectSessionId
+  readonly openedBy?: EmailAddress
+  /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
+  readonly url?: HttpsUrl
 }
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface Project extends ListedProject {
-  readonly ideVersion: VersionNumber | null
-  readonly engineVersion: VersionNumber | null
+  readonly currentSessionId?: ProjectSessionId
   readonly openedBy?: EmailAddress
   /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
   readonly url?: HttpsUrl
@@ -838,10 +854,6 @@ export function findLeastUsedColor(labels: Iterable<Label>) {
   return minColor == null ? COLORS[0] : (COLOR_STRING_TO_COLOR.get(minColor) ?? COLORS[0])
 }
 
-// =================
-// === AssetType ===
-// =================
-
 export enum SpecialAssetType {
   loading = 'specialLoading',
   empty = 'specialEmpty',
@@ -864,6 +876,15 @@ export enum AssetType {
   specialEmpty = 'specialEmpty',
   /** A special {@link AssetType} representing a directory listing that errored. */
   specialError = 'specialError',
+  /** A special {@link AssetType} representing a button that navigates to the parent directory. */
+  specialUp = 'specialUp',
+}
+
+export enum ReplaceableAssetType {
+  project = 'project',
+  file = 'file',
+  datalink = 'datalink',
+  secret = 'secret',
 }
 
 /** The corresponding ID newtype for each {@link AssetType}. */
@@ -883,6 +904,7 @@ export interface SpecialAssetIdType {
   readonly [AssetType.specialLoading]: LoadingAssetId
   readonly [AssetType.specialEmpty]: EmptyAssetId
   readonly [AssetType.specialError]: ErrorAssetId
+  readonly [AssetType.specialUp]: UpAssetId
 }
 
 /**
@@ -898,11 +920,18 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.specialLoading]: 1000,
   [AssetType.specialEmpty]: 1000,
   [AssetType.specialError]: 1000,
+  [AssetType.specialUp]: -1,
 }
 
-// =============
-// === Asset ===
-// =============
+/** A state associated with a credential. */
+export type CredentialSecretState = 'Expired' | 'Ready' | 'WaitingForAuthentication'
+
+/** Metadata associated with a credential asset. */
+export interface CredentialMetadata {
+  readonly serviceName: string
+  readonly expirationDate?: dateTime.Rfc3339DateTime
+  readonly state: CredentialSecretState
+}
 
 /**
  * Metadata uniquely identifying a directory entry.
@@ -919,12 +948,20 @@ export interface Asset<Type extends AssetType = AssetType> {
    */
   readonly parentId: DirectoryId
   readonly permissions: readonly AssetPermission[] | null
-  readonly labels: readonly LabelName[] | null
-  readonly description: string | null
+  readonly labels?: readonly LabelName[] | undefined
+  readonly description?: string | undefined
+  /** Asset data for a project */
   readonly projectState: Type extends AssetType.project ? ProjectStateType : null
+  /** Asset data for a file */
   readonly extension: Type extends AssetType.file ? string : null
+  /** Asset data for a credential (secret) */
+  readonly credentialMetadata?: Type extends AssetType.secret ? CredentialMetadata : undefined
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
+  /** The display path. */
+  readonly ensoPath?: EnsoPath | undefined
+  /** The actual path (URL encoded when on the Remote backend). */
+  readonly ensoPathValue?: EnsoPathValue | undefined
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
@@ -951,6 +988,9 @@ export type SpecialEmptyAsset = Asset<AssetType.specialEmpty>
 /** A convenience alias for {@link Asset}<{@link AssetType.specialError}>. */
 export type SpecialErrorAsset = Asset<AssetType.specialError>
 
+/** A convenience alias for {@link Asset}<{@link AssetType.specialUp}>. */
+export type SpecialUpAsset = Asset<AssetType.specialUp>
+
 const PLACEHOLDER_SIGNATURE = Symbol('placeholder')
 
 /** Creates a new placeholder id. */
@@ -972,6 +1012,13 @@ export function isPlaceholderId(id: AssetId) {
   return typeof id !== 'string' && PLACEHOLDER_SIGNATURE in id
 }
 
+/** Whether a given asset represents a credential. */
+export function isAssetCredential(
+  asset: Asset,
+): asset is SecretAsset & { credentialMetadata: CredentialMetadata } {
+  return asset.type === 'secret' && asset.credentialMetadata !== undefined
+}
+
 /** Extract the file extension from a file name. */
 function fileExtension(fileNameOrPath: string) {
   return fileNameOrPath.match(/[.]([^.]+?)$/)?.[1] ?? ''
@@ -988,8 +1035,6 @@ export function createPlaceholderFileAsset(title: string, parentId: DirectoryId)
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: fileExtension(title),
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1004,13 +1049,8 @@ export function createPlaceholderProjectAsset(title: string, parentId: Directory
     parentId,
     permissions: [],
     modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: {
-      type: ProjectState.new,
-      volumeId: '',
-    },
+    projectState: { type: ProjectState.new },
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1030,8 +1070,6 @@ export function createPlaceholderDirectoryAsset(
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1048,8 +1086,6 @@ export function createPlaceholderSecretAsset(title: string, parentId: DirectoryI
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1069,8 +1105,6 @@ export function createPlaceholderDatalinkAsset(
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1090,8 +1124,6 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
     permissions: [],
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1116,8 +1148,6 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
     permissions: [],
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1142,8 +1172,6 @@ export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorA
     permissions: [],
     projectState: null,
     extension: null,
-    labels: [],
-    description: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
   }
@@ -1168,7 +1196,8 @@ export type AnyAsset<Type extends AssetType = AssetType> = Extract<
   | SecretAsset
   | SpecialEmptyAsset
   | SpecialErrorAsset
-  | SpecialLoadingAsset,
+  | SpecialLoadingAsset
+  | SpecialUpAsset,
   HasType<Type>
 >
 
@@ -1231,6 +1260,10 @@ export function createPlaceholderAssetId<Type extends AssetType>(
       result = ErrorAssetId(id)
       break
     }
+    case AssetType.specialUp: {
+      result = UpAssetId(id)
+      break
+    }
   }
   return result as IdType[Type]
 }
@@ -1253,6 +1286,14 @@ export interface S3ObjectVersion {
   readonly isLatest: boolean
   /** An archive containing the all the project files object in the S3 bucket. */
   readonly key: string
+  readonly user?: OtherUser
+}
+
+/** A user other than the current user */
+export interface OtherUser {
+  readonly name: string
+  readonly email: EmailAddress
+  readonly profilePicture: HttpsUrl | null
 }
 
 /** A list of asset versions. */
@@ -1273,10 +1314,10 @@ export function compareAssetPermissions(a: AssetPermission, b: AssetPermission) 
   } else {
     // NOTE [NP]: Although `userId` is unique, and therefore sufficient to sort permissions, sort
     // name first, so that it's easier to find a permission in a long list (i.e., for readability).
-    const aName = 'user' in a ? a.user.name : a.userGroup.name
-    const bName = 'user' in b ? b.user.name : b.userGroup.name
-    const aUserId = 'user' in a ? a.user.userId : a.userGroup.id
-    const bUserId = 'user' in b ? b.user.userId : b.userGroup.id
+    const aName = getAssetPermissionName(a)
+    const bName = getAssetPermissionName(b)
+    const aUserId = getAssetPermissionId(a)
+    const bUserId = getAssetPermissionId(b)
     return (
       aName < bName ? -1
       : aName > bName ? 1
@@ -1358,6 +1399,7 @@ export interface UpdateFileRequestBody {
 export interface UpdateAssetRequestBody {
   readonly parentDirectoryId: DirectoryId | null
   readonly description: string | null
+  readonly title: string | null
 }
 
 /** HTTP request body for the "delete asset" endpoint. */
@@ -1379,8 +1421,6 @@ export interface CreateProjectRequestBody {
  */
 export interface UpdateProjectRequestBody {
   readonly projectName: string | null
-  readonly ami: Ami | null
-  readonly ideVersion: VersionNumber | null
 }
 
 /** HTTP request body for the "open project" endpoint. */
@@ -1390,6 +1430,8 @@ export interface OpenProjectRequestBody {
   readonly cognitoCredentials: CognitoCredentials | null
   /** Only used by the Local backend. */
   readonly parentId: DirectoryId
+  /** Required when running in hybrid mode. */
+  readonly cloudProjectDirectoryPath: string | null
 }
 
 /** HTTP request body for the "create project execution" endpoint. */
@@ -1400,10 +1442,46 @@ export interface UpdateProjectExecutionRequestBody {
   readonly enabled?: boolean | undefined
 }
 
+/** HTTP request body for the "create secret or credential" endpoint. */
+export type CreateSecretOrCredentialRequestBody =
+  | CreateSecretRequestBody
+  | CreateCredentialRequestBody
+
 /** HTTP request body for the "create secret" endpoint. */
 export interface CreateSecretRequestBody {
   readonly name: string
   readonly value: string
+  readonly parentDirectoryId: DirectoryId | null
+}
+
+/** User settings for a Snowflake credential. */
+export interface SnowflakeCredentialInput {
+  readonly type: 'Snowflake'
+  readonly account: string
+  readonly clientId: string
+  readonly clientSecret: string
+  readonly role: string | null
+}
+
+/** User settings for a Google credential. */
+export interface GoogleCredentialInput {
+  readonly type: 'Google'
+  readonly scopes: readonly string[]
+}
+
+/** User settings for an arbitrary credential. */
+export type CredentialInput = SnowflakeCredentialInput | GoogleCredentialInput
+
+/** Metadata for an arbitrary credential, including a nonce for authentication purposes. */
+export interface CredentialConfig {
+  readonly nonce: string
+  readonly input: CredentialInput
+}
+
+/** HTTP request body for the "create credential" endpoint. */
+export interface CreateCredentialRequestBody {
+  readonly name: string
+  readonly value: CredentialConfig
   readonly parentDirectoryId: DirectoryId | null
 }
 
@@ -1616,6 +1694,37 @@ export function extractProjectExtension(name: string) {
   return { basename: basename ?? name, extension: extension ?? '' }
 }
 
+export interface TitleSchemaOptions {
+  readonly asset: AnyAsset
+  readonly siblings?: readonly AnyAsset[] | null
+}
+
+/**
+ * Check if the title contains invalid characters.
+ */
+export function doesTitleContainInvalidCharacters(name: string) {
+  return name.includes('/') || name.includes('\\') || name.includes('..')
+}
+
+/**
+ * A Zod schema for validating a title.
+ */
+export function titleSchema(options: TitleSchemaOptions) {
+  const { asset, siblings } = options
+
+  return z
+    .string()
+    .trim()
+    .min(1)
+    .max(512)
+    .refine((value) => isNewTitleUnique(asset, value, siblings), {
+      message: getText(resolveDictionary(), 'nameShouldBeUnique'),
+    })
+    .refine((value) => !doesTitleContainInvalidCharacters(value), {
+      message: getText(resolveDictionary(), 'nameShouldNotContainInvalidCharacters'),
+    })
+}
+
 /**
  * Check whether a new title is unique among the siblings.
  */
@@ -1631,7 +1740,7 @@ export function isNewTitleUnique(
       return true
     }
 
-    const hasSameTitle = sibling.title.toLowerCase() === newTitle.toLowerCase()
+    const hasSameTitle = sibling.title.trim().toLowerCase() === newTitle.trim().toLowerCase()
     return !hasSameTitle
   })
 }
@@ -1645,7 +1754,7 @@ export class NetworkError extends Error {
    */
   constructor(
     message: string,
-    readonly status?: number,
+    readonly status?: number | null,
   ) {
     super(message)
   }
@@ -1735,12 +1844,7 @@ export default abstract class Backend {
   /** Restore an arbitrary asset from the trash. */
   abstract undoDeleteAsset(assetId: AssetId, title: string): Promise<void>
   /** Copy an arbitrary asset to another directory. */
-  abstract copyAsset(
-    assetId: AssetId,
-    parentDirectoryId: DirectoryId,
-    title: string,
-    parentDirectoryTitle: string,
-  ): Promise<CopyAssetResponse>
+  abstract copyAsset(assetId: AssetId, parentDirectoryId: DirectoryId): Promise<CopyAssetResponse>
   /** Return a list of projects belonging to the current user. */
   abstract listProjects(): Promise<readonly ListedProject[]>
   /** Create a project for the current user. */
@@ -1781,12 +1885,8 @@ export default abstract class Backend {
     projectTitle: string,
   ): Promise<ProjectExecution>
   /** Restore a project from a different version. */
-  abstract restoreProject(
-    projectId: ProjectId,
-    versionId: S3ObjectVersionId,
-    title: string,
-  ): Promise<void>
-  /** Duplicate a specific version of a project. */
+  abstract restoreAsset(assetId: AssetId, versionId: S3ObjectVersionId): Promise<void>
+  /** Duplicate a specific version of an asset. */
   abstract duplicateProject(
     projectId: ProjectId,
     versionId: S3ObjectVersionId,
@@ -1842,6 +1942,8 @@ export default abstract class Backend {
   abstract deleteDatalink(datalinkId: DatalinkId, title: string | null): Promise<void>
   /** Create a secret environment variable. */
   abstract createSecret(body: CreateSecretRequestBody): Promise<SecretId>
+  /** Create an OAuth credential. */
+  abstract createCredential(body: CreateCredentialRequestBody): Promise<SecretId>
   /** Return a secret environment variable. */
   abstract getSecret(secretId: SecretId, title: string): Promise<Secret>
   /** Change the value of a secret. */
@@ -1903,5 +2005,17 @@ export class DirectoryDoesNotExistError extends Error {
    */
   constructor() {
     super('Directory does not exist.')
+  }
+}
+
+/**
+ * Error thrown when a duplicate asset is found.
+ */
+export class DuplicateAssetError extends Error {
+  /**
+   * Create a new instance of the {@link DuplicateAssetError} class.
+   */
+  constructor(message: string) {
+    super(message)
   }
 }

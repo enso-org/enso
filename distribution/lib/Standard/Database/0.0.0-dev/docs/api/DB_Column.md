@@ -75,7 +75,7 @@
     - parse self type:(Standard.Table.Value_Type.Value_Type|Standard.Table.Value_Type.Auto) format:(Standard.Base.Data.Text.Text|Standard.Table.Data_Formatter.Data_Formatter)= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Database.DB_Column.DB_Column
     - print self show_rows:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - read self max_rows:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Table.Column.Column
-    - regex_match self pattern:(Standard.Table.Column.Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any) -> Standard.Table.Column.Column
+    - regex_match self pattern:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex) -> Standard.Database.DB_Column.DB_Column
     - rename self name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - round self decimal_places:Standard.Base.Data.Numbers.Integer= use_bankers:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - round_builtin self decimal_places:Standard.Base.Any.Any use_bankers:Standard.Base.Any.Any -> Standard.Base.Any.Any
@@ -105,7 +105,7 @@
     - value_type self -> Standard.Table.Value_Type.Value_Type
     - var_args_functions -> Standard.Base.Any.Any
     - year self -> Standard.Base.Any.Any
-    - zip self that:Standard.Database.DB_Column.DB_Column function:Standard.Base.Any.Any skip_nothing:Standard.Base.Data.Boolean.Boolean= expected_value_type:(Standard.Table.Value_Type.Value_Type|Standard.Table.Value_Type.Auto)= -> Standard.Base.Any.Any
+    - zip self right:(Standard.Table.Column.Column|Standard.Table.Table.Table)= keep_unmatched:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Data.Vector.Report_Unmatched)= right_prefix:Standard.Base.Data.Text.Text= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
     - || self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
 - adapt_unified_column column:Standard.Base.Any.Any expected_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - make_equality_check_with_floating_point_handling column:Standard.Base.Any.Any other:Standard.Base.Any.Any op:Standard.Base.Any.Any -> Standard.Base.Any.Any

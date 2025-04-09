@@ -1189,7 +1189,7 @@ export class OprApp extends BaseExpression {
     rhs: Owned<MutableExpression> | undefined,
   ) {
     const operatorToken =
-      operator instanceof Token ? operator : Token.new(operator, TokenType.Operator)
+      typeof operator === 'string' ? Token.new(operator, TokenType.Operator) : operator
     return OprApp.concrete(module, unspaced(lhs), [autospaced(operatorToken)], autospaced(rhs))
   }
 
@@ -1817,6 +1817,10 @@ export class TextLiteral extends BaseExpression {
     return uninterpolatedText(this.fields.get('elements'), this.module)
   }
 
+  get isBlock(): boolean {
+    return (this.open?.code().length ?? 1) > 1
+  }
+
   /** TODO: Add docs */
   *concreteChildren({ verbatim, indent }: PrintContext): IterableIterator<RawConcreteChild> {
     const { open, newline, elements, close } = getAll(this.fields)
@@ -1827,7 +1831,7 @@ export class TextLiteral extends BaseExpression {
     let nextTokenSpacing: 'unspaced' | 'maybe-spaced' | 'indented' = 'unspaced'
     let blockIndent: string | undefined = undefined
     for (const raw of rawChildren) {
-      const tokenType = isToken(raw.node) ? raw.node.tokenType_ : null
+      const tokenType = isTokenId(raw.node) ? raw.node.tokenType_ : null
       const specialToken =
         tokenType === TokenType.Newline ? 'newline'
         : tokenType === TokenType.OpenSymbol || tokenType === TokenType.CloseSymbol ?
@@ -1919,23 +1923,43 @@ export class MutableTextLiteral extends TextLiteral implements MutableExpression
    * transformed to use escape sequences when necessary.
    */
   setRawTextContent(rawText: string) {
-    let boundary = this.boundaryTokenCode()
-    const isInterpolated = this.isInterpolated()
-    const mustBecomeInterpolated = !isInterpolated && (!boundary || rawText.match(/["\n\r]/))
-    if (mustBecomeInterpolated) {
-      boundary = "'"
-      this.setBoundaries(boundary)
-    }
-    const literalContents =
-      isInterpolated || mustBecomeInterpolated ? escapeTextLiteral(rawText) : rawText
-    const parsed = parseExpression(`${boundary}${literalContents}${boundary}`)
-    assert(parsed instanceof TextLiteral)
-    const elements = parsed.elements.map((e) => mapRefs(e, concreteToOwned(this.module)))
-    this.setElements(elements)
+    if (!this.boundaryTokenCode() || (this.boundaryTokenCode() === '"' && rawText.match(/["\n\r]/)))
+      this.setBoundaries("'")
+    const boundary = this.boundaryTokenCode()!
+    const isBlock = boundary.length > 1
+    const literalContents = this.isInterpolated() ? escapeTextLiteral(rawText, isBlock) : rawText
+
+    // As a simple way to ensure the text elements are consistent with what the parser would
+    // produce, instead of creating them directly we generate code and parse it.
+
+    const parsed = TextLiteral.tryParse(
+      isBlock ?
+        `${boundary}\n${literalContents.split('\n').join('\n    ')}`
+      : `${boundary}${literalContents}${boundary}`,
+      this.module,
+    )
+    assertDefined(parsed)
+    // First, we parse with the arbitrary concrete indentation level generated above.
+    const elementsWithArbitraryConcreteWhitespace = parsed.elements.map((e) =>
+      mapRefs(e, concreteToOwned(this.module)),
+    )
+    // Now strip indentation information to let the block be indented appropriately for its context.
+    const elementsWithAbstractWhitespace = elementsWithArbitraryConcreteWhitespace.map(
+      textElementRemoveConcreteWhitespace,
+    )
+    this.setElements(elementsWithAbstractWhitespace)
   }
 }
 export interface MutableTextLiteral extends TextLiteral, MutableExpression {}
 applyMixins(MutableTextLiteral, [MutableAst])
+
+function textElementRemoveConcreteWhitespace<T extends TreeRefs>(
+  element: TextElement<T>,
+): TextElement<T> {
+  return element.type === 'token' && element.token.node.typeName === 'Newline' ?
+      { ...element, token: { node: element.token.node, whitespace: undefined } }
+    : element
+}
 
 interface ExpressionStatementFields {
   docLine: DocLine | undefined
@@ -2415,11 +2439,11 @@ export class FunctionDef extends BaseStatement {
   ): Owned<MutableFunctionDef> {
     const module = options.edit ?? MutableModule.Transient()
     const argumentDefinitions = args.map((arg) =>
-      typeof arg === 'string' || isToken(arg) ?
-        {
+      typeof arg === 'object' && 'pattern' in arg ?
+        arg
+      : {
           pattern: autospaced(Ident.new(module, arg)),
-        }
-      : arg,
+        },
     )
     return MutableFunctionDef.concrete(module, {
       docLine: undefined,
@@ -2435,7 +2459,10 @@ export class FunctionDef extends BaseStatement {
     })
   }
 
-  /** TODO: Add docs */
+  /**
+   * @returns The contents of the function's body; this will be a single expression if the function
+   * is defined inline, or zero or more statements if the function's body is a block.
+   */
   *bodyExpressions(): IterableIterator<Expression | Statement> {
     const body = this.body
     if (body instanceof BodyBlock) {
@@ -3427,8 +3454,9 @@ function toIdentStrict(ident: StrictIdentLike | undefined): IdentifierToken | un
 function toIdentStrict(ident: StrictIdentLike | undefined): IdentifierToken | undefined {
   return (
     ident ?
-      isToken(ident) ? ident
-      : (Token.new(ident, TokenType.Ident) as IdentifierToken)
+      typeof ident === 'string' ?
+        (Token.new(ident, TokenType.Ident) as IdentifierToken)
+      : ident
     : undefined
   )
 }
@@ -3439,8 +3467,9 @@ function toIdent(ident: IdentLike | undefined): IdentifierOrOperatorIdentifierTo
 function toIdent(ident: IdentLike | undefined): IdentifierOrOperatorIdentifierToken | undefined {
   return (
     ident ?
-      isToken(ident) ? ident
-      : (Token.new(ident, TokenType.Ident) as IdentifierOrOperatorIdentifierToken)
+      typeof ident === 'string' ?
+        (Token.new(ident, TokenType.Ident) as IdentifierOrOperatorIdentifierToken)
+      : ident
     : undefined
   )
 }

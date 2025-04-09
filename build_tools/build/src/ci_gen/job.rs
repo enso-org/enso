@@ -169,6 +169,10 @@ pub fn expose_gui_vars(step: Step) -> Step {
             variables::ENSO_MAPBOX_API_TOKEN,
             ide_env::ENSO_IDE_MAPBOX_API_TOKEN,
         )
+        .with_secret_exposed_as(
+            secret::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
+            ide_env::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
+        )
 }
 
 /// Expose variables for debugging purposes.
@@ -281,6 +285,7 @@ fn enable_cloud_tests(step: Step) -> Step {
 pub struct StandardLibraryTests {
     pub graal_edition:       graalvm::Edition,
     pub cloud_tests_enabled: bool,
+    pub native_image_mode:   bool,
 }
 
 impl JobArchetype for StandardLibraryTests {
@@ -288,8 +293,13 @@ impl JobArchetype for StandardLibraryTests {
         let graal_edition = self.graal_edition;
         let should_enable_cloud_tests = self.cloud_tests_enabled;
         // If cloud tests are enabled, we run only cloud related tests.
-        let test_scope =
-            if should_enable_cloud_tests { "std-cloud-related" } else { "standard-library" };
+        let test_scope = if should_enable_cloud_tests {
+            "std-cloud-related"
+        } else if self.native_image_mode {
+            "standard-library-in-native"
+        } else {
+            "standard-library"
+        };
         let job_name = format!("Standard Library Tests ({graal_edition})");
         let run_command = format!("backend test {test_scope}");
         let run_steps_builder = RunStepsBuilder::new(run_command).customize(move |step| {

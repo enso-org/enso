@@ -22,10 +22,8 @@ test('Load Fullscreen Visualisation', async ({ page }) => {
   await expect(vis).toExist()
   await expect(locate.exitFullscreenButton(page)).toExist()
   // Wait for entering-fullscreen animation.
-  await vis.elementHandle().then((el) => el!.waitForElementState('stable'))
-  const visBoundingBox = await vis.boundingBox()
-  expect(visBoundingBox?.height).toBeGreaterThan(600)
-  expect(visBoundingBox?.width).toBe(1920)
+  expect.poll(async () => (await vis.boundingBox())?.width).toBe(1920)
+  expect.poll(async () => (await vis.boundingBox())?.height).toBeGreaterThan(600)
   const element = await vis.elementHandle()
   assert(element != null)
   const textContent = await computedContent(element)

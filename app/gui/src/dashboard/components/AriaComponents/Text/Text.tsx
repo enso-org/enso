@@ -6,12 +6,13 @@ import * as aria from '#/components/aria'
 import * as mergeRefs from '#/utilities/mergeRefs'
 import * as twv from '#/utilities/tailwindVariants'
 
+import type { TooltipElementType } from '#/components/AriaComponents'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
 import { memo } from 'react'
 import type { TestIdProps } from '../types'
+import * as visualTooltip from '../VisualTooltip'
 import * as textProvider from './TextProvider'
-import * as visualTooltip from './useVisualTooltip'
 
 /** Props for the Text component */
 export interface TextProps
@@ -20,14 +21,15 @@ export interface TextProps
     TestIdProps {
   readonly elementType?: keyof HTMLElementTagNameMap
   readonly lineClamp?: number
-  readonly tooltip?: React.ReactElement | string | false | null
+  readonly tooltip?: TooltipElementType
   readonly tooltipTriggerRef?: React.RefObject<HTMLElement>
-  readonly tooltipDisplay?: visualTooltip.VisualTooltipProps['display']
+  readonly tooltipDisplay?: visualTooltip.VisualTooltipOptions['display'] | 'never'
   readonly tooltipPlacement?: aria.Placement
   readonly tooltipOffset?: number
   readonly tooltipCrossOffset?: number
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const TEXT_STYLE = twv.tv({
   base: '',
   variants: {
@@ -52,13 +54,13 @@ export const TEXT_STYLE = twv.tv({
     // leading should always be after the text size to make sure it is not stripped by twMerge
     variant: {
       custom: '',
-      body: 'text-xs leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-medium',
+      body: 'text-xs leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px',
       // eslint-disable-next-line @typescript-eslint/naming-convention
       'body-sm':
-        'text-[10.5px] leading-[16px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-medium',
-      h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px] macos:before:h-[3px] macos:after:h-[3px] font-bold',
+        'text-[10.5px] leading-[16px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px]',
+      h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px] macos:before:h-[3px] macos:after:h-[3px]',
       subtitle:
-        'text-[13.5px] leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-bold',
+        'text-[13.5px] leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px]',
       caption:
         'text-[8.5px] leading-[12px] before:h-[1px] after:h-[1px] macos:before:h-[0.5px] macos:after:h-[1.5px]',
       overline:
@@ -66,6 +68,7 @@ export const TEXT_STYLE = twv.tv({
     },
     weight: {
       custom: '',
+      default: '',
       bold: 'font-bold',
       semibold: 'font-semibold',
       extraBold: 'font-extrabold',
@@ -83,18 +86,24 @@ export const TEXT_STYLE = twv.tv({
       lowercase: 'lowercase',
       uppercase: 'uppercase',
     },
+    align: {
+      left: 'text-left',
+      center: 'text-center',
+      right: 'text-right',
+    },
     truncate: {
+      true: 'block truncate',
       /* eslint-disable @typescript-eslint/naming-convention */
-      '1': 'block truncate ellipsis',
-      '2': 'line-clamp-2 ellipsis',
-      '3': 'line-clamp-3 ellipsis',
-      '4': 'line-clamp-4 ellipsis',
-      '5': 'line-clamp-5 ellipsis',
-      '6': 'line-clamp-6 ellipsis',
-      '7': 'line-clamp-7 ellipsis',
-      '8': 'line-clamp-8 ellipsis',
-      '9': 'line-clamp-9 ellipsis',
-      custom: 'line-clamp-[var(--line-clamp)] ellipsis',
+      '1': 'block truncate',
+      '2': 'line-clamp-2',
+      '3': 'line-clamp-3',
+      '4': 'line-clamp-4',
+      '5': 'line-clamp-5',
+      '6': 'line-clamp-6',
+      '7': 'line-clamp-7',
+      '8': 'line-clamp-8',
+      '9': 'line-clamp-9',
+      custom: 'line-clamp-[var(--line-clamp)]',
       /* eslint-enable @typescript-eslint/naming-convention */
     },
     monospace: { true: 'font-mono' },
@@ -117,7 +126,7 @@ export const TEXT_STYLE = twv.tv({
   defaultVariants: {
     variant: 'body',
     font: 'default',
-    weight: 'medium',
+    weight: 'default',
     transform: 'none',
     color: 'primary',
     italic: false,
@@ -126,6 +135,14 @@ export const TEXT_STYLE = twv.tv({
     disableLineHeightCompensation: false,
     textSelection: 'auto',
   },
+  compoundVariants: [
+    { variant: 'body', weight: 'default', className: 'font-medium' },
+    { variant: 'body-sm', weight: 'default', className: 'font-medium' },
+    { variant: 'h1', weight: 'default', className: 'font-bold' },
+    { variant: 'subtitle', weight: 'default', className: 'font-bold' },
+    { variant: 'caption', weight: 'default', className: 'font-medium' },
+    { variant: 'overline', weight: 'default', className: 'font-medium' },
+  ],
 })
 
 /** Text component that supports truncation and show a tooltip on hover when text is truncated */
@@ -155,6 +172,7 @@ export const Text = memo(
       tooltipCrossOffset,
       textSelection,
       disableLineHeightCompensation = false,
+      align,
       ...ariaProps
     } = props
 
@@ -178,22 +196,24 @@ export const Text = memo(
           textContext.isInsideTextComponent
         : disableLineHeightCompensation,
       className,
+      align,
     })
 
     const isTooltipDisabled = useEventCallback(() => {
       if (tooltipDisplay === 'whenOverflowing') {
-        return !truncate
-      } else if (tooltipDisplay === 'always') {
-        return tooltipElement === false || tooltipElement == null
-      } else {
-        return false
+        return truncate == null
       }
+      if (tooltipDisplay === 'always') {
+        return tooltipElement === false || tooltipElement == null
+      }
+
+      return tooltipDisplay === 'never'
     })
 
     const { tooltip, targetProps } = visualTooltip.useVisualTooltip({
       isDisabled: isTooltipDisabled(),
       targetRef: textElementRef,
-      display: tooltipDisplay,
+      display: tooltipDisplay === 'never' ? () => false : tooltipDisplay,
       children: tooltipElement,
       ...(tooltipPlacement || tooltipOffset != null || tooltipCrossOffset != null ?
         {

@@ -10,12 +10,13 @@ import * as projectHooks from '#/hooks/projectHooks'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
+import { Tab as TabAria, TabList, type TabListProps } from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import SvgMask from '#/components/SvgMask'
 
 import { AnimatedBackground } from '#/components/AnimatedBackground'
+import { Await } from '#/components/Await'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useBackendForProjectType } from '#/providers/BackendProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
@@ -25,7 +26,7 @@ import { twJoin } from '#/utilities/tailwindMerge'
 import { motion } from 'framer-motion'
 
 /** Props for a {@link TabBar}. */
-export interface TabBarProps<T extends object> extends aria.TabListProps<T> {
+export interface TabBarProps<T extends object> extends TabListProps<T> {
   readonly className?: string
 }
 
@@ -38,7 +39,7 @@ export default function TabBar<T extends object>(props: TabBarProps<T>) {
   return (
     <AnimatedBackground>
       <div className={classes}>
-        <aria.TabList<T> className="flex h-12 shrink-0 grow px-2" {...rest} />
+        <TabList<T> className="flex h-12 shrink-0 grow px-2" {...rest} />
       </div>
     </AnimatedBackground>
   )
@@ -82,7 +83,7 @@ export function Tab(props: TabProps) {
   }, [inputBindings, isActive, stableOnClose])
 
   return (
-    <aria.Tab
+    <TabAria
       data-testid={props['data-testid']}
       id={id}
       aria-label={getText(labelId)}
@@ -118,7 +119,7 @@ export function Tab(props: TabProps) {
                 )}
               />
             : icon}
-            <ariaComponents.Text truncate="1" className="max-w-40" color="current">
+            <ariaComponents.Text truncate="1" className="max-w-40" color="current" nowrap>
               {children}
             </ariaComponents.Text>
 
@@ -126,7 +127,7 @@ export function Tab(props: TabProps) {
           </div>
         </AnimatedBackground.Item>
       )}
-    </aria.Tab>
+    </TabAria>
   )
 }
 
@@ -154,19 +155,15 @@ export function ProjectTab(props: ProjectTabProps) {
     onClose?.(project)
   })
 
-  const {
-    data: isOpened,
-    isSuccess,
-    isError,
-  } = reactQuery.useQuery({
-    ...projectHooks.createGetProjectDetailsQuery({
-      assetId: project.id,
-      backend,
+  const { data, isSuccess, isError, promise } = reactQuery.useQuery({
+    ...projectHooks.createGetProjectDetailsQuery({ assetId: project.id, backend }),
+    select: (projectDetails) => ({
+      title: projectDetails.name,
+      isOpened: projectHooks.OPENED_PROJECT_STATES.has(projectDetails.state.type),
     }),
-    select: (data) => projectHooks.OPENED_PROJECT_STATES.has(data.state.type),
   })
 
-  const isReady = isSuccess && isOpened
+  const isReady = isSuccess && data.isOpened
 
   React.useEffect(() => {
     if (isReady && !didNotifyOnLoadEnd.current) {
@@ -193,7 +190,13 @@ export function ProjectTab(props: ProjectTabProps) {
     return SPINNER
   })()
 
-  return <Tab {...rest} icon={icon} onClose={stableOnClose} />
+  return (
+    <Tab {...rest} icon={icon} onClose={stableOnClose}>
+      <Await promise={promise} fallback={null}>
+        {({ title }) => title}
+      </Await>
+    </Tab>
+  )
 }
 
 TabBar.ProjectTab = ProjectTab

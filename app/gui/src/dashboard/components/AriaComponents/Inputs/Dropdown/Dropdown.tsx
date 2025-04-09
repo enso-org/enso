@@ -98,10 +98,6 @@ const DROPDOWN_STYLES = tv({
   },
 })
 
-// ================
-// === Dropdown ===
-// ================
-
 /** Props for a list item child. */
 interface InternalChildProps<T> {
   readonly item: T
@@ -378,7 +374,9 @@ export function FormDropdown<
             <>
               <Dropdown
                 {...inputProps}
-                selectedIndex={items.indexOf(value)}
+                selectedIndex={items.findIndex(
+                  (otherItem) => JSON.stringify(value) === JSON.stringify(otherItem),
+                )}
                 onChange={onChange}
                 rounded={rounded}
                 size={size}

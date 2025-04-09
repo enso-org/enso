@@ -11,23 +11,16 @@ import * as projectManager from '#/services/ProjectManager'
 import { APP_BASE_URL } from '#/utilities/appBaseUrl'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
-import { fileExtension, getFileName, getFolderPath } from '#/utilities/fileInfo'
-import { getDirectoryAndName, joinPath, Path } from '#/utilities/path'
+import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/utilities/fileInfo'
+import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
-
-// =============================
-// === ipWithSocketToAddress ===
-// =============================
 
 /** Convert a {@link projectManager.IpWithSocket} to a {@link backend.Address}. */
 function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
   return backend.Address(`ws://${ipWithSocket.host}:${ipWithSocket.port}`)
 }
 
-// ======================================
-// === Functions for manipulating ids ===
-// ======================================
 export const DIRECTORY_ID_PREFIX = `${backend.AssetType.directory}-`
 export const PROJECT_ID_PREFIX = `${backend.AssetType.project}-`
 export const FILE_ID_PREFIX = `${backend.AssetType.file}-`
@@ -101,10 +94,6 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
   }
 }
 
-// ====================
-// === LocalBackend ===
-// ====================
-
 /**
  * Class for sending requests to the Project Manager API endpoints.
  * This is used instead of the cloud backend API when managing local projects from the dashboard.
@@ -169,97 +158,92 @@ export default class LocalBackend extends Backend {
       const entries = await this.projectManager.listDirectory(parentIdRaw)
       result = entries
         .map((entry) => {
+          const virtualParentsPath = (() => {
+            let path = entry.path.replace(rootPath, '')
+
+            if (path.startsWith('/')) {
+              path = path.slice(1)
+            }
+
+            if (path.endsWith('/')) {
+              path = path.slice(0, -1)
+            }
+
+            return path
+          })()
+
+          const parentsPath = (() => {
+            const parentsPathArray: backend.DirectoryId[] = [newDirectoryId(rootPath)]
+            const splitPath = virtualParentsPath.split('/')
+
+            let previousPath = ''
+
+            for (const directory of splitPath) {
+              if (directory === '') {
+                continue
+              }
+
+              previousPath = backend.Path(previousPath + '/' + directory)
+
+              if (previousPath.endsWith('/')) {
+                previousPath = previousPath.slice(0, -1)
+              }
+
+              parentsPathArray.push(newDirectoryId(backend.Path(rootPath + previousPath)))
+            }
+
+            return parentsPathArray.slice(0, -1).join('/')
+          })()
+
+          const ensoPathRaw = normalizePath(entry.path)
+          const ensoPath = backend.EnsoPath(ensoPathRaw)
+          const shared = {
+            permissions: [],
+            projectState: null,
+            extension: null,
+            parentsPath: backend.ParentsPath(parentsPath),
+            virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
+            ensoPath,
+            ensoPathValue: backend.EnsoPathValue(ensoPathRaw),
+          } satisfies Partial<backend.DirectoryAsset>
+
           switch (entry.type) {
             case projectManager.FileSystemEntryType.DirectoryEntry: {
               const id = newDirectoryId(entry.path)
 
-              const virtualParentsPath = (() => {
-                let path = entry.path.replace(rootPath, '')
-
-                if (path.startsWith('/')) {
-                  path = path.slice(1)
-                }
-
-                if (path.endsWith('/')) {
-                  path = path.slice(0, -1)
-                }
-
-                return path
-              })()
-
-              const parentsPath = (() => {
-                const parentsPathArray: backend.DirectoryId[] = [newDirectoryId(rootPath)]
-                const splitPath = virtualParentsPath.split('/')
-
-                let previousPath = ''
-
-                for (const directory of splitPath) {
-                  if (directory === '') {
-                    continue
-                  }
-
-                  previousPath = Path(previousPath + '/' + directory)
-
-                  if (previousPath.endsWith('/')) {
-                    previousPath = previousPath.slice(0, -1)
-                  }
-
-                  parentsPathArray.push(newDirectoryId(Path(rootPath + previousPath)))
-                }
-
-                return parentsPathArray.slice(0, -1).join('/')
-              })()
-
               return {
+                ...shared,
                 id,
                 type: backend.AssetType.directory,
                 modifiedAt: entry.attributes.lastModifiedTime,
                 parentId,
                 title: getFileName(entry.path),
-                permissions: [],
-                projectState: null,
-                extension: null,
-                labels: [],
-                description: null,
-                parentsPath: backend.ParentsPath(parentsPath),
-                virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
               } satisfies backend.DirectoryAsset
             }
             case projectManager.FileSystemEntryType.ProjectEntry: {
               return {
+                ...shared,
                 type: backend.AssetType.project,
                 id: newProjectId(entry.metadata.id, extractTypeAndId(parentId).id),
                 title: entry.metadata.name,
                 modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
                 parentId,
-                permissions: [],
                 projectState: {
                   type:
                     this.projectManager.projects.get(entry.metadata.id)?.state ??
                     backend.ProjectState.closed,
-                  volumeId: '',
                 },
-                extension: null,
-                labels: [],
-                description: null,
-                parentsPath: backend.ParentsPath(''),
-                virtualParentsPath: backend.VirtualParentsPath(''),
               } satisfies backend.ProjectAsset
             }
             case projectManager.FileSystemEntryType.FileEntry: {
               return {
+                ...shared,
                 type: backend.AssetType.file,
                 id: newFileId(entry.path),
                 title: getFileName(entry.path),
                 modifiedAt: entry.attributes.lastModifiedTime,
                 parentId,
-                permissions: [],
-                projectState: null,
                 extension: fileExtension(entry.path),
-                labels: [],
-                description: null,
-                parentsPath: backend.ParentsPath(''),
-                virtualParentsPath: backend.VirtualParentsPath(''),
               } satisfies backend.FileAsset
             }
           }
@@ -374,17 +358,8 @@ export default class LocalBackend extends Backend {
       if (project == null) {
         throw new Error(`Could not get details of project.`)
       } else {
-        const version =
-          project.engineVersion == null ?
-            null
-          : {
-              lifecycle: backend.detectVersionLifecycle(project.engineVersion),
-              value: project.engineVersion,
-            }
         return {
           name: project.name,
-          engineVersion: version,
-          ideVersion: version,
           jsonAddress: null,
           binaryAddress: null,
           ydocAddress: null,
@@ -398,14 +373,6 @@ export default class LocalBackend extends Backend {
       const cachedProject = await state.data
       return {
         name: cachedProject.projectName,
-        engineVersion: {
-          lifecycle: backend.detectVersionLifecycle(cachedProject.engineVersion),
-          value: cachedProject.engineVersion,
-        },
-        ideVersion: {
-          lifecycle: backend.detectVersionLifecycle(cachedProject.engineVersion),
-          value: cachedProject.engineVersion,
-        },
         jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
         binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
         ydocAddress: null,
@@ -434,6 +401,11 @@ export default class LocalBackend extends Backend {
       await this.projectManager.openProject({
         projectId: id,
         missingComponentAction: projectManager.MissingComponentAction.install,
+        ...(body?.cloudProjectDirectoryPath != null ?
+          {
+            cloudProjectDirectoryPath: body.cloudProjectDirectoryPath,
+          }
+        : {}),
         ...(body?.parentId != null ?
           { projectsDirectory: extractTypeAndId(body.parentId).id }
         : {}),
@@ -456,44 +428,32 @@ export default class LocalBackend extends Backend {
     projectId: backend.ProjectId,
     body: backend.UpdateProjectRequestBody,
   ): Promise<backend.UpdatedProject> {
-    if (body.ami != null) {
-      throw new Error('Cannot change project AMI on local backend.')
+    const { id } = extractTypeAndId(projectId)
+    if (body.projectName != null) {
+      await this.projectManager.renameProject({
+        projectId: id,
+        name: projectManager.ProjectName(body.projectName),
+      })
+    }
+    const parentPath = getDirectoryAndName(this.projectManager.getProjectPath(id)).directoryPath
+    const result = await this.projectManager.listDirectory(parentPath)
+    const project = result.flatMap((listedProject) =>
+      (
+        listedProject.type === projectManager.FileSystemEntryType.ProjectEntry &&
+        listedProject.metadata.id === id
+      ) ?
+        [listedProject.metadata]
+      : [],
+    )[0]
+    if (project == null) {
+      throw new Error(`The project ID '${projectId}' is invalid.`)
     } else {
-      const { id } = extractTypeAndId(projectId)
-      if (body.projectName != null) {
-        await this.projectManager.renameProject({
-          projectId: id,
-          name: projectManager.ProjectName(body.projectName),
-        })
-      }
-      const parentPath = getDirectoryAndName(this.projectManager.getProjectPath(id)).directoryPath
-      const result = await this.projectManager.listDirectory(parentPath)
-      const project = result.flatMap((listedProject) =>
-        (
-          listedProject.type === projectManager.FileSystemEntryType.ProjectEntry &&
-          listedProject.metadata.id === id
-        ) ?
-          [listedProject.metadata]
-        : [],
-      )[0]
-      const version =
-        project?.engineVersion == null ?
-          null
-        : {
-            lifecycle: backend.detectVersionLifecycle(project.engineVersion),
-            value: project.engineVersion,
-          }
-      if (project == null) {
-        throw new Error(`The project ID '${projectId}' is invalid.`)
-      } else {
-        return {
-          ami: null,
-          engineVersion: version,
-          ideVersion: version,
-          name: project.name,
-          organizationId: backend.OrganizationId('organization-'),
-          projectId,
-        }
+      return {
+        name: project.name,
+        organizationId: backend.OrganizationId('organization-'),
+        projectId,
+        packageName: project.name,
+        state: { type: backend.ProjectState.closed },
       }
     }
   }
@@ -813,7 +773,7 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
-  override restoreProject() {
+  override restoreAsset() {
     return this.invalidOperation()
   }
 
@@ -912,6 +872,11 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override createSecret() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override createCredential() {
     return this.invalidOperation()
   }
 

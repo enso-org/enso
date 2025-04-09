@@ -120,7 +120,7 @@ const props = defineProps<{
   suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
   processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
-  datasource?: IServerSideDatasource
+  datasource?: IServerSideDatasource | boolean
   rowCount?: number
   isServerSideModel?: boolean
 }>()
@@ -142,9 +142,19 @@ useAutoBlur(() => grid.value?.$el)
 
 function onGridReady(event: GridReadyEvent<TData>) {
   gridApi.value = event.api
+  if (rowModelType.value === 'serverSide') {
+    gridApi.value.retryServerSideLoads()
+  }
 }
 
 const rowModelType = computed(() => (props.isServerSideModel ? 'serverSide' : 'clientSide'))
+
+const gridKey = ref(0)
+
+const forceGridRefresh = () => {
+  //when using the ag grid severSide model this forces the grid to 'refresh' and call getRows
+  gridKey.value++
+}
 
 watch(
   () => props.textFormatOption,
@@ -173,7 +183,7 @@ function lockColumnSize(e: ColumnResizedEvent) {
   // on a resize.
   if (e.source !== 'autosizeColumns') {
     for (const column of e.columns ?? []) {
-      const id = column.getColDef().colId
+      const id = column.getColId()
       if (id) widths.set(id, column.getActualWidth())
     }
   }
@@ -233,7 +243,7 @@ function processCellForClipboard({
   return formatted
 }
 
-defineExpose({ gridApi })
+defineExpose({ gridApi, forceGridRefresh })
 
 // === Keybinds ===
 
@@ -340,6 +350,7 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
     <AgGridVue
       v-bind="$attrs"
       ref="grid"
+      :key="gridKey"
       class="ag-theme-alpine inner"
       :headerHeight="26"
       :rowModelType="rowModelType"
@@ -361,6 +372,7 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       :suppressMoveWhenColumnDragging="suppressMoveWhenColumnDragging"
       :processDataFromClipboard="processDataFromClipboard"
       :allowContextMenuWithControlKey="true"
+      :cacheBlockSize="1000"
       @gridReady="onGridReady"
       @firstDataRendered="updateColumnWidths"
       @rowDataUpdated="(updateColumnWidths($event), emit('rowDataUpdated', $event))"

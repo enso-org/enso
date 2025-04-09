@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
+import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { usePersisted } from '@/stores/persisted'
 import { useProjectStore } from '@/stores/project'
 import { injectProjectNames } from '@/stores/projectNames'
 import { Ast } from '@/util/ast'
+import { useCodeMirror, useStringSync } from '@/util/codemirror'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { type MethodPointer } from '@/util/methodPointer'
 import { type IdentifierOrOperatorIdentifier } from '@/util/qualifiedName'
 import { useToast } from '@/util/toast'
-import { computed, ref, watch } from 'vue'
+import { type ComponentInstance, computed, useTemplateRef, watch } from 'vue'
 import { PropertyAccess } from 'ydoc-shared/ast'
 import { type ExpressionId } from 'ydoc-shared/languageServerTypes'
 import NodeWidget from '../NodeWidget.vue'
@@ -18,7 +19,6 @@ import NodeWidget from '../NodeWidget.vue'
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore(true)
 const persisted = usePersisted(true)
-const displayedName = ref(props.input.value.code())
 const projectNames = injectProjectNames()
 
 const project = useProjectStore()
@@ -35,16 +35,27 @@ const name = computed(() =>
 )
 
 const nameCode = computed(() => name.value.code())
-watch(nameCode, (newValue) => (displayedName.value = newValue))
 
-async function newNameAccepted(newName: string | undefined) {
-  if (!newName) {
-    displayedName.value = name.value.code()
-  } else {
+const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
+const { syncExt, connectSync } = useStringSync()
+const { editorView } = useCodeMirror(editorRoot, {
+  content: nameCode.value,
+  extensions: [syncExt],
+  readonly: false,
+  contentTestId: 'widget-function-name-content',
+  lineMode: 'single',
+})
+
+const { getText, setText } = connectSync(editorView)
+watch(nameCode, (text) => setText(text))
+
+async function newNameAccepted() {
+  const newName = getText()
+  if (newName !== nameCode.value) {
     const result = await renameFunction(newName)
     if (!result.ok) {
       renameError.reportError(result.error)
-      displayedName.value = name.value.code()
+      setText(nameCode.value)
     }
   }
 }
@@ -101,26 +112,38 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetFunctionName">
+  <div class="WidgetFunctionName widgetRounded">
     <NodeWidget v-if="thisArg" :input="WidgetInput.FromAst(thisArg)" />
     <NodeWidget v-if="operator" :input="WidgetInput.FromAst(operator)" />
-    <AutoSizedInput
-      v-model="displayedName"
-      class="FunctionName widgetApplyPadding"
-      @change="newNameAccepted"
-      @pointerdown.stop
-      @click.stop
-      @keydown.enter.stop
-      @keydown.arrow-left.stop
-      @keydown.arrow-right.stop
-    />
+    <div class="widgetApplyPadding">
+      <CodeMirrorRoot ref="editorRoot" @focusout="newNameAccepted" @keydown.enter.stop />
+    </div>
   </div>
 </template>
 
 <style scoped>
 .WidgetFunctionName {
-  display: flex;
-  flex-direction: row;
+  display: inline-flex;
+  background: var(--color-widget);
+  border-radius: var(--radius-full);
+  justify-content: center;
   align-items: center;
+  min-width: var(--node-port-height);
+  color: var(--color-node-text);
+
+  &:has(> :focus) {
+    outline: none;
+    background: var(--color-widget-focus);
+    color: var(--color-node-text-selected);
+  }
+
+  &:deep(::selection) {
+    background: var(--color-widget-selection);
+  }
+}
+
+/*noinspection CssUnusedSymbol*/
+.CodeMirrorRoot {
+  font-weight: 800;
 }
 </style>
