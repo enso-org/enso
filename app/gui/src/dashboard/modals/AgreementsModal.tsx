@@ -7,6 +7,7 @@ import { Button, Checkbox, Dialog, Form, Text } from '#/components/AriaComponent
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
+import { memo } from 'react'
 
 const TEN_MINUTES_MS = 600_000
 const TOS_SCHEMA = z.object({ versionHash: z.string() })
@@ -58,7 +59,9 @@ LocalStorage.registerKey('termsOfService', { schema: TOS_SCHEMA })
 LocalStorage.registerKey('privacyPolicy', { schema: PRIVACY_POLICY_SCHEMA })
 
 /** Modal for accepting the terms of service. */
-export function AgreementsModal({ children }: React.PropsWithChildren<object>) {
+export const AgreementsModal = memo(function AgreementsModal({
+  children,
+}: React.PropsWithChildren<object>) {
   const { getText } = useText()
 
   const [cachedTosHash, setCachedTosHash] = useLocalStorageState('termsOfService')
@@ -168,4 +171,4 @@ export function AgreementsModal({ children }: React.PropsWithChildren<object>) {
   }
 
   return <>{children}</>
-}
+})

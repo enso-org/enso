@@ -27,6 +27,7 @@ import { twJoin } from 'tailwind-merge'
 import { AnimatedBackground } from '../components/AnimatedBackground'
 import { useEventCallback } from '../hooks/eventCallbackHooks'
 
+import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useRouterInReact } from '../../providers/react'
 import { useSetCurrentDirectoryId } from '../providers/DriveProvider'
 import { useCloudCategoryList, useLocalCategoryList } from './Drive/Categories/categoriesHooks'
@@ -151,6 +152,8 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     })
   })
 
+  const dragDelayProps = useAriaDragDelayAction(onPress)
+
   const element = (
     <aria.DropZone
       aria-label={dropZoneLabel}
@@ -159,6 +162,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       }
       className="group relative flex w-full min-w-0 flex-auto items-start rounded-full drop-target-after"
       onDrop={onDrop}
+      {...dragDelayProps}
     >
       <AnimatedBackground.Item
         isSelected={isCurrent}

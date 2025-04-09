@@ -9,10 +9,11 @@ import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
-import { isNewTitleUnique, type SecretAsset } from '#/services/Backend'
+import { isAssetCredential, isNewTitleUnique, type SecretAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
-import { useMutation } from '@tanstack/react-query'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { toast } from 'react-toastify'
 
 /** Props for a {@link SecretNameColumn}. */
 export interface SecretNameColumnProps extends AssetColumnProps {
@@ -21,17 +22,18 @@ export interface SecretNameColumnProps extends AssetColumnProps {
 
 /** The icon and name of a {@link SecretAsset}. */
 export default function SecretNameColumn(props: SecretNameColumnProps) {
-  const { item, state, rowState, setRowState, isEditable } = props
+  const { item, rowState, state, setRowState, isEditable, renameAsset } = props
   const { backend } = state
+
   const toastAndLog = useToastAndLog()
   const { getText } = useText()
   const { setModal } = useSetModal()
   const getAssetChildren = useGetAssetChildren()
 
-  const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
+  const updateSecretMutation = useMutationCallback(backendMutationOptions(backend, 'updateSecret'))
 
   const doRename = async (newTitle: string) => {
-    await updateSecretMutation.mutateAsync([item.id, { title: newTitle, value: null }, item.title])
+    await renameAsset(item.id, newTitle)
     setIsEditing(false)
   }
 
@@ -51,20 +53,24 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       }}
       onClick={(event) => {
         if (isDoubleClick(event) && isEditable) {
-          event.stopPropagation()
-          setModal(
-            <UpsertSecretModal
-              id={item.id}
-              name={item.title}
-              doCreate={async (title, value) => {
-                try {
-                  await updateSecretMutation.mutateAsync([item.id, { title, value }, item.title])
-                } catch (error) {
-                  toastAndLog(null, error)
-                }
-              }}
-            />,
-          )
+          if (isAssetCredential(item)) {
+            toast.warning(getText('cannotEditCredentialError'))
+          } else {
+            event.stopPropagation()
+            setModal(
+              <UpsertSecretModal
+                id={item.id}
+                name={item.title}
+                doCreate={async (title, value) => {
+                  try {
+                    await updateSecretMutation([item.id, { title, value }, item.title])
+                  } catch (error) {
+                    toastAndLog(null, error)
+                  }
+                }}
+              />,
+            )
+          }
         }
       }}
     >

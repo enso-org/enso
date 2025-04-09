@@ -7,15 +7,17 @@ import ContextMenuEntry from '#/components/ContextMenuEntry'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
-import { useNewDatalink, useNewFolder, useNewProject, useNewSecret } from '#/hooks/backendHooks'
+import { backendMutationOptions, useNewFolder, useNewProject } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
+import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { BackendType, type DirectoryId } from '#/services/Backend'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 
 /** Props for a {@link GlobalContextMenu}. */
@@ -45,8 +47,8 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
     directoryId = null,
     currentDirectoryId,
     event,
+    doPaste,
   } = props
-  const { doPaste } = props
 
   const { getText } = useText()
   const { setModal, unsetModal } = useSetModal()
@@ -62,20 +64,15 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
   const newFolder = useEventCallback(async () => {
     return await newFolderRaw(directoryId ?? currentDirectoryId)
   })
-  const newSecretRaw = useNewSecret(backend)
-  const newSecret = useEventCallback(async (name: string, value: string) => {
-    return await newSecretRaw(name, value, directoryId ?? currentDirectoryId)
-  })
+  const newSecret = useMutationCallback(backendMutationOptions(backend, 'createSecret'))
+  const newCredential = useMutationCallback(backendMutationOptions(backend, 'createCredential'))
+  const newDatalink = useMutationCallback(backendMutationOptions(backend, 'createDatalink'))
   const newProjectRaw = useNewProject(backend, category)
   const newProject = useEventCallback(
     async (templateId: string | null | undefined, templateName: string | null | undefined) => {
       return await newProjectRaw({ templateName, templateId }, directoryId ?? currentDirectoryId)
     },
   )
-  const newDatalinkRaw = useNewDatalink(backend)
-  const newDatalink = useEventCallback(async (name: string, value: unknown) => {
-    return await newDatalinkRaw(name, value, directoryId ?? currentDirectoryId)
-  })
   const uploadFilesRaw = useUploadFiles(backend, category)
   const uploadFiles = useEventCallback(async (files: readonly File[]) => {
     await uploadFilesRaw(files, directoryId ?? currentDirectoryId)
@@ -117,8 +114,27 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
                 id={null}
                 name={null}
                 doCreate={async (name, value) => {
-                  await newSecret(name, value)
+                  await newSecret([
+                    { name, value, parentDirectoryId: directoryId ?? currentDirectoryId },
+                  ])
                 }}
+              />,
+            )
+          }}
+        />
+      )}
+      {isCloud && (
+        <ContextMenuEntry
+          hidden={hidden}
+          action="newCredential"
+          doAction={() => {
+            setModal(
+              <CreateCredentialModal
+                doCreate={async (name, value) =>
+                  await newCredential([
+                    { name, value, parentDirectoryId: directoryId ?? currentDirectoryId },
+                  ])
+                }
               />,
             )
           }}
@@ -132,7 +148,14 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
             setModal(
               <UpsertDatalinkModal
                 doCreate={async (name, value) => {
-                  await newDatalink(name, value)
+                  await newDatalink([
+                    {
+                      name,
+                      value,
+                      parentDirectoryId: directoryId ?? currentDirectoryId,
+                      datalinkId: null,
+                    },
+                  ])
                 }}
               />,
             )

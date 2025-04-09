@@ -3,7 +3,6 @@ import FolderIcon from '#/assets/folder.svg'
 import { Button } from '#/components/AriaComponents'
 import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
-import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { useText } from '#/providers/TextProvider'
@@ -11,7 +10,6 @@ import { isNewTitleUnique, type DirectoryAsset } from '#/services/Backend'
 import { merger } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { isDirectoryNameContainInvalidCharacters } from '#/utilities/validation'
-import { useMutation } from '@tanstack/react-query'
 import { useTransition } from 'react'
 
 /** Props for a {@link DirectoryNameColumn}. */
@@ -25,17 +23,13 @@ export interface DirectoryNameColumnProps extends AssetColumnProps {
  * This should never happen.
  */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
-  const { item, state, rowState, setRowState, isEditable, isNavigating } = props
-  const { backend } = state
-
+  const { item, rowState, setRowState, isEditable, isNavigating, renameAsset } = props
   const [isLoading, startNavigation] = useTransition()
 
   const { getText } = useText()
   const driveStore = useDriveStore()
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const getAssetChildren = useGetAssetChildren()
-
-  const updateDirectoryMutation = useMutation(backendMutationOptions(backend, 'updateDirectory'))
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -48,7 +42,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   }
 
   const doRename = async (newTitle: string) => {
-    await updateDirectoryMutation.mutateAsync([item.id, { title: newTitle }, item.title])
+    await renameAsset(item.id, newTitle)
     setIsEditing(false)
   }
 

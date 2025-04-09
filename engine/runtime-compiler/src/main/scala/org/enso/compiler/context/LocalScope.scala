@@ -1,5 +1,6 @@
 package org.enso.compiler.context
 
+import org.enso.scala.wrapper.ScalaConversions
 import org.enso.compiler.pass.analyse.FrameAnalysisMeta
 import org.enso.compiler.pass.analyse.FramePointer
 import org.enso.compiler.pass.analyse.FrameVariableNames
@@ -58,8 +59,8 @@ class LocalScope(
     log: BiFunction[String, Array[Object], Void]
   ): java.util.List[String] = {
     def symbols(): java.util.List[String] = {
-      val r = scope.allDefinitions.map(_.symbol)
-      r.asJava
+      val r = scope.allDefinitions.stream.map(_.symbol).toList
+      r
     }
     val meta = if (symbolsProvider == null) null else symbolsProvider()
     if (meta.isInstanceOf[FrameVariableNames]) {
@@ -141,9 +142,13 @@ class LocalScope(
     *         internal slots, that are prepended to every frame.
     */
   private def gatherLocalFrameSlotIdxs(): Map[AliasGraph.Id, Int] = {
-    scope.allDefinitions.zipWithIndex.map { case (definition, i) =>
-      definition.id -> (i + LocalScope.internalSlotsSize)
-    }.toMap
+    ScalaConversions
+      .asScala(scope.allDefinitions)
+      .zipWithIndex
+      .map { case (definition, i) =>
+        definition.id -> (i + LocalScope.internalSlotsSize)
+      }
+      .toMap
   }
 
   /** Flatten bindings from a given set of levels, accounting for shadowing.
@@ -180,7 +185,7 @@ object LocalScope {
   val empty: LocalScope = {
     val graph              = GraphBuilder.create().freeze().toGraph
     val info               = DataflowAnalysis.DependencyInfo()
-    val emptyVariableNames = FrameVariableNames.create(List())
+    val emptyVariableNames = FrameVariableNames.create(java.util.List.of())
     new LocalScope(
       None,
       () => graph,

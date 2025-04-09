@@ -21,8 +21,8 @@ import java.util.function.Function;
  *
  * Unlike typical Java serialization (which tries to make things automatic), this framework requires
  * one to implement the persistance manually. For each class that one wants to support, one has to
- * implement subclass {@link Persistance} and implement its {@link Persistance#writeObject} and
- * {@link Persistance#readObject} method. <br>
+ * subclass {@link Persistance} and implement its {@link Persistance#writeObject} and {@link
+ * Persistance#readObject} method. <br>
  * {@snippet file="org/enso/persist/PersistanceTest.java" region="manual"} <br>
  * There is a semi-automatic way to generate such subclasses of {@link Persistance} via the {@link
  * Persistable @Persistable} annotation.
@@ -57,6 +57,7 @@ public abstract class Persistance<T> implements Cloneable {
     this.clazz = clazz;
     this.includingSubclasses = includingSubclasses;
     this.id = id;
+    PerMap.registerPersistance(this);
   }
 
   final Persistance<?> newClone() {

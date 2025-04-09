@@ -29,8 +29,12 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
+<<<<<<< HEAD
 import { useMount } from '#/hooks/mountHooks'
 import { useUnmount } from '#/hooks/unmountHooks'
+=======
+import { Tabs } from '#/components/aria'
+>>>>>>> 4f19c580b71beb9cdd93a6d2985d2e9a1be01c8f
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
@@ -189,6 +193,14 @@ function DashboardInner() {
   const closeAllProjects = projectHooks.useCloseAllProjects()
   const clearLaunchedProjects = useClearLaunchedProjects()
 
+  const onSelectionChange = eventCallbacks.useEventCallback((newPage: React.Key) => {
+    // This is safe as we render only valid pages.
+    // eslint-disable-next-line no-restricted-syntax
+    setPage(newPage as TabType)
+  })
+
+  const selectedTab = React.useDeferredValue(page)
+
   return (
     <Page hideInfoBar hideChat>
       <div
@@ -208,14 +220,10 @@ function DashboardInner() {
           closeAllProjects={closeAllProjects}
           clearLaunchedProjects={clearLaunchedProjects}
         />
-        {/* <aria.Tabs
+        {/* <Tabs
           className="relative flex min-h-full grow select-none flex-col container-size"
-          selectedKey={page}
-          onSelectionChange={(newPage) => {
-            // This is safe as we render only valid pages.
-            // eslint-disable-next-line no-restricted-syntax
-            setPage(newPage as TabType)
-          }}
+          selectedKey={selectedTab}
+          onSelectionChange={onSelectionChange}
         >
           <div className="flex">
             <DashboardTabBar onCloseProject={closeProject} onOpenEditor={openEditor} />
@@ -228,7 +236,7 @@ function DashboardInner() {
           </div>
 
           <DashboardTabPanels initialProjectName={initialProjectName} ydocUrl={ydocUrl} />
-        </aria.Tabs> */}
+        </Tabs> */}
         {$config.CHAT_URL != null ?
           <Chat
             isOpen={isHelpChatOpen}

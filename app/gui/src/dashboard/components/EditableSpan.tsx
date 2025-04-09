@@ -38,24 +38,19 @@ export interface EditableSpanProps {
 export default function EditableSpan(props: EditableSpanProps) {
   const { className = '', editable = false, children } = props
 
-  return (
-    <AnimatePresence initial={false}>
-      {editable && <EditForm {...props} />}
+  if (!editable) {
+    return (
+      <Text
+        className={tailwindMerge.twJoin('min-w-0', className)}
+        testId={props['data-testid']}
+        truncate="1"
+      >
+        {children}
+      </Text>
+    )
+  }
 
-      {!editable && (
-        <MotionText
-          className={tailwindMerge.twJoin('min-w-0', className)}
-          testId={props['data-testid']}
-          truncate="1"
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 5 }}
-        >
-          {children}
-        </MotionText>
-      )}
-    </AnimatePresence>
-  )
+  return <EditForm {...props} />
 }
 
 /**
@@ -240,7 +235,7 @@ function ErrorMessage(props: ErrorMessageProps) {
   const [measureFormRef, formRect] = useMeasure({ useRAF: false })
 
   const offset = 12
-  const crossOffset = 36
+  const crossOffset = 30
 
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   const outlineWidth = crossOffset + 10

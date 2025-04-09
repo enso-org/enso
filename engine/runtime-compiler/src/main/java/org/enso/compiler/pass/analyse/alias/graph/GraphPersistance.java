@@ -1,29 +1,36 @@
 package org.enso.compiler.pass.analyse.alias.graph;
 
 import java.io.IOException;
+import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
-import scala.Tuple2$;
+import scala.collection.immutable.HashMap;
 
 public final class GraphPersistance {
   private GraphPersistance() {}
 
-  @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
-  public static final class PersistAliasAnalysisGraphScope extends Persistance<GraphImpl.Scope> {
+  @Persistable(id = 1267)
+  public static final class PersistAliasAnalysisGraphScope extends Persistance<ScopeImpl> {
     public PersistAliasAnalysisGraphScope() {
-      super(GraphImpl.Scope.class, false, 1267);
+      super(ScopeImpl.class, false, 1267);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    protected GraphImpl.Scope readObject(Input in) throws IOException {
+    protected ScopeImpl readObject(Input in) throws IOException {
       var childScopes = in.readInline(scala.collection.immutable.List.class);
       var occurrencesValues = (scala.collection.immutable.Set<GraphOccurrence>) in.readObject();
-      var occurrences = occurrencesValues.map(v -> Tuple2$.MODULE$.apply(v.id(), v)).toMap(null);
-      var allDefinitions = in.readInline(scala.collection.immutable.List.class);
-      var parent = new GraphImpl.Scope(childScopes, occurrences, allDefinitions);
+      var allDefinitions = in.readInline(java.util.List.class);
+      var parent = new ScopeImpl(childScopes, new HashMap<>(), allDefinitions);
+      occurrencesValues.foreach(
+          v -> {
+            var associated = v.withScope(parent);
+            assert associated.scope() == parent;
+            return null;
+          });
+
       childScopes.forall(
           (object) -> {
-            var ch = (GraphImpl.Scope) object;
+            var ch = (ScopeImpl) object;
             ch.withParent(parent);
             return null;
           });
@@ -32,14 +39,14 @@ public final class GraphPersistance {
 
     @Override
     @SuppressWarnings("unchecked")
-    protected void writeObject(GraphImpl.Scope obj, Output out) throws IOException {
+    protected void writeObject(ScopeImpl obj, Output out) throws IOException {
       out.writeInline(scala.collection.immutable.List.class, obj.childScopes());
       out.writeObject(obj.occurrences().values().toSet());
-      out.writeInline(scala.collection.immutable.List.class, obj.allDefinitions());
+      out.writeInline(java.util.List.class, obj.allDefinitions());
     }
   }
 
-  @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
+  @Persistable(id = 1268)
   public static final class PersistAliasAnalysisGraph extends Persistance<GraphImpl> {
     public PersistAliasAnalysisGraph() {
       super(GraphImpl.class, false, 1268);
@@ -48,7 +55,7 @@ public final class GraphPersistance {
     @SuppressWarnings("unchecked")
     protected GraphImpl readObject(Input in) throws IOException {
 
-      var rootScope = (GraphImpl.Scope) in.readObject();
+      var rootScope = (ScopeImpl) in.readObject();
       assignParents(rootScope);
 
       var links =
@@ -67,7 +74,7 @@ public final class GraphPersistance {
       out.writeInt(obj.nextIdCounter());
     }
 
-    private static void assignParents(GraphImpl.Scope scope) {
+    private static void assignParents(ScopeImpl scope) {
       scope
           .childScopes()
           .foreach(

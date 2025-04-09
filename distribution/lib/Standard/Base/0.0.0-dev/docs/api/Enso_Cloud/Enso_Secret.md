@@ -12,9 +12,11 @@
     - to_text self -> Standard.Base.Any.Any
 - type Enso_Secret
     - create name:Standard.Base.Data.Text.Text value:Standard.Base.Data.Text.Text parent:(Standard.Base.Enso_Cloud.Enso_File.Enso_File|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - credential_service_name self -> (Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)
     - delete self -> Standard.Base.Any.Any
     - exists name:Standard.Base.Data.Text.Text parent:(Standard.Base.Enso_Cloud.Enso_File.Enso_File|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
     - get name:Standard.Base.Data.Text.Text parent:(Standard.Base.Enso_Cloud.Enso_File.Enso_File|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - is_credential self -> Standard.Base.Data.Boolean.Boolean
     - list parent:(Standard.Base.Enso_Cloud.Enso_File.Enso_File|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
     - name self -> Standard.Base.Any.Any
     - path self -> Standard.Base.Any.Any
@@ -28,6 +30,7 @@
 - type Enso_Secret_Error
     - Access_Denied
     - to_display_text self -> Standard.Base.Any.Any
+- as_credential_reference secret:Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret -> Standard.Base.Enso_Cloud.Enso_Secret.CredentialReference
 - as_hideable_value value:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret|Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value) -> Standard.Base.Any.Any
 - secret_asset_uri secret:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - secret_resource_uri secret:Standard.Base.Any.Any -> Standard.Base.Any.Any

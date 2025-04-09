@@ -9,10 +9,15 @@ import java.io.IOException;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.junit.BeforeClass;
 import org.junit.Test;
-import org.openide.util.lookup.ServiceProvider;
 
 public class PersistanceTest {
+  @BeforeClass
+  public static void initPersistables() {
+    Persistables.initialize();
+  }
+
   @Test
   public void testUUIDPersistance() throws Exception {
     // @start region="write"
@@ -110,7 +115,7 @@ public class PersistanceTest {
   }
 
   // @start region="manual"
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 328439)
   public static final class PersistUUID extends Persistance<UUID> {
 
     public PersistUUID() {
@@ -139,7 +144,7 @@ public class PersistanceTest {
     private Singleton() {}
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 432433)
   public static final class PersistSingleton extends Persistance<Singleton> {
 
     public PersistSingleton() {
@@ -156,7 +161,7 @@ public class PersistanceTest {
   }
 
   // @start region="annotation"
-  @Persistable(clazz = Service.class, id = 432434)
+  @Persistable(id = 432434)
   @Persistable(clazz = IntegerSupply.class, id = 432435)
   public record Service(int value) implements Supplier<Integer> {
     @Override

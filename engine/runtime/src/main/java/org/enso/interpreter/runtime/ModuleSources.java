@@ -124,6 +124,9 @@ record ModuleSources(TruffleFile file, Rope rope, Source source) {
       return;
     }
     var builtDistribution = libVersion.getParent().getParent();
+    if (builtDistribution == null) {
+      return;
+    }
     if ("built-distribution".equals(builtDistribution.getName())) {
       var repositoryRoot = builtDistribution.getParent();
       var distRoot = repositoryRoot.resolve("distribution").resolve("lib");
