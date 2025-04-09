@@ -77,7 +77,7 @@
     - read self max_rows:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Table.Column.Column
     - regex_match self pattern:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex) -> Standard.Database.DB_Column.DB_Column
     - rename self name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
-    - round self decimal_places:Standard.Base.Data.Numbers.Integer= rounding_mode:(Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode|Standard.Base.Data.Boolean.Boolean)= -> Standard.Base.Any.Any
+    - round self decimal_places:Standard.Base.Data.Numbers.Integer= rounding_mode:Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode= -> Standard.Base.Any.Any
     - round_builtin self decimal_places:Standard.Base.Any.Any rounding_mode:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - round_decimal self decimal_places:Standard.Base.Any.Any rounding_mode:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - round_float self decimal_places:Standard.Base.Any.Any rounding_mode:Standard.Base.Any.Any -> Standard.Base.Any.Any
