@@ -1356,32 +1356,34 @@ function AssetsTable(props: AssetsTableProps) {
 
   return (
     <div className="relative grow contain-strict">
-      <div
-        data-testid="extra-columns"
-        className="absolute right-3 top-0.5 isolate z-1 flex self-end bg-dashboard p-2"
-      >
-        <FocusArea direction="horizontal">
-          {(columnsBarProps) => (
-            <div
-              className="inline-flex gap-icons"
-              {...mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
-                onFocus: () => {
-                  setKeyboardSelectedIndex(null)
-                },
-              })}
-            >
-              {hiddenColumns.map((column) => (
-                <HiddenColumn
-                  key={column}
-                  column={column}
-                  enabledColumns={enabledColumns}
-                  onColumnClick={setEnabledColumns}
-                />
-              ))}
-            </div>
-          )}
-        </FocusArea>
-      </div>
+      {hiddenColumns.length !== 0 && (
+        <div
+          data-testid="extra-columns"
+          className="absolute right-3 top-0.5 isolate z-1 flex self-end bg-dashboard p-2"
+        >
+          <FocusArea direction="horizontal">
+            {(columnsBarProps) => (
+              <div
+                className="inline-flex gap-icons"
+                {...mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
+                  onFocus: () => {
+                    setKeyboardSelectedIndex(null)
+                  },
+                })}
+              >
+                {hiddenColumns.map((column) => (
+                  <HiddenColumn
+                    key={column}
+                    column={column}
+                    enabledColumns={enabledColumns}
+                    onColumnClick={setEnabledColumns}
+                  />
+                ))}
+              </div>
+            )}
+          </FocusArea>
+        </div>
+      )}
 
       <FocusArea direction="vertical">
         {(innerProps) => (
