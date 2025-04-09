@@ -22,7 +22,6 @@ import org.enso.persist.Persistance;
 import org.enso.pkg.QualifiedName;
 import org.enso.pkg.SourceFile;
 import org.enso.version.BuildVersion;
-import org.openide.util.lookup.ServiceProvider;
 
 public final class ImportExportCache
     implements Cache.Spi<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
@@ -147,7 +146,7 @@ public final class ImportExportCache
     }
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 3642)
   public static final class PersistMapToBindings extends Persistance<MapToBindings> {
     public PersistMapToBindings() {
       super(MapToBindings.class, false, 3642);
@@ -214,7 +213,7 @@ public final class ImportExportCache
   @Persistable(clazz = BindingsMap.ExtensionMethod.class, id = 33023)
   @Persistable(clazz = BindingsMap.ConversionMethod.class, id = 33024)
   @Persistable(clazz = BindingsMap.Argument.class, id = 33025)
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 33055)
   public static final class PersistBindingsMap extends Persistance<BindingsMap> {
     public PersistBindingsMap() {
       super(BindingsMap.class, false, 33005);

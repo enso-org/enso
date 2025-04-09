@@ -152,6 +152,9 @@ type Mock_Credentials
             + [["client_id", self.client_id]]
         JS_Object.from_pairs fields . to_json
 
+    set_access_token self token:Text =
+        Mock_Credentials.Value token self.expire_at self.refresh_token self.refresh_url self.client_id
+
     set_refresh_token self token:Text =
         Mock_Credentials.Value self.access_token self.expire_at token self.refresh_url self.client_id
 

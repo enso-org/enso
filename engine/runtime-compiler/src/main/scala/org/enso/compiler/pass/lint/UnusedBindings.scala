@@ -112,7 +112,7 @@ case object UnusedBindings extends IRPass {
         "Aliasing information is required for linting."
       )
       .unsafeAs[AliasInfo.Occurrence]
-    val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
+    val isUsed = !aliasInfo.graph.linksFor(aliasInfo.id).isEmpty
 
     if (!isIgnored && !isUsed) {
       binding
@@ -191,7 +191,7 @@ case object UnusedBindings extends IRPass {
         "required for linting."
       )
       .unsafeAs[AliasInfo.Occurrence]
-    val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
+    val isUsed = !aliasInfo.graph.linksFor(aliasInfo.id).isEmpty
 
     argument match {
       case s: DefinitionArgument.Specified if s.name.isInstanceOf[Name.Self] =>
@@ -267,7 +267,7 @@ case object UnusedBindings extends IRPass {
             "required for linting."
           )
           .unsafeAs[AliasInfo.Occurrence]
-        val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
+        val isUsed = !aliasInfo.graph.linksFor(aliasInfo.id).isEmpty
 
         if (!isIgnored && !isUsed) {
           n.addDiagnostic(warnings.Unused.PatternBinding(name))
@@ -297,7 +297,7 @@ case object UnusedBindings extends IRPass {
             "required for linting."
           )
           .unsafeAs[AliasInfo.Occurrence]
-        val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
+        val isUsed = !aliasInfo.graph.linksFor(aliasInfo.id).isEmpty
 
         if (!isIgnored && !isUsed) {
           typed.addDiagnostic(warnings.Unused.PatternBinding(name))

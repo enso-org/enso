@@ -11,7 +11,7 @@ abstract class Graph {
   ): Graph
 
   def defLinkFor(id: Graph.Id): Option[Graph.Link]
-  def linksFor(id: Graph.Id):   Set[Graph.Link]
+  def linksFor(id: Graph.Id):   java.util.Set[Graph.Link]
 
   def getOccurrence(id: Graph.Id): Option[GraphOccurrence]
   def scopeFor(id: Graph.Id):      Option[Graph.Scope]
@@ -39,7 +39,7 @@ object Graph {
 
   /** Creates new graph with provided scope */
   private[graph] def create(scope: Graph.Scope): Graph = new GraphImpl(
-    scope.asInstanceOf[GraphImpl.Scope]
+    scope.asInstanceOf[ScopeImpl]
   )
 
   abstract class Scope {

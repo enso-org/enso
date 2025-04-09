@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeMirrorInlineRoot from '@/components/CodeMirrorInlineRoot.vue'
+import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
@@ -7,7 +7,8 @@ import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
 import { selectOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemirror'
-import { computed, ref, useTemplateRef, watch, type ComponentInstance } from 'vue'
+import { highlightStyle } from '@/util/codemirror/highlight'
+import { computed, ref, useTemplateRef, watch, watchEffect, type ComponentInstance } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -17,6 +18,10 @@ const textContents = computed(() =>
   props.input.value instanceof Ast.TextLiteral ? props.input.value.rawTextContent : '',
 )
 
+const syntaxLanguage = computed(() =>
+  props.input.dynamicConfig?.kind === 'Text_Input' ? props.input.dynamicConfig.syntax : undefined,
+)
+
 /** Widget Input as Text Literal; undefined if there's no value, or the value is not a Text literal. */
 const inputTextLiteral = computed((): Ast.TextLiteral | undefined => {
   if (props.input.value instanceof Ast.TextLiteral) return props.input.value
@@ -24,26 +29,54 @@ const inputTextLiteral = computed((): Ast.TextLiteral | undefined => {
   if (valueStr == null) return undefined
   return Ast.TextLiteral.tryParse(valueStr)
 })
+const openToken = computed(() => inputTextLiteral.value?.open ?? emptyTextLiteral.value.open)
+const closeToken = computed(() =>
+  isBlock.value ? undefined : (inputTextLiteral.value?.close ?? openToken.value),
+)
+const isBlock = computed<boolean>(() => !!inputTextLiteral.value?.isBlock)
+const editedTextIsMultiline = ref(isTextMultiline(textContents.value))
+const isMultiline = computed<boolean>(() => isBlock.value || editedTextIsMultiline.value)
 
 const placeholder = computed(() =>
   WidgetInput.isPlaceholder(props.input) ? (inputTextLiteral.value?.rawTextContent ?? '') : '',
 )
 
-const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorInlineRoot>>('editorRoot')
+const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
+
+const languageExtension = computed(() => {
+  switch (syntaxLanguage.value) {
+    case 'enso-table-expression':
+      // TODO (#12304)
+      return
+  }
+  return undefined
+})
 
 const { syncExt, connectSync } = useStringSync()
-const { editorView } = useCodeMirror(editorRoot, {
+const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   content: textContents.value,
   placeholder,
-  extensions: [syncExt, selectOnMouseFocus],
+  extensions: [syncExt],
   readonly: false,
   contentTestId: 'widget-text-content',
-  singleLine: true,
+  lineMode: computed(() => (isMultiline.value ? 'multi' : 'auto')),
 })
+watchEffect(() =>
+  setExtraExtensions([
+    highlightStyle(editorRoot.value?.highlightClasses ?? {}),
+    ...[languageExtension.value ?? []],
+    ...(isMultiline.value ? [] : [selectOnMouseFocus]),
+  ]),
+)
+
+function isTextMultiline(text: string) {
+  return !!text.match(/[\r\n]/)
+}
 
 const { getText, setText, onTextEdited } = connectSync(editorView)
 watch(textContents, (text) => setText(text))
 onTextEdited((text) => editing.edit(makeLiteralFromUserInput(text)))
+onTextEdited((text) => (editedTextIsMultiline.value = isTextMultiline(text)))
 
 const previousValue = ref<string>()
 
@@ -113,8 +146,12 @@ function makeLiteralFromUserInput(value: string): Ast.Owned<Ast.MutableTextLiter
   }
 }
 
-const openToken = computed(() => inputTextLiteral.value?.open ?? emptyTextLiteral.value.open)
-const closeToken = computed(() => inputTextLiteral.value?.close ?? openToken.value)
+function onEnter(event: KeyboardEvent) {
+  if (!event.shiftKey) {
+    event.stopPropagation()
+    accepted()
+  }
+}
 </script>
 
 <script lang="ts">
@@ -141,23 +178,31 @@ export const widgetDefinition = defineWidget(
   <label
     ref="widgetRoot"
     class="WidgetText widgetRounded"
+    :class="{ singleLine: !isMultiline }"
     @pointerdown.stop.prevent="focusEditor"
     @click.stop
   >
-    <NodeWidget v-if="openToken" :input="WidgetInput.FromAst(openToken)" />
+    <NodeWidget v-if="openToken" :input="WidgetInput.FromAst(openToken)" class="delimiter open" />
     <!-- Do not finish edit on blur here!
 
     It is tempting, but it breaks the cooperation with possible drop-down widget. Blur may be done on
     pointerdown, and if it would end the interaction, the drop down would also be hidden, making 
     any `click` event on it impossible.
     -->
-    <CodeMirrorInlineRoot
+    <CodeMirrorRoot
       ref="editorRoot"
-      @keydown.enter.stop="accepted"
-      @keydown.tab.stop="accepted"
+      :data-syntax-language="syntaxLanguage"
       @focusin="editing.start()"
+      @keydown.enter.capture="onEnter"
+      @keydown.tab.stop.capture="accepted"
+      @keydown.up.stop
+      @keydown.down.stop
     />
-    <NodeWidget v-if="closeToken" :input="WidgetInput.FromAst(closeToken)" />
+    <NodeWidget
+      v-if="closeToken"
+      :input="WidgetInput.FromAst(closeToken)"
+      class="delimiter close"
+    />
   </label>
 </template>
 
@@ -165,11 +210,11 @@ export const widgetDefinition = defineWidget(
 .WidgetText {
   display: inline-flex;
   background: var(--color-widget);
-  border-radius: var(--radius-full);
   user-select: none;
   justify-content: center;
   align-items: center;
   min-width: var(--node-port-height);
+  border-radius: var(--radius-default);
 
   &:has(> :focus) {
     outline: none;
@@ -189,7 +234,31 @@ export const widgetDefinition = defineWidget(
   }
 }
 
-:deep(.cm-scroller) {
+.singleLine :deep(.cm-scroller) {
   font-weight: 800;
+}
+
+/**
+ * In multiline mode the widget is still sized to content (unless max-height is exceeded), but the
+ * content is padded to be slightly larger than its scroller so that the scrollbar shows.
+ */
+.WidgetText:not(.singleLine) {
+  & :deep(.cm-scroller) {
+    min-height: 2.5em;
+    max-height: 20em;
+  }
+  & .delimiter {
+    font-size: 1.4em;
+    &.open {
+      align-self: flex-start;
+    }
+    &.close {
+      align-self: flex-end;
+    }
+  }
+}
+
+.GraphNode:not(.selected) .WidgetText :deep(.cm-content) * {
+  color: inherit;
 }
 </style>
