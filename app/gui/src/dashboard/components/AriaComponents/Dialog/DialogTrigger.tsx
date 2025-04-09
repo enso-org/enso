@@ -1,14 +1,10 @@
 /** @file A DialogTrigger opens a dialog when a trigger element is pressed. */
 import * as React from 'react'
 
-import * as modalProvider from '#/providers/ModalProvider'
-
 import * as aria from '#/components/aria'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOverlayTriggerState } from 'react-stately'
-
-const PLACEHOLDER = <div />
 
 /** Props passed to the render function of a {@link DialogTrigger}. */
 export interface DialogTriggerRenderProps {
@@ -33,19 +29,14 @@ export function DialogTrigger(props: DialogTriggerProps) {
 
   const state = useOverlayTriggerState(props)
 
-  const { setModal, unsetModal } = modalProvider.useSetModal()
-
   const onOpenStableCallback = useEventCallback(onOpen)
   const onCloseStableCallback = useEventCallback(onClose)
 
   const onOpenChangeInternal = useEventCallback((opened: boolean) => {
-    if (opened) {
-      // We're using a placeholder here just to let the rest of the code know that the modal
-      // is open.
-      setModal(PLACEHOLDER)
-    } else {
-      unsetModal()
+    if (!opened) {
       onCloseStableCallback()
+    } else {
+      onOpenStableCallback()
     }
 
     state.setOpen(opened)

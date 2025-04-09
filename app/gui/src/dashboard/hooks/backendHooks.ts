@@ -5,7 +5,6 @@ import {
   useMutationState,
   useQuery,
   useQueryClient,
-  useSuspenseQuery,
   type DefaultError,
   type Mutation,
   type MutationKey,
@@ -16,7 +15,6 @@ import {
   type UseQueryOptions,
   type UseQueryResult,
 } from '@tanstack/react-query'
-import invariant from 'tiny-invariant'
 
 import {
   backendQueryOptions as backendQueryOptionsBase,
@@ -27,16 +25,11 @@ import {
 } from 'enso-common/src/backendQuery'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useOpenProject } from '#/hooks/projectHooks'
+import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import {
-  useSetNewestFolderId,
-  useSetSelectedAssets,
-  useToggleDirectoryExpansion,
-} from '#/providers/DriveProvider'
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import type { LaunchedProject } from '#/providers/ProjectsProvider'
+import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import {
@@ -44,17 +37,17 @@ import {
   BackendType,
   type AnyAsset,
   type AssetId,
-  type DirectoryAsset,
   type DirectoryId,
+  type FilterBy,
   type User,
   type UserGroupInfo,
 } from '#/services/Backend'
-import LocalBackend from '#/services/LocalBackend'
-import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
-import { tryCreateOwnerPermission } from '#/utilities/permissions'
-import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
 import { useMemo } from 'react'
+import { z } from 'zod'
+
+const PROJECT_EXECUTIONS_STALE_TIME = 60_000
 
 export function backendQueryOptions<Method extends BackendQueryMethod>(
   backend: Backend,
@@ -311,16 +304,39 @@ export function useListUserGroupsWithUsers(backend: Backend): ListUserGroupsWith
   }
 }
 
+/** Return the refetch interval for listing directories based on feature flag state. */
+export function useListDirectoryRefetchInterval() {
+  const enableAssetsTableBackgroundRefresh = useFeatureFlag('enableAssetsTableBackgroundRefresh')
+  const assetsTableBackgroundRefreshInterval = useFeatureFlag(
+    'assetsTableBackgroundRefreshInterval',
+  )
+  return enableAssetsTableBackgroundRefresh ? assetsTableBackgroundRefreshInterval : Infinity
+}
+
 /** Options for {@link listDirectoryQueryOptions}. */
 export interface ListDirectoryQueryOptions {
   readonly backend: Backend
-  readonly parentId: DirectoryId
+  readonly filterBy?: FilterBy | null | undefined
+  readonly parentId: DirectoryId | null
   readonly category: Category
+  /**
+   * When using React, use {@link useListDirectoryRefetchInterval} to 0.
+   * `undefined` is intentionally excluded as this value should be explicitly given.
+   */
+  readonly refetchInterval: number | null
 }
 
 /** Build a query options object to fetch the children of a directory. */
 export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
-  const { backend, parentId, category } = options
+  const {
+    backend,
+    parentId,
+    category,
+    refetchInterval,
+    filterBy = CATEGORY_TO_FILTER_BY[category.type],
+  } = options
+
+  const rootPath = 'rootPath' in category ? category.rootPath : undefined
 
   return queryOptions({
     queryKey: [
@@ -328,25 +344,24 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
       'listDirectory',
       parentId,
       {
+        rootPath,
         labels: null,
-        filterBy: CATEGORY_TO_FILTER_BY[category.type],
+        filterBy,
         recentProjects: category.type === 'recent',
       },
     ] as const,
-    // Setting stale time to `Infinity` avoids attaching a ton of
-    // setTimeouts to the query. Improves performance.
-    // This is fine as refetching is handled by another query.
-    staleTime: Infinity,
+    ...(refetchInterval != null ? { refetchInterval } : {}),
     queryFn: async () => {
       try {
         return await backend.listDirectory(
           {
             parentId,
-            filterBy: CATEGORY_TO_FILTER_BY[category.type],
+            rootPath,
+            filterBy,
             labels: null,
             recentProjects: category.type === 'recent',
           },
-          parentId,
+          parentId ?? '(unknown)',
         )
       } catch (error) {
         if (error instanceof Error) {
@@ -359,97 +374,68 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
   })
 }
 
+/**
+ * Options for {@link unsafe_assetFromCacheQueryOptions}.
+ */
+export interface AssetFromCacheQueryOptions {
+  readonly backend: Backend
+  readonly assetId: AssetId
+  readonly queryClient: QueryClient
+}
+
+/**
+ * Build a query options object to fetch an asset from the React Query cache.
+ * This is _only_ for situations when WE KNOW that the asset is in the cache.
+ * This is _not_ a general purpose function for fetching assets.
+ */
+// eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
+export function unsafe_assetFromCacheQueryOptions(options: AssetFromCacheQueryOptions) {
+  const { backend, assetId, queryClient } = options
+
+  const assetSchema = z
+    .object({ id: z.string().refine((value) => value === assetId) })
+    // This is safe, because we assert that the id is the same as the assetId
+    // This makes us sure that this is an asset.
+    // eslint-disable-next-line no-restricted-syntax
+    .transform((data) => data as unknown as backendModule.AnyAsset)
+
+  return queryOptions({
+    queryKey: [backend.type, 'asset', { id: assetId }],
+    // We don't want to cache this query, as it's purely a computed from another query.
+    gcTime: 0,
+    meta: { persist: false },
+    queryFn: () =>
+      queryClient
+        .getQueryCache()
+        .getAll()
+        .map((query) => {
+          const data = query.state.data
+
+          if (Array.isArray(data)) {
+            // eslint-disable-next-line no-restricted-syntax
+            const asset = data.find((maybeAsset) => assetSchema.safeParse(maybeAsset).success) as
+              | AnyAsset
+              | undefined
+
+            if (asset != null) {
+              return asset
+            }
+          }
+
+          const result = assetSchema.safeParse(data)
+
+          if (result.success) {
+            return result.data
+          }
+
+          return null
+        })
+        .filter((asset) => asset != null)[0],
+  })
+}
+
 /** The type of directory listings in the React Query cache. */
 type DirectoryQuery = readonly AnyAsset<AssetType>[] | undefined
-
-/** Options for {@link useAsset}. */
-export interface UseAssetOptions extends ListDirectoryQueryOptions {
-  readonly assetId: AssetId
-}
-
-/** Data for a specific asset. */
-export function useAsset(options: UseAssetOptions) {
-  const { parentId, assetId } = options
-
-  const { data: asset } = useQuery({
-    ...listDirectoryQueryOptions(options),
-    select: (data) => data.find((child) => child.id === assetId),
-  })
-
-  if (asset) {
-    return asset
-  }
-
-  const shared = {
-    parentId,
-    projectState: null,
-    extension: null,
-    description: '',
-    modifiedAt: toRfc3339(new Date()),
-    permissions: [],
-    labels: [],
-    parentsPath: '',
-    virtualParentsPath: '',
-  }
-  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-  switch (true) {
-    case assetId === USERS_DIRECTORY_ID: {
-      return {
-        ...shared,
-        id: assetId,
-        title: 'Users',
-        type: AssetType.directory,
-      } satisfies DirectoryAsset
-    }
-    case assetId === TEAMS_DIRECTORY_ID: {
-      return {
-        ...shared,
-        id: assetId,
-        title: 'Teams',
-        type: AssetType.directory,
-      } satisfies DirectoryAsset
-    }
-    case backendModule.isLoadingAssetId(assetId): {
-      return {
-        ...shared,
-        id: assetId,
-        title: '',
-        type: AssetType.specialLoading,
-      } satisfies backendModule.SpecialLoadingAsset
-    }
-    case backendModule.isEmptyAssetId(assetId): {
-      return {
-        ...shared,
-        id: assetId,
-        title: '',
-        type: AssetType.specialEmpty,
-      } satisfies backendModule.SpecialEmptyAsset
-    }
-    case backendModule.isErrorAssetId(assetId): {
-      return {
-        ...shared,
-        id: assetId,
-        title: '',
-        type: AssetType.specialError,
-      } satisfies backendModule.SpecialErrorAsset
-    }
-    default: {
-      return
-    }
-  }
-}
-
-/** Non-nullable for a specific asset. */
-export function useAssetStrict(options: UseAssetOptions) {
-  const asset = useAsset(options)
-
-  invariant(
-    asset,
-    `Expected asset to be defined, but got undefined, Asset ID: ${JSON.stringify(options.assetId)}`,
-  )
-
-  return asset
-}
 
 /** Return matching in-flight mutations matching the given filters. */
 export function useBackendMutationState<Method extends BackendMutationMethod, Result>(
@@ -473,24 +459,6 @@ export function useBackendMutationState<Method extends BackendMutationMethod, Re
     // eslint-disable-next-line no-restricted-syntax
     select: select as (mutation: Mutation<unknown, Error, unknown, unknown>) => Result,
   })
-}
-
-/** Get the root directory ID given the current backend and category. */
-export function useRootDirectoryId(backend: Backend, category: Category) {
-  const { user } = useFullUserSession()
-  const { data: organization } = useSuspenseQuery({
-    queryKey: [backend.type, 'getOrganization'],
-    queryFn: () => backend.getOrganization(),
-  })
-  const [localRootDirectory] = useLocalStorageState('localRootDirectory')
-
-  const localRootPath = localRootDirectory != null ? backendModule.Path(localRootDirectory) : null
-  const id =
-    'homeDirectoryId' in category ?
-      category.homeDirectoryId
-    : backend.rootDirectoryId(user, organization, localRootPath)
-  invariant(id, 'Missing root directory')
-  return id
 }
 
 /** Return query data for the children of a directory, fetching it if it does not exist. */
@@ -548,53 +516,42 @@ function useDeleteAsset(backend: Backend, category: Category) {
 /** A function to create a new folder. */
 export function useNewFolder(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
-  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
   const setNewestFolderId = useSetNewestFolderId()
   const setSelectedAssets = useSetSelectedAssets()
-  const { user } = useFullUserSession()
-  const { data: users } = useBackendQuery(backend, 'listUsers', [])
-  const createDirectoryMutation = useMutation(backendMutationOptions(backend, 'createDirectory'))
 
-  return useEventCallback(async (parentId: DirectoryId, parentPath: string | null | undefined) => {
-    toggleDirectoryExpansion(parentId, true)
+  const createDirectoryMutation = useMutationCallback(
+    backendMutationOptions(backend, 'createDirectory'),
+  )
+
+  return useEventCallback(async (parentId: DirectoryId) => {
     const siblings = await ensureListDirectory(parentId)
+
     const directoryIndices = siblings
       .filter(backendModule.assetIsDirectory)
       .map((item) => /^New Folder (?<directoryIndex>\d+)$/.exec(item.title))
       .map((match) => match?.groups?.directoryIndex)
       .map((maybeIndex) => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
-    const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
-    const placeholderItem = backendModule.createPlaceholderDirectoryAsset(
-      title,
-      parentId,
-      tryCreateOwnerPermission(
-        `${parentPath ?? ''}/${title}`,
-        category,
-        user,
-        users ?? [],
-        user.groups ?? [],
-      ),
-    )
 
-    return await createDirectoryMutation
-      .mutateAsync([{ parentId: placeholderItem.parentId, title: placeholderItem.title }])
-      .then((result) => {
-        setNewestFolderId(result.id)
-        setSelectedAssets([{ type: AssetType.directory, ...result }])
-        return result
-      })
+    const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
+    const placeholderItem = backendModule.createPlaceholderDirectoryAsset(title, parentId)
+
+    return await createDirectoryMutation([
+      { parentId: placeholderItem.parentId, title: placeholderItem.title },
+    ]).then((result) => {
+      setNewestFolderId(result.id)
+      setSelectedAssets([{ type: AssetType.directory, ...result }])
+      return result
+    })
   })
 }
 
 /** A function to create a new project. */
 export function useNewProject(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
-  const doOpenProject = useOpenProject()
+  const openProjectLocally = useOpenProjectLocally()
+  const openProjectNatively = useOpenProjectNatively()
   const deleteAsset = useDeleteAsset(backend, category)
-  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
 
-  const { user } = useFullUserSession()
-  const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
 
   return useEventCallback(
@@ -609,10 +566,8 @@ export function useNewProject(backend: Backend, category: Category) {
         datalinkId?: backendModule.DatalinkId | null | undefined
       },
       parentId: DirectoryId,
-      parentPath: string | null | undefined,
+      runLocally = true,
     ) => {
-      toggleDirectoryExpansion(parentId, true)
-
       const siblings = await ensureListDirectory(parentId)
       const projectName = (() => {
         const prefix = `${templateName ?? 'New Project'} `
@@ -624,21 +579,7 @@ export function useNewProject(backend: Backend, category: Category) {
         return `${prefix}${Math.max(0, ...projectIndices) + 1}`
       })()
 
-      const path = backend instanceof LocalBackend ? backend.joinPath(parentId, projectName) : null
-
-      const placeholderItem = backendModule.createPlaceholderProjectAsset(
-        projectName,
-        parentId,
-        tryCreateOwnerPermission(
-          `${parentPath ?? ''}/${projectName}`,
-          category,
-          user,
-          users ?? [],
-          user.groups ?? [],
-        ),
-        user,
-        path,
-      )
+      const placeholderItem = backendModule.createPlaceholderProjectAsset(projectName, parentId)
 
       return await createProjectMutation
         .mutateAsync([
@@ -654,92 +595,20 @@ export function useNewProject(backend: Backend, category: Category) {
           throw error
         })
         .then((createdProject) => {
-          doOpenProject({
+          const openProjectParams = {
             id: createdProject.projectId,
-            type: backend.type,
             parentId: placeholderItem.parentId,
             title: createdProject.name,
-          })
+          }
+          if (runLocally) {
+            // Open in background.
+            void openProjectLocally(openProjectParams, backend.type)
+          } else {
+            openProjectNatively(openProjectParams, backend.type)
+          }
 
           return createdProject
         })
-    },
-  )
-}
-
-/** A function to create a new secret. */
-export function useNewSecret(backend: Backend, category: Category) {
-  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
-  const { user } = useFullUserSession()
-  const { data: users } = useBackendQuery(backend, 'listUsers', [])
-  const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
-
-  return useEventCallback(
-    async (
-      name: string,
-      value: string,
-      parentId: DirectoryId,
-      parentPath: string | null | undefined,
-    ) => {
-      toggleDirectoryExpansion(parentId, true)
-      const placeholderItem = backendModule.createPlaceholderSecretAsset(
-        name,
-        parentId,
-        tryCreateOwnerPermission(
-          `${parentPath ?? ''}/${name}`,
-          category,
-          user,
-          users ?? [],
-          user.groups ?? [],
-        ),
-      )
-
-      return await createSecretMutation.mutateAsync([
-        {
-          parentDirectoryId: placeholderItem.parentId,
-          name: placeholderItem.title,
-          value: value,
-        },
-      ])
-    },
-  )
-}
-
-/** A function to create a new Datalink. */
-export function useNewDatalink(backend: Backend, category: Category) {
-  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
-  const { user } = useFullUserSession()
-  const { data: users } = useBackendQuery(backend, 'listUsers', [])
-  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
-
-  return useEventCallback(
-    async (
-      name: string,
-      value: unknown,
-      parentId: DirectoryId,
-      parentPath: string | null | undefined,
-    ) => {
-      toggleDirectoryExpansion(parentId, true)
-      const placeholderItem = backendModule.createPlaceholderDatalinkAsset(
-        name,
-        parentId,
-        tryCreateOwnerPermission(
-          `${parentPath ?? ''}/${name}`,
-          category,
-          user,
-          users ?? [],
-          user.groups ?? [],
-        ),
-      )
-
-      return await createDatalinkMutation.mutateAsync([
-        {
-          parentDirectoryId: placeholderItem.parentId,
-          datalinkId: null,
-          name: placeholderItem.title,
-          value,
-        },
-      ])
     },
   )
 }
@@ -780,46 +649,27 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
   return { ...createPermissionMutation, mutate, mutateAsync }
 }
 
-/** Duplicate a specific version of a project. */
-export function duplicateProjectMutationOptions(
+/** Build a query options object to list executions for a project. */
+export function listProjectExecutionsQueryOptions(
   backend: Backend,
-  queryClient: QueryClient,
-  openProject: (project: LaunchedProject) => void,
+  id: backendModule.ProjectId,
+  title: string,
 ) {
-  return mutationOptions({
-    mutationFn: async ([id, originalTitle, parentId, versionId]: [
-      id: backendModule.ProjectId,
-      originalTitle: string,
-      parentId: backendModule.DirectoryId,
-      versionId: backendModule.S3ObjectVersionId,
-    ]) => {
-      const siblings = await queryClient.ensureQueryData(
-        backendQueryOptions(backend, 'listDirectory', [
-          {
-            parentId,
-            labels: null,
-            filterBy: backendModule.FilterBy.active,
-            recentProjects: false,
-          },
-          '(unknown)',
-        ]),
-      )
-      const siblingTitles = new Set(siblings.map((sibling) => sibling.title))
-      let index = 1
-      let title = `${originalTitle} (${index})`
-      while (siblingTitles.has(title)) {
-        index += 1
-        title = `${originalTitle} (${index})`
-      }
+  return queryOptions({
+    ...backendQueryOptions(backend, 'listProjectExecutions', [id, title]),
+    select: (executions) => [...executions].reverse(),
+    staleTime: PROJECT_EXECUTIONS_STALE_TIME,
+  })
+}
 
-      await backend.duplicateProject(id, versionId, title).then((project) => {
-        openProject({
-          type: backend.type,
-          parentId,
-          title,
-          id: project.projectId,
-        })
-      })
-    },
+/** Build a query options object to get details for a project execution. */
+export function getProjectExecutionDetailsQueryOptions(
+  backend: Backend,
+  id: backendModule.ProjectExecutionId,
+  title: string,
+) {
+  return queryOptions({
+    ...backendQueryOptions(backend, 'getProjectExecutionDetails', [id, title]),
+    staleTime: PROJECT_EXECUTIONS_STALE_TIME,
   })
 }

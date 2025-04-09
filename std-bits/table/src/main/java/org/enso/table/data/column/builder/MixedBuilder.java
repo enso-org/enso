@@ -29,12 +29,12 @@ public final class MixedBuilder extends ObjectBuilder implements BuilderWithRety
   }
 
   @Override
-  public boolean canRetypeTo(StorageType type) {
+  public boolean canRetypeTo(StorageType<?> type) {
     return false;
   }
 
   @Override
-  public Builder retypeTo(StorageType type) {
+  public Builder retypeTo(StorageType<?> type) {
     throw new UnsupportedOperationException("MixedBuilder cannot be re-typed.");
   }
 }

@@ -229,13 +229,18 @@ public class DebugLocalScope extends EnsoObject {
 
   @ExportMessage
   boolean hasSourceLocation() {
-    return true;
+    return rootNode.getSourceSection() != null;
   }
 
   @ExportMessage
   @TruffleBoundary
-  SourceSection getSourceLocation() {
-    return rootNode.getSourceSection();
+  SourceSection getSourceLocation() throws UnsupportedMessageException {
+    var section = rootNode.getSourceSection();
+    if (section == null) {
+      throw UnsupportedMessageException.create();
+    } else {
+      return section;
+    }
   }
 
   @ExportMessage

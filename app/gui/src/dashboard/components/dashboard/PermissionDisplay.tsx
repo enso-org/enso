@@ -7,10 +7,6 @@ import * as ariaComponents from '#/components/AriaComponents'
 import * as permissionsModule from '#/utilities/permissions'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
-// =================
-// === Component ===
-// =================
-
 /** Props for a {@link PermissionDisplay}. */
 export interface PermissionDisplayProps extends Readonly<React.PropsWithChildren> {
   readonly action: permissionsModule.PermissionAction

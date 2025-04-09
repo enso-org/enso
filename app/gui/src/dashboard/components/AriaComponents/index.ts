@@ -1,13 +1,11 @@
-/**
- * @file index.ts
- * Index file for Aria Components
- */
+/** @file Index file for Aria components. */
 export * from './Alert'
 export * from './Button'
 export * from './Checkbox'
 export * from './CopyBlock'
 export * from './Dialog'
 export * from './Form'
+export * from './IconDisplay'
 export * from './Inputs'
 export * from './Menu'
 export * from './Radio'
@@ -17,4 +15,6 @@ export * from './Text'
 export * from './Tooltip'
 export * from './types'
 export * from './Underlay'
+export * from './utilities'
 export * from './VisuallyHidden'
+export * from './VisualTooltip'

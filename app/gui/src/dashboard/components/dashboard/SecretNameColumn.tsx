@@ -1,90 +1,76 @@
-/** @file The icon and name of a {@link backendModule.SecretAsset}. */
-import { useMutation } from '@tanstack/react-query'
-
+/** @file The icon and name of a {@link SecretAsset}. */
 import KeyIcon from '#/assets/key.svg'
-
-import { backendMutationOptions } from '#/hooks/backendHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-
-import * as modalProvider from '#/providers/ModalProvider'
-
-import type * as column from '#/components/dashboard/column'
-import SvgMask from '#/components/SvgMask'
-
-import UpsertSecretModal from '#/modals/UpsertSecretModal'
-
-import * as backendModule from '#/services/Backend'
-
+import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
+import SvgMask from '#/components/SvgMask'
+import { backendMutationOptions } from '#/hooks/backendHooks'
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
+import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
-import * as eventModule from '#/utilities/event'
-import * as indent from '#/utilities/indent'
-import * as object from '#/utilities/object'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
-
-// =====================
-// === ConnectorName ===
-// =====================
+import { isAssetCredential, isNewTitleUnique, type SecretAsset } from '#/services/Backend'
+import { isDoubleClick } from '#/utilities/event'
+import { merger } from '#/utilities/object'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { toast } from 'react-toastify'
 
 /** Props for a {@link SecretNameColumn}. */
-export interface SecretNameColumnProps extends column.AssetColumnProps {
-  readonly item: backendModule.SecretAsset
+export interface SecretNameColumnProps extends AssetColumnProps {
+  readonly item: SecretAsset
 }
 
-/**
- * The icon and name of a {@link backendModule.SecretAsset}.
- * @throws {Error} when the asset is not a {@link backendModule.SecretAsset}.
- * This should never happen.
- */
+/** The icon and name of a {@link SecretAsset}. */
 export default function SecretNameColumn(props: SecretNameColumnProps) {
-  const { item, selected, state, rowState, setRowState, isEditable, depth } = props
-  const { backend, nodeMap } = state
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { getText } = useText()
-  const { setModal } = modalProvider.useSetModal()
+  const { item, rowState, state, setRowState, isEditable, renameAsset } = props
+  const { backend } = state
 
-  const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
+  const toastAndLog = useToastAndLog()
+  const { getText } = useText()
+  const { setModal } = useSetModal()
+  const getAssetChildren = useGetAssetChildren()
+
+  const updateSecretMutation = useMutationCallback(backendMutationOptions(backend, 'updateSecret'))
 
   const doRename = async (newTitle: string) => {
-    await updateSecretMutation.mutateAsync([item.id, { title: newTitle, value: null }, item.title])
+    await renameAsset(item.id, newTitle)
     setIsEditing(false)
   }
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
-      setRowState(object.merger({ isEditingName }))
+      setRowState(merger({ isEditingName }))
     }
   }
 
   return (
     <div
-      className={tailwindMerge.twMerge(
-        'flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child',
-        indent.indentClass(depth),
-      )}
+      className="flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child"
       onKeyDown={(event) => {
         if (rowState.isEditingName && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
       onClick={(event) => {
-        if (eventModule.isSingleClick(event) && selected) {
-          setIsEditing(true)
-        } else if (eventModule.isDoubleClick(event) && isEditable) {
-          event.stopPropagation()
-          setModal(
-            <UpsertSecretModal
-              id={item.id}
-              name={item.title}
-              doCreate={async (title, value) => {
-                try {
-                  await updateSecretMutation.mutateAsync([item.id, { title, value }, item.title])
-                } catch (error) {
-                  toastAndLog(null, error)
-                }
-              }}
-            />,
-          )
+        if (isDoubleClick(event) && isEditable) {
+          if (isAssetCredential(item)) {
+            toast.warning(getText('cannotEditCredentialError'))
+          } else {
+            event.stopPropagation()
+            setModal(
+              <UpsertSecretModal
+                id={item.id}
+                name={item.title}
+                doCreate={async (title, value) => {
+                  try {
+                    await updateSecretMutation([item.id, { title, value }, item.title])
+                  } catch (error) {
+                    toastAndLog(null, error)
+                  }
+                }}
+              />,
+            )
+          }
         }
       }}
     >
@@ -98,15 +84,9 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
           setIsEditing(false)
         }}
         schema={(z) =>
-          z.refine(
-            (value) =>
-              backendModule.isNewTitleUnique(
-                item,
-                value,
-                nodeMap.current.get(item.parentId)?.children?.map((child) => child.item),
-              ),
-            { message: getText('nameShouldBeUnique') },
-          )
+          z.refine((value) => isNewTitleUnique(item, value, getAssetChildren(item.parentId)), {
+            message: getText('nameShouldBeUnique'),
+          })
         }
       >
         {item.title}

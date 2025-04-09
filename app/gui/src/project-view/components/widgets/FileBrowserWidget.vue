@@ -9,6 +9,8 @@ import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import FileBrowserEntry from '@/components/widgets/FileBrowserWidget/FileBrowserEntry.vue'
+import { Directory, useFileBrowserStack } from '@/components/widgets/FileBrowserWidget/paths'
 import { useBackend } from '@/composables/backend'
 import { Action } from '@/providers/action'
 import { injectBackend } from '@/providers/backend'
@@ -25,12 +27,17 @@ import Backend, {
   assetIsDatalink,
   assetIsDirectory,
   assetIsFile,
+  AssetType,
 } from 'enso-common/src/services/Backend'
-import { computed, onMounted, reactive, ref, toValue, watch } from 'vue'
-import { Err, Ok, Result } from 'ydoc-shared/util/data/result'
-import FileBrowserEntry from './FileBrowserWidget/FileBrowserEntry.vue'
+import { computed, onMounted, reactive, ref, toRef, toValue, watch } from 'vue'
 
-const { writeMode = false } = defineProps<{ writeMode?: boolean }>()
+const props = withDefaults(
+  defineProps<{
+    writeMode?: boolean
+    choosenPath?: string
+  }>(),
+  { writeMode: false, choosenPath: '' },
+)
 
 const emit = defineEmits<{
   pathAccepted: [path: string]
@@ -40,8 +47,8 @@ const { query, fetch, ensureQueryData, mutation } = useBackend('remote')
 const { remote: backend } = injectBackend()
 
 const errorToast = useToast.error()
-const fileName = ref<string>('')
 const newDirPlaceholder = Symbol()
+
 let nextKeyForNewDir = 0
 /**
  * Override for `:key` attribute in content entries.
@@ -52,28 +59,26 @@ let nextKeyForNewDir = 0
  */
 const keyOverride: Map<DirectoryId | symbol, number> = reactive(new Map())
 
-// === Current Directory ===
-
-interface Directory {
-  id: DirectoryId
-  title: string
-}
-
 const currentUser = query('usersMe', [])
 const currentOrganization = query('getOrganization', [])
-const directoryStack = ref<Directory[]>([])
-const isDirectoryStackInitializing = computed(() => directoryStack.value.length === 0)
-const currentDirectory = computed(() => directoryStack.value[directoryStack.value.length - 1])
 
-const currentPath = computed(() => {
-  if (!currentUser.data.value) return
-  let root = backend?.rootPath(currentUser.data.value) ?? 'enso://'
-  if (!root.endsWith('/')) root += '/'
-  return `${root}${directoryStack.value
-    .slice(1)
-    .map((dir) => `${dir.title}/`)
-    .join('')}`
-})
+const {
+  filenameInputContents,
+  directoryStack,
+  currentDirectory,
+  currentFilePath,
+  highlightedName,
+  initializeStack,
+  enterSubdirectories,
+  isDirectoryStackInitializing,
+  assetExists,
+} = useFileBrowserStack(
+  backend,
+  toRef(props, 'choosenPath'),
+  currentUser.data,
+  toRef(props, 'writeMode'),
+  (dir) => fetch('listDirectory', listDirectoryArgs(dir)),
+)
 
 // === Directory Contents ===
 
@@ -127,21 +132,40 @@ function enterDir(dir: DirectoryAsset) {
   directoryStack.value.push(dir)
 }
 
-class DirNotFoundError {
-  constructor(public dirName: string) {}
-
-  toString() {
-    return `Directory "${this.dirName}" not found`
-  }
-}
-
 function popTo(index: number) {
   directoryStack.value.splice(index + 1)
 }
 
+function popDirectory() {
+  if (directoryStack.value.length > 1) {
+    directoryStack.value.pop()
+  }
+}
+
+const canPop = computed(() => directoryStack.value.length > 1)
+
 function chooseFile(file: FileAsset | DatalinkAsset) {
-  fileName.value = file.title
-  if (!writeMode) {
+  filenameInputContents.value = file.title
+  if (!props.writeMode) {
+    acceptCurrentFile()
+  }
+}
+
+const askForOverwrite = ref(false)
+const warningText = ref<string | null>(null)
+
+async function tryAcceptCurrentFile() {
+  const enteringResult = await enterSubdirectories()
+  if (!enteringResult.ok) {
+    warningText.value = `${enteringResult.error.payload.toString()}`
+    return
+  }
+  const assetInfo = await assetExists(filenameInputContents.value)
+  if (assetInfo.exists && assetInfo.type === AssetType.file && props.writeMode) {
+    askForOverwrite.value = true
+  } else if (assetInfo.exists && assetInfo.type === AssetType.directory) {
+    warningText.value = `'${filenameInputContents.value}' is a directory, not a file`
+  } else {
     acceptCurrentFile()
   }
 }
@@ -149,9 +173,20 @@ function chooseFile(file: FileAsset | DatalinkAsset) {
 function acceptCurrentFile() {
   if (currentFilePath.value) {
     emit('pathAccepted', currentFilePath.value)
-  } else {
-    return false
   }
+}
+
+function overwriteConfirmed() {
+  askForOverwrite.value = false
+  acceptCurrentFile()
+}
+
+function overwriteCancelled() {
+  askForOverwrite.value = false
+}
+
+function warningDismissed() {
+  warningText.value = null
 }
 
 const isBusy = computed(() => isDirectoryStackInitializing.value || isPending.value)
@@ -159,11 +194,8 @@ const isBusy = computed(() => isDirectoryStackInitializing.value || isPending.va
 const anyError = computed(() =>
   isError.value ? error
   : currentUser.isError.value ? currentUser.error
+  : currentOrganization.isError.value ? currentOrganization.error
   : undefined,
-)
-
-const currentFilePath = computed(
-  () => fileName.value && currentPath.value && `${currentPath.value}${fileName.value}`,
 )
 
 // === Creating and Renaming Directories ===
@@ -254,34 +286,10 @@ const renameAction: Action = {
 
 // === Initialization ===
 
-async function enterDirByName(name: string, stack: Directory[]): Promise<Result> {
-  const currentDir = stack[stack.length - 1]
-  if (currentDir == null) return Err('Stack is empty')
-  const content = await fetch('listDirectory', listDirectoryArgs(currentDir))
-  const nextDir = content.find(
-    (asset): asset is DirectoryAsset => assetIsDirectory(asset) && asset.title === name,
-  )
-  if (!nextDir) return Err(new DirNotFoundError(name))
-  stack.push(nextDir)
-  return Ok()
-}
-
 onMounted(() => {
   Promise.all([currentUser.promise.value, currentOrganization.promise.value]).then(
-    async ([user, organization]) => {
-      if (!user) {
-        errorToast.show('Cannot load file list: not logged in.')
-        return
-      }
-      const rootDirectoryId =
-        backend?.rootDirectoryId(user, organization, null) ?? user.rootDirectoryId
-      const stack = [{ id: rootDirectoryId, title: 'Cloud' }]
-      if (rootDirectoryId != user.rootDirectoryId) {
-        let result = await enterDirByName('Users', stack)
-        result = result.ok ? await enterDirByName(user.name, stack) : result
-        if (!result.ok) errorToast.reportError(result.error, 'Cannot enter home directory')
-      }
-      directoryStack.value = stack
+    ([user, organizaton]) => {
+      initializeStack(user, organizaton)
     },
   )
 })
@@ -289,19 +297,35 @@ onMounted(() => {
 
 <template>
   <div class="FileBrowserWidget">
+    <div v-if="askForOverwrite" class="confirmationModal">
+      <div class="confirmationText">
+        {{ `File '${filenameInputContents ?? ''}' already exists. Overwrite?` }}
+      </div>
+      <div class="confirmationButtons">
+        <SvgButton class="confirmationButton" label="No" @click.stop="overwriteCancelled" />
+        <SvgButton class="confirmationButton" label="Yes" @click.stop="overwriteConfirmed" />
+      </div>
+    </div>
+    <div v-if="warningText" class="confirmationModal">
+      <div class="confirmationText">{{ 'Warning: ' + warningText }}</div>
+      <SvgButton class="confirmationButton" label="Dismiss" @click.stop="warningDismissed" />
+    </div>
     <div class="topBar">
       <div class="directoryStack">
-        <TransitionGroup>
-          <template v-for="(directory, index) in directoryStack" :key="directory.id ?? 'root'">
-            <SvgIcon v-if="index > 0" name="arrow_right_head_only" />
-            <div
-              class="clickable"
-              :class="{ nonInteractive: index === directoryStack.length - 1 }"
-              @click.stop="popTo(index)"
-              v-text="directory.title"
-            ></div>
-          </template>
-        </TransitionGroup>
+        <SvgButton name="navigate_up" title="Up" :disabled="!canPop" @click.stop="popDirectory" />
+        <div class="breadcrumbs">
+          <TransitionGroup>
+            <template v-for="(directory, index) in directoryStack" :key="directory.id ?? 'root'">
+              <SvgIcon v-if="index > 0" name="navigate_breadcrumb" />
+              <div
+                class="clickable"
+                :class="{ nonInteractive: index === directoryStack.length - 1 }"
+                @click.stop="popTo(index)"
+                v-text="directory.title"
+              ></div>
+            </template>
+          </TransitionGroup>
+        </div>
       </div>
       <SvgButton
         name="folder_add"
@@ -311,8 +335,8 @@ onMounted(() => {
       />
     </div>
 
-    <div v-if="isBusy" class="centerContent contents"><LoadingSpinner /></div>
-    <div v-else-if="anyError" class="centerContent contents">Error: {{ anyError }}</div>
+    <div v-if="anyError" class="centerContent contents">Error: {{ anyError }}</div>
+    <div v-else-if="isBusy" class="centerContent contents"><LoadingSpinner /></div>
     <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
     <div v-else :key="currentDirectory?.id ?? 'root'" class="listing contents">
       <ContextMenuTrigger :actions="[renameAction]" @hidden="focusedDirectory = undefined">
@@ -340,6 +364,7 @@ onMounted(() => {
             :key="entry.id"
             icon="text2"
             :title="entry.title"
+            :highlighted="entry.title === highlightedName"
             @click="chooseFile(entry)"
           />
         </TransitionGroup>
@@ -347,7 +372,7 @@ onMounted(() => {
     </div>
     <div v-if="writeMode" class="fileNameBar">
       <input
-        v-model="fileName"
+        v-model="filenameInputContents"
         class="fileNameInput"
         @pointerdown.stop
         @click.stop
@@ -356,13 +381,13 @@ onMounted(() => {
         @keydown.delete.stop
         @keydown.arrow-left.stop
         @keydown.arrow-right.stop
-        @keydown.enter.stop="acceptCurrentFile()"
+        @keydown.enter.stop="tryAcceptCurrentFile"
       />
       <SvgButton
         class="fileNameAcceptButton"
         label="Ok"
-        :disabled="!fileName"
-        @click.stop="acceptCurrentFile"
+        :disabled="!filenameInputContents"
+        @click.stop="tryAcceptCurrentFile"
       />
     </div>
   </div>
@@ -384,6 +409,37 @@ onMounted(() => {
   flex-direction: column;
 }
 
+.confirmationModal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 32px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border-radius: 0 0 var(--radius-default) var(--radius-default);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirmationText {
+  color: white;
+  text-align: center;
+  font-size: 1.2em;
+  display: flex;
+  overflow: hidden;
+}
+
+.confirmationButtons {
+  display: flex;
+  width: 40%;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
 .topBar {
   color: white;
   background-color: var(--background-color);
@@ -393,12 +449,18 @@ onMounted(() => {
 }
 
 .directoryStack {
-  --transition-duration: 0.1s;
-  color: white;
-  gap: 2px;
   display: flex;
   align-items: center;
   flex-grow: 1;
+  color: white;
+  gap: 8px; /* gap between up button and breadcrumbs */
+}
+
+.breadcrumbs {
+  --transition-duration: 0.1s;
+  display: flex;
+  align-items: center;
+  gap: 2px; /* breadcrumb spacing */
 }
 
 .contents {
@@ -462,7 +524,8 @@ onMounted(() => {
   user-select: all;
 }
 
-.fileNameAcceptButton {
+.fileNameAcceptButton,
+.confirmationButton {
   --color-menu-entry-hover-bg: color-mix(in oklab, var(--color-frame-selected-bg), black 10%);
   border-radius: var(--border-radius-inner);
   height: calc(var(--border-radius-inner) * 2);

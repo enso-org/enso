@@ -8,7 +8,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -30,6 +29,14 @@ import org.enso.pkg.QualifiedName;
  * priority. Future rewrites of this class may optimize towards such direction.
  */
 final class SerializationPool {
+  static {
+    org.enso.compiler.core.ir.Persistables.initialize();
+    org.enso.compiler.pass.analyse.Persistables.initialize();
+    org.enso.compiler.pass.analyse.types.Persistables.initialize();
+    org.enso.compiler.pass.analyse.alias.graph.Persistables.initialize();
+    org.enso.interpreter.caches.Persistables.initialize();
+  }
+
   private final TruffleCompilerContext context;
 
   /**
@@ -55,14 +62,7 @@ final class SerializationPool {
 
   SerializationPool(TruffleCompilerContext context) {
     this.context = context;
-    this.pool =
-        Executors.newSingleThreadExecutor(
-            (r) -> {
-              var t = context.createSystemThread(r);
-              t.setName("SerializationPool background thread");
-              threads.add(t);
-              return t;
-            });
+    this.pool = context.newSerializationPool();
   }
 
   /**

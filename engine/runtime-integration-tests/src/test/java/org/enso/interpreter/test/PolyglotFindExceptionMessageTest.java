@@ -23,6 +23,7 @@ public class PolyglotFindExceptionMessageTest {
   @AfterClass
   public static void disposeCtx() {
     ctx.close();
+    ctx = null;
   }
 
   @Test

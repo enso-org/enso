@@ -26,9 +26,9 @@ jobs:
           fetch-depth: 2
       - id: AWS-changed-files
         name: AWS-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
-          files: distribution/lib/Standard/AWS/**/docs/api/**.md
+          files: distribution/lib/Standard/AWS/**/docs/api/**/**.md
       - name: List all changed files in AWS
         run: "\n        if [[ \"${{ steps.AWS-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
         env:
@@ -51,9 +51,9 @@ jobs:
           fetch-depth: 2
       - id: Base-changed-files
         name: Base-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
-          files: distribution/lib/Standard/Base/**/docs/api/**.md
+          files: distribution/lib/Standard/Base/**/docs/api/**/**.md
       - name: List all changed files in Base
         run: "\n        if [[ \"${{ steps.Base-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
         env:
@@ -76,9 +76,9 @@ jobs:
           fetch-depth: 2
       - id: Database-changed-files
         name: Database-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
-          files: distribution/lib/Standard/Database/**/docs/api/**.md
+          files: distribution/lib/Standard/Database/**/docs/api/**/**.md
       - name: List all changed files in Database
         run: "\n        if [[ \"${{ steps.Database-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
         env:
@@ -101,9 +101,9 @@ jobs:
           fetch-depth: 2
       - id: Google_Api-changed-files
         name: Google_Api-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
-          files: distribution/lib/Standard/Google_Api/**/docs/api/**.md
+          files: distribution/lib/Standard/Google_Api/**/docs/api/**/**.md
       - name: List all changed files in Google_Api
         run: "\n        if [[ \"${{ steps.Google_Api-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
         env:
@@ -126,9 +126,9 @@ jobs:
           fetch-depth: 2
       - id: Image-changed-files
         name: Image-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
-          files: distribution/lib/Standard/Image/**/docs/api/**.md
+          files: distribution/lib/Standard/Image/**/docs/api/**/**.md
       - name: List all changed files in Image
         run: "\n        if [[ \"${{ steps.Image-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
         env:
@@ -151,9 +151,9 @@ jobs:
           fetch-depth: 2
       - id: Microsoft-changed-files
         name: Microsoft-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
-          files: distribution/lib/Standard/Microsoft/**/docs/api/**.md
+          files: distribution/lib/Standard/Microsoft/**/docs/api/**/**.md
       - name: List all changed files in Microsoft
         run: "\n        if [[ \"${{ steps.Microsoft-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
         env:
@@ -176,9 +176,9 @@ jobs:
           fetch-depth: 2
       - id: Snowflake-changed-files
         name: Snowflake-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
-          files: distribution/lib/Standard/Snowflake/**/docs/api/**.md
+          files: distribution/lib/Standard/Snowflake/**/docs/api/**/**.md
       - name: List all changed files in Snowflake
         run: "\n        if [[ \"${{ steps.Snowflake-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
         env:
@@ -201,9 +201,9 @@ jobs:
           fetch-depth: 2
       - id: Table-changed-files
         name: Table-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
-          files: distribution/lib/Standard/Table/**/docs/api/**.md
+          files: distribution/lib/Standard/Table/**/docs/api/**/**.md
       - name: List all changed files in Table
         run: "\n        if [[ \"${{ steps.Table-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
         env:
@@ -226,9 +226,9 @@ jobs:
           fetch-depth: 2
       - id: Tableau-changed-files
         name: Tableau-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
-          files: distribution/lib/Standard/Tableau/**/docs/api/**.md
+          files: distribution/lib/Standard/Tableau/**/docs/api/**/**.md
       - name: List all changed files in Tableau
         run: "\n        if [[ \"${{ steps.Tableau-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
         env:
@@ -251,9 +251,9 @@ jobs:
           fetch-depth: 2
       - id: Test-changed-files
         name: Test-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
-          files: distribution/lib/Standard/Test/**/docs/api/**.md
+          files: distribution/lib/Standard/Test/**/docs/api/**/**.md
       - name: List all changed files in Test
         run: "\n        if [[ \"${{ steps.Test-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
         env:
@@ -276,9 +276,9 @@ jobs:
           fetch-depth: 2
       - id: Visualization-changed-files
         name: Visualization-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
-          files: distribution/lib/Standard/Visualization/**/docs/api/**.md
+          files: distribution/lib/Standard/Visualization/**/docs/api/**/**.md
       - name: List all changed files in Visualization
         run: "\n        if [[ \"${{ steps.Visualization-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
         env:
@@ -289,5 +289,30 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           labels: -libs-API-change-Visualization
+  stdlib-api-check-Generic_JDBC-linux-amd64:
+    name: Generic_JDBC-change-labels
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
+      - id: Generic_JDBC-changed-files
+        name: Generic_JDBC-changed-files
+        uses: step-security/changed-files@v45
+        with:
+          files: distribution/lib/Standard/Generic_JDBC/**/docs/api/**.md
+      - name: List all changed files in Generic_JDBC
+        run: "\n        if [[ \"${{ steps.Generic_JDBC-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        env:
+          ALL_CHANGED_FILES: ${{ steps.Generic_JDBC-changed-files.outputs.all_changed_files }}
+      - if: steps.Generic_JDBC-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-Generic_JDBC label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-Generic_JDBC
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

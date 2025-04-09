@@ -2,10 +2,10 @@ from Standard.Base import all
 
 from Standard.Test import Test
 
-import project.Generic_JDBC_Connection_Spec
+import project.H2_Spec
 
 main filter=Nothing =
     suite = Test.build suite_builder->
-        Generic_JDBC_Connection_Spec.add_specs suite_builder
+        H2_Spec.add_specs suite_builder
 
     suite.run_with_filter filter

@@ -19,9 +19,13 @@ import io.sentry.SentryOptions;
 import io.sentry.SystemOutLogger;
 import io.sentry.logback.SentryAppender;
 import java.io.File;
+import java.net.URI;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.enso.logging.config.Appender;
 import org.enso.logging.config.BaseConfig;
 import org.enso.logging.config.LoggerSetup;
@@ -33,6 +37,8 @@ import org.slf4j.event.Level;
 
 @org.openide.util.lookup.ServiceProvider(service = LoggerSetup.class)
 public final class LogbackSetup extends LoggerSetup {
+
+  private static final String CONSOLE_APPENDER_NAME = "enso-console";
 
   private LogbackSetup(LoggingServiceConfig config, LoggerContext context) {
     this.config = config;
@@ -138,9 +144,10 @@ public final class LogbackSetup extends LoggerSetup {
     socketAppender.setIncludeCallerData(false);
     socketAppender.setRemoteHost(hostname);
     socketAppender.setPort(port);
-    if (appenderConfig != null)
+    if (appenderConfig != null) {
       socketAppender.setReconnectionDelay(
           Duration.buildByMilliseconds(appenderConfig.getReconnectionDelay()));
+    }
 
     env.finalizeAppender(socketAppender);
     return true;
@@ -239,7 +246,7 @@ public final class LogbackSetup extends LoggerSetup {
     encoder.start();
 
     ConsoleAppender<ILoggingEvent> consoleAppender = new ConsoleAppender<>();
-    consoleAppender.setName("enso-console");
+    consoleAppender.setName(CONSOLE_APPENDER_NAME);
     consoleAppender.setEncoder(encoder);
     return consoleAppender;
   }
@@ -301,6 +308,48 @@ public final class LogbackSetup extends LoggerSetup {
       return false;
     }
     return true;
+  }
+
+  @Override
+  public boolean setupTelemetryAppender() {
+    LoggerAndContext env = contextInit(Level.DEBUG, config, false);
+    TelemetryAppender telemetryAppender;
+    try {
+      telemetryAppender = TelemetryAppender.load();
+    } catch (Exception e) {
+      return false;
+    }
+    var rootLogger = env.logger;
+    if (rootLogger.getAppender(CONSOLE_APPENDER_NAME) == null) {
+      // Console appender must be setup as a fallback first.
+      return false;
+    }
+
+    telemetryAppender.setName("telemetry");
+
+    var cloudUri = URI.create(getCloudLogsAPIEndpoint());
+    telemetryAppender.setEndpoint(cloudUri);
+
+    // We set-up a thread 'pool' that will contain at most one thread.
+    // If the thread is idle for 60 seconds, it will be shut down.
+    var executor = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+    telemetryAppender.setExecutor(executor);
+
+    var telemetryLogger = env.ctx.getLogger("org.enso.telemetry");
+    telemetryLogger.addAppender(telemetryAppender);
+    telemetryLogger.setLevel(ch.qos.logback.classic.Level.ALL);
+
+    telemetryAppender.setContext(env.ctx);
+    telemetryAppender.start();
+    return true;
+  }
+
+  private static String getCloudLogsAPIEndpoint() {
+    var envUri = System.getenv("ENSO_CLOUD_API_URI");
+    var effectiveUri =
+        envUri == null ? "https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com/" : envUri;
+    var uriWithSlash = effectiveUri.endsWith("/") ? effectiveUri : effectiveUri + "/";
+    return uriWithSlash + "logs";
   }
 
   @Override

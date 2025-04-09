@@ -70,9 +70,11 @@ export function outputNode(page: Page | Locator): Node {
 // === Data locators ===
 
 function componentLocator(locatorStr: string) {
-  return (page: Locator | Page) => {
-    return page.locator(`${locatorStr}`)
-  }
+  return (page: Locator | Page) => page.locator(locatorStr)
+}
+
+function testIdLocator(testId: string) {
+  return (page: Locator | Page) => page.getByTestId(testId)
 }
 
 export const graphEditor = componentLocator('.GraphEditor')
@@ -80,12 +82,11 @@ export const codeEditor = componentLocator('.CodeEditor')
 export const anyVisualization = componentLocator('.GraphVisualization')
 export const loadingVisualization = componentLocator('.LoadingVisualization')
 export const componentMenu = componentLocator('.ComponentMenu')
-export const addNewNodeButton = componentLocator('.PlusButton')
+export const addNewNodeButton = testIdLocator('add-component-button')
 export const componentBrowser = componentLocator('.ComponentBrowser')
 export const nodeOutputPort = componentLocator('.outputPortHoverArea')
-export const editorRoot = componentLocator('.CodeMirror')
 export const nodeComment = componentLocator('.GraphNodeComment')
-export const nodeCommentContent = componentLocator('.GraphNodeComment div[contentEditable]')
+export const nodeCommentContent = testIdLocator('graph-node-comment-content')
 
 /**
  * A not-selected variant of Component Browser Entry.
@@ -93,12 +94,12 @@ export const nodeCommentContent = componentLocator('.GraphNodeComment div[conten
  * It may be covered by selected one due to way we display them.
  */
 export function componentBrowserEntry(page: Locator | Page) {
-  return page.locator(`.ComponentBrowser .list-variant:not(.selected) .component`)
+  return page.locator(`.ComponentEntry`)
 }
 
 /** A selected variant of Component Browser Entry */
 export function componentBrowserSelectedEntry(page: Locator | Page) {
-  return page.locator(`.ComponentBrowser .list-variant.selected .component`)
+  return page.locator(`.ComponentEntry.selected`)
 }
 
 /** A not-selected variant of Component Browser entry with given label */
@@ -132,7 +133,6 @@ export function deleteItemButton(page: Locator | Page) {
 }
 
 export const navBreadcrumb = componentLocator('.NavBreadcrumb')
-export const componentBrowserInput = componentLocator('.ComponentEditor')
 
 function visualizationLocator(visSelector: string) {
   // Playwright pierces shadow roots, but not within a single XPath.
@@ -153,6 +153,11 @@ export const sqlVisualization = visualizationLocator('.SqlVisualization')
 export const geoMapVisualization = visualizationLocator('.GeoMapVisualization')
 export const imageBase64Visualization = visualizationLocator('.ImageBase64Visualization')
 export const warningsVisualization = visualizationLocator('.WarningsVisualization')
+
+/** Type label on the visualisation */
+export function visualisationNodeType(page: Page) {
+  return page.getByTestId('visualisationNodeType')
+}
 
 // === Edge locators ===
 

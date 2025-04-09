@@ -144,7 +144,7 @@ add_select_column_specs suite_builder setup =
         group_builder.specify "should correctly handle problems: out of bounds indices" <|
             selector = [1, 0, 100, -200, 300]
             action = data.table.select_columns selector error_on_missing_columns=False on_problems=_
-            tester = expect_column_names ["foo", "bar"]
+            tester t = expect_column_names ["foo", "bar"] t
             problems = [Missing_Input_Columns.Error [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
@@ -190,7 +190,7 @@ add_select_column_specs suite_builder setup =
             weird_name = '.*?-!@#!"'
             selector = ["foo", "hmm", weird_name]
             action = data.table.select_columns selector error_on_missing_columns=False on_problems=_
-            tester = expect_column_names ["foo"]
+            tester t = expect_column_names ["foo"] t
             problems = [Missing_Input_Columns.Error ["hmm", weird_name]]
             Problems.test_problem_handling action problems tester
 
@@ -279,7 +279,7 @@ add_select_column_specs suite_builder setup =
         group_builder.specify "should correctly handle problems: out of bounds indices" <|
             selector = [1, 0, 100, -200, 300]
             action = data.table.remove_columns selector on_problems=_
-            tester = expect_column_names ["Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
+            tester t = expect_column_names ["Baz", "foo 1", "foo 2", "ab.+123", "abcd123"] t
             problems = [Missing_Input_Columns.Error [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
@@ -310,7 +310,7 @@ add_select_column_specs suite_builder setup =
             weird_name = '.*?-!@#!"'
             selector = ["foo", "hmm", weird_name]
             action = data.table.remove_columns selector on_problems=_
-            tester = expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
+            tester t = expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"] t
             problems = [Missing_Input_Columns.Error ["hmm", weird_name]]
             Problems.test_problem_handling action problems tester
 
@@ -375,7 +375,7 @@ add_select_column_specs suite_builder setup =
         group_builder.specify "should correctly handle problems: out of bounds indices" <|
             selector = [1, 0, 100, -200, 300]
             action = data.table.reorder_columns selector on_problems=_
-            tester = expect_column_names ["bar", "foo", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
+            tester t = expect_column_names ["bar", "foo", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"] t
             problems = [Missing_Input_Columns.Error [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
@@ -401,7 +401,7 @@ add_select_column_specs suite_builder setup =
             weird_name = '.*?-!@#!"'
             selector = ["foo", "hmm", weird_name]
             action = data.table.reorder_columns selector Position.After_Other_Columns on_problems=_
-            tester = expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "foo"]
+            tester t = expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "foo"] t
             problems = [Missing_Input_Columns.Error ["hmm", weird_name]]
             Problems.test_problem_handling action problems tester
 
@@ -559,7 +559,7 @@ add_select_column_specs suite_builder setup =
             weird_name = '.*?-!@#!"'
             map = Dictionary.from_vector [["alpha", "FirstColumn"], ["omicron", "Another"], [weird_name, "Fixed"]]
             action = data.table.rename_columns map error_on_missing_columns=False on_problems=_
-            tester = expect_column_names ["FirstColumn", "beta", "gamma", "delta"]
+            tester t = expect_column_names ["FirstColumn", "beta", "gamma", "delta"] t
             err_checker err =
                 err.catch.should_be_a Missing_Input_Columns.Error
                 err.catch.criteria.should_equal_ignoring_order ["omicron", weird_name]
@@ -571,7 +571,7 @@ add_select_column_specs suite_builder setup =
         group_builder.specify "should correctly handle problems: out of bounds indices" <|
             map = Dictionary.from_vector [[0, "FirstColumn"], [-1, "Another"], [100, "Boo"], [-200, "Nothing"], [300, "Here"]]
             action = data.table.rename_columns map error_on_missing_columns=False on_problems=_
-            tester = expect_column_names ["FirstColumn", "beta", "gamma", "Another"]
+            tester t = expect_column_names ["FirstColumn", "beta", "gamma", "Another"] t
             err_checker err =
                 err.catch.should_be_a Missing_Input_Columns.Error
                 err.catch.criteria.should_equal_ignoring_order [-200, 100, 300]
@@ -639,14 +639,14 @@ add_select_column_specs suite_builder setup =
         group_builder.specify "should correctly handle problems: duplicate names" <|
             map = ["Test", "Test", "Test", "Test"]
             action = data.table.rename_columns map on_problems=_
-            tester = expect_column_names ["Test 1", "Test 2", "Test 3", "Test"] ignore_order=True
+            tester t = expect_column_names ["Test 1", "Test 2", "Test 3", "Test"] t ignore_order=True
             problems = [Duplicate_Output_Column_Names.Error ["Test", "Test", "Test"]]
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "should correctly handle problems: new name is clashing with existing name of existing column" <|
             map = Dictionary.from_vector [["alpha", "beta"]]
             action = data.table.rename_columns map on_problems=_
-            tester = expect_column_names ["beta", "beta 1", "gamma", "delta"]
+            tester t = expect_column_names ["beta", "beta 1", "gamma", "delta"] t
             problems = [Duplicate_Output_Column_Names.Error ["beta"]]
             Problems.test_problem_handling action problems tester
 
@@ -659,7 +659,7 @@ add_select_column_specs suite_builder setup =
         group_builder.specify "should correctly handle problems: too many input names" <|
             map = ["A", "B", "C", "D", "E", "F"]
             action = data.table.rename_columns map on_problems=_
-            tester = expect_column_names ["A", "B", "C", "D"]
+            tester t = expect_column_names ["A", "B", "C", "D"] t
             problem_checker problem =
                 problem.should_be_a Too_Many_Column_Names_Provided.Error
                 problem.column_names.should_equal_ignoring_order ["E", "F"]

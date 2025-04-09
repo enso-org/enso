@@ -4,10 +4,6 @@
  */
 import * as React from 'react'
 
-// ========================
-// === AreaFocusContext ===
-// ========================
-
 /** State contained in a `AreaFocusContext`. */
 export interface AreaFocusContextType {
   readonly areaFocus: boolean
@@ -20,10 +16,6 @@ export interface AreaFocusProviderProps
   extends Readonly<React.PropsWithChildren>,
     AreaFocusContextType {}
 
-// =========================
-// === AreaFocusProvider ===
-// =========================
-
 /**
  * A React provider (and associated hooks) for determining whether the current area
  * containing the current element is focused.
@@ -34,6 +26,7 @@ export default function AreaFocusProvider(props: AreaFocusProviderProps) {
 }
 
 /** Whether the containing area is focused. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAreaFocus() {
   return React.useContext(AreaFocusContext).areaFocus
 }

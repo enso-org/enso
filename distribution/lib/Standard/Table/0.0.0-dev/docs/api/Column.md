@@ -81,7 +81,9 @@
     - pretty self -> Standard.Base.Any.Any
     - print self show_rows:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Nothing.Nothing
     - read self max_rows:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Table.Column.Column
+    - regex_match self pattern:(Standard.Table.Column.Column|Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex) -> Standard.Table.Column.Column
     - rename self name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - requires_numeric_formatter_check self -> Standard.Base.Any.Any
     - reverse self -> Standard.Table.Column.Column
     - round self decimal_places:Standard.Base.Data.Numbers.Integer= use_bankers:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - running self statistic:Standard.Base.Data.Statistics.Statistic= name:Standard.Base.Data.Text.Text= -> Standard.Table.Column.Column
@@ -105,7 +107,7 @@
     - value_type self -> Standard.Table.Value_Type.Value_Type
     - var_args_functions -> Standard.Base.Any.Any
     - year self -> Standard.Base.Any.Any
-    - zip self that:Standard.Table.Column.Column function:Standard.Base.Any.Any skip_nothing:Standard.Base.Data.Boolean.Boolean= expected_value_type:(Standard.Table.Value_Type.Value_Type|Standard.Table.Value_Type.Auto)= -> Standard.Base.Any.Any
+    - zip self right:(Standard.Table.Column.Column|Standard.Table.Table.Table)= keep_unmatched:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Data.Vector.Report_Unmatched)= right_prefix:Standard.Base.Data.Text.Text= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
     - || self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> Standard.Table.Column.Column
 - apply_unary_map column:Standard.Table.Column.Column new_name:Standard.Base.Data.Text.Text function:Standard.Base.Any.Any expected_result_type:(Standard.Table.Value_Type.Value_Type|Standard.Base.Nothing.Nothing)= nothing_unchanged:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
 - apply_unary_operation column:Standard.Table.Column.Column operation:Standard.Table.Column.UnaryOperation new_name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= ~if_unsupported:Standard.Base.Any.Any= -> Standard.Base.Any.Any
@@ -119,7 +121,6 @@
 - run_vectorized_binary_case_text_op left:Standard.Base.Any.Any op:Standard.Base.Any.Any other:Standard.Base.Any.Any case_sensitivity:Standard.Base.Any.Any fallback:Standard.Base.Any.Any new_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - run_vectorized_binary_op column:Standard.Base.Any.Any name:Standard.Base.Any.Any operand:Standard.Base.Any.Any new_name:Standard.Base.Any.Any= fallback_fn:Standard.Base.Any.Any= expected_result_type:Standard.Base.Any.Any= skip_nulls:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - run_vectorized_binary_op_with_fallback_problem_handling column:Standard.Base.Any.Any name:Standard.Base.Any.Any operand:Standard.Base.Any.Any fallback_fn:Standard.Base.Any.Any new_name:Standard.Base.Any.Any expected_result_type:Standard.Base.Any.Any= skip_nulls:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-- run_vectorized_many_op column:Standard.Base.Any.Any name:Standard.Base.Any.Any fallback_fn:Standard.Base.Any.Any operands:Standard.Base.Any.Any new_name:Standard.Base.Any.Any= skip_nulls:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - run_vectorized_ternary_op column:Standard.Base.Any.Any name:Standard.Base.Any.Any operand0:Standard.Base.Any.Any operand1:Standard.Base.Any.Any new_name:Standard.Base.Any.Any= expected_result_type:Standard.Base.Any.Any= skip_nulls:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - slice_ranges column:Standard.Base.Any.Any ranges:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - wrap_text_argument_as_value_provider val:Standard.Base.Any.Any -> Standard.Base.Any.Any

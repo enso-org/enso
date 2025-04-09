@@ -1,7 +1,7 @@
 ## Enso Signatures 1.0
 ## module Standard.Database.DB_Table
 - type DB_Table
-    - add_group_number self grouping_method:Standard.Table.Grouping_Method.Grouping_Method= name:Standard.Base.Data.Text.Text= from:Standard.Base.Data.Numbers.Integer= step:Standard.Base.Data.Numbers.Integer= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
+    - add_group_number self grouping_method:Standard.Table.Grouping_Method.Grouping_Method= name:Standard.Base.Data.Text.Text= from:Standard.Base.Data.Numbers.Integer= step:Standard.Base.Data.Numbers.Integer= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Database.DB_Table.DB_Table
     - add_row_number self name:Standard.Base.Data.Text.Text= from:Standard.Base.Data.Numbers.Integer= step:Standard.Base.Data.Numbers.Integer= group_by:(Standard.Base.Any.Any|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Text.Regex.Regex)= order_by:(Standard.Base.Any.Any|Standard.Base.Data.Text.Text)= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Database.DB_Table.DB_Table
     - aggregate self group_by:(Standard.Base.Any.Any|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Text.Regex.Regex)= columns:(Standard.Base.Data.Vector.Vector Standard.Table.Aggregate_Column.Aggregate_Column)= error_on_missing_columns:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
     - as_subquery self -> Standard.Base.Any.Any
@@ -35,6 +35,7 @@
     - first_row self -> Standard.Base.Any.Any
     - first_value self -> Standard.Base.Any.Any
     - format self columns:(Standard.Base.Any.Any|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Text.Regex.Regex|Standard.Table.Value_Type.By_Type) format:(Standard.Base.Data.Text.Text|Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter|Standard.Database.DB_Column.DB_Column)= locale:Standard.Base.Data.Locale.Locale= error_on_missing_columns:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - generate_rows self over:Standard.Table.Generate_Rows_Range.Generate_Rows_Range= as:Standard.Base.Data.Text.Text= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
     - get self selector:(Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Text.Text)= ~if_missing:Standard.Base.Any.Any= -> (Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any)
     - get_primary_key self -> Standard.Base.Any.Any
     - get_row self index:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> (Standard.Table.Row.Row|Standard.Base.Any.Any)
@@ -95,8 +96,8 @@
     - updated_context_and_columns self ctx:Standard.Base.Any.Any internal_columns:Standard.Base.Any.Any subquery:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - use_first_row_as_names self on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Database.DB_Table.DB_Table
     - with_temporary_column self new_column:Standard.Database.DB_Column.DB_Column f:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - write self path:Standard.Base.System.File.Generic.Writable_File.Writable_File format:Standard.Base.System.File_Format.File_Format= on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= match_columns:Standard.Table.Match_Columns.Match_Columns= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
-    - zip self right:Standard.Database.DB_Table.DB_Table= keep_unmatched:(Standard.Base.Data.Boolean.Boolean|Standard.Table.Constants.Report_Unmatched)= right_prefix:Standard.Base.Data.Text.Text= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Database.DB_Table.DB_Table
+    - write self path:Standard.Base.System.File.Generic.Writable_File.Writable_File format:Standard.Base.Any.Any= on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= match_columns:Standard.Table.Match_Columns.Match_Columns= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - zip self right:Standard.Database.DB_Table.DB_Table= keep_unmatched:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Data.Vector.Report_Unmatched)= right_prefix:Standard.Base.Data.Text.Text= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Database.DB_Table.DB_Table
 - MAX_LITERAL_ELEMENT_COUNT -> Standard.Base.Any.Any
 - default_join_condition table:Standard.Base.Any.Any join_kind:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - make_literal_table connection:Standard.Base.Any.Any column_vectors:Standard.Base.Any.Any column_names:Standard.Base.Any.Any alias:Standard.Base.Any.Any -> Standard.Base.Any.Any

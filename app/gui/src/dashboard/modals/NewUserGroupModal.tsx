@@ -19,10 +19,6 @@ import * as eventModule from '#/utilities/event'
 import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
-// =========================
-// === NewUserGroupModal ===
-// =========================
-
 /** Props for a {@link NewUserGroupModal}. */
 export interface NewUserGroupModalProps {
   readonly backend: Backend

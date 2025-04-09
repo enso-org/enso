@@ -54,7 +54,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
   }
 
   @Override
-  public StorageType getType() {
+  public StorageType<?> getType() {
     return FloatType.FLOAT_64;
   }
 

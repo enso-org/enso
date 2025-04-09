@@ -106,6 +106,7 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
     <div
       class="after-toolbars node-type"
       :title="props.typename ?? UNKNOWN_TYPE"
+      data-testid="visualisationNodeType"
       v-text="nodeShortType"
     />
   </div>
@@ -126,11 +127,10 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
 .after-toolbars {
   display: flex;
   flex-direction: row;
-  justify-content: flex-end;
+  justify-content: flex-start;
   margin-left: auto;
   margin-right: 8px;
   overflow: hidden;
-  width: calc(var(--node-size-x) - var(--permanent-toolbar-width));
 }
 
 .node-type {

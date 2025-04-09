@@ -29,6 +29,8 @@ import { twJoin } from 'tailwind-merge'
 import { AnimatedBackground } from '../components/AnimatedBackground'
 import { useEventCallback } from '../hooks/eventCallbackHooks'
 
+import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
+import { useSetCurrentDirectoryId } from '../providers/DriveProvider'
 import { useCloudCategoryList, useLocalCategoryList } from './Drive/Categories/categoriesHooks'
 
 /** Metadata for a categoryModule.categoryType. */
@@ -72,6 +74,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { getText } = textProvider.useText()
   const localBackend = backendProvider.useLocalBackend()
   const { isOffline } = offlineHooks.useOffline()
+  const setCurrentDirectoryId = useSetCurrentDirectoryId()
 
   const isCurrent = areCategoriesEqual(currentCategory, category)
 
@@ -108,15 +111,19 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 
   const isDropTarget =
     !areCategoriesEqual(currentCategory, category) &&
-    canTransferBetweenCategories(currentCategory, category, user)
+    canTransferBetweenCategories(currentCategory, category)
   const acceptedDragTypes = isDropTarget ? [mimeTypes.ASSETS_MIME_TYPE] : []
 
   const onPress = useEventCallback(() => {
-    if (error == null && !areCategoriesEqual(category, currentCategory)) {
+    if (error == null) {
       // We use startTransition to trigger a background transition between categories.
       // and to not invoke the Suspense boundary.
       // This makes the transition feel more responsive and natural.
       startTransition(() => {
+        setCurrentDirectoryId({
+          current: null,
+          parent: null,
+        })
         setCategoryId(category.id)
       })
     }
@@ -146,6 +153,8 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     })
   })
 
+  const dragDelayProps = useAriaDragDelayAction(onPress)
+
   const element = (
     <aria.DropZone
       aria-label={dropZoneLabel}
@@ -154,6 +163,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       }
       className="group relative flex w-full min-w-0 flex-auto items-start rounded-full drop-target-after"
       onDrop={onDrop}
+      {...dragDelayProps}
     >
       <AnimatedBackground.Item
         isSelected={isCurrent}
@@ -226,14 +236,13 @@ function CategorySwitcher(props: CategorySwitcherProps) {
 
   const itemProps = { currentCategory: category, setCategoryId }
 
-  const { cloudCategory, recentCategory, trashCategory, userCategory, teamCategories } =
-    cloudCategories
+  const { cloudCategory, recentCategory, trashCategory, teamCategories } = cloudCategories
   const { localCategory, directories, addDirectory, removeDirectory } = localCategories
 
   return (
-    <div className="flex flex-col gap-2 py-1">
+    <div className="flex flex-col gap-2">
       <AnimatedBackground>
-        <ariaComponents.Text variant="subtitle" weight="semibold" className="px-2">
+        <ariaComponents.Text variant="subtitle" weight="semibold">
           {getText('category')}
         </ariaComponents.Text>
 
@@ -253,20 +262,6 @@ function CategorySwitcher(props: CategorySwitcherProps) {
             dropZoneLabel={getText('cloudCategoryDropZoneLabel')}
             badgeContent={getText('cloudCategoryBadgeContent')}
           />
-
-          {/* Self user space */}
-          {userCategory != null && (
-            <CategorySwitcherItem
-              {...itemProps}
-              isNested
-              category={userCategory}
-              icon={userCategory.icon}
-              label={userCategory.label}
-              isDisabled={isOffline}
-              buttonLabel={getText('myFilesCategoryButtonLabel')}
-              dropZoneLabel={getText('myFilesCategoryDropZoneLabel')}
-            />
-          )}
 
           {teamCategories.map((teamCategory) => (
             <CategorySwitcherItem

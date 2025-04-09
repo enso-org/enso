@@ -1,14 +1,16 @@
 /** @file `useEvent` shim. */
 import { useCallback } from 'react'
 
-import { useSyncRef } from '#/hooks/syncRefHooks'
+import { useSyncRef } from './syncRefHooks'
 
 /**
  * `useEvent` shim.
  * @see https://github.com/reactjs/rfcs/pull/220
  * @see https://github.com/reactjs/rfcs/blob/useevent/text/0000-useevent.md#internal-implementation
  */
-export function useEventCallback<Func extends (...args: never[]) => unknown>(callback: Func) {
+export function useEventCallback<Func extends (...args: never[]) => unknown>(
+  callback: Func | false | null | undefined,
+) {
   const callbackRef = useSyncRef(callback)
 
   // Make sure that the value of `this` provided for the call to fn is not `ref`
@@ -17,8 +19,10 @@ export function useEventCallback<Func extends (...args: never[]) => unknown>(cal
   return useCallback<Func>(
     // @ts-expect-error we know that the callbackRef.current is of type Func
     function eventCallback(...args: Parameters<Func>) {
-      // eslint-disable-next-line no-restricted-syntax
-      return callbackRef.current(...args) as ReturnType<Func>
+      if (typeof callbackRef.current === 'function') {
+        // eslint-disable-next-line no-restricted-syntax
+        return callbackRef.current(...args) as ReturnType<Func>
+      }
     },
     [callbackRef],
   )

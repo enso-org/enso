@@ -1,5 +1,7 @@
 package org.enso.interpreter.instrument.job
 
+import org.slf4j.LoggerFactory
+
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
@@ -27,7 +29,6 @@ import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
-import java.util.logging.Level
 
 import scala.annotation.unused
 import scala.util.Try
@@ -135,10 +136,11 @@ class UpsertVisualizationJob(
     message: String,
     executionResult: Option[Api.ExecutionResult.Diagnostic]
   )(implicit ctx: RuntimeContext): Unit = {
-    ctx.executionService.getLogger.log(
-      Level.SEVERE,
-      "Visualization for expression {0} failed: {1} (evaluation result: {2})",
-      Array[Object](expressionId, message, executionResult)
+    UpsertVisualizationJob.logger.error(
+      "Visualization for expression {} failed: {} (evaluation result: {})",
+      expressionId,
+      message,
+      executionResult
     )
     ctx.endpoint.sendToClient(
       Api.Response(
@@ -158,6 +160,8 @@ class UpsertVisualizationJob(
 }
 
 object UpsertVisualizationJob {
+  private lazy val logger =
+    LoggerFactory.getLogger(classOf[UpsertVisualizationJob])
 
   /** Invalidate caches for a particular expression id. */
   sealed private case class InvalidateCaches(
@@ -306,15 +310,12 @@ object UpsertVisualizationJob {
         )
 
       case error: ThreadInterruptedException =>
-        ctx.executionService.getLogger.log(
-          Level.SEVERE,
-          "Evaluation of visualization argument [{0}] in module [{1}] was interrupted [{2}] times.",
-          Array[Object](
-            argumentExpression,
-            module.getName.toString,
-            retryCount: Integer,
-            error
-          )
+        UpsertVisualizationJob.logger.error(
+          "Evaluation of visualization argument [{}] in module [{}] was interrupted [{}] times.",
+          argumentExpression,
+          module.getName.toString,
+          retryCount: Integer,
+          error
         )
         Left(
           EvaluationFailed(
@@ -324,16 +325,13 @@ object UpsertVisualizationJob {
         )
 
       case error =>
-        ctx.executionService.getLogger.log(
-          Level.SEVERE,
-          "Evaluation of visualization argument [{0}] failed in module [{1}] with [{2}]: {3}",
-          Array[Object](
-            argumentExpression,
-            module.getName.toString,
-            error.getClass.getSimpleName,
-            error.getMessage,
-            error
-          )
+        UpsertVisualizationJob.logger.error(
+          "Evaluation of visualization argument [{}] failed in module [{}] with [{}]: {}",
+          argumentExpression,
+          module.getName.toString,
+          error.getClass.getSimpleName,
+          error.getMessage,
+          error
         )
         Left(
           EvaluationFailed(
@@ -387,15 +385,12 @@ object UpsertVisualizationJob {
         )
 
       case error: ThreadInterruptedException =>
-        ctx.executionService.getLogger.log(
-          Level.SEVERE,
-          "Evaluation of visualization [{0}] in module [{1}] was interrupted [{2}] times.",
-          Array[Object](
-            expression,
-            expressionModule,
-            retryCount: Integer,
-            error
-          )
+        UpsertVisualizationJob.logger.error(
+          "Evaluation of visualization [{}] in module [{}] was interrupted [{}] times.",
+          expression,
+          expressionModule,
+          retryCount: Integer,
+          error
         )
         Left(
           EvaluationFailed(
@@ -405,16 +400,13 @@ object UpsertVisualizationJob {
         )
 
       case error =>
-        ctx.executionService.getLogger.log(
-          Level.SEVERE,
-          "Evaluation of visualization [{0}] failed in module [{1}] with [{2}]: {3}",
-          Array[Object](
-            expression,
-            expressionModule,
-            error.getClass,
-            error.getMessage,
-            error
-          )
+        UpsertVisualizationJob.logger.error(
+          "Evaluation of visualization [{}] failed in module [{}] with [{}]: {}",
+          expression,
+          expressionModule,
+          error.getClass,
+          error.getMessage,
+          error
         )
         Left(
           EvaluationFailed(

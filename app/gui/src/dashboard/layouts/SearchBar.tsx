@@ -7,10 +7,6 @@ import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 
-// =================
-// === SearchBar ===
-// =================
-
 /** Props for a {@link SearchBar}. */
 export interface SearchBarProps {
   readonly 'data-testid': string

@@ -9,7 +9,7 @@
     - decode_as_json self encoding:(Standard.Base.Data.Text.Encoding.Encoding|Standard.Base.System.File_Format.Infer)= -> Standard.Base.Any.Any
     - decode_as_text self encoding:(Standard.Base.Data.Text.Encoding.Encoding|Standard.Base.System.File_Format.Infer)= -> Standard.Base.Any.Any
     - materialize self -> Standard.Base.Any.Any
-    - new stream:Standard.Base.Any.Any metadata:Standard.Base.System.File_Format_Metadata.File_Format_Metadata uri:Standard.Base.Network.URI.URI -> Standard.Base.Any.Any
+    - new input_stream:Standard.Base.Any.Any metadata:Standard.Base.System.File_Format_Metadata.File_Format_Metadata uri:Standard.Base.Network.URI.URI -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
     - with_stream self action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - write self file:Standard.Base.System.File.Generic.Writable_File.Writable_File on_existing_file:Standard.Base.Any.Any= -> Standard.Base.Any.Any

@@ -2,10 +2,6 @@
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import * as React from 'react'
 
-// ============================
-// === useIntersectionRatio ===
-// ============================
-
 // UNSAFE. Only type-safe if the `transform` and `initialValue` arguments below are omitted
 // and the generic parameter is not explicitly specified.
 // eslint-disable-next-line no-restricted-syntax

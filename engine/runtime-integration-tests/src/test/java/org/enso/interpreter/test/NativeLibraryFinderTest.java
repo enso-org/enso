@@ -23,6 +23,7 @@ import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.pkg.NativeLibraryFinder;
 import org.enso.pkg.Package;
 import org.enso.test.utils.ContextUtils;
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
@@ -34,6 +35,12 @@ public class NativeLibraryFinderTest {
   @Rule public final TestRule printContextRule = new PrintSystemInfoRule();
   private Package<TruffleFile> stdImgPkg;
   private Package<TruffleFile> stdTableauPkg;
+
+  @After
+  public void cleanup() {
+    stdImgPkg = null;
+    stdTableauPkg = null;
+  }
 
   @Test
   public void standardImageShouldHaveNativeLib() {

@@ -8,10 +8,7 @@ import { useAuth } from '#/providers/AuthProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
-
-// =================
-// === Constants ===
-// =================
+import { memo } from 'react'
 
 const TEN_MINUTES_MS = 600_000
 const TOS_SCHEMA = z.object({ versionHash: z.string() })
@@ -19,6 +16,7 @@ const PRIVACY_POLICY_SCHEMA = z.object({ versionHash: z.string() })
 const TOS_ENDPOINT_SCHEMA = z.object({ hash: z.string() })
 const PRIVACY_POLICY_ENDPOINT_SCHEMA = z.object({ hash: z.string() })
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const latestTermsOfServiceQueryOptions = queryOptions({
   queryKey: ['termsOfService', 'currentVersion'],
   queryFn: async () => {
@@ -34,6 +32,7 @@ export const latestTermsOfServiceQueryOptions = queryOptions({
   refetchInterval: TEN_MINUTES_MS,
 })
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const latestPrivacyPolicyQueryOptions = queryOptions({
   queryKey: ['privacyPolicy', 'currentVersion'],
   queryFn: async () => {
@@ -49,10 +48,6 @@ export const latestPrivacyPolicyQueryOptions = queryOptions({
   refetchInterval: TEN_MINUTES_MS,
 })
 
-// ============================
-// === Global configuration ===
-// ============================
-
 declare module '#/utilities/LocalStorage' {
   /** Metadata containing the version hash of the terms of service that the user has accepted. */
   interface LocalStorageData {
@@ -64,12 +59,8 @@ declare module '#/utilities/LocalStorage' {
 LocalStorage.registerKey('termsOfService', { schema: TOS_SCHEMA })
 LocalStorage.registerKey('privacyPolicy', { schema: PRIVACY_POLICY_SCHEMA })
 
-// =======================
-// === AgreementsModal ===
-// =======================
-
 /** Modal for accepting the terms of service. */
-export function AgreementsModal() {
+export const AgreementsModal = memo(function AgreementsModal() {
   const { getText } = useText()
   const { session } = useAuth()
 
@@ -180,4 +171,4 @@ export function AgreementsModal() {
   }
 
   return <Outlet context={session} />
-}
+})

@@ -25,18 +25,24 @@ import { assetPanelStore, useSetAssetPanelProps } from '#/layouts/AssetPanel/'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useLocalBackend } from '#/providers/BackendProvider'
 import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { AssetType, BackendType, Plan, type AnyAsset, type DatalinkId } from '#/services/Backend'
-import { extractTypeAndId } from '#/services/LocalBackend'
-import { normalizePath } from '#/utilities/fileInfo'
-import { mapNonNullish } from '#/utilities/nullable'
+import {
+  AssetType,
+  BackendType,
+  getAssetPermissionId,
+  getAssetPermissionName,
+  isAssetCredential,
+  Plan,
+  type AnyAsset,
+  type DatalinkId,
+} from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
 import { useMutation } from '@tanstack/react-query'
+import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
   base: '',
@@ -59,15 +65,13 @@ export interface AssetPropertiesProps {
 export function AssetProperties(props: AssetPropertiesProps) {
   const { isReadonly = false, backend, category } = props
 
-  const { item, spotlightOn, path } = useStore(
+  const { item, spotlightOn, defaultItem } = useStore(
     assetPanelStore,
-    (state) => ({
-      item: state.assetPanelProps.item,
-      spotlightOn: state.assetPanelProps.spotlightOn ?? null,
-      path: state.assetPanelProps.path,
-    }),
+    (state) => state.assetPanelProps,
     { unsafeEnableTransition: true },
   )
+
+  const currentItem = item ?? defaultItem
 
   const { getText } = useText()
 
@@ -75,18 +79,18 @@ export function AssetProperties(props: AssetPropertiesProps) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
   }
 
-  if (item == null || path == null) {
+  if (currentItem == null) {
     return <Result status="info" title={getText('assetProperties.notSelected')} centered />
   }
 
   return (
     <AssetPropertiesInternal
+      key={currentItem.id}
       backend={backend}
-      item={item}
+      item={currentItem}
       isReadonly={isReadonly}
       category={category}
       spotlightOn={spotlightOn}
-      path={path}
     />
   )
 }
@@ -94,13 +98,12 @@ export function AssetProperties(props: AssetPropertiesProps) {
 /** Props for an {@link AssetPropertiesInternal}. */
 export interface AssetPropertiesInternalProps extends AssetPropertiesProps {
   readonly item: AnyAsset
-  readonly path: string | null
   readonly spotlightOn: AssetPropertiesSpotlight | null
 }
 
 /** Display and modify the properties of an asset. */
 function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
-  const { backend, item, category, spotlightOn, isReadonly = false, path: pathRaw } = props
+  const { backend, item, category, spotlightOn, isReadonly = false } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
 
   const setAssetPanelProps = useSetAssetPanelProps()
@@ -112,7 +115,6 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const { user } = useFullUserSession()
   const isEnterprise = user.plan === Plan.enterprise
   const { getText } = useText()
-  const localBackend = useLocalBackend()
   const [isEditingDescriptionRaw, setIsEditingDescriptionRaw] = React.useState(false)
   const isEditingDescription = isEditingDescriptionRaw || spotlightOn === 'description'
   const setIsEditingDescription = useEventCallback(
@@ -154,7 +156,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     close: closeSpotlight,
   })
 
-  const labels = useBackendQuery(backend, 'listTags', []).data ?? []
+  const { data: labels = [] } = useBackendQuery(backend, 'listTags', [])
   const self = permissions.tryFindSelfPermission(user, item.permissions)
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
@@ -162,18 +164,9 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     self?.permission === permissions.PermissionAction.admin ||
     self?.permission === permissions.PermissionAction.edit
   const isSecret = item.type === AssetType.secret
+  const isCredential = isAssetCredential(item)
   const isDatalink = item.type === AssetType.datalink
   const isCloud = backend.type === BackendType.remote
-  const pathComputed =
-    category.type === 'recent' || category.type === 'trash' ? null
-    : isCloud ? `${pathRaw}${item.type === AssetType.datalink ? '.datalink' : ''}`
-    : item.type === AssetType.project ?
-      mapNonNullish(localBackend?.getProjectPath(item.id) ?? null, normalizePath)
-    : normalizePath(extractTypeAndId(item.id).id)
-  const path =
-    pathComputed == null ? null
-    : isCloud ? encodeURI(pathComputed)
-    : pathComputed
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   // Provide an extra `mutationKey` so that it has its own loading state.
   const editDescriptionMutation = useMutation(
@@ -184,6 +177,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     editDescriptionMutation.variables?.[0] === item.id ?
       (editDescriptionMutation.variables[1].description ?? item.description)
     : item.description
+  const ownerPermission = permissions.tryGetOwnerPermission(item)
 
   const editDescriptionForm = Form.useForm({
     schema: (z) => z.object({ description: z.string() }),
@@ -192,7 +186,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
       if (description !== item.description) {
         await editDescriptionMutation.mutateAsync([
           item.id,
-          { parentDirectoryId: null, description },
+          { parentDirectoryId: null, description, title: null },
           item.title,
         ])
       }
@@ -280,29 +274,96 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
           >
-            {getText('settings')}
+            {getText('properties')}
           </Heading>
           <table>
             <tbody>
-              {path != null && (
-                <tr data-testid="asset-panel-permissions" className="h-row">
-                  <td className="text my-auto min-w-side-panel-label p-0">
+              {item.ensoPath != null && item.ensoPathValue && (
+                <tr data-testid="asset-panel-path" className="h-row">
+                  <td className="my-auto min-w-side-panel-label p-0">
                     <Text>{getText('path')}</Text>
                   </td>
                   <td className="w-full p-0">
                     <div className="flex items-center gap-2">
                       <Text className="w-0 grow" truncate="1">
-                        {decodeURI(path)}
+                        {item.ensoPath}
                       </Text>
-                      <CopyButton copyText={path} />
+                      <CopyButton copyText={item.ensoPathValue} />
                     </div>
                   </td>
                 </tr>
               )}
+              {featureFlags.showDeveloperIds && (
+                <tr className="h-row">
+                  <td className="my-auto min-w-side-panel-label p-0">
+                    <Text color="accent">{getText('assetId')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <div className="flex items-center gap-2">
+                      <Text color="accent" className="w-0 grow" truncate="1">
+                        {item.id}
+                      </Text>
+                      <CopyButton copyText={item.id} />
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {featureFlags.showDeveloperIds && (
+                <tr className="h-row">
+                  <td className="my-auto min-w-side-panel-label p-0">
+                    <Text color="accent">{getText('parentId')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <div className="flex items-center gap-2">
+                      <Text color="accent" className="w-0 grow" truncate="1">
+                        {item.parentId}
+                      </Text>
+                      <CopyButton copyText={item.parentId} />
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {ownerPermission && (
+                <tr data-testid="asset-panel-owner" className="h-row">
+                  <td className="min-w-side-panel-label p-0">
+                    <Text className="inline-block">{getText('owner')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <Text className="grow" truncate="1">
+                      {getAssetPermissionName(ownerPermission)}
+                    </Text>
+                  </td>
+                </tr>
+              )}
+              {featureFlags.showDeveloperIds && ownerPermission && (
+                <tr className="h-row">
+                  <td className="my-auto min-w-side-panel-label p-0">
+                    <Text color="accent">{getText('ownerId')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <div className="flex items-center gap-2">
+                      <Text color="accent" className="w-0 grow" truncate="1">
+                        {getAssetPermissionId(ownerPermission)}
+                      </Text>
+                      <CopyButton copyText={getAssetPermissionId(ownerPermission)} />
+                    </div>
+                  </td>
+                </tr>
+              )}
+              <tr data-testid="asset-panel-modified-at" className="h-row">
+                <td className="min-w-side-panel-label p-0">
+                  <Text className="inline-block">{getText('modifiedAt')}</Text>
+                </td>
+                <td className="w-full p-0">
+                  <Text className="grow" truncate="1">
+                    {toReadableIsoString(new Date(item.modifiedAt))}
+                  </Text>
+                </td>
+              </tr>
               {isEnterprise && (
                 <tr data-testid="asset-panel-permissions" className="h-row">
-                  <td className="text my-auto min-w-side-panel-label p-0">
-                    <Text className="text inline-block">{getText('sharedWith')}</Text>
+                  <td className="my-auto min-w-side-panel-label p-0">
+                    <Text className="inline-block">{getText('sharedWith')}</Text>
                   </td>
                   <td className="flex w-full gap-1 p-0">
                     <SharedWithColumn
@@ -314,18 +375,19 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                 </tr>
               )}
               <tr data-testid="asset-panel-labels" className="h-row">
-                <td className="text my-auto min-w-side-panel-label p-0">
-                  <Text className="text inline-block">{getText('labels')}</Text>
+                <td className="my-auto min-w-side-panel-label p-0">
+                  <Text className="inline-block">{getText('labels')}</Text>
                 </td>
                 <td className="flex w-full gap-1 p-0">
                   {item.labels?.map((value) => {
                     const label = labels.find((otherLabel) => otherLabel.value === value)
+                    if (!label) {
+                      return null
+                    }
                     return (
-                      label != null && (
-                        <Label key={value} active isDisabled color={label.color} onPress={() => {}}>
-                          {value}
-                        </Label>
-                      )
+                      <Label key={value} active isDisabled color={label.color} onPress={() => {}}>
+                        {value}
+                      </Label>
                     )
                   })}
                 </td>
@@ -335,15 +397,16 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
         </div>
       )}
 
-      {isSecret && (
+      {isSecret && !isCredential && (
         <div className={styles.section()} {...secretSpotlight.props}>
           <Heading
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
           >
-            {getText('secret')}
+            {getText('configuration')}
           </Heading>
           <UpsertSecretModal
+            key={item.id}
             noDialog
             canReset
             canCancel={false}
@@ -356,13 +419,66 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
         </div>
       )}
 
+      {isSecret && isCredential && (
+        <div className={styles.section()} {...secretSpotlight.props}>
+          <Heading
+            level={2}
+            className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
+          >
+            {getText('configuration')}
+          </Heading>
+          <table>
+            <tbody>
+              <tr className="h-row">
+                <td className="my-auto min-w-side-panel-label p-0">
+                  <Text>{getText('credentialServiceName')}</Text>
+                </td>
+                <td className="w-full p-0">
+                  <div className="flex items-center gap-2">
+                    <Text className="w-0 grow" truncate="1">
+                      {item.credentialMetadata.serviceName}
+                    </Text>
+                  </div>
+                </td>
+              </tr>
+              <tr className="h-row">
+                <td className="my-auto min-w-side-panel-label p-0">
+                  <Text>{getText('credentialState')}</Text>
+                </td>
+                <td className="w-full p-0">
+                  <div className="flex items-center gap-2">
+                    <Text className="w-0 grow" truncate="1">
+                      {getText(`credentialState${item.credentialMetadata.state}`)}
+                    </Text>
+                  </div>
+                </td>
+              </tr>
+              {item.credentialMetadata.expirationDate && (
+                <tr className="h-row">
+                  <td className="my-auto min-w-side-panel-label p-0">
+                    <Text>{getText('credentialExpiresAt')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <div className="flex items-center gap-2">
+                      <Text className="w-0 grow" truncate="1">
+                        {toReadableIsoString(new Date(item.credentialMetadata.expirationDate))}
+                      </Text>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {isDatalink && (
         <div className={styles.section()} {...datalinkSpotlight.props}>
           <Heading
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
           >
-            {getText('datalink')}
+            {getText('configuration')}
           </Heading>
           {datalinkQuery.isLoading ?
             <div className="grid place-items-center self-stretch">

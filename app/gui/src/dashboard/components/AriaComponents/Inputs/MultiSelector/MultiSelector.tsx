@@ -21,7 +21,16 @@ import {
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import { MultiSelectorOption } from './MultiSelectorOption'
+import { MultiSelectorOption, type MultiSelectorOptionProps } from './MultiSelectorOption'
+
+const OPTION_VARIANTS: Record<
+  MultiSelectorProps<never, never, never>['variant'] & {},
+  MultiSelectorOptionProps['variant'] & {}
+> = {
+  outline: 'default',
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'separate-outline': 'outline',
+}
 
 /** * Props for the MultiSelector component. */
 export interface MultiSelectorProps<
@@ -45,6 +54,7 @@ export interface MultiSelectorProps<
   readonly placeholder?: string
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const MULTI_SELECTOR_STYLES = tv({
   base: 'block w-full bg-transparent transition-[border-color,outline] duration-200',
   variants: {
@@ -54,7 +64,7 @@ export const MULTI_SELECTOR_STYLES = tv({
     },
     readOnly: { true: 'cursor-default' },
     size: {
-      medium: { base: '' },
+      medium: '',
     },
     rounded: {
       none: 'rounded-none',
@@ -67,9 +77,9 @@ export const MULTI_SELECTOR_STYLES = tv({
       full: 'rounded-full',
     },
     variant: {
-      outline: {
-        base: 'border-[0.5px] border-primary/20',
-      },
+      outline: 'border-[0.5px] border-primary/20',
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      'separate-outline': { listBox: 'gap-2' },
     },
   },
   defaultVariants: {
@@ -105,6 +115,7 @@ export const MultiSelector = forwardRef(function MultiSelector<
     size,
     rounded,
     isRequired = false,
+    variant,
     ...inputProps
   } = props
 
@@ -123,7 +134,10 @@ export const MultiSelector = forwardRef(function MultiSelector<
     rounded,
     readOnly: inputProps.readOnly,
     disabled: isDisabled || formInstance.formState.isSubmitting,
+    variant,
   })
+
+  const optionVariant = OPTION_VARIANTS[variant ?? 'outline']
 
   return (
     <Form.Field
@@ -177,7 +191,13 @@ export const MultiSelector = forwardRef(function MultiSelector<
                 }}
               >
                 {items.map((item, i) => (
-                  <MultiSelectorOption key={i} id={i} value={{ item }} label={children(item)} />
+                  <MultiSelectorOption
+                    key={i}
+                    id={i}
+                    value={{ item }}
+                    label={children(item)}
+                    variant={optionVariant}
+                  />
                 ))}
               </ListBox>
             )

@@ -1,8 +1,4 @@
-/** @file A function to initiate a download. */
-
-// ================
-// === download ===
-// ================
+/** @file Functions to initiate a download. */
 
 /** Initiate a download for the specified url. */
 export function download(url: string, name?: string | null) {
@@ -15,10 +11,6 @@ export function download(url: string, name?: string | null) {
   link.click()
   document.body.removeChild(link)
 }
-
-// ===========================
-// === downloadWithHeaders ===
-// ===========================
 
 /** Initiate a download with the specified headers, for the specified url. */
 export async function downloadWithHeaders(

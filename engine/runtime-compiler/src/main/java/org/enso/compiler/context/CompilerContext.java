@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URI;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -68,9 +69,7 @@ public interface CompilerContext extends CompilerStub {
   // threads
   boolean isCreateThreadAllowed();
 
-  Thread createThread(Runnable r);
-
-  Thread createSystemThread(Runnable r);
+  ExecutorService newParsingPool();
 
   // Truffle related
 

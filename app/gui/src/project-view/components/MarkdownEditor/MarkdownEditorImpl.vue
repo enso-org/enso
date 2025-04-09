@@ -3,6 +3,8 @@ import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
 import BlockTypeDropdown from '@/components/MarkdownEditor/BlockTypeDropdown.vue'
 import { ensoMarkdown, useMarkdownFormatting } from '@/components/MarkdownEditor/codemirror'
+import { type BlockType } from '@/components/MarkdownEditor/codemirror/formatting'
+import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { useCodeMirror } from '@/util/codemirror'
@@ -14,10 +16,14 @@ import { minimalSetup } from 'codemirror'
 import { computed, onMounted, ref, useCssModule, useTemplateRef, type ComponentInstance } from 'vue'
 import * as Y from 'yjs'
 
-const { content } = defineProps<{
+const { content, toolbar, contentTestId } = defineProps<{
   content: Y.Text | string
-  toolbarContainer?: HTMLElement | undefined
+  toolbar: boolean
+  contentTestId?: string | undefined
 }>()
+defineOptions({
+  inheritAttrs: false,
+})
 
 const focused = ref(false)
 const editing = computed(() => !readonly.value && focused.value)
@@ -34,8 +40,9 @@ const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
     ensoMarkdown(),
   ],
   vueHost: () => vueHost,
+  contentTestId,
 })
-const { toggleHeader, toggleQuote, toggleList, italic, bold } = useMarkdownFormatting(editorView)
+const { italic, bold, insertLink, blockType, insertCodeBlock } = useMarkdownFormatting(editorView)
 
 useLinkTitles(editorView, { readonly })
 
@@ -63,39 +70,49 @@ defineExpose({
 
 <template>
   <div class="MarkdownEditorRoot">
-    <div class="toolbar" @pointerdown.prevent>
+    <div v-if="toolbar" class="toolbar" @pointerdown.prevent>
       <slot name="toolbarLeft" />
       <template v-if="!readonly">
         <BlockTypeDropdown
-          @toggleHeader="toggleHeader($event)"
-          @toggleQuote="toggleQuote()"
-          @toggleList="toggleList($event)"
+          :modelValue="blockType.value ?? 'Unknown'"
+          @update:modelValue="blockType.set($event as BlockType)"
         />
         <ToggleIcon
           icon="italic"
-          :disabled="!editing || italic.value == null"
-          :modelValue="!!italic.value"
-          @update:modelValue="italic.set"
+          :disabled="!editing || !italic.set"
+          :modelValue="italic.value"
+          @update:modelValue="italic.set!"
         />
         <ToggleIcon
           icon="bold"
-          :disabled="!editing || bold.value == null"
-          :modelValue="!!bold.value"
-          @update:modelValue="bold.set"
+          :disabled="!editing || !bold.set"
+          :modelValue="bold.value"
+          @update:modelValue="bold.set!"
+        />
+        <SvgButton
+          name="connector_add"
+          :disabled="insertLink == null"
+          title="Insert link"
+          @click.stop="insertLink?.()"
+        />
+        <SvgButton
+          name="code"
+          :disabled="insertCodeBlock == null"
+          title="Insert code block"
+          @click.stop="insertCodeBlock?.()"
         />
       </template>
       <slot name="toolbarRight" />
     </div>
     <slot name="belowToolbar" />
-    <div class="scrollArea">
-      <CodeMirrorRoot
-        ref="editorRoot"
-        v-bind="$attrs"
-        :class="{ MarkdownEditor: true, editing }"
-        @focusout="focused = false"
-      />
+    <CodeMirrorRoot
+      ref="editorRoot"
+      v-bind="$attrs"
+      :class="{ editing }"
+      @focusout="focused = false"
+    >
       <VueHostRender :host="vueHost" />
-    </div>
+    </CodeMirrorRoot>
   </div>
 </template>
 
@@ -109,39 +126,39 @@ defineExpose({
 
 .toolbar {
   height: 48px;
-  padding-left: 18px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   flex-direction: row;
   gap: 8px;
-  z-index: 250;
-}
-
-.scrollArea {
-  width: 100%;
-  overflow-y: auto;
-  padding-left: 10px;
-  /* Prevent touchpad back gesture, which can be triggered while panning. */
-  overscroll-behavior-x: none;
-  flex-grow: 1;
-}
-
-:deep(.cm-content) {
-  /*noinspection CssUnresolvedCustomProperty,CssNoGenericFontName*/
-  font-family: var(--font-sans);
 }
 
 /*noinspection CssUnusedSymbol*/
-:deep(.cm-editor) {
-  opacity: 1;
-  color: black;
-  font-size: 12px;
-}
+.CodeMirrorRoot {
+  & :deep(.cm-content) {
+    /*noinspection CssUnresolvedCustomProperty,CssNoGenericFontName*/
+    font-family: var(--font-sans);
+  }
 
-/*noinspection CssUnusedSymbol*/
-:deep(img.uploading) {
-  opacity: 0.5;
+  /*noinspection CssUnusedSymbol*/
+  & :deep(.cm-line) {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /*noinspection CssUnusedSymbol*/
+  & :deep(.cm-editor) {
+    flex-grow: 1;
+
+    opacity: 1;
+    color: black;
+    font-size: 12px;
+  }
+
+  /*noinspection CssUnusedSymbol*/
+  & :deep(img.uploading) {
+    opacity: 0.5;
+  }
 }
 </style>
 
@@ -196,8 +213,8 @@ defineExpose({
 
 /* === View-mode === */
 
-:global(.MarkdownEditor:not(.editing) .cm-line),
-:global(.MarkdownEditor .cm-line:not(.cm-has-cursor)) {
+:global(.CodeMirrorRoot:not(.editing) .cm-line),
+:global(.CodeMirrorRoot .cm-line:not(.cm-has-cursor)) {
   :global(.cm-image-markup) {
     display: none;
   }
@@ -219,7 +236,7 @@ defineExpose({
     }
   }
 
-  .list:not(.content) {
+  .list:not(*) {
     /* Hide indentation spaces */
     display: none;
   }

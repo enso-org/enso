@@ -9,7 +9,6 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
-
 from project.Internal.Time.Format.Parser import all
 
 ## PRIVATE

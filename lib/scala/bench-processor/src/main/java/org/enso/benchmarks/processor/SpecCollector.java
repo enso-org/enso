@@ -41,6 +41,7 @@ public final class SpecCollector {
           "import java.io.ByteArrayOutputStream;",
           "import java.io.File;",
           "import java.util.List;",
+          "import java.util.Map;",
           "import java.util.Objects;",
           "import java.util.concurrent.TimeUnit;",
           "import java.util.logging.Level;",
@@ -63,6 +64,7 @@ public final class SpecCollector {
           "import org.graalvm.polyglot.Context;",
           "import org.graalvm.polyglot.Value;",
           "import org.graalvm.polyglot.io.IOAccess;",
+          "import org.enso.common.ContextFactory;",
           "import org.enso.common.LanguageInfo;",
           "import org.enso.common.MethodNames;",
           "import org.enso.common.RuntimeOptions;",
@@ -70,7 +72,8 @@ public final class SpecCollector {
           "import org.enso.benchmarks.ModuleBenchSuite;",
           "import org.enso.benchmarks.BenchSpec;",
           "import org.enso.benchmarks.BenchGroup;",
-          "import org.enso.benchmarks.Utils;");
+          "import org.enso.benchmarks.Utils;",
+          "import org.enso.logger.JulHandler;");
 
   private SpecCollector(
       String moduleName,
@@ -282,36 +285,23 @@ public final class SpecCollector {
             + " read: \" + Objects.toString(projectRootDir));");
     out.println("    }");
     out.println("    File languageHomeOverride = Utils.findLanguageHomeOverride();");
-    out.println("    var ctx = Context.newBuilder()");
-    out.println("      .allowExperimentalOptions(true)");
-    out.println("      .allowIO(IOAccess.ALL)");
-    out.println("      .allowAllAccess(true)");
-    out.println("      .option(RuntimeOptions.LOG_LEVEL, Level.FINE.getName())");
-    out.println("      .logHandler(System.err)");
-    out.println("      .option(");
-    out.println("        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,");
-    out.println("        languageHomeOverride.getAbsolutePath()");
-    out.println("      )");
-    out.println("      .option(");
-    out.println("        RuntimeOptions.PROJECT_ROOT,");
-    out.println("        projectRootDir.getAbsolutePath()");
-    out.println("      )");
+    out.println("    var fallbackLogHandler = JulHandler.get();");
+    out.println("    var logHandler = new LogHandler(fallbackLogHandler);");
     out.println(
         """
-                      .option("engine.TraceCompilation", "true")
-                      .logHandler(new java.util.logging.Handler() {
-                         @Override
-                         public void publish(LogRecord lr) {
-                           if ("engine".equals(lr.getLoggerName())) {
-                             messages.add(lr);
-                           }
-                         }
-                         @Override public void flush() {}
-                         @Override public void close() {}
-                      })
-                """);
-    out.println("      .build();");
-    out.println("    ");
+                     Map<String, String> options = Map.of(
+                         "engine.TraceCompilation", "true",
+                         RuntimeOptions.LANGUAGE_HOME_OVERRIDE, languageHomeOverride.getAbsolutePath()
+                     );
+        """);
+    out.println("    var ctxFactory = ContextFactory.create();");
+    out.println("    ctxFactory.enableStaticAnalysis(false);");
+    out.println("    ctxFactory.enableDebugServer(false);");
+    out.println("    ctxFactory.projectRoot(projectRootDir.getAbsolutePath());");
+    out.println("    ctxFactory.options(options);");
+    out.println("    ctxFactory.logHandler(logHandler);");
+    out.println("    var ctx = ctxFactory.build();");
+
     out.println("    Value bindings = ctx.getBindings(LanguageInfo.ID);");
     out.println(
         "    Value module = bindings.invokeMember(MethodNames.TopScope.GET_MODULE, \""
@@ -343,6 +333,33 @@ public final class SpecCollector {
 
     out.println(
         """
+                  private final class LogHandler extends Handler {
+                    private final Handler fallbackHandler;
+
+                    LogHandler(Handler fallbackHandler) {
+                      this.fallbackHandler = fallbackHandler;
+                    }
+
+                    @Override
+                    public void publish(LogRecord lr) {
+                      if ("engine".equals(lr.getLoggerName())) {
+                        messages.add(lr);
+                      } else {
+                        fallbackHandler.publish(lr);
+                      }
+                    }
+
+                    @Override
+                    public void flush() {
+                      fallbackHandler.flush();
+                    }
+
+                    @Override
+                    public void close() {
+                      fallbackHandler.close();
+                    }
+                  }
+
                   @Setup(org.openjdk.jmh.annotations.Level.Iteration)
                   public void clearCompilationMessages(IterationParams it) {
                     var round = round(it);

@@ -330,15 +330,19 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     }
     const onFileModified = this.handleFileModified.bind(this)
     const onFileRemoved = this.handleFileRemoved.bind(this)
+    const onTransportClosed = () => this.setState(LsSyncState.Closed)
     this.doc.ydoc.on('update', onLocalUpdate)
     sharedDoc.on('update', onRemoteUpdate)
+    this.ls.retain()
     this.ls.on('text/fileModifiedOnDisk', onFileModified)
     this.ls.on('file/rootRemoved', onFileRemoved)
+    this.ls.on('transport/closed', onTransportClosed)
     this.cleanup = () => {
       this.doc.ydoc.off('update', onLocalUpdate)
       sharedDoc.off('update', onRemoteUpdate)
       this.ls.off('text/fileModifiedOnDisk', onFileModified)
       this.ls.off('file/rootRemoved', onFileRemoved)
+      this.ls.off('transport/closed', onTransportClosed)
     }
   }
 
@@ -818,13 +822,17 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   }
 
   async dispose(): Promise<void> {
-    this.cleanup()
-    const alreadyClosed = this.inState(LsSyncState.Closing, LsSyncState.Closed)
-    this.setState(LsSyncState.Disposed)
-    if (alreadyClosed) return Promise.resolve()
-    const closing = await this.ls.closeTextFile(this.path)
-    if (!closing.ok) {
-      closing.error.log(`Closing text file ${this.path}`)
+    try {
+      this.cleanup()
+      const alreadyClosed = this.inState(LsSyncState.Closing, LsSyncState.Closed)
+      this.setState(LsSyncState.Disposed)
+      if (alreadyClosed) return Promise.resolve()
+      const closing = await this.ls.closeTextFile(this.path)
+      if (!closing.ok) {
+        closing.error.log(`Closing text file ${this.path}`)
+      }
+    } finally {
+      this.ls.release()
     }
   }
 }

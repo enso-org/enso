@@ -1,10 +1,14 @@
 import type { Meta, StoryObj } from '@storybook/react'
+import { expect, userEvent, waitFor, within } from '@storybook/test'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { Button } from '../Button'
+import { Form } from '../Form'
+import { Input } from '../Inputs'
 import { Text } from '../Text'
 import { Dialog, type DialogProps } from './Dialog'
 import { DialogTrigger } from './DialogTrigger'
+import { Popover } from './Popover'
 
 type Story = StoryObj<DialogProps>
 
@@ -124,5 +128,54 @@ export const FullscreenWithStretchChildren: Story = {
         </div>
       )
     },
+  },
+}
+
+export const PopoverInDialog: Story = {
+  render: () => {
+    return (
+      <Dialog.Trigger>
+        <Button>Open Dialog</Button>
+
+        <Dialog title="Test dialog with popover">
+          <Form
+            method="dialog"
+            schema={(schema) =>
+              schema.object({
+                test: schema.string(),
+              })
+            }
+            defaultValues={{
+              test: 'test',
+            }}
+          >
+            <Form.FieldValue name="test">{(value) => <Text>{value}</Text>}</Form.FieldValue>
+
+            <Popover.Trigger>
+              <Button>Open Popover</Button>
+
+              <Popover placement="bottom start">
+                <Text variant="subtitle">Popover Content</Text>
+
+                <Input name="test" label="Rename" autoFocus />
+
+                <Button variant="primary" formMethod="dialog">
+                  Apply
+                </Button>
+              </Popover>
+            </Popover.Trigger>
+          </Form>
+        </Dialog>
+      </Dialog.Trigger>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole('button', { name: 'Open Dialog' }))
+    await userEvent.click(canvas.getByRole('button', { name: 'Open Popover' }))
+
+    await waitFor(() => {
+      return expect(canvas.getByText('Popover Content')).toBeInTheDocument()
+    })
   },
 }

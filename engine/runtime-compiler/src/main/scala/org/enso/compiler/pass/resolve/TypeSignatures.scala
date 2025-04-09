@@ -61,7 +61,15 @@ case object TypeSignatures extends IRPass {
   override def runModule(
     ir: Module,
     moduleContext: ModuleContext
-  ): Module = resolveModule(ir)
+  ): Module = {
+    val scopeMap = moduleContext.bindingsAnalysis()
+    resolveModule(
+      ir,
+      scopeMap
+        .resolveQualifiedName(List("Standard", "Base", "Any", "Any"))
+        .isRight
+    )
+  }
 
   /** Resolves type signatures in an expression.
     *
@@ -85,7 +93,7 @@ case object TypeSignatures extends IRPass {
     * @param mod the module to resolve signatures in
     * @return `mod`, with type signatures resolved
     */
-  private def resolveModule(mod: Module): Module = {
+  private def resolveModule(mod: Module, canResolveAny: Boolean): Module = {
     var lastSignature: Option[Type.Ascription] = None
 
     val newBindings: List[Definition] = mod.bindings.flatMap {
@@ -143,9 +151,23 @@ case object TypeSignatures extends IRPass {
                   newMethodWithAnnotations
                 )
             }
-          case None => Some(newMethod)
+          case None =>
+            // No explicit type signature *before* the method was provided.
+            // Reconstruct type signature from inlined types in arguments/return type, if present.
+            rebuildSignatureFromInlinedTypes(meth.body, canResolveAny)
+              .filter(_.nonEmpty)
+              .foreach { inferred =>
+                val typeFun = Type.Function(
+                  inferred.init,
+                  inferred.last,
+                  identifiedLocation = null
+                )
+                newMethod.updateMetadata(
+                  new MetadataPair(this, Signature(typeFun))
+                )
+              }
+            Some(newMethod)
         }
-
         lastSignature = None
         res
       case ut: Definition.Type =>
@@ -183,6 +205,61 @@ case object TypeSignatures extends IRPass {
       bindings = newBindings
     )
   }
+
+  private def rebuildSignatureFromInlinedTypes(
+    expr: Expression,
+    canResolveAny: Boolean
+  ): Option[List[Expression]] = {
+    expr match {
+      case lambda: Function.Lambda =>
+        lambda.arguments match {
+          case (defArg: DefinitionArgument.Specified) :: args
+              if defArg.name().isInstanceOf[Name.Self] =>
+            val bodyTypeArgs =
+              rebuildSignatureFromInlinedTypes(lambda.body, canResolveAny)
+            val argTypes =
+              args.flatMap(
+                _.getMetadata(this)
+                  .map(_.signature)
+                  .orElse(if (canResolveAny) Some(anyIr) else None)
+              )
+            if (argTypes.length == args.length)
+              bodyTypeArgs.map(b => argTypes ::: b)
+            else
+              None
+          case args =>
+            val bodyTypeArgs =
+              rebuildSignatureFromInlinedTypes(lambda.body, canResolveAny)
+            val argTypes =
+              args.flatMap(
+                _.getMetadata(this)
+                  .map(_.signature)
+                  .orElse(if (canResolveAny) Some(anyIr) else None)
+              )
+            if (argTypes.length == args.length)
+              bodyTypeArgs.map(b => argTypes ::: b)
+            else
+              None
+        }
+      case _ =>
+        expr match {
+          case tpe: Type.Ascription =>
+            tpe.typed.getMetadata(this).map(_.signature :: Nil)
+          case _ =>
+            None
+        }
+    }
+  }
+
+  val anyIr = Name.Qualified(
+    List(
+      Name.Literal("Standard", isMethod = false, identifiedLocation = null),
+      Name.Literal("Base", isMethod     = false, identifiedLocation = null),
+      Name.Literal("Any", isMethod      = false, identifiedLocation = null),
+      Name.Literal("Any", isMethod      = false, identifiedLocation = null)
+    ),
+    identifiedLocation = null
+  )
 
   /** Attaches {@link Signature} to each arguments of a function
     * with ascribed type for correct resolution by {@link TypesNames}

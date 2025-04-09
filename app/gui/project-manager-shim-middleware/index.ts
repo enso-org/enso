@@ -2,9 +2,11 @@
  * @file A HTTP server middleware which handles routes normally proxied through to
  * the Project Manager.
  */
+import * as crypto from 'node:crypto'
 import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import * as http from 'node:http'
+import * as https from 'node:https'
 import * as path from 'node:path'
 
 import * as tar from 'tar'
@@ -21,6 +23,7 @@ import * as projectManagement from './projectManagement'
 const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
+const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
 const PROJECTS_ROOT_DIRECTORY = projectManagement.getProjectsDirectory()
 
 const COMMON_HEADERS = {
@@ -135,6 +138,87 @@ export default function projectManagerShimMiddleware(
       ),
       { end: true },
     )
+  } else if (requestUrl != null && requestUrl.startsWith('/api/cloud/')) {
+    switch (requestPath) {
+      case '/api/cloud/download-project': {
+        const url = new URL(`https://example.com/${requestUrl}`)
+        const downloadUrl = url.searchParams.get('downloadUrl')
+        const projectId = url.searchParams.get('projectId')
+
+        if (downloadUrl == null) {
+          response
+            .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
+            .end('Request is missing search parameter `downloadUrl`.')
+          break
+        }
+
+        if (projectId == null) {
+          response
+            .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
+            .end('Request is missing search parameter `projectId`.')
+          break
+        }
+
+        https.get(downloadUrl, (actualResponse) => {
+          const projectsDirectory = projectManagement.getProjectsDirectory()
+          const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
+          const targetDirectory = path.join(parentDirectory, 'project_root')
+
+          fs.mkdir(targetDirectory, { recursive: true })
+            .then(() => projectManagement.unpackBundle(actualResponse, targetDirectory))
+            .then(() => {
+              response
+                .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
+                .end(JSON.stringify({ targetDirectory, parentDirectory }))
+            })
+            .catch((e) => {
+              console.error(e)
+              try {
+                if (fsSync.existsSync(parentDirectory)) {
+                  fsSync.rmdirSync(parentDirectory, { maxRetries: 3, recursive: true })
+                }
+              } catch (e) {
+                console.error(`Failed to cleanup directory ${parentDirectory}.`, e)
+              }
+              response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COMMON_HEADERS).end()
+            })
+        })
+
+        break
+      }
+      case '/api/cloud/get-project-archive': {
+        const url = new URL(`https://example.com/${requestUrl}`)
+        const projectDir = url.searchParams.get('directory')
+
+        if (projectDir == null) {
+          response
+            .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
+            .end('Request is missing search parameter `directory`.')
+          break
+        }
+
+        projectManagement
+          .createBundle(projectDir)
+          .then((projectBundle) => {
+            response
+              .writeHead(HTTP_STATUS_OK, {
+                ...COMMON_HEADERS,
+                'Content-Length': String(projectBundle.byteLength),
+              })
+              .end(projectBundle)
+          })
+          .catch((err) => {
+            console.error(err)
+            response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COMMON_HEADERS).end()
+          })
+
+        break
+      }
+      default: {
+        console.error(`Unknown Cloud middleware request:`, requestPath)
+        break
+      }
+    }
   } else if (request.method === 'POST') {
     switch (requestPath) {
       case '/api/upload-file': {
@@ -251,10 +335,30 @@ export default function projectManagerShimMiddleware(
                             projectManagement.PROJECT_METADATA_RELATIVE_PATH,
                           )
                           const packageMetadataContents = await fs.readFile(packageMetadataPath)
-                          const projectMetadataContents = await fs.readFile(projectMetadataPath)
+                          const packageMetadataYaml = yaml.parse(packageMetadataContents.toString())
+                          let projectMetadataJson
+                          try {
+                            const projectMetadataContents = await fs.readFile(projectMetadataPath)
+                            projectMetadataJson = JSON.parse(projectMetadataContents.toString())
+                          } catch (e) {
+                            if (
+                              'name' in packageMetadataYaml &&
+                              typeof packageMetadataYaml.name === 'string'
+                            ) {
+                              projectMetadataJson = {
+                                id: crypto.randomUUID(),
+                                kind: 'UserProject',
+                                created: new Date().toISOString(),
+                                lastOpened: null,
+                              }
+                              fs.writeFile(projectMetadataPath, JSON.stringify(projectMetadataJson))
+                            } else {
+                              throw e
+                            }
+                          }
                           const metadata = extractProjectMetadata(
-                            yaml.parse(packageMetadataContents.toString()),
-                            JSON.parse(projectMetadataContents.toString()),
+                            packageMetadataYaml,
+                            projectMetadataJson,
                           )
                           if (metadata != null) {
                             // This is a project.

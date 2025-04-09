@@ -1,5 +1,7 @@
 package org.enso.interpreter.instrument.job
 
+import org.slf4j.LoggerFactory
+
 import com.oracle.truffle.api.exception.AbstractTruffleException
 import org.enso.interpreter.instrument.{
   InstrumentFrame,
@@ -49,7 +51,6 @@ import org.enso.polyglot.runtime.Runtime.Api.{ContextId, ExecutionResult}
 import java.io.File
 import java.util.UUID
 import java.util.function.Consumer
-import java.util.logging.Level
 
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
@@ -58,6 +59,7 @@ import scala.util.Try
   * run Enso programs in a Truffle context.
   */
 object ProgramExecutionSupport {
+  private lazy val logger = LoggerFactory.getLogger(this.getClass)
 
   /** Runs the program.
     *
@@ -71,18 +73,18 @@ object ProgramExecutionSupport {
     executionFrame: ExecutionFrame,
     callStack: List[LocalCallFrame]
   )(implicit ctx: RuntimeContext): Unit = {
-    val logger           = ctx.executionService.getLogger
+
     val methodCallsCache = new MethodCallsCache
     var enterables       = Map[UUID, FunctionCall]()
 
     val onCachedMethodCallCallback: Consumer[ExpressionValue] = { value =>
-      logger.log(Level.FINEST, s"ON_CACHED_CALL ${value.getExpressionId}")
+      logger.trace("ON_CACHED_CALL {}", value.getExpressionId)
       sendExpressionUpdate(contextId, executionFrame.syncState, value)
     }
 
     val onCachedValueCallback: Consumer[ExpressionValue] = { value =>
       if (callStack.isEmpty) {
-        logger.log(Level.FINEST, s"ON_CACHED_VALUE ${value.getExpressionId}")
+        logger.trace("ON_CACHED_VALUE {}", value.getExpressionId)
         sendExpressionUpdate(contextId, executionFrame.syncState, value)
         sendVisualizationUpdates(
           contextId,
@@ -95,7 +97,7 @@ object ProgramExecutionSupport {
 
     val onComputedValueCallback: Consumer[ExpressionValue] = { value =>
       if (callStack.isEmpty) {
-        logger.log(Level.FINEST, s"ON_COMPUTED ${value.getExpressionId}")
+        logger.trace("ON_COMPUTED {}", value.getExpressionId)
 
         value.getValue match {
           case sentinel: PanicSentinel =>
@@ -225,7 +227,9 @@ object ProgramExecutionSupport {
               expressionCall,
               expressionCall,
               Array(ExecutionTime.empty()),
-              true
+              true,
+              -1.0,
+              null
             )
           )
         }
@@ -256,8 +260,7 @@ object ProgramExecutionSupport {
     contextId: Api.ContextId,
     stack: List[InstrumentFrame]
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
-    val logger = ctx.executionService.getLogger
-    logger.log(Level.FINEST, s"Run program $contextId")
+    logger.trace(s"Run program {}", contextId)
     @scala.annotation.tailrec
     def unwind(
       stack: List[InstrumentFrame],
@@ -295,7 +298,7 @@ object ProgramExecutionSupport {
         ).toEither.left
           .map(onExecutionError(stackItem.item, _))
     } yield ()
-    logger.log(Level.FINEST, s"Execution finished: $executionResult")
+    logger.trace("Execution finished: {}", executionResult)
     executionResult.fold(identity, _ => None)
   }
 
@@ -317,12 +320,16 @@ object ProgramExecutionSupport {
     val reason          = VisualizationResult.findExceptionMessage(error)
     def onFailure(): Option[Api.ExecutionResult] = error match {
       case _: ThreadInterruptedException =>
-        val message = s"Execution of function $itemName interrupted."
-        ctx.executionService.getLogger.log(Level.FINE, message)
+        logger.trace("Execution of function {} interrupted.", itemName)
         None
       case _ =>
-        val message = s"Execution of function $itemName failed ($reason)."
-        ctx.executionService.getLogger.log(Level.WARNING, message, error)
+        val message = s""
+        logger.trace(
+          "Execution of function {} failed ({}).",
+          itemName,
+          reason,
+          error
+        )
         Some(ExecutionResult.Failure(message, None))
     }
     executionUpdate.orElse(onFailure())
@@ -407,7 +414,11 @@ object ProgramExecutionSupport {
       ))
     ) {
       val payload =
-        Api.ExpressionUpdate.Payload.Pending(None, None, wasInterrupted = true)
+        Api.ExpressionUpdate.Payload.Pending(
+          None,
+          None,
+          wasInterrupted = true
+        )
       ctx.endpoint.sendToClient(
         Api.Response(
           Api.ExpressionUpdates(
@@ -443,7 +454,32 @@ object ProgramExecutionSupport {
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
     val expressionId = value.getExpressionId
-    val methodCall   = toMethodCall(value)
+    if (value.isProgressUpdate()) {
+      val progressPayload = Api.ExpressionUpdate.Payload.Pending(
+        Option(value.getProgressMessage()),
+        Some(value.getProgress())
+      )
+      ctx.endpoint.sendToClient(
+        Api.Response(
+          Api.ExpressionUpdates(
+            contextId,
+            Set(
+              Api.ExpressionUpdate(
+                value.getExpressionId,
+                None,
+                None,
+                Vector(),
+                false,
+                false,
+                progressPayload
+              )
+            )
+          )
+        )
+      )
+      return
+    }
+    val methodCall = toMethodCall(value)
     if (
       !syncState.isExpressionSync(expressionId) ||
       (
@@ -477,8 +513,7 @@ object ProgramExecutionSupport {
               )
             )
           } else {
-            ctx.executionService.getLogger
-              .log(Level.FINE, "computation of expression has been interrupted")
+            logger.trace("Computation of expression has been interrupted")
             None
           }
         case warnings: WithWarnings
@@ -508,10 +543,10 @@ object ProgramExecutionSupport {
                   ).toEither
                     .fold(
                       error => {
-                        ctx.executionService.getLogger.log(
-                          Level.SEVERE,
-                          "Failed to execute warning preview of expression [{0}].",
-                          Array[Object](expressionId, error)
+                        logger.trace(
+                          "Failed to execute warning preview of expression [{}].",
+                          expressionId,
+                          error
                         )
                         None
                       },
@@ -633,16 +668,12 @@ object ProgramExecutionSupport {
     expressionValue: AnyRef
   )(implicit ctx: RuntimeContext): Either[Throwable, AnyRef] =
     Try {
-      val logger = ctx.executionService.getLogger
-      logger.log(
-        Level.FINEST,
-        "Executing visualization [{0}] on expression [{1}] of [{2}]...",
-        Array[Object](
-          visualization.id,
-          expressionId,
-          Try(TypeOfNode.getUncached.findTypeOrError(expressionValue))
-            .getOrElse(expressionValue.getClass)
-        )
+      logger.trace(
+        "Executing visualization [{}] on expression [{}] of [{}]...",
+        visualization.id,
+        expressionId,
+        Try(TypeOfNode.getUncached.findTypeOrError(expressionValue))
+          .getOrElse(expressionValue.getClass)
       )
       val holder = ctx.contextManager.getVisualizationHolder(contextId)
 
@@ -658,13 +689,10 @@ object ProgramExecutionSupport {
 
       if (runtimeCache != null) {
         def processUUID(id: UUID): Unit = {
-          logger.log(
-            Level.FINE,
-            "Associating visualization [{0}] with additional ID [{1}]",
-            Array[Object](
-              visualization.id,
-              id
-            )
+          logger.trace(
+            "Associating visualization [{}] with additional ID [{}]",
+            visualization.id,
+            id
           )
 
           holder.upsert(visualization, id)
@@ -701,17 +729,14 @@ object ProgramExecutionSupport {
         if (!TypesGen.isPanicSentinel(expressionValue)) {
           val typeOfNode =
             TypeOfNode.getUncached.findTypeOrError(expressionValue)
-          ctx.executionService.getLogger.log(
-            Level.WARNING,
-            "Execution of visualization [{0}] on value [{1}] of [{2}] failed. {3} | {4} | {5}",
-            Array[Object](
-              visualizationId,
-              expressionId,
-              typeOfNode,
-              message,
-              expressionValue,
-              error
-            )
+          logger.warn(
+            "Execution of visualization [{}] on value [{}] of [{}] failed. {} | {} | {}",
+            visualizationId,
+            expressionId,
+            typeOfNode,
+            message,
+            expressionValue,
+            error
           )
         }
         ctx.endpoint.sendToClient(
@@ -727,9 +752,8 @@ object ProgramExecutionSupport {
         Completion.Done
 
       case Right(data) =>
-        ctx.executionService.getLogger.log(
-          Level.FINEST,
-          s"Visualization executed [{0}].",
+        logger.trace(
+          "Visualization executed [{}].",
           expressionId
         )
         ctx.endpoint.sendToClient(

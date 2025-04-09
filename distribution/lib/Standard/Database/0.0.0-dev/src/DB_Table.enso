@@ -46,7 +46,7 @@ import Standard.Table.Row.Row
 import Standard.Table.Row_Limit.Row_Limit
 import Standard.Table.Rows_To_Read.Rows_To_Read
 import Standard.Table.Value_Type.By_Type
-from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Fill_With, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
+from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Fill_With, Generate_Rows_Range, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
 from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
 from Standard.Table.Table import make_fill_nothing_default_widget
@@ -57,6 +57,7 @@ import project.Feature.Feature
 import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
+import project.Internal.Common.Group_Number_Helpers
 import project.Internal.Common.Lookup_Query_Helper
 import project.Internal.Common.Offset_Helpers
 import project.Internal.Common.Row_Number_Helpers
@@ -70,6 +71,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Telemetry
 import project.Internal.Type_Refinements.DB_Table_Refinements
 import project.SQL_Query.SQL_Query
 import project.SQL_Statement.SQL_Statement
@@ -927,10 +929,12 @@ type DB_Table
 
        ? Ordering of rows
 
-         Note that the ordering of rows from the original table is preserved in
-         all cases. The grouping and ordering settings can affect how the group
-         numbers are assigned, depending on the grouping method.  The order of
-         the rows itself is not changed by this operation.
+         In the in-memory database, the ordering of rows from the original table
+         is preserved in all cases. The grouping and ordering settings can
+         affect how the group numbers are assigned, depending on the grouping
+         method.  The order of the rows itself is not changed by this operation.
+
+         In the database backends, the ordering of rows is backend-dependent.
 
        ! Error Conditions
 
@@ -965,8 +969,8 @@ type DB_Table
                 0 | 1 | 0 | 1
                 1 | 2 | 0 | 2
                 0 | 1 | 1 | 1
-                1 | 0 | 1 | 2
-                1 | 2 | 1 | 0
+                1 | 0 | 1 | 0
+                1 | 2 | 1 | 2
 
        > Example
          Divide rows into three groups.
@@ -990,13 +994,55 @@ type DB_Table
                 3 | 3 | 1
                 4 | 2 | 1
                 5 | 1 | 2
+    @grouping_method (Widget_Helpers.make_grouping_method_selector display=..Always)
     @name (Widget.Text_Input display=..Always)
     @from (Widget.Numeric_Input display=..Always)
-    @group_by (Widget_Helpers.make_column_name_multi_selector display=..When_Modified)
-    @order_by (Widget_Helpers.make_order_by_selector display=..When_Modified)
-    add_group_number self grouping_method:Grouping_Method=..Unique name:Text="Group" from:Integer=0 step:Integer=1 on_problems:Problem_Behavior=..Report_Warning -> Table =
-        _ = [grouping_method, name, from, step, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "add_group_number")
+    add_group_number self grouping_method:Grouping_Method=..Unique name:Text="Group" from:Integer=0 step:Integer=1 on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
+        Feature.Add_Group_Number.if_supported_else_throw self.connection.dialect "add_group_number" <|
+            problem_builder = Problem_Builder.new error_on_missing_columns=True
+            case grouping_method of
+                Grouping_Method.Unique group_by ->
+                    if group_by.is_empty then
+                        Error.throw (Illegal_Argument.Error "..Unique requires a non-empty 'group_by'")
+                    grouping_columns = _resolve_grouping_columns self.columns_helper group_by problem_builder
+                    problem_builder.attach_problems_before on_problems <|
+                        grouping_expressions = (grouping_columns.map _.as_internal).map .expression
+
+                        new_expr = Group_Number_Helpers.make_group_number from step grouping_expressions
+
+                        type_mapping = self.connection.dialect.get_type_mapping
+                        infer_from_database_callback expression =
+                            SQL_Type_Reference.new self.connection self.context expression
+                        new_type_ref = type_mapping.infer_return_type infer_from_database_callback "GROUP_NUMBER" [] new_expr
+
+                        new_column = Internal_Column.Value name new_type_ref new_expr
+
+                        rebuild_table columns =
+                            self.updated_columns (columns.map .as_internal)
+                        renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
+                        updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
+                        updated_table.as_subquery
+                Grouping_Method.Equal_Count group_count order_by ->
+                    if group_count < 1 then
+                        Error.throw (Illegal_Argument.Error "group_count must be at least 1")
+                    ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
+                    problem_builder.attach_problems_before on_problems <|
+                        order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering "add_group_number"
+
+                        new_expr = Group_Number_Helpers.make_group_number_equal_count from step group_count order_descriptors
+
+                        type_mapping = self.connection.dialect.get_type_mapping
+                        infer_from_database_callback expression =
+                            SQL_Type_Reference.new self.connection self.context expression
+                        new_type_ref = type_mapping.infer_return_type infer_from_database_callback "GROUP_NUMBER_EQUAL_COUNT" [] new_expr
+
+                        new_column = Internal_Column.Value name new_type_ref new_expr
+
+                        rebuild_table columns =
+                            self.updated_columns (columns.map .as_internal)
+                        renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
+                        updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
+                        updated_table.as_subquery
 
 
     ## GROUP Standard.Base.Selections
@@ -1556,6 +1602,7 @@ type DB_Table
          the same name. So `table.join other on=["A", "B"]` is a shorthand for:
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
     @on Widget_Helpers.make_join_condition_selector
+    @join_kind Join_Kind.default_widget
     join self (right : DB_Table = Missing_Argument.throw "right") join_kind:Join_Kind=..Left_Outer (on : Join_Condition | Text | Vector (Join_Condition | Text) = default_join_condition self join_kind) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
         Feature.Join.if_supported_else_throw self.connection.dialect "join" <|
             self.join_or_cross_join right join_kind on right_prefix on_problems
@@ -1865,7 +1912,7 @@ type DB_Table
          defined nor any ordering was specified explicitly by the user, the
          order of columns is undefined and the operation will fail, reporting a
          `Undefined_Column_Order` problem and returning an empty table.
-    @keep_unmatched (make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Report_Unmatched.to Meta.Type . qualified_name]])
+    @keep_unmatched Widget_Helpers.make_keep_unmatched_selector
     zip self (right : DB_Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
         _ = [right, keep_unmatched, right_prefix, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "zip")
@@ -2680,7 +2727,10 @@ type DB_Table
                         warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
 
             result = max_rows.attach_warning materialized_table
-            Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result
+            with_problems = Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result
+            with_problems.if_not_error <|
+                Telemetry.log "DB_Table.read" "Materialize Table: connection_type={}, output={}, row_count={}, column_count={}" [self.connection.to Meta.Type . name, "Table", result.row_count, result.column_count]
+                with_problems
 
     ## PRIVATE
        Creates a query corresponding to this table.
@@ -2886,9 +2936,13 @@ type DB_Table
                  table.write (enso_project.data / "example_csv_output.csv")
     @path (Widget.Text_Input display=Display.Always)
     @format Widget_Helpers.write_table_selector
-    write self path:Writable_File format:File_Format=Auto_Detect on_existing_file:Existing_File_Behavior=..Backup match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Nothing ! Column_Count_Mismatch | Illegal_Argument | File_Error =
-        # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
-        self.read.write path format on_existing_file match_columns on_problems
+    write self path:Writable_File format=Auto_Detect on_existing_file:Existing_File_Behavior=..Backup match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Nothing ! Column_Count_Mismatch | Illegal_Argument | File_Error =
+        row_limit = 100000
+
+        ## Read one extra row to check if the table is too large.
+        materialized = self.read ..First (row_limit+1)
+        if materialized.row_count <= row_limit then materialized.write path format on_existing_file match_columns on_problems else
+            Error.throw (Illegal_Argument.Error "DB_Table contains more than 100,000 rows. Use `read` to materialize first.")
 
 
     ## GROUP Standard.Base.Output
@@ -3142,6 +3196,47 @@ type DB_Table
                 updated_table = new_columns.fold self t-> col->
                     t.set (self.make_column col)
                 updated_table.as_subquery
+
+    ## ALIAS duplicate, expand, repeat, replicate
+       GROUP Standard.Base.Values
+       ICON row_add
+
+       Generates additional rows of data by repeating existing rows based on a provided range.
+
+       Arguments:
+       - over: The range of values to use for the generation. This can be: ..Integer_Range or ..Date_Range
+          - from: The starting value for the range. (Constant, existing column or expression)
+          - to: The ending value for the range. (Constant, existing column or expression)
+          - include_end: Whether to include the end value in the range. (Defaults to False)
+          - step: The column with the step value for the range. (Defaults to 1 or ..Day)
+       - as: Optional new name for the expanded range column.
+       - on_problems: Missing columns are always an error. Other warnings like grouping on floating point numbers can be ignored or made an error with this argument.
+
+       Returns:
+       - A Table of records with each incoming record duplicated by the number of times specified in the range.
+
+       ! Error Conditions
+
+         - If the columns specified in `from` or `to` are not present
+           in the table, a `No_Such_Column` error is raised.
+
+        > Example
+          Generate 2 copies of each incoming row
+
+            table = Table.new [["Input"], ["Hello"], ["World"]]
+            generated = table.generate_rows (..Integer_Range 0 2)
+
+            ## Returns a Table
+               | Input | Generated Row |
+               |-------|---------------| 
+               | Hello | 0             |
+               | Hello | 1             |
+               | World | 0             |
+               | World | 1             |
+    @over Generate_Rows_Range.default_widget
+    generate_rows self over:Generate_Rows_Range=(Missing_Argument.throw "over") as:Text="" on_problems:Problem_Behavior=..Report_Warning =
+        _ = [over, as, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "generate_rows")
 
 ## PRIVATE
 

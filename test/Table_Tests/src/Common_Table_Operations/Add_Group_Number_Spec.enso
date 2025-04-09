@@ -19,7 +19,7 @@ polyglot java import java.lang.Long as Java_Long
 main filter=Nothing = run_default_backend add_specs filter
 
 add_specs suite_builder setup =
-    if setup.is_database.not then (add_group_number_specs suite_builder setup) else
+    if setup.is_feature_supported Feature.Add_Group_Number then (add_group_number_specs suite_builder setup) else
         suite_builder.group setup.prefix+"Table.add_group_number" group_builder->
             group_builder.specify "add_group_number should report unsupported" <|
                 table_builder = setup.light_table_builder
@@ -28,13 +28,68 @@ add_specs suite_builder setup =
 
 add_group_number_specs suite_builder setup =
     prefix = setup.prefix
-    # materialize = setup.materialize
-    # create_connection_fn = setup.create_connection_func
 
-    suite_builder.group prefix+"Table.add_group_number (common)" group_builder->
-        table_builder = setup.table_builder
-        table_builder_from_rows column_names rows = table_builder (column_names.zip rows.transpose c-> col-> [c, col])
+    table_builder = setup.table_builder
+    table_builder_from_rows column_names rows = table_builder (column_names.zip rows.transpose c-> col-> [c, col])
 
+    if setup.is_database then suite_builder.group prefix+"Table.add_group_number (database)" group_builder->
+        group_builder.specify "should add group number by unique values" <|
+            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
+
+            g0 = t.add_group_number (..Unique on=['x', 'y']) "g" . sort ['x', 'y']
+            g0.at 'g' . to_vector . should_equal [0, 0, 1, 1, 2, 2]
+            g0.at 'x' . to_vector . should_equal [0, 0, 1, 1, 1, 1]
+            g0.at 'y' . to_vector . should_equal [1, 1, 0, 0, 2, 2]
+
+            g1 = t.add_group_number (..Unique on=['x', 'z']) "g" . sort ['x', 'z']
+            g1.at 'g' . to_vector . should_equal [0, 1, 2, 3, 3, 4]
+            g1.at 'x' . to_vector . should_equal [0, 0, 1, 1, 1, 1]
+            g1.at 'z' . to_vector . should_equal [0, 1, 0, 1, 1, 2]
+
+            g2 = t.add_group_number (..Unique on=['y', 'z']) "g" . sort ['y', 'z']
+            g2.at 'g' . to_vector . should_equal [0, 1, 2, 3, 4, 5]
+            g2.at 'y' . to_vector . should_equal [0, 0, 1, 1, 2, 2]
+            g2.at 'z' . to_vector . should_equal [1, 2, 0, 1, 0, 1]
+
+        group_builder.specify "should add group number by equal counts" <|
+            t = table_builder [['x', [1, 2, 3, 4, 5, 6, 7, 8, 9]], ['y', [9, 8, 7, 6, 5, 4, 3, 2, 1]], ['z', [6, 1, 5, 7, 4, 8, 2, 3, 9]]] . order_by ['x']
+
+            g0 = t.add_group_number (..Equal_Count 1) "g"
+            g0.at 'g' . to_vector . should_equal [0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+            g1 = t.add_group_number (..Equal_Count 2) "g"
+            g1.at 'g' . to_vector . should_equal [0, 0, 0, 0, 0, 1, 1, 1, 1]
+
+            g2 = t.add_group_number (..Equal_Count 3) "g"
+            g2.at 'g' . to_vector . should_equal [0, 0, 0, 1, 1, 1, 2, 2, 2]
+
+            g3 = t.add_group_number (..Equal_Count 5) "g"
+            g3.at 'g' . to_vector . should_equal [0, 0, 1, 1, 2, 2, 3, 3, 4]
+
+        group_builder.specify "should add group number by equal counts, with order_by" <|
+            t = table_builder [['x', [1, 2, 3, 4, 5, 6, 7, 8, 9]], ['y', [9, 8, 7, 6, 5, 4, 3, 2, 1]]] . order_by ['x']
+
+            g0 = t.add_group_number (..Equal_Count 4 ['x']) "g" . sort ['x']
+            g0.at 'g' . to_vector . should_equal [0, 0, 0, 1, 1, 1, 2, 2, 2]
+            g0.at 'x' . to_vector . should_equal [1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+            g1 = t.add_group_number (..Equal_Count 4 ['y']) "g" . sort ['y']
+            g1.at 'g' . to_vector . should_equal [0, 0, 0, 1, 1, 1, 2, 2, 2]
+            g1.at 'x' . to_vector . should_equal [9, 8, 7, 6, 5, 4, 3, 2, 1]
+
+        group_builder.specify "should add group number by unique values, with from and step" <|
+            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
+
+            g0 = t.add_group_number (..Unique on=['x', 'y']) "g" 2 3 . sort ['x', 'y']
+            g0.at 'g' . to_vector . should_equal [2, 2, 5, 5, 8, 8]
+
+        group_builder.specify "should add group number by equal counts, with from and step" <|
+            t = table_builder [['x', [1, 2, 3, 4, 5, 6, 7, 8, 9]], ['y', [9, 8, 7, 6, 5, 4, 3, 2, 1]], ['z', [6, 1, 5, 7, 4, 8, 2, 3, 9]]] . order_by ['x']
+
+            g2 = t.add_group_number (..Equal_Count 3) "g" 8 3
+            g2.at 'g' . to_vector . should_equal [8, 8, 8, 11, 11, 11, 14, 14, 14]
+
+    if setup.is_database.not then suite_builder.group prefix+"Table.add_group_number (in-memory)" group_builder->
         group_builder.specify "should add group number by unique values" <|
             t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
 
@@ -83,13 +138,6 @@ add_group_number_specs suite_builder setup =
             g10 = t.add_group_number (..Equal_Count 1 order_by=['y']) "g"
             g10.at 'g' . to_vector . should_equal [0, 0, 0, 0, 0]
 
-
-        group_builder.specify "should add group number by unique values" <|
-            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
-
-            g0 = t.add_group_number (..Unique on=['x', 'y'])
-            g0.at 'Group' . to_vector . should_equal [0, 1, 2, 1, 0, 2]
-
         group_builder.specify "should add group number by unique values, with from and step" <|
             t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
 
@@ -102,35 +150,10 @@ add_group_number_specs suite_builder setup =
             g0 = t.add_group_number (..Equal_Count 3) "g" from=10 step=3
             g0.at 'g' . to_vector . should_equal [10, 10, 13, 13, 16]
 
-        group_builder.specify "must specify group_by with Unique" <|
-            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
-
-            t.add_group_number ..Unique "g" . should_fail_with Missing_Argument
-
-        group_builder.specify "must specify nonempty group_by with Unique" <|
-            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
-
-            t.add_group_number (..Unique on=[]) "g" . should_fail_with Illegal_Argument
-
-        group_builder.specify "must specify one or more groups with Equal_Count" <|
-            t = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [5, 4, 3, 2, 1]], ['z', [1, 5, 4, 2, 3]]]
-            t.add_group_number (..Equal_Count 0) "g" . should_fail_with Illegal_Argument
-            t.add_group_number (..Equal_Count -1) "g" . should_fail_with Illegal_Argument
-
         group_builder.specify "should report floating point equality warning when grouping on float columns" <|
             t = table_builder_from_rows ['x', 'y', 'z'] [[1.0, 0.0, 2.0], [0.0, 1.0, 0.0], [1.0, 2.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 1.0], [1.0, 2.0, 1.0]]
             g0 = t.add_group_number (..Unique on=['x', 'y']) "g"
             Problems.expect_warning Floating_Point_Equality g0
-
-        group_builder.specify "should fail if columns provided in group_by do not exist" <|
-            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
-
-            t.add_group_number (..Unique on=['x', 'q']) . should_fail_with Missing_Input_Columns
-
-        group_builder.specify "should fail if columns provided in order_by do not exist" <|
-            t = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [5, 4, 3, 2, 1]], ['z', [1, 5, 4, 2, 3]]]
-
-            t.add_group_number (..Equal_Count 3 order_by=['q']) "g" . should_fail_with Missing_Input_Columns
 
         group_builder.specify "will fail if the row number exceeds Long range" <|
             max_long = Java_Long.MAX_VALUE
@@ -143,10 +166,45 @@ add_group_number_specs suite_builder setup =
             t2.should_fail_with Illegal_Argument
             t2.catch.to_display_text . should_contain "The row number has exceeded the 64-bit integer range"
 
+    suite_builder.group prefix+"Table.add_group_number (common)" group_builder->
+        group_builder.specify "should default the column name to 'Group'" <|
+            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
+
+            g0 = t.add_group_number (..Unique on=['x', 'y'])
+            g0.at 'Group' . to_vector . sort . should_equal [0, 0, 1, 1, 2, 2]
+
+        group_builder.specify "must specify group_by with Unique" <|
+            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
+
+            t.add_group_number ..Unique "g" . should_fail_with Missing_Argument
+
+        group_builder.specify "must specify nonempty group_by with Unique" <|
+            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
+
+            t.add_group_number (..Unique on=[]) "g" . should_fail_with Illegal_Argument
+
+        group_builder.specify "Equal_Count group count should default to 5" <|
+            Grouping_Method.Equal_Count . group_count . should_equal 5
+
+        group_builder.specify "must specify one or more groups with Equal_Count" <|
+            t = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [5, 4, 3, 2, 1]], ['z', [1, 5, 4, 2, 3]]]
+            t.add_group_number (..Equal_Count 0) "g" . should_fail_with (Illegal_Argument.Error 'group_count must be at least 1' Nothing)
+            t.add_group_number (..Equal_Count -1) "g" . should_fail_with (Illegal_Argument.Error 'group_count must be at least 1' Nothing)
+
+        group_builder.specify "should fail if columns provided in group_by do not exist" <|
+            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
+
+            t.add_group_number (..Unique on=['x', 'q']) . should_fail_with Missing_Input_Columns
+
+        group_builder.specify "should fail if columns provided in order_by do not exist" <|
+            t = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [5, 4, 3, 2, 1]], ['z', [1, 5, 4, 2, 3]]]
+
+            t.add_group_number (..Equal_Count 3 order_by=['q']) "g" . should_fail_with Missing_Input_Columns
+
         group_builder.specify "should rename existing column upon a name clash, and attach a warning" <|
             t = table_builder_from_rows ['x', 'y', 'z'] [['b', 'a', 'c'], ['a', 'b', 'a'], ['b', 'b', 'a'], ['a', 'b', 'b'], ['b', 'a', 'b'], ['b', 'b', 'b']]
 
             g0 = t.add_group_number (..Unique on=['x', 'y']) "y"
-            g0.at 'y' . to_vector . should_equal [0, 1, 2, 1, 0, 2]
-            g0.at 'y 1' . to_vector . should_equal ['a', 'b', 'b', 'b', 'a', 'b']
+            g0.at 'y' . to_vector . sort . should_equal [0, 0, 1, 1, 2, 2]
+            g0.at 'y 1' . to_vector . sort . should_equal ['a', 'a', 'b', 'b', 'b', 'b']
             Problems.expect_warning Duplicate_Output_Column_Names g0

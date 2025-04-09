@@ -1,5 +1,4 @@
 /** @file The categories available in the category switcher. */
-import { useMutation } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 import * as z from 'zod'
 
@@ -11,7 +10,6 @@ import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/Backe
 import type { UserId } from '#/services/Backend'
 import {
   FilterBy,
-  Plan,
   type AssetId,
   type DirectoryId,
   type Path,
@@ -20,11 +18,15 @@ import {
   type UserGroupId,
 } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 
 const PATH_SCHEMA = z.string().refine((s): s is Path => true)
 const DIRECTORY_ID_SCHEMA = z.string().refine((s): s is DirectoryId => true)
 
-const EACH_CATEGORY_SCHEMA = z.object({ label: z.string(), icon: z.string() })
+const EACH_CATEGORY_SCHEMA = z.object({
+  label: z.string(),
+  icon: z.string(),
+})
 
 /** A category corresponding to the root of the user or organization. */
 const CLOUD_CATEGORY_SCHEMA = z
@@ -40,7 +42,11 @@ export type CloudCategory = z.infer<typeof CLOUD_CATEGORY_SCHEMA>
 
 /** A category containing recently opened Cloud projects. */
 const RECENT_CATEGORY_SCHEMA = z
-  .object({ type: z.literal('recent'), id: z.literal('recent') })
+  .object({
+    type: z.literal('recent'),
+    id: z.literal('recent'),
+    homeDirectoryId: z.null(),
+  })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()
 /** A category containing recently opened Cloud projects. */
@@ -48,7 +54,11 @@ export type RecentCategory = z.infer<typeof RECENT_CATEGORY_SCHEMA>
 
 /** A category containing recently deleted Cloud items. */
 const TRASH_CATEGORY_SCHEMA = z
-  .object({ type: z.literal('trash'), id: z.literal('trash') })
+  .object({
+    type: z.literal('trash'),
+    id: z.literal('trash'),
+    homeDirectoryId: z.null(),
+  })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()
 /** A category containing recently deleted Cloud items. */
@@ -84,7 +94,12 @@ export type TeamCategory = z.infer<typeof TEAM_CATEGORY_SCHEMA>
 /** A category corresponding to the primary root directory for Local projects. */
 
 const LOCAL_CATEGORY_SCHEMA = z
-  .object({ type: z.literal('local'), id: z.literal('local') })
+  .object({
+    type: z.literal('local'),
+    id: z.literal('local'),
+    rootPath: PATH_SCHEMA,
+    homeDirectoryId: DIRECTORY_ID_SCHEMA,
+  })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()
 /** A category corresponding to the primary root directory for Local projects. */
@@ -121,6 +136,9 @@ export const ANY_LOCAL_CATEGORY_SCHEMA = z.union([
 ])
 /** Any local category. */
 export type AnyLocalCategory = z.infer<typeof ANY_LOCAL_CATEGORY_SCHEMA>
+
+/** Any category. */
+export type AnyCategory = AnyCloudCategory | AnyLocalCategory
 
 /** A category of an arbitrary type. */
 export const CATEGORY_SCHEMA = z.union([ANY_CLOUD_CATEGORY_SCHEMA, ANY_LOCAL_CATEGORY_SCHEMA])
@@ -194,15 +212,12 @@ export function areCategoriesEqual(a: Category, b: Category) {
 }
 
 /** Whether an asset can be transferred between categories. */
-export function canTransferBetweenCategories(from: Category, to: Category, user: User) {
+export function canTransferBetweenCategories(from: Category, to: Category) {
   switch (from.type) {
     case 'cloud':
     case 'recent':
     case 'team':
     case 'user': {
-      if (user.plan === Plan.enterprise || user.plan === Plan.team) {
-        return to.type !== 'cloud'
-      }
       return to.type === 'trash' || to.type === 'cloud' || to.type === 'team' || to.type === 'user'
     }
     case 'trash': {
@@ -224,8 +239,8 @@ export function useTransferBetweenCategories(currentCategory: Category) {
   const backend = useBackend(currentCategory)
   const { user } = useFullUserSession()
   const { data: organization = null } = useBackendQuery(remoteBackend, 'getOrganization', [])
-  const deleteAssetsMutation = useMutation(deleteAssetsMutationOptions(backend))
-  const moveAssetsMutation = useMutation(moveAssetsMutationOptions(backend))
+  const deleteAssetsMutation = useMutationCallback(deleteAssetsMutationOptions(backend))
+  const moveAssetsMutation = useMutationCallback(moveAssetsMutationOptions(backend))
 
   return useEventCallback(
     (from: Category, to: Category, keys: Iterable<AssetId>, newParentId?: DirectoryId | null) => {
@@ -235,14 +250,14 @@ export function useTransferBetweenCategories(currentCategory: Category) {
         case 'team':
         case 'user': {
           if (to.type === 'trash') {
-            deleteAssetsMutation.mutate([[...keys], false])
+            void deleteAssetsMutation([[...keys], false])
           } else if (to.type === 'cloud' || to.type === 'team' || to.type === 'user') {
             newParentId ??=
               to.type === 'cloud' ?
                 remoteBackend.rootDirectoryId(user, organization)
               : to.homeDirectoryId
             invariant(newParentId != null, 'The Cloud backend is missing a root directory.')
-            moveAssetsMutation.mutate([[...keys], newParentId])
+            void moveAssetsMutation([[...keys], newParentId])
           }
           break
         }
@@ -255,7 +270,7 @@ export function useTransferBetweenCategories(currentCategory: Category) {
             const parentDirectory = to.type === 'local' ? localBackend?.rootPath() : to.rootPath
             invariant(parentDirectory != null, 'The Local backend is missing a root directory.')
             newParentId ??= newDirectoryId(parentDirectory)
-            moveAssetsMutation.mutate([[...keys], newParentId])
+            void moveAssetsMutation([[...keys], newParentId])
           }
         }
       }

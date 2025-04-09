@@ -1,120 +1,79 @@
-/** @file The icon and name of a {@link backendModule.ProjectAsset}. */
-import { useMutation } from '@tanstack/react-query'
-
-import { backendMutationOptions } from '#/hooks/backendHooks'
-import * as projectHooks from '#/hooks/projectHooks'
-
-import * as authProvider from '#/providers/AuthProvider'
-import { useDriveStore } from '#/providers/DriveProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import type * as column from '#/components/dashboard/column'
+/** @file The icon and name of a {@link ProjectAsset}. */
+import type { AssetColumnProps } from '#/components/dashboard/column'
 import ProjectIcon, { CLOSED_PROJECT_STATE } from '#/components/dashboard/ProjectIcon'
 import EditableSpan from '#/components/EditableSpan'
-
-import * as backendModule from '#/services/Backend'
-
-import * as eventModule from '#/utilities/event'
-import * as indent from '#/utilities/indent'
-import * as object from '#/utilities/object'
-import * as permissions from '#/utilities/permissions'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useFullUserSession } from '#/providers/AuthProvider'
+import { useText } from '#/providers/TextProvider'
+import { BackendType, isNewTitleUnique, type ProjectAsset } from '#/services/Backend'
+import { isDoubleClick } from '#/utilities/event'
+import { merger } from '#/utilities/object'
+import { PERMISSION_ACTION_CAN_EXECUTE, tryFindSelfPermission } from '#/utilities/permissions'
+import { twMerge } from '#/utilities/tailwindMerge'
 import { isOnMacOS } from 'enso-common/src/detect'
 
-// ===================
-// === ProjectName ===
-// ===================
-
 /** Props for a {@link ProjectNameColumn}. */
-export interface ProjectNameColumnProps extends column.AssetColumnProps {
-  readonly item: backendModule.ProjectAsset
+export interface ProjectNameColumnProps extends AssetColumnProps {
+  readonly item: ProjectAsset
 }
 
-/**
- * The icon and name of a {@link backendModule.ProjectAsset}.
- * @throws {Error} when the asset is not a {@link backendModule.ProjectAsset}.
- * This should never happen.
- */
+/** The icon and name of a {@link ProjectAsset}. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const {
     item,
-    selected,
     rowState,
     setRowState,
     state,
     isEditable,
-    backendType,
     isOpened,
     isPlaceholder,
+    closeProject,
+    openProject,
+    renameAsset,
   } = props
-  const { depth } = props
-  const { backend, nodeMap } = state
+  const { backend } = state
 
-  const { user } = authProvider.useFullUserSession()
-  const { getText } = textProvider.useText()
+  const { user } = useFullUserSession()
+  const { getText } = useText()
+  const getAssetChildren = useGetAssetChildren()
 
-  const driveStore = useDriveStore()
-  const doOpenProject = projectHooks.useOpenProject()
-  const ownPermission = permissions.tryFindSelfPermission(user, item.permissions)
+  const ownPermission = tryFindSelfPermission(user, item.permissions)
   // This is a workaround for a temporary bad state in the backend causing the `projectState` key
   // to be absent.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const projectState = item.projectState ?? CLOSED_PROJECT_STATE
-  const isRunning = backendModule.IS_OPENING_OR_OPENED[projectState.type]
   const canExecute =
     isEditable &&
-    (backend.type === backendModule.BackendType.local ||
-      (ownPermission != null &&
-        permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission]))
-  const isCloud = backend.type === backendModule.BackendType.remote
+    (backend.type === BackendType.local ||
+      (ownPermission != null && PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission]))
+  const isCloud = backend.type === BackendType.remote
   const isOtherUserUsingProject =
     isCloud && projectState.openedBy != null && projectState.openedBy !== user.email
 
-  const updateProjectMutation = useMutation(backendMutationOptions(backend, 'updateProject'))
-
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
-      setRowState(object.merger({ isEditingName }))
+      setRowState(merger({ isEditingName }))
     }
   }
 
   const doRename = async (newTitle: string) => {
-    await updateProjectMutation.mutateAsync([
-      item.id,
-      { ami: null, ideVersion: null, projectName: newTitle },
-      item.title,
-    ])
+    await renameAsset(item.id, newTitle)
     setIsEditing(false)
   }
 
   return (
     <div
-      className={tailwindMerge.twJoin(
-        'flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child',
-        indent.indentClass(depth),
-      )}
+      className="flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child"
       onKeyDown={(event) => {
         if (rowState.isEditingName && isOnMacOS() && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
-      onClick={(event) => {
+      onClick={async (event) => {
         if (rowState.isEditingName || isOtherUserUsingProject) {
           // The project should neither be edited nor opened in these cases.
-        } else if (
-          !isRunning &&
-          eventModule.isSingleClick(event) &&
-          selected &&
-          driveStore.getState().selectedKeys.size === 1
-        ) {
-          setIsEditing(true)
-        } else if (eventModule.isDoubleClick(event) && canExecute) {
-          doOpenProject({
-            id: item.id,
-            type: backendType,
-            parentId: item.parentId,
-            title: item.title,
-          })
+        } else if (isDoubleClick(event) && canExecute) {
+          await openProject(item.id)
         }
       }}
     >
@@ -124,12 +83,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         backend={backend}
         item={item}
         isPlaceholder={isPlaceholder}
+        closeProject={closeProject}
+        openProject={openProject}
       />
 
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
-        className={tailwindMerge.twMerge(
+        className={twMerge(
           'grow bg-transparent font-naming',
           canExecute && !isOtherUserUsingProject && 'cursor-pointer',
           rowState.isEditingName && 'cursor-text',
@@ -139,15 +100,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           setIsEditing(false)
         }}
         schema={(z) =>
-          z.refine(
-            (value) =>
-              backendModule.isNewTitleUnique(
-                item,
-                value,
-                nodeMap.current.get(item.parentId)?.children?.map((child) => child.item),
-              ),
-            { message: getText('nameShouldBeUnique') },
-          )
+          z.refine((value) => isNewTitleUnique(item, value, getAssetChildren(item.parentId)), {
+            message: getText('nameShouldBeUnique'),
+          })
         }
       >
         {item.title}

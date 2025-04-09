@@ -8,10 +8,6 @@ import * as text from 'enso-common/src/text'
 
 import * as object from '#/utilities/object'
 
-// ===================
-// === TextContext ===
-// ===================
-
 /** State contained in a `TextContext`. */
 export interface TextContextType {
   readonly language: text.Language
@@ -46,10 +42,6 @@ const TextContext = React.createContext<TextContextType>({
 /** Props for a {@link TextProvider}. */
 export type TextProviderProps = Readonly<React.PropsWithChildren>
 
-// ====================
-// === TextProvider ===
-// ====================
-
 /** A React Provider that lets components get the current language. */
 export default function TextProvider(props: TextProviderProps) {
   const { children } = props
@@ -66,6 +58,7 @@ export default function TextProvider(props: TextProviderProps) {
 }
 
 /** Exposes a property to get localized text, and get and set the current language. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useText() {
   const { language, setLanguage, locale } = React.useContext(TextContext)
 

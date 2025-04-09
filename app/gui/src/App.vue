@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import '@/assets/base.css'
+import { interactionBindings } from '@/bindings'
 import TooltipDisplayer from '@/components/TooltipDisplayer.vue'
+import { useEvent } from '@/composables/events'
 import ProjectView from '@/ProjectView.vue'
 import { initializeActions } from '@/providers/action'
 import { provideAppClassSet } from '@/providers/appClass'
 import { provideGuiConfig } from '@/providers/guiConfig'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
+import { provideKeyboard } from '@/providers/keyboard'
 import { provideTooltipRegistry } from '@/providers/tooltipRegistry'
 import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoBlur'
 import { baseConfig, configValue, mergeConfig, type ApplicationConfigValue } from '@/util/config'
@@ -16,7 +19,7 @@ import { computed, onMounted } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
 import ReactRoot from './ReactRoot'
 
-const _props = defineProps<{
+const { projectViewOnly, onAuthenticated } = defineProps<{
   // Used in Project View integration tests. Once both test projects will be merged, this should be
   // removed
   projectViewOnly?: { options: ComponentProps<typeof ProjectView> } | null
@@ -26,23 +29,41 @@ const _props = defineProps<{
 const classSet = provideAppClassSet()
 const appTooltips = provideTooltipRegistry()
 
-const appConfig = computed(() => {
-  const config = mergeConfig(baseConfig, urlParams(), {
-    onUnrecognizedOption: (p) => console.warn('Unrecognized option:', p),
-  })
-  return config
-})
+const appConfig = computed(() =>
+  mergeConfig(baseConfig, urlParams(), {
+    onUnrecognizedOption: (p) => {
+      const filtered = p.filter((p) => !p.startsWith('cloud-ide'))
+
+      if (filtered.length > 0) {
+        console.warn('Unrecognized option:', filtered)
+      }
+    },
+  }),
+)
 const appConfigValue = computed((): ApplicationConfigValue => configValue(appConfig.value))
 
 const ReactRootWrapper = applyPureReactInVue(ReactRoot)
 const queryClient = useQueryClient()
 
+provideKeyboard()
 provideGuiConfig(appConfigValue)
-provideInteractionHandler()
+const interaction = provideInteractionHandler()
 initializeActions()
 
 registerAutoBlurHandler()
 registerGlobalBlurHandler()
+
+const interactionBindingsHandler = interactionBindings.handler({
+  cancel: () => interaction.handleCancel(),
+})
+
+useEvent(window, 'keydown', interactionBindingsHandler)
+useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointerdown'), {
+  capture: true,
+})
+useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
+  capture: true,
+})
 
 onMounted(() => {
   if (appConfigValue.value.window.vibrancy) {

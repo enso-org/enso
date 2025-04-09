@@ -3,8 +3,8 @@ import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
 
-polyglot java import org.enso.aws.DefaultRegionProvider
-polyglot java import software.amazon.awssdk.regions.Region as Java_Region
+polyglot java import org.enso.aws.regions.DefaultRegionProvider
+polyglot java import org.enso.aws.regions.AWSRegion
 
 ## AWS Region
 type AWS_Region
@@ -24,7 +24,7 @@ type AWS_Region
 
     ## PRIVATE
     all_region_ids -> Vector Text =
-        Java_Region.regions.map .id
+        AWSRegion.all.map .id
 
     ## PRIVATE
     default_widget (display : Display = ..When_Modified) -> Widget =
@@ -37,14 +37,15 @@ type AWS_Region
     resolve_id self -> Text = case self of
         AWS_Region.Region id -> id
         AWS_Region.Default ->
-            DefaultRegionProvider.new Nothing fallback_region . getRegion . id
+            DefaultRegionProvider.default_region_for_profile Nothing fallback_region
         AWS_Region.Default_With_Profile profile_name ->
-            DefaultRegionProvider.new profile_name fallback_region . getRegion . id
+            DefaultRegionProvider.default_region_for_profile profile_name fallback_region
 
     ## PRIVATE
-    as_java self -> Java_Region =
-        Java_Region.of self.resolve_id
+    as_java self -> AWSRegion =
+        AWSRegion.of self.resolve_id
 
 ## PRIVATE
    The fallback region used if all other methods cannot determine the default region.
-fallback_region = Java_Region.EU_WEST_1
+fallback_region =
+    AWSRegion.fallbackRegion

@@ -14,10 +14,6 @@ export interface PaywallDevtoolsFeatureConfiguration {
   readonly isForceEnabled: boolean | null
 }
 
-// =========================
-// === EnsoDevtoolsStore ===
-// =========================
-
 /** The state of this zustand store. */
 interface EnsoDevtoolsStore {
   readonly showDevtools: boolean
@@ -87,7 +83,7 @@ export const ensoDevtoolsStore = zustand.createStore<EnsoDevtoolsStore>()(
       },
     }),
     {
-      name: 'ensoDevtools',
+      name: 'enso-devtools',
       // eslint-disable-next-line @typescript-eslint/no-magic-numbers
       version: 1.1,
       partialize: (state) => ({
@@ -97,20 +93,12 @@ export const ensoDevtoolsStore = zustand.createStore<EnsoDevtoolsStore>()(
   ),
 )
 
-// ===============================
-// === useEnableVersionChecker ===
-// ===============================
-
 /** A function to set whether the version checker is forcibly shown/hidden. */
 export function useEnableVersionChecker() {
   return zustand.useStore(ensoDevtoolsStore, (state) => state.showVersionChecker, {
     unsafeEnableTransition: true,
   })
 }
-
-// ==================================
-// === useSetEnableVersionChecker ===
-// ==================================
 
 /** A function to set whether the version checker is forcibly shown/hidden. */
 export function useSetEnableVersionChecker() {

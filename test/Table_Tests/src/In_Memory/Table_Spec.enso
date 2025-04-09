@@ -291,25 +291,6 @@ add_specs suite_builder =
             r.to_vector . should_equal [Date_Time.new 2022, Date_Time.new 2000, Date_Time.new 1999]
             r.value_type . should_equal Value_Type.Date_Time
 
-        group_builder.specify "should allow zipping columns with a custom function" <|
-            b = Column.from_vector 'w' [6.3, 3.1, 5.2, 4.6, 8.0]
-            a = Column.from_vector 'z' ['foo', 'bar', 'baz', 'spam', 'eggs']
-            c = a.zip b x-> y-> x + y.to_text
-            c.to_vector.should_equal ['foo6.3', 'bar3.1', 'baz5.2', 'spam4.6', 'eggs8.0']
-            c.value_type . should_equal Value_Type.Char
-
-            x = Column.from_vector 'a' [1, Nothing, 2, Nothing]
-            y = Column.from_vector 'b' [0, 0, 0, 0]
-            r = x.zip y skip_nothing=False x-> y-> if x == 1 then x else y
-            r.to_vector.should_equal [1, 0, 0, 0]
-            r.value_type . should_equal Value_Type.Integer
-
-            u = Column.from_vector 'u' [12, 13, 0]
-            v = Column.from_vector 'v' [0, 30, 45]
-            r2 = u.zip v h-> m-> Time_Of_Day.new h m
-            r2.to_vector . should_equal [Time_Of_Day.new 12 0, Time_Of_Day.new 13 30, Time_Of_Day.new 0 45]
-            r2.value_type . should_equal Value_Type.Time
-
         group_builder.specify "should handle vectorized equality and fall back on non-vectorized if needed" <|
             c_str = Column.from_vector 'x' ['a', 'b', Nothing, 'b']
             (c_str == 'b').to_vector.should_equal [False, True, Nothing, True]
@@ -703,8 +684,8 @@ add_specs suite_builder =
             actual.column_names . should_equal ["col0", "col_between", "col1"]
 
     suite_builder.group "Use First Row As Names" group_builder->
-        expect_column_names names table =
-            table.columns . map .name . should_equal names frames_to_skip=2
+        expect_column_names names table = Frame_Hider.hide <|
+            table.columns . map .name . should_equal names
 
         group_builder.specify "should work happily with mixed types" <|
             c_0 = ['A', ["H", "B", "C"]]
@@ -723,7 +704,7 @@ add_specs suite_builder =
             c_4 = ['Z', [True, False, True]]
             table = Table.new [c_0, c_1, c_2, c_3, c_4]
             action = table.use_first_row_as_names on_problems=_
-            tester = expect_column_names ["Column 1", "1980-01-01", "1", "5.3", "True"]
+            tester t = expect_column_names ["Column 1", "1980-01-01", "1", "5.3", "True"] t
             problems = [Invalid_Column_Names.Error [""]]
             Problems.test_problem_handling action problems tester
 
@@ -735,7 +716,7 @@ add_specs suite_builder =
             c_4 = ['Z', [True, False, True]]
             table = Table.new [c_0, c_1, c_2, c_3, c_4]
             action = table.use_first_row_as_names on_problems=_
-            tester = expect_column_names ["A", "1980-01-01", "Column 1", "5.3", "True"]
+            tester t = expect_column_names ["A", "1980-01-01", "Column 1", "5.3", "True"] t
             problems = [Invalid_Column_Names.Error [Nothing]]
             Problems.test_problem_handling action problems tester
 
@@ -747,7 +728,7 @@ add_specs suite_builder =
             c_4 = ['Z', [True, False, True]]
             table = Table.new [c_0, c_1, c_2, c_3, c_4]
             action = table.use_first_row_as_names on_problems=_
-            tester = expect_column_names ["Column 1", "1980-01-01", "Column 2", "5.3", "True"]
+            tester t = expect_column_names ["Column 1", "1980-01-01", "Column 2", "5.3", "True"] t
             problems = [Invalid_Column_Names.Error ["", Nothing]]
             Problems.test_problem_handling action problems tester
 
@@ -758,7 +739,7 @@ add_specs suite_builder =
             c_3 = ['C', ["A", "B", "C"]]
             table = Table.new [c_0, c_1, c_2, c_3]
             action = table.use_first_row_as_names on_problems=_
-            tester = expect_column_names ["A", "A 1", "A 2", "A 3"]
+            tester t = expect_column_names ["A", "A 1", "A 2", "A 3"] t
             problems = [Duplicate_Output_Column_Names.Error ["A", "A", "A"]]
             Problems.test_problem_handling action problems tester
 

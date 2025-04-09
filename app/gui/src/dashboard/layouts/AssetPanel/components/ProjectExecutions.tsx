@@ -1,8 +1,8 @@
 /** @file A list of exeuctions of a project. */
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 
 import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
-import { backendQueryOptions } from '#/hooks/backendHooks'
+import { listProjectExecutionsQueryOptions } from '#/hooks/backendHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { assetPanelStore } from '#/layouts/AssetPanel/AssetPanelState'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
@@ -48,10 +48,7 @@ function ProjectExecutionsInternal(props: ProjectExecutionsInternalProps) {
   const { getText } = useText()
 
   const projectExecutionsQuery = useSuspenseQuery(
-    queryOptions({
-      ...backendQueryOptions(backend, 'listProjectExecutions', [item.id, item.title]),
-      select: (executions) => [...executions].reverse(),
-    }),
+    listProjectExecutionsQueryOptions(backend, item.id, item.title),
   )
   const projectExecutions = projectExecutionsQuery.data
 

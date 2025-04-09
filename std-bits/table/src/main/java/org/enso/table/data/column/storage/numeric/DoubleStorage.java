@@ -5,6 +5,8 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.CachedPropertyCheck;
+import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.DoubleRoundOp;
@@ -22,7 +24,13 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqu
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
 import org.enso.table.data.column.operation.map.numeric.isin.DoubleIsInOp;
-import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorageIterator;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
+import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -36,11 +44,13 @@ import org.graalvm.polyglot.Value;
 
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends Storage<Double>
-    implements ColumnDoubleStorage, ColumnStorageWithNothingMap {
+    implements ColumnDoubleStorage, ColumnStorageWithNothingMap, NumericFormattingStorage {
+
   final double[] data;
   final BitSet isNothing;
   private final int size;
   private static final MapOperationStorage<Double, DoubleStorage> ops = buildOps();
+  private CachedPropertyCheck<Boolean> isNumericFormatRequired;
 
   /**
    * @param data the underlying data
@@ -52,6 +62,9 @@ public final class DoubleStorage extends Storage<Double>
     this.data = data;
     this.isNothing = isNothing;
     this.size = size;
+
+    isNumericFormatRequired =
+        new CachedPropertyCheck<>(() -> RequiresNumberFormatting.compute(this, null), false);
   }
 
   public static DoubleStorage makeEmpty(long size) {
@@ -85,7 +98,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public StorageType getType() {
+  public StorageType<Double> getType() {
     return FloatType.FLOAT_64;
   }
 
@@ -177,7 +190,7 @@ public final class DoubleStorage extends Storage<Double>
 
   @Override
   public Storage<?> fillMissing(
-      Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
+      Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
     if (arg.isNumber()) {
       if (arg.fitsInLong()) {
         return fillMissingLong(arg.asLong(), problemAggregator);
@@ -330,10 +343,10 @@ public final class DoubleStorage extends Storage<Double>
     return new DoubleStorage(newData, newSize, newIsNothing);
   }
 
-  private StorageType inferredType = null;
+  private StorageType<?> inferredType = null;
 
   @Override
-  public StorageType inferPreciseType() {
+  public StorageType<?> inferPreciseType() {
     if (inferredType == null) {
       boolean areAllIntegers = true;
       int visitedNumbers = 0;
@@ -360,8 +373,8 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public StorageType inferPreciseTypeShrunk() {
-    StorageType inferred = inferPreciseType();
+  public StorageType<?> inferPreciseTypeShrunk() {
+    StorageType<?> inferred = inferPreciseType();
     if (inferred instanceof IntegerType) {
       return findSmallestIntegerTypeThatFits();
     } else {
@@ -369,7 +382,7 @@ public final class DoubleStorage extends Storage<Double>
     }
   }
 
-  private StorageType findSmallestIntegerTypeThatFits() {
+  private StorageType<?> findSmallestIntegerTypeThatFits() {
     assert inferredType instanceof IntegerType;
 
     final DoubleStorage parent = this;
@@ -540,5 +553,15 @@ public final class DoubleStorage extends Storage<Double>
         }
       }
     }
+  }
+
+  /**
+   * Checks if any numbers are large enough for the column to require formatin in the table viz.
+   *
+   * @return true/false if formatting is required
+   */
+  @Override
+  public Boolean cachedNumericFormatCheck() throws InterruptedException {
+    return isNumericFormatRequired.get();
   }
 }

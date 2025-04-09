@@ -46,6 +46,9 @@ interface PlaceholderOverrides {
   readonly couldNotInviteUser: [userEmail: string]
   readonly filesWithoutConflicts: [fileCount: number]
   readonly projectsWithoutConflicts: [projectCount: number]
+  readonly resolveDuplicatesTitleMany: [conflictingFileCount: number]
+  readonly resolveDuplicatesDescriptionMany: [conflictingFileCount: number]
+  readonly assetWillBeRenamed: [assetName: string]
   readonly andOtherFiles: [fileCount: number]
   readonly andOtherProjects: [projectCount: number]
   readonly emailIsNotAValidEmail: [userEmail: string]
@@ -57,9 +60,11 @@ interface PlaceholderOverrides {
   readonly electronVersionX: [electronVersion: string]
   readonly chromeVersionX: [chromeVersion: string]
   readonly userAgentX: [userAgent: string]
-  readonly compareVersionXWithLatest: [versionNumber: number]
+  readonly compareVersionXWithY: [versionNumber: number | string, versionNumber: string | number]
+  readonly compareWithVersionY: [versionNumber: number | string]
   readonly projectSessionX: [count: number]
   readonly onDateX: [dateString: string]
+  readonly byUserX: [userName: string]
   readonly xUsersAndGroupsSelected: [usersAndGroupsCount: number]
   readonly removeTheLocalDirectoryXFromFavorites: [directoryName: string]
   readonly upgradeTo: [planName: string]
@@ -79,13 +84,13 @@ interface PlaceholderOverrides {
   readonly updateAssetBackendError: [assetTitle: string]
   readonly deleteAssetBackendError: [assetTitle: string]
   readonly undoDeleteAssetBackendError: [assetTitle: string]
-  readonly copyAssetBackendError: [assetTitle: string, newParentTitle: string]
   readonly createProjectBackendError: [projectTitle: string]
   readonly restoreProjectBackendError: [projectTitle: string]
   readonly duplicateProjectBackendError: [projectTitle: string]
   readonly closeProjectBackendError: [projectTitle: string]
   readonly listProjectSessionsBackendError: [projectTitle: string]
   readonly createProjectExecutionBackendError: [projectTitle: string]
+  readonly getProjectExecutionDetailsBackendError: [projectTitle: string]
   readonly updateProjectExecutionBackendError: [projectTitle: string]
   readonly deleteProjectExecutionBackendError: [projectTitle: string]
   readonly listProjectExecutionsBackendError: [projectTitle: string]
@@ -101,6 +106,7 @@ interface PlaceholderOverrides {
   readonly getDatalinkBackendError: [datalinkTitle: string]
   readonly deleteDatalinkBackendError: [datalinkTitle: string]
   readonly createSecretBackendError: [secretTitle: string]
+  readonly createCredentialBackendError: [credentialTitle: string]
   readonly getSecretBackendError: [secretTitle: string]
   readonly updateSecretBackendError: [secretTitle: string]
   readonly createLabelBackendError: [labelName: string]
@@ -139,7 +145,6 @@ interface PlaceholderOverrides {
   readonly organizationNameSettingsInputDescription: [howLong: number]
   readonly trialDescription: [days: number]
 
-  readonly repeatsAtX: [dates: string]
   readonly xMinutes: [minutes: number]
   readonly xAm: [hour: string]
   readonly xPm: [hour: string]
@@ -152,13 +157,14 @@ interface PlaceholderOverrides {
   readonly dateXTimeX: [date: string, time: string]
   readonly hourlyBetweenX: [startTime: string, endTime: string]
   readonly projectSessionsOnX: [date: string]
-  readonly xthDayOfMonth: [dateOrdinal: string]
-  readonly xthXDayOfMonth: [weekOrdinal: string, dayOfWeek: string]
-  readonly lastXDayOfMonth: [dayOfWeek: string]
+  readonly monthlyXthDay: [dateOrdinal: string]
+  readonly monthlyXthXDay: [weekOrdinal: string, dayOfWeek: string]
+  readonly monthlyLastXDay: [dayOfWeek: string]
   readonly repeatsTimeXMonthsXDateX: [time: string, months: string, date: string]
   readonly repeatsTimeXMonthsXDayXWeekX: [time: string, months: string, day: string, week: string]
   readonly repeatsTimeXMonthsXDayXLastWeek: [time: string, months: string, day: string]
   readonly xthWeek: [weekOrdinal: string]
+  readonly xExecutionsScheduledOnX: [count: number, date: string]
 
   readonly arbitraryFieldTooLarge: [maxSize: string]
   readonly arbitraryFieldTooSmall: [minSize: string]
@@ -211,6 +217,13 @@ export function resolveUserLanguage() {
  */
 export function getDictionary(language: Language) {
   return TEXTS[language]
+}
+
+/**
+ * Resolves the dictionary for the user's preferred language.
+ */
+export function resolveDictionary() {
+  return getDictionary(resolveUserLanguage())
 }
 
 /**

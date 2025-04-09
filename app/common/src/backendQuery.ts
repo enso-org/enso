@@ -20,6 +20,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'closeProject'
   | 'copyAsset'
   | 'createCheckoutSession'
+  | 'createCredential'
   | 'createDatalink'
   | 'createDirectory'
   | 'createPermission'
@@ -71,15 +72,15 @@ export const INVALIDATION_MAP: Partial<
   Record<BackendMutationMethod, readonly (BackendQueryMethod | typeof INVALIDATE_ALL_QUERIES)[]>
 > = {
   createUser: ['usersMe'],
-  updateUser: ['usersMe'],
+  updateUser: [INVALIDATE_ALL_QUERIES],
   deleteUser: ['usersMe'],
   restoreUser: ['usersMe'],
   uploadUserPicture: ['usersMe'],
   updateOrganization: ['getOrganization'],
   uploadOrganizationPicture: ['getOrganization'],
-  createUserGroup: ['listUserGroups'],
-  deleteUserGroup: ['listUserGroups'],
-  changeUserGroup: ['listUsers'],
+  createUserGroup: [INVALIDATE_ALL_QUERIES],
+  deleteUserGroup: [INVALIDATE_ALL_QUERIES],
+  changeUserGroup: [INVALIDATE_ALL_QUERIES],
   createTag: ['listTags'],
   deleteTag: ['listTags'],
   associateTag: ['listDirectory'],
@@ -94,7 +95,7 @@ export const INVALIDATION_MAP: Partial<
   updateFile: ['listDirectory'],
   updateDirectory: ['listDirectory'],
   createDatalink: ['listDirectory', 'getDatalink'],
-  uploadFileEnd: ['listDirectory'],
+  uploadFileEnd: ['listDirectory', 'listAssetVersions'],
   copyAsset: ['listDirectory', 'listAssetVersions'],
   deleteAsset: ['listDirectory', 'listAssetVersions'],
   undoDeleteAsset: ['listDirectory'],

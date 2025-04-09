@@ -49,6 +49,7 @@ interface ConfirmCloseModalProps {
 }
 
 /** A modal to confirm closing the window. */
+// eslint-disable-next-line react-refresh/only-export-components
 function ConfirmCloseModal(props: ConfirmCloseModalProps) {
   const { message } = props
   const { getText } = useText()

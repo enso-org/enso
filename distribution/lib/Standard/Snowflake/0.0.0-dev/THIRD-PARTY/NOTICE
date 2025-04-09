@@ -1,7 +1,452 @@
 Enso
 Copyright 2020 - 2025 New Byte Order sp. z o. o.
 
-'snowflake-jdbc', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+'aws-java-sdk-core', licensed under the Apache License, Version 2.0, is distributed with the Snowflake.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `net.snowflake.snowflake-jdbc-3.15.0`.
+Copyright notices related to this dependency can be found in the directory `com.amazonaws.aws-java-sdk-core-1.12.501`.
+
+
+'aws-java-sdk-kms', licensed under the Apache License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.amazonaws.aws-java-sdk-kms-1.12.501`.
+
+
+'aws-java-sdk-s3', licensed under the Apache License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.amazonaws.aws-java-sdk-s3-1.12.501`.
+
+
+'jmespath-java', licensed under the Apache License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.amazonaws.jmespath-java-1.12.501`.
+
+
+'jackson-annotations', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-annotations-2.15.3`.
+
+
+'jackson-core', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-core-2.15.3`.
+
+
+'jackson-databind', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-databind-2.15.3`.
+
+
+'jackson-dataformat-cbor', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.dataformat.jackson-dataformat-cbor-2.12.6`.
+
+
+'jackson-datatype-jsr310', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.datatype.jackson-datatype-jsr310-2.15.3`.
+
+
+'jcip-annotations', licensed under the Apache License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.github.stephenc.jcip.jcip-annotations-1.0-1`.
+
+
+'annotations', licensed under the Apache 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.android.annotations-4.1.1.4`.
+
+
+'google-api-client', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.api-client.google-api-client-2.2.0`.
+
+
+'api-common', licensed under the BSD-3-Clause, is distributed with the Snowflake.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `com.google.api.api-common-2.14.0`.
+
+
+'gax', licensed under the BSD-3-Clause, is distributed with the Snowflake.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `com.google.api.gax-2.31.0`.
+
+
+'gax-grpc', licensed under the BSD-3-Clause, is distributed with the Snowflake.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `com.google.api.gax-grpc-2.31.0`.
+
+
+'gax-httpjson', licensed under the BSD-3-Clause, is distributed with the Snowflake.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `com.google.api.gax-httpjson-2.31.0`.
+
+
+'gapic-google-cloud-storage-v2', licensed under the Apache-2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.api.grpc.gapic-google-cloud-storage-v2-2.22.6-alpha`.
+
+
+'grpc-google-cloud-storage-v2', licensed under the Apache-2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.api.grpc.grpc-google-cloud-storage-v2-2.22.6-alpha`.
+
+
+'proto-google-cloud-storage-v2', licensed under the Apache-2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.api.grpc.proto-google-cloud-storage-v2-2.22.6-alpha`.
+
+
+'proto-google-common-protos', licensed under the Apache-2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.api.grpc.proto-google-common-protos-2.22.0`.
+
+
+'proto-google-iam-v1', licensed under the Apache-2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.api.grpc.proto-google-iam-v1-1.17.0`.
+
+
+'google-api-services-storage', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.apis.google-api-services-storage-v1-rev20230301-2.0.0`.
+
+
+'google-auth-library-credentials', licensed under the BSD New license, is distributed with the Snowflake.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `com.google.auth.google-auth-library-credentials-1.19.0`.
+
+
+'google-auth-library-oauth2-http', licensed under the BSD New license, is distributed with the Snowflake.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `com.google.auth.google-auth-library-oauth2-http-1.19.0`.
+
+
+'auto-value-annotations', licensed under the Apache 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.auto.value.auto-value-annotations-1.10.1`.
+
+
+'google-cloud-core', licensed under the Apache-2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.cloud.google-cloud-core-2.21.0`.
+
+
+'google-cloud-core-grpc', licensed under the Apache-2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.cloud.google-cloud-core-grpc-2.21.0`.
+
+
+'google-cloud-core-http', licensed under the Apache-2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.cloud.google-cloud-core-http-2.21.0`.
+
+
+'google-cloud-storage', licensed under the Apache-2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.cloud.google-cloud-storage-2.22.6`.
+
+
+'jsr305', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.code.findbugs.jsr305-3.0.2`.
+
+
+'gson', licensed under the Apache-2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.code.gson.gson-2.10.1`.
+
+
+'error_prone_annotations', licensed under the Apache 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.errorprone.error_prone_annotations-2.18.0`.
+
+
+'flatbuffers-java', licensed under the Apache License V2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.flatbuffers.flatbuffers-java-1.12.0`.
+
+
+'failureaccess', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.guava.failureaccess-1.0.1`.
+
+
+'guava', licensed under the Apache License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.guava.guava-32.1.1-jre`.
+
+
+'google-http-client', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.http-client.google-http-client-1.43.3`.
+
+
+'google-http-client-apache-v2', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.http-client.google-http-client-apache-v2-1.43.3`.
+
+
+'google-http-client-appengine', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.http-client.google-http-client-appengine-1.43.3`.
+
+
+'google-http-client-gson', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.http-client.google-http-client-gson-1.43.3`.
+
+
+'google-http-client-jackson2', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.http-client.google-http-client-jackson2-1.43.3`.
+
+
+'j2objc-annotations', licensed under the Apache License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.j2objc.j2objc-annotations-2.8`.
+
+
+'google-oauth-client', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.oauth-client.google-oauth-client-1.34.1`.
+
+
+'protobuf-java', licensed under the BSD-3-Clause, is distributed with the Snowflake.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `com.google.protobuf.protobuf-java-3.23.2`.
+
+
+'protobuf-java-util', licensed under the BSD-3-Clause, is distributed with the Snowflake.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `com.google.protobuf.protobuf-java-util-3.23.2`.
+
+
+'re2j', licensed under the Go License, is distributed with the Snowflake.
+The license file can be found at `licenses/Go_License`.
+Copyright notices related to this dependency can be found in the directory `com.google.re2j.re2j-1.6`.
+
+
+'azure-keyvault-core', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.microsoft.azure.azure-keyvault-core-0.8.0`.
+
+
+'azure-storage', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.microsoft.azure.azure-storage-5.0.0`.
+
+
+'nimbus-jose-jwt', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.nimbusds.nimbus-jose-jwt-9.21`.
+
+
+'metrics-core', licensed under the Apache License 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.yammer.metrics.metrics-core-2.2.0`.
+
+
+'metrics-servlet', licensed under the Apache License 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.yammer.metrics.metrics-servlet-2.2.0`.
+
+
+'commons-codec', licensed under the Apache License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `commons-codec.commons-codec-1.15`.
+
+
+'commons-io', licensed under the Apache License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `commons-io.commons-io-2.11.0`.
+
+
+'commons-logging', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `commons-logging.commons-logging-1.2`.
+
+
+'grpc-alts', licensed under the Apache 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.grpc.grpc-alts-1.55.3`.
+
+
+'grpc-api', licensed under the Apache 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.grpc.grpc-api-1.55.3`.
+
+
+'grpc-auth', licensed under the Apache 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.grpc.grpc-auth-1.55.3`.
+
+
+'grpc-context', licensed under the Apache 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.grpc.grpc-context-1.55.3`.
+
+
+'grpc-core', licensed under the Apache 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.grpc.grpc-core-1.55.3`.
+
+
+'grpc-googleapis', licensed under the Apache 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.grpc.grpc-googleapis-1.55.3`.
+
+
+'grpc-grpclb', licensed under the Apache 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.grpc.grpc-grpclb-1.55.3`.
+
+
+'grpc-netty-shaded', licensed under the Apache 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.grpc.grpc-netty-shaded-1.55.3`.
+
+
+'grpc-protobuf', licensed under the Apache 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.grpc.grpc-protobuf-1.55.3`.
+
+
+'grpc-protobuf-lite', licensed under the Apache 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.grpc.grpc-protobuf-lite-1.55.3`.
+
+
+'grpc-rls', licensed under the Apache 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.grpc.grpc-rls-1.55.3`.
+
+
+'grpc-services', licensed under the Apache 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.grpc.grpc-services-1.55.3`.
+
+
+'grpc-stub', licensed under the Apache 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.grpc.grpc-stub-1.55.3`.
+
+
+'opencensus-api', licensed under the The Apache License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.opencensus.opencensus-api-0.31.1`.
+
+
+'opencensus-contrib-http-util', licensed under the The Apache License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.opencensus.opencensus-contrib-http-util-0.31.1`.
+
+
+'opencensus-proto', licensed under the The Apache License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.opencensus.opencensus-proto-0.2.0`.
+
+
+'perfmark-api', licensed under the Apache 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.perfmark.perfmark-api-0.26.0`.
+
+
+'javax.annotation-api', licensed under the CDDL + GPLv2 with classpath exception, is distributed with the Snowflake.
+The license file can be found at `licenses/GNU_General_Public_License__version_2__with_the_Classpath_Exception`.
+Copyright notices related to this dependency can be found in the directory `javax.annotation.javax.annotation-api-1.3.2`.
+
+
+'javax.servlet-api', licensed under the CDDL + GPLv2 with classpath exception, is distributed with the Snowflake.
+The license file can be found at `licenses/GNU_General_Public_License__version_2__with_the_Classpath_Exception`.
+Copyright notices related to this dependency can be found in the directory `javax.servlet.javax.servlet-api-3.1.0`.
+
+
+'joda-time', licensed under the Apache 2, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `joda-time.joda-time-2.8.1`.
+
+
+'accessors-smart', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `net.minidev.accessors-smart-2.4.9`.
+
+
+'json-smart', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `net.minidev.json-smart-2.4.9`.
+
+
+'snowflake-jdbc-thin', licensed under the The Apache Software License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `net.snowflake.snowflake-jdbc-thin-3.15.0`.
+
+
+'commons-lang3', licensed under the Apache License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.apache.commons.commons-lang3-3.4`.
+
+
+'httpclient', licensed under the Apache License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.apache.httpcomponents.httpclient-4.5.14`.
+
+
+'httpcore', licensed under the Apache License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.apache.httpcomponents.httpcore-4.4.16`.
+
+
+'bcpkix-jdk18on', licensed under the Bouncy Castle Licence, is distributed with the Snowflake.
+The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
+Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcpkix-jdk18on-1.74`.
+
+
+'bcprov-jdk18on', licensed under the Bouncy Castle Licence, is distributed with the Snowflake.
+The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
+Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcprov-jdk18on-1.74`.
+
+
+'bcutil-jdk18on', licensed under the Bouncy Castle Licence, is distributed with the Snowflake.
+The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
+Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcutil-jdk18on-1.74`.
+
+
+'checker-qual', licensed under the The MIT License, is distributed with the Snowflake.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `org.checkerframework.checker-qual-3.33.0`.
+
+
+'animal-sniffer-annotations', licensed under the MIT license, is distributed with the Snowflake.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `org.codehaus.mojo.animal-sniffer-annotations-1.23`.
+
+
+'conscrypt-openjdk-uber', licensed under the Apache 2, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.conscrypt.conscrypt-openjdk-uber-2.5.2`.
+
+
+'jsoup', licensed under the The MIT License, is distributed with the Snowflake.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `org.jsoup.jsoup-1.15.3`.
+
+
+'asm', licensed under the BSD-3-Clause, is distributed with the Snowflake.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `org.ow2.asm.asm-9.3`.
+
+
+'slf4j-api', licensed under the MIT License, is distributed with the Snowflake.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `org.slf4j.slf4j-api-1.7.12`.
+
+
+'threetenbp', licensed under the BSD-3-Clause, is distributed with the Snowflake.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `org.threeten.threetenbp-1.6.8`.
+
+
+'ion-java', licensed under the The Apache License, Version 2.0, is distributed with the Snowflake.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.ion.ion-java-1.0.2`.
 

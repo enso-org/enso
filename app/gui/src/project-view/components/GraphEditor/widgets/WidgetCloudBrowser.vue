@@ -1,20 +1,29 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import {
-  CustomDropdownItemsKey,
-  type CustomDropdownItem,
-} from '@/components/GraphEditor/widgets/WidgetSelection.vue'
+import { CustomDropdownItemsKey } from '@/components/GraphEditor/widgets/WidgetSelection.vue'
 import FileBrowserWidget from '@/components/widgets/FileBrowserWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { computed, h } from 'vue'
+import type { CustomDropdownItem } from './WidgetSelection/tags'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
 const writeMode = computed(
   () => props.input[ArgumentInfoKey]?.info?.reprType.includes(WRITABLE_FILE_TYPE) ?? false,
 )
+
+const path = computed(() => {
+  if (props.input.value instanceof Ast.TextLiteral) {
+    return props.input.value.rawTextContent
+  } else if (typeof props.input.value === 'string') {
+    return Ast.TextLiteral.tryParse(props.input.value)?.rawTextContent ?? ''
+  } else {
+    return ''
+  }
+})
+
 const item: CustomDropdownItem = {
   label: 'Choose file from cloud...',
   onClick: ({ setActivity, close }) => {
@@ -22,6 +31,7 @@ const item: CustomDropdownItem = {
       computed(() =>
         h(FileBrowserWidget, {
           writeMode: writeMode.value,
+          choosenPath: path.value,
           onPathAccepted: (path: string) => {
             props.onUpdate({
               portUpdate: { value: Ast.TextLiteral.new(path), origin: props.input.portId },

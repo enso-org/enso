@@ -142,11 +142,17 @@ add_nothing_specs suite_builder setup =
 
             group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Column (returning True)" <|
                 table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
-                table.at "x" . is_in (table.at "z") . to_vector . should_equal [true_if_not_nothing, Nothing]
+                vector = table.at "x" . is_in (table.at "z") . to_vector
+                vector.length . should_equal 2
+                vector.should_contain true_if_not_nothing
+                vector.should_contain Nothing
 
             group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Column with Nothings (returning True)" <|
                 table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
-                table.at "x" . is_in (table.at "x") . to_vector . should_equal [true_if_not_nothing, Nothing]
+                vector = table.at "x" . is_in (table.at "x") . to_vector
+                vector.length . should_equal 2
+                vector.should_contain true_if_not_nothing
+                vector.should_contain Nothing
 
             group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+".is_in Column with Nothings (returning Nothing)" <|
                 table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type

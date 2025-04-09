@@ -85,7 +85,7 @@ export const BUTTON_STYLES = tv({
           weight: 'semibold',
           className: 'flex h-8 px-[7px]',
         }),
-        icon: '-mb-0.5 h-4 w-4',
+        icon: 'h-4 w-4',
         content: 'gap-2',
         extraClickZone: 'after:inset-[-8px]',
       },
@@ -201,10 +201,9 @@ export const BUTTON_STYLES = tv({
   slots: {
     extraClickZone:
       'flex relative after:absolute after:cursor-pointer group-disabled:after:cursor-not-allowed',
-    wrapper: 'relative block',
+    wrapper: 'relative block max-w-full',
     loader: 'absolute inset-0 flex items-center justify-center',
     content: 'flex items-center',
-    text: 'inline-flex items-center justify-center gap-1 w-full',
     icon: 'h-[1.906cap] w-[1.906cap] flex-none aspect-square flex items-center justify-center',
     addonStart: 'flex items-center justify-center macos:-mb-0.5',
     addonEnd: 'flex items-center justify-center macos:-mb-0.5',
@@ -223,7 +222,12 @@ export const BUTTON_STYLES = tv({
     extraClickZone: true,
   },
   compoundVariants: [
-    { isFocused: true, iconOnly: true, class: 'focus-visible:outline-offset-[3px]' },
+    {
+      isFocused: true,
+      iconOnly: true,
+      isJoined: false,
+      class: 'focus-visible:outline-offset-[3px]',
+    },
 
     {
       size: 'custom',

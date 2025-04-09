@@ -1,11 +1,7 @@
-/** @file Modal for confirming delete of any type of asset. */
+/** @file A modal for creating and editing a secret. */
 import { ButtonGroup, Dialog, DialogDismiss, Form, Input } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
 import type { SecretId } from '#/services/Backend'
-
-// =========================
-// === UpsertSecretModal ===
-// =========================
 
 /** Props for a {@link UpsertSecretModal}. */
 export interface UpsertSecretModalProps {
@@ -30,23 +26,23 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
 
   const content = (
     <Form
-      method="dialog"
       schema={(z) => z.object({ title: z.string().min(1), value: z.string() })}
       defaultValues={{ title: nameRaw ?? '', value: '' }}
-      onSubmit={async ({ title, value }, form) => {
-        await doCreate(title, value)
-        form.reset({ title, value })
-      }}
+      onSubmit={({ title, value }) => doCreate(title, value)}
+      method="dialog"
       testId="upsert-secret-modal"
       className="w-full"
     >
-      <Input
-        name="title"
-        autoFocus
-        autoComplete="off"
-        label={getText('name')}
-        placeholder={getText('secretNamePlaceholder')}
-      />
+      {isCreatingSecret && (
+        <Input
+          name="title"
+          autoFocus
+          autoComplete="off"
+          label={getText('name')}
+          placeholder={getText('secretNamePlaceholder')}
+        />
+      )}
+
       <Input
         name="value"
         type="password"
@@ -62,6 +58,8 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         {canCancel && <DialogDismiss />}
         {canReset && <Form.Reset>{getText('cancel')}</Form.Reset>}
       </ButtonGroup>
+
+      <Form.FormError />
     </Form>
   )
 

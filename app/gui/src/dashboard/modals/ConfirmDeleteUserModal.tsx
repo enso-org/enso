@@ -1,8 +1,7 @@
 /** @file Modal for confirming delete of any type of asset. */
-import * as z from 'zod'
-
 import { ButtonGroup, Dialog, Form, Text } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
+import * as z from 'zod'
 
 /** Props for a {@link ConfirmDeleteUserModal}. */
 export interface ConfirmDeleteUserModalProps {
@@ -10,7 +9,7 @@ export interface ConfirmDeleteUserModalProps {
 }
 
 /** A modal for confirming the deletion of a user. */
-export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProps) {
+export function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProps) {
   const { doDelete } = props
   const { getText } = useText()
 

@@ -16,6 +16,12 @@ export class Range {
     return from <= to ? new Range(from, to) : undefined
   }
 
+  /** @returns A new `Range`. The caller must ensule that `from <= to`. */
+  static unsafeFromBounds(from: number, to: number): Range {
+    assert(from <= to)
+    return new Range(from, to)
+  }
+
   /** @returns A new from `start` to `start + length`. `length` must be nonnegative. */
   static fromStartAndLength(start: number, length: number): Range {
     assert(length >= 0)
@@ -35,14 +41,19 @@ export class Range {
     return this.to - this.from
   }
 
+  /** @returns Whether the range length is 0. */
+  get empty(): boolean {
+    return this.to === this.from
+  }
+
   /**
    * @returns Whether this has the same `from` and `to` as `other`.
    *
    * If `this` and `other` are both of exact type `Range`, this is a complete equality comparison; if either is a
    * derived type, this performs a comparison only with regard to the `Range` data.
    */
-  rangeEquals(other: Range) {
-    return this.from === other.from && this.to === other.to
+  rangeEquals(other: Range | undefined): boolean {
+    return !!other && this.from === other.from && this.to === other.to
   }
 
   /**

@@ -1,6 +1,7 @@
 /** @file Shortcuts for the dashboard application. */
 import * as detect from 'enso-common/src/detect'
 
+import AddCredentialIcon from '#/assets/add_credential.svg'
 import AddDatalinkIcon from '#/assets/add_datalink.svg'
 import AddFolderIcon from '#/assets/add_folder.svg'
 import AddKeyIcon from '#/assets/add_key.svg'
@@ -36,10 +37,6 @@ import * as inputBindings from '#/utilities/inputBindings'
 
 export type * from '#/utilities/inputBindings'
 
-// ======================
-// === Input bindings ===
-// ======================
-
 /** The type of the keybind and mousebind namespace for the dashboard. */
 export type DashboardBindingNamespace = ReturnType<typeof createBindings>
 
@@ -56,13 +53,12 @@ export const BINDINGS = inputBindings.defineBindings({
   // An alternative shortcut is required because Mod+W cannot be overridden in browsers.
   closeTab: { name: 'Close Tab', bindings: ['Mod+W', 'Mod+Alt+W'], icon: CloseTabIcon },
   open: { name: 'Open', bindings: ['Enter'], icon: OpenIcon },
-  run: { name: 'Execute as Task', bindings: ['Shift+Enter'], icon: Play2Icon },
+  run: { name: 'Run in Cloud', bindings: ['Shift+Enter'], icon: Play2Icon },
   close: { name: 'Close', bindings: [], icon: CloseIcon },
   uploadToCloud: { name: 'Upload to Cloud', bindings: [], icon: CloudToIcon },
   rename: { name: 'Rename', bindings: ['Mod+R'], icon: PenIcon },
   edit: { name: 'Edit', bindings: ['Mod+E'], icon: PenIcon },
   snapshot: { name: 'Snapshot', bindings: ['Mod+S'], icon: CameraIcon },
-  editDescription: { name: 'Edit Description', bindings: ['Mod+Shift+E'], icon: PenIcon },
   delete: {
     name: 'Delete',
     bindings: ['OsDelete'],
@@ -86,6 +82,11 @@ export const BINDINGS = inputBindings.defineBindings({
     name: 'New Secret',
     bindings: !detect.isOnMacOS() ? ['Mod+Alt+N'] : ['Mod+Alt+N', 'Mod+Alt+~'],
     icon: AddKeyIcon,
+  },
+  newCredential: {
+    name: 'New Credential',
+    bindings: [],
+    icon: AddCredentialIcon,
   },
   newDatalink: {
     name: 'New Datalink',
@@ -127,16 +128,13 @@ export const BINDINGS = inputBindings.defineBindings({
     rebindable: true,
     icon: ArrowRightIcon,
   },
-  aboutThisApp: {
-    name: 'About Enso',
-    bindings: ['Mod+/'],
-    rebindable: true,
-    icon: LogoIcon,
-  },
-  ensoDevtools: {
-    name: 'Enso Devtools',
+  aboutThisApp: { name: 'About Enso', bindings: ['Mod+/'], rebindable: true, icon: LogoIcon },
+  ensoDevtools: { name: 'Enso Devtools', bindings: [], rebindable: false, icon: LogoIcon },
+  copyId: {
+    name: 'Copy Id',
     bindings: [],
     rebindable: false,
-    icon: LogoIcon,
+    icon: CopyAsPathIcon,
+    color: 'rgb(73 159 75)',
   },
 })

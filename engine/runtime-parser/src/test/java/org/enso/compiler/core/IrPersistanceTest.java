@@ -17,15 +17,21 @@ import org.enso.compiler.core.ir.Name;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.openide.util.lookup.ServiceProvider;
 import scala.Option;
 import scala.Tuple2;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
 
 public class IrPersistanceTest {
+  @BeforeClass
+  public static void initializeIrPersistance() {
+    org.enso.compiler.core.ir.Persistables.initialize();
+    org.enso.compiler.core.Persistables.initialize();
+  }
+
   @Before
   public void resetDebris() {
     LazyString.forbidden = false;
@@ -505,7 +511,7 @@ public class IrPersistanceTest {
     }
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 432432)
   public static final class PersistLazyString extends Persistance<LazyString> {
 
     public PersistLazyString() {
@@ -530,7 +536,7 @@ public class IrPersistanceTest {
     private Singleton() {}
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 432433)
   public static final class PersistSingleton extends Persistance<Singleton> {
 
     public PersistSingleton() {

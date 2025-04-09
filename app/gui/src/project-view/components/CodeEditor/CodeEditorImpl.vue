@@ -71,38 +71,33 @@ onMounted(() => {
 </script>
 
 <template>
-  <CodeMirrorRoot ref="editorRoot" class="CodeEditor" @keydown.tab.stop.prevent />
-  <VueHostRender :host="vueHost" />
+  <CodeMirrorRoot ref="editorRoot" class="CodeEditor" @keydown.tab.stop.prevent>
+    <VueHostRender :host="vueHost" />
+  </CodeMirrorRoot>
 </template>
 
+<!--suppress CssUnusedSymbol -->
 <style scoped>
-.CodeEditor {
+:deep(.cm-scroller) {
+  /*noinspection CssNoGenericFontName*/
   font-family: var(--font-mono);
+}
+
+:deep(.cm-editor) {
   backdrop-filter: var(--blur-app-bg);
   background-color: rgba(255, 255, 255, 0.9);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.4);
-}
 
-:deep(.cm-scroller) {
-  /* Prevent touchpad back gesture, which can be triggered while panning. */
-  overscroll-behavior: none;
-}
-
-:deep(.cm-editor) {
-  position: relative;
-  width: 100%;
-  height: 100%;
   opacity: 1;
   color: black;
   text-shadow: 0 0 2px rgba(255, 255, 255, 0.4);
   font-size: 12px;
   outline: 1px solid transparent;
   transition: outline 0.1s ease-in-out;
-}
-
-:deep(.cm-focused) {
-  outline: 1px solid rgba(0, 0, 0, 0.5);
+  &:deep(.cm-focused) {
+    outline: 1px solid rgba(0, 0, 0, 0.5);
+  }
 }
 
 :deep(.cm-tooltip-hover) {

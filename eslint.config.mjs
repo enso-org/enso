@@ -4,12 +4,6 @@
  * NOTE: The "Experimental: Use Flat Config" option must be enabled.
  * Flat config is still not quite mature, so is disabled by default.
  */
-import * as path from 'node:path'
-import * as url from 'node:url'
-
-// The preferred syntax is `import * as name`, however these modules do not support it.
-// This is specialcased in other files, but these modules shouldn't be used in other files anyway.
-
 import eslintJs from '@eslint/js'
 import tsEslint from '@typescript-eslint/eslint-plugin'
 import vueTsEslintConfig from '@vue/eslint-config-typescript'
@@ -17,12 +11,11 @@ import jsdoc from 'eslint-plugin-jsdoc'
 import react from 'eslint-plugin-react'
 import reactCompiler from 'eslint-plugin-react-compiler'
 import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
 import pluginVue from 'eslint-plugin-vue'
 import globals from 'globals'
-
-// =================
-// === Constants ===
-// =================
+import * as path from 'node:path'
+import * as url from 'node:url'
 
 const DEBUG_STATEMENTS_MESSAGE = 'Avoid leaving debugging statements when committing code'
 const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
@@ -103,7 +96,7 @@ const RESTRICTED_SYNTAXES = [
   },
   {
     // Matches non-functions.
-    selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:matches([init.callee.object.name=React][init.callee.property.name=forwardRef], :has(ArrowFunctionExpression), :has(CallExpression[callee.object.name=newtype][callee.property.name=newtypeConstructor]), :has(CallExpression[callee.name=newtypeConstructor])))`,
+    selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:matches([init.callee.object.name=React][init.callee.property.name=forwardRef], [init.callee.object.name=React][init.callee.property.name=memo], :has(CallExpression[callee.name=memo]), :has(CallExpression[callee.name=forwardRef]), :has(ArrowFunctionExpression), :has(CallExpression[callee.object.name=newtype][callee.property.name=newtypeConstructor]), :has(CallExpression[callee.name=newtypeConstructor])))`,
     message: 'Use `CONSTANT_CASE` for top-level constants that are not functions',
   },
   {
@@ -204,9 +197,18 @@ const config = [
       'app/rust-ffi/pkg/',
     ],
   },
+  {
+    // Based on a 3rd party library that doesn't use ESLint.
+    ignores: ['app/lang-markdown/', 'app/lezer-markdown/'],
+  },
   eslintJs.configs.recommended,
   ...pluginVue.configs['flat/recommended'],
   ...vueTsEslintConfig(),
+  {
+    linterOptions: {
+      reportUnusedDisableDirectives: 'error',
+    },
+  },
   {
     // files: ['{**,src}/*.{vue,js,jsx,cjs,mjs,ts,tsx,cts,mts}'],
     languageOptions: {
@@ -288,6 +290,10 @@ const config = [
   },
 
   // === Dashboard Rules ===
+  {
+    ...reactRefresh.configs.vite,
+    files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
+  },
   {
     files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
     settings: {
@@ -561,6 +567,7 @@ const config = [
       '@typescript-eslint/no-magic-numbers': 'off',
       '@typescript-eslint/unbound-method': 'off',
       '@typescript-eslint/naming-convention': 'off',
+      'react-hooks/rules-of-hooks': 'off',
     },
   },
   {
@@ -606,7 +613,9 @@ const config = [
       '**/index.ts',
     ],
     plugins: { 'react-compiler': reactCompiler },
-    rules: { 'react-compiler/react-compiler': 'error' },
+    rules: {
+      'react-compiler/react-compiler': 'error',
+    },
   },
   // === Index Files ===
   {
