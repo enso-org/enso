@@ -29,8 +29,7 @@ sealed private[graph] class ScopeImpl(
     else new java.util.ArrayList(_defs.stream.map(_.withScope(this)).toList)
 
   private[graph] var _parent: ScopeImpl = null
-  private[graph] val _occurrences
-    : java.util.Map[GraphImpl.Id, GraphOccurrence] =
+  private val _occurrences: java.util.Map[GraphImpl.Id, GraphOccurrence] =
     new java.util.HashMap(_occurs.asJava)
 
   def childScopes = _childScopes
@@ -184,7 +183,7 @@ sealed private[graph] class ScopeImpl(
     */
   private[analyse] def getOccurrences[T <: GraphOccurrence: ClassTag](
     symbol: GraphImpl.Symbol
-  ): Set[GraphOccurrence] = {
+  ): Set[T] = {
     _occurrences.values.stream
       .filter {
         case o: T if o.symbol == symbol => true
@@ -192,6 +191,7 @@ sealed private[graph] class ScopeImpl(
       }
       .toList
       .asScala
+      .map(_.asInstanceOf[T])
       .toSet
   }
 
