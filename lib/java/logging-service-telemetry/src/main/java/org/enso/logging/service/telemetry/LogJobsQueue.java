@@ -6,10 +6,10 @@ import java.util.LinkedList;
 import java.util.List;
 
 final class LogJobsQueue {
-  private final Deque<LogMessage> queue = new LinkedList<>();
+  private final Deque<LogJob> queue = new LinkedList<>();
 
   /** Enqueues a log message to be sent and returns the number of messages in the queue. */
-  synchronized int enqueue(LogMessage message) {
+  synchronized int enqueue(LogJob message) {
     int previousSize = queue.size();
     queue.addLast(message);
     int newSize = queue.size();
@@ -19,14 +19,14 @@ final class LogJobsQueue {
   }
 
   /** Removes and returns up to {@code limit} enqueued jobs. */
-  synchronized List<LogMessage> popEnqueuedJobs(int limit) {
+  synchronized List<LogJob> popEnqueuedJobs(int limit) {
     assert limit > 0;
     if (queue.isEmpty()) {
       return List.of();
     }
 
     int n = Math.min(limit, queue.size());
-    List<LogMessage> result = new ArrayList<>(n);
+    List<LogJob> result = new ArrayList<>(n);
     for (int i = 0; i < n; i++) {
       result.add(queue.removeFirst());
     }

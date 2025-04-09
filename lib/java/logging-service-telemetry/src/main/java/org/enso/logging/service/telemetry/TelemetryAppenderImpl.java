@@ -80,7 +80,8 @@ public final class TelemetryAppenderImpl extends TelemetryAppender {
       logJobsProcessor = new LogJobsProcessor(backgroundThreadService, endpoint, credentials);
     }
     var logMessage = logEventToMessage(logEvent);
-    logJobsProcessor.enqueueMessage(logMessage);
+    var logJob = new LogJob(logMessage, null);
+    logJobsProcessor.enqueueMessage(logJob);
   }
 
   private static LogMessage logEventToMessage(ILoggingEvent logEvent) {
