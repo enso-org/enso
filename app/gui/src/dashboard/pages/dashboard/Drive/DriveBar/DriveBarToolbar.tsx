@@ -50,7 +50,6 @@ import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import type { DirectoryId } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
@@ -82,7 +81,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const { isOffline } = useOffline()
   const canDownload = useCanDownload()
 
-  const { currentDirectoryId, rootDirectoryId } = useDirectoryIds({ category })
+  const { currentDirectoryId } = useDirectoryIds({ category })
 
   const shouldBeDisabled = isCloud && isOffline
 
@@ -182,7 +181,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
             shouldBeDisabled={shouldBeDisabled}
             backend={backend}
             category={category}
-            rootDirectoryId={rootDirectoryId}
           >
             {pasteDataStatus}
             {searchBar}
@@ -317,20 +315,19 @@ interface TrashFolderToolbarProps extends PropsWithChildren {
   readonly shouldBeDisabled: boolean
   readonly backend: Backend
   readonly category: Category
-  readonly rootDirectoryId: DirectoryId
 }
 
 /**
  * A toolbar for the trash folder.
  */
 function TrashFolderToolbar(props: TrashFolderToolbarProps) {
-  const { shouldBeDisabled, backend, category, rootDirectoryId, children } = props
+  const { shouldBeDisabled, backend, category, children } = props
   const { getText } = useText()
 
   const rootDirectoryQueryOptions = listDirectoryQueryOptions({
     backend,
     category,
-    parentId: rootDirectoryId,
+    parentId: null,
     refetchInterval: null,
   })
 

@@ -122,7 +122,8 @@ final class RuntimeConnector(
         case None =>
           logger.warn(
             "No sender has been found associated with request id [{}], the response [{}] will be dropped",
-            Array[Any](correlationId, payload.getClass.getCanonicalName)
+            correlationId,
+            payload.getClass.getCanonicalName
           )
           payload match {
             case msg: ToLogString =>

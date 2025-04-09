@@ -386,7 +386,7 @@ export function useRenameProjectMutation() {
 
       invariant(backend != null, 'Backend is null')
 
-      return backend.updateProject(id, { projectName: newName, ami: null, ideVersion: null }, title)
+      return backend.updateProject(id, { projectName: newName }, title)
     },
     onSuccess: (_, { newName, project }) => {
       updateLaunchedProjects((projects) =>

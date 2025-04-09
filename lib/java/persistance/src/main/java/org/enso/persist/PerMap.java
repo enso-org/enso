@@ -6,20 +6,31 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import org.openide.util.lookup.Lookups;
 
 final class PerMap {
+  private static final class AllPersistables extends ClassValue<Persistance[]> {
+    @Override
+    protected Persistance[] computeValue(Class<?> type) {
+      return new Persistance[1];
+    }
+  }
+
+  private static final AllPersistables CACHE = new AllPersistables();
 
   private static final int serialVersionUID = 8652; // Use PR number
-  private static final Collection<? extends Persistance> ALL;
+  private static final Collection<Persistance> ALL = new ArrayList<>();
 
   static {
-    var loader = PerMap.class.getClassLoader();
-    var lookup = Lookups.metaInfServices(loader);
-    var all = new ArrayList<Persistance>();
-    all.add(PerReferencePeristance.INSTANCE);
-    all.addAll(lookup.lookupAll(Persistance.class));
-    ALL = all;
+    registerPersistance(PerReferencePeristance.INSTANCE);
+  }
+
+  static void registerPersistance(Persistance p) {
+    var arr = CACHE.get(p.getClass());
+    if (arr[0] == null) {
+      synchronized (ALL) {
+        ALL.add(arr[0] = p);
+      }
+    }
   }
 
   private final Map<Integer, Persistance<?>> ids = new HashMap<>();

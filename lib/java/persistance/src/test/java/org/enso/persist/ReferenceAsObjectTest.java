@@ -5,8 +5,8 @@ import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import org.enso.persist.Persistance.Reference;
+import org.junit.BeforeClass;
 import org.junit.Test;
-import org.openide.util.lookup.ServiceProvider;
 
 /**
  * This test case verifies the order of writing references down. There are two tests. One creates
@@ -21,6 +21,11 @@ import org.openide.util.lookup.ServiceProvider;
  * ReferenceAsInlineTest} for similar yet different test.
  */
 public final class ReferenceAsObjectTest {
+  @BeforeClass
+  public static void initPersistables() {
+    Persistables.initialize();
+  }
+
   private static Chain eagerChain(String id, int[] counter, Chain next) {
     Reference<Chain> ref = next == null ? Reference.none() : Reference.of(next, false);
     return new Chain(id, counter, ref);
@@ -112,7 +117,7 @@ public final class ReferenceAsObjectTest {
     }
   }
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 54288435)
   public static final class ChainPersistance extends Persistance<Chain> {
 
     public ChainPersistance() {
