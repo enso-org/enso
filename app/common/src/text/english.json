@@ -881,6 +881,7 @@
   "openInFileBrowserShortcutMacOs": "Open in Finder",
   "copyIdShortcut": "Copy Id",
   "copyAllIdsShortcut": "Copy Selected Ids",
+  "manageLabels": "Manage Labels",
   "nameColumnShow": "Name",
   "nameColumnHide": "Name",
   "modifiedColumnShow": "Modified",
