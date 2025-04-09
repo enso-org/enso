@@ -258,14 +258,14 @@ function AssetsTable(props: AssetsTableProps) {
   const addAssetsLabelsMutation = useMutationCallback(addAssetsLabelsMutationOptions(backend))
   const removeAssetsLabelsMutation = useMutationCallback(removeAssetsLabelsMutationOptions(backend))
 
-  const { currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
+  const { queryDirectoryId, currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
     category,
   })
   const listDirectoryRefetchInterval = useListDirectoryRefetchInterval()
   const { data: assets = [] } = useSuspenseQuery({
     ...listDirectoryQueryOptions({
       backend,
-      parentId: currentDirectoryId,
+      parentId: queryDirectoryId,
       category,
       refetchInterval: listDirectoryRefetchInterval,
     }),

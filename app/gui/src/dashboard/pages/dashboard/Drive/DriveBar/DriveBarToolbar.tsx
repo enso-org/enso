@@ -341,7 +341,7 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
   const deleteAssetsMutation = useMutationCallback(deleteAssetsMutationOptions(backend))
 
   const clearTrash = useEventCallback(async () => {
-    const allTrashedItems = await getAllTrashedItems(queryClient, backend)
+    const allTrashedItems = await getAllTrashedItems(queryClient, backend, category)
     await deleteAssetsMutation([allTrashedItems.map((item) => item.id), true])
   })
 
