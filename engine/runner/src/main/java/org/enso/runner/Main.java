@@ -570,7 +570,7 @@ public class Main {
   }
 
   /** Shuts down the logging service and terminates the process. */
-  static RuntimeException doExit(int exitCode) {
+  RuntimeException doExit(int exitCode) {
     RunnerLogging.tearDown();
     System.exit(exitCode);
     return null;
@@ -640,7 +640,7 @@ public class Main {
   /**
    * Handles the `--compile` CLI option.
    *
-   * @param packagePath the path to the package being compiled
+   * @param path the path to the package or file being compiled
    * @param shouldCompileDependencies whether the dependencies of that package should also be
    *     compiled
    * @param shouldUseGlobalCache whether or not the compilation result should be written to the
@@ -651,22 +651,24 @@ public class Main {
    * @param logMasking whether or not log masking is enabled
    */
   private void compile(
-      String packagePath,
+      String path,
       boolean shouldCompileDependencies,
       boolean shouldUseGlobalCache,
       boolean shouldUseIrCaches,
       boolean enableStaticAnalysis,
       Level logLevel,
-      boolean logMasking) {
-    var file = new File(packagePath);
-    if (!file.exists() || !file.isDirectory()) {
-      throw exitFail("No package exists at " + file + ".");
+      boolean logMasking) throws IOException {
+    var fileAndProject = Utils.findFileAndProject(path, null);
+    if (fileAndProject == null) {
+      throw exitFail("No package exists at " + path + ".");
     }
 
+    boolean isProjectMode = fileAndProject._1();
+    String projectPath = fileAndProject._3();
     var context =
         new PolyglotContext(
             ContextFactory.create()
-                .projectRoot(packagePath)
+                .projectRoot(projectPath)
                 .in(System.in)
                 .out(System.out)
                 .logLevel(logLevel)
@@ -677,9 +679,13 @@ public class Main {
                 .useGlobalIrCacheLocation(shouldUseGlobalCache)
                 .build());
 
-    var topScope = context.getTopScope();
     try {
-      topScope.compile(shouldCompileDependencies, scala.Option.empty());
+      if (isProjectMode) {
+        var topScope = context.getTopScope();
+        topScope.compile(shouldCompileDependencies, scala.Option.empty());
+      } else {
+        context.evalModule(fileAndProject._2());
+      }
       throw exitSuccess();
     } catch (Throwable t) {
       logger.error("Unexpected internal error", t);
