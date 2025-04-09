@@ -120,7 +120,7 @@ const props = defineProps<{
   suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
   processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
-  datasource?: IServerSideDatasource
+  datasource?: IServerSideDatasource | boolean
   rowCount?: number
   isServerSideModel?: boolean
 }>()

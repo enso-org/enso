@@ -247,7 +247,6 @@ type Table
        Arguments:
        - internal_java_table: The internal java representation of the table.
     private Value internal_java_table
-
     ## PRIVATE
        A getter that is a workaround for bug https://github.com/enso-org/enso/issues/12180
     private java_table self = self.internal_java_table
@@ -456,6 +455,10 @@ type Table
        ICON metadata
        Returns the number of columns in the table.
     column_count self -> Integer = self.java_table.getColumns.length
+
+    ## PRIVATE
+       Unique Identifier for the table.
+    table_version_hash self -> Text = self.java_table.getVersionId
 
     ## ALIAS select fields
        GROUP Standard.Base.Selections
