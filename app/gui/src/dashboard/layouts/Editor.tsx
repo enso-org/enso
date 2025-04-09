@@ -26,11 +26,12 @@ export type ProjectViewTabProps = React.ComponentProps<typeof ProjectViewTab>
 export interface EditorProps {
   readonly project: LaunchedProject
   readonly hidden?: boolean
+  readonly onReadyUpdate?: (value: boolean) => void
 }
 
 /** The container that launches the IDE. */
 function Editor(props: EditorProps) {
-  const { project, hidden = false } = props
+  const { project, hidden = false, onReadyUpdate } = props
 
   const backend = backendProvider.useBackendForProjectType(project.type)
 
@@ -60,6 +61,7 @@ function Editor(props: EditorProps) {
   const isOpeningFailed = openProjectMutation.isError
   const openingError = openProjectMutation.error
   const startProject = openProjectMutation.mutate
+  const stableOnReadyUpdate = useEventCallback((value: boolean) => onReadyUpdate?.(value))
 
   const onRenameProject = useEventCallback(async (newName: string) => {
     await renameProjectMutation.mutateAsync({ newName, project })
@@ -70,6 +72,10 @@ function Editor(props: EditorProps) {
       startProject(project)
     }
   }, [isProjectClosed, startProject, project])
+
+  React.useEffect(() => {
+    stableOnReadyUpdate(isProjectOpened)
+  }, [stableOnReadyUpdate, isProjectOpened])
 
   useTimeoutCallback({
     callback: () => {

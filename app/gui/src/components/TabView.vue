@@ -1,14 +1,11 @@
 <script lang="ts">
-import { createGetProjectDetailsQuery, OPENED_PROJECT_STATES } from '#/hooks/projectHooks'
 import UserBarReact from '#/layouts/UserBar'
 import { LaunchedProject, LaunchedProjectId, TabType } from '#/providers/ProjectsProvider'
-import { BackendType } from '#/services/Backend'
+import { ProjectId } from '#/services/Backend'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useQuery } from '@tanstack/vue-query'
 import { applyPureReactInVue } from 'veaury'
-import { computed, onMounted, onUnmounted, watch } from 'vue'
-import { injectBackendInVue } from './BackendProvider.vue'
+import { onMounted, onUnmounted, reactive, watch } from 'vue'
 import { Drive, Editor, Settings } from './TabView/reactTabs'
 import SelectableTab from './TabView/SelectableTab.vue'
 
@@ -36,28 +33,25 @@ const {
   setIsChatOpen(value: boolean): void
 }>()
 
-const backend = injectBackendInVue()
-
-const lastProject = computed(() => launchedProjects[launchedProjects.length - 1])
-const lastProjectDetailsOptions = computed(() => {
-  const projectBackend =
-    lastProject.value?.type === BackendType.local ? backend.localBackend : backend.remoteBackend
-  return lastProject.value && projectBackend ?
-      createGetProjectDetailsQuery({
-        assetId: lastProject.value.id,
-        backend: projectBackend,
-      })
-    : { queryKey: [], queryFn: () => null }
-})
-const lastProjectDetails = useQuery(lastProjectDetailsOptions as any)
-const isProjectReady = computed(() =>
-  OPENED_PROJECT_STATES.has(lastProjectDetails.data.value?.state.type),
-)
+const projectsReadyState = reactive(new Map<ProjectId, boolean>())
 
 // Automatically open tab once just opened project loads.
-watch(isProjectReady, (isReady, wasReady) => {
-  if (isReady === true && wasReady === false && lastProject.value != null) {
-    setPage(lastProject.value.id)
+const knownReadyProjects = new Set<ProjectId>()
+watch(projectsReadyState, (now) => {
+  let firstReadyProject: ProjectId | undefined
+  for (const [key, state] of now.entries()) {
+    console.log('Checking', state, knownReadyProjects.has(key), firstReadyProject)
+    if (state && !knownReadyProjects.has(key) && !firstReadyProject) {
+      firstReadyProject = key
+    }
+  }
+  for (const previouslyReady of knownReadyProjects) {
+    if (!projectsReadyState.get(previouslyReady)) {
+      knownReadyProjects.delete(previouslyReady)
+    }
+  }
+  if (firstReadyProject) {
+    setPage(firstReadyProject)
   }
 })
 
@@ -82,7 +76,7 @@ onUnmounted(() => console.error('TabView UNMOUNT'))
         :selected="page === project.id"
         @update:selected="$event && setPage(project.id)"
       >
-        <SvgIcon v-if="isProjectReady" name="graph_editor" />
+        <SvgIcon v-if="projectsReadyState.get(project.id)" name="graph_editor" />
         <LoadingSpinner v-else :size="16" />
         <span>{{ project.title }}</span>
         <SvgIcon name="close" @click="closeProject(project)" />
@@ -99,9 +93,15 @@ onUnmounted(() => console.error('TabView UNMOUNT'))
       <KeepAlive>
         <Drive v-if="page === 'drive'" :initialProjectName="initialProjectName" />
       </KeepAlive>
-      <KeepAlive v-for="project in launchedProjects" :key="project.id">
-        <Editor v-if="page === project.id" :project="project" />
-      </KeepAlive>
+      <Editor
+        v-for="project in launchedProjects"
+        :key="project.id"
+        :hidden="page !== project.id"
+        :project="project"
+        @readyUpdate="
+          (console.log('READY UPDATE', $event), projectsReadyState.set(project.id, $event))
+        "
+      />
       <KeepAlive>
         <Settings v-if="page === 'settings'" />
       </KeepAlive>
