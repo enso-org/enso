@@ -33,7 +33,7 @@ add_specs suite_builder =
             addr.query.should_equal "key=val"
             addr.fragment.should_equal Nothing
 
-        group_builder.specify "should assume http:// if no scheme" <|
+        group_builder.specify "should assume https:// if no scheme" <|
             addr = URI.parse "example.com/foo/bar?key=val"
             addr.scheme.should_equal "https"
             addr.user_info.should_equal Nothing
