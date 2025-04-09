@@ -15,8 +15,9 @@ import {
   Button,
   ButtonGroup,
   DialogTrigger,
-  Text,
+  IconDisplay,
   useVisualTooltip,
+  VisualTooltip,
 } from '#/components/AriaComponents'
 import { ErrorBoundary, InlineErrorDisplay } from '#/components/ErrorBoundary'
 import {
@@ -157,11 +158,18 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
 
   const pasteDataStatus = effectivePasteData && (
     <div className="flex items-center">
-      <Text>
-        {effectivePasteData.type === 'copy' ?
-          getText('xItemsCopied', effectivePasteData.data.ids.size)
-        : getText('xItemsCut', effectivePasteData.data.ids.size)}
-      </Text>
+      <VisualTooltip
+        tooltip={
+          effectivePasteData.type === 'copy' ?
+            getText('xItemsCopied', effectivePasteData.data.ids.size)
+          : getText('xItemsCut', effectivePasteData.data.ids.size)
+        }
+        tooltipPlacement="top"
+      >
+        <IconDisplay icon={effectivePasteData.type === 'copy' ? 'copy' : 'scissors'}>
+          {String(effectivePasteData.data.ids.size)}
+        </IconDisplay>
+      </VisualTooltip>
     </div>
   )
 
