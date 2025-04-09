@@ -4,19 +4,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -42,7 +36,6 @@ public class TestTelemetry {
   private static final URI baseUri = URI.create("http://localhost:" + port + "/enso-cloud-mock");
   private static final URI logUri = URI.create(baseUri + "/logs");
   private static final URI refreshUri = URI.create(baseUri + "/enso-cloud-auth-renew");
-  private static final URI getLogsUri = URI.create(baseUri + "/log_events");
   private static final long APPENDER_KEEP_ALIVE = 20;
 
   private static HybridHTTPServer server;
@@ -80,17 +73,17 @@ public class TestTelemetry {
   }
 
   @Test
-  public void sendSingleTelemetryLog() throws InterruptedException, IOException {
+  public void sendSingleTelemetryLog() {
     var message = new LogMessage("TestLogger", "msg: name={}", new Object[] {"Pavel"});
     logJobsProcessor.enqueueMessage(message);
     serverExecutor.waitForAllTasks();
-    var receivedLogs = getLogs();
+    var receivedLogs = server.getLogs();
     assertThat(receivedLogs.size(), is(1));
     var receivedLog = receivedLogs.get(0);
-    assertThat(receivedLog.projectId, is(nullValue()));
-    assertThat(receivedLog.message, is("msg"));
-    assertThat(receivedLog.metadata.get("name"), is("Pavel"));
-    assertThat(receivedLog.metadata.get("loggerName"), is(message.loggerName()));
+    assertThat(receivedLog.projectId(), is(nullValue()));
+    assertThat(receivedLog.message(), is("msg"));
+    assertThat(receivedLog.metadata().get("name").asText(), is("Pavel"));
+    assertThat(receivedLog.metadata().get("loggerName").asText(), is(message.loggerName()));
   }
 
   private static Credentials mockCredentials() {
@@ -100,42 +93,6 @@ public class TestTelemetry {
     var refreshToken = "TEST-ENSO-REFRESH-caffee";
     var clientId = "TEST-ENSO-CLIENT-ID";
     return new Credentials(clientId, accessToken, refreshToken, refreshUrl, expireAt);
-  }
-
-  /**
-   * Fetches log events from the mock server. See {@code org.enso.shttp.cloud_mock.EventsService}.
-   */
-  private List<ReceivedLogEvent> getLogs() throws IOException, InterruptedException {
-    var blockingExecutor = new BlockingExecutor();
-    var httpClient = HttpClient.newBuilder().executor(blockingExecutor).build();
-    var req =
-        HttpRequest.newBuilder(getLogsUri)
-            .header("Authorization", "Bearer " + credentials.accessToken())
-            .GET()
-            .build();
-    var resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
-    assertThat(resp.statusCode(), is(200));
-    var mapper = new ObjectMapper();
-    var tree = mapper.readTree(resp.body());
-    var events = tree.get("events");
-    var receivedLogs = new ArrayList<ReceivedLogEvent>();
-    events.forEach(
-        event -> {
-          try {
-            var receivedLog = mapper.readValue(event.toString(), ReceivedLogEvent.class);
-            receivedLogs.add(receivedLog);
-          } catch (JsonProcessingException e) {
-            throw new AssertionError(e);
-          }
-        });
-    return receivedLogs;
-  }
-
-  private static final class BlockingExecutor implements Executor {
-    @Override
-    public void execute(Runnable command) {
-      command.run();
-    }
   }
 
   private static final class MockServerExecutor implements Executor {
@@ -183,12 +140,4 @@ public class TestTelemetry {
       }
     }
   }
-
-  private record ReceivedLogEvent(
-      String organizationId,
-      String userEmail,
-      String timestamp,
-      String message,
-      String projectId,
-      Map<String, String> metadata) {}
 }
