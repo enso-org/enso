@@ -16,10 +16,12 @@ import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
 import { elementHierarchy } from '@/util/dom'
 import { ToValue } from '@/util/reactivity'
+import { standardKeymap } from '@codemirror/commands'
 import {
   Compartment,
   EditorState,
   type Extension,
+  Prec,
   type SelectionRange,
   type StateEffect,
   type StateEffectType,
@@ -61,7 +63,7 @@ export function useCodeMirror(
     vueHost,
     contentTestId,
     readonly: isReadonly,
-    singleLine,
+    lineMode,
   }: {
     /** If a value is provided, the editor state will be synchronized with it. */
     content?: ToValue<string | Y.Text>
@@ -75,7 +77,7 @@ export function useCodeMirror(
     /** If provided, the element with class `cm-content` will also have the given `data-testid`. */
     contentTestId?: string | undefined
     readonly?: boolean
-    singleLine?: boolean
+    lineMode?: ToValue<'single' | 'multi' | 'auto'>
   },
 ) {
   const view = new EditorView()
@@ -92,13 +94,22 @@ export function useCodeMirror(
   const { bindingsExt } = useBindings(view)
   const sync = content ? useYTextOrReadonlySync(content) : undefined
   const extrasCompartment = new Compartment()
+  const bindingsCompartment = useCompartment(view, () =>
+    keyBindings({ lineMode: toValue(lineMode) }),
+  )
+  const singleLineState = computed(() => {
+    const mode = toValue(lineMode)
+    return mode && mode !== 'multi'
+  })
+  const themeCompartment = useCompartment(view, () => theme({ singleLine: singleLineState.value }))
   view.setState(
     EditorState.create({
       extensions: [
         readonlyExt,
         bindingsExt,
         placeholderExt,
-        keyBindings({ singleLine }),
+        bindingsCompartment,
+        themeCompartment,
         sync?.syncExt ?? [],
         extrasCompartment.of([]),
         extensions ?? [],
@@ -110,7 +121,7 @@ export function useCodeMirror(
 
   watchEffect(() => {
     const editorRootValue = toValue(editorRoot)
-    if (editorRootValue) editorRootValue.rootElement?.prepend(view.dom)
+    if (editorRootValue) editorRootValue.$el.prepend(view.dom)
   })
 
   /**
@@ -128,14 +139,28 @@ export function useCodeMirror(
     /** The {@link EditorView}, connecting the current state with the DOM. */
     editorView: view,
     /**
+     * Update a set of additional extensions for the editor.
+     *
      * This function can be used to provide extensions that are not ready before `useCodeMirror` can
      * be called, e.g. because they require an {@link EditorView} instance to be created. If called
      * more than once, the new collection of extra extensions will replace the previous collection.
+     *
+     * The change will be dispatched asynchronously; this avoids observing an inconsistent state:
+     * When an extension is removed, its event handlers may still fire if they were triggered in the
+     * same tick (i.e. by the same event that caused the extension to be removed); in that case, the
+     * handler would likely misbehave due to its extension not being installed, and all its state
+     * fields being missing.
+     *
+     * Delaying any extension changes ensures that, when removing an extension, it is in a valid
+     * state while handling the event that removed it; and, while adding an extension, it doesn't
+     * handle the event that caused its installation before it is ready.
      */
     setExtraExtensions: (extensions: Extension | undefined) =>
-      view.dispatch({
-        effects: extrasCompartment.reconfigure(extensions ?? []),
-      }),
+      setTimeout(() =>
+        view.dispatch({
+          effects: extrasCompartment.reconfigure(extensions ?? []),
+        }),
+      ),
     /**
      * When `useCodeMirror` is configured to set up synchronization by passing the `content`
      * argument, this value tracks whether the content synchronized with the document is writable.
@@ -302,38 +327,131 @@ function handlerToKeyBinding(handler: (event: KeyboardEvent, stopAndPrevent: boo
     },
   }
 }
-const stopEvent = (event: KeyboardEvent) => event.stopImmediatePropagation()
+const stopEvent = (event: Event) => event.stopImmediatePropagation()
 const standardBindings = {
-  common: handlerToKeyBinding(
-    textEditorsStandardCommonBindings.handler({
-      moveLeft: stopEvent,
-      moveRight: stopEvent,
-      deleteBack: stopEvent,
-      deleteForward: stopEvent,
-    }),
-  ),
-  multiline: handlerToKeyBinding(
-    textEditorsStandardMultilineBindings.handler({
-      moveUp: stopEvent,
-      moveDown: stopEvent,
-      newline: stopEvent,
-    }),
-  ),
-  singleline: {
-    key: 'Enter',
-    run: (view) => {
-      view.contentDOM.blur()
-      return true
+  common: [
+    handlerToKeyBinding(
+      textEditorsStandardCommonBindings.handler({
+        moveLeft: stopEvent,
+        moveRight: stopEvent,
+        deleteBack: stopEvent,
+        deleteForward: stopEvent,
+      }),
+    ),
+  ] satisfies KeyBinding[],
+  multiline: [
+    handlerToKeyBinding(
+      textEditorsStandardMultilineBindings.handler({
+        moveUp: stopEvent,
+        moveDown: stopEvent,
+        newline: stopEvent,
+      }),
+    ),
+    {
+      // This is handled by `standardKeymap`, but it doesn't `stop` handled events.
+      key: 'Shift-Enter',
+      stopPropagation: true,
     },
-    preventDefault: true,
-  } satisfies KeyBinding,
+  ] satisfies KeyBinding[],
+  singleline: [
+    {
+      key: 'Enter',
+      run: (view) => {
+        view.contentDOM.blur()
+        return true
+      },
+      preventDefault: true,
+      stopPropagation: false,
+    },
+    {
+      key: 'Shift-Enter',
+      run: (view) => {
+        view.contentDOM.blur()
+        return true
+      },
+      preventDefault: true,
+      stopPropagation: false,
+    },
+  ] satisfies KeyBinding[],
+  autoline: [
+    {
+      key: 'Enter',
+      run: (view) => {
+        view.contentDOM.blur()
+        return true
+      },
+      preventDefault: true,
+    },
+    {
+      // This is handled by `standardKeymap`, but it doesn't `stop` handled events.
+      key: 'Shift-Enter',
+      stopPropagation: true,
+    },
+  ] satisfies KeyBinding[],
 }
 
-function keyBindings({ singleLine }: { singleLine?: boolean | undefined } = {}): Extension {
-  return keymap.of([
-    standardBindings.common,
-    ...(singleLine ? [standardBindings.singleline] : [standardBindings.multiline]),
-  ])
+function keyBindings({
+  lineMode,
+}: { lineMode?: 'single' | 'multi' | 'auto' | undefined } = {}): Extension {
+  const mode = lineMode ?? 'multi'
+  return [
+    Prec.lowest(keymap.of(standardKeymap)),
+    Prec.low(
+      keymap.of([
+        ...standardBindings.common,
+        ...(mode === 'multi' ? standardBindings.multiline
+        : mode === 'auto' ? standardBindings.autoline
+        : standardBindings.singleline),
+      ]),
+    ),
+    ...(mode === 'multi' ?
+      [
+        EditorView.domEventHandlers({
+          wheel: stopEvent,
+        }),
+      ]
+    : []),
+  ]
+}
+
+const baseTheme = EditorView.theme({
+  '&.cm-editor': {
+    display: 'contents',
+    outline: 'none',
+  },
+  '.cm-scroller': {
+    // The default is `monospace`, but even when we want the editor to be monospace we use more
+    // specific fonts.
+    'font-family': 'unset',
+    // Prevent touchpad back gesture, which can be triggered while panning.
+    'overscroll-behavior': 'none',
+  },
+})
+
+const inlineTheme = EditorView.theme({
+  '&.cm-editor': {
+    margin: 0,
+    'min-width': '1px',
+  },
+  '.cm-scroller': {
+    display: 'contents',
+  },
+  '.cm-line': {
+    padding: 0,
+  },
+})
+
+const multilineTheme = EditorView.theme({
+  '&.cm-editor': {
+    position: 'relative',
+    height: '100%',
+    width: '100%',
+    'text-align': 'left',
+  },
+})
+
+function theme({ singleLine }: { singleLine?: boolean | undefined } = {}): Extension {
+  return [baseTheme, singleLine ? inlineTheme : multilineTheme]
 }
 
 export const selectOnMouseFocus = [

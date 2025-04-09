@@ -360,10 +360,3 @@ export function parseUpdatingIdMap(
   const idMapOut = spanMapToIdMap(spans)
   return { root, idMap: idMapOut, getSpan }
 }
-
-declare const tokenKey: unique symbol
-declare module '@/providers/widgetRegistry' {
-  export interface WidgetInputTypes {
-    [tokenKey]: Token
-  }
-}

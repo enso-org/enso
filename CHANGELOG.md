@@ -67,6 +67,7 @@
   too][12643]
 - [File Browser Widget warns when trying to override an existing file][12644]
 - [Add right-click context menu to the graph editor background][12601]
+- [Editing multiline text literals is now supported][12774]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -105,6 +106,7 @@
 [12643]: https://github.com/enso-org/enso/pull/12643
 [12644]: https://github.com/enso-org/enso/pull/12644
 [12601]: https://github.com/enso-org/enso/pull/12603
+[12774]: https://github.com/enso-org/enso/pull/12774
 
 #### Enso Standard Library
 

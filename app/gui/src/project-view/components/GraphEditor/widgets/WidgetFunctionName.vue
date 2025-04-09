@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeMirrorInlineRoot from '@/components/CodeMirrorInlineRoot.vue'
+import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { usePersisted } from '@/stores/persisted'
@@ -36,14 +36,14 @@ const name = computed(() =>
 
 const nameCode = computed(() => name.value.code())
 
-const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorInlineRoot>>('editorRoot')
+const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 const { syncExt, connectSync } = useStringSync()
 const { editorView } = useCodeMirror(editorRoot, {
   content: nameCode.value,
   extensions: [syncExt],
   readonly: false,
   contentTestId: 'widget-function-name-content',
-  singleLine: true,
+  lineMode: 'single',
 })
 
 const { getText, setText } = connectSync(editorView)
@@ -116,7 +116,7 @@ export const widgetDefinition = defineWidget(
     <NodeWidget v-if="thisArg" :input="WidgetInput.FromAst(thisArg)" />
     <NodeWidget v-if="operator" :input="WidgetInput.FromAst(operator)" />
     <div class="widgetApplyPadding">
-      <CodeMirrorInlineRoot ref="editorRoot" @focusout="newNameAccepted" @keydown.enter.stop />
+      <CodeMirrorRoot ref="editorRoot" @focusout="newNameAccepted" @keydown.enter.stop />
     </div>
   </div>
 </template>
@@ -143,7 +143,7 @@ export const widgetDefinition = defineWidget(
 }
 
 /*noinspection CssUnusedSymbol*/
-.CodeMirrorInlineRoot {
+.CodeMirrorRoot {
   font-weight: 800;
 }
 </style>
