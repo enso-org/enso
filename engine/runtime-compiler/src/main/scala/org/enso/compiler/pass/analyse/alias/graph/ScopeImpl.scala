@@ -21,30 +21,18 @@ sealed private[graph] class ScopeImpl(
     HashMap(),
   _defs: java.util.Collection[GraphOccurrence.Def] = null
 ) extends Graph.Scope {
-  private[graph] val _allDefinitions: java.util.Map[
-    Graph.Symbol,
+  private[graph] val _allDefinitions: java.util.List[
     GraphOccurrence.Def
-  ] = toDefinitionsMap(_defs)
-
-  private def toDefinitionsMap(
-    defs: java.util.Collection[GraphOccurrence.Def]
-  ) = {
-    val map = new java.util.TreeMap[Graph.Symbol, GraphOccurrence.Def]()
-    if (defs != null) {
-        defs.forEach { d =>
-          val c = d.withScope(this)
-          map.put(c.symbol, c)
-        }
-    }
-    map
-  }
+  ] =
+    if (_defs == null) new java.util.ArrayList()
+    else new java.util.ArrayList(_defs.stream.map(_.withScope(this)).toList)
 
   private[graph] var _parent: ScopeImpl = null
 
   def childScopes = _childScopes
   def occurrences = _occurrences
   def allDefinitions =
-    java.util.Collections.unmodifiableCollection(_allDefinitions.values)
+    java.util.Collections.unmodifiableCollection(_allDefinitions)
   def parent: Option[ScopeImpl] =
     if (this._parent eq null) None else Some(_parent)
 
@@ -94,7 +82,7 @@ sealed private[graph] class ScopeImpl(
           new ScopeImpl(
             childScopeCopies.toList,
             occurrences,
-            _allDefinitions.values
+            new java.util.ArrayList(_allDefinitions)
           )
         mapping.put(this, newScope)
         newScope
@@ -153,7 +141,7 @@ sealed private[graph] class ScopeImpl(
     * @param definition The definition to add.
     */
   private[graph] def addDefinition(definition: GraphOccurrence.Def): Unit = {
-    _allDefinitions.put(definition.symbol, definition)
+    _allDefinitions.add(definition)
   }
 
   /** Finds an occurrence for the provided ID in the current scope, if it
@@ -211,11 +199,22 @@ sealed private[graph] class ScopeImpl(
     hint: GraphOccurrence.Def,
     parentCounter: Int = 0
   ): Option[Graph.Link] = {
-    val target = _allDefinitions.get(occurrence.symbol)
-    if (target == null) {
-      parent.flatMap(_.resolveUsage(occurrence, hint, parentCounter + 1))
-    } else {
-      Some(Graph.Link(occurrence.id, parentCounter, target.id()))
+    val definition =
+      if (hint != null && (hint.scope() eq this)) {
+        Some(hint)
+      } else {
+        occurrences.values.find {
+          case GraphOccurrence.Def(_, name, _, _, _) =>
+            name == occurrence.symbol
+          case _ => false
+        }
+      }
+
+    definition match {
+      case None =>
+        parent.flatMap(_.resolveUsage(occurrence, hint, parentCounter + 1))
+      case Some(target) =>
+        Some(Graph.Link(occurrence.id, parentCounter, target.id()))
     }
   }
 
