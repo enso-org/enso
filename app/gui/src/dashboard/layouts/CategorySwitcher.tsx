@@ -156,7 +156,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         currentCategory,
         category,
         assets.flat(1),
-        'homeDirectoryId' in category ? category.homeDirectoryId : null,
+        category.homeDirectoryId,
         event.dropOperation,
       ),
     )

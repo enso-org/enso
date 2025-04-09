@@ -139,11 +139,6 @@ export function useTransferBetweenCategories(currentCategory: Category) {
               .map(([category, assetsByCategory]) => {
                 const assetsIds = assetsByCategory.map((asset) => asset.id)
 
-                // Unnecessary check, but it makes the type checker happy.
-                if (!('homeDirectoryId' in category)) {
-                  return
-                }
-
                 return restoreAssetsMutation({
                   ids: assetsIds,
                   parentId: newParentId ?? category.homeDirectoryId,
