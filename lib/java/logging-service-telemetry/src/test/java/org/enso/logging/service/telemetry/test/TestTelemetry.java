@@ -11,6 +11,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -71,12 +72,9 @@ public class TestTelemetry {
   public void sendSingleTelemetryLog() {
     var message = new LogMessage("TestLogger", "msg: name={}", new Object[] {"Pavel"});
     var notification = new CompletableFuture<Void>();
-    logJobsProcessor.enqueueMessage(new LogJob(message, notification));
-    try {
-      notification.get();
-    } catch (InterruptedException | ExecutionException e) {
-      throw new AssertionError(e);
-    }
+    var job = new LogJob(message, notification);
+    logJobsProcessor.enqueueMessage(job);
+    assertCompletedSuccessfully(job);
     var receivedLogs = server.getLogs();
     assertThat(receivedLogs.size(), is(1));
     var receivedLog = receivedLogs.get(0);
@@ -115,7 +113,18 @@ public class TestTelemetry {
                 })
             .toList();
     logJobs.forEach(logJobsProcessor::enqueueMessage);
-    for (LogJob logJob : logJobs) {
+    assertCompletedSuccessfully(logJobs);
+    var logs = server.getLogs();
+    for (int i = 0; i < logs.size(); i++) {
+      var log = logs.get(i);
+      assertThat(log.message(), is("msg"));
+      assertThat(log.metadata().get("loggerName").asText(), containsString("TestLogger-" + i));
+      assertThat(log.metadata().get("idx").asInt(), is(i));
+    }
+  }
+
+  private static void assertCompletedSuccessfully(List<LogJob> jobs) {
+    for (LogJob logJob : jobs) {
       try {
         logJob.completionNofitication().get();
       } catch (InterruptedException e) {
@@ -124,13 +133,10 @@ public class TestTelemetry {
         throw new AssertionError("Should not fail", e);
       }
     }
-    var logs = server.getLogs();
-    for (int i = 0; i < logs.size(); i++) {
-      var log = logs.get(i);
-      assertThat(log.message(), is("msg"));
-      assertThat(log.metadata().get("loggerName").asText(), containsString("TestLogger-" + i));
-      assertThat(log.metadata().get("idx").asInt(), is(i));
-    }
+  }
+
+  private static void assertCompletedSuccessfully(LogJob job) {
+    assertCompletedSuccessfully(List.of(job));
   }
 
   private static Credentials mockCredentials() {
