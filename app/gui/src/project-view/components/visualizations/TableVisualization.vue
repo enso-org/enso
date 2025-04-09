@@ -143,6 +143,7 @@ const rowLimit = ref(0)
 const page = ref(0)
 const pageLimit = ref(0)
 const rowCount = ref(0)
+const filteredRowCount = ref(null)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
 const isCreateNodeEnabled = ref(false)
@@ -207,6 +208,7 @@ const statusBar = computed(() =>
               statusPanel: TableVizStatusBar,
               statusPanelParams: {
                 total: allRowCount.value,
+                filtered: filteredRowCount.value
               },
             },
           ]
@@ -368,7 +370,9 @@ function createServer() {
         valueList as string[] | 'Nothing',
       )
       const response = await config.executeExpression(expressionFunction)
+      console.log({response})
       if (response.ok) {
+        filteredRowCount.value = response.value.filtered_table_count
         return {
           success: true,
           data: response.value.rows,
