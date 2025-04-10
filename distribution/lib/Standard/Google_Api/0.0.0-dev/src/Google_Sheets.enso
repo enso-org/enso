@@ -14,7 +14,7 @@ polyglot java import org.enso.google.WrappedGoogleCredentials
 
 type Google_Sheets
     ## PRIVATE
-    Service java_service
+    private Service java_service
 
     ## ICON cloud
        Initializes the Google Sheets instance using the given credentials file.

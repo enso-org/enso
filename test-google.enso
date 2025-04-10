@@ -1,0 +1,10 @@
+from Standard.Base import all
+
+from Standard.Google_Api import Google_Sheets
+
+main =
+    creds = Enso_Secret.get "my-google-creds"
+    sheets = Google_Sheets.initialize creds
+    table = sheets.get_table "1Xa1cXLN4oeCl7FpD_IErfOMHhFuShpc1S5Buc0UF4b0" "Sheet1"
+    IO.println table
+    table.print
