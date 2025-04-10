@@ -664,6 +664,8 @@ export default class LocalBackend extends Backend {
       return joinPath(extractTypeAndId(parentDirectoryId).id, fileName)
     })()
 
+    await this.projectManager.moveFile(currentParentDirectoryPath, newParentDirectoryPath)
+
     // Changing the folder name for a project is _not_ enough,
     // we also need to change the name in the package.yaml file.
     if (typeAndId.type === backend.AssetType.project && title != null) {
@@ -672,8 +674,6 @@ export default class LocalBackend extends Backend {
         name: projectManager.ProjectName(title),
       })
     }
-
-    await this.projectManager.moveFile(currentParentDirectoryPath, newParentDirectoryPath)
   }
 
   /** Begin uploading a large file. */
