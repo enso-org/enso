@@ -9,7 +9,7 @@ from Standard.Table import Table
 
 polyglot java import java.io.IOException
 
-polyglot java import org.enso.google.GoogleSheetsHelpers
+polyglot java import org.enso.google.GoogleSheetsForEnso
 polyglot java import org.enso.google.WrappedGoogleCredentials
 
 type Google_Sheets
@@ -25,7 +25,7 @@ type Google_Sheets
          Google Admin Console when generating a key.
     initialize : File|Enso_Secret -> Google_Sheets
     initialize credentials =
-        service = GoogleSheetsHelpers.createService (_wrap_credentials credentials)
+        service = GoogleSheetsForEnso.create (_wrap_credentials credentials)
         Google_Sheets.Service service
 
     ## ICON data_input
