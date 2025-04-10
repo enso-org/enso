@@ -93,8 +93,6 @@ export function useTransferBetweenCategories(currentCategory: Category) {
       const operation = dropOperationBetweenCategories(from, to, newParentId)
       const keysArray = Array.from(assets).map((asset) => asset.id)
 
-      console.log('operation', { operation, from, to, newParentId, method })
-
       if (operation === 'cancel') {
         return
       }
