@@ -31,9 +31,6 @@ public class GoogleSheetsForEnso {
     return new GoogleSheetsForEnso(builder.build());
   }
 
-  /*
-   * We need to use this helper instead of calling the API directly from within Enso, because the intermediate values: Get request and Value implement AbstractMap which makes Enso convert them to the Enso Dictionary type and leaves us without access to their more specific methods.
-   */
   public List<List<Object>> getSheetRange(String sheetId, String range) throws IOException {
     return service
         .spreadsheets()
@@ -43,5 +40,17 @@ public class GoogleSheetsForEnso {
         .setValueRenderOption("UNFORMATTED_VALUE")
         .execute()
         .getValues();
+  }
+
+  public List<String> getSheetNames(String workbookId) throws IOException {
+    return service
+        .spreadsheets()
+        .get(workbookId)
+        .setIncludeGridData(false)
+        .execute()
+        .getSheets()
+        .stream()
+        .map(sheet -> sheet.getProperties().getTitle())
+        .toList();
   }
 }
