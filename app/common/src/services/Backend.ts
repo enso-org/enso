@@ -315,6 +315,7 @@ export interface BaseProject {
 export interface CreatedProject extends BaseProject {
   readonly state: ProjectStateType
   readonly packageName: string
+  readonly ensoPath?: EnsoPath
 }
 
 /** A `Project` returned by the `listProjects` endpoint. */
