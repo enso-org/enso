@@ -17,9 +17,17 @@ import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import type { DropOperation } from '@react-types/shared'
 import { z } from 'zod'
-import { dropOperationBetweenCategories, isLocalCategory, type Category } from './Category'
+import {
+  CATEGORY_SCHEMA,
+  dropOperationBetweenCategories,
+  isLocalCategory,
+  type Category,
+} from './Category'
 import { useCategories } from './categoriesHooks'
 
+/**
+ * A transferrable asset.
+ */
 export const TRANSFERRABLE_ASSET_SCHEMA = z.object({
   // eslint-disable-next-line no-restricted-syntax
   id: z.string().transform((id) => id as AssetId),
@@ -30,6 +38,19 @@ export const TRANSFERRABLE_ASSET_SCHEMA = z.object({
   parentsPath: z.string(),
   virtualParentsPath: z.string(),
 })
+
+/**
+ * A data transfer payload for assets.
+ */
+export const ASSETS_DATA_TRANSFER_PAYLOAD = z.object({
+  category: CATEGORY_SCHEMA,
+  items: z.array(TRANSFERRABLE_ASSET_SCHEMA),
+})
+
+/**
+ * A data transfer payload for assets.
+ */
+export type AssetsDataTransferPayload = z.infer<typeof ASSETS_DATA_TRANSFER_PAYLOAD>
 
 /**
  * A transferrable asset.
@@ -71,6 +92,8 @@ export function useTransferBetweenCategories(currentCategory: Category) {
     ) => {
       const operation = dropOperationBetweenCategories(from, to, newParentId)
       const keysArray = Array.from(assets).map((asset) => asset.id)
+
+      console.log('operation', { operation, from, to, newParentId, method })
 
       if (operation === 'cancel') {
         return

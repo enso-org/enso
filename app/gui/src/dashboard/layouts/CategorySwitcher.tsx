@@ -16,9 +16,9 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import {
   areCategoriesEqual,
+  ASSETS_DATA_TRANSFER_PAYLOAD,
   canTransferBetweenCategories,
   dropOperationBetweenCategories,
-  TRANSFERRABLE_ASSET_SCHEMA,
   useTransferBetweenCategories,
   type Category,
 } from '#/layouts/Drive/Categories'
@@ -36,7 +36,6 @@ import {
 } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { unsetModal } from '#/providers/ModalProvider'
-import { z } from 'zod'
 
 /** Metadata for a categoryModule.categoryType. */
 interface CategoryMetadata {
@@ -140,7 +139,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       return
     }
 
-    const payloadSchema = z.array(TRANSFERRABLE_ASSET_SCHEMA)
+    const payloadSchema = ASSETS_DATA_TRANSFER_PAYLOAD
 
     void Promise.all(
       event.items
@@ -149,15 +148,21 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
           const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
           const parsedPayload = payloadSchema.safeParse(JSON.parse(text))
 
-          return parsedPayload.success ? parsedPayload.data : []
+          return parsedPayload.success ? parsedPayload.data : null
         }),
-    ).then((assets) =>
-      transferBetweenCategories(
-        currentCategory,
-        category,
-        assets.flat(1),
-        category.homeDirectoryId,
-        event.dropOperation,
+    ).then((payloads) =>
+      Promise.all(
+        payloads
+          .filter((payload) => payload != null)
+          .map((payload) =>
+            transferBetweenCategories(
+              payload.category,
+              category,
+              payload.items,
+              null,
+              event.dropOperation,
+            ),
+          ),
       ),
     )
   })

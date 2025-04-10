@@ -48,7 +48,6 @@ import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
   addAssetsLabelsMutationOptions,
-  moveAssetsMutationOptions,
   removeAssetsLabelsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
 import {
@@ -126,6 +125,7 @@ import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import invariant from 'tiny-invariant'
+import type { AssetsDataTransferPayload } from './Drive/Categories/transferBetweenCategoriesHooks'
 import {
   SUGGESTIONS_FOR_HAS,
   SUGGESTIONS_FOR_NEGATIVE_TYPE,
@@ -240,7 +240,6 @@ function AssetsTable(props: AssetsTableProps) {
 
   const uploadFiles = useUploadFiles(backend, category)
   const updateSecretMutation = useMutationCallback(backendMutationOptions(backend, 'updateSecret'))
-  const moveAssetsMutation = useMutationCallback(moveAssetsMutationOptions(backend))
   const addAssetsLabelsMutation = useMutationCallback(addAssetsLabelsMutationOptions(backend))
   const removeAssetsLabelsMutation = useMutationCallback(removeAssetsLabelsMutationOptions(backend))
   const paste = usePaste(category)
@@ -1131,14 +1130,18 @@ function AssetsTable(props: AssetsTableProps) {
         setSelectedAssets([asset])
       }
       const nodes = assets.filter((node) => newSelectedKeys.has(node.id))
-      const payload: AssetRowsDragPayload = nodes.map((node) => ({
-        key: node.id,
-        asset: node,
-      }))
+      const payload: AssetRowsDragPayload = {
+        category,
+        items: nodes.map((node) => ({
+          key: node.id,
+          asset: node,
+        })),
+      }
       event.dataTransfer.setData(
         ASSETS_MIME_TYPE,
-        JSON.stringify(
-          nodes.map((node) => ({
+        JSON.stringify({
+          category,
+          items: nodes.map((node) => ({
             id: node.id,
             title: node.title,
             type: node.type,
@@ -1146,7 +1149,7 @@ function AssetsTable(props: AssetsTableProps) {
             parentsPath: node.parentsPath,
             virtualParentsPath: node.virtualParentsPath,
           })),
-        ),
+        } satisfies AssetsDataTransferPayload),
       )
       setDragImageToBlank(event)
       ASSET_ROWS.bind(event, payload)
@@ -1189,35 +1192,75 @@ function AssetsTable(props: AssetsTableProps) {
     setLabelsDragPayload(null)
   })
 
-  const onRowDrop = useEventCallback((event: DragEvent<HTMLTableRowElement>, item: AnyAsset) => {
-    endAutoScroll()
-    const { selectedIds, labelsDragPayload } = driveStore.getState()
-    const { selectedItems, shouldAdd } =
-      selectedIds.has(item.id) ?
-        {
-          selectedItems: [...selectedIds].flatMap((id) => {
-            const otherAsset = getAsset(id)
-            return otherAsset ? [otherAsset] : []
-          }),
-          shouldAdd: labelsDragPayload?.typeWhenAppliedToSelection !== 'remove',
-        }
-      : {
-          selectedItems: [item],
-          shouldAdd:
-            labelsDragPayload?.labels.some((label) => !(item.labels?.includes(label) ?? false)) ??
-            true,
-        }
-    if (labelsDragPayload != null) {
-      event.preventDefault()
-      event.stopPropagation()
-      if (shouldAdd) {
-        void addAssetsLabelsMutation([selectedItems, labelsDragPayload.labels])
-      } else {
-        void removeAssetsLabelsMutation([selectedItems, labelsDragPayload.labels])
+  const onRowDrop = useEventCallback(
+    (event: DragEvent<HTMLElement>, item: AnyAsset | null = null) => {
+      if (category.type === 'trash' || category.type === 'recent') {
+        return
       }
-      setLabelsDragPayload(null)
-    }
-  })
+
+      endAutoScroll()
+      if (item != null) {
+        const { selectedIds, labelsDragPayload } = driveStore.getState()
+        const { selectedItems, shouldAdd } =
+          selectedIds.has(item.id) ?
+            {
+              selectedItems: [...selectedIds].flatMap((id) => {
+                const otherAsset = getAsset(id)
+                return otherAsset ? [otherAsset] : []
+              }),
+              shouldAdd: labelsDragPayload?.typeWhenAppliedToSelection !== 'remove',
+            }
+          : {
+              selectedItems: [item],
+              shouldAdd:
+                labelsDragPayload?.labels.some(
+                  (label) => !(item.labels?.includes(label) ?? false),
+                ) ?? true,
+            }
+
+        if (labelsDragPayload != null) {
+          event.preventDefault()
+          event.stopPropagation()
+          if (shouldAdd) {
+            void addAssetsLabelsMutation([selectedItems, labelsDragPayload.labels])
+          } else {
+            void removeAssetsLabelsMutation([selectedItems, labelsDragPayload.labels])
+          }
+          setLabelsDragPayload(null)
+        }
+      }
+
+      const directoryId = item?.type === AssetType.directory ? item.id : currentDirectoryId
+      const payload = ASSET_ROWS.lookup(event)
+      const items = payload?.items ?? []
+
+      if (payload != null && items.every((innerItem) => innerItem.key !== directoryId)) {
+        event.preventDefault()
+        event.stopPropagation()
+        unsetModal()
+
+        void paste({
+          fromCategory: payload.category,
+          toCategory: category,
+          newParentId: directoryId,
+          pasteData: {
+            backendType: backend.type,
+            assets: items
+              .filter(({ asset }) => asset.parentId !== directoryId)
+              .map(({ asset }) => asset),
+            category,
+          },
+          method: 'move',
+        })
+        return
+      }
+      if (event.dataTransfer.types.includes('Files')) {
+        event.preventDefault()
+        event.stopPropagation()
+        void uploadFiles(Array.from(event.dataTransfer.files), directoryId)
+      }
+    },
+  )
 
   const headerRow = (
     <tr ref={headerRowRef} className="rounded-none text-sm font-semibold">
@@ -1262,11 +1305,9 @@ function AssetsTable(props: AssetsTableProps) {
         onClick={onRowClick}
         select={selectRow}
         labels={labels ?? []}
-        paste={paste}
         onDragStart={onRowDragStart}
         onDragEnd={onRowDragEnd}
         onDrop={onRowDrop}
-        uploadFiles={uploadFiles}
         renameAsset={doRenameAsset}
         closeProject={closeProjectMutationCallback}
         openProject={doOpenProject}
@@ -1322,19 +1363,9 @@ function AssetsTable(props: AssetsTableProps) {
             setIsDraggingFiles(false)
           }}
           onDrop={(event) => {
-            unsetModal()
-            const payload = ASSET_ROWS.lookup(event)
-            const filtered = payload?.filter((item) => item.asset.parentId !== currentDirectoryId)
-            if (filtered != null && filtered.length > 0) {
-              event.preventDefault()
-              event.stopPropagation()
-
-              void moveAssetsMutation([
-                filtered.map((dragItem) => dragItem.asset.id),
-                currentDirectoryId,
-              ])
-            }
-            handleFileDrop(event)
+            event.preventDefault()
+            event.stopPropagation()
+            onRowDrop(event, null)
           }}
           onClick={() => {
             setSelectedAssets([])
@@ -1439,7 +1470,12 @@ function AssetsTable(props: AssetsTableProps) {
               )
             }}
           >
-            <div className="flex h-full w-min min-w-full grow flex-col px-1">
+            <div
+              className="flex h-full w-min min-w-full grow flex-col px-1"
+              onDrop={(event) => {
+                onRowDrop(event, null)
+              }}
+            >
               {table}
               <AssetsTableAssetsUnselector />
             </div>
