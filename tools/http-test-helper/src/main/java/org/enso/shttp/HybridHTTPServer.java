@@ -12,6 +12,7 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManagerFactory;
+import org.enso.shttp.cloud_mock.CloudAuthRenew;
 import org.enso.shttp.cloud_mock.CloudRoot;
 import org.enso.shttp.cloud_mock.EventsService.LogEvent;
 
@@ -22,6 +23,7 @@ public class HybridHTTPServer {
   private final Path keyStorePath;
   private volatile boolean isStarted = false;
   private CloudRoot cloudRoot;
+  private CloudAuthRenew cloudAuthRenew;
 
   HybridHTTPServer(
       String hostname,
@@ -47,6 +49,11 @@ public class HybridHTTPServer {
 
   public List<LogEvent> getLogs() {
     return cloudRoot.getEvents();
+  }
+
+  /** Returns count successful requests for token refresh. */
+  public int getRefreshedTokensCount() {
+    return cloudAuthRenew.getRefreshedTokensCount();
   }
 
   private static class SimpleHttpsConfigurator extends HttpsConfigurator {
@@ -162,5 +169,9 @@ public class HybridHTTPServer {
 
   void addCloudRoot(CloudRoot cloudRoot) {
     this.cloudRoot = cloudRoot;
+  }
+
+  void addCloudAuthRenew(CloudAuthRenew cloudAuthRenew) {
+    this.cloudAuthRenew = cloudAuthRenew;
   }
 }

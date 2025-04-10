@@ -107,7 +107,9 @@ public class HTTPTestHelperServer {
       CloudRoot cloudRoot = new CloudRoot(expiredTokensCounter, cloudMockSetup);
       server.addCloudRoot(cloudRoot);
       server.addHandler(cloudRoot.prefix, cloudRoot);
-      server.addHandler("/enso-cloud-auth-renew", new CloudAuthRenew());
+      var cloudAuthRenew = new CloudAuthRenew();
+      server.addHandler("/enso-cloud-auth-renew", cloudAuthRenew);
+      server.addCloudAuthRenew(cloudAuthRenew);
     }
 
     // Data link helpers

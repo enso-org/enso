@@ -154,6 +154,31 @@ public class TestTelemetry {
     }
   }
 
+  @Test
+  public void refreshExpiredToken() {
+    var expiredCredentials = expiredCredentials();
+    // Ensure that tokenRefresher has a different executor, so that there is no deadlock
+    // in the test.
+    var tokenRefreshExecutor = Executors.newSingleThreadExecutor();
+    tokenRefresher =
+        new TokenRefresher(
+            tokenRefreshExecutor,
+            refreshUri,
+            expiredCredentials.clientId(),
+            expiredCredentials.refreshToken());
+    logJobsProcessor =
+        new LogJobsProcessor(
+            logProcessorExecutor,
+            logUri,
+            AuthenticationData.fromCredentials(expiredCredentials),
+            tokenRefresher);
+    var message = new LogMessage("TestLogger", "msg: name={}", new Object[] {"Pavel"});
+    var job = new LogJob(message, new CompletableFuture<>());
+    logJobsProcessor.enqueueMessage(job);
+    assertCompletedSuccessfully(job);
+    assertThat("Token was refreshed once", server.getRefreshedTokensCount(), is(1));
+  }
+
   private static void assertCompletedSuccessfully(List<LogJob> jobs) {
     for (LogJob logJob : jobs) {
       try {
@@ -183,6 +208,15 @@ public class TestTelemetry {
     var expireAt = ZonedDateTime.now().plusYears(1).format(DateTimeFormatter.ISO_INSTANT);
     var refreshUrl = refreshUri.toString();
     var accessToken = "XX - wrong access token - XX";
+    var refreshToken = "TEST-ENSO-REFRESH-caffee";
+    var clientId = "TEST-ENSO-CLIENT-ID";
+    return new Credentials(clientId, accessToken, refreshToken, refreshUrl, expireAt);
+  }
+
+  private Credentials expiredCredentials() {
+    var expireAt = ZonedDateTime.now().minusMonths(10).format(DateTimeFormatter.ISO_INSTANT);
+    var refreshUrl = refreshUri.toString();
+    var accessToken = "TEST-EXPIRED-TOKEN-beef";
     var refreshToken = "TEST-ENSO-REFRESH-caffee";
     var clientId = "TEST-ENSO-CLIENT-ID";
     return new Credentials(clientId, accessToken, refreshToken, refreshUrl, expireAt);
