@@ -123,6 +123,23 @@ public class TestTelemetry {
     }
   }
 
+  @Test
+  public void failureToAuthenticate_InvalidToken() {
+    logJobsProcessor = new LogJobsProcessor(logProcessorExecutor, logUri, invalidCredentials());
+    var message = new LogMessage("TestLogger", "msg: name={}", new Object[] {"Pavel"});
+    var notification = new CompletableFuture<Void>();
+    var job = new LogJob(message, notification);
+    logJobsProcessor.enqueueMessage(job);
+    try {
+      notification.get();
+      fail("Should end exceptionally");
+    } catch (InterruptedException e) {
+      throw new AssertionError("Should not be interrupted", e);
+    } catch (ExecutionException e) {
+      assertThat(e.getMessage(), containsString("401 Invalid token"));
+    }
+  }
+
   private static void assertCompletedSuccessfully(List<LogJob> jobs) {
     for (LogJob logJob : jobs) {
       try {
@@ -143,6 +160,15 @@ public class TestTelemetry {
     var expireAt = ZonedDateTime.now().plusYears(1).format(DateTimeFormatter.ISO_INSTANT);
     var refreshUrl = refreshUri.toString();
     var accessToken = "TEST-ENSO-TOKEN-caffee";
+    var refreshToken = "TEST-ENSO-REFRESH-caffee";
+    var clientId = "TEST-ENSO-CLIENT-ID";
+    return new Credentials(clientId, accessToken, refreshToken, refreshUrl, expireAt);
+  }
+
+  private static Credentials invalidCredentials() {
+    var expireAt = ZonedDateTime.now().plusYears(1).format(DateTimeFormatter.ISO_INSTANT);
+    var refreshUrl = refreshUri.toString();
+    var accessToken = "XX - wrong access token - XX";
     var refreshToken = "TEST-ENSO-REFRESH-caffee";
     var clientId = "TEST-ENSO-CLIENT-ID";
     return new Credentials(clientId, accessToken, refreshToken, refreshUrl, expireAt);
