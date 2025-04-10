@@ -265,6 +265,7 @@ export function useOpenProjectMutation() {
       { type, id, title, parentId, hybrid, suppressHybridProjectOpen = false },
     ) => {
       if (hybrid && !suppressHybridProjectOpen) {
+        await remoteBackend.setHybridOpenInProgress(hybrid.cloudProjectId, title)
         await remoteBackend.setHybridOpened(hybrid.cloudProjectId, title)
       }
       await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
