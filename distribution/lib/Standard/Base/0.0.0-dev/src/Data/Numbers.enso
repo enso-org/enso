@@ -1,6 +1,4 @@
 import project.Any.Any
-import project.Data.Decimal.Decimal
-import project.Data.Locale.Locale
 import project.Data.Ordering.Comparable
 import project.Data.Text.Text
 import project.Error.Error
@@ -15,7 +13,7 @@ import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Internal.Number_Builtins import all
 from project.Internal.Ordering_Helpers import Positive_Integer_Comparator
-from project.Widget_Helpers import make_number_format_selector
+#from project.Widget_Helpers import make_number_format_selector
 
 polyglot java import java.lang.Double
 polyglot java import java.lang.Long
@@ -319,13 +317,6 @@ type Number
          Convert the value 5000 to a string.
 
              5000.format "#,##0"
-    @format make_number_format_selector
-    @locale Locale.default_widget
-    format : Text -> Locale -> Text
-    format self format:Text="" locale:Locale=Locale.default =
-        symbols = DecimalFormatSymbols.new locale.java_locale
-        formatter = DecimalFormat.new format symbols
-        formatter.format self
 
     ## GROUP Logical
        ICON operators
@@ -743,8 +734,6 @@ type Float
 
              12.3 . to_decimal
              # => Decimal.new "12.3"
-    to_decimal : Decimal
-    to_decimal self -> Decimal = Decimal.from_float self
 
     ## ALIAS from text
        GROUP Conversions
@@ -793,21 +782,6 @@ type Float
 
              Float.parse "(123,456,789.654)" format="###,###.##;(###,###.##)"
              # => -123456789.654
-    parse : Text -> Locale | Nothing -> Text | Nothing -> Float ! Number_Parse_Error | Illegal_Argument
-    parse text:Text (locale : Locale | Nothing = Nothing) (format : Text | Nothing = Nothing) -> Float ! Number_Parse_Error | Illegal_Argument =
-        case locale.is_nothing && format.is_nothing of
-            True ->
-                Panic.catch NumberFormatException (Double.parseDouble text) _->
-                    Error.throw (Number_Parse_Error.Error text)
-            False ->
-                Illegal_Argument.handle_java_exception <|
-                    defaulted_locale = locale.if_nothing Locale.default
-                    defaulted_format = format.if_nothing ""
-                    # `getInstance` returns `DecimalFormat` or a subclass of `DecimalFormat`.
-                    decimal_format = NumberFormat.getInstance defaulted_locale.java_locale
-                    decimal_format.applyLocalizedPattern defaulted_format
-                    Panic.catch ParseException (decimal_format.parse text) _->
-                        Error.throw (Number_Parse_Error.Error text)
 
     ## ICON input_number
 
@@ -1145,8 +1119,6 @@ type Integer
 
              12 . to_decimal
              # => Decimal.new "12"
-    to_decimal : Decimal
-    to_decimal self -> Decimal = Decimal.from_integer self
 
     ## GROUP Bitwise
        ICON math

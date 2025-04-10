@@ -1,6 +1,5 @@
 import project.Any.Any
 import project.Data.Array.Array
-import project.Data.Hashset.Hashset
 import project.Data.Maybe.Maybe
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
@@ -8,12 +7,7 @@ import project.Data.Vector.Map_Error
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
-import project.Meta
 import project.Nothing.Nothing
-import project.Polyglot.Polyglot
-import project.Runtime
-import project.Runtime.Source_Location.Source_Location
-import project.Runtime.Stack_Trace_Element
 from project.Data.Boolean import Boolean, False, True
 from project.Function import flip
 
@@ -25,7 +19,7 @@ type Warning
        Attaches a new warning to the value.
     attach : Any -> Any -> Any
     attach warning value =
-        origin = Runtime.get_stack_trace
+        origin = [ Nothing ]
         attach_with_stacktrace value warning (origin.drop (..First 1))
 
     ## PRIVATE
@@ -252,7 +246,7 @@ type Warning
        ICON metadata
 
        A stack trace for the original warning creation.
-    origin : Vector Stack_Trace_Element
+    origin : Vector # Stack_Trace_Element
     origin self = @Builtin_Method "Warning.origin"
 
 
@@ -269,7 +263,7 @@ create payload origin = @Builtin_Method "Warning.create"
 
    Builtin utility function which attaches a new warning to the value
    and, compared to `Warning.attach` requires an explicit stacktrace associated with it.
-attach_with_stacktrace : Any -> Any -> Vector Stack_Trace_Element -> Any
+attach_with_stacktrace : Any -> Any -> Vector -> Any
 attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_with_stacktrace"
 
 ## PRIVATE
@@ -300,7 +294,7 @@ map_attached_warnings_helper mapper value frames_to_drop =
         case mapper warning.value of
             Maybe.Some new_payload ->
                 self_call_name = "Warning.map_attached_warnings_helper"
-                stack_trace = Runtime.get_stack_trace
+                stack_trace = [ Nothing ]
                 stack_trace_up_to_this_function = stack_trace.drop (..While element-> element.name != self_call_name)
                 new_origin = stack_trace_up_to_this_function.drop (..First 1+frames_to_drop)
                 create new_payload new_origin

@@ -4,13 +4,9 @@ import project.Any.Any
 import project.Data.Vector.Report_Unmatched
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
-import project.Data.Dictionary.Dictionary
-import project.Data.Index_Sub_Range.Index_Sub_Range
-import project.Data.List.List
 import project.Data.Maybe.Maybe
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
-import project.Data.Range.Range
 import project.Data.Vector.Map_Error
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
@@ -22,15 +18,9 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Nothing.Nothing
-import project.Random.Random
-import project.Runtime
-import project.Runtime.Ref.Ref
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
-from project.Data.Index_Sub_Range import drop_helper, take_helper
 from project.Data.Ordering import Comparable
-from project.Data.Range.Extensions import all
 
 new_array_proxy_builtin : Integer -> (Integer -> Any) -> Array
 new_array_proxy_builtin length at = @Builtin_Method "Array_Like_Helpers.new_array_proxy_builtin"
@@ -131,7 +121,6 @@ zip this that (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = F
         Array_Like_Helpers.vector_from_function len f on_problems
 
 ## PRIVATE
-   Creates a new vector where for each range, a corresponding section of the
    source vector is added to the result.
 
    Assumes that the ranges have been already bounds-checked (for example by
@@ -141,26 +130,16 @@ slice_ranges vector ranges =
         if ranges.length != 1 then slice_many_ranges vector ranges else
             case ranges.first of
                 _ : Integer -> [vector.at ranges.first]
-                Range.Between start end step -> case step == 1 of
-                    True -> vector.slice start end
-                    False -> slice_many_ranges vector ranges
 
 ## PRIVATE
    See `slice_ranges`.
 slice_many_ranges vector ranges =
     new_length = ranges.fold 0 acc-> descriptor-> case descriptor of
         _ : Integer -> acc+1
-        _ : Range -> acc+descriptor.length
     Vector.build initial_capacity=new_length builder->
         ranges.each descriptor-> case descriptor of
             _ : Integer ->
                 builder.append (vector.at descriptor)
-            Range.Between start end step -> case step == 1 of
-                True ->
-                    builder.append_vector_range vector start end
-                False ->
-                    descriptor.each ix->
-                        builder.append (vector.at ix)
 
 check_start_valid start length function =
     used_start = if start < 0 then start + length else start
@@ -182,38 +161,13 @@ private on_problems_to_number on_problems:Problem_Behavior = case on_problems of
     Problem_Behavior.Report_Warning -> 1
     Problem_Behavior.Report_Error -> 2
 
-distinct vector on =
-    Vector.build builder->
-        vector.fold Dictionary.empty existing->
-            item->
-                key = on item
-                if (existing.get key False) then existing else
-                    builder.append item
-                    existing.insert key True no_warning=True
+distinct vector on = vector
 
-duplicates vector on = Vector.build builder->
-    counts = vector.fold Dictionary.empty current-> item->
-        key = on item
-        count = current.get key 0
-        current.insert key count+1
-    vector.map item->
-        key = on item
-        count = counts.get key 0
-        if count != 1 then builder.append item
+duplicates vector on = vector
 
-take vector range = case range of
-    ## We are using a specialized implementation for `take Sample`, because
-       the default implementation (which needs to be generic for any
-       collection) generates a random set of indices and then selects these
-       indices, but we can sample the vector directly.
-    Index_Sub_Range.Sample count seed ->
-        rng = Random.new_generator seed
-        rng.items vector count
-    _ ->
-        take_helper vector.length (vector.at _) vector.slice (slice_ranges vector) range
+take vector range = vector
 
-drop vector range =
-    drop_helper vector.length (vector.at _) vector.slice (slice_ranges vector) range
+drop vector range = vector
 
 get vector index ~if_missing =
     len = vector.length
@@ -237,22 +191,22 @@ remove vector at =
 index_of vector condition start =
     self_len = vector.length
     check_start_valid start self_len used_start->
-        predicate = unify_condition_predicate_or_element condition
+        predicate = Nothing
         used_start.up_to vector.length . find if_missing=Nothing (i-> predicate (vector.at i))
 
 last_index_of vector condition start =
     self_len = vector.length
     if self_len == 0 && (start==0 || start==-1) then Nothing else
         check_start_valid start self_len used_start->
-            predicate = unify_condition_predicate_or_element condition
+            predicate = Nothing
             used_start.down_to -1 . find if_missing=Nothing (i-> predicate (vector.at i))
 
 any vector condition =
-    predicate = unify_condition_or_predicate condition
+    predicate = Nothing
     0.up_to vector.length . any (idx -> (predicate (vector.at idx)))
 
 all vector condition =
-    predicate = unify_condition_or_predicate condition
+    predicate = Nothing
     vector.any (predicate >> .not) . not
 
 plus vector that:(Vector | Array) = case that of
@@ -260,7 +214,7 @@ plus vector that:(Vector | Array) = case that of
     _ : Array -> plus vector (Vector.from_polyglot_array that)
 
 find vector condition start ~if_missing =
-    predicate = unify_condition_or_predicate condition
+    predicate = Nothing
     self_len = vector.length
     check_start_valid start self_len used_start->
         found = used_start.up_to self_len . find (idx -> (predicate (vector.at idx))) if_missing=Nothing
@@ -324,9 +278,6 @@ each_with_index vector f =
 
 reverse vector = Vector.new vector.length (i -> vector.at (vector.length - (1 + i)))
 
-to_list vector =
-    vector.reverse.fold List.Nil acc-> elem-> List.Cons elem acc
-
 short_display_text vector max_entries =
     if max_entries < 1 then Error.throw <| Illegal_Argument.Error "The `max_entries` parameter must be positive." else
         prefix = vector.take (..First max_entries)
@@ -342,7 +293,7 @@ join vector separator prefix suffix =
             prefix + vector.at 0 + (1.up_to vector.length . fold "" acc-> i-> acc + separator + vector.at i) + suffix
 
 partition vector condition =
-    predicate = unify_condition_or_predicate condition
+    predicate = Nothing
     vecs = Vector.build_multiple 2 initial_capacity=(vector.length.div 2) function=builders->
         vector.map elem->
             case predicate elem of
@@ -359,7 +310,7 @@ partition_with_index vector predicate =
     Pair.new (vecs.at 0) (vecs.at 1)
 
 filter vector filter =
-    predicate = unify_condition_or_predicate filter
+    predicate = Nothing
     Vector.build builder->
         vector.map elem->
             if predicate elem then builder.append elem

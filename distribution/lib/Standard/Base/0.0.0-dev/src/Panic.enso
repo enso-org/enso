@@ -3,9 +3,7 @@ import project.Data.Array.Array
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
-import project.Meta
 import project.Nothing.Nothing
-import project.Runtime
 from project.Data.Boolean import Boolean, False, True
 
 polyglot java import java.lang.Throwable
@@ -63,14 +61,14 @@ type Panic
 
        The ordering of the resulting vector is such that the top stack frame is the
        first element.
-    get_attached_stack_trace : Caught_Panic | Throwable -> Vector Runtime.Stack_Trace_Element
+    get_attached_stack_trace : Caught_Panic | Throwable -> Vector
     get_attached_stack_trace error =
         throwable = case error of
             Caught_Panic.Panic _ internal_original_exception -> internal_original_exception
             throwable -> throwable
         prim_stack = Panic.primitive_get_attached_stack_trace throwable
         stack_with_prims = Vector.from_polyglot_array prim_stack
-        stack_with_prims.map Runtime.wrap_primitive_stack_trace_element
+        stack_with_prims.map []
 
     ## PRIVATE
        ADVANCED
@@ -279,7 +277,7 @@ type Caught_Panic
 
     ## ICON metadata
        Returns the stack trace of the caught panic.
-    stack_trace : Vector Runtime.Stack_Trace_Element
+    stack_trace : Vector
     stack_trace self =
         Panic.get_attached_stack_trace self
 

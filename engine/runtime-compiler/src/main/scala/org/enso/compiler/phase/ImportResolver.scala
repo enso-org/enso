@@ -23,7 +23,7 @@ import java.util.logging.Level
   *
   * @param compiler the compiler instance for the compiling context.
   */
-final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
+final class ImportResolver(compiler: Compiler) extends ImportResolutionForIR {
 
   /** Runs the import mapping logic.
     *
@@ -37,6 +37,11 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
   ): (List[Module], List[Module]) = {
 
     def analyzeModule(current: Module): List[Module] = {
+      if (current.getName().toString().contains("Data.Text")) {
+        System.err.println("Now!!!!")
+        java.lang.Thread.sleep(100);
+      }
+
       val context = compiler.context
       val (ir, currentLocal) =
         try {
@@ -105,12 +110,16 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
           }
         )
       }
-      currentLocal.resolvedImports.flatMap { resolvedImport =>
+      val mods = currentLocal.resolvedImports.flatMap { resolvedImport =>
         val targetModules = resolvedImport.targets.map { target =>
           target.module.unsafeAsModule()
         }
         targetModules
       }.distinct
+
+      System.err.println("module: " + current.getName() + " requires: " + mods.size + " as " + mods.map(_.getName()))
+
+      mods
     }
 
     @scala.annotation.tailrec
@@ -185,6 +194,13 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
     module: Module,
     resolvedImports: List[BindingsMap.ResolvedImport]
   ): List[(Import, BindingsMap.ResolvedImport)] = {
+    if (
+        "Standard.Base.Data.Text".equals(module.getName()) ||
+        "Standard.Base.Errors".equals(module.getName())
+    ) {
+        System.err.println("empty addSyntheticImports: " + module.getName())
+        return List()
+    }
     val resolvedImportNames = resolvedImports.map(_.importDef.name.name)
     val curModName          = module.getName.toString
     module.getIr.exports.flatMap {

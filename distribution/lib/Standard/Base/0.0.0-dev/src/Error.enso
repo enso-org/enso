@@ -5,10 +5,8 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.No_Such_Conversion
 import project.Errors.Wrapped_Error.Wrapped_Error
-import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.Runtime.Stack_Trace_Element
 from project.Data.Boolean import Boolean, False, True
 from project.Function import const
 from project.Internal.Error_Builtins import all
@@ -170,7 +168,7 @@ type Error
 
        The ordering of the resulting vector is such that the top stack frame is the
        first element.
-    stack_trace : Vector Stack_Trace_Element
+    stack_trace : Vector # Stack_Trace_Element
     stack_trace self =
         Panic.get_attached_stack_trace self
 

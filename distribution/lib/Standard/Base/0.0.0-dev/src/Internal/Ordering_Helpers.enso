@@ -7,8 +7,7 @@ import project.Data.Numbers.Positive_Integer
 import project.Error.Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Type_Error
-import project.Meta
-import project.Meta.Atom
+import project.Internal.Meta_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
@@ -48,12 +47,10 @@ type Default_Comparator
        Called as a callback from internal engine code for an atom with a custom
        comparator. It is assumed that the given atom has a custom comparator, that is
        a comparator different than `Default_Comparator`.
-    hash_callback : Atom -> Integer
     hash_callback atom = Ordering.hash atom
 
     ## PRIVATE
        A callback allowing to compare two atoms with a custom comparator.
-    compare_callback : Atom -> Atom -> Integer | Nothing
     compare_callback atom that =
         ordering = Ordering.compare atom that
         if ordering.is_error then Nothing else ordering.to_sign
@@ -66,7 +63,7 @@ assert_same_comparators : Any -> Any -> (Any -> Any) -> Any ! Incomparable_Value
 assert_same_comparators this that ~action =
     comp_this = Comparable.from this
     comp_that = Comparable.from that
-    case Meta.is_same_object comp_this.comparator comp_that.comparator of
+    case Meta_Helpers.is_same_object comp_this.comparator comp_that.comparator of
         True -> action comp_this.comparator
         False -> Error.throw (Incomparable_Values.Error this that)
 
@@ -76,7 +73,7 @@ compare_with_comparators this that -> Ordering ! Incomparable_Values =
         comp_this = Comparable.from this
         comp_that = Comparable.from that
 
-        any_result = if Meta.is_same_object comp_this.comparator comp_that.comparator then
+        any_result = if Meta_Helpers.is_same_object comp_this.comparator comp_that.comparator then
             comp_this.comparator.compare comp_this.value comp_that.value
 
         result = any_result:Ordering
@@ -94,9 +91,9 @@ type Positive_Integer_Comparator
 ## PRIVATE
 type Ordering_Comparator
     ## PRIVATE
-    compare x:Ordering y:Ordering = if Meta.is_same_object x y then Ordering.Equal else
-        if Meta.is_same_object x Ordering.Equal . not then x else
-            if Meta.is_same_object y Ordering.Less then Ordering.Greater else
+    compare x:Ordering y:Ordering = if Meta_Helpers.is_same_object x y then Ordering.Equal else
+        if Meta_Helpers.is_same_object x Ordering.Equal . not then x else
+            if Meta_Helpers.is_same_object y Ordering.Less then Ordering.Greater else
                 Ordering.Less
 
     ## PRIVATE

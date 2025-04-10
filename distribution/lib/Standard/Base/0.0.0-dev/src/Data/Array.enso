@@ -1,12 +1,8 @@
 import project.Any.Any
 import project.Data.Vector.Report_Unmatched
-import project.Data.Filter_Condition.Filter_Condition
-import project.Data.Index_Sub_Range.Index_Sub_Range
-import project.Data.List.List
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Pair.Pair
-import project.Data.Range.Range
 import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Text.Text
 import project.Data.Vector.No_Wrap
@@ -20,12 +16,9 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Internal.Array_Like_Helpers
-import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Range.Extensions import all
-from project.Metadata import Display, Widget
 
 ## The type of primitive mutable arrays.
 @Builtin_Type
@@ -48,7 +41,6 @@ type Array
          Get the last element of an array.
 
              [1, 2, 3].to_array.at -1 == 3
-    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     at : Integer -> Any ! Index_Out_Of_Bounds
     at self index:Integer=0 = Array_Like_Helpers.at self index
 
@@ -156,12 +148,8 @@ type Array
 
        Arguments:
        - range: The section of the this array to return.
-         If an `Index_Sub_Range`, then the selection is interpreted following
          the rules of that type.
-         If a `Range`, the selection is specified by two indices, from and to.
-    @range (self-> Index_Sub_Range.default_widget self.length)
-    take : (Index_Sub_Range | Range | Integer) -> Vector Any
-    take self range:(Index_Sub_Range | Range | Integer)=..First =
+    take self range:(Any | Integer)=..First =
         Array_Like_Helpers.take self range
 
     ## ALIAS remove, skip
@@ -171,12 +159,8 @@ type Array
 
        Arguments:
        - range: The section of the this array to return.
-         If an `Index_Sub_Range`, then the selection is interpreted following
          the rules of that type.
-         If a `Range`, the selection is specified by two indices, from and to.
-    @range (self-> Index_Sub_Range.default_widget self.length)
-    drop : (Index_Sub_Range | Range | Integer) -> Vector Any
-    drop self range:(Index_Sub_Range | Range | Integer)=..First =
+    drop self range:(Any | Integer)=..First =
         Array_Like_Helpers.drop self range
 
     ## GROUP Calculations
@@ -255,7 +239,6 @@ type Array
        Returns Nothing if the element is not found.
 
        Arguments:
-       - condition: Either the element to search for, a `Filter_Condition` or a
          predicate function to test each element.
        - start: The index to start searching from. If the index is negative, it
          is counted from the end of the array.
@@ -269,8 +252,6 @@ type Array
          Find the index of the first palindrome.
 
              ["ab", "abab", "aba", "bbb"].to_array.index_of (s-> s == s.reverse) == 2
-    @condition Filter_Condition.default_widget
-    index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
     index_of self condition (start : Integer = 0) =
         Array_Like_Helpers.index_of self condition start
 
@@ -280,7 +261,6 @@ type Array
        Returns `Nothing` if the element is not found.
 
        Arguments:
-       - condition: Either the element to search for, a `Filter_Condition` or a
          predicate function to test each element.
        - start: The index to start searching backwards from. If the index is
          negative, it is counted from the end of the array.
@@ -294,8 +274,6 @@ type Array
          Find the index of the last palindrome.
 
              ["ab", "abab", "aba", "bbb"].to_array.last_index_of (s-> s == s.reverse) == 3
-    @condition Filter_Condition.default_widget
-    last_index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
     last_index_of self condition (start : Integer = -1) =
         Array_Like_Helpers.last_index_of self condition start
 
@@ -309,11 +287,6 @@ type Array
              [].to_array.is_empty
     is_empty : Boolean
     is_empty self = self.length == 0
-
-    ## ICON convert
-       Converts the array to a list with the same elements.
-    to_list : List
-    to_list self = Array_Like_Helpers.to_list self
 
     ## ALIAS deduplicate, unique
        GROUP Selections
@@ -446,7 +419,6 @@ type Array
 
        Arguments:
        - filter: The filter to apply to the array. It can either be an instance
-         of `Filter_Condition` or a predicate taking a value and returning a
          boolean value indicating whether the corresponding element should be
          kept or not.
 
@@ -455,9 +427,7 @@ type Array
 
              [1, 2, 3, 4, 5].to_array.filter (> 3)
              [1, 2, 3, 4, 5].to_array.filter (..Greater than=3)
-    @filter Filter_Condition.default_widget
-    filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
-    filter self (filter : Filter_Condition | (Any -> Boolean)) =
+    filter self (filter : Any | (Any -> Boolean)) =
         Array_Like_Helpers.filter self filter
 
     ## GROUP Calculations
@@ -570,7 +540,6 @@ type Array
        in the input array.
 
        Arguments:
-       - condition: A `Filter_Condition` or a predicate function to test each
          element.
 
        > Example
@@ -582,9 +551,7 @@ type Array
          Splitting an array into even and odd elements.
 
              [1, 2, 3, 4, 5].to_array.partition (x -> x % 2 == 0) == (Pair [2, 4].to_array [1, 3, 5].to_array)
-    @condition Filter_Condition.default_widget
-    partition : (Filter_Condition | (Any -> Boolean)) -> Pair (Vector Any) (Vector Any)
-    partition self (condition : Filter_Condition | (Any -> Boolean)) =
+    partition self (condition : Any | (Any -> Boolean)) =
         Array_Like_Helpers.partition self condition
 
     ## ICON preparation
@@ -606,7 +573,6 @@ type Array
          Splitting an array into elements at even and odd positions.
 
              ["a", "b", "c", "d"].to_array.partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair ["a", "c"].to_array ["b", "d"].to_array)
-    partition_with_index : (Integer -> Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition_with_index self predicate =
         Array_Like_Helpers.partition_with_index self predicate
 
@@ -710,7 +676,6 @@ type Array
        `if_missing` if no elements of the array satisfy it.
 
        Arguments:
-       - condition: A `Filter_Condition` or a function that takes an element and
          returns a boolean value specifying if it satisfies the condition.
        - start: The index to start searching from. If the index is negative, it
          is counted from the end of the array.
@@ -720,9 +685,7 @@ type Array
          Finding a first element of the array that is larger than 3.
 
              [1, 2, 3, 4, 5].to_array.find (> 3)
-    @condition Filter_Condition.default_widget
-    find : (Filter_Condition | (Any -> Boolean)) -> Integer -> Any -> Any
-    find self (condition : Filter_Condition | (Any -> Boolean)) (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
+    find self (condition : Any | (Any -> Boolean)) (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
         Array_Like_Helpers.find self condition start if_missing
 
     ## ICON parse3
@@ -734,7 +697,6 @@ type Array
          also allowed be negative, then the elements are indexed from the back
          of the array, i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
-    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     get : Integer -> Any -> Any
     get self index:Integer=0 ~if_missing=Nothing =
         Array_Like_Helpers.get self index if_missing
@@ -822,7 +784,6 @@ type Array
        Checks whether a predicate holds for at least one element of self array.
 
        Arguments:
-       - condition: A `Filter_Condition` or a predicate function to test each
          element.
 
        > Example
@@ -834,9 +795,7 @@ type Array
          Checking if any element of the array is even.
 
              [1, 2, 3, 4, 5].to_array.any (x-> x%2 == 0)
-    @condition Filter_Condition.default_widget
-    any : (Filter_Condition | (Any -> Boolean)) -> Boolean
-    any self (condition : Filter_Condition | (Any -> Boolean)) =
+    any self (condition : Any | (Any -> Boolean)) =
         Array_Like_Helpers.any self condition
 
     ## GROUP Logical
@@ -844,7 +803,6 @@ type Array
        Checks whether a condition holds for all elements in this array.
 
        Arguments:
-       - condition: A `Filter_Condition` or a predicate function to test each
          element.
 
        > Example
@@ -856,9 +814,7 @@ type Array
          Check if all elements in the array are even.
 
              [-1, 1, 5, 8].to_array.all (x-> x%2 == 0)
-    @condition Filter_Condition.default_widget
-    all : (Filter_Condition | (Any -> Boolean)) -> Boolean
-    all self (condition : Filter_Condition | (Any -> Boolean)) =
+    all self (condition : Any | (Any -> Boolean)) =
         Array_Like_Helpers.all self condition
 
     ## GROUP Logical
