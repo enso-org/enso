@@ -3,14 +3,7 @@ import { SUBSCRIBE_PATH } from '#/appUtils'
 import ChatIcon from '#/assets/chat.svg'
 import ArrowDownIcon from '#/assets/expand_arrow_down.svg'
 import Offline from '#/assets/offline_filled.svg'
-import {
-  Button,
-  ButtonGroup,
-  DialogTrigger,
-  Menu,
-  Popover,
-  Text,
-} from '#/components/AriaComponents'
+import { Button, DialogTrigger, Menu, Popover, Text } from '#/components/AriaComponents'
 import { PaywallDialogButton } from '#/components/Paywall'
 import SvgMask from '#/components/SvgMask'
 import TOPBAR_LINKS from '#/configurations/topbarLinks.json' with { type: 'json' }
@@ -197,27 +190,15 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
         if ('url' in item) {
           if ('menu' in item) {
             return (
-              <ButtonGroup
-                key={item.name}
-                direction="column"
-                buttonVariants={{ variant: 'icon' }}
-                className="items-center gap-0"
-              >
+              <Button.GroupJoin key={item.name} buttonVariants={{ variant: 'icon' }}>
                 <Button href={item.url} {...getSafetyProps(item.url)}>
                   {getText(item.name)}
                 </Button>
 
                 <Menu.Trigger>
-                  <div className="h-0">
-                    <Button
-                      icon={ArrowDownIcon}
-                      className="-mt-2.5"
-                      extraClickZone="large-h"
-                      aria-label={getText('more')}
-                    />
-                  </div>
+                  <Button icon={ArrowDownIcon} aria-label={getText('more')} />
 
-                  <Menu placement="bottom">
+                  <Menu placement="bottom right">
                     {item.menu.map((menuItem) => (
                       <Menu.Item
                         key={menuItem.name}
@@ -229,7 +210,7 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
                     ))}
                   </Menu>
                 </Menu.Trigger>
-              </ButtonGroup>
+              </Button.GroupJoin>
             )
           }
         } else {
