@@ -36,7 +36,7 @@ sealed private[graph] class ScopeImpl(
       new java.util.HashMap[GraphImpl.Symbol, GraphOccurrence.Def]()
     allOccurrences().stream
       .filter(_.isInstanceOf[GraphOccurrence.Def])
-      .map(d => {
+      .forEach(d => {
         bySymbol.put(d.symbol, d.asInstanceOf[GraphOccurrence.Def])
       })
     bySymbol
