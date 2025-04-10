@@ -89,9 +89,16 @@ public final class TelemetryAppenderImpl extends TelemetryAppender {
         credentialsParseFailure = true;
         return;
       }
-      var tokenRefresher = new TokenRefresher(backgroundThreadService, refreshUri, credentials.clientId(), credentials.refreshToken());
+      var tokenRefresher =
+          new TokenRefresher(
+              backgroundThreadService,
+              refreshUri,
+              credentials.clientId(),
+              credentials.refreshToken());
       var authenticationData = AuthenticationData.fromCredentials(credentials);
-      logJobsProcessor = new LogJobsProcessor(backgroundThreadService, endpoint, authenticationData, tokenRefresher);
+      logJobsProcessor =
+          new LogJobsProcessor(
+              backgroundThreadService, endpoint, authenticationData, tokenRefresher);
     }
     var logMessage = logEventToMessage(logEvent);
     var logJob = new LogJob(logMessage, null);

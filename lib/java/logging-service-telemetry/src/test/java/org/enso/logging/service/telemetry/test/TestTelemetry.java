@@ -61,7 +61,9 @@ public class TestTelemetry {
     var cloudMockSetup = new CloudMockSetup(false);
     server =
         HTTPTestHelperServer.createServer("localhost", port, serverExecutor, false, cloudMockSetup);
-    tokenRefresher = new TokenRefresher(logProcessorExecutor, refreshUri, credentials.clientId(), credentials.refreshToken());
+    tokenRefresher =
+        new TokenRefresher(
+            logProcessorExecutor, refreshUri, credentials.clientId(), credentials.refreshToken());
     var authData = AuthenticationData.fromCredentials(credentials);
     logJobsProcessor = new LogJobsProcessor(logProcessorExecutor, logUri, authData, tokenRefresher);
     server.start();
@@ -138,8 +140,18 @@ public class TestTelemetry {
   @Test
   public void failureToAuthenticate_InvalidToken() {
     var invalidCredentials = invalidCredentials();
-    tokenRefresher = new TokenRefresher(logProcessorExecutor, refreshUri, invalidCredentials.clientId(), invalidCredentials.refreshToken());
-    logJobsProcessor = new LogJobsProcessor(logProcessorExecutor, logUri, AuthenticationData.fromCredentials(invalidCredentials), tokenRefresher);
+    tokenRefresher =
+        new TokenRefresher(
+            logProcessorExecutor,
+            refreshUri,
+            invalidCredentials.clientId(),
+            invalidCredentials.refreshToken());
+    logJobsProcessor =
+        new LogJobsProcessor(
+            logProcessorExecutor,
+            logUri,
+            AuthenticationData.fromCredentials(invalidCredentials),
+            tokenRefresher);
     var message = new LogMessage("TestLogger", "msg: name={}", new Object[] {"Pavel"});
     var notification = new CompletableFuture<Void>();
     var job = new LogJob(message, notification);
