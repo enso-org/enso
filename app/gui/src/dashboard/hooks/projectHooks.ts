@@ -218,7 +218,7 @@ export function useOpenProjectMutation() {
   return reactQuery.useMutation({
     mutationKey: ['openProject'],
     networkMode: 'always',
-    mutationFn: ({
+    mutationFn: async ({
       title,
       id,
       type,
@@ -232,7 +232,7 @@ export function useOpenProjectMutation() {
       invariant(backend != null, 'Backend is null')
       const cloudProjectDirectoryPath = hybrid ? hybrid.cloudProjectDirectoryPath : null
 
-      return backend.openProject(
+      await backend.openProject(
         id,
         {
           executeAsync: inBackground,
@@ -261,7 +261,6 @@ export function useOpenProjectMutation() {
     onSuccess: async (_, { title, hybrid, suppressHybridProjectOpen = false }) => {
       await client.cancelQueries({ queryKey: ['project'] })
       if (hybrid && !suppressHybridProjectOpen) {
-        await remoteBackend.setHybridOpenInProgress(hybrid.cloudProjectId, title)
         await remoteBackend.setHybridOpened(hybrid.cloudProjectId, title)
       }
     },

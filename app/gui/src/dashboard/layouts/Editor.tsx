@@ -40,9 +40,18 @@ export interface EditorProps {
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-  const { project, hidden, startProject, isOpeningFailed, openingError } = props
+  const { project, hidden, startProject: startProjectRaw, isOpeningFailed, openingError } = props
   const { preventAutoReopen = false } = project
   const { getText } = textProvider.useText()
+
+  const startProject = useEventCallback(
+    async (otherProject: Parameters<typeof startProjectRaw>[0]) => {
+      if (otherProject.hybrid) {
+        await remoteBackend.setHybridOpened(otherProject.hybrid.cloudProjectId, otherProject.title)
+      }
+      startProjectRaw(otherProject)
+    },
+  )
 
   const backend = backendProvider.useBackendForProjectType(project.type)
   const remoteBackend = backendProvider.useRemoteBackend()
@@ -91,7 +100,7 @@ export default function Editor(props: EditorProps) {
       // Open hybrid project if it is still marked as opened.
       isHybridOpened
     ) {
-      startProject({ ...project, suppressHybridProjectOpen: isHybridOpened })
+      void startProject({ ...project, suppressHybridProjectOpen: isHybridOpened })
     }
   }, [isProjectClosed, startProject, project, preventAutoReopen, isHybridOpened])
 
@@ -119,8 +128,8 @@ export default function Editor(props: EditorProps) {
         <Button
           isLoading={isProjectOpening}
           className="mx-auto"
-          onPress={() => {
-            startProject(project)
+          onPress={async () => {
+            await startProject(project)
           }}
         >
           {getText('openProject')}
@@ -133,9 +142,9 @@ export default function Editor(props: EditorProps) {
     return (
       <errorBoundary.ErrorDisplay
         error={openingError}
-        resetErrorBoundary={() => {
+        resetErrorBoundary={async () => {
           if (isProjectClosed) {
-            startProject(project)
+            await startProject(project)
           }
         }}
       />
