@@ -31,6 +31,6 @@ type Rounding_Mode
 ## PRIVATE
    Convert deprecated `use_bankers : Boolean` arguments (passed as
    `rounding_mode`) to `Rounding_Mode`.
-    Rounding_Mode.from (that:Boolean) =
-        rounding_mode_resolved = if that then Rounding_Mode.Bankers else Rounding_Mode.Half_Up
-        Warning.attach (Deprecated.Warning "Standard.Base.Data.Numeric" "Rounding_Mode" "use_bankers:Boolean is deprecated, use Rounding_Mode instead") rounding_mode_resolved
+Rounding_Mode.from (that:Boolean) =
+    rounding_mode_resolved = if that then Rounding_Mode.Bankers else Rounding_Mode.Half_Up
+    Warning.attach (Deprecated.Warning "Standard.Base.Data.Numeric" "Rounding_Mode" "use_bankers:Boolean is deprecated, use Rounding_Mode instead") rounding_mode_resolved
