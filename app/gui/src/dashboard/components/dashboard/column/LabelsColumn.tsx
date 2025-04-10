@@ -17,10 +17,7 @@ import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import * as backendModule from '#/services/Backend'
 
 import ContextMenuEntry from '#/components/ContextMenuEntry'
-import { useStore } from '#/hooks/storeHooks'
-import { useDriveStore } from '#/providers/DriveProvider'
 import * as permissions from '#/utilities/permissions'
-import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 
 /** A column listing the labels on this asset. */
 export default function LabelsColumn(props: column.AssetColumnProps) {
@@ -29,12 +26,6 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const driveStore = useDriveStore()
-  const showDraggedLabelsFallback = useStore(
-    driveStore,
-    ({ selectedIds, isDraggingOverSelectedRow }) =>
-      isDraggingOverSelectedRow && selectedIds.has(item.id),
-  )
   const labelsByName = React.useMemo(
     () => new Map(labels.map((label) => [label.value, label])),
     [labels],
@@ -44,38 +35,6 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     category.type !== 'trash' &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
-  const temporarilyAddedLabels = useStore(
-    driveStore,
-    ({ labelsDragPayload, dragTargetAssetId }) => {
-      const areTemporaryLabelsRelevant = (() => {
-        if (showDraggedLabelsFallback) {
-          return labelsDragPayload?.typeWhenAppliedToSelection === 'add'
-        } else {
-          return item.id === dragTargetAssetId
-        }
-      })()
-      if (areTemporaryLabelsRelevant) {
-        return labelsDragPayload?.labels ?? EMPTY_ARRAY
-      }
-      return EMPTY_ARRAY
-    },
-  )
-  const temporarilyRemovedLabels = useStore(
-    driveStore,
-    ({ labelsDragPayload, dragTargetAssetId }) => {
-      const areTemporaryLabelsRelevant = (() => {
-        if (showDraggedLabelsFallback) {
-          return labelsDragPayload?.typeWhenAppliedToSelection === 'remove'
-        } else {
-          return item.id === dragTargetAssetId
-        }
-      })()
-      if (areTemporaryLabelsRelevant) {
-        return labelsDragPayload?.labels ?? EMPTY_ARRAY
-      }
-      return EMPTY_ARRAY
-    },
-  )
 
   return (
     <div className="group flex items-center gap-column-items">
@@ -87,9 +46,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             data-testid="asset-label"
             title={getText('rightClickToRemoveLabel')}
             color={labelsByName.get(label)?.color ?? backendModule.COLORS[0]}
-            active={!temporarilyRemovedLabels.includes(label)}
-            isDisabled={temporarilyRemovedLabels.includes(label)}
-            negated={temporarilyRemovedLabels.includes(label)}
+            active
             onContextMenu={(event) => {
               event.preventDefault()
               event.stopPropagation()
@@ -113,17 +70,6 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                 oldQuery.withToggled('labels', 'negativeLabels', label, event.shiftKey),
               )
             }}
-          >
-            {label}
-          </Label>
-        ))}
-      {temporarilyAddedLabels
-        .filter((label) => item.labels?.includes(label) !== true)
-        .map((label) => (
-          <Label
-            isDisabled
-            key={label}
-            color={labelsByName.get(label)?.color ?? backendModule.COLORS[0]}
           >
             {label}
           </Label>
