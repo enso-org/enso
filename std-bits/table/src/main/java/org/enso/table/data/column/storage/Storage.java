@@ -46,7 +46,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    * @return the type of the values in this column's storage. Most storages just return their type.
    *     Mixed storage will try to see if all elements fit some more precise type.
    */
-  public StorageType<?> inferPreciseType() {
+  public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
     return getType();
   }
 
