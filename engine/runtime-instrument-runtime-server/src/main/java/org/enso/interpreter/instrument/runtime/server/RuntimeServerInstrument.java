@@ -11,7 +11,6 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Supplier;
 import org.enso.distribution.locking.LockManager;
 import org.enso.interpreter.instrument.Handler;
 import org.enso.interpreter.instrument.HandlerFactory;
@@ -39,15 +38,18 @@ import org.openide.util.Lookup;
  */
 @TruffleInstrument.Registration(
     id = RuntimeServerInfo.INSTRUMENT_NAME,
-    services = {RuntimeServerInstrument.class, Supplier.class})
+    services = RuntimeServerInstrument.class)
 public class RuntimeServerInstrument extends TruffleInstrument {
   private Env env;
   private Handler handler;
   private EventBinding<Initializer> initializerEventBinding;
 
   private ScheduledExecutorService guestCodeExecutor() {
-    var ensoCtx = EnsoContext.get(null);
-    return ensoCtx.getThreadManager();
+    var ensoLang = env.getLanguages().get(org.enso.common.LanguageInfo.ID);
+    assert ensoLang != null;
+    var executor = env.lookup(ensoLang, ScheduledExecutorService.class);
+    assert executor != null;
+    return executor;
   }
 
   private void initializeExecutionService(ExecutionService service, TruffleContext context) {
@@ -143,19 +145,13 @@ public class RuntimeServerInstrument extends TruffleInstrument {
 
     initializerEventBinding =
         env.getInstrumenter().attachContextsListener(new Initializer(this) {}, true);
-
-    Supplier<ScheduledExecutorService> supply = this::guestCodeExecutor;
-    env.registerService(supply);
   }
 
   @Override
   protected void onDispose(Env env) {
     if (handler != null) {
       try {
-        var client = handler.endpoint().client();
-        if (client != null) {
-          client.sendClose();
-        }
+        handler.endpoint().client().sendClose();
       } catch (IOException e) {
         env.getLogger(RuntimeServerInstrument.class)
             .warning("Sending close message to the client failed, because of: " + e.getMessage());

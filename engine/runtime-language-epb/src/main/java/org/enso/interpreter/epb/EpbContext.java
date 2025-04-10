@@ -11,7 +11,6 @@ import java.net.URL;
 import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Value;
@@ -91,11 +90,9 @@ final class EpbContext {
   final void initializePolyfill(Node node, TruffleContext ctx) {
     if (!polyfillInitialized) {
       polyfillInitialized = true;
-      var instr = getEnv().getInstruments().get("enso-runtime-server");
-      var suppl = getEnv().lookup(instr, Supplier.class);
-      var service = suppl == null ? null : suppl.get();
-      assert service instanceof ScheduledExecutorService;
-      var exec = (ScheduledExecutorService) service;
+      var ensoLanguage = getEnv().getInternalLanguages().get("enso");
+      var exec = getEnv().lookup(ensoLanguage, ScheduledExecutorService.class);
+      assert exec != null : "Need executor from " + ensoLanguage;
       Function<URL, Value> eval =
           (url) -> {
             try {
