@@ -26,7 +26,7 @@ object NativeImage {
     * One wildcard could theoretically be used instead of the list, but to make things
     * more explicit, we use the list.
     */
-  private val defaultBuildTimeInitClasses = Seq(
+  val defaultBuildTimeInitClasses = Seq(
     "org",
     "org.enso",
     "scala",
