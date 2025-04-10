@@ -258,14 +258,14 @@ function AssetsTable(props: AssetsTableProps) {
   const addAssetsLabelsMutation = useMutationCallback(addAssetsLabelsMutationOptions(backend))
   const removeAssetsLabelsMutation = useMutationCallback(removeAssetsLabelsMutationOptions(backend))
 
-  const { currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
+  const { queryDirectoryId, currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
     category,
   })
   const listDirectoryRefetchInterval = useListDirectoryRefetchInterval()
   const { data: assets = [] } = useSuspenseQuery({
     ...listDirectoryQueryOptions({
       backend,
-      parentId: currentDirectoryId,
+      parentId: queryDirectoryId,
       category,
       refetchInterval: listDirectoryRefetchInterval,
     }),
@@ -1264,6 +1264,11 @@ function AssetsTable(props: AssetsTableProps) {
       : getText('assetsDropFilesDescription', droppedFilesCount)
     : getText('assetsDropzoneDescription')
 
+  const specialEmptyText =
+    query.query !== '' ? getText('noFilesMatchTheCurrentFilters')
+    : currentDirectoryId !== category.homeDirectoryId ? getText('thisFolderIsEmpty')
+    : null
+
   const table = (
     <div className="flex flex-none flex-col">
       <table className="isolate table-fixed border-collapse rounded-rows">
@@ -1277,16 +1282,10 @@ function AssetsTable(props: AssetsTableProps) {
             <td colSpan={columns.length} className="h-table-row bg-transparent">
               <Text className="px-cell-x placeholder" disableLineHeightCompensation>
                 {category.type === 'trash' ?
-                  query.query !== '' ?
-                    getText('noFilesMatchTheCurrentFilters')
-                  : getText('yourTrashIsEmpty')
+                  (specialEmptyText ?? getText('yourTrashIsEmpty'))
                 : category.type === 'recent' ?
-                  query.query !== '' ?
-                    getText('noFilesMatchTheCurrentFilters')
-                  : getText('youHaveNoRecentProjects')
-                : query.query !== '' ?
-                  getText('noFilesMatchTheCurrentFilters')
-                : getText('youHaveNoFiles')}
+                  (specialEmptyText ?? getText('youHaveNoRecentProjects'))
+                : (specialEmptyText ?? getText('youHaveNoFiles'))}
               </Text>
             </td>
           </tr>

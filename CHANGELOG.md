@@ -67,6 +67,7 @@
   too][12643]
 - [File Browser Widget warns when trying to override an existing file][12644]
 - [Add right-click context menu to the graph editor background][12601]
+- [Editing multiline text literals is now supported][12774]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -105,6 +106,7 @@
 [12643]: https://github.com/enso-org/enso/pull/12643
 [12644]: https://github.com/enso-org/enso/pull/12644
 [12601]: https://github.com/enso-org/enso/pull/12603
+[12774]: https://github.com/enso-org/enso/pull/12774
 
 #### Enso Standard Library
 
@@ -313,6 +315,8 @@
 - [Added `Table.geo_distance` to calculate the distance between two
   points.][12393]
 - [The reload button clears the Enso Cloud request cache.][12526]
+- [The reload button clears the AuthenticationProvider, EnsoSecretReader and
+  AuditLog caches.][12541]
 
 [11235]: https://github.com/enso-org/enso/pull/11235
 [11255]: https://github.com/enso-org/enso/pull/11255
@@ -327,6 +331,7 @@
 [12017]: https://github.com/enso-org/enso/pull/12017
 [12393]: https://github.com/enso-org/enso/pull/12393
 [12526]: https://github.com/enso-org/enso/pull/12526
+[12541]: https://github.com/enso-org/enso/pull/12526
 
 #### Enso Language & Runtime
 

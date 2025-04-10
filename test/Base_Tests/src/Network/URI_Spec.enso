@@ -9,6 +9,8 @@ from Standard.Test import all
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
+polyglot java import org.enso.base.enso_cloud.EnsoSecretHelper
+
 add_specs suite_builder =
     ## To run this test locally:
        $ sbt 'http-test-helper/run localhost 8080'
@@ -337,6 +339,24 @@ add_specs suite_builder =
                     r1 = uri1.fetch
                     r1.should_fail_with Illegal_Argument
                     r1.catch.to_display_text . should_contain "Secrets are not allowed in HTTP connections, use HTTPS instead."
+
+        with_secret ~action =
+            secret = Enso_Secret.create "my_test_secret-clear-cache-1-"+Random.uuid "My Value"
+            secret.should_succeed
+            Panic.with_finalizer secret.delete (action secret)
+
+        group_builder.specify "EnsoSecreetReader cache should be cleared when a reload is detected" pending=cloud_setup.pending <| Test.with_retries <|
+            cloud_setup.with_prepared_environment <|
+                with_secret secret1-> with_secret secret2->
+                    base_uri = URI.from 'https://httpbin.org/bytes/50'
+                    uri1 = base_uri . add_query_argument "arg1" secret1
+                    uri2 = base_uri . add_query_argument "arg1" secret2
+                    uri1.fetch . should_succeed
+                    uri2.fetch . should_succeed
+                    (EnsoSecretHelper.getEnsoSecretReaderCacheSize >= 2) . should_be_true
+                    EnsoSecretHelper.simulateEnsoSecretReaderReload
+                    uri1.fetch . should_succeed
+                    (EnsoSecretHelper.getEnsoSecretReaderCacheSize == 1) . should_be_true
 
 main filter=Nothing =
     suite = Test.build suite_builder->

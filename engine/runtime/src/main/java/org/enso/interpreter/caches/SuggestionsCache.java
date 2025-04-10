@@ -7,7 +7,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.apache.commons.lang3.StringUtils;
@@ -140,7 +140,7 @@ public final class SuggestionsCache
    * @param libraryName
    * @param suggestions Must not be null.
    */
-  public record CachedSuggestions(LibraryName libraryName, ArrayList<Suggestion> suggestions) {}
+  public record CachedSuggestions(LibraryName libraryName, List<Suggestion> suggestions) {}
 
   public record Metadata(String sourceHash, String blobHash) {
     byte[] toBytes() throws IOException {
