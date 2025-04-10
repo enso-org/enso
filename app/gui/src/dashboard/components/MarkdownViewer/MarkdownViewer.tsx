@@ -31,16 +31,23 @@ export function MarkdownViewer(props: MarkdownViewerProps) {
   const logger = useLogger()
   const { getText } = useText()
 
-  const transformImageUrl: UrlTransformer = (path: string) =>
-    /^https?:/.test(path) ?
-      Promise.resolve(Ok({ url: path }))
-    : imgUrlResolver(path).then(
+  const transformImageUrl: UrlTransformer = (path: string) => {
+    // In Enso Documentation, the relative paths are from module's directory
+    // Here we always display docs from `src/Main.enso` module
+    const appliedUrl = new URL(path, 'file:///src')
+    if (appliedUrl.protocol !== 'file:') {
+      return Promise.resolve(Ok({ url: path }))
+    } else {
+      // Omit the starting '/'.
+      return imgUrlResolver(appliedUrl.pathname.substring(1)).then(
         (url) => Ok({ url }),
         (error) => {
           logger.error(error)
           return Err(getText('arbitraryFetchImageError'))
         },
       )
+    }
+  }
 
   return (
     <LazyMarkdownEditor
