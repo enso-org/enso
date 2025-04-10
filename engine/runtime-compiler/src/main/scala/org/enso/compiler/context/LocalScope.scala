@@ -6,7 +6,6 @@ import org.enso.compiler.pass.analyse.FramePointer
 import org.enso.compiler.pass.analyse.FrameVariableNames
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.compiler.pass.analyse.alias.graph.{
-  GraphOccurrence,
   GraphBuilder,
   Graph => AliasGraph
 }
@@ -163,13 +162,11 @@ class LocalScope(
       .flatMap(scope => Some(scope.flattenBindingsWithLevel(level + 1)))
       .getOrElse(Map())
 
-    scope.occurrences.foreach {
-      case (id, x: GraphOccurrence.Def) =>
-        parentResult += x.symbol -> new FramePointer(
-          level,
-          allFrameSlotIdxs(id)
-        )
-      case _ =>
+    scope.forEachOccurenceDefinition { x =>
+      parentResult += x.symbol -> new FramePointer(
+        level,
+        allFrameSlotIdxs(x.id)
+      )
     }
     parentResult
   }

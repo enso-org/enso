@@ -640,7 +640,7 @@ public class Main {
   /**
    * Handles the `--compile` CLI option.
    *
-   * @param packagePath the path to the package being compiled
+   * @param path the path to the package or file being compiled
    * @param shouldCompileDependencies whether the dependencies of that package should also be
    *     compiled
    * @param shouldUseGlobalCache whether or not the compilation result should be written to the
@@ -651,22 +651,25 @@ public class Main {
    * @param logMasking whether or not log masking is enabled
    */
   private void compile(
-      String packagePath,
+      String path,
       boolean shouldCompileDependencies,
       boolean shouldUseGlobalCache,
       boolean shouldUseIrCaches,
       boolean enableStaticAnalysis,
       Level logLevel,
-      boolean logMasking) {
-    var file = new File(packagePath);
-    if (!file.exists() || !file.isDirectory()) {
-      throw exitFail("No package exists at " + file + ".");
+      boolean logMasking)
+      throws IOException {
+    var fileAndProject = Utils.findFileAndProject(path, null);
+    if (fileAndProject == null) {
+      throw exitFail("No package exists at " + path + ".");
     }
 
+    boolean isProjectMode = fileAndProject._1();
+    String projectPath = fileAndProject._3();
     var context =
         new PolyglotContext(
             ContextFactory.create()
-                .projectRoot(packagePath)
+                .projectRoot(projectPath)
                 .in(System.in)
                 .out(System.out)
                 .logLevel(logLevel)
@@ -677,9 +680,13 @@ public class Main {
                 .useGlobalIrCacheLocation(shouldUseGlobalCache)
                 .build());
 
-    var topScope = context.getTopScope();
     try {
-      topScope.compile(shouldCompileDependencies, scala.Option.empty());
+      if (isProjectMode) {
+        var topScope = context.getTopScope();
+        topScope.compile(shouldCompileDependencies, scala.Option.empty());
+      } else {
+        context.evalModule(fileAndProject._2());
+      }
       throw exitSuccess();
     } catch (Throwable t) {
       logger.error("Unexpected internal error", t);
@@ -1144,13 +1151,12 @@ public class Main {
       var packagePath = line.getOptionValue(COMPILE_OPTION);
       var shouldCompileDependencies = !line.hasOption(NO_COMPILE_DEPENDENCIES_OPTION);
       var shouldUseGlobalCache = !line.hasOption(NO_GLOBAL_CACHE_OPTION);
-      var shouldUseIrCaches = !line.hasOption(NO_IR_CACHES_OPTION);
 
       compile(
           packagePath,
           shouldCompileDependencies,
           shouldUseGlobalCache,
-          shouldUseIrCaches,
+          shouldEnableIrCaches(line),
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
           logLevel,
           logMasking);
@@ -1208,7 +1214,21 @@ public class Main {
    * @param line the command-line
    * @return `true` if caching should be enabled, `false`, otherwise
    */
-  private static boolean shouldEnableIrCaches(CommandLine line) {
+  private boolean shouldEnableIrCaches(CommandLine line) {
+    // Temporarily, enabling static analysis disables IR caches.
+    if (line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION)) {
+      if (line.hasOption(IR_CACHES_OPTION)) {
+        throw exitFail(
+            "Currently --"
+                + ENABLE_STATIC_ANALYSIS_OPTION
+                + " requires IR caches to be disabled, so --"
+                + IR_CACHES_OPTION
+                + " option cannot be used in combination with this flag.");
+      }
+
+      return false;
+    }
+
     if (line.hasOption(IR_CACHES_OPTION)) {
       return true;
     } else if (line.hasOption(NO_IR_CACHES_OPTION)) {

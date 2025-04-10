@@ -256,24 +256,18 @@ export function useOpenProjectMutation() {
         ...asset,
         projectState: { ...asset.projectState, type: backendModule.ProjectState.openInProgress },
       }))
-
-      void client.cancelQueries({ queryKey })
     },
-    onSuccess: async (_, { type, id, title, parentId, hybrid }) => {
+    onSuccess: async (_, { title, hybrid }) => {
+      await client.cancelQueries({ queryKey: ['project'] })
       if (hybrid) {
         await remoteBackend.setHybridOpened(hybrid.cloudProjectId, title)
       }
-      await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
+    },
+    onError: async (_, { type, parentId }) => {
+      await client.invalidateQueries({ queryKey: ['project'] })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
-    onError: async (_, { type, id, parentId }) => {
-      await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
-      await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
-    },
-    meta: {
-      invalidates: [['listDirectory']],
-      awaitInvalidates: true,
-    },
+    meta: { invalidates: [['listDirectory', 'project']], awaitInvalidates: true },
   })
 }
 
@@ -374,17 +368,20 @@ export function useCloseProjectMutation() {
 /** Mutation to rename a project. */
 export function useRenameProjectMutation() {
   const client = reactQuery.useQueryClient()
-  const remoteBackend = backendProvider.useRemoteBackend()
-  const localBackend = backendProvider.useLocalBackend()
   const updateLaunchedProjects = useUpdateLaunchedProjects()
 
   return reactQuery.useMutation({
     mutationKey: ['renameProject'],
-    mutationFn: ({ newName, project }: { newName: string; project: LaunchedProject }) => {
-      const { type, id, title } = project
-      const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
-
-      invariant(backend != null, 'Backend is null')
+    mutationFn: ({
+      newName,
+      project,
+      backend,
+    }: {
+      newName: string
+      project: LaunchedProject
+      backend: Backend
+    }) => {
+      const { id, title } = project
 
       return backend.updateProject(id, { projectName: newName }, title)
     },
