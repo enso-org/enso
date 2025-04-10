@@ -41,7 +41,8 @@ public class TestTelemetry {
   private static final int port = 8083;
   private static final URI baseUri = URI.create("http://localhost:" + port + "/enso-cloud-mock");
   private static final URI logUri = URI.create(baseUri + "/logs");
-  private static final URI refreshUri = URI.create(baseUri + "/enso-cloud-auth-renew");
+  private static final URI refreshUri =
+      URI.create("http://localhost:" + port + "/enso-cloud-auth-renew");
   private static final long APPENDER_KEEP_ALIVE = 20;
   private static final Credentials credentials = mockCredentials();
 
