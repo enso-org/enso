@@ -300,18 +300,15 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {canExecute &&
-          !isRunningProject &&
-          !isOtherUserUsingProject &&
-          (
-            <ContextMenuEntry
-              hidden={hidden}
-              action="rename"
-              doAction={() => {
-                setRowState(object.merger({ isEditingName: true }))
-              }}
-            />
-          )}
+        {canExecute && !isRunningProject && !isOtherUserUsingProject && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="rename"
+            doAction={() => {
+              setRowState(object.merger({ isEditingName: true }))
+            }}
+          />
+        )}
         {(asset.type === backendModule.AssetType.secret ||
           asset.type === backendModule.AssetType.datalink) &&
           canEditThisAsset && (
