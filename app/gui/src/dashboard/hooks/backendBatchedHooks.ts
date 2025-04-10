@@ -1,5 +1,6 @@
 /** @file Hooks to do batched backend operations. */
 import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
+import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
 import { getMessageOrToString } from '#/utilities/error'
 import { useMutationState, type Mutation, type QueryClient } from '@tanstack/react-query'
 import {
@@ -295,11 +296,15 @@ export function useMoveAssetsMutationState<Result>(
 }
 
 /** Get a list of all items in the trash. */
-export async function getAllTrashedItems(queryClient: QueryClient, backend: Backend) {
+export async function getAllTrashedItems(
+  queryClient: QueryClient,
+  backend: Backend,
+  category: TrashCategory,
+) {
   return await queryClient.ensureQueryData(
     backendQueryOptions(backend, 'listDirectory', [
       {
-        parentId: null,
+        parentId: category.homeDirectoryId,
         labels: null,
         filterBy: FilterBy.trashed,
         recentProjects: false,

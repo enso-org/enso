@@ -18,14 +18,16 @@ import { useUser } from '#/providers/AuthProvider'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
-import { useBackend, useLocalBackend } from '#/providers/BackendProvider'
+import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { Path, type DirectoryId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
+import { organizationIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
@@ -85,6 +87,13 @@ export type CloudCategoryResult = ReturnType<typeof useCloudCategoryList>
 export function useCloudCategoryList() {
   const user = useUser()
   const { getText } = useText()
+  const backend = useRemoteBackend()
+  const { data: organization } = useSuspenseQuery({
+    queryKey: [backend.type, 'getOrganization'],
+    queryFn: () => backend.getOrganization(),
+  })
+  const organizationRootDirectoryId =
+    organization != null ? organizationIdToDirectoryId(organization.id) : user.rootDirectoryId
 
   const cloudCategory: CloudCategory = {
     type: 'cloud',
@@ -107,7 +116,7 @@ export function useCloudCategoryList() {
     id: 'trash',
     label: getText('trashCategory'),
     icon: Trash2Icon,
-    homeDirectoryId: null,
+    homeDirectoryId: organizationRootDirectoryId,
   }
 
   const predefinedCloudCategories: AnyCloudCategory[] = [

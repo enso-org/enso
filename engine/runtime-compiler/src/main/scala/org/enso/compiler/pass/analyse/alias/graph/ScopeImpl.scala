@@ -4,6 +4,7 @@ package alias.graph
 
 import org.enso.compiler.core.CompilerError
 
+import scala.jdk.CollectionConverters._
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.reflect.ClassTag
@@ -16,22 +17,53 @@ import scala.reflect.ClassTag
   *                       Note that there may not be a link for all these definitions.
   */
 sealed private[graph] class ScopeImpl(
-  private[graph] var _childScopes: List[ScopeImpl] = List(),
-  private[graph] var _occurrences: Map[GraphImpl.Id, GraphOccurrence] =
-    HashMap(),
-  _defs: java.util.List[
-    GraphOccurrence.Def
-  ] = new java.util.ArrayList()
+  private[graph] var _childScopes: List[ScopeImpl]             = List(),
+  _occurs: scala.collection.Map[GraphImpl.Id, GraphOccurrence] = HashMap(),
+  _defs: java.util.Collection[GraphOccurrence.Def]             = null
 ) extends Graph.Scope {
   private[graph] val _allDefinitions: java.util.List[
     GraphOccurrence.Def
-  ] = new java.util.ArrayList(_defs.stream.map(_.withScope(this)).toList)
+  ] =
+    if (_defs == null) new java.util.ArrayList()
+    else new java.util.ArrayList(_defs.stream.map(_.withScope(this)).toList)
 
   private[graph] var _parent: ScopeImpl = null
+  private val occurrencesById: java.util.Map[GraphImpl.Id, GraphOccurrence] =
+    new java.util.HashMap(_occurs.asJava)
+  private val defsBySymbol
+    : java.util.Map[GraphImpl.Symbol, GraphOccurrence.Def] = {
+    val bySymbol =
+      new java.util.HashMap[GraphImpl.Symbol, GraphOccurrence.Def]()
+    allOccurrences().stream
+      .filter(_.isInstanceOf[GraphOccurrence.Def])
+      .forEach(d => {
+        bySymbol.put(d.symbol, d.asInstanceOf[GraphOccurrence.Def])
+      })
+    bySymbol
+  }
 
-  def childScopes    = _childScopes
-  def occurrences    = _occurrences
-  def allDefinitions = java.util.Collections.unmodifiableList(_allDefinitions)
+  def childScopes = _childScopes
+
+  def forEachOccurenceDefinition(fn: (GraphOccurrence => Unit)): Unit = {
+    allOccurrences().forEach {
+      case x: GraphOccurrence.Def => fn(x)
+      case _                      =>
+    }
+  }
+
+  private[graph] def writeObject(
+    out: org.enso.persist.Persistance.Output
+  ): Unit = {
+    out.writeInline(classOf[scala.collection.immutable.List[_]], childScopes);
+    out.writeObject(allOccurrences().asScala.toSet);
+    out.writeInline(classOf[java.util.List[_]], _allDefinitions);
+  }
+
+  private def allOccurrences(): java.util.Collection[GraphOccurrence] =
+    occurrencesById.values
+
+  def allDefinitions =
+    java.util.Collections.unmodifiableCollection(_allDefinitions)
   def parent: Option[ScopeImpl] =
     if (this._parent eq null) None else Some(_parent)
 
@@ -80,7 +112,7 @@ sealed private[graph] class ScopeImpl(
         val newScope =
           new ScopeImpl(
             childScopeCopies.toList,
-            occurrences,
+            occurrencesById.asScala,
             new java.util.ArrayList(_allDefinitions)
           )
         mapping.put(this, newScope)
@@ -99,7 +131,7 @@ sealed private[graph] class ScopeImpl(
         if (this.childScopes.length == that.childScopes.length) {
           val childScopesEqual =
             this.childScopes.zip(that.childScopes).forall(t => t._1 == t._2)
-          val occurrencesEqual = this.occurrences == that.occurrences
+          val occurrencesEqual = this.occurrencesById == that.occurrencesById
 
           childScopesEqual && occurrencesEqual
         } else {
@@ -125,12 +157,17 @@ sealed private[graph] class ScopeImpl(
     * @param occurrence the occurrence to add
     */
   private[graph] def add(occurrence: GraphOccurrence): Unit = {
-    if (occurrences.contains(occurrence.id)) {
+    if (occurrencesById.containsKey(occurrence.id)) {
       throw new CompilerError(
         s"Multiple occurrences found for ID ${occurrence.id}."
       )
     } else {
-      _occurrences += ((occurrence.id, occurrence))
+      occurrencesById.put(occurrence.id, occurrence)
+      occurrence match {
+        case d: GraphOccurrence.Def =>
+          defsBySymbol.put(occurrence.symbol, d)
+        case _ =>
+      }
     }
   }
 
@@ -152,7 +189,7 @@ sealed private[graph] class ScopeImpl(
   private[analyse] def getOccurrence(
     id: GraphImpl.Id
   ): Option[GraphOccurrence] = {
-    occurrences.get(id)
+    Option(occurrencesById.get(id))
   }
 
   /** Finds any occurrences for the provided symbol in the current scope, if
@@ -162,12 +199,18 @@ sealed private[graph] class ScopeImpl(
     * @tparam T the role for the symbol
     * @return the occurrences for `name`, if they exist
     */
-  private[analyse] def getOccurrences[T <: GraphOccurrence: ClassTag](
+  private[graph] def getOccurrences[T <: GraphOccurrence: ClassTag](
     symbol: GraphImpl.Symbol
-  ): Set[GraphOccurrence] = {
-    occurrences.values.collect {
-      case o: T if o.symbol == symbol => o
-    }.toSet
+  ): Set[T] = {
+    allOccurrences().stream
+      .filter {
+        case o: T if o.symbol == symbol => true
+        case _                          => false
+      }
+      .toList
+      .asScala
+      .map(_.asInstanceOf[T])
+      .toSet
   }
 
   /** Checks whether a symbol occurs in a given role in the current scope.
@@ -180,9 +223,7 @@ sealed private[graph] class ScopeImpl(
   final def hasSymbolOccurrenceAs[T <: GraphOccurrence: ClassTag](
     symbol: GraphImpl.Symbol
   ): Boolean = {
-    occurrences.values.collectFirst {
-      case x: T if x.symbol == symbol => x
-    }.nonEmpty
+    getOccurrences(symbol).nonEmpty
   }
 
   /** Resolves usages of symbols into links where possible, creating an edge
@@ -195,23 +236,12 @@ sealed private[graph] class ScopeImpl(
     */
   private[analyse] def resolveUsage(
     occurrence: GraphOccurrence.Use,
-    hint: GraphOccurrence.Def,
     parentCounter: Int = 0
   ): Option[Graph.Link] = {
-    val definition =
-      if (hint != null && (hint.scope() eq this)) {
-        Some(hint)
-      } else {
-        occurrences.values.find {
-          case GraphOccurrence.Def(_, name, _, _, _) =>
-            name == occurrence.symbol
-          case _ => false
-        }
-      }
-
+    val definition = Option(defsBySymbol.get(occurrence.symbol))
     definition match {
       case None =>
-        parent.flatMap(_.resolveUsage(occurrence, hint, parentCounter + 1))
+        parent.flatMap(_.resolveUsage(occurrence, parentCounter + 1))
       case Some(target) =>
         Some(Graph.Link(occurrence.id, parentCounter, target.id()))
     }
@@ -222,7 +252,7 @@ sealed private[graph] class ScopeImpl(
     * @return a string representation of `this`
     */
   override def toString: String =
-    s"Scope(occurrences = ${occurrences.values}, childScopes = $childScopes)"
+    s"Scope(occurrences = ${allOccurrences()}, childScopes = $childScopes)"
 
   /** Counts the number of scopes in this scope.
     *
@@ -247,7 +277,7 @@ sealed private[graph] class ScopeImpl(
     * @return the scope where `id` occurs
     */
   private[analyse] def scopeFor(id: GraphImpl.Id): Option[ScopeImpl] = {
-    if (!occurrences.contains(id)) {
+    if (!occurrencesById.containsKey(id)) {
       if (childScopes.isEmpty) {
         None
       } else {
@@ -317,7 +347,8 @@ sealed private[graph] class ScopeImpl(
     * @return the set of symbols
     */
   private[analyse] def symbols: Set[GraphImpl.Symbol] = {
-    val symbolsInThis        = occurrences.values.map(_.symbol).toSet
+    val symbolsInThis =
+      allOccurrences().stream.map(_.symbol).toList.asScala.toSet
     val symbolsInChildScopes = childScopes.flatMap(_.symbols)
 
     symbolsInThis ++ symbolsInChildScopes
