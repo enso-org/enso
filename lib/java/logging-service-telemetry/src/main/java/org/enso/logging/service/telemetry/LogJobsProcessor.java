@@ -2,14 +2,16 @@ package org.enso.logging.service.telemetry;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import org.enso.logging.service.telemetry.ApiMessage.Log;
 import org.slf4j.Logger;
@@ -26,11 +28,17 @@ public final class LogJobsProcessor {
   private static final int MAX_RETRIES = 5;
   private static final Logger LOGGER = LoggerFactory.getLogger(LogJobsProcessor.class);
 
+  /**
+   * The amount of time before the token expiration. Determines whether the token should be
+   * proactively refreshed early, so that it does not expire during a request.
+   */
+  private static final Duration TOKEN_EARLY_REFRESH_PERIOD = Duration.ofMinutes(2);
+
   private final ThreadPoolExecutor backgroundThreadService;
   private final URI endpoint;
-  private final AuthenticationData authenticationData;
   private final LogJobsQueue logQueue = new LogJobsQueue();
   private final TokenRefresher tokenRefresher;
+  private AuthenticationData authenticationData;
   private HttpClient httpClient;
 
   /**
@@ -40,7 +48,11 @@ public final class LogJobsProcessor {
    */
   private boolean requestSendingFailure;
 
-  public LogJobsProcessor(ThreadPoolExecutor executor, URI endpoint, AuthenticationData authenticationData, TokenRefresher tokenRefresher) {
+  public LogJobsProcessor(
+      ThreadPoolExecutor executor,
+      URI endpoint,
+      AuthenticationData authenticationData,
+      TokenRefresher tokenRefresher) {
     this.backgroundThreadService = Objects.requireNonNull(executor);
     this.endpoint = Objects.requireNonNull(endpoint);
     this.authenticationData = Objects.requireNonNull(authenticationData);
@@ -98,6 +110,23 @@ public final class LogJobsProcessor {
    */
   private void sendBatch(List<LogJob> batch) throws RequestFailureException {
     assert !batch.isEmpty() : "The batch must not be empty.";
+
+    if (accessTokenNeedsRefresh()) {
+      var refreshTokenTask = tokenRefresher.fetchNewAccessToken();
+      AuthenticationData refreshedAuthData;
+      try {
+        // We cannot proceed until a new, refreshed, token is received.
+        refreshedAuthData = refreshTokenTask.get();
+      } catch (InterruptedException | ExecutionException e) {
+        throw new RequestFailureException("Error during token refresh", e);
+      }
+      if (refreshedAuthData != null) {
+        authenticationData = refreshedAuthData;
+      } else {
+        throw new RequestFailureException("Failed to refresh token", null);
+      }
+    }
+    assert authenticationData != null;
 
     try {
       var request = buildRequest(batch);
@@ -191,6 +220,12 @@ public final class LogJobsProcessor {
         sendLogRequest(request, retryCount - 1);
       }
     }
+  }
+
+  private boolean accessTokenNeedsRefresh() {
+    var inEarlyFuture = ZonedDateTime.now().plus(TOKEN_EARLY_REFRESH_PERIOD);
+    var expiration = authenticationData.expireAt();
+    return inEarlyFuture.compareTo(expiration) > 0;
   }
 
   private static final class RequestFailureException extends Exception {
