@@ -1148,6 +1148,8 @@ lazy val `logging-service-telemetry` = project
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
     version := "0.1",
+    commands += WithDebugCommand.withDebug,
+    Test / fork := true,
     libraryDependencies ++= Seq(
       "org.slf4j"                              % "slf4j-api"               % slf4jVersion,
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros"   % jsoniterVersion,
