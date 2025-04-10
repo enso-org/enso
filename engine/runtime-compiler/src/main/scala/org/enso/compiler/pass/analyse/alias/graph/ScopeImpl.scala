@@ -166,7 +166,7 @@ sealed private[graph] class ScopeImpl(
       occurrence match {
         case d: GraphOccurrence.Def =>
           defsBySymbol.put(occurrence.symbol, d)
-        case  _ =>
+        case _ =>
       }
     }
   }
