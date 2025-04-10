@@ -163,11 +163,10 @@ sealed private[graph] class ScopeImpl(
       )
     } else {
       occurrencesById.put(occurrence.id, occurrence)
-      if (occurrence.isInstanceOf[GraphOccurrence.Def]) {
-        defsBySymbol.put(
-          occurrence.symbol,
-          occurrence.asInstanceOf[GraphOccurrence.Def]
-        )
+      occurrence match {
+        case d: GraphOccurrence.Def =>
+          defsBySymbol.put(occurrence.symbol, d)
+        case  _ =>
       }
     }
   }
