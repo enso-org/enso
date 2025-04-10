@@ -144,7 +144,7 @@ public final class ThreadManager extends GuestCodeExecutor {
   /** Requests that all threads are shutdown. */
   @Override
   public final void shutdown() {
-    guestCode.shutdown();
+    threads.shutdown();
     var hasBeenInterrupted = Thread.interrupted();
     for (var t : interruptFlags.keySet()) {
       try {
