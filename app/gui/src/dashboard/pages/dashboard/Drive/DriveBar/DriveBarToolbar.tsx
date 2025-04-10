@@ -35,6 +35,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { AssetPanelToggle } from '#/layouts/AssetPanel'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
+import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
 import {
   canTransferBetweenCategories,
   isCloudCategory,
@@ -314,7 +315,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
 interface TrashFolderToolbarProps extends PropsWithChildren {
   readonly shouldBeDisabled: boolean
   readonly backend: Backend
-  readonly category: Category
+  readonly category: TrashCategory
 }
 
 /**
@@ -327,7 +328,7 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
   const rootDirectoryQueryOptions = listDirectoryQueryOptions({
     backend,
     category,
-    parentId: null,
+    parentId: category.homeDirectoryId,
     refetchInterval: null,
   })
 
@@ -340,7 +341,7 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
   const deleteAssetsMutation = useMutationCallback(deleteAssetsMutationOptions(backend))
 
   const clearTrash = useEventCallback(async () => {
-    const allTrashedItems = await getAllTrashedItems(queryClient, backend)
+    const allTrashedItems = await getAllTrashedItems(queryClient, backend, category)
     await deleteAssetsMutation([allTrashedItems.map((item) => item.id), true])
   })
 
