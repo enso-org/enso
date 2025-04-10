@@ -137,6 +137,7 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
   const { assetId, backend } = options
 
   const isLocal = backend.type === backendModule.BackendType.local
+
   return reactQuery.queryOptions({
     queryKey: createGetProjectDetailsQuery.getQueryKey(assetId),
     queryFn: () => backend.getProjectDetails(assetId),

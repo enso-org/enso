@@ -86,7 +86,6 @@ export interface ProjectsContextType {
 }
 
 const ProjectsContext = React.createContext<ProjectsContextType | null>(null)
-
 const PageContext = React.createContext<LaunchedProjectId | TabType | null>(null)
 const LaunchedProjectsContext = React.createContext<readonly LaunchedProject[] | null>(null)
 

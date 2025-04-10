@@ -166,10 +166,8 @@ function DashboardInner() {
     [inputBindings],
   )
 
-  // const [page, setPage1] = React.useState('drive')
   const page = usePage()
   const setPage = useSetPage()
-  // const setPage = (page) => (setPage1(page), setPage2(page))
   const launchedProjects = useLaunchedProjects()
   const closeProject = projectHooks.useCloseProject()
   const closeAllProjects = projectHooks.useCloseAllProjects()
@@ -194,23 +192,6 @@ function DashboardInner() {
           closeAllProjects={closeAllProjects}
           clearLaunchedProjects={clearLaunchedProjects}
         />
-        {/* <Tabs
-          className="relative flex min-h-full grow select-none flex-col container-size"
-          selectedKey={selectedTab}
-          onSelectionChange={onSelectionChange}
-        >
-          <div className="flex">
-            <DashboardTabBar onCloseProject={closeProject} onOpenEditor={openEditor} />
-
-            <UserBar
-              setIsHelpChatOpen={setIsHelpChatOpen}
-              goToSettingsPage={goToSettings}
-              onSignOut={onSignOut}
-            />
-          </div>
-
-          <DashboardTabPanels initialProjectName={initialProjectName} ydocUrl={ydocUrl} />
-        </Tabs> */}
         {$config.CHAT_URL != null ?
           <Chat
             isOpen={isHelpChatOpen}

@@ -1,13 +1,7 @@
 import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
 import { assert } from '@/util/assert'
 import * as react from 'react'
-import {
-  allModeReturn,
-  applyPureReactInVue,
-  createCrossingProviderForPureReactInVue,
-  ReactContext,
-  VueComponent,
-} from 'veaury'
+import { applyPureReactInVue } from 'veaury'
 import { computed } from 'vue'
 import { Router, useRoute, useRouter } from 'vue-router'
 
@@ -36,8 +30,6 @@ export const ContextsForReactProvider = applyPureReactInVue(
     router,
     config,
   }: react.PropsWithChildren<{ router: RouterForReact; config: GuiConfig }>) => {
-    console.log('ROUTER', router)
-    console.log('CONFIG', config)
     return (
       <RouterContext.Provider value={router}>
         <ConfigContext.Provider value={config}>{children}</ConfigContext.Provider>
@@ -46,12 +38,10 @@ export const ContextsForReactProvider = applyPureReactInVue(
   },
   {
     useInjectPropsFromWrapper: () => {
-      console.log('Inject props is run')
       const route = useRoute()
       const router = useRouter()
       return {
         router: computed(() => {
-          console.log('Recomputed router')
           const searchParams = computed(() => {
             const queryFlatList = Object.entries(route.query).flatMap(([key, value]) => {
               if (value instanceof Array) {
@@ -73,13 +63,3 @@ export const ContextsForReactProvider = applyPureReactInVue(
     },
   },
 )
-
-/**
- * A wrapper for {@link createCrossingProviderForPureReactInVue}, because veaury is very bad at
- * types.
- */
-export function createContextForReact<T extends allModeReturn>(
-  constructor: () => T,
-): [useInReact: () => T, Provider: VueComponent, ReactContext] {
-  return createCrossingProviderForPureReactInVue(constructor) as any
-}

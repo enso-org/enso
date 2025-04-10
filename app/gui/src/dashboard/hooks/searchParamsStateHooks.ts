@@ -42,8 +42,6 @@ export function useSearchParamsState<T = unknown>(
 ): SearchParamsStateReturnType<T> {
   const { router, searchParams } = useRouterInReact()
 
-  // const searchParams = new URLSearchParams(search)
-
   const setSearchParams = useCallback(
     (
       nextSearchParams:

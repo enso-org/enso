@@ -89,9 +89,8 @@ export default function ConfirmRegistration() {
   }
 
   if (email == null || verificationCode == null) {
-    void router.push(appUtils.LOGIN_PATH)
+    void router.replace(appUtils.LOGIN_PATH)
     return
-    // return <router.Navigate to={appUtils.LOGIN_PATH} replace />
   }
 
   return (

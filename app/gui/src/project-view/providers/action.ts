@@ -210,7 +210,7 @@ export function initializeActions() {
 export function registerHandlers<Handlers extends Partial<Record<keyof Actions, ActionHandler>>>(
   handlers: ForbidExcessProps<Handlers, Actions>,
 ): Actions & Handlers {
-  const actions = injectActions(true) ?? ACTIONS
+  const actions = injectActions()
   const newActions: Actions = { ...actions }
 
   function isKey(k: PropertyKey): k is keyof Actions {

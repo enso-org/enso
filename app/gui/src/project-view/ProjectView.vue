@@ -9,17 +9,7 @@ import { provideProjectNames } from '@/stores/projectNames'
 import { provideSettings } from '@/stores/settings'
 import { type Opt } from '@/util/data/opt'
 import { useEventListener } from '@vueuse/core'
-import {
-  markRaw,
-  onActivated,
-  onDeactivated,
-  onMounted,
-  onUnmounted,
-  ref,
-  toRaw,
-  toRef,
-  watch,
-} from 'vue'
+import { markRaw, onActivated, onDeactivated, ref, toRaw, toRef, watch } from 'vue'
 
 const props = defineProps<{
   readonly projectId: string
@@ -72,9 +62,6 @@ const visible = ref(false)
 provideVisibility(visible)
 onActivated(() => (visible.value = true))
 onDeactivated(() => (visible.value = false))
-
-onMounted(() => console.log('ProjectView MOUNT'))
-onUnmounted(() => console.log('ProjectView UNMOUNT'))
 </script>
 
 <template>

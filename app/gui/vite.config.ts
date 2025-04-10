@@ -70,7 +70,7 @@ export default defineConfig({
   ],
   optimizeDeps: {
     entries: fileURLToPath(new URL('./index.html', import.meta.url)),
-    exclude: ['enso-common', 'veaury', 'vue'],
+    exclude: ['enso-common'],
     holdUntilCrawlEnd: true,
   },
   server: {
