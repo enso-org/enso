@@ -1,7 +1,7 @@
 /** @file Hooks to do batched backend operations. */
 import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
-import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
+import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { getMessageOrToString } from '#/utilities/error'
 import { useMutationState, type Mutation, type QueryClient } from '@tanstack/react-query'
 import {
