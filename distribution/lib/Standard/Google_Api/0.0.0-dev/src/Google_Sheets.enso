@@ -58,8 +58,8 @@ private _handle_exceptions ~action =
 private _wrap_credentials credential:File|Enso_Secret =
     case credential of
         secret : Enso_Secret ->
-            WrappedGoogleCredentials.SecretCredentials.new (as_credential_reference secret)
+            WrappedGoogleCredentials.fromCredentialReference (as_credential_reference secret)
         secret_file : File ->
             secret_file.with_input_stream [File_Access.Read] stream->
                 stream.with_java_stream java_input_stream->
-                    WrappedGoogleCredentials.LocalFileCredentials.fromStream java_input_stream
+                    WrappedGoogleCredentials.fromStream java_input_stream
