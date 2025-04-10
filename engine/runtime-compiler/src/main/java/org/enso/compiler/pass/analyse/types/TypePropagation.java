@@ -46,17 +46,13 @@ abstract class TypePropagation {
   private final ModuleResolver moduleResolver;
   private final MethodTypeResolver methodTypeResolver;
 
-  TypePropagation(
-      TypeResolver typeResolver,
-      TypeCompatibility compatibilityChecker,
-      Module currentModule,
-      ModuleResolver moduleResolver) {
+  TypePropagation(TypeResolver typeResolver, Module currentModule, ModuleResolver moduleResolver) {
     this.typeResolver = typeResolver;
-    this.compatibilityChecker = compatibilityChecker;
     this.moduleResolver = moduleResolver;
 
     var currentModuleScope = StaticModuleScope.forIR(currentModule);
     this.methodTypeResolver = new MethodTypeResolver(moduleResolver, currentModuleScope);
+    this.compatibilityChecker = new TypeCompatibility(this.methodTypeResolver);
   }
 
   /**
@@ -628,10 +624,6 @@ abstract class TypePropagation {
         logger.trace(
             "type ascription: {} - overwriting inferred type {}", ir.showCode(), inferredType);
       }
-
-      // If the inferred type implies the ascription will fail at runtime, we can report a warning
-      // here.
-      checkTypeCompatibility(ir, ascribedType, inferredType);
     }
   }
 }

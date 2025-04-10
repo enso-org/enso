@@ -1,6 +1,7 @@
 package org.enso.compiler.pass.analyse.alias.graph;
 
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Builder of {@link Graph}. Separates the concerns of building a graph of local symbol definitions
@@ -95,15 +96,20 @@ public final class GraphBuilder {
     return def;
   }
 
-  /** Factory method to create new [GraphOccurrence.Use]. */
+  /**
+   * Factory method to create new [GraphOccurrence.Use].
+   *
+   * @param symbol symbol of the usage
+   * @param identifier identifier or null
+   * @param externalId external ID or null
+   * @param resolve search for a {@link GraphOccurrence.Def} pair for this usage
+   * @return
+   */
   public GraphOccurrence.Use newUse(
-      String symbol,
-      java.util.UUID identifier,
-      scala.Option<java.util.UUID> externalId,
-      boolean resolve) {
+      String symbol, UUID identifier, scala.Option<UUID> externalId, boolean resolve) {
     var use = GraphOccurrence.createUse(scope, graph.nextId(scope), symbol, identifier, externalId);
     if (resolve) {
-      graph.resolveLocalUsage(use, null);
+      graph.resolveLocalUsage(use);
     }
     return use;
   }
@@ -131,17 +137,14 @@ public final class GraphBuilder {
       if (scope.parent().isDefined()) {
         fillInDefinitions(scope.parent().get(), defs);
       }
-      scope
-          ._occurrences()
-          .values()
-          .foreach(
-              o -> {
-                if (o instanceof GraphOccurrence.Def d) {
-                  assert d.scope() == scope;
-                  defs.put(d.symbol(), d);
-                }
-                return null;
-              });
+      scope.forEachOccurenceDefinition(
+          o -> {
+            if (o instanceof GraphOccurrence.Def d) {
+              assert d.scope() == scope;
+              defs.put(d.symbol(), d);
+            }
+            return null;
+          });
     }
   }
 }

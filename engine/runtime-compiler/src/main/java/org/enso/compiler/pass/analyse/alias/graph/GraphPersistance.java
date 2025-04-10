@@ -38,11 +38,8 @@ public final class GraphPersistance {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     protected void writeObject(ScopeImpl obj, Output out) throws IOException {
-      out.writeInline(scala.collection.immutable.List.class, obj.childScopes());
-      out.writeObject(obj.occurrences().values().toSet());
-      out.writeInline(java.util.List.class, obj.allDefinitions());
+      obj.writeObject(out);
     }
   }
 

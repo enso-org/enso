@@ -56,7 +56,6 @@ import org.enso.compiler.pass.resolve.{
   ExpressionAnnotations,
   GenericAnnotations,
   GlobalNames,
-  MethodDefinitions,
   Patterns,
   TypeNames,
   TypeSignatures
@@ -239,15 +238,16 @@ class IrToTruffle(
         "Method definition missing frame information."
       )
 
-      val toOpt =
+      val toType =
         conversion.methodReference.typePointer match {
-          case Some(tpePointer) =>
-            getTypeResolution(tpePointer)
+          case Some(tpePointer) => getTypeResolution(tpePointer)
           case None =>
-            Some(scopeAssociatedType)
+            throw new CompilerError(
+              s"Conversion (${where()}) missing type pointer."
+            )
         }
-      val fromOpt = getTypeResolution(conversion.sourceTypeName)
-      toOpt.zip(fromOpt).foreach { case (toType, fromType) =>
+      val fromType = getTypeResolution(conversion.sourceTypeName)
+      if (fromType != null && toType != null) {
         val expressionProcessor = new ExpressionProcessor(
           toType.getName ++ Constants.SCOPE_SEPARATOR ++ conversion.methodName.name,
           () => scopeInfo().graph,
@@ -906,42 +906,6 @@ class IrToTruffle(
       })
       .getOrElse(source.createUnavailableSection())
   }
-
-  private def getTypeResolution(expr: IR): Option[Type] =
-    expr
-      .getMetadata(MethodDefinitions.INSTANCE, classOf[BindingsMap.Resolution])
-      .map { res =>
-        res.target match {
-          case binding @ BindingsMap.ResolvedType(_, _) =>
-            asType(binding)
-          case BindingsMap.ResolvedModule(module) =>
-            asAssociatedType(module.unsafeAsModule())
-          case BindingsMap.ResolvedConstructor(_, _) =>
-            throw new CompilerError(
-              "Impossible here, should be caught by MethodDefinitions pass."
-            )
-          case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
-            throw new CompilerError(
-              "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
-            )
-          case BindingsMap.ResolvedPolyglotField(_, _) =>
-            throw new CompilerError(
-              "Impossible polyglot field, should be caught by MethodDefinitions pass."
-            )
-          case _: BindingsMap.ResolvedModuleMethod =>
-            throw new CompilerError(
-              "Impossible module method here, should be caught by MethodDefinitions pass."
-            )
-          case _: BindingsMap.ResolvedExtensionMethod =>
-            throw new CompilerError(
-              "Impossible static method here, should be caught by MethodDefinitions pass."
-            )
-          case _: BindingsMap.ResolvedConversionMethod =>
-            throw new CompilerError(
-              "Impossible conversion method here, should be caught by MethodDefinitions pass."
-            )
-        }
-      }
 
   private def getTailStatus(
     expression: Expression
