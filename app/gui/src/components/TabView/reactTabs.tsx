@@ -1,9 +1,6 @@
 import { Suspense } from '#/components/Suspense'
 import type { DriveProps } from '#/layouts/Drive'
 import { EditorProps } from '#/layouts/Editor'
-// import ReactDrive from '#/layouts/Drive'
-// import ReactEditor, { EditorProps } from '#/layouts/Editor'
-// import ReactSettings from '#/layouts/Settings'
 import * as react from 'react'
 import { applyPureReactInVue } from 'veaury'
 

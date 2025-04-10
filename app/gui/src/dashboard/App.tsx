@@ -77,9 +77,9 @@ import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 
 import { useInitAuthService } from '#/authentication/service'
 import VueContainer from '#/utilities/VueContainer'
+import { useConfigInReact, useRouterInReact } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
 import { RouterView } from 'vue-router'
-import { useConfigInReact, useRouterInReact } from '../providers/react'
 import { useOffline } from './hooks/offlineHooks'
 
 declare module '#/utilities/LocalStorage' {

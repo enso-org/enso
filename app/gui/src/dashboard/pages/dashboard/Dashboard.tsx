@@ -34,11 +34,11 @@ import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { vueComponent } from '#/utilities/vue'
+import { useConfigInReact } from '$/providers/react'
 import { usePrefetchQuery } from '@tanstack/react-query'
-import { useConfigInReact } from '../../../providers/react'
 
 const TabView = React.lazy(() =>
-  import('@/../components/TabView.vue').then(({ default: vue }) => vueComponent(vue)),
+  import('$/components/TabView.vue').then(({ default: vue }) => vueComponent(vue)),
 )
 
 /** The component that contains the entire UI. */

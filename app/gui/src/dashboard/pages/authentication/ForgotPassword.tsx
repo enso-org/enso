@@ -14,8 +14,8 @@ import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
+import { useRouterInReact } from '$/providers/react'
 import { toast } from 'react-toastify'
-import { useRouterInReact } from '../../../providers/react'
 
 /** A form for users to request for their password to be reset. */
 export default function ForgotPassword() {

@@ -10,7 +10,7 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { useRouterInReact } from '../../../providers/react'
+import { useRouterInReact } from '$/providers/react'
 
 /** Restore an account that has been deleted. */
 export default function RestoreAccount() {

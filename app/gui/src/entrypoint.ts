@@ -1,5 +1,7 @@
 import '#/styles.css'
 import '#/tailwind.css'
+import App from '$/App.vue'
+import router from '$/router.tsx'
 import * as sentry from '@sentry/vue'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import * as detect from 'enso-common/src/detect'
@@ -7,8 +9,6 @@ import { createQueryClient } from 'enso-common/src/queryClient'
 import { MotionGlobalConfig } from 'framer-motion'
 import * as idbKeyval from 'idb-keyval'
 import { createApp } from 'vue'
-import App from './App.vue'
-import router from './router.tsx'
 
 const HTTP_STATUS_BAD_REQUEST = 400
 const API_HOST = $config.API_URL != null ? new URL($config.API_URL).host : null

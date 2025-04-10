@@ -9,7 +9,7 @@ import * as result from '#/components/Result'
 
 import { PLAN_TO_TEXT_ID } from '#/modules/payments'
 import { Plan, isPlan } from '#/services/Backend'
-import { useRouterInReact } from '../../../providers/react'
+import { useRouterInReact } from '$/providers/react'
 
 /** A page to show when a user successfully subscribes to a plan. */
 export function SubscribeSuccess() {

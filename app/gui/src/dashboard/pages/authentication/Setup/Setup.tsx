@@ -27,7 +27,7 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { InviteUsersForm } from '#/modals/InviteUsersModal'
 import { PlanSelector } from '#/modules/payments'
 import { Plan } from '#/services/Backend'
-import { useRouterInReact } from '../../../../providers/react'
+import { useRouterInReact } from '$/providers/react'
 
 /** Step in the setup process */
 interface Step {

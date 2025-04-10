@@ -19,11 +19,11 @@ import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
+import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
+import { useRouterInReact } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { useRouterInReact } from '../../../providers/react'
-import { useSessionAPI } from '../../providers/SessionProvider'
 
 declare module '#/utilities/LocalStorage' {
   /** */

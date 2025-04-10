@@ -17,9 +17,9 @@ import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordSchema } from '#/pages/authentication/schemas'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
+import { useRouterInReact } from '$/providers/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { useRouterInReact } from '../../../providers/react'
 
 // eslint-disable-next-line no-restricted-syntax
 const GOOGLE_ICON = <img src={GoogleIcon} alt="" />

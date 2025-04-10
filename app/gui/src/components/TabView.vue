@@ -2,12 +2,12 @@
 import UserBarReact from '#/layouts/UserBar'
 import { LaunchedProject, LaunchedProjectId, TabType } from '#/providers/ProjectsProvider'
 import { ProjectId } from '#/services/Backend'
+import { Drive, Editor, Settings } from '$/components/TabView/reactTabs'
+import SelectableTab from '$/components/TabView/SelectableTab.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { applyPureReactInVue } from 'veaury'
 import { onMounted, onUnmounted, reactive, watch } from 'vue'
-import { Drive, Editor, Settings } from './TabView/reactTabs'
-import SelectableTab from './TabView/SelectableTab.vue'
 
 const UserBar = applyPureReactInVue(UserBarReact)
 </script>

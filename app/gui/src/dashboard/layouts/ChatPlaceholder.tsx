@@ -13,7 +13,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as ariaComponents from '#/components/AriaComponents'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import { useRouterInReact } from '../../providers/react'
+import { useRouterInReact } from '$/providers/react'
 
 /** Props for a {@link ChatPlaceholder}. */
 export interface ChatPlaceholderProps {

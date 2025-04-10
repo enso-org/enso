@@ -11,9 +11,9 @@ import * as eventCallback from '#/hooks/eventCallbackHooks'
 import * as lazyMemo from '#/hooks/useLazyMemoHooks'
 
 import * as safeJsonParse from '#/utilities/safeJsonParse'
+import { useRouterInReact } from '$/providers/react'
 import { useCallback } from 'react'
 import { type RouteLocationOptions } from 'vue-router'
-import { useRouterInReact } from '../../providers/react'
 
 /** The return type of the `useSearchParamsState` hook. */
 type SearchParamsStateReturnType<T> = Readonly<

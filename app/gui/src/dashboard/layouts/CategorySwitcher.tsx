@@ -5,10 +5,13 @@ import { SEARCH_PARAMS_PREFIX } from '#/appUtils'
 import FolderAddIcon from '#/assets/folder_add.svg'
 import Minus2Icon from '#/assets/minus2.svg'
 import SettingsIcon from '#/assets/settings.svg'
+import { AnimatedBackground } from '#/components/AnimatedBackground'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import { Badge } from '#/components/Badge'
 import * as mimeTypes from '#/data/mimeTypes'
+import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import {
   areCategoriesEqual,
@@ -19,17 +22,13 @@ import {
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
+import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 import type * as backend from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
+import { useRouterInReact } from '$/providers/react'
 import { twJoin } from 'tailwind-merge'
-import { AnimatedBackground } from '../components/AnimatedBackground'
-import { useEventCallback } from '../hooks/eventCallbackHooks'
-
-import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
-import { useRouterInReact } from '../../providers/react'
-import { useSetCurrentDirectoryId } from '../providers/DriveProvider'
 import { useCloudCategoryList, useLocalCategoryList } from './Drive/Categories/categoriesHooks'
 
 /** Metadata for a categoryModule.categoryType. */

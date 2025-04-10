@@ -4,16 +4,16 @@ import * as suspense from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as gtagHooks from '#/hooks/gtagHooks'
 import * as projectHooks from '#/hooks/projectHooks'
+import { useTimeoutCallback } from '#/hooks/timeoutHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/Backend'
 import * as twMerge from '#/utilities/tailwindMerge'
 import { vueComponent } from '#/utilities/vue'
+import { useConfigInReact } from '$/providers/react'
 import * as reactQuery from '@tanstack/react-query'
 import * as React from 'react'
-import { useConfigInReact } from '../../providers/react'
-import { useTimeoutCallback } from '../hooks/timeoutHooks'
 
 const ProjectViewTab = React.lazy(() =>
   import('@/ProjectViewTab.vue').then(({ default: vue }) => vueComponent(vue)),

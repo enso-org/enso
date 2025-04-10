@@ -7,7 +7,7 @@ import { PlanSelector } from '#/modules/payments'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
 import { isPlan } from '#/services/Backend'
-import { useRouterInReact } from '../../../../providers/react'
+import { useRouterInReact } from '$/providers/react'
 
 /**
  * A page in which the currently active payment plan can be changed.
