@@ -1,5 +1,4 @@
 from Standard.Base import all
-import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
 import project.Errors.Deprecated.Deprecated
 import project.Warning.Warning
