@@ -88,7 +88,8 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
 
   const regex = new RegExp(regexEscape(query), 'i')
   const canSelectColor =
-    query !== '' && (allLabels ?? []).filter((label) => regex.test(label.value)).length === 0
+    query !== '' &&
+    (allLabels ?? []).every((label) => label.value.toLowerCase() !== query.toLowerCase())
   const canCreateNewLabel = canSelectColor
 
   return (
