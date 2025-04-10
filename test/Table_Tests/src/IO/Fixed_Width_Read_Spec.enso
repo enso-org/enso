@@ -38,19 +38,36 @@ add_specs suite_builder =
             layout.should_fail_with Illegal_Argument
             layout.catch.message . should_contain "must start at column"
 
-        ##
-            group_builder.specify "Should be able to read a fixed-width file with an explicit format" <|
-                layout = Fixed_Width_Layout.from_descriptions [Fixed_Width_Column_Description.Start_And_Width Nothing 0 4, Fixed_Width_Column_Description.Width Nothing 1, Fixed_Width_Column_Description.Width Nothing 3, Fixed_Width_Column_Description.Width Nothing 3, Fixed_Width_Column_Description.Width Nothing 1, Fixed_Width_Column_Description.Width Nothing 1, Fixed_Width_Column_Description.Width Nothing 5, Fixed_Width_Column_Description.Width Nothing 3]
-                t = data0.read (Fixed_Width_Format.Fixed_Width layout)
-                t.at "col0" . to Vector . should_equal ["1234", "2345"]
-                t.at "col1" . to Vector . should_equal ["a", "i"]
-                t.at "col2" . to Vector . should_equal ["567", "678"]
-                t.at "col3" . to Vector . should_equal ["bcd", "jkl"]
-                t.at "col4" . to Vector . should_equal ["8", "9"]
-                t.at "col5" . to Vector . should_equal ["e", "m"]
-                t.at "col6" . to Vector . should_equal ["98765", "87654"]
-                t.at "col7" . to Vector . should_equal ["fgh", "nop"]
+        group_builder.specify "Should be able to read a fixed-width file with an explicit format" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 0 4]
+                + [Fixed_Width_Column_Description.Width Nothing 1]
+                + [Fixed_Width_Column_Description.Width Nothing 3]
+                + [Fixed_Width_Column_Description.Width Nothing 3]
+                + [Fixed_Width_Column_Description.Width Nothing 1]
+                + [Fixed_Width_Column_Description.Width Nothing 1]
+                + [Fixed_Width_Column_Description.Width Nothing 5]
+                + [Fixed_Width_Column_Description.Width Nothing 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = data0.read (Fixed_Width_Format.Fixed_Width layout)
+            t.at "col0" . to Vector . should_equal ["1234", "2345"]
+            t.at "col1" . to Vector . should_equal ["a", "i"]
+            t.at "col2" . to Vector . should_equal ["567", "678"]
+            t.at "col3" . to Vector . should_equal ["bcd", "jkl"]
+            t.at "col4" . to Vector . should_equal ["8", "9"]
+            t.at "col5" . to Vector . should_equal ["e", "m"]
+            t.at "col6" . to Vector . should_equal ["98765", "87654"]
+            t.at "col7" . to Vector . should_equal ["fgh", "nop"]
 
+        ##
+            group_builder.specify "Should not allow a layout definition with no columns" <|
+            group_builder.specify "Should not allow illegal start / width values" <|
+                0 width
+                negative either
+            group_builder.specify "Should report short lines" <|
+            group_builder.specify "Should keep short lines with Invalid_Rows.Keep_Invalid_Rows" <|
+            group_builder.specify "Should drop short lines with Invalid_Rows.Drop_Invalid_Rows" <|
+            group_builder.specify "Should not allow Invalid_Rows.Add_Extra_Columns" <|
             group_builder.specify "Should use specified column names" <|
             group_builder.specify "Should generate default column names" <|
             group_builder.specify "Should be able to read fixed-width data from a stream with an explicit format" <|
