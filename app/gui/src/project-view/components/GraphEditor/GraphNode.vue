@@ -430,6 +430,7 @@ const nodeClass = computed(() => {
     outputNode: props.node.type === 'output',
     menuVisible: menuVisible.value,
     menuFull: menuFull.value,
+    edited: props.edited,
   }
 })
 
@@ -489,7 +490,6 @@ onWindowBlur(() => {
 
 <template>
   <div
-    v-show="!edited"
     ref="rootNode"
     class="GraphNode define-node-colors"
     :style="nodeStyle"
@@ -729,5 +729,10 @@ onWindowBlur(() => {
 
 .dragged {
   cursor: grabbing !important;
+}
+
+.edited {
+  opacity: 0;
+  pointer-events: none;
 }
 </style>
