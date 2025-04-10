@@ -731,6 +731,8 @@ onWindowBlur(() => {
   cursor: grabbing !important;
 }
 
+/* We use this instead of "v-show", because we want the node content being still laid out,
+   so the edges won't jump. */
 .edited {
   visibility: hidden;
 }
