@@ -76,7 +76,7 @@ onMounted(() => {
 <template>
   <div :class="['App', ...classSet.keys()]">
     <ProjectView v-if="projectViewOnly" v-bind="projectViewOnly.options" />
-    <ContextsForReactProvider>
+    <ContextsForReactProvider v-else>
       <ReactRootWrapper
         :config="appConfigValue"
         :queryClient="queryClient"
