@@ -38,9 +38,9 @@ public sealed interface StorageType<T>
 
     if (NumericConverter.isFloatLike(item)) {
       double value = NumericConverter.coerceToDouble(item);
-      if (value % 1.0 == 0.0 && IntegerType.INT_64.fits(value)) {
+      /*if (value % 1.0 == 0.0 && IntegerType.INT_64.fits(value)) {
         return IntegerType.INT_64;
-      }
+      }*/
 
       return FloatType.FLOAT_64;
     }
