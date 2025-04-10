@@ -303,10 +303,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {canExecute &&
           !isRunningProject &&
           !isOtherUserUsingProject &&
-          (!isCloud ||
-            asset.type === backendModule.AssetType.project ||
-            asset.type === backendModule.AssetType.directory ||
-            asset.type === backendModule.AssetType.secret) && (
+          (
             <ContextMenuEntry
               hidden={hidden}
               action="rename"
