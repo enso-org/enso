@@ -46,8 +46,11 @@ export default function Editor(props: EditorProps) {
 
   const startProject = useEventCallback(
     async (otherProject: Parameters<typeof startProjectRaw>[0]) => {
-      if (otherProject.hybrid) {
-        await remoteBackend.setHybridOpened(otherProject.hybrid.cloudProjectId, otherProject.title)
+      if (otherProject.hybrid && otherProject.suppressHybridProjectOpen !== true) {
+        await remoteBackend.setHybridOpenInProgress(
+          otherProject.hybrid.cloudProjectId,
+          otherProject.title,
+        )
       }
       startProjectRaw(otherProject)
     },
