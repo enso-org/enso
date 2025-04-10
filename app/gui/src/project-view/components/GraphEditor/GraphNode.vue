@@ -732,7 +732,6 @@ onWindowBlur(() => {
 }
 
 .edited {
-  opacity: 0;
-  pointer-events: none;
+  visibility: hidden;
 }
 </style>
