@@ -14,8 +14,6 @@ import {
   useDriveStore,
   useSetCurrentDirectoryId,
   useSetDragTargetAssetId,
-  useSetIsDraggingOverSelectedRow,
-  useSetLabelsDragPayload,
   useSetSelectedAssets,
 } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -261,7 +259,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const draggableProps = dragAndDropHooks.useDraggable({ isDisabled: !selected })
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
-  const setIsDraggingOverSelectedRow = useSetIsDraggingOverSelectedRow()
   const setDragTargetAssetId = useSetDragTargetAssetId()
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
@@ -269,7 +266,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(
     assetRowUtils.INITIAL_ROW_STATE,
   )
-  const setLabelsDragPayload = useSetLabelsDragPayload()
 
   const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === item.id)
   const isEditingName = innerRowState.isEditingName || isNewlyCreated
@@ -356,16 +352,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
   const onDragOver = (event: React.DragEvent<Element>) => {
     const directoryId = item.type === backendModule.AssetType.directory ? id : parentId
-    const { labelsDragPayload, isDraggingOverSelectedRow } = driveStore.getState()
-    if (labelsDragPayload) {
-      event.preventDefault()
-      event.stopPropagation()
-      setDragTargetAssetId(item.id)
-      if (selected !== isDraggingOverSelectedRow) {
-        setIsDraggingOverSelectedRow(selected)
-      }
-      return
-    }
     const payload = drag.ASSET_ROWS.lookup(event)
     const isPayloadMatch =
       payload != null && payload.every((innerItem) => innerItem.key !== directoryId)
@@ -512,7 +498,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
             }}
             onDragEnd={(event) => {
               setIsDraggedOver(false)
-              setLabelsDragPayload(null)
               props.onDragEnd?.(event, item)
             }}
             onDragLeave={(event) => {

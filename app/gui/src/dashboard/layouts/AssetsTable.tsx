@@ -49,12 +49,7 @@ import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
-import {
-  addAssetsLabelsMutationOptions,
-  copyAssetsMutationOptions,
-  moveAssetsMutationOptions,
-  removeAssetsLabelsMutationOptions,
-} from '#/hooks/backendBatchedHooks'
+import { copyAssetsMutationOptions, moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import {
   backendMutationOptions,
   listDirectoryQueryOptions,
@@ -92,7 +87,6 @@ import {
 import {
   useDriveStore,
   useSetCanDownload,
-  useSetLabelsDragPayload,
   useSetNewestFolderId,
   useSetPasteData,
   useSetSelectedAssets,
@@ -229,7 +223,6 @@ function AssetsTable(props: AssetsTableProps) {
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const setAssetPanelProps = useSetAssetPanelProps()
   const resetAssetPanelProps = useResetAssetPanelProps()
-  const setLabelsDragPayload = useSetLabelsDragPayload()
 
   const columns = useMemo(
     () =>
@@ -255,8 +248,6 @@ function AssetsTable(props: AssetsTableProps) {
   const cutAndPaste = useCutAndPaste(backend, category)
   const copyAssetsMutation = useMutationCallback(copyAssetsMutationOptions(backend))
   const moveAssetsMutation = useMutationCallback(moveAssetsMutationOptions(backend))
-  const addAssetsLabelsMutation = useMutationCallback(addAssetsLabelsMutationOptions(backend))
-  const removeAssetsLabelsMutation = useMutationCallback(removeAssetsLabelsMutationOptions(backend))
 
   const { queryDirectoryId, currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
     category,
@@ -1148,37 +1139,6 @@ function AssetsTable(props: AssetsTableProps) {
   const onRowDragEnd = useEventCallback(() => {
     setIsDraggingFiles(false)
     endAutoScroll()
-    setLabelsDragPayload(null)
-  })
-
-  const onRowDrop = useEventCallback((event: DragEvent<HTMLTableRowElement>, item: AnyAsset) => {
-    endAutoScroll()
-    const { selectedIds, labelsDragPayload } = driveStore.getState()
-    const { selectedItems, shouldAdd } =
-      selectedIds.has(item.id) ?
-        {
-          selectedItems: [...selectedIds].flatMap((id) => {
-            const otherAsset = getAsset(id)
-            return otherAsset ? [otherAsset] : []
-          }),
-          shouldAdd: labelsDragPayload?.typeWhenAppliedToSelection !== 'remove',
-        }
-      : {
-          selectedItems: [item],
-          shouldAdd:
-            labelsDragPayload?.labels.some((label) => !(item.labels?.includes(label) ?? false)) ??
-            true,
-        }
-    if (labelsDragPayload != null) {
-      event.preventDefault()
-      event.stopPropagation()
-      if (shouldAdd) {
-        void addAssetsLabelsMutation([selectedItems, labelsDragPayload.labels])
-      } else {
-        void removeAssetsLabelsMutation([selectedItems, labelsDragPayload.labels])
-      }
-      setLabelsDragPayload(null)
-    }
   })
 
   const setAsset = useEventCallback((assetId: AssetId, asset: AnyAsset) => {
@@ -1248,7 +1208,6 @@ function AssetsTable(props: AssetsTableProps) {
         cutAndPaste={cutAndPaste}
         onDragStart={onRowDragStart}
         onDragEnd={onRowDragEnd}
-        onDrop={onRowDrop}
         uploadFiles={uploadFiles}
         renameAsset={doRenameAsset}
         closeProject={closeProjectMutationCallback}
