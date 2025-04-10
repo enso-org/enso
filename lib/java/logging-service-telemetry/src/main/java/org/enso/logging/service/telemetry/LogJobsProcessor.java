@@ -2,6 +2,7 @@ package org.enso.logging.service.telemetry;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -27,8 +28,9 @@ public final class LogJobsProcessor {
 
   private final ThreadPoolExecutor backgroundThreadService;
   private final URI endpoint;
-  private final Credentials credentials;
+  private final AuthenticationData authenticationData;
   private final LogJobsQueue logQueue = new LogJobsQueue();
+  private final TokenRefresher tokenRefresher;
   private HttpClient httpClient;
 
   /**
@@ -38,10 +40,11 @@ public final class LogJobsProcessor {
    */
   private boolean requestSendingFailure;
 
-  public LogJobsProcessor(ThreadPoolExecutor executor, URI endpoint, Credentials credentials) {
+  public LogJobsProcessor(ThreadPoolExecutor executor, URI endpoint, AuthenticationData authenticationData, TokenRefresher tokenRefresher) {
     this.backgroundThreadService = Objects.requireNonNull(executor);
     this.endpoint = Objects.requireNonNull(endpoint);
-    this.credentials = Objects.requireNonNull(credentials);
+    this.authenticationData = Objects.requireNonNull(authenticationData);
+    this.tokenRefresher = tokenRefresher;
   }
 
   /*
@@ -130,7 +133,7 @@ public final class LogJobsProcessor {
     if (payload != null) {
       return HttpRequest.newBuilder()
           .uri(endpoint)
-          .header("Authorization", "Bearer " + credentials.accessToken())
+          .header("Authorization", "Bearer " + authenticationData.accessToken())
           .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
           .build();
     } else {

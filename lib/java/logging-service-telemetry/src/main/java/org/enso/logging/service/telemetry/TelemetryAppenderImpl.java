@@ -2,6 +2,8 @@ package org.enso.logging.service.telemetry;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import org.enso.logging.service.logback.TelemetryAppender;
 import org.slf4j.Logger;
@@ -77,7 +79,19 @@ public final class TelemetryAppenderImpl extends TelemetryAppender {
     }
     assert credentials != null;
     if (logJobsProcessor == null) {
-      logJobsProcessor = new LogJobsProcessor(backgroundThreadService, endpoint, credentials);
+      URI refreshUri;
+      try {
+        refreshUri = new URI(credentials.refreshUrl());
+      } catch (URISyntaxException e) {
+        LOGGER.error(
+            "Failed to parse refresh URL '{}'. Stopping the telemetry appender service",
+            credentials.refreshUrl());
+        credentialsParseFailure = true;
+        return;
+      }
+      var tokenRefresher = new TokenRefresher(backgroundThreadService, refreshUri, credentials.clientId(), credentials.refreshToken());
+      var authenticationData = AuthenticationData.fromCredentials(credentials);
+      logJobsProcessor = new LogJobsProcessor(backgroundThreadService, endpoint, authenticationData, tokenRefresher);
     }
     var logMessage = logEventToMessage(logEvent);
     var logJob = new LogJob(logMessage, null);

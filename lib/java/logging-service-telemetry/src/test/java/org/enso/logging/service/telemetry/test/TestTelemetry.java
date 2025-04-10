@@ -20,10 +20,12 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
+import org.enso.logging.service.telemetry.AuthenticationData;
 import org.enso.logging.service.telemetry.Credentials;
 import org.enso.logging.service.telemetry.LogJob;
 import org.enso.logging.service.telemetry.LogJobsProcessor;
 import org.enso.logging.service.telemetry.LogMessage;
+import org.enso.logging.service.telemetry.TokenRefresher;
 import org.enso.shttp.HTTPTestHelperServer;
 import org.enso.shttp.HybridHTTPServer;
 import org.enso.shttp.cloud_mock.CloudMockSetup;
@@ -47,6 +49,7 @@ public class TestTelemetry {
   private ExecutorService serverExecutor;
   private ThreadPoolExecutor logProcessorExecutor;
   private LogJobsProcessor logJobsProcessor;
+  private TokenRefresher tokenRefresher;
 
   @Before
   public void initServer() throws URISyntaxException, IOException {
@@ -57,15 +60,23 @@ public class TestTelemetry {
     var cloudMockSetup = new CloudMockSetup(false);
     server =
         HTTPTestHelperServer.createServer("localhost", port, serverExecutor, false, cloudMockSetup);
-    logJobsProcessor = new LogJobsProcessor(logProcessorExecutor, logUri, credentials);
+    tokenRefresher = new TokenRefresher(logProcessorExecutor, refreshUri, credentials.clientId(), credentials.refreshToken());
+    var authData = AuthenticationData.fromCredentials(credentials);
+    logJobsProcessor = new LogJobsProcessor(logProcessorExecutor, logUri, authData, tokenRefresher);
     server.start();
   }
 
   @After
   public void stopServer() {
-    server.stop();
-    serverExecutor.shutdown();
-    logProcessorExecutor.shutdown();
+    if (server != null) {
+      server.stop();
+    }
+    if (serverExecutor != null) {
+      serverExecutor.shutdown();
+    }
+    if (logProcessorExecutor != null) {
+      logProcessorExecutor.shutdown();
+    }
   }
 
   @Test
@@ -125,7 +136,9 @@ public class TestTelemetry {
 
   @Test
   public void failureToAuthenticate_InvalidToken() {
-    logJobsProcessor = new LogJobsProcessor(logProcessorExecutor, logUri, invalidCredentials());
+    var invalidCredentials = invalidCredentials();
+    tokenRefresher = new TokenRefresher(logProcessorExecutor, refreshUri, invalidCredentials.clientId(), invalidCredentials.refreshToken());
+    logJobsProcessor = new LogJobsProcessor(logProcessorExecutor, logUri, AuthenticationData.fromCredentials(invalidCredentials), tokenRefresher);
     var message = new LogMessage("TestLogger", "msg: name={}", new Object[] {"Pavel"});
     var notification = new CompletableFuture<Void>();
     var job = new LogJob(message, notification);
