@@ -15,11 +15,12 @@ export function unsafeKeyValuePair<Key extends PropertyKey, Value>(key: Key, val
 
 /**
  * Immutably shallowly merge an object with a partial update.
- * Does not preserve classes. Useful for preserving order of properties.
+ *
+ * Does not preserve classes. Useful for preserving order of properties. Output may alias input.
  */
 export function merge<T extends object>(object: T, update: Partial<T>): T {
-  for (const [key, value] of Object.entries(update)) {
-    if (!Object.is(value, (object as Record<string, unknown>)[key])) {
+  for (const key of Reflect.ownKeys(update)) {
+    if (!(key in object) || !Object.is(update[key as keyof T], object[key as keyof T])) {
       // This is FINE, as the matching `return` is below this `return`.
       return Object.assign({ ...object }, update)
     }

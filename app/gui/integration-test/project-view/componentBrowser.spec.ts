@@ -285,7 +285,13 @@ test('Editing existing nodes', async ({ page }) => {
   await expect(content).toHaveText(`Data.read ${ADDED_PATH}`)
   await page.keyboard.press('Enter')
   await expect(locate.componentBrowser(page)).toBeHidden()
-  await expect(node.locator('.WidgetToken')).toHaveText(['Data', '.', 'read', '"', '"'])
+  await expect(node.locator('.WidgetToken')).toHaveText([
+    'Data',
+    '.',
+    'read',
+    /["\u{201C}]/u,
+    /["\u{201D}]/u,
+  ])
   await expect(node.getByTestId('widget-text-content')).toHaveText(ADDED_PATH.replaceAll('"', ''))
 
   // Edit again, using "edit" button

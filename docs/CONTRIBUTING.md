@@ -648,6 +648,17 @@ distribution/bin/enso.bat --run ~/Hello
 Hello, World!
 ```
 
+Additionally, you can check a project/script for basic errors (without running
+it) using `--compile` flag. The `--enable-static-analysis` flag enables
+experimental static analysis passes. So if you want to try out the type checker
+prototype on your project, you can run:
+
+##### Bash
+
+```bash
+sbt runEngineDistribution --compile ~/Hello --enable-static-analysis
+```
+
 #### Running IDE
 
 You can start [IDE](https://github.com/enso-org/enso/tree/develop/gui) with a

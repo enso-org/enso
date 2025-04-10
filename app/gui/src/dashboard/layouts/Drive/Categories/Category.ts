@@ -57,7 +57,7 @@ const TRASH_CATEGORY_SCHEMA = z
   .object({
     type: z.literal('trash'),
     id: z.literal('trash'),
-    homeDirectoryId: z.null(),
+    homeDirectoryId: DIRECTORY_ID_SCHEMA,
   })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()

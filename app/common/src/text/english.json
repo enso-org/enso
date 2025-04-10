@@ -1,5 +1,6 @@
 {
   "ellipsis": "...",
+  "projectTabBarErrorTitle": "Error loading project",
   "arbitraryMutationError": "An error occurred while performing an action. Please try again.",
   "arbitraryFetchError": "An error occurred while fetching data",
   "arbitraryFetchImageError": "An error occurred while fetching an image",
@@ -299,7 +300,6 @@
   "forward": "Forward",
   "more": "More",
   "close": "Close",
-
   "snowflakeCredentialType": "Snowflake",
   "snowflakeCredentialAccount": "Account",
   "snowflakeCredentialClientId": "Client ID",
@@ -320,7 +320,6 @@
   "credentialStateWaitingForAuthentication": "Authentication not finished",
   "credentialStateExpired": "Expired",
   "credentialExpiresAt": "Expires at",
-
   "enterSecretPath": "Enter secret path",
   "enterText": "Enter text",
   "enterNumber": "Enter number",
