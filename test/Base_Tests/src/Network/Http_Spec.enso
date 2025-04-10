@@ -181,7 +181,7 @@ add_specs suite_builder =
 
         group_builder.specify "Fails on a bad URL scheme" <|
             Data.fetch "zxcv://bad.scheme" . should_fail_with Illegal_Argument
-            Data.fetch "" . should_fail_with Illegal_Argument
+            Data.fetch "" . should_fail_with Syntax_Error
 
         group_builder.specify "can select the version" <| Test.with_retries <|
             req = Request.get url_get
