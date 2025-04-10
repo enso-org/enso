@@ -45,7 +45,7 @@ public class RuntimeServerInstrument extends TruffleInstrument {
   private Handler handler;
   private EventBinding<Initializer> initializerEventBinding;
 
-  private ScheduledExecutorService getJobExecutor() {
+  private ScheduledExecutorService guestCodeExecutor() {
     var ensoCtx = EnsoContext.get(null);
     return ensoCtx.getThreadManager();
   }
@@ -53,7 +53,7 @@ public class RuntimeServerInstrument extends TruffleInstrument {
   private void initializeExecutionService(ExecutionService service, TruffleContext context) {
     if (initializerEventBinding != null) {
       initializerEventBinding.dispose();
-      handler.initializeExecutionService(service, getJobExecutor(), context);
+      handler.initializeExecutionService(service, guestCodeExecutor(), context);
     }
   }
 
@@ -144,7 +144,7 @@ public class RuntimeServerInstrument extends TruffleInstrument {
     initializerEventBinding =
         env.getInstrumenter().attachContextsListener(new Initializer(this) {}, true);
 
-    Supplier<ScheduledExecutorService> supply = this::getJobExecutor;
+    Supplier<ScheduledExecutorService> supply = this::guestCodeExecutor;
     env.registerService(supply);
   }
 
@@ -152,7 +152,10 @@ public class RuntimeServerInstrument extends TruffleInstrument {
   protected void onDispose(Env env) {
     if (handler != null) {
       try {
-        handler.endpoint().client().sendClose();
+        var client = handler.endpoint().client();
+        if (client != null) {
+          client.sendClose();
+        }
       } catch (IOException e) {
         env.getLogger(RuntimeServerInstrument.class)
             .warning("Sending close message to the client failed, because of: " + e.getMessage());
