@@ -3,14 +3,25 @@ import { useEffect, useState } from 'react'
 
 import { useMutation } from '@tanstack/react-query'
 
-import { ButtonGroup, Checkbox, Form, Input, Popover, Text } from '#/components/AriaComponents'
+import {
+  Button,
+  ButtonGroup,
+  Checkbox,
+  DialogTrigger,
+  Form,
+  Input,
+  Popover,
+  Text,
+} from '#/components/AriaComponents'
 import ColorPicker from '#/components/ColorPicker'
 import Label from '#/components/dashboard/Label'
 import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
 import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { unsetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
@@ -56,6 +67,7 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
 
   const createTagMutation = useMutation(backendMutationOptions(backend, 'createTag'))
   const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
+  const deleteTagMutation = useMutation(backendMutationOptions(backend, 'deleteTag'))
 
   const form = Form.useForm({
     schema: (z) =>
@@ -128,20 +140,39 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
             }}
             {...innerProps}
           >
-            <>
-              {allLabels
-                ?.filter((label) => regex.test(label.value))
-                .map((label) => {
-                  const isActive = labels.includes(label.value)
-                  return (
+            {allLabels
+              ?.filter((label) => regex.test(label.value))
+              .map((label) => {
+                const isActive = labels.includes(label.value)
+                return (
+                  <div className="flex items-center gap-2">
                     <Checkbox key={label.id} value={String(label.value)}>
                       <Label active={isActive} color={label.color} onPress={() => {}}>
                         {label.value}
                       </Label>
                     </Checkbox>
-                  )
-                })}
-            </>
+
+                    <FocusRing placement="after">
+                      <DialogTrigger>
+                        <Button
+                          variant="icon"
+                          icon="trash2"
+                          extraClickZone={false}
+                          aria-label={getText('delete')}
+                          tooltipPlacement="right"
+                          className="relative flex size-4 text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
+                        />
+                        <ConfirmDeleteModal
+                          actionText={getText('deleteLabelActionText', label.value)}
+                          doDelete={async () => {
+                            await deleteTagMutation.mutateAsync([label.id, label.value])
+                          }}
+                        />
+                      </DialogTrigger>
+                    </FocusRing>
+                  </div>
+                )
+              })}
           </Checkbox.Group>
         )}
       </FocusArea>
