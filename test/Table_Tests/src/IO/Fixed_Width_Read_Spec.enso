@@ -22,17 +22,19 @@ add_specs suite_builder =
                 + [Fixed_Width_Column_Description.Width "c" 3]
                 + [Fixed_Width_Column_Description.Width "d" 3]
             layout = Fixed_Width_Layout.from_descriptions descs
-            layout . should_equal Fixed_Width_Layout.Value []
-                + [Fixed_Width_Layout_Entry "a" 0 4]
-                + [Fixed_Width_Layout_Entry "b" 4 1]
-                + [Fixed_Width_Layout_Entry "c" 5 3]
-                + [Fixed_Width_Layout_Entry "d" 8 3]
+            expected = []
+                + [Fixed_Width_Layout_Entry.Value "a" 0 4]
+                + [Fixed_Width_Layout_Entry.Value "b" 4 1]
+                + [Fixed_Width_Layout_Entry.Value "c" 5 3]
+                + [Fixed_Width_Layout_Entry.Value "d" 8 3]
+            layout . should_equal (Fixed_Width_Layout.Value expected)
 
         group_builder.specify "Should reject a format that tries to go to an earlier column" <|
-            layout = Fixed_Width_Layout.from_descriptions []
+            descs = []
                 + [Fixed_Width_Column_Description.Width "a" 4]
                 + [Fixed_Width_Column_Description.Start_And_Width "b" 3 1]
                 + [Fixed_Width_Column_Description.Width "c" 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
             layout.should_fail_with Illegal_Argument
             layout.catch.message . should_contain "must start at column"
 
