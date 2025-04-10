@@ -1,3 +1,4 @@
+from Standard.Base import all
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
 import project.Errors.Deprecated.Deprecated
@@ -32,5 +33,9 @@ type Rounding_Mode
    Convert deprecated `use_bankers : Boolean` arguments (passed as
    `rounding_mode`) to `Rounding_Mode`.
 Rounding_Mode.from (that:Boolean) =
+    IO.println "AAAAA 0 "+that
     rounding_mode_resolved = if that then Rounding_Mode.Bankers else Rounding_Mode.Half_Up
-    Warning.attach (Deprecated.Warning "Standard.Base.Data.Numeric" "Rounding_Mode" "use_bankers:Boolean is deprecated, use Rounding_Mode instead") rounding_mode_resolved
+    IO.println "AAAAA 1 "+that
+    k = Warning.attach (Deprecated.Warning "Standard.Base.Data.Numeric" "Rounding_Mode" "use_bankers:Boolean is deprecated, use Rounding_Mode instead") rounding_mode_resolved
+    IO.println "AAAAA 2 "+that
+    k
