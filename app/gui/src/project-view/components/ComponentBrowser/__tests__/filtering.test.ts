@@ -52,6 +52,7 @@ test('An Instance method is shown when self arg matches', () => {
     selfArg: {
       type: 'known',
       typename: stdPath('Standard.Base.Data.Vector.Vector'),
+      hiddenTypes: [],
     },
   })
   expect(filteringWithSelfType.filter(entry1, [])).not.toBeNull()
@@ -73,6 +74,7 @@ test('`Any` type methods taken into account when filtering', () => {
     selfArg: {
       type: 'known',
       typename: stdPath('Standard.Base.Data.Vector.Vector'),
+      hiddenTypes: [],
     },
   })
   expect(filtering.filter(entry1, [])).not.toBeNull()
@@ -88,7 +90,11 @@ test('Additional self types are taken into account when filtering', () => {
   const entry2 = makeMethod('Standard.Base.Data.Numbers.Number.sqrt')
   const additionalSelfType = stdPath('Standard.Base.Data.Numbers.Number')
   const filtering = new Filtering({
-    selfArg: { type: 'known', typename: stdPath('Standard.Base.Data.Numbers.Float') },
+    selfArg: {
+      type: 'known',
+      typename: stdPath('Standard.Base.Data.Numbers.Float'),
+      hiddenTypes: [],
+    },
   })
   expect(filtering.filter(entry1, [additionalSelfType])).not.toBeNull()
   expect(filtering.filter(entry2, [additionalSelfType])).not.toBeNull()
@@ -114,6 +120,7 @@ test.each([
     selfArg: {
       type: 'known',
       typename: stdPath('Standard.Base.Data.Vector.Vector'),
+      hiddenTypes: [],
     },
   })
   expect(filtering.filter(entry, [])).toBeNull()
