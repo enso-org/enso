@@ -7,11 +7,11 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +40,8 @@ public final class TokenRefresher {
     this.refreshUri = refreshUri;
     this.clientId = clientId;
     this.refreshToken = refreshToken;
-    this.httpClient = HttpClient.newBuilder().executor(executor).build();
+    var clientExecutor = Executors.newSingleThreadExecutor();
+    this.httpClient = HttpClient.newBuilder().executor(clientExecutor).build();
   }
 
   public CompletableFuture<AuthenticationData> fetchNewAccessToken() {
