@@ -12,7 +12,7 @@ public sealed interface WrappedGoogleCredentials {
 
   @SuppressWarnings("deprecation")
   record LocalFileCredentials(GoogleCredentials credential) implements WrappedGoogleCredentials {
-    static LocalFileCredentials fromStream(InputStream stream) throws IOException {
+    public static LocalFileCredentials fromStream(InputStream stream) throws IOException {
       return new LocalFileCredentials(GoogleCredentials.fromStream(stream));
     }
   }
