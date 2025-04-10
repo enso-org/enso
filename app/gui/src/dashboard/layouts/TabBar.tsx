@@ -19,8 +19,9 @@ import { AnimatedBackground } from '#/components/AnimatedBackground'
 import { Await } from '#/components/Await'
 import { Icon } from '#/components/Icon'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useBackendForProjectType } from '#/providers/BackendProvider'
+import { useBackendForProjectType, useRemoteBackend } from '#/providers/BackendProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
+import { useText } from '#/providers/TextProvider'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { twJoin } from '#/utilities/tailwindMerge'
@@ -155,9 +156,10 @@ export function ProjectTab(props: ProjectTabProps) {
   const { project, onLoadEnd, onClose, icon: iconRaw, ...rest } = props
   const { preventAutoReopen = false } = project
 
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const didNotifyOnLoadEnd = React.useRef(false)
   const backend = useBackendForProjectType(project.type)
+  const remoteBackend = useRemoteBackend()
 
   const stableOnLoadEnd = useEventCallback(() => {
     onLoadEnd?.(project)
@@ -167,12 +169,25 @@ export function ProjectTab(props: ProjectTabProps) {
     onClose?.(project)
   })
 
-  const { data, isSuccess, isError, promise } = reactQuery.useQuery({
+  const isHybrid = project.hybrid != null
+  const projectId = isHybrid ? project.hybrid.cloudProjectId : project.id
+
+  const { data, isSuccess, isError } = reactQuery.useQuery({
     ...projectHooks.createGetProjectDetailsQuery({ assetId: project.id, backend }),
     select: (projectDetails) => ({
-      title: projectDetails.name,
       isOpened: projectHooks.OPENED_PROJECT_STATES.has(projectDetails.state.type),
     }),
+  })
+
+  // We get title separately because the title differs depending on whenever project is in hybrid mode
+  // but it's fine, because react-query will deduplicate the queries automatically
+  const { promise } = reactQuery.useQuery({
+    ...projectHooks.createGetProjectDetailsQuery({
+      assetId: projectId,
+      // If it's a hybrid project, we need to fetch the project details from the remote backend.
+      backend: isHybrid ? remoteBackend : backend,
+    }),
+    select: (projectDetails) => ({ title: projectDetails.name }),
   })
 
   const isReady = isSuccess && data.isOpened
@@ -211,7 +226,11 @@ export function ProjectTab(props: ProjectTabProps) {
       icon={icon}
       onClose={stableOnClose}
     >
-      <Await promise={promise} fallback={null}>
+      <Await
+        promise={promise}
+        fallback={<></>}
+        FallbackComponent={() => getText('projectTabBarErrorTitle')}
+      >
         {({ title }) => title}
       </Await>
     </Tab>
