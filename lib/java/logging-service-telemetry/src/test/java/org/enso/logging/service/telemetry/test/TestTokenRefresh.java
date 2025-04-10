@@ -25,7 +25,7 @@ import org.junit.Test;
 public class TestTokenRefresh {
   @Rule public RetryTestRule retry = new RetryTestRule(3);
 
-  private static final int port = 8083;
+  private static final int port = 8085;
   private static final URI refreshUri =
       URI.create("http://localhost:" + port + "/enso-cloud-auth-renew");
   private static final String refreshToken = "TEST-ENSO-REFRESH-caffee";
