@@ -184,11 +184,22 @@ public class TestTelemetry {
             logUri,
             AuthenticationData.fromCredentials(expiredCredentials),
             tokenRefresher);
-    var message = new LogMessage("TestLogger", "msg: name={}", new Object[] {"Pavel"});
-    var job = new LogJob(message, new CompletableFuture<>());
-    logJobsProcessor.enqueueMessage(job);
-    assertCompletedSuccessfully(job);
-    assertThat("Token was refreshed once", server.getRefreshedTokensCount(), is(1));
+
+    // Ensure that the two messages are not sent in the batch - the two messages must be sent
+    // in different requests so that we really check that the token was not refreshed twice.
+    var message1 = new LogMessage("TestLogger", "msg: name={}", new Object[] {"Pavel"});
+    var job1 = new LogJob(message1, new CompletableFuture<>());
+    logJobsProcessor.enqueueMessage(job1);
+    assertCompletedSuccessfully(job1);
+
+    var job2 =
+        new LogJob(
+            new LogMessage("TestLogger", "msg2: name={}", new Object[] {"Pavel"}),
+            new CompletableFuture<>());
+    logJobsProcessor.enqueueMessage(job2);
+    assertCompletedSuccessfully(job2);
+
+    assertThat("Token was refreshed just once", server.getRefreshedTokensCount(), is(1));
   }
 
   private static void assertCompletedSuccessfully(List<LogJob> jobs) {
