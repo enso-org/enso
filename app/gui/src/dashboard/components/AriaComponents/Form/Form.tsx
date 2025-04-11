@@ -1,10 +1,6 @@
 /** @file Form component. */
 import * as React from 'react'
 
-import * as textProvider from '#/providers/TextProvider'
-
-import * as aria from '#/components/aria'
-
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
 import * as dialog from '../Dialog'
@@ -23,8 +19,6 @@ export const Form = forwardRef(function Form<
   Schema extends components.TSchema,
   SubmitResult = void,
 >(props: types.FormProps<Schema, SubmitResult>, ref: React.Ref<HTMLFormElement>) {
-  /** Input values for this form. */
-  type FieldValues = components.FieldValues<Schema>
   const formId = React.useId()
 
   const {
@@ -46,8 +40,6 @@ export const Form = forwardRef(function Form<
     testId = props['data-testid'],
     ...formProps
   } = props
-
-  const { getText } = textProvider.useText()
 
   const dialogContext = dialog.useDialogContext()
 
@@ -90,16 +82,6 @@ export const Form = forwardRef(function Form<
     gap,
   })
 
-  const { formState } = innerForm
-
-  // eslint-disable-next-line no-restricted-syntax
-  const errors = Object.fromEntries(
-    Object.entries(formState.errors).map(([key, error]) => {
-      const message = error?.message ?? getText('arbitraryFormErrorMessage')
-      return [key, message]
-    }),
-  ) as Record<keyof FieldValues, string>
-
   return (
     <form
       {...formProps}
@@ -111,11 +93,9 @@ export const Form = forwardRef(function Form<
       data-testid={testId}
       onSubmit={innerForm.submit}
     >
-      <aria.FormValidationContext.Provider value={errors}>
-        <components.FormProvider form={innerForm}>
-          {typeof children === 'function' ? children({ ...innerForm, form: innerForm }) : children}
-        </components.FormProvider>
-      </aria.FormValidationContext.Provider>
+      <components.FormProvider form={innerForm}>
+        {typeof children === 'function' ? children({ ...innerForm, form: innerForm }) : children}
+      </components.FormProvider>
     </form>
   )
 }) as unknown as (<Schema extends components.TSchema, SubmitResult = void>(
@@ -142,6 +122,7 @@ export const Form = forwardRef(function Form<
   useFieldRegister: typeof components.useFieldRegister
   useFieldState: typeof components.useFieldState
   useFormError: typeof components.useFormError
+  useFormState: typeof components.useFormState
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
@@ -165,3 +146,4 @@ Form.FIELD_STYLES = components.FIELD_STYLES
 Form.useFieldRegister = components.useFieldRegister
 Form.useFieldState = components.useFieldState
 Form.useFormError = components.useFormError
+Form.useFormState = components.useFormState
