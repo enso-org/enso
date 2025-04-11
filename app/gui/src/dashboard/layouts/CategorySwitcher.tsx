@@ -391,8 +391,14 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                 onPress={async () => {
                   const [newDirectory] =
                     (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+
                   if (newDirectory != null) {
-                    addDirectory(newDirectory)
+                    const addedDirectory = directories.find(
+                      (directory) => directory.rootPath === newDirectory,
+                    )
+
+                    const newCategory = addedDirectory ?? addDirectory(newDirectory)
+                    setCategoryId(newCategory.id)
                   }
                 }}
               >
