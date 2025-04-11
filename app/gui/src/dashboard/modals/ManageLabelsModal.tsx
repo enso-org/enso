@@ -134,7 +134,8 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
           <Checkbox.Group
             form={form}
             name="labels"
-            className="max-h-manage-labels-list overflow-auto"
+            fullWidth
+            className="max-h-80 overflow-auto"
             onChange={async (values) => {
               await associateTagMutation.mutateAsync([item.id, values.map(LabelName), item.title])
             }}
@@ -145,7 +146,7 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
               .map((label) => {
                 const isActive = labels.includes(label.value)
                 return (
-                  <div className="flex items-center gap-2">
+                  <div className="group flex w-full items-center justify-between">
                     <Checkbox key={label.id} value={String(label.value)}>
                       <Label active={isActive} color={label.color} onPress={() => {}}>
                         {label.value}
@@ -160,7 +161,7 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
                           extraClickZone={false}
                           aria-label={getText('delete')}
                           tooltipPlacement="right"
-                          className="relative flex size-4 text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
+                          className="relative mr-1 flex size-4 text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
                         />
                         <ConfirmDeleteModal
                           actionText={getText('deleteLabelActionText', label.value)}

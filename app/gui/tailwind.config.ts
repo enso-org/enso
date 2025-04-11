@@ -187,7 +187,6 @@ export default {
         'paragraph-input': 'var(--paragraph-input-height)',
         'manage-permissions-modal-permissions-list':
           'var(--manage-permissions-modal-permissions-list-height)',
-        'manage-labels-list': 'var(--manage-labels-list-height)',
         'search-suggestions-list': 'var(--search-suggestions-list-height)',
       },
       minHeight: ({ theme }) => ({ ...theme('height') }),
