@@ -127,7 +127,9 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
     setLaunchedProjects((current) => [...current, project])
   })
   const removeLaunchedProject = eventCallbacks.useEventCallback((projectId: LaunchedProjectId) => {
-    setLaunchedProjects((current) => current.filter(({ id }) => id !== projectId))
+    setLaunchedProjects((current) =>
+      current.filter(({ id, hybrid }) => id !== projectId && hybrid?.cloudProjectId !== projectId),
+    )
   })
   const updateLaunchedProjects = eventCallbacks.useEventCallback(
     (update: (projects: readonly LaunchedProject[]) => readonly LaunchedProject[]) => {
