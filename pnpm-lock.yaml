@@ -11,7 +11,7 @@ overrides:
   ws: ^8.18.0
   esbuild: ^0.25.0
 
-packageExtensionsChecksum: sha256-3I5X3/gy64FabUOdF50L8c00vM0JOXcGQcF3W1Cs1Bg=
+packageExtensionsChecksum: sha256-m1SoDnlL/Hs3p7NNguDntIq8t4mrHV4tfrmqCH2qYCo=
 
 pnpmfileChecksum: sha256-KvDH4tAvadbedV6wwVJB2Lt0GMnrnPhlX6OZuP/T8XI=
 
@@ -364,7 +364,7 @@ importers:
         version: 13.12.0
       veaury:
         specifier: '=2.4.4'
-        version: 2.4.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 2.4.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vue@3.5.13(typescript@5.7.2))
       vue:
         specifier: ^3.5.13
         version: 3.5.13(typescript@5.7.2)
@@ -7588,6 +7588,7 @@ packages:
     peerDependencies:
       react: '>= 16.4.0'
       react-dom: '>= 16.4.0'
+      vue: '*'
 
   verror@1.10.0:
     resolution: {integrity: sha512-ZZKSmDAEFOijERBLkmYfJ+vmk3w+7hOLYDNkRCuRuMJGEmqYNCNLyBBFwWKVMhfwaEF3WOd0Zlw86U/WC/+nYw==}
@@ -16247,10 +16248,11 @@ snapshots:
 
   vary@1.1.2: {}
 
-  veaury@2.4.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  veaury@2.4.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vue@3.5.13(typescript@5.7.2)):
     dependencies:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
+      vue: 3.5.13(typescript@5.7.2)
 
   verror@1.10.0:
     dependencies:
