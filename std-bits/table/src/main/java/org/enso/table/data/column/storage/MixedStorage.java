@@ -20,7 +20,6 @@ import org.graalvm.polyglot.Context;
  * specific type.
  */
 public final class MixedStorage extends ObjectStorage implements ColumnStorageWithInferredStorage {
-  private StorageType<?> inferredType;
 
   /**
    * Holds a specialized storage for the inferred type, if available.
@@ -41,7 +40,6 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
    */
   public MixedStorage(Object[] data) {
     super(data);
-    inferredType = null;
   }
 
   @Override
@@ -82,41 +80,46 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
   private StorageType<?> cachedDefaultPreciseType = null;
 
   private StorageType<?> computePreciseType(PreciseTypeOptions options) {
-    if (inferredType == null) {
-      StorageType<?> currentType = null;
+    StorageType<?> currentType = null;
 
-      Context context = Context.getCurrent();
-      for (long i = 0; i < getSize(); i++) {
-        var item = getItemBoxed(i);
-        if (item == null) {
-          continue;
-        }
-
-        var itemType = StorageType.forBoxedItem(item, options);
-        if (currentType == null) {
-          currentType = itemType;
-        } else if (!currentType.equals(itemType)) {
-          if (currentType instanceof TextType currentTextType
-              && itemType instanceof TextType itemTextType) {
-            currentType = TextType.maxType(currentTextType, itemTextType);
-          } else if (currentType.isNumeric() && itemType.isNumeric()) {
-            currentType = commonNumericType(currentType, itemType);
-          } else {
-            currentType = AnyObjectType.INSTANCE;
-          }
-        }
-
-        if (currentType instanceof AnyObjectType) {
-          break;
-        }
-
-        context.safepoint();
+    Context context = Context.getCurrent();
+    for (long i = 0; i < getSize(); i++) {
+      var item = getItemBoxed(i);
+      if (item == null) {
+        continue;
       }
 
-      inferredType = currentType == null ? AnyObjectType.INSTANCE : currentType;
+      var itemType = StorageType.forBoxedItem(item, options);
+      if (currentType == null) {
+        currentType = itemType;
+      } else {
+        currentType = reconcileTypes(currentType, itemType);
+      }
+
+      if (currentType instanceof AnyObjectType) {
+        // The type won't get any wider so no point in continuing.
+        break;
+      }
+
+      context.safepoint();
     }
 
-    return inferredType;
+    return currentType == null ? AnyObjectType.INSTANCE : currentType;
+  }
+
+  private StorageType<?> reconcileTypes(StorageType<?> currentType, StorageType<?> itemType) {
+    if (currentType.equals(itemType)) {
+      return currentType;
+    } else {
+      if (currentType instanceof TextType currentTextType
+          && itemType instanceof TextType itemTextType) {
+        return TextType.maxType(currentTextType, itemTextType);
+      } else if (currentType.isNumeric() && itemType.isNumeric()) {
+        return commonNumericType(currentType, itemType);
+      } else {
+        return AnyObjectType.INSTANCE;
+      }
+    }
   }
 
   public Storage<?> getInferredStorage() {

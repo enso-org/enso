@@ -366,11 +366,9 @@ public final class DoubleStorage extends Storage<Double>
   private StorageType<?> smallestFittingIntegerType = null;
 
   private boolean areAllIntegers() {
-    int visitedNumbers = 0;
-    boolean areAllIntegers = true;
     if (cachedAreAllIntegers == null) {
-      areAllIntegers = true;
-      visitedNumbers = 0;
+      int visitedNumbers = 0;
+      boolean areAllIntegers = true;
       for (int i = 0; i < size; i++) {
         if (isNothing.get(i)) {
           continue;
@@ -386,7 +384,8 @@ public final class DoubleStorage extends Storage<Double>
         }
       }
 
-      // We only say 'all are integers' if there was at least one number.
+      // We only say 'all are integers' if there was at least one number, because we don't want an
+      // empty Float column to change its type for no good reason.
       cachedAreAllIntegers = visitedNumbers > 0 && areAllIntegers;
     }
 
@@ -398,6 +397,7 @@ public final class DoubleStorage extends Storage<Double>
       return smallestFittingIntegerType;
     }
 
+    assert cachedAreAllIntegers;
     final DoubleStorage parent = this;
 
     // We create a Long storage that gets values by converting our storage.
