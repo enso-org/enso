@@ -42,7 +42,7 @@ type Simple_Expression
             Simple_Calculation.Divide rhs -> input_column / (table.resolve rhs)
             Simple_Calculation.Mod rhs -> input_column % (table.resolve rhs)
             Simple_Calculation.Power rhs -> input_column ^ (table.resolve rhs)
-            Simple_Calculation.Round precision use_bankers -> input_column.round precision use_bankers
+            Simple_Calculation.Round precision rounding_mode -> input_column.round precision rounding_mode
             Simple_Calculation.Ceil -> input_column.ceil
             Simple_Calculation.Floor -> input_column.floor
             Simple_Calculation.Truncate -> input_column.truncate
@@ -166,7 +166,7 @@ type Math_Operation
     Power (rhs : Column_Ref|Expression|Number = 1)
 
     ## Rounds values in the column to the specified precision.
-    Round (precision:Integer = 0) (use_bankers:Boolean = False)
+    Round (precision:Integer = 0) (rounding_mode : Rounding_Mode = Rounding_Mode.Half_Up)
 
     ## Rounds values in the column up to the nearest integer.
     Ceil
@@ -206,7 +206,7 @@ type Math_Operation
             Math_Operation.Negate -> column * -1
             Math_Operation.Mod rhs -> column % (table.resolve rhs)
             Math_Operation.Power rhs -> column ^ (table.resolve rhs)
-            Math_Operation.Round precision use_bankers -> column.round precision use_bankers
+            Math_Operation.Round precision rounding_mode -> column.round precision rounding_mode
             Math_Operation.Ceil -> column.ceil
             Math_Operation.Floor -> column.floor
             Math_Operation.Truncate -> column.truncate
@@ -346,7 +346,7 @@ type Simple_Calculation
     Power (rhs : Column_Ref|Expression|Number = 1)
 
     ## Rounds values in the column to the specified precision.
-    Round (precision:Integer = 0) (use_bankers:Boolean = False)
+    Round (precision:Integer = 0) (rounding_mode : Rounding_Mode = Rounding_Mode.Half_Up)
 
     ## Rounds values in the column up to the nearest integer.
     Ceil

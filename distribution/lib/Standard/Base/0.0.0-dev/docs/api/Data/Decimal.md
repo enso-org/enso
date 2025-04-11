@@ -31,7 +31,7 @@
     - pow self exp:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Decimal.Decimal
     - precision self -> Standard.Base.Data.Numbers.Integer
     - remainder self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Data.Decimal.Decimal
-    - round self decimal_places:Standard.Base.Data.Numbers.Integer= use_bankers:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Data.Decimal.Decimal
+    - round self decimal_places:Standard.Base.Data.Numbers.Integer= rounding_mode:Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode= -> Standard.Base.Data.Decimal.Decimal
     - scale self -> Standard.Base.Data.Numbers.Integer
     - set_scale self new_scale:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Decimal.Decimal
     - signum self -> Standard.Base.Data.Numbers.Integer
