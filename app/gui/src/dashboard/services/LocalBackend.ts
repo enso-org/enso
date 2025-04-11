@@ -640,15 +640,39 @@ export default class LocalBackend extends Backend {
     assetId: backend.AssetId,
     body: backend.UpdateAssetRequestBody,
   ): Promise<void> {
-    if (body.parentDirectoryId != null) {
-      const typeAndId = extractTypeAndId(assetId)
-      const from =
-        typeAndId.type !== backend.AssetType.project ?
+    // Changing description is not supported on the Local Backend.
+    const { parentDirectoryId, title } = body
+
+    const typeAndId = extractTypeAndId(assetId)
+
+    const currentParentDirectoryPath = (() => {
+      return typeAndId.type !== backend.AssetType.project ?
           typeAndId.id
         : this.projectManager.getProjectPath(typeAndId.id)
-      const fileName = getFileName(from)
-      const to = joinPath(extractTypeAndId(body.parentDirectoryId).id, fileName)
-      await this.projectManager.moveFile(from, to)
+    })()
+
+    const newParentDirectoryPath = (() => {
+      const fileName = title == null ? getFileName(currentParentDirectoryPath) : title
+
+      if (parentDirectoryId == null) {
+        return joinPath(
+          projectManager.Path(currentParentDirectoryPath.split('/').slice(0, -1).join('/')),
+          fileName,
+        )
+      }
+
+      return joinPath(extractTypeAndId(parentDirectoryId).id, fileName)
+    })()
+
+    await this.projectManager.moveFile(currentParentDirectoryPath, newParentDirectoryPath)
+
+    // Changing the folder name for a project is _not_ enough,
+    // we also need to change the name in the package.yaml file.
+    if (typeAndId.type === backend.AssetType.project && title != null) {
+      await this.projectManager.renameProject({
+        projectId: typeAndId.id,
+        name: projectManager.ProjectName(title),
+      })
     }
   }
 
