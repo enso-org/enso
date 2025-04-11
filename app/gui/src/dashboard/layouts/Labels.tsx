@@ -17,7 +17,7 @@ import type Backend from '#/services/Backend'
 import { shallowEqual } from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
 import { setDragImageToBlank } from '#/utilities/drag'
-import { useMutation } from '@tanstack/react-query'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import type { Dispatch, SetStateAction } from 'react'
 
 /** Props for a {@link Labels}. */
@@ -39,7 +39,7 @@ export default function Labels(props: LabelsProps) {
   const getAsset = useGetAsset()
   const setLabelsDragPayload = useSetLabelsDragPayload()
   const labels = useBackendQuery(backend, 'listTags', []).data ?? []
-  const deleteTagMutation = useMutation(backendMutationOptions(backend, 'deleteTag'))
+  const deleteTagMutation = useMutationCallback(backendMutationOptions(backend, 'deleteTag'))
 
   return (
     <div className="flex flex-none flex-col">
@@ -121,8 +121,8 @@ export default function Labels(props: LabelsProps) {
                       />
                       <ConfirmDeleteModal
                         actionText={getText('deleteLabelActionText', label.value)}
-                        doDelete={async () => {
-                          await deleteTagMutation.mutateAsync([label.id, label.value])
+                        onConfirm={async () => {
+                          await deleteTagMutation([label.id, label.value])
                         }}
                       />
                     </DialogTrigger>

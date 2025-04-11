@@ -2,8 +2,7 @@ private
 
 from Standard.Base import all
 
-polyglot java import java.security.KeyPairGenerator
-polyglot java import java.util.Base64
+polyglot java import org.enso.snowflake.KeyPairGenerator
 
 public_key_prefix = "-----BEGIN PUBLIC KEY-----"
 public_key_suffix = "-----END PUBLIC KEY-----"
@@ -17,11 +16,5 @@ type Key_Pair
         public_key_prefix + crlf + self.raw_public_key + crlf + public_key_suffix + crlf
 
 generate =
-    key_pair_generator = KeyPairGenerator.getInstance "RSA"
-    key_pair_generator.initialize 2048
-    key_pair = key_pair_generator.generateKeyPair
-
-    base64_encoder = Base64.getMimeEncoder
-    private_key = base64_encoder.encodeToString key_pair.getPrivate.getEncoded
-    public_key = base64_encoder.encodeToString key_pair.getPublic.getEncoded
-    Key_Pair.Value private_key public_key
+    key_pair = KeyPairGenerator.generate "RSA" 2048
+    Key_Pair.Value key_pair.encodedPrivateKey key_pair.encodedPublicKey

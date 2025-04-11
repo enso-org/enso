@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Decimal.Decimal
 import project.Data.Locale.Locale
+import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Ordering.Comparable
 import project.Data.Text.Text
 import project.Error.Error
@@ -659,7 +660,7 @@ type Float
        Round to a specified number of decimal places.
 
        By default, rounding uses "symmetric round-half-up", also known as
-       "half-up." If use_bankers=True, then it uses "round-half-even", also
+       "half-up." If rounding_mode=Rounding_Mode.Bankers, then it uses "round-half-even", also
        known as "banker's rounding".
 
        If `decimal_places` > 0, `round` returns a `Float`; otherwise, it
@@ -672,7 +673,8 @@ type Float
        - decimal_places: The number of decimal places to round to. Can be
          negative, which results in rounding to positive integer powers of 10.
          Must be between -15 and 15 (inclusive).
-       - use_bankers: Rounds mid-point to nearest even number.
+       - rounding_mode: specifies how to break ties for the least significant
+         digit.
 
        ! Error Conditions
 
@@ -705,12 +707,12 @@ type Float
        > Example
          Use Banker's Rounding.
 
-            2.5 . round use_bankers=True == 2
-    round : Integer -> Boolean -> Integer | Float ! Illegal_Argument
-    round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
+            2.5 . round rounding_mode=Rounding_Mode.Bankers == 2
+    round : Integer -> Rounding_Mode -> Integer | Float ! Illegal_Argument
+    round self (decimal_places:Integer=0) (rounding_mode : Rounding_Mode = ..Half_Up) -> Float =
         report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
         Panic.catch Unsupported_Argument_Types handler=report_unsupported
-            round_float_builtin self decimal_places use_bankers
+            round_float_builtin self decimal_places (rounding_mode == Rounding_Mode.Bankers)
 
     ## GROUP Operators
        ICON operators
@@ -1074,14 +1076,15 @@ type Integer
        argument. For negative decimal places, see below.
 
        By default, rounding uses "symmetric round-half-up", also known as
-       "half-up." If use_bankers=True, then it uses "round-half-even", also
+       "half-up." If rounding_mode=Rounding_Mode.Bankers, then it uses "round-half-even", also
        known as "banker's rounding".
 
        Arguments:
        - decimal_places: The number of decimal places to round to. Can be
          negative, which results in rounding to positive integer powers of 10.
          Must be between -15 and 15 (inclusive).
-       - use_bankers: Rounds mid-point to nearest even number.
+       - rounding_mode: specifies how to break ties for the least significant
+         digit.
 
        ! Error Conditions
          If `self` is outside the range -99999999999999..99999999999999
@@ -1108,14 +1111,14 @@ type Integer
        > Example
          Round to the nearest hundred, using Banker's Rounding.
 
-            12250 . round -2 use_bankers=True == 12200
-    round self (decimal_places:Integer=0) (use_bankers:Boolean=False) -> Integer ! Illegal_Argument =
+            12250 . round -2 rounding_mode=Rounding_Mode.Bankers == 12200
+    round self (decimal_places:Integer=0) (rounding_mode : Rounding_Mode = ..Half_Up) -> Integer ! Illegal_Argument =
         ## We reject values outside the range of `long` here, so we don't also
            do this check in the Java.
         Rounding_Helpers.check_round_input self <|
             report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
             Panic.catch Unsupported_Argument_Types handler=report_unsupported
-                round_integer_builtin self decimal_places use_bankers
+                round_integer_builtin self decimal_places (rounding_mode == Rounding_Mode.Bankers)
 
     ## GROUP Operators
        ICON operators

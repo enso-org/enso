@@ -77,15 +77,13 @@ public final class StaticMethodResolution
   @Override
   protected TypeRepresentation getConversionFromScope(
       StaticImportExportScope scope, TypeScopeReference target, TypeScopeReference source) {
-    // TODO conversions in static analysis
-    return null;
+    return scope.resolve(moduleResolver, this).getConversionForType(target, source);
   }
 
   @Override
   protected TypeRepresentation getExportedConversionFromScope(
       StaticImportExportScope scope, TypeScopeReference target, TypeScopeReference source) {
-    // TODO conversions in static analysis
-    return null;
+    return scope.resolve(moduleResolver, this).getExportedConversion(target, source);
   }
 
   @Override

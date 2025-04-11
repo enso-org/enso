@@ -49,7 +49,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
     >
       <img src={DatalinkIcon} className="m-name-column-icon size-4" />
       <EditableSpan
-        editable={false}
+        editable={rowState.isEditingName}
         onSubmit={doRename}
         onCancel={() => {
           setIsEditing(false)

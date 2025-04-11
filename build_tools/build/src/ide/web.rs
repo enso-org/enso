@@ -91,6 +91,9 @@ pub mod env {
         /// The Mapbox API token for the GeoMap visualization.
         ENSO_IDE_MAPBOX_API_TOKEN, String;
 
+        /// The client ID for the Google OAuth integration used for Google Credentials.
+        ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID, String;
+
         ENSO_IDE_COMMIT_HASH, String;
         ENSO_IDE_VERSION, String;
     }

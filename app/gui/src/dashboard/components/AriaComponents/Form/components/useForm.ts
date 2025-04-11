@@ -14,7 +14,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline, useOfflineChange } from '#/hooks/offlineHooks'
 import { useText } from '#/providers/TextProvider'
 import * as errorUtils from '#/utilities/error'
-import { useMutation } from '@tanstack/react-query'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 import * as schemaModule from './schema'
 import type * as types from './types'
@@ -163,7 +163,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
     // and if we do, we throw an error.
     /* eslint-disable react-compiler/react-compiler */
     /* eslint-disable react-hooks/rules-of-hooks */
-    const formMutation = useMutation({
+    const formMutation = useMutationCallback({
       // We use template literals to make the mutation key more readable in the devtools
       // This mutation exists only for debug purposes - React Query dev tools record the mutation,
       // the result, and the variables(form fields).
@@ -211,7 +211,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
 
     // There is no way to avoid type casting here
     // eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax,@typescript-eslint/no-unsafe-argument
-    const formOnSubmit = formInstance.handleSubmit(formMutation.mutateAsync as any)
+    const formOnSubmit = formInstance.handleSubmit(formMutation as any)
 
     const { isOffline } = useOffline()
 

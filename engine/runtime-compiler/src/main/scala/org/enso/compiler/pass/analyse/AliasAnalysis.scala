@@ -399,7 +399,7 @@ case object AliasAnalysis extends IRPass {
           alias.AliasMetadata.ChildScope.from(currentScope)
         )
       case binding @ Expression.Binding(name, expression, _, _) =>
-        if (builder.findDef(name.name) == -1) {
+        if (builder.findDef(name.name) == null) {
           val isSuspended = expression match {
             case Expression.Block(_, _, _, isSuspended, _) => isSuspended
             case _                                         => false
@@ -546,7 +546,7 @@ case object AliasAnalysis extends IRPass {
           builder.findDef(
             name.name
           )
-        if (nameOccursInScope == -1) {
+        if (nameOccursInScope == null) {
           val argScope = if (suspended) builder.addChild() else builder
           val newDefault =
             value.map((ir: Expression) => analyseExpression(ir, argScope))
@@ -581,7 +581,7 @@ case object AliasAnalysis extends IRPass {
               ac,
               new alias.AliasMetadata.Occurrence(
                 builder.toGraph(),
-                nameOccursInScope
+                nameOccursInScope.id()
               )
             )
         }
@@ -714,11 +714,9 @@ case object AliasAnalysis extends IRPass {
           builder.newUse(
             name.name,
             name.getId,
-            name.getExternalId
+            name.getExternalId,
+            !isConstructorNameInPatternContext && !name.isMethod
           )
-        if (!isConstructorNameInPatternContext && !name.isMethod) {
-          builder.resolveLocalUsage(occurrence)
-        }
         occurrence.id
       }
     alias.AliasMetadata.updateMetadata(

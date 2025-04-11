@@ -93,12 +93,14 @@ public sealed interface FrameAnalysisMeta extends ProcessingPass.Metadata
     assert scope.allDefinitions().contains(defOcc)
         : "The given scope must contain the given Def occurrence";
 
-    var allDefs = scope.allDefinitions();
-    for (int i = 0; i < allDefs.size(); i++) {
-      GraphOccurrence.Def def = allDefs.get(i);
+    var it = scope.allDefinitions().iterator();
+    var i = 0;
+    while (it.hasNext()) {
+      var def = it.next();
       if (def.id() == defOcc.id()) {
         return i + LocalScope.internalSlotsSize();
       }
+      i++;
     }
     throw new IllegalStateException("Def occurrence must be in the given scope");
   }

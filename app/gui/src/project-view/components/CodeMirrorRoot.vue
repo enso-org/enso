@@ -1,34 +1,69 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { useCssModule } from 'vue'
 
-const rootElement = ref<HTMLElement>()
-defineExpose({ rootElement })
+defineExpose({ highlightClasses: useCssModule() })
 </script>
 
 <template>
-  <div ref="rootElement" class="CodeMirrorRoot" @wheel.stop.passive @contextmenu.stop>
+  <div class="CodeMirrorRoot" @contextmenu.stop @pointerdown.stop @pointerup.stop @click.stop>
     <slot />
   </div>
 </template>
 
-<!--suppress CssUnusedSymbol-->
 <style scoped>
 .CodeMirrorRoot {
   display: contents;
+  & :deep(.cm-content) {
+    cursor: text;
+  }
+}
+</style>
+
+<!--suppress CssUnusedSymbol -->
+<style module>
+.comment,
+.lineComment,
+.blockComment,
+.docComment {
+  color: #940;
 }
 
-:deep(.cm-scroller) {
-  /* Prevent touchpad back gesture, which can be triggered while panning. */
-  overscroll-behavior: none;
-  /* By default it uses `monospace`, but even when we want the editor to be monospace we use more specific fonts. */
-  font-family: unset;
+.name {
+  color: #000;
+}
+.variableName,
+.definition-variableName {
+  color: #00f;
 }
 
-:deep(.cm-editor) {
-  position: relative;
-  contain: content;
-  height: 100%;
-  width: 100%;
-  outline: none;
+.literal,
+.string {
+  color: #a11;
+}
+.escape {
+  color: #e40;
+}
+.number {
+  color: #164;
+}
+
+.keyword,
+.moduleKeyword,
+.modifier {
+  color: #708;
+}
+
+.punctuation,
+.paren {
+  color: #333;
+}
+
+.operator,
+.definitionOperator {
+  color: #333;
+}
+
+.invalid {
+  color: #f00;
 }
 </style>

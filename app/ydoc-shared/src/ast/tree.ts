@@ -1817,6 +1817,10 @@ export class TextLiteral extends BaseExpression {
     return uninterpolatedText(this.fields.get('elements'), this.module)
   }
 
+  get isBlock(): boolean {
+    return (this.open?.code().length ?? 1) > 1
+  }
+
   /** TODO: Add docs */
   *concreteChildren({ verbatim, indent }: PrintContext): IterableIterator<RawConcreteChild> {
     const { open, newline, elements, close } = getAll(this.fields)
@@ -1919,23 +1923,43 @@ export class MutableTextLiteral extends TextLiteral implements MutableExpression
    * transformed to use escape sequences when necessary.
    */
   setRawTextContent(rawText: string) {
-    let boundary = this.boundaryTokenCode()
-    const isInterpolated = this.isInterpolated()
-    const mustBecomeInterpolated = !isInterpolated && (!boundary || rawText.match(/["\n\r]/))
-    if (mustBecomeInterpolated) {
-      boundary = "'"
-      this.setBoundaries(boundary)
-    }
-    const literalContents =
-      isInterpolated || mustBecomeInterpolated ? escapeTextLiteral(rawText) : rawText
-    const parsed = parseExpression(`${boundary}${literalContents}${boundary}`)
-    assert(parsed instanceof TextLiteral)
-    const elements = parsed.elements.map((e) => mapRefs(e, concreteToOwned(this.module)))
-    this.setElements(elements)
+    if (!this.boundaryTokenCode() || (this.boundaryTokenCode() === '"' && rawText.match(/["\n\r]/)))
+      this.setBoundaries("'")
+    const boundary = this.boundaryTokenCode()!
+    const isBlock = boundary.length > 1
+    const literalContents = this.isInterpolated() ? escapeTextLiteral(rawText, isBlock) : rawText
+
+    // As a simple way to ensure the text elements are consistent with what the parser would
+    // produce, instead of creating them directly we generate code and parse it.
+
+    const parsed = TextLiteral.tryParse(
+      isBlock ?
+        `${boundary}\n${literalContents.split('\n').join('\n    ')}`
+      : `${boundary}${literalContents}${boundary}`,
+      this.module,
+    )
+    assertDefined(parsed)
+    // First, we parse with the arbitrary concrete indentation level generated above.
+    const elementsWithArbitraryConcreteWhitespace = parsed.elements.map((e) =>
+      mapRefs(e, concreteToOwned(this.module)),
+    )
+    // Now strip indentation information to let the block be indented appropriately for its context.
+    const elementsWithAbstractWhitespace = elementsWithArbitraryConcreteWhitespace.map(
+      textElementRemoveConcreteWhitespace,
+    )
+    this.setElements(elementsWithAbstractWhitespace)
   }
 }
 export interface MutableTextLiteral extends TextLiteral, MutableExpression {}
 applyMixins(MutableTextLiteral, [MutableAst])
+
+function textElementRemoveConcreteWhitespace<T extends TreeRefs>(
+  element: TextElement<T>,
+): TextElement<T> {
+  return element.type === 'token' && element.token.node.typeName === 'Newline' ?
+      { ...element, token: { node: element.token.node, whitespace: undefined } }
+    : element
+}
 
 interface ExpressionStatementFields {
   docLine: DocLine | undefined
