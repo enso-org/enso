@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
+import org.enso.common.LanguageInfo;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
@@ -16,20 +17,38 @@ import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
 /**
- * Test rule that ensures that {@link Context} is initialized and discarded in tests. If used as
- * {@link org.junit.ClassRule}, {@link Context} will be initialized just once for the whole test
- * class. If used as {@link org.junit.Rule}, a new {@link Context} will be initialized for each test
- * method.
+ * This class ensures that a polyglot {@link Context} is properly initialized and disposed along
+ * with its resources. It can be used both as a field in a test annotated with jUnit rule ({@link
+ * org.junit.ClassRule} or {@link org.junit.Rule}), or as a simple {@link AutoCloseable} resource.
  *
- * <p>This class simply delegates most of the methods either directly to {@link Context} or to
- * {@link ContextUtils}.
+ * <p>Along with the simple functionality of {@link Context#initialize(String) initializing the
+ * context} and {@link Context#close() closing it}, this class also contains various useful utility
+ * methods specific for the Enso language, like {@link #getMethodFromModule(String, String)}.
+ *
+ * <p>Moreover, the output (stdout, stderr, loghandler) of the context is automatically captured and
+ * can be accessed via {@link #getOut()}, and cleared with {@link #resetOut()}. The output usually
+ * comes from logging inside the interpreter and the compiler, as well as from {@code IO.println}
+ * used from Enso.
+ *
+ * <p>To configure initialization of the context, use {@link Builder#withModifiedContext(Function)}.
+ *
+ * <p>All the methods in this class that execute some Enso code, e.g., {@link
+ * #evalModule(CharSequence)}, are, by default, guaranteed to {@link Context#enter() enter} and
+ * {@link Context#leave() leave} the context. If this behavior is not desired, use {@link
+ * Builder#alwaysExecuteInContext(boolean)} to disable it.
+ *
+ * <p>If used as {@link org.junit.ClassRule}, {@link Context} will be initialized just once for the
+ * whole test class. If used as {@link org.junit.Rule}, a new {@link Context} will be initialized
+ * for each test method.
+ *
+ * <p>Delegates most of the methods directly to {@link Context}.
  */
-public final class ContextRule implements TestRule {
+public final class ContextRule implements TestRule, AutoCloseable {
   private final ByteArrayOutputStream stdOut;
   private final ByteArrayOutputStream stdErr;
   private final Context.Builder ctxBldr;
-  private Context context;
   private final boolean alwaysExecuteInContext;
+  private Context context;
 
   private ContextRule(
       Context.Builder ctxBldr,
@@ -92,6 +111,15 @@ public final class ContextRule implements TestRule {
   }
 
   @Override
+  public void close() {
+    if (context != null) {
+      context.close();
+      context = null;
+    }
+    resetOut();
+  }
+
+  @Override
   public Statement apply(Statement base, Description description) {
     return new CustomStatement(base, description);
   }
@@ -134,6 +162,28 @@ public final class ContextRule implements TestRule {
     return ContextUtils.evalModule(currentCtx(), src, methodName);
   }
 
+  /**
+   * Compiles a single module. Compiling two modules with the same name in the same context results
+   * in undefined behavior.
+   *
+   * @param src Source code of the module. Can be arbitrary Enso code. If polyglot methods are used,
+   *     ensure that the context was created with appropriate {@link #newBuilder(String...)
+   *     permitted languages}.
+   * @param moduleName Name of the module, may be qualified. Should start with uppercase letter.
+   * @return IR of the module
+   * @throws org.graalvm.polyglot.PolyglotException if compilation fails.
+   */
+  public org.enso.compiler.core.ir.Module compileModule(String src, String moduleName) {
+    var source = Source.newBuilder(LanguageInfo.ID, src, moduleName + ".enso").buildLiteral();
+    var ctx = currentCtx();
+    var module = ctx.eval(source);
+    var runtimeMod = (org.enso.interpreter.runtime.Module) unwrapValue(module);
+    if (runtimeMod.getIr() == null) {
+      runtimeMod.compileScope(leakContext());
+    }
+    return runtimeMod.getIr();
+  }
+
   public Value eval(Source src) {
     return currentCtx().eval(src);
   }
@@ -166,13 +216,6 @@ public final class ContextRule implements TestRule {
     return ContextUtils.executeInContext(ctx, callable);
   }
 
-  private Context currentCtx() {
-    if (context == null) {
-      context = ctxBldr.build();
-    }
-    return context;
-  }
-
   /**
    * Parses the given module and returns a method by the given name from the module.
    *
@@ -199,6 +242,13 @@ public final class ContextRule implements TestRule {
    */
   public Set<String> allMethodsFromAny() {
     return ContextUtils.allMethodsFromAny(currentCtx());
+  }
+
+  private Context currentCtx() {
+    if (context == null) {
+      context = ctxBldr.build();
+    }
+    return context;
   }
 
   public static final class Builder {
@@ -246,6 +296,7 @@ public final class ContextRule implements TestRule {
       this.description = description;
     }
 
+    /** Evaluates jUnit {@link org.junit.Test}. */
     @Override
     public void evaluate() throws Throwable {
       try (var ctx = currentCtx()) {
@@ -266,11 +317,7 @@ public final class ContextRule implements TestRule {
       } catch (Throwable t) {
         throw new FailureWithOutput("Compiler output: " + stdOut, t);
       } finally {
-        if (context != null) {
-          context.close();
-          context = null;
-        }
-        resetOut();
+        close();
       }
     }
 
