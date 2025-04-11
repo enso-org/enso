@@ -1,6 +1,7 @@
 /** @file Hooks to do batched backend operations. */
 import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
+import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { getMessageOrToString } from '#/utilities/error'
 import { useMutationState, type Mutation, type QueryClient } from '@tanstack/react-query'
 import {
@@ -12,7 +13,6 @@ import {
   type DirectoryId,
   type LabelName,
 } from 'enso-common/src/services/Backend'
-import { resolveDuplications } from '../modals/DuplicateAssetsModal'
 
 /** Call "delete" mutations for a list of assets. */
 export function deleteAssetsMutationOptions(backend: Backend) {
@@ -22,9 +22,11 @@ export function deleteAssetsMutationOptions(backend: Backend) {
       const results = await Promise.allSettled(
         ids.map((id) => backend.deleteAsset(id, { force }, '(unknown)')),
       )
+
       const errors = results.flatMap((result): unknown =>
         result.status === 'rejected' ? [result.reason] : [],
       )
+
       if (errors.length !== 0) {
         throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
           errors,
@@ -78,9 +80,15 @@ export function useDeleteAssetsMutationState<Result>(
 export function restoreAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
     mutationKey: [backend.type, 'restoreAssets'],
-    mutationFn: async (ids: readonly AssetId[]) => {
+    mutationFn: async ({
+      ids,
+      parentId = null,
+    }: {
+      ids: readonly AssetId[]
+      parentId: DirectoryId | null
+    }) => {
       const results = await Promise.allSettled(
-        ids.map((id) => backend.undoDeleteAsset(id, '(unknown)')),
+        ids.map((id) => backend.undoDeleteAsset(id, parentId)),
       )
       const errors = results.flatMap((result): unknown =>
         result.status === 'rejected' ? [result.reason] : [],
@@ -103,7 +111,14 @@ export function restoreAssetsMutationOptions(backend: Backend) {
 }
 
 /** The type of a "restore assets" mutation. */
-type RestoreAssetsMutation = Mutation<null, Error, readonly AssetId[]>
+type RestoreAssetsMutation = Mutation<
+  null,
+  Error,
+  {
+    readonly ids: readonly AssetId[]
+    readonly parentId: DirectoryId | null
+  }
+>
 
 /** Return matching in-flight "restore assets" mutations. */
 export function useRestoreAssetsMutationState<Result>(

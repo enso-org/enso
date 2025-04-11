@@ -21,6 +21,7 @@ import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
@@ -123,6 +124,10 @@ export default function MenuEntry(props: MenuEntryProps) {
   const buttonRef = React.useRef<HTMLButtonElement>(null)
   const isDisabledRef = useSyncRef(isDisabled)
 
+  const doActionCallback = useEventCallback(() => {
+    doAction()
+  })
+
   const labelTextId: text.TextId = (() => {
     if (action === 'openInFileBrowser') {
       return (
@@ -140,10 +145,10 @@ export default function MenuEntry(props: MenuEntryProps) {
       inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         [action]: () => {
           if (isDisabledRef.current) return
-          doAction()
+          doActionCallback()
         },
       }),
-    [inputBindings, action, doAction, isDisabledRef],
+    [inputBindings, action, doActionCallback, isDisabledRef],
   )
 
   const { tooltip, targetProps } = useVisualTooltip({

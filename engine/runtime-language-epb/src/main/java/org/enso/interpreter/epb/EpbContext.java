@@ -8,7 +8,8 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.net.URL;
-import java.util.concurrent.Executors;
+import java.util.Random;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
@@ -28,6 +29,7 @@ final class EpbContext {
   private final TruffleLanguage.Env env;
   private @CompilationFinal TruffleContext innerContext;
   private final TruffleLogger log;
+  private final Random delayer = new Random();
   private boolean polyfillInitialized;
 
   /**
@@ -54,6 +56,7 @@ final class EpbContext {
             env.newInnerContextBuilder()
                 .initializeCreatorContext(true)
                 .inheritAllAccess(true)
+                .threadAccessDeniedHandler(this::handleMultiAccess)
                 .config(INNER_OPTION, "yes")
                 .build();
       }
@@ -87,7 +90,9 @@ final class EpbContext {
   final void initializePolyfill(Node node, TruffleContext ctx) {
     if (!polyfillInitialized) {
       polyfillInitialized = true;
-      var exec = Executors.newSingleThreadScheduledExecutor();
+      var ensoLanguage = getEnv().getInternalLanguages().get("enso");
+      var exec = getEnv().lookup(ensoLanguage, ScheduledExecutorService.class);
+      assert exec != null : "Need executor from " + ensoLanguage;
       Function<URL, Value> eval =
           (url) -> {
             try {
@@ -100,5 +105,44 @@ final class EpbContext {
           };
       WebEnvironment.initialize(eval, exec);
     }
+  }
+
+  final void handleMultiAccess(String msg) {
+    try {
+      var ms = delayer.nextInt(10, 1000);
+      // dump stack when assertions on
+      assert dumpStack(ms);
+      Thread.sleep(ms);
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  private boolean dumpStack(int ms) {
+    var sb = new StringBuilder("Polyglot access failed. Waiting " + ms + " ms. Threaddump:\n");
+    var traces = Thread.getAllStackTraces();
+    for (var entry : traces.entrySet()) {
+      var thread = new StringBuilder();
+      thread.append(entry.getKey().getName()).append("\n");
+      var keep = false;
+      for (var e : entry.getValue()) {
+        keep |= e.getClassName().contains("com.oracle.truffle");
+        thread
+            .append("    ")
+            .append(e.getClassName())
+            .append(".")
+            .append(e.getMethodName())
+            .append("(")
+            .append(e.getFileName())
+            .append(":")
+            .append(e.getLineNumber())
+            .append(")\n");
+      }
+      if (keep) {
+        sb.append(thread.toString());
+      }
+    }
+    log(Level.WARNING, sb.toString());
+    return true;
   }
 }

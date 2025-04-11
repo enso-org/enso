@@ -2,22 +2,61 @@ package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.ThreadLocalAction;
 import com.oracle.truffle.api.TruffleLanguage.Env;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Supplier;
 import org.enso.interpreter.runtime.control.ThreadInterruptedException;
 
 /** Manages threads running guest code, exposing a safepoint-like functionality. */
-public final class ThreadManager {
+public final class ThreadManager extends GuestCodeExecutor {
   private final ThreadExecutors threads;
-  private final ExecutorService questCode;
   private final ConcurrentHashMap<Thread, Boolean> interruptFlags = new ConcurrentHashMap<>();
 
   ThreadManager(ThreadExecutors th, int throughput, Env env) {
+    super(th.newScheduledThreadPool(throughput, "guest-code", false));
     this.threads = th;
-    this.questCode = th.newFixedThreadPool(throughput, "guest-code", false);
+  }
+
+  @Override
+  protected Runnable wrap(Runnable r) {
+    Runnable wrap =
+        () -> {
+          var notYetEntered = interruptFlags.get(Thread.currentThread()) == null;
+          if (notYetEntered) {
+            interruptFlags.put(Thread.currentThread(), false);
+            try {
+              r.run();
+            } finally {
+              interruptFlags.remove(Thread.currentThread());
+            }
+          } else {
+            r.run();
+          }
+        };
+    return wrap;
+  }
+
+  @Override
+  protected <V> Callable<V> wrap(Callable<V> c) {
+    Callable<V> wrap =
+        () -> {
+          var notYetEntered = interruptFlags.get(Thread.currentThread()) == null;
+          if (notYetEntered) {
+            interruptFlags.put(Thread.currentThread(), false);
+            try {
+              return c.call();
+            } finally {
+              interruptFlags.remove(Thread.currentThread());
+            }
+          } else {
+            return c.call();
+          }
+        };
+    return wrap;
   }
 
   /**
@@ -39,7 +78,7 @@ public final class ThreadManager {
               interruptFlags.remove(Thread.currentThread());
             }
           };
-      return CompletableFuture.supplyAsync(wrap, questCode);
+      return CompletableFuture.supplyAsync(wrap, guestCode);
     } else {
       try {
         return CompletableFuture.completedFuture(action.get());
@@ -71,10 +110,10 @@ public final class ThreadManager {
    * @param name human-readable name of the pool
    * @return new execution service for this context
    */
-  public ExecutorService newFixedThreadPool(int parallel, String name) {
+  public ScheduledExecutorService newFixedThreadPool(int parallel, String name) {
     // only allow creation of systemThreads
     // non-system threads have to be managed and controlled internally
-    return threads.newFixedThreadPool(parallel, name, true);
+    return threads.newScheduledThreadPool(parallel, name, true);
   }
 
   /**
@@ -103,6 +142,7 @@ public final class ThreadManager {
   }
 
   /** Requests that all threads are shutdown. */
+  @Override
   public final void shutdown() {
     threads.shutdown();
     var hasBeenInterrupted = Thread.interrupted();

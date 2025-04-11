@@ -1843,7 +1843,7 @@ export default abstract class Backend {
   /** Delete an arbitrary asset. */
   abstract deleteAsset(assetId: AssetId, body: DeleteAssetRequestBody, title: string): Promise<void>
   /** Restore an arbitrary asset from the trash. */
-  abstract undoDeleteAsset(assetId: AssetId, title: string): Promise<void>
+  abstract undoDeleteAsset(assetId: AssetId, parentDirectoryId: DirectoryId | null): Promise<void>
   /** Copy an arbitrary asset to another directory. */
   abstract copyAsset(assetId: AssetId, parentDirectoryId: DirectoryId): Promise<CopyAssetResponse>
   /** Return a list of projects belonging to the current user. */

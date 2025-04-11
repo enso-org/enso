@@ -792,7 +792,7 @@ public final class EnsoContext {
 
   /** The job parallelism or 1 */
   public int getJobParallelism() {
-    int n = getOption(RuntimeOptions.JOB_PARALLELISM_KEY);
+    var n = getOption(RuntimeOptions.JOB_PARALLELISM_KEY);
     return Math.max(1, n);
   }
 

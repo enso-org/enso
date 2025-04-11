@@ -1,24 +1,16 @@
 /** @file The categories available in the category switcher. */
-import invariant from 'tiny-invariant'
 import * as z from 'zod'
 
-import { deleteAssetsMutationOptions, moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
-import { useBackendQuery } from '#/hooks/backendHooks'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useFullUserSession } from '#/providers/AuthProvider'
-import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import type { UserId } from '#/services/Backend'
 import {
   FilterBy,
-  type AssetId,
   type DirectoryId,
   type Path,
   type User,
   type UserGroup,
   type UserGroupId,
 } from '#/services/Backend'
-import { newDirectoryId } from '#/services/LocalBackend'
-import { useMutationCallback } from '#/utilities/tanstackQuery'
+import type { DropOperation } from '@react-types/shared'
 
 const PATH_SCHEMA = z.string().refine((s): s is Path => true)
 const DIRECTORY_ID_SCHEMA = z.string().refine((s): s is DirectoryId => true)
@@ -212,68 +204,61 @@ export function areCategoriesEqual(a: Category, b: Category) {
 }
 
 /** Whether an asset can be transferred between categories. */
-export function canTransferBetweenCategories(from: Category, to: Category) {
+export function canTransferBetweenCategories(
+  from: Category,
+  to: Category,
+  parentId: DirectoryId | null = null,
+) {
+  const operation = dropOperationBetweenCategories(from, to, parentId)
+
+  return operation !== 'cancel'
+}
+
+/**
+ * The drop operation to use when transferring assets between categories.
+ * @param from - The category to transfer from.
+ * @param to - The category to transfer to.
+ * @returns The drop operation to use.
+ */
+export function dropOperationBetweenCategories(
+  from: Category,
+  to: Category,
+  parentId: DirectoryId | null = null,
+): DropOperation {
+  // Moving into the same category without a parentId is not allowed.
+  if (from.type === to.type && parentId == null) {
+    return 'cancel'
+  }
+
+  if (to.type === 'recent') {
+    return 'cancel'
+  }
+
+  if (isCloudCategory(from) || isCloudCategory(to)) {
+    if (isLocalCategory(from) || isLocalCategory(to)) {
+      return 'cancel'
+    }
+  }
+
   switch (from.type) {
     case 'cloud':
     case 'recent':
-    case 'team':
     case 'user': {
-      return to.type === 'trash' || to.type === 'cloud' || to.type === 'team' || to.type === 'user'
+      return 'move'
+    }
+    case 'team': {
+      if (to.type === 'trash') {
+        return 'move'
+      }
+
+      return 'copy'
     }
     case 'trash': {
-      // In the future we want to be able to drag to certain categories to restore directly
-      // to specific home directories.
-      return false
+      return 'move'
     }
     case 'local':
     case 'local-directory': {
-      return to.type === 'local' || to.type === 'local-directory'
+      return 'move'
     }
   }
-}
-
-/** A function to transfer a list of assets between categories. */
-export function useTransferBetweenCategories(currentCategory: Category) {
-  const remoteBackend = useRemoteBackend()
-  const localBackend = useLocalBackend()
-  const backend = useBackend(currentCategory)
-  const { user } = useFullUserSession()
-  const { data: organization = null } = useBackendQuery(remoteBackend, 'getOrganization', [])
-  const deleteAssetsMutation = useMutationCallback(deleteAssetsMutationOptions(backend))
-  const moveAssetsMutation = useMutationCallback(moveAssetsMutationOptions(backend))
-
-  return useEventCallback(
-    (from: Category, to: Category, keys: Iterable<AssetId>, newParentId?: DirectoryId | null) => {
-      switch (from.type) {
-        case 'cloud':
-        case 'recent':
-        case 'team':
-        case 'user': {
-          if (to.type === 'trash') {
-            void deleteAssetsMutation([[...keys], false])
-          } else if (to.type === 'cloud' || to.type === 'team' || to.type === 'user') {
-            newParentId ??=
-              to.type === 'cloud' ?
-                remoteBackend.rootDirectoryId(user, organization)
-              : to.homeDirectoryId
-            invariant(newParentId != null, 'The Cloud backend is missing a root directory.')
-            void moveAssetsMutation([[...keys], newParentId])
-          }
-          break
-        }
-        case 'trash': {
-          break
-        }
-        case 'local':
-        case 'local-directory': {
-          if (to.type === 'local' || to.type === 'local-directory') {
-            const parentDirectory = to.type === 'local' ? localBackend?.rootPath() : to.rootPath
-            invariant(parentDirectory != null, 'The Local backend is missing a root directory.')
-            newParentId ??= newDirectoryId(parentDirectory)
-            void moveAssetsMutation([[...keys], newParentId])
-          }
-        }
-      }
-    },
-  )
 }

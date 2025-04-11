@@ -128,24 +128,14 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
     page,
   }))
 
-  const projectsContextValue = React.useMemo(
-    () => ({
-      updateLaunchedProjects,
-      addLaunchedProject,
-      removeLaunchedProject,
-      setLaunchedProjects,
-      setPage,
-      getState,
-    }),
-    [
-      updateLaunchedProjects,
-      addLaunchedProject,
-      removeLaunchedProject,
-      setLaunchedProjects,
-      setPage,
-      getState,
-    ],
-  )
+  const projectsContextValue = {
+    updateLaunchedProjects,
+    addLaunchedProject,
+    removeLaunchedProject,
+    setLaunchedProjects,
+    setPage,
+    getState,
+  }
 
   return (
     <ProjectsContext.Provider value={projectsContextValue}>
