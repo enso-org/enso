@@ -3845,9 +3845,23 @@ lazy val `engine-runner` = project
         `std-tableau-polyglot-root`
           .listFiles("*.jar")
           .map(_.getAbsolutePath())
-
-      core ++ stdLibsJars
+      core ++ stdLibsJars ++ extraNITestLibs.value
     },
+    extraNITestLibs := Def.taskDyn {
+      if (GraalVM.EnsoLauncher.test) Def.task {
+        Seq(
+          (`enso-test-java-helpers` / Compile / packageBin).value
+            .getAbsolutePath(),
+          (`snowflake-test-java-helpers` / Compile / packageBin).value
+            .getAbsolutePath()
+        )
+      }
+      else {
+        Def.task {
+          Seq[String]()
+        }
+      }
+    }.value,
     buildSmallJdk := {
       val smallJdkDirectory = (target.value / "jdk").getAbsoluteFile()
       if (smallJdkDirectory.exists()) {
@@ -4014,10 +4028,14 @@ lazy val `engine-runner` = project
   .dependsOn(`logging-service-logback` % Runtime)
   .dependsOn(`engine-runner-common`)
   .dependsOn(`polyglot-api`)
-  .dependsOn(`enso-test-java-helpers`)
 
 lazy val buildSmallJdk =
   taskKey[File]("Build a minimal JDK used for native image generation")
+
+lazy val extraNITestLibs =
+  taskKey[Seq[String]](
+    "List of extra test libraries to be included in Native Image"
+  )
 
 lazy val launcher = project
   .in(file("engine/launcher"))
@@ -4183,7 +4201,6 @@ lazy val `os-environment` =
     .settings(
       frgaalJavaCompilerSetting,
       scalaModuleDependencySetting,
-      javaModuleName := "org.enso.os.environment",
       libraryDependencies ++= Seq(
         "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
         "org.graalvm.sdk" % "graal-sdk"       % graalMavenPackagesVersion % "provided",

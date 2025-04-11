@@ -33,6 +33,17 @@ add_specs suite_builder =
             addr.query.should_equal "key=val"
             addr.fragment.should_equal Nothing
 
+        group_builder.specify "should assume https:// if no scheme" <|
+            addr = URI.parse "example.com/foo/bar?key=val"
+            addr.scheme.should_equal "https"
+            addr.user_info.should_equal Nothing
+            addr.host.should_equal "example.com"
+            addr.authority.should_equal "example.com"
+            addr.port.should_equal Nothing
+            addr.path.should_equal "/foo/bar"
+            addr.query.should_equal "key=val"
+            addr.fragment.should_equal Nothing
+
         group_builder.specify "should allow to convert a text to URI" <|
             addr2 = URI.from "https://example.org:1234/?a=b&c=d+e#line=10,20"
             addr2.should_be_a URI
@@ -83,6 +94,12 @@ add_specs suite_builder =
             r.should_fail_with Syntax_Error
             r.catch.to_display_text . should_contain "a b c"
             URI.from "a b c" . should_fail_with Syntax_Error
+
+        group_builder.specify "should return Syntax_Error when parsing empty URI" <|
+            r = URI.parse ""
+            r.should_fail_with Syntax_Error
+            r.catch.to_display_text . should_contain "empty"
+            URI.from "" . should_fail_with Syntax_Error
 
         group_builder.specify "should allow a URI without scheme or authority" <|
             uri = URI.parse "//a/b/c"

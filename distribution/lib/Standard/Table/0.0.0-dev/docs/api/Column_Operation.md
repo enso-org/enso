@@ -17,7 +17,7 @@
     - Not input:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Boolean.Boolean)
     - Or input:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Boolean.Boolean) rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Boolean.Boolean)
     - Power input:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number) rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number)
-    - Round input:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number) precision:Standard.Base.Data.Numbers.Integer= use_bankers:Standard.Base.Data.Boolean.Boolean=
+    - Round input:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number) precision:Standard.Base.Data.Numbers.Integer= rounding_mode:Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode=
     - Subtract input:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number) rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number)
     - Trim input:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text) where:Standard.Base.Data.Text.Location.Location= what:(Standard.Base.Data.Text.Text|Standard.Table.Column_Ref.Column_Ref)=
     - Truncate input:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number|Standard.Base.Data.Time.Date_Time.Date_Time)

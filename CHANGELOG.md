@@ -140,6 +140,8 @@
 - [Changed in-memory `Column.zip` to match `Table.zip`, removing the `function`
   parameter][12626]
 - [Added Regex_match for Postgres][12663]
+- [Replace `use_bankers` flag with `Rounding_Mode` in all `round`
+  methods][12641]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
@@ -163,6 +165,7 @@
 [12590]: https://github.com/enso-org/enso/pull/12590
 [12626]: https://github.com/enso-org/enso/pull/12626
 [12663]: https://github.com/enso-org/enso/pull/12663
+[12641]: https://github.com/enso-org/enso/pull/12641
 
 #### Enso Language & Runtime
 
