@@ -22,7 +22,7 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
-import { useMutationCallback } from '../utilities/tanstackQuery'
+import { useEnsureQueryData, useMutationCallback } from '../utilities/tanstackQuery'
 import { useUploadFileWithToastMutation } from './backendUploadFilesHooks'
 
 /** Default interval for refetching project status when the project is opened. */
@@ -414,7 +414,7 @@ function useOpenProject() {
 
   const enableMultitabs = useFeatureFlag('enableMultitabs')
 
-  return eventCallbacks.useEventCallback((project: LaunchedProject) => {
+  return eventCallbacks.useEventCallback(async (project: LaunchedProject) => {
     if (!canOpenProjects) {
       return
     }
@@ -422,7 +422,7 @@ function useOpenProject() {
     if (!enableMultitabs) {
       // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
       if (projectsStore.getState().launchedProjects.length > 0) {
-        closeAllProjects()
+        await closeAllProjects()
       }
     }
 
@@ -483,7 +483,7 @@ export function useOpenHybridProject() {
         }
 
         invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
-        openProject({
+        await openProject({
           id: project.id,
           title: asset.title,
           parentId: project.parentId,
@@ -522,11 +522,11 @@ export function useOpenProjectNatively() {
   const openProject = useOpenProject()
 
   return eventCallbacks.useEventCallback(
-    (
+    async (
       asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>,
       backendType: backendModule.BackendType,
     ) => {
-      openProject({ ...asset, type: backendType })
+      await openProject({ ...asset, type: backendType })
     },
   )
 }
@@ -545,9 +545,8 @@ export function useOpenProjectLocally() {
       const isCloud = backendType === backendModule.BackendType.remote
       if (isCloud && enableHybridExecution) {
         await openHybridProject(asset)
-        return
       } else {
-        openProject({ ...asset, type: backendType })
+        await openProject({ ...asset, type: backendType })
       }
     },
   )
@@ -609,12 +608,36 @@ export function useCloseProject() {
 export function useCloseAllProjects() {
   const closeProject = useCloseProject()
   const projectsStore = useProjectsStore()
+  const remoteBackend = backendProvider.useRemoteBackend()
+  const localBackend = backendProvider.useLocalBackend()
+  const ensureQueryData = useEnsureQueryData<
+    backendModule.Project,
+    Error,
+    backendModule.Project,
+    readonly ['project', backendModule.ProjectId]
+  >()
 
-  return eventCallbacks.useEventCallback(() => {
+  return eventCallbacks.useEventCallback(async () => {
     const launchedProjects = projectsStore.getState().launchedProjects
 
-    for (const launchedProject of launchedProjects) {
-      void closeProject(launchedProject)
-    }
+    await Promise.all(
+      launchedProjects.map(async (project) => {
+        const isHybrid = project.hybrid != null
+        const backend =
+          project.type === backendModule.BackendType.remote || isHybrid ?
+            remoteBackend
+          : localBackend
+        invariant(backend != null, 'Backend must not be async null')
+        const projectDetails = await ensureQueryData(
+          createGetProjectDetailsQuery({
+            assetId: isHybrid ? project.hybrid.cloudProjectId : project.id,
+            backend,
+          }),
+        )
+        if (backendModule.IS_OPENING_OR_OPENED[projectDetails.state.type]) {
+          await closeProject(project)
+        }
+      }),
+    )
   })
 }

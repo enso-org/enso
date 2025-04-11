@@ -51,8 +51,6 @@ export default function Editor(props: EditorProps) {
 
   const queryClient = reactQuery.useQueryClient()
 
-  const isHybrid = project.hybrid != null
-
   const projectQuery = reactQuery.useSuspenseQuery({
     ...projectStatusQuery,
     select: (data) => {
@@ -65,6 +63,7 @@ export default function Editor(props: EditorProps) {
     },
   })
 
+  const isHybrid = project.hybrid != null
   // If it's a hybrid project, we need to fetch the project details from the remote backend.
   const {
     data: { name, isHybridOpened },
