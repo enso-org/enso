@@ -63,6 +63,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
   // We need to disable the eslint rules here, because we call hooks conditionally
   // but it's safe to do so, because we don't switch between the two types of arguments
   // and if we do, we throw an error.
+
   /* eslint-disable react-compiler/react-compiler */
   /* eslint-disable react-hooks/rules-of-hooks */
   if ('formState' in optionsOrFormInstance) {
@@ -256,28 +257,25 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
       formInstance.reset(options.defaultValues as types.FieldValues<Schema>)
     })
 
-    // @ts-expect-error Our `UseFormRegister<Schema>` is the same as `react-hook-form`'s,
-    // just with an added constraint.
-    const form: types.UseFormReturn<Schema> = React.useMemo(
-      () => ({
-        ...formInstance,
-        reset,
-        submit,
-        control: { ...formInstance.control, register },
-        register,
-        schema: computedSchema,
-        setFormError,
-        handleSubmit: formInstance.handleSubmit,
-        closeRef,
-        formProps: { onSubmit: submit, noValidate: true },
-      }),
-      [formInstance, register, computedSchema, submit, reset, setFormError],
-    )
+    const form: types.UseFormReturn<Schema> = {
+      ...formInstance,
+      reset,
+      submit,
+      // @ts-expect-error Our `UseFormRegister<Schema>` is the same as `react-hook-form`'s,
+      // just with an added constraint.
+      control: { ...formInstance.control, register },
+      register,
+      schema: computedSchema,
+      setFormError,
+      handleSubmit: formInstance.handleSubmit,
+      closeRef,
+      formProps: { onSubmit: submit, noValidate: true },
+    }
 
     return form
   }
-  /* eslint-enable react-compiler/react-compiler */
   /* eslint-enable react-hooks/rules-of-hooks */
+  /* eslint-enable react-compiler/react-compiler */
 }
 
 /** Get the type of arguments passed to the useForm hook */
