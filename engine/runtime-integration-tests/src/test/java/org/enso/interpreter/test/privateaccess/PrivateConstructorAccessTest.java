@@ -8,11 +8,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import org.enso.common.RuntimeOptions;
 import org.enso.polyglot.PolyglotContext;
-import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ProjectUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.Rule;
@@ -32,8 +31,8 @@ public class PrivateConstructorAccessTest {
             obj = My_Type.Cons 42
             obj.data
         """;
-    try (var ctx = ContextUtils.createDefaultContext()) {
-      var res = ContextUtils.evalModule(ctx, src);
+    try (var ctx = ContextRule.createDefault()) {
+      var res = ctx.evalModule(src);
       assertThat(res.isNumber(), is(true));
       assertThat(res.asInt(), is(42));
     }
@@ -75,16 +74,17 @@ public class PrivateConstructorAccessTest {
     ProjectUtils.createProject("My_Project", mainSrc, projDir);
     var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
     try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+        ContextRule.newBuilder()
+            .withModifiedContext(
+                bldr ->
+                    bldr.option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString()))
             .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+      var polyCtx = new PolyglotContext(ctx.context());
       var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
       var myType = mainMod.getType("My_Type");
-      ContextUtils.executeInContext(
-          ctx,
+      ctx.executeInContext(
           () -> {
-            var myTypeUnwrapped = ContextUtils.unwrapValue(ctx, myType);
+            var myTypeUnwrapped = ctx.unwrapValue(myType);
             var interop = InteropLibrary.getUncached();
             var members = interop.getMembers(myTypeUnwrapped, false);
             assertThat(
@@ -138,22 +138,22 @@ public class PrivateConstructorAccessTest {
         """;
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", projSrc, projDir);
-    var out = new ByteArrayOutputStream();
+
     try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .option(RuntimeOptions.STRICT_ERRORS, "true")
-            .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
-            .out(out)
-            .err(out)
+        ContextRule.newBuilder()
+            .withModifiedContext(
+                bldr ->
+                    bldr.option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+                        .option(RuntimeOptions.STRICT_ERRORS, "true")
+                        .option(RuntimeOptions.DISABLE_IR_CACHES, "true"))
             .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+      var polyCtx = new PolyglotContext(ctx.context());
       try {
         polyCtx.getTopScope().compile(true);
         fail("Expected compiler error");
       } catch (PolyglotException e) {
         assertThat(
-            out.toString(),
+            ctx.getOut(),
             allOf(
                 containsString("error:"),
                 containsString("Project-private constructor"),

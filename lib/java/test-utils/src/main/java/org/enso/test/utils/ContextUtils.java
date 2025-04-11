@@ -4,9 +4,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import java.io.OutputStream;
 import java.nio.file.Paths;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
@@ -17,7 +15,6 @@ import org.enso.common.MethodNames.TopScope;
 import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
@@ -27,20 +24,6 @@ import org.graalvm.polyglot.proxy.ProxyExecutable;
 public final class ContextUtils {
 
   private ContextUtils() {}
-
-  public static Context createDefaultContext() {
-    var context = defaultContextBuilder().build();
-    final Map<String, Language> langs = context.getEngine().getLanguages();
-    assert langs.get("enso") != null : "Enso found in languages: " + langs;
-    return context;
-  }
-
-  static Context createDefaultContext(OutputStream out) {
-    var context = defaultContextBuilder().out(out).build();
-    final Map<String, Language> langs = context.getEngine().getLanguages();
-    assert langs.get("enso") != null : "Enso found in languages: " + langs;
-    return context;
-  }
 
   public static Context.Builder defaultContextBuilder(String... languages) {
     return Context.newBuilder(languages)
