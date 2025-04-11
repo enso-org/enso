@@ -118,7 +118,7 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
       ],
     ],
     [
-      'lib/Standard/Snowflake/*/polyglot/java/conscript-openjdk-uber-*.jar',
+      'lib/Standard/Snowflake/*/polyglot/java/conscrypt-openjdk-uber-*.jar',
       ['META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib'],
     ],
     [

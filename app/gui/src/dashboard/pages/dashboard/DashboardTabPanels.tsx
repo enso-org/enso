@@ -9,11 +9,13 @@ import { Suspense } from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectMutation, useRenameProjectMutation } from '#/hooks/projectHooks'
 import type { AssetManagementApi } from '#/layouts/AssetsTable'
+import { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useLaunchedProjects, usePage } from '#/providers/ProjectsProvider'
-import type { ProjectId } from '#/services/Backend'
+import { BackendType, type ProjectId } from '#/services/Backend'
 import { omit } from 'enso-common/src/utilities/data/object'
 import { lazy, type ReactNode } from 'react'
 import { Collection } from 'react-aria-components'
+import invariant from 'tiny-invariant'
 
 /** The props for the {@link DashboardTabPanels} component. */
 export interface DashboardTabPanelsProps {
@@ -35,6 +37,8 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
   const launchedProjects = useLaunchedProjects()
   const openProjectMutation = useOpenProjectMutation()
   const renameProjectMutation = useRenameProjectMutation()
+  const remoteBackend = useRemoteBackend()
+  const localBackend = useLocalBackend()
 
   const onRenameProject = useEventCallback(async (newName: string, projectId: ProjectId) => {
     const project = launchedProjects.find((proj) => proj.id === projectId)
@@ -43,7 +47,17 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
       return
     }
 
-    await renameProjectMutation.mutateAsync({ newName, project })
+    const isHybrid = project.hybrid != null
+    const backendType = isHybrid ? BackendType.remote : project.type
+    const backend = backendType === BackendType.remote ? remoteBackend : localBackend
+    const id = isHybrid ? project.hybrid.cloudProjectId : project.id
+    invariant(backend != null, 'Backend is null')
+
+    await renameProjectMutation.mutateAsync({
+      newName,
+      backend,
+      project: { ...project, id },
+    })
   })
 
   const tabPanels = [

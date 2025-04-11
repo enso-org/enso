@@ -599,7 +599,8 @@ export function useNewProject(backend: Backend, category: Category) {
             id: createdProject.projectId,
             parentId: placeholderItem.parentId,
             title: createdProject.name,
-          }
+            ...(createdProject.ensoPath != null ? { ensoPath: createdProject.ensoPath } : {}),
+          } satisfies Partial<backendModule.ProjectAsset>
           if (runLocally) {
             // Open in background.
             void openProjectLocally(openProjectParams, backend.type)
