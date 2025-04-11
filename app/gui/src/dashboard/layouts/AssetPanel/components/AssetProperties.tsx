@@ -465,7 +465,6 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           : <Form
               schema={(z) => z.object({ datalink: z.custom((x) => validateDatalink(x)) })}
               defaultValues={{ datalink: datalinkQuery.data }}
-              formOptions={{ resetOnSubmit: false }}
               onSubmit={({ datalink }) =>
                 createDatalinkMutation.mutateAsync([
                   {

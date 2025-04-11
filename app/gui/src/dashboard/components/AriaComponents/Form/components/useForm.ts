@@ -14,7 +14,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline, useOfflineChange } from '#/hooks/offlineHooks'
 import { useText } from '#/providers/TextProvider'
 import * as errorUtils from '#/utilities/error'
-import { useMutation } from '@tanstack/react-query'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 import * as schemaModule from './schema'
 import type * as types from './types'
@@ -60,6 +60,11 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
     `,
   )
 
+  // We need to disable the eslint rules here, because we call hooks conditionally
+  // but it's safe to do so, because we don't switch between the two types of arguments
+  // and if we do, we throw an error.
+  /* eslint-disable react-compiler/react-compiler */
+  /* eslint-disable react-hooks/rules-of-hooks */
   if ('formState' in optionsOrFormInstance) {
     return optionsOrFormInstance
   } else {
@@ -134,36 +139,34 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
       ),
     })
 
-    const register: types.UseFormRegister<Schema> = (name, opts) => {
-      const registered = formInstance.register(name, opts)
+    const register: types.UseFormRegister<Schema> = React.useCallback(
+      (name, opts) => {
+        const registered = formInstance.register(name, opts)
 
-      const onChange: types.UseFormRegisterReturn<Schema>['onChange'] = (value) =>
-        registered.onChange(mapValueOnEvent(value))
+        const onChange: types.UseFormRegisterReturn<Schema>['onChange'] = (value) =>
+          registered.onChange(mapValueOnEvent(value))
 
-      const onBlur: types.UseFormRegisterReturn<Schema>['onBlur'] = (value) =>
-        registered.onBlur(mapValueOnEvent(value))
+        const onBlur: types.UseFormRegisterReturn<Schema>['onBlur'] = (value) =>
+          registered.onBlur(mapValueOnEvent(value))
 
-      const result: types.UseFormRegisterReturn<Schema, typeof name> = {
-        ...registered,
-        disabled: registered.disabled ?? false,
-        isDisabled: registered.disabled ?? false,
-        invalid: !!formInstance.formState.errors[name],
-        isInvalid: !!formInstance.formState.errors[name],
-        required: registered.required ?? false,
-        isRequired: registered.required ?? false,
-        onChange,
-        onBlur,
-      }
+        const result: types.UseFormRegisterReturn<Schema, typeof name> = {
+          ...registered,
+          disabled: registered.disabled ?? false,
+          isDisabled: registered.disabled ?? false,
+          invalid: !!formInstance.formState.errors[name],
+          isInvalid: !!formInstance.formState.errors[name],
+          required: registered.required ?? false,
+          isRequired: registered.required ?? false,
+          onChange,
+          onBlur,
+        }
 
-      return result
-    }
+        return result
+      },
+      [formInstance],
+    )
 
-    // We need to disable the eslint rules here, because we call hooks conditionally
-    // but it's safe to do so, because we don't switch between the two types of arguments
-    // and if we do, we throw an error.
-    /* eslint-disable react-compiler/react-compiler */
-    /* eslint-disable react-hooks/rules-of-hooks */
-    const formMutation = useMutation({
+    const formMutation = useMutationCallback({
       // We use template literals to make the mutation key more readable in the devtools
       // This mutation exists only for debug purposes - React Query dev tools record the mutation,
       // the result, and the variables(form fields).
@@ -181,7 +184,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
           }
 
           if (resetOnSubmit) {
-            formInstance.reset()
+            form.reset()
           }
 
           return result
@@ -211,7 +214,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
 
     // There is no way to avoid type casting here
     // eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax,@typescript-eslint/no-unsafe-argument
-    const formOnSubmit = formInstance.handleSubmit(formMutation.mutateAsync as any)
+    const formOnSubmit = formInstance.handleSubmit(formMutation as any)
 
     const { isOffline } = useOffline()
 
@@ -248,19 +251,28 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
       formInstance.setError('root.submit', { message: error })
     })
 
-    const form: types.UseFormReturn<Schema> = {
-      ...formInstance,
-      submit,
-      // @ts-expect-error Our `UseFormRegister<Schema>` is the same as `react-hook-form`'s,
-      // just with an added constraint.
-      control: { ...formInstance.control, register },
-      register,
-      schema: computedSchema,
-      setFormError,
-      handleSubmit: formInstance.handleSubmit,
-      closeRef,
-      formProps: { onSubmit: submit, noValidate: true },
-    }
+    const reset = useEventCallback(() => {
+      // eslint-disable-next-line no-restricted-syntax
+      formInstance.reset(options.defaultValues as types.FieldValues<Schema>)
+    })
+
+    // @ts-expect-error Our `UseFormRegister<Schema>` is the same as `react-hook-form`'s,
+    // just with an added constraint.
+    const form: types.UseFormReturn<Schema> = React.useMemo(
+      () => ({
+        ...formInstance,
+        reset,
+        submit,
+        control: { ...formInstance.control, register },
+        register,
+        schema: computedSchema,
+        setFormError,
+        handleSubmit: formInstance.handleSubmit,
+        closeRef,
+        formProps: { onSubmit: submit, noValidate: true },
+      }),
+      [formInstance, register, computedSchema, submit, reset, setFormError],
+    )
 
     return form
   }
