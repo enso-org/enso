@@ -29,8 +29,8 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   /**
    * Returns a more specialized storage, if available.
    *
-   * <p>This storage should have the same type as returned by {@code inferPreciseType(DEFAULT)}. See {@link
-   * MixedStorage} for more information.
+   * <p>This storage should have the same type as returned by {@code inferPreciseType(DEFAULT)}. See
+   * {@link MixedStorage} for more information.
    */
   public Storage<?> tryGettingMoreSpecializedStorage() {
     return this;
@@ -45,7 +45,8 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   /**
    * @return the type of the values in this column's storage. Most storages just return their type.
    *     Mixed storage will try to see if all elements fit some more precise type.
-   * @implNote The {@code PreciseTypeOptions.DEFAULT} should either be computable in constant time or cache its result for subsequent calls, as it may be called often.
+   * @implNote The {@code PreciseTypeOptions.DEFAULT} should either be computable in constant time
+   *     or cache its result for subsequent calls, as it may be called often.
    */
   public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
     return getType();

@@ -102,6 +102,7 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
   }
 
   private IntegerType smallestFittingType = null;
+
   private IntegerType findSmallestFittingType() {
     if (smallestFittingType == null) {
       smallestFittingType = computeSmallestFittingType();

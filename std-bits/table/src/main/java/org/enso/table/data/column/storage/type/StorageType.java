@@ -45,7 +45,9 @@ public sealed interface StorageType<T>
 
     if (NumericConverter.isFloatLike(item)) {
       double value = NumericConverter.coerceToDouble(item);
-      if (options.wholeFloatsBecomeIntegers() && value % 1.0 == 0.0 && IntegerType.INT_64.fits(value)) {
+      if (options.wholeFloatsBecomeIntegers()
+          && value % 1.0 == 0.0
+          && IntegerType.INT_64.fits(value)) {
         if (options.shrinkIntegers()) {
           return IntegerType.smallestFitting((long) value);
         }

@@ -80,6 +80,7 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
   }
 
   private StorageType<?> cachedDefaultPreciseType = null;
+
   private StorageType<?> computePreciseType(PreciseTypeOptions options) {
     if (inferredType == null) {
       StorageType<?> currentType = null;
@@ -95,7 +96,8 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
         if (currentType == null) {
           currentType = itemType;
         } else if (!currentType.equals(itemType)) {
-          if (currentType instanceof TextType currentTextType && itemType instanceof TextType itemTextType) {
+          if (currentType instanceof TextType currentTextType
+              && itemType instanceof TextType itemTextType) {
             currentType = TextType.maxType(currentTextType, itemTextType);
           } else if (currentType.isNumeric() && itemType.isNumeric()) {
             currentType = commonNumericType(currentType, itemType);
