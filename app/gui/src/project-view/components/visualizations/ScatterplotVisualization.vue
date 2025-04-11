@@ -765,8 +765,8 @@ watchPostEffect(() => {
       .attr('cx', function (d, i) {
         return 90 + i * 120
       })
-      .attr('cy', 10)
-      .attr('r', 6)
+      .attr('cy', 9)
+      .attr('r', 5)
       .style('fill', (d) => color(d) || DEFAULT_FILL_COLOR)
 
     d3Legend.value
