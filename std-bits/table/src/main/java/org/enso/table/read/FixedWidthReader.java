@@ -1,6 +1,7 @@
 package org.enso.table.read;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -25,15 +26,19 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 public class FixedWidthReader {
-  private Object layoutEntries;
+  private ArrayList<FixedWidthLayoutEntry> layoutEntries;
   private InvalidRowsBehavior invalidRowsBehavior;
   private DatatypeParser valueParser;
+  private FixedWidthReaderProblemAggregator problemAggregator;
 
-  private int minimumLength;
+  private int minimumLineLength;
   private List<BuilderForType<String>> builders = null;
 
+  private long sourceLineNumber = 0;
+  private long tableRowNumber = 0;
+
   public FixedWidthReader(
-      Object layoutEntries,
+      ArrayList<FixedWidthLayoutEntry> layoutEntries,
       InvalidRowsBehavior invalidRowsBehavior,
       DatatypeParser valueParser,
       boolean warningsAsErrors,
@@ -42,23 +47,23 @@ public class FixedWidthReader {
       throw new IllegalArgumentException("FixedWidthReader does not allow InvalidRowsBehavior.ADD_EXTRA_COLUMNS");
     }
 
-    if (layoutEntries.length == 0) {
+    if (layoutEntries.size() == 0) {
         throw new IllegalArgumentException("Must specify at least one column");
     }
 
     this.layoutEntries = layoutEntries;
-    this.warningsAsErrors = warningsAsErrors;
-    this.problemAggregator = new FixedWidthReaderProblemAggregator(problemAggregator);
+    this.invalidRowsBehavior = invalidRowsBehavior;
+    this.valueParser = valueParser;
+    this.problemAggregator = new FixedWidthReaderProblemAggregator(problemAggregator, warningsAsErrors);
 
-    minimumLength = layoutEntries]layoutEntries.length-1].end(); 
+    minimumLineLength = layoutEntries.get(layoutEntries.size()-1).end(); 
   }
 
-  public Table read(Reader reader) {
+  public Table read(Reader reader) throws IOException {
     BufferedReader bufferedReader = new BufferedReader(reader);
 
-    initBuilders(layoutEntries.length);
+    initBuilders(layoutEntries.size());
 
-    int lineNumber = 1;
     while (true) {
       String line = bufferedReader.readLine();
 
@@ -66,20 +71,26 @@ public class FixedWidthReader {
           break;
       }
 
-      addRow(lineNumber, line);
-      lineNumber++;
+      addRow(line);
     }
+
+    return makeFinalTable();
   }
 
-  private void addRow(int lineNumber, String line) {
-    if (line.length() < minimumLength && invalidRowsBehavior == InvalidRowsBehavior.DROP) {
-      problemAggregator.reportShortLine(lineNumber, line.length());
+  private void addRow(String line) {
+    if (line.length() < minimumLineLength) {
+      var trn = invalidRowsBehavior == InvalidRowsBehavior.KEEP ? tableRowNumber : null;
+      problemAggregator.reportShortLine(sourceLineNumber, tableRowNumber, line.length(), minimumLineLength);
+    }
+
+    if (line.length() < minimumLineLength && invalidRowsBehavior == InvalidRowsBehavior.DROP) {
+      sourceLineNumber++;
       return;
     }
 
-    for (int i = 0; i < layoutEntries.length; ++i) {
-      var entry = layoutEntries[i];
-      var builder = builders[i];
+    for (int i = 0; i < layoutEntries.size(); ++i) {
+      var entry = layoutEntries.get(i);
+      var builder = builders.get(i);
 
       if (entry.end() > line.length()) {
         assert invalidRowsBehavior == InvalidRowsBehavior.KEEP;
@@ -89,15 +100,16 @@ public class FixedWidthReader {
       }
     }
 
-    return makeFinalTable();
+    tableRowNumber++;
+    sourceLineNumber++;
   }
 
-  private void Table makeFinalTable() {
+  private Table makeFinalTable() {
     Context context = Context.getCurrent();
 
     Column[] columns = new Column[builders.size()];
     for (int i = 0; i < builders.size(); i++) {
-      String columnName = layoutEntries[i];
+      String columnName = layoutEntries.get(i).columnName();
       var stringStorage = builders.get(i).seal();
 
       // We don't expect InvalidFormat to be propagated back to Enso, there is no particular type

@@ -1,11 +1,14 @@
 package org.enso.table.read;
 
+import org.enso.table.parsing.problems.AdditionalInvalidRows;
+import org.enso.table.parsing.problems.InvalidFixedWidthRow;
 import org.enso.table.problems.Problem;
 import org.enso.table.problems.ProblemAggregator;
 
 public class FixedWidthReaderProblemAggregator extends ProblemAggregator {
   private final boolean warningsAsErrors;
-  private final char quoteCharacter;
+  private long invalidRowsCount;
+  private final long invalidRowsLimit = 10;
 
   public FixedWidthReaderProblemAggregator(
       ProblemAggregator parent,
@@ -21,5 +24,25 @@ public class FixedWidthReaderProblemAggregator extends ProblemAggregator {
     } else {
       super.report(problem);
     }
+  }
+
+  public void reportShortLine(long sourceLineNumber, Long tableRowNumber, long lineLength, long minimumLineLength) {
+    if (invalidRowsCount >= invalidRowsLimit) {
+      return;
+    }
+
+    report(new InvalidFixedWidthRow(sourceLineNumber, tableRowNumber, lineLength, minimumLineLength));
+
+    invalidRowsCount++;
+  }
+
+  @Override
+  public ProblemSummary summarize() {
+    var summary = super.summarize();
+    if (invalidRowsCount > invalidRowsLimit) {
+      long additionalInvalidRows = invalidRowsCount - invalidRowsLimit;
+      summary.add(new AdditionalInvalidRows(additionalInvalidRows));
+    }
+    return summary;
   }
 }
