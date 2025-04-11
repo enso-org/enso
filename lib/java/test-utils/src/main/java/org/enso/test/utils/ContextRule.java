@@ -31,13 +31,11 @@ public final class ContextRule implements TestRule {
 
   private ContextRule(
       Context.Builder ctxBldr,
-      Context ctx,
       ByteArrayOutputStream stdOut,
       ByteArrayOutputStream stdErr) {
     this.stdOut = Objects.requireNonNull(stdOut);
     this.stdErr = Objects.requireNonNull(stdErr);
     this.ctxBldr = Objects.requireNonNull(ctxBldr);
-    this.context = ctx;
   }
 
   /**
@@ -58,7 +56,7 @@ public final class ContextRule implements TestRule {
     var stderr = new ByteArrayOutputStream();
     var ctxBldr = ContextUtils.defaultContextBuilder();
     ctxBldr.out(stdout).err(stderr).logHandler(stdout);
-    return new ContextRule(ctxBldr, null, stdout, stderr);
+    return new ContextRule(ctxBldr, stdout, stderr, true);
   }
 
   /**
@@ -201,7 +199,6 @@ public final class ContextRule implements TestRule {
 
   public static final class Builder {
     private Context.Builder polyglotCtxBldr;
-    private Context polyglotCtx;
     private final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
     private final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 
@@ -211,11 +208,6 @@ public final class ContextRule implements TestRule {
     }
 
     public Builder withModifiedContext(Function<Context.Builder, Context.Builder> modifier) {
-      if (polyglotCtx != null) {
-        throw new IllegalStateException(
-            "Cannot modify context after it was created. Use withModifiedContext before calling"
-                + " initInContext.");
-      }
       polyglotCtxBldr = modifier.apply(polyglotCtxBldr);
       return this;
     }
@@ -226,7 +218,7 @@ public final class ContextRule implements TestRule {
     }
 
     public ContextRule build() {
-      return new ContextRule(polyglotCtxBldr, polyglotCtx, stdout, stderr);
+      return new ContextRule(polyglotCtxBldr, stdout, stderr, alwaysExecuteInContext);
     }
   }
 
