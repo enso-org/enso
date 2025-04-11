@@ -90,9 +90,10 @@ public final class TelemetryAppenderImpl extends TelemetryAppender {
         credentialsParseFailure = true;
         return;
       }
+      var tokenRefresherExecutor = Executors.newSingleThreadExecutor();
       var tokenRefresher =
           new TokenRefresher(
-              backgroundThreadService,
+              tokenRefresherExecutor,
               refreshUri,
               credentials.clientId(),
               credentials.refreshToken());
