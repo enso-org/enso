@@ -124,7 +124,8 @@ public final class LogJobsProcessor {
       }
       if (refreshedAuthData != null) {
         authenticationData = refreshedAuthData;
-        LOGGER.trace("Token refreshed successfully: {}", authenticationData);
+        LOGGER.trace(
+            "Token refreshed successfully. New expiration: {}", authenticationData.expireAt());
       } else {
         throw new RequestFailureException("Failed to refresh token", null);
       }
