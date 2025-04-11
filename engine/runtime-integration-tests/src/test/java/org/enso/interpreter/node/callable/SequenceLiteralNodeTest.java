@@ -16,11 +16,7 @@ public class SequenceLiteralNodeTest {
   public SequenceLiteralNodeTest() {}
 
   @Test
-  public void propagatePanicSentinel() {
-    ctxRule.executeInContext(this::propagatePanicSentinelImpl);
-  }
-
-  private Void propagatePanicSentinelImpl() {
+  public void propagatePanicSentinelImpl() {
     var sentinel = new PanicSentinel(new PanicException(0L, null), null);
 
     var one = LiteralNode.build(1);
@@ -37,6 +33,5 @@ public class SequenceLiteralNodeTest {
         fail("The right exception should have been propagated!");
       }
     }
-    return null;
   }
 }
