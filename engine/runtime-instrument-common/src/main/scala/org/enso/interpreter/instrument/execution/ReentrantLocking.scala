@@ -274,7 +274,7 @@ class ReentrantLocking extends Locking {
       if (lockTimestamp != 0) {
         releaseFileLock(file)
         logger.debug(
-          s"Kept file lock [{}] for {1}ms",
+          s"Kept file lock [{}] for {}ms",
           where.getSimpleName,
           System.currentTimeMillis - lockTimestamp
         )

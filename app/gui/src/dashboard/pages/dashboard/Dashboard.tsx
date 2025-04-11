@@ -180,7 +180,7 @@ function DashboardInner(props: DashboardProps) {
 
   const onSignOut = eventCallbacks.useEventCallback(() => {
     setPage('drive')
-    closeAllProjects()
+    void closeAllProjects()
     clearLaunchedProjects()
   })
 

@@ -4005,8 +4005,16 @@ lazy val `engine-runner` = project
               "io.opencensus",
               "net.snowflake.client",
               "com.sun.jna",
-              "com.tableau.hyperapi"
-            )
+              "com.tableau.hyperapi",
+              // See https://github.com/HarrDevY/native-register-bouncy-castle
+              "org.bouncycastle.jcajce.provider.drbg.DRBG$Default",
+              "org.bouncycastle.jcajce.provider.drbg.DRBG$NonceAndIV"
+            ),
+            initializeAtBuildtime = NativeImage.defaultBuildTimeInitClasses ++
+              Seq(
+                "org.bouncycastle",
+                "org.enso.snowflake.BouncyCastleInitializer"
+              )
           )
       }
       .dependsOn(NativeImage.additionalCp)
@@ -4849,7 +4857,7 @@ lazy val `enso-test-java-helpers` = project
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
-      file("test/Base_Tests/polyglot/java/helpers.jar"),
+      file("test/Base_Tests/polyglot/java/base-test-java-helpers.jar"),
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     ),
@@ -4857,7 +4865,7 @@ lazy val `enso-test-java-helpers` = project
       val result          = (Compile / packageBin).value
       val primaryLocation = (Compile / packageBin / artifactPath).value
       val secondaryLocations = Seq(
-        file("test/Table_Tests/polyglot/java/helpers.jar")
+        file("test/Table_Tests/polyglot/java/base-test-java-helpers.jar")
       )
       secondaryLocations.foreach { target =>
         IO.copyFile(primaryLocation, target)

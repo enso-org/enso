@@ -22,7 +22,7 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
-import { useMutationCallback } from '../utilities/tanstackQuery'
+import { useEnsureQueryData, useMutationCallback } from '../utilities/tanstackQuery'
 import { useUploadFileWithToastMutation } from './backendUploadFilesHooks'
 
 /** Default interval for refetching project status when the project is opened. */
@@ -218,20 +218,21 @@ export function useOpenProjectMutation() {
   return reactQuery.useMutation({
     mutationKey: ['openProject'],
     networkMode: 'always',
-    mutationFn: ({
+    mutationFn: async ({
       title,
       id,
       type,
       parentId,
       hybrid,
       inBackground = false,
-    }: LaunchedProject & { inBackground?: boolean }) => {
+      suppressHybridProjectOpen: _ = false,
+    }: LaunchedProject & { inBackground?: boolean; suppressHybridProjectOpen?: boolean }) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
       const cloudProjectDirectoryPath = hybrid ? hybrid.cloudProjectDirectoryPath : null
 
-      return backend.openProject(
+      await backend.openProject(
         id,
         {
           executeAsync: inBackground,
@@ -257,9 +258,9 @@ export function useOpenProjectMutation() {
         projectState: { ...asset.projectState, type: backendModule.ProjectState.openInProgress },
       }))
     },
-    onSuccess: async (_, { title, hybrid }) => {
+    onSuccess: async (_, { title, hybrid, suppressHybridProjectOpen = false }) => {
       await client.cancelQueries({ queryKey: ['project'] })
-      if (hybrid) {
+      if (hybrid && !suppressHybridProjectOpen) {
         await remoteBackend.setHybridOpened(hybrid.cloudProjectId, title)
       }
     },
@@ -406,7 +407,7 @@ function useOpenProject() {
 
   const enableMultitabs = useFeatureFlag('enableMultitabs')
 
-  return eventCallbacks.useEventCallback((project: LaunchedProject) => {
+  return eventCallbacks.useEventCallback(async (project: LaunchedProject) => {
     if (!canOpenProjects) {
       return
     }
@@ -414,7 +415,7 @@ function useOpenProject() {
     if (!enableMultitabs) {
       // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
       if (projectsStore.getState().launchedProjects.length > 0) {
-        closeAllProjects()
+        await closeAllProjects()
       }
     }
 
@@ -469,13 +470,13 @@ export function useOpenHybridProject() {
             recentProjects: false,
           })
           project = assets.filter((item) => item.type === backendModule.AssetType.project).at(0)
-          if (project !== undefined) {
+          if (project) {
             break
           }
         }
 
         invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
-        openProject({
+        await openProject({
           id: project.id,
           title: asset.title,
           parentId: project.parentId,
@@ -489,32 +490,41 @@ export function useOpenHybridProject() {
         })
       } catch (error) {
         toastAndLog('openProjectError', error, asset.title)
-        await closeProject({
-          id: asset.id,
-          title: asset.title,
-          parentId: asset.parentId,
-          type: backendModule.BackendType.local,
-        })
+        await closeProject({ ...asset, type: backendModule.BackendType.local })
       }
     },
   )
 }
 
-/** Return a hook to open a project natively - Cloud mode for cloud projects, Local mode for local projects. */
-export function useOpenProjectNatively() {
-  const openProject = useOpenProject()
+/** Return a function to reopen a previously opened project that has since been closed. */
+export function useReopenProject(openProjectMutation: ReturnType<typeof useOpenProjectMutation>) {
+  const remoteBackend = backendProvider.useRemoteBackend()
 
   return eventCallbacks.useEventCallback(
-    (
-      asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>,
-      backendType: backendModule.BackendType,
-    ) => {
-      openProject({ ...asset, type: backendType })
+    async (project: LaunchedProject & { readonly suppressHybridProjectOpen?: boolean }) => {
+      if (project.hybrid && project.suppressHybridProjectOpen !== true) {
+        await remoteBackend.setHybridOpenInProgress(project.hybrid.cloudProjectId, project.title)
+      }
+      await openProjectMutation.mutateAsync(project)
     },
   )
 }
 
-/** Return a hook to open a project locally - meaning Hybrid Mode is used for Cloud projects. */
+/** Return a function to open a project natively - Cloud mode for cloud projects, Local mode for local projects. */
+export function useOpenProjectNatively() {
+  const openProject = useOpenProject()
+
+  return eventCallbacks.useEventCallback(
+    async (
+      asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>,
+      backendType: backendModule.BackendType,
+    ) => {
+      await openProject({ ...asset, type: backendType })
+    },
+  )
+}
+
+/** Return a function to open a project locally - meaning Hybrid Mode is used for Cloud projects. */
 export function useOpenProjectLocally() {
   const openProject = useOpenProject()
   const enableHybridExecution = useFeatureFlag('enableHybridExecution')
@@ -522,15 +532,14 @@ export function useOpenProjectLocally() {
 
   return eventCallbacks.useEventCallback(
     async (
-      asset: Pick<backendModule.ProjectAsset, 'id' | 'parentId' | 'title'>,
+      asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>,
       backendType: backendModule.BackendType,
     ) => {
       const isCloud = backendType === backendModule.BackendType.remote
       if (isCloud && enableHybridExecution) {
         await openHybridProject(asset)
-        return
       } else {
-        openProject({ ...asset, type: backendType })
+        await openProject({ ...asset, type: backendType })
       }
     },
   )
@@ -592,12 +601,36 @@ export function useCloseProject() {
 export function useCloseAllProjects() {
   const closeProject = useCloseProject()
   const projectsStore = useProjectsStore()
+  const remoteBackend = backendProvider.useRemoteBackend()
+  const localBackend = backendProvider.useLocalBackend()
+  const ensureQueryData = useEnsureQueryData<
+    backendModule.Project,
+    Error,
+    backendModule.Project,
+    readonly ['project', backendModule.ProjectId]
+  >()
 
-  return eventCallbacks.useEventCallback(() => {
+  return eventCallbacks.useEventCallback(async () => {
     const launchedProjects = projectsStore.getState().launchedProjects
 
-    for (const launchedProject of launchedProjects) {
-      void closeProject(launchedProject)
-    }
+    await Promise.all(
+      launchedProjects.map(async (project) => {
+        const isHybrid = project.hybrid != null
+        const backend =
+          project.type === backendModule.BackendType.remote || isHybrid ?
+            remoteBackend
+          : localBackend
+        invariant(backend != null, 'Backend must not be async null')
+        const projectDetails = await ensureQueryData(
+          createGetProjectDetailsQuery({
+            assetId: isHybrid ? project.hybrid.cloudProjectId : project.id,
+            backend,
+          }),
+        )
+        if (backendModule.IS_OPENING_OR_OPENED[projectDetails.state.type]) {
+          await closeProject(project)
+        }
+      }),
+    )
   })
 }

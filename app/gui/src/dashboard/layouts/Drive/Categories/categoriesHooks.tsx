@@ -5,13 +5,8 @@
  * Categories are shortcuts to specific directories in the Cloud, e.g. team spaces, recent and trash
  * It's not the same as the categories like LocalBackend
  */
-
-import CloudIcon from '#/assets/cloud.svg'
 import ComputerIcon from '#/assets/computer.svg'
-import FolderFilledIcon from '#/assets/folder_filled.svg'
-import PeopleIcon from '#/assets/people.svg'
 import RecentIcon from '#/assets/recent.svg'
-import Trash2Icon from '#/assets/trash2.svg'
 
 import { useUser } from '#/providers/AuthProvider'
 
@@ -99,7 +94,7 @@ export function useCloudCategoryList() {
     type: 'cloud',
     id: 'cloud',
     label: getText('cloudCategory'),
-    icon: CloudIcon,
+    icon: 'cloud',
     homeDirectoryId: user.rootDirectoryId,
     canUploadHere: true,
   }
@@ -117,7 +112,7 @@ export function useCloudCategoryList() {
     type: 'trash',
     id: 'trash',
     label: getText('trashCategory'),
-    icon: Trash2Icon,
+    icon: 'trash_small',
     homeDirectoryId: organizationRootDirectoryId,
     canUploadHere: false,
   }
@@ -135,7 +130,7 @@ export function useCloudCategoryList() {
     rootPath: Path(`enso://Teams/${group.name}`),
     homeDirectoryId: group.homeDirectoryId,
     label: getText('teamCategory', group.name),
-    icon: PeopleIcon,
+    icon: 'people',
     canUploadHere: true,
   }))
 
@@ -176,6 +171,21 @@ export function useCloudCategoryList() {
 export type LocalCategoryResult = ReturnType<typeof useLocalCategoryList>
 
 /**
+ * Create a local directory category.
+ */
+function createLocalDirectoryCategory(directory: string): LocalDirectoryCategory {
+  return {
+    type: 'local-directory',
+    id: newDirectoryId(Path(directory)),
+    rootPath: Path(directory),
+    homeDirectoryId: newDirectoryId(Path(directory)),
+    label: getFileName(directory),
+    icon: 'folder_small',
+    canUploadHere: true,
+  }
+}
+
+/**
  * List of all categories in the LocalBackend.
  * Usually these are the root folder and the list of favorites
  */
@@ -192,6 +202,8 @@ export function useLocalCategoryList() {
 
   const addDirectory = useEventCallback((directory: string) => {
     setLocalRootDirectories([...localRootDirectories, directory])
+
+    return createLocalDirectoryCategory(directory)
   })
 
   const removeDirectory = useEventCallback((directory: DirectoryId) => {
@@ -246,23 +258,17 @@ export function useLocalCategoryList() {
 
   const predefinedLocalCategories: AnyLocalCategory[] = [localCategory]
 
-  const localCategories = localRootDirectories.map<LocalDirectoryCategory>((directory) => ({
-    type: 'local-directory',
-    id: newDirectoryId(Path(directory)),
-    rootPath: Path(directory),
-    homeDirectoryId: newDirectoryId(Path(directory)),
-    label: getFileName(directory),
-    icon: FolderFilledIcon,
-    canUploadHere: true,
-  }))
+  const localDirectories = localRootDirectories.map<LocalDirectoryCategory>(
+    createLocalDirectoryCategory,
+  )
 
   const categories =
-    localBackend == null ? [] : ([...predefinedLocalCategories, ...localCategories] as const)
+    localBackend == null ? [] : ([...predefinedLocalCategories, ...localDirectories] as const)
 
   return {
     categories,
     localCategory,
-    directories: localCategories,
+    directories: localDirectories,
     addDirectory,
     removeDirectory,
     getCategoryById,

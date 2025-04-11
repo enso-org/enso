@@ -1069,6 +1069,9 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STAxis.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STAxis"
     },
     {
@@ -1083,6 +1086,9 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STBorderStyle.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STBorderStyle"
     },
     {
@@ -1092,6 +1098,9 @@
                 "name": "table"
             }
         ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCalcMode.Enum"
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCalcMode"
@@ -1105,6 +1114,9 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCellComments.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCellComments"
     },
     {
@@ -1114,6 +1126,9 @@
                 "name": "table"
             }
         ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCellFormulaType.Enum"
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCellFormulaType"
@@ -1136,6 +1151,9 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCellType.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCellType"
     },
     {
@@ -1145,6 +1163,9 @@
                 "name": "table"
             }
         ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCfType.Enum"
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCfType"
@@ -1158,6 +1179,9 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCfvoType.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STCfvoType"
     },
     {
@@ -1169,12 +1193,18 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STComments.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STConditionalFormattingOperator$Enum",
         "fields": [
             {
                 "name": "table"
             }
         ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STConditionalFormattingOperator.Enum"
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STConditionalFormattingOperator"
@@ -1186,6 +1216,9 @@
                 "name": "table"
             }
         ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDataConsolidateFunction.Enum"
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDataConsolidateFunction"
@@ -1210,12 +1243,18 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDataValidationImeMode.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDataValidationOperator$Enum",
         "fields": [
             {
                 "name": "table"
             }
         ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDataValidationOperator.Enum"
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDataValidationOperator"
@@ -1229,6 +1268,9 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDataValidationType.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDataValidationType"
     },
     {
@@ -1238,6 +1280,9 @@
                 "name": "table"
             }
         ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDvAspect.Enum"
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STDvAspect"
@@ -1252,6 +1297,9 @@
                 "name": "table"
             }
         ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STFieldSortType.Enum"
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STFillId"
@@ -1280,6 +1328,9 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STHorizontalAlignment.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STHorizontalAlignment"
     },
     {
@@ -1291,6 +1342,9 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STIconSetType.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STIconSetType"
     },
     {
@@ -1300,6 +1354,9 @@
                 "name": "table"
             }
         ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STItemType.Enum"
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STItemType"
@@ -1316,6 +1373,9 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STObjects.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STObjects"
     },
     {
@@ -1327,12 +1387,18 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STOleUpdate.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STOrientation$Enum",
         "fields": [
             {
                 "name": "table"
             }
         ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STOrientation.Enum"
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STOrientation"
@@ -1346,6 +1412,9 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPageOrder.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPageOrder"
     },
     {
@@ -1357,6 +1426,9 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPane.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPane"
     },
     {
@@ -1366,6 +1438,9 @@
                 "name": "table"
             }
         ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPaneState.Enum"
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPaneState"
@@ -1385,6 +1460,9 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPhoneticAlignment.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPhoneticType$Enum",
         "fields": [
             {
@@ -1393,7 +1471,13 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPhoneticType.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPhoneticType"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPrintError.Enum"
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STPrintError$Enum"
@@ -1441,6 +1525,9 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STShowDataAs.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STSortBy$Enum",
         "fields": [
             {
@@ -1449,7 +1536,18 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STSortBy.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STSortMethod$Enum",
+        "fields": [
+            {
+                "name": "table"
+            }
+        ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STSortMethod.Enum",
         "fields": [
             {
                 "name": "table"
@@ -1463,6 +1561,9 @@
                 "name": "table"
             }
         ]
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STSourceType.Enum"
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STSourceType"
@@ -1479,6 +1580,9 @@
         ]
     },
     {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STTableStyleType.Enum"
+    },
+    {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STTableStyleType"
     },
     {
@@ -1490,7 +1594,10 @@
         ]
     },
     {
-        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STTargetScreenSize$Enum"
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STTableType.Enum"
+    },
+    {
+        "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STTargetScreenSize.Enum"
     },
     {
         "name": "org.openxmlformats.schemas.spreadsheetml.x2006.main.STTextRotation$Member2"

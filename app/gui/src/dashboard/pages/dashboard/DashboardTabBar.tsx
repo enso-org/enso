@@ -1,12 +1,7 @@
 /** @file The tab bar for the dashboard page. */
-import DriveIcon from '#/assets/drive.svg'
-import NetworkIcon from '#/assets/network.svg'
-import SettingsIcon from '#/assets/settings.svg'
 import { Tab } from '#/components/aria'
-
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import TabBar, { ProjectTab, type ProjectTabProps, type TabProps } from '#/layouts/TabBar'
-
 import {
   useLaunchedProjects,
   usePage,
@@ -53,30 +48,27 @@ export function DashboardTabBar(props: DashboardTabBarProps) {
     {
       type: 'tab',
       id: 'drive',
-      icon: DriveIcon,
+      icon: 'drive',
       'data-testid': 'drive-tab-button',
       labelId: 'drivePageName' satisfies TextId,
       isActive: page === 'drive',
       children: getText('drivePageName'),
     },
-    ...launchedProjects.map(
-      (project) =>
-        ({
-          type: 'project',
-          id: project.id,
-          icon: NetworkIcon,
-          'data-testid': 'editor-tab-button',
-          labelId: 'editorPageName' satisfies TextId,
-          isActive: page === project.id,
-          project,
-          onClose,
-          onLoadEnd,
-        }) as const,
-    ),
+    ...launchedProjects.map<ProjectTabProps & { type: 'project' }>((project) => ({
+      type: 'project',
+      id: project.id,
+      icon: 'graph_editor',
+      'data-testid': 'editor-tab-button',
+      labelId: 'editorPageName' satisfies TextId,
+      isActive: page === project.id,
+      project,
+      onClose,
+      onLoadEnd,
+    })),
     {
       type: 'tab',
       id: 'settings',
-      icon: SettingsIcon,
+      icon: 'settings',
       labelId: 'settingsPageName' satisfies TextId,
       'data-testid': 'settings-tab-button',
       isActive: true,

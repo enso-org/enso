@@ -7,7 +7,7 @@ import { TabPanel, type TabPanelRenderProps } from '#/components/aria'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useOpenProjectMutation, useRenameProjectMutation } from '#/hooks/projectHooks'
+import { useRenameProjectMutation } from '#/hooks/projectHooks'
 import { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useLaunchedProjects, usePage } from '#/providers/ProjectsProvider'
 import { BackendType, type ProjectId } from '#/services/Backend'
@@ -33,7 +33,6 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
   const page = usePage()
 
   const launchedProjects = useLaunchedProjects()
-  const openProjectMutation = useOpenProjectMutation()
   const renameProjectMutation = useRenameProjectMutation()
   const remoteBackend = useRemoteBackend()
   const localBackend = useLocalBackend()
@@ -78,9 +77,6 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
           ydocUrl={ydocUrl}
           project={project}
           projectId={project.id}
-          isOpeningFailed={openProjectMutation.isError}
-          openingError={openProjectMutation.error}
-          startProject={openProjectMutation.mutate}
           renameProject={onRenameProject}
         />
       ),
