@@ -3,8 +3,7 @@ import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useText } from '#/providers/TextProvider'
-import { isNewTitleUnique, type FileAsset } from '#/services/Backend'
+import { titleSchema, type FileAsset } from '#/services/Backend'
 import { fileIcon } from '#/utilities/fileIcon'
 import { merger } from '#/utilities/object'
 
@@ -22,7 +21,6 @@ export default function FileNameColumn(props: FileNameColumnProps) {
   const { item, rowState, setRowState, isEditable, renameAsset } = props
 
   const getAssetChildren = useGetAssetChildren()
-  const { getText } = useText()
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -53,9 +51,10 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         onCancel={() => {
           setIsEditing(false)
         }}
-        schema={(z) =>
-          z.refine((value) => isNewTitleUnique(item, value, getAssetChildren(item.parentId)), {
-            message: getText('nameShouldBeUnique'),
+        schema={() =>
+          titleSchema({
+            asset: item,
+            siblings: getAssetChildren(item.parentId),
           })
         }
       >

@@ -1715,22 +1715,40 @@ export function doesTitleContainInvalidCharacters(name: string) {
   return name.includes('/') || name.includes('\\') || name.includes('..')
 }
 
+/** A regex for matching hybrid project directories. */
+export const HYBRID_PROJECT_DIRECTORY_MASK = /^cloud-project-\w+$/
+
+/** A list of regexes for matching invalid names. */
+const INVALID_NAME_MASKS = [HYBRID_PROJECT_DIRECTORY_MASK]
+
+/**
+ * Check if the title contains invalid names.
+ */
+export function doesContainInvalidNames(title: string) {
+  return INVALID_NAME_MASKS.some((mask) => mask.test(title))
+}
+
 /**
  * A Zod schema for validating a title.
  */
 export function titleSchema(options: TitleSchemaOptions) {
   const { asset, siblings } = options
 
+  const dictionary = resolveDictionary()
+
   return z
     .string()
     .trim()
     .min(1)
     .max(512)
-    .refine((value) => isNewTitleUnique(asset, value, siblings), {
-      message: getText(resolveDictionary(), 'nameShouldBeUnique'),
+    .refine((value) => !doesContainInvalidNames(value), {
+      message: getText(dictionary, 'nameShouldNotContainInvalidCharacters'),
     })
     .refine((value) => !doesTitleContainInvalidCharacters(value), {
-      message: getText(resolveDictionary(), 'nameShouldNotContainInvalidCharacters'),
+      message: getText(dictionary, 'nameShouldNotContainInvalidCharacters'),
+    })
+    .refine((value) => isNewTitleUnique(asset, value, siblings), {
+      message: getText(dictionary, 'nameShouldBeUnique'),
     })
 }
 

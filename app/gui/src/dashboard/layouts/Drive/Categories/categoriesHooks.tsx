@@ -167,6 +167,20 @@ export function useCloudCategoryList() {
 export type LocalCategoryResult = ReturnType<typeof useLocalCategoryList>
 
 /**
+ * Create a local directory category.
+ */
+function createLocalDirectoryCategory(directory: string): LocalDirectoryCategory {
+  return {
+    type: 'local-directory',
+    id: newDirectoryId(Path(directory)),
+    rootPath: Path(directory),
+    homeDirectoryId: newDirectoryId(Path(directory)),
+    label: getFileName(directory),
+    icon: 'folder_small',
+  }
+}
+
+/**
  * List of all categories in the LocalBackend.
  * Usually these are the root folder and the list of favorites
  */
@@ -183,6 +197,8 @@ export function useLocalCategoryList() {
 
   const addDirectory = useEventCallback((directory: string) => {
     setLocalRootDirectories([...localRootDirectories, directory])
+
+    return createLocalDirectoryCategory(directory)
   })
 
   const removeDirectory = useEventCallback((directory: DirectoryId) => {
@@ -236,22 +252,17 @@ export function useLocalCategoryList() {
 
   const predefinedLocalCategories: AnyLocalCategory[] = [localCategory]
 
-  const localCategories = localRootDirectories.map<LocalDirectoryCategory>((directory) => ({
-    type: 'local-directory',
-    id: newDirectoryId(Path(directory)),
-    rootPath: Path(directory),
-    homeDirectoryId: newDirectoryId(Path(directory)),
-    label: getFileName(directory),
-    icon: 'folder_small',
-  }))
+  const localDirectories = localRootDirectories.map<LocalDirectoryCategory>(
+    createLocalDirectoryCategory,
+  )
 
   const categories =
-    localBackend == null ? [] : ([...predefinedLocalCategories, ...localCategories] as const)
+    localBackend == null ? [] : ([...predefinedLocalCategories, ...localDirectories] as const)
 
   return {
     categories,
     localCategory,
-    directories: localCategories,
+    directories: localDirectories,
     addDirectory,
     removeDirectory,
     getCategoryById,
