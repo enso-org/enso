@@ -105,10 +105,12 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     category.type !== 'recent' &&
     asset.type === backendModule.AssetType.directory &&
     canEditThisAsset
+
   const pasteData = usePasteData()
-  const hasPasteData = (pasteData?.data.ids.size ?? 0) > 0
-  const [firstPasteDataId] = pasteData?.data.ids ?? []
-  const pasteDataParentId = firstPasteDataId != null ? getAsset(firstPasteDataId)?.parentId : null
+  const hasPasteData = (pasteData?.data.assets.length ?? 0) > 0
+  const [firstPasteDataId] = pasteData?.data.assets ?? []
+  const pasteDataParentId =
+    firstPasteDataId != null ? getAsset(firstPasteDataId.id)?.parentId : null
   const pasteDataParent = pasteDataParentId != null ? getAsset(pasteDataParentId) : null
 
   const canPaste =
@@ -119,8 +121,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
       permissions.isTeamPath(pasteDataParent.virtualParentsPath)
     ) ?
       true
-    : Array.from(pasteData.data.ids).every((id) => {
-        const otherAsset = getAsset(id)
+    : pasteData.data.assets.every((pasteAsset) => {
+        const otherAsset = getAsset(pasteAsset.id)
         if (!otherAsset) {
           return false
         }
@@ -177,14 +179,19 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
       !ownsThisAsset ? null
       : <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden} event={event}>
           {copyIdEntry}
+
           <ContextMenuEntry
             hidden={hidden}
             action="undelete"
             label={getText('restoreFromTrashShortcut')}
             doAction={() => {
-              void restoreAssetsMutation([asset.id])
+              void restoreAssetsMutation({
+                ids: [asset.id],
+                parentId: null,
+              })
             }}
           />
+
           <ContextMenuEntry
             hidden={hidden}
             action="delete"
@@ -195,7 +202,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   defaultOpen
                   cannotUndo
                   actionText={getText('deleteTheAssetTypeTitleForever', asset.type, asset.title)}
-                  doDelete={async () => {
+                  onConfirm={async () => {
                     await deleteAssetsMutation([[asset.id], true])
                   }}
                 />,
@@ -300,21 +307,15 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {canExecute &&
-          !isRunningProject &&
-          !isOtherUserUsingProject &&
-          (!isCloud ||
-            asset.type === backendModule.AssetType.project ||
-            asset.type === backendModule.AssetType.directory ||
-            asset.type === backendModule.AssetType.secret) && (
-            <ContextMenuEntry
-              hidden={hidden}
-              action="rename"
-              doAction={() => {
-                setRowState(object.merger({ isEditingName: true }))
-              }}
-            />
-          )}
+        {canExecute && !isRunningProject && !isOtherUserUsingProject && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="rename"
+            doAction={() => {
+              setRowState(object.merger({ isEditingName: true }))
+            }}
+          />
+        )}
         {(asset.type === backendModule.AssetType.secret ||
           asset.type === backendModule.AssetType.datalink) &&
           canEditThisAsset && (
@@ -365,7 +366,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     <ConfirmDeleteModal
                       defaultOpen
                       actionText={getText('trashTheAssetTypeTitle', asset.type, asset.title)}
-                      doDelete={async () => {
+                      onConfirm={async () => {
                         await deleteAssetsMutation([[asset.id], false])
                       }}
                     />,
@@ -378,7 +379,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   <ConfirmDeleteModal
                     defaultOpen
                     actionText={getText('deleteTheAssetTypeTitle', asset.type, asset.title)}
-                    doDelete={async () => {
+                    onConfirm={async () => {
                       await deleteAssetsMutation([[asset.id], false])
                     }}
                   />,

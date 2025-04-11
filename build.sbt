@@ -1148,11 +1148,19 @@ lazy val `logging-service-telemetry` = project
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
     version := "0.1",
+    commands += WithDebugCommand.withDebug,
+    Test / fork := true,
     libraryDependencies ++= Seq(
       "org.slf4j"                              % "slf4j-api"               % slf4jVersion,
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros"   % jsoniterVersion,
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"     % jsoniterVersion,
-      "org.netbeans.api"                       % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      "org.netbeans.api"                       % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "junit"                                  % "junit"                   % junitVersion       % Test,
+      "com.github.sbt"                         % "junit-interface"         % junitIfVersion     % Test,
+      "org.hamcrest"                           % "hamcrest-all"            % hamcrestVersion    % Test,
+      "com.fasterxml.jackson.core"             % "jackson-core"            % jacksonVersion     % Test,
+      "com.fasterxml.jackson.core"             % "jackson-annotations"     % jacksonVersion     % Test,
+      "com.fasterxml.jackson.core"             % "jackson-databind"        % jacksonVersion     % Test
     ),
     Compile / javaModuleName := "org.enso.logging.service.telemetry",
     Compile / moduleDependencies ++= logbackPkg ++ Seq(
@@ -1165,6 +1173,8 @@ lazy val `logging-service-telemetry` = project
     )
   )
   .dependsOn(`logging-service-logback`)
+  .dependsOn(`http-test-helper` % "test->test")
+  .dependsOn(testkit % "test->test")
 
 lazy val `logging-utils-akka` = project
   .in(file("lib/scala/logging-utils-akka"))
@@ -3845,9 +3855,23 @@ lazy val `engine-runner` = project
         `std-tableau-polyglot-root`
           .listFiles("*.jar")
           .map(_.getAbsolutePath())
-
-      core ++ stdLibsJars
+      core ++ stdLibsJars ++ extraNITestLibs.value
     },
+    extraNITestLibs := Def.taskDyn {
+      if (GraalVM.EnsoLauncher.test) Def.task {
+        Seq(
+          (`enso-test-java-helpers` / Compile / packageBin).value
+            .getAbsolutePath(),
+          (`snowflake-test-java-helpers` / Compile / packageBin).value
+            .getAbsolutePath()
+        )
+      }
+      else {
+        Def.task {
+          Seq[String]()
+        }
+      }
+    }.value,
     buildSmallJdk := {
       val smallJdkDirectory = (target.value / "jdk").getAbsoluteFile()
       if (smallJdkDirectory.exists()) {
@@ -4014,10 +4038,14 @@ lazy val `engine-runner` = project
   .dependsOn(`logging-service-logback` % Runtime)
   .dependsOn(`engine-runner-common`)
   .dependsOn(`polyglot-api`)
-  .dependsOn(`enso-test-java-helpers`)
 
 lazy val buildSmallJdk =
   taskKey[File]("Build a minimal JDK used for native image generation")
+
+lazy val extraNITestLibs =
+  taskKey[Seq[String]](
+    "List of extra test libraries to be included in Native Image"
+  )
 
 lazy val launcher = project
   .in(file("engine/launcher"))
@@ -4183,7 +4211,6 @@ lazy val `os-environment` =
     .settings(
       frgaalJavaCompilerSetting,
       scalaModuleDependencySetting,
-      javaModuleName := "org.enso.os.environment",
       libraryDependencies ++= Seq(
         "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
         "org.graalvm.sdk" % "graal-sdk"       % graalMavenPackagesVersion % "provided",

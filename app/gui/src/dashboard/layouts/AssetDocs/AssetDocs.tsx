@@ -1,5 +1,4 @@
 /** @file Documentation display for an asset. */
-import { MarkdownViewer } from '#/components/MarkdownViewer'
 import { Result } from '#/components/Result'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
@@ -7,7 +6,7 @@ import type { Asset } from '#/services/Backend'
 import { AssetType } from '#/services/Backend'
 import { useStore } from '#/utilities/zustand'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { useCallback } from 'react'
+import { lazy, useCallback } from 'react'
 import * as ast from 'ydoc-shared/ast'
 import { splitFileContents } from 'ydoc-shared/ensoFile'
 import { versionContentQueryOptions } from '../AssetDiffView/useFetchVersionContent'
@@ -17,6 +16,10 @@ import { assetPanelStore } from '../AssetPanel'
 export interface AssetDocsProps {
   readonly backend: Backend
 }
+
+const LazyMarkdownViewer = lazy(() =>
+  import('#/components/MarkdownViewer').then((module) => ({ default: module.MarkdownViewer })),
+)
 
 /** Documentation display for an asset. */
 export function AssetDocs(props: AssetDocsProps) {
@@ -70,5 +73,7 @@ export function AssetDocsContent(props: AssetDocsContentProps) {
     return <Result status="info" title={getText('assetDocs.noDocs')} centered />
   }
 
-  return <MarkdownViewer testId="asset-docs" text={docs} imgUrlResolver={resolveProjectAssetPath} />
+  return (
+    <LazyMarkdownViewer testId="asset-docs" text={docs} imgUrlResolver={resolveProjectAssetPath} />
+  )
 }

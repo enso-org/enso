@@ -1152,10 +1152,14 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     )
     await put(remoteBackendPaths.UPDATE_CURRENT_USER_PATH + '*', async (_route, request) => {
       const body: backend.UpdateUserRequestBody = await request.postDataJSON()
+
       called('updateCurrentUser', body)
+
       if (currentUser && body.username != null) {
         currentUser = { ...currentUser, name: body.username }
       }
+
+      return currentUser
     })
     await get(remoteBackendPaths.USERS_ME_PATH + '*', (route) => {
       called('usersMe', {})

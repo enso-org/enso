@@ -1,8 +1,6 @@
 /** @file A modal to select labels for an asset. */
 import { useEffect, useState } from 'react'
 
-import { useMutation } from '@tanstack/react-query'
-
 import {
   Button,
   ButtonGroup,
@@ -27,6 +25,7 @@ import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { findLeastUsedColor, LabelName, type AnyAsset, type LChColor } from '#/services/Backend'
 import { regexEscape } from '#/utilities/string'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 
 /** Props for a {@link ManageLabelsModal}. */
 export interface ManageLabelsModalProps<Asset extends AnyAsset = AnyAsset> {
@@ -66,9 +65,9 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
   const [color, setColor] = useState<LChColor | null>(null)
   const leastUsedColor = findLeastUsedColor(allLabels ?? [])
 
-  const createTagMutation = useMutation(backendMutationOptions(backend, 'createTag'))
-  const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
-  const deleteTagMutation = useMutation(backendMutationOptions(backend, 'deleteTag'))
+  const createTag = useMutationCallback(backendMutationOptions(backend, 'createTag'))
+  const associateTag = useMutationCallback(backendMutationOptions(backend, 'associateTag'))
+  const deleteTag = useMutationCallback(backendMutationOptions(backend, 'deleteTag'))
 
   const form = Form.useForm({
     schema: (z) =>
@@ -80,9 +79,9 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
     onSubmit: async ({ name }) => {
       const labelName = LabelName(name)
       try {
-        await createTagMutation.mutateAsync([{ value: labelName, color: color ?? leastUsedColor }])
+        await createTag([{ value: labelName, color: color ?? leastUsedColor }])
         const newLabels = [...(item.labels ?? []), labelName]
-        await associateTagMutation.mutateAsync([item.id, newLabels, item.title])
+        await associateTag([item.id, newLabels, item.title])
         form.resetField('labels', { defaultValue: newLabels })
         unsetModal()
       } catch (error) {
@@ -135,7 +134,7 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
             fullWidth
             className="max-h-80 overflow-auto"
             onChange={async (values) => {
-              await associateTagMutation.mutateAsync([item.id, values.map(LabelName), item.title])
+              await associateTag([item.id, values.map(LabelName), item.title])
             }}
             {...innerProps}
           >
@@ -162,9 +161,11 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
                           className="relative mr-1 flex size-4 text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
                         />
                         <ConfirmDeleteModal
+                          defaultOpen
+                          cannotUndo
                           actionText={getText('deleteLabelActionText', label.value)}
-                          doDelete={async () => {
-                            await deleteTagMutation.mutateAsync([label.id, label.value])
+                          onConfirm={async () => {
+                            await deleteTag([label.id, label.value])
                           }}
                         />
                       </DialogTrigger>

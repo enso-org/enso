@@ -1,10 +1,8 @@
 /** @file A column listing the labels on this asset. */
-import * as React from 'react'
 
 import Plus2Icon from '#/assets/plus2.svg'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import { Button, DialogTrigger } from '#/components/AriaComponents'
@@ -17,6 +15,7 @@ import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import * as backendModule from '#/services/Backend'
 
 import ContextMenuEntry from '#/components/ContextMenuEntry'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
 import * as permissions from '#/utilities/permissions'
 
 /** A column listing the labels on this asset. */
@@ -24,12 +23,8 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { item, state, labels } = props
   const { backend, category, setQuery } = state
   const { user } = authProvider.useFullUserSession()
-  const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const labelsByName = React.useMemo(
-    () => new Map(labels.map((label) => [label.value, label])),
-    [labels],
-  )
+  const labelsByName = new Map(labels.map((label) => [label.value, label]))
   const self = permissions.tryFindSelfPermission(user, item.permissions)
   const managesThisAsset =
     category.type !== 'trash' &&

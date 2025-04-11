@@ -5,6 +5,7 @@ import { createStore, useStore, type StoreApi } from '#/utilities/zustand'
 import invariant from 'tiny-invariant'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
@@ -17,7 +18,7 @@ import {
 } from 'enso-common/src/services/Backend'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 import { persist } from 'zustand/middleware'
-import { useSearchParamsState } from '../hooks/searchParamsStateHooks'
+import type { TransferrableAsset } from '../layouts/Drive/Categories'
 
 /** State for {@link categoryIdStore}. */
 type CurrentDirectoryIdStoreState = CurrentDirectoryIdContextType['currentDirectoryId']
@@ -36,7 +37,7 @@ const currentDirectoryIdStore = createStore<CurrentDirectoryIdStoreState>()(
 export interface DrivePastePayload {
   readonly backendType: BackendType
   readonly category: Category
-  readonly ids: ReadonlySet<AssetId>
+  readonly assets: readonly TransferrableAsset[]
 }
 
 /** The subset of asset information required for selections. */

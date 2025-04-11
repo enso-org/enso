@@ -156,25 +156,25 @@ add_column_operation_specs suite_builder setup =
     pending_datetime = if (setup.flagged ..Date_Time).not then "Date/Time operations are not supported by this backend."
 
     suite_builder.group prefix+"(Column_Operations_Spec) Rounding numeric tests" group_builder->
-        round_one n dp=0 use_bankers=False =
+        round_one n dp=0 rounding_mode=Rounding_Mode.Half_Up =
             table = light_table_builder [["x", [n]]]
-            result = table.at "x" . round dp use_bankers
+            result = table.at "x" . round dp rounding_mode
             result.to_vector.at 0
 
-        round_batch n_vec dp_vec use_bankers =
+        round_batch n_vec dp_vec rounding_mode =
             name_for ix = "x"+ix.to_text
             n_columns = n_vec.map_with_index ix-> n-> [name_for ix, [n]]
             table = light_table_builder n_columns
             new_columns = dp_vec.map_with_index ix-> dp->
                 n_col = table.at (name_for ix)
-                n_col.round dp use_bankers . rename (name_for ix)
+                n_col.round dp rounding_mode . rename (name_for ix)
             # In new table input columns are replaced with results of output
             new_table = new_columns.fold table acc-> col-> acc.set col (set_mode=..Update)
             # We read all operations in a single query
             materialized = new_table.read
             Runtime.assert (materialized.row_count == 1)
             materialized.first_row.to_vector
-        Round_Spec.add_specs group_builder (Round_Spec.Batch_Runner.Value round_batch round_one) run_advanced=setup.test_selection.run_advanced_edge_case_tests
+        Round_Spec.add_specs True group_builder (Round_Spec.Batch_Runner.Value round_batch round_one) run_advanced=setup.test_selection.run_advanced_edge_case_tests
 
         group_builder.specify "Decimal places out of range" <|
             3.1 . round 16 . should_fail_with Illegal_Argument
@@ -188,8 +188,8 @@ add_column_operation_specs suite_builder setup =
                 + [[-12300, -2, -12300], [-12301, -2, -12300]]
             cases_transposed = cases.transpose
             bankers_cases_transposed = bankers_cases.transpose
-            round_batch (cases_transposed.at 0) (cases_transposed.at 1) False . should_equal (cases_transposed.at 2)
-            round_batch (bankers_cases_transposed.at 0) (bankers_cases_transposed.at 1) True . should_equal (bankers_cases_transposed.at 2)
+            round_batch (cases_transposed.at 0) (cases_transposed.at 1) rounding_mode=Rounding_Mode.Half_Up . should_equal (cases_transposed.at 2)
+            round_batch (bankers_cases_transposed.at 0) (bankers_cases_transposed.at 1) rounding_mode=Rounding_Mode.Bankers . should_equal (bankers_cases_transposed.at 2)
 
     build_sorted_table table_structure table_builder=setup.table_builder =
         # Workaround for https://github.com/enso-org/enso/issues/10321

@@ -3,8 +3,7 @@ import FolderArrowIcon from '#/assets/folder_arrow.svg'
 import { Button, Popover, Text } from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useCategoriesAPI, useCloudCategoryList } from '#/layouts/Drive/Categories/categoriesHooks'
-import type { AnyCloudCategory } from '#/layouts/Drive/Categories/Category'
+import { useCategories, useCategoriesAPI, type AnyCloudCategory } from '#/layouts/Drive/Categories'
 import { useUser } from '#/providers/AuthProvider'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import type { DirectoryId } from '#/services/Backend'
@@ -25,8 +24,7 @@ export default function PathColumn(props: AssetColumnProps) {
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const { rootDirectoryId } = useUser()
 
-  // Path navigation exist only for cloud categories.
-  const { getCategoryByDirectoryId } = useCloudCategoryList()
+  const { getCategoryByDirectoryId } = useCategories()
 
   const { finalPath } = parseDirectoriesPath({
     parentsPath,

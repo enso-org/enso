@@ -8,7 +8,6 @@ import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectMutation, useRenameProjectMutation } from '#/hooks/projectHooks'
-import type { AssetManagementApi } from '#/layouts/AssetsTable'
 import { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useLaunchedProjects, usePage } from '#/providers/ProjectsProvider'
 import { BackendType, type ProjectId } from '#/services/Backend'
@@ -21,7 +20,6 @@ import invariant from 'tiny-invariant'
 export interface DashboardTabPanelsProps {
   readonly initialProjectName: string | null
   readonly ydocUrl: string | null
-  readonly assetManagementApiRef: React.RefObject<AssetManagementApi> | null
 }
 
 const LazyDrive = lazy(() => import('#/layouts/Drive'))
@@ -30,7 +28,7 @@ const LazySettings = lazy(() => import('#/layouts/Settings'))
 
 /** The tab panels for the dashboard page. */
 export function DashboardTabPanels(props: DashboardTabPanelsProps) {
-  const { initialProjectName, ydocUrl, assetManagementApiRef } = props
+  const { initialProjectName, ydocUrl } = props
 
   const page = usePage()
 
@@ -53,7 +51,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
     const id = isHybrid ? project.hybrid.cloudProjectId : project.id
     invariant(backend != null, 'Backend is null')
 
-    await renameProjectMutation.mutateAsync({
+    await renameProjectMutation({
       newName,
       backend,
       project: { ...project, id },
@@ -66,12 +64,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
       className: 'flex min-h-0 grow [&[data-inert]]:hidden',
       wrapInActivity: true,
       shouldForceMount: true,
-      children: (
-        <LazyDrive
-          assetsManagementApiRef={assetManagementApiRef}
-          initialProjectName={initialProjectName}
-        />
-      ),
+      children: <LazyDrive initialProjectName={initialProjectName} />,
     },
 
     ...launchedProjects.map((project) => ({
