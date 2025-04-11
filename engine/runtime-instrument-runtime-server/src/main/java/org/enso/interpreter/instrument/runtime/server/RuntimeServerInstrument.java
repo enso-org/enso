@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.concurrent.ScheduledExecutorService;
 import org.enso.distribution.locking.LockManager;
 import org.enso.interpreter.instrument.Handler;
 import org.enso.interpreter.instrument.HandlerFactory;
@@ -44,19 +43,9 @@ public class RuntimeServerInstrument extends TruffleInstrument {
   private Handler handler;
   private EventBinding<Initializer> initializerEventBinding;
 
-  private ScheduledExecutorService guestCodeExecutor() {
-    var ensoLang = env.getLanguages().get(org.enso.common.LanguageInfo.ID);
-    assert ensoLang != null;
-    var executor = env.lookup(ensoLang, ScheduledExecutorService.class);
-    assert executor != null;
-    return executor;
-  }
-
   private void initializeExecutionService(ExecutionService service, TruffleContext context) {
-    if (initializerEventBinding != null) {
-      initializerEventBinding.dispose();
-      handler.initializeExecutionService(service, guestCodeExecutor(), context);
-    }
+    initializerEventBinding.dispose();
+    handler.initializeExecutionService(service, context);
   }
 
   private static class Initializer implements ContextsListener {

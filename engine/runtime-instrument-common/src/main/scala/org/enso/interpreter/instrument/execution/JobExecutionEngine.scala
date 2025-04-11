@@ -41,12 +41,15 @@ final class JobExecutionEngine(
   private val pendingCancellationsExecutor =
     context.getThreadManager.newFixedThreadPool(1, "pending-cancellations")
 
+  private val jobParallelism = context.getJobParallelism
+
   private var isBackgroundJobsStarted = false
 
   private val delayedBackgroundJobsQueue =
     new util.ArrayList[BackgroundJob[_]](4096)
 
-  def jobExecutor = interpreterContext.jobExecutor
+  val jobExecutor: ExecutorService =
+    context.getThreadManager.newFixedThreadPool(jobParallelism, "job-pool")
 
   private val MaxJobLimit =
     Integer.MAX_VALUE // Temporary solution to avoid jobs being dropped
