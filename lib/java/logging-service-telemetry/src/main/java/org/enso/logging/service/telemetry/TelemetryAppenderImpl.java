@@ -22,7 +22,8 @@ import org.slf4j.LoggerFactory;
 @org.openide.util.lookup.ServiceProvider(service = TelemetryAppender.class)
 public final class TelemetryAppenderImpl extends TelemetryAppender {
   private static final String CREDENTIALS_FILE_ENV = "ENSO_CLOUD_CREDENTIALS_FILE";
-  private static final Logger LOGGER = LoggerFactory.getLogger(TelemetryAppender.class.getName());
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(TelemetryAppenderImpl.class.getName());
   private Credentials credentials;
   private boolean credentialsParseFailure;
   private LogJobsProcessor logJobsProcessor;
