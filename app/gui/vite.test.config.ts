@@ -48,6 +48,7 @@ export default mergeConfig(
           './src/dashboard/modals/**/*.tsx',
           './src/dashboard/hooks/**/*.ts',
           './src/dashboard/tailwind.css',
+          './node_modules/@tanstack/**/*.js',
         ],
       },
     },

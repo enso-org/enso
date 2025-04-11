@@ -7,31 +7,35 @@ import { SEARCH_PARAMS_PREFIX } from '#/appUtils'
 import FolderAddIcon from '#/assets/folder_add.svg'
 import Minus2Icon from '#/assets/minus2.svg'
 import SettingsIcon from '#/assets/settings.svg'
+import { AnimatedBackground } from '#/components/AnimatedBackground'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import { Badge } from '#/components/Badge'
 import * as mimeTypes from '#/data/mimeTypes'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import {
   areCategoriesEqual,
+  ASSETS_DATA_TRANSFER_PAYLOAD,
   canTransferBetweenCategories,
+  dropOperationBetweenCategories,
   useTransferBetweenCategories,
   type Category,
-} from '#/layouts/CategorySwitcher/Category'
+} from '#/layouts/Drive/Categories'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
-import type * as backend from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { twJoin } from 'tailwind-merge'
-import { AnimatedBackground } from '../components/AnimatedBackground'
-import { useEventCallback } from '../hooks/eventCallbackHooks'
 
 import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
-import { useSetCurrentDirectoryId } from '../providers/DriveProvider'
-import { useCloudCategoryList, useLocalCategoryList } from './Drive/Categories/categoriesHooks'
+import {
+  useCloudCategoryList,
+  useLocalCategoryList,
+} from '#/layouts/Drive/Categories/categoriesHooks'
+import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
+import { unsetModal } from '#/providers/ModalProvider'
 
 /** Metadata for a categoryModule.categoryType. */
 interface CategoryMetadata {
@@ -70,7 +74,6 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const [isTransitioning, startTransition] = React.useTransition()
 
   const { user } = authProvider.useFullUserSession()
-  const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const localBackend = backendProvider.useLocalBackend()
   const { isOffline } = offlineHooks.useOffline()
@@ -131,26 +134,37 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 
   const onDrop = useEventCallback((event: aria.DropEvent) => {
     unsetModal()
+
+    if (event.dropOperation === 'cancel') {
+      return
+    }
+
+    const payloadSchema = ASSETS_DATA_TRANSFER_PAYLOAD
+
     void Promise.all(
-      event.items.flatMap(async (item) => {
-        if (item.kind === 'text') {
+      event.items
+        .filter((item) => item.kind === 'text')
+        .map(async (item) => {
           const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
-          const payload: unknown = JSON.parse(text)
-          return Array.isArray(payload) ?
-              payload.flatMap((key) =>
-                // This is SAFE, assuming only this app creates payloads with
-                // the specific mimetype above.
-                // eslint-disable-next-line no-restricted-syntax
-                typeof key === 'string' ? [key as backend.AssetId] : [],
-              )
-            : []
-        } else {
-          return []
-        }
-      }),
-    ).then((keys) => {
-      transferBetweenCategories(currentCategory, category, keys.flat(1))
-    })
+          const parsedPayload = payloadSchema.safeParse(JSON.parse(text))
+
+          return parsedPayload.success ? parsedPayload.data : null
+        }),
+    ).then((payloads) =>
+      Promise.all(
+        payloads
+          .filter((payload) => payload != null)
+          .map((payload) =>
+            transferBetweenCategories(
+              payload.category,
+              category,
+              payload.items,
+              null,
+              event.dropOperation,
+            ),
+          ),
+      ),
+    )
   })
 
   const dragDelayProps = useAriaDragDelayAction(onPress)
@@ -158,9 +172,13 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const element = (
     <aria.DropZone
       aria-label={dropZoneLabel}
-      getDropOperation={(types) =>
-        acceptedDragTypes.some((type) => types.has(type)) ? 'move' : 'cancel'
-      }
+      getDropOperation={(types) => {
+        if (acceptedDragTypes.some((type) => types.has(type))) {
+          return dropOperationBetweenCategories(currentCategory, category)
+        }
+
+        return 'cancel'
+      }}
       className="group relative flex w-full min-w-0 flex-auto items-start rounded-full drop-target-after"
       onDrop={onDrop}
       {...dragDelayProps}
@@ -356,9 +374,8 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                   <ConfirmDeleteModal
                     actionText={getText('removeTheLocalDirectoryXFromFavorites', directory.label)}
                     actionButtonLabel={getText('remove')}
-                    doDelete={async () => {
+                    onConfirm={() => {
                       removeDirectory(directory.id)
-                      await Promise.resolve()
                     }}
                   />
                 </ariaComponents.DialogTrigger>

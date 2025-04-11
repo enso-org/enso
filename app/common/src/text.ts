@@ -78,7 +78,6 @@ interface PlaceholderOverrides {
   readonly updateFolderBackendError: [folderTitle: string]
   readonly updateAssetBackendError: [assetTitle: string]
   readonly deleteAssetBackendError: [assetTitle: string]
-  readonly undoDeleteAssetBackendError: [assetTitle: string]
   readonly createProjectBackendError: [projectTitle: string]
   readonly duplicateProjectBackendError: [projectTitle: string]
   readonly closeProjectBackendError: [projectTitle: string]
@@ -168,6 +167,12 @@ interface PlaceholderOverrides {
   readonly uploadLargeFileStatus: [uploadedMb: string, totalMb: string]
 
   readonly latestVersion: [version: string, date: string]
+  readonly copyInsteadOfMoving: [categoryName: string]
+  readonly copyInsteadOfRestoring: [categoryName: string, destinationCategoryName: string]
+  readonly copyInsteadOfRestoringDescription: [
+    categoryName: string,
+    destinationCategoryName: string,
+  ]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes

@@ -19,9 +19,7 @@ const DialogContext = React.createContext<DialogContextValue | null>(null)
 export function DialogProvider(props: DialogContextValue & React.PropsWithChildren) {
   const { children, close, dialogId } = props
 
-  const value = React.useMemo(() => ({ close, dialogId }), [close, dialogId])
-
-  return <DialogContext.Provider value={value}>{children}</DialogContext.Provider>
+  return <DialogContext.Provider value={{ close, dialogId }}>{children}</DialogContext.Provider>
 }
 
 /** Custom hook to get the dialog context. */
