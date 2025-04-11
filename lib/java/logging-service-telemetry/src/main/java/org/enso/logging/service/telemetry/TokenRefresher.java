@@ -7,7 +7,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.time.ZonedDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -78,8 +79,8 @@ public final class TokenRefresher {
           TOKEN_EARLY_REFRESH_PERIOD);
       return null;
     }
-    var responseReceivedTime = ZonedDateTime.now();
-    var expireAt = responseReceivedTime.plus(TOKEN_EARLY_REFRESH_PERIOD);
+    var responseReceivedTime = Instant.now().atZone(ZoneId.of("UTC"));
+    var expireAt = responseReceivedTime.plus(tokenLifeTime);
     var accToken = resp.authenticationResult().accessToken();
     return new AuthenticationData(accToken, expireAt);
   }
