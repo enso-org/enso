@@ -26,7 +26,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 public class FixedWidthReader {
-  private ArrayList<FixedWidthLayoutEntry> layoutEntries;
+  private List<FixedWidthLayoutEntry> layoutEntries;
   private InvalidRowsBehavior invalidRowsBehavior;
   private DatatypeParser valueParser;
   private FixedWidthReaderProblemAggregator problemAggregator;
@@ -38,11 +38,12 @@ public class FixedWidthReader {
   private long tableRowNumber = 0;
 
   public FixedWidthReader(
-      ArrayList<FixedWidthLayoutEntry> layoutEntries,
+      List<FixedWidthLayoutEntry> layoutEntries,
       InvalidRowsBehavior invalidRowsBehavior,
       DatatypeParser valueParser,
       boolean warningsAsErrors,
       ProblemAggregator problemAggregator) {
+
     if (invalidRowsBehavior == InvalidRowsBehavior.ADD_EXTRA_COLUMNS) {
       throw new IllegalArgumentException("FixedWidthReader does not allow InvalidRowsBehavior.ADD_EXTRA_COLUMNS");
     }
