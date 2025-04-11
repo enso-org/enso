@@ -3,7 +3,8 @@ package org.enso.snowflake;
 import java.security.Security;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-public class BouncyCastleInitializer {
+public final class BouncyCastleInitializer {
+  private BouncyCastleInitializer() {}
   static {
     Security.addProvider(new BouncyCastleProvider());
   }
