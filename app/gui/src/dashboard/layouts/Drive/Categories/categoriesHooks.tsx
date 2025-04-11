@@ -150,13 +150,7 @@ export function useCloudCategoryList() {
 
   const getCategoryByDirectoryId = useEventCallback(
     (directoryId: DirectoryId): AnyCloudCategory | null =>
-      categories.find((category) => {
-        if ('homeDirectoryId' in category) {
-          return category.homeDirectoryId === directoryId
-        }
-
-        return false
-      }) ?? null,
+      categories.find((category) => category.homeDirectoryId === directoryId) ?? null,
   )
 
   return {
@@ -209,15 +203,7 @@ export function useLocalCategoryList() {
   )
 
   const getCategoryByDirectoryId = useEventCallback((id: DirectoryId): AnyLocalCategory | null => {
-    return (
-      categories.find((category) => {
-        if ('homeDirectoryId' in category) {
-          return category.homeDirectoryId === id
-        }
-
-        return false
-      }) ?? null
-    )
+    return categories.find((category) => category.homeDirectoryId === id) ?? null
   })
 
   const getCategoriesByType = useEventCallback(

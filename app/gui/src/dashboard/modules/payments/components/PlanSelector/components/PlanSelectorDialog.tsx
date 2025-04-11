@@ -3,7 +3,6 @@
  *
  * Dialog that shows the plan details, price, and the payment form.
  */
-import * as React from 'react'
 
 import type { PaymentMethod } from '@stripe/stripe-js'
 import { useQuery } from '@tanstack/react-query'
@@ -104,10 +103,7 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
   const seats = Form.useWatch({ name: 'seats', control: form.control })
   const period = Form.useWatch({ name: 'period', control: form.control })
 
-  const formatter = React.useMemo(
-    () => new Intl.NumberFormat(locale, { style: 'currency', currency: PRICE_CURRENCY }),
-    [locale],
-  )
+  const formatter = new Intl.NumberFormat(locale, { style: 'currency', currency: PRICE_CURRENCY })
 
   return (
     <Dialog size="xxxlarge" closeButton="floating" aria-label={title}>

@@ -6,7 +6,6 @@ import {
   memo,
   startTransition,
   useEffect,
-  useImperativeHandle,
   useMemo,
   useRef,
   useState,
@@ -15,12 +14,11 @@ import {
   type KeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
-  type Ref,
   type RefObject,
   type SetStateAction,
 } from 'react'
 
-import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import * as z from 'zod'
 
@@ -45,14 +43,11 @@ import Label from '#/components/dashboard/Label'
 import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { IsolateLayout } from '#/components/IsolateLayout'
 import { SelectionBrush, type OnDragParams } from '#/components/SelectionBrush'
-import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
   addAssetsLabelsMutationOptions,
-  copyAssetsMutationOptions,
-  moveAssetsMutationOptions,
   removeAssetsLabelsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
 import {
@@ -62,7 +57,7 @@ import {
   useListDirectoryRefetchInterval,
 } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
-import { useCutAndPaste } from '#/hooks/cutAndPasteHooks'
+import { usePaste } from '#/hooks/cutAndPasteHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useIntersectionRatio } from '#/hooks/intersectionHooks'
 import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
@@ -113,6 +108,7 @@ import {
   getAssetPermissionName,
   IS_OPENING_OR_OPENED,
   isAssetCredential,
+  isDirectoryId,
   type AnyAsset,
 } from '#/services/Backend'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
@@ -129,6 +125,7 @@ import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import invariant from 'tiny-invariant'
+import type { AssetsDataTransferPayload } from './Drive/Categories/transferBetweenCategoriesHooks'
 import {
   SUGGESTIONS_FOR_HAS,
   SUGGESTIONS_FOR_NEGATIVE_TYPE,
@@ -189,23 +186,15 @@ export interface AssetRowState {
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
-  readonly hidden?: boolean
   readonly query: AssetQuery
   readonly setQuery: Dispatch<SetStateAction<AssetQuery>>
   readonly category: Category
   readonly initialProjectName: string | null
-  readonly assetManagementApiRef: Ref<AssetManagementApi>
-}
-
-/** The API for managing assets in the table. */
-export interface AssetManagementApi {
-  readonly getAsset: (id: AssetId) => AnyAsset | undefined
-  readonly setAsset: (id: AssetId, asset: AnyAsset) => void
 }
 
 /** The table of project assets. */
 function AssetsTable(props: AssetsTableProps) {
-  const { hidden = false, query, setQuery, category, assetManagementApiRef } = props
+  const { query, setQuery, category } = props
   const { initialProjectName } = props
 
   const openedProjects = useLaunchedProjects()
@@ -214,7 +203,6 @@ function AssetsTable(props: AssetsTableProps) {
   const setSuggestions = useSetSuggestions()
   const getAsset = useGetAsset()
 
-  const queryClient = useQueryClient()
   const { user } = useFullUserSession()
   const backend = useBackend(category)
   const { data: labels } = useBackendQuery(backend, 'listTags', [])
@@ -252,11 +240,31 @@ function AssetsTable(props: AssetsTableProps) {
 
   const uploadFiles = useUploadFiles(backend, category)
   const updateSecretMutation = useMutationCallback(backendMutationOptions(backend, 'updateSecret'))
-  const cutAndPaste = useCutAndPaste(backend, category)
-  const copyAssetsMutation = useMutationCallback(copyAssetsMutationOptions(backend))
-  const moveAssetsMutation = useMutationCallback(moveAssetsMutationOptions(backend))
   const addAssetsLabelsMutation = useMutationCallback(addAssetsLabelsMutationOptions(backend))
   const removeAssetsLabelsMutation = useMutationCallback(removeAssetsLabelsMutationOptions(backend))
+  const paste = usePaste(category)
+
+  const isSingleSelectedDirectoryItem = useStore(
+    driveStore,
+    (state) => {
+      const selectedIds = state.selectedIds
+
+      if (selectedIds.size !== 1) {
+        return false
+      }
+
+      const firstId = Array.from(selectedIds).values().next().value
+
+      if (firstId == null) {
+        return false
+      }
+
+      const isDirectory = isDirectoryId(firstId)
+
+      return isDirectory
+    },
+    { unsafeEnableTransition: true },
+  )
 
   const { queryDirectoryId, currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
     category,
@@ -525,9 +533,9 @@ function AssetsTable(props: AssetsTableProps) {
     }
   }, [isCloud, query, labels, setSuggestions, assets])
 
-  useEffect(() => {
-    if (!hidden) {
-      return inputBindings.attach(document.body, 'keydown', {
+  useEffect(
+    () =>
+      inputBindings.attach(document.body, 'keydown', {
         cancelCut: () => {
           const pasteData = getPasteData()
           if (pasteData == null) {
@@ -537,9 +545,9 @@ function AssetsTable(props: AssetsTableProps) {
             return
           }
         },
-      })
-    }
-  }, [getPasteData, hidden, inputBindings, setPasteData])
+      }),
+    [getPasteData, inputBindings, setPasteData],
+  )
 
   useEffect(
     () =>
@@ -811,7 +819,13 @@ function AssetsTable(props: AssetsTableProps) {
 
     setPasteData({
       type: 'copy',
-      data: { backendType: backend.type, category, ids: selectedIds },
+      data: {
+        backendType: backend.type,
+        category,
+        assets: Array.from(selectedIds)
+          .map((id) => assets.find((asset) => asset.id === id))
+          .filter((asset) => asset != null),
+      },
     })
   })
 
@@ -820,7 +834,13 @@ function AssetsTable(props: AssetsTableProps) {
     const { selectedIds } = driveStore.getState()
     setPasteData({
       type: 'move',
-      data: { backendType: backend.type, category, ids: selectedIds },
+      data: {
+        backendType: backend.type,
+        category,
+        assets: Array.from(selectedIds)
+          .map((id) => assets.find((asset) => asset.id === id))
+          .filter((asset) => asset != null),
+      },
     })
     setSelectedAssets([])
   })
@@ -832,33 +852,38 @@ function AssetsTable(props: AssetsTableProps) {
 
     if (
       pasteData?.data.backendType === backend.type &&
-      canTransferBetweenCategories(pasteData.data.category, category)
+      canTransferBetweenCategories(pasteData.data.category, category, newParentId)
     ) {
-      if (pasteData.data.ids.has(newParentKey)) {
+      if (pasteData.data.assets.some((asset) => asset.id === newParentKey)) {
         toast.error('Cannot paste a folder into itself.')
-      } else {
-        if (pasteData.type === 'copy') {
-          void copyAssetsMutation([[...pasteData.data.ids], newParentId])
-        } else {
-          cutAndPaste(newParentKey, newParentId, pasteData.data)
-        }
-        setPasteData(null)
+        return
       }
+
+      void paste({
+        fromCategory: pasteData.data.category,
+        toCategory: category,
+        newParentId,
+        pasteData: pasteData.data,
+        method: pasteData.type,
+      })
+
+      setPasteData(null)
     }
   })
 
-  const hiddenContextMenu = (
-    <AssetsTableContextMenu
-      hidden
-      backend={backend}
-      category={category}
-      currentDirectoryId={currentDirectoryId}
-      event={{ pageX: 0, pageY: 0 }}
-      doCopy={doCopy}
-      doCut={doCut}
-      doPaste={doPaste}
-    />
-  )
+  const hiddenContextMenu =
+    isSingleSelectedDirectoryItem ? null : (
+      <AssetsTableContextMenu
+        hidden
+        backend={backend}
+        category={category}
+        currentDirectoryId={currentDirectoryId}
+        event={{ pageX: 0, pageY: 0 }}
+        doCopy={doCopy}
+        doCut={doCut}
+        doPaste={doPaste}
+      />
+    )
 
   const onDropzoneDragOver = (event: DragEvent<Element>) => {
     const payload = ASSET_ROWS.lookup(event)
@@ -1105,11 +1130,27 @@ function AssetsTable(props: AssetsTableProps) {
         setSelectedAssets([asset])
       }
       const nodes = assets.filter((node) => newSelectedKeys.has(node.id))
-      const payload: AssetRowsDragPayload = nodes.map((node) => ({
-        key: node.id,
-        asset: node,
-      }))
-      event.dataTransfer.setData(ASSETS_MIME_TYPE, JSON.stringify(nodes.map((node) => node.id)))
+      const payload: AssetRowsDragPayload = {
+        category,
+        items: nodes.map((node) => ({
+          key: node.id,
+          asset: node,
+        })),
+      }
+      event.dataTransfer.setData(
+        ASSETS_MIME_TYPE,
+        JSON.stringify({
+          category,
+          items: nodes.map((node) => ({
+            id: node.id,
+            title: node.title,
+            type: node.type,
+            parentId: node.parentId,
+            parentsPath: node.parentsPath,
+            virtualParentsPath: node.virtualParentsPath,
+          })),
+        } satisfies AssetsDataTransferPayload),
+      )
       setDragImageToBlank(event)
       ASSET_ROWS.bind(event, payload)
       setModal(
@@ -1151,55 +1192,75 @@ function AssetsTable(props: AssetsTableProps) {
     setLabelsDragPayload(null)
   })
 
-  const onRowDrop = useEventCallback((event: DragEvent<HTMLTableRowElement>, item: AnyAsset) => {
-    endAutoScroll()
-    const { selectedIds, labelsDragPayload } = driveStore.getState()
-    const { selectedItems, shouldAdd } =
-      selectedIds.has(item.id) ?
-        {
-          selectedItems: [...selectedIds].flatMap((id) => {
-            const otherAsset = getAsset(id)
-            return otherAsset ? [otherAsset] : []
-          }),
-          shouldAdd: labelsDragPayload?.typeWhenAppliedToSelection !== 'remove',
-        }
-      : {
-          selectedItems: [item],
-          shouldAdd:
-            labelsDragPayload?.labels.some((label) => !(item.labels?.includes(label) ?? false)) ??
-            true,
-        }
-    if (labelsDragPayload != null) {
-      event.preventDefault()
-      event.stopPropagation()
-      if (shouldAdd) {
-        void addAssetsLabelsMutation([selectedItems, labelsDragPayload.labels])
-      } else {
-        void removeAssetsLabelsMutation([selectedItems, labelsDragPayload.labels])
+  const onRowDrop = useEventCallback(
+    (event: DragEvent<HTMLElement>, item: AnyAsset | null = null) => {
+      if (category.type === 'trash' || category.type === 'recent') {
+        return
       }
-      setLabelsDragPayload(null)
-    }
-  })
 
-  const setAsset = useEventCallback((assetId: AssetId, asset: AnyAsset) => {
-    const listDirectoryQuery = queryClient
-      .getQueryCache()
-      .find<readonly AnyAsset<AssetType>[] | undefined>({
-        queryKey: [backend.type, 'listDirectory', asset.parentId],
-        exact: false,
-      })
+      endAutoScroll()
+      if (item != null) {
+        const { selectedIds, labelsDragPayload } = driveStore.getState()
+        const { selectedItems, shouldAdd } =
+          selectedIds.has(item.id) ?
+            {
+              selectedItems: [...selectedIds].flatMap((id) => {
+                const otherAsset = getAsset(id)
+                return otherAsset ? [otherAsset] : []
+              }),
+              shouldAdd: labelsDragPayload?.typeWhenAppliedToSelection !== 'remove',
+            }
+          : {
+              selectedItems: [item],
+              shouldAdd:
+                labelsDragPayload?.labels.some(
+                  (label) => !(item.labels?.includes(label) ?? false),
+                ) ?? true,
+            }
 
-    if (listDirectoryQuery?.state.data) {
-      listDirectoryQuery.setData(
-        listDirectoryQuery.state.data.map((child) => (child.id === assetId ? asset : child)),
-      )
-    }
-  })
+        if (labelsDragPayload != null) {
+          event.preventDefault()
+          event.stopPropagation()
+          if (shouldAdd) {
+            void addAssetsLabelsMutation([selectedItems, labelsDragPayload.labels])
+          } else {
+            void removeAssetsLabelsMutation([selectedItems, labelsDragPayload.labels])
+          }
+          setLabelsDragPayload(null)
+        }
+      }
 
-  useImperativeHandle(assetManagementApiRef, () => ({
-    getAsset,
-    setAsset,
-  }))
+      const directoryId = item?.type === AssetType.directory ? item.id : currentDirectoryId
+      const payload = ASSET_ROWS.lookup(event)
+      const items = payload?.items ?? []
+
+      if (payload != null && items.every((innerItem) => innerItem.key !== directoryId)) {
+        event.preventDefault()
+        event.stopPropagation()
+        unsetModal()
+
+        void paste({
+          fromCategory: payload.category,
+          toCategory: category,
+          newParentId: directoryId,
+          pasteData: {
+            backendType: backend.type,
+            assets: items
+              .filter(({ asset }) => asset.parentId !== directoryId)
+              .map(({ asset }) => asset),
+            category,
+          },
+          method: 'move',
+        })
+        return
+      }
+      if (event.dataTransfer.types.includes('Files')) {
+        event.preventDefault()
+        event.stopPropagation()
+        void uploadFiles(Array.from(event.dataTransfer.files), directoryId)
+      }
+    },
+  )
 
   const headerRow = (
     <tr ref={headerRowRef} className="rounded-none text-sm font-semibold">
@@ -1230,7 +1291,6 @@ function AssetsTable(props: AssetsTableProps) {
       <AssetRow
         key={item.id + item.virtualParentsPath}
         isPlaceholder={false}
-        onCutAndPaste={cutAndPaste}
         isOpened={isOpenedByYou || isOpenedOnTheBackend}
         columns={columns}
         id={item.id}
@@ -1245,11 +1305,9 @@ function AssetsTable(props: AssetsTableProps) {
         onClick={onRowClick}
         select={selectRow}
         labels={labels ?? []}
-        cutAndPaste={cutAndPaste}
         onDragStart={onRowDragStart}
         onDragEnd={onRowDragEnd}
         onDrop={onRowDrop}
-        uploadFiles={uploadFiles}
         renameAsset={doRenameAsset}
         closeProject={closeProjectMutationCallback}
         openProject={doOpenProject}
@@ -1305,19 +1363,9 @@ function AssetsTable(props: AssetsTableProps) {
             setIsDraggingFiles(false)
           }}
           onDrop={(event) => {
-            unsetModal()
-            const payload = ASSET_ROWS.lookup(event)
-            const filtered = payload?.filter((item) => item.asset.parentId !== currentDirectoryId)
-            if (filtered != null && filtered.length > 0) {
-              event.preventDefault()
-              event.stopPropagation()
-
-              void moveAssetsMutation([
-                filtered.map((dragItem) => dragItem.asset.id),
-                currentDirectoryId,
-              ])
-            }
-            handleFileDrop(event)
+            event.preventDefault()
+            event.stopPropagation()
+            onRowDrop(event, null)
           }}
           onClick={() => {
             setSelectedAssets([])
@@ -1355,92 +1403,85 @@ function AssetsTable(props: AssetsTableProps) {
 
   return (
     <div className="relative grow contain-strict">
+      {hiddenContextMenu}
+
       <div
         data-testid="extra-columns"
-        className="absolute right-3 top-0.5 isolate z-1 flex self-end bg-dashboard p-2"
+        className="absolute right-3 top-0.5 z-1 flex self-end bg-dashboard p-2"
       >
-        <FocusArea direction="horizontal">
-          {(columnsBarProps) => (
-            <div
-              className="inline-flex gap-icons"
-              {...mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
-                onFocus: () => {
-                  setKeyboardSelectedIndex(null)
-                },
-              })}
-            >
-              {hiddenColumns.map((column) => (
-                <HiddenColumn
-                  key={column}
-                  column={column}
-                  enabledColumns={enabledColumns}
-                  onColumnClick={setEnabledColumns}
-                />
-              ))}
-            </div>
-          )}
-        </FocusArea>
+        <div
+          className="inline-flex gap-icons"
+          onFocus={() => {
+            setKeyboardSelectedIndex(null)
+          }}
+        >
+          {hiddenColumns.map((column) => (
+            <HiddenColumn
+              key={column}
+              column={column}
+              enabledColumns={enabledColumns}
+              onColumnClick={setEnabledColumns}
+            />
+          ))}
+        </div>
       </div>
 
-      <FocusArea direction="vertical">
-        {(innerProps) => (
-          <IsolateLayout className="isolate h-full w-full" useRAF>
+      <IsolateLayout className="isolate h-full w-full" useRAF>
+        <div
+          className="h-full w-full flex-1 scroll-p-24 overflow-auto scroll-smooth container-size"
+          onKeyDown={onKeyDown}
+          onBlur={(event) => {
+            if (
+              event.relatedTarget instanceof HTMLElement &&
+              !event.currentTarget.contains(event.relatedTarget)
+            ) {
+              setKeyboardSelectedIndex(null)
+            }
+          }}
+          onDragEnter={updateIsDraggingFiles}
+          onDragOver={updateIsDraggingFiles}
+          onDragEnd={() => {
+            setIsDraggingFiles(false)
+          }}
+          ref={rootRef}
+        >
+          <SelectionBrush
+            targetRef={rootRef}
+            onDrag={onSelectionDrag}
+            onDragEnd={onSelectionDragEnd}
+            onDragCancel={onSelectionDragCancel}
+            preventDrag={preventSelection}
+          />
+          <div
+            className="flex h-max min-h-full w-max min-w-full flex-col"
+            onContextMenu={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              setModal(
+                <AssetsTableContextMenu
+                  backend={backend}
+                  category={category}
+                  event={event}
+                  doCopy={doCopy}
+                  doCut={doCut}
+                  currentDirectoryId={currentDirectoryId}
+                  doPaste={doPaste}
+                />,
+              )
+            }}
+          >
             <div
-              {...mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
-                className:
-                  'flex-1 overflow-auto container-size w-full h-full scroll-p-24 scroll-smooth',
-                onKeyDown,
-                onBlur: (event) => {
-                  if (
-                    event.relatedTarget instanceof HTMLElement &&
-                    !event.currentTarget.contains(event.relatedTarget)
-                  ) {
-                    setKeyboardSelectedIndex(null)
-                  }
-                },
-                onDragEnter: updateIsDraggingFiles,
-                onDragOver: updateIsDraggingFiles,
-                onDragEnd: () => {
-                  setIsDraggingFiles(false)
-                },
-                ref: rootRef,
-              })}
+              className="flex h-full w-min min-w-full grow flex-col px-1"
+              onDrop={(event) => {
+                onRowDrop(event, null)
+              }}
             >
-              {!hidden && hiddenContextMenu}
-              <SelectionBrush
-                targetRef={rootRef}
-                onDrag={onSelectionDrag}
-                onDragEnd={onSelectionDragEnd}
-                onDragCancel={onSelectionDragCancel}
-                preventDrag={preventSelection}
-              />
-              <div
-                className="flex h-max min-h-full w-max min-w-full flex-col"
-                onContextMenu={(event) => {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  setModal(
-                    <AssetsTableContextMenu
-                      backend={backend}
-                      category={category}
-                      event={event}
-                      doCopy={doCopy}
-                      doCut={doCut}
-                      currentDirectoryId={currentDirectoryId}
-                      doPaste={doPaste}
-                    />,
-                  )
-                }}
-              >
-                <div className="flex h-full w-min min-w-full grow flex-col px-1">
-                  {table}
-                  <AssetsTableAssetsUnselector />
-                </div>
-              </div>
+              {table}
+              <AssetsTableAssetsUnselector />
             </div>
-          </IsolateLayout>
-        )}
-      </FocusArea>
+          </div>
+        </div>
+      </IsolateLayout>
 
       {isDraggingFiles && !isMainDropzoneVisible && (
         <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">

@@ -126,7 +126,7 @@
   "getFileContentsBackendError": "Failed to get contents of the file",
   "updateAssetBackendError": "Could not update '$0'",
   "deleteAssetBackendError": "Could not delete '$0'",
-  "undoDeleteAssetBackendError": "Could not restore '$0' from Trash",
+  "undoDeleteAssetBackendError": "Could not restore from Trash",
   "copyAssetBackendError": "Failed to copy asset",
   "listProjectsBackendError": "Could not list projects",
   "createProjectBackendError": "Could not create project with name '$0'",
@@ -223,6 +223,7 @@
   "resend": "Resend",
   "invite": "Invite",
   "copy": "Copy",
+  "copyInstead": "Copy instead",
   "copied": "Copied!",
   "color": "Color",
   "labels": "Labels",
@@ -1118,5 +1119,12 @@
   "cloudBrowserDisabledSubtitle": "For the best experience and full functionality, please use our desktop app. You will be redirected to the desktop app shortly. Alternatively, you can download the desktop app below.",
   "openInDesktop": "Open in Desktop",
   "downloadIDE": "Download Enso Desktop Edition",
-  "sendEmail": "Send email"
+  "sendEmail": "Send email",
+  "actionUnavailable": "Action is unavailable",
+  "copyInsteadOfMoving": "Moving assets from $0 is unavailable",
+  "youCanCopyInstead": "You can copy these assets to another category while keeping the originals intact.",
+  "assetsRestoredToItsDirectorySingle": "Asset is restored to its directory",
+  "assetsRestoredToItsDirectoryPlural": "All assets are restored to their directories",
+  "copyInsteadOfRestoring": "You are trying to restore assets from $0 to $1. This is not allowed.",
+  "copyInsteadOfRestoringDescription": "You can copy these assets to $1 while keeping the originals intact."
 }

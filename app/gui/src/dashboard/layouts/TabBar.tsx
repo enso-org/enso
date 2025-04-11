@@ -35,7 +35,7 @@ export interface TabBarProps<T extends object> extends TabListProps<T> {
 export default function TabBar<T extends object>(props: TabBarProps<T>) {
   const { className, ...rest } = props
 
-  const classes = React.useMemo(() => tailwindMerge.twJoin('flex grow', className), [className])
+  const classes = tailwindMerge.twJoin('flex grow', className)
 
   return (
     <AnimatedBackground>
