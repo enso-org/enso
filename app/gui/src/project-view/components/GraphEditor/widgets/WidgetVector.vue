@@ -6,12 +6,29 @@ import type { PortId } from '@/providers/portInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { injectWidgetTree } from '@/providers/widgetTree'
+import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { computed, shallowRef, toRef, toValue, watchEffect, type WatchSource } from 'vue'
-import { isAstId } from 'ydoc-shared/ast'
+import { isAstId, MutableModule } from 'ydoc-shared/ast'
 
 const props = defineProps(widgetProps(widgetDefinition))
+const graph = useGraphStore()
 const tree = injectWidgetTree()
+
+function doEdit(editFn: (ast: Ast.MutableVector) => void) {
+  if (props.input.value instanceof Ast.Vector) {
+    const edit = graph.startEdit()
+    editFn(edit.getVersion(props.input.value))
+    props.onUpdate({ edit, directInteraction: true })
+  } else {
+    const value = Ast.Vector.new(MutableModule.Transient(), [])
+    editFn(value)
+    props.onUpdate({
+      portUpdate: { value, origin: props.input.portId },
+      directInteraction: true,
+    })
+  }
+}
 
 const itemConfig = computed(() =>
   props.input.dynamicConfig?.kind === 'Vector_Editor' ?
@@ -21,13 +38,27 @@ const itemConfig = computed(() =>
 
 const defaultItem = computed(() =>
   props.input.dynamicConfig?.kind === 'Vector_Editor' ?
-    Ast.parseExpression(props.input.dynamicConfig.item_default)
+    Ast.parseExpression(props.input.dynamicConfig.item_default) ?? DEFAULT_ITEM.value
   : DEFAULT_ITEM.value,
 )
 
-function newItem() {
+function handleAddItem() {
   if (props.input.editHandler?.addItem()) return
-  return defaultItem.value
+  doEdit((ast) => ast.splice(-1, 0, defaultItem.value))
+}
+
+function handleRemove(index: number) {
+  doEdit((ast) => ast.splice(index, 1))
+}
+
+function handleReorder(oldIndex: number, newIndex: number) {
+  doEdit((ast) => ast.move(oldIndex, newIndex))
+}
+
+function handleDropInsert(index: number, payload: string) {
+  const expr = Ast.deserializeExpression(payload)
+  if (!expr) return
+  doEdit((ast) => ast.splice(index, 0, expr))
 }
 
 const value = computed({
@@ -126,17 +157,18 @@ const DEFAULT_ITEM = computed(() => Ast.Wildcard.new())
   <div class="WidgetVector">
     <span class="token widgetApplyPadding">[</span>
     <DraggableList
-      v-model="value"
+      :items="value"
       axis="x"
-      :newItem="newItem"
       :showHandles="tree.extended"
       :getKey="(ast) => ast.id"
       dragMimeType="application/x-enso-ast-node"
       :toPlainText="Ast.serializeExpression"
       :toDragPayload="Ast.serializeExpression"
-      :fromDragPayload="Ast.deserializeExpression"
       :toDragPosition="(p) => navigator?.clientToScenePos(p) ?? p"
-      contenteditable="false"
+      @addItem="handleAddItem"
+      @remove="handleRemove"
+      @reorder="handleReorder"
+      @dropInsert="handleDropInsert"
     >
       <template #default="{ item }">
         <NodeWidget :input="itemInput(item)" nest />

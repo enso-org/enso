@@ -74,6 +74,9 @@ export default defineConfig({
     holdUntilCrawlEnd: true,
   },
   server: {
+    warmup: {
+      clientFiles: ['./src/**/*.vue', './src/**/*.tsx'],
+    },
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Resource-Policy': 'same-origin',

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { WidgetInput } from '@/providers/widgetRegistry'
+import { applyWidgetUpdates, WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
 import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { documentationData } from '@/stores/suggestionDatabase/documentation'
@@ -10,6 +10,7 @@ import { FunctionDef } from 'ydoc-shared/ast'
 import type * as Y from 'yjs'
 import WidgetTreeRoot from './GraphEditor/WidgetTreeRoot.vue'
 import { FunctionInfoKey } from './GraphEditor/widgets/WidgetFunctionDef.vue'
+import { useGraphStore } from '@/stores/graph'
 
 const suggestionDb = useSuggestionDbStore()
 const projectNames = injectProjectNames()
@@ -48,7 +49,11 @@ const treeRootInput = computed((): WidgetInput => {
 
 const rootElement = ref<HTMLElement>()
 
-function handleWidgetUpdates() {
+const graph = useGraphStore()
+
+function handleWidgetUpdates(update: WidgetUpdate) {
+  applyWidgetUpdates(update, graph)
+  // This handler is guaranteed to be the last handler in the chain.
   return true
 }
 

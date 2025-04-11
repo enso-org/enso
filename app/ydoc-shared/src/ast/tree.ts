@@ -1691,15 +1691,6 @@ function concreteToOwned(module: MutableModule): RefMap<ConcreteRefs, OwnedRefs>
   }
 }
 
-function takeRawToOwned(module: MutableModule): RefMap<RawRefs, OwnedRefs> {
-  return (child: FieldData<RawRefs>) => {
-    if (typeof child !== 'object') return
-    if (!('node' in child)) return
-    if (isTokenId(child.node)) return { ...child, node: module.getToken(child.node) }
-    else return { ...child, node: module.take(child.node) }
-  }
-}
-
 export interface TextToken<T extends TreeRefs = RawRefs> {
   type: 'token'
   readonly token: T['token']
@@ -2292,6 +2283,14 @@ export interface ArgumentDefinition<T extends TreeRefs = RawRefs> {
   close?: T['token'] | undefined
 }
 
+export function newArgumentDefinition(name: string, module?: MutableModule): OwnedArgumentDefinitions {
+  const expr = parseExpression(name, module)
+  assert(expr != null)
+  return {
+    pattern: autospaced(expr),
+  }
+}
+
 interface ArgumentDefault<T extends TreeRefs = RawRefs> {
   equals: T['token']
   expression: T['ast']
@@ -2563,17 +2562,32 @@ export class MutableFunctionDef extends FunctionDef implements MutableStatement 
       defs.map((def) => mapRefs(def, ownedToRaw(this.module, this.id))),
     )
   }
-  setArgumentDefinitionsCopy(defs: ArgumentDefinition<ConcreteRefs>[]) {
-    this.setArgumentDefinitions(defs.map((def) => mapRefs(def, concreteToOwned(this.module))))
+
+  /**
+ * Move an argument inside function definition.
+ * @param fromIndex index of moved argument.
+ * @param toIndex new index of moved argument.
+ *
+ * If any index is outside array index range, it's interpreted same as in {@link Array.prototype.splice|}.
+ */
+  moveArgumentDefinitions(fromIndex: number, toIndex: number) {
+    const defs = [...this.fields.get('argumentDefinitions')]
+    const [def] = defs.splice(fromIndex, 1)
+    if (def != null) {
+      // MutableVector.autospaceElement(def)
+      defs.splice(toIndex, 0, def)
+      // MutableVector.autospaceElement(defs[fromIndex])
+      // MutableVector.autospaceElement(defs[toIndex + 1])
+      this.fields.set('argumentDefinitions', defs)
+    }
   }
 
-  updateArgumentDefinitions(map: (defs: OwnedArgumentDefinitions[]) => OwnedArgumentDefinitions[]) {
-    return this.setArgumentDefinitions(map(this.takeArgumentDefinitions()))
-  }
-  takeArgumentDefinitions(): OwnedArgumentDefinitions[] {
-    return this.fields
-      .get('argumentDefinitions')
-      .map((def) => mapRefs(def, takeRawToOwned(this.module)))
+  spliceArgumentDefinitions(start: number, deletedCount: number, ...newValues: OwnedArgumentDefinitions[]) {
+    const defs = [...this.fields.get('argumentDefinitions')]
+    const newDefs = newValues.map((def) => mapRefs(def, ownedToRaw(this.module, this.id)))
+    defs.splice(start, deletedCount, ...newDefs)
+    // MutableVector.autospaceElement(elements[start + newValues.length])
+    this.fields.set('argumentDefinitions', defs)
   }
 
   /** Returns the body, after converting it to a block if it was empty or an inline expression. */

@@ -10,7 +10,7 @@ import { DocumentationData } from '@/stores/suggestionDatabase/documentation'
 import { Ast } from '@/util/ast'
 import { type MethodPointer } from '@/util/methodPointer'
 import { computed, Ref } from 'vue'
-import { BodyBlock, identifier, MutableModule } from 'ydoc-shared/ast'
+import { newArgumentDefinition } from 'ydoc-shared/ast'
 
 const { input, onUpdate } = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -19,41 +19,23 @@ const funcIcon = computed(() => {
   return input[FunctionInfoKey]?.docsData.value?.iconName ?? 'enso_logo'
 })
 
-function addArgument(): Ast.ArgumentDefinition<Ast.ConcreteRefs> {
-  throw 'unimplemented'
+function doEdit(editFn: (ast: Ast.MutableFunctionDef) => void) {
+  const edit = graph.startEdit()
+  editFn(edit.getVersion(input.value))
+  onUpdate({ edit, directInteraction: true })
 }
 
-const argumentsList = computed({
-  get() {
-    return input.value.argumentDefinitions
-  },
-  set(value) {
-    const edit = graph.startEdit()
-    const ast = edit.getVersion(input.value)
-    ast.setArgumentDefinitionsCopy(value)
-    console.log(value)
-    onUpdate({ edit, directInteraction: true })
-  },
-})
-
-const serializedFuncIdentifier = identifier('serialized')!
-
-function serializeArgument(arg: Ast.ArgumentDefinition<Ast.ConcreteRefs>): string {
-  const edit = MutableModule.Transient()
-  const tempFuncDef = Ast.FunctionDef.new(
-    serializedFuncIdentifier,
-    // Can be treated as "owned" here, because we serialize it to code and discard the edit anyway.
-    [],
-    BodyBlock.new([], edit),
-    { edit },
-  )
-  tempFuncDef.setArgumentDefinitionsCopy([arg])
-  return tempFuncDef.code()
+function handleAddItem() {
+  if (input.editHandler?.addItem()) return
+  doEdit((ast) => ast.spliceArgumentDefinitions(-1, 0, newArgumentDefinition(`arg${ast.argumentDefinitions.length + 1}`)))
 }
-function deserializeArgument(
-  payload: string,
-): Ast.ArgumentDefinition<Ast.ConcreteRefs> | undefined {
-  return Ast.FunctionDef.tryParse(payload)?.argumentDefinitions[0]
+
+function handleRemove(index: number) {
+  doEdit((ast) => ast.spliceArgumentDefinitions(index, 1))
+}
+
+function handleReorder(oldIndex: number, newIndex: number) {
+  doEdit((ast) => ast.moveArgumentDefinitions(oldIndex, newIndex))
 }
 
 const funcNameInput = computed(() => {
@@ -83,10 +65,10 @@ const funcNameInput = computed(() => {
       <DraggableList
         axis="y"
         showHandles
-        :modelValue="argumentsList"
-        :newItem="addArgument"
-        :toDragPayload="serializeArgument"
-        :fromDragPayload="deserializeArgument"
+        :items="input.value.argumentDefinitions"
+        @addItem="handleAddItem"
+        @remove="handleRemove"
+        @reorder="handleReorder"
       >
         <template #default="{ item }">
           <ArgumentRow :definition="item" />

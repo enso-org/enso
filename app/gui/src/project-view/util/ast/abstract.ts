@@ -42,10 +42,10 @@ import { IdMap } from 'ydoc-shared/yjsModel'
 export * from 'ydoc-shared/ast'
 
 /** Given an output of {@link serializeExpression}, returns a deserialized expression. */
-export function deserializeExpression(serialized: string): Owned<MutableExpression> {
+export function deserializeExpression(serialized: string): Owned<MutableExpression> | undefined {
   // Not implemented: restoring serialized external IDs. This is not the best approach anyway;
   // Y.Js can't merge edits to objects when they're being serialized and deserialized.
-  return parseExpression(serialized)!
+  return parseExpression(serialized)
 }
 
 /** Returns a serialized representation of the expression. */

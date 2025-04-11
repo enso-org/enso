@@ -11,8 +11,7 @@ import { computed, type Ref, ref, shallowReactive, watchEffect, watchPostEffect 
 import { Range } from 'ydoc-shared/util/data/range'
 
 const props = defineProps<{
-  modelValue: T[]
-  newItem: () => T | undefined
+  items: T[]
   getKey?: (item: T) => string | number | undefined
   /**
    * If present, a {@link DataTransferItem} is added with a MIME type of `text/plain`.
@@ -31,19 +30,21 @@ const props = defineProps<{
    * Convert the list item to a drag payload stored under `dragMimeType`. When in doubt, this
    * should be `JSON.stringify` of data describing the object.
    */
-  toDragPayload: (item: T) => string
+  toDragPayload?: (item: T) => string
   /**
    * Convert payload created by `toDragPayload` back to the list item. This function can be called
    * on the payload received from a different application instance (e.g. another browser), so it
    * should not rely on any local state.
    */
-  fromDragPayload: (payload: string) => T | undefined
   toDragPosition?: (p: Vec2) => Vec2
   showHandles: boolean
   axis: 'x' | 'y'
 }>()
 const emit = defineEmits<{
-  'update:modelValue': [modelValue: T[]]
+  'addItem': []
+  'reorder': [oldIndex: number, newIndex: number],
+  'remove': [index: number],
+  'dropInsert': [index: number, payload: string],
 }>()
 
 const listUuid = uuidv4()
@@ -97,7 +98,7 @@ type DragItem = NonPlaceholderItem | PlaceholderItem
 const defaultPlaceholderKey = '__placeholder_key__'
 
 const mappedItems = computed<DragItem[]>(() => {
-  return props.modelValue.map((item, index) => ({
+  return props.items.map((item, index) => ({
     type: 'item',
     index,
     item,
@@ -193,15 +194,18 @@ function onDragStart(event: DragEvent, index: number) {
   event.dataTransfer.effectAllowed = 'move'
   // `dropEffect: none` does not work for removing an element - it disables drop completely.
   event.dataTransfer.dropEffect = 'move'
-  const dragItem = props.modelValue[index]!
+  const dragItem = props.items[index]!
 
   const meta: DropMetadata = {
     list: listUuid,
     key: props.getKey?.(dragItem) ?? index,
     size: elementOffsetSize,
   }
-  const payload = props.toDragPayload(dragItem)
-  event.dataTransfer.setData(mimeType.value, payload)
+
+  if (props.toDragPayload) {
+    const payload = props.toDragPayload(dragItem)
+    event.dataTransfer.setData(mimeType.value, payload)
+  }
 
   if (props.toPlainText) {
     event.dataTransfer.setData('text/plain', props.toPlainText(dragItem))
@@ -236,7 +240,7 @@ interface DropHoverInfo {
 function areaDragOver(e: DragEvent) {
   const metaMime = e.dataTransfer?.types.find((ty) => ty.startsWith(dragMetaMimePrefix))
   const typesMatch = e.dataTransfer?.types.includes(mimeType.value)
-  if (!metaMime || !typesMatch) return
+  if (!metaMime || (!typesMatch && draggedIndex.value == null)) return
   e.preventDefault()
   const meta = decodeMetadataFromMime(metaMime)
   if (meta == null) return
@@ -285,22 +289,17 @@ function areaDragLeave(_event: DragEvent) {
 }
 
 function areaOnDrop(e: DragEvent) {
-  const payload = e.dataTransfer?.getData(mimeType.value)
   const index = dropIndex.value
-  if (index == null || index < 0 || payload == null) return
+  if (index == null || index < 0) return
   e.preventDefault()
   e.stopImmediatePropagation()
 
-  const item = props.fromDragPayload(payload)
-  if (item != null) {
-    let modelValue = [...props.modelValue]
-    let insertIndex = index
-    if (draggedIndex.value != null) {
-      if (draggedIndex.value <= insertIndex) insertIndex -= 1
-      modelValue = modelValue.filter((_, i) => i !== draggedIndex.value)
-    }
-    modelValue.splice(insertIndex, 0, item)
-    emit('update:modelValue', modelValue)
+  // let insertIndex = index
+  if (draggedIndex.value != null) {
+    emit('reorder', draggedIndex.value, index)
+  } else {
+    const payload = e.dataTransfer?.getData(mimeType.value)
+    if (payload) emit('dropInsert', index, payload)
   }
 
   draggedIndex.value = undefined
@@ -310,8 +309,7 @@ function areaOnDrop(e: DragEvent) {
 function onDragEnd(event: DragEvent) {
   const effect = event.dataTransfer?.dropEffect
   if (effect !== 'none' && draggedIndex.value != null) {
-    const modelValue = props.modelValue.filter((_, i) => i !== draggedIndex.value)
-    emit('update:modelValue', modelValue)
+    deleteItem(draggedIndex.value)
   }
   draggedIndex.value = undefined
   dropInfo.value = undefined
@@ -379,17 +377,15 @@ function setItemRef(el: unknown, index: number) {
 }
 
 watchPostEffect(() => {
-  itemRefs.length = props.modelValue.length
+  itemRefs.length = props.items.length
 })
 
 function addItem() {
-  const item = props.newItem()
-  if (item) emit('update:modelValue', [...props.modelValue, item])
+  emit('addItem')
 }
 
 function deleteItem(index: number) {
-  const modelValue = props.modelValue.filter((_, i) => i !== index)
-  emit('update:modelValue', modelValue)
+  emit('remove', index)
 }
 
 const placeholderSizeProp = computed(() =>
@@ -447,7 +443,7 @@ const placeholderSizeProp = computed(() =>
               </div>
             </SizeTransition>
           </div>
-          <slot v-if="entry.index != props.modelValue.length - 1" name="separator" />
+          <slot v-if="entry.index != props.items.length - 1" name="separator" />
         </li>
       </template>
       <template v-else>
