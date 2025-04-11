@@ -336,47 +336,51 @@ function createServer() {
       }
     },
     getData: async (request: IServerSideGetRowsRequest) => {
-      const columnHeaders =
-        typeof props.data === 'object' && 'header' in props.data ?
-          props.data.header ?
-            props.data.header
-          : []
-        : []
+      try {
+        const columnHeaders =
+          typeof props.data === 'object' && 'header' in props.data ? (props.data.header ?? []) : []
 
-      const { sortColIndexes, sortDirections } = convertSortModel(request, columnHeaders)
+        const { sortColIndexes, sortDirections } = convertSortModel(request, columnHeaders)
+        const { filterColumnIndexList, filterActions, valueList } = convertFilterModel(
+          request,
+          columnHeaders,
+          colTypeMap.value,
+        )
 
-      const { filterColumnIndexList, filterActions, valueList } = convertFilterModel(
-        request,
-        columnHeaders,
-        colTypeMap.value,
-      )
+        const expressionFunction = createExpressionRowTemplate(
+          'Standard.Visualization.Table.Visualization',
+          'get_rows_for_table',
+          //the index of the next bucket of rows to get
+          `${request.startRow}`,
+          //column indexes that require a sort
+          sortColIndexes as string[] | 'Nothing',
+          //direction (Ascending/Descending) for the sorts
+          sortDirections as string[] | 'Nothing',
+          //column indexes that require a filter
+          filterColumnIndexList as string[] | 'Nothing',
+          //column actions i.e Greater Than, Between...
+          filterActions as string[] | 'Nothing',
+          //values to filter on
+          valueList as string[] | 'Nothing',
+        )
 
-      const expressionFunction = createExpressionRowTemplate(
-        'Standard.Visualization.Table.Visualization',
-        'get_rows_for_table',
-        //the index of the next bucket of rows to get
-        `${request.startRow}`,
-        //column indexes that require a sort
-        sortColIndexes as string[] | 'Nothing',
-        //direction (Ascending/Descending) for the sorts
-        sortDirections as string[] | 'Nothing',
-        //column indexes that require a filter
-        filterColumnIndexList as string[] | 'Nothing',
-        //column actions i.e Greater Than, Between...
-        filterActions as string[] | 'Nothing',
-        //values to filter on
-        valueList as string[] | 'Nothing',
-      )
-      const response = await config.executeExpression(expressionFunction)
-      if (response.ok) {
-        return {
-          success: true,
-          data: response.value.rows,
+        const response = await config.executeExpression(expressionFunction, 5000) // 5s timeout
+
+        if (response.ok) {
+          return {
+            success: true,
+            data: response.value.rows,
+            rowCount: response.value.row_count,
+          }
+        } else {
+          throw new Error('Expression execution failed')
         }
-      } else {
+      } catch (err) {
+        console.error('Error loading rows:', err)
         return {
           success: false,
           data: null,
+          rowCount: undefined,
         }
       }
     },
@@ -385,6 +389,7 @@ function createServer() {
 
 interface Response {
   data: unknown[][]
+  rowCount: number
   success: boolean
 }
 function createServerSideDatasource(): IServerSideDatasource {
@@ -394,9 +399,8 @@ function createServerSideDatasource(): IServerSideDatasource {
       if (server) {
         const response: Response = await server.getData(params.request)
         const rows = createRowsForTable(response.data, 0, true)
-
         if (response.success) {
-          params.success({ rowData: rows })
+          params.success({ rowData: rows, rowCount: response.rowCount })
         } else {
           params.fail()
         }
@@ -805,6 +809,7 @@ watchEffect(() => {
           ...dataHeader,
         ]
       : dataHeader
+
     if (!data_.is_using_server_sort_and_filter) {
       const hasIndexRow =
         config.nodeType === TABLE_NODE_TYPE ||

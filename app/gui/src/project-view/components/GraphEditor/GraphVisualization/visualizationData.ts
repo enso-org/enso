@@ -97,20 +97,37 @@ export function useVisualizationData({
 
   const executeExpression = async (
     expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>,
+    timeoutMs = 5000, // optional timeout parameter
   ) => {
     const dataSourceValue = toValue(dataSource)
     if (dataSourceValue?.type !== 'node') return
+
     const graphDb = graph.db
     const nodeFirstOurputPort = graphDb.getNodeFirstOutputPort(dataSourceValue.nodeId as NodeId)
     const identifier = graphDb.getOutputPortIdentifier(nodeFirstOurputPort)
     if (identifier === undefined) return
+
     const contextId =
       dataSourceValue.nodeId &&
       graphDb.nodeIdToNode.get(dataSourceValue.nodeId as NodeId)?.outerAst.externalId
     if (contextId === undefined) return
+
     try {
       const expression = expressionFunction(identifier)
-      return projectStore.executeExpression(contextId, expression.code())
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`executeExpression timed out after ${timeoutMs}ms`)),
+          timeoutMs,
+        ),
+      )
+
+      const result = await Promise.race([
+        projectStore.executeExpression(contextId, expression.code()),
+        timeoutPromise,
+      ])
+
+      return result
     } catch (e) {
       console.error(e)
       throw e
