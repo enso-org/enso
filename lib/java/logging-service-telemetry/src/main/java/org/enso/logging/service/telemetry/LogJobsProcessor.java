@@ -7,7 +7,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.time.ZonedDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -223,7 +224,8 @@ public final class LogJobsProcessor {
   }
 
   private boolean accessTokenNeedsRefresh() {
-    var inEarlyFuture = ZonedDateTime.now().plus(TOKEN_EARLY_REFRESH_PERIOD);
+    var now = Instant.now().atZone(ZoneId.of("UTC"));
+    var inEarlyFuture = now.plus(TOKEN_EARLY_REFRESH_PERIOD);
     var expiration = authenticationData.expireAt();
     return inEarlyFuture.compareTo(expiration) > 0;
   }
