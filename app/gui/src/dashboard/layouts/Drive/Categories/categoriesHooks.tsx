@@ -22,8 +22,9 @@ import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/Backe
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { DirectoryId, Path, Plan } from '#/services/Backend'
+import { Path, type DirectoryId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
+import { organizationIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
 import { useSuspenseQuery } from '@tanstack/react-query'
@@ -91,28 +92,15 @@ export function useCloudCategoryList() {
     queryKey: [backend.type, 'getOrganization'],
     queryFn: () => backend.getOrganization(),
   })
-
-  const homeDirectoryId = (() => {
-    switch (user.plan) {
-      case Plan.free:
-      case Plan.solo: {
-        return user.rootDirectoryId
-      }
-      case Plan.team:
-      case Plan.enterprise: {
-        return organization == null ?
-            user.rootDirectoryId
-          : DirectoryId(`directory-${organization.id.replace(/^organization-/, '')}` as const)
-      }
-    }
-  })()
+  const organizationRootDirectoryId =
+    organization != null ? organizationIdToDirectoryId(organization.id) : user.rootDirectoryId
 
   const cloudCategory: CloudCategory = {
     type: 'cloud',
     id: 'cloud',
     label: getText('cloudCategory'),
     icon: CloudIcon,
-    homeDirectoryId,
+    homeDirectoryId: user.rootDirectoryId,
   }
 
   const recentCategory: RecentCategory = {
@@ -120,7 +108,7 @@ export function useCloudCategoryList() {
     id: 'recent',
     label: getText('recentCategory'),
     icon: RecentIcon,
-    homeDirectoryId,
+    homeDirectoryId: null,
   }
 
   const trashCategory: TrashCategory = {
@@ -128,7 +116,7 @@ export function useCloudCategoryList() {
     id: 'trash',
     label: getText('trashCategory'),
     icon: Trash2Icon,
-    homeDirectoryId,
+    homeDirectoryId: organizationRootDirectoryId,
   }
 
   const predefinedCloudCategories: AnyCloudCategory[] = [

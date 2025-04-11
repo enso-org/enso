@@ -620,47 +620,6 @@ export default class ProjectManager {
       '--filesystem-move-to',
       to,
     )
-    const children = this.internalDirectories.get(from)
-    // Assume a directory needs to be loaded for its children to be loaded.
-    if (children) {
-      const moveChildren = (directoryChildren: readonly FileSystemEntry[]) => {
-        for (const child of directoryChildren) {
-          switch (child.type) {
-            case FileSystemEntryType.DirectoryEntry: {
-              const childChildren = this.internalDirectories.get(child.path)
-              if (childChildren) {
-                moveChildren(childChildren)
-              }
-              break
-            }
-            case FileSystemEntryType.ProjectEntry: {
-              const path = this.internalProjectPaths.get(child.metadata.id)
-              if (path != null) {
-                this.internalProjectPaths.set(child.metadata.id, Path(path.replace(from, to)))
-              }
-              break
-            }
-            case FileSystemEntryType.FileEntry: {
-              // No special extra metadata is stored for files.
-              break
-            }
-          }
-        }
-        this.internalDirectories.set(
-          from,
-          children.map((child) => ({ ...child, path: Path(child.path.replace(from, to)) })),
-        )
-      }
-      moveChildren(children)
-    }
-    const directoryPath = getDirectoryAndName(from).directoryPath
-    const siblings = this.internalDirectories.get(directoryPath)
-    if (siblings) {
-      this.internalDirectories.set(
-        directoryPath,
-        siblings.filter((entry) => entry.path !== from),
-      )
-    }
   }
 
   /** Delete a file or directory. */

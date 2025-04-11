@@ -20,6 +20,7 @@ import java.io.PrintStream;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.RuntimeOptions;
@@ -94,7 +95,12 @@ import org.graalvm.options.OptionType;
     contextPolicy = TruffleLanguage.ContextPolicy.EXCLUSIVE,
     dependentLanguages = {"epb"},
     fileTypeDetectors = FileDetector.class,
-    services = {Timer.class, NotificationHandler.Forwarder.class, LockManager.class})
+    services = {
+      Timer.class,
+      NotificationHandler.Forwarder.class,
+      LockManager.class,
+      ScheduledExecutorService.class
+    })
 @ProvidedTags({
   DebuggerTags.AlwaysHalt.class,
   StandardTags.CallTag.class,
@@ -170,6 +176,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
         new EnsoContext(
             this, getLanguageHome(), env, notificationHandler, lockManager, distributionManager);
 
+    env.registerService(context.getThreadManager());
     return context;
   }
 

@@ -216,8 +216,9 @@ following:
     quickly
   - using `native,test` _enables assertions_ - e.g. it instructs
     `buildEngineDistribution` command to build native image with assertions
-    enabled (`-ea`). Useful for running Enso tests in the _native mode_.
-  - using `native,debug` generates _debugging informations_ for VSCode _native
+    enabled (`-ea`). Useful for running Enso tests in the _native mode_. Also
+    includes additional testing libraries in the target native image.
+  - using `native,debug` generates _debugging information_ for VSCode _native
     image debugger_
   - using `native,-ls` disables support for _language server_ in the generated
     binary

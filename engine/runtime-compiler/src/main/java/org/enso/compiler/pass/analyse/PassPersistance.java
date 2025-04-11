@@ -28,7 +28,6 @@ import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
-import org.openide.util.lookup.ServiceProvider;
 
 @Persistable(clazz = CachePreferenceAnalysis.WeightInfo.class, id = 1111)
 @Persistable(clazz = DataflowAnalysis.DependencyInfo.class, id = 1112)
@@ -72,7 +71,7 @@ import org.openide.util.lookup.ServiceProvider;
 public final class PassPersistance {
   private PassPersistance() {}
 
-  @ServiceProvider(service = Persistance.class)
+  @Persistable(id = 1101)
   public static final class PersistState extends Persistance<IgnoredBindings.State> {
     public PersistState() {
       super(IgnoredBindings.State.class, true, 1101);
@@ -93,7 +92,7 @@ public final class PassPersistance {
     }
   }
 
-  @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
+  @Persistable(id = 1289)
   public static final class PersistCachePreferences
       extends Persistance<org.enso.common.CachePreferences> {
     public PersistCachePreferences() {

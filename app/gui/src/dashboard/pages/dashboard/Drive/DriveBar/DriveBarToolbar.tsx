@@ -4,6 +4,7 @@
  */
 import * as React from 'react'
 
+import AddCredentialIcon from '#/assets/add_credential.svg'
 import AddDatalinkIcon from '#/assets/add_datalink.svg'
 import AddFolderIcon from '#/assets/add_folder.svg'
 import AddKeyIcon from '#/assets/add_key.svg'
@@ -24,17 +25,17 @@ import {
   getAllTrashedItems,
 } from '#/hooks/backendBatchedHooks'
 import {
+  backendMutationOptions,
   listDirectoryQueryOptions,
-  useNewDatalink,
   useNewFolder,
   useNewProject,
-  useNewSecret,
 } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { AssetPanelToggle } from '#/layouts/AssetPanel'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
+import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
 import {
   canTransferBetweenCategories,
   isCloudCategory,
@@ -42,6 +43,7 @@ import {
 } from '#/layouts/CategorySwitcher/Category'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
+import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
@@ -49,7 +51,6 @@ import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import type { DirectoryId } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
@@ -81,7 +82,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const { isOffline } = useOffline()
   const canDownload = useCanDownload()
 
-  const { currentDirectoryId, rootDirectoryId } = useDirectoryIds({ category })
+  const { currentDirectoryId } = useDirectoryIds({ category })
 
   const shouldBeDisabled = isCloud && isOffline
 
@@ -109,14 +110,9 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const uploadFiles = useEventCallback(async (files: readonly File[]) => {
     await uploadFilesRaw(files, currentDirectoryId)
   })
-  const newSecretRaw = useNewSecret(backend)
-  const newSecret = useEventCallback(async (name: string, value: string) => {
-    return await newSecretRaw(name, value, currentDirectoryId)
-  })
-  const newDatalinkRaw = useNewDatalink(backend)
-  const newDatalink = useEventCallback(async (name: string, value: unknown) => {
-    return await newDatalinkRaw(name, value, currentDirectoryId)
-  })
+  const newSecret = useMutationCallback(backendMutationOptions(backend, 'createSecret'))
+  const newCredential = useMutationCallback(backendMutationOptions(backend, 'createCredential'))
+  const newDatalink = useMutationCallback(backendMutationOptions(backend, 'createDatalink'))
   const newProjectRaw = useNewProject(backend, category)
 
   const newProjectMutation = useMutationCallback({
@@ -186,7 +182,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
             shouldBeDisabled={shouldBeDisabled}
             backend={backend}
             category={category}
-            rootDirectoryId={rootDirectoryId}
           >
             {pasteDataStatus}
             {searchBar}
@@ -237,8 +232,24 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   id={null}
                   name={null}
                   doCreate={async (name, value) => {
-                    await newSecret(name, value)
+                    await newSecret([{ name, value, parentDirectoryId: currentDirectoryId }])
                   }}
+                />
+              </DialogTrigger>
+              <DialogTrigger>
+                <Button
+                  isDisabled={!isCloud}
+                  variant="icon"
+                  size="medium"
+                  icon={AddCredentialIcon}
+                  aria-label={
+                    isCloud ? getText('newCredential') : getText('newCredentialOnlyCloud')
+                  }
+                />
+                <CreateCredentialModal
+                  doCreate={async (name, value) =>
+                    await newCredential([{ name, value, parentDirectoryId: currentDirectoryId }])
+                  }
                 />
               </DialogTrigger>
               <DialogTrigger>
@@ -251,7 +262,14 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 />
                 <UpsertDatalinkModal
                   doCreate={async (name, value) => {
-                    await newDatalink(name, value)
+                    await newDatalink([
+                      {
+                        name,
+                        value,
+                        parentDirectoryId: currentDirectoryId,
+                        datalinkId: null,
+                      },
+                    ])
                   }}
                 />
               </DialogTrigger>
@@ -297,21 +315,20 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
 interface TrashFolderToolbarProps extends PropsWithChildren {
   readonly shouldBeDisabled: boolean
   readonly backend: Backend
-  readonly category: Category
-  readonly rootDirectoryId: DirectoryId
+  readonly category: TrashCategory
 }
 
 /**
  * A toolbar for the trash folder.
  */
 function TrashFolderToolbar(props: TrashFolderToolbarProps) {
-  const { shouldBeDisabled, backend, category, rootDirectoryId, children } = props
+  const { shouldBeDisabled, backend, category, children } = props
   const { getText } = useText()
 
   const rootDirectoryQueryOptions = listDirectoryQueryOptions({
     backend,
     category,
-    parentId: rootDirectoryId,
+    parentId: category.homeDirectoryId,
     refetchInterval: null,
   })
 
@@ -324,7 +341,7 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
   const deleteAssetsMutation = useMutationCallback(deleteAssetsMutationOptions(backend))
 
   const clearTrash = useEventCallback(async () => {
-    const allTrashedItems = await getAllTrashedItems(queryClient, backend)
+    const allTrashedItems = await getAllTrashedItems(queryClient, backend, category)
     await deleteAssetsMutation([allTrashedItems.map((item) => item.id), true])
   })
 

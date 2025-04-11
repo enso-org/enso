@@ -616,7 +616,7 @@
     },
     "@@rules_rust+//crate_universe:extension.bzl%crate": {
       "general": {
-        "bzlTransitiveDigest": "t0LacG+6Y3sh8Y9kRThzg2d+viLv86e7ACVSHudAhlA=",
+        "bzlTransitiveDigest": "FBJ8rEFIAaJxNKbI8PBvdmePmLfLri38dvzRcNI+6RE=",
         "usagesDigest": "3QyfiyrJKYb+RnTA85xhz1ecQjw78S7PpkjVgmLoLxA=",
         "recordedFileInputs": {
           "@@rules_rust++rust_host_tools+rust_host_tools//bin/rustc": "241027b94ad67beb36d0356f7cc05180daaa9966b2958cfba1d4de089d2e521c",

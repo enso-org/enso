@@ -29,6 +29,14 @@ import org.enso.pkg.QualifiedName;
  * priority. Future rewrites of this class may optimize towards such direction.
  */
 final class SerializationPool {
+  static {
+    org.enso.compiler.core.ir.Persistables.initialize();
+    org.enso.compiler.pass.analyse.Persistables.initialize();
+    org.enso.compiler.pass.analyse.types.Persistables.initialize();
+    org.enso.compiler.pass.analyse.alias.graph.Persistables.initialize();
+    org.enso.interpreter.caches.Persistables.initialize();
+  }
+
   private final TruffleCompilerContext context;
 
   /**

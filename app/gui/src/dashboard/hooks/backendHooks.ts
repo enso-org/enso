@@ -317,7 +317,7 @@ export function useListDirectoryRefetchInterval() {
 export interface ListDirectoryQueryOptions {
   readonly backend: Backend
   readonly filterBy?: FilterBy | null | undefined
-  readonly parentId: DirectoryId
+  readonly parentId: DirectoryId | null
   readonly category: Category
   /**
    * When using React, use {@link useListDirectoryRefetchInterval} to 0.
@@ -361,7 +361,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
             labels: null,
             recentProjects: category.type === 'recent',
           },
-          parentId,
+          parentId ?? '(unknown)',
         )
       } catch (error) {
         if (error instanceof Error) {
@@ -599,7 +599,8 @@ export function useNewProject(backend: Backend, category: Category) {
             id: createdProject.projectId,
             parentId: placeholderItem.parentId,
             title: createdProject.name,
-          }
+            ...(createdProject.ensoPath != null ? { ensoPath: createdProject.ensoPath } : {}),
+          } satisfies Partial<backendModule.ProjectAsset>
           if (runLocally) {
             // Open in background.
             void openProjectLocally(openProjectParams, backend.type)
@@ -611,41 +612,6 @@ export function useNewProject(backend: Backend, category: Category) {
         })
     },
   )
-}
-
-/** A function to create a new secret. */
-export function useNewSecret(backend: Backend) {
-  const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
-
-  return useEventCallback(async (name: string, value: string, parentId: DirectoryId) => {
-    const placeholderItem = backendModule.createPlaceholderSecretAsset(name, parentId)
-
-    return await createSecretMutation.mutateAsync([
-      {
-        parentDirectoryId: placeholderItem.parentId,
-        name: placeholderItem.title,
-        value: value,
-      },
-    ])
-  })
-}
-
-/** A function to create a new Datalink. */
-export function useNewDatalink(backend: Backend) {
-  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
-
-  return useEventCallback(async (name: string, value: unknown, parentId: DirectoryId) => {
-    const placeholderItem = backendModule.createPlaceholderDatalinkAsset(name, parentId)
-
-    return await createDatalinkMutation.mutateAsync([
-      {
-        parentDirectoryId: placeholderItem.parentId,
-        datalinkId: null,
-        name: placeholderItem.title,
-        value,
-      },
-    ])
-  })
 }
 
 /** Remove the user's own permission from an asset. */

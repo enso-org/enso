@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
+import org.enso.base.cache.ReloadDetector;
 import org.enso.base.cache.ResponseTooLargeException;
 import org.enso.base.net.URISchematic;
 import org.enso.base.net.URIWithSecrets;
@@ -104,7 +105,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
   }
 
   public static void deleteSecretFromCache(String secretId) {
-    EnsoSecretReader.removeFromCache(secretId);
+    EnsoSecretReader.INSTANCE.removeFromCache(secretId);
   }
 
   private static class RequestMaker implements EnsoHTTPResponseCache.RequestMaker {
@@ -192,6 +193,16 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       cache = new EnsoHTTPResponseCache();
     }
     return cache;
+  }
+
+  /** Visible for testing */
+  public static int getEnsoSecretReaderCacheSize() {
+    return EnsoSecretReader.INSTANCE.getCacheSize();
+  }
+
+  /** Visible for testing */
+  public static void simulateEnsoSecretReaderReload() {
+    ReloadDetector.simulateReloadTestOnly(EnsoSecretReader.INSTANCE);
   }
 
   private static final Comparator<Pair<String, String>> headerNameComparator =
