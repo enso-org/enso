@@ -166,7 +166,6 @@ function onDragStart(event: DragEvent, index: number) {
   const elementRect = originalBoundingClientRect.call(sizeElement)
   const rectAxisSize = xAxis ? elementRect.width : elementRect.height
   const elementScale = rectAxisSize / elementOffsetSize
-  console.log('elementScale', elementScale)
   // Drag ghost need two layers, root and actual ghost element. Othwerwise some styles
   // (such as transform) are not respected for drag images when applied directly to root.
   const dragGhostRoot = document.createElement('div')
@@ -460,7 +459,7 @@ const placeholderSizeProp = computed(() =>
         ></li>
       </template>
     </template>
-    <div>
+    <div key="add-icon">
       <SizeTransition :width="axis === 'x'" :height="axis === 'y'">
         <!-- This wrapper is a workaround: If the `v-if` is applied to the `SvgIcon`, once the button is shown it will
              never go back to hidden. This might be a Vue bug? -->
@@ -475,6 +474,7 @@ const placeholderSizeProp = computed(() =>
       </SizeTransition>
     </div>
     <div
+      key="drop-area"
       class="drop-area widgetOutOfLayout"
       @dragleave="areaDragLeave"
       @dragover="areaDragOver"

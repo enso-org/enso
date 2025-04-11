@@ -5,12 +5,15 @@ import { FunctionName } from '@/components/GraphEditor/widgets/WidgetFunctionNam
 import { DisplayIcon } from '@/components/GraphEditor/widgets/WidgetIcon.vue'
 import DraggableList from '@/components/widgets/DraggableList.vue'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
+import { useGraphStore } from '@/stores/graph'
 import { DocumentationData } from '@/stores/suggestionDatabase/documentation'
 import { Ast } from '@/util/ast'
 import { type MethodPointer } from '@/util/methodPointer'
 import { computed, Ref } from 'vue'
+import { BodyBlock, identifier, MutableModule } from 'ydoc-shared/ast'
 
 const { input, onUpdate } = defineProps(widgetProps(widgetDefinition))
+const graph = useGraphStore()
 
 const funcIcon = computed(() => {
   return input[FunctionInfoKey]?.docsData.value?.iconName ?? 'enso_logo'
@@ -25,26 +28,32 @@ const argumentsList = computed({
     return input.value.argumentDefinitions
   },
   set(value) {
-    // This doesn't preserve AST identities, because the values are not `Ast.Owned`.
-    // Getting/setting an Array is incompatible with ideal synchronization anyway;
-    // `DraggableList` needs to operate on the `Ast.Vector` for edits to be merged as `Y.Array` operations.
-    input.value.printSubtree
-    const newAst = Ast.Vector.build({ value }, (element, tempModule) => tempModule.copy(element))
-    onUpdate({
-      portUpdate: { value: newAst, origin: input.portId },
-      directInteraction: true,
-    })
+    const edit = graph.startEdit()
+    const ast = edit.getVersion(input.value)
+    ast.setArgumentDefinitionsCopy(value)
+    console.log(value)
+    onUpdate({ edit, directInteraction: true })
   },
 })
 
+const serializedFuncIdentifier = identifier('serialized')!
+
 function serializeArgument(arg: Ast.ArgumentDefinition<Ast.ConcreteRefs>): string {
-  // return arg.code()
-  throw 'unimplemented'
+  const edit = MutableModule.Transient()
+  const tempFuncDef = Ast.FunctionDef.new(
+    serializedFuncIdentifier,
+    // Can be treated as "owned" here, because we serialize it to code and discard the edit anyway.
+    [],
+    BodyBlock.new([], edit),
+    { edit },
+  )
+  tempFuncDef.setArgumentDefinitionsCopy([arg])
+  return tempFuncDef.code()
 }
 function deserializeArgument(
   payload: string,
 ): Ast.ArgumentDefinition<Ast.ConcreteRefs> | undefined {
-  throw 'unimplemented'
+  return Ast.FunctionDef.tryParse(payload)?.argumentDefinitions[0]
 }
 
 const funcNameInput = computed(() => {
@@ -71,20 +80,18 @@ const funcNameInput = computed(() => {
   <div class="WidgetFunctionDef">
     <NodeWidget :input="funcNameInput" />
     <div class="FunctionDefArguments">
-      <template v-for="(definition, i) in input.value.argumentDefinitions" :key="i">
-        <DraggableList
-          axis="y"
-          showHandles
-          :modelValue="input.value.argumentDefinitions"
-          :newItem="addArgument"
-          :toDragPayload="serializeArgument"
-          :fromDragPayload="deserializeArgument"
-        >
-          <template #default="{ item }">
-            <ArgumentRow :definition="item" />
-          </template>
-        </DraggableList>
-      </template>
+      <DraggableList
+        axis="y"
+        showHandles
+        :modelValue="argumentsList"
+        :newItem="addArgument"
+        :toDragPayload="serializeArgument"
+        :fromDragPayload="deserializeArgument"
+      >
+        <template #default="{ item }">
+          <ArgumentRow :definition="item" />
+        </template>
+      </DraggableList>
     </div>
   </div>
 </template>

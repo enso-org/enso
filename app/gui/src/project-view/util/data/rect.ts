@@ -1,6 +1,7 @@
 /** @file Axis-aligned rectangle. Defined in terms of a top-left point and a size. */
 
 import { Vec2 } from '@/util/data/vec2'
+import { markRaw } from 'vue'
 
 /** Axis-aligned rectangle. Defined in terms of a top-left point and a size. */
 export class Rect {
@@ -237,6 +238,9 @@ export class Rect {
     return new Rect(this.pos.sub(padVector), this.size.add(padVector).add(padVector))
   }
 }
+
+// All Rect instances are immutable, therefore we don't need to track them with reactivity.
+markRaw(Rect.prototype)
 
 Rect.Zero = new Rect(Vec2.Zero, Vec2.Zero)
 

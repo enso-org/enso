@@ -1691,6 +1691,15 @@ function concreteToOwned(module: MutableModule): RefMap<ConcreteRefs, OwnedRefs>
   }
 }
 
+function takeRawToOwned(module: MutableModule): RefMap<RawRefs, OwnedRefs> {
+  return (child: FieldData<RawRefs>) => {
+    if (typeof child !== 'object') return
+    if (!('node' in child)) return
+    if (isTokenId(child.node)) return { ...child, node: module.getToken(child.node) }
+    else return { ...child, node: module.take(child.node) }
+  }
+}
+
 export interface TextToken<T extends TreeRefs = RawRefs> {
   type: 'token'
   readonly token: T['token']
@@ -2534,6 +2543,9 @@ function* argumentDefinitionToConcrete(def: DeepReadonly<ArgumentDefinition>, ve
   if (close2) yield ensureSpacedOnlyIf(close2, spacedInsideParen2 ?? false, verbatim)
   if (close) yield ensureSpacedOnlyIf(close, spacedInsideParen1 ?? false, verbatim)
 }
+
+type OwnedArgumentDefinitions = ArgumentDefinition<OwnedRefs>
+
 /** TODO: Add docs */
 export class MutableFunctionDef extends FunctionDef implements MutableStatement {
   declare readonly module: MutableModule
@@ -2545,11 +2557,23 @@ export class MutableFunctionDef extends FunctionDef implements MutableStatement 
   setBody<T extends MutableExpression | MutableBodyBlock>(value: Owned<T> | undefined) {
     this.fields.set('body', unspaced(this.claimChild(value)))
   }
-  setArgumentDefinitions(defs: ArgumentDefinition<OwnedRefs>[]) {
+  setArgumentDefinitions(defs: OwnedArgumentDefinitions[]) {
     this.fields.set(
       'argumentDefinitions',
       defs.map((def) => mapRefs(def, ownedToRaw(this.module, this.id))),
     )
+  }
+  setArgumentDefinitionsCopy(defs: ArgumentDefinition<ConcreteRefs>[]) {
+    this.setArgumentDefinitions(defs.map((def) => mapRefs(def, concreteToOwned(this.module))))
+  }
+
+  updateArgumentDefinitions(map: (defs: OwnedArgumentDefinitions[]) => OwnedArgumentDefinitions[]) {
+    return this.setArgumentDefinitions(map(this.takeArgumentDefinitions()))
+  }
+  takeArgumentDefinitions(): OwnedArgumentDefinitions[] {
+    return this.fields
+      .get('argumentDefinitions')
+      .map((def) => mapRefs(def, takeRawToOwned(this.module)))
   }
 
   /** Returns the body, after converting it to a block if it was empty or an inline expression. */
