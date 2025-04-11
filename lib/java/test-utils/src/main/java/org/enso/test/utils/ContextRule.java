@@ -1,5 +1,6 @@
 package org.enso.test.utils;
 
+import com.oracle.truffle.api.nodes.Node;
 import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 import java.util.Set;
@@ -28,14 +29,17 @@ public final class ContextRule implements TestRule {
   private final ByteArrayOutputStream stdErr;
   private final Context.Builder ctxBldr;
   private Context context;
+  private final boolean alwaysExecuteInContext;
 
   private ContextRule(
       Context.Builder ctxBldr,
       ByteArrayOutputStream stdOut,
-      ByteArrayOutputStream stdErr) {
+      ByteArrayOutputStream stdErr,
+      boolean alwaysExecuteInContext) {
     this.stdOut = Objects.requireNonNull(stdOut);
     this.stdErr = Objects.requireNonNull(stdErr);
     this.ctxBldr = Objects.requireNonNull(ctxBldr);
+    this.alwaysExecuteInContext = alwaysExecuteInContext;
   }
 
   /**
@@ -201,6 +205,7 @@ public final class ContextRule implements TestRule {
     private Context.Builder polyglotCtxBldr;
     private final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
     private final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+    private boolean alwaysExecuteInContext = true;
 
     private Builder(String... permittedLanguages) {
       this.polyglotCtxBldr = ContextUtils.defaultContextBuilder(permittedLanguages);
@@ -212,6 +217,16 @@ public final class ContextRule implements TestRule {
       return this;
     }
 
+    /**
+     * Whether the code in the tests should be executed in the polyglot context. A necessity for
+     * executing artificially created Truffle nodes. This basically ensures that executing {@link
+     * EnsoContext#get(Node)} will always return non-null value in the test.
+     *
+     * <p>Is true by default.
+     *
+     * @param b true for automatically wrapping the test code in the context. If false, the context
+     *     entering must be done manually.
+     */
     public Builder alwaysExecuteInContext(boolean b) {
       this.alwaysExecuteInContext = b;
       return this;
@@ -234,7 +249,20 @@ public final class ContextRule implements TestRule {
     @Override
     public void evaluate() throws Throwable {
       try (var ctx = currentCtx()) {
-        base.evaluate();
+        if (alwaysExecuteInContext) {
+          ContextUtils.executeInContext(
+              ctx,
+              () -> {
+                try {
+                  base.evaluate();
+                } catch (Throwable e) {
+                  throw new RuntimeException(e);
+                }
+                return null;
+              });
+        } else {
+          base.evaluate();
+        }
       } catch (Throwable t) {
         throw new FailureWithOutput("Compiler output: " + stdOut, t);
       } finally {
