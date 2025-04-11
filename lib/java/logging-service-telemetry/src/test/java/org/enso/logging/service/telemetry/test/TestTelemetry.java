@@ -62,8 +62,7 @@ public class TestTelemetry {
     server =
         HTTPTestHelperServer.createServer("localhost", port, serverExecutor, false, cloudMockSetup);
     tokenRefresher =
-        new TokenRefresher(
-            logProcessorExecutor, refreshUri, credentials.clientId(), credentials.refreshToken());
+        new TokenRefresher(refreshUri, credentials.clientId(), credentials.refreshToken());
     var authData = AuthenticationData.fromCredentials(credentials);
     logJobsProcessor = new LogJobsProcessor(logProcessorExecutor, logUri, authData, tokenRefresher);
     server.start();
@@ -142,10 +141,7 @@ public class TestTelemetry {
     var invalidCredentials = invalidCredentials();
     tokenRefresher =
         new TokenRefresher(
-            logProcessorExecutor,
-            refreshUri,
-            invalidCredentials.clientId(),
-            invalidCredentials.refreshToken());
+            refreshUri, invalidCredentials.clientId(), invalidCredentials.refreshToken());
     logJobsProcessor =
         new LogJobsProcessor(
             logProcessorExecutor,
@@ -169,15 +165,9 @@ public class TestTelemetry {
   @Test
   public void refreshExpiredToken() {
     var expiredCredentials = expiredCredentials();
-    // Ensure that tokenRefresher has a different executor, so that there is no deadlock
-    // in the test.
-    var tokenRefreshExecutor = Executors.newSingleThreadExecutor();
     tokenRefresher =
         new TokenRefresher(
-            tokenRefreshExecutor,
-            refreshUri,
-            expiredCredentials.clientId(),
-            expiredCredentials.refreshToken());
+            refreshUri, expiredCredentials.clientId(), expiredCredentials.refreshToken());
     logJobsProcessor =
         new LogJobsProcessor(
             logProcessorExecutor,

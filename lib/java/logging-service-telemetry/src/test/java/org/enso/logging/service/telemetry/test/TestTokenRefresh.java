@@ -8,8 +8,6 @@ import static org.hamcrest.Matchers.notNullValue;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.enso.logging.service.telemetry.TokenRefresher;
@@ -50,19 +48,10 @@ public class TestTokenRefresh {
   }
 
   @Test
-  public void tokenRefresh() throws ExecutionException, InterruptedException {
-    var blockingExecutor = new BlockingExecutor();
-    var tokenRefresher = new TokenRefresher(blockingExecutor, refreshUri, clientId, refreshToken);
-    var fut = tokenRefresher.fetchNewAccessToken();
-    var authData = fut.get();
+  public void tokenRefresh() {
+    var tokenRefresher = new TokenRefresher(refreshUri, clientId, refreshToken);
+    var authData = tokenRefresher.fetchNewAccessToken();
     assertThat(authData, is(notNullValue()));
     assertThat(authData.accessToken(), containsString("TEST-RENEWED-0"));
-  }
-
-  private static final class BlockingExecutor implements Executor {
-    @Override
-    public void execute(Runnable command) {
-      command.run();
-    }
   }
 }

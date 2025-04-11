@@ -12,7 +12,6 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import org.enso.logging.service.telemetry.ApiMessage.Log;
 import org.slf4j.Logger;
@@ -114,14 +113,7 @@ public final class LogJobsProcessor {
 
     if (accessTokenNeedsRefresh()) {
       LOGGER.debug("Refreshing access token");
-      var refreshTokenTask = tokenRefresher.fetchNewAccessToken();
-      AuthenticationData refreshedAuthData;
-      try {
-        // We cannot proceed until a new, refreshed, token is received.
-        refreshedAuthData = refreshTokenTask.get();
-      } catch (InterruptedException | ExecutionException e) {
-        throw new RequestFailureException("Error during token refresh", e);
-      }
+      var refreshedAuthData = tokenRefresher.fetchNewAccessToken();
       if (refreshedAuthData != null) {
         authenticationData = refreshedAuthData;
         LOGGER.trace(

@@ -10,9 +10,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,26 +27,24 @@ public final class TokenRefresher {
    */
   private static final Duration TOKEN_EARLY_REFRESH_PERIOD = Duration.ofMinutes(2);
 
-  private final Executor executor;
   private final URI refreshUri;
   private final String clientId;
   private final String refreshToken;
   private final HttpClient httpClient;
 
-  public TokenRefresher(Executor executor, URI refreshUri, String clientId, String refreshToken) {
-    this.executor = executor;
+  public TokenRefresher(URI refreshUri, String clientId, String refreshToken) {
     this.refreshUri = refreshUri;
     this.clientId = clientId;
     this.refreshToken = refreshToken;
-    var clientExecutor = Executors.newSingleThreadExecutor();
-    this.httpClient = HttpClient.newBuilder().executor(clientExecutor).build();
+    this.httpClient = HttpClient.newBuilder().build();
   }
 
-  public CompletableFuture<AuthenticationData> fetchNewAccessToken() {
-    return CompletableFuture.supplyAsync(this::doFetchNewAccessToken, executor);
-  }
-
-  private AuthenticationData doFetchNewAccessToken() {
+  /**
+   * Fetches the new refreshed access token and blocks until the response is received.
+   *
+   * @return null if the token could not be refreshed, otherwise the new access token.
+   */
+  public AuthenticationData fetchNewAccessToken() {
     var reqBldr = HttpRequest.newBuilder();
     reqBldr.uri(refreshUri);
     for (var entry : HEADERS.entrySet()) {

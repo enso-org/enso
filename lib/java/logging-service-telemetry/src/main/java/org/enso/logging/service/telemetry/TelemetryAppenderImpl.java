@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
-import java.util.concurrent.Executors;
 import org.enso.logging.service.logback.TelemetryAppender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,13 +91,8 @@ public final class TelemetryAppenderImpl extends TelemetryAppender {
         credentialsParseFailure = true;
         return;
       }
-      var tokenRefresherExecutor = Executors.newSingleThreadExecutor();
       var tokenRefresher =
-          new TokenRefresher(
-              tokenRefresherExecutor,
-              refreshUri,
-              credentials.clientId(),
-              credentials.refreshToken());
+          new TokenRefresher(refreshUri, credentials.clientId(), credentials.refreshToken());
       var authenticationData = AuthenticationData.fromCredentials(credentials);
       logJobsProcessor =
           new LogJobsProcessor(
