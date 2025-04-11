@@ -26,11 +26,6 @@ export type ProjectViewTabProps = React.ComponentProps<typeof ProjectViewTab>
 
 /** Props for an {@link Editor}. */
 export interface EditorProps {
-  readonly isOpeningFailed: boolean
-  readonly openingError: Error | null
-  readonly startProject: (
-    project: LaunchedProject & { readonly suppressHybridProjectOpen?: boolean },
-  ) => void
   readonly project: LaunchedProject
   readonly hidden: boolean
   readonly ydocUrl: string | null
@@ -40,21 +35,11 @@ export interface EditorProps {
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-  const { project, hidden, startProject: startProjectRaw, isOpeningFailed, openingError } = props
+  const { project, hidden } = props
   const { preventAutoReopen = false } = project
   const { getText } = textProvider.useText()
-
-  const startProject = useEventCallback(
-    async (otherProject: Parameters<typeof startProjectRaw>[0]) => {
-      if (otherProject.hybrid && otherProject.suppressHybridProjectOpen !== true) {
-        await remoteBackend.setHybridOpenInProgress(
-          otherProject.hybrid.cloudProjectId,
-          otherProject.title,
-        )
-      }
-      startProjectRaw(otherProject)
-    },
-  )
+  const openProjectMutation = projectHooks.useOpenProjectMutation()
+  const startProject = projectHooks.useReopenProject(openProjectMutation)
 
   const backend = backendProvider.useBackendForProjectType(project.type)
   const remoteBackend = backendProvider.useRemoteBackend()
@@ -141,10 +126,10 @@ export default function Editor(props: EditorProps) {
     )
   }
 
-  if (isOpeningFailed) {
+  if (openProjectMutation.isError) {
     return (
       <errorBoundary.ErrorDisplay
-        error={openingError}
+        error={openProjectMutation.error}
         resetErrorBoundary={async () => {
           if (isProjectClosed) {
             await startProject(project)

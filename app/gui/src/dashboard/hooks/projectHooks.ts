@@ -503,7 +503,21 @@ export function useOpenHybridProject() {
   )
 }
 
-/** Return a hook to open a project natively - Cloud mode for cloud projects, Local mode for local projects. */
+/** Return a function to reopen a previously opened project that has since been closed. */
+export function useReopenProject(openProjectMutation: ReturnType<typeof useOpenProjectMutation>) {
+  const remoteBackend = backendProvider.useRemoteBackend()
+
+  return eventCallbacks.useEventCallback(
+    async (project: LaunchedProject & { readonly suppressHybridProjectOpen?: boolean }) => {
+      if (project.hybrid && project.suppressHybridProjectOpen !== true) {
+        await remoteBackend.setHybridOpenInProgress(project.hybrid.cloudProjectId, project.title)
+      }
+      await openProjectMutation.mutateAsync(project)
+    },
+  )
+}
+
+/** Return a function to open a project natively - Cloud mode for cloud projects, Local mode for local projects. */
 export function useOpenProjectNatively() {
   const openProject = useOpenProject()
 
@@ -517,7 +531,7 @@ export function useOpenProjectNatively() {
   )
 }
 
-/** Return a hook to open a project locally - meaning Hybrid Mode is used for Cloud projects. */
+/** Return a function to open a project locally - meaning Hybrid Mode is used for Cloud projects. */
 export function useOpenProjectLocally() {
   const openProject = useOpenProject()
   const enableHybridExecution = useFeatureFlag('enableHybridExecution')
