@@ -59,7 +59,6 @@ import SessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import VersionChecker from '#/layouts/VersionChecker'
-
 import { RouterProvider } from 'react-aria-components'
 
 import AboutModal from '#/modals/AboutModal'
@@ -76,10 +75,8 @@ import { Path } from '#/utilities/path'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 
 import { useInitAuthService } from '#/authentication/service'
-import VueContainer from '#/utilities/VueContainer'
 import { useConfigInReact, useRouterInReact } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
-import { RouterView } from 'vue-router'
 import { useOffline } from './hooks/offlineHooks'
 
 declare module '#/utilities/LocalStorage' {
@@ -133,7 +130,7 @@ export interface AppProps {
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app.
  */
-export default function App(props: AppProps) {
+export default function App(props: React.PropsWithChildren<AppProps>) {
   const config = useConfigInReact()
   const {
     data: { projectManagerRootDirectory, projectManagerInstance },
@@ -240,8 +237,8 @@ export interface AppRouterProps extends AppProps {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider.
  */
-function AppRouter(props: AppRouterProps) {
-  const { onAuthenticated, projectManagerInstance } = props
+function AppRouter(props: React.PropsWithChildren<AppRouterProps>) {
+  const { onAuthenticated, projectManagerInstance, children } = props
   const httpClient = useHttpClientStrict()
   const logger = useLogger()
   const { router } = useRouterInReact()
@@ -413,7 +410,7 @@ function AppRouter(props: AppRouterProps) {
             <InputBindingsProvider inputBindings={inputBindings}>
               <LocalBackendPathSynchronizer />
               <VersionChecker />
-              <VueContainer component={RouterView} />
+              {children}
             </InputBindingsProvider>
           </AuthProvider>
         </BackendProvider>

@@ -61,7 +61,7 @@ LocalStorage.registerKey('privacyPolicy', { schema: PRIVACY_POLICY_SCHEMA })
 /** Modal for accepting the terms of service. */
 export const AgreementsModal = memo(function AgreementsModal({
   children,
-}: React.PropsWithChildren<object>) {
+}: React.PropsWithChildren) {
   const { getText } = useText()
 
   const [cachedTosHash, setCachedTosHash] = useLocalStorageState('termsOfService')
@@ -94,7 +94,9 @@ export const AgreementsModal = memo(function AgreementsModal({
   const isAccepted = cachedTosHash != null
   const shouldDisplay = !(isAccepted && isLatest)
 
+  console.log('AGREEMENTS MODAL')
   if (shouldDisplay) {
+    console.log('DISPLAY')
     // Note that this produces warnings about missing a `<Heading slot="title">`, even though
     // all `ariaComponents.Dialog`s contain one. This is likely caused by Suspense discarding
     // renders, and so it does not seem to be fixable.
@@ -170,5 +172,6 @@ export const AgreementsModal = memo(function AgreementsModal({
     )
   }
 
+  console.log('NOT DISPLAY', children)
   return <>{children}</>
 })

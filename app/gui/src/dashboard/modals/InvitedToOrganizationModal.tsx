@@ -12,7 +12,7 @@ import { useText } from '#/providers/TextProvider'
 import { useMutation } from '@tanstack/react-query'
 
 /** Modal for accepting the terms of service. */
-export function InvitedToOrganizationModal({ children }: React.PropsWithChildren<object>) {
+export function InvitedToOrganizationModal({ children }: React.PropsWithChildren) {
   const { getText } = useText()
   const backend = useRemoteBackend()
   const { user } = useFullUserSession()

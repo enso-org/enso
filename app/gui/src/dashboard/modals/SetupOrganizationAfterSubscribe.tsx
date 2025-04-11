@@ -25,7 +25,7 @@ const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.e
  * Modal for setting the organization name.
  * Shows up when the user is on the team plan and the organization name is the default.
  */
-export function SetupOrganizationAfterSubscribe({ children }: React.PropsWithChildren<object>) {
+export function SetupOrganizationAfterSubscribe({ children }: React.PropsWithChildren) {
   const backend = backendProvider.useRemoteBackend()
 
   const session = authProvider.useFullUserSession()

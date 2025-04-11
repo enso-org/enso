@@ -81,7 +81,9 @@ onMounted(() => {
         :config="appConfigValue"
         :queryClient="queryClient"
         @authenticated="onAuthenticated ?? (() => {})"
-      />
+      >
+        <RouterView />
+      </ReactRootWrapper>
     </ContextsForReactProvider>
   </div>
   <div id="floatingLayer" />

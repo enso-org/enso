@@ -18,7 +18,8 @@ import * as backendProvider from '#/providers/BackendProvider'
  * This component logs the user opening and closing the app.
  * It uses the remote backend to log the events.
  */
-export function OpenAppWatcher({ children }: React.PropsWithChildren<object>) {
+export function OpenAppWatcher({ children }: React.PropsWithChildren) {
+  console.log('OpenAppWatcher')
   const remoteBackend = backendProvider.useRemoteBackend()
 
   const { mutate: logUserOpenAppMutate } = reactQuery.useMutation({

@@ -17,18 +17,21 @@ const selected = defineModel<boolean>('selected')
         class="absolute -right-5 bottom-0 aspect-square w-5 -rotate-90 [background:radial-gradient(circle_at_100%_100%,_transparent_70%,_var(--color-dashboard-background)_70%)]"
       />
     </motion.div>
-    <div class="label">
+    <button role="tab" class="label">
       <slot />
-    </div>
+    </button>
   </div>
 </template>
 
 <style scoped>
 .SelectableTab {
   position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   height: 100%;
   z-index: 0;
-  padding: 0 16px;
+  padding: 8px;
 }
 
 .underlying {
@@ -42,9 +45,18 @@ const selected = defineModel<boolean>('selected')
 
 .label {
   height: 100%;
+  padding: 8px;
   display: flex;
+  border-radius: var(--radius-full);
   flex-direction: row;
   align-items: center;
   gap: 12px;
+  transition: background-color 0.3s;
+
+  &:hover,
+  &:focus,
+  &:active {
+    background-color: var(--color-dashboard-background);
+  }
 }
 </style>

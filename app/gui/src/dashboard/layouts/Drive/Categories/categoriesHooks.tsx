@@ -379,7 +379,6 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
   })
 
   const category = findCategoryById(categoryId)
-
   // This is safe, because a category always specified
   // eslint-disable-next-line no-restricted-syntax
   const backend = useBackend(category as Category)

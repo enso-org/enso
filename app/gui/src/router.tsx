@@ -16,6 +16,7 @@ import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
 import { SetupOrganizationAfterSubscribe } from '#/modals/SetupOrganizationAfterSubscribe'
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
 import ForgotPassword from '#/pages/authentication/ForgotPassword'
+import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import Login from '#/pages/authentication/Login'
 import Registration from '#/pages/authentication/Registration'
 import ResetPassword from '#/pages/authentication/ResetPassword'
@@ -37,32 +38,18 @@ import { applyPureReactInVue } from 'veaury'
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import ReactLayoutWrapper from './components/ReactLayoutWrapper.vue'
 
-function CloudBrowserDisabledLayout(props: PropsWithChildren) {
-  return (
-    <CloudBrowserDisabledLayoutImpl redirectPath={SETUP_PATH}>
-      {props.children}
-    </CloudBrowserDisabledLayoutImpl>
-  )
-}
-
-function BoundedSubscribe() {
-  return (
+function wrapReactForRouter(Component: (props: PropsWithChildren) => ReactNode) {
+  return ({ children }: PropsWithChildren) => (
     <ErrorBoundary>
-      <Suspense>
-        <Subscribe />
+      <Suspense fallback={<LoadingScreen />}>
+        <Component>{children}</Component>
       </Suspense>
     </ErrorBoundary>
   )
 }
 
-function BoundedSubscribeSuccess() {
-  return (
-    <ErrorBoundary>
-      <Suspense>
-        <SubscribeSuccess />
-      </Suspense>
-    </ErrorBoundary>
-  )
+function reactForRouter(component: () => ReactNode) {
+  return applyPureReactInVue(wrapReactForRouter(component))
 }
 
 /**
@@ -75,22 +62,37 @@ function applyLayouts(
   children: RouteRecordRaw[],
 ) {
   const reducedComponent = components.reduceRight(
-    (composed, next) => (props: PropsWithChildren) => next({ children: composed(props) }),
+    (Composed, Next) =>
+      ({ children }: PropsWithChildren) => (
+        <Next>
+          <Composed>{children}</Composed>
+        </Next>
+      ),
   )
   return {
     component: ReactLayoutWrapper,
-    props: { reactComponent: reducedComponent },
+    props: {
+      reactComponent: wrapReactForRouter(reducedComponent),
+    },
     path: '/UNAVAILABLE',
     children,
   }
+}
+
+function CloudBrowserDisabledLayout(props: PropsWithChildren) {
+  return (
+    <CloudBrowserDisabledLayoutImpl redirectPath={SETUP_PATH}>
+      {props.children}
+    </CloudBrowserDisabledLayoutImpl>
+  )
 }
 
 const routes = [
   applyLayouts(
     [GuestLayout],
     [
-      { path: '/login', component: applyPureReactInVue(Login) },
-      { path: '/registration', component: applyPureReactInVue(Registration) },
+      { path: '/login', component: reactForRouter(Login) },
+      { path: '/registration', component: reactForRouter(Registration) },
     ],
   ),
   applyLayouts(
@@ -98,7 +100,7 @@ const routes = [
     [
       applyLayouts(
         [
-          (props) => <AgreementsModal {...props} />,
+          ({ children }) => <AgreementsModal>{children}</AgreementsModal>,
           CloudBrowserDisabledLayout,
           SetupOrganizationAfterSubscribe,
           InvitedToOrganizationModal,
@@ -107,23 +109,23 @@ const routes = [
         [
           {
             path: DASHBOARD_PATH,
-            component: applyPureReactInVue(Dashboard),
+            component: reactForRouter(Dashboard),
           },
           {
             path: SUBSCRIBE_PATH,
-            component: applyPureReactInVue(BoundedSubscribe),
+            component: reactForRouter(Subscribe),
           },
         ],
       ),
       {
         path: SUBSCRIBE_SUCCESS_PATH,
-        component: applyPureReactInVue(BoundedSubscribeSuccess),
+        component: reactForRouter(SubscribeSuccess),
       },
     ],
   ),
   applyLayouts(
     [
-      (props) => <AgreementsModal {...props} />,
+      ({ children }) => <AgreementsModal>{children}</AgreementsModal>,
       AnyLoggedInUserLayout,
       NotDeletedUserLayout,
       CloudBrowserDisabledLayout,
@@ -131,7 +133,7 @@ const routes = [
     [
       {
         path: SETUP_PATH,
-        component: applyPureReactInVue(Setup),
+        component: reactForRouter(Setup),
       },
     ],
   ),
@@ -139,27 +141,27 @@ const routes = [
   /* Other pages are visible to unauthenticated and authenticated users. */
   {
     path: CONFIRM_REGISTRATION_PATH,
-    component: applyPureReactInVue(ConfirmRegistration),
+    component: reactForRouter(ConfirmRegistration),
   },
   {
     path: FORGOT_PASSWORD_PATH,
-    component: applyPureReactInVue(ForgotPassword),
+    component: reactForRouter(ForgotPassword),
   },
   {
     path: RESET_PASSWORD_PATH,
-    component: applyPureReactInVue(ResetPassword),
+    component: reactForRouter(ResetPassword),
   },
   applyLayouts(
     [ProtectedLayout, SoftDeletedUserLayout],
     [
       {
         path: RESTORE_USER_PATH,
-        component: RestoreAccount,
+        component: reactForRouter(RestoreAccount),
       },
     ],
   ),
   {
-    path: '/.*',
+    path: '/:anyPath(.*)*',
     redirect: '/',
   },
 ]

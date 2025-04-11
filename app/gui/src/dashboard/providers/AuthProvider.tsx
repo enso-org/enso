@@ -447,7 +447,7 @@ export function GuestLayout({ children }: React.PropsWithChildren) {
     const redirectTo = localStorage.get('loginRedirect')
     if (redirectTo != null) {
       localStorage.delete('loginRedirect')
-      location.href = redirectTo
+      void router.push(redirectTo)
       return
     } else {
       void router.push(appUtils.DASHBOARD_PATH)

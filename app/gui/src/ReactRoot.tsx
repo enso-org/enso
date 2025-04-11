@@ -13,7 +13,7 @@ import HttpClient from '#/utilities/HttpClient'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { QueryClient } from '@tanstack/vue-query'
 import { IS_DEV_MODE, isOnElectron, isOnLinux } from 'enso-common/src/detect'
-import { StrictMode } from 'react'
+import { PropsWithChildren, StrictMode } from 'react'
 import invariant from 'tiny-invariant'
 
 interface ReactRootProps {
@@ -36,8 +36,8 @@ function generateSessionID() {
 /**
  * A component gathering all views written currently in React with necessary contexts.
  */
-export default function ReactRoot(props: ReactRootProps) {
-  const { queryClient, onAuthenticated } = props
+export default function ReactRoot(props: PropsWithChildren<ReactRootProps>) {
+  const { queryClient, onAuthenticated, children } = props
 
   const sessionID = generateSessionID()
 
@@ -69,7 +69,9 @@ export default function ReactRoot(props: ReactRootProps) {
                       supportsDeepLinks={supportsDeepLinks}
                       supportsLocalBackend={!isCloudBuild}
                       onAuthenticated={onAuthenticated}
-                    />
+                    >
+                      {children}
+                    </App>
                   </HttpClientProvider>
                 </LoggerProvider>
               </OfflineNotificationManager>

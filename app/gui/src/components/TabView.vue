@@ -7,7 +7,7 @@ import SelectableTab from '$/components/TabView/SelectableTab.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { applyPureReactInVue } from 'veaury'
-import { onMounted, onUnmounted, reactive, watch } from 'vue'
+import { reactive, watch } from 'vue'
 
 const UserBar = applyPureReactInVue(UserBarReact)
 </script>
@@ -61,28 +61,28 @@ const onSignOut = () => {
   closeAllProjects()
   clearLaunchedProjects()
 }
-
-onMounted(() => console.error('TabView MOUNT'))
-onUnmounted(() => console.error('TabView UNMOUNT'))
 </script>
 <template>
   <div class="TabView">
     <div class="bar">
-      <SelectableTab :selected="page === 'drive'" @update:selected="$event && setPage('drive')">
-        <SvgIcon name="drive" /><span>Data Catalog</span>
-      </SelectableTab>
-      <SelectableTab
-        v-for="project in launchedProjects"
-        :key="project.id"
-        :selected="page === project.id"
-        @update:selected="$event && setPage(project.id)"
-      >
-        <SvgIcon v-if="readyProjects.has(project.id)" name="graph_editor" />
-        <LoadingSpinner v-else :size="16" />
-        <span>{{ project.title }}</span>
-        <SvgIcon name="close" @click="closeProject(project)" />
-      </SelectableTab>
-      <SelectableTab v-if="page === 'settings'" :selected="true">Settings</SelectableTab>
+      <div role="tablist" class="tablist">
+        <SelectableTab :selected="page === 'drive'" @update:selected="$event && setPage('drive')">
+          <SvgIcon name="drive" /><span>Data Catalog</span>
+        </SelectableTab>
+        <SelectableTab
+          v-for="project in launchedProjects"
+          :key="project.id"
+          data-testid="editor-tab-button"
+          :selected="page === project.id"
+          @update:selected="$event && setPage(project.id)"
+        >
+          <SvgIcon v-if="readyProjects.has(project.id)" name="graph_editor" />
+          <LoadingSpinner v-else :size="16" />
+          <span>{{ project.title }}</span>
+          <SvgIcon name="close" @click="closeProject(project)" />
+        </SelectableTab>
+        <SelectableTab v-if="page === 'settings'" :selected="true">Settings</SelectableTab>
+      </div>
       <div class="filler" />
       <UserBar
         :goToSettingsPage="() => setPage('settings')"
@@ -90,7 +90,7 @@ onUnmounted(() => console.error('TabView UNMOUNT'))
         @signOut="onSignOut"
       />
     </div>
-    <div class="panel">
+    <div role="tabpanel" class="panel">
       <KeepAlive>
         <Drive v-if="page === 'drive'" :initialProjectName="initialProjectName" />
       </KeepAlive>
@@ -124,6 +124,11 @@ onUnmounted(() => console.error('TabView UNMOUNT'))
   min-height: 3rem;
   position: relative;
   padding: 0 8px;
+}
+
+.tablist {
+  display: flex;
+  flex-direction: row;
 }
 
 .filler {
