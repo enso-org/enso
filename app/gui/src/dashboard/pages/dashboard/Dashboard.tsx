@@ -23,7 +23,6 @@ import ProjectsProvider, {
   type TabType,
 } from '#/providers/ProjectsProvider'
 
-import type * as assetTable from '#/layouts/AssetsTable'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import UserBar from '#/layouts/UserBar'
@@ -92,8 +91,6 @@ function DashboardInner(props: DashboardProps) {
   const localBackend = backendProvider.useLocalBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
-
-  const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
 
   const initialLocalProjectPath =
     initialProjectNameRaw != null ? fileURLToPath(initialProjectNameRaw) : null
@@ -223,13 +220,8 @@ function DashboardInner(props: DashboardProps) {
             />
           </div>
 
-          <DashboardTabPanels
-            initialProjectName={initialProjectName}
-            ydocUrl={ydocUrl}
-            assetManagementApiRef={assetManagementApiRef}
-          />
+          <DashboardTabPanels initialProjectName={initialProjectName} ydocUrl={ydocUrl} />
         </Tabs>
-
         {$config.CHAT_URL != null ?
           <Chat
             isOpen={isHelpChatOpen}

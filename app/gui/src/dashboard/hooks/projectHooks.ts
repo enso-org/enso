@@ -368,10 +368,9 @@ export function useCloseProjectMutation() {
 
 /** Mutation to rename a project. */
 export function useRenameProjectMutation() {
-  const client = reactQuery.useQueryClient()
   const updateLaunchedProjects = useUpdateLaunchedProjects()
 
-  return reactQuery.useMutation({
+  return useMutationCallback({
     mutationKey: ['renameProject'],
     mutationFn: ({
       newName,
@@ -392,14 +391,8 @@ export function useRenameProjectMutation() {
           project.id !== otherProject.id ? otherProject : merge(otherProject, { title: newName }),
         ),
       )
-      return client.invalidateQueries({
-        queryKey: createGetProjectDetailsQuery.getQueryKey(project.id),
-      })
     },
-    meta: {
-      invalidates: [['listDirectory']],
-      awaitInvalidates: true,
-    },
+    meta: { invalidates: [['listDirectory'], ['project']], awaitInvalidates: true },
   })
 }
 

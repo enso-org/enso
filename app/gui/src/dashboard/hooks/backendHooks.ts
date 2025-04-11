@@ -1,7 +1,6 @@
 /** @file Hooks for interacting with the backend. */
 import {
   queryOptions,
-  useMutation,
   useMutationState,
   useQuery,
   useQueryClient,
@@ -552,7 +551,9 @@ export function useNewProject(backend: Backend, category: Category) {
   const openProjectNatively = useOpenProjectNatively()
   const deleteAsset = useDeleteAsset(backend, category)
 
-  const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
+  const createProjectMutation = useMutationCallback(
+    backendMutationOptions(backend, 'createProject'),
+  )
 
   return useEventCallback(
     async (
@@ -581,15 +582,14 @@ export function useNewProject(backend: Backend, category: Category) {
 
       const placeholderItem = backendModule.createPlaceholderProjectAsset(projectName, parentId)
 
-      return await createProjectMutation
-        .mutateAsync([
-          {
-            parentDirectoryId: placeholderItem.parentId,
-            projectName: placeholderItem.title,
-            ...(templateId == null ? {} : { projectTemplateName: templateId }),
-            ...(datalinkId == null ? {} : { datalinkId: datalinkId }),
-          },
-        ])
+      return await createProjectMutation([
+        {
+          parentDirectoryId: placeholderItem.parentId,
+          projectName: placeholderItem.title,
+          ...(templateId == null ? {} : { projectTemplateName: templateId }),
+          ...(datalinkId == null ? {} : { datalinkId: datalinkId }),
+        },
+      ])
         .catch((error) => {
           void deleteAsset(placeholderItem.id, parentId)
           throw error
@@ -618,7 +618,7 @@ export function useNewProject(backend: Backend, category: Category) {
 export function useRemoveSelfPermissionMutation(backend: Backend) {
   const { user } = useFullUserSession()
 
-  const createPermissionMutation = useMutation(
+  const createPermissionMutation = useMutationCallback(
     backendMutationOptions(backend, 'createPermission', {
       meta: {
         invalidates: [[backend.type, 'listDirectory']],
@@ -628,7 +628,7 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
   )
 
   const mutate = useEventCallback((id: AssetId) => {
-    createPermissionMutation.mutate([
+    void createPermissionMutation([
       {
         action: null,
         resourceId: id,
@@ -638,7 +638,7 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
   })
 
   const mutateAsync = useEventCallback(async (id: AssetId) => {
-    await createPermissionMutation.mutateAsync([
+    await createPermissionMutation([
       {
         action: null,
         resourceId: id,
