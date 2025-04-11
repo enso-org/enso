@@ -59,6 +59,7 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
 
   const item = useAsset(itemRaw.id) ?? itemRaw
 
+  const [id, setId] = useState(0)
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const { data: allLabels } = useBackendQuery(backend, 'listTags', [])
@@ -93,6 +94,7 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
   const formRef = useSyncRef(form)
   useEffect(() => {
     formRef.current.resetField('labels', { defaultValue: item.labels ?? [] })
+    setId((currentId) => currentId + 1)
   }, [formRef, item.labels])
 
   const query = Form.useWatch({ control: form.control, name: 'name' })
@@ -105,11 +107,7 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
   const canCreateNewLabel = canSelectColor
 
   return (
-    <Form
-      key={JSON.stringify(item.labels)}
-      form={form}
-      className="relative flex flex-col gap-modal rounded-default p-modal"
-    >
+    <Form key={id} form={form} className="relative flex flex-col gap-modal rounded-default p-modal">
       <Text.Heading slot="title" level={2} variant="subtitle">
         {getText('labels')}
       </Text.Heading>
