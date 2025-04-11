@@ -14,10 +14,10 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextRule;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,9 +27,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class MetaIsATest {
-  @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.newBuilder().initInContext(MetaIsATest::prepareCtx).build();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.newBuilder().build();
 
   private static Value isACheck;
   private static Value warningCheck;
@@ -44,7 +42,9 @@ public class MetaIsATest {
         new GeneratorWithName("Polyglot values", ValuesGenerator.create(ctx, Language.values())));
   }
 
-  private static void prepareCtx(Context ctx) {
+  @BeforeClass
+  public static void prepareCtx() {
+    var ctx = ctxRule.context();
     final URI uri;
     try {
       uri = new URI("memory://choose.enso");

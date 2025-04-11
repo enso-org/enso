@@ -29,6 +29,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -36,11 +37,11 @@ public class MetaObjectTest {
   private static Value sn;
   private static ValuesGenerator generator;
 
-  @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.newBuilder().initInContext(MetaObjectTest::prepareCtx).build();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.newBuilder().build();
 
-  private static void prepareCtx(Context ctx) {
+  @BeforeClass
+  public static void prepareCtx() {
+    var ctx = ctxRule.context();
     var code =
         """
         from Standard.Base import Meta, Error

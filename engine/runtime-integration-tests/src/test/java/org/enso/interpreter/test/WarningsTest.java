@@ -26,12 +26,12 @@ import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
 import org.enso.test.utils.ContextRule;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.hamcrest.core.AllOf;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -40,11 +40,11 @@ public class WarningsTest {
   private static ValuesGenerator generator;
   private static Value wrap;
 
-  @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.newBuilder().initInContext(WarningsTest::initEnsoContext).build();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.newBuilder().build();
 
-  private static void initEnsoContext(Context ctx) {
+  @BeforeClass
+  public static void initEnsoContext() {
+    var ctx = ctxRule.context();
     generator = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
     var module =
         ctx.eval(

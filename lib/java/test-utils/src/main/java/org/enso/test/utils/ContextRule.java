@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.graalvm.polyglot.Context;
@@ -221,18 +220,8 @@ public final class ContextRule implements TestRule {
       return this;
     }
 
-    /**
-     * Calls the given {@code initializer} inside created {@link Context}. This is useful for test
-     * preparation that needs already created context. For example if you need to create some
-     * methods used throughout all the tests.
-     *
-     * <p>Note that this causes the context to be created immediately.
-     *
-     * @param initializer Callable that will be called inside the context.
-     */
-    public Builder initInContext(Consumer<Context> initializer) {
-      polyglotCtx = polyglotCtxBldr.build();
-      initializer.accept(polyglotCtx);
+    public Builder alwaysExecuteInContext(boolean b) {
+      this.alwaysExecuteInContext = b;
       return this;
     }
 

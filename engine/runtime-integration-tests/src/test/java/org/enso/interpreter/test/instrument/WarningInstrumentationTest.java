@@ -11,23 +11,23 @@ import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.test.Metadata;
 import org.enso.interpreter.test.instruments.NodeCountingTestInstrument;
 import org.enso.test.utils.ContextRule;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class WarningInstrumentationTest {
 
-  @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.newBuilder().initInContext(WarningInstrumentationTest::initContext).build();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.newBuilder().build();
 
   private static NodeCountingTestInstrument instrument;
 
-  private static void initContext(Context context) {
+  @BeforeClass
+  public static void initContext() {
+    var context = ctxRule.context();
     var engine = context.getEngine();
     Map<String, Language> langs = engine.getLanguages();
     Assert.assertNotNull("Enso found: " + langs, langs.get("enso"));

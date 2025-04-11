@@ -12,24 +12,24 @@ import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextRule;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.hamcrest.Matchers;
 import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class ManagedResourceTest {
-  @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.newBuilder().initInContext(ManagedResourceTest::initCtx).build();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   private static Value newResource;
   private static Value createResource;
   private static Value getResource;
 
-  private static void initCtx(Context ctx) {
+  @BeforeClass
+  public static void initCtx() {
+    var ctx = ctxRule.context();
     var code =
         """
               import Standard.Base.Runtime.Managed_Resource.Managed_Resource

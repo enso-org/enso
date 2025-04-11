@@ -10,24 +10,24 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextRule;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.junit.Before;
-import org.junit.Rule;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class RootNamesTest {
-  @Rule
-  public final ContextRule ctxRule =
-      ContextRule.newBuilder().initInContext(RootNamesTest::initCtx).build();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.newBuilder().build();
 
   @Before
   public void cleanOut() {
     ctxRule.resetOut();
   }
 
-  private static void initCtx(Context ctx) {
+  @BeforeClass
+  public static void initCtx() {
+    var ctx = ctxRule.context();
     var engine = ctx.getEngine();
     Map<String, Language> langs = engine.getLanguages();
     assertNotNull("Enso found: " + langs, langs.get("enso"));

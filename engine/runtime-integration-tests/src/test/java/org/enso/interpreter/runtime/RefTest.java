@@ -9,20 +9,20 @@ import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class RefTest {
-  @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.newBuilder().initInContext(RefTest::initCtx).build();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.newBuilder().build();
 
   private static Value refType;
 
-  private static void initCtx(Context ctx) {
+  @BeforeClass
+  public static void initCtx() {
+    var ctx = ctxRule.context();
     refType =
         ContextUtils.evalModule(
             ctx, """

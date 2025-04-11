@@ -10,22 +10,22 @@ import java.util.Map;
 import java.util.function.Function;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextRule;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class InsightForEnsoTest {
   private static AutoCloseable insightHandle;
 
-  @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.newBuilder().initInContext(InsightForEnsoTest::initContext).build();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.newBuilder().build();
 
-  private static void initContext(Context ctx) {
+  @BeforeClass
+  public static void initContext() {
+    var ctx = ctxRule.context();
     var engine = ctx.getEngine();
     Map<String, Language> langs = engine.getLanguages();
     assertNotNull("Enso found: " + langs, langs.get("enso"));

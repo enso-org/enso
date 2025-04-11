@@ -18,9 +18,9 @@ import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -31,15 +31,15 @@ import org.junit.Test;
  * org.enso.interpreter.runtime.data.atom.Atom}.
  */
 public class MetaTypeMethodsTest {
-  @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.newBuilder().initInContext(MetaTypeMethodsTest::initCtx).build();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.newBuilder().build();
 
   private static GetTypeMethodsNode getTypeMethodsNode;
   private static TestRootNode testRootNode;
   private static ValuesGenerator valuesGenerator;
 
-  private static void initCtx(Context ctx) {
+  @BeforeClass
+  public static void initCtx() {
+    var ctx = ctxRule.context();
     valuesGenerator = ValuesGenerator.create(ctx, Language.ENSO);
     ContextUtils.executeInContext(
         ctx,
