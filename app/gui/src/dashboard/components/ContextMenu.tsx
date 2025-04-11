@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as detect from 'enso-common/src/detect'
 
 import { Popover } from '#/components/AriaComponents'
+import { unsetModal } from '#/providers/ModalProvider'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** Props for a `ContextMenu`. */
@@ -29,6 +30,7 @@ export default function ContextMenu(props: ContextMenuProps) {
       style={{ left: event.pageX, top: event.pageY }}
       shouldCloseOnInteractOutside={() => true}
       className="sticky flex w-min items-start"
+      onClose={unsetModal}
     >
       <div
         aria-label={props['aria-label']}
