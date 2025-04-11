@@ -1,3 +1,5 @@
+## Conversions that are used for type refinements.
+   They should never be exported or used elsewhere.
 private
 
 import project.Column.Column
