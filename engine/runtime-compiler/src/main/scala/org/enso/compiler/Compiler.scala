@@ -715,13 +715,17 @@ class Compiler(
     val exprWithModuleExports =
       if (context.isSynthetic(module))
         if (module.getName().toString().equals("Standard.Base.Errors")) {
-            System.err.println("Erasing list of imports and exports")
-            expr.copy(imports = List(), exports = List())
+          System.err.println("Erasing list of imports and exports")
+          expr.copy(imports = List(), exports = List())
         } else {
-            expr
+          expr
         }
       else
-        injectSyntheticModuleExports(module.getName().toString(), expr, module.getDirectModulesRefs)
+        injectSyntheticModuleExports(
+          module.getName().toString(),
+          expr,
+          module.getDirectModulesRefs
+        )
     context.updateModule(module, _.ir(exprWithModuleExports))
     val discoveredModule =
       recognizeBindings(exprWithModuleExports, moduleContext, irDumper)
@@ -858,11 +862,11 @@ class Compiler(
     import scala.jdk.CollectionConverters._
 
     if (
-        "Standard.Base.Data.Text".equals(n) ||
-        "Standard.Base.Errors".equals(n)
+      "Standard.Base.Data.Text".equals(n) ||
+      "Standard.Base.Errors".equals(n)
     ) {
-        System.err.println("don't injectSyntheticModuleExports: " + n)
-        return ir
+      System.err.println("don't injectSyntheticModuleExports: " + n)
+      return ir
     }
     // System.err.println("injectSyntheticModuleExports: " + n)
 

@@ -35,6 +35,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolutionForIR {
     module: Module,
     bindingsCachingEnabled: Boolean
   ): (List[Module], List[Module]) = {
+    val logger = org.slf4j.LoggerFactory.getLogger(getClass())
 
     def analyzeModule(current: Module): List[Module] = {
       if (current.getName().toString().contains("Data.Text")) {
@@ -117,7 +118,11 @@ final class ImportResolver(compiler: Compiler) extends ImportResolutionForIR {
         targetModules
       }.distinct
 
-      System.err.println("module: " + current.getName() + " requires: " + mods.size + " as " + mods.map(_.getName()))
+      logger.debug(
+        "TRANSITIVE of {} is {}",
+        current.getName(),
+        mods.map(_.getName()).toArray
+      )
 
       mods
     }
@@ -195,11 +200,11 @@ final class ImportResolver(compiler: Compiler) extends ImportResolutionForIR {
     resolvedImports: List[BindingsMap.ResolvedImport]
   ): List[(Import, BindingsMap.ResolvedImport)] = {
     if (
-        "Standard.Base.Data.Text".equals(module.getName()) ||
-        "Standard.Base.Errors".equals(module.getName())
+      "Standard.Base.Data.Text".equals(module.getName()) ||
+      "Standard.Base.Errors".equals(module.getName())
     ) {
-        System.err.println("empty addSyntheticImports: " + module.getName())
-        return List()
+      System.err.println("empty addSyntheticImports: " + module.getName())
+      return List()
     }
     val resolvedImportNames = resolvedImports.map(_.importDef.name.name)
     val curModName          = module.getName.toString

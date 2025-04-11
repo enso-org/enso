@@ -151,12 +151,14 @@ class InterpreterContext(
           }
       ).build()
 
-      val module = _ctx.eval("enso",
+      val module = _ctx.eval(
+        "enso",
         "from Standard.Base.Prelude import all\n" +
         "check = [Any, Integer, Float, Text]\n"
       );
 
-      val check = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "check")
+      val check =
+        module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "check")
       assert(check.hasArrayElements())
       assert(4 == check.getArraySize())
     }
