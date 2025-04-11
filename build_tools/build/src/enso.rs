@@ -101,8 +101,14 @@ impl BuiltEnso {
         test_path: impl AsRef<Path>,
         ir_caches: IrCaches,
         environment_overrides: Vec<(String, String)>,
+        native_image: bool,
     ) -> Result<Command> {
-        let mut command = self.cmd()?;
+        let mut command = if native_image {
+            let enso = self.wrapper_script_path();
+            Command::new(&enso)
+        } else {
+            self.cmd()?
+        };
         command
             .arg(ir_caches)
             .arg("--run")
@@ -133,6 +139,7 @@ impl BuiltEnso {
         sbt: &crate::engine::sbt::Context,
         async_policy: AsyncPolicy,
         test_selection: StandardLibraryTestsSelection,
+        native_image: bool,
     ) -> Result {
         let paths = &self.paths;
         // Environment for meta-tests. See:
@@ -244,12 +251,11 @@ impl BuiltEnso {
                 cloud_tests::env::test_controls::ENSO_RUN_REAL_CLOUD_TEST.name().to_string(),
                 "1".to_string(),
             ));
-            environment_overrides.push(("ENSO_LAUNCHER".to_string(), "native".to_string()));
         };
 
         let futures = std_tests.into_iter().map(|test_path| {
             let command: std::result::Result<Command, anyhow::Error> =
-                self.run_test(test_path, ir_caches, environment_overrides.clone());
+                self.run_test(test_path, ir_caches, environment_overrides.clone(), native_image);
             async move { command?.run_ok().await }
         });
 

@@ -15,15 +15,18 @@ test('Load Fullscreen Visualisation', async ({ page }) => {
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
   await page.keyboard.press('Space')
-  await page.waitForTimeout(1000)
-  const fullscreenButton = locate.enterFullscreenButton(aggregatedNode)
-  await fullscreenButton.click()
   const vis = locate.jsonVisualization(page)
   await expect(vis).toExist()
+  const initialBBox = await vis.boundingBox()
+  assert(initialBBox != null)
+  const fullscreenButton = locate.enterFullscreenButton(aggregatedNode)
+  await expect(fullscreenButton).toBeVisible()
+  await fullscreenButton.click()
+
   await expect(locate.exitFullscreenButton(page)).toExist()
   // Wait for entering-fullscreen animation.
-  expect.poll(async () => (await vis.boundingBox())?.width).toBe(1920)
-  expect.poll(async () => (await vis.boundingBox())?.height).toBeGreaterThan(600)
+  await expect.poll(async () => (await vis.boundingBox())?.width).toBe(1920)
+  await expect.poll(async () => (await vis.boundingBox())?.height).toBeGreaterThan(600)
   const element = await vis.elementHandle()
   assert(element != null)
   const textContent = await computedContent(element)
@@ -61,4 +64,9 @@ test('Load Fullscreen Visualisation', async ({ page }) => {
       },
     ],
   })
+
+  // We may leave fulscreen by pressing Escape
+  await page.keyboard.press('Escape')
+  await expect.poll(async () => (await vis.boundingBox())?.width).toBeCloseTo(initialBBox.width)
+  await expect.poll(async () => (await vis.boundingBox())?.height).toBeCloseTo(initialBBox.height)
 })
