@@ -6,15 +6,12 @@ import static org.junit.Assert.fail;
 import com.oracle.truffle.api.dsl.UnsupportedSpecializationException;
 import java.util.List;
 import java.util.function.Supplier;
-import org.enso.common.LanguageInfo;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.test.utils.ContextRule;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -38,17 +35,6 @@ public class ThrowableCatchTest {
           () -> new AssertionError("Assertion error"),
           CustomError::new,
           ThreadDeath::new);
-
-  @Before
-  public void ctxEnter() {
-    ctxRule.context().initialize(LanguageInfo.ID);
-    ctxRule.context().enter();
-  }
-
-  @After
-  public void ctxLeave() {
-    ctxRule.context().leave();
-  }
 
   private static class CustomError extends Error {}
 
