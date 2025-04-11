@@ -103,9 +103,9 @@ export default function PathColumn(props: AssetColumnProps) {
       <Popover.Trigger>
         <Button variant="ghost-fading" size="xsmall">
           <div className="flex items-center gap-2">
-            <Icon className="h-3 w-3">{firstItemInPath.icon}</Icon>
-            <Icon className="h-3 w-3">{FolderArrowIcon}</Icon>
-            <Icon className="h-3 w-3">{lastItemInPath.icon}</Icon>
+            <Icon className="h-3 w-3" icon={firstItemInPath.icon} />
+            <Icon className="h-3 w-3" icon={FolderArrowIcon} />
+            <Icon className="h-3 w-3" icon={lastItemInPath.icon} />
 
             <Text color="custom" truncate="1" className="max-w-48">
               {lastItemInPath.label}
