@@ -113,6 +113,7 @@ public final class LogJobsProcessor {
     assert !batch.isEmpty() : "The batch must not be empty.";
 
     if (accessTokenNeedsRefresh()) {
+      LOGGER.debug("Refreshing access token");
       var refreshTokenTask = tokenRefresher.fetchNewAccessToken();
       AuthenticationData refreshedAuthData;
       try {
@@ -123,6 +124,7 @@ public final class LogJobsProcessor {
       }
       if (refreshedAuthData != null) {
         authenticationData = refreshedAuthData;
+        LOGGER.trace("Token refreshed successfully: {}", authenticationData);
       } else {
         throw new RequestFailureException("Failed to refresh token", null);
       }
@@ -143,6 +145,7 @@ public final class LogJobsProcessor {
   }
 
   private void notifyJobsAboutFailure(List<LogJob> logJobs, RequestFailureException exception) {
+    LOGGER.warn("Failed to send {} log messages", logJobs.size(), exception);
     for (var job : logJobs) {
       if (job.completionNofitication() != null) {
         job.completionNofitication().completeExceptionally(exception);
@@ -151,6 +154,7 @@ public final class LogJobsProcessor {
   }
 
   private void notifyJobsAboutSuccess(List<LogJob> logJobs) {
+    LOGGER.trace("Successfully sent {} log messages", logJobs.size());
     for (var logJob : logJobs) {
       if (logJob.completionNofitication() != null) {
         logJob.completionNofitication().complete(null);
@@ -227,7 +231,13 @@ public final class LogJobsProcessor {
     var now = Instant.now().atZone(ZoneId.of("UTC"));
     var inEarlyFuture = now.plus(TOKEN_EARLY_REFRESH_PERIOD);
     var expiration = authenticationData.expireAt();
-    return inEarlyFuture.compareTo(expiration) > 0;
+    var res = inEarlyFuture.compareTo(expiration) > 0;
+    LOGGER.trace(
+        "Token needs refresh: {}. Current time (plus early refresh period): {}, expiration: {}",
+        res,
+        inEarlyFuture,
+        expiration);
+    return res;
   }
 
   private static final class RequestFailureException extends Exception {

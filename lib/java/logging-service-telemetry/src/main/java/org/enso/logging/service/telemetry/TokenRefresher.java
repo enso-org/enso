@@ -58,6 +58,11 @@ public final class TokenRefresher {
     var payload = RefreshTokenPayload.createRefreshTokenRequest(refreshToken, clientId);
     reqBldr.POST(BodyPublishers.ofString(payload));
     var req = reqBldr.build();
+    LOGGER.trace(
+        "Sending request to refresh token: POST uri:{}, headers:{}, body:{}",
+        req.uri(),
+        req.headers(),
+        payload);
     String body;
     try {
       var response = httpClient.send(req, HttpResponse.BodyHandlers.ofString());

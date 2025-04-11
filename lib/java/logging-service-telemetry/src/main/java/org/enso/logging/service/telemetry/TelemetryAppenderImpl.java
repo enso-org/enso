@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.util.concurrent.Executors;
 import org.enso.logging.service.logback.TelemetryAppender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +48,7 @@ public final class TelemetryAppenderImpl extends TelemetryAppender {
           "Failed to parse credentials from '{}'. Will not send telemetry", credentialsFile);
       return null;
     }
+    LOGGER.debug("Credentials read from '{}': {}", credentialsFile, credentials);
     return credentials;
   }
 
