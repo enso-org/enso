@@ -75,7 +75,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             }),
             getValue: (context) => ({
               ...pick(context.user, 'name', 'email'),
-              timeZone: context.preferredTimeZone,
+              timeZone: context.preferredTimeZone ?? '',
             }),
             onSubmit: async (context, { name, timeZone }) => {
               context.setPreferredTimeZone(timeZone)
