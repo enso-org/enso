@@ -6,15 +6,13 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Set;
-import org.enso.common.RuntimeOptions;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.TopScope;
-import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
 import org.graalvm.polyglot.PolyglotException;
@@ -320,26 +318,18 @@ public class ExtensionMethodResolutionTest {
 
   private void testProjectCompilationFailure(
       Path mainProjDir, Matcher<String> errorMessageMatcher) {
-    var out = new ByteArrayOutputStream();
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, mainProjDir.toAbsolutePath().toString())
-            .option(RuntimeOptions.STRICT_ERRORS, "true")
-            .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
-            .out(out)
-            .err(out)
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextRule.newBuilder().withProjectRoot(mainProjDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       TopScope topScope = polyCtx.getTopScope();
       try {
         topScope.compile(true);
-        fail("Expected compilation error: " + out);
+        fail("Expected compilation error: " + ctx.getOut());
       } catch (PolyglotException e) {
         assertThat(
             "Exception should be a syntax error, but instead is " + e.getMessage(),
             e.isSyntaxError(),
             is(true));
-        assertThat(out.toString(), errorMessageMatcher);
+        assertThat(ctx.getOut(), errorMessageMatcher);
       }
     }
   }

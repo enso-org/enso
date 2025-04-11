@@ -4,40 +4,22 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import java.nio.file.Paths;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames.Module;
 import org.enso.common.MethodNames.TopScope;
-import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.io.IOAccess;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 
 /** A collection of classes and methods useful for testing {@link Context} related stuff. */
 public final class ContextUtils {
 
   private ContextUtils() {}
-
-  public static Context.Builder defaultContextBuilder(String... languages) {
-    return Context.newBuilder(languages)
-        .allowExperimentalOptions(true)
-        .allowIO(IOAccess.ALL)
-        .allowAllAccess(true)
-        .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-        .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
-        .logHandler(System.err)
-        .option(RuntimeOptions.STRICT_ERRORS, "true")
-        .option(
-            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-            Paths.get("../../distribution/component").toFile().getAbsolutePath());
-  }
 
   public static EnsoContext leakContext(Context ctx) {
     return ctx.getBindings(LanguageInfo.ID)

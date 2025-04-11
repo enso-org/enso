@@ -2,16 +2,21 @@ package org.enso.test.utils;
 
 import com.oracle.truffle.api.nodes.Node;
 import java.io.ByteArrayOutputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
+import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
+import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.IOAccess;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -62,8 +67,9 @@ public final class ContextRule implements TestRule, AutoCloseable {
   }
 
   /**
-   * The created builder starts with {@link ContextUtils#defaultContextBuilder(String...)} default
-   * polyglot context builder.
+   * The created builder starts with the <emph>default</emph> context. The default context is
+   * roughly equivalent to the one that is created for standard command line execution via engine
+   * runner.
    *
    * @param permittedLanguages List of languages that are allowed to be used in the context. If
    *     empty, all installed languages are enabled.
@@ -77,7 +83,7 @@ public final class ContextRule implements TestRule, AutoCloseable {
   public static ContextRule createDefault() {
     var stdout = new ByteArrayOutputStream();
     var stderr = new ByteArrayOutputStream();
-    var ctxBldr = ContextUtils.defaultContextBuilder();
+    var ctxBldr = Builder.defaultContextBuilder();
     ctxBldr.out(stdout).err(stderr).logHandler(stdout);
     return new ContextRule(ctxBldr, stdout, stderr, true);
   }
@@ -258,12 +264,35 @@ public final class ContextRule implements TestRule, AutoCloseable {
     private boolean alwaysExecuteInContext = true;
 
     private Builder(String... permittedLanguages) {
-      this.polyglotCtxBldr = ContextUtils.defaultContextBuilder(permittedLanguages);
+      this.polyglotCtxBldr = defaultContextBuilder(permittedLanguages);
       this.polyglotCtxBldr.out(stdout).err(stderr).logHandler(stdout);
+    }
+
+    private static Context.Builder defaultContextBuilder(String... permittedLanguages) {
+      return Context.newBuilder(permittedLanguages)
+          .allowExperimentalOptions(true)
+          .allowIO(IOAccess.ALL)
+          .allowAllAccess(true)
+          .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+          .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+          .option(RuntimeOptions.STRICT_ERRORS, "true")
+          .option(
+              RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+              Paths.get("../../distribution/component").toFile().getAbsolutePath());
     }
 
     public Builder withModifiedContext(Function<Context.Builder, Context.Builder> modifier) {
       polyglotCtxBldr = modifier.apply(polyglotCtxBldr);
+      return this;
+    }
+
+    /**
+     * Shortcut for {@code withModifiedContext(b -> b.option(RuntimeOptions.PROJECT_ROOT,
+     * projRoot)}.
+     */
+    public Builder withProjectRoot(Path projectRootDir) {
+      polyglotCtxBldr.option(
+          RuntimeOptions.PROJECT_ROOT, projectRootDir.toAbsolutePath().toString());
       return this;
     }
 

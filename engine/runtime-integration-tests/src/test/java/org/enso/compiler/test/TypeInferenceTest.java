@@ -29,7 +29,7 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.pass.analyse.types.InferredType;
 import org.enso.compiler.pass.analyse.types.TypeInferencePropagation;
 import org.enso.compiler.pass.analyse.types.TypeRepresentation;
-import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ModuleUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.graalvm.polyglot.Source;
@@ -1692,14 +1692,16 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     ProjectUtils.createProject("Proj", mainSrc, projDir);
     var out = new ByteArrayOutputStream();
     var ctxBuilder =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
-            .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true")
-            .option(RuntimeOptions.STRICT_ERRORS, "true")
-            .currentWorkingDirectory(projDir.getParent())
-            .out(out)
-            .err(out)
-            .logHandler(out);
+        ContextRule.newBuilder()
+            .withModifiedContext(
+                bldr ->
+                    bldr.option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+                        .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true")
+                        .option(RuntimeOptions.STRICT_ERRORS, "true")
+                        .currentWorkingDirectory(projDir.getParent())
+                        .out(out)
+                        .err(out)
+                        .logHandler(out));
     ProjectUtils.testProjectRun(
         ctxBuilder,
         projDir,

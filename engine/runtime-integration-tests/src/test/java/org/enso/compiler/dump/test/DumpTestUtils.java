@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import org.enso.compiler.docs.DocsGenerate;
 import org.enso.compiler.docs.DocsVisit;
 import org.enso.pkg.QualifiedName;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.graalvm.polyglot.Context;
@@ -24,7 +25,7 @@ final class DumpTestUtils {
     ProjectUtils.createProject(projName, code, projDir);
     ProjectUtils.generateProjectDocs(
         "api",
-        ContextUtils.defaultContextBuilder(),
+        ContextRule.newBuilder(),
         projDir,
         (context) -> {
           var enso = ContextUtils.leakContext(context);

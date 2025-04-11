@@ -7,12 +7,10 @@ import static org.hamcrest.Matchers.notNullValue;
 import java.io.IOException;
 import java.util.Set;
 import org.enso.common.LanguageInfo;
-import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.Module;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
 import org.graalvm.polyglot.Source;
@@ -122,16 +120,13 @@ public class ModuleScopeTest {
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mod, mainMod), projDir);
     var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       var mainRuntimeMod = polyCtx.evalModule(mainSrcPath.toFile());
       var mainMethod = mainRuntimeMod.getMethod(mainRuntimeMod.getAssociatedType(), "main").get();
       var mainRes = mainMethod.execute();
       assertThat(mainRes.asInt(), is(2));
-      var ensoCtx = ContextUtils.leakContext(ctx);
+      var ensoCtx = ctx.leakContext();
       var runtimeAbstractMod =
           ensoCtx.getPackageRepository().getLoadedModule("local.Proj.Mod").get();
       var runtimeConcreteMod = Module.fromCompilerModule(runtimeAbstractMod);

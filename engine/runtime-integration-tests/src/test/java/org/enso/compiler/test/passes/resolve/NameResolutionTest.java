@@ -11,7 +11,6 @@ import java.nio.file.Path;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import org.enso.common.RuntimeOptions;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.DefinitionArgument;
@@ -35,10 +34,9 @@ import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.scala.wrapper.ScalaConversions;
-import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
-import org.graalvm.polyglot.Context;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -450,7 +448,8 @@ public final class NameResolutionTest {
     }
   }
 
-  private void withProject(String projName, Set<SourceModule> modules, Consumer<Context> callback)
+  private void withProject(
+      String projName, Set<SourceModule> modules, Consumer<ContextRule> callback)
       throws IOException {
     var projDir = TMP_DIR.newFolder(projName).toPath();
     ProjectUtils.createProject(projName, modules, projDir);
@@ -496,23 +495,21 @@ public final class NameResolutionTest {
     callback.accept(meta);
   }
 
-  private Context createCtx(Path projectRoot) {
-    return ContextUtils.defaultContextBuilder()
-        .option(RuntimeOptions.PROJECT_ROOT, projectRoot.toFile().getAbsolutePath())
-        .build();
+  private ContextRule createCtx(Path projectRoot) {
+    return ContextRule.newBuilder().withProjectRoot(projectRoot).build();
   }
 
   private static SourceModule srcModule(String moduleName, String src) {
     return new SourceModule(QualifiedName.fromString(moduleName), src);
   }
 
-  private void compileAllModules(Context ctx) {
-    var polyCtx = new PolyglotContext(ctx);
+  private void compileAllModules(ContextRule ctx) {
+    var polyCtx = new PolyglotContext(ctx.context());
     polyCtx.getTopScope().compile(true);
   }
 
-  private Module getModuleIr(Context ctx, String moduleName) {
-    var ensoCtx = ContextUtils.leakContext(ctx);
+  private Module getModuleIr(ContextRule ctx, String moduleName) {
+    var ensoCtx = ctx.leakContext();
     var mod = ensoCtx.findModule(moduleName);
     assertThat(mod.isPresent(), is(true));
     var modIr = mod.get().getIr();

@@ -8,16 +8,14 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
-import org.enso.common.RuntimeOptions;
 import org.enso.compiler.phase.exports.ExportsResolution;
 import org.enso.interpreter.runtime.Module;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
-import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ModuleUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
-import org.graalvm.polyglot.Context;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -143,25 +141,23 @@ public class ExportResolutionOrderingTest {
     }
   }
 
-  private static Context createContext(Path projDir) {
-    return ContextUtils.defaultContextBuilder()
-        .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-        .build();
+  private static ContextRule createContext(Path projDir) {
+    return ContextRule.newBuilder().withProjectRoot(projDir).build();
   }
 
-  private static void compile(Context ctx) {
-    var polyCtx = new PolyglotContext(ctx);
+  private static void compile(ContextRule ctx) {
+    var polyCtx = new PolyglotContext(ctx.context());
     polyCtx.getTopScope().compile(true);
   }
 
-  private static Module getLoadedModule(Context ctx, String modName) {
-    var mod = ModuleUtils.getLoadedModule(ctx, modName);
+  private static Module getLoadedModule(ContextRule ctx, String modName) {
+    var mod = ModuleUtils.getLoadedModule(ctx.context(), modName);
     assert mod != null;
     return mod;
   }
 
-  private static List<Module> runExportsResolutionSort(List<Module> modules, Context ctx) {
-    var ensoCtx = ContextUtils.leakContext(ctx);
+  private static List<Module> runExportsResolutionSort(List<Module> modules, ContextRule ctx) {
+    var ensoCtx = ctx.leakContext();
     var compilerCtx = ensoCtx.getCompiler().context();
     var exportsResolution = new ExportsResolution(compilerCtx);
     var compilerModules = modules.stream().map(Module::asCompilerModule).toList();

@@ -7,10 +7,9 @@ import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
 import java.util.Set;
-import org.enso.common.RuntimeOptions;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
-import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ModuleUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
@@ -98,13 +97,11 @@ public class ExportStaticMethodTest {
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(tMod, mainMod), projDir);
 
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
-      var mainModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+      var mainModExportedSymbols =
+          ModuleUtils.getExportedSymbolsFromModule(ctx.context(), "local.Proj.Main");
       assertThat(mainModExportedSymbols.size(), is(1));
       assertThat(mainModExportedSymbols, hasKey("module_method"));
     }
@@ -128,13 +125,11 @@ public class ExportStaticMethodTest {
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(tMod, mainMod), projDir);
 
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
-      var mainModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+      var mainModExportedSymbols =
+          ModuleUtils.getExportedSymbolsFromModule(ctx.context(), "local.Proj.Main");
       assertThat(mainModExportedSymbols.size(), is(1));
       assertThat(mainModExportedSymbols, hasKey("static_method"));
     }
@@ -150,13 +145,10 @@ public class ExportStaticMethodTest {
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
 
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
-      var definedEntities = ModuleUtils.getDefinedEntities(ctx, "local.Proj.Main");
+      var definedEntities = ModuleUtils.getDefinedEntities(ctx.context(), "local.Proj.Main");
       assertThat(definedEntities.size(), is(1));
       assertThat(definedEntities.get(0).name(), containsString("static_method"));
     }

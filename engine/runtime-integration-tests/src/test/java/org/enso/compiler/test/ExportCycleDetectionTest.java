@@ -11,10 +11,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Set;
-import org.enso.common.RuntimeOptions;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
-import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ModuleUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
@@ -114,17 +113,14 @@ public class ExportCycleDetectionTest {
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       try {
         polyCtx.getTopScope().compile(true);
       } catch (PolyglotException e) {
         fail("Compilation error not expected. But got: " + e);
       }
-      var exportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+      var exportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx.context(), "local.Proj.Main");
       assertThat(exportedSyms.size(), is(1));
       assertThat(exportedSyms, hasKey("Main_Type"));
     }
@@ -141,17 +137,14 @@ public class ExportCycleDetectionTest {
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       try {
         polyCtx.getTopScope().compile(true);
       } catch (PolyglotException e) {
         fail("Compilation error not expected. But got: " + e);
       }
-      var exportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+      var exportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx.context(), "local.Proj.Main");
       assertThat(exportedSyms.size(), is(1));
       assertThat(exportedSyms, hasKey("Main_Type"));
     }
@@ -159,14 +152,8 @@ public class ExportCycleDetectionTest {
 
   private void expectProjectCompilationError(Path projDir, Matcher<String> errMsgMatcher) {
     var out = new ByteArrayOutputStream();
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .option(RuntimeOptions.STRICT_ERRORS, "true")
-            .out(out)
-            .err(out)
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       try {
         polyCtx.getTopScope().compile(true);
         fail("Expected compilation error");

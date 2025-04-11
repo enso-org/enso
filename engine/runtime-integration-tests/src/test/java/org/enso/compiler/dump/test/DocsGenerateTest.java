@@ -271,7 +271,7 @@ public class DocsGenerateTest {
     ProjectUtils.createProject(projName, modules, projDir.toPath());
     ProjectUtils.generateProjectDocs(
         "api",
-        ContextUtils.defaultContextBuilder(),
+        ContextRule.newBuilder(),
         projDir.toPath(),
         ctx -> {
           var ensoCtx = ContextUtils.leakContext(ctx);
