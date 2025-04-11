@@ -1,20 +1,19 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Metadata.Display
-from Standard.Base.Metadata import make_single_choice, Widget
-from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
+from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
 
 from Standard.Table import Table
 
 polyglot java import java.io.IOException
 
-polyglot java import org.enso.google.GoogleSheetsHelpers
+polyglot java import org.enso.google.GoogleSheetsForEnso
 polyglot java import org.enso.google.WrappedGoogleCredentials
 
 type Google_Sheets
     ## PRIVATE
-    Service java_service
+    private Service java_service
 
     ## ICON cloud
        Initializes the Google Sheets instance using the given credentials file.
@@ -25,21 +24,26 @@ type Google_Sheets
          Google Admin Console when generating a key.
     initialize : File|Enso_Secret -> Google_Sheets
     initialize credentials =
-        service = GoogleSheetsHelpers.createService (_wrap_credentials credentials)
+        service = GoogleSheetsForEnso.create (_wrap_credentials credentials)
         Google_Sheets.Service service
+
+    ## PRIVATE
+    get_sheet_names self (workbook_id : Text) =
+        _handle_exceptions <|
+            self.java_service.getSheetNames workbook_id
 
     ## ICON data_input
        Gets a table with the given ID and sheet range.
 
        Arguments:
-       - sheet_id: the ID of the downloaded spreadsheet. It can be read from the
+       - workbook_id: the ID of the downloaded spreadsheet. It can be read from the
          spreadsheet URL.
        - sheet_range: specifies the sheet and cell range to read, e.g.
          `'Sheet1!A1:B7'`.
-    get_table : Text -> Text -> Table
-    get_table self sheet_id sheet_range =
+    @sheet_range _make_sheet_name_widget
+    get_table self (workbook_id : Text) (sheet_range : Text) -> Table =
         values = _handle_exceptions <|
-            self.java_service.getSheetRange sheet_id sheet_range
+            self.java_service.getSheetRange workbook_id sheet_range
         # The first entry is the column name (A, B, ...) and the rest are the values.
         column_vectors = values.map v-> [v.first, v.drop 1]
         # The column lengths may not necessarily be the same, but Table.new expects the same lengths, so we normalize:
@@ -58,8 +62,14 @@ private _handle_exceptions ~action =
 private _wrap_credentials credential:File|Enso_Secret =
     case credential of
         secret : Enso_Secret ->
-            WrappedGoogleCredentials.SecretCredentials.new (as_credential_reference secret)
+            WrappedGoogleCredentials.fromCredentialReference (as_credential_reference secret)
         secret_file : File ->
             secret_file.with_input_stream [File_Access.Read] stream->
                 stream.with_java_stream java_input_stream->
-                    WrappedGoogleCredentials.LocalFileCredentials.fromStream java_input_stream
+                    WrappedGoogleCredentials.fromStream java_input_stream
+
+private _make_sheet_name_widget service:Google_Sheets cache=Nothing =
+    workbook_id = cache.if_not_nothing <| cache "workbook_id"
+    sheet_names = if workbook_id.is_nothing || workbook_id == "" then [] else
+        service.get_sheet_names workbook_id
+    make_single_choice sheet_names display=..Always

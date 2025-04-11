@@ -11,29 +11,25 @@ import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useAutoBlur } from '@/util/autoBlur'
 import { useCodeMirror } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
+import { useCompartment } from '@/util/codemirror/reactivity'
 import { testSupport } from '@/util/codemirror/testSupport'
 import { indentWithTab, insertNewlineKeepIndent } from '@codemirror/commands'
-import { bracketMatching, foldGutter } from '@codemirror/language'
+import {
+  bracketMatching,
+  defaultHighlightStyle,
+  foldGutter,
+  syntaxHighlighting,
+} from '@codemirror/language'
 import { lintGutter } from '@codemirror/lint'
 import { highlightSelectionMatches } from '@codemirror/search'
-import { keymap } from '@codemirror/view'
-import { minimalSetup } from 'codemirror'
-import {
-  computed,
-  onMounted,
-  toRef,
-  useCssModule,
-  useTemplateRef,
-  type ComponentInstance,
-} from 'vue'
+import { drawSelection, keymap } from '@codemirror/view'
+import { onMounted, toRef, useTemplateRef, type ComponentInstance } from 'vue'
 
 const projectStore = useProjectStore()
 const graphStore = useGraphStore()
 const suggestionDbStore = useSuggestionDbStore()
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
-const rootElement = computed(() => editorRoot.value?.rootElement)
-useAutoBlur(rootElement)
 
 const autoindentOnEnter = {
   key: 'Enter',
@@ -44,25 +40,32 @@ const vueHost = new VueHostInstance()
 const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   extensions: [
     keymap.of([indentWithTab, autoindentOnEnter]),
-    minimalSetup,
+    drawSelection(),
+    syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     bracketMatching(),
     foldGutter(),
     lintGutter(),
     highlightSelectionMatches(),
     ensoSyntax(toRef(graphStore, 'moduleRoot')),
-    highlightStyle(useCssModule()),
     ensoHoverTooltip(graphStore, suggestionDbStore, vueHost),
   ],
   vueHost: () => vueHost,
 })
 ;(window as any).__codeEditorApi = testSupport(editorView)
+useAutoBlur(editorView.dom)
 const { updateListener, connectModuleListener } = useEnsoSourceSync(
   projectStore,
   graphStore,
   editorView,
 )
 const ensoDiagnostics = useEnsoDiagnostics(projectStore, graphStore, editorView)
-setExtraExtensions([updateListener, ensoDiagnostics])
+setExtraExtensions([
+  updateListener,
+  ensoDiagnostics,
+  useCompartment(editorView, () =>
+    editorRoot.value ? highlightStyle(editorRoot.value.highlightClasses) : [],
+  ),
+])
 connectModuleListener()
 
 onMounted(() => {
@@ -78,6 +81,10 @@ onMounted(() => {
 
 <!--suppress CssUnusedSymbol -->
 <style scoped>
+.CodeEditor {
+  height: 100%;
+}
+
 :deep(.cm-scroller) {
   /*noinspection CssNoGenericFontName*/
   font-family: var(--font-mono);
@@ -117,34 +124,5 @@ onMounted(() => {
 :deep(.cm-gutters) {
   border-radius: 3px 0 0 3px;
   min-width: 32px;
-}
-</style>
-
-<!--suppress CssUnusedSymbol -->
-<style module>
-.keyword,
-.moduleKeyword,
-.modifier {
-  color: #708;
-}
-.number {
-  color: #164;
-}
-.string {
-  color: #a11;
-}
-.escape {
-  color: #e40;
-}
-.variableName,
-.definition-variableName {
-  color: #00f;
-}
-.lineComment,
-.docComment {
-  color: #940;
-}
-.invalid {
-  color: #f00;
 }
 </style>

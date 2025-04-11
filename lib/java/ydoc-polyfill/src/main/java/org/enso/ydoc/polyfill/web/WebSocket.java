@@ -279,14 +279,14 @@ final class WebSocket implements ProxyExecutable {
 
       // Passing byte sequence to JS requires `HostAccess.allowBufferAccess()`
       var bytes = ByteSequence.create(buffer.readBytes());
-      executor.execute(() -> handleMessage.executeVoid(bytes));
+      handleCallback(() -> handleMessage.executeVoid(bytes));
     }
 
     @Override
     public void onMessage(WsSession session, String text, boolean last) {
       log.debug("onMessage [{}]", text);
 
-      executor.execute(() -> handleMessage.executeVoid(text));
+      handleCallback(() -> handleMessage.executeVoid(text));
     }
 
     @Override
@@ -294,7 +294,7 @@ final class WebSocket implements ProxyExecutable {
       log.debug("onPing [{}]", buffer);
 
       var bytes = ByteSequence.create(buffer.readBytes());
-      executor.execute(() -> handlePing.executeVoid(bytes));
+      handleCallback(() -> handlePing.executeVoid(bytes));
     }
 
     @Override
@@ -302,7 +302,7 @@ final class WebSocket implements ProxyExecutable {
       log.debug("onPong [{}]", buffer);
 
       var bytes = ByteSequence.create(buffer.readBytes());
-      executor.execute(() -> handlePong.executeVoid(bytes));
+      handleCallback(() -> handlePong.executeVoid(bytes));
     }
 
     @Override
@@ -311,14 +311,14 @@ final class WebSocket implements ProxyExecutable {
 
       this.session = session;
 
-      executor.execute(() -> handleOpen.executeVoid());
+      handleCallback(() -> handleOpen.executeVoid());
     }
 
     @Override
     public void onClose(WsSession session, int status, String reason) {
       log.debug("onClose [{}] [{}]", status, reason);
 
-      executor.execute(() -> handleClose.executeVoid(status, reason));
+      handleCallback(() -> handleClose.executeVoid(status, reason));
       this.session = null;
     }
 
@@ -326,7 +326,7 @@ final class WebSocket implements ProxyExecutable {
     public void onError(WsSession session, Throwable t) {
       log.error("onError ", t);
 
-      executor.execute(() -> handleError.executeVoid(t.getMessage()));
+      handleCallback(() -> handleError.executeVoid(t.getMessage()));
     }
 
     @Override
@@ -334,9 +334,13 @@ final class WebSocket implements ProxyExecutable {
       log.debug("onHttpUpgrade [{}]", prologue);
 
       var url = new URL(prologue);
-      executor.execute(() -> handleUpgrade.executeVoid(url));
+      handleCallback(() -> handleUpgrade.executeVoid(url));
 
       return Optional.empty();
+    }
+
+    private void handleCallback(Runnable code) {
+      executor.execute(code);
     }
   }
 }

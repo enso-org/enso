@@ -37,8 +37,8 @@ public final class CloudAPI {
 
   public static void flushCloudCaches() {
     CloudRequestCache.INSTANCE.clear();
-    AuthenticationProvider.reset();
-    EnsoSecretReader.flushCache();
+    AuthenticationProvider.INSTANCE.reset();
+    EnsoSecretReader.INSTANCE.flushCache();
     AuditLog.resetCache();
   }
 }

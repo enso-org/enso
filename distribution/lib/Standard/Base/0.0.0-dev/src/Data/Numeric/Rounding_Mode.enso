@@ -1,3 +1,6 @@
+from Standard.Base import all
+import project.Errors.Deprecated.Deprecated
+
 polyglot java import java.math.RoundingMode
 
 ## A wrapper around the Java
@@ -7,17 +10,24 @@ polyglot java import java.math.RoundingMode
    `Rounding_Mode` is used to specify the method to use for rounding a value in
    operations on `Decimal`s.` See `Decimal` for more details.
 type Rounding_Mode
-    ## PRIVATE
-    Value (rounding_mode : RoundingMode)
-
     ## ICON math
        Round towards positive infinity for positive numbers, and negative
        infinity for negative numbers. (This is the default.)
-    half_up : Rounding_Mode
-    half_up = Rounding_Mode.Value RoundingMode.HALF_UP
+    Half_Up
 
     ## ICON math
        Rownd towards the nearest neighbor, with ties broken by rounding towards
        the nearest even neighbor.
-    bankers : Rounding_Mode
-    bankers = Rounding_Mode.Value RoundingMode.HALF_EVEN
+    Bankers
+
+    private to_java_rounding_mode self -> RoundingMode =
+        case self of
+            Rounding_Mode.Half_Up -> RoundingMode.HALF_UP
+            Rounding_Mode.Bankers -> RoundingMode.HALF_EVEN
+
+## PRIVATE
+   Convert deprecated `use_bankers : Boolean` arguments (passed as
+   `rounding_mode`) to `Rounding_Mode`.
+Rounding_Mode.from (that:Boolean) =
+    rounding_mode_resolved = if that then Rounding_Mode.Bankers else Rounding_Mode.Half_Up
+    Warning.attach (Deprecated.Warning "Standard.Base.Data.Numeric" "Rounding_Mode" "use_bankers:Boolean is deprecated, use Rounding_Mode instead") rounding_mode_resolved

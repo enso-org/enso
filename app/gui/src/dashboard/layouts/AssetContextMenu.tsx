@@ -1,7 +1,6 @@
 /** @file The context menu for an arbitrary {@link backendModule.Asset}. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 
 import { useCopy } from '#/hooks/copyHooks'
@@ -133,22 +132,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         )
       })
 
-  const { data } = reactQuery.useQuery({
-    ...projectHooks.createGetProjectDetailsQuery({
-      // This is safe because we disable the query when the asset is not a project.
-      // see `enabled` property below.
-      // eslint-disable-next-line no-restricted-syntax
-      assetId: asset.id as backendModule.ProjectId,
-      backend,
-    }),
-    enabled: asset.type === backendModule.AssetType.project && canOpenProjects,
-  })
-
   const isRunningProject =
-    (asset.type === backendModule.AssetType.project &&
-      data &&
-      backendModule.IS_OPENING_OR_OPENED[data.state.type]) ??
-    false
+    asset.type === backendModule.AssetType.project &&
+    backendModule.IS_OPENING_OR_OPENED[asset.projectState.type]
 
   const canExecute =
     category.type !== 'trash' &&
@@ -314,21 +300,15 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {canExecute &&
-          !isRunningProject &&
-          !isOtherUserUsingProject &&
-          (!isCloud ||
-            asset.type === backendModule.AssetType.project ||
-            asset.type === backendModule.AssetType.directory ||
-            asset.type === backendModule.AssetType.secret) && (
-            <ContextMenuEntry
-              hidden={hidden}
-              action="rename"
-              doAction={() => {
-                setRowState(object.merger({ isEditingName: true }))
-              }}
-            />
-          )}
+        {canExecute && !isRunningProject && !isOtherUserUsingProject && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="rename"
+            doAction={() => {
+              setRowState(object.merger({ isEditingName: true }))
+            }}
+          />
+        )}
         {(asset.type === backendModule.AssetType.secret ||
           asset.type === backendModule.AssetType.datalink) &&
           canEditThisAsset && (

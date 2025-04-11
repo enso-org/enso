@@ -13,13 +13,16 @@ export function useDirectoryIds(options: UseDirectoryIdsOptions) {
   const { category } = options
   const user = useUser()
   const rootDirectoryId = category.homeDirectoryId ?? user.rootDirectoryId
-  const currentDirectoryId = useCurrentDirectoryId().current ?? rootDirectoryId
+  /** The id of the directory to use in the "list directory" query. */
+  const queryDirectoryId = useCurrentDirectoryId().current ?? category.homeDirectoryId
+  const currentDirectoryId = queryDirectoryId ?? rootDirectoryId
   const parentDirectoryId = useCurrentDirectoryId().parent ?? rootDirectoryId
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
 
   return {
     setCurrentDirectoryId,
     rootDirectoryId,
+    queryDirectoryId,
     currentDirectoryId,
     parentDirectoryId,
   } as const

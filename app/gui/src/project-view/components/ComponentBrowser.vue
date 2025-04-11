@@ -45,6 +45,7 @@ const COMPONENT_EDITOR_PADDING = NODE_CONTENT_PADDING
 const ICON_WIDTH = 24
 // Component editor is larger than a typical node, so the edge should touch it a bit higher.
 const EDGE_Y_OFFSET = -8
+const MIN_WIDTH = 295
 
 const cssComponentEditorPadding = `${COMPONENT_EDITOR_PADDING}px`
 
@@ -160,6 +161,13 @@ const transform = computed(() => {
   const y = Math.round(screenPosition.y)
 
   return `translate(${x}px, ${y}px)`
+})
+
+const minWidth = computed(() => {
+  if (props.usage.type !== 'editNode') return `${MIN_WIDTH}px`
+  const rect = graphStore.nodeRects.get(props.usage.node)
+  if (rect == null) return `${MIN_WIDTH}px`
+  return `${rect.width * props.navigator.scale}px`
 })
 
 // === Selection ===
@@ -375,7 +383,7 @@ const listsHandler = listBindings.handler({
   <div
     ref="cbRoot"
     class="ComponentBrowser"
-    :style="{ transform }"
+    :style="{ transform, minWidth }"
     :data-self-argument="input.selfArgument"
     tabindex="-1"
     @focusout="handleDefocus"
@@ -442,7 +450,6 @@ const listsHandler = listBindings.handler({
   --radius-default: 20px;
   --background-color: #fff;
   --doc-panel-bottom-clip: 4px;
-  min-width: 295px;
   width: min-content;
   color: rgba(0, 0, 0, 0.6);
   font-size: 11.5px;

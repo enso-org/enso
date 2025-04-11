@@ -62,7 +62,7 @@ public class ExternalLibraryCredentialHelper {
       throws EnsoSecretAccessDenied {
     RestrictedAccess.checkAccess(allowParseCredential);
 
-    String secretPayload = EnsoSecretReader.readSecret(credentialReference.secretId());
+    String secretPayload = EnsoSecretReader.INSTANCE.readSecret(credentialReference.secretId());
     ObjectMapper jsonMapper = new ObjectMapper();
     JsonNode json;
     try {
@@ -103,7 +103,7 @@ public class ExternalLibraryCredentialHelper {
     var request =
         HttpRequest.newBuilder()
             .uri(URI.create(apiUri))
-            .header("Authorization", "Bearer " + AuthenticationProvider.getAccessToken())
+            .header("Authorization", "Bearer " + AuthenticationProvider.INSTANCE.getAccessToken())
             .POST(HttpRequest.BodyPublishers.noBody())
             .build();
     // TODO retries?
