@@ -47,24 +47,6 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
     return new MixedStorage(data);
   }
 
-  private StorageType<?> commonNumericType(StorageType<?> a, StorageType<?> b) {
-    assert a.isNumeric();
-    assert b.isNumeric();
-    if (a instanceof BigDecimalType || b instanceof BigDecimalType) {
-      return BigDecimalType.INSTANCE;
-    } else if (a instanceof FloatType || b instanceof FloatType) {
-      return FloatType.FLOAT_64;
-    } else if (a instanceof BigIntegerType || b instanceof BigIntegerType) {
-      return BigIntegerType.INSTANCE;
-    } else {
-      if (a instanceof IntegerType aInt && b instanceof IntegerType bInt) {
-        return IntegerType.commonType(aInt, bInt);
-      } else {
-        throw new IllegalStateException("Unexpected numeric types: " + a + " and " + b);
-      }
-    }
-  }
-
   @Override
   public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
     if (options.equals(PreciseTypeOptions.DEFAULT)) {
@@ -107,7 +89,8 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
     return currentType == null ? AnyObjectType.INSTANCE : currentType;
   }
 
-  private StorageType<?> reconcileTypes(StorageType<?> currentType, StorageType<?> itemType) {
+  private static StorageType<?> reconcileTypes(
+      StorageType<?> currentType, StorageType<?> itemType) {
     if (currentType.equals(itemType)) {
       return currentType;
     } else {
@@ -118,6 +101,24 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
         return commonNumericType(currentType, itemType);
       } else {
         return AnyObjectType.INSTANCE;
+      }
+    }
+  }
+
+  private static StorageType<?> commonNumericType(StorageType<?> a, StorageType<?> b) {
+    assert a.isNumeric();
+    assert b.isNumeric();
+    if (a instanceof BigDecimalType || b instanceof BigDecimalType) {
+      return BigDecimalType.INSTANCE;
+    } else if (a instanceof FloatType || b instanceof FloatType) {
+      return FloatType.FLOAT_64;
+    } else if (a instanceof BigIntegerType || b instanceof BigIntegerType) {
+      return BigIntegerType.INSTANCE;
+    } else {
+      if (a instanceof IntegerType aInt && b instanceof IntegerType bInt) {
+        return IntegerType.commonType(aInt, bInt);
+      } else {
+        throw new IllegalStateException("Unexpected numeric types: " + a + " and " + b);
       }
     }
   }

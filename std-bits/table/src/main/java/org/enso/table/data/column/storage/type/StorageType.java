@@ -35,35 +35,16 @@ public sealed interface StorageType<T>
    */
   static StorageType<?> forBoxedItem(Object item, PreciseTypeOptions options) {
     if (NumericConverter.isCoercibleToLong(item)) {
-      if (options.shrinkIntegers()) {
-        long value = NumericConverter.coerceToLong(item);
-        return IntegerType.smallestFitting(value);
-      }
-
-      return IntegerType.INT_64;
+      return findSmallestIntegerType(item, options);
     }
 
     if (NumericConverter.isFloatLike(item)) {
       double value = NumericConverter.coerceToDouble(item);
-      if (options.wholeFloatsBecomeIntegers()
-          && value % 1.0 == 0.0
-          && IntegerType.INT_64.fits(value)) {
-        if (options.shrinkIntegers()) {
-          return IntegerType.smallestFitting((long) value);
-        }
-
-        return IntegerType.INT_64;
-      }
-
-      return FloatType.FLOAT_64;
+      return findSmallestTypeForFloat(value, options);
     }
 
     if (item instanceof String itemString) {
-      if (options.shrinkText()) {
-        return TextType.preciseTypeForValue(itemString);
-      } else {
-        return TextType.VARIABLE_LENGTH;
-      }
+      return findSmallestTypeForText(itemString, options);
     }
 
     return switch (item) {
@@ -76,6 +57,36 @@ public sealed interface StorageType<T>
       case ZonedDateTime d -> DateTimeType.INSTANCE;
       default -> AnyObjectType.INSTANCE;
     };
+  }
+
+  private static IntegerType findSmallestIntegerType(Object item, PreciseTypeOptions options) {
+    if (options.shrinkIntegers()) {
+      long value = NumericConverter.coerceToLong(item);
+      return IntegerType.smallestFitting(value, false);
+    }
+
+    return IntegerType.INT_64;
+  }
+
+  private static StorageType<? extends Number> findSmallestTypeForFloat(
+      double item, PreciseTypeOptions options) {
+    if (options.wholeFloatsBecomeIntegers() && item % 1.0 == 0.0 && IntegerType.INT_64.fits(item)) {
+      if (options.shrinkIntegers()) {
+        return IntegerType.smallestFitting((long) item, false);
+      }
+
+      return IntegerType.INT_64;
+    }
+
+    return FloatType.FLOAT_64;
+  }
+
+  private static TextType findSmallestTypeForText(String item, PreciseTypeOptions options) {
+    if (options.shrinkText()) {
+      return TextType.preciseTypeForValue(item);
+    } else {
+      return TextType.VARIABLE_LENGTH;
+    }
   }
 
   /**

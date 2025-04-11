@@ -83,8 +83,8 @@ public record IntegerType(Bits bits) implements StorageType<Long> {
     return bits.toInteger() >= otherType.bits.toInteger();
   }
 
-  public static IntegerType smallestFitting(long value) {
-    if (INT_8.fits(value)) return INT_8;
+  public static IntegerType smallestFitting(long value, boolean allow8bit) {
+    if (allow8bit && INT_8.fits(value)) return INT_8;
     if (INT_16.fits(value)) return INT_16;
     if (INT_32.fits(value)) return INT_32;
     return INT_64;

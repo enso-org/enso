@@ -106,7 +106,7 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger>
 
     // If shrinking was requested we may shrink INT_64 further
     if (options.shrinkIntegers() && preciseType instanceof IntegerType) {
-      return findSmallestIntegerTypeThatFits();
+      return findSmallestIntegerTypeThatFits(options);
     }
 
     return preciseType;
@@ -140,7 +140,7 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger>
     return inferredType;
   }
 
-  private StorageType<?> findSmallestIntegerTypeThatFits() {
+  private StorageType<?> findSmallestIntegerTypeThatFits(PreciseTypeOptions options) {
     // This method assumes that all values _do_ fit in some integer type.
     assert inferredType instanceof IntegerType;
 
@@ -161,7 +161,7 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger>
         };
 
     // And rely on its shrinking logic.
-    return longAdapter.inferPreciseType(PreciseTypeOptions.SHRINK);
+    return longAdapter.inferPreciseType(options);
   }
 
   /**
