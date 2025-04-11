@@ -241,9 +241,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             action="run"
             isDisabled={!canOpenProjects}
             tooltip={disabledTooltip}
-            doAction={() => {
-              openProjectNatively(asset, backend.type)
-            }}
+            doAction={() => openProjectNatively(asset, backend.type)}
           />
         )}
         {!isCloud && path != null && systemApi && (

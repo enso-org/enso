@@ -806,7 +806,7 @@ function AssetsTable(props: AssetsTableProps) {
   const doOpenProject = useEventCallback((projectId: ProjectId) => {
     const project = assets.find((asset) => asset.id === projectId)
 
-    if (project == null || project.type !== AssetType.project) {
+    if (project?.type !== AssetType.project) {
       return Promise.resolve()
     }
 

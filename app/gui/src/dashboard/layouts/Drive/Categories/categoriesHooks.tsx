@@ -5,13 +5,8 @@
  * Categories are shortcuts to specific directories in the Cloud, e.g. team spaces, recent and trash
  * It's not the same as the categories like LocalBackend
  */
-
-import CloudIcon from '#/assets/cloud.svg'
 import ComputerIcon from '#/assets/computer.svg'
-import FolderFilledIcon from '#/assets/folder_filled.svg'
-import PeopleIcon from '#/assets/people.svg'
 import RecentIcon from '#/assets/recent.svg'
-import Trash2Icon from '#/assets/trash2.svg'
 
 import { useUser } from '#/providers/AuthProvider'
 
@@ -99,7 +94,7 @@ export function useCloudCategoryList() {
     type: 'cloud',
     id: 'cloud',
     label: getText('cloudCategory'),
-    icon: CloudIcon,
+    icon: 'cloud',
     homeDirectoryId: user.rootDirectoryId,
   }
 
@@ -115,7 +110,7 @@ export function useCloudCategoryList() {
     type: 'trash',
     id: 'trash',
     label: getText('trashCategory'),
-    icon: Trash2Icon,
+    icon: 'trash_small',
     homeDirectoryId: organizationRootDirectoryId,
   }
 
@@ -132,7 +127,7 @@ export function useCloudCategoryList() {
     rootPath: Path(`enso://Teams/${group.name}`),
     homeDirectoryId: group.homeDirectoryId,
     label: getText('teamCategory', group.name),
-    icon: PeopleIcon,
+    icon: 'people',
   }))
 
   const categories = [...predefinedCloudCategories, ...teamCategories] satisfies AnyCloudCategory[]
@@ -247,7 +242,7 @@ export function useLocalCategoryList() {
     rootPath: Path(directory),
     homeDirectoryId: newDirectoryId(Path(directory)),
     label: getFileName(directory),
-    icon: FolderFilledIcon,
+    icon: 'folder_small',
   }))
 
   const categories =

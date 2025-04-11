@@ -1,6 +1,7 @@
 /** @file The categories available in the category switcher. */
 import * as z from 'zod'
 
+import type { SvgUseIcon } from '#/components/AriaComponents'
 import type { UserId } from '#/services/Backend'
 import {
   FilterBy,
@@ -10,6 +11,8 @@ import {
   type UserGroup,
   type UserGroupId,
 } from '#/services/Backend'
+import { isUrlString } from '@/util/data/urlString'
+import { isIconName } from '@/util/iconMetadata/iconName'
 import type { DropOperation } from '@react-types/shared'
 
 const PATH_SCHEMA = z.string().refine((s): s is Path => true)
@@ -17,7 +20,9 @@ const DIRECTORY_ID_SCHEMA = z.string().refine((s): s is DirectoryId => true)
 
 const EACH_CATEGORY_SCHEMA = z.object({
   label: z.string(),
-  icon: z.string(),
+  icon: z.custom<SvgUseIcon | (string & {})>(
+    (icon) => typeof icon === 'string' && (isIconName(icon) || isUrlString(icon)),
+  ),
 })
 
 /** A category corresponding to the root of the user or organization. */

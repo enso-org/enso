@@ -605,7 +605,7 @@ export function useNewProject(backend: Backend, category: Category) {
             // Open in background.
             void openProjectLocally(openProjectParams, backend.type)
           } else {
-            openProjectNatively(openProjectParams, backend.type)
+            void openProjectNatively(openProjectParams, backend.type)
           }
 
           return createdProject
