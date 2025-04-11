@@ -750,7 +750,7 @@ watchPostEffect(() => {
 watchPostEffect(() => {
   if (data.value.is_multi_series) {
     const formatLabel = (string: string) =>
-      string.length > 10 ? `${string.substr(0, 10)}...` : string
+      string.length > 15 ? `${string.substr(0, 15)}...` : string
 
     const color = d3
       .scaleOrdinal<string>()
@@ -777,7 +777,7 @@ watchPostEffect(() => {
         return 100 + i * 120
       })
       .attr('y', 10)
-      .style('font-size', '15px')
+      .style('font-size', LABEL_FONT_STYLE)
       .text((d) => formatLabel(d))
       .attr('alignment-baseline', 'middle')
       .call((labels) => labels.append('title').text((d) => d))
