@@ -24,6 +24,12 @@ export const useRouterInReact = useInReactFunction(RouterContext)
 const ConfigContext = react.createContext<GuiConfig | null>(null)
 export const useConfigInReact = useInReactFunction(ConfigContext)
 
+/**
+ * A provider for all contexts set in vue and read by react.
+ *
+ * The default "crossing providers" from veaury has some downsides, for example
+ * nesting two in a row does not work.
+ */
 export const ContextsForReactProvider = applyPureReactInVue(
   ({
     children,

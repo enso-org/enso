@@ -29,10 +29,6 @@ function main() {
   const queryClient = createQueryClientOfPersistCache()
 
   const app = createApp(App, appProps)
-  router.beforeEach((to, from) => console.log('navigating', to, from))
-  router.onError((error, to, from) =>
-    console.error('Error when navigating', to, 'from', from, error),
-  )
   app.use(VueQueryPlugin, { queryClient })
   app.use(router)
   app.mount('#enso-app')

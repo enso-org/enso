@@ -38,6 +38,11 @@ import { applyPureReactInVue } from 'veaury'
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import ReactLayoutWrapper from './components/ReactLayoutWrapper.vue'
 
+/**
+ * Wrap react component in ErrorBoundary and Suspense.
+ *
+ * The Router views doesn't really like things thrown at them from react.
+ */
 function wrapReactForRouter(Component: (props: PropsWithChildren) => ReactNode) {
   return ({ children }: PropsWithChildren) => (
     <ErrorBoundary>
@@ -87,6 +92,9 @@ function CloudBrowserDisabledLayout(props: PropsWithChildren) {
   )
 }
 
+// TODO[ao]: Now the React Layouts are wrapped and used here, but they should be gradually replaced
+// with vue-router guards
+// (https://router.vuejs.org/guide/advanced/navigation-guards.html#Per-Route-Guard or similar).
 const routes = [
   applyLayouts(
     [GuestLayout],
