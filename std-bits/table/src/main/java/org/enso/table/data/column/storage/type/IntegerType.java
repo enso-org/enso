@@ -90,6 +90,11 @@ public record IntegerType(Bits bits) implements StorageType<Long> {
     return INT_64;
   }
 
+  /** Returns a common type that will fit values from either one (essentially the larger type of the two). */
+  public static IntegerType commonType(IntegerType type1, IntegerType type2) {
+    return type1.bits.toInteger() >= type2.bits.toInteger() ? type1 : type2;
+  }
+
   @Override
   public boolean isOfType(StorageType<?> other) {
     return other instanceof IntegerType;

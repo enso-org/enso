@@ -9,6 +9,7 @@ import java.time.ZonedDateTime;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.problems.ProblemAggregator;
 
 /**
@@ -28,25 +29,42 @@ public sealed interface StorageType<T>
         TextType,
         TimeOfDayType {
   /**
-   * @return the StorageType that represents a given boxed item. This has special handling for
-   *     floating-point values - if they represent a whole number, they will be treated as integers.
+   * @param item the item whose type is to be determined.
+   * @param options specifies details on how the precise type should be determined
+   * @return the StorageType that represents a given boxed item.
    */
-  static StorageType<?> forBoxedItem(Object item) {
+  static StorageType<?> forBoxedItem(Object item, PreciseTypeOptions options) {
     if (NumericConverter.isCoercibleToLong(item)) {
+      if (options.shrinkIntegers()) {
+        long value = NumericConverter.coerceToLong(item);
+        return IntegerType.smallestFitting(value);
+      }
+
       return IntegerType.INT_64;
     }
 
     if (NumericConverter.isFloatLike(item)) {
       double value = NumericConverter.coerceToDouble(item);
-      /*if (value % 1.0 == 0.0 && IntegerType.INT_64.fits(value)) {
+      if (options.wholeFloatsBecomeIntegers() && value % 1.0 == 0.0 && IntegerType.INT_64.fits(value)) {
+        if (options.shrinkIntegers()) {
+          return IntegerType.smallestFitting((long) value);
+        }
+
         return IntegerType.INT_64;
-      }*/
+      }
 
       return FloatType.FLOAT_64;
     }
 
+    if (item instanceof String itemString) {
+      if (options.shrinkText()) {
+        return TextType.preciseTypeForValue(itemString);
+      } else {
+        return TextType.VARIABLE_LENGTH;
+      }
+    }
+
     return switch (item) {
-      case String s -> TextType.VARIABLE_LENGTH;
       case BigDecimal i -> BigDecimalType.INSTANCE;
       case BigInteger i -> BigIntegerType.INSTANCE;
       case Boolean b -> BooleanType.INSTANCE;
