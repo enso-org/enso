@@ -16,7 +16,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -31,7 +30,7 @@ import org.junit.Test;
  * org.enso.interpreter.runtime.data.atom.Atom}.
  */
 public class MetaTypeMethodsTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.newBuilder().build();
+  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
 
   private static GetTypeMethodsNode getTypeMethodsNode;
   private static TestRootNode testRootNode;
@@ -41,8 +40,7 @@ public class MetaTypeMethodsTest {
   public static void initCtx() {
     var ctx = ctxRule.context();
     valuesGenerator = ValuesGenerator.create(ctx, Language.ENSO);
-    ContextUtils.executeInContext(
-        ctx,
+    ctxRule.executeInContext(
         () -> {
           getTypeMethodsNode = GetTypeMethodsNode.build();
           testRootNode = new TestRootNode();
@@ -62,28 +60,24 @@ public class MetaTypeMethodsTest {
   @Test
   public void testConsistencyBetweenMeta_And_TypeInterop() throws Exception {
     var allTypes = valuesGenerator.allTypes();
-    ctxRule.executeInContext(
-        () -> {
-          for (var type : allTypes) {
-            var typeMethods = metaGetTypeMethods(type);
-            var interopMembers = interopGetMembers(type);
-            var errMsg =
-                """
-            Methods returned from `Meta.get_type_methods` and `InteropLibrary.getMembers` must be the same.
-            Type: %s
-            Return value of `Meta.get_type_methods`: %s
-            Return value of `InteropLibrary.getMembers`: %s
-            """
-                    .formatted(type, typeMethods, interopMembers);
-            assertThat(
-                errMsg, typeMethods, containsInAnyOrder(interopMembers.toArray(String[]::new)));
-          }
-          return null;
-        });
+    for (var type : allTypes) {
+      var typeMethods = metaGetTypeMethods(type);
+      var interopMembers = interopGetMembers(type);
+      var errMsg =
+          """
+      Methods returned from `Meta.get_type_methods` and `InteropLibrary.getMembers` must be the same.
+      Type: %s
+      Return value of `Meta.get_type_methods`: %s
+      Return value of `InteropLibrary.getMembers`: %s
+      """
+              .formatted(type, typeMethods, interopMembers);
+      assertThat(errMsg, typeMethods, containsInAnyOrder(interopMembers.toArray(String[]::new)));
+    }
   }
 
   @Test
-  public void inheritedMembersFromNumberAreIncluded() {
+  public void inheritedMembersFromNumberAreIncluded()
+      throws InvalidArrayIndexException, UnsupportedMessageException {
     var integerType =
         ctxRule.evalModule(
             """
@@ -93,18 +87,14 @@ public class MetaTypeMethodsTest {
 
         main = Integer
         """);
-    ctxRule.executeInContext(
-        () -> {
-          var anyMethods = methodsFrom("Standard.Base.Any", "Any");
-          var numberMethods = methodsFrom("Standard.Base.Data.Numbers", "Number");
-          var integerMethods = methodsFrom("Standard.Base.Data.Numbers", "Integer");
-          var actualMethodNames =
-              metaGetTypeMethods(integerType).stream().collect(Collectors.toUnmodifiableSet());
-          assertSubset("Has method from Any", anyMethods, actualMethodNames);
-          assertSubset("Has method from Number", numberMethods, actualMethodNames);
-          assertSubset("Has method from Integer", integerMethods, actualMethodNames);
-          return null;
-        });
+    var anyMethods = methodsFrom("Standard.Base.Any", "Any");
+    var numberMethods = methodsFrom("Standard.Base.Data.Numbers", "Number");
+    var integerMethods = methodsFrom("Standard.Base.Data.Numbers", "Integer");
+    var actualMethodNames =
+        metaGetTypeMethods(integerType).stream().collect(Collectors.toUnmodifiableSet());
+    assertSubset("Has method from Any", anyMethods, actualMethodNames);
+    assertSubset("Has method from Number", numberMethods, actualMethodNames);
+    assertSubset("Has method from Integer", integerMethods, actualMethodNames);
   }
 
   private Set<String> methodsFrom(String moduleName, String typeName) {
