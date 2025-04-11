@@ -20,7 +20,7 @@ public final class TokenRefresher {
   private static final Logger LOGGER = LoggerFactory.getLogger(TokenRefresher.class);
   private static final Map<String, String> HEADERS =
       Map.of(
-          "Content_Type", "application/x-amz-json-1.1",
+          "Content-Type", "application/x-amz-json-1.1",
           "X-Amz-Target", "AWSCognitoIdentityProviderService.InitiateAuth");
 
   /**
