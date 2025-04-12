@@ -8,6 +8,7 @@ import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
+import { noop } from '#/utilities/functions'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
 import {
   queryOptions,
@@ -240,28 +241,32 @@ export interface UploadFileMutationProgress {
 
 /** Options for {@link useUploadFileMutation}. */
 export interface UploadFileMutationOptions {
+  /** Defaults to `true`. */
+  readonly updateProgress?: boolean | undefined
   /**
-   * Defaults to 3.
+   * Defaults to `3`.
    * Controls the default value of {@link UploadFileMutationOptions['chunkRetries']}
    * and {@link UploadFileMutationOptions['endRetries']}.
    */
-  readonly retries?: number
+  readonly retries?: number | undefined
   /** Defaults to {@link UploadFileMutationOptions['retries']}. */
-  readonly chunkRetries?: number
+  readonly chunkRetries?: number | undefined
   /** Defaults to {@link UploadFileMutationOptions['retries']}. */
-  readonly endRetries?: number
+  readonly endRetries?: number | undefined
   /** Called for all progress updates (`onBegin`, `onChunkSuccess` and `onSuccess`). */
-  readonly onProgress?: (progress: UploadFileMutationProgress) => void
+  readonly onProgress?: ((progress: UploadFileMutationProgress) => void) | undefined
   /** Called before any mutations are sent. */
-  readonly onBegin?: (progress: UploadFileMutationProgress) => void
+  readonly onBegin?: ((progress: UploadFileMutationProgress) => void) | undefined
   /** Called after each successful chunk upload mutation. */
-  readonly onChunkSuccess?: (progress: UploadFileMutationProgress) => void
+  readonly onChunkSuccess?: ((progress: UploadFileMutationProgress) => void) | undefined
   /** Called after the entire mutation succeeds. */
-  readonly onSuccess?: (progress: UploadFileMutationProgress) => void
+  readonly onSuccess?: ((progress: UploadFileMutationProgress) => void) | undefined
   /** Called after any mutations fail. */
-  readonly onError?: (error: unknown) => void
+  readonly onError?: ((error: unknown) => void) | undefined
   /** Called after `onSuccess` or `onError`, depending on whether the mutation succeeded. */
-  readonly onSettled?: (progress: UploadFileMutationProgress | null, error: unknown) => void
+  readonly onSettled?:
+    | ((progress: UploadFileMutationProgress | null, error: unknown) => void)
+    | undefined
 }
 
 /** The result of a {@link useUploadFileMutation}. */
@@ -330,10 +335,13 @@ export function useUploadFileMutation(
     retries = 3,
     chunkRetries = retries,
     endRetries = retries,
+    updateProgress = true,
     onError = (error) => {
       toastAndLog('uploadLargeFileError', error)
     },
   } = options
+  const setProgress: typeof setUploadingFileProgress =
+    updateProgress ? setUploadingFileProgress : noop
   const uploadFileStartMutation = useMutation(backendMutationOptions(backend, 'uploadFileStart'))
   const uploadFileChunkMutation = useMutation(
     backendMutationOptions(backend, 'uploadFileChunk', { retry: chunkRetries }),
@@ -355,7 +363,7 @@ export function useUploadFileMutation(
         totalBytes: fileSizeBytes,
       }
       options.onBegin?.(beginProgress)
-      setUploadingFileProgress(queryClient, progressId, beginProgress)
+      setProgress(queryClient, progressId, beginProgress)
       setSentBytes(0)
       setTotalBytes(fileSizeBytes)
       try {
@@ -389,7 +397,7 @@ export function useUploadFileMutation(
             totalBytes: fileSizeBytes,
           }
           options.onChunkSuccess?.(chunkProgress)
-          setUploadingFileProgress(queryClient, progressId, chunkProgress)
+          setProgress(queryClient, progressId, chunkProgress)
           return fullPromise
         }
         await Promise.all(Array.from({ length: FILE_UPLOAD_CONCURRENCY }).map(uploadNextChunk))
@@ -411,10 +419,12 @@ export function useUploadFileMutation(
         }
         options.onSuccess?.(endProgress)
         options.onSettled?.(endProgress, null)
-        setUploadingFileProgress(queryClient, progressId, endProgress)
-        setTimeout(() => {
-          clearUploadingFileProgressIfDone(queryClient)
-        }, CLEAR_PROGRESS_DELAY_MS)
+        setProgress(queryClient, progressId, endProgress)
+        if (updateProgress) {
+          setTimeout(() => {
+            clearUploadingFileProgressIfDone(queryClient)
+          }, CLEAR_PROGRESS_DELAY_MS)
+        }
         return result
       } catch (error) {
         onError(error)

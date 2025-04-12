@@ -18,12 +18,12 @@ import {
   type LaunchedProjectId,
 } from '#/providers/ProjectsProvider'
 
+import { useUploadFileMutation } from '#/hooks/backendUploadFilesHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import { useEnsureQueryData, useMutationCallback } from '../utilities/tanstackQuery'
-import { useUploadFileWithToastMutation } from './backendUploadFilesHooks'
 
 /** Default interval for refetching project status when the project is opened. */
 const OPENED_INTERVAL_MS = 30_000
@@ -278,7 +278,7 @@ export function useCloseProjectMutation() {
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const setProjectAsset = useSetProjectAsset()
-  const uploadFileMutation = useUploadFileWithToastMutation(remoteBackend)
+  const uploadFileMutation = useUploadFileMutation(remoteBackend, { updateProgress: false })
   const toastAndLog = useToastAndLog()
 
   return useMutationCallback({
