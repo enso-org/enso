@@ -39,7 +39,7 @@ export interface SelectionBrushV2Props {
   readonly onDragEnd?: (event: PointerEvent) => void
   readonly onDragCancel?: () => void
 
-  readonly targetRef: React.RefObject<HTMLElement>
+  readonly targetRef: React.RefObject<HTMLElement | null>
   readonly isDisabled?: boolean
   readonly preventDrag?: (event: PointerEvent) => boolean
 }

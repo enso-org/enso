@@ -13,20 +13,20 @@ export function useDebouncedCallback<Fn extends (...args: never[]) => unknown>(
 ): DebouncedFunction<Fn> {
   const stableCallback = useEventCallback(callback)
 
-  const timeoutIdRef = React.useRef<ReturnType<typeof setTimeout>>()
-  const waitTimeoutIdRef = React.useRef<ReturnType<typeof setTimeout>>()
+  const timeoutIdRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const waitTimeoutIdRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const lastCallRef = React.useRef<{ args: Parameters<Fn> }>()
+  const lastCallRef = React.useRef<{ args: Parameters<Fn> } | null>(null)
 
   const clear = useEventCallback(() => {
     if (timeoutIdRef.current) {
       clearTimeout(timeoutIdRef.current)
-      timeoutIdRef.current = undefined
+      timeoutIdRef.current = null
     }
 
     if (waitTimeoutIdRef.current) {
       clearTimeout(waitTimeoutIdRef.current)
-      waitTimeoutIdRef.current = undefined
+      waitTimeoutIdRef.current = null
     }
   })
 
@@ -36,7 +36,7 @@ export function useDebouncedCallback<Fn extends (...args: never[]) => unknown>(
     }
 
     const context = lastCallRef.current
-    lastCallRef.current = undefined
+    lastCallRef.current = null
 
     stableCallback(...context.args)
 

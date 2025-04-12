@@ -39,6 +39,8 @@ defineExpose({
     inner.value?.putTextAtCoords(text, coords)
   },
 })
+
+console.log('MarkdownEditor', { content: props.content })
 </script>
 
 <template>

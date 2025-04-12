@@ -1,5 +1,5 @@
 /** @file A date picker. */
-import { useContext, type ForwardedRef } from 'react'
+import { useContext } from 'react'
 
 import type { DateSegment as DateSegmentType } from 'react-stately'
 
@@ -25,7 +25,6 @@ import {
   type DateValue,
 } from '#/components/aria'
 import { useText } from '#/providers/TextProvider'
-import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import {
@@ -38,6 +37,7 @@ import {
   type FieldProps,
   type FieldStateProps,
   type FieldValues,
+  type PropsWithRef,
   type TSchema,
 } from '../..'
 // This cannot be added to the import above or else it is `undefined` due to a circular import.
@@ -133,7 +133,8 @@ export interface DatePickerProps<
     >,
     FieldProps,
     Pick<FieldComponentProps<Schema>, 'className' | 'style'>,
-    VariantProps<typeof DATE_PICKER_STYLES> {
+    VariantProps<typeof DATE_PICKER_STYLES>,
+    PropsWithRef<HTMLDivElement> {
   readonly noResetButton?: boolean
   readonly noCalendarHeader?: boolean
   readonly segments?: Partial<Record<DateSegmentType['type'], boolean>>
@@ -144,10 +145,9 @@ export interface DatePickerProps<
 const useDateValueField = Form.makeUseField<DateValue>()
 
 /** A date picker. */
-export const DatePicker = forwardRef(function DatePicker<
-  Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, DateValue>,
->(props: DatePickerProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
+export function DatePicker<Schema extends TSchema, TFieldName extends FieldPath<Schema, DateValue>>(
+  props: DatePickerProps<Schema, TFieldName>,
+) {
   const {
     isRequired = false,
     noResetButton = isRequired,
@@ -165,6 +165,7 @@ export const DatePicker = forwardRef(function DatePicker<
     isInvalid,
     style,
     rounded,
+    ref,
     ...rest
   } = props
 
@@ -258,7 +259,7 @@ export const DatePicker = forwardRef(function DatePicker<
       />
     </Form.Field>
   )
-})
+}
 
 /** Props for a {@link DatePickerResetButton}. */
 interface DatePickerResetButtonProps {

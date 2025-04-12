@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { forwardRef } from '#/utilities/react'
 import * as dialog from '../Dialog'
 import * as components from './components'
 import * as styles from './styles'
@@ -13,12 +12,9 @@ import type * as types from './types'
  * It also handles form submission.
  * Provides better error handling and form state management and better UX out of the box.
  */
-// There is no way to avoid type casting here
-// eslint-disable-next-line no-restricted-syntax
-export const Form = forwardRef(function Form<
-  Schema extends components.TSchema,
-  SubmitResult = void,
->(props: types.FormProps<Schema, SubmitResult>, ref: React.Ref<HTMLFormElement>) {
+export function Form<Schema extends components.TSchema, SubmitResult = void>(
+  props: types.FormProps<Schema, SubmitResult>,
+) {
   const formId = React.useId()
 
   const {
@@ -38,6 +34,7 @@ export const Form = forwardRef(function Form<
     method,
     canSubmitOffline = false,
     testId = props['data-testid'],
+    ref,
     ...formProps
   } = props
 
@@ -98,32 +95,6 @@ export const Form = forwardRef(function Form<
       </components.FormProvider>
     </form>
   )
-}) as unknown as (<Schema extends components.TSchema, SubmitResult = void>(
-  props: React.RefAttributes<HTMLFormElement> & types.FormProps<Schema, SubmitResult>,
-) => React.JSX.Element) & {
-  /* eslint-disable @typescript-eslint/naming-convention */
-  schema: typeof components.schema
-  useForm: typeof components.useForm
-  useField: typeof components.useField
-  makeUseField: typeof components.makeUseField
-  Submit: typeof components.Submit
-  Reset: typeof components.Reset
-  Field: typeof components.Field
-  FieldError: typeof components.FieldError
-  FormError: typeof components.FormError
-  FieldValue: typeof components.FieldValue
-  Provider: typeof components.FormProvider
-  useFormSchema: typeof components.useFormSchema
-  Controller: typeof components.Controller
-  FIELD_STYLES: typeof components.FIELD_STYLES
-  useFormContext: typeof components.useFormContext
-  useOptionalFormContext: typeof components.useOptionalFormContext
-  useWatch: typeof components.useWatch
-  useFieldRegister: typeof components.useFieldRegister
-  useFieldState: typeof components.useFieldState
-  useFormError: typeof components.useFormError
-  useFormState: typeof components.useFormState
-  /* eslint-enable @typescript-eslint/naming-convention */
 }
 
 Form.schema = components.schema

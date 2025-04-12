@@ -8,11 +8,11 @@ import SvgMask from '#/components/SvgMask'
 import { useFocusChild } from '#/hooks/focusHooks'
 import { useText } from '#/providers/TextProvider'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
 import { twMerge } from 'tailwind-merge'
+import type { PropsWithRef } from './AriaComponents'
 
 /** Props for a {@link Link}. */
-export interface LinkProps {
+export interface LinkProps extends PropsWithRef<HTMLAnchorElement> {
   readonly onPress?: () => void
   readonly openInBrowser?: boolean
   readonly to: string
@@ -20,11 +20,9 @@ export interface LinkProps {
   readonly text: string
 }
 
-export default forwardRef(Link)
-
 /** A styled colored link with an icon. */
-function Link(props: LinkProps, ref: React.ForwardedRef<HTMLAnchorElement>) {
-  const { openInBrowser = false, to, icon, text, onPress } = props
+export default function Link(props: LinkProps) {
+  const { openInBrowser = false, to, icon, text, onPress, ref } = props
   const { getText } = useText()
   const { className: focusChildClassName, ...focusChildProps } = useFocusChild()
   const linkRef = React.useRef<HTMLAnchorElement>(null)

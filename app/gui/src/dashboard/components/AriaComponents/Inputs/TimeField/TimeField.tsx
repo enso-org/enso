@@ -1,5 +1,5 @@
 /** @file A date picker. */
-import { useContext, type ForwardedRef } from 'react'
+import { useContext } from 'react'
 
 import type { DateSegment as DateSegmentType } from 'react-stately'
 
@@ -23,10 +23,10 @@ import {
   type FieldProps,
   type FieldStateProps,
   type FieldValues,
+  type PropsWithRef,
   type TSchema,
 } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
-import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 
@@ -80,7 +80,8 @@ export interface TimeFieldProps<
     >,
     FieldProps,
     Pick<FieldComponentProps<Schema>, 'className' | 'style'>,
-    VariantProps<typeof DATE_PICKER_STYLES> {
+    VariantProps<typeof DATE_PICKER_STYLES>,
+    PropsWithRef<HTMLDivElement> {
   readonly noResetButton?: boolean
   readonly segments?: Partial<Record<DateSegmentType['type'], boolean>>
 }
@@ -90,10 +91,9 @@ export interface TimeFieldProps<
 const useTimeValueField = Form.makeUseField<TimeValue>()
 
 /** A date picker. */
-export const TimeField = forwardRef(function TimeField<
-  Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, TimeValue>,
->(props: TimeFieldProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
+export function TimeField<Schema extends TSchema, TFieldName extends FieldPath<Schema, TimeValue>>(
+  props: TimeFieldProps<Schema, TFieldName>,
+) {
   const {
     isRequired = false,
     noResetButton = isRequired,
@@ -109,6 +109,7 @@ export const TimeField = forwardRef(function TimeField<
     granularity,
     style,
     isInvalid,
+    ref,
     ...rest
   } = props
 
@@ -164,7 +165,7 @@ export const TimeField = forwardRef(function TimeField<
       />
     </Form.Field>
   )
-})
+}
 
 /** Props for a {@link TimeFieldResetButton}. */
 interface TimeFieldResetButtonProps {

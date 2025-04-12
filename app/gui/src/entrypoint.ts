@@ -79,7 +79,7 @@ function setupSentry() {
         sentry.browserTracingIntegration({ router }),
         sentry.extraErrorDataIntegration({ captureErrorCause: true }),
         sentry.replayIntegration(),
-        new sentry.BrowserProfilingIntegration(),
+        sentry.browserProfilingIntegration(),
       ],
       profilesSampleRate: SENTRY_SAMPLE_RATE,
       tracesSampleRate: SENTRY_SAMPLE_RATE,

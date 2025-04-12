@@ -1,5 +1,5 @@
 /** @file A horizontal selector supporting multiple input. */
-import { useRef, type CSSProperties, type ForwardedRef, type Ref } from 'react'
+import { useRef, type CSSProperties, type Ref } from 'react'
 
 import { omit, unsafeRemoveUndefined } from 'enso-common/src/utilities/data/object'
 
@@ -16,10 +16,10 @@ import {
   type FieldProps,
   type FieldStateProps,
   type FieldValues,
+  type PropsWithRef,
   type TSchema,
 } from '#/components/AriaComponents'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { MultiSelectorOption, type MultiSelectorOptionProps } from './MultiSelectorOption'
 
@@ -44,6 +44,7 @@ export interface MultiSelectorProps<
       readonly T[]
     >,
     FieldProps,
+    PropsWithRef<HTMLDivElement>,
     Omit<VariantProps<typeof MULTI_SELECTOR_STYLES>, 'disabled' | 'invalid'> {
   readonly items: readonly T[]
   readonly children?: (item: T) => string
@@ -97,11 +98,11 @@ export const MULTI_SELECTOR_STYLES = tv({
 const useReadonlyArrayField = Form.makeUseField<readonly any[]>()
 
 /** A horizontal multi-selector. */
-export const MultiSelector = forwardRef(function MultiSelector<
+export function MultiSelector<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema, readonly T[]>,
   T,
->(props: MultiSelectorProps<Schema, TFieldName, T>, ref: ForwardedRef<HTMLDivElement>) {
+>(props: MultiSelectorProps<Schema, TFieldName, T>) {
   const {
     name,
     items,
@@ -116,6 +117,7 @@ export const MultiSelector = forwardRef(function MultiSelector<
     rounded,
     isRequired = false,
     variant,
+    ref,
     ...inputProps
   } = props
 
@@ -207,4 +209,4 @@ export const MultiSelector = forwardRef(function MultiSelector<
       <FieldError />
     </Form.Field>
   )
-})
+}

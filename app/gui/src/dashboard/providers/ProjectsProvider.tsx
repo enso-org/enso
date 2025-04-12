@@ -124,7 +124,9 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
   )
 
   const addLaunchedProject = eventCallbacks.useEventCallback((project: LaunchedProject) => {
-    setLaunchedProjects((current) => [...current, project])
+    setLaunchedProjects((current) => {
+      return [...current, project]
+    })
   })
   const removeLaunchedProject = eventCallbacks.useEventCallback((projectId: LaunchedProjectId) => {
     setLaunchedProjects((current) =>

@@ -1,5 +1,5 @@
 /** @file A combo box with a list of items that can be filtered. */
-import { useContext, useRef, type ForwardedRef } from 'react'
+import { useContext, useRef } from 'react'
 
 import CrossIcon from '#/assets/cross.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
@@ -11,7 +11,6 @@ import {
   type ComboBoxProps as AriaComboBoxProps,
 } from '#/components/aria'
 import { useText } from '#/providers/TextProvider'
-import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import {
@@ -26,6 +25,7 @@ import {
   type FieldStateProps,
   type FieldValues,
   type InputProps,
+  type PropsWithRef,
   type TSchema,
 } from '../..'
 // This cannot be added to the import above or else it is `undefined` due to a circular import.
@@ -72,6 +72,7 @@ export interface ComboBoxProps<Schema extends TSchema, TFieldName extends FieldP
     FieldProps,
     Pick<FieldComponentProps<Schema>, 'className' | 'style'>,
     VariantProps<typeof COMBO_BOX_STYLES>,
+    PropsWithRef<HTMLDivElement>,
     Pick<InputProps<Schema, TFieldName, string>, 'addonEnd' | 'addonStart' | 'placeholder'> {
   /** This may change as the user types in the input. */
   readonly items: readonly FieldValues<Schema>[TFieldName][]
@@ -91,10 +92,9 @@ export interface ComboBoxProps<Schema extends TSchema, TFieldName extends FieldP
 const useStringField = Form.makeUseField<string>()
 
 /** A combo box with a list of items that can be filtered. */
-export const ComboBox = forwardRef(function ComboBox<
-  Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, string>,
->(props: ComboBoxProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
+export function ComboBox<Schema extends TSchema, TFieldName extends FieldPath<Schema, string>>(
+  props: ComboBoxProps<Schema, TFieldName>,
+) {
   const {
     name,
     items,
@@ -115,6 +115,7 @@ export const ComboBox = forwardRef(function ComboBox<
     variants = COMBO_BOX_STYLES,
     addonStart,
     addonEnd,
+    ref,
   } = props
   const itemsAreStrings = typeof items[0] === 'string'
   const effectiveItems = itemsAreStrings ? items.map((id) => ({ id })) : items
@@ -205,7 +206,7 @@ export const ComboBox = forwardRef(function ComboBox<
       />
     </Form.Field>
   )
-})
+}
 
 /** Props for a {@link ComboBoxResetButton}. */
 interface ComboBoxResetButtonProps {

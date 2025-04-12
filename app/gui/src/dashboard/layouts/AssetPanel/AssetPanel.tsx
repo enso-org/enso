@@ -4,7 +4,7 @@
  * It is used to view and interact with assets in the drive.
  */
 import { AnimatePresence, motion } from 'framer-motion'
-import { memo, startTransition } from 'react'
+import { lazy, memo, startTransition } from 'react'
 
 import type { BackendType } from 'enso-common/src/services/Backend'
 
@@ -16,12 +16,11 @@ import InspectIcon from '#/assets/inspect.svg'
 import VersionsIcon from '#/assets/versions.svg'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { AssetDocs } from '#/layouts/AssetDocs'
 import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useBackend } from '#/providers/BackendProvider'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
 import { useStore } from '#/utilities/zustand'
-import { useFeatureFlag } from '../../providers/FeatureFlagsProvider'
 import {
   assetPanelStore,
   useIsAssetPanelExpanded,
@@ -29,11 +28,6 @@ import {
 } from './AssetPanelState'
 import { AssetPanelTabs } from './components/AssetPanelTabs'
 import { AssetPanelToggle } from './components/AssetPanelToggle'
-import { AssetProperties } from './components/AssetProperties'
-import { AssetVersions } from './components/AssetVersions'
-import { ProjectExecutions } from './components/ProjectExecutions'
-import { ProjectExecutionsCalendar } from './components/ProjectExecutionsCalendar'
-import { ProjectSessions } from './components/ProjectSessions'
 import type { AssetPanelTab } from './types'
 
 const ASSET_SIDEBAR_COLLAPSED_WIDTH = 48
@@ -45,6 +39,29 @@ export interface AssetPanelProps {
   readonly backendType: BackendType
   readonly category: Category
 }
+
+const LazyAssetDocs = lazy(() =>
+  import('#/layouts/AssetDocs').then((module) => ({ default: module.AssetDocs })),
+)
+const LazyAssetProperties = lazy(() =>
+  import('./components/AssetProperties').then((module) => ({ default: module.AssetProperties })),
+)
+const LazyAssetVersions = lazy(() =>
+  import('./components/AssetVersions').then((module) => ({ default: module.AssetVersions })),
+)
+const LazyProjectSessions = lazy(() =>
+  import('./components/ProjectSessions').then((module) => ({ default: module.ProjectSessions })),
+)
+const LazyProjectExecutions = lazy(() =>
+  import('./components/ProjectExecutions').then((module) => ({
+    default: module.ProjectExecutions,
+  })),
+)
+const LazyProjectExecutionsCalendar = lazy(() =>
+  import('./components/ProjectExecutionsCalendar').then((module) => ({
+    default: module.ProjectExecutionsCalendar,
+  })),
+)
 
 /**
  * The asset panel is a sidebar that can be expanded or collapsed.
@@ -182,27 +199,31 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
             <div className="flex h-full flex-col bg-background-hex">
               <ErrorBoundary resetKeys={[itemId]}>
                 <AssetPanelTabs.TabPanel id="settings">
-                  <AssetProperties backend={backend} isReadonly={isReadonly} category={category} />
+                  <LazyAssetProperties
+                    backend={backend}
+                    isReadonly={isReadonly}
+                    category={category}
+                  />
                 </AssetPanelTabs.TabPanel>
 
                 <AssetPanelTabs.TabPanel id="versions">
-                  <AssetVersions backend={backend} />
+                  <LazyAssetVersions backend={backend} />
                 </AssetPanelTabs.TabPanel>
 
                 <AssetPanelTabs.TabPanel id="sessions">
-                  <ProjectSessions backend={backend} />
+                  <LazyProjectSessions backend={backend} />
                 </AssetPanelTabs.TabPanel>
 
                 <AssetPanelTabs.TabPanel id="executions">
-                  <ProjectExecutions backend={backend} />
+                  <LazyProjectExecutions backend={backend} />
                 </AssetPanelTabs.TabPanel>
 
                 <AssetPanelTabs.TabPanel id="executionsCalendar">
-                  <ProjectExecutionsCalendar backend={backend} />
+                  <LazyProjectExecutionsCalendar backend={backend} />
                 </AssetPanelTabs.TabPanel>
 
                 <AssetPanelTabs.TabPanel id="docs">
-                  <AssetDocs backend={backend} />
+                  <LazyAssetDocs backend={backend} />
                 </AssetPanelTabs.TabPanel>
               </ErrorBoundary>
             </div>

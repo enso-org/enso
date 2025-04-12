@@ -3,7 +3,7 @@ import * as React from 'react'
 
 /** Merge multiple refs into a single ref callback. */
 export function mergeRefs<T>(
-  ...refs: (React.Ref<T> | false | null | undefined)[]
+  ...refs: (React.Ref<T | null | undefined> | false | null | undefined)[]
 ): React.RefCallback<T> {
   return (value) => {
     for (const ref of refs) {
@@ -11,7 +11,7 @@ export function mergeRefs<T>(
         if (typeof ref === 'function') {
           ref(value)
         } else {
-          const mutableRef: React.MutableRefObject<T | null> = ref
+          const mutableRef: React.RefObject<T | null | undefined> = ref
           mutableRef.current = value
         }
       }
@@ -24,9 +24,9 @@ export function mergeRefs<T>(
  * Useful for when you need to pass a ref to a component that only accepts refs as an object.
  */
 export function useMergedRef<T>(
-  ...refs: (React.Ref<T> | false | null | undefined)[]
-): React.RefObject<T> {
-  const applyValueOnRefs = React.useMemo(() => mergeRefs(...refs), [refs])
+  ...refs: (React.Ref<T | null> | false | null | undefined)[]
+): React.RefObject<T | null> {
+  const applyValueOnRefs = mergeRefs(...refs)
 
   return React.useMemo(
     () =>

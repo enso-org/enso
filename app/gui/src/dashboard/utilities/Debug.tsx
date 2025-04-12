@@ -16,7 +16,7 @@ interface DebugProps {
   readonly monitorRender?: boolean
   readonly monitorProps?: boolean
   readonly monitorPropCalls?: boolean
-  readonly children: JSX.Element
+  readonly children: React.ReactElement
 }
 
 /** A component that adds debugging info to its direct child. */
@@ -84,7 +84,6 @@ export default function Debug(props: DebugProps) {
       )
     )
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const Component = children.type
   if (monitorRender) {
     console.group(`[Debug(${typeName})] Rendering ${renderId}`, Component, childProps)

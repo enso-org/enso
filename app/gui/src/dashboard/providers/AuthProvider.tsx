@@ -446,6 +446,7 @@ export function GuestLayout({ children }: React.PropsWithChildren) {
     return
   } else if (session?.type === UserSessionType.full) {
     const redirectTo = localStorage.get('loginRedirect')
+
     if (redirectTo != null) {
       localStorage.delete('loginRedirect')
       void router.push(redirectTo)
@@ -473,9 +474,9 @@ export function NotDeletedUserLayout({ children }: React.PropsWithChildren) {
 
   if (isUserMarkedForDeletion()) {
     void router.push(appUtils.RESTORE_USER_PATH)
-  } else {
-    return <>{children}</>
   }
+
+  return <>{children}</>
 }
 
 /** A React Router layout route containing routes only accessible by users that are deleted softly. */

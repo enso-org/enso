@@ -3,7 +3,7 @@
  *
  * A switch allows a user to turn a setting on or off.
  */
-import { useRef, type CSSProperties, type ForwardedRef } from 'react'
+import { useRef, type CSSProperties } from 'react'
 
 import {
   Switch as AriaSwitch,
@@ -11,10 +11,10 @@ import {
   type SwitchProps as AriaSwitchProps,
 } from '#/components/aria'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { Form, type FieldPath, type FieldProps, type FieldStateProps, type TSchema } from '../Form'
 import { TEXT_STYLE } from '../Text'
+import type { PropsWithRef } from '../types'
 
 /** Props for a {@link Switch}. */
 export interface SwitchProps<Schema extends TSchema, TFieldName extends FieldPath<Schema, boolean>>
@@ -25,6 +25,7 @@ export interface SwitchProps<Schema extends TSchema, TFieldName extends FieldPat
       boolean
     >,
     FieldProps,
+    PropsWithRef<HTMLDivElement>,
     Omit<VariantProps<typeof SWITCH_STYLES>, 'disabled' | 'invalid'> {
   readonly className?: string
   readonly style?: CSSProperties
@@ -65,10 +66,9 @@ export const SWITCH_STYLES = tv({
 const useBooleanField = Form.makeUseField<boolean>()
 
 /** A switch allows a user to turn a setting on or off. */
-export const Switch = forwardRef(function Switch<
-  Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, boolean>,
->(props: SwitchProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
+export function Switch<Schema extends TSchema, TFieldName extends FieldPath<Schema, boolean>>(
+  props: SwitchProps<Schema, TFieldName>,
+) {
   const {
     label,
     isDisabled = false,
@@ -81,6 +81,7 @@ export const Switch = forwardRef(function Switch<
     error,
     size,
     labelPosition = 'after',
+    ref,
     ...ariaSwitchProps
   } = props
 
@@ -123,7 +124,7 @@ export const Switch = forwardRef(function Switch<
     >
       <AriaSwitch
         ref={(el) => {
-          mergeRefs(switchRef, fieldRef)(el)
+          mergeRefs(switchRef, fieldRef, ref)(el)
         }}
         {...mergeProps<AriaSwitchProps>()(ariaSwitchProps, fieldProps, {
           defaultSelected: field.value,
@@ -142,4 +143,4 @@ export const Switch = forwardRef(function Switch<
       </AriaSwitch>
     </Form.Field>
   )
-})
+}

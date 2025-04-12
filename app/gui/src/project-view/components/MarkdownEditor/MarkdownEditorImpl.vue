@@ -67,6 +67,8 @@ defineExpose({
     putTextAt(text, pos, pos)
   },
 })
+
+console.log('MarkdownEditorImpl', {})
 </script>
 
 <template>

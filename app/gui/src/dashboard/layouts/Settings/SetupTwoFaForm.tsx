@@ -26,10 +26,11 @@ import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { lazy } from 'react'
+import type { QRCodeCanvas } from 'qrcode.react'
+import { lazy, type ComponentProps, type ComponentType } from 'react'
 
-const LazyQRCode = lazy(() =>
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+const LazyQRCode: ComponentType<ComponentProps<typeof QRCodeCanvas>> = lazy(() =>
+  // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unsafe-assignment
   import('qrcode.react').then(({ QRCodeCanvas }) => ({ default: QRCodeCanvas })),
 )
 

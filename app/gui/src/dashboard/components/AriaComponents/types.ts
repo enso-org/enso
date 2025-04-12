@@ -1,6 +1,6 @@
 /** @file Common types for WAI-ARIA components. */
 import type { Icon as PossibleIcon } from '@/util/iconMetadata/iconName'
-import type { ReactElement } from 'react'
+import type { ForwardedRef, ReactElement } from 'react'
 export type { Placement } from 'react-aria'
 
 /** Props for adding a test id to a component */
@@ -8,6 +8,13 @@ export interface TestIdProps {
   /** @deprecated Use `testId` instead. */
   readonly 'data-testid'?: string | undefined
   readonly testId?: string | undefined
+}
+
+/**
+ * Props for adding a ref to a component.
+ */
+export interface PropsWithRef<E extends Element> {
+  readonly ref?: ForwardedRef<E> | undefined
 }
 
 /** Any icon. */

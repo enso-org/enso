@@ -4,7 +4,6 @@
  * Submit button for forms.
  * Manages the form state and displays a loading spinner when the form is submitting.
  */
-import type { JSX } from 'react'
 
 import { Button, type ButtonProps } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
@@ -51,7 +50,7 @@ export function Submit<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema, Constraint>,
   Constraint,
->(props: SubmitProps<IconType, Schema, TFieldName, Constraint>): JSX.Element {
+>(props: SubmitProps<IconType, Schema, TFieldName, Constraint>): React.JSX.Element {
   const { getText } = useText()
 
   const {

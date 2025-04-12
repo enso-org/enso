@@ -1,6 +1,7 @@
 import { sentryVitePlugin } from '@sentry/vite-plugin'
 import react from '@vitejs/plugin-react'
 import vue from '@vitejs/plugin-vue'
+import reactCompiler from 'babel-plugin-react-compiler'
 import { fileURLToPath } from 'node:url'
 import postcssNesting from 'postcss-nesting'
 import tailwindcss from 'tailwindcss'
@@ -9,8 +10,6 @@ import { defaultClientConditions, defineConfig, type Plugin } from 'vite'
 import VueDevTools from 'vite-plugin-vue-devtools'
 import wasm from 'vite-plugin-wasm'
 import tailwindConfig from './tailwind.config'
-// @ts-expect-error We don't need to typecheck this file
-import reactCompiler from 'babel-plugin-react-compiler'
 // @ts-expect-error We don't need to typecheck this file
 import syntaxImportAttributes from '@babel/plugin-syntax-import-attributes'
 
@@ -47,7 +46,7 @@ export default defineConfig({
       babel: {
         plugins: [
           syntaxImportAttributes,
-          [reactCompiler, { target: '18', enablePreserveExistingMemoizationGuarantees: true }],
+          [reactCompiler, { enablePreserveExistingMemoizationGuarantees: true }],
         ],
       },
     }),

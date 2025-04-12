@@ -30,7 +30,7 @@ export function shouldIgnoreInteractOutside(element: HTMLElement) {
 
 /** Props for {@link useInteractOutside} */
 export interface UseInteractOutsideProps {
-  readonly ref: React.RefObject<HTMLElement>
+  readonly ref: React.RefObject<HTMLElement | null>
   readonly id: string
   readonly onInteractOutside?: (() => void) | null
   readonly isDisabled?: boolean

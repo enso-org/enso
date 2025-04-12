@@ -6,12 +6,10 @@
 
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
 import * as toastify from 'react-toastify'
 
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-
 import * as textProvider from '#/providers/TextProvider'
+import { useEventCallback } from './eventCallbackHooks'
 
 /** Props for the useCopy hook. */
 export interface UseCopyProps {
@@ -27,49 +25,46 @@ export function useCopy(props: UseCopyProps = {}) {
 
   const resetTimeoutIdRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const { getText } = textProvider.useText()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
 
-  const copyQuery = reactQuery.useMutation({
-    mutationFn: (text: string) => {
-      return navigator.clipboard.writeText(text)
-    },
-    onMutate: () => {
-      // Clear the reset timeout.
-      // This is necessary to prevent the button from resetting while the copy is in progress.
-      // This can happen if the user clicks the button multiple times in quick succession.
-      if (resetTimeoutIdRef.current != null) {
-        clearTimeout(resetTimeoutIdRef.current)
-        resetTimeoutIdRef.current = null
-      }
-    },
-    onSuccess: () => {
-      onCopy?.()
+  const [isCopying, startTransition] = React.useTransition()
+  const [isCopied, setIsCopied] = React.useOptimistic(false)
 
-      const toastId = 'copySuccess'
+  const copy = useEventCallback(
+    (text: string) =>
+      new Promise<void>((resolve) => {
+        startTransition(async () => {
+          await navigator.clipboard.writeText(text)
+          setIsCopied(true)
+          onCopy?.()
 
-      if (successToastMessage !== false) {
-        toastify.toast.success(
-          successToastMessage === true ? getText('copiedToClipboard') : successToastMessage,
-          { toastId, closeOnClick: true, hideProgressBar: true, position: 'bottom-right' },
-        )
-        // If user closes the toast, reset the button state
-        toastify.toast.onChange((toast) => {
-          if (toast.id === toastId && toast.status === 'removed') {
-            copyQuery.reset()
+          const toastId = 'copySuccess'
+
+          if (successToastMessage !== false) {
+            toastify.toast.success(
+              successToastMessage === true ? getText('copiedToClipboard') : successToastMessage,
+              { toastId, closeOnClick: true, hideProgressBar: true, position: 'bottom-right' },
+            )
           }
+
+          await new Promise<void>((timeoutResolve) => {
+            // Reset the button to its original state after a timeout.
+            resetTimeoutIdRef.current = setTimeout(() => {
+              toastify.toast.dismiss(toastId)
+              timeoutResolve()
+            }, DEFAULT_TIMEOUT)
+
+            // If user closes the toast, reset the button state
+            toastify.toast.onChange((toast) => {
+              if (toast.id === toastId && toast.status === 'removed') {
+                timeoutResolve()
+              }
+            })
+          })
+
+          resolve()
         })
-      }
+      }),
+  )
 
-      // Reset the button to its original state after a timeout.
-      resetTimeoutIdRef.current = setTimeout(() => {
-        toastify.toast.dismiss(toastId)
-        copyQuery.reset()
-      }, DEFAULT_TIMEOUT)
-    },
-    onError: (error) => {
-      toastAndLog('arbitraryErrorTitle', error)
-    },
-  })
-
-  return copyQuery
+  return { copy, isCopying, isCopied }
 }

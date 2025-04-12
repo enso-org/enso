@@ -1,5 +1,5 @@
 /** @file A dynamic wizard for creating an arbitrary type of Datalink. */
-import { Fragment, type JSX, useState } from 'react'
+import { Fragment, useState } from 'react'
 
 import { Input } from '#/components/aria'
 import { Button, Checkbox, Dropdown, Text } from '#/components/AriaComponents'
@@ -12,6 +12,7 @@ import { constantValueOfSchema, getSchemaName, lookupDef } from '#/utilities/jso
 import { asObject, singletonObjectOrNull } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useQuery } from '@tanstack/react-query'
+import * as React from 'react'
 import { twJoin } from 'tailwind-merge'
 
 /** Props for a {@link JSONSchemaInput}. */
@@ -63,7 +64,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     // This value cannot change.
     return null
   } else {
-    const children: JSX.Element[] = []
+    const children: React.JSX.Element[] = []
     if ('type' in schema) {
       switch (schema.type) {
         case 'string': {

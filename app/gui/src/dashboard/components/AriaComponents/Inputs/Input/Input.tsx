@@ -1,12 +1,5 @@
 /** @file Text input. */
-import {
-  useRef,
-  type CSSProperties,
-  type ForwardedRef,
-  type ReactElement,
-  type ReactNode,
-  type Ref,
-} from 'react'
+import { useRef, type CSSProperties, type ReactElement, type ReactNode, type Ref } from 'react'
 
 import * as aria from '#/components/aria'
 import {
@@ -17,6 +10,7 @@ import {
   type FieldProps,
   type FieldStateProps,
   type FieldVariantProps,
+  type PropsWithRef,
   type TestIdProps,
   type TSchema,
 } from '#/components/AriaComponents'
@@ -42,7 +36,8 @@ export interface InputProps<
     FieldProps,
     FieldVariantProps,
     Omit<VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'>,
-    TestIdProps {
+    TestIdProps,
+    PropsWithRef<HTMLDivElement> {
   /**
    * If `true`, the input will be focused when the component is mounted.
    * If `select`, the input will be focused and the text will be selected.
@@ -60,11 +55,11 @@ export interface InputProps<
 }
 
 /** Basic input component. Input component is a component that is used to get user input in a text field. */
-export const Input = forwardRef(function Input<
+export function Input<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema, Constraint>,
   Constraint extends number | string = number | string,
->(props: InputProps<Schema, TFieldName, Constraint>, ref: ForwardedRef<HTMLDivElement>) {
+>(props: InputProps<Schema, TFieldName, Constraint>) {
   const {
     name,
     inputRef,
@@ -77,6 +72,7 @@ export const Input = forwardRef(function Input<
     form: formRaw,
     className,
     testId: testIdRaw,
+    ref,
     ...inputProps
   } = props
 
@@ -164,7 +160,7 @@ export const Input = forwardRef(function Input<
       />
     </Form.Field>
   )
-})
+}
 
 /** Props for an {@link BasicInput}. */
 export interface BasicInputProps

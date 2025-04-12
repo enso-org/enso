@@ -53,6 +53,7 @@ export function useMonitorDependencies(
 ) {
   const oldDependenciesRef = React.useRef(dependencies)
   if (active) {
+    // eslint-disable-next-line react-compiler/react-compiler
     const indicesOfChangedDependencies = dependencies.flatMap((dep, i) =>
       Object.is(dep, oldDependenciesRef.current[i]) ? [] : [i],
     )
@@ -61,6 +62,7 @@ export function useMonitorDependencies(
       console.group(`dependencies changed${descriptionText}`)
       for (const i of indicesOfChangedDependencies) {
         console.group(dependencyDescriptions?.[i] ?? `dependency #${i + 1}`)
+        // eslint-disable-next-line react-compiler/react-compiler
         console.log('old value:', oldDependenciesRef.current[i])
         console.log('new value:', dependencies[i])
         console.groupEnd()

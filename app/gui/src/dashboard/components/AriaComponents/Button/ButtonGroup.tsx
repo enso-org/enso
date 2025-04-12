@@ -1,5 +1,5 @@
 /** @file A group of buttons. */
-import { forwardRef, Fragment, type PropsWithChildren, type ReactElement } from 'react'
+import { Fragment, type PropsWithChildren, type ReactElement } from 'react'
 import flattenChildren from 'react-keyed-flatten-children'
 
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
@@ -66,13 +66,11 @@ interface ButtonGroupProps
     TestIdProps {
   readonly className?: string | undefined
   readonly buttonVariants?: ButtonGroupSharedButtonProps
+  readonly ref?: React.ForwardedRef<HTMLDivElement>
 }
 
 /** A group of buttons. */
-export const ButtonGroup = forwardRef(function ButtonGroup(
-  props: ButtonGroupProps,
-  ref: React.ForwardedRef<HTMLDivElement>,
-) {
+export function ButtonGroup(props: ButtonGroupProps) {
   const {
     children,
     className,
@@ -85,6 +83,7 @@ export const ButtonGroup = forwardRef(function ButtonGroup(
     verticalAlign,
     buttonVariants = {},
     testId = 'button-group',
+    ref,
     ...passthrough
   } = props
 
@@ -114,7 +113,7 @@ export const ButtonGroup = forwardRef(function ButtonGroup(
       </ResetButtonGroupContext>
     </div>
   )
-})
+}
 
 /**
  * A wrapper for a button group that joins the buttons together.

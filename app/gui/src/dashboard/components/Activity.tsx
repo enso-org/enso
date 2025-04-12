@@ -4,8 +4,7 @@
  * This component is used to suspend the rendering of a subtree until a promise is resolved.
  */
 import { unsafeWriteValue } from '#/utilities/write'
-import { startTransition, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { useAwait } from './Await'
+import { startTransition, Suspense, use, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 /**
  * Props for {@link Activity}
@@ -88,8 +87,10 @@ interface ActivityInnerProps {
 function ActivityInner(props: ActivityInnerProps) {
   const { promise, children } = props
 
-  // Suspend the subtree
-  useAwait(promise)
+  if (promise != null) {
+    // Suspend the subtree
+    use(promise)
+  }
 
   return children
 }
@@ -98,7 +99,7 @@ function ActivityInner(props: ActivityInnerProps) {
  * Props for {@link UnhideSuspendedTree}
  */
 interface UnhideSuspendedTreeProps {
-  readonly contentRef: React.RefObject<HTMLDivElement>
+  readonly contentRef: React.RefObject<HTMLDivElement | null>
 }
 
 /**

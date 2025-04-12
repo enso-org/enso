@@ -3,7 +3,7 @@
  *
  * This file contains hooks for using Zustand store with tearing transitions.
  */
-import type { DispatchWithoutAction, Reducer, RefObject } from 'react'
+import type { DispatchWithoutAction, RefObject } from 'react'
 import { useEffect, useReducer, useRef } from 'react'
 import { type StoreApi } from 'zustand'
 import { useStoreWithEqualityFn } from 'zustand/traditional'
@@ -83,17 +83,13 @@ export function useTearingTransitionStore<State, Slice>(
 
   const equalityFunction = resolveAreEqual(areEqual)
 
-  const [[sliceFromReducer, storeFromReducer], rerender] = useReducer<
-    Reducer<
-      readonly [Slice, StoreApi<State>, State],
-      readonly [Slice, StoreApi<State>, State] | undefined
-    >,
-    undefined
-  >(
+  const [[sliceFromReducer, storeFromReducer], rerender] = useReducer(
     (prev, fromSelf) => {
-      if (fromSelf) {
-        return fromSelf
+      if (fromSelf != null) {
+        // eslint-disable-next-line no-restricted-syntax
+        return fromSelf as [Slice, StoreApi<State>, State]
       }
+
       const nextState = store.getState()
       if (Object.is(prev[2], nextState) && prev[1] === store) {
         return prev
@@ -104,10 +100,10 @@ export function useTearingTransitionStore<State, Slice>(
         return prev
       }
 
-      return [nextSlice, store, nextState]
+      return [nextSlice, store, nextState] as const
     },
     undefined,
-    () => [selector(state), store, state],
+    () => [selector(state), store, state] as const,
   )
 
   useEffect(() => {
@@ -151,7 +147,7 @@ function useNonCompilableConditionalStore<State, Slice>(
   equalityFunction: EqualityFunction<Slice>,
   prevUnsafeEnableTransition: RefObject<boolean>,
 ) {
-  /* eslint-disable react-compiler/react-compiler */
+  // eslint-disable-next-line react-compiler/react-compiler
   /* eslint-disable react-hooks/rules-of-hooks */
   if (prevUnsafeEnableTransition.current !== unsafeEnableTransition) {
     throw new Error(
@@ -161,6 +157,5 @@ function useNonCompilableConditionalStore<State, Slice>(
   return unsafeEnableTransition ?
       useTearingTransitionStore(store, selector, equalityFunction)
     : useStoreWithEqualityFn(store, selector, equalityFunction)
-  /* eslint-enable react-compiler/react-compiler */
   /* eslint-enable react-hooks/rules-of-hooks */
 }

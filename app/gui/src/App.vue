@@ -16,9 +16,14 @@ import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoB
 import { baseConfig, configValue, mergeConfig, type ApplicationConfigValue } from '@/util/config'
 import { urlParams } from '@/util/urlParams'
 import { useQueryClient } from '@tanstack/vue-query'
-import { applyPureReactInVue } from 'veaury'
+import { createRoot } from 'react-dom/client'
+import { applyPureReactInVue, setVeauryOptions } from 'veaury'
 import { computed, onMounted } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
+
+setVeauryOptions({ react: { createRoot } })
+
+const ReactRootInVue = applyPureReactInVue(ReactRoot)
 
 const { projectViewOnly, onAuthenticated } = defineProps<{
   // Used in Project View integration tests. Once both test projects will be merged, this should be
@@ -43,7 +48,6 @@ const appConfig = computed(() =>
 )
 const appConfigValue = computed((): ApplicationConfigValue => configValue(appConfig.value))
 
-const ReactRootWrapper = applyPureReactInVue(ReactRoot)
 const queryClient = useQueryClient()
 
 provideKeyboard()

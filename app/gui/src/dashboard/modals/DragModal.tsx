@@ -19,7 +19,7 @@ const DEFAULT_OFFSET_PX = 16
 /** Props for a {@link DragModal}. */
 export interface DragModalProps
   extends Readonly<PropsWithChildren>,
-    Readonly<JSX.IntrinsicElements['div']> {
+    Readonly<React.JSX.IntrinsicElements['div']> {
   readonly hideBadge?: boolean
   readonly event: DragEvent
   readonly onDragEnd: () => void

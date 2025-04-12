@@ -148,11 +148,11 @@ export default function App(props: React.PropsWithChildren<AppProps>) {
           projectManagerInstance: new ProjectManager(config.projectManagerUrl, rootDirectory),
           projectManagerRootDirectory: rootDirectory,
         }
-      } else {
-        return {
-          projectManagerInstance: null,
-          projectManagerRootDirectory: null,
-        }
+      }
+
+      return {
+        projectManagerInstance: null,
+        projectManagerRootDirectory: null,
       }
     },
   })

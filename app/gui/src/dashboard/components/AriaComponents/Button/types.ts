@@ -8,7 +8,7 @@ import type {
   PressEvent,
 } from '#/components/aria'
 import type { ExtractFunction } from '#/utilities/tailwindVariants'
-import type { ReactElement, ReactNode } from 'react'
+import type { ForwardedRef, ReactElement, ReactNode } from 'react'
 import type { Addon, IconProp, TestIdProps } from '../types'
 import type { BUTTON_STYLES, ButtonVariants } from './variants'
 
@@ -57,6 +57,7 @@ interface PropsWithoutHref {
 export interface BaseButtonProps<IconType extends string, Render>
   extends Omit<ButtonVariants, 'iconOnly' | 'isJoined' | 'loading' | 'position'>,
     TestIdProps {
+  readonly ref?: ForwardedRef<HTMLButtonElement>
   /** If `true`, the loader will not be shown. */
   readonly hideLoader?: boolean
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */

@@ -36,7 +36,7 @@ export default function Login() {
   const initialEmail = searchParams.get('email') ?? ''
 
   useEffect(() => {
-    void queryClient.clearWithPersister()
+    // void queryClient.clearWithPersister()
   }, [queryClient])
 
   const form = Form.useForm({

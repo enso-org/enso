@@ -42,7 +42,7 @@ export function CopyBlock(props: CopyBlockProps) {
   const { copyText, className, onCopy = () => {}, variants = COPY_BLOCK_STYLES } = props
 
   const { getText } = useText()
-  const { mutateAsync, isSuccess } = useCopy({ onCopy })
+  const { copy, isCopied } = useCopy({ onCopy })
 
   const styles = variants()
 
@@ -50,8 +50,8 @@ export function CopyBlock(props: CopyBlockProps) {
     <Button
       variant="custom"
       size="custom"
-      onPress={() => mutateAsync(copyText)}
-      tooltip={isSuccess ? getText('copied') : getText('copy')}
+      onPress={() => copy(copyText)}
+      tooltip={isCopied ? getText('copied') : getText('copy')}
       className={styles.base({ className })}
     >
       <span className={styles.copyTextBlock()}>{copyText}</span>

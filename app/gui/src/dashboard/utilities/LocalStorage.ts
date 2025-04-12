@@ -53,6 +53,20 @@ export default class LocalStorage {
   localStorageKey = common.PRODUCT_NAME.toLowerCase()
   protected values: Partial<LocalStorageData>
   private readonly eventTarget = new EventTarget()
+  private readonly locks = new Map<
+    LocalStorageKey,
+    {
+      /**
+       * Whether the key is locked.
+       */
+      readonly locked: true
+      /**
+       * The ID of the function that locked the key.
+       * Only this function can unlock the key or change the value.
+       */
+      readonly allowedIdToChange: string
+    }
+  >()
 
   /** Create a {@link LocalStorage}. */
   private constructor() {
@@ -120,8 +134,15 @@ export default class LocalStorage {
   }
 
   /** Write an entry to the stored data, and save. */
-  set<K extends LocalStorageKey>(key: K, value: LocalStorageData[K]) {
+  set<K extends LocalStorageKey>(key: K, value: LocalStorageData[K], idToChange?: string) {
     this.assertRegisteredKey(key)
+
+    const lock = this.locks.get(key)
+    if (lock != null) {
+      if (lock.allowedIdToChange !== idToChange) {
+        return
+      }
+    }
 
     this.values[key] = value
 
@@ -197,8 +218,15 @@ export default class LocalStorage {
   /**
    * Delete an entry from the stored data, and save.
    */
-  delete<K extends LocalStorageKey>(key: K) {
+  delete<K extends LocalStorageKey>(key: K, idToChange?: string) {
     this.assertRegisteredKey(key)
+
+    const lock = this.locks.get(key)
+    if (lock != null) {
+      if (lock.allowedIdToChange !== idToChange) {
+        return
+      }
+    }
 
     // The key being deleted is one of a statically known set of keys.
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete

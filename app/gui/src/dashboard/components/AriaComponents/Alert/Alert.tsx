@@ -1,10 +1,10 @@
 /** @file Alert component. */
-import { type ForwardedRef, type HTMLAttributes, type PropsWithChildren } from 'react'
+import { type HTMLAttributes, type PropsWithChildren } from 'react'
 
-import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { Icon } from '../../Icon'
-import type { IconProp } from '../types'
+import type { IconProp, PropsWithRef } from '../types'
+
 // eslint-disable-next-line react-refresh/only-export-components
 export const ALERT_STYLES = tv({
   base: 'flex items-stretch gap-2',
@@ -51,16 +51,14 @@ export const ALERT_STYLES = tv({
 export interface AlertProps<IconType extends string = string>
   extends PropsWithChildren,
     VariantProps<typeof ALERT_STYLES>,
+    PropsWithRef<HTMLDivElement>,
     HTMLAttributes<HTMLDivElement> {
   /** The icon to display in the Alert */
   readonly icon?: IconProp<IconType> | null | undefined
 }
 
 /** Alert component. */
-export const Alert = forwardRef(function Alert<IconType extends string = string>(
-  props: AlertProps<IconType>,
-  ref: ForwardedRef<HTMLDivElement>,
-) {
+export function Alert<IconType extends string = string>(props: AlertProps<IconType>) {
   const {
     children,
     className,
@@ -72,6 +70,7 @@ export const Alert = forwardRef(function Alert<IconType extends string = string>
     variants = ALERT_STYLES,
     tabIndex: rawTabIndex,
     role: rawRole,
+    ref,
     ...containerProps
   } = props
 
@@ -98,4 +97,4 @@ export const Alert = forwardRef(function Alert<IconType extends string = string>
       <div className={classes.children()}>{children}</div>
     </div>
   )
-})
+}

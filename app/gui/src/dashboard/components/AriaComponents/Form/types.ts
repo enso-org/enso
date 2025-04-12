@@ -7,7 +7,7 @@ import type * as React from 'react'
 
 import type * as reactHookForm from 'react-hook-form'
 
-import type { TestIdProps } from '../types'
+import type { PropsWithRef, TestIdProps } from '../types'
 import type * as components from './components'
 import type * as styles from './styles'
 
@@ -22,10 +22,11 @@ export type FormProps<Schema extends components.TSchema, SubmitResult = void> =
 interface BaseFormProps<Schema extends components.TSchema>
   extends Omit<
       React.HTMLProps<HTMLFormElement>,
-      'children' | 'className' | 'form' | 'onSubmit' | 'onSubmitCapture' | 'style'
+      'children' | 'className' | 'form' | 'onSubmit' | 'onSubmitCapture' | 'ref' | 'style'
     >,
     Omit<styles.FormStyleProps, 'class' | 'className'>,
-    TestIdProps {
+    TestIdProps,
+    PropsWithRef<HTMLFormElement> {
   readonly style?:
     | React.CSSProperties
     | ((props: components.UseFormReturn<Schema>) => React.CSSProperties)
@@ -36,7 +37,7 @@ interface BaseFormProps<Schema extends components.TSchema>
           readonly form: components.UseFormReturn<Schema>
         },
       ) => React.ReactNode)
-  readonly formRef?: React.MutableRefObject<components.UseFormReturn<Schema>>
+  readonly formRef?: React.RefObject<components.UseFormReturn<Schema>>
 
   readonly className?: string | ((props: components.UseFormReturn<Schema>) => string)
 

@@ -1,5 +1,5 @@
 /** @file A styled dropdown. */
-import { useEffect, useRef, useState, type ForwardedRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import CheckMarkIcon from '#/assets/check_mark.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
@@ -16,7 +16,6 @@ import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import {
   Form,
@@ -27,6 +26,7 @@ import {
   type FieldValues,
   type FieldVariantProps,
   type FormInstance,
+  type PropsWithRef,
   type TSchema,
 } from '../..'
 // This cannot be added to the import above or else it is `undefined` due to a circular import.
@@ -121,14 +121,18 @@ interface InternalBaseDropdownProps<T>
 }
 
 /** Props for a {@link Dropdown}, when `multiple` is `false` or absent. */
-interface InternalSingleDropdownProps<T> extends InternalBaseDropdownProps<T> {
+interface InternalSingleDropdownProps<T>
+  extends InternalBaseDropdownProps<T>,
+    PropsWithRef<HTMLDivElement> {
   readonly multiple?: false
   readonly selectedIndex: number | null
   readonly onChange: (item: T, index: number) => void
 }
 
 /** Props for a {@link Dropdown}, when `multiple` is `true`. */
-interface InternalMultipleDropdownProps<T> extends InternalBaseDropdownProps<T> {
+interface InternalMultipleDropdownProps<T>
+  extends InternalBaseDropdownProps<T>,
+    PropsWithRef<HTMLDivElement> {
   readonly multiple: true
   readonly selectedIndices: readonly number[]
   readonly renderMultiple: (props: InternalChildrenProps<T>) => ReactNode
@@ -139,10 +143,7 @@ interface InternalMultipleDropdownProps<T> extends InternalBaseDropdownProps<T> 
 export type DropdownProps<T> = InternalMultipleDropdownProps<T> | InternalSingleDropdownProps<T>
 
 /** A styled dropdown. */
-export const Dropdown = forwardRef(function Dropdown<T>(
-  props: DropdownProps<T>,
-  ref: ForwardedRef<HTMLDivElement>,
-) {
+export function Dropdown<T>(props: DropdownProps<T>) {
   const {
     readOnly = false,
     className,
@@ -151,6 +152,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
     size,
     variants = DROPDOWN_STYLES,
     children: Child,
+    ref,
   } = props
   const listBoxItems = items.map((item, i) => ({ item, i }))
   const [tempSelectedIndex, setTempSelectedIndex] = useState<number | null>(null)
@@ -318,7 +320,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
       </div>
     </FocusRing>
   )
-})
+}
 
 /** Props for a {@link FormDropdown}. */
 export interface FormDropdownProps<

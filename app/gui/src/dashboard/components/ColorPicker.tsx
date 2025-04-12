@@ -12,7 +12,6 @@ import RadioGroup from '#/components/styled/RadioGroup'
 
 import * as backend from '#/services/Backend'
 
-import { forwardRef } from '#/utilities/react'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** Props for a {@link ColorPickerItem}. */
@@ -51,14 +50,12 @@ export interface ColorPickerProps extends Readonly<Omit<aria.RadioGroupProps, 'c
   readonly className?: string
   readonly pickerClassName?: string
   readonly setColor: (color: backend.LChColor) => void
+  readonly ref?: React.ForwardedRef<HTMLDivElement>
 }
 
 /** A color picker to select from a predetermined list of colors. */
-export default forwardRef(ColorPicker)
-
-/** A color picker to select from a predetermined list of colors. */
-function ColorPicker(props: ColorPickerProps, ref: React.ForwardedRef<HTMLDivElement>) {
-  const { className, pickerClassName = '', children, setColor, ...radioGroupProps } = props
+export default function ColorPicker(props: ColorPickerProps) {
+  const { className, pickerClassName = '', children, setColor, ref, ...radioGroupProps } = props
   return (
     <RadioGroup
       ref={ref}

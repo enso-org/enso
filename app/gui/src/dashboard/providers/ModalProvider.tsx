@@ -20,7 +20,7 @@ export type ModalOrCallback = Modal | ((prevModal: Modal | null) => Modal | null
 /** State contained in a `ModalStaticContext`. */
 interface ModalStaticContextType {
   readonly setModal: React.Dispatch<React.SetStateAction<Modal | null>>
-  readonly modalRef: React.RefObject<Modal>
+  readonly modalRef: React.RefObject<Modal | null>
 }
 
 /** State contained in a `ModalContext`. */

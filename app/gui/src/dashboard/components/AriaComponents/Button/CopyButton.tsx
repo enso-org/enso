@@ -1,5 +1,4 @@
 /** @file A button that copies text to the clipboard. */
-import Error from '#/assets/cross.svg'
 import CopyIcon from '#/assets/duplicate.svg'
 import Done from '#/assets/tick.svg'
 import { useCopy } from '#/hooks/copyHooks'
@@ -17,7 +16,6 @@ export interface CopyButtonProps<IconType extends string>
    * If `false` is provided, no icon will be shown.
    */
   readonly copyIcon?: string | false
-  readonly errorIcon?: string
   readonly successIcon?: string
   readonly onCopy?: () => void
   /**
@@ -35,20 +33,17 @@ export function CopyButton<IconType extends string>(props: CopyButtonProps<IconT
     variant = 'icon',
     copyIcon = CopyIcon,
     successIcon = Done,
-    errorIcon = Error,
     copyText,
     onCopy,
     ...buttonProps
   } = props
   const { getText } = textProvider.useText()
-  const copyQuery = useCopy({ onCopy })
-  const successfullyCopied = copyQuery.isSuccess
-  const isError = copyQuery.isError
+  const { copy, isCopied } = useCopy({ onCopy })
+
   const showIcon = copyIcon !== false
   const icon =
     showIcon ?
-      isError ? errorIcon
-      : successfullyCopied ? successIcon
+      isCopied ? successIcon
       : copyIcon
     : null
 
@@ -59,7 +54,7 @@ export function CopyButton<IconType extends string>(props: CopyButtonProps<IconT
       {...(buttonProps as any)}
       variant={variant}
       aria-label={props['aria-label'] ?? getText('copyShortcut')}
-      onPress={() => copyQuery.mutateAsync(copyText)}
+      onPress={() => copy(copyText)}
       icon={icon}
     />
   )

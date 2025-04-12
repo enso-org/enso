@@ -425,8 +425,10 @@ export function useBackendMutationState<Method extends BackendMutationMethod, Re
   return useMutationState({
     filters: {
       ...backendMutationOptions(backend, method, mutationKey ? { mutationKey } : {}),
-      predicate: (mutation: BackendMutation<Method>) =>
-        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+      predicate: (mutation: Mutation<unknown, Error, unknown, unknown>) =>
+        mutation.state.status === 'pending' &&
+        // eslint-disable-next-line no-restricted-syntax
+        (predicate?.(mutation as BackendMutation<Method>) ?? true),
     },
     // This is UNSAFE when the `Result` parameter is explicitly specified in the
     // generic parameter list.

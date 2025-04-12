@@ -1,13 +1,7 @@
 /** @file A resizable input that uses a content-editable div. */
-import {
-  useEffect,
-  useRef,
-  type ClipboardEvent,
-  type ForwardedRef,
-  type HTMLAttributes,
-} from 'react'
+import { useEffect, useRef, type ClipboardEvent, type HTMLAttributes } from 'react'
 
-import type { FieldVariantProps } from '#/components/AriaComponents'
+import type { FieldVariantProps, PropsWithRef } from '#/components/AriaComponents'
 import {
   Form,
   Text,
@@ -19,7 +13,6 @@ import {
 import { useAutoFocus } from '#/hooks/autoFocusHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { INPUT_STYLES } from '../variants'
 
@@ -44,6 +37,7 @@ export interface ResizableContentEditableInputProps<
       'disabled' | 'invalid' | 'rounded' | 'size' | 'variant'
     >,
     FieldVariantProps,
+    PropsWithRef<HTMLDivElement>,
     Omit<FieldProps, 'variant'>,
     FieldVariantProps,
     Pick<VariantProps<typeof INPUT_STYLES>, 'rounded' | 'size' | 'variant'>,
@@ -70,13 +64,10 @@ const useStringField = Form.makeUseField<string>()
  * A resizable input that uses a content-editable div.
  * This component might be useful for a text input that needs to have highlighted content inside of it.
  */
-export const ResizableContentEditableInput = forwardRef(function ResizableContentEditableInput<
+export function ResizableContentEditableInput<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema, string>,
->(
-  props: ResizableContentEditableInputProps<Schema, TFieldName>,
-  ref: ForwardedRef<HTMLDivElement>,
-) {
+>(props: ResizableContentEditableInputProps<Schema, TFieldName>) {
   const {
     mode = 'onInput',
     placeholder = '',
@@ -91,6 +82,7 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     variants = CONTENT_EDITABLE_STYLES,
     fieldVariants,
     autoFocus = false,
+    ref,
     ...textFieldProps
   } = props
 
@@ -185,4 +177,4 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
       </div>
     </Form.Field>
   )
-})
+}

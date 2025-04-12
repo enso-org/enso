@@ -13,13 +13,13 @@ import HttpClient from '#/utilities/HttpClient'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { QueryClient } from '@tanstack/vue-query'
 import { IS_DEV_MODE, isOnElectron, isOnLinux } from 'enso-common/src/detect'
-import { PropsWithChildren, StrictMode } from 'react'
+import { PropsWithChildren } from 'react'
 import invariant from 'tiny-invariant'
 
 interface ReactRootProps {
   queryClient: QueryClient
-  classSet: Map<string, number>
   onAuthenticated: (accessToken: string | null) => void
+  classSet?: Map<string, number>
 }
 
 function generateSessionID() {
@@ -57,30 +57,29 @@ export default function ReactRoot(props: PropsWithChildren<ReactRootProps>) {
   const isCloudBuild = $config.CLOUD_BUILD === 'true'
 
   return (
-    <StrictMode>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <UIProviders locale="en-US" portalRoot={portalRoot} appRoot={appRoot}>
         <ErrorBoundary>
-          <UIProviders locale="en-US" portalRoot={portalRoot} appRoot={appRoot}>
-            <Suspense fallback={<LoadingScreen />}>
-              <OfflineNotificationManager>
-                <LoggerProvider logger={console}>
-                  <HttpClientProvider httpClient={httpClient}>
-                    <App
-                      supportsDeepLinks={supportsDeepLinks}
-                      supportsLocalBackend={!isCloudBuild}
-                      onAuthenticated={onAuthenticated}
-                    >
+          <Suspense fallback={<LoadingScreen />}>
+            <OfflineNotificationManager>
+              <LoggerProvider logger={console}>
+                <HttpClientProvider httpClient={httpClient}>
+                  <App
+                    supportsDeepLinks={supportsDeepLinks}
+                    supportsLocalBackend={!isCloudBuild}
+
+                    onAuthenticated={onAuthenticated}
+                  >
                       {children}
                     </App>
-                  </HttpClientProvider>
-                </LoggerProvider>
-              </OfflineNotificationManager>
-            </Suspense>
+                </HttpClientProvider>
+              </LoggerProvider>
+            </OfflineNotificationManager>
+          </Suspense>
 
-            <ReactQueryDevtools />
-          </UIProviders>
+          <ReactQueryDevtools />
         </ErrorBoundary>
-      </QueryClientProvider>
-    </StrictMode>
+      </UIProviders>
+    </QueryClientProvider>
   )
 }

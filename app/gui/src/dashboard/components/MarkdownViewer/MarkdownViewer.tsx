@@ -1,5 +1,4 @@
 /** @file A Markdown viewer component. */
-import * as React from 'react'
 
 import { useLogger } from '#/providers/LoggerProvider'
 import { useText } from '#/providers/TextProvider'
@@ -7,6 +6,7 @@ import { resolveDocImageUrl } from '@/components/DocumentationEditor/images'
 import { type UrlTransformer } from '@/components/MarkdownEditor/imageUrlTransformer'
 import { Err, Ok } from '@/util/data/result'
 import { type TestIdProps } from '../AriaComponents'
+import { MarkdownEditor } from './defaultRenderer'
 
 /** Props for a {@link MarkdownViewer}. */
 export interface MarkdownViewerProps extends TestIdProps {
@@ -14,13 +14,6 @@ export interface MarkdownViewerProps extends TestIdProps {
   readonly text: string
   readonly imgUrlResolver: (relativePath: string) => Promise<string>
 }
-
-const LazyMarkdownEditor = React.lazy(() =>
-  import('#/components/MarkdownViewer/defaultRenderer').then(
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    ({ MarkdownEditor }) => MarkdownEditor,
-  ),
-)
 
 /**
  * Markdown viewer component.
@@ -51,7 +44,7 @@ export function MarkdownViewer(props: MarkdownViewerProps) {
   }
 
   return (
-    <LazyMarkdownEditor
+    <MarkdownEditor
       content={text}
       transformImageUrl={transformImageUrl}
       toolbar={false}

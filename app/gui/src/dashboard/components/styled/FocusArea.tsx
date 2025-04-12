@@ -1,5 +1,5 @@
 /** @file An area that contains focusable children. */
-import { type JSX, type RefCallback, useMemo, useRef, useState } from 'react'
+import { type RefCallback, useMemo, useRef, useState } from 'react'
 
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 
@@ -27,7 +27,7 @@ export interface FocusAreaProps {
   readonly focusDefaultClass?: string
   readonly active?: boolean
   readonly direction: FocusDirection
-  readonly children: (props: FocusWithinProps) => JSX.Element
+  readonly children: (props: FocusWithinProps) => React.JSX.Element
 }
 
 /**

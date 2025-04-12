@@ -15,10 +15,10 @@ import * as mergeRefs from '#/utilities/mergeRefs'
 import { DialogDismiss, ResetButtonGroupContext } from '#/components/AriaComponents'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasure } from '#/hooks/measureHooks'
-import { LayoutGroup, motion, type Spring } from '#/utilities/motion'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import { unsafeWriteValue } from '#/utilities/write'
+import { LayoutGroup, motion, type Spring } from 'framer-motion'
 import { useRootContext } from '../../UIProviders'
 import { Close } from './Close'
 import * as dialogProvider from './DialogProvider'
@@ -29,7 +29,7 @@ import * as utlities from './utilities'
 import { DIALOG_BACKGROUND } from './variants'
 
 // eslint-disable-next-line no-restricted-syntax
-const MotionDialog = motion(aria.Dialog)
+const MotionDialog = motion.create(aria.Dialog)
 
 const OVERLAY_STYLES = tv({
   base: 'fixed inset-0 isolate flex items-center justify-center bg-primary/20',
@@ -441,7 +441,7 @@ interface DialogBodyProps {
   readonly dialogId: string
   readonly contentDimensionsRef: (node: HTMLElement | null) => void
   readonly headerDimensionsRef: (node: HTMLElement | null) => void
-  readonly scrollerRef: React.RefObject<HTMLDivElement>
+  readonly scrollerRef: React.RefObject<HTMLDivElement | null>
   readonly close: () => void
   readonly measurerWrapperClassName: string
   readonly contentClassName: string
@@ -487,7 +487,7 @@ interface DialogHeaderProps extends Omit<VariantProps<typeof DIALOG_STYLES>, 'sc
   readonly title: DialogProps['title']
   readonly titleId: string
   readonly headerDimensionsRef: (node: HTMLElement | null) => void
-  readonly scrollerRef: React.RefObject<HTMLDivElement>
+  readonly scrollerRef: React.RefObject<HTMLDivElement | null>
   readonly close: () => void
 }
 

@@ -27,7 +27,7 @@ function useEventListener<K extends keyof WindowEventMap>(
 function useEventListener<K extends keyof HTMLElementEventMap, T extends Element = HTMLDivElement>(
   eventName: K,
   handler: (event: HTMLElementEventMap[K]) => void,
-  element: RefObject<T> | T,
+  element: RefObject<T | null> | T,
   options?: UseEventListenerParams | boolean,
 ): void
 
@@ -52,7 +52,7 @@ function useEventListener<
 >(
   eventName: KH | KW,
   handler: (event: Event | HTMLElementEventMap[KH] | WindowEventMap[KW]) => void,
-  element: RefObject<T> | T,
+  element: RefObject<T | null> | T,
   options: UseEventListenerParams | boolean = { passive: true },
 ) {
   const {
@@ -130,7 +130,7 @@ function elementIsHTMLElement(element: unknown): element is HTMLElement {
 /**
  * Check if the element is a RefObject.
  */
-function elementIsRef(element: unknown): element is RefObject<Element> {
+function elementIsRef(element: unknown): element is RefObject<Element | null> {
   if (elementIsDocument(element)) {
     return false
   }

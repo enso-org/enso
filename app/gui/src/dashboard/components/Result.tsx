@@ -2,7 +2,7 @@
 import Success from '#/assets/check_mark.svg'
 import Error from '#/assets/cross.svg'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import type { JSX, PropsWithChildren, ReactElement } from 'react'
+import type { PropsWithChildren, ReactElement } from 'react'
 import type { TestIdProps } from './AriaComponents'
 import { Text } from './AriaComponents/Text'
 import { Loader } from './Loader'
@@ -81,8 +81,8 @@ export interface ResultProps
     VariantProps<typeof RESULT_STYLES>,
     TestIdProps {
   readonly className?: string
-  readonly title?: JSX.Element | string
-  readonly subtitle?: JSX.Element | string
+  readonly title?: React.JSX.Element | string
+  readonly subtitle?: React.JSX.Element | string
   /**
    * The status of the result.
    * @default 'success'

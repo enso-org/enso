@@ -166,7 +166,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
       hidden={hidden}
       color="accent"
       action="copyId"
-      doAction={() => copyMutation.mutateAsync(asset.id)}
+      doAction={() => {
+        void copyMutation.copy(asset.id)
+      }}
     />
   )
 
@@ -391,7 +393,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <ContextMenuEntry
             hidden={hidden}
             action="copyAsPath"
-            doAction={() => copyMutation.mutateAsync(path)}
+            doAction={() => {
+              void copyMutation.copy(path)
+            }}
           />
         )}
         {!isRunningProject && !isOtherUserUsingProject && (

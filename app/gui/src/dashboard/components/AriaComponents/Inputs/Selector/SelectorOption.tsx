@@ -1,17 +1,17 @@
 /** @file An option in a selector. */
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import { Radio, type RadioProps } from '#/components/aria'
-import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import * as React from 'react'
 import { memo } from 'react'
 import { TEXT_STYLE } from '../../Text'
+import type { PropsWithRef } from '../../types'
 
 /** Props for a {@link SelectorOption}. */
 export interface SelectorOptionProps
   extends RadioProps,
-    VariantProps<typeof SELECTOR_OPTION_STYLES> {
+    VariantProps<typeof SELECTOR_OPTION_STYLES>,
+    PropsWithRef<HTMLLabelElement> {
   readonly label: string
 }
 
@@ -155,49 +155,45 @@ export const SELECTOR_OPTION_STYLES = tv({
   },
 })
 
-export const SelectorOption = memo(
-  forwardRef(function SelectorOption(
-    props: SelectorOptionProps,
-    ref: React.ForwardedRef<HTMLLabelElement>,
-  ) {
-    const {
-      label,
-      value,
-      size,
-      rounded,
-      variant,
-      className,
-      variants = SELECTOR_OPTION_STYLES,
-      ...radioProps
-    } = props
+export const SelectorOption = memo(function SelectorOption(props: SelectorOptionProps) {
+  const {
+    label,
+    value,
+    size,
+    rounded,
+    variant,
+    className,
+    variants = SELECTOR_OPTION_STYLES,
+    ref,
+    ...radioProps
+  } = props
 
-    const styles = variants({ size, rounded, variant })
+  const styles = variants({ size, rounded, variant })
 
-    return (
-      <AnimatedBackground.Item
+  return (
+    <AnimatedBackground.Item
+      value={value}
+      className={styles.base()}
+      animationClassName={styles.animation()}
+    >
+      <Radio
+        ref={ref}
+        {...radioProps}
         value={value}
-        className={styles.base()}
-        animationClassName={styles.animation()}
+        className={(renderProps) => {
+          return styles.radio({
+            className: typeof className === 'function' ? className(renderProps) : className,
+            ...renderProps,
+          })
+        }}
       >
-        <Radio
-          ref={ref}
-          {...radioProps}
-          value={value}
-          className={(renderProps) => {
-            return styles.radio({
-              className: typeof className === 'function' ? className(renderProps) : className,
-              ...renderProps,
-            })
-          }}
-        >
-          {({ isHovered, isSelected, isPressed }) => (
-            <>
-              <div className={styles.hover({ isHovered, isSelected, isPressed })} />
-              <span className="isolate">{label}</span>
-            </>
-          )}
-        </Radio>
-      </AnimatedBackground.Item>
-    )
-  }),
-)
+        {({ isHovered, isSelected, isPressed }) => (
+          <>
+            <div className={styles.hover({ isHovered, isSelected, isPressed })} />
+            <span className="isolate">{label}</span>
+          </>
+        )}
+      </Radio>
+    </AnimatedBackground.Item>
+  )
+})

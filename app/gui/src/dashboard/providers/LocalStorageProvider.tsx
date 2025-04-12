@@ -7,27 +7,32 @@ import * as React from 'react'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 
 import LocalStorage, { type LocalStorageData, type LocalStorageKey } from '#/utilities/LocalStorage'
+import { use } from 'react'
 
 /** State contained in a `LocalStorageContext`. */
 export interface LocalStorageContextType {
   readonly localStorage: LocalStorage
 }
 
-// @ts-expect-error The default value will never be exposed, as using this without a `Provider`
-// is a mistake.
-const LocalStorageContext = React.createContext<LocalStorageContextType>(null)
+const LocalStorageContext = React.createContext<LocalStorageContextType>({
+  localStorage: LocalStorage.getInstance(),
+})
 
 /** Props for a {@link LocalStorageProvider}. */
-export type LocalStorageProviderProps = Readonly<React.PropsWithChildren>
+export type LocalStorageProviderProps = Readonly<React.PropsWithChildren> & {
+  readonly localStorage?: LocalStorage | undefined
+}
 
 /** A React Provider that lets components get the shortcut registry. */
 export default function LocalStorageProvider(props: LocalStorageProviderProps) {
-  const { children } = props
+  const { children, localStorage } = props
 
-  const localStorage = LocalStorage.getInstance()
+  const finalLocalStorage = localStorage ?? use(LocalStorageContext).localStorage
 
   return (
-    <LocalStorageContext.Provider value={{ localStorage }}>{children}</LocalStorageContext.Provider>
+    <LocalStorageContext.Provider value={{ localStorage: finalLocalStorage }}>
+      {children}
+    </LocalStorageContext.Provider>
   )
 }
 
@@ -75,24 +80,46 @@ export function useLocalStorageState<K extends LocalStorageKey>(
 
   const [value, privateSetValue] = React.useState<LocalStorageData[K] | undefined>(() => {
     let savedValue: LocalStorageData[K] | undefined = localStorage.get(key)
+
     if (savedValue !== undefined && sanitize) {
       savedValue = sanitize(savedValue)
     }
+
     if (savedValue === undefined) {
       return defaultValue
     }
+
     return savedValue
   })
 
   const setValue = useEventCallback(
     (newValue: React.SetStateAction<LocalStorageData[K] | undefined>) => {
-      privateSetValue((currentValue) => {
-        const nextValue = typeof newValue === 'function' ? newValue(currentValue) : newValue
+      let nextValue: LocalStorageData[K] | undefined = value
 
-        if (nextValue === undefined) {
-          localStorage.delete(key)
-        } else {
-          localStorage.set(key, nextValue)
+      privateSetValue((currentValue) => {
+        nextValue = typeof newValue === 'function' ? newValue(currentValue) : newValue
+        return nextValue
+      })
+
+      // We strictly must update the localStorage value here, because the
+      // subscription will trigger (because it triggers since the subscription
+      // is created in the `useEffect` below) an update with the old value in
+      // state. And this potentially could cause the unintended side effect.
+      if (nextValue === undefined) {
+        localStorage.delete(key)
+      } else {
+        localStorage.set(key, nextValue)
+      }
+    },
+  )
+
+  const updateValueOnLocalStorageChange = useEventCallback(
+    (newValue: LocalStorageData[K] | undefined) => {
+      const nextValue = newValue ?? defaultValue
+
+      privateSetValue((currentValue) => {
+        if (currentValue === nextValue) {
+          return currentValue
         }
 
         return nextValue
@@ -101,11 +128,8 @@ export function useLocalStorageState<K extends LocalStorageKey>(
   )
 
   React.useEffect(
-    () =>
-      localStorage.subscribe(key, (newValue) => {
-        privateSetValue(newValue ?? defaultValue)
-      }),
-    [defaultValue, key, localStorage],
+    () => localStorage.subscribe(key, updateValueOnLocalStorageChange),
+    [key, localStorage, updateValueOnLocalStorageChange],
   )
 
   return [value, setValue]

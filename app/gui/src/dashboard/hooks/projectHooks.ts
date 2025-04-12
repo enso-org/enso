@@ -432,8 +432,7 @@ function useOpenProject() {
 
       const openingProjectMutation = client.getMutationCache().find({
         mutationKey: ['openProject'],
-        // This is unsafe, but we can't do anything about it.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        // @ts-expect-error This is unsafe, but we can't do anything about it.
         predicate: (mutation) => mutation.state.variables?.id === project.id,
       })
       openingProjectMutation?.setOptions({
@@ -579,8 +578,7 @@ export function useCloseProject() {
       .getMutationCache()
       .findAll({
         mutationKey: ['closeProject'],
-        // This is unsafe, but we cannot do anything about it.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        // @ts-expect-error This is unsafe, but we cannot do anything about it.
         predicate: (mutation) => mutation.state.variables?.id === project.id,
       })
       .forEach((mutation) => {

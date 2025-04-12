@@ -161,7 +161,7 @@ interface DragSelectionInfo {
 export interface AssetsTableState {
   readonly backend: Backend
   readonly currentDirectoryId: DirectoryId
-  readonly scrollContainerRef: RefObject<HTMLElement>
+  readonly scrollContainerRef: RefObject<HTMLElement | null>
   readonly category: Category
   readonly sortInfo: SortInfo<SortableColumn> | null
   readonly setSortInfo: (sortInfo: SortInfo<SortableColumn> | null) => void

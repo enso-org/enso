@@ -67,8 +67,10 @@ export function useDeleteAssetsMutationState<Result>(
   return useMutationState({
     filters: {
       ...deleteAssetsMutationOptions(backend),
-      predicate: (mutation: DeleteAssetsMutation) =>
-        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+      predicate: (mutation: Mutation<unknown, Error, unknown, unknown>) =>
+        mutation.state.status === 'pending' &&
+        // eslint-disable-next-line no-restricted-syntax
+        (predicate?.(mutation as DeleteAssetsMutation) ?? true),
     },
     // This is UNSAFE when the `Result` parameter is explicitly specified in the
     // generic parameter list.
@@ -133,8 +135,10 @@ export function useRestoreAssetsMutationState<Result>(
   return useMutationState({
     filters: {
       ...restoreAssetsMutationOptions(backend),
-      predicate: (mutation: RestoreAssetsMutation) =>
-        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+      predicate: (mutation: Mutation<unknown, Error, unknown, unknown>) =>
+        mutation.state.status === 'pending' &&
+        // eslint-disable-next-line no-restricted-syntax
+        (predicate?.(mutation as RestoreAssetsMutation) ?? true),
     },
     // This is UNSAFE when the `Result` parameter is explicitly specified in the
     // generic parameter list.
@@ -196,8 +200,10 @@ export function useCopyAssetsMutationState<Result>(
   return useMutationState({
     filters: {
       ...copyAssetsMutationOptions(backend),
-      predicate: (mutation: CopyAssetsMutation) =>
-        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+      predicate: (mutation: Mutation<unknown, Error, unknown, unknown>) =>
+        mutation.state.status === 'pending' &&
+        // eslint-disable-next-line no-restricted-syntax
+        (predicate?.(mutation as CopyAssetsMutation) ?? true),
     },
     // This is UNSAFE when the `Result` parameter is explicitly specified in the
     // generic parameter list.
@@ -301,8 +307,10 @@ export function useMoveAssetsMutationState<Result>(
   return useMutationState({
     filters: {
       ...moveAssetsMutationOptions(backend),
-      predicate: (mutation: MoveAssetsMutation) =>
-        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+      predicate: (mutation: Mutation<unknown, Error, unknown, unknown>) =>
+        mutation.state.status === 'pending' &&
+        // eslint-disable-next-line no-restricted-syntax
+        (predicate?.(mutation as MoveAssetsMutation) ?? true),
     },
     // This is UNSAFE when the `Result` parameter is explicitly specified in the
     // generic parameter list.

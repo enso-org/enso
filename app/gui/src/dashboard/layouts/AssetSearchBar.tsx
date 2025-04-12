@@ -393,7 +393,7 @@ interface AssetSearchBarInputProps {
   readonly query: AssetQuery
   readonly isCloud: boolean
   readonly onSearchFieldKeyDown: (event: aria.KeyboardEvent) => void
-  readonly searchRef: React.RefObject<HTMLInputElement>
+  readonly searchRef: React.RefObject<HTMLInputElement | null>
   readonly searchFieldOnChange: (event: React.ChangeEvent<HTMLInputElement>) => void
   readonly searchInputOnKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void
 }
@@ -401,7 +401,6 @@ interface AssetSearchBarInputProps {
 /**
  * Renders the search field.
  */
-
 const AssetSearchBarInput = React.memo(function AssetSearchBarInput(
   props: AssetSearchBarInputProps,
 ) {

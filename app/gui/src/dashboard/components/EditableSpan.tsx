@@ -15,8 +15,8 @@ import { AnimatePresence, motion, type Variants } from 'framer-motion'
 import { useLayoutEffect } from 'react'
 import type { z } from 'zod'
 
-// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-assignment
-const MotionText = motion(Text)
+// eslint-disable-next-line no-restricted-syntax
+const MotionText = motion.create(Text)
 
 /**
  * Props for {@link EditableSpan}.
@@ -223,7 +223,7 @@ function EditForm(props: EditFormProps) {
  */
 interface ErrorMessageProps {
   readonly message: string
-  readonly formRef: React.RefObject<HTMLFormElement>
+  readonly formRef: React.RefObject<HTMLFormElement | null>
 }
 
 /**

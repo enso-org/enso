@@ -1,5 +1,5 @@
 /** @file Column types and column display modes. */
-import { memo, type Dispatch, type JSX, type SetStateAction } from 'react'
+import { memo, type Dispatch, type SetStateAction } from 'react'
 
 import type { AssetRowState, AssetsTableState } from '#/layouts/AssetsTable'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
@@ -45,8 +45,8 @@ export interface AssetColumnHeadingProps {
 export interface AssetColumn {
   readonly id: string
   readonly className?: string
-  readonly heading: (props: AssetColumnHeadingProps) => JSX.Element
-  readonly render: (props: AssetColumnProps) => JSX.Element
+  readonly heading: (props: AssetColumnHeadingProps) => React.JSX.Element
+  readonly render: (props: AssetColumnProps) => React.JSX.Element
 }
 
 /** React components for every column. */

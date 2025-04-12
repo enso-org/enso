@@ -147,7 +147,7 @@ interface PopoverContentProps {
   readonly size: PopoverProps['size']
   readonly rounded: PopoverProps['rounded']
   readonly opts: aria.PopoverRenderProps
-  readonly popoverRef: React.RefObject<HTMLDivElement>
+  readonly popoverRef: React.RefObject<HTMLDivElement | null>
   readonly isDismissable: boolean
   readonly variant: PopoverProps['variant']
   readonly onClose?: (() => void) | undefined

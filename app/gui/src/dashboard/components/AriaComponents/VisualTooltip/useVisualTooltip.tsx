@@ -10,8 +10,8 @@ export interface VisualTooltipOptions
   extends Pick<ariaComponents.TooltipProps, 'maxWidth' | 'rounded' | 'size' | 'variant'> {
   readonly children: React.ReactNode
   readonly className?: string
-  readonly targetRef: React.RefObject<HTMLElement>
-  readonly triggerRef?: React.RefObject<HTMLElement> | undefined
+  readonly targetRef: React.RefObject<HTMLElement | null>
+  readonly triggerRef?: React.RefObject<HTMLElement | null> | undefined
   readonly isDisabled?: boolean
   readonly overlayPositionProps?: Pick<
     aria.AriaPositionProps,
@@ -30,7 +30,7 @@ export interface VisualTooltipOptions
 /** The return value of the {@link useVisualTooltip} hook. */
 export interface VisualTooltipReturn {
   readonly targetProps: aria.DOMAttributes<aria.FocusableElement> & { readonly id: string }
-  readonly tooltip: JSX.Element | null
+  readonly tooltip: React.ReactNode | null
 }
 
 /** The display strategy for the tooltip. */
@@ -132,8 +132,8 @@ interface TooltipInnerProps
   readonly disabled: boolean
   readonly handleHoverChange: (isHovered: boolean) => void
   readonly state: aria.TooltipTriggerState
-  readonly targetRef: React.RefObject<HTMLElement>
-  readonly triggerRef: React.RefObject<HTMLElement>
+  readonly targetRef: React.RefObject<HTMLElement | null>
+  readonly triggerRef: React.RefObject<HTMLElement | null>
   readonly children: React.ReactNode
   readonly className?: string | undefined
   readonly testId?: string | undefined
@@ -209,11 +209,9 @@ function TooltipInner(props: TooltipInnerProps) {
             }),
             // eslint-disable-next-line @typescript-eslint/naming-convention
             'aria-hidden': true,
-            // Note that this is a `@ts-expect-error` so that an update to the outdated type
-            // definitions will notify that this `@ts-expect-error` can be safely removed.
-            // @ts-expect-error This is a new DOM property.
             popover: '',
             role: 'presentation',
+            // @ts-expect-error No idea why this is an error.
             'data-testid': testId,
             // Remove z-index from the overlay style because it is not needed.
             // We show the latest element on top, and z-index can cause issues with

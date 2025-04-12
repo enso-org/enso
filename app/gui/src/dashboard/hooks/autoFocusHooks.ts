@@ -12,7 +12,7 @@ import { useUnmount } from './unmountHooks'
 
 /** Props for the {@link useAutoFocus} hook. */
 export interface UseAutoFocusProps {
-  readonly ref: React.RefObject<HTMLElement>
+  readonly ref: React.RefObject<HTMLElement | null>
   readonly disabled?: boolean | undefined
   /**
    * Called when the element is focused.

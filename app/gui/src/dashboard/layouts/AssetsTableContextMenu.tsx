@@ -165,7 +165,9 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       action="copyId"
       color="accent"
       label={getText('copyAllIdsShortcut')}
-      doAction={() => copyMutation.mutateAsync(selectedAssets.map((asset) => asset.id).join('\n'))}
+      doAction={() => {
+        void copyMutation.copy(selectedAssets.map((asset) => asset.id).join('\n'))
+      }}
     />
   )
 

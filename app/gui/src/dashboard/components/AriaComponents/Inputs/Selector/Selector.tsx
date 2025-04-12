@@ -2,7 +2,7 @@
 import * as React from 'react'
 
 import { mergeProps, type RadioGroupProps } from '#/components/aria'
-import type { FieldComponentProps } from '#/components/AriaComponents'
+import type { FieldComponentProps, PropsWithRef } from '#/components/AriaComponents'
 import {
   Form,
   type FieldPath,
@@ -15,7 +15,6 @@ import {
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import RadioGroup from '#/components/styled/RadioGroup'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { SelectorOption } from './SelectorOption'
 
@@ -29,7 +28,8 @@ export interface SelectorProps<Schema extends TSchema, TFieldName extends FieldP
     >,
     FieldProps,
     Omit<VariantProps<typeof SELECTOR_STYLES>, 'disabled' | 'invalid' | 'variants'>,
-    FieldVariantProps {
+    FieldVariantProps,
+    PropsWithRef<HTMLDivElement> {
   readonly items: readonly T[]
   readonly children?: (item: T) => string
   readonly columns?: number
@@ -79,11 +79,9 @@ export const SELECTOR_STYLES = tv({
 })
 
 /** A horizontal selector. */
-export const Selector = forwardRef(function Selector<
-  Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, T>,
-  T,
->(props: SelectorProps<Schema, TFieldName, T>, ref: React.ForwardedRef<HTMLDivElement>) {
+export function Selector<Schema extends TSchema, TFieldName extends FieldPath<Schema, T>, T>(
+  props: SelectorProps<Schema, TFieldName, T>,
+) {
   const {
     name,
     items,
@@ -99,6 +97,7 @@ export const Selector = forwardRef(function Selector<
     isRequired = false,
     isInvalid = false,
     fieldVariants,
+    ref,
     defaultValue,
     ...inputProps
   } = props
@@ -178,4 +177,4 @@ export const Selector = forwardRef(function Selector<
       }}
     />
   )
-})
+}

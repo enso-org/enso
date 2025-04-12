@@ -1,5 +1,5 @@
 /** @file Execute a function on scroll. */
-import { useState, type MutableRefObject, type RefObject } from 'react'
+import { useState, type RefObject } from 'react'
 
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import useOnScroll from '#/hooks/useOnScroll'
@@ -20,8 +20,8 @@ interface UseStickyTableHeaderOnScrollOptions {
  * @param bodyRef - a {@link useRef} to the `tbody` element that needs to be clipped.
  */
 export function useStickyTableHeaderOnScroll(
-  rootRef: MutableRefObject<HTMLDivElement | null>,
-  bodyRef: RefObject<HTMLTableSectionElement>,
+  rootRef: RefObject<HTMLDivElement | null>,
+  bodyRef: RefObject<HTMLTableSectionElement | null>,
   options: UseStickyTableHeaderOnScrollOptions = {},
 ) {
   const { trackShadowClass = false } = options

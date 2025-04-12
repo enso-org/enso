@@ -8,17 +8,18 @@ import * as React from 'react'
 import * as aria from '#/components/aria'
 
 import type { Path } from '#/utilities/objectPath'
-import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import * as text from '../../Text'
+import type { PropsWithRef, TestIdProps } from '../../types'
 import { Form } from '../Form'
 import type * as types from './types'
 
 /** Props for Field component */
 export interface FieldComponentProps<Schema extends types.TSchema>
   extends VariantProps<typeof FIELD_STYLES>,
-    types.FieldProps {
-  readonly 'data-testid'?: string | undefined
+    types.FieldProps,
+    PropsWithRef<HTMLDivElement>,
+    TestIdProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly name: Path<types.FieldValues<Schema>, any>
   readonly form?: types.FormInstance<Schema> | undefined
@@ -61,10 +62,7 @@ export const FIELD_STYLES = tv({
 })
 
 /** Field component */
-export const Field = forwardRef(function Field<Schema extends types.TSchema>(
-  props: FieldComponentProps<Schema>,
-  ref: React.ForwardedRef<HTMLDivElement>,
-) {
+export function Field<Schema extends types.TSchema>(props: FieldComponentProps<Schema>) {
   const {
     children,
     className,
@@ -76,6 +74,8 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
     isInvalid = false,
     isRequired = false,
     variants = FIELD_STYLES,
+    testId = 'Field',
+    ref,
   } = props
 
   const labelId = React.useId()
@@ -96,7 +96,7 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
     <div
       ref={ref}
       className={classes.base({ className })}
-      data-testid={props['data-testid']}
+      data-testid={props['data-testid'] ?? testId}
       aria-invalid={invalid}
       aria-label={props['aria-label']}
       aria-labelledby={labelId}
@@ -148,7 +148,7 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
       />
     </div>
   )
-})
+}
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const FIELD_ERROR_STYLES = tv({
