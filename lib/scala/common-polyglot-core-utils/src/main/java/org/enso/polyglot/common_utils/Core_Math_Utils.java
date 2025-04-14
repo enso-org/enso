@@ -135,17 +135,4 @@ public final class Core_Math_Utils {
       return roundUp ? resultUnnudged - scale : resultUnnudged;
     }
   }
-
-  private static final double USE_DOUBLE_LIMIT_NEGATIVE = -9223372036854775000.0;
-
-  public static boolean fitsInLong(double value) {
-    return value <= USE_DOUBLE_LIMIT_POSITIVE && value >= USE_DOUBLE_LIMIT_NEGATIVE;
-  }
-
-  /**
-   * Used to determine whether we should use Double or BigDecimal operations. Values outside this
-   * range are promoted to BigDecimal operation, because representing their rounded value as a Long
-   * might overflow the Long dynamic range.
-   */
-  private static final double USE_DOUBLE_LIMIT_POSITIVE = 9223372036854775000.0;
 }

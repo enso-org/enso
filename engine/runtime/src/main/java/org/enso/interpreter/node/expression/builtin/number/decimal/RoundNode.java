@@ -1,13 +1,15 @@
 package org.enso.interpreter.node.expression.builtin.number.decimal;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import com.oracle.truffle.api.profiles.PrimitiveValueProfile;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.RoundHelpers;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
@@ -15,7 +17,11 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
     type = "Float",
     name = "round",
     description = "Float ceiling, converting to an integer.")
-public class RoundNode extends FloatNode {
+public abstract class RoundNode extends FloatNode {
+  static RoundNode build() {
+    return RoundNodeGen.create();
+  }
+
   private final CountingConditionProfile fitsProfile = CountingConditionProfile.create();
 
   private final PrimitiveValueProfile constantPlacesDecimalPlaces = PrimitiveValueProfile.create();
@@ -26,7 +32,11 @@ public class RoundNode extends FloatNode {
 
   private final BranchProfile outOfRangeProfile = BranchProfile.create();
 
-  Object execute(double n, long dp, boolean ub) {
+  abstract Object execute(double n, long dp, boolean ub);
+
+  @Specialization
+  Object doDouble(
+      double n, long dp, boolean ub, @CachedLibrary(limit = "1") InteropLibrary interop) {
     long decimalPlaces = constantPlacesDecimalPlaces.profile(dp);
     boolean useBankers = constantPlacesUseBankers.profile(ub);
 
@@ -58,7 +68,7 @@ public class RoundNode extends FloatNode {
     if (decimalPlaces > 0) {
       return resultUncast;
     } else {
-      if (fitsProfile.profile(BigIntegerOps.fitsInLong(resultUncast))) {
+      if (fitsProfile.profile(interop.fitsInLong(resultUncast))) {
         return (long) resultUncast;
       } else {
         return new EnsoBigInteger(toBigInteger(resultUncast));

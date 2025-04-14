@@ -5,7 +5,6 @@ import java.math.BigInteger;
 import java.util.function.DoubleToLongFunction;
 import java.util.function.Function;
 import org.enso.base.numeric.Decimal_Utils;
-import org.enso.polyglot.common_utils.Core_Math_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredIntegerBuilder;
 import org.enso.table.data.column.operation.StorageIterators;
@@ -16,6 +15,7 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.graalvm.polyglot.Value;
 
 public class UnaryRoundOperation implements UnaryOperation {
   public static final String CEIL = "ceil";
@@ -84,7 +84,7 @@ public class UnaryRoundOperation implements UnaryOperation {
       String msg = "Value is " + d;
       problemAggregator.reportArithmeticError(msg, builder.getCurrentSize());
       builder.appendNulls(1);
-    } else if (!Core_Math_Utils.fitsInLong(d)) {
+    } else if (!Value.asValue(d).fitsInLong()) {
       builder.append(bigDecimalFunction.apply(BigDecimal.valueOf(d)));
     } else {
       builder.append(doubleFunction.applyAsLong(d));

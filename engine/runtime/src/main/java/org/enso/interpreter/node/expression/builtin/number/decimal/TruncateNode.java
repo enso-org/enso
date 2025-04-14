@@ -1,22 +1,31 @@
 package org.enso.interpreter.node.expression.builtin.number.decimal;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(
     type = "Float",
     name = "truncate_builtin",
     description = "Truncate a floating-point number to an integer by dropping the fractional part.")
-public class TruncateNode extends FloatNode {
+public abstract class TruncateNode extends FloatNode {
+  static TruncateNode build() {
+    return TruncateNodeGen.create();
+  }
+
   private final CountingConditionProfile fitsProfile = CountingConditionProfile.create();
 
-  Object execute(double own) {
-    if (fitsProfile.profile(BigIntegerOps.fitsInLong(own))) {
+  abstract Object execute(double own);
+
+  @Specialization
+  Object doDouble(double own, @CachedLibrary(limit = "1") InteropLibrary interop) {
+    if (fitsProfile.profile(interop.fitsInLong(own))) {
       return (long) own;
     } else {
       return new EnsoBigInteger(toBigInteger(own));
