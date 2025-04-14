@@ -44,7 +44,11 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
 ) {
   const { triggerRef } = props
   return (
-    <Popover size="xsmall" {...(triggerRef ? { triggerRef } : {})}>
+    <Popover
+      size="xsmall"
+      {...(triggerRef ? { triggerRef } : {})}
+      shouldCloseOnInteractOutside={() => true}
+    >
       <ManageLabelsModalInternal {...props} />
     </Popover>
   )
@@ -161,7 +165,6 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
                           className="relative mr-1 flex size-4 text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
                         />
                         <ConfirmDeleteModal
-                          defaultOpen
                           cannotUndo
                           actionText={getText('deleteLabelActionText', label.value)}
                           onConfirm={async () => {
