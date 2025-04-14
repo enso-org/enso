@@ -19,7 +19,6 @@ public class FixedWidthReaderProblemAggregator extends ProblemAggregator {
 
   @Override
   public void report(Problem problem) {
-    System.out.println("AAAAA " + problem);
     if (warningsAsErrors) {
       throw new FixedWidthReadFailedException(problem);
     } else {
