@@ -38,6 +38,7 @@ import org.enso.distribution.Environment;
 import org.enso.editions.DefaultEdition;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
 import org.enso.os.environment.chdir.WorkingDirectory;
+import org.enso.os.environment.jni.JVM;
 import org.enso.pkg.Contact;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.PackageManager$;
@@ -1404,10 +1405,9 @@ public class Main {
   }
 
   private void launchJvm(
-      CommandLine line, Map<String, String> props, File component, String javaPath)
+      CommandLine line, Map<String, String> props, File component, String javaHome)
       throws IOException, InterruptedException {
     var commandAndArgs = new ArrayList<String>();
-    commandAndArgs.add(javaPath);
     var jvmOptions = System.getenv("JAVA_OPTS");
     if (jvmOptions != null) {
       for (var op : jvmOptions.split(" ")) {
@@ -1435,6 +1435,9 @@ public class Main {
     commandAndArgs.add(component.getPath());
     commandAndArgs.add("-m");
     commandAndArgs.add("org.enso.runner/org.enso.runner.Main");
+
+    var jvm = JVM.create(javaHome, commandAndArgs.toArray(new String[0]));
+    commandAndArgs.clear();
     var it = line.iterator();
     while (it.hasNext()) {
       var op = it.next();
@@ -1456,16 +1459,11 @@ public class Main {
       }
     }
     commandAndArgs.addAll(line.getArgList());
-    var pb = new ProcessBuilder();
-    pb.inheritIO();
-    pb.command(commandAndArgs);
-    var p = pb.start();
-    var exitCode = p.waitFor();
-    if (exitCode == 0) {
-      throw exitSuccess();
-    } else {
-      throw doExit(exitCode);
-    }
+
+    jvm.executeMain("org/enso/runner/Main", commandAndArgs.toArray(new String[0]));
+
+    // the above call should never return
+    throw doExit(1);
   }
 
   private void launch(String[] args) throws IOException, InterruptedException, URISyntaxException {

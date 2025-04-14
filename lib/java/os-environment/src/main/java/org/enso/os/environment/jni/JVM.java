@@ -35,11 +35,44 @@ public final class JVM {
   }
 
   /**
+   * Executes main method of provided class
+   *
+   * @param classNameWithSlashes class (with `/` as separators) to search main method in
+   * @param args arguments to pass to the main method
+   */
+  public void executeMain(String classNameWithSlashes, String[] args) {
+    var e = env();
+    try (var className = CTypeConversion.toCString(classNameWithSlashes);
+        var mainName = CTypeConversion.toCString("main");
+        var stringName = CTypeConversion.toCString("java/lang/String");
+        var mainSig = CTypeConversion.toCString("([Ljava/lang/String;)V"); ) {
+      var fn = e.getFunctions();
+      var mainClazz = fn.getFindClass().call(e, className.get());
+      assert mainClazz.isNonNull() : "Class not found " + classNameWithSlashes;
+      var mainMethod = fn.getGetStaticMethodID().call(e, mainClazz, mainName.get(), mainSig.get());
+      assert mainMethod.isNonNull() : "main method found in " + classNameWithSlashes;
+      var stringClazz = fn.getFindClass().call(e, stringName.get());
+      var argsCopy =
+          fn.getNewObjectArray().call(e, args.length, stringClazz, WordFactory.nullPointer());
+
+      for (var i = 0; i < args.length; i++) {
+        try (var ithArg = CTypeConversion.toCString(args[i]); ) {
+          var str = fn.getNewStringUTF().call(e, ithArg.get());
+          fn.getSetObjectArrayElement().call(e, argsCopy, i, str);
+        }
+      }
+      var arg = StackValue.get(JNI.JValue.class);
+      arg.setJObject(argsCopy);
+      fn.getCallStaticVoidMethodA().call(e, mainClazz, mainMethod, arg);
+    }
+  }
+
+  /**
    * Initialize or just obtain environment associated with this JVM.
    *
    * @return JNI environment to make calls into the JVM
    */
-  public final JNI.JNIEnv env() {
+  final JNI.JNIEnv env() {
     if (env.isNull()) {
       env = initializeEnv();
     }
