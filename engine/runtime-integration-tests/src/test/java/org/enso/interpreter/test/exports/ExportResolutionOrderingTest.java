@@ -151,7 +151,7 @@ public class ExportResolutionOrderingTest {
   }
 
   private static Module getLoadedModule(ContextRule ctx, String modName) {
-    var mod = ModuleUtils.getLoadedModule(ctx.context(), modName);
+    var mod = ModuleUtils.getLoadedModule(ctx, modName);
     assert mod != null;
     return mod;
   }

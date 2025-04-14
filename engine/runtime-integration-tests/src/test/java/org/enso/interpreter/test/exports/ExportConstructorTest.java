@@ -44,8 +44,7 @@ public class ExportConstructorTest {
     try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
-      var mainModExportedSymbols =
-          ModuleUtils.getExportedSymbolsFromModule(ctx.context(), "local.Proj.Main");
+      var mainModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(mainModExportedSymbols.size(), is(2));
       assertThat(mainModExportedSymbols, allOf(hasKey("True"), hasKey("False")));
     }
@@ -77,7 +76,7 @@ public class ExportConstructorTest {
       var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
       var boolModExportedSymbols =
-          ModuleUtils.getExportedSymbolsFromModule(ctx.context(), "local.Proj.Boolean");
+          ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Boolean");
       assertThat(boolModExportedSymbols.size(), is(3));
       assertThat(boolModExportedSymbols.keySet(), containsInAnyOrder("True", "False", "Boolean"));
     }

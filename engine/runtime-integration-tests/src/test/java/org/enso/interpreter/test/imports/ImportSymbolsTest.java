@@ -107,7 +107,7 @@ public class ImportSymbolsTest {
     try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
-      var mainModResolvedImps = ModuleUtils.getResolvedImports(ctx.context(), "local.Proj.Main");
+      var mainModResolvedImps = ModuleUtils.getResolvedImports(ctx, "local.Proj.Main");
       assertThat(mainModResolvedImps.size(), is(1));
       assertThat(
           "There should be only one target of Main's resolved import",

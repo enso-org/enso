@@ -120,8 +120,7 @@ public class ExportExtensionMethodTest {
     try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
-      var mainModExportedSymbols =
-          ModuleUtils.getExportedSymbolsFromModule(ctx.context(), "local.Proj.Main");
+      var mainModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(mainModExportedSymbols.size(), is(2));
       assertThat(
           mainModExportedSymbols.keySet(), containsInAnyOrder("My_Type", "extension_method"));
@@ -144,7 +143,7 @@ public class ExportExtensionMethodTest {
     try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
-      var definedEntities = ModuleUtils.getDefinedEntities(ctx.context(), "local.Proj.Main");
+      var definedEntities = ModuleUtils.getDefinedEntities(ctx, "local.Proj.Main");
       assertThat(definedEntities.isEmpty(), is(false));
       var entityNames = definedEntities.stream().map(DefinedEntity::name).toList();
       assertThat(entityNames, hasItem("extension_method"));

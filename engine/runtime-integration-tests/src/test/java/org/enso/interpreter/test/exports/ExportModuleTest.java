@@ -46,8 +46,7 @@ public class ExportModuleTest {
     try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
-      var mainModExportedSymbols =
-          ModuleUtils.getExportedSymbolsFromModule(ctx.context(), "local.Proj.Main");
+      var mainModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(mainModExportedSymbols.size(), is(1));
       assertThat(mainModExportedSymbols, hasKey("SubModule"));
       assertThat(mainModExportedSymbols.get("SubModule").size(), is(1));
@@ -75,8 +74,7 @@ public class ExportModuleTest {
     try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
-      var mainModExportedSymbols =
-          ModuleUtils.getExportedSymbolsFromModule(ctx.context(), "local.Proj.Main");
+      var mainModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(mainModExportedSymbols.size(), is(1));
       assertThat(mainModExportedSymbols, hasKey("SubModule"));
       assertThat(mainModExportedSymbols.get("SubModule").size(), is(1));

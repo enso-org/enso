@@ -119,7 +119,7 @@ public class ExportCycleDetectionTest {
       } catch (PolyglotException e) {
         fail("Compilation error not expected. But got: " + e);
       }
-      var exportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx.context(), "local.Proj.Main");
+      var exportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(exportedSyms.size(), is(1));
       assertThat(exportedSyms, hasKey("Main_Type"));
     }
@@ -143,7 +143,7 @@ public class ExportCycleDetectionTest {
       } catch (PolyglotException e) {
         fail("Compilation error not expected. But got: " + e);
       }
-      var exportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx.context(), "local.Proj.Main");
+      var exportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(exportedSyms.size(), is(1));
       assertThat(exportedSyms, hasKey("Main_Type"));
     }

@@ -100,8 +100,7 @@ public class ExportStaticMethodTest {
     try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
-      var mainModExportedSymbols =
-          ModuleUtils.getExportedSymbolsFromModule(ctx.context(), "local.Proj.Main");
+      var mainModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(mainModExportedSymbols.size(), is(1));
       assertThat(mainModExportedSymbols, hasKey("module_method"));
     }
@@ -128,8 +127,7 @@ public class ExportStaticMethodTest {
     try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
-      var mainModExportedSymbols =
-          ModuleUtils.getExportedSymbolsFromModule(ctx.context(), "local.Proj.Main");
+      var mainModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(mainModExportedSymbols.size(), is(1));
       assertThat(mainModExportedSymbols, hasKey("static_method"));
     }
@@ -148,7 +146,7 @@ public class ExportStaticMethodTest {
     try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
-      var definedEntities = ModuleUtils.getDefinedEntities(ctx.context(), "local.Proj.Main");
+      var definedEntities = ModuleUtils.getDefinedEntities(ctx, "local.Proj.Main");
       assertThat(definedEntities.size(), is(1));
       assertThat(definedEntities.get(0).name(), containsString("static_method"));
     }

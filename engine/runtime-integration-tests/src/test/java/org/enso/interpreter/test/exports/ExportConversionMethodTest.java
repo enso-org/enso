@@ -53,7 +53,7 @@ public class ExportConversionMethodTest {
       var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
 
-      var mainResolvedImps = ModuleUtils.getResolvedImports(ctx.context(), "local.Proj.Main");
+      var mainResolvedImps = ModuleUtils.getResolvedImports(ctx, "local.Proj.Main");
       assertThat(mainResolvedImps.size(), is(1));
       assertThat(mainResolvedImps.get(0).targets().size(), is(1));
       assertThat(
@@ -84,17 +84,16 @@ public class ExportConversionMethodTest {
       polyCtx.getTopScope().compile(true);
 
       var aModExportedSymbols =
-          ModuleUtils.getExportedSymbolsFromModule(ctx.context(), "local.Proj.A_Module");
+          ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.A_Module");
       assertThat(aModExportedSymbols.size(), is(3));
       assertThat(aModExportedSymbols.keySet(), containsInAnyOrder("A_Type", "B_Type", "from"));
 
-      var mainResolvedImps = ModuleUtils.getResolvedImports(ctx.context(), "local.Proj.Main");
+      var mainResolvedImps = ModuleUtils.getResolvedImports(ctx, "local.Proj.Main");
       assertThat(mainResolvedImps.size(), is(1));
       assertThat(mainResolvedImps.get(0).targets().size(), is(1));
       assertThat(
           mainResolvedImps.get(0).targets().head(), is(instanceOf(ResolvedConversionMethod.class)));
-      var mainExportedSyms =
-          ModuleUtils.getExportedSymbolsFromModule(ctx.context(), "local.Proj.Main");
+      var mainExportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(mainExportedSyms.size(), is(1));
       assertThat(mainExportedSyms, hasKey("from"));
     }
@@ -124,11 +123,11 @@ public class ExportConversionMethodTest {
       polyCtx.getTopScope().compile(true);
 
       var aModExportedSymbols =
-          ModuleUtils.getExportedSymbolsFromModule(ctx.context(), "local.Proj.A_Module");
+          ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.A_Module");
       assertThat(aModExportedSymbols.size(), is(3));
       assertThat(aModExportedSymbols.keySet(), containsInAnyOrder("A_Type", "B_Type", "from"));
 
-      var mainResolvedImps = ModuleUtils.getResolvedImports(ctx.context(), "local.Proj.Main");
+      var mainResolvedImps = ModuleUtils.getResolvedImports(ctx, "local.Proj.Main");
       assertThat(mainResolvedImps.size(), is(1));
       assertThat(mainResolvedImps.get(0).targets().size(), is(2));
       assertThat(
@@ -137,8 +136,7 @@ public class ExportConversionMethodTest {
       assertThat(
           mainResolvedImps.get(0).targets().apply(1),
           is(instanceOf(ResolvedConversionMethod.class)));
-      var mainExportedSyms =
-          ModuleUtils.getExportedSymbolsFromModule(ctx.context(), "local.Proj.Main");
+      var mainExportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(mainExportedSyms.size(), is(1));
       assertThat(mainExportedSyms, hasKey("from"));
       assertThat(mainExportedSyms.get("from").size(), is(2));
