@@ -3074,7 +3074,7 @@ lazy val `runtime-integration-tests` =
         // Add necessary exports for IR module dumping to IGV
         // Which is used in the test utils
         val irDumperExports = Map(
-          "jdk.internal.vm.compiler/org.graalvm.graphio" -> Seq(
+          "jdk.graal.compiler/org.graalvm.graphio" -> Seq(
             (`runtime-compiler-dump-igv` / javaModuleName).value
           )
         )
@@ -3487,7 +3487,7 @@ lazy val `runtime-compiler-dump` =
     .dependsOn(`runtime-parser`)
 
 /** This is a standalone project that is not compiled with Frgaal on purpose.
-  * It depends on jdk.internal.vm.compiler module, which cannot be included in Frgaal.
+  * It depends on jdk.graal.compiler module, which cannot be included in Frgaal.
   * It includes a service provider for service definition in `runtime-compiler-dump`.
   */
 lazy val `runtime-compiler-dump-igv` =
@@ -3508,7 +3508,7 @@ lazy val `runtime-compiler-dump-igv` =
       ),
       Compile / addExports ++= {
         Map(
-          "jdk.internal.vm.compiler/org.graalvm.graphio" -> Seq(
+          "jdk.graal.compiler/org.graalvm.graphio" -> Seq(
             javaModuleName.value
           )
         )
