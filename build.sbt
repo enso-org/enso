@@ -1633,6 +1633,7 @@ lazy val `task-progress-notifications` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     version := "0.1",
     compileOrder := CompileOrder.ScalaThenJava,
