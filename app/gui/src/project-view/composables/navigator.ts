@@ -136,6 +136,9 @@ export function useNavigator(
     }
   }
 
+  const dragActive = ref(false)
+  const pinchActive = ref(false)
+
   useGesture(
     {
       onMove(state) {
@@ -147,7 +150,11 @@ export function useNavigator(
           holdDragStarted = false
         }
 
-        if (!dragPredicate(state.event) || state.pinching) return
+        if (!dragPredicate(state.event) || state.pinching) {
+          dragActive.value = false
+          return
+        }
+        dragActive.value = state.dragging && !state.last
         const isTouch = eventIsTouch(state.event)
         const mainDown = (state.buttons & PointerButtonMask.Main) != 0
         const secondaryDown = (state.buttons & PointerButtonMask.Secondary) != 0
@@ -168,7 +175,11 @@ export function useNavigator(
         // A started longpress touch can transform into pinch without warning, make sure to clear the timeout.
         cancelLongpress()
 
-        if (state.ctrlKey) return // We do our own touchpad handling below
+        if (state.ctrlKey) {
+          pinchActive.value = false
+          return // We do our own touchpad handling below
+        }
+        pinchActive.value = !state.last
 
         const currentOrigin = Vec2.FromTuple(state.origin)
         gesturePivot = clientToScenePos(currentOrigin)
@@ -359,6 +370,9 @@ export function useNavigator(
     return new Vec2(-x + w / 2, -y + h / 2)
   })
 
+  const transformChanging = computed(
+    () => scale.active || center.active || dragActive.value || pinchActive.value,
+  )
   const transform = computed(
     () => `scale(${scale.value}) translate(${translate.value.x}px, ${translate.value.y}px)`,
   )
@@ -459,6 +473,7 @@ export function useNavigator(
     scale: readonly(toRef(scale, 'value')),
     viewBox: readonly(viewBox),
     transform: readonly(transform),
+    transformChanging: readonly(transformChanging),
     /**
      * Add handler for "hold" events - a drag action that doesn't move the navigator viewport, but
      * is supposed to represent holding the viewport contents itself. For desktop, this is the
