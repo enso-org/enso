@@ -4249,7 +4249,7 @@ lazy val `os-environment` =
         val targetDir = (Test / target).value
         NativeImage.buildNativeImage(
           "test-os-env",
-          staticOnLinux = true,
+          staticOnLinux = false,
           targetDir     = targetDir,
           mainClass     = Some("org.enso.os.environment.TestRunner"),
           additionalOptions = Seq(

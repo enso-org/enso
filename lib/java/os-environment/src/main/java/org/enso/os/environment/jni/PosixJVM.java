@@ -40,7 +40,10 @@ final class PosixJVM {
         var createJvm = CTypeConversion.toCString("JNI_CreateJavaVM")) {
       var jvmSo = dlopen(libPath.get(), RTLD_NOW());
       assert jvmSo.isNonNull()
-          : "Cannot load dynamic library " + libJvmPath + " raw: " + jvmSo.rawValue();
+          : "Cannot load dynamic library "
+              + libJvmPath
+              + " error: "
+              + CTypeConversion.toJavaString(dlerror());
       JNIBoot.JNICreateJavaVMPointer createJvmFn = dlsym(jvmSo, createJvm.get());
       int res = createJvmFn.call(jvmPtr, envPtr, jvmArgs);
       assert res == 0;
@@ -64,6 +67,9 @@ final class PosixJVM {
 
   @CFunction(transition = CFunction.Transition.NO_TRANSITION)
   static native <T extends PointerBase> T dlsym(PointerBase handle, CCharPointer name);
+
+  @CFunction
+  static native CCharPointer dlerror();
 
   static final class Direct implements CContext.Directives {
 
