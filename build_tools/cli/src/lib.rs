@@ -367,12 +367,6 @@ impl Processor {
                         Tests::StandardLibrary => config.add_standard_library_test_selection(
                             StandardLibraryTestsSelection::All,
                         ),
-                        Tests::StandardLibraryInNative => {
-                            config.add_standard_library_test_selection(
-                                StandardLibraryTestsSelection::All,
-                            );
-                            config.build_native_runner = true;
-                        }
                         Tests::StdSnowflake => {
                             config.add_standard_library_test_selection(
                                 StandardLibraryTestsSelection::Selected(vec![
