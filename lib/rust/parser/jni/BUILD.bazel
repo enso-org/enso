@@ -7,10 +7,7 @@ rust_shared_library(
     srcs = glob(["src/**/*.rs"]),
     aliases = aliases(),
     edition = "2021",
-    proc_macro_deps = all_crate_deps(proc_macro = True) + [
-        "//lib/rust/parser/src/syntax/tree/visitor:enso-parser-syntax-tree-visitor",
-        "//lib/rust/parser/macros:enso-parser-macros",
-    ],
+    proc_macro_deps = all_crate_deps(proc_macro = True),
     visibility = ["//visibility:public"],
     deps = all_crate_deps(normal = True) + [
         "//lib/rust/prelude:enso-prelude",
