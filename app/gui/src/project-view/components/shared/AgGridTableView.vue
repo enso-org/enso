@@ -151,7 +151,11 @@ function onGridReady(event: GridReadyEvent<TData>) {
 const rowModelType = computed(() => (props.isServerSideModel ? 'serverSide' : 'clientSide'))
 
 const gridKeyIncrement = ref(0)
-const gridKey = computed(() => props.gridIdHash ? `${props.gridIdHash}-${gridKeyIncrement.value}` : `grid-${gridKeyIncrement.value}`)
+const gridKey = computed(() =>
+  props.gridIdHash ?
+    `${props.gridIdHash}-${gridKeyIncrement.value}`
+  : `grid-${gridKeyIncrement.value}`,
+)
 
 const forceGridRefresh = () => {
   //when using the ag grid severSide model this forces the grid to 'refresh' and call getRows
