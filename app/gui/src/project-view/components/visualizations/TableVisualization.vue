@@ -321,6 +321,8 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
   }
 }
 
+const attepmtedCalls = ref(0)
+
 function createServer() {
   return {
     getSetFilterValues: async (columnIndex?: number) => {
@@ -364,9 +366,10 @@ function createServer() {
           valueList as string[] | 'Nothing',
         )
 
-        const response = await config.executeExpression(expressionFunction, 5000) // 5s timeout
+        const response = await config.executeExpression(expressionFunction) // 5s timeout
 
         if (response.ok) {
+          attepmtedCalls.value = 0
           return {
             success: true,
             data: response.value.rows,
@@ -376,6 +379,10 @@ function createServer() {
           throw new Error('Expression execution failed')
         }
       } catch (err) {
+        if (attepmtedCalls.value < 3) {
+          grid.value?.gridApi?.refreshServerSide({ purge: true })
+          attepmtedCalls.value++
+        }
         console.error('Error loading rows:', err)
         return {
           success: false,
@@ -1039,6 +1046,7 @@ config.setToolbar(
         :rowCount="allRowCount"
         :isServerSideModel="isSSRM"
         :statusBar="statusBar"
+        :gridIdHash="tableVersionHash"
         @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
       />
     </Suspense>
