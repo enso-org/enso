@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.enso.compiler.benchmarks.Utils;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextRule;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -29,7 +29,7 @@ public class NestedPatternCompilationBenchmarks {
   private Value self;
   private String benchmarkName;
   private String code;
-  private Context ctx;
+  private ContextRule ctx;
 
   @Setup
   public void initializeBenchmark(BenchmarkParams params) throws Exception {

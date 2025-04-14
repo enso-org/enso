@@ -1,14 +1,11 @@
 package org.enso.compiler.benchmarks.exportimport;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.enso.common.CompilationStage;
-import org.enso.common.RuntimeOptions;
 import org.enso.compiler.benchmarks.Utils;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.phase.ImportResolver;
@@ -16,10 +13,9 @@ import org.enso.compiler.phase.exports.ExportCycleException;
 import org.enso.compiler.phase.exports.ExportsResolution;
 import org.enso.interpreter.runtime.Module;
 import org.enso.pkg.QualifiedName;
-import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextRule;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
-import org.graalvm.polyglot.Context;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -46,8 +42,7 @@ import scala.jdk.javaapi.CollectionConverters;
 @State(Scope.Benchmark)
 public class ExportImportResolutionBenchmark {
   private Path projDir;
-  private OutputStream out;
-  private Context ctx;
+  private ContextRule ctx;
   private ImportResolver importResolver;
   private ExportsResolution exportsResolution;
   private CompilerContext.Module mainModule;
@@ -56,7 +51,6 @@ public class ExportImportResolutionBenchmark {
 
   @Setup
   public void setup(BenchmarkParams params) throws IOException {
-    this.out = new ByteArrayOutputStream();
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
@@ -66,13 +60,8 @@ public class ExportImportResolutionBenchmark {
     this.projDir = Files.createTempDirectory("export-import-resolution-benchmark");
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
     // Create temp proj dir
-    this.ctx =
-        Utils.createDefaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .out(out)
-            .err(out)
-            .build();
-    var ensoCtx = ContextUtils.leakContext(ctx);
+    this.ctx = Utils.createDefaultContextBuilder().withProjectRoot(projDir).build();
+    var ensoCtx = ctx.leakContext();
     this.mainModule = ensoCtx.getPackageRepository().getLoadedModule("local.Proj.Main").get();
     var mainRuntimeMod = Module.fromCompilerModule(mainModule);
     assertThat(
@@ -84,8 +73,8 @@ public class ExportImportResolutionBenchmark {
 
   @TearDown
   public void teardown(BenchmarkParams params) throws IOException {
-    if (!out.toString().isEmpty()) {
-      throw new AssertionError("Unexpected output (errors?) from the compiler: " + out.toString());
+    if (!ctx.getOut().isEmpty()) {
+      throw new AssertionError("Unexpected output (errors?) from the compiler: " + ctx.getOut());
     }
     ProjectUtils.deleteRecursively(projDir);
     ctx.close();
