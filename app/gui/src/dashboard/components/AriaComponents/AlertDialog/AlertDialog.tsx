@@ -89,7 +89,9 @@ export function AlertDialog(props: AlertDialogProps) {
 
           <Button.Group align="end">
             {typeof cancelButton === 'string' ?
-              <AlertDialog.Dismiss variant="ghost">{cancelButton}</AlertDialog.Dismiss>
+              <AlertDialog.Dismiss isLoading={false} variant="ghost">
+                {cancelButton}
+              </AlertDialog.Dismiss>
             : cancelButton}
 
             {typeof confirmButton === 'string' ?
