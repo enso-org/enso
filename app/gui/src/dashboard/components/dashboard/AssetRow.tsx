@@ -31,12 +31,6 @@ import * as backendModule from '#/services/Backend'
 
 import { Text } from '#/components/AriaComponents'
 import { IndefiniteSpinner } from '#/components/Spinner'
-import {
-  useDeleteAssetsMutationState,
-  useMoveAssetsMutationState,
-  useRestoreAssetsMutationState,
-} from '#/hooks/backendBatchedHooks'
-import { useBackendMutationState } from '#/hooks/backendHooks'
 import { useDragDelayAction } from '#/hooks/dragDelayHooks'
 import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
@@ -258,39 +252,39 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
   const rowState = object.merge(innerRowState, { isEditingName })
 
-  const isDeletingSingleAsset =
-    useBackendMutationState(backend, 'deleteAsset', {
-      predicate: ({ state: { variables } }) => variables?.[0] === item.id,
-      select: () => null,
-    }).length !== 0
-  const isDeletingMultipleAssets =
-    useDeleteAssetsMutationState(backend, {
-      predicate: ({ state: { variables: [assetIds = []] = [] } }) => assetIds.includes(item.id),
-      select: () => null,
-    }).length !== 0
+  const isDeletingSingleAsset = false
+  // useBackendMutationState(backend, 'deleteAsset', {
+  //   predicate: ({ state: { variables } }) => variables?.[0] === item.id,
+  //   select: () => null,
+  // }).length !== 0
+  const isDeletingMultipleAssets = false
+  // useDeleteAssetsMutationState(backend, {
+  //   predicate: ({ state: { variables: [assetIds = []] = [] } }) => assetIds.includes(item.id),
+  //   select: () => null,
+  // }).length !== 0
   const isDeleting = isDeletingSingleAsset || isDeletingMultipleAssets
-  const isRestoringSingleAsset =
-    useBackendMutationState(backend, 'undoDeleteAsset', {
-      predicate: ({ state: { variables } }) => variables?.[0] === item.id,
-      select: () => null,
-    }).length !== 0
-  const isRestoringMultipleAssets =
-    useRestoreAssetsMutationState(backend, {
-      predicate: ({ state: { variables = { ids: [], parentId: null } } }) =>
-        variables.ids.includes(item.id),
-      select: () => null,
-    }).length !== 0
+  const isRestoringSingleAsset = false
+  // useBackendMutationState(backend, 'undoDeleteAsset', {
+  //   predicate: ({ state: { variables } }) => variables?.[0] === item.id,
+  //   select: () => null,
+  // }).length !== 0
+  const isRestoringMultipleAssets = false
+  // useRestoreAssetsMutationState(backend, {
+  //   predicate: ({ state: { variables = { ids: [], parentId: null } } }) =>
+  //     variables.ids.includes(item.id),
+  //   select: () => null,
+  // }).length !== 0
   const isRestoring = isRestoringSingleAsset || isRestoringMultipleAssets
-  const isUpdatingSingleAsset =
-    useBackendMutationState(backend, 'updateAsset', {
-      predicate: ({ state: { variables } }) => variables?.[0] === item.id,
-      select: () => null,
-    }).length !== 0
-  const isMovingMultipleAssets =
-    useMoveAssetsMutationState(backend, {
-      predicate: ({ state: { variables: [assetIds = []] = [] } }) => assetIds.includes(item.id),
-      select: () => null,
-    }).length !== 0
+  const isUpdatingSingleAsset = false
+  // useBackendMutationState(backend, 'updateAsset', {
+  //   predicate: ({ state: { variables } }) => variables?.[0] === item.id,
+  //   select: () => null,
+  // }).length !== 0
+  const isMovingMultipleAssets = false
+  // useMoveAssetsMutationState(backend, {
+  //   predicate: ({ state: { variables: [assetIds = []] = [] } }) => assetIds.includes(item.id),
+  //   select: () => null,
+  // }).length !== 0
 
   const isUpdating = isUpdatingSingleAsset || isMovingMultipleAssets
 
@@ -424,7 +418,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
               }
             }}
             className={tailwindMerge.twMerge(
-              'h-table-row rounded-full transition-all ease-in-out rounded-rows-child [contain-intrinsic-size:44px] [content-visibility:auto]',
+              'h-table-row rounded-full transition-all ease-in-out rounded-rows-child',
               visibility,
               (isDraggedOver || selected) && 'selected',
             )}
