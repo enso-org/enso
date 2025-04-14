@@ -141,7 +141,18 @@ export type AlertDialogDismissProps<IconType extends string> = SubmitProps<
 AlertDialog.Dismiss = function Dismiss<IconType extends string>(
   props: AlertDialogDismissProps<IconType>,
 ) {
-  return <Form.Submit name="response" value="cancel" variant="ghost" {...props} />
+  const form = Form.useFormContext(props.form)
+
+  return (
+    <Form.Submit
+      name="response"
+      value="cancel"
+      variant="ghost"
+      isLoading={false}
+      isDisabled={form.formState.isSubmitting}
+      {...props}
+    />
+  )
 }
 
 /**
