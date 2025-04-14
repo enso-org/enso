@@ -75,6 +75,24 @@ add_specs suite_builder =
             t.at "Column 7" . to Vector . should_equal [98765, 87654]
             t.at "Column 8" . to Vector . should_equal ["fgh", "nop"]
 
+        group_builder.specify "Should use specified column names" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width "x" 0 4]
+                + [Fixed_Width_Column_Description.Width "y" 1]
+                + [Fixed_Width_Column_Description.Width "z" 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = data0.read (Fixed_Width_Format.Fixed_Width layout)
+            t.columns . map .name . should_equal ["x", "y", "z"]
+
+        group_builder.specify "Should generate default column names" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 0 4]
+                + [Fixed_Width_Column_Description.Width Nothing 1]
+                + [Fixed_Width_Column_Description.Width Nothing 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = data0.read (Fixed_Width_Format.Fixed_Width layout)
+            t.columns . map .name . should_equal ["Column 1", "Column 2", "Column 3"]
+
         group_builder.specify "Should be able to read a fixed-width file with sparse columns" <|
             descs = []
                 + [Fixed_Width_Column_Description.Start_And_Width Nothing 0 4]
@@ -144,8 +162,6 @@ add_specs suite_builder =
             Problems.expect_warning Additional_Invalid_Rows t
 
         ##
-            group_builder.specify "Should use specified column names" <|
-            group_builder.specify "Should generate default column names" <|
             group_builder.specify "Should be able to read fixed-width data from a stream with an explicit format" <|
             problems
             skip_rows
