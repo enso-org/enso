@@ -65,7 +65,7 @@ public class TypeOfNodeMultiValueTest {
 
   @Parameterized.Parameters
   public static Object[][] allPossibleEnsoInterpreterValues() throws Exception {
-    var g = ValuesGenerator.create(ctxRule.context());
+    var g = ValuesGenerator.create(ctxRule);
     var typeOf =
         ctxRule.evalModule(
             """

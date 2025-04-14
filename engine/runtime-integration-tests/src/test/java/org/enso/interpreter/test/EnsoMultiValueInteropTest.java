@@ -29,7 +29,7 @@ public class EnsoMultiValueInteropTest {
             main = typ
             """);
     var data = new ArrayList<Object[]>();
-    try (ValuesGenerator g = ValuesGenerator.create(ctxRule.context())) {
+    try (ValuesGenerator g = ValuesGenerator.create(ctxRule)) {
       for (var v1 : g.allValues()) {
         for (var v2 : g.allValues()) {
           registerValue(g, typeOf, v1, v2, data);

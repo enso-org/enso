@@ -67,7 +67,7 @@ public class EqualsTest {
     List<Value> values = new ArrayList<>();
     try (ValuesGenerator valGenerator =
         ValuesGenerator.create(
-            ctxRule.context(), ValuesGenerator.Language.ENSO, ValuesGenerator.Language.JAVA)) {
+            ctxRule, ValuesGenerator.Language.ENSO, ValuesGenerator.Language.JAVA)) {
       values.addAll(valGenerator.numbers());
       values.addAll(valGenerator.booleans());
       values.addAll(valGenerator.textual());

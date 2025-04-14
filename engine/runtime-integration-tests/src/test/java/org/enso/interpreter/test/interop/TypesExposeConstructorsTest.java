@@ -38,8 +38,7 @@ public class TypesExposeConstructorsTest {
     var collectedTypes = new ArrayList<TypeWithWrapper>();
     ctxRule.executeInContext(
         () -> {
-          try (ValuesGenerator valuesGenerator =
-              ValuesGenerator.create(ctxRule.context(), Language.ENSO)) {
+          try (ValuesGenerator valuesGenerator = ValuesGenerator.create(ctxRule, Language.ENSO)) {
             valuesGenerator.allTypes().stream()
                 .map(
                     tp -> {

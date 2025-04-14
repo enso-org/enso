@@ -13,7 +13,6 @@ import org.enso.compiler.docs.DocsGenerate;
 import org.enso.compiler.docs.DocsVisit;
 import org.enso.pkg.QualifiedName;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.graalvm.polyglot.Context;
 
@@ -28,7 +27,7 @@ final class DumpTestUtils {
         ContextRule.newBuilder(),
         projDir,
         (context) -> {
-          var enso = ContextUtils.leakContext(context);
+          var enso = context.leakContext();
           var modules = enso.getTopScope().getModules();
           var optMod =
               modules.stream().filter(m -> m.getName().toString().contains(projName)).findFirst();

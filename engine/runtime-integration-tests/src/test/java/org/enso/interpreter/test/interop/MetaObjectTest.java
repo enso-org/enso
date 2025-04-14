@@ -25,7 +25,6 @@ import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextRule;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -73,13 +72,13 @@ public class MetaObjectTest {
    * @param context the context to allocate values in
    * @return an instance of values generator
    */
-  ValuesGenerator createGenerator(Context context) {
+  ValuesGenerator createGenerator(ContextRule context) {
     return ValuesGenerator.create(context, Language.ENSO, Language.JAVA);
   }
 
   private ValuesGenerator generator() {
     if (generator == null) {
-      generator = createGenerator(ctxRule.context());
+      generator = createGenerator(ctxRule);
     }
     return generator;
   }
@@ -173,7 +172,7 @@ public class MetaObjectTest {
 
   @Test
   public void warningIsTransparent() {
-    ValuesGenerator g = ValuesGenerator.create(ctxRule.context(), ValuesGenerator.Language.ENSO);
+    ValuesGenerator g = ValuesGenerator.create(ctxRule, ValuesGenerator.Language.ENSO);
     for (var v : g.warnings()) {
       assertTrue("Warning is string: " + v, v.isString());
       assertEquals("value", v.asString());
@@ -183,7 +182,7 @@ public class MetaObjectTest {
 
   @Test
   public void checkArraysAreArrays() {
-    var g = ValuesGenerator.create(ctxRule.context(), ValuesGenerator.Language.ENSO);
+    var g = ValuesGenerator.create(ctxRule, ValuesGenerator.Language.ENSO);
     for (var v : g.arrayLike()) {
       var isVector = v.getMetaObject().equals(g.typeVector());
       var isArray = v.getMetaObject().equals(g.typeArray());
@@ -201,7 +200,7 @@ public class MetaObjectTest {
 
   @Test
   public void errorsAreWeird() {
-    var g = ValuesGenerator.create(ctxRule.context(), ValuesGenerator.Language.ENSO);
+    var g = ValuesGenerator.create(ctxRule, ValuesGenerator.Language.ENSO);
     for (var v : g.errors()) {
       Value vMeta = v.getMetaObject();
       var isError = vMeta.equals(g.typeError());
@@ -245,8 +244,7 @@ public class MetaObjectTest {
   @Test
   public void nothingIsNotMeta() {
     Value nothing;
-    try (ValuesGenerator g =
-        ValuesGenerator.create(ctxRule.context(), ValuesGenerator.Language.ENSO)) {
+    try (ValuesGenerator g = ValuesGenerator.create(ctxRule, ValuesGenerator.Language.ENSO)) {
       nothing = g.typeNothing();
     }
     assertThat("Nothing is not meta", nothing.isMetaObject(), is(false));
@@ -299,7 +297,7 @@ main = Nothing
     Predicate<Value> isPrimitiveOrException =
         (val) -> val.fitsInInt() || val.fitsInDouble() || val.isBoolean() || val.isException();
     List<Value> nonPrimitiveValues;
-    try (ValuesGenerator gen = ValuesGenerator.create(ctxRule.context(), Language.ENSO)) {
+    try (ValuesGenerator gen = ValuesGenerator.create(ctxRule, Language.ENSO)) {
       nonPrimitiveValues =
           gen.allValues().stream().filter(isPrimitiveOrException.negate()).toList();
     }

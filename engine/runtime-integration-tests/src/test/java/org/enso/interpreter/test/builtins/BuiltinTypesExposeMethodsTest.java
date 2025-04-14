@@ -36,8 +36,7 @@ public class BuiltinTypesExposeMethodsTest {
   @Parameters(name = "{index}: {0}")
   public static Iterable<Value> generateBuiltinObjects() {
     var builtinTypes = new ArrayList<Value>();
-    try (ValuesGenerator valuesGenerator =
-        ValuesGenerator.create(ctxRule.context(), Language.ENSO)) {
+    try (ValuesGenerator valuesGenerator = ValuesGenerator.create(ctxRule, Language.ENSO)) {
       ctxRule.executeInContext(
           () -> {
             valuesGenerator.allTypes().stream()

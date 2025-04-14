@@ -22,7 +22,6 @@ import org.enso.compiler.docs.DocsVisit;
 import org.enso.editions.LibraryName;
 import org.enso.pkg.QualifiedName;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
 import org.junit.ClassRule;
@@ -274,7 +273,7 @@ public class DocsGenerateTest {
         ContextRule.newBuilder(),
         projDir.toPath(),
         ctx -> {
-          var ensoCtx = ContextUtils.leakContext(ctx);
+          var ensoCtx = ctx.leakContext();
           var pkg =
               ensoCtx
                   .getPackageRepository()

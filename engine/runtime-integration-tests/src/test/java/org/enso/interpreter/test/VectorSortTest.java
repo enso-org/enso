@@ -40,7 +40,7 @@ public class VectorSortTest {
 
     values = new ArrayList<>();
     try (ValuesGenerator valuesGenerator =
-        ValuesGenerator.create(ctxRule.context(), Language.ENSO, Language.JAVA)) {
+        ValuesGenerator.create(ctxRule, Language.ENSO, Language.JAVA)) {
       values.addAll(valuesGenerator.numbers());
       values.addAll(valuesGenerator.vectors());
       values.addAll(valuesGenerator.arrayLike());

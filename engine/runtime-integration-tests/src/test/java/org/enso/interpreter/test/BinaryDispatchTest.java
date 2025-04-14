@@ -274,7 +274,7 @@ public class BinaryDispatchTest {
   public void thatArgumentChallengedByManyValues() throws Exception {
     var half = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "R.Fraction 1 2");
 
-    var g = ValuesGenerator.create(ctxRule.context());
+    var g = ValuesGenerator.create(ctxRule);
 
     for (var second : g.allValues()) {
       try {

@@ -44,10 +44,9 @@ public class WarningsTest {
 
   @BeforeClass
   public static void initEnsoContext() {
-    var ctx = ctxRule.context();
-    generator = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+    generator = ValuesGenerator.create(ctxRule, ValuesGenerator.Language.ENSO);
     var module =
-        ctx.eval(
+        ctxRule.eval(
             "enso",
             """
     from Standard.Base import Warning

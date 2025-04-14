@@ -35,11 +35,11 @@ public class MetaIsATest {
 
   @Parameters(name = "{0}")
   public static List<GeneratorWithName> generators() {
-    var ctx = ctxRule.context();
     return List.of(
         new GeneratorWithName(
-            "Enso values", ValuesGenerator.create(ctx, Language.ENSO, Language.JAVA)),
-        new GeneratorWithName("Polyglot values", ValuesGenerator.create(ctx, Language.values())));
+            "Enso values", ValuesGenerator.create(ctxRule, Language.ENSO, Language.JAVA)),
+        new GeneratorWithName(
+            "Polyglot values", ValuesGenerator.create(ctxRule, Language.values())));
   }
 
   @BeforeClass

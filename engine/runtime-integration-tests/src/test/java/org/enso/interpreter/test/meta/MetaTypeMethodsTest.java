@@ -38,8 +38,7 @@ public class MetaTypeMethodsTest {
 
   @BeforeClass
   public static void initCtx() {
-    var ctx = ctxRule.context();
-    valuesGenerator = ValuesGenerator.create(ctx, Language.ENSO);
+    valuesGenerator = ValuesGenerator.create(ctxRule, Language.ENSO);
     ctxRule.executeInContext(
         () -> {
           getTypeMethodsNode = GetTypeMethodsNode.build();
