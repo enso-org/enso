@@ -111,7 +111,7 @@ const BreadcrumbSeparator = memo(function BreadcrumbSeparator<Icon extends strin
 ) {
   const { icon = 'folder_closed', className } = props
 
-  return <Icon className={className}>{icon}</Icon>
+  return <Icon className={className} icon={icon} />
 }) as <Icon extends string>(props: BreadcrumbSeparatorProps<Icon>) => ReactElement
 
 Breadcrumbs.Item = BreadcrumbItem

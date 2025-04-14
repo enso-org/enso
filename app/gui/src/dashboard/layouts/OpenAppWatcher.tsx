@@ -10,9 +10,8 @@
 
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
-
 import * as backendProvider from '#/providers/BackendProvider'
+import { useMutationCallback } from '../utilities/tanstackQuery'
 
 /**
  * This component logs the user opening and closing the app.
@@ -21,28 +20,28 @@ import * as backendProvider from '#/providers/BackendProvider'
 export function OpenAppWatcher({ children }: React.PropsWithChildren) {
   const remoteBackend = backendProvider.useRemoteBackend()
 
-  const { mutate: logUserOpenAppMutate } = reactQuery.useMutation({
+  const logUserOpenAppMutate = useMutationCallback({
     mutationFn: () => remoteBackend.logEvent('open_app'),
   })
 
-  const { mutate: logUserCloseAppMutate } = reactQuery.useMutation({
+  const logUserCloseAppMutate = useMutationCallback({
     mutationFn: () => remoteBackend.logEvent('close_app'),
   })
 
   React.useEffect(() => {
-    logUserOpenAppMutate()
+    void logUserOpenAppMutate()
   }, [logUserOpenAppMutate])
 
   React.useEffect(
     () => () => {
-      logUserCloseAppMutate()
+      void logUserCloseAppMutate()
     },
     [logUserCloseAppMutate],
   )
 
   React.useEffect(() => {
     const logCloseEvent = () => {
-      logUserCloseAppMutate()
+      void logUserCloseAppMutate()
     }
 
     window.addEventListener('beforeunload', logCloseEvent)

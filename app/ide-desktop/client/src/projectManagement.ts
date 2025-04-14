@@ -263,7 +263,7 @@ function getPackageName(projectRoot: string) {
 export function updatePackageName(projectRoot: string, name: string) {
   const path = pathModule.join(projectRoot, PACKAGE_METADATA_RELATIVE_PATH)
   const contents = fs.readFileSync(path, { encoding: 'utf-8' })
-  const newContents = contents.replace(/^name: .*/, `name: ${name}`)
+  const newContents = contents.replace(/^name: .*/, `name: ${JSON.stringify(name)}`)
   fs.writeFileSync(path, newContents)
 }
 

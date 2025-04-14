@@ -36,6 +36,7 @@ const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
 const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
+const IS_ELECTRON_DEV_MODE = process.env.ELECTRON_DEV_MODE === 'true'
 
 // ==============
 // === Config ===
@@ -148,14 +149,16 @@ export class Server {
               reject(err)
             }
             const server = httpsServer ?? httpServer
-            if (server) {
-              await ydocServer.createGatewayServer(server)
-            } else {
-              logger.warn('YDocs server is not run, new GUI may not work properly!')
+            if (!IS_ELECTRON_DEV_MODE) {
+              if (server) {
+                await ydocServer.createGatewayServer(server)
+              } else {
+                logger.warn('YDocs server is not run, new GUI may not work properly!')
+              }
             }
             logger.log(`Server started on port ${this.config.port}.`)
             logger.log(`Serving files from '${path.join(process.cwd(), this.config.dir)}'.`)
-            if (process.env.ELECTRON_DEV_MODE === 'true') {
+            if (IS_ELECTRON_DEV_MODE) {
               const vite = (await import(
                 pathToFileURL(process.env.NODE_MODULES_PATH + '/vite/dist/node/index.js').href
               )) as typeof import('vite')
@@ -165,6 +168,19 @@ export class Server {
                   hmr: server ? { server } : {},
                 },
                 configFile: process.env.GUI_CONFIG_PATH ?? false,
+              })
+
+              const docServer = http.createServer()
+              docServer.on('request', (request, response) => {
+                if (request.method === 'GET' && request.url === '/_health') {
+                  response.writeHead(200, { 'Content-Type': 'text/plain; charset=UTF-8' }).end('OK')
+                }
+              })
+
+              await ydocServer.createGatewayServer(docServer)
+
+              docServer.listen(5976, 'localhost', () => {
+                console.log(`Ydoc server listening on localhost:5976`)
               })
             }
             resolve()

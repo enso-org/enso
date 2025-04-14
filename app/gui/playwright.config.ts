@@ -73,7 +73,7 @@ export default defineConfig({
   ...(WORKERS ? { workers: WORKERS } : {}),
   forbidOnly: isCI,
   reporter: isCI ? [['list'], ['blob']] : [['html']],
-  retries: isCI ? 3 : 0,
+  retries: isCI ? 1 : 0,
   use: {
     headless: !DEBUG,
     actionTimeout: 5000,

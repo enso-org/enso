@@ -1,5 +1,7 @@
 /** @file The container that launches the IDE. */
+import { Button } from '#/components/AriaComponents'
 import * as errorBoundary from '#/components/ErrorBoundary'
+import { Result } from '#/components/Result'
 import * as suspense from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as gtagHooks from '#/hooks/gtagHooks'
@@ -34,6 +36,11 @@ export interface EditorProps {
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
   const { project, hidden = false, onReadyUpdate, onNameUpdate } = props
+  const { preventAutoReopen = false } = project
+  const { getText } = textProvider.useText()
+  const openProjectMutation = projectHooks.useOpenProjectMutation()
+  const renameProjectMutation = projectHooks.useRenameProjectMutation()
+  const startProject = projectHooks.useReopenProject(openProjectMutation)
 
   const backend = backendProvider.useBackendForProjectType(project.type)
   const remoteBackend = backendProvider.useRemoteBackend()
@@ -43,12 +50,8 @@ export default function Editor(props: EditorProps) {
     assetId: project.id,
     backend,
   })
-  const openProjectMutation = projectHooks.useOpenProjectMutation()
-  const renameProjectMutation = projectHooks.useRenameProjectMutation()
 
   const queryClient = reactQuery.useQueryClient()
-
-  const isHybrid = project.hybrid != null
 
   const projectQuery = reactQuery.useSuspenseQuery({
     ...projectStatusQuery,
@@ -62,22 +65,23 @@ export default function Editor(props: EditorProps) {
     },
   })
 
+  const isHybrid = project.hybrid != null
   // If it's a hybrid project, we need to fetch the project details from the remote backend.
   const {
-    data: { name },
+    data: { name, isHybridOpened },
   } = reactQuery.useSuspenseQuery({
     ...projectHooks.createGetProjectDetailsQuery({
       assetId: isHybrid ? project.hybrid.cloudProjectId : project.id,
       backend: isHybrid ? remoteBackend : backend,
     }),
-    select: (projectDetails) => ({ name: projectDetails.name }),
+    select: (projectDetails) => ({
+      name: projectDetails.name,
+      isHybridOpened: isHybrid && projectHooks.OPENED_PROJECT_STATES.has(projectDetails.state.type),
+    }),
   })
 
   const { isProjectClosed, isProjectOpening, isProjectOpened, isProjectClosing } = projectQuery.data
 
-  const isOpeningFailed = openProjectMutation.isError
-  const openingError = openProjectMutation.error
-  const startProject = openProjectMutation.mutate
   const stableOnReadyUpdate = useEventCallback((value: boolean) => onReadyUpdate?.(value))
   const stableOnNameUpdate = useEventCallback((value: string) => onNameUpdate?.(value))
 
@@ -88,7 +92,7 @@ export default function Editor(props: EditorProps) {
     const id = isHybrid ? project.hybrid.cloudProjectId : project.id
     invariant(backendForRenaming != null, 'Backend is null')
 
-    await renameProjectMutation.mutateAsync({
+    await renameProjectMutation({
       newName,
       backend: backendForRenaming,
       project: { ...project, id },
@@ -96,10 +100,15 @@ export default function Editor(props: EditorProps) {
   })
 
   React.useEffect(() => {
-    if (isProjectClosed) {
-      startProject(project)
+    if (
+      // Open project unless it is not supposed to be reopened.
+      (isProjectClosed && !preventAutoReopen) ||
+      // Open hybrid project if it is still marked as opened.
+      isHybridOpened
+    ) {
+      void startProject({ ...project, suppressHybridProjectOpen: isHybridOpened })
     }
-  }, [isProjectClosed, startProject, project])
+  }, [isProjectClosed, startProject, project, preventAutoReopen, isHybridOpened])
 
   React.useEffect(() => {
     stableOnNameUpdate(name)
@@ -123,13 +132,33 @@ export default function Editor(props: EditorProps) {
     isDisabled: !isProjectOpening || projectQuery.isError,
   })
 
-  if (isOpeningFailed) {
+  if (isProjectClosed && preventAutoReopen) {
+    return (
+      <Result
+        status="info"
+        title={getText('projectStopped')}
+        subtitle={getText('projectStoppedDescription')}
+      >
+        <Button
+          isLoading={isProjectOpening}
+          className="mx-auto"
+          onPress={async () => {
+            await startProject(project)
+          }}
+        >
+          {getText('openProject')}
+        </Button>
+      </Result>
+    )
+  }
+
+  if (openProjectMutation.isError) {
     return (
       <errorBoundary.ErrorDisplay
-        error={openingError}
-        resetErrorBoundary={() => {
+        error={openProjectMutation.error}
+        resetErrorBoundary={async () => {
           if (isProjectClosed) {
-            startProject(project)
+            await startProject(project)
           }
         }}
       />

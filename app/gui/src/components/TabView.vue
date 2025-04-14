@@ -58,7 +58,7 @@ watch(
 
 const onSignOut = () => {
   setPage('drive')
-  closeAllProjects()
+  void closeAllProjects()
   clearLaunchedProjects()
 }
 </script>

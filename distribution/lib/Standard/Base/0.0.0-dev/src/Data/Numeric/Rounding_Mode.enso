@@ -1,5 +1,6 @@
-from Standard.Base import all
+import project.Data.Boolean.Boolean
 import project.Errors.Deprecated.Deprecated
+import project.Warning.Warning
 
 polyglot java import java.math.RoundingMode
 

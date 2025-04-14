@@ -6,10 +6,9 @@ import EditableSpan from '#/components/EditableSpan'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { useText } from '#/providers/TextProvider'
-import { isNewTitleUnique, type DirectoryAsset } from '#/services/Backend'
+import { titleSchema, type DirectoryAsset } from '#/services/Backend'
 import { merger } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { isDirectoryNameContainInvalidCharacters } from '#/utilities/validation'
 import { useTransition } from 'react'
 
 /** Props for a {@link DirectoryNameColumn}. */
@@ -78,14 +77,11 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           'cursor-pointer bg-transparent font-naming',
           rowState.isEditingName ? 'cursor-text' : 'cursor-pointer',
         )}
-        schema={(z) =>
-          z
-            .refine((value) => !isDirectoryNameContainInvalidCharacters(value), {
-              message: getText('nameShouldNotContainInvalidCharacters'),
-            })
-            .refine((value) => isNewTitleUnique(item, value, getAssetChildren(item.parentId)), {
-              message: getText('nameShouldBeUnique'),
-            })
+        schema={() =>
+          titleSchema({
+            asset: item,
+            siblings: getAssetChildren(item.parentId),
+          })
         }
         onSubmit={doRename}
         onCancel={() => {

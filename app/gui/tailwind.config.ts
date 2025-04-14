@@ -472,7 +472,7 @@ inset 0 -36px 51px -51px #00000014`,
             '@apply outline-offset-0': '',
           },
           '.drop-target-after': {
-            '@apply relative after:pointer-events-none after:absolute after:inset after:rounded-inherit [&[data-drop-target=true]]:after:bg-primary/10':
+            '@apply relative after:pointer-events-none before:pointer-events-none before:outline before:outline-transparent before:outline-offset-2 before:transition-all before:absolute before:inset before:rounded-inherit [&[data-drop-target=true]]:before:bg-primary/5 [&[data-drop-target=true]]:before:outline-primary/40 [&[data-drop-target=true]]:before:-outline-offset-1':
               '',
           },
 
