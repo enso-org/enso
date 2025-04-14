@@ -97,7 +97,7 @@ export function useVisualizationData({
 
   const executeExpression = async (
     expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>,
-    timeoutMs = 5000, // optional timeout parameter
+    timeoutMs = 5000,
   ) => {
     const dataSourceValue = toValue(dataSource)
     if (dataSourceValue?.type !== 'node') return
