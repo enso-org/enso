@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.number.utils;
 import com.oracle.truffle.api.CompilerDirectives;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import org.enso.polyglot.common_utils.Core_Math_Utils;
 
 /** Re-exposes big-integer operations behind a truffle boundary. */
 public class BigIntegerOps {
@@ -235,16 +236,7 @@ public class BigIntegerOps {
   }
 
   public static boolean fitsInLong(double decimal) {
-    return decimal <= Long.MAX_VALUE && decimal >= Long.MIN_VALUE;
-  }
-
-  private static boolean fitsInLongCompat(double decimal) {
-    var nulaMinus = Double.doubleToRawLongBits(-0d);
-    if (nulaMinus == Double.doubleToRawLongBits(decimal)) {
-      return false;
-    }
-    var converted = (long) decimal;
-    return converted != Long.MAX_VALUE && converted == decimal;
+    return Core_Math_Utils.fitsInLong(decimal);
   }
 
   public static boolean fitsInInt(long number) {
