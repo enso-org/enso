@@ -29,9 +29,9 @@ import java.nio.file.Paths
 
 val scalacVersion = "2.13.15"
 // source version of the Java language
-val javaVersion = "21"
+val javaVersion = "24"
 // version of the GraalVM JDK
-val graalVersion = "21.0.2"
+val graalVersion = "24"
 // Version used for the Graal/Truffle related Maven packages
 // Keep in sync with GraalVM.version. Do not change the name of this variable,
 // it is used by the Rust build script via regex matching.
