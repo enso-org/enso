@@ -6,16 +6,11 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
 
-import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -26,9 +21,7 @@ import org.enso.logging.service.telemetry.LogJob;
 import org.enso.logging.service.telemetry.LogJobsProcessor;
 import org.enso.logging.service.telemetry.LogMessage;
 import org.enso.logging.service.telemetry.TokenRefresher;
-import org.enso.shttp.HTTPTestHelperServer;
 import org.enso.shttp.HybridHTTPServer;
-import org.enso.shttp.cloud_mock.CloudMockSetup;
 import org.enso.testkit.RetryTestRule;
 import org.junit.After;
 import org.junit.Before;
@@ -36,31 +29,26 @@ import org.junit.Rule;
 import org.junit.Test;
 
 public class TestTelemetry {
-  @Rule public RetryTestRule retry = new RetryTestRule(3);
+  @Rule public final ConsumeLogs consumeLogs = new ConsumeLogs();
+  @Rule public final RetryTestRule retry = new RetryTestRule(3);
 
   private static final int port = 8083;
-  private static final URI baseUri = URI.create("http://localhost:" + port + "/enso-cloud-mock");
-  private static final URI logUri = URI.create(baseUri + "/logs");
-  private static final URI refreshUri =
-      URI.create("http://localhost:" + port + "/enso-cloud-auth-renew");
+  private static final URI logUri = Utils.logUri(port);
+  private static final URI refreshUri = Utils.refreshUri(port);
   private static final long APPENDER_KEEP_ALIVE = 20;
-  private static final Credentials credentials = mockCredentials();
+  private static final Credentials credentials = Utils.mockCredentials(port);
 
   private HybridHTTPServer server;
-  private ExecutorService serverExecutor;
   private ThreadPoolExecutor logProcessorExecutor;
   private LogJobsProcessor logJobsProcessor;
   private TokenRefresher tokenRefresher;
 
   @Before
-  public void initServer() throws URISyntaxException, IOException {
-    serverExecutor = Executors.newSingleThreadExecutor();
+  public void initServer() {
     logProcessorExecutor =
         new ThreadPoolExecutor(
             0, 1, APPENDER_KEEP_ALIVE, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
-    var cloudMockSetup = new CloudMockSetup(false);
-    server =
-        HTTPTestHelperServer.createServer("localhost", port, serverExecutor, false, cloudMockSetup);
+    server = Utils.createMockServer(port);
     tokenRefresher =
         new TokenRefresher(refreshUri, credentials.clientId(), credentials.refreshToken());
     var authData = AuthenticationData.fromCredentials(credentials);
@@ -73,9 +61,6 @@ public class TestTelemetry {
     if (server != null) {
       server.stop();
     }
-    if (serverExecutor != null) {
-      serverExecutor.shutdown();
-    }
     if (logProcessorExecutor != null) {
       logProcessorExecutor.shutdown();
     }
@@ -87,7 +72,7 @@ public class TestTelemetry {
     var notification = new CompletableFuture<Void>();
     var job = new LogJob(message, notification);
     logJobsProcessor.enqueueMessage(job);
-    assertCompletedSuccessfully(job);
+    Utils.assertCompletedSuccessfully(job);
     var receivedLogs = server.getLogs();
     assertThat(receivedLogs.size(), is(1));
     var receivedLog = receivedLogs.get(0);
@@ -126,7 +111,7 @@ public class TestTelemetry {
                 })
             .toList();
     logJobs.forEach(logJobsProcessor::enqueueMessage);
-    assertCompletedSuccessfully(logJobs);
+    Utils.assertCompletedSuccessfully(logJobs);
     var logs = server.getLogs();
     for (int i = 0; i < logs.size(); i++) {
       var log = logs.get(i);
@@ -180,41 +165,16 @@ public class TestTelemetry {
     var message1 = new LogMessage("TestLogger", "msg: name={}", new Object[] {"Pavel"});
     var job1 = new LogJob(message1, new CompletableFuture<>());
     logJobsProcessor.enqueueMessage(job1);
-    assertCompletedSuccessfully(job1);
+    Utils.assertCompletedSuccessfully(job1);
 
     var job2 =
         new LogJob(
             new LogMessage("TestLogger", "msg2: name={}", new Object[] {"Pavel"}),
             new CompletableFuture<>());
     logJobsProcessor.enqueueMessage(job2);
-    assertCompletedSuccessfully(job2);
+    Utils.assertCompletedSuccessfully(job2);
 
     assertThat("Token was refreshed just once", server.getRefreshedTokensCount(), is(1));
-  }
-
-  private static void assertCompletedSuccessfully(List<LogJob> jobs) {
-    for (LogJob logJob : jobs) {
-      try {
-        logJob.completionNofitication().get();
-      } catch (InterruptedException e) {
-        throw new AssertionError("Should not be interrupted", e);
-      } catch (ExecutionException e) {
-        throw new AssertionError("Should not fail", e);
-      }
-    }
-  }
-
-  private static void assertCompletedSuccessfully(LogJob job) {
-    assertCompletedSuccessfully(List.of(job));
-  }
-
-  private static Credentials mockCredentials() {
-    var expireAt = ZonedDateTime.now().plusYears(1).format(DateTimeFormatter.ISO_INSTANT);
-    var refreshUrl = refreshUri.toString();
-    var accessToken = "TEST-ENSO-TOKEN-caffee";
-    var refreshToken = "TEST-ENSO-REFRESH-caffee";
-    var clientId = "TEST-ENSO-CLIENT-ID";
-    return new Credentials(clientId, accessToken, refreshToken, refreshUrl, expireAt);
   }
 
   private static Credentials invalidCredentials() {
