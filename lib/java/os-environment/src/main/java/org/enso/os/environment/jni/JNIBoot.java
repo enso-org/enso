@@ -1,7 +1,6 @@
 package org.enso.os.environment.jni;
 
 import org.graalvm.nativeimage.c.CContext;
-import org.graalvm.nativeimage.c.function.CFunction;
 import org.graalvm.nativeimage.c.function.CFunctionPointer;
 import org.graalvm.nativeimage.c.function.InvokeCFunctionPointer;
 import org.graalvm.nativeimage.c.struct.CField;
@@ -13,10 +12,7 @@ import org.graalvm.word.PointerBase;
 /** Java virtual machine initialization API. */
 @CContext(JNIDirectives.class)
 final class JNIBoot {
-  @CFunction
-  static native int JNI_GetDefaultJavaVMInitArgs(Args vmargs);
-
-  public interface JNICreateJavaVMPointer extends CFunctionPointer {
+  interface JNICreateJavaVMPointer extends CFunctionPointer {
     @InvokeCFunctionPointer
     int call(JNI.JavaVMPointer jvmptr, JNI.JNIEnvPointer env, Args args);
   }
@@ -49,7 +45,7 @@ final class JNIBoot {
   }
 
   @CStruct(value = "JavaVMOption")
-  public interface Option extends PointerBase {
+  interface Option extends PointerBase {
 
     @CField("optionString")
     CCharPointer getOptionString();
