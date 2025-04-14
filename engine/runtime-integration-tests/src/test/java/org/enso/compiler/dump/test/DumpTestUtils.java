@@ -11,7 +11,7 @@ import java.nio.file.Path;
 import org.enso.compiler.docs.DocsGenerate;
 import org.enso.compiler.docs.DocsVisit;
 import org.enso.pkg.QualifiedName;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 
 final class DumpTestUtils {
@@ -22,7 +22,7 @@ final class DumpTestUtils {
     ProjectUtils.createProject(projName, code, projDir);
     ProjectUtils.generateProjectDocs(
         "api",
-        ContextRule.newBuilder(),
+        ContextUtils.newBuilder(),
         projDir,
         (context) -> {
           var enso = context.ensoContext();
@@ -53,7 +53,7 @@ final class DumpTestUtils {
    * @param modName FQN of the module.
    * @return Signature string for the module.
    */
-  static String generateSignatures(ContextRule context, String moduleSrc, String modName)
+  static String generateSignatures(ContextUtils context, String moduleSrc, String modName)
       throws IOException {
     var modIr = context.compileModule(moduleSrc, modName);
     var sigGenerator = DocsVisit.createSignatures();

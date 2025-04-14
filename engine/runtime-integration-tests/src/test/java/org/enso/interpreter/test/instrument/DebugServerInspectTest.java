@@ -9,7 +9,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.enso.common.DebugServerInfo;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.hamcrest.core.AllOf;
 import org.junit.Before;
@@ -18,8 +18,8 @@ import org.junit.Test;
 
 public class DebugServerInspectTest {
   @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.newBuilder()
+  public static final ContextUtils ctxRule =
+      ContextUtils.newBuilder()
           .withModifiedContext(
               b -> b.option(DebugServerInfo.METHOD_BREAKPOINT_OPTION, "ScriptTest.inspect"))
           .build();

@@ -7,7 +7,7 @@ import static org.junit.Assert.fail;
 import java.net.URI;
 import java.time.format.DateTimeFormatter;
 import org.enso.common.MethodNames;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.junit.ClassRule;
@@ -15,7 +15,7 @@ import org.junit.Test;
 
 public class SignaturePolyglotTest {
 
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Test
   public void polyglotDataTimeFormatter() throws Exception {

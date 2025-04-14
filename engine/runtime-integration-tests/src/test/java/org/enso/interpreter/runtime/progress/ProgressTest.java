@@ -6,7 +6,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.stream.Collectors;
 import org.enso.common.MethodNames;
 import org.enso.logger.ObservedMessage;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 import org.junit.ClassRule;
@@ -14,7 +14,7 @@ import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 public class ProgressTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   public ProgressTest() {}
 

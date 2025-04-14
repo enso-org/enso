@@ -9,7 +9,7 @@ import java.util.Objects;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -25,7 +25,7 @@ import org.junit.runners.Parameterized.Parameters;
  */
 @RunWith(Parameterized.class)
 public class TypesExposeConstructorsTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   private final TypeWithWrapper typeWithWrapper;
 

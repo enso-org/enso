@@ -9,7 +9,7 @@ import java.io.File;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.enso.common.RuntimeOptions;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.junit.Test;
 
@@ -41,7 +41,7 @@ public class HelloWorldCacheTest {
 
   private static String executeOnce(File src) throws Exception {
     try (var ctx =
-        ContextRule.newBuilder()
+        ContextUtils.newBuilder()
             .withModifiedContext(
                 bldr ->
                     bldr.option(RuntimeOptions.LOG_LEVEL, Level.FINE.getName())

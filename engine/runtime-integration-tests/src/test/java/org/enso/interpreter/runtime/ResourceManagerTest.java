@@ -8,7 +8,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.junit.Test;
 
 public class ResourceManagerTest {
@@ -20,7 +20,7 @@ public class ResourceManagerTest {
     var obj = new ResourceToGc();
     var fn = new FnCallback();
 
-    try (var ctx = ContextRule.createDefault()) {
+    try (var ctx = ContextUtils.createDefault()) {
       var ensoContext = ctx.ensoContext();
 
       ensoContext.getResourceManager().register(obj, fn);

@@ -16,7 +16,7 @@ import org.enso.common.RuntimeOptions;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap$ModuleReference$Concrete;
 import org.enso.pkg.QualifiedName;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.junit.After;
@@ -29,8 +29,8 @@ public class ModuleTest {
   private File f;
 
   @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.newBuilder()
+  public static final ContextUtils ctxRule =
+      ContextUtils.newBuilder()
           .withModifiedContext(b -> b.option(RuntimeOptions.STRICT_ERRORS, "false"))
           .build();
 

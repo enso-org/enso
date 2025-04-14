@@ -6,12 +6,12 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.expression.literal.LiteralNode;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class SequenceLiteralNodeTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   public SequenceLiteralNodeTest() {}
 

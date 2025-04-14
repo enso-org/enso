@@ -5,7 +5,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -14,7 +14,7 @@ import org.junit.Test;
  * com.oracle.truffle.api.interop.InteropLibrary interop} protocol.
  */
 public class InvokeBuiltinMethodViaInteropTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Test
   public void invokeGetMethodOnRef() {

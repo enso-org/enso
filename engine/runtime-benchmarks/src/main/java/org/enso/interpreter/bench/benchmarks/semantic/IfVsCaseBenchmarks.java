@@ -7,7 +7,7 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import org.enso.common.MethodNames.Module;
 import org.enso.compiler.benchmarks.Utils;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -30,7 +30,7 @@ import org.openjdk.jmh.infra.BenchmarkParams;
 @State(Scope.Benchmark)
 public class IfVsCaseBenchmarks {
   private static final int INPUT_VEC_SIZE = 100_000;
-  private ContextRule ctx;
+  private ContextUtils ctx;
   private Value ifBench3;
   private Value caseBench3;
   private Value ifBench6;

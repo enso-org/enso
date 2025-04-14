@@ -12,7 +12,7 @@ import org.enso.common.RuntimeOptions;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.scala.wrapper.ScalaConversions;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
 import org.graalvm.polyglot.Source;
@@ -25,7 +25,7 @@ public class EnsoProjectTest {
 
   @Test
   public void noProjectWhenEvaluatingSingleFile() {
-    try (var ctx = ContextRule.createDefault()) {
+    try (var ctx = ContextUtils.createDefault()) {
       var res =
           ctx.evalModule(
               """
@@ -104,7 +104,7 @@ public class EnsoProjectTest {
     var mainModFile = projDir.resolve("src").resolve("Main.enso");
     assertThat(mainModFile.toFile().exists(), is(true));
     try (var ctx =
-        ContextRule.newBuilder()
+        ContextUtils.newBuilder()
             .withModifiedContext(
                 bldr ->
                     bldr.option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString()))

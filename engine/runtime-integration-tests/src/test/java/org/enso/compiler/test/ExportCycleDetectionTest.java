@@ -12,7 +12,7 @@ import java.nio.file.Path;
 import java.util.Set;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ModuleUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
@@ -112,7 +112,7 @@ public class ExportCycleDetectionTest {
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
-    try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       try {
         polyCtx.getTopScope().compile(true);
@@ -136,7 +136,7 @@ public class ExportCycleDetectionTest {
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
-    try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       try {
         polyCtx.getTopScope().compile(true);
@@ -150,7 +150,7 @@ public class ExportCycleDetectionTest {
   }
 
   private void expectProjectCompilationError(Path projDir, Matcher<String> errMsgMatcher) {
-    try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       try {
         polyCtx.getTopScope().compile(true);

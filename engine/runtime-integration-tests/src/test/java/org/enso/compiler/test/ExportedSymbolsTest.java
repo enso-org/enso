@@ -17,7 +17,7 @@ import org.enso.compiler.context.CompilerContext.Module;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
 import org.junit.After;
@@ -225,16 +225,16 @@ public class ExportedSymbolsTest {
     }
   }
 
-  private static ContextRule createCtx(Path projDir) {
-    return ContextRule.newBuilder().withProjectRoot(projDir).build();
+  private static ContextUtils createCtx(Path projDir) {
+    return ContextUtils.newBuilder().withProjectRoot(projDir).build();
   }
 
-  private static void compile(ContextRule ctx) {
+  private static void compile(ContextUtils ctx) {
     new PolyglotContext(ctx.context()).getTopScope().compile(true);
   }
 
   private static Map<String, List<BindingsMap.ResolvedName>> getExportedSymbolsFromModule(
-      ContextRule ctx, String modName) {
+      ContextUtils ctx, String modName) {
     var ensoCtx = ctx.ensoContext();
     var mod = ensoCtx.getPackageRepository().getLoadedModule(modName).get();
     return getExportedSymbols(mod);

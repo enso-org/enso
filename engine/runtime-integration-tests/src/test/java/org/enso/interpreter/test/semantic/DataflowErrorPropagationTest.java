@@ -5,7 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.enso.common.MethodNames;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -14,7 +14,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class DataflowErrorPropagationTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.newBuilder().build();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
 
   private static Value suppressError;
   private static Value suppressErrorWithAssign;

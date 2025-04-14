@@ -12,7 +12,7 @@ import java.nio.file.Path;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.dump.service.IRDumpFactoryService;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.IRDumperTestWrapper;
 import org.enso.test.utils.ProjectUtils;
 import org.junit.After;
@@ -65,7 +65,7 @@ public class IRDumpTest {
   @Test
   public void dumpVectorModule() throws IOException {
     System.setProperty(IRDumpFactoryService.SYSTEM_PROP, "Vector");
-    try (var ctx = ContextRule.createDefault()) {
+    try (var ctx = ContextUtils.createDefault()) {
       // Dumping is done in the compiler, so it is enough just to compile the module
       ctx.compileModule(
           """

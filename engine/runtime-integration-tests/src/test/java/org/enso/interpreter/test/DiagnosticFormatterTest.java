@@ -13,7 +13,7 @@ import org.enso.common.MethodNames.Module;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.interpreter.runtime.util.DiagnosticFormatter;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -21,8 +21,8 @@ import org.junit.Test;
 
 public class DiagnosticFormatterTest {
   @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.newBuilder()
+  public static final ContextUtils ctxRule =
+      ContextUtils.newBuilder()
           .withModifiedContext(
               b -> b.option(RuntimeOptions.STRICT_ERRORS, "true").environment("NO_COLOR", "true"))
           .build();

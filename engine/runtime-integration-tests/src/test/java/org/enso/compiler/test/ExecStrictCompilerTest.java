@@ -10,7 +10,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.enso.common.RuntimeOptions;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.junit.After;
@@ -19,8 +19,8 @@ import org.junit.Test;
 
 public class ExecStrictCompilerTest {
   @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.newBuilder()
+  public static final ContextUtils ctxRule =
+      ContextUtils.newBuilder()
           .withModifiedContext(ctxBldr -> ctxBldr.option(RuntimeOptions.STRICT_ERRORS, "true"))
           .build();
 

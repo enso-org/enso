@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.enso.common.MethodNames;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.junit.Before;
@@ -18,7 +18,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class RootNamesTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.newBuilder().build();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
 
   @Before
   public void cleanOut() {

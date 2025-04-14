@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.test.ValuesGenerator;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -25,7 +25,7 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class TypeOfNodeMultiValueTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   private static RootCallTarget testTypesCall;
 
   @Parameterized.Parameter(0)

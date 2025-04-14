@@ -7,7 +7,7 @@ import static org.junit.Assert.assertNull;
 
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -15,7 +15,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class RefTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.newBuilder().build();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
 
   private static Value refType;
 

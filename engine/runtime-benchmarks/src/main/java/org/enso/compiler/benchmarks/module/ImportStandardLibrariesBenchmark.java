@@ -12,7 +12,7 @@ import org.enso.compiler.Compiler;
 import org.enso.compiler.benchmarks.Utils;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -79,7 +79,7 @@ from Standard.Visualization import all
    */
   private static final int RESOLVED_SYMBOLS_CNT = 20;
 
-  private ContextRule context;
+  private ContextUtils context;
   private Compiler compiler;
   private Module module;
 

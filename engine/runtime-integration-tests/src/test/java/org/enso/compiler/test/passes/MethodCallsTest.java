@@ -13,7 +13,7 @@ import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.resolve.MethodCalls$;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.junit.Test;
 import scala.Option;
 
@@ -26,7 +26,7 @@ public class MethodCallsTest {
         main =
             Test.module_method 42
         """;
-    try (var ctx = ContextRule.createDefault()) {
+    try (var ctx = ContextUtils.createDefault()) {
       var ir = ctx.compileModule(code, "Test");
       var methodCall = findMethodCall(ir, "module_method");
       var meta = methodCall.function().passData().get(MethodCalls$.MODULE$);

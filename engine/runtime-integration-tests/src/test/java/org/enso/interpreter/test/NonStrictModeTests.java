@@ -3,7 +3,7 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 
 import org.enso.common.RuntimeOptions;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -14,8 +14,8 @@ public class NonStrictModeTests {
   private static final MockLogHandler logHandler = new MockLogHandler();
 
   @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.newBuilder()
+  public static final ContextUtils ctxRule =
+      ContextUtils.newBuilder()
           .withModifiedContext(
               b -> b.logHandler(logHandler).option(RuntimeOptions.STRICT_ERRORS, "false"))
           .build();

@@ -3,7 +3,7 @@ package org.enso.interpreter.test.builtins;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -12,7 +12,7 @@ import org.junit.Test;
  * accept Enso values in different ways.
  */
 public class BuiltinsJavaInteropTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   /**
    * This test reflects the state of many Java methods in stdlibs that accept Enso values as {@link

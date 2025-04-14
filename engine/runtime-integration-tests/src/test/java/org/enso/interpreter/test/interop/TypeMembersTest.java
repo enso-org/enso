@@ -17,14 +17,14 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.Rule;
 import org.junit.Test;
 
 public class TypeMembersTest {
-  @Rule public final ContextRule ctxRule = ContextRule.createDefault();
+  @Rule public final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Test
   public void checkAtomMembers() throws Exception {
@@ -188,7 +188,7 @@ public class TypeMembersTest {
   }
 
   /**
-   * @param obj {@link ContextRule#unwrapValue(Value) unwrapped} {@link Value value}.
+   * @param obj {@link ContextUtils#unwrapValue(Value) unwrapped} {@link Value value}.
    */
   private List<String> getAllMemberNames(Object obj)
       throws UnsupportedMessageException, InvalidArrayIndexException {

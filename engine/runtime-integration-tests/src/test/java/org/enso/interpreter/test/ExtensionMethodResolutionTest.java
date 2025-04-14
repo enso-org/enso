@@ -12,7 +12,7 @@ import java.util.Set;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.TopScope;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
 import org.graalvm.polyglot.PolyglotException;
@@ -318,7 +318,7 @@ public class ExtensionMethodResolutionTest {
 
   private void testProjectCompilationFailure(
       Path mainProjDir, Matcher<String> errorMessageMatcher) {
-    try (var ctx = ContextRule.newBuilder().withProjectRoot(mainProjDir).build()) {
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(mainProjDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       TopScope topScope = polyCtx.getTopScope();
       try {

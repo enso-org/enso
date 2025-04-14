@@ -15,7 +15,7 @@ import org.enso.pkg.Package
 import org.enso.common.LanguageInfo
 import org.enso.compiler.phase.exports.Node
 import org.enso.common.RuntimeOptions
-import org.enso.test.utils.{ContextRule, ProjectUtils}
+import org.enso.test.utils.{ContextUtils, ProjectUtils}
 import org.graalvm.polyglot.Engine
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
@@ -43,7 +43,7 @@ class ImportExportTest
     .allowExperimentalOptions(true)
     .build()
 
-  private val ctxBldr = ContextRule
+  private val ctxBldr = ContextUtils
     .newBuilder(LanguageInfo.ID)
     .withModifiedContext(bldr =>
       bldr
@@ -64,7 +64,7 @@ class ImportExportTest
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
     )
 
-  private var ctx: ContextRule          = _
+  private var ctx: ContextUtils         = _
   private var tmpDir: Path              = _
   private var pkg: Package[TruffleFile] = _
 

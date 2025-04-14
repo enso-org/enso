@@ -10,7 +10,7 @@ import static org.junit.Assert.fail;
 
 import java.net.URI;
 import org.enso.common.MethodNames;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.junit.After;
@@ -19,7 +19,7 @@ import org.junit.Test;
 
 /** Tests symbol resolution in the interpreter. */
 public class InterpreterSymbolResolutionTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @After
   public void clear() {

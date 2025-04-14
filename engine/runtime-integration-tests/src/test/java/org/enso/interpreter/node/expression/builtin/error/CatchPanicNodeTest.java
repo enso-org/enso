@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
 import org.hamcrest.Matchers;
 import org.junit.AfterClass;
@@ -22,7 +22,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class CatchPanicNodeTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   private static CatchPanicNode catchPanicNode;
   private static HostValueToEnsoNode hostValueToEnsoNode;
   private static TestRootNode testRootNode;

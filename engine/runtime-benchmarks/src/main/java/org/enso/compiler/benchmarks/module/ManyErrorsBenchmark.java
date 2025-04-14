@@ -12,7 +12,7 @@ import org.enso.compiler.benchmarks.CodeGenerator;
 import org.enso.compiler.benchmarks.Utils;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -45,7 +45,7 @@ public class ManyErrorsBenchmark {
   private static final int EXPR_SIZE = 5;
   private static final List<String> UNDEFINED_IDENTIFIERS =
       List.of("FOO_BAR", "Bazzzzz", "Type.Constructor.Foo.Bar.Baz");
-  private ContextRule context;
+  private ContextUtils context;
   private Compiler compiler;
   private Module module;
 

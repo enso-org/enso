@@ -11,15 +11,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.logging.Level;
 import org.enso.common.RuntimeOptions;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
 
 public final class Utils {
   private Utils() {}
 
-  public static ContextRule.Builder createDefaultContextBuilder() {
-    return ContextRule.newBuilder()
+  public static ContextUtils.Builder createDefaultContextBuilder() {
+    return ContextUtils.newBuilder()
         .withModifiedContext(
             bldr ->
                 bldr.allowExperimentalOptions(true)
@@ -39,7 +39,7 @@ public final class Utils {
                     .allowAllAccess(true));
   }
 
-  public static Object unwrapReceiver(ContextRule ctx, Value value) {
+  public static Object unwrapReceiver(ContextUtils ctx, Value value) {
     var unwrapper = new Unwrapper();
     var unwrapperValue = ctx.asValue(unwrapper);
     unwrapperValue.execute(value);

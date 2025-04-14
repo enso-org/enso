@@ -7,7 +7,7 @@ import java.net.URISyntaxException;
 import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.test.TypeInferenceTest;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.junit.After;
@@ -20,8 +20,8 @@ import org.junit.Test;
  */
 public class TypeInferenceConsistencyTest {
   @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.newBuilder()
+  public static final ContextUtils ctxRule =
+      ContextUtils.newBuilder()
           .withModifiedContext(
               b ->
                   b.option(RuntimeOptions.STRICT_ERRORS, "true")

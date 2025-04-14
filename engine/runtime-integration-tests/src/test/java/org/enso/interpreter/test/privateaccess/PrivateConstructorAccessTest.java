@@ -11,7 +11,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import java.io.IOException;
 import org.enso.common.RuntimeOptions;
 import org.enso.polyglot.PolyglotContext;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.Rule;
@@ -31,7 +31,7 @@ public class PrivateConstructorAccessTest {
             obj = My_Type.Cons 42
             obj.data
         """;
-    try (var ctx = ContextRule.createDefault()) {
+    try (var ctx = ContextUtils.createDefault()) {
       var res = ctx.evalModule(src);
       assertThat(res.isNumber(), is(true));
       assertThat(res.asInt(), is(42));
@@ -74,7 +74,7 @@ public class PrivateConstructorAccessTest {
     ProjectUtils.createProject("My_Project", mainSrc, projDir);
     var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
     try (var ctx =
-        ContextRule.newBuilder()
+        ContextUtils.newBuilder()
             .withModifiedContext(
                 bldr ->
                     bldr.option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString()))
@@ -140,7 +140,7 @@ public class PrivateConstructorAccessTest {
     ProjectUtils.createProject("Proj", projSrc, projDir);
 
     try (var ctx =
-        ContextRule.newBuilder()
+        ContextUtils.newBuilder()
             .withModifiedContext(
                 bldr ->
                     bldr.option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())

@@ -5,15 +5,15 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class DisabledAssertionsTest {
   @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.newBuilder()
+  public static final ContextUtils ctxRule =
+      ContextUtils.newBuilder()
           .withModifiedContext(b -> b.environment("ENSO_ENABLE_ASSERTIONS", "false"))
           .build();
 

@@ -20,7 +20,7 @@ import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -35,7 +35,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(Theories.class)
 public class EqualsTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   private static EqualsNode equalsNode;
   private static TestRootNode testRootNode;
   private static HostValueToEnsoNode hostValueToEnsoNode;

@@ -5,13 +5,13 @@ import static org.junit.Assert.assertTrue;
 
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class AnyOrStaticTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Test
   public void methodOnModuleAny() throws Exception {

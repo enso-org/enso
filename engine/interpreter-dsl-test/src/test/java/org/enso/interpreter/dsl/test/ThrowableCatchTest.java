@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -24,7 +24,7 @@ import org.junit.Test;
  * <p>These tests checks this contract.
  */
 public class ThrowableCatchTest {
-  @Rule public final ContextRule ctxRule = ContextRule.createDefault();
+  @Rule public final ContextUtils ctxRule = ContextUtils.createDefault();
 
   private static List<Class<?>> shouldBeHandledExceptionTypes =
       List.of(UnsupportedSpecializationException.class);

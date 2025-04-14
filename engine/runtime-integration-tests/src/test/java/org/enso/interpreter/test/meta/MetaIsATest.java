@@ -13,7 +13,7 @@ import java.util.Map;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -27,7 +27,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class MetaIsATest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.newBuilder().build();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
 
   private static Value isACheck;
   private static Value warningCheck;

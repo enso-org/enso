@@ -2,13 +2,13 @@ package org.enso.interpreter.test.interop;
 
 import static org.junit.Assert.assertEquals;
 
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class JsInteropTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Test
   public void testDefaultJSPrint() {

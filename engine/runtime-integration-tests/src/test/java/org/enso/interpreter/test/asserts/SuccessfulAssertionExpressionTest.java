@@ -3,7 +3,7 @@ package org.enso.interpreter.test.asserts;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -15,8 +15,8 @@ import org.junit.runners.Parameterized.Parameters;
 public class SuccessfulAssertionExpressionTest {
 
   @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.newBuilder()
+  public static final ContextUtils ctxRule =
+      ContextUtils.newBuilder()
           .withModifiedContext(b -> b.environment("ENSO_ENABLE_ASSERTIONS", "true"))
           .build();
 

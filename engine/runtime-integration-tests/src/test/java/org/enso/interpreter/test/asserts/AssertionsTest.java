@@ -11,7 +11,7 @@ import static org.junit.Assert.fail;
 
 import java.util.List;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
@@ -20,8 +20,8 @@ import org.junit.Test;
 public class AssertionsTest {
 
   @ClassRule
-  public static final ContextRule ctxRule =
-      ContextRule.newBuilder()
+  public static final ContextUtils ctxRule =
+      ContextUtils.newBuilder()
           .withModifiedContext(b -> b.environment("ENSO_ENABLE_ASSERTIONS", "true"))
           .build();
 

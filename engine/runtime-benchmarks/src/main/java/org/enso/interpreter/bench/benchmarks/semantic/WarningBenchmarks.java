@@ -8,7 +8,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import org.enso.common.MethodNames;
 import org.enso.compiler.benchmarks.Utils;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -32,7 +32,7 @@ import org.openjdk.jmh.infra.BenchmarkParams;
 public class WarningBenchmarks {
   private static final int INPUT_VEC_SIZE = 10_000;
   private static final int INPUT_DIFF_VEC_SIZE = 10_000;
-  private ContextRule ctx;
+  private ContextUtils ctx;
   private Value vecSumBench;
 
   private Value createVec;

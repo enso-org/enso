@@ -1,7 +1,7 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.util.concurrent.TimeUnit;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -46,7 +46,7 @@ main = sumTo ->
     res
 """;
 
-  private ContextRule context;
+  private ContextUtils context;
   private Value sumTCOWithNamedArguments;
   private Value sumTCOWithDefaultedArguments;
 

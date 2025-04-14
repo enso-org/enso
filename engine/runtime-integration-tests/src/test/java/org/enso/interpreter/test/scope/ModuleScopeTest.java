@@ -10,7 +10,7 @@ import org.enso.common.LanguageInfo;
 import org.enso.interpreter.runtime.Module;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
 import org.graalvm.polyglot.Source;
@@ -20,7 +20,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class ModuleScopeTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @Test
@@ -120,7 +120,7 @@ public class ModuleScopeTest {
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mod, mainMod), projDir);
     var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
-    try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       var mainRuntimeMod = polyCtx.evalModule(mainSrcPath.toFile());
       var mainMethod = mainRuntimeMod.getMethod(mainRuntimeMod.getAssociatedType(), "main").get();

@@ -14,7 +14,7 @@ import java.util.function.BiConsumer;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames.Module;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -48,7 +48,7 @@ public final class MethodInvocationOnTypeConsistencyTest {
       my_type_atom = My_Type.Cons 1
       """;
 
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   private static Value module;
   private static Type anyType;
   private static Type myType;

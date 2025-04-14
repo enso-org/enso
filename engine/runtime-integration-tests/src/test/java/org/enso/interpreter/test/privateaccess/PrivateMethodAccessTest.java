@@ -5,13 +5,13 @@ import static org.hamcrest.Matchers.is;
 
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames.Module;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.junit.Test;
 
 public class PrivateMethodAccessTest {
   @Test
   public void moduleDoesNotExposePrivateMethodsToPolyglot() {
-    try (var ctx = ContextRule.createDefault()) {
+    try (var ctx = ContextUtils.createDefault()) {
       var module =
           ctx.eval(
               LanguageInfo.ID,
@@ -29,7 +29,7 @@ public class PrivateMethodAccessTest {
 
   @Test
   public void typeDoesNotExposePrivateMethodsToPolyglot() {
-    try (var ctx = ContextRule.createDefault()) {
+    try (var ctx = ContextUtils.createDefault()) {
       var module =
           ctx.eval(
               LanguageInfo.ID,

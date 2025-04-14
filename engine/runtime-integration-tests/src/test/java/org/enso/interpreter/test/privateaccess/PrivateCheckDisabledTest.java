@@ -5,7 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.IOException;
 import org.enso.common.RuntimeOptions;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,7 +32,7 @@ public class PrivateCheckDisabledTest {
     var mainDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Main", mainSrc, mainDir);
     var ctxBuilder =
-        ContextRule.newBuilder()
+        ContextUtils.newBuilder()
             .withModifiedContext(bldr -> bldr.option(RuntimeOptions.DISABLE_PRIVATE_CHECK, "true"));
     ProjectUtils.testProjectRun(
         ctxBuilder,

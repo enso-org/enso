@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 import org.enso.common.RuntimeOptions;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
-import org.enso.test.utils.ContextRule.Builder;
+import org.enso.test.utils.ContextUtils.Builder;
 import org.graalvm.polyglot.Value;
 import org.slf4j.LoggerFactory;
 import scala.Option;
@@ -42,7 +42,7 @@ public class ProjectUtils {
    *
    * @param projName Name of the project
    * @param modules Set of modules. If the main module is not present in the set, an exception will
-   *     be thrown once you try to {@link #testProjectRun(ContextRule.Builder, Path, Consumer)}
+   *     be thrown once you try to {@link #testProjectRun(ContextUtils.Builder, Path, Consumer)}
    *     test} the project run. Note that set of modules without a main module makes sense only if
    *     you intend to test the compilation and not running.
    * @param projDir A directory in which the whole project structure will be created. Must exist and
@@ -84,7 +84,7 @@ prefer-local-libraries: true
    *     main} method
    */
   public static void testProjectRun(
-      ContextRule.Builder ctxBuilder, Path projDir, Consumer<Value> resultConsumer) {
+      ContextUtils.Builder ctxBuilder, Path projDir, Consumer<Value> resultConsumer) {
     if (!(projDir.toFile().exists() && projDir.toFile().isDirectory())) {
       throw new IllegalArgumentException(
           "Project directory " + projDir + " must already be created");
@@ -121,9 +121,9 @@ prefer-local-libraries: true
    */
   public static void generateProjectDocs(
       String docsFormat,
-      ContextRule.Builder ctxBuilder,
+      ContextUtils.Builder ctxBuilder,
       Path projDir,
-      Consumer<ContextRule> whenDone) {
+      Consumer<ContextUtils> whenDone) {
     if (!(projDir.toFile().exists() && projDir.toFile().isDirectory())) {
       throw new IllegalArgumentException(
           "Project directory " + projDir + " must already be created");
@@ -154,7 +154,7 @@ prefer-local-libraries: true
    *     main} method
    */
   public static void testProjectRun(Path projDir, Consumer<Value> resultConsumer) {
-    testProjectRun(ContextRule.newBuilder(), projDir, resultConsumer);
+    testProjectRun(ContextUtils.newBuilder(), projDir, resultConsumer);
   }
 
   /** Deletes provided directory recursively. */

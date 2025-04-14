@@ -7,13 +7,13 @@ import static org.hamcrest.Matchers.not;
 
 import java.io.IOException;
 import java.util.function.BiConsumer;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 /** Tests recognitions of API changes in Enso code. */
 public final class ApiModificationTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Test
   public void reorderingMethods_DoesNotModifyApi() throws IOException {

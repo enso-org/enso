@@ -9,7 +9,7 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.test.WrappedPrimitive;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -19,7 +19,7 @@ import org.junit.Test;
 /** Tests Truffle nodes for integer operations. */
 public class FloatTest {
 
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   private static AbsNode absNode;
   private static AddNode addNode;
   private static TestRootNode root;

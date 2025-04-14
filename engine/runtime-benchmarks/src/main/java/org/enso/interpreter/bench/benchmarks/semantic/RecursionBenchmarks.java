@@ -1,7 +1,7 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.util.concurrent.TimeUnit;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -107,7 +107,7 @@ main = n ->
   private static final long HUNDRED_MILLION = 100_000_000L;
   private static final long HUNDRED = 100L;
 
-  private ContextRule context;
+  private ContextUtils context;
   private Value sumTCO;
   private Value sumTCOWithEval;
   private Value sumTCOFoldLike;

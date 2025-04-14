@@ -34,7 +34,7 @@ import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.scala.wrapper.ScalaConversions;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
 import org.junit.Rule;
@@ -449,7 +449,7 @@ public final class NameResolutionTest {
   }
 
   private void withProject(
-      String projName, Set<SourceModule> modules, Consumer<ContextRule> callback)
+      String projName, Set<SourceModule> modules, Consumer<ContextUtils> callback)
       throws IOException {
     var projDir = TMP_DIR.newFolder(projName).toPath();
     ProjectUtils.createProject(projName, modules, projDir);
@@ -495,20 +495,20 @@ public final class NameResolutionTest {
     callback.accept(meta);
   }
 
-  private ContextRule createCtx(Path projectRoot) {
-    return ContextRule.newBuilder().withProjectRoot(projectRoot).build();
+  private ContextUtils createCtx(Path projectRoot) {
+    return ContextUtils.newBuilder().withProjectRoot(projectRoot).build();
   }
 
   private static SourceModule srcModule(String moduleName, String src) {
     return new SourceModule(QualifiedName.fromString(moduleName), src);
   }
 
-  private void compileAllModules(ContextRule ctx) {
+  private void compileAllModules(ContextUtils ctx) {
     var polyCtx = new PolyglotContext(ctx.context());
     polyCtx.getTopScope().compile(true);
   }
 
-  private Module getModuleIr(ContextRule ctx, String moduleName) {
+  private Module getModuleIr(ContextUtils ctx, String moduleName) {
     var ensoCtx = ctx.ensoContext();
     var mod = ensoCtx.findModule(moduleName);
     assertThat(mod.isPresent(), is(true));

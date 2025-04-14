@@ -4,7 +4,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import java.util.ArrayList;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -13,7 +13,7 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class EnsoMultiValueInteropTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Parameterized.Parameter(0)
   public Object value;

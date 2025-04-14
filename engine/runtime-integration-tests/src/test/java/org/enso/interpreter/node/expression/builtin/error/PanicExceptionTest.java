@@ -6,7 +6,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -14,7 +14,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class PanicExceptionTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   private static final InteropLibrary interop = InteropLibrary.getUncached();
 
   private static CatchPanicNode catchPanicNode;

@@ -13,7 +13,7 @@ import org.enso.compiler.phase.exports.ExportCycleException;
 import org.enso.compiler.phase.exports.ExportsResolution;
 import org.enso.interpreter.runtime.Module;
 import org.enso.pkg.QualifiedName;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -42,7 +42,7 @@ import scala.jdk.javaapi.CollectionConverters;
 @State(Scope.Benchmark)
 public class ExportImportResolutionBenchmark {
   private Path projDir;
-  private ContextRule ctx;
+  private ContextUtils ctx;
   private ImportResolver importResolver;
   private ExportsResolution exportsResolution;
   private CompilerContext.Module mainModule;

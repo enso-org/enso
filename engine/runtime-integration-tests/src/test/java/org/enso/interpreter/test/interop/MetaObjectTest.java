@@ -24,7 +24,7 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -36,7 +36,7 @@ public class MetaObjectTest {
   private static Value sn;
   private static ValuesGenerator generator;
 
-  @ClassRule public static final ContextRule ctxRule = ContextRule.newBuilder().build();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
 
   @BeforeClass
   public static void prepareCtx() {
@@ -72,7 +72,7 @@ public class MetaObjectTest {
    * @param context the context to allocate values in
    * @return an instance of values generator
    */
-  ValuesGenerator createGenerator(ContextRule context) {
+  ValuesGenerator createGenerator(ContextUtils context) {
     return ValuesGenerator.create(context, Language.ENSO, Language.JAVA);
   }
 

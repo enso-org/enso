@@ -3,7 +3,7 @@ package org.enso.interpreter.bench.benchmarks.semantic;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import org.enso.compiler.benchmarks.Utils;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -190,7 +190,7 @@ public class AtomBenchmarks {
           res
       """;
 
-  private ContextRule context;
+  private ContextUtils context;
   private Value millionElementsList;
   private Value generateList;
   private Value generateListQualified;
@@ -251,7 +251,7 @@ public class AtomBenchmarks {
     }
   }
 
-  private static Value mainMethod(ContextRule context, String name, String code)
+  private static Value mainMethod(ContextUtils context, String name, String code)
       throws IOException {
     return SrcUtil.getMainMethod(context, name, code);
   }

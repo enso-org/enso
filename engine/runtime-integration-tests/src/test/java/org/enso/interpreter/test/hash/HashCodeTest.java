@@ -16,7 +16,7 @@ import org.enso.interpreter.node.expression.builtin.meta.HashCodeNodeGen;
 import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.test.ValuesGenerator;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -29,7 +29,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(Theories.class)
 public class HashCodeTest {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   private static HashCodeNode hashCodeNode;
   private static EqualsNode equalsNode;
   private static HostValueToEnsoNode hostValueToEnsoNode;

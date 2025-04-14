@@ -29,7 +29,7 @@ import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 
@@ -40,13 +40,13 @@ import org.graalvm.polyglot.Value;
  * meaningfully.
  */
 public final class ValuesGenerator implements AutoCloseable {
-  private final ContextRule ctx;
+  private final ContextUtils ctx;
   private final Set<Language> languages;
   private final Map<String, ValueInfo> values = new HashMap<>();
   private final Map<String, List<Value>> multiValues = new HashMap<>();
   private final Map<Method, Object> computed = new HashMap<>();
 
-  private ValuesGenerator(ContextRule ctx, Set<Language> languages) {
+  private ValuesGenerator(ContextUtils ctx, Set<Language> languages) {
     this.ctx = ctx;
     this.languages = languages;
   }
@@ -58,7 +58,7 @@ public final class ValuesGenerator implements AutoCloseable {
    */
   private record ValueInfo(Value type, Value check) {}
 
-  public static ValuesGenerator create(ContextRule ctx, Language... langs) {
+  public static ValuesGenerator create(ContextUtils ctx, Language... langs) {
     var set =
         langs == null || langs.length == 0
             ? EnumSet.allOf(Language.class)

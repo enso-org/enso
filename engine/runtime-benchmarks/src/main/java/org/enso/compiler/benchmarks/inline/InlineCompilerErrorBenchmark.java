@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.benchmarks.Utils;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -42,7 +42,7 @@ public class InlineCompilerErrorBenchmark {
   /** How many variables should be declared in the main method. */
   private Compiler compiler;
 
-  private ContextRule ctx;
+  private ContextUtils ctx;
   private InlineContextResourceFactory mainInlineContextResourceFactory;
   private String expressionWithErrors;
 

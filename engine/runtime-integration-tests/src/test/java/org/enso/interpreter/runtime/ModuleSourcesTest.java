@@ -4,7 +4,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.text.buffer.Rope$;
 import org.junit.After;
 import org.junit.Before;
@@ -13,7 +13,7 @@ import org.junit.Test;
 
 public class ModuleSourcesTest {
 
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   private File f;
 

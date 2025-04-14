@@ -57,14 +57,14 @@ import org.junit.runners.model.Statement;
  *
  * <p>Delegates most of the methods directly to {@link Context}.
  */
-public final class ContextRule implements TestRule, AutoCloseable {
+public final class ContextUtils implements TestRule, AutoCloseable {
   private final ByteArrayOutputStream stdOut;
   private final ByteArrayOutputStream stdErr;
   private final Context.Builder ctxBldr;
   private final boolean alwaysExecuteInContext;
   private Context context;
 
-  private ContextRule(
+  private ContextUtils(
       Context.Builder ctxBldr,
       ByteArrayOutputStream stdOut,
       ByteArrayOutputStream stdErr,
@@ -89,12 +89,12 @@ public final class ContextRule implements TestRule, AutoCloseable {
   }
 
   /** Shortcut for {@code ContextRule.newBuilder().build()}. */
-  public static ContextRule createDefault() {
+  public static ContextUtils createDefault() {
     var stdout = new ByteArrayOutputStream();
     var stderr = new ByteArrayOutputStream();
     var ctxBldr = Builder.defaultContextBuilder();
     ctxBldr.out(stdout).err(stderr).logHandler(stdout);
-    return new ContextRule(ctxBldr, stdout, stderr, true);
+    return new ContextUtils(ctxBldr, stdout, stderr, true);
   }
 
   /**
@@ -143,9 +143,7 @@ public final class ContextRule implements TestRule, AutoCloseable {
     return currentCtx();
   }
 
-  /**
-   * Leaks the underlying {@link EnsoContext} from this context.
-   */
+  /** Leaks the underlying {@link EnsoContext} from this context. */
   public EnsoContext ensoContext() {
     var ctx = currentCtx();
     return ctx.getBindings(LanguageInfo.ID)
@@ -420,8 +418,8 @@ public final class ContextRule implements TestRule, AutoCloseable {
       return this;
     }
 
-    public ContextRule build() {
-      return new ContextRule(polyglotCtxBldr, stdout, stderr, alwaysExecuteInContext);
+    public ContextUtils build() {
+      return new ContextUtils(polyglotCtxBldr, stdout, stderr, alwaysExecuteInContext);
     }
   }
 

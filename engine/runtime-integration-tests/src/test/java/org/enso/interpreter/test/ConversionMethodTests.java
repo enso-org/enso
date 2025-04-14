@@ -3,7 +3,7 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -12,7 +12,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class ConversionMethodTests {
-  @ClassRule public static final ContextRule ctxRule = ContextRule.createDefault();
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @After
   public void resetOutput() {

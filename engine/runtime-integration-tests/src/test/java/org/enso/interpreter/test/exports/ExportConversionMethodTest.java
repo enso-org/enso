@@ -11,7 +11,7 @@ import java.util.Set;
 import org.enso.compiler.data.BindingsMap.ResolvedConversionMethod;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
-import org.enso.test.utils.ContextRule;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ModuleUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
@@ -49,7 +49,7 @@ public class ExportConversionMethodTest {
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, bMod, mainMod), projDir);
-    try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
 
@@ -79,7 +79,7 @@ public class ExportConversionMethodTest {
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
 
-    try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
 
@@ -118,7 +118,7 @@ public class ExportConversionMethodTest {
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
 
-    try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
 
