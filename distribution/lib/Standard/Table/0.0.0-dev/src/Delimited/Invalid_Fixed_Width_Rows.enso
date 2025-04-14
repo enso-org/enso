@@ -1,0 +1,11 @@
+from Standard.Base import Boolean, False, True
+
+## Describes what to do with rows that are too short for the specified
+   fixed-width layout.
+type Invalid_Fixed_Width_Rows
+    ## Discards rows that are too short for the specified fixed-width layout.
+    Drop_Invalid_Rows
+
+    ## Keeps rows that are too short for the specified fixed-width layout,
+       keeping partial rows, or using empty strings for entirely missing values.
+    Keep_Invalid_Rows

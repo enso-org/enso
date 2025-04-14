@@ -20,7 +20,7 @@ import org.graalvm.polyglot.Value;
 
 public class FixedWidthReader {
   private List<FixedWidthLayoutEntry> layoutEntries;
-  private InvalidRowsBehavior invalidRowsBehavior;
+  private InvalidFixedWidthRowsBehavior invalidRowsBehavior;
   private DatatypeParser valueParser;
   private FixedWidthReaderProblemAggregator problemAggregator;
 
@@ -34,15 +34,10 @@ public class FixedWidthReader {
 
   public FixedWidthReader(
       List<FixedWidthLayoutEntry> layoutEntries,
-      InvalidRowsBehavior invalidRowsBehavior,
+      InvalidFixedWidthRowsBehavior invalidRowsBehavior,
       DatatypeParser valueParser,
       boolean warningsAsErrors,
       ProblemAggregator problemAggregator) {
-
-    if (invalidRowsBehavior == InvalidRowsBehavior.ADD_EXTRA_COLUMNS) {
-      throw new IllegalArgumentException(
-          "FixedWidthReader does not allow InvalidRowsBehavior.ADD_EXTRA_COLUMNS");
-    }
 
     if (layoutEntries.size() == 0) {
       throw new IllegalArgumentException("Must specify at least one column");
@@ -86,12 +81,12 @@ public class FixedWidthReader {
     }
 
     if (line.length() < minimumLineLength) {
-      var trn = invalidRowsBehavior == InvalidRowsBehavior.KEEP ? tableRowNumber : null;
+      var trn = invalidRowsBehavior == InvalidFixedWidthRowsBehavior.KEEP ? tableRowNumber : null;
       problemAggregator.reportShortLine(
           sourceLineNumber, tableRowNumber, line.length(), minimumLineLength);
     }
 
-    if (line.length() < minimumLineLength && invalidRowsBehavior == InvalidRowsBehavior.DROP) {
+    if (line.length() < minimumLineLength && invalidRowsBehavior == InvalidFixedWidthRowsBehavior.DROP) {
       sourceLineNumber++;
       return;
     }
@@ -101,7 +96,7 @@ public class FixedWidthReader {
       var builder = builders.get(i);
 
       if (entry.end() > line.length()) {
-        assert invalidRowsBehavior == InvalidRowsBehavior.KEEP;
+        assert invalidRowsBehavior == InvalidFixedWidthRowsBehavior.KEEP;
         if (entry.start < line.length()) {
           // There is a partial column.
           builders.get(i).append(line.substring(entry.start, line.length()));

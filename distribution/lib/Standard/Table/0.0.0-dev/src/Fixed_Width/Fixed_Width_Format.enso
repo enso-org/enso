@@ -5,7 +5,7 @@ import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 
 import project.Data_Formatter.Data_Formatter
-import project.Delimited.Invalid_Rows.Invalid_Rows
+import project.Delimited.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows
 import project.Internal.Fixed_Width_Reader
 import project.Internal.Telemetry
 
@@ -13,7 +13,7 @@ import project.Internal.Telemetry
 type Fixed_Width_Format
     ## Read fixed-width files into a Table.
 
-    Fixed_Width (layout:Fixed_Width_Layout) (encoding:Encoding=Encoding.default) (on_invalid_rows:Invalid_Rows=..Keep_Invalid_Rows) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value)
+    Fixed_Width (layout:Fixed_Width_Layout) (encoding:Encoding=Encoding.default) (on_invalid_rows:Invalid_Fixed_Width_Rows=..Keep_Invalid_Rows) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value)
 
     ## PRIVATE
        Resolve an unresolved constructor to the actual type.

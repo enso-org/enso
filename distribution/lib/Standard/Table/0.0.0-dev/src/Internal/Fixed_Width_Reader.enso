@@ -3,7 +3,7 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.Input_Stream.Input_Stream
 
-import project.Delimited.Invalid_Rows.Invalid_Rows
+import project.Delimited.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows
 import project.Fixed_Width.Fixed_Width_Format.Fixed_Width_Format
 import project.Internal.Java_Problems
 from project.Errors import Empty_File_Error
@@ -13,7 +13,7 @@ polyglot java import java.io.IOException
 polyglot java import java.io.Reader
 polyglot java import org.enso.table.parsing.IdentityParser
 polyglot java import org.enso.table.parsing.TypeInferringParser
-polyglot java import org.enso.table.read.InvalidRowsBehavior
+polyglot java import org.enso.table.read.InvalidFixedWidthRowsBehavior
 polyglot java import org.enso.table.read.FixedWidthReader
 polyglot java import org.enso.table.read.FixedWidthReader.FixedWidthLayoutEntry
 
@@ -76,9 +76,8 @@ read_from_reader format java_reader on_problems:Problem_Behavior =
 prepare_reader format:Fixed_Width_Format on_problems:Problem_Behavior java_problem_aggregator =
     warnings_as_errors = on_problems == Problem_Behavior.Report_Error
     on_invalid_rows_java = case format.on_invalid_rows of
-        Invalid_Rows.Keep_Invalid_Rows -> InvalidRowsBehavior.KEEP
-        Invalid_Rows.Drop_Invalid_Rows -> InvalidRowsBehavior.DROP
-        Invalid_Rows.Add_Extra_Columns -> InvalidRowsBehavior.ADD_EXTRA_COLUMNS
+        Invalid_Fixed_Width_Rows.Keep_Invalid_Rows -> InvalidFixedWidthRowsBehavior.KEEP
+        Invalid_Fixed_Width_Rows.Drop_Invalid_Rows -> InvalidFixedWidthRowsBehavior.DROP
     value_parser = if format.value_formatter.is_nothing then IdentityParser.new else
         wrapped = format.value_formatter.wrap_base_parser IdentityParser.new
         TypeInferringParser.new format.value_formatter.get_specific_type_parsers wrapped

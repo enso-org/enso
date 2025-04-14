@@ -218,7 +218,7 @@ type Invalid_Fixed_Width_Row
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        table_loc = case self.index of
+        table_loc = case self.table_row_number of
             Nothing -> ""
             _ -> ", table row "+self.table_row_number.to_text
         loc = "(line "+self.source_line_number.to_text+table_loc+")"
