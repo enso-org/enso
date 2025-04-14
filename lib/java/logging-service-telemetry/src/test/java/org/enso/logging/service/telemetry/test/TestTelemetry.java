@@ -29,7 +29,8 @@ import org.junit.Rule;
 import org.junit.Test;
 
 public class TestTelemetry {
-  @Rule public RetryTestRule retry = new RetryTestRule(3);
+  @Rule public final ConsumeLogs consumeLogs = new ConsumeLogs();
+  @Rule public final RetryTestRule retry = new RetryTestRule(3);
 
   private static final int port = 8083;
   private static final URI logUri = Utils.logUri(port);

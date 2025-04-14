@@ -26,7 +26,9 @@ import org.junit.Rule;
 import org.junit.Test;
 
 public class TestTelemetryBrokenServer {
-  @Rule public RetryTestRule retry = new RetryTestRule(3);
+  @Rule public final ConsumeLogs consumeLogs = new ConsumeLogs();
+  @Rule public final RetryTestRule retry = new RetryTestRule(3);
+
   private static final int port = 8098;
   private static final long APPENDER_KEEP_ALIVE = 20;
   private ThreadPoolExecutor logProcessorExecutor;
@@ -72,6 +74,8 @@ public class TestTelemetryBrokenServer {
     }
 
     brokenServer.stop();
+    brokenServer = null;
+
     // Give the broken server some time to properly shutdown
     Thread.sleep(30);
     var server = Utils.createMockServer(port);
