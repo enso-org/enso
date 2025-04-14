@@ -64,6 +64,8 @@ public class FixedWidthReader {
         break;
       }
 
+      System.out.println("AAA read " + line.length() + " [" + line + "]");
+
       addRow(line);
     }
 
