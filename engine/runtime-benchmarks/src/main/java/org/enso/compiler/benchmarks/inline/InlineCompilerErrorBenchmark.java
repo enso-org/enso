@@ -65,10 +65,10 @@ public class InlineCompilerErrorBenchmark {
 
   @TearDown
   public void teardown() {
-    ctx.close();
     if (ctx.getOut().isEmpty()) {
       throw new AssertionError("Expected some output (some errors) from the compiler");
     }
+    ctx.close();
   }
 
   @Benchmark
