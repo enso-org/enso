@@ -3509,7 +3509,7 @@ lazy val `runtime-compiler-dump-igv` =
       ),
       Compile / addExports ++= {
         Map(
-          "jdk.graal.compiler/org.graalvm.graphio" -> Seq(
+          "jdk.graal.compiler/jdk.graal.compiler.graphio" -> Seq(
             javaModuleName.value
           )
         )
