@@ -80,7 +80,6 @@ public class ModuleTest {
 
     ctxRule.eval(code);
     var module = ensoContext.getTopScope().getModule(name.toString()).get().asCompilerModule();
-    ctxRule.context().enter();
     var compilerContext = ensoContext.getCompiler().context();
 
     assertNull("No bindings map by default", module.getBindingsMap());
@@ -113,7 +112,6 @@ public class ModuleTest {
 
     ctxRule.eval(code);
     var module = ensoContext.getTopScope().getModule(name.toString()).get().asCompilerModule();
-    ctxRule.context().enter();
     var compilerContext = ensoContext.getCompiler().context();
 
     assertNull("No IR by default", module.getIr());
