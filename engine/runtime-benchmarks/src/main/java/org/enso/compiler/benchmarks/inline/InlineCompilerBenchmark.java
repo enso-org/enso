@@ -50,7 +50,7 @@ public class InlineCompilerBenchmark {
   @Setup
   public void setup() throws IOException {
     ctx = Utils.createDefaultContextBuilder().build();
-    var ensoCtx = ctx.leakContext();
+    var ensoCtx = ctx.ensoContext();
     compiler = ensoCtx.getCompiler();
     localVarNames = InlineContextUtils.localVarNames(LOCAL_VARS_CNT);
     longExpression = InlineContextUtils.createLongExpression(localVarNames, LONG_EXPR_SIZE);

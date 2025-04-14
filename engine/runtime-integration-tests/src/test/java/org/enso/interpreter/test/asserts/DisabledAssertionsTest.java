@@ -19,7 +19,7 @@ public class DisabledAssertionsTest {
 
   @Test
   public void assertionsCanBeDisabledWithEnvVar() {
-    var ensoCtx = ctxRule.leakContext();
+    var ensoCtx = ctxRule.ensoContext();
     assertFalse(ensoCtx.isAssertionsEnabled());
   }
 

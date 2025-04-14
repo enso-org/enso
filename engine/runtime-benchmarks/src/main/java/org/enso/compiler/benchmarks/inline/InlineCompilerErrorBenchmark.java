@@ -52,7 +52,7 @@ public class InlineCompilerErrorBenchmark {
         Utils.createDefaultContextBuilder()
             .withModifiedContext(bldr -> bldr.option(RuntimeOptions.STRICT_ERRORS, "false"))
             .build();
-    var ensoCtx = ctx.leakContext();
+    var ensoCtx = ctx.ensoContext();
     compiler = ensoCtx.getCompiler();
 
     var localVarNames = InlineContextUtils.localVarNames(LOCAL_VARS_CNT);

@@ -29,8 +29,8 @@ public class CaseOfTest {
 
     var bAndT =
         new Type[] {
-          ctxRule.leakContext().getBuiltins().bool().getType(),
-          ctxRule.leakContext().getBuiltins().number().getInteger()
+          ctxRule.ensoContext().getBuiltins().bool().getType(),
+          ctxRule.ensoContext().getBuiltins().number().getInteger()
         };
     var t = n.newValue(bAndT, 2, 0, new Object[] {true, 300});
     var f = n.newValue(bAndT, 2, 0, new Object[] {false, 200});

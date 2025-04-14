@@ -48,7 +48,7 @@ tmp_test:1:8: error: The name `foo` could not be found.
     } catch (PolyglotException e) {
       assertThat(ctxRule.getOut(), containsString(expectedDiagnostics));
     }
-    var moduleOpt = ctxRule.leakContext().getTopScope().getModule("tmp_test");
+    var moduleOpt = ctxRule.ensoContext().getTopScope().getModule("tmp_test");
     assertThat(moduleOpt.isPresent(), is(true));
     var moduleIr = moduleOpt.get().getIr();
     var diags = gatherDiagnostics(moduleIr);

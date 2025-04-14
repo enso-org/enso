@@ -95,7 +95,7 @@ from Standard.Visualization import all
                         // libraries
                         .option(RuntimeOptions.DISABLE_IR_CACHES, "false"))
             .build();
-    var ensoCtx = context.leakContext();
+    var ensoCtx = context.ensoContext();
 
     Set<String> symbolsToUse =
         KNOWN_IMPORTED_SYMBOLS.stream().limit(RESOLVED_SYMBOLS_CNT).collect(Collectors.toSet());

@@ -51,7 +51,7 @@ public class NativeLibraryFinderTest {
         from Standard.Image import all
         main = 42
         """);
-    var ensoCtx = ctxRule.leakContext();
+    var ensoCtx = ctxRule.ensoContext();
     var stdImg =
         ensoCtx
             .getPackageRepository()
@@ -71,7 +71,7 @@ public class NativeLibraryFinderTest {
         from Standard.Tableau import all
         main = 42
         """);
-    var ensoCtx = ctxRule.leakContext();
+    var ensoCtx = ctxRule.ensoContext();
     var stdTableau =
         ensoCtx
             .getPackageRepository()

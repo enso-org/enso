@@ -58,7 +58,7 @@ public class ModuleTest {
   @Test
   public void moduleKeepsFileRefAfterSourceUnset() {
     var name = QualifiedName.simpleName("local.Unnamed_1");
-    var ensoContext = ctxRule.leakContext();
+    var ensoContext = ctxRule.ensoContext();
     var tFile = ensoContext.getTruffleFile(f);
     var module = new Module(name, null, tFile);
     assertTrue(
@@ -71,7 +71,7 @@ public class ModuleTest {
   @Test
   public void updaterCanNullTheBindings() throws Exception {
     var name = QualifiedName.simpleName("SimpleExample");
-    var ensoContext = ctxRule.leakContext();
+    var ensoContext = ctxRule.ensoContext();
     var tFile = ensoContext.getTruffleFile(f);
 
     var code = Source.newBuilder("enso", """
@@ -103,7 +103,7 @@ public class ModuleTest {
   @Test
   public void updaterCanNullTheIR() throws Exception {
     var name = QualifiedName.simpleName("AnotherSimpleExample");
-    var ensoContext = ctxRule.leakContext();
+    var ensoContext = ctxRule.ensoContext();
     var tFile = ensoContext.getTruffleFile(f);
 
     var code = Source.newBuilder("enso", """

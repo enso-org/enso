@@ -870,7 +870,7 @@ public final class ValuesGenerator implements AutoCloseable {
   }
 
   public List<Value> numbersMultiText() {
-    var leak = ctx.leakContext();
+    var leak = ctx.ensoContext();
     var numberTextTypes =
         new Type[] {
           leak.getBuiltins().number().getInteger(), leak.getBuiltins().text(),

@@ -55,7 +55,7 @@ public class ImportsAndFQNConsistencyTest {
    */
   @Parameters(name = "exported symbol '{0}'")
   public static List<Symbol> symbolsToTest() {
-    var ensoCtx = ctxRule.leakContext();
+    var ensoCtx = ctxRule.ensoContext();
     var src = """
 from Standard.Base import all
 from Standard.Table import all

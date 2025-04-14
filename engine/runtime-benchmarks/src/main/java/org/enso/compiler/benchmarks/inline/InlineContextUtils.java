@@ -49,7 +49,7 @@ class InlineContextUtils {
     var lastExpr =
         localVarNames.stream().reduce((acc, varName) -> acc + " + " + varName).orElseThrow();
     sb.append("    ").append(lastExpr).append(System.lineSeparator());
-    var ensoCtx = ctx.leakContext();
+    var ensoCtx = ctx.ensoContext();
     var srcFile = Utils.createSrcFile(sb.toString(), "inlineBenchmark.enso");
     var src = Source.newBuilder(LanguageInfo.ID, srcFile).build();
     var module = ctx.eval(src);

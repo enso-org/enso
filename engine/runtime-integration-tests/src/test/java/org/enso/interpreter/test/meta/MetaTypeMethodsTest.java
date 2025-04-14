@@ -97,7 +97,7 @@ public class MetaTypeMethodsTest {
   }
 
   private Set<String> methodsFrom(String moduleName, String typeName) {
-    var ensoCtx = ctxRule.leakContext();
+    var ensoCtx = ctxRule.ensoContext();
     var mod = ensoCtx.findModule(moduleName).get();
     var tp = mod.getScope().getType(typeName, true);
     var methods = mod.getScope().getMethodsForType(tp);

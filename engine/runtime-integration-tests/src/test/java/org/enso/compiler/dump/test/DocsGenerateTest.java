@@ -273,7 +273,7 @@ public class DocsGenerateTest {
         ContextRule.newBuilder(),
         projDir.toPath(),
         ctx -> {
-          var ensoCtx = ctx.leakContext();
+          var ensoCtx = ctx.ensoContext();
           var pkg =
               ensoCtx
                   .getPackageRepository()

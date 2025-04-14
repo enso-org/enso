@@ -75,7 +75,7 @@ class ImportExportTest
     ProjectUtils.createProject(packageName, "main = 42", tmpDir)
     ctxBldr.withProjectRoot(tmpDir)
     ctx = ctxBldr.build()
-    val langCtx = ctx.leakContext()
+    val langCtx = ctx.ensoContext()
     langCtx.getPackageRepository.getMainProjectPackage shouldBe defined
     pkg = langCtx.getPackageRepository.getMainProjectPackage.get
   }
@@ -89,7 +89,7 @@ class ImportExportTest
 
   implicit private class CreateModule(moduleCode: String) {
     def createModule(moduleName: QualifiedName): runtime.Module = {
-      val langCtx = ctx.leakContext()
+      val langCtx = ctx.ensoContext()
       val module  = new runtime.Module(moduleName, pkg, moduleCode)
       langCtx.getPackageRepository.registerModuleCreatedInRuntime(
         module.asCompilerModule()
@@ -108,7 +108,7 @@ class ImportExportTest
   private def buildExportsGraph(
     modules: List[org.enso.interpreter.runtime.Module]
   ): List[Node] = {
-    val langCtx           = ctx.leakContext()
+    val langCtx           = ctx.ensoContext()
     val compilerCtx       = langCtx.getCompiler.context
     val exportsResolution = new ExportsResolution(compilerCtx)
     val compilerModules   = modules.map(_.asCompilerModule())
@@ -120,7 +120,7 @@ class ImportExportTest
   private def runExportsResolutionSort(
     modules: List[org.enso.interpreter.runtime.Module]
   ): List[org.enso.interpreter.runtime.Module] = {
-    val langCtx               = ctx.leakContext()
+    val langCtx               = ctx.ensoContext()
     val compilerCtx           = langCtx.getCompiler.context
     val exportsResolution     = new ExportsResolution(compilerCtx)
     val compilerModules       = modules.map(_.asCompilerModule())
@@ -1045,7 +1045,7 @@ class ImportExportTest
           case metadata: ProcessingPass.Metadata =>
             metadata.prepareForSerialization(
               ctx
-                .leakContext()
+                .ensoContext()
                 .getCompiler
                 .context
                 .asInstanceOf[metadata.Compiler]
@@ -1086,7 +1086,7 @@ class ImportExportTest
             case metadata: ProcessingPass.Metadata =>
               metadata.prepareForSerialization(
                 ctx
-                  .leakContext()
+                  .ensoContext()
                   .getCompiler
                   .context
                   .asInstanceOf[metadata.Compiler]

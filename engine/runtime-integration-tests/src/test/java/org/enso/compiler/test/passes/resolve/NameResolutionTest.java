@@ -509,7 +509,7 @@ public final class NameResolutionTest {
   }
 
   private Module getModuleIr(ContextRule ctx, String moduleName) {
-    var ensoCtx = ctx.leakContext();
+    var ensoCtx = ctx.ensoContext();
     var mod = ensoCtx.findModule(moduleName);
     assertThat(mod.isPresent(), is(true));
     var modIr = mod.get().getIr();

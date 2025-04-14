@@ -26,19 +26,19 @@ public class ModuleUtils {
    */
   public static Map<String, List<ResolvedName>> getExportedSymbolsFromModule(
       ContextRule ctx, String modName) {
-    var ensoCtx = ctx.leakContext();
+    var ensoCtx = ctx.ensoContext();
     var mod = ensoCtx.getPackageRepository().getLoadedModule(modName).get();
     return getExportedSymbols(mod);
   }
 
   public static List<ResolvedImport> getResolvedImports(ContextRule ctx, String modName) {
-    var ensoCtx = ctx.leakContext();
+    var ensoCtx = ctx.ensoContext();
     var mod = ensoCtx.getPackageRepository().getLoadedModule(modName).get();
     return CollectionConverters.asJava(mod.getBindingsMap().resolvedImports());
   }
 
   public static List<DefinedEntity> getDefinedEntities(ContextRule ctx, String modName) {
-    var ensoCtx = ctx.leakContext();
+    var ensoCtx = ctx.ensoContext();
     var mod = ensoCtx.getPackageRepository().getLoadedModule(modName).get();
     return CollectionConverters.asJava(mod.getBindingsMap().definedEntities());
   }
@@ -52,7 +52,7 @@ public class ModuleUtils {
   public static org.enso.interpreter.runtime.Module getLoadedModule(
       ContextRule ctx, String modName) {
     assert modName.contains(".") : "Module name must be fully qualified";
-    var ensoCtx = ctx.leakContext();
+    var ensoCtx = ctx.ensoContext();
     var loadedModuleOpt = ensoCtx.getPackageRepository().getLoadedModule(modName);
     if (loadedModuleOpt.isDefined()) {
       return org.enso.interpreter.runtime.Module.fromCompilerModule(loadedModuleOpt.get());

@@ -126,7 +126,7 @@ public class ModuleScopeTest {
       var mainMethod = mainRuntimeMod.getMethod(mainRuntimeMod.getAssociatedType(), "main").get();
       var mainRes = mainMethod.execute();
       assertThat(mainRes.asInt(), is(2));
-      var ensoCtx = ctx.leakContext();
+      var ensoCtx = ctx.ensoContext();
       var runtimeAbstractMod =
           ensoCtx.getPackageRepository().getLoadedModule("local.Proj.Mod").get();
       var runtimeConcreteMod = Module.fromCompilerModule(runtimeAbstractMod);

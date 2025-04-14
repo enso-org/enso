@@ -44,7 +44,7 @@ public class PanicExceptionTest {
   public void panicExceptionMessageForAssertionError() {
     ctxRule.executeInContext(
         () -> {
-          var leak = ctxRule.leakContext();
+          var leak = ctxRule.ensoContext();
           var text = Text.create("Some text for the exception");
           var thrown = new java.lang.AssertionError(text.toString());
           var ex = new PanicException(leak, text, thrown, null);

@@ -57,7 +57,7 @@ public class ManyErrorsBenchmark {
         Utils.createDefaultContextBuilder()
             .withModifiedContext(bldr -> bldr.option(RuntimeOptions.STRICT_ERRORS, "false"))
             .build();
-    var ensoCtx = context.leakContext();
+    var ensoCtx = context.ensoContext();
     var sb = new StringBuilder();
     var codeGen = new CodeGenerator();
     var definedIdentifiers = codeGen.createIdentifiers(IDENTIFIERS_CNT);

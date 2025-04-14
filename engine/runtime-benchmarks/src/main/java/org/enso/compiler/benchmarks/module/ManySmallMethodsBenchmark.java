@@ -64,7 +64,7 @@ public class ManySmallMethodsBenchmark {
   @Setup
   public void setup(BenchmarkParams params) throws IOException {
     this.context = Utils.createDefaultContextBuilder().build();
-    var ensoCtx = context.leakContext();
+    var ensoCtx = context.ensoContext();
     List<Method> methods = new ArrayList<>();
 
     for (int methodIdx = 0; methodIdx < METHODS_CNT; methodIdx++) {

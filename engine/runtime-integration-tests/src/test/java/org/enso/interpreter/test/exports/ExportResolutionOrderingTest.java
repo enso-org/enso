@@ -157,7 +157,7 @@ public class ExportResolutionOrderingTest {
   }
 
   private static List<Module> runExportsResolutionSort(List<Module> modules, ContextRule ctx) {
-    var ensoCtx = ctx.leakContext();
+    var ensoCtx = ctx.ensoContext();
     var compilerCtx = ensoCtx.getCompiler().context();
     var exportsResolution = new ExportsResolution(compilerCtx);
     var compilerModules = modules.stream().map(Module::asCompilerModule).toList();

@@ -66,8 +66,8 @@ public class WarningsTest {
   public void doubleWithWarningsWrap() {
     ctxRule.executeInContext(
         () -> {
-          var warn1 = Warning.create(ctxRule.leakContext(), "w1", this);
-          var warn2 = Warning.create(ctxRule.leakContext(), "w2", this);
+          var warn1 = Warning.create(ctxRule.ensoContext(), "w1", this);
+          var warn2 = Warning.create(ctxRule.ensoContext(), "w2", this);
           var value = 42L;
 
           var with1 =
@@ -243,8 +243,8 @@ public class WarningsTest {
   public void warningsArray_readViaInterop_shouldNotRemoveWarnings() {
     ctxRule.executeInContext(
         () -> {
-          var warn1 = Warning.create(ctxRule.leakContext(), 1L, null);
-          var warn2 = Warning.create(ctxRule.leakContext(), 2L, null);
+          var warn1 = Warning.create(ctxRule.ensoContext(), 1L, null);
+          var warn2 = Warning.create(ctxRule.ensoContext(), 2L, null);
           var arr = ArrayLikeHelpers.wrapEnsoObjects(warn1, warn2);
           var interop = InteropLibrary.getUncached();
           var warn1FromArr = interop.readArrayElement(arr, 0);
@@ -270,8 +270,8 @@ public class WarningsTest {
           var hashMapSizeNode = HashMapSizeNode.getUncached();
           var hashMapGetNode = HashMapGetNode.getUncached();
 
-          var warn1 = Warning.create(ctxRule.leakContext(), 1L, null);
-          var warn2 = Warning.create(ctxRule.leakContext(), 2L, null);
+          var warn1 = Warning.create(ctxRule.ensoContext(), 1L, null);
+          var warn2 = Warning.create(ctxRule.ensoContext(), 2L, null);
           var warnsMap = createWarningsMap(List.of(warn1, warn2));
           var text1 = Text.create("1");
           var text2 = Text.create("2");
@@ -296,7 +296,7 @@ public class WarningsTest {
         () -> {
           var hostValueToEnsoNode = HostValueToEnsoNode.getUncached();
           var warn =
-              Warning.create(ctxRule.leakContext(), ctxRule.leakContext().getNothing(), null);
+              Warning.create(ctxRule.ensoContext(), ctxRule.ensoContext().getNothing(), null);
           var converted = hostValueToEnsoNode.execute(warn);
           assertThat(converted, is(sameInstance(warn)));
           return null;
@@ -308,7 +308,7 @@ public class WarningsTest {
     ctxRule.executeInContext(
         () -> {
           var warn =
-              Warning.create(ctxRule.leakContext(), ctxRule.leakContext().getNothing(), null);
+              Warning.create(ctxRule.ensoContext(), ctxRule.ensoContext().getNothing(), null);
           var warnsMap = createWarningsMap(List.of(warn));
           var warns = Warning.fromMapToArray(warnsMap);
           assertThat(warns.length, is(1));

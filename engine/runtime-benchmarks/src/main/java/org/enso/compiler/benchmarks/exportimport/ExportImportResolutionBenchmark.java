@@ -61,7 +61,7 @@ public class ExportImportResolutionBenchmark {
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
     // Create temp proj dir
     this.ctx = Utils.createDefaultContextBuilder().withProjectRoot(projDir).build();
-    var ensoCtx = ctx.leakContext();
+    var ensoCtx = ctx.ensoContext();
     this.mainModule = ensoCtx.getPackageRepository().getLoadedModule("local.Proj.Main").get();
     var mainRuntimeMod = Module.fromCompilerModule(mainModule);
     assertThat(

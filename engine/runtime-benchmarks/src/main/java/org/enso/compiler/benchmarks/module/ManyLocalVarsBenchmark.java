@@ -61,7 +61,7 @@ public class ManyLocalVarsBenchmark {
   @Setup
   public void setup(BenchmarkParams params) throws IOException {
     this.context = Utils.createDefaultContextBuilder().build();
-    var ensoCtx = context.leakContext();
+    var ensoCtx = context.ensoContext();
     var sb = new StringBuilder();
     var codeGen = new CodeGenerator();
 

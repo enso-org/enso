@@ -16,7 +16,7 @@ public class AnyToTest {
 
   @Test
   public void multiValueToInteger() throws Exception {
-    var ensoCtx = ctxRule.leakContext();
+    var ensoCtx = ctxRule.ensoContext();
     var types =
         new Type[] {ensoCtx.getBuiltins().number().getInteger(), ensoCtx.getBuiltins().text()};
     var code =
@@ -60,7 +60,7 @@ public class AnyToTest {
   }
 
   private void multiValueToText(int dispatchLength) throws Exception {
-    var ensoCtx = ctxRule.leakContext();
+    var ensoCtx = ctxRule.ensoContext();
     var types =
         new Type[] {ensoCtx.getBuiltins().number().getInteger(), ensoCtx.getBuiltins().text()};
     var code =

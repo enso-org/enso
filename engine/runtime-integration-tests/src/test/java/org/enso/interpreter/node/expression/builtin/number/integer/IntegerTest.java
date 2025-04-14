@@ -106,7 +106,7 @@ public class IntegerTest {
     ctxRule.executeInContext(
         () -> {
           var nn = EnsoMultiValue.NewNode.getUncached();
-          var leak = ctxRule.leakContext();
+          var leak = ctxRule.ensoContext();
           var intType = leak.getBuiltins().number().getInteger();
           var textType = leak.getBuiltins().text();
           var both = new Type[] {intType, textType};

@@ -21,7 +21,7 @@ public class TypeCheckValueTest {
 
     ctxRule.executeInContext(
         () -> {
-          var builtins = ctxRule.leakContext().getBuiltins();
+          var builtins = ctxRule.ensoContext().getBuiltins();
           var hi = Text.create("Hi");
           var m1 =
               EnsoMultiValue.NewNode.getUncached()
@@ -42,7 +42,7 @@ public class TypeCheckValueTest {
     var call = new CallTarget[1];
     ctxRule.executeInContext(
         () -> {
-          var builtins = ctxRule.leakContext().getBuiltins();
+          var builtins = ctxRule.ensoContext().getBuiltins();
           var intNode = TypeCheckValueNode.single("int", builtins.number().getInteger());
           var textNode = TypeCheckValueNode.single("text", builtins.text());
           var bothNode = TypeCheckValueNode.allOf("int&text", intNode, textNode);

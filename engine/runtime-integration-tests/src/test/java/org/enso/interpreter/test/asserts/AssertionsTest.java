@@ -38,7 +38,7 @@ public class AssertionsTest {
 
   @Test
   public void assertionsAreEnabled() {
-    EnsoContext ensoCtx = ctxRule.leakContext();
+    EnsoContext ensoCtx = ctxRule.ensoContext();
     assertTrue(ensoCtx.isAssertionsEnabled());
   }
 

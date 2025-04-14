@@ -47,7 +47,7 @@ public class EqualsMultiValueTest {
   public void testEqualityIntegerAndMultiValue() {
     ctxRule.executeInContext(
         () -> {
-          var builtins = ctxRule.leakContext().getBuiltins();
+          var builtins = ctxRule.ensoContext().getBuiltins();
           var intType = builtins.number().getInteger();
           var textText = builtins.text();
           var fourExtraText =
@@ -68,7 +68,7 @@ public class EqualsMultiValueTest {
   public void testEqualityTextAndExtraIntegerMultiValue() {
     ctxRule.executeInContext(
         () -> {
-          var builtins = ctxRule.leakContext().getBuiltins();
+          var builtins = ctxRule.ensoContext().getBuiltins();
           var intType = builtins.number().getInteger();
           var textType = builtins.text();
           var bothTypes = new Type[] {textType, intType};
@@ -103,7 +103,7 @@ public class EqualsMultiValueTest {
   public void testEqualityIntegerAndMultiValueWithBoth() {
     ctxRule.executeInContext(
         () -> {
-          var builtins = ctxRule.leakContext().getBuiltins();
+          var builtins = ctxRule.ensoContext().getBuiltins();
           var intType = builtins.number().getInteger();
           var textText = builtins.text();
           var hi = Text.create("Hi");
@@ -137,7 +137,7 @@ public class EqualsMultiValueTest {
   public void testEqualityIntegerAndMultiValueWithIntText() {
     ctxRule.executeInContext(
         () -> {
-          var builtins = ctxRule.leakContext().getBuiltins();
+          var builtins = ctxRule.ensoContext().getBuiltins();
           var intType = builtins.number().getInteger();
           var textText = builtins.text();
           var fourExtraText =
@@ -158,7 +158,7 @@ public class EqualsMultiValueTest {
   public void twoMultiValues() {
     ctxRule.executeInContext(
         () -> {
-          var builtins = ctxRule.leakContext().getBuiltins();
+          var builtins = ctxRule.ensoContext().getBuiltins();
           var intType = builtins.number().getInteger();
           var textText = builtins.text();
           var fourExtraText =

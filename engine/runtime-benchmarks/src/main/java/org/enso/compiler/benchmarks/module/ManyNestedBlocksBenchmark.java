@@ -68,7 +68,7 @@ public class ManyNestedBlocksBenchmark {
   @Setup
   public void setup(BenchmarkParams params) throws IOException {
     this.context = Utils.createDefaultContextBuilder().build();
-    var ensoCtx = context.leakContext();
+    var ensoCtx = context.ensoContext();
     sb.append("main = ").append(System.lineSeparator());
     createNestedBlocks(1);
 

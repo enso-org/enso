@@ -94,7 +94,7 @@ public class BuiltinTypesExposeMethodsTest {
     if (!type.isBuiltin()) {
       return true;
     }
-    var builtins = ctxRule.leakContext().getBuiltins();
+    var builtins = ctxRule.ensoContext().getBuiltins();
     var typesToSkip =
         List.of(
             builtins.function(), builtins.dataflowError(), builtins.warning(), builtins.nothing());

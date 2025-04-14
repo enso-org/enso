@@ -25,7 +25,7 @@ final class DumpTestUtils {
         ContextRule.newBuilder(),
         projDir,
         (context) -> {
-          var enso = context.leakContext();
+          var enso = context.ensoContext();
           var modules = enso.getTopScope().getModules();
           var optMod =
               modules.stream().filter(m -> m.getName().toString().contains(projName)).findFirst();

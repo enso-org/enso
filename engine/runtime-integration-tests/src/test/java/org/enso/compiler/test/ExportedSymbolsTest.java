@@ -235,7 +235,7 @@ public class ExportedSymbolsTest {
 
   private static Map<String, List<BindingsMap.ResolvedName>> getExportedSymbolsFromModule(
       ContextRule ctx, String modName) {
-    var ensoCtx = ctx.leakContext();
+    var ensoCtx = ctx.ensoContext();
     var mod = ensoCtx.getPackageRepository().getLoadedModule(modName).get();
     return getExportedSymbols(mod);
   }

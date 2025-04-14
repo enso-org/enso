@@ -21,7 +21,7 @@ public class ResourceManagerTest {
     var fn = new FnCallback();
 
     try (var ctx = ContextRule.createDefault()) {
-      var ensoContext = ctx.leakContext();
+      var ensoContext = ctx.ensoContext();
 
       ensoContext.getResourceManager().register(obj, fn);
       assertNull("Not invoked yet", fn.args);

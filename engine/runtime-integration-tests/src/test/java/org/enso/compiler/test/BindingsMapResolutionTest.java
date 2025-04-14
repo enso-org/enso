@@ -450,7 +450,7 @@ public class BindingsMapResolutionTest {
   }
 
   private static BindingsMap getBindingsMap(ContextRule ctx, String moduleName) {
-    var ensoCtx = ctx.leakContext();
+    var ensoCtx = ctx.ensoContext();
     var mod = ensoCtx.getPackageRepository().getLoadedModule(moduleName).get();
     assert mod != null;
     return mod.getBindingsMap();

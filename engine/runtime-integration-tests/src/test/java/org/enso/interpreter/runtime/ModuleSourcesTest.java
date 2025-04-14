@@ -30,7 +30,7 @@ public class ModuleSourcesTest {
   @Test
   public void moduleSourcesWithFile() {
     var sources = ModuleSources.NONE;
-    var ensoContext = ctxRule.leakContext();
+    var ensoContext = ctxRule.ensoContext();
     var tFile = ensoContext.getTruffleFile(f);
     var sourcesWithFile = sources.newWith(tFile);
     assertTrue("getPath is non-null", sourcesWithFile.getPath() == tFile.getPath());
@@ -40,7 +40,7 @@ public class ModuleSourcesTest {
   @Test
   public void moduleSourcesWithRopePreservesFile() {
     var sources = ModuleSources.NONE;
-    var ensoContext = ctxRule.leakContext();
+    var ensoContext = ctxRule.ensoContext();
     var tFile = ensoContext.getTruffleFile(f);
     var rope = Rope$.MODULE$.apply("foo");
     var sourcesWithFile = sources.newWith(tFile).newWith(rope);
@@ -51,7 +51,7 @@ public class ModuleSourcesTest {
   @Test
   public void modulesSourcesResetPreservesFile() {
     var sources = ModuleSources.NONE;
-    var ensoContext = ctxRule.leakContext();
+    var ensoContext = ctxRule.ensoContext();
     var tFile = ensoContext.getTruffleFile(f);
     var rope = Rope$.MODULE$.apply("foo");
     var sourcesWithFile = sources.newWith(tFile).newWith(rope).reset();

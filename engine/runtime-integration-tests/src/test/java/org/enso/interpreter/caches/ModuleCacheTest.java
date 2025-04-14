@@ -25,7 +25,7 @@ public class ModuleCacheTest {
 
   @Test
   public void testCompareList() throws Exception {
-    var ensoCtx = ctxRule.leakContext();
+    var ensoCtx = ctxRule.ensoContext();
     var name = "Standard.Base.Data.List";
 
     var v =
@@ -55,7 +55,7 @@ public class ModuleCacheTest {
 
   @Test
   public void testCompareWithWarning() throws Exception {
-    var ensoCtx = ctxRule.leakContext();
+    var ensoCtx = ctxRule.ensoContext();
     var name = "TestWarning";
     var code =
         Source.newBuilder("enso", """

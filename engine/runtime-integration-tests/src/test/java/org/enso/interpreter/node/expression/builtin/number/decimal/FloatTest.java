@@ -82,7 +82,7 @@ public class FloatTest {
     ctxRule.executeInContext(
         () -> {
           var nn = EnsoMultiValue.NewNode.getUncached();
-          var leak = ctxRule.leakContext();
+          var leak = ctxRule.ensoContext();
           var floatType = leak.getBuiltins().number().getFloat();
           var textType = leak.getBuiltins().text();
           var both = new Type[] {floatType, textType};

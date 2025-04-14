@@ -143,7 +143,10 @@ public final class ContextRule implements TestRule, AutoCloseable {
     return currentCtx();
   }
 
-  public EnsoContext leakContext() {
+  /**
+   * Leaks the underlying {@link EnsoContext} from this context.
+   */
+  public EnsoContext ensoContext() {
     var ctx = currentCtx();
     return ctx.getBindings(LanguageInfo.ID)
         .invokeMember(TopScope.LEAK_CONTEXT)
@@ -208,7 +211,7 @@ public final class ContextRule implements TestRule, AutoCloseable {
     var module = ctx.eval(source);
     var runtimeMod = (org.enso.interpreter.runtime.Module) unwrapValue(module);
     if (runtimeMod.getIr() == null) {
-      runtimeMod.compileScope(leakContext());
+      runtimeMod.compileScope(ensoContext());
     }
     return runtimeMod.getIr();
   }
@@ -320,7 +323,7 @@ public final class ContextRule implements TestRule, AutoCloseable {
    * #allMethodsFromAny()} which requires the {@code Standard.Base.Any} module to be first imported.
    */
   public Set<String> builtinMethodsFromAny() {
-    var ensoCtx = leakContext();
+    var ensoCtx = ensoContext();
     // This is a builtin Any type, so only the builtin methods will be included.
     var anyBuiltinType = ensoCtx.getBuiltins().any();
     var anyBuiltinMethods = anyBuiltinType.getDefinitionScope().getMethodsForType(anyBuiltinType);
@@ -344,7 +347,7 @@ public final class ContextRule implements TestRule, AutoCloseable {
    */
   public Set<String> allMethodsFromAny() {
     // Includes, e.g., `Any.to`.
-    var ensoCtx = leakContext();
+    var ensoCtx = ensoContext();
     var anyMod = ensoCtx.findModule("Standard.Base.Any");
     assert anyMod.isPresent() : "Standard.Base.Any module must be imported first";
     var anyModScope = anyMod.get().getScope();
