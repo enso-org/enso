@@ -4254,7 +4254,8 @@ lazy val `os-environment` =
           mainClass     = Some("org.enso.os.environment.TestRunner"),
           additionalOptions = Seq(
             "-ea",
-            "--features=org.enso.os.environment.TestCollectorFeature"
+            "--features=org.enso.os.environment.TestCollectorFeature",
+            "-R:-InstallSegfaultHandler"
           )
         )
       }.value,
