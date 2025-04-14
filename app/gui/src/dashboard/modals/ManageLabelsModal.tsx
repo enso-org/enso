@@ -1,5 +1,5 @@
 /** @file A modal to select labels for an asset. */
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import {
   Button,
@@ -16,11 +16,9 @@ import Label from '#/components/dashboard/Label'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
-import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-import { unsetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { findLeastUsedColor, LabelName, type AnyAsset, type LChColor } from '#/services/Backend'
@@ -87,18 +85,12 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
         const newLabels = [...(item.labels ?? []), labelName]
         await associateTag([item.id, newLabels, item.title])
         form.resetField('labels', { defaultValue: newLabels })
-        unsetModal()
+        setId((currentId) => currentId + 1)
       } catch (error) {
         toastAndLog(null, error)
       }
     },
   })
-
-  const formRef = useSyncRef(form)
-  useEffect(() => {
-    formRef.current.resetField('labels', { defaultValue: item.labels ?? [] })
-    setId((currentId) => currentId + 1)
-  }, [formRef, item.labels])
 
   const query = Form.useWatch({ control: form.control, name: 'name' })
   const labels = Form.useWatch({ control: form.control, name: 'labels' })
