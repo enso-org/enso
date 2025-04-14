@@ -7,7 +7,6 @@ import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Set;
@@ -151,7 +150,6 @@ public class ExportCycleDetectionTest {
   }
 
   private void expectProjectCompilationError(Path projDir, Matcher<String> errMsgMatcher) {
-    var out = new ByteArrayOutputStream();
     try (var ctx = ContextRule.newBuilder().withProjectRoot(projDir).build()) {
       var polyCtx = new PolyglotContext(ctx.context());
       try {
@@ -160,7 +158,7 @@ public class ExportCycleDetectionTest {
       } catch (PolyglotException e) {
         assertThat(e.getMessage(), containsString("Compilation aborted"));
       }
+      assertThat(ctx.getOut(), errMsgMatcher);
     }
-    assertThat(out.toString(), errMsgMatcher);
   }
 }
