@@ -34,7 +34,6 @@ public final class Utils {
                     // generated from
                     // that are easier to inspect in IGV.
                     .option("engine.MultiTier", "false")
-                    .logHandler(System.err)
                     .allowIO(IOAccess.ALL)
                     .allowAllAccess(true));
   }
