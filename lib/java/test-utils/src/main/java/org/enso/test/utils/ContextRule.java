@@ -13,8 +13,10 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
+import org.enso.common.MethodNames.Module;
 import org.enso.common.MethodNames.TopScope;
 import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -137,14 +139,6 @@ public final class ContextRule implements TestRule, AutoCloseable {
     return new CustomStatement(base, description);
   }
 
-  /**
-   * @see ContextUtils#evalModule(Context, CharSequence)
-   */
-  public Value evalModule(CharSequence src) {
-    var ctx = currentCtx();
-    return ContextUtils.evalModule(ctx, src);
-  }
-
   public Context context() {
     return currentCtx();
   }
@@ -161,17 +155,26 @@ public final class ContextRule implements TestRule, AutoCloseable {
   }
 
   /**
-   * @see ContextUtils#evalModule(Context, CharSequence, String, String)
+   * Evaluates the given source as if it was in a module with given name.
+   *
+   * @param src The source code of the module
+   * @param methodName name of main method to invoke
+   * @return The value returned from the main method of the unnamed module.
    */
-  public Value evalModule(CharSequence src, String name, String methodName) {
-    return ContextUtils.evalModule(currentCtx(), src, name, methodName);
+  public Value evalModule(CharSequence src, String methodName) {
+    var source = Source.create(LanguageInfo.ID, src);
+    return evalModule(source, methodName);
   }
 
-  /**
-   * @see ContextUtils#evalModule(Context, Source, String)
-   */
+  public Value evalModule(CharSequence src) {
+    return evalModule(src, "main");
+  }
+
   public Value evalModule(Source src, String methodName) {
-    return ContextUtils.evalModule(currentCtx(), src, methodName);
+    var module = currentCtx().eval(src);
+    var assocType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
+    var method = module.invokeMember(Module.GET_METHOD, assocType, methodName);
+    return "main".equals(methodName) ? method.execute() : method.execute(assocType);
   }
 
   /**
@@ -293,7 +296,8 @@ public final class ContextRule implements TestRule, AutoCloseable {
    * @return Reference to the method.
    */
   public Value getMethodFromModule(String moduleSrc, String methodName) {
-    return ContextUtils.getMethodFromModule(currentCtx(), moduleSrc, methodName);
+    var module = currentCtx().eval(LanguageInfo.ID, moduleSrc);
+    return module.invokeMember(Module.EVAL_EXPRESSION, methodName);
   }
 
   /**
@@ -302,7 +306,21 @@ public final class ContextRule implements TestRule, AutoCloseable {
    * #allMethodsFromAny()} which requires the {@code Standard.Base.Any} module to be first imported.
    */
   public Set<String> builtinMethodsFromAny() {
-    return ContextUtils.builtinMethodsFromAny(currentCtx());
+    var ensoCtx = leakContext();
+    // This is a builtin Any type, so only the builtin methods will be included.
+    var anyBuiltinType = ensoCtx.getBuiltins().any();
+    var anyBuiltinMethods = anyBuiltinType.getDefinitionScope().getMethodsForType(anyBuiltinType);
+    assert anyBuiltinMethods != null;
+    return anyBuiltinMethods.stream()
+        .map(m -> unqualifiedName(m.getName()))
+        .collect(Collectors.toUnmodifiableSet());
+  }
+
+  private static String unqualifiedName(String name) {
+    if (name.contains(".")) {
+      return name.substring(name.lastIndexOf('.') + 1);
+    }
+    return name;
   }
 
   /**
@@ -311,7 +329,17 @@ public final class ContextRule implements TestRule, AutoCloseable {
    * imported first in the context, otherwise an assertion will fail.
    */
   public Set<String> allMethodsFromAny() {
-    return ContextUtils.allMethodsFromAny(currentCtx());
+    // Includes, e.g., `Any.to`.
+    var ensoCtx = leakContext();
+    var anyMod = ensoCtx.findModule("Standard.Base.Any");
+    assert anyMod.isPresent() : "Standard.Base.Any module must be imported first";
+    var anyModScope = anyMod.get().getScope();
+    var anyType = anyModScope.getType("Any", true);
+    var anyMethods = anyModScope.getMethodsForType(anyType);
+    assert anyMethods != null;
+    return anyMethods.stream()
+        .map(m -> unqualifiedName(m.getName()))
+        .collect(Collectors.toUnmodifiableSet());
   }
 
   private Context currentCtx() {

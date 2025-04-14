@@ -8,7 +8,6 @@ import static org.junit.Assert.assertNull;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -22,10 +21,9 @@ public class RefTest {
 
   @BeforeClass
   public static void initCtx() {
-    var ctx = ctxRule.context();
     refType =
-        ContextUtils.evalModule(
-            ctx, """
+        ctxRule.evalModule(
+            """
         import Standard.Base.Runtime.Ref.Ref
         main = Ref
         """);

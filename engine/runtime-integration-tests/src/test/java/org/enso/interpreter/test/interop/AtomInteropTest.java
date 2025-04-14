@@ -19,8 +19,6 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import java.util.ArrayList;
 import java.util.List;
 import org.enso.test.utils.ContextRule;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
 import org.junit.Test;
