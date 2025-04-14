@@ -260,4 +260,4 @@ java_aggregator name column =
         Shortest c _ -> ShortestOrLongestAggregator.new name c.java_column ShortestOrLongestAggregator.SHORTEST
         Longest c _ -> ShortestOrLongestAggregator.new name c.java_column ShortestOrLongestAggregator.LONGEST
         Concatenate c _ join prefix suffix quote -> ConcatenateAggregator.new name c.java_column join prefix suffix quote
-        _ -> Error.throw (Invalid_Aggregation.Error name -1 "Unsupported aggregation")
+        unknown -> Error.throw (Invalid_Aggregation.Error name [] "Unsupported aggregation: "+unknown.to_display_text)

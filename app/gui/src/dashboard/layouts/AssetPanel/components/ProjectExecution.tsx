@@ -220,7 +220,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
           />
           <ConfirmDeleteModal
             actionText={getText('deleteThisProjectExecution')}
-            doDelete={async () => {
+            onConfirm={async () => {
               await deleteProjectExecution.mutateAsync([projectExecution.executionId, item.title])
             }}
           />

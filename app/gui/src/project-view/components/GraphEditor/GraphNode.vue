@@ -430,6 +430,7 @@ const nodeClass = computed(() => {
     outputNode: props.node.type === 'output',
     menuVisible: menuVisible.value,
     menuFull: menuFull.value,
+    edited: props.edited,
   }
 })
 
@@ -491,7 +492,6 @@ const nodeName = computed(() => props.node.pattern?.code())
 
 <template>
   <div
-    v-show="!edited"
     ref="rootNode"
     class="GraphNode define-node-colors"
     :style="nodeStyle"
@@ -733,5 +733,11 @@ const nodeName = computed(() => props.node.pattern?.code())
 
 .dragged {
   cursor: grabbing !important;
+}
+
+/* We use this instead of "v-show", because we want the node content being still laid out,
+   so the edges won't jump. */
+.edited {
+  visibility: hidden;
 }
 </style>

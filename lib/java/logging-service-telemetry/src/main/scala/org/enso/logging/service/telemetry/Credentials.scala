@@ -17,7 +17,19 @@ case class Credentials(
   refreshUrl: String,
   @named("expire_at")
   expireAt: String
-)
+) {
+  override def toString: String = {
+    s"Credentials{clientId: ${substr(clientId)}, " +
+    s"accessToken: ${substr(accessToken)}, " +
+    s"refreshToken: ${substr(refreshToken)}, " +
+    s"refreshUrl: $refreshUrl, " +
+    s"expireAt: $expireAt}"
+  }
+
+  private def substr(str: String): String = {
+    str.substring(0, Math.min(str.length, 8))
+  }
+}
 
 object Credentials {
   implicit val fileCodec: JsonValueCodec[Credentials] = {

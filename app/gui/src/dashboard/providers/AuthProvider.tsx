@@ -29,17 +29,18 @@ import * as backendModule from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
 import type * as cognitoModule from '#/authentication/cognito'
+import Page from '#/components/Page'
 import { isOrganizationId } from '#/services/RemoteBackend'
+import { download } from '#/utilities/download'
+import { getDownloadUrl } from '#/utilities/github'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { unsafeWriteValue } from '#/utilities/write'
 import { Suspense } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import { Button, Text } from '../components/AriaComponents'
 import { EnsoDevtools } from '../components/Devtools'
-import Page from '../components/Page'
 import { Result } from '../components/Result'
 import { useTimeoutCallback } from '../hooks/timeoutHooks'
-import { download } from '../utilities/download'
-import { getDownloadUrl } from '../utilities/github'
-import { unsafeWriteValue } from '../utilities/write'
 import {
   featureFlagsForInternalTesting,
   useFeatureFlag,
@@ -172,22 +173,22 @@ export default function AuthProvider(props: AuthProviderProps) {
   const usersMeQuery = reactQuery.useSuspenseQuery(usersMeQueryOptions)
   const userData = usersMeQuery.data
 
-  const createUserMutation = reactQuery.useMutation({
+  const createUserMutation = useMutationCallback({
     mutationFn: (user: backendModule.CreateUserRequestBody) => remoteBackend.createUser(user),
     meta: { invalidates: [usersMeQueryOptions.queryKey], awaitInvalidates: true },
   })
 
-  const deleteUserMutation = reactQuery.useMutation({
+  const deleteUserMutation = useMutationCallback({
     mutationFn: () => remoteBackend.deleteUser(),
     meta: { invalidates: [usersMeQueryOptions.queryKey], awaitInvalidates: true },
   })
 
-  const restoreUserMutation = reactQuery.useMutation({
+  const restoreUserMutation = useMutationCallback({
     mutationFn: () => remoteBackend.restoreUser(),
     meta: { invalidates: [usersMeQueryOptions.queryKey], awaitInvalidates: true },
   })
 
-  const updateUserMutation = reactQuery.useMutation({
+  const updateUserMutation = useMutationCallback({
     mutationFn: (user: backendModule.UpdateUserRequestBody) => remoteBackend.updateUser(user),
     meta: { invalidates: [usersMeQueryOptions.queryKey], awaitInvalidates: true },
   })
@@ -210,14 +211,14 @@ export default function AuthProvider(props: AuthProviderProps) {
     gtagEvent('cloud_user_created')
 
     if (userData?.type === UserSessionType.full) {
-      await updateUserMutation.mutateAsync({ username })
+      await updateUserMutation({ username })
     } else {
       const orgId = await organizationId()
       const email = session?.email ?? ''
 
       invariant(orgId == null || isOrganizationId(orgId), 'Invalid organization ID')
 
-      await createUserMutation.mutateAsync({
+      await createUserMutation({
         userName: username,
         userEmail: backendModule.EmailAddress(email),
         organizationId: orgId != null ? orgId : null,
@@ -234,7 +235,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   })
 
   const deleteUser = useEventCallback(async () => {
-    await deleteUserMutation.mutateAsync()
+    await deleteUserMutation()
     await signOut()
 
     toastSuccess(getText('deleteUserSuccess'))
@@ -243,7 +244,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   })
 
   const restoreUser = useEventCallback(async () => {
-    await restoreUserMutation.mutateAsync()
+    await restoreUserMutation()
 
     toastSuccess(getText('restoreUserSuccess'))
 

@@ -1,5 +1,5 @@
 /** @file Settings tab for viewing and editing roles for all users in the organization. */
-import { useMemo, useRef } from 'react'
+import { useRef } from 'react'
 
 import { useMutation } from '@tanstack/react-query'
 
@@ -53,10 +53,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   const deleteUserGroup = useMutation(
     backendMutationOptions(backend, 'deleteUserGroup'),
   ).mutateAsync
-  const usersMap = useMemo(
-    () => new Map((users ?? []).map((otherUser) => [otherUser.userId, otherUser])),
-    [users],
-  )
+  const usersMap = new Map((users ?? []).map((otherUser) => [otherUser.userId, otherUser]))
   const isLoading = userGroups == null || users == null
   const isAdmin = user.isOrganizationAdmin
 

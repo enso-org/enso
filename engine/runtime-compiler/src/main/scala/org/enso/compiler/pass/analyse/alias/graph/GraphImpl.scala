@@ -7,12 +7,13 @@ import org.enso.compiler.debug.Debug
 import scala.collection.mutable
 import scala.reflect.ClassTag
 import scala.annotation.unused
+import scala.jdk.CollectionConverters._
 
 /** A graph containing aliasing information for a given root scope in Enso. */
 sealed private[graph] class GraphImpl(
   private val rootScopeImpl: Graph.Scope = new ScopeImpl(),
   private var _nextIdCounter: Int        = 0,
-  private var links: Set[Graph.Link]     = Set()
+  _links: Set[Graph.Link]                = null
 ) extends Graph {
   private var sourceLinks
     : java.util.Map[GraphImpl.Id, java.util.LinkedHashSet[Graph.Link]] =
@@ -22,12 +23,19 @@ sealed private[graph] class GraphImpl(
     new java.util.HashMap()
   private val toScope: java.util.Map[GraphImpl.Id, ScopeImpl] =
     new java.util.HashMap()
+  private var links: java.util.Set[Graph.Link] = {
+    if (_links == null) {
+      new java.util.HashSet()
+    } else {
+      new java.util.HashSet(_links.asJava)
+    }
+  }
 
   final def rootScope: ScopeImpl =
     this.rootScopeImpl.asInstanceOf[ScopeImpl]
 
   {
-    links.foreach(addSourceTargetLink)
+    links.forEach(addSourceTargetLink)
   }
 
   /** @return the next counter value
@@ -61,7 +69,7 @@ sealed private[graph] class GraphImpl(
     copy
   }
 
-  private[analyse] def getLinks(): Set[Graph.Link] = links
+  private[analyse] def getLinks(): Set[Graph.Link] = links.asScala.toSet
 
   final def freeze(): Unit = {
     _nextIdCounter = -1
@@ -118,13 +126,12 @@ sealed private[graph] class GraphImpl(
     * @return the link, if it exists
     */
   final def resolveLocalUsage(
-    occurrence: GraphOccurrence.Use,
-    df: GraphOccurrence.Def
+    occurrence: GraphOccurrence.Use
   ): Option[Graph.Link] = {
     Option(occurrence.scope()).flatMap(
-      _.asInstanceOf[ScopeImpl].resolveUsage(occurrence, df).map { link =>
+      _.asInstanceOf[ScopeImpl].resolveUsage(occurrence).map { link =>
         addSourceTargetLink(link)
-        links += link
+        links.add(link)
         link
       }
     )
@@ -200,9 +207,11 @@ sealed private[graph] class GraphImpl(
   ): Set[Graph.Link] = {
     val idsForSym = rootScope.symbolToIds[T](symbol)
 
-    links.filter(l =>
-      idsForSym.contains(l.source) || idsForSym.contains(l.target)
-    )
+    links.stream
+      .filter(l => idsForSym.contains(l.source) || idsForSym.contains(l.target))
+      .toList
+      .asScala
+      .toSet
   }
 
   /** Obtains the occurrence for a given ID, from whichever scope in which it
@@ -315,9 +324,9 @@ sealed private[graph] class GraphImpl(
     def getShadowedIds(
       scope: ScopeImpl
     ): Set[GraphOccurrence] = {
-      scope.occurrences.values.collect {
-        case d: GraphOccurrence.Def if d.symbol == definition.symbol => d
-      } ++ scope.parent.map(getShadowedIds).getOrElse(Set())
+      val withSymbol: Set[GraphOccurrence.Def] =
+        scope.getOccurrences(definition.symbol)
+      withSymbol ++ scope.parent.map(getShadowedIds).getOrElse(Set())
     }.toSet
 
     definition match {

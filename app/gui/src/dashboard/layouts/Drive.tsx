@@ -12,7 +12,6 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import { AssetPanel } from '#/layouts/AssetPanel'
-import type * as assetsTable from '#/layouts/AssetsTable'
 import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
@@ -34,12 +33,10 @@ import { useDeferredValue } from 'react'
 import { toast } from 'react-toastify'
 import { Suspense } from '../components/Suspense'
 import { useCategoriesAPI } from './Drive/Categories/categoriesHooks'
-import { useDirectoryIds } from './Drive/directoryIdsHooks'
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
   readonly initialProjectName: string | null
-  readonly assetsManagementApiRef: React.Ref<assetsTable.AssetManagementApi>
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
@@ -142,7 +139,7 @@ interface DriveAssetsViewProps extends DriveProps {
  * The assets view of the Drive.
  */
 function DriveAssetsView(props: DriveAssetsViewProps) {
-  const { category, setCategory, initialProjectName, assetsManagementApiRef } = props
+  const { category, setCategory, initialProjectName } = props
 
   const deferredCategory = useDeferredValue(category)
 
@@ -160,8 +157,6 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
     isCloud && isOffline ? 'offline'
     : isCloud && !user.isEnabled ? 'not-enabled'
     : 'ok'
-
-  const { rootDirectoryId } = useDirectoryIds({ category })
 
   return (
     <div className="relative flex grow">
@@ -186,20 +181,13 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
           </div>
 
           <div className="grid-col-2 flex flex-col gap-3">
-            <DriveBar
-              key={rootDirectoryId}
-              backend={backend}
-              query={query}
-              setQuery={setQuery}
-              category={category}
-            />
+            <DriveBar backend={backend} query={query} setQuery={setQuery} category={category} />
 
             {status === 'offline' ?
               <OfflineMessage supportLocalBackend={supportLocalBackend} setCategory={setCategory} />
             : <Suspense>
                 <ErrorBoundary>
                   <AssetsTable
-                    assetManagementApiRef={assetsManagementApiRef}
                     query={query}
                     setQuery={setQuery}
                     category={deferredCategory}

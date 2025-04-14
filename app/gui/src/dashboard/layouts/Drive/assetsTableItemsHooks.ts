@@ -76,10 +76,6 @@ export function useAssetsTableItems(options: UseAssetsTableOptions) {
         if (asset.type === AssetType.specialEmpty || asset.type === AssetType.specialLoading) {
           return false
         }
-        // Hide temporary directories of hybrid projects.
-        if (asset.type === AssetType.directory && asset.title.startsWith('cloud-project-')) {
-          return false
-        }
         const assetType =
           asset.type === AssetType.directory ? 'folder'
           : asset.type === AssetType.datalink ? 'datalink'

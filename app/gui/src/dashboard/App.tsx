@@ -46,8 +46,6 @@ import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
 
-import * as inputBindingsModule from '#/configurations/inputBindings'
-
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider, { useLocalBackend } from '#/providers/BackendProvider'
 import { useHttpClientStrict } from '#/providers/HttpClientProvider'
@@ -88,38 +86,23 @@ import RemoteBackend from '#/services/RemoteBackend'
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
-import * as object from '#/utilities/object'
 import { Path } from '#/utilities/path'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 
 import { useInitAuthService } from '#/authentication/service'
+import { useOffline } from '#/hooks/offlineHooks'
 import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
 import { CloudBrowserDisabledLayout } from '#/providers/AuthProvider'
-import { useMutation } from '@tanstack/react-query'
-import { useOffline } from './hooks/offlineHooks'
+import { useMutationCallback } from './utilities/tanstackQuery'
+import { unsafeWriteValue } from './utilities/write'
 
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    readonly inputBindings: Readonly<Record<string, readonly string[]>>
     readonly localRootDirectory: string
     readonly preferredTimeZone: string
   }
 }
-
-LocalStorage.registerKey('inputBindings', {
-  schema: z.record(z.string().array().readonly()).transform((value) =>
-    Object.fromEntries(
-      Object.entries<unknown>({ ...value }).flatMap((kv) => {
-        const [k, v] = kv
-        return Array.isArray(v) && v.every((item): item is string => typeof item === 'string') ?
-            [[k, v]]
-          : []
-      }),
-    ),
-  ),
-})
-
 LocalStorage.registerKey('localRootDirectory', { schema: z.string() })
 LocalStorage.registerKey('preferredTimeZone', { schema: z.string() })
 
@@ -203,7 +186,7 @@ export default function App(props: AppProps) {
   const { getText } = textProvider.useText()
   const queryClient = reactQuery.useQueryClient()
 
-  const { mutate: executeBackgroundUpdate } = useMutation({
+  const executeBackgroundUpdate = useMutationCallback({
     mutationKey: ['refetch-queries', { isOffline }],
     scope: { id: 'refetch-queries' },
     mutationFn: () => queryClient.refetchQueries({ type: 'all', queryKey: [RemoteBackend.type] }),
@@ -217,7 +200,7 @@ export default function App(props: AppProps) {
 
   React.useEffect(() => {
     if (!isOffline) {
-      executeBackgroundUpdate()
+      void executeBackgroundUpdate()
     }
   }, [executeBackgroundUpdate, isOffline])
 
@@ -279,88 +262,15 @@ function AppRouter(props: AppRouterProps) {
 
   const navigator2D = navigator2DProvider.useNavigator2D()
 
-  const localBackend = React.useMemo(
-    () => (projectManagerInstance != null ? new LocalBackend(projectManagerInstance) : null),
-    [projectManagerInstance],
-  )
+  const localBackend =
+    projectManagerInstance != null ? new LocalBackend(projectManagerInstance) : null
 
-  const remoteBackend = React.useMemo(
-    () => new RemoteBackend(httpClient, logger, getText),
-    [httpClient, logger, getText],
-  )
+  const remoteBackend = new RemoteBackend(httpClient, logger, getText)
 
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
-    window.navigate = navigate
+    unsafeWriteValue(window, 'navigate', navigate)
   }
-
-  const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
-
-  React.useEffect(() => {
-    const savedInputBindings = localStorage.get('inputBindings')
-    if (savedInputBindings != null) {
-      const filteredInputBindings = object.mapEntries(
-        inputBindingsRaw.metadata,
-        (k) => savedInputBindings[k],
-      )
-      for (const [bindingKey, newBindings] of object.unsafeEntries(filteredInputBindings)) {
-        for (const oldBinding of inputBindingsRaw.metadata[bindingKey].bindings) {
-          inputBindingsRaw.delete(bindingKey, oldBinding)
-        }
-        for (const newBinding of newBindings ?? []) {
-          inputBindingsRaw.add(bindingKey, newBinding)
-        }
-      }
-    }
-  }, [localStorage, inputBindingsRaw])
-
-  const inputBindings = React.useMemo(() => {
-    const updateLocalStorage = () => {
-      localStorage.set(
-        'inputBindings',
-        Object.fromEntries(
-          Object.entries(inputBindingsRaw.metadata).map((kv) => {
-            const [k, v] = kv
-            return [k, v.bindings]
-          }),
-        ),
-      )
-    }
-    return {
-      /** Transparently pass through `handler()`. */
-      get handler() {
-        return inputBindingsRaw.handler.bind(inputBindingsRaw)
-      },
-      /** Transparently pass through `attach()`. */
-      get attach() {
-        return inputBindingsRaw.attach.bind(inputBindingsRaw)
-      },
-      reset: (bindingKey: inputBindingsModule.DashboardBindingKey) => {
-        inputBindingsRaw.reset(bindingKey)
-        updateLocalStorage()
-      },
-      add: (bindingKey: inputBindingsModule.DashboardBindingKey, binding: string) => {
-        inputBindingsRaw.add(bindingKey, binding)
-        updateLocalStorage()
-      },
-      delete: (bindingKey: inputBindingsModule.DashboardBindingKey, binding: string) => {
-        inputBindingsRaw.delete(bindingKey, binding)
-        updateLocalStorage()
-      },
-      /** Transparently pass through `metadata`. */
-      get metadata() {
-        return inputBindingsRaw.metadata
-      },
-      /** Transparently pass through `register()`. */
-      get register() {
-        return inputBindingsRaw.unregister.bind(inputBindingsRaw)
-      },
-      /** Transparently pass through `unregister()`. */
-      get unregister() {
-        return inputBindingsRaw.unregister.bind(inputBindingsRaw)
-      },
-    }
-  }, [localStorage, inputBindingsRaw])
 
   const mainPageUrl = getMainPageUrl()
 
@@ -517,7 +427,7 @@ function AppRouter(props: AppRouterProps) {
       >
         <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
           <AuthProvider onAuthenticated={onAuthenticated}>
-            <InputBindingsProvider inputBindings={inputBindings}>
+            <InputBindingsProvider>
               <LocalBackendPathSynchronizer />
               <VersionChecker />
               {routes}

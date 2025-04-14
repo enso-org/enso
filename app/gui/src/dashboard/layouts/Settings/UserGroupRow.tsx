@@ -39,7 +39,7 @@ export default function UserGroupRow(props: UserGroupRowProps) {
             <ConfirmDeleteModal
               defaultOpen
               actionText={getText('deleteUserGroupActionText', userGroup.groupName)}
-              doDelete={async () => {
+              onConfirm={async () => {
                 await doDeleteUserGroup(userGroup)
               }}
             />,
@@ -75,7 +75,7 @@ export default function UserGroupRow(props: UserGroupRowProps) {
             </ariaComponents.Button>
             <ConfirmDeleteModal
               actionText={getText('deleteUserGroupActionText', userGroup.groupName)}
-              doDelete={async () => {
+              onConfirm={async () => {
                 await doDeleteUserGroup(userGroup)
               }}
             />

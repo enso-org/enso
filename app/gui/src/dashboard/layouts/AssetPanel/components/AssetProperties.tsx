@@ -20,7 +20,6 @@ import { validateDatalink } from '#/data/datalinkValidator'
 import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
-import { useSyncRef } from '#/hooks/syncRefHooks'
 import { assetPanelStore, useSetAssetPanelProps } from '#/layouts/AssetPanel/'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
@@ -203,28 +202,6 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     resetEditDescriptionForm({ description: item.description ?? '' })
   }, [item.description, resetEditDescriptionForm])
 
-  const editDatalinkForm = Form.useForm({
-    schema: (z) => z.object({ datalink: z.custom((x) => validateDatalink(x)) }),
-    defaultValues: { datalink: datalinkQuery.data },
-    onSubmit: async ({ datalink }) => {
-      await createDatalinkMutation.mutateAsync([
-        {
-          // The UI to submit this form is only visible if the asset is a datalink.
-          // eslint-disable-next-line no-restricted-syntax
-          datalinkId: item.id as DatalinkId,
-          name: item.title,
-          parentDirectoryId: null,
-          value: datalink,
-        },
-      ])
-    },
-  })
-
-  const editDatalinkFormRef = useSyncRef(editDatalinkForm)
-  React.useEffect(() => {
-    editDatalinkFormRef.current.setValue('datalink', datalinkQuery.data)
-  }, [datalinkQuery.data, editDatalinkFormRef])
-
   return (
     <div className="flex w-full flex-col gap-8">
       {descriptionSpotlight.spotlightElement}
@@ -268,6 +245,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           }
         </div>
       </div>
+
       {isCloud && (
         <div className={styles.section()}>
           <Heading
@@ -484,22 +462,38 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
             <div className="grid place-items-center self-stretch">
               <StatelessSpinner size={48} state="loading-medium" />
             </div>
-          : <Form form={editDatalinkForm} className="w-full">
-              <DatalinkFormInput
-                form={editDatalinkForm}
-                name="datalink"
-                readOnly={!canEditThisAsset}
-                dropdownTitle={getText('type')}
-              />
-              {canEditThisAsset && (
-                <ButtonGroup>
-                  <Form.Submit>{getText('update')}</Form.Submit>
-                  <Form.Reset
-                    onPress={() => {
-                      editDatalinkForm.reset({ datalink: datalinkQuery.data })
-                    }}
+          : <Form
+              schema={(z) => z.object({ datalink: z.custom((x) => validateDatalink(x)) })}
+              defaultValues={{ datalink: datalinkQuery.data }}
+              onSubmit={({ datalink }) =>
+                createDatalinkMutation.mutateAsync([
+                  {
+                    datalinkId: item.id,
+                    name: item.title,
+                    parentDirectoryId: null,
+                    value: datalink,
+                  },
+                ])
+              }
+              className="w-full bg-white"
+            >
+              {(form) => (
+                <>
+                  <DatalinkFormInput
+                    name="datalink"
+                    readOnly={!canEditThisAsset}
+                    dropdownTitle={getText('type')}
                   />
-                </ButtonGroup>
+
+                  {canEditThisAsset && form.formState.isDirty && (
+                    <ButtonGroup>
+                      <Form.Submit>{getText('update')}</Form.Submit>
+                      <Form.Reset />
+                    </ButtonGroup>
+                  )}
+
+                  <Form.FormError />
+                </>
               )}
             </Form>
           }

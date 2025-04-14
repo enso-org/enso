@@ -81,6 +81,7 @@ export default defineConfig({
         './src/**/*.tsx',
         './src/dashboard/hooks/**/*.ts',
         './src/dashboard/tailwind.css',
+        './node_modules/@tanstack/**/*.js',
       ],
     },
     headers: {

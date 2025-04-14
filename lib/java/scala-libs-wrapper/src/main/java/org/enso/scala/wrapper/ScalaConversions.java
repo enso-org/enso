@@ -1,5 +1,6 @@
 package org.enso.scala.wrapper;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import scala.Option;
@@ -32,7 +33,7 @@ public class ScalaConversions {
     return CollectionConverters.asJava(list);
   }
 
-  public static <T> scala.collection.immutable.List<T> asScala(List<T> list) {
+  public static <T> scala.collection.immutable.List<T> asScala(Collection<T> list) {
     return CollectionConverters.asScala(list).toList();
   }
 

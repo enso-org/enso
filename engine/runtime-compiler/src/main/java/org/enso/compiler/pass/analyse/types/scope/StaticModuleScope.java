@@ -3,8 +3,10 @@ package org.enso.compiler.pass.analyse.types.scope;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.core.CompilerStub;
 import org.enso.compiler.core.ir.Module;
@@ -35,19 +37,26 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
   private final Map<String, AtomTypeDefinition> typesDefinedHere;
   private final Map<TypeScopeReference, Map<String, TypeRepresentation>> methods;
 
+  // The Map maps target types to a set of source types that can be converted to it.
+  // TODO conversions can also have optional arguments, we should include this (so no longer a Set
+  // but Map)
+  private final Map<TypeScopeReference, Set<TypeScopeReference>> conversions;
+
   private StaticModuleScope(
       QualifiedName moduleName,
       TypeScopeReference associatedType,
       List<StaticImportExportScope> imports,
       List<StaticImportExportScope> exports,
       Map<String, AtomTypeDefinition> typesDefinedHere,
-      Map<TypeScopeReference, Map<String, TypeRepresentation>> methods) {
+      Map<TypeScopeReference, Map<String, TypeRepresentation>> methods,
+      Map<TypeScopeReference, Set<TypeScopeReference>> conversions) {
     this.moduleName = moduleName;
     this.associatedType = associatedType;
     this.imports = imports;
     this.exports = exports;
     this.typesDefinedHere = typesDefinedHere;
     this.methods = methods;
+    this.conversions = conversions;
   }
 
   static final class Builder {
@@ -58,6 +67,7 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
     private final Map<String, AtomTypeDefinition> typesDefinedHere = new HashMap<>();
     private final Map<TypeScopeReference, Map<String, TypeRepresentation>> methods =
         new HashMap<>();
+    private final Map<TypeScopeReference, Set<TypeScopeReference>> conversions = new HashMap<>();
 
     private boolean sealed = false;
 
@@ -81,7 +91,24 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
           Collections.unmodifiableList(imports),
           Collections.unmodifiableList(exports),
           Collections.unmodifiableMap(typesDefinedHere),
-          Collections.unmodifiableMap(methods));
+          unmodifiableNestedMap(methods),
+          unmodifiableNestedSet(conversions));
+    }
+
+    private <A, B, C> Map<A, Map<B, C>> unmodifiableNestedMap(Map<A, Map<B, C>> m) {
+      var result = new HashMap<A, Map<B, C>>();
+      for (var entry : m.entrySet()) {
+        result.put(entry.getKey(), Collections.unmodifiableMap(entry.getValue()));
+      }
+      return Collections.unmodifiableMap(result);
+    }
+
+    private <A, B> Map<A, Set<B>> unmodifiableNestedSet(Map<A, Set<B>> m) {
+      var result = new HashMap<A, Set<B>>();
+      for (var entry : m.entrySet()) {
+        result.put(entry.getKey(), Collections.unmodifiableSet(entry.getValue()));
+      }
+      return Collections.unmodifiableMap(result);
     }
 
     QualifiedName getModuleName() {
@@ -104,6 +131,18 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
       checkSealed();
       var typeMethods = methods.computeIfAbsent(parentType, k -> new HashMap<>());
       typeMethods.put(name, type);
+    }
+
+    void registerConversionMethod(TypeScopeReference toType, TypeScopeReference fromType) {
+      assert toType.getKind() == TypeScopeReference.Kind.ATOM_TYPE;
+      assert fromType.getKind() == TypeScopeReference.Kind.ATOM_TYPE;
+      Set<TypeScopeReference> sourcesSet =
+          conversions.computeIfAbsent(toType, k -> new HashSet<>());
+      boolean isNew = sourcesSet.add(fromType);
+      if (!isNew) {
+        throw new IllegalStateException(
+            "Conversion already defined: " + fromType + " -> " + toType);
+      }
     }
 
     public void addImport(StaticImportExportScope importScope) {
@@ -164,11 +203,30 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
   }
 
   public TypeRepresentation getConversionFor(TypeScopeReference target, TypeScopeReference source) {
-    // TODO conversions in static analysis
-    return null;
+    var conversionsOnType = conversions.get(target);
+    if (conversionsOnType == null) {
+      return null;
+    }
+
+    boolean conversionExists = conversionsOnType.contains(source);
+    if (!conversionExists) {
+      return null;
+    }
+
+    // TODO conversions can contain optional arguments
+    // so we cannot really return a function type until we are capable of returning types with
+    // optional arguments
+    // then we'll need to change the conversions data structure to store these arguments too
+    // For now let's just return an unknown non-null type.
+    return TypeRepresentation.UNKNOWN;
   }
 
   public AtomTypeDefinition getType(String name) {
     return typesDefinedHere.get(name);
+  }
+
+  @Override
+  public String toString() {
+    return "StaticModuleScope{" + moduleName + "}";
   }
 }

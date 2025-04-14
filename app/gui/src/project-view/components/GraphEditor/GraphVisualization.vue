@@ -110,7 +110,10 @@ const keydownHandler = visualizationBindings.handler({
   },
 })
 
-useEvent(window, 'keydown', keydownHandler)
+// TODO[ao]: we use `document` to make sure it takes precedence before GraphEditor handlers
+//  (deselectAllNodes in particular). But this is quick workaroung, the proper soloution
+//  should be soon delivered as part of https://github.com/enso-org/enso/issues/10414
+useEvent(document, 'keydown', keydownHandler)
 
 function onWheel(event: WheelEvent) {
   if (
