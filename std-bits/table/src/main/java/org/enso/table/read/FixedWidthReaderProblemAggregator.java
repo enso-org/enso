@@ -1,6 +1,7 @@
 package org.enso.table.read;
 
 import org.enso.table.parsing.problems.AdditionalInvalidRows;
+import org.enso.table.parsing.problems.InconsistentFixedWidthLengths;
 import org.enso.table.parsing.problems.InvalidFixedWidthRow;
 import org.enso.table.problems.Problem;
 import org.enso.table.problems.ProblemAggregator;
@@ -9,6 +10,7 @@ public class FixedWidthReaderProblemAggregator extends ProblemAggregator {
   private final boolean warningsAsErrors;
   private long invalidRowsCount;
   private final long invalidRowsLimit = 10;
+  private boolean inconsistentLineLengths = false;
 
   public FixedWidthReaderProblemAggregator(ProblemAggregator parent, boolean warningsAsErrors) {
     super(parent);
@@ -36,12 +38,19 @@ public class FixedWidthReaderProblemAggregator extends ProblemAggregator {
     invalidRowsCount++;
   }
 
+  public void reportInconsistentLineLengths() {
+    inconsistentLineLengths = true;
+  }
+
   @Override
   public ProblemSummary summarize() {
     var summary = super.summarize();
     if (invalidRowsCount > invalidRowsLimit) {
       long additionalInvalidRows = invalidRowsCount - invalidRowsLimit;
       summary.add(new AdditionalInvalidRows(additionalInvalidRows));
+    }
+    if (inconsistentLineLengths) {
+      summary.add(new InconsistentFixedWidthLengths());
     }
     return summary;
   }

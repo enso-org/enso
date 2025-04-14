@@ -211,7 +211,7 @@ type Invalid_Row
    a single instance of `Additional_Invalid_Rows`.
 type Invalid_Fixed_Width_Row
     ## PRIVATE
-    Error (source_line_number : Integer) (table_row_number : Integer) (line_length : Integer | Nothing) (minimum_line_length : Integer | Nothing)
+    Error (source_line_number : Integer) (table_row_number : Integer | Nothing) (line_length : Integer | Nothing) (minimum_line_length : Integer | Nothing)
 
     ## PRIVATE
 
@@ -223,6 +223,19 @@ type Invalid_Fixed_Width_Row
             _ -> ", table row "+self.table_row_number.to_text
         loc = "(line "+self.source_line_number.to_text+table_loc+")"
         "The row " + loc + " had length " + self.line_length.to_text + ", but a length of at least " + self.minimum_line_length.to_text + " was expected"
+
+## Indicates that when loading a fixed-width file, the lines did not all have
+   the same length
+type Inconsistent_Fixed_Width_Lengths
+    ## PRIVATE
+    Error
+
+    ## PRIVATE
+
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "The fixed-width file had lines of differing lengths."
 
 ## Indicates how many additional `Invalid_Row` warnings have been suppressed.
 type Additional_Invalid_Rows

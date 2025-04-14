@@ -24,9 +24,11 @@ public class FixedWidthReader {
   private DatatypeParser valueParser;
   private FixedWidthReaderProblemAggregator problemAggregator;
 
-  private int minimumLineLength;
   private List<BuilderForType<String>> builders = null;
 
+  private int minimumLineLength;
+  private boolean firstLine = true;
+  private int firstLineLength = 0;
   private long sourceLineNumber = 0;
   private long tableRowNumber = 0;
 
@@ -74,6 +76,15 @@ public class FixedWidthReader {
   }
 
   private void addRow(String line) {
+    if (firstLine) {
+      firstLine = false;
+      firstLineLength = line.length();
+    } else {
+      if (line.length() != firstLineLength) {
+        problemAggregator.reportInconsistentLineLengths();
+      }
+    }
+
     if (line.length() < minimumLineLength) {
       var trn = invalidRowsBehavior == InvalidRowsBehavior.KEEP ? tableRowNumber : null;
       problemAggregator.reportShortLine(
@@ -91,7 +102,13 @@ public class FixedWidthReader {
 
       if (entry.end() > line.length()) {
         assert invalidRowsBehavior == InvalidRowsBehavior.KEEP;
-        builders.get(i).append("");
+        if (entry.start < line.length()) {
+          // There is a partial column.
+          builders.get(i).append(line.substring(entry.start, line.length()));
+        } else {
+          // The column is completely off the end.
+          builders.get(i).append("");
+        }
       } else {
         builders.get(i).append(line.substring(entry.start, entry.end()));
       }

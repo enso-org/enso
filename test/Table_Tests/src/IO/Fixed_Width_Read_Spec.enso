@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import all
+import Standard.Table.Errors.Invalid_Fixed_Width_Row
 import Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout_Entry
 
 from Standard.Test import all
@@ -10,6 +11,7 @@ import Standard.Test.Test_Environment
 add_specs suite_builder =
     data_dir = enso_project.data / "fixed-width"
     data0 = data_dir / "fixed0.txt"
+    data1 = data_dir / "fixed1.txt"
 
     suite_builder.group "Read fixed-width files" group_builder->
         group_builder.specify "Should make a layout from a description" <|
@@ -101,11 +103,35 @@ add_specs suite_builder =
             err3.should_fail_with Illegal_Argument
             err3.catch.message . should_contain "must have a width of 1 or more"
 
+        group_builder.specify "Should keep short lines with Invalid_Rows.Keep_Invalid_Rows" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 0 4]
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 13 5]
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 18 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = data1.read (Fixed_Width_Format.Fixed_Width layout)
+            Problems.expect_warning (Invalid_Fixed_Width_Row.Error 1 1 20 21)
+            Problems.expect_warning (Invalid_Fixed_Width_Row.Error 2 2 17 21)
+            t.at "Column 1" . to Vector . should_equal [1234, 2345, 6789, 4343]
+            t.at "Column 2" . to Vector . should_equal [98765, 87654, 51122, 1234]
+            t.at "Column 3" . to Vector . should_equal ["fgh", "no", "def", ""]
+
+        group_builder.specify "Should drop short lines with Invalid_Rows.Drop_Invalid_Rows" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 0 4]
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 13 5]
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 18 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = data1.read (Fixed_Width_Format.Fixed_Width layout on_invalid_rows=..Drop_Invalid_Rows)
+            Problems.expect_warning (Invalid_Fixed_Width_Row.Error 1 Nothing 20 21)
+            Problems.expect_warning (Invalid_Fixed_Width_Row.Error 3 Nothing 17 21)
+            t.at "Column 1" . to Vector . should_equal [1234, 6789]
+            t.at "Column 2" . to Vector . should_equal [98765, 51122]
+            t.at "Column 3" . to Vector . should_equal ["fgh", "def"]
+
         ##
-            group_builder.specify "Should report short lines" <|
-            group_builder.specify "Should keep short lines with Invalid_Rows.Keep_Invalid_Rows" <|
-            group_builder.specify "Should drop short lines with Invalid_Rows.Drop_Invalid_Rows" <|
             group_builder.specify "Should warn about different line lengths" <|
+                Inconsistent_Fixed_Width_Lengths
             group_builder.specify "Should attach Invalid_Fixed_Width row warnings" <|
                 check numbbers
             group_builder.specify "Should attach an Additional_Invalid_Row row warning" <|
