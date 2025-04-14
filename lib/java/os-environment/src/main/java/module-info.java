@@ -9,6 +9,7 @@ module org.enso.os.environment {
   requires org.apache.commons.io;
 
   exports org.enso.os.environment;
+  exports org.enso.os.environment.jni;
   exports org.enso.os.environment.chdir;
   exports org.enso.os.environment.trash;
   exports org.enso.os.environment.directories;

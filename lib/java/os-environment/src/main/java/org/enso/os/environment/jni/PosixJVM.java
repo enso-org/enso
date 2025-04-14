@@ -12,13 +12,7 @@ import org.graalvm.word.PointerBase;
 
 @CContext(PosixJVM.Direct.class)
 final class PosixJVM {
-
-  static JVM createImpl(String javaHome) {
-    var createJvmFn = findCreateJavaSymbol(javaHome);
-    return new JVM(createJvmFn);
-  }
-
-  private static JNIBoot.JNICreateJavaVMPointer findCreateJavaSymbol(String javaHome) {
+  static JNIBoot.JNICreateJavaVMPointer createImpl(String javaHome) {
     var libJvmPath = findDynamicLibrary(javaHome).getPath();
     try (var libPath = CTypeConversion.toCString(libJvmPath);
         var createJvm = CTypeConversion.toCString("JNI_CreateJavaVM")) {

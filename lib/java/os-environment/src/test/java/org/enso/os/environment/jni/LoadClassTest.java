@@ -3,16 +3,25 @@ package org.enso.os.environment.jni;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.enso.os.environment.jni.JNI.JValue;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.junit.Test;
 
 public class LoadClassTest {
   private static final String PATH = System.getProperty("java.home");
+  private static JVM jvm;
+
+  private static JNI.JNIEnv env() {
+    if (jvm == null) {
+      jvm = JVM.create(PATH, "-Dsay=Ahoj");
+    }
+    return jvm.env();
+  }
 
   @Test
   public void invokeParseShortMethod() {
-    var env = JVM.create(PATH).env();
+    var env = env();
     assertTrue("JNI created", env.isNonNull());
 
     var findClassFn = env.getFunctions().getFindClass();
@@ -36,6 +45,46 @@ public class LoadClassTest {
       args.setJObject(str);
       var res = callStaticMethodFn.call(env, Short, valueOf, args);
       assertEquals(345, res);
+    }
+  }
+
+  @Test
+  public void setSystemProperty() {
+    var env = env();
+    assertTrue("JNI created", env.isNonNull());
+
+    var findClassFn = env.getFunctions().getFindClass();
+    var getStaticMethodIDFn = env.getFunctions().getGetStaticMethodID();
+    var newStringFn = env.getFunctions().getNewStringUTF();
+    var strLengthFn = env.getFunctions().getGetStringUTFLength();
+    var strCharsFn = env.getFunctions().getGetStringUTFChars();
+    var strReleaseFn = env.getFunctions().getReleaseStringUTFChars();
+    var callStaticMethodFn = env.getFunctions().getCallStaticObjectMethodA();
+
+    try (var systemName = CTypeConversion.toCString("java/lang/System");
+        var getPropertyName = CTypeConversion.toCString("getProperty");
+        var getPropertySig = CTypeConversion.toCString("(Ljava/lang/String;)Ljava/lang/String;");
+        var propName = CTypeConversion.toCString("say"); ) {
+      var System = findClassFn.call(env, systemName.get());
+
+      assertTrue("System class is loaded", System.isNonNull());
+
+      var valueOf =
+          getStaticMethodIDFn.call(env, System, getPropertyName.get(), getPropertySig.get());
+      assertTrue("getProperty method found", valueOf.isNonNull());
+
+      var args = StackValue.get(JNI.JValue.class);
+      var str = newStringFn.call(env, propName.get());
+      args.setJObject(str);
+      var res = (JNI.JString) callStaticMethodFn.call(env, System, valueOf, args);
+      assertTrue("There should be a property 'say' defined", res.isNonNull());
+      var len = strLengthFn.call(env, res);
+      assertEquals("'Ahoj' has four letters", 4, len);
+      var valueFalse = StackValue.get(JValue.class);
+      valueFalse.setBoolean(false);
+      var chars = strCharsFn.call(env, res, valueFalse);
+      assertEquals("Ahoj", CTypeConversion.toJavaString(chars));
+      strReleaseFn.call(env, res, chars);
     }
   }
 }

@@ -7,7 +7,7 @@ import org.graalvm.word.PointerBase;
 
 @CContext(value = JNIDirectives.class)
 @CStruct(value = "JNINativeInterface_", addStructKeyword = true)
-interface JNINativeInterface extends PointerBase {
+public interface JNINativeInterface extends PointerBase {
 
   @CField(value = "NewString")
   JNI.NewString getNewString();

@@ -18,30 +18,25 @@ import org.graalvm.nativeimage.c.type.VoidPointer;
 import org.graalvm.word.PointerBase;
 
 @CContext(JNIDirectives.class)
-final class JNI {
+public final class JNI {
   @CConstant
   static native int JNI_OK();
 
   @CConstant
   static native int JNI_ERR();
 
-  /* unknown error */
   @CConstant
   static native int JNI_EDETACHED();
 
-  /* thread detached from the VM */
   @CConstant
   static native int JNI_EVERSION();
 
-  /* JNI version error */
   @CConstant
   static native int JNI_ENOMEM();
 
-  /* not enough memory */
   @CConstant
   static native int JNI_EEXIST();
 
-  /* VM already created */
   @CConstant
   static native int JNI_EINVAL();
 

@@ -15,16 +15,14 @@ import org.graalvm.word.PointerBase;
 
 @CContext(WindowsJVM.Direct.class)
 final class WindowsJVM {
-  static JVM createImpl(String javaHome) {
+  static JNICreateJavaVMPointer createImpl(String javaHome) {
     var dllPath = findDynamicLibrary(javaHome).getPath();
 
     try (var libPath = CTypeConversion.toCString(dllPath);
         var createJvm = CTypeConversion.toCString("JNI_CreateJavaVM")) {
       var dll = LoadLibraryA(libPath.get());
       assert dll.isNonNull();
-      JNICreateJavaVMPointer cStringCreateJvm = GetProcAddress(dll, createJvm.get());
-
-      return new JVM(cStringCreateJvm);
+      return GetProcAddress(dll, createJvm.get());
     }
   }
 
