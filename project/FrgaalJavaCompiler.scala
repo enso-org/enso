@@ -300,7 +300,6 @@ object FrgaalJavaCompiler {
       val limitModules = Seq(
         "java.base",
         "jdk.zipfs",
-        "jdk.internal.vm.compiler.management",
         "java.desktop",
         "java.net.http",
         "java.sql",
