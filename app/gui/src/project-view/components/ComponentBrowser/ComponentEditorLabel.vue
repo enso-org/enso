@@ -6,14 +6,14 @@ import { computed } from 'vue'
 
 const props = defineProps<{ selfArg?: SelfArg | undefined }>()
 
-type AdditionalTypes =
+type DisplayedAdditionalTypes =
   | null
   | { kind: 'single'; type: string }
   | { kind: 'multiple'; types: string[] }
 
-const additionalTypes = computed<AdditionalTypes>(() => {
+const additionalTypes = computed<DisplayedAdditionalTypes>(() => {
   if (props.selfArg?.type === 'known') {
-    const additionalTypes = props.selfArg.hiddenTypes.flatMap((type) =>
+    const additionalTypes = props.selfArg.additionalTypes.flatMap((type) =>
       type.path ? qnLastSegment(type.path) : [],
     )
     if (additionalTypes.length === 0) return null

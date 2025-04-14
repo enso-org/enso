@@ -131,13 +131,10 @@ function combineInfo(
   if (typename && !typename.ok) {
     typename.error.log('Discarding invalid type in expression update')
   }
-  if (update.hiddenType.length > 0) {
-    console.log('Hidden types', update.hiddenType, update.expressionId)
-  }
   const hiddenTypes = update.hiddenType.map((t) => {
     const path = projectNames.parseProjectPathRaw(t)
     if (!path.ok) {
-      path.error.log('Discarding invalid type in expression update')
+      path.error.log('Discarding invalid additional type in expression update')
       return undefined
     }
     return path.value

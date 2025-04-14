@@ -138,8 +138,12 @@ export function useComponentBrowserInput(
     const info = graphDb.getExpressionInfo(definition)
     if (info == null) return null
     const typename = info.typename
-    const hiddenTypes = info.hiddenTypes
-    return typename ? { type: 'known', typename, hiddenTypes } : { type: 'unknown' }
+    const additionalTypes = info.hiddenTypes
+    if (typename != null) {
+      const entry = suggestionDb.getEntryByProjectPath(typename)
+      if (entry) additionalTypes.push(...suggestionDb.ancestors(entry))
+    }
+    return typename ? { type: 'known', typename, additionalTypes } : { type: 'unknown' }
   })
 
   /** Apply given suggested entry to the input. */
@@ -172,37 +176,29 @@ export function useComponentBrowserInput(
     newText: string
     requiredImport: ProjectPath | undefined
   } {
-    const makeOwnerPath = (owner: ProjectPath) => {
+    const displayOwner = (owner: ProjectPath) => {
       if (owner.path) return qnLastSegment(owner.path)
       if (owner.project) return qnLastSegment(owner.project)
       return 'Main' as Ast.Identifier
     }
-    if (sourceNodeIdentifier.value) {
-      if (sourceNodeType.value?.type === 'known') {
-        const sourceType = sourceNodeType.value.typename
-        const owner = entry.kind === SuggestionKind.Method ? entry.memberOf : undefined
-        if (owner && owner.path && !sourceType.equals(owner)) {
-          return {
-            newText: ':' + makeOwnerPath(owner) + ' . ' + entry.name + ' ',
-            requiredImport: owner,
-          }
-        } else {
-          return {
-            newText: entry.name + ' ',
-            requiredImport: undefined,
-          }
-        }
-      } else {
+    if (sourceNodeIdentifier.value && sourceNodeType.value?.type === 'known') {
+      const sourceType = sourceNodeType.value.typename
+      const owner = entry.kind === SuggestionKind.Method ? entry.memberOf : undefined
+      if (owner && owner.path && !sourceType.equals(owner)) {
         return {
-          newText: entry.name + ' ',
-          requiredImport: undefined,
+          newText: ':' + displayOwner(owner) + ' . ' + entry.name + ' ',
+          requiredImport: owner,
         }
+      }
+      return {
+        newText: entry.name + ' ',
+        requiredImport: undefined,
       }
     } else {
       // Perhaps we will add cases for Type/Con imports, but they are not displayed as suggestion ATM.
       const owner = entryIsStatic(entry) ? entry.memberOf.normalized() : undefined
       return {
-        newText: (owner ? qnJoin(makeOwnerPath(owner), entry.name) : entry.name) + ' ',
+        newText: (owner ? qnJoin(displayOwner(owner), entry.name) : entry.name) + ' ',
         requiredImport: owner,
       }
     }
