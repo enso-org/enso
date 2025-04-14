@@ -388,6 +388,7 @@ public final class ContextUtils implements TestRule, AutoCloseable {
               Paths.get("../../distribution/component").toFile().getAbsolutePath());
     }
 
+    /** Modifies the {@link Context.Builder}. Can be called multiple times. */
     public Builder withModifiedContext(Function<Context.Builder, Context.Builder> modifier) {
       polyglotCtxBldr = modifier.apply(polyglotCtxBldr);
       return this;
