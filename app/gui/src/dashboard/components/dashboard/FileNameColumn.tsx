@@ -2,13 +2,10 @@
 import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
-import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useText } from '#/providers/TextProvider'
-import { isNewTitleUnique, type FileAsset } from '#/services/Backend'
+import { titleSchema, type FileAsset } from '#/services/Backend'
 import { fileIcon } from '#/utilities/fileIcon'
 import { merger } from '#/utilities/object'
-import { useMutation } from '@tanstack/react-query'
 
 /** Props for a {@link FileNameColumn}. */
 export interface FileNameColumnProps extends AssetColumnProps {
@@ -21,12 +18,9 @@ export interface FileNameColumnProps extends AssetColumnProps {
  * This should never happen.
  */
 export default function FileNameColumn(props: FileNameColumnProps) {
-  const { item, state, rowState, setRowState, isEditable } = props
-  const { backend } = state
+  const { item, rowState, setRowState, isEditable, renameAsset } = props
 
   const getAssetChildren = useGetAssetChildren()
-  const { getText } = useText()
-  const updateFileMutation = useMutation(backendMutationOptions(backend, 'updateFile'))
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -35,7 +29,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
   }
 
   const doRename = async (newTitle: string) => {
-    await updateFileMutation.mutateAsync([item.id, { title: newTitle }, item.title])
+    await renameAsset(item.id, newTitle)
     setIsEditing(false)
   }
 
@@ -57,9 +51,10 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         onCancel={() => {
           setIsEditing(false)
         }}
-        schema={(z) =>
-          z.refine((value) => isNewTitleUnique(item, value, getAssetChildren(item.parentId)), {
-            message: getText('nameShouldBeUnique'),
+        schema={() =>
+          titleSchema({
+            asset: item,
+            siblings: getAssetChildren(item.parentId),
           })
         }
       >

@@ -5,6 +5,7 @@ import { createStore, useStore, type StoreApi } from '#/utilities/zustand'
 import invariant from 'tiny-invariant'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
@@ -16,13 +17,27 @@ import {
   type LabelName,
 } from 'enso-common/src/services/Backend'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
-import { useSearchParamsState } from '../hooks/searchParamsStateHooks'
+import { persist } from 'zustand/middleware'
+import type { TransferrableAsset } from '../layouts/Drive/Categories'
+
+/** State for {@link categoryIdStore}. */
+type CurrentDirectoryIdStoreState = CurrentDirectoryIdContextType['currentDirectoryId']
+
+const currentDirectoryIdStore = createStore<CurrentDirectoryIdStoreState>()(
+  persist(
+    (): CurrentDirectoryIdStoreState => ({
+      current: null,
+      parent: null,
+    }),
+    { name: 'enso-current-directory-id', version: 1 },
+  ),
+)
 
 /** Attached data for a paste payload. */
 export interface DrivePastePayload {
   readonly backendType: BackendType
   readonly category: Category
-  readonly ids: ReadonlySet<AssetId>
+  readonly assets: readonly TransferrableAsset[]
 }
 
 /** The subset of asset information required for selections. */
@@ -106,7 +121,7 @@ export default function DriveProvider(props: ProjectsProviderProps) {
 
   const [currentDirectoryId, privateSetCurrentDirectoryId] = useSearchParamsState<
     CurrentDirectoryIdContextType['currentDirectoryId']
-  >('currentDirectoryId', { current: null, parent: null })
+  >('currentDirectoryId', () => currentDirectoryIdStore.getState())
 
   const [store] = React.useState(() =>
     createStore<DriveStore>((set, get) => ({
@@ -178,11 +193,13 @@ export default function DriveProvider(props: ProjectsProviderProps) {
   const resetAssetTableState = useEventCallback(() => {
     store.getState().removeSelection()
     privateSetCurrentDirectoryId({ current: null, parent: null })
+    currentDirectoryIdStore.setState({ current: null, parent: null })
   })
 
   const setCurrentDirectoryId = useEventCallback(
     ({ current, parent }: { current: DirectoryId | null; parent: DirectoryId | null }) => {
       privateSetCurrentDirectoryId({ current, parent })
+      currentDirectoryIdStore.setState({ current, parent })
       store.getState().removeSelection()
     },
   )

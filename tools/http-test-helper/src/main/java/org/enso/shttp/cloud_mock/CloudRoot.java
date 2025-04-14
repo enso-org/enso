@@ -3,20 +3,22 @@ package org.enso.shttp.cloud_mock;
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.net.URI;
+import java.util.List;
 import org.enso.shttp.HttpMethod;
 import org.enso.shttp.auth.HandlerWithTokenAuth;
+import org.enso.shttp.cloud_mock.EventsService.LogEvent;
 
 public class CloudRoot extends HandlerWithTokenAuth {
   public final String prefix = "/enso-cloud-mock/";
 
   private final ExpiredTokensCounter expiredTokensCounter;
   private final CloudHandler[] handlers;
+  private final EventsService eventsService = new EventsService();
 
   public CloudRoot(ExpiredTokensCounter expiredTokensCounter, CloudMockSetup setup) {
     this.expiredTokensCounter = expiredTokensCounter;
     AssetStore assetStore = new AssetStore();
     UsersService usersService = new UsersService();
-    EventsService eventsService = new EventsService();
     this.handlers =
         new CloudHandler[] {
           new UsersHandler(usersService),
@@ -65,6 +67,10 @@ public class CloudRoot extends HandlerWithTokenAuth {
 
     System.err.println("No handler found for request: " + subPath);
     sendResponse(404, "No handler found for: " + subPath, exchange);
+  }
+
+  public List<LogEvent> getEvents() {
+    return eventsService.getEvents();
   }
 
   private CloudHandler.CloudExchange wrapExchange(String subPath, HttpExchange exchange) {

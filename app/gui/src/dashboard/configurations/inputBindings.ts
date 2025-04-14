@@ -1,6 +1,7 @@
 /** @file Shortcuts for the dashboard application. */
 import * as detect from 'enso-common/src/detect'
 
+import AddCredentialIcon from '#/assets/add_credential.svg'
 import AddDatalinkIcon from '#/assets/add_datalink.svg'
 import AddFolderIcon from '#/assets/add_folder.svg'
 import AddKeyIcon from '#/assets/add_key.svg'
@@ -82,6 +83,11 @@ export const BINDINGS = inputBindings.defineBindings({
     bindings: !detect.isOnMacOS() ? ['Mod+Alt+N'] : ['Mod+Alt+N', 'Mod+Alt+~'],
     icon: AddKeyIcon,
   },
+  newCredential: {
+    name: 'New Credential',
+    bindings: [],
+    icon: AddCredentialIcon,
+  },
   newDatalink: {
     name: 'New Datalink',
     bindings: !detect.isOnMacOS() ? ['Mod+Alt+Shift+N'] : ['Mod+Alt+Shift+N', 'Mod+Alt+Shift+~'],
@@ -122,16 +128,13 @@ export const BINDINGS = inputBindings.defineBindings({
     rebindable: true,
     icon: ArrowRightIcon,
   },
-  aboutThisApp: {
-    name: 'About Enso',
-    bindings: ['Mod+/'],
-    rebindable: true,
-    icon: LogoIcon,
-  },
-  ensoDevtools: {
-    name: 'Enso Devtools',
+  aboutThisApp: { name: 'About Enso', bindings: ['Mod+/'], rebindable: true, icon: LogoIcon },
+  ensoDevtools: { name: 'Enso Devtools', bindings: [], rebindable: false, icon: LogoIcon },
+  copyId: {
+    name: 'Copy Id',
     bindings: [],
     rebindable: false,
-    icon: LogoIcon,
+    icon: CopyAsPathIcon,
+    color: 'rgb(73 159 75)',
   },
 })

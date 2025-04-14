@@ -1,13 +1,13 @@
 <script setup lang="ts">
+import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import type { ComponentBrowserMode, Usage } from '@/components/ComponentBrowser/input'
 import SvgIcon from '@/components/SvgIcon.vue'
-import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
 import { useGraphStore } from '@/stores/graph'
+import { useCodeMirror, useStringSync } from '@/util/codemirror'
 import { DEFAULT_ICON, iconOfNode, suggestionEntryToIcon } from '@/util/getIconName'
 import { qnLastSegment } from '@/util/qualifiedName'
-import { computed, ref, watch, type DeepReadonly } from 'vue'
-import type { ComponentExposed } from 'vue-component-type-helpers'
-import { type Range } from 'ydoc-shared/util/data/range'
+import { computed, useTemplateRef, watch, type ComponentInstance, type DeepReadonly } from 'vue'
+import { Range } from 'ydoc-shared/util/data/range'
 
 const content = defineModel<DeepReadonly<{ text: string; selection: Range | undefined }>>({
   required: true,
@@ -18,27 +18,26 @@ const props = defineProps<{
   nodeColor: string
 }>()
 
-const inputField = ref<ComponentExposed<typeof AutoSizedInput>>()
-
-const fieldContent = ref<{ text: string; selection: Range | undefined }>({
-  text: '',
-  selection: undefined,
-})
-
-watch(content, (newContent) => {
-  fieldContent.value = newContent
-})
-watch(
-  [() => fieldContent.value.text, () => fieldContent.value.selection],
-  ([newText, newSelection]) => {
-    content.value = {
-      text: newText,
-      selection: newSelection,
-    }
-  },
-)
-
 const graphStore = useGraphStore()
+
+const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
+
+const { syncExt, connectSync } = useStringSync()
+const { editorView } = useCodeMirror(editorRoot, {
+  extensions: [syncExt],
+  contentTestId: 'component-editor-content',
+  lineMode: 'single',
+})
+
+const { onUserAction, setText } = connectSync(editorView)
+onUserAction(
+  (text, selection) =>
+    (content.value = {
+      text,
+      selection: Range.unsafeFromBounds(selection.from, selection.to),
+    }),
+)
+watch(content, ({ text, selection }) => setText(text, selection))
 
 const icon = computed(() => {
   if (props.mode.mode === 'componentBrowsing') return 'find'
@@ -61,9 +60,18 @@ const label = computed(() => {
   return undefined
 })
 
+const focus = editorView.focus.bind(editorView)
+
 defineExpose({
-  blur: () => inputField.value?.blur(),
-  focus: () => inputField.value?.focus(),
+  blur: editorView.contentDOM.blur.bind(editorView.contentDOM),
+  focus,
+  /**
+   * Focus the editor asynchronously.
+   *
+   * THe editor cannot be focused until after it is mounted, because it is inserted into the DOM
+   * dynamically. This function focuses the editor when it is ready.
+   */
+  delayedFocus: () => setTimeout(focus),
 })
 
 const rootStyle = computed(() => {
@@ -78,42 +86,26 @@ const rootStyle = computed(() => {
     <div :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }">
       <SvgIcon :name="icon" />
     </div>
-    <span v-if="label" class="selfArgInfo" v-text="label" />
+    <span v-if="label" class="selfArgInfo" data-testid="component-editor-label" v-text="label" />
     <SvgIcon v-if="label" class="selfArgInfoArrow" name="folder_closed" />
-    <AutoSizedInput
-      ref="inputField"
-      v-model="fieldContent.text"
-      v-model:selection="fieldContent.selection"
-      autocomplete="off"
-      class="inputField"
-      :acceptOnEnter="false"
-      @pointerdown.stop
-      @pointerup.stop
-      @click.stop
-    />
+    <CodeMirrorRoot ref="editorRoot" />
   </div>
 </template>
 
 <style scoped>
 .ComponentEditor {
-  --port-padding: 6px;
+  --port-padding: 4px;
   --icon-size: 16px;
   border-radius: 22px;
   background-color: var(--background-color);
-  padding: 0 var(--component-editor-padding);
-  height: 44px;
+  padding: var(--component-editor-padding);
   display: flex;
   flex-direction: row;
   gap: 8px;
   align-items: center;
 }
 
-.inputField {
-  border: none;
-  outline: none;
-  background: none;
-  font: inherit;
-  text-align: left;
+:deep(.cm-editor) {
   flex-grow: 1;
 }
 
@@ -122,7 +114,7 @@ const rootStyle = computed(() => {
   text-align: center;
   border-radius: var(--radius-full);
   padding: var(--port-padding);
-  margin: 0 0 0 calc(0px - var(--port-padding));
+  margin: 0;
   isolation: isolate;
   &.port {
     background-color: var(--color-node-port);

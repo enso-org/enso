@@ -422,6 +422,13 @@ the action.
   missingComponentAction?: MissingComponentAction;
 
   /**
+   * Specifies the cloud project directory.
+   *
+   * Required when running in hybrid mode.
+   */
+  cloudProjectDirectoryPath?: string;
+
+  /**
    * Custom directory with the user projects.
    */
   projectsDirectory?: string;

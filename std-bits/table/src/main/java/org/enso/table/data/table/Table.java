@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.enso.base.Text_Utils;
@@ -37,6 +38,7 @@ import org.graalvm.polyglot.Context;
 public class Table {
 
   private final Column[] columns;
+  private String versionId;
 
   /**
    * Creates a new table
@@ -55,6 +57,7 @@ public class Table {
     assert checkAllColumnsHaveSameSize(columns) : "All columns must have the same row count.";
 
     this.columns = columns;
+    this.versionId = UUID.randomUUID().toString();
   }
 
   private static boolean checkUniqueColumns(Column[] columns) {
@@ -92,6 +95,13 @@ public class Table {
    */
   public Column[] getColumns() {
     return columns;
+  }
+
+  /**
+   * @return the tables version id
+   */
+  public String getVersionId() {
+    return versionId;
   }
 
   /**

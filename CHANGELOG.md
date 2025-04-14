@@ -1,3 +1,13 @@
+# Next Next Release
+
+#### Enso Language & Runtime
+
+- [Upgrading Truffle][12500] (including its
+  [JavaScript](https://www.graalvm.org/javascript/) and
+  [Python](https://www.graalvm.org/python/)) to version `24.2.0`.
+
+[12500]: https://github.com/enso-org/enso/pull/12500
+
 # Next Release
 
 #### Enso IDE
@@ -53,7 +63,12 @@
 - [Output port ‘plus’ button is hidden if there are existing outgoing
   connections][12576]
 - [Navigate up button for file browser and collapsed components][12603]
+- [Resizing visualization in Table.input component resizes the table widget
+  too][12643]
+- [File Browser Widget warns when trying to override an existing file][12644]
 - [Add right-click context menu to the graph editor background][12601]
+- [Editing multiline text literals is now supported][12774]
+- [Fixed appearance of Cloud Browser scrollbars][12831]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -89,7 +104,11 @@
 [12502]: https://github.com/enso-org/enso/pull/12502
 [12576]: https://github.com/enso-org/enso/pull/12576
 [12603]: https://github.com/enso-org/enso/pull/12603
+[12643]: https://github.com/enso-org/enso/pull/12643
+[12644]: https://github.com/enso-org/enso/pull/12644
 [12601]: https://github.com/enso-org/enso/pull/12603
+[12774]: https://github.com/enso-org/enso/pull/12774
+[12831]: https://github.com/enso-org/enso/pull/12831
 
 #### Enso Standard Library
 
@@ -119,6 +138,12 @@
   regex_match in the expression language][12492]
 - [Added `add_group_number` for Postgres and SQLite.][12574]
 - [Added `add_group_number` for Snowflake and SQLServer.][12590]
+- [Added `skip_nothing` and `report_unmatched` arguments to `Vector.zip`][12626]
+- [Changed in-memory `Column.zip` to match `Table.zip`, removing the `function`
+  parameter][12626]
+- [Added Regex_match for Postgres][12663]
+- [Replace `use_bankers` flag with `Rounding_Mode` in all `round`
+  methods][12641]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
@@ -140,6 +165,9 @@
 [12492]: https://github.com/enso-org/enso/pull/12492
 [12574]: https://github.com/enso-org/enso/pull/12574
 [12590]: https://github.com/enso-org/enso/pull/12590
+[12626]: https://github.com/enso-org/enso/pull/12626
+[12663]: https://github.com/enso-org/enso/pull/12663
+[12641]: https://github.com/enso-org/enso/pull/12641
 
 #### Enso Language & Runtime
 
@@ -292,6 +320,8 @@
 - [Added `Table.geo_distance` to calculate the distance between two
   points.][12393]
 - [The reload button clears the Enso Cloud request cache.][12526]
+- [The reload button clears the AuthenticationProvider, EnsoSecretReader and
+  AuditLog caches.][12541]
 
 [11235]: https://github.com/enso-org/enso/pull/11235
 [11255]: https://github.com/enso-org/enso/pull/11255
@@ -306,6 +336,7 @@
 [12017]: https://github.com/enso-org/enso/pull/12017
 [12393]: https://github.com/enso-org/enso/pull/12393
 [12526]: https://github.com/enso-org/enso/pull/12526
+[12541]: https://github.com/enso-org/enso/pull/12526
 
 #### Enso Language & Runtime
 

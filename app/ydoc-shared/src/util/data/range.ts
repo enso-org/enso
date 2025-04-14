@@ -52,8 +52,8 @@ export class Range {
    * If `this` and `other` are both of exact type `Range`, this is a complete equality comparison; if either is a
    * derived type, this performs a comparison only with regard to the `Range` data.
    */
-  rangeEquals(other: Range) {
-    return this.from === other.from && this.to === other.to
+  rangeEquals(other: Range | undefined): boolean {
+    return !!other && this.from === other.from && this.to === other.to
   }
 
   /**

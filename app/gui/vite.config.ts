@@ -25,6 +25,7 @@ if (isDevMode) {
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  root: fileURLToPath(new URL('.', import.meta.url)),
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
   plugins: [
     wasm(),
@@ -76,6 +77,9 @@ export default defineConfig({
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Resource-Policy': 'same-origin',
+    },
+    warmup: {
+      clientFiles: ['./node_modules/@tanstack/**/*.js'],
     },
     ...(process.env.GUI_HOSTNAME ? { host: process.env.GUI_HOSTNAME } : {}),
   },

@@ -1,13 +1,16 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value, as_credential_reference
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
 
 import Standard.Database.Column_Description.Column_Description
 import Standard.Database.Connection.Connection.Connection
+import Standard.Database.Connection.Credentials.Credentials
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Internal.Common.Connections_Helpers
 import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
@@ -19,7 +22,11 @@ from Standard.Database.Connection.Connection import make_database_selector, make
 from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 
+import project.Connection.Key_Pair_Credentials.Key_Pair_Credentials
 import project.Internal.Snowflake_Dialect
+
+polyglot java import org.enso.base.enso_cloud.InterpretAsPrivateKey
+polyglot java import org.enso.snowflake.SnowflakeCloudCredentials
 
 type Snowflake_Connection
     ## PRIVATE
@@ -29,11 +36,23 @@ type Snowflake_Connection
        Arguments:
        - url: The URL to connect to.
        - properties: A vector of properties for the connection.
+       - credentials: Credentials for the connection
        - make_new: A function that returns a new connection.
        - data_link_setup: the setup for saving the connection as a data link.
-    create : Text -> Vector -> (Text -> Text -> Snowflake_Connection) -> Data_Link_Setup -> Snowflake_Connection
-    create url properties make_new data_link_setup =
-        jdbc_connection = JDBC_Connection.create url properties
+    private create url:Text properties:Vector credentials:Credentials|Key_Pair_Credentials|Enso_Secret make_new:(Text -> Text -> Snowflake_Connection) data_link_setup:Data_Link_Setup -> Snowflake_Connection =
+        jdbc_connection = case credentials of
+            # Special handling for OAuth credentials stored in the cloud
+            cloud_credentials : Enso_Secret ->
+                base_properties = JDBC_Connection.properties_as_java_props properties
+                raw_java_connection = SnowflakeCloudCredentials.makeConnection url base_properties (as_credential_reference cloud_credentials)
+                JDBC_Connection.from_java raw_java_connection
+            _ ->
+                auth_properties = auth_jdbc_properties credentials
+                clashing = (Hashset.from_vector (properties.map .first)) . intersection (Hashset.from_vector (auth_properties.map .first))
+                if clashing.not_empty then
+                    Panic.throw (Illegal_Argument.Error "The properties cannot contain "+(clashing.to_vector .join ", ")+" as they are already provided in the credentials.")
+                JDBC_Connection.create url (properties + auth_properties)
+
         ## As long as names are quoted, the Snowflake SQL dialect is case sensitive.
            Our generator always quotes identifiers, so we can rely on the case sensitivity.
            This is the same as in Postgres.
@@ -47,7 +66,7 @@ type Snowflake_Connection
        Arguments:
        - connection: the underlying connection.
        - make_new: a function that returns a new connection.
-    Value connection make_new
+    private Value connection make_new
 
     ## ICON close
        Closes the connection releasing the underlying database resources
@@ -330,3 +349,22 @@ type Snowflake_Connection
     to_js_object self =
         additional_visualization_fields = Connections_Helpers.get_data_viz_pairs
         JS_Object.from_pairs <| [["type", "SQLite_Connection"], ["links", self.connection.tables.at "Name" . to_vector]] + additional_visualization_fields
+
+private auth_jdbc_properties credentials = case credentials of
+    Credentials.Username_And_Password username password ->
+        [Pair.new 'user' username, Pair.new 'password' password]
+    Key_Pair_Credentials.Key_Pair username private_key passphrase ->
+        key_part = case private_key of
+            local_file : File ->
+                passphrase_part = if passphrase != Nothing then [Pair.new 'private_key_file_pwd' passphrase] else []
+                [Pair.new 'private_key_file' local_file.absolute.path] + passphrase_part
+            _ : Enso_File ->
+                Error.throw (Illegal_Argument.Error "Currently only local files can be used as private keys. In Cloud, consider using a Secret instead of a file.")
+            secret : Enso_Secret ->
+                if passphrase != Nothing then
+                    Error.throw (Illegal_Argument.Error "Passphrase is not applicable when using a secret as a private key.")
+                secret_as_private_key = InterpretAsPrivateKey.new (as_hideable_value secret)
+                [Pair.new 'privateKey' secret_as_private_key]
+        [Pair.new 'user' username] + key_part
+    _ : Enso_Secret ->
+        Panic.throw (Illegal_Argument.Error "Cannot extract `auth_jdbc_properties` from a Cloud Credential. This is a bug in Snowflake library.")

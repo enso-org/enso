@@ -1,8 +1,11 @@
 /** @file Hooks to do batched backend operations. */
 import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
+import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
+import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { getMessageOrToString } from '#/utilities/error'
 import { useMutationState, type Mutation, type QueryClient } from '@tanstack/react-query'
 import {
+  DuplicateAssetError,
   FilterBy,
   type AnyAsset,
   type AssetId,
@@ -19,9 +22,11 @@ export function deleteAssetsMutationOptions(backend: Backend) {
       const results = await Promise.allSettled(
         ids.map((id) => backend.deleteAsset(id, { force }, '(unknown)')),
       )
+
       const errors = results.flatMap((result): unknown =>
         result.status === 'rejected' ? [result.reason] : [],
       )
+
       if (errors.length !== 0) {
         throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
           errors,
@@ -75,9 +80,15 @@ export function useDeleteAssetsMutationState<Result>(
 export function restoreAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
     mutationKey: [backend.type, 'restoreAssets'],
-    mutationFn: async (ids: readonly AssetId[]) => {
+    mutationFn: async ({
+      ids,
+      parentId = null,
+    }: {
+      ids: readonly AssetId[]
+      parentId: DirectoryId | null
+    }) => {
       const results = await Promise.allSettled(
-        ids.map((id) => backend.undoDeleteAsset(id, '(unknown)')),
+        ids.map((id) => backend.undoDeleteAsset(id, parentId)),
       )
       const errors = results.flatMap((result): unknown =>
         result.status === 'rejected' ? [result.reason] : [],
@@ -100,7 +111,14 @@ export function restoreAssetsMutationOptions(backend: Backend) {
 }
 
 /** The type of a "restore assets" mutation. */
-type RestoreAssetsMutation = Mutation<null, Error, readonly AssetId[]>
+type RestoreAssetsMutation = Mutation<
+  null,
+  Error,
+  {
+    readonly ids: readonly AssetId[]
+    readonly parentId: DirectoryId | null
+  }
+>
 
 /** Return matching in-flight "restore assets" mutations. */
 export function useRestoreAssetsMutationState<Result>(
@@ -129,12 +147,17 @@ export function copyAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
     mutationKey: [backend.type, 'copyAssets'],
     mutationFn: async ([ids, parentId]: [ids: readonly AssetId[], parentId: DirectoryId]) => {
-      const results = await Promise.allSettled(
-        ids.map((id) => backend.copyAsset(id, parentId, '(unknown)', '(unknown)')),
-      )
+      /**
+       * Copy an asset and return a promise that resolves to the asset or an error.
+       */
+      const copyAsset = async (id: AssetId) => backend.copyAsset(id, parentId)
+
+      const results = await Promise.allSettled(ids.map((id) => copyAsset(id)))
+
       const errors = results.flatMap((result): unknown =>
         result.status === 'rejected' ? [result.reason] : [],
       )
+
       if (errors.length !== 0) {
         throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
           errors,
@@ -142,6 +165,7 @@ export function copyAssetsMutationOptions(backend: Backend) {
           total: ids.length,
         })
       }
+
       return results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
     },
     meta: {
@@ -188,13 +212,54 @@ export function moveAssetsMutationOptions(backend: Backend) {
     mutationFn: async ([ids, parentId]: [ids: readonly AssetId[], parentId: DirectoryId]) => {
       const results = await Promise.allSettled(
         ids.map((id) =>
-          backend.updateAsset(id, { description: null, parentDirectoryId: parentId }, '(unknown)'),
+          backend
+            .updateAsset(
+              id,
+              { description: null, parentDirectoryId: parentId, title: null },
+              '(unknown)',
+            )
+            .catch((error) => {
+              if (error instanceof DuplicateAssetError) {
+                return { id, error }
+              }
+              throw error
+            }),
         ),
       )
+
+      const duplicateErrors = results
+        .filter((result) => result.status === 'fulfilled')
+        .map((result) =>
+          typeof result.value === 'object' && 'error' in result.value ? result.value : null,
+        )
+        .filter((error) => error != null)
 
       const errors = results.flatMap((result): unknown =>
         result.status === 'rejected' ? [result.reason] : [],
       )
+
+      if (duplicateErrors.length !== 0) {
+        const resolutions = await resolveDuplications({
+          targetId: parentId,
+          conflictingIds: duplicateErrors.map((error) => error.id),
+        })
+
+        const renames = resolutions.filter((resolution) => resolution.conclusion === 'rename')
+
+        await Promise.allSettled(
+          renames.map((resolution) =>
+            backend.updateAsset(
+              resolution.assetId,
+              {
+                parentDirectoryId: parentId,
+                description: null,
+                title: resolution.newName,
+              },
+              resolution.newName,
+            ),
+          ),
+        )
+      }
 
       if (errors.length !== 0) {
         throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
@@ -246,11 +311,15 @@ export function useMoveAssetsMutationState<Result>(
 }
 
 /** Get a list of all items in the trash. */
-export async function getAllTrashedItems(queryClient: QueryClient, backend: Backend) {
+export async function getAllTrashedItems(
+  queryClient: QueryClient,
+  backend: Backend,
+  category: TrashCategory,
+) {
   return await queryClient.ensureQueryData(
     backendQueryOptions(backend, 'listDirectory', [
       {
-        parentId: null,
+        parentId: category.homeDirectoryId,
         labels: null,
         filterBy: FilterBy.trashed,
         recentProjects: false,

@@ -42,9 +42,9 @@ function useLinkMarker(matchLink: (element: HTMLElement) => string | undefined, 
     }
   }
   function getNewMarker(view: EditorView) {
-    const focused = view.state.facet(contentFocused)
+    const focused = view.state.field(contentFocused)
     if (!focused) return
-    const vueHost = view.state.facet(getVueHost)
+    const vueHost = view.state.field(getVueHost)
     if (!vueHost) return
     const link = findCursorLink(view, matchLink)
     if (!link) return

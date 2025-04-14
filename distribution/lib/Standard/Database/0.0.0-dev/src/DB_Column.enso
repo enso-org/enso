@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Read.Many_Files_List.Many_Files_List
 import Standard.Base.Errors.Common.Floating_Point_Equality
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Rounding_Helpers
@@ -852,7 +853,7 @@ type DB_Column
        `Value_Type.Integer` columns.
 
        By default, rounding uses "symmetric round-half-up", also known as
-       "round towards 0." If use_bankers=True, then it uses "round-half-even",
+       "round towards 0." If rounding_mode=Rounding_Mode.Bankers, then it uses "round-half-even",
        also known as "banker's rounding".
 
        The return type depends on the backend.
@@ -861,7 +862,8 @@ type DB_Column
        - decimal_places: The number of decimal places to round to. Can be
          negative, which results in rounding to positive integer powers of 10.
          Must be between -15 and 15 (inclusive).
-       - use_bankers: Rounds mid-point to nearest even number.
+       - rounding_mode: specifies how to break ties for the least significant
+         digit.
 
        ! NaN/Inf
          If a `NaN` or `Inf` value is passed to `round`, it immediately returns
@@ -883,14 +885,14 @@ type DB_Column
              import Standard.Examples
 
              example_round = Examples.decimal_column.round 2
-    round self decimal_places:Integer=0 use_bankers:Boolean=False -> DB_Column ! Illegal_Argument | Invalid_Value_Type =
+    round self decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) -> DB_Column ! Illegal_Argument | Invalid_Value_Type =
         Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
-            if self.should_use_builtin_round decimal_places use_bankers then self.round_builtin decimal_places use_bankers else
+            if self.should_use_builtin_round decimal_places rounding_mode then self.round_builtin decimal_places rounding_mode else
                 self.short_circuit_special_floating_point <|
                     case self.value_type of
-                        Value_Type.Integer _ -> self.round_integer decimal_places use_bankers
-                        Value_Type.Float _ -> self.round_float decimal_places use_bankers
-                        Value_Type.Decimal _ _ -> self.round_decimal decimal_places use_bankers
+                        Value_Type.Integer _ -> self.round_integer decimal_places rounding_mode
+                        Value_Type.Float _ -> self.round_float decimal_places rounding_mode
+                        Value_Type.Decimal _ _ -> self.round_decimal decimal_places rounding_mode
                         _ ->
                             expected = "Decimal, Float, or Integer"
                             Error.throw (Invalid_Value_Type.Column expected self.value_type self.name)
@@ -902,9 +904,9 @@ type DB_Column
        - We are not passing a floating point value to round with a non-zero decimal_places param (prohibited by postgres)
          (Note that Postgres is fine with a `numeric` value here, just not `double precision`.)
     should_use_builtin_round : Integer -> Boolean -> Boolean
-    should_use_builtin_round self decimal_places use_bankers =
+    should_use_builtin_round self decimal_places rounding_mode =
         # Don't use for banker's rounding (unless the dialect has a builtin for it)
-        bankers_ok = self.connection.dialect.flagged ..Use_Builtin_Bankers || use_bankers.not
+        bankers_ok = self.connection.dialect.flagged ..Use_Builtin_Bankers || rounding_mode != Rounding_Mode.Bankers
         # Don't use for negative decimal places, if the backend doesn't support it
         negative_dp_ok = decimal_places >= 0 || self.connection.dialect.flagged ..Supports_Negative_Decimal_Places
         # Don't use for floating-point inputs if decimal_places != 0, for Postgres
@@ -914,12 +916,12 @@ type DB_Column
     ## PRIVATE
        Round a float-like column using the backend's builtin ROUND function.
     round_builtin : Integer -> Boolean -> DB_Column
-    round_builtin self decimal_places use_bankers =
+    round_builtin self decimal_places rounding_mode =
         new_name = self.naming_helper.function_name "round" [self]
-        case use_bankers of
-            True ->
+        case rounding_mode of
+            Rounding_Mode.Bankers ->
                     self.make_binary_op "ROUND_BANKERS" (SQL_Expression.Literal decimal_places.to_text) new_name
-            False ->
+            Rounding_Mode.Half_Up ->
                 case decimal_places == 0 of
                     True ->
                         self.make_unary_op "ROUND" new_name
@@ -929,7 +931,7 @@ type DB_Column
     ## PRIVATE
        Round a float-like column.
     round_float : Integer -> Boolean -> DB_Column
-    round_float self decimal_places use_bankers =
+    round_float self decimal_places rounding_mode =
         new_name = self.naming_helper.function_name "round" [self]
         scale = 10 ^ decimal_places
         scaled = self * scale
@@ -941,7 +943,7 @@ type DB_Column
                 round_midpoint.let "round_midpoint" round_midpoint->
                     ((scaled.truncate % 2) == 0).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
                         even_is_up = (self >= 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
-                        half_goes_up = if use_bankers then even_is_up else self >= 0
+                        half_goes_up = if rounding_mode == Rounding_Mode.Bankers then even_is_up else self >= 0
                         do_round_up = half_goes_up.let "half_goes_up" x-> x.iif (self >= round_midpoint) (self > round_midpoint)
                         result = do_round_up.let "do_round_up" x-> x.iif ((round_base + 1.0) / scale) (round_base / scale)
                         result.rename new_name
@@ -949,7 +951,7 @@ type DB_Column
     ## PRIVATE
        Round a float-like column.
     round_decimal : Integer -> Boolean -> DB_Column
-    round_decimal self decimal_places use_bankers =
+    round_decimal self decimal_places rounding_mode =
         # Construct a constant Decimal column.
         k x = self.const x . cast Value_Type.Decimal
         new_name = self.naming_helper.function_name "round" [self]
@@ -962,7 +964,7 @@ type DB_Column
                 round_midpoint.let "round_midpoint" round_midpoint->
                     ((scaled.truncate.decimal_mod (k 2)) != k 0).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
                         even_is_up = (self >= k 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
-                        half_goes_up = if use_bankers then even_is_up else self >= k 0
+                        half_goes_up = if rounding_mode == Rounding_Mode.Bankers then even_is_up else self >= k 0
                         do_round_up = half_goes_up.let "half_goes_up" x-> x.iif (self >= round_midpoint) (self > round_midpoint)
                         result = do_round_up.let "do_round_up" x-> x.iif ((round_base + k 1).decimal_div scale) (round_base.decimal_div scale)
                         result.rename new_name
@@ -970,7 +972,7 @@ type DB_Column
     ## PRIVATE
        Round an integer column.
     round_integer : Integer -> Boolean -> DB_Column
-    round_integer self decimal_places use_bankers =
+    round_integer self decimal_places rounding_mode =
         new_name = self.naming_helper.function_name "round" [self]
         scale = 10 ^ -decimal_places
         halfway = scale / 2
@@ -981,11 +983,11 @@ type DB_Column
                 result_unnudged = scaled_down * scale
                 result_unnudged.let "result_unnudged" result_unnudged->
                     if_non_neg =
-                        half_goes_up = if use_bankers then (scaled_down % 2) != 0 else self >= 0
+                        half_goes_up = if rounding_mode == Rounding_Mode.Bankers then (scaled_down % 2) != 0 else self >= 0
                         round_up = half_goes_up.let "half_goes_up" x-> x.iif (remainder >= halfway) (remainder > halfway)
                         round_up.let "round_up" x-> x.iif (result_unnudged + scale) result_unnudged
                     if_neg =
-                        half_goes_up = if use_bankers then (scaled_down % 2) == 0 else self >= 0
+                        half_goes_up = if rounding_mode == Rounding_Mode.Bankers then (scaled_down % 2) == 0 else self >= 0
                         round_up = half_goes_up.let "half_goes_up" x-> x.iif (remainder < -halfway) (remainder <= -halfway)
                         round_up.let "round_up" x-> x.iif (result_unnudged - scale) result_unnudged
 
@@ -1505,9 +1507,16 @@ type DB_Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.regex_match (regex "A.*M")
-    regex_match self (pattern : Column | Text | Any) -> Column =
-        _ = [pattern]
-        Error.throw (Unsupported_Database_Operation.Error ("regex_match"))
+    regex_match self (pattern : DB_Column | Text | Regex) -> DB_Column =
+        string_pattern = case pattern of 
+            Regex.Value _ _ -> pattern.pattern 
+            _ -> pattern
+        Value_Type.expect_text self <| Value_Type.expect_text string_pattern <|
+            ## regex_match is a match if it matches the entire string. So we wrap in ^ and $.
+            pattern_with_start_end = "^" + string_pattern + "$"
+            new_name = self.naming_helper.binary_operation_name "regex_match" self pattern
+            if self.connection.dialect.is_operation_supported "REGEX_MATCH" then self.make_binary_op "REGEX_MATCH" pattern_with_start_end new_name else
+                Error.throw (Unsupported_Database_Operation.Error ("regex_match"))
 
 
     ## GROUP Standard.Base.Text
@@ -2008,43 +2017,54 @@ type DB_Column
         _ = [function, skip_nothing, expected_value_type]
         Error.throw <| Unsupported_Database_Operation.Error "map"
 
-    ## ALIAS combine, join by row position, merge
+    ## ALIAS join by row position
+       GROUP Standard.Base.Calculations
        ICON join2-1
-
-       Applies `function` to consecutive pairs of elements of `self` and `that`
-       and returns a column of results.
+       Joins this column with another column (or table) by zipping rows from
+       both together - the first row of the left column is correlated with the
+       first one of the right one etc. `zip` always returns a `Table`.
 
        Arguments:
-       - that: The column to zip with `self`.
-       - function: A binary function that is applied to corresponding pairs of
-         elements of `self` and `that` to produce a value.
-       - skip_nothing: controls whether missing values should be passed to the
-         `function`. The default value of `True` will skip the rows for which
-         the value in either column is missing and automatically append
-         `Nothing` to the result table. If set to `False`, every pair of values
-         is passed to `function`.
-       - expected_value_type: The expected value type of the resulting column.
-         If `Auto`, the value type will be inferred from the values returned by
-         `function`.
+       - right: The column or table to join with.
+       - keep_unmatched: If set to `True`, the result will include as many rows
+         as the larger of the two columns - the last rows of the larger column
+         will have nulls for columns of the smaller one. If set to `False`, the
+         result will have as many rows as the smaller of the two columns - the
+         additional rows of the larger column will be discarded. The default
+         value is `Report_Unmatched` which means that the user expects that two
+         columns should have the same amount of rows; if they do not, the
+         behaviour is the same as if it was set to `True` - i.e. the unmatched
+         rows are kept with `Nothing` values for the other column, but a
+         `Row_Count_Mismatch` problem is also reported.
+       - right_prefix: The prefix added to right column column names in case of
+         name conflict. See "Column Renaming" below for more information.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
 
-       ! Error Conditions
+         - If the columns have different number of rows and `keep_unmatched` is
+           set to `Report_Unmatched`, the join will report `Row_Count_Mismatch`.
 
-         - If any of the values returned by `function` do not fit the expected
-           value type, an `Invalid_Value_Type` error is raised.
-         - If the `function` raises a dataflow error on any row, the first such
-           error is propagated.
-         - If an invocation of the `function` returns a value with warnings,
-           these warnings are attached to the overall result.
+       ? Column Renaming
 
-       > Example
-         Zip two columns together as pairs.
+         If columns from the two columns have colliding names, a prefix (by
+         default `Right `) is added to the name of the column from the right
+         column. The left column remains unchanged. It is possible that the new
+         name will be in use, in this case it will be resolved using the normal
+         renaming strategy - adding subsequent ` 1`, ` 2` etc.
 
-             import Standard.Examples
+       ? Row Ordering For In-Memory Columns
 
-             example_zip =
-                Examples.integer_column.zip Examples.text_column_1 [_, _]
-    zip self that:DB_Column (function : Any -> Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> DB_Column ! Invalid_Value_Type =
-        _ = [that, function, skip_nothing, expected_value_type]
+         This operation requires a well-defined order of rows in the input
+         columns. In-memory columns rely on the ordering stemming directly from
+         their layout in memory. Database columns may not impose a deterministic
+         ordering. The existing ordering can be overridden by specifying
+         a different ordering using `Column.sort`. If no primary key was
+         defined nor any ordering was specified explicitly by the user, the
+         order of columns is undefined and the operation will fail, reporting a
+         `Undefined_Column_Order` problem and returning an empty table.
+    @keep_unmatched Widget_Helpers.make_keep_unmatched_selector
+    zip self (right : Column | Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table =
+        _ = [right, keep_unmatched, right_prefix, on_problems]
         Error.throw <| Unsupported_Database_Operation.Error "zip"
 
     ## PRIVATE

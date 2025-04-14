@@ -381,6 +381,7 @@ public final class Module extends EnsoObject {
    * @param sourceLength length at the time compilation was performed
    * @return
    */
+  @TruffleBoundary
   public final SourceSection createSection(int sourceStartIndex, int sourceLength) {
     var src = sources.source();
     if (src == null) {

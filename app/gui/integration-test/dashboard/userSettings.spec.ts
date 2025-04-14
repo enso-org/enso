@@ -33,7 +33,7 @@ test('change password form', ({ page }) =>
     .fillCurrentPassword(VALID_PASSWORD)
     .fillNewPassword(INVALID_PASSWORD)
     .fillConfirmNewPassword(INVALID_PASSWORD)
-    .save()
+    .save(false)
     .step('Invalid new password should fail', async (page) => {
       await expect(page.getByTestId('error')).toHaveText(TEXT.passwordValidationError)
     })
@@ -41,7 +41,7 @@ test('change password form', ({ page }) =>
     .fillCurrentPassword(VALID_PASSWORD)
     .fillNewPassword(VALID_PASSWORD)
     .fillConfirmNewPassword(VALID_PASSWORD + 'a')
-    .save()
+    .save(false)
     .step('Invalid new password confirmation should fail', async (page) => {
       await expect(page.getByTestId('error')).toHaveText(TEXT.passwordMismatchError)
     })

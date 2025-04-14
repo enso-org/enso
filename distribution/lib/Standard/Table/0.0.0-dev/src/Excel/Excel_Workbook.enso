@@ -248,7 +248,7 @@ type Excel_Workbook
                         ExcelReader.readRangeByName java_workbook (names.at (query - 1)) java_headers skip_rows java_limit java_problem_aggregator
         result = limit.attach_warning (from_java_table java_table)
         result.if_not_error <|
-            Telemetry.log "Excel_Workbook.read" "Read sheet: output={}, row_count={}, column_count={}, xls_format={}" ["Excel_Format", "Table", result.row_count, result.column_count, self.xls_format]
+            Telemetry.log "Excel_Workbook.read" "Read sheet: format={}, output={}, row_count={}, column_count={}, xls_format={}" ["Excel_Format", "Table", result.row_count, result.column_count, self.xls_format]
             result
 
     ## PRIVATE

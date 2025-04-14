@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Vector.Report_Unmatched
 import project.Data.Array.Array
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Index_Sub_Range.Index_Sub_Range
@@ -1011,11 +1012,27 @@ type Vector a
        - that: The vector to zip with `self`.
        - function: The function used to combine pairwise elements of `self` and
          `that`.
+       - skip_nothing: If `True`, `Nothing` values will be skipped, and a
+         `Nothing` will be used at that position in the output. Otherwise,
+         `Nothing` values will be passed to the `function`. Defaults to `False`.
+       - keep_unmatched: If set to `True`, the result will include as many elements
+         as the longer of the two vectors - the last elements of the longer
+         vector will have `Nothing`s for elements in the smaller one. If set to
+         `False`, the result will have as many elements as the smaller of the
+         two vectors - the additional elements of the larger vector will be
+         discarded. The default value is `Report_Unmatched` which means that the
+         user expects that two vectors should have the same amount of elements;
+         if they do not, the behaviour is the same as if it was set to `True` -
+         i.e. the unmatched elements are kept with `Nothing` values for the
+         other vector, but a `Row_Count_Mismatch` problem is also reported.
        - on_problems: Specifies how to handle any problems that arise in
          `function`.
 
-       The result of this function is a `Vector` of length being the shorter of
-       `self` and `that`, containing results of calling `function`.
+       The result of this function is a vector containing results of calling
+       `function`. For `keep_unmatched=True`, the length of the resulting
+       vector is the maximum of the lengths of the input vectors.  For
+       `keep_unmatched=False`, the length of the resulting vector is the
+       minimum of the lengths of the input vectors.
 
        ! Error Conditions
 
@@ -1048,10 +1065,8 @@ type Vector a
          of both elements.
 
              [1, 2, 3].zip [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
-    zip : Vector Any -> (Any -> Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
-    zip self that:Vector function=[_,_] on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
-        len = self.length.min that.length
-        Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i)) on_problems
+    zip self that:Vector (function : Any -> Any -> Any = [_,_]) (skip_nothing : Boolean = False) (keep_unmatched : Boolean | Report_Unmatched = False) on_problems:(Problem_Behavior | No_Wrap)=..Report_Error -> Vector =
+        Array_Like_Helpers.zip self that function skip_nothing keep_unmatched on_problems
 
     ## GROUP Calculations
        ICON union
@@ -1561,6 +1576,10 @@ type Map_Error
 type No_Wrap
     ## PRIVATE
     Value
+
+## A value that marks the mode that allows length mismatches but reports them as
+   a problem.
+type Report_Unmatched
 
 ## PRIVATE
 Wrapped_Error.from (that : Map_Error) = Wrapped_Error.Value that that.inner_error

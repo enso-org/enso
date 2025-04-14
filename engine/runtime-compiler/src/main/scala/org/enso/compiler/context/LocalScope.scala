@@ -1,11 +1,11 @@
 package org.enso.compiler.context
 
+import org.enso.scala.wrapper.ScalaConversions
 import org.enso.compiler.pass.analyse.FrameAnalysisMeta
 import org.enso.compiler.pass.analyse.FramePointer
 import org.enso.compiler.pass.analyse.FrameVariableNames
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.compiler.pass.analyse.alias.graph.{
-  GraphOccurrence,
   GraphBuilder,
   Graph => AliasGraph
 }
@@ -58,8 +58,8 @@ class LocalScope(
     log: BiFunction[String, Array[Object], Void]
   ): java.util.List[String] = {
     def symbols(): java.util.List[String] = {
-      val r = scope.allDefinitions.map(_.symbol)
-      r.asJava
+      val r = scope.allDefinitions.stream.map(_.symbol).toList
+      r
     }
     val meta = if (symbolsProvider == null) null else symbolsProvider()
     if (meta.isInstanceOf[FrameVariableNames]) {
@@ -94,7 +94,7 @@ class LocalScope(
     * @return a child of this scope
     */
   def createChild(): LocalScope = createChild(() => {
-    GraphBuilder.create(null, scope).addChild().toScope()
+    GraphBuilder.create(aliasingGraph(), scope).addChild().toScope()
   })
 
   /** Creates a child using a known aliasing scope.
@@ -141,9 +141,13 @@ class LocalScope(
     *         internal slots, that are prepended to every frame.
     */
   private def gatherLocalFrameSlotIdxs(): Map[AliasGraph.Id, Int] = {
-    scope.allDefinitions.zipWithIndex.map { case (definition, i) =>
-      definition.id -> (i + LocalScope.internalSlotsSize)
-    }.toMap
+    ScalaConversions
+      .asScala(scope.allDefinitions)
+      .zipWithIndex
+      .map { case (definition, i) =>
+        definition.id -> (i + LocalScope.internalSlotsSize)
+      }
+      .toMap
   }
 
   /** Flatten bindings from a given set of levels, accounting for shadowing.
@@ -158,13 +162,11 @@ class LocalScope(
       .flatMap(scope => Some(scope.flattenBindingsWithLevel(level + 1)))
       .getOrElse(Map())
 
-    scope.occurrences.foreach {
-      case (id, x: GraphOccurrence.Def) =>
-        parentResult += x.symbol -> new FramePointer(
-          level,
-          allFrameSlotIdxs(id)
-        )
-      case _ =>
+    scope.forEachOccurenceDefinition { x =>
+      parentResult += x.symbol -> new FramePointer(
+        level,
+        allFrameSlotIdxs(x.id)
+      )
     }
     parentResult
   }
@@ -178,10 +180,9 @@ object LocalScope {
   /** Empty and immutable singleton scope.
     */
   val empty: LocalScope = {
-    val graph = new AliasGraph
-    graph.freeze()
+    val graph              = GraphBuilder.create().freeze().toGraph
     val info               = DataflowAnalysis.DependencyInfo()
-    val emptyVariableNames = FrameVariableNames.create(List())
+    val emptyVariableNames = FrameVariableNames.create(java.util.List.of())
     new LocalScope(
       None,
       () => graph,
@@ -196,7 +197,7 @@ object LocalScope {
     * @return a new empty scope ready for additional modifications.
     */
   def createEmpty: LocalScope = {
-    val graph = new AliasGraph
+    val graph = GraphBuilder.create().toGraph
     val info  = DataflowAnalysis.DependencyInfo()
     new LocalScope(
       None,

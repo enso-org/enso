@@ -385,6 +385,9 @@ impl Processor {
                             config.add_standard_library_test_selection(
                                 StandardLibraryTestsSelection::Selected(vec![
                                     "Base_Tests".to_string(),
+                                    // Base Internal tests contain some cloud tests that need
+                                    // access to cloud internals
+                                    "Base_Internal_Tests".to_string(),
                                     // Table tests check integration of e.g. Postgres datalinks
                                     "Table_Tests".to_string(),
                                     // AWS tests check copying between Cloud and S3
