@@ -35,6 +35,20 @@ add_specs suite_builder =
             layout.should_fail_with Illegal_Argument
             layout.catch.message . should_contain "must start at column"
 
+        group_builder.specify "Should be able to specify only column ends" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Width "a" 4]
+                + [Fixed_Width_Column_Description.Width "b" 1]
+                + [Fixed_Width_Column_Description.Width "c" 3]
+                + [Fixed_Width_Column_Description.Width "d" 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            expected = []
+                + [Fixed_Width_Layout_Entry.Value "a" 0 4]
+                + [Fixed_Width_Layout_Entry.Value "b" 4 1]
+                + [Fixed_Width_Layout_Entry.Value "c" 5 3]
+                + [Fixed_Width_Layout_Entry.Value "d" 8 3]
+            layout . should_equal (Fixed_Width_Layout.Value expected)
+
         group_builder.specify "Should be able to read a fixed-width file with an explicit format" <|
             descs = []
                 + [Fixed_Width_Column_Description.Start_And_Width Nothing 0 4]
@@ -56,11 +70,38 @@ add_specs suite_builder =
             t.at "Column 7" . to Vector . should_equal [98765, 87654]
             t.at "Column 8" . to Vector . should_equal ["fgh", "nop"]
 
+        group_builder.specify "Should be able to read a fixed-width file with sparse columns" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 0 4]
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 8 3]
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 12 1]
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 18 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = data0.read (Fixed_Width_Format.Fixed_Width layout)
+            t.at "Column 1" . to Vector . should_equal [1234, 2345]
+            t.at "Column 2" . to Vector . should_equal ["bcd", "jkl"]
+            t.at "Column 3" . to Vector . should_equal ["e", "m"]
+            t.at "Column 4" . to Vector . should_equal ["fgh", "nop"]
+
+        group_builder.specify "Should not allow a layout definition with no columns" <|
+            err = Fixed_Width_Layout.from_descriptions []
+            err.should_fail_with Illegal_Argument
+            err.catch.message . should_contain "must have at least one column"
+
+        group_builder.specify "Should not allow illegal start / width values" <|
+            err1 = Fixed_Width_Layout.from_descriptions [Fixed_Width_Column_Description.Start_And_Width "a" 0 0]
+            err1.should_fail_with Illegal_Argument
+            err1.catch.message . should_contain "must have a width of 1 or more"
+
+            err2 = Fixed_Width_Layout.from_descriptions [Fixed_Width_Column_Description.Start_And_Width "a" -2 4]
+            err2.should_fail_with Illegal_Argument
+            err2.catch.message . should_contain "column start cannot be negative"
+
+            err3 = Fixed_Width_Layout.from_descriptions [Fixed_Width_Column_Description.Width "a" 0]
+            err3.should_fail_with Illegal_Argument
+            err3.catch.message . should_contain "must have a width of 1 or more"
+
         ##
-            group_builder.specify "Should not allow a layout definition with no columns" <|
-            group_builder.specify "Should not allow illegal start / width values" <|
-                0 width
-                negative either
             group_builder.specify "Should report short lines" <|
             group_builder.specify "Should keep short lines with Invalid_Rows.Keep_Invalid_Rows" <|
             group_builder.specify "Should drop short lines with Invalid_Rows.Drop_Invalid_Rows" <|
@@ -78,8 +119,6 @@ add_specs suite_builder =
             row_limit
             value_formatter
             line ending style
-            group_builder.specify "Should be able to read a fixed-width file with sparse columns" <|
-            group_builder.specify "Should be able to specify only column ends" <|
 
 main filter=Nothing =
     suite = Test.build suite_builder->

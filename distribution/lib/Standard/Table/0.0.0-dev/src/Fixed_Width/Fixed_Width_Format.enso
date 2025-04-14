@@ -50,12 +50,19 @@ type Fixed_Width_Layout
     Value (entries : Vector Fixed_Width_Layout_Entry)
 
     from_descriptions (descs : Vector Fixed_Width_Column_Description) -> Fixed_Width_Layout =
+        if descs.is_empty then
+            Error.throw (Illegal_Argument.Error "A fixed-width layout must have at least one column.")
+
         starts = Vector.build builder->
             go i current =
                 if i >= descs.length then Nothing else
                     desc = descs.at i
+                    if desc.width <= 0 then
+                        Error.throw (Illegal_Argument.Error "A fixed-width layout column must have a width of 1 or more.")
                     start = case desc of
                         Fixed_Width_Column_Description.Start_And_Width _ start _ ->
+                            if desc.start < 0 then
+                                Error.throw (Illegal_Argument.Error "A fixed-width layout column start cannot be negative.")
                             if start < current then Error.throw (Illegal_Argument.Error "Entry "+desc.to_text+" must start at column "+current.to_text+" or later") else
                                 start
                         Fixed_Width_Column_Description.Width _ _ ->
