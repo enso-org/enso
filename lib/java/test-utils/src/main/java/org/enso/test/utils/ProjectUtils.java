@@ -12,7 +12,6 @@ import org.enso.common.RuntimeOptions;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextRule.Builder;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.slf4j.LoggerFactory;
 import scala.Option;
@@ -121,7 +120,10 @@ prefer-local-libraries: true
    * @param whenDone callback when generated
    */
   public static void generateProjectDocs(
-      String docsFormat, ContextRule.Builder ctxBuilder, Path projDir, Consumer<Context> whenDone) {
+      String docsFormat,
+      ContextRule.Builder ctxBuilder,
+      Path projDir,
+      Consumer<ContextRule> whenDone) {
     if (!(projDir.toFile().exists() && projDir.toFile().isDirectory())) {
       throw new IllegalArgumentException(
           "Project directory " + projDir + " must already be created");
@@ -140,7 +142,7 @@ prefer-local-libraries: true
         throw new IllegalArgumentException("Main module not found in " + projDir);
       }
       polyCtx.getTopScope().compile(false, Option.apply(docsFormat));
-      whenDone.accept(polyCtx.context());
+      whenDone.accept(ctx);
     }
   }
 
