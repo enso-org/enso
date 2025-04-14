@@ -51,6 +51,7 @@ import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
+import type { CredentialConfig } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
@@ -143,6 +144,44 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
 
   React.useEffect(() => attachEventListeners(), [attachEventListeners])
 
+  const newProject = useEventCallback(async () => {
+    await newProjectMutation([null, null])
+  })
+
+  const newFolderCallback = useEventCallback(async () => {
+    await newFolder(currentDirectoryId)
+  })
+
+  const newCredentialCallback = useEventCallback(async (name: string, value: CredentialConfig) => {
+    return await newCredential([{ name, value, parentDirectoryId: currentDirectoryId }])
+  })
+
+  const newSecretCallback = useEventCallback(async (name: string, value: string) => {
+    await newSecret([{ name, value, parentDirectoryId: currentDirectoryId }])
+  })
+
+  const newDatalinkCallback = useEventCallback(async (name: string, value: unknown) => {
+    await newDatalink([
+      {
+        name,
+        value,
+        parentDirectoryId: currentDirectoryId,
+        datalinkId: null,
+      },
+    ])
+  })
+
+  const uploadFilesCallback = useEventCallback(async () => {
+    const files = await readUserSelectedFile()
+    await uploadFiles(Array.from(files))
+  })
+
+  const downloadFilesCallback = useEventCallback(async () => {
+    unsetModal()
+    const { selectedAssets } = driveStore.getState()
+    await downloadAssetsMutation(selectedAssets)
+  })
+
   const searchBar = (
     <AssetSearchBar backend={backend} isCloud={isCloud} query={query} setQuery={setQuery} />
   )
@@ -159,8 +198,8 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     <div className="flex items-center">
       <Text>
         {effectivePasteData.type === 'copy' ?
-          getText('xItemsCopied', effectivePasteData.data.ids.size)
-        : getText('xItemsCut', effectivePasteData.data.ids.size)}
+          getText('xItemsCopied', effectivePasteData.data.assets.length)
+        : getText('xItemsCut', effectivePasteData.data.assets.length)}
       </Text>
     </div>
   )
@@ -203,12 +242,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
             buttonVariants={{ isDisabled: shouldBeDisabled }}
             {...createAssetsVisualTooltip.targetProps}
           >
-            <Button
-              variant="accent"
-              icon={Plus2Icon}
-              loaderPosition="icon"
-              onPress={() => newProjectMutation([null, null])}
-            >
+            <Button variant="accent" icon={Plus2Icon} loaderPosition="icon" onPress={newProject}>
               {getText('newEmptyProject')}
             </Button>
 
@@ -218,7 +252,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 size="medium"
                 icon={AddFolderIcon}
                 aria-label={getText('newFolder')}
-                onPress={() => newFolder(currentDirectoryId)}
+                onPress={newFolderCallback}
               />
               <DialogTrigger>
                 <Button
@@ -228,13 +262,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   icon={AddKeyIcon}
                   aria-label={isCloud ? getText('newSecret') : getText('newSecretOnlyCloud')}
                 />
-                <UpsertSecretModal
-                  id={null}
-                  name={null}
-                  doCreate={async (name, value) => {
-                    await newSecret([{ name, value, parentDirectoryId: currentDirectoryId }])
-                  }}
-                />
+                <UpsertSecretModal id={null} name={null} doCreate={newSecretCallback} />
               </DialogTrigger>
               <DialogTrigger>
                 <Button
@@ -246,11 +274,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                     isCloud ? getText('newCredential') : getText('newCredentialOnlyCloud')
                   }
                 />
-                <CreateCredentialModal
-                  doCreate={async (name, value) =>
-                    await newCredential([{ name, value, parentDirectoryId: currentDirectoryId }])
-                  }
-                />
+                <CreateCredentialModal doCreate={newCredentialCallback} />
               </DialogTrigger>
               <DialogTrigger>
                 <Button
@@ -260,18 +284,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   icon={AddDatalinkIcon}
                   aria-label={isCloud ? getText('newDatalink') : getText('newDatalinkOnlyCloud')}
                 />
-                <UpsertDatalinkModal
-                  doCreate={async (name, value) => {
-                    await newDatalink([
-                      {
-                        name,
-                        value,
-                        parentDirectoryId: currentDirectoryId,
-                        datalinkId: null,
-                      },
-                    ])
-                  }}
-                />
+                <UpsertDatalinkModal doCreate={newDatalinkCallback} />
               </DialogTrigger>
             </div>
 
@@ -281,10 +294,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 size="medium"
                 icon={DataUploadIcon}
                 aria-label={getText('uploadFiles')}
-                onPress={async () => {
-                  const files = await readUserSelectedFile()
-                  await uploadFiles(Array.from(files))
-                }}
+                onPress={uploadFilesCallback}
               />
               <Button
                 isDisabled={!canDownload}
@@ -292,11 +302,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 size="medium"
                 icon={DataDownloadIcon}
                 aria-label={getText('downloadFiles')}
-                onPress={async () => {
-                  unsetModal()
-                  const { selectedAssets } = driveStore.getState()
-                  await downloadAssetsMutation(selectedAssets)
-                }}
+                onPress={downloadFilesCallback}
               />
             </div>
             {createAssetsVisualTooltip.tooltip}
@@ -354,7 +360,7 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
 
         <ConfirmDeleteModal
           actionText={getText('allTrashedItemsForever')}
-          doDelete={async () => {
+          onConfirm={async () => {
             await clearTrash()
           }}
         />

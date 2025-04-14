@@ -159,11 +159,7 @@ const MenuItemIcon = memo(function MenuItemIcon<IconType extends string>(
 ) {
   const { icon, className, ...renderProps } = props
 
-  return (
-    <Icon color="current" renderProps={renderProps} className={className}>
-      {icon}
-    </Icon>
-  )
+  return <Icon color="current" renderProps={renderProps} className={className} icon={icon} />
 })
 
 /** Renders the selection indicator for the menu item */

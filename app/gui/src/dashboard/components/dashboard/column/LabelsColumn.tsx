@@ -1,5 +1,4 @@
 /** @file A column listing the labels on this asset. */
-import * as React from 'react'
 
 import Plus2Icon from '#/assets/plus2.svg'
 
@@ -35,10 +34,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     ({ selectedIds, isDraggingOverSelectedRow }) =>
       isDraggingOverSelectedRow && selectedIds.has(item.id),
   )
-  const labelsByName = React.useMemo(
-    () => new Map(labels.map((label) => [label.value, label])),
-    [labels],
-  )
+  const labelsByName = new Map(labels.map((label) => [label.value, label]))
   const self = permissions.tryFindSelfPermission(user, item.permissions)
   const managesThisAsset =
     category.type !== 'trash' &&

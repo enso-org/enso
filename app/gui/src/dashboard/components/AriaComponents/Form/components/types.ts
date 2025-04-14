@@ -29,10 +29,10 @@ export type FieldPath<Schema extends TSchema, Constraint = unknown> = Extract<
 >
 
 /** Schema type */
-export type TSchema =
-  | z.AnyZodObject
-  | z.ZodEffects<z.AnyZodObject>
-  | z.ZodEffects<z.ZodEffects<z.AnyZodObject>>
+export type TSchema<Shape extends z.AnyZodObject = z.AnyZodObject> =
+  | Shape
+  | z.ZodEffects<Shape>
+  | z.ZodEffects<z.ZodEffects<Shape>>
 
 /** A callback that returns a schema. */
 export type SchemaCallback<Schema extends TSchema = TSchema> = (z: SchemaBuilder) => Schema
