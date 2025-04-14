@@ -27,7 +27,9 @@ function doEdit(editFn: (ast: Ast.MutableFunctionDef) => void) {
 
 function handleAddItem() {
   if (input.editHandler?.addItem()) return
-  doEdit((ast) => ast.spliceArgumentDefinitions(-1, 0, newArgumentDefinition(`arg${ast.argumentDefinitions.length + 1}`)))
+  doEdit((ast) =>
+    ast.pushArgumentDefinitions(newArgumentDefinition(`arg${ast.argumentDefinitions.length + 1}`)),
+  )
 }
 
 function handleRemove(index: number) {

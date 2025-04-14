@@ -41,10 +41,10 @@ const props = defineProps<{
   axis: 'x' | 'y'
 }>()
 const emit = defineEmits<{
-  'addItem': []
-  'reorder': [oldIndex: number, newIndex: number],
-  'remove': [index: number],
-  'dropInsert': [index: number, payload: string],
+  addItem: []
+  reorder: [oldIndex: number, newIndex: number]
+  remove: [index: number]
+  dropInsert: [index: number, payload: string]
 }>()
 
 const listUuid = uuidv4()
@@ -202,10 +202,8 @@ function onDragStart(event: DragEvent, index: number) {
     size: elementOffsetSize,
   }
 
-  if (props.toDragPayload) {
-    const payload = props.toDragPayload(dragItem)
-    event.dataTransfer.setData(mimeType.value, payload)
-  }
+  const payload = props.toDragPayload?.(dragItem) ?? ''
+  event.dataTransfer.setData(mimeType.value, payload)
 
   if (props.toPlainText) {
     event.dataTransfer.setData('text/plain', props.toPlainText(dragItem))

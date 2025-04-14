@@ -3,7 +3,7 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import DraggableList from '@/components/widgets/DraggableList.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import type { PortId } from '@/providers/portInfo'
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
@@ -38,13 +38,13 @@ const itemConfig = computed(() =>
 
 const defaultItem = computed(() =>
   props.input.dynamicConfig?.kind === 'Vector_Editor' ?
-    Ast.parseExpression(props.input.dynamicConfig.item_default) ?? DEFAULT_ITEM.value
+    (Ast.parseExpression(props.input.dynamicConfig.item_default) ?? DEFAULT_ITEM.value)
   : DEFAULT_ITEM.value,
 )
 
 function handleAddItem() {
   if (props.input.editHandler?.addItem()) return
-  doEdit((ast) => ast.splice(-1, 0, defaultItem.value))
+  doEdit((ast) => ast.push(defaultItem.value))
 }
 
 function handleRemove(index: number) {

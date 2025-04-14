@@ -2283,7 +2283,13 @@ export interface ArgumentDefinition<T extends TreeRefs = RawRefs> {
   close?: T['token'] | undefined
 }
 
-export function newArgumentDefinition(name: string, module?: MutableModule): OwnedArgumentDefinitions {
+/**
+ * Create a new function argument definition using provided "name" string as argument's pattern expression.
+ */
+export function newArgumentDefinition(
+  name: string,
+  module?: MutableModule,
+): OwnedArgumentDefinitions {
   const expr = parseExpression(name, module)
   assert(expr != null)
   return {
@@ -2563,13 +2569,19 @@ export class MutableFunctionDef extends FunctionDef implements MutableStatement 
     )
   }
 
+  pushArgumentDefinitions(value: OwnedArgumentDefinitions) {
+    const defs = this.fields.get('argumentDefinitions')
+    const def = mapRefs(value, ownedToRaw(this.module, this.id))
+    this.fields.set('argumentDefinitions', [...defs, def])
+  }
+
   /**
- * Move an argument inside function definition.
- * @param fromIndex index of moved argument.
- * @param toIndex new index of moved argument.
- *
- * If any index is outside array index range, it's interpreted same as in {@link Array.prototype.splice|}.
- */
+   * Move an argument inside function definition.
+   * @param fromIndex index of moved argument.
+   * @param toIndex new index of moved argument.
+   *
+   * If any index is outside array index range, it's interpreted same as in {@link Array.prototype.splice|}.
+   */
   moveArgumentDefinitions(fromIndex: number, toIndex: number) {
     const defs = [...this.fields.get('argumentDefinitions')]
     const [def] = defs.splice(fromIndex, 1)
@@ -2582,7 +2594,11 @@ export class MutableFunctionDef extends FunctionDef implements MutableStatement 
     }
   }
 
-  spliceArgumentDefinitions(start: number, deletedCount: number, ...newValues: OwnedArgumentDefinitions[]) {
+  spliceArgumentDefinitions(
+    start: number,
+    deletedCount: number,
+    ...newValues: OwnedArgumentDefinitions[]
+  ) {
     const defs = [...this.fields.get('argumentDefinitions')]
     const newDefs = newValues.map((def) => mapRefs(def, ownedToRaw(this.module, this.id)))
     defs.splice(start, deletedCount, ...newDefs)
