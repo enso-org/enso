@@ -1,13 +1,13 @@
 import { createContextStore } from '@/providers'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
+import { GraphStore } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import type { ViteHotContext } from 'vite/types/hot.js'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 import type { WidgetEditHandlerParent } from './widgetRegistry/editHandler'
-import { GraphStore } from '@/stores/graph'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 

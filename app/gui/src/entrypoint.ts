@@ -180,5 +180,4 @@ function imNotSureButPerhapsFixingRefreshingWithAuthentication() {
   }
 }
 
-
 main()

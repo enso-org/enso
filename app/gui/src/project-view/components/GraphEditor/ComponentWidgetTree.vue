@@ -2,7 +2,6 @@
 import { DisplayIcon } from '@/components/GraphEditor/widgets/WidgetIcon.vue'
 import WidgetTreeRoot from '@/components/GraphEditor/WidgetTreeRoot.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { PortId } from '@/providers/portInfo'
 import { applyWidgetUpdates, WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { WidgetEditHandlerParent } from '@/providers/widgetRegistry/editHandler'
 import { useGraphStore, type NodeId } from '@/stores/graph'

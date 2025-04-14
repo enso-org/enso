@@ -157,12 +157,16 @@ class Synchronizer {
     return { currentVersion: initialDb.value.currentVersion }
   }
 
-  async #setupUpdateHandler(lsRpc: LanguageServer, updateProcessorPromise: Promise<SuggestionUpdateProcessor>) {
-
+  async #setupUpdateHandler(
+    lsRpc: LanguageServer,
+    updateProcessorPromise: Promise<SuggestionUpdateProcessor>,
+  ) {
     // We can get DB updates received through RPC before processor update and loadDatabase call finishes. We have to receive
     // an queue those updates until we are ready to apply them.
     const earlyUpdates: SuggestionDatabaseUpdates[] = []
-    const queueEarlyUpdate = lsRpc.on('search/suggestionsDatabaseUpdates',(param) => earlyUpdates.push(param))
+    const queueEarlyUpdate = lsRpc.on('search/suggestionsDatabaseUpdates', (param) =>
+      earlyUpdates.push(param),
+    )
     const updateProcessor = await updateProcessorPromise
     lsRpc.off('search/suggestionsDatabaseUpdates', queueEarlyUpdate)
 

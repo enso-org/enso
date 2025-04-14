@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { applyWidgetUpdates, WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
+import { useGraphStore } from '@/stores/graph'
 import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { documentationData } from '@/stores/suggestionDatabase/documentation'
@@ -10,7 +11,6 @@ import { FunctionDef } from 'ydoc-shared/ast'
 import type * as Y from 'yjs'
 import WidgetTreeRoot from './GraphEditor/WidgetTreeRoot.vue'
 import { FunctionInfoKey } from './GraphEditor/widgets/WidgetFunctionDef.vue'
-import { useGraphStore } from '@/stores/graph'
 
 const suggestionDb = useSuggestionDbStore()
 const projectNames = injectProjectNames()
