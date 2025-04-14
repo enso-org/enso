@@ -8,8 +8,10 @@ import { Range } from 'ydoc-shared/util/data/range'
 export type SelfArg =
   | {
       type: 'known'
+      /** Type of the self argument. */
       typename: ProjectPath
-      hiddenTypes: ProjectPath[]
+      /** Additional (or ‘hidden’) types of the self argument. E.g. `Column` for single-column table.*/
+      additionalTypes: ProjectPath[]
     }
   | { type: 'unknown' }
 
@@ -45,6 +47,7 @@ interface MatchedParts {
 
 export interface MatchResult extends MatchedParts {
   score: number
+  /** Populated only if matched entry is provided by ‘additional’ type of the self argument, like methods of `Column` type for single-column table. */
   fromType: ProjectPath | undefined
 }
 
@@ -158,23 +161,8 @@ class FilteringWithPattern {
   bothFiltersMustMatch: boolean
 
   constructor(pattern: string) {
-    if (pattern.startsWith(':')) {
-      pattern = pattern.slice(1)
-      const split = pattern.lastIndexOf('.')
-      if (split >= 0) {
-        // If there is a dot in the pattern, the segment before must match owner name,
-        // and the segment after - the entry name
-        this.nameFilter = new FilteringName(pattern.slice(split + 1))
-        this.ownerNameFilter = new FilteringName(pattern.slice(0, split))
-        this.bothFiltersMustMatch = true
-      } else {
-        // the pattern has to match the owner name
-        this.nameFilter = null
-        this.ownerNameFilter = new FilteringName(pattern)
-        this.bothFiltersMustMatch = false
-      }
-      return
-    }
+    const isTypeFiltering = pattern.startsWith(':')
+    if (isTypeFiltering) pattern = pattern.slice(1)
     const split = pattern.lastIndexOf('.')
     if (split >= 0) {
       // If there is a dot in the pattern, the segment before must match owner name,
@@ -182,6 +170,11 @@ class FilteringWithPattern {
       this.nameFilter = new FilteringName(pattern.slice(split + 1))
       this.ownerNameFilter = new FilteringName(pattern.slice(0, split))
       this.bothFiltersMustMatch = true
+    } else if (isTypeFiltering) {
+      // the pattern has to match the owner name
+      this.nameFilter = null
+      this.ownerNameFilter = new FilteringName(pattern)
+      this.bothFiltersMustMatch = false
     } else {
       // the pattern has to match name or the owner name
       this.nameFilter = new FilteringName(pattern)
@@ -275,7 +268,6 @@ export class Filtering {
 
   private selfTypeMatches(
     entry: SuggestionEntry,
-    additionalSelfTypes: ProjectPath[],
   ): { score: number; fromType: ProjectPath | undefined } | null {
     if (this.selfArg == null)
       return entry.kind !== SuggestionKind.Method || entry.selfType == null ?
@@ -285,6 +277,7 @@ export class Filtering {
     if (this.selfArg.type !== 'known') return { score: 0, fromType: undefined }
     const entrySelfType = entry.selfType
     if (entrySelfType.equals(this.selfArg.typename)) return { score: 0, fromType: undefined }
+    const additionalSelfTypes = this.selfArg.additionalTypes
     const additionalSelfType = additionalSelfTypes.find((t) => entrySelfType.equals(t))
     if (entrySelfType.equals(ANY_TYPE) || additionalSelfType != null)
       return { score: DIFFERENT_TYPE_PENALTY, fromType: additionalSelfType }
@@ -308,12 +301,13 @@ export class Filtering {
   }
 
   /** TODO: Add docs */
-  filter(entry: SuggestionEntry, additionalSelfTypes: ProjectPath[]): MatchResult | null {
+  filter(entry: SuggestionEntry): MatchResult | null {
     if (entry.isPrivate || entry.kind != SuggestionKind.Method) return null
     if (this.selfArg == null && isInternal(entry)) return null
-    const selfTypeMatch = this.selfTypeMatches(entry, additionalSelfTypes)
+    const selfTypeMatch = this.selfTypeMatches(entry)
     if (selfTypeMatch == null) return null
     if (this.pattern) {
+      const additionalSelfTypes = this.selfArg?.type === 'known' ? this.selfArg.additionalTypes : []
       const patternMatch = this.pattern.tryMatch(
         entry.name,
         entry.aliases,

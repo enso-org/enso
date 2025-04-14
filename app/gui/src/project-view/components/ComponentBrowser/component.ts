@@ -11,13 +11,15 @@ import { compareOpt } from '@/util/compare'
 import { isSome } from '@/util/data/opt'
 import { displayedIconOf } from '@/util/getIconName'
 import { type Icon } from '@/util/iconMetadata/iconName'
-import { type ProjectPath } from '@/util/projectPath'
+import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
 import * as map from 'lib0/map'
 import { Range } from 'ydoc-shared/util/data/range'
 
 interface ComponentLabelInfo {
   label: string
+  /** Offset already applied to `matchedRanges`. */
+  appliedOffset?: number | undefined
   matchedAlias?: string | undefined
   matchedRanges?: Range[] | undefined
 }
@@ -41,10 +43,7 @@ export interface SuggestedComponent extends Component {
 /** @returns the displayed label of given suggestion entry with information of highlighted ranges. */
 export function labelOfEntry(entry: SuggestionEntry, match: MatchResult): ComponentLabelInfo {
   if (entryIsStatic(entry)) {
-    const label =
-      match.fromType?.path ?
-        ':' + qnLastSegment(match.fromType.path) + '.' + entryDisplayPath(entry)
-      : entryDisplayPath(entry)
+    const label = entryDisplayPath(entry)
     if ((!match.ownerNameRanges && !match.nameRanges) || match.matchedAlias) {
       return {
         label,
@@ -61,20 +60,37 @@ export function labelOfEntry(entry: SuggestionEntry, match: MatchResult): Compon
         ...(match.nameRanges ?? []).map((range) => range.shift(nameOffset)),
       ],
     }
+  } else if (match.fromType != null) {
+    const label = displayTypeCasted(match.fromType, entry)
+    const appliedOffset = typeCastedNameRangesOffset(match.fromType)
+    const matchedRanges =
+      match.nameRanges != null ? match.nameRanges.map((range) => range.shift(appliedOffset)) : null
+    return matchedRanges != null ?
+        { label, appliedOffset, matchedAlias: match.matchedAlias, matchedRanges }
+      : { label, appliedOffset, matchedAlias: match.matchedAlias }
   } else {
-    const label =
-      match.fromType?.path ?
-        ':' + qnLastSegment(match.fromType.path) + '.' + entry.name
-      : entry.name
-    return match.nameRanges ?
-        { label, matchedAlias: match.matchedAlias, matchedRanges: match.nameRanges }
+    const label = entry.name
+    const matchedRanges = match.nameRanges
+    return matchedRanges != null ?
+        { label, matchedAlias: match.matchedAlias, matchedRanges }
       : { label, matchedAlias: match.matchedAlias }
   }
 }
 
+function displayTypeCasted(fromType: ProjectPath, entry: SuggestionEntry): string {
+  if (fromType.path == null) return entry.name
+  return `:${qnLastSegment(fromType.path)}.${entry.name}`
+}
+
+function typeCastedNameRangesOffset(fromType: ProjectPath): number {
+  if (fromType.path == null) return 0
+  // Length of the type name + 2 for `:` and `.`
+  return qnLastSegment(fromType.path).length + 2
+}
+
 function formatLabel(labelInfo: ComponentLabelInfo): ComponentLabel {
   const shift = labelInfo.label.length + 2
-  const shiftRange = (range: Range) => range.shift(shift)
+  const shiftRange = (range: Range) => range.shift(shift - (labelInfo.appliedOffset ?? 0))
   return !labelInfo.matchedAlias ?
       { label: labelInfo.label, matchedRanges: labelInfo.matchedRanges }
     : {
@@ -128,18 +144,9 @@ export function makeComponentLists(
   filtering: Filtering,
 ): Map<GroupId, ReadonlyArray<Component>> {
   function* matchSuggestions() {
-    const additionalSelfTypes: ProjectPath[] = []
-    if (filtering.selfArg?.type === 'known') {
-      const entry = db.getEntryByProjectPath(filtering.selfArg.typename)
-      if (entry) additionalSelfTypes.push(...db.ancestors(entry))
-      if (filtering.selfArg.hiddenTypes) {
-        additionalSelfTypes.push(...filtering.selfArg.hiddenTypes)
-      }
-    }
-
     for (const [id, entry] of db.entries()) {
       if (!entry) continue
-      const match = filtering.filter(entry, additionalSelfTypes)
+      const match = filtering.filter(entry)
       if (isSome(match)) {
         const component = makeComponent({ id, entry, match })
         yield { id, entry, match, component }
