@@ -7,7 +7,11 @@ import static org.junit.Assert.assertEquals;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileWriter;
-import org.enso.test.utils.ContextRule;
+import org.enso.common.ContextFactory;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames.Module;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Value;
 import org.hamcrest.core.AllOf;
 import org.junit.AfterClass;
 import org.junit.Test;
@@ -39,9 +43,11 @@ public class ContextInsightSetupTest {
     System.setProperty("enso.dev.insight", insight.getPath());
 
     var out = new ByteArrayOutputStream();
-    try (var ctx = ContextRule.createDefault()) {
+    // Need to initialize the Context via ContextFactory, so that ContextInsightSetup is
+    // triggered.
+    try (var ctx = ContextFactory.create().out(out).build()) {
 
-      var fourtyTwo = ctx.evalModule("""
+      var fourtyTwo = evalModule(ctx, """
         main = 42
         """);
 
@@ -52,5 +58,12 @@ public class ContextInsightSetupTest {
           AllOf.allOf(
               containsString("Insight started."), containsString("Properties: id,version")));
     }
+  }
+
+  private static Value evalModule(Context ctx, String moduleSrc) {
+    var module = ctx.eval(LanguageInfo.ID, moduleSrc);
+    var assocType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
+    var method = module.invokeMember(Module.GET_METHOD, assocType, "main");
+    return method.execute();
   }
 }
