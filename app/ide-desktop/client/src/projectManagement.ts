@@ -150,6 +150,20 @@ export function importBundle(
     sync: true,
     strip: rootPieces.length,
   })
+
+  const entries = fs.readdirSync(targetPath)
+  const firstEntry = entries[0]
+  // If the directory only contains one subdirectory, replace the directory with its sole
+  // subdirectory.
+  if (entries.length === 1 && firstEntry != null) {
+    if (fs.statSync(pathModule.join(targetPath, firstEntry)).isDirectory()) {
+      const temporaryDirectoryName = targetPath + `_${crypto.randomUUID().split('-')[0] ?? ''}`
+      fs.renameSync(targetPath, temporaryDirectoryName)
+      fs.renameSync(pathModule.join(temporaryDirectoryName, firstEntry), targetPath)
+      fs.rmdirSync(temporaryDirectoryName)
+    }
+  }
+
   return bumpMetadata(targetPath, directory, name ?? null)
 }
 
