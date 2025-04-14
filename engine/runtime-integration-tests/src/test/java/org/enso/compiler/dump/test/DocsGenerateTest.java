@@ -214,7 +214,7 @@ public class DocsGenerateTest {
   public void noSignatureIsGenerated_ForEmptyModule() throws IOException {
     var emptyCode = "";
     var modName = "local.Empty.Main";
-    var sig = DumpTestUtils.generateSignatures(ctxRule.context(), emptyCode, modName);
+    var sig = DumpTestUtils.generateSignatures(ctxRule, emptyCode, modName);
     assertTrue("Empty signature for empty module", sig.isEmpty());
   }
 
@@ -226,7 +226,7 @@ public class DocsGenerateTest {
         import Standard.Base.Data.Vector.Vector
         """;
     var modName = "local.Empty.Main";
-    var sig = DumpTestUtils.generateSignatures(ctxRule.context(), codeWithImports, modName);
+    var sig = DumpTestUtils.generateSignatures(ctxRule, codeWithImports, modName);
     assertTrue("Empty signature for module with only imports", sig.isEmpty());
   }
 
@@ -247,7 +247,7 @@ public class DocsGenerateTest {
         My_Type.from (that: Integer) = My_Type.Cons that
         """;
     var modName = "local.Proj.Main";
-    var sig = DumpTestUtils.generateSignatures(ctxRule.context(), code, modName);
+    var sig = DumpTestUtils.generateSignatures(ctxRule, code, modName);
     sig.lines()
         .forEach(
             line -> {

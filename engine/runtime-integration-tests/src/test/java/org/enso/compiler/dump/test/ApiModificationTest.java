@@ -177,8 +177,8 @@ public final class ApiModificationTest {
       String prevSource, String newSource, BiConsumer<String, String> signatureComparator)
       throws IOException {
     var modName = "local.Proj.Main";
-    var prevSignature = DumpTestUtils.generateSignatures(ctxRule.context(), prevSource, modName);
-    var newSignature = DumpTestUtils.generateSignatures(ctxRule.context(), newSource, modName);
+    var prevSignature = DumpTestUtils.generateSignatures(ctxRule, prevSource, modName);
+    var newSignature = DumpTestUtils.generateSignatures(ctxRule, newSource, modName);
     assertThat("Signature was generated", prevSignature.isEmpty(), is(false));
     assertThat("Signature was generated", newSignature.isEmpty(), is(false));
     signatureComparator.accept(prevSignature, newSignature);

@@ -190,7 +190,7 @@ public class TypeMembersTest {
   }
 
   /**
-   * @param obj {@link ContextUtils#unwrapValue(Context, Value) unwrapped} {@link Value value}.
+   * @param obj {@link ContextRule#unwrapValue(Value) unwrapped} {@link Value value}.
    */
   private List<String> getAllMemberNames(Object obj)
       throws UnsupportedMessageException, InvalidArrayIndexException {

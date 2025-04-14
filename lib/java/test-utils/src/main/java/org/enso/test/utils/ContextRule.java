@@ -1,5 +1,9 @@
 package org.enso.test.utils;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Path;
@@ -10,6 +14,7 @@ import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames;
 import org.enso.common.MethodNames.TopScope;
 import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -18,6 +23,7 @@ import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
+import org.graalvm.polyglot.proxy.ProxyExecutable;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -198,16 +204,45 @@ public final class ContextRule implements TestRule, AutoCloseable {
     return currentCtx().eval(languageId, code);
   }
 
+  /**
+   * Unwraps the `receiver` field from the Value. This is a hack to allow us to test execute methods
+   * of artificially created ASTs, e.g., single nodes. More specifically, only unwrapped values are
+   * eligible to be passed to node's execute methods, we cannot pass {@link Value} directly to the
+   * node's execute methods.
+   *
+   * <p>Does something similar to what {@code
+   * com.oracle.truffle.tck.DebuggerTester#getSourceImpl(Source)} does, but uses a different hack
+   * than reflective access.
+   */
   public Object unwrapValue(Value value) {
-    return ContextUtils.unwrapValue(currentCtx(), value);
+    var unwrapper = new Unwrapper();
+    var unwrapperValue = asValue(unwrapper);
+    unwrapperValue.execute(value);
+    assert unwrapper.args != null;
+    return unwrapper.args[0];
   }
 
+  /**
+   * Creates an Enso value from the given source.
+   *
+   * @param src One-line assignment into a variable
+   * @param imports Imports, may be empty.
+   */
   public Value createValue(String src, String imports) {
-    return ContextUtils.createValue(currentCtx(), src, imports);
+    if (src.lines().count() > 1 || imports == null) {
+      throw new IllegalArgumentException("src should have one line, imports must not be null");
+    }
+    var sb = new StringBuilder();
+    sb.append(imports);
+    sb.append(System.lineSeparator());
+    sb.append("my_var = ").append(src);
+    sb.append(System.lineSeparator());
+    Value tmpModule = eval("enso", sb.toString());
+    return tmpModule.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "my_var");
   }
 
   public Value createValue(String src) {
-    return ContextUtils.createValue(currentCtx(), src);
+    return createValue(src, "");
   }
 
   public Value asValue(Object obj) {
@@ -215,11 +250,40 @@ public final class ContextRule implements TestRule, AutoCloseable {
   }
 
   /**
-   * @see ContextUtils#executeInContext(Context, Callable)
+   * Executes the given callable in the given context.A necessity for executing artificially created
+   * Truffle ASTs.
+   *
+   * @param <T> type of the return value
+   * @param callable action to invoke with given return type
+   * @return Object returned from {@code callable} wrapped in {@link Value}.
    */
   public <T> Value executeInContext(Callable<T> callable) {
     var ctx = currentCtx();
-    return ContextUtils.executeInContext(ctx, callable);
+    // Force initialization of the context
+    ctx.eval("enso", "value = 0");
+    var err = new Exception[1];
+    ctx.getPolyglotBindings()
+        .putMember(
+            "testSymbol",
+            (ProxyExecutable)
+                (Value... args) -> {
+                  try {
+                    return callable.call();
+                  } catch (Exception e) {
+                    err[0] = e;
+                    return null;
+                  }
+                });
+    var res = ctx.getPolyglotBindings().getMember("testSymbol").execute();
+    if (err[0] != null) {
+      throw raise(RuntimeException.class, err[0]);
+    }
+    return res;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <E extends Throwable> E raise(Class<E> clazz, Throwable t) throws E {
+    throw (E) t;
   }
 
   /**
@@ -330,8 +394,7 @@ public final class ContextRule implements TestRule, AutoCloseable {
     public void evaluate() throws Throwable {
       try (var ctx = currentCtx()) {
         if (alwaysExecuteInContext) {
-          ContextUtils.executeInContext(
-              ctx,
+          executeInContext(
               () -> {
                 try {
                   base.evaluate();
@@ -361,6 +424,23 @@ public final class ContextRule implements TestRule, AutoCloseable {
   private static final class FailureWithOutput extends RuntimeException {
     private FailureWithOutput(String out, Throwable cause) {
       super(out, cause);
+    }
+  }
+
+  @ExportLibrary(InteropLibrary.class)
+  static final class Unwrapper implements TruffleObject {
+
+    Object[] args;
+
+    @ExportMessage
+    Object execute(Object[] args) {
+      this.args = args;
+      return this;
+    }
+
+    @ExportMessage
+    boolean isExecutable() {
+      return true;
     }
   }
 }

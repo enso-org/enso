@@ -1,11 +1,6 @@
 package org.enso.test.utils;
 
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.library.ExportLibrary;
-import com.oracle.truffle.api.library.ExportMessage;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames.Module;
@@ -14,7 +9,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.proxy.ProxyExecutable;
 
 /** A collection of classes and methods useful for testing {@link Context} related stuff. */
 public final class ContextUtils {
@@ -25,84 +19,6 @@ public final class ContextUtils {
     return ctx.getBindings(LanguageInfo.ID)
         .invokeMember(TopScope.LEAK_CONTEXT)
         .as(EnsoContext.class);
-  }
-
-  /**
-   * Executes the given callable in the given context.A necessity for executing artificially created
-   * Truffle ASTs.
-   *
-   * @param <T> type of the return value
-   * @param ctx context to execute at
-   * @param callable action to invoke with given return type
-   * @return Object returned from {@code callable} wrapped in {@link Value}.
-   */
-  public static <T> Value executeInContext(Context ctx, Callable<T> callable) {
-    // Force initialization of the context
-    ctx.eval("enso", "value = 0");
-    var err = new Exception[1];
-    ctx.getPolyglotBindings()
-        .putMember(
-            "testSymbol",
-            (ProxyExecutable)
-                (Value... args) -> {
-                  try {
-                    return callable.call();
-                  } catch (Exception e) {
-                    err[0] = e;
-                    return null;
-                  }
-                });
-    var res = ctx.getPolyglotBindings().getMember("testSymbol").execute();
-    if (err[0] != null) {
-      throw raise(RuntimeException.class, err[0]);
-    }
-    return res;
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <E extends Throwable> E raise(Class<E> clazz, Throwable t) throws E {
-    throw (E) t;
-  }
-
-  /**
-   * Unwraps the `receiver` field from the Value. This is a hack to allow us to test execute methods
-   * of artificially created ASTs, e.g., single nodes. More specifically, only unwrapped values are
-   * eligible to be passed to node's execute methods, we cannot pass {@link Value} directly to the
-   * node's execute methods.
-   *
-   * <p>Does something similar to what {@link
-   * com.oracle.truffle.tck.DebuggerTester#getSourceImpl(Source)} does, but uses a different hack
-   * than reflective access.
-   */
-  public static Object unwrapValue(Context ctx, Value value) {
-    var unwrapper = new Unwrapper();
-    var unwrapperValue = ctx.asValue(unwrapper);
-    unwrapperValue.execute(value);
-    assert unwrapper.args != null;
-    return unwrapper.args[0];
-  }
-
-  /**
-   * Creates an Enso value from the given source.
-   *
-   * @param src One-line assignment into a variable
-   * @param imports Imports, may be empty.
-   */
-  static Value createValue(Context ctx, String src, String imports) {
-    if (src.lines().count() > 1 || imports == null) {
-      throw new IllegalArgumentException("src should have one line, imports must not be null");
-    }
-    var sb = new StringBuilder();
-    sb.append(imports);
-    sb.append(System.lineSeparator());
-    sb.append("my_var = ").append(src);
-    sb.append(System.lineSeparator());
-    Value tmpModule = ctx.eval("enso", sb.toString());
-    return tmpModule.invokeMember(Module.EVAL_EXPRESSION, "my_var");
-  }
-
-  static Value createValue(Context ctx, String src) {
-    return createValue(ctx, src, "");
   }
 
   /**
@@ -149,21 +65,6 @@ public final class ContextUtils {
     var assocType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
     var method = module.invokeMember(Module.GET_METHOD, assocType, methodName);
     return "main".equals(methodName) ? method.execute() : method.execute(assocType);
-  }
-
-  public static org.enso.compiler.core.ir.Module compileModule(Context ctx, String src) {
-    return compileModule(ctx, src, "Test");
-  }
-
-  public static org.enso.compiler.core.ir.Module compileModule(
-      Context ctx, String src, String moduleName) {
-    var source = Source.newBuilder(LanguageInfo.ID, src, moduleName + ".enso").buildLiteral();
-    var module = ctx.eval(source);
-    var runtimeMod = (org.enso.interpreter.runtime.Module) unwrapValue(ctx, module);
-    if (runtimeMod.getIr() == null) {
-      runtimeMod.compileScope(leakContext(ctx));
-    }
-    return runtimeMod.getIr();
   }
 
   /**
@@ -220,20 +121,4 @@ public final class ContextUtils {
     return name;
   }
 
-  @ExportLibrary(InteropLibrary.class)
-  static final class Unwrapper implements TruffleObject {
-
-    Object[] args;
-
-    @ExportMessage
-    Object execute(Object[] args) {
-      this.args = args;
-      return this;
-    }
-
-    @ExportMessage
-    boolean isExecutable() {
-      return true;
-    }
-  }
 }

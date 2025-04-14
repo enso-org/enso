@@ -7,8 +7,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileWriter;
-import org.enso.common.ContextFactory;
-import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ContextRule;
 import org.hamcrest.core.AllOf;
 import org.junit.AfterClass;
 import org.junit.Test;
@@ -40,9 +39,9 @@ public class ContextInsightSetupTest {
     System.setProperty("enso.dev.insight", insight.getPath());
 
     var out = new ByteArrayOutputStream();
-    try (var ctx = ContextFactory.create().out(out).build()) {
+    try (var ctx = ContextRule.createDefault()) {
 
-      var fourtyTwo = ContextUtils.evalModule(ctx, """
+      var fourtyTwo = ctx.evalModule("""
         main = 42
         """);
 
