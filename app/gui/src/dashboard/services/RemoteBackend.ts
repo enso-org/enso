@@ -468,15 +468,18 @@ export default class RemoteBackend extends Backend {
   override async getOrganization(): Promise<backend.OrganizationInfo | null> {
     const path = remoteBackendPaths.GET_ORGANIZATION_PATH
     const response = await this.get<backend.OrganizationInfo>(path)
+
     if ([STATUS_NOT_ALLOWED, STATUS_NOT_FOUND].includes(response.status)) {
       // Organization info has not yet been created.
       // or the user is not eligible to create an organization.
       return null
-    } else if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'getOrganizationBackendError')
-    } else {
-      return await response.json()
     }
+
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'getOrganizationBackendError')
+    }
+
+    return await response.json()
   }
 
   /** Update details for the current organization. */
@@ -750,11 +753,15 @@ export default class RemoteBackend extends Backend {
    * Restore an arbitrary asset from the trash.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  override async undoDeleteAsset(assetId: backend.AssetId, title: string): Promise<void> {
+  override async undoDeleteAsset(
+    assetId: backend.AssetId,
+    parentDirectoryId: backend.DirectoryId | null,
+  ): Promise<void> {
     const path = remoteBackendPaths.UNDO_DELETE_ASSET_PATH
-    const response = await this.patch(path, { assetId })
+    const response = await this.patch(path, { assetId, parentDirectoryId })
+
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'undoDeleteAssetBackendError', title)
+      return await this.throw(response, 'undoDeleteAssetBackendError')
     } else {
       return
     }

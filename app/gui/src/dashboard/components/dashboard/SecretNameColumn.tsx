@@ -7,9 +7,9 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
-import { useSetModal } from '#/providers/ModalProvider'
+import { setModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
-import { isAssetCredential, isNewTitleUnique, type SecretAsset } from '#/services/Backend'
+import { isAssetCredential, titleSchema, type SecretAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
@@ -27,7 +27,6 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
 
   const toastAndLog = useToastAndLog()
   const { getText } = useText()
-  const { setModal } = useSetModal()
   const getAssetChildren = useGetAssetChildren()
 
   const updateSecretMutation = useMutationCallback(backendMutationOptions(backend, 'updateSecret'))
@@ -83,9 +82,10 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         onCancel={() => {
           setIsEditing(false)
         }}
-        schema={(z) =>
-          z.refine((value) => isNewTitleUnique(item, value, getAssetChildren(item.parentId)), {
-            message: getText('nameShouldBeUnique'),
+        schema={() =>
+          titleSchema({
+            asset: item,
+            siblings: getAssetChildren(item.parentId),
           })
         }
       >

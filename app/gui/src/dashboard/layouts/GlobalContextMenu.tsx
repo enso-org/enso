@@ -57,7 +57,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
   const driveStore = useDriveStore()
   const hasPasteData = useStore(
     driveStore,
-    (storeState) => (storeState.pasteData?.data.ids.size ?? 0) > 0,
+    (storeState) => (storeState.pasteData?.data.assets.length ?? 0) > 0,
   )
 
   const newFolderRaw = useNewFolder(backend, category)

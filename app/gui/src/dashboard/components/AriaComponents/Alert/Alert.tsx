@@ -1,11 +1,10 @@
 /** @file Alert component. */
 import { type ForwardedRef, type HTMLAttributes, type PropsWithChildren } from 'react'
 
-import SvgMask from '#/components/SvgMask'
-
 import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-
+import { Icon } from '../../Icon'
+import type { IconProp } from '../types'
 // eslint-disable-next-line react-refresh/only-export-components
 export const ALERT_STYLES = tv({
   base: 'flex items-stretch gap-2',
@@ -37,9 +36,8 @@ export const ALERT_STYLES = tv({
     },
   },
   slots: {
-    iconContainer: 'flex items-center justify-center w-6 h-6',
+    iconContainer: 'mt-1',
     children: 'flex flex-col items-stretch',
-    icon: 'flex items-center justify-center w-6 h-6 mr-2',
   },
   defaultVariants: {
     fullWidth: true,
@@ -50,17 +48,17 @@ export const ALERT_STYLES = tv({
 })
 
 /** Props for an {@link Alert}. */
-export interface AlertProps
+export interface AlertProps<IconType extends string = string>
   extends PropsWithChildren,
     VariantProps<typeof ALERT_STYLES>,
     HTMLAttributes<HTMLDivElement> {
   /** The icon to display in the Alert */
-  readonly icon?: React.ReactElement | string | null | undefined
+  readonly icon?: IconProp<IconType> | null | undefined
 }
 
 /** Alert component. */
-export const Alert = forwardRef(function Alert(
-  props: AlertProps,
+export const Alert = forwardRef(function Alert<IconType extends string = string>(
+  props: AlertProps<IconType>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   const {
@@ -95,17 +93,7 @@ export const Alert = forwardRef(function Alert(
       role={role}
       {...containerProps}
     >
-      {icon != null &&
-        (() => {
-          if (typeof icon === 'string') {
-            return (
-              <div className={classes.iconContainer()}>
-                <SvgMask src={icon} />
-              </div>
-            )
-          }
-          return <div className={classes.iconContainer()}>{icon}</div>
-        })()}
+      {icon != null && <Icon icon={icon} size="medium" className={classes.iconContainer()} />}
 
       <div className={classes.children()}>{children}</div>
     </div>
