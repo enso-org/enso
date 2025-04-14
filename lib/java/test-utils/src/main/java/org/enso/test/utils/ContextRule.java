@@ -158,8 +158,22 @@ public final class ContextRule implements TestRule, AutoCloseable {
    * Evaluates the given source as if it was in a module with given name.
    *
    * @param src The source code of the module
+   * @param moduleName Name of the module, for which the source will be created and evaluated.
+   *     Should start with capital letter.
+   * @param methodName Name of the method to invoke.
+   * @return The value returned from the {@code methodName} method of the module.
+   */
+  public Value evalModule(CharSequence src, String moduleName, String methodName) {
+    var source = Source.newBuilder(LanguageInfo.ID, src, moduleName).buildLiteral();
+    return evalModule(source, methodName);
+  }
+
+  /**
+   * Evaluates the given source as if it was in a module with given name.
+   *
+   * @param src The source code of the module
    * @param methodName name of main method to invoke
-   * @return The value returned from the main method of the unnamed module.
+   * @return The value returned from the {@code methodName} method of the unnamed module.
    */
   public Value evalModule(CharSequence src, String methodName) {
     var source = Source.create(LanguageInfo.ID, src);
