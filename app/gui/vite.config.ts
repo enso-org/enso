@@ -75,7 +75,13 @@ export default defineConfig({
   },
   server: {
     warmup: {
-      clientFiles: ['./src/**/*.vue', './src/**/*.tsx'],
+      // Warming server up ***significantly*** speeds up execution of the first batch of tests in dev mode.
+      clientFiles: [
+        './src/**/*.vue',
+        './src/**/*.tsx',
+        './src/dashboard/hooks/**/*.ts',
+        './src/dashboard/tailwind.css',
+      ],
     },
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',

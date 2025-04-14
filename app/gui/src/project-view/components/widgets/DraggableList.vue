@@ -292,7 +292,6 @@ function areaOnDrop(e: DragEvent) {
   e.preventDefault()
   e.stopImmediatePropagation()
 
-  // let insertIndex = index
   if (draggedIndex.value != null) {
     emit('reorder', draggedIndex.value, index)
   } else {
@@ -386,9 +385,7 @@ function deleteItem(index: number) {
   emit('remove', index)
 }
 
-const placeholderSizeProp = computed(() =>
-  props.axis === 'x' ? '--placeholder-width' : '--placeholder-height',
-)
+const placeholderSizeProp = computed(() => `--placeholder-${props.axis}` as const)
 </script>
 
 <template>
@@ -481,8 +478,8 @@ const placeholderSizeProp = computed(() =>
 .DraggableList {
   display: flex;
   list-style: none;
-  --placeholder-width: 0;
-  --placeholder-height: 0;
+  --placeholder-x: 0;
+  --placeholder-y: 0;
 
   &.axis-x {
     align-items: center;
@@ -497,8 +494,8 @@ const placeholderSizeProp = computed(() =>
 .DraggableList.animate {
   .placeholder {
     display: flex;
-    width: var(--placeholder-width);
-    height: var(--placeholder-height);
+    width: var(--placeholder-x);
+    height: var(--placeholder-y);
   }
 
   .item.list-leave-active {

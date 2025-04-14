@@ -645,11 +645,13 @@ const nodeName = computed(() => props.node.pattern?.code())
   color: black;
   position: absolute;
   right: 100%;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  bottom: 0;
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
 }
 
 .selected .binding {

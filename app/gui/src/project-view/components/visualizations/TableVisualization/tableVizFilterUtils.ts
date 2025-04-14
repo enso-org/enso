@@ -1,4 +1,4 @@
-import type { FilterModel } from 'ag-grid-community'
+import type { FilterModel } from 'ag-grid-enterprise'
 
 export type FilterType = 'number' | 'date' | 'set' | 'text'
 

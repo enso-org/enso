@@ -29,21 +29,24 @@
 /* eslint-disable vue/require-prop-types */
 /* eslint-disable vue/order-in-components */
 
-import type { AgEventType, GridApi, GridOptions, IRowNode, Module } from 'ag-grid-community'
 import {
-  ALWAYS_SYNC_GLOBAL_EVENTS,
-  ComponentUtil,
   _combineAttributesAndGridOptions,
   _processOnChange,
   _warnOnce,
+  ALWAYS_SYNC_GLOBAL_EVENTS,
+  ComponentUtil,
   createGrid,
-} from 'ag-grid-community'
+  LicenseManager,
+  type AgEventType,
+  type GridApi,
+  type GridOptions,
+  type IRowNode,
+  type Module,
+} from 'ag-grid-enterprise'
 import { defineComponent, getCurrentInstance, h, markRaw, toRaw, type PropType } from 'vue'
 import { convertToRaw, getAgGridProperties, type Properties } from './Utils'
 
 // === Loading AGGrid and its license ===
-
-const { LicenseManager } = await import('ag-grid-enterprise')
 
 if (typeof $config.AG_GRID_LICENSE_KEY !== 'string') {
   console.warn('The AG_GRID_LICENSE_KEY is not defined.')

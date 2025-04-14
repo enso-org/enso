@@ -233,9 +233,6 @@ importers:
       ag-grid-enterprise:
         specifier: ^32.3.3
         version: 32.3.3
-      ag-grid-vue3:
-        specifier: ^32.3.3
-        version: 32.3.3(typescript@5.7.2)
       ajv:
         specifier: ^8.17.1
         version: 8.17.1
@@ -3592,9 +3589,6 @@ packages:
 
   ag-grid-enterprise@32.3.3:
     resolution: {integrity: sha512-Seb3ha74qiTUXznL/Xzu948jsEfrYx/ndkds2l0LrQBRUK1gV6O8IkHfTTfvoWZQf+Za6RNgOjiy9GdxO0YDfQ==}
-
-  ag-grid-vue3@32.3.3:
-    resolution: {integrity: sha512-Sqlm1YenSUvqxFoMmJUZE7ksj0VJQEd7JmRuR+f4caprRZv3TdcN7zWvC/QNnd3CLXXeBnulLegovHatMmwLfg==}
 
   agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
@@ -11719,13 +11713,6 @@ snapshots:
     dependencies:
       ag-charts-community: 10.3.3
       ag-grid-community: 32.3.3
-
-  ag-grid-vue3@32.3.3(typescript@5.7.2):
-    dependencies:
-      ag-grid-community: 32.3.3
-      vue: 3.5.13(typescript@5.7.2)
-    transitivePeerDependencies:
-      - typescript
 
   agent-base@6.0.2:
     dependencies:

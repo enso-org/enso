@@ -82,7 +82,6 @@
     "@vueuse/gesture": "^2.0.0",
     "ag-grid-community": "^32.3.3",
     "ag-grid-enterprise": "^32.3.3",
-    "ag-grid-vue3": "^32.3.3",
     "ajv": "^8.17.1",
     "amazon-cognito-identity-js": "6.3.6",
     "babel-plugin-react-compiler": "19.0.0-beta-63e3235-20250105",
