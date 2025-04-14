@@ -21,7 +21,7 @@ public final class ContextUtils {
 
   private ContextUtils() {}
 
-  public static EnsoContext leakContext(Context ctx) {
+  static EnsoContext leakContext(Context ctx) {
     return ctx.getBindings(LanguageInfo.ID)
         .invokeMember(TopScope.LEAK_CONTEXT)
         .as(EnsoContext.class);

@@ -10,6 +10,7 @@ import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames.TopScope;
 import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.graalvm.polyglot.Context;
@@ -142,12 +143,11 @@ public final class ContextRule implements TestRule, AutoCloseable {
     return currentCtx();
   }
 
-  /**
-   * @see ContextUtils#leakContext(Context)
-   */
   public EnsoContext leakContext() {
     var ctx = currentCtx();
-    return ContextUtils.leakContext(ctx);
+    return ctx.getBindings(LanguageInfo.ID)
+        .invokeMember(TopScope.LEAK_CONTEXT)
+        .as(EnsoContext.class);
   }
 
   public Engine getEngine() {
