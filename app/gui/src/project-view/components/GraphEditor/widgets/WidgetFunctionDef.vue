@@ -9,8 +9,10 @@ import { useGraphStore } from '@/stores/graph'
 import { DocumentationData } from '@/stores/suggestionDatabase/documentation'
 import { Ast } from '@/util/ast'
 import { type MethodPointer } from '@/util/methodPointer'
+import { isDef } from '@vueuse/core'
 import { computed, Ref } from 'vue'
 import { newArgumentDefinition } from 'ydoc-shared/ast'
+import { assertUnreachable } from 'ydoc-shared/util/assert'
 
 const { input, onUpdate } = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -28,8 +30,20 @@ function doEdit(editFn: (ast: Ast.MutableFunctionDef) => void) {
 function handleAddItem() {
   if (input.editHandler?.addItem()) return
   doEdit((ast) =>
-    ast.pushArgumentDefinitions(newArgumentDefinition(`arg${ast.argumentDefinitions.length + 1}`)),
+    ast.pushArgumentDefinitions(
+      newArgumentDefinition(
+        nextArgName(ast.argumentDefinitions.map((a) => a.pattern.node.code()).filter(isDef)),
+      ),
+    ),
   )
+}
+
+function nextArgName(existingNames: string[]): string {
+  for (let i = 1; ; i++) {
+    const proposedName = `arg${i}`
+    if (!existingNames.includes(proposedName)) return proposedName
+  }
+  assertUnreachable()
 }
 
 function handleRemove(index: number) {
