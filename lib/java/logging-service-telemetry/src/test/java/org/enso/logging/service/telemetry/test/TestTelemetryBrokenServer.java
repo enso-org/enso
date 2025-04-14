@@ -4,8 +4,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 
-import com.sun.net.httpserver.Headers;
-import com.sun.net.httpserver.HttpHandlers;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -106,8 +106,15 @@ public class TestTelemetryBrokenServer {
 
     void start() {
       var handler =
-          HttpHandlers.of(
-              500, Headers.of("Content-Type", "application/text"), "Internal server error");
+          new HttpHandler() {
+            @Override
+            public void handle(HttpExchange exchange) throws IOException {
+              var bodyBytes = "Internal server error".getBytes();
+              exchange.getResponseHeaders().add("Content-Type", "application/text");
+              exchange.getResponseBody().write(bodyBytes);
+              exchange.sendResponseHeaders(500, bodyBytes.length);
+            }
+          };
       server.createContext("/", handler);
       server.start();
     }

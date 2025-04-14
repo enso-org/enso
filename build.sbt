@@ -1144,7 +1144,7 @@ lazy val `logging-service-telemetry` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
-    customFrgaalJavaCompilerSettings("21"),
+    frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
     version := "0.1",
