@@ -3,25 +3,18 @@ package org.enso.table.read;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
-import org.enso.table.error.EmptyFileException;
 import org.enso.table.parsing.DatatypeParser;
-import org.enso.table.parsing.TypeInferringParser;
 import org.enso.table.parsing.problems.CommonParseProblemAggregator;
-import org.enso.table.parsing.problems.NoOpParseProblemAggregator;
 import org.enso.table.parsing.problems.ParseProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -45,19 +38,21 @@ public class FixedWidthReader {
       ProblemAggregator problemAggregator) {
 
     if (invalidRowsBehavior == InvalidRowsBehavior.ADD_EXTRA_COLUMNS) {
-      throw new IllegalArgumentException("FixedWidthReader does not allow InvalidRowsBehavior.ADD_EXTRA_COLUMNS");
+      throw new IllegalArgumentException(
+          "FixedWidthReader does not allow InvalidRowsBehavior.ADD_EXTRA_COLUMNS");
     }
 
     if (layoutEntries.size() == 0) {
-        throw new IllegalArgumentException("Must specify at least one column");
+      throw new IllegalArgumentException("Must specify at least one column");
     }
 
     this.layoutEntries = layoutEntries;
     this.invalidRowsBehavior = invalidRowsBehavior;
     this.valueParser = valueParser;
-    this.problemAggregator = new FixedWidthReaderProblemAggregator(problemAggregator, warningsAsErrors);
+    this.problemAggregator =
+        new FixedWidthReaderProblemAggregator(problemAggregator, warningsAsErrors);
 
-    minimumLineLength = layoutEntries.get(layoutEntries.size()-1).end(); 
+    minimumLineLength = layoutEntries.get(layoutEntries.size() - 1).end();
   }
 
   public Table read(Reader reader) throws IOException {
@@ -69,7 +64,7 @@ public class FixedWidthReader {
       String line = bufferedReader.readLine();
 
       if (line == null) {
-          break;
+        break;
       }
 
       addRow(line);
@@ -81,7 +76,8 @@ public class FixedWidthReader {
   private void addRow(String line) {
     if (line.length() < minimumLineLength) {
       var trn = invalidRowsBehavior == InvalidRowsBehavior.KEEP ? tableRowNumber : null;
-      problemAggregator.reportShortLine(sourceLineNumber, tableRowNumber, line.length(), minimumLineLength);
+      problemAggregator.reportShortLine(
+          sourceLineNumber, tableRowNumber, line.length(), minimumLineLength);
     }
 
     if (line.length() < minimumLineLength && invalidRowsBehavior == InvalidRowsBehavior.DROP) {
@@ -96,7 +92,7 @@ public class FixedWidthReader {
       if (entry.end() > line.length()) {
         assert invalidRowsBehavior == InvalidRowsBehavior.KEEP;
         builders.get(i).append("");
-      }  else {
+      } else {
         builders.get(i).append(line.substring(entry.start, entry.end()));
       }
     }
@@ -129,19 +125,19 @@ public class FixedWidthReader {
   private static final int INITIAL_ROW_CAPACITY = 100;
 
   private void initBuilders(int count) {
-      builders = new ArrayList<>(count);
-      for (int i = 0; i < count; i++) {
-          builders.add(constructBuilder(INITIAL_ROW_CAPACITY));
-      }
+    builders = new ArrayList<>(count);
+    for (int i = 0; i < count; i++) {
+      builders.add(constructBuilder(INITIAL_ROW_CAPACITY));
+    }
   }
 
   private BuilderForType<String> constructBuilder(long initialCapacity) {
-      return Builder.getForText(TextType.VARIABLE_LENGTH, initialCapacity);
+    return Builder.getForText(TextType.VARIABLE_LENGTH, initialCapacity);
   }
 
   public record FixedWidthLayoutEntry(String columnName, int start, int width) {
     public int end() {
-        return start + width;
+      return start + width;
     }
   }
 }

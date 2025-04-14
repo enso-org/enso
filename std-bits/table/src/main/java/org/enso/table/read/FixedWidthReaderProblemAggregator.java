@@ -10,9 +10,7 @@ public class FixedWidthReaderProblemAggregator extends ProblemAggregator {
   private long invalidRowsCount;
   private final long invalidRowsLimit = 10;
 
-  public FixedWidthReaderProblemAggregator(
-      ProblemAggregator parent,
-      boolean warningsAsErrors) {
+  public FixedWidthReaderProblemAggregator(ProblemAggregator parent, boolean warningsAsErrors) {
     super(parent);
     this.warningsAsErrors = warningsAsErrors;
   }
@@ -26,12 +24,14 @@ public class FixedWidthReaderProblemAggregator extends ProblemAggregator {
     }
   }
 
-  public void reportShortLine(long sourceLineNumber, Long tableRowNumber, long lineLength, long minimumLineLength) {
+  public void reportShortLine(
+      long sourceLineNumber, Long tableRowNumber, long lineLength, long minimumLineLength) {
     if (invalidRowsCount >= invalidRowsLimit) {
       return;
     }
 
-    report(new InvalidFixedWidthRow(sourceLineNumber, tableRowNumber, lineLength, minimumLineLength));
+    report(
+        new InvalidFixedWidthRow(sourceLineNumber, tableRowNumber, lineLength, minimumLineLength));
 
     invalidRowsCount++;
   }
