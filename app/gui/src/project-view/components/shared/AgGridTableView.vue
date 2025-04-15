@@ -123,7 +123,7 @@ const props = defineProps<{
   datasource?: IServerSideDatasource | boolean
   rowCount?: number
   isServerSideModel?: boolean
-  gridIdHash: string | null
+  gridIdHash?: string | null
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]

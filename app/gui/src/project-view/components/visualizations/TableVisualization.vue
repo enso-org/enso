@@ -390,13 +390,19 @@ function createServer() {
   }
 }
 
+interface Response {
+  data: unknown[][]
+  success: boolean
+  rowCount: number
+}
 function createServerSideDatasource(): IServerSideDatasource {
   return {
     getRows: async (params) => {
       const server = ssrmServer.value
       if (server) {
-        const response = await server.getData(params.request)
-        if (response && response.success) {
+        const serverResponse = await server.getData(params.request)
+        const response: Response = serverResponse ? serverResponse : {data: [], success: false, rowCount: 0}
+        if (response.success) {
           const rows = createRowsForTable(response.data, 0, true)
           params.success({ rowData: rows, rowCount: response.rowCount })
         } else {
