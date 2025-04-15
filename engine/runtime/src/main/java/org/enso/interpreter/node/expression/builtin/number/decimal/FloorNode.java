@@ -1,32 +1,23 @@
 package org.enso.interpreter.node.expression.builtin.number.decimal;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.polyglot.common_utils.Core_Math_Utils;
 
 @BuiltinMethod(
     type = "Float",
     name = "floor",
     description = "Float floor, converting to a small or big integer depending on size.")
-public abstract class FloorNode extends FloatNode {
-  static FloorNode build() {
-    return FloorNodeGen.create();
-  }
-
+public class FloorNode extends FloatNode {
   private final CountingConditionProfile fitsProfile = CountingConditionProfile.create();
 
-  abstract Object execute(double own);
-
-  @Specialization(limit = "1")
-  Object doDouble(double own, @CachedLibrary(value = "own") InteropLibrary interop) {
+  Object execute(double own) {
     double floor = Math.floor(own);
-    if (fitsProfile.profile(interop.fitsInLong(floor))) {
+    if (fitsProfile.profile(Core_Math_Utils.fitsInLong(floor))) {
       return (long) floor;
     } else {
       return new EnsoBigInteger(floor(floor));
