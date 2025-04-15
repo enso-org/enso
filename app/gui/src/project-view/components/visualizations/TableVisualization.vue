@@ -401,7 +401,8 @@ function createServerSideDatasource(): IServerSideDatasource {
       const server = ssrmServer.value
       if (server) {
         const serverResponse = await server.getData(params.request)
-        const response: Response = serverResponse ? serverResponse : {data: [], success: false, rowCount: 0}
+        const response: Response =
+          serverResponse ? serverResponse : { data: [], success: false, rowCount: 0 }
         if (response.success) {
           const rows = createRowsForTable(response.data, 0, true)
           params.success({ rowData: rows, rowCount: response.rowCount })
