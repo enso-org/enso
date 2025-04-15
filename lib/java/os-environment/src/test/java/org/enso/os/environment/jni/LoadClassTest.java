@@ -3,6 +3,10 @@ package org.enso.os.environment.jni;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
 import org.enso.os.environment.jni.JNI.JValue;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
@@ -10,11 +14,22 @@ import org.junit.Test;
 
 public class LoadClassTest {
   private static final String PATH = System.getProperty("java.home");
+  private static final URI JAR;
+
+  static {
+    try {
+      JAR = LoadClassTest.class.getProtectionDomain().getCodeSource().getLocation().toURI();
+    } catch (URISyntaxException ex) {
+      throw new IllegalStateException(ex);
+    }
+  }
+
   private static JVM jvm;
 
   private static JNI.JNIEnv env() {
     if (jvm == null) {
-      jvm = JVM.create(PATH, "-Dsay=Ahoj");
+      var cp = new File(JAR);
+      jvm = JVM.create(PATH, "-Dsay=Ahoj", "-Djava.class.path=" + cp);
     }
     return jvm.env();
   }
@@ -86,5 +101,14 @@ public class LoadClassTest {
       assertEquals("Ahoj", CTypeConversion.toJavaString(chars));
       strReleaseFn.call(env, res, chars);
     }
+  }
+
+  @Test
+  public void executeMainClass() throws Exception {
+    var out = File.createTempFile("check-main", ".log");
+    jvm.executeMain("org/enso/os/environment/jni/TestMain", out.getPath());
+    var content = Files.readString(out.toPath());
+    assertEquals("Ciao", content);
+    out.delete();
   }
 }
