@@ -19,7 +19,7 @@ import org.enso.table.data.column.storage.type.NullType;
 public abstract class NumericUnaryOperation implements UnaryOperation {
 
   @Override
-  public boolean canApply(ColumnStorage<?> storage) {
+  public final boolean canApply(ColumnStorage<?> storage) {
     return switch (storage.getType()) {
       case IntegerType ignored -> true;
       case FloatType ignored -> true;
@@ -31,7 +31,7 @@ public abstract class NumericUnaryOperation implements UnaryOperation {
   }
 
   @Override
-  public ColumnStorage<?> apply(
+  public final ColumnStorage<?> apply(
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     if (storage.getType() instanceof NullType) {
       return new NullStorage(Math.toIntExact(storage.getSize()));

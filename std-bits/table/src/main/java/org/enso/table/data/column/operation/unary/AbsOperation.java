@@ -4,8 +4,10 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.table.data.column.operation.UnaryOperation;
 
-public class AbsOperation extends NumericUnaryOperation {
+public final class AbsOperation extends NumericUnaryOperation {
   public static final UnaryOperation INSTANCE = new AbsOperation();
+
+  private AbsOperation() {}
 
   @Override
   public String getName() {

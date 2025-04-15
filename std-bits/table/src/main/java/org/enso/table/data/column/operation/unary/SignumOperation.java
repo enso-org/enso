@@ -16,8 +16,10 @@ import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
 
-public class SignumOperation implements UnaryOperation {
+public final class SignumOperation implements UnaryOperation {
   public static final UnaryOperation INSTANCE = new SignumOperation();
+
+  private SignumOperation() {}
 
   @Override
   public String getName() {
