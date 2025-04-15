@@ -312,7 +312,17 @@ public final class ContextUtils implements TestRule, AutoCloseable {
    */
   public Value getMethodFromModule(String moduleSrc, String methodName) {
     var module = currentCtx().eval(LanguageInfo.ID, moduleSrc);
-    return module.invokeMember(Module.EVAL_EXPRESSION, methodName);
+    Value method;
+    if (methodName.equals("main")) {
+      var assocType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
+      method = module.invokeMember(Module.GET_METHOD, assocType, methodName);
+    } else {
+      method = module.invokeMember(Module.EVAL_EXPRESSION, methodName);
+    }
+    if (!method.canExecute()) {
+      throw new AssertionError("Method " + method + " should be executable");
+    }
+    return method;
   }
 
   /**
