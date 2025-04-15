@@ -99,7 +99,7 @@ public final class SignumOperation implements UnaryOperation {
   }
 
   private long signum(long x) {
-    return Long.compare(x, 0);
+    return Long.signum(x);
   }
 
   private double signum(double x) {
