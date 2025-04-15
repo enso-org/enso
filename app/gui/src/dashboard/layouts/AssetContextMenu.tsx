@@ -1,11 +1,8 @@
 /** @file The context menu for an arbitrary {@link backendModule.Asset}. */
 import * as React from 'react'
 
-import * as toast from 'react-toastify'
-
 import { useCopy } from '#/hooks/copyHooks'
 import * as projectHooks from '#/hooks/projectHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -24,7 +21,6 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 
 import * as backendModule from '#/services/Backend'
-import * as localBackendModule from '#/services/LocalBackend'
 
 import { ContextMenuEntry as PaywallContextMenuEntry } from '#/components/Paywall'
 import {
@@ -33,8 +29,7 @@ import {
   downloadAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useNewProject } from '#/hooks/backendHooks'
-import { useUploadFileWithToastMutation } from '#/hooks/backendUploadFilesHooks'
+import { useNewProject, useUploadToCloud } from '#/hooks/backendHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { usePasteData } from '#/providers/DriveProvider'
 import * as featureFlagsProvider from '#/providers/FeatureFlagsProvider'
@@ -73,10 +68,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const canOpenProjects = projectHooks.useCanOpenProjects()
   const { user } = authProvider.useFullUserSession()
   const { setModal } = modalProvider.useSetModal()
-  const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const { getText } = textProvider.useText()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const setAssetPanelProps = useSetAssetPanelProps()
   const openProjectNatively = projectHooks.useOpenProjectNatively()
@@ -89,7 +82,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const path = asset.ensoPathValue
   const copyMutation = useCopy()
-  const uploadFileToCloudMutation = useUploadFileWithToastMutation(remoteBackend)
+  const uploadToCloud = useUploadToCloud()
   const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined
   const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
 
@@ -276,33 +269,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             isUnderPaywall={!canUploadToCloud}
             feature="uploadToCloud"
             action="uploadToCloud"
-            doAction={async () => {
-              try {
-                // Folder's id matches the pattern `<type>-<Full Path>`, i.e. `directory-/Users/user/enso/folder 1`
-                const parentDirectoryPath = localBackendModule.extractTypeAndId(asset.parentId).id
-
-                const projectResponse = await fetch(
-                  `./api/project-manager/projects/${localBackendModule.extractTypeAndId(asset.id).id}/enso-project?projectsDirectory=${parentDirectoryPath}`,
-                )
-
-                if (!projectResponse.ok) {
-                  throw new Error('Something went wrong, please try again')
-                }
-
-                const fileName = `${asset.title}.enso-project`
-                await uploadFileToCloudMutation.mutateAsync([
-                  {
-                    fileName,
-                    fileId: null,
-                    parentDirectoryId: null,
-                  },
-                  new File([await projectResponse.blob()], fileName),
-                ])
-                toast.toast.success(getText('uploadProjectToCloudSuccess'))
-              } catch (error) {
-                toastAndLog('uploadProjectToCloudError', error)
-              }
-            }}
+            doAction={() => uploadToCloud(asset)}
           />
         )}
         {canExecute && !isRunningProject && !isOtherUserUsingProject && (
