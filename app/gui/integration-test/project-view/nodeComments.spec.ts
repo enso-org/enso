@@ -121,7 +121,7 @@ test('Long comment displays wrapped', async ({ page }) => {
   await nodeComment.click()
   await page.keyboard.press(`${CONTROL_KEY}+A`)
   const NEW_COMMENT = 'long comment '.repeat(30)
-  await nodeComment.fill(NEW_COMMENT )
+  await nodeComment.fill(NEW_COMMENT)
   await page.keyboard.press(`Enter`)
   await expect(nodeComment).not.toBeFocused()
   await expect(nodeComment).toHaveText(NEW_COMMENT)
