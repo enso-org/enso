@@ -7,7 +7,7 @@ use std::sync::LazyLock;
 
 // Taken from the official semver description:
 // https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
-const SEMVER_REGEX_CODE: &str = r"(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?";
+const SEMVER_REGEX_CODE: &str = r"(?P<major>0|[1-9]\d*)\.?(?P<minor>0|[1-9]\d*)?\.?(?P<patch>0|[1-9]\d*)?(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?";
 
 /// Regular expression that matches a semver within a text.
 static SEMVER_REGEX: LazyLock<Regex> = LazyLock::new(||
@@ -27,8 +27,17 @@ impl IsVersion for Version {
     fn find_in_text_internal(text: &str) -> Result<Self> {
         let matched =
             SEMVER_REGEX.find(text).context("No semver-like substring found within the text.")?;
-        let version_text = matched.as_str();
-        Ok(Version::from_str(version_text)?)
+        let mut version_text = matched.as_str().to_owned();
+        let captures = SEMVER_REGEX.captures(text).context("Failed to capture semver groups.")?;
+        let major = captures.name("major").context("Failed to capture major version")?;
+        if captures.name("minor") == None && captures.name("patch") == None {
+            // Fill in minor and patch version, and construct the rest of the text
+            let rest_of_text = &text[major.end()..matched.end()];
+            let new_version_text = format!("{}.0.0{}", major.as_str(), rest_of_text);
+            version_text = new_version_text;
+            println!("Version text: {}", version_text);
+        }
+        Ok(Version::from_str(version_text.as_str())?)
     }
 }
 

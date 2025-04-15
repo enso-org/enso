@@ -273,6 +273,20 @@ Java HotSpot(TM) 64-Bit Server VM Oracle GraalVM 21.0.2+13.1 (build 21.0.2+13-LT
         assert_eq!(graal_version, expected_graal_version);
     }
 
+    #[test]
+    fn recognize_oneline_version_without_minor() {
+        let version_line = "OpenJDK Runtime Environment GraalVM CE 24+36.1 (build 24+36-jvmci-b01)";
+        let graal_version = Version::find_in_text(version_line).unwrap();
+        let expected_graal_version = Version {
+            major: 24,
+            minor: 0,
+            patch: 0,
+            pre:   Prerelease::EMPTY,
+            build: BuildMetadata::new("36.1").unwrap(),
+        };
+        assert_eq!(graal_version, expected_graal_version);
+    }
+
     #[tokio::test]
     async fn correct_url_for_enterprise_edition_21() {
         let graalvm = GraalVM {
