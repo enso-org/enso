@@ -12,6 +12,7 @@ import type {
   CellClassParams,
   CellDoubleClickedEvent,
   ColDef,
+  ColumnVisibleEvent,
   ICellRendererParams,
   IServerSideDatasource,
   IServerSideGetRowsRequest,
@@ -145,9 +146,11 @@ const pageLimit = ref(0)
 const rowCount = ref(0)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
-const isCreateNodeEnabled = ref(false)
+const isCreateFilterAndSortNodeEnabled = ref(false)
+const isCreateColumnNodeEnabled = ref(false)
 const filterModel = ref<GridFilterModel[]>([])
 const sortModel = ref<SortModel[]>([])
+const hiddenColumns = ref<string[]>([])
 const defaultColDef: Ref<ColDef> = ref({
   editable: false,
   sortable: true,
@@ -260,7 +263,7 @@ watchEffect(() =>
   ),
 )
 
-const isFilterSortNodeEnabled = computed(
+const isCreateNewNodeEnabled = computed(
   () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
 )
 
@@ -942,7 +945,7 @@ function checkSortAndFilter(e: SortChangedEvent) {
   const gridApi = e.api
   if (gridApi == null) {
     console.warn('AG Grid column API does not exist.')
-    isCreateNodeEnabled.value = false
+    isCreateFilterAndSortNodeEnabled.value = false
     return
   }
   const colState = gridApi.getColumnState()
@@ -960,14 +963,20 @@ function checkSortAndFilter(e: SortChangedEvent) {
     .filter((sort) => sort)
   const filter = makeFilterModelList(gridFilterModel)
   if (sort.length || filter.length) {
-    isCreateNodeEnabled.value = true
+    isCreateFilterAndSortNodeEnabled.value = true
     sortModel.value = sort as SortModel[]
     filterModel.value = filter
   } else {
-    isCreateNodeEnabled.value = false
+    isCreateFilterAndSortNodeEnabled.value = false
     sortModel.value = []
     filterModel.value = []
   }
+}
+
+const onColumnStateChange = (e: ColumnVisibleEvent) => {
+  const colState = e.api.getColumnState()
+  hiddenColumns.value = colState.filter(col => col.hide).map(col => col.colId)
+  isCreateColumnNodeEnabled.value = hiddenColumns.value.length > 0
 }
 
 // ===============
@@ -986,10 +995,12 @@ config.setToolbar(
     textFormatterSelected,
     filterModel,
     sortModel,
-    isDisabled: () => !isCreateNodeEnabled.value,
-    isFilterSortNodeEnabled,
+    isFilterAndSortDisabled: () => !isCreateFilterAndSortNodeEnabled.value,
+    isColumnDisabled: () => !isCreateColumnNodeEnabled.value,
+    isCreateNewNodeEnabled,
     createNodes: config.createNodes,
     getColumnValueToEnso,
+    hiddenColumns
   }),
 )
 </script>
@@ -1035,6 +1046,7 @@ config.setToolbar(
         :isServerSideModel="isSSRM"
         :statusBar="statusBar"
         @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
+        @columnStateChanged="(e) => onColumnStateChange(e)"
       />
     </Suspense>
   </div>
