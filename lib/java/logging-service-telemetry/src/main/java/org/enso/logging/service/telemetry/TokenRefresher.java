@@ -23,7 +23,7 @@ public final class TokenRefresher {
 
   /**
    * The amount of time before the token expiration that we pro-actively refresh it to reduce the
-   * cahnce of it expiring during a request.
+   * chance of it expiring during a request.
    */
   private static final Duration TOKEN_EARLY_REFRESH_PERIOD = Duration.ofMinutes(2);
 
