@@ -135,4 +135,13 @@ public final class Core_Math_Utils {
       return roundUp ? resultUnnudged - scale : resultUnnudged;
     }
   }
+
+  public static boolean fitsInLong(double decimal) {
+    var nulaMinus = Double.doubleToRawLongBits(-0d);
+    if (nulaMinus == Double.doubleToRawLongBits(decimal)) {
+      return false;
+    }
+    var converted = (long) decimal;
+    return converted != Long.MAX_VALUE && converted == decimal;
+  }
 }
