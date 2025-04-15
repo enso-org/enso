@@ -23,6 +23,7 @@ import {
   deleteAssetsMutationOptions,
   downloadAssetsMutationOptions,
   getAllTrashedItems,
+  useUploadAssetsToCloud,
 } from '#/hooks/backendBatchedHooks'
 import {
   backendMutationOptions,
@@ -41,17 +42,24 @@ import {
   isCloudCategory,
   type Category,
 } from '#/layouts/CategorySwitcher/Category'
+import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
-import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
+import {
+  useCanDownload,
+  useDriveStore,
+  usePasteData,
+  useSelectedIds,
+} from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import type { CredentialConfig } from '#/services/Backend'
+import { AssetType, type CredentialConfig } from '#/services/Backend'
+import { extractTypeAndId } from '#/services/LocalBackend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
@@ -296,6 +304,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 aria-label={getText('uploadFiles')}
                 onPress={uploadFilesCallback}
               />
+              <UploadFilesToCloudButton category={category} />
               <Button
                 isDisabled={!canDownload}
                 variant="icon"
@@ -368,5 +377,42 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
 
       {children}
     </ButtonGroup>
+  )
+}
+
+/** Props for {@link UploadFilesToCloudButton}. */
+export interface UploadFilesToCloudButtonProps {
+  readonly category: Category
+}
+
+/** A button to upload assets to the cloud. */
+function UploadFilesToCloudButton(props: UploadFilesToCloudButtonProps) {
+  const { category } = props
+
+  const getAsset = useGetAsset()
+  const { getText } = useText()
+  const selectedIds = useSelectedIds()
+  const uploadFilesToCloud = useUploadAssetsToCloud()
+  const isCloud = isCloudCategory(category)
+  const isDisabled =
+    isCloud || [...selectedIds].some((id) => extractTypeAndId(id).type !== AssetType.project)
+
+  const uploadFilesToCloudCallback = useEventCallback(async () => {
+    const files = [...selectedIds].flatMap((id) => {
+      const asset = getAsset(id)
+      return asset ? [asset] : []
+    })
+    await uploadFilesToCloud(Array.from(files))
+  })
+
+  return (
+    <Button
+      variant="icon"
+      size="medium"
+      icon={DataUploadIcon}
+      isDisabled={isDisabled}
+      aria-label={getText('uploadFilesToCloud')}
+      onPress={uploadFilesToCloudCallback}
+    />
   )
 }
