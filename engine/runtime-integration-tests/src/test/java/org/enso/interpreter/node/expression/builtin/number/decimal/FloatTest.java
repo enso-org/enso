@@ -51,63 +51,39 @@ public class FloatTest {
 
   @Test
   public void testAbs23() {
-    ctxRule.executeInContext(
-        () -> {
-          assertEquals(23.1, absNode.execute(23.1), 0.01);
-          assertEquals(23.1, absNode.execute(-23.1), 0.01);
-          return null;
-        });
+    assertEquals(23.1, absNode.execute(23.1), 0.01);
+    assertEquals(23.1, absNode.execute(-23.1), 0.01);
   }
 
   @Test
   public void testAdd21And1Point0() {
-    ctxRule.executeInContext(
-        () -> {
-          assertEquals(23.1, addNode.execute(22.0, 1.1), 0.01);
-          return null;
-        });
+    assertEquals(23.1, addNode.execute(22.0, 1.1), 0.01);
   }
 
   @Test
   public void testAdd21And1() {
-    ctxRule.executeInContext(
-        () -> {
-          assertEquals(23.1, addNode.execute(22.1, 1L), 0.01);
-          return null;
-        });
+    assertEquals(23.1, addNode.execute(22.1, 1L), 0.01);
   }
 
   @Test
   public void testAddMulti21And1() {
-    ctxRule.executeInContext(
-        () -> {
-          var nn = EnsoMultiValue.NewNode.getUncached();
-          var leak = ctxRule.ensoContext();
-          var floatType = leak.getBuiltins().number().getFloat();
-          var textType = leak.getBuiltins().text();
-          var both = new Type[] {floatType, textType};
-          var twentyTwoHello = nn.newValue(both, 2, 0, new Object[] {22.1, "Hello"});
-          assertEquals(23.2, addNode.execute(1.1, twentyTwoHello), 0.01);
-          return null;
-        });
+    var nn = EnsoMultiValue.NewNode.getUncached();
+    var leak = ctxRule.ensoContext();
+    var floatType = leak.getBuiltins().number().getFloat();
+    var textType = leak.getBuiltins().text();
+    var both = new Type[] {floatType, textType};
+    var twentyTwoHello = nn.newValue(both, 2, 0, new Object[] {22.1, "Hello"});
+    assertEquals(23.2, addNode.execute(1.1, twentyTwoHello), 0.01);
   }
 
   @Test
   public void testAddInterop21And1() {
-    ctxRule.executeInContext(
-        () -> {
-          var twentyOne = new WrappedPrimitive(21.1);
-          assertEquals(23.1, addNode.execute(2.0, twentyOne), 0.01);
-          return null;
-        });
+    var twentyOne = new WrappedPrimitive(21.1);
+    assertEquals(23.1, addNode.execute(2.0, twentyOne), 0.01);
   }
 
   @Test
   public void testAddDoubleAndText() {
-    ctxRule.executeInContext(
-        () -> {
-          assertThrows(PanicException.class, () -> addNode.execute(23.1, "Hello"));
-          return null;
-        });
+    assertThrows(PanicException.class, () -> addNode.execute(23.1, "Hello"));
   }
 }

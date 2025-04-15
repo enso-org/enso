@@ -196,13 +196,9 @@ public class FindExceptionMessageTest {
     var msg = HostEnsoUtils.findExceptionMessage(ex);
     assertEquals(exp, msg);
 
-    ctxRule.executeInContext(
-        () -> {
-          var guestException = extractHostException(ex);
-          var guestMsg = VisualizationResult.findExceptionMessage(guestException);
-          assertEquals(exp, guestMsg);
-          return null;
-        });
+    var guestException = extractHostException(ex);
+    var guestMsg = VisualizationResult.findExceptionMessage(guestException);
+    assertEquals(exp, guestMsg);
   }
 
   static Throwable extractHostException(PolyglotException ex) {

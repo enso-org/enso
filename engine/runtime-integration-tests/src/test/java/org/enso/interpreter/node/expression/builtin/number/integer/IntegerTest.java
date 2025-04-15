@@ -52,86 +52,52 @@ public class IntegerTest {
 
   @Test
   public void testAbs23() {
-    ctxRule.executeInContext(
-        () -> {
-          assertEquals(23L, absNode.execute(23L));
-          assertEquals(23L, absNode.execute(-23L));
-          return null;
-        });
+    assertEquals(23L, absNode.execute(23L));
+    assertEquals(23L, absNode.execute(-23L));
   }
 
   @Test
   public void testAbsBig() {
-    ctxRule.executeInContext(
-        () -> {
-          assertTrue(absNode.execute(Long.MIN_VALUE) instanceof EnsoBigInteger);
-          assertEquals(bigInt, absNode.execute(bigInt));
-          assertEquals(bigInt, absNode.execute(bigIntNegative));
-          return null;
-        });
+    assertTrue(absNode.execute(Long.MIN_VALUE) instanceof EnsoBigInteger);
+    assertEquals(bigInt, absNode.execute(bigInt));
+    assertEquals(bigInt, absNode.execute(bigIntNegative));
   }
 
   @Test
   public void testAbsPanic() {
-    ctxRule.executeInContext(
-        () -> {
-          assertThrows(
-              "Decimals are not supported", PanicException.class, () -> absNode.execute(23.0));
-          assertThrows(
-              "Java int is not supported", PanicException.class, () -> absNode.execute(23));
-          return null;
-        });
+    assertThrows("Decimals are not supported", PanicException.class, () -> absNode.execute(23.0));
+    assertThrows("Java int is not supported", PanicException.class, () -> absNode.execute(23));
   }
 
   @Test
   public void testAdd21And1() {
-    ctxRule.executeInContext(
-        () -> {
-          assertEquals(23L, addNode.execute(22L, 1L));
-          return null;
-        });
+    assertEquals(23L, addNode.execute(22L, 1L));
   }
 
   @Test
   public void testAdd21And1Point0() {
-    ctxRule.executeInContext(
-        () -> {
-          assertEquals(23.1, ((Number) addNode.execute(22L, 1.1)).doubleValue(), 0.01);
-          return null;
-        });
+    assertEquals(23.1, ((Number) addNode.execute(22L, 1.1)).doubleValue(), 0.01);
   }
 
   @Test
   public void testAddMulti21And1() {
-    ctxRule.executeInContext(
-        () -> {
-          var nn = EnsoMultiValue.NewNode.getUncached();
-          var leak = ctxRule.ensoContext();
-          var intType = leak.getBuiltins().number().getInteger();
-          var textType = leak.getBuiltins().text();
-          var both = new Type[] {intType, textType};
-          var twentyTwoHello = nn.newValue(both, 2, 0, new Object[] {22L, "Hello"});
-          assertEquals(23L, addNode.execute(twentyTwoHello, 1L));
-          return null;
-        });
+    var nn = EnsoMultiValue.NewNode.getUncached();
+    var leak = ctxRule.ensoContext();
+    var intType = leak.getBuiltins().number().getInteger();
+    var textType = leak.getBuiltins().text();
+    var both = new Type[] {intType, textType};
+    var twentyTwoHello = nn.newValue(both, 2, 0, new Object[] {22L, "Hello"});
+    assertEquals(23L, addNode.execute(twentyTwoHello, 1L));
   }
 
   @Test
   public void testAddInterop21And1() {
-    ctxRule.executeInContext(
-        () -> {
-          var twentyOne = new WrappedPrimitive(21L);
-          assertEquals(23L, addNode.execute(twentyOne, 2L));
-          return null;
-        });
+    var twentyOne = new WrappedPrimitive(21L);
+    assertEquals(23L, addNode.execute(twentyOne, 2L));
   }
 
   @Test
   public void testAddLongAndText() {
-    ctxRule.executeInContext(
-        () -> {
-          assertThrows(PanicException.class, () -> addNode.execute(23L, "Hello"));
-          return null;
-        });
+    assertThrows(PanicException.class, () -> addNode.execute(23L, "Hello"));
   }
 }

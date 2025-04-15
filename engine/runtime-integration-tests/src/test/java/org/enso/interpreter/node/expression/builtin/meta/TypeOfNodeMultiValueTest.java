@@ -130,29 +130,25 @@ public class TypeOfNodeMultiValueTest {
   private static void assertType(
       Object value, String expectedTypeName, int typeIndex, boolean allTypes) {
     assertNotNull("Value " + value + " should have a type", expectedTypeName);
-    ctxRule.executeInContext(
-        () -> {
-          var pairResult = (Object[]) testTypesCall.call(value, allTypes);
-          var t = pairResult[0];
-          var all = (Object[]) pairResult[1];
+    var pairResult = (Object[]) testTypesCall.call(value, allTypes);
+    var t = pairResult[0];
+    var all = (Object[]) pairResult[1];
 
-          Object symbolType;
-          if (t instanceof DataflowError) {
-            assertNull("No types for errors", all);
-            symbolType = t;
-          } else {
-            assertNotNull("All types found for " + value, all);
-            assertTrue(
-                "Size is at least " + typeIndex + " but was: " + Arrays.toString(all),
-                all.length >= typeIndex);
-            assertEquals("Major type is the same with first of allTypes for" + value, t, all[0]);
-            symbolType = all[typeIndex];
-          }
+    Object symbolType;
+    if (t instanceof DataflowError) {
+      assertNull("No types for errors", all);
+      symbolType = t;
+    } else {
+      assertNotNull("All types found for " + value, all);
+      assertTrue(
+          "Size is at least " + typeIndex + " but was: " + Arrays.toString(all),
+          all.length >= typeIndex);
+      assertEquals("Major type is the same with first of allTypes for" + value, t, all[0]);
+      symbolType = all[typeIndex];
+    }
 
-          var symbolTypeValue = ctxRule.asValue(symbolType);
-          assertTrue("It is meta object: " + symbolTypeValue, symbolTypeValue.isMetaObject());
-          assertEquals(expectedTypeName, symbolTypeValue.getMetaSimpleName());
-          return null;
-        });
+    var symbolTypeValue = ctxRule.asValue(symbolType);
+    assertTrue("It is meta object: " + symbolTypeValue, symbolTypeValue.isMetaObject());
+    assertEquals(expectedTypeName, symbolTypeValue.getMetaSimpleName());
   }
 }

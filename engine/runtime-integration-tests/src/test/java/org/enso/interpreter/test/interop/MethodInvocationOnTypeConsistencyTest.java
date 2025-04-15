@@ -128,12 +128,8 @@ public final class MethodInvocationOnTypeConsistencyTest {
   @Test
   @Ignore("https://github.com/enso-org/enso/pull/12099#issuecomment-2654281345")
   public void methodInvocationViaInterop_IsConsistentWithPureEnso() {
-    ctxRule.executeInContext(
-        () -> {
-          assertConsistentInvoke(
-              testArgs.ensoInvokeArgs, testArgs.interopInvokeArgs, testArgs.resultChecker);
-          return null;
-        });
+    assertConsistentInvoke(
+        testArgs.ensoInvokeArgs, testArgs.interopInvokeArgs, testArgs.resultChecker);
   }
 
   private void assertConsistentInvoke(

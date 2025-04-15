@@ -65,41 +65,35 @@ public class TypeOfNodeTest {
   }
 
   private static void assertType(Object symbol, String expectedTypeName, boolean withPriming) {
-    ctxRule.executeInContext(
-        () -> {
-          var node = TypeOfNode.create();
-          var root =
-              new TestRootNode(
-                  (frame) -> {
-                    var arg = frame.getArguments()[0];
-                    var typeOrNull = node.findTypeOrNull(arg);
-                    var typeOrError = node.findTypeOrError(arg);
-                    if (typeOrNull == null) {
-                      if (typeOrError instanceof EnsoObject) {
-                        assertTrue(
-                            "Expecting error for " + arg, typeOrError instanceof DataflowError);
-                      } else {
-                        // probably HostMetaObject
-                      }
-                    } else {
-                      assertEquals("Types should be the same for " + arg, typeOrNull, typeOrError);
-                    }
-                    return typeOrError;
-                  });
-          root.insertChildren(node);
-          var call = root.getCallTarget();
+    var node = TypeOfNode.create();
+    var root =
+        new TestRootNode(
+            (frame) -> {
+              var arg = frame.getArguments()[0];
+              var typeOrNull = node.findTypeOrNull(arg);
+              var typeOrError = node.findTypeOrError(arg);
+              if (typeOrNull == null) {
+                if (typeOrError instanceof EnsoObject) {
+                  assertTrue("Expecting error for " + arg, typeOrError instanceof DataflowError);
+                } else {
+                  // probably HostMetaObject
+                }
+              } else {
+                assertEquals("Types should be the same for " + arg, typeOrNull, typeOrError);
+              }
+              return typeOrError;
+            });
+    root.insertChildren(node);
+    var call = root.getCallTarget();
 
-          if (withPriming) {
-            class ForeignObject implements TruffleObject {}
-            var foreignType = call.call(new ForeignObject());
-            assertTrue(
-                "Empty foreign is unknown: " + foreignType, foreignType instanceof DataflowError);
-          }
-          var symbolType = call.call(symbol);
-          var symbolTypeValue = ctxRule.asValue(symbolType);
-          assertTrue("It is meta object: " + symbolTypeValue, symbolTypeValue.isMetaObject());
-          assertEquals(expectedTypeName, symbolTypeValue.getMetaSimpleName());
-          return null;
-        });
+    if (withPriming) {
+      class ForeignObject implements TruffleObject {}
+      var foreignType = call.call(new ForeignObject());
+      assertTrue("Empty foreign is unknown: " + foreignType, foreignType instanceof DataflowError);
+    }
+    var symbolType = call.call(symbol);
+    var symbolTypeValue = ctxRule.asValue(symbolType);
+    assertTrue("It is meta object: " + symbolTypeValue, symbolTypeValue.isMetaObject());
+    assertEquals(expectedTypeName, symbolTypeValue.getMetaSimpleName());
   }
 }

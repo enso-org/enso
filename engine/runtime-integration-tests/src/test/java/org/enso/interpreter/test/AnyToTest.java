@@ -35,15 +35,11 @@ public class AnyToTest {
     var both =
         EnsoMultiValue.NewNode.getUncached()
             .newValue(types, types.length, 0, new Object[] {2L, Text.create("Two")});
-    var eq =
-        ctxRule.executeInContext(
-            () -> {
-              var bothValue = ctxRule.asValue(both);
-              var asIntegerTo = conv.execute(0, bothValue);
-              var asIntegerCast = conv.execute(1, bothValue);
-              var equals = conv.execute(99, null);
-              return equals.execute(asIntegerTo, asIntegerCast);
-            });
+    var bothValue = ctxRule.asValue(both);
+    var asIntegerTo = conv.execute(0, bothValue);
+    var asIntegerCast = conv.execute(1, bothValue);
+    var equals = conv.execute(99, null);
+    var eq = equals.execute(asIntegerTo, asIntegerCast);
     assertTrue("Any.to and : give the same result", eq.asBoolean());
   }
 
@@ -79,15 +75,11 @@ public class AnyToTest {
     var both =
         EnsoMultiValue.NewNode.getUncached()
             .newValue(types, dispatchLength, 0, new Object[] {2L, Text.create("Two")});
-    var eq =
-        ctxRule.executeInContext(
-            () -> {
-              var bothValue = ctxRule.asValue(both);
-              var asIntegerCast = conv.execute(3, bothValue);
-              var asIntegerTo = conv.execute(2, bothValue);
-              var equals = conv.execute(99, null);
-              return equals.execute(asIntegerTo, asIntegerCast);
-            });
+    var bothValue = ctxRule.asValue(both);
+    var asIntegerCast = conv.execute(3, bothValue);
+    var asIntegerTo = conv.execute(2, bothValue);
+    var equals = conv.execute(99, null);
+    var eq = equals.execute(asIntegerTo, asIntegerCast);
     assertTrue("Any.to and : give the same result", eq.asBoolean());
   }
 }

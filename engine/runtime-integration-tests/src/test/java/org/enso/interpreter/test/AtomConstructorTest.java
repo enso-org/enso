@@ -127,28 +127,24 @@ public class AtomConstructorTest {
   }
 
   private static void assertLessArguments(String msg, Function<Object[], Atom> factory) {
-    ctxRule.executeInContext(
-        () -> {
-          try {
-            var zero = factory.apply(new Object[0]);
-            fail("Expecting exception: " + zero);
-          } catch (PanicException e) {
-            assertThat(msg + " no arguments", e.getMessage(), containsString("Arity_Error"));
-          }
-          try {
-            var one = factory.apply(new Object[] {"a"});
-            fail("Expecting exception: " + one);
-          } catch (PanicException e) {
-            assertThat(msg + " one argument", e.getMessage(), containsString("Arity_Error"));
-          }
-          try {
-            var two = factory.apply(new Object[] {"a", "b"});
-            fail("Expecting exception: " + two);
-          } catch (PanicException e) {
-            assertThat(msg + " two arguments", e.getMessage(), containsString("Arity_Error"));
-          }
-          return null;
-        });
+    try {
+      var zero = factory.apply(new Object[0]);
+      fail("Expecting exception: " + zero);
+    } catch (PanicException e) {
+      assertThat(msg + " no arguments", e.getMessage(), containsString("Arity_Error"));
+    }
+    try {
+      var one = factory.apply(new Object[] {"a"});
+      fail("Expecting exception: " + one);
+    } catch (PanicException e) {
+      assertThat(msg + " one argument", e.getMessage(), containsString("Arity_Error"));
+    }
+    try {
+      var two = factory.apply(new Object[] {"a", "b"});
+      fail("Expecting exception: " + two);
+    } catch (PanicException e) {
+      assertThat(msg + " two arguments", e.getMessage(), containsString("Arity_Error"));
+    }
   }
 
   private static void assertValues(String msg, Atom atom, Object... values) {

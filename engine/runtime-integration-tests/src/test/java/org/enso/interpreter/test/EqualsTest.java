@@ -103,39 +103,26 @@ public class EqualsTest {
 
   @Theory
   public void equalsOperatorShouldBeSymmetric(Object firstValue, Object secondValue) {
-    ctxRule.executeInContext(
-        () -> {
-          boolean firstResult = equalityCheck(firstValue, secondValue);
-          boolean secondResult = equalityCheck(secondValue, firstValue);
-          assertEquals("equals should be symmetric", firstResult, secondResult);
-          return null;
-        });
+    boolean firstResult = equalityCheck(firstValue, secondValue);
+    boolean secondResult = equalityCheck(secondValue, firstValue);
+    assertEquals("equals should be symmetric", firstResult, secondResult);
   }
 
   @Theory
   public void equalsOperatorShouldBeConsistent(Object value) {
-    ctxRule.executeInContext(
-        () -> {
-          Object firstResult = equalityCheck(value, value);
-          Object secondResult = equalityCheck(value, value);
-          assertEquals("equals should be consistent", firstResult, secondResult);
-          return null;
-        });
+    Object firstResult = equalityCheck(value, value);
+    Object secondResult = equalityCheck(value, value);
+    assertEquals("equals should be consistent", firstResult, secondResult);
   }
 
   @Theory
   public void equalsNodeCachedIsConsistentWithUncached(Object firstVal, Object secondVal) {
-    ctxRule.executeInContext(
-        () -> {
-          Object uncachedRes = EqualsNode.getUncached().execute(null, firstVal, secondVal).isTrue();
-          Object cachedRes = equalityCheck(firstVal, secondVal);
-          assertEquals(
-              "Result from uncached EqualsNode should be the same as result from its cached"
-                  + " variant",
-              uncachedRes,
-              cachedRes);
-          return null;
-        });
+    Object uncachedRes = EqualsNode.getUncached().execute(null, firstVal, secondVal).isTrue();
+    Object cachedRes = equalityCheck(firstVal, secondVal);
+    assertEquals(
+        "Result from uncached EqualsNode should be the same as result from its cached" + " variant",
+        uncachedRes,
+        cachedRes);
   }
 
   /** Test for some specific values, for which we know that they are equal. */
@@ -146,11 +133,7 @@ public class EqualsTest {
             ctxRule.createValue(
                 "(Date.new 1999 3 23)", "import Standard.Base.Data.Time.Date.Date"));
     Object javaDate = ctxRule.unwrapValue(ctxRule.asValue(LocalDate.of(1999, 3, 23)));
-    ctxRule.executeInContext(
-        () -> {
-          assertTrue(equalityCheck(ensoDate, javaDate));
-          return null;
-        });
+    assertTrue(equalityCheck(ensoDate, javaDate));
   }
 
   @Test
@@ -160,11 +143,7 @@ public class EqualsTest {
             ctxRule.createValue(
                 "Time_Of_Day.new 23 59", "import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day"));
     Object javaDate = ctxRule.unwrapValue(ctxRule.asValue(LocalTime.of(23, 59)));
-    ctxRule.executeInContext(
-        () -> {
-          assertTrue(equalityCheck(ensoTime, javaDate));
-          return null;
-        });
+    assertTrue(equalityCheck(ensoTime, javaDate));
   }
 
   @Test
@@ -179,11 +158,7 @@ public class EqualsTest {
             ctxRule.asValue(
                 ZonedDateTime.of(
                     LocalDate.of(1999, 3, 1), LocalTime.of(23, 59), ZoneId.systemDefault())));
-    ctxRule.executeInContext(
-        () -> {
-          assertTrue(equalityCheck(ensoDateTime, javaDateTime));
-          return null;
-        });
+    assertTrue(equalityCheck(ensoDateTime, javaDateTime));
   }
 
   @Test
@@ -191,11 +166,7 @@ public class EqualsTest {
     long value = Long.MIN_VALUE;
     double javaNumber = Math.pow(value, 10);
     var ensoNumber = new EnsoBigInteger(BigInteger.valueOf(value).pow(10));
-    ctxRule.executeInContext(
-        () -> {
-          assertTrue(javaNumber + " == " + ensoNumber, equalityCheck(javaNumber, ensoNumber));
-          return null;
-        });
+    assertTrue(javaNumber + " == " + ensoNumber, equalityCheck(javaNumber, ensoNumber));
   }
 
   @Test
@@ -203,11 +174,7 @@ public class EqualsTest {
     long value = Long.MIN_VALUE;
     double javaNumber = Math.pow(value, 10);
     var ensoNumber = new EnsoBigInteger(BigInteger.valueOf(value).pow(10));
-    ctxRule.executeInContext(
-        () -> {
-          assertTrue(ensoNumber + " == " + javaNumber, equalityCheck(ensoNumber, javaNumber));
-          return null;
-        });
+    assertTrue(ensoNumber + " == " + javaNumber, equalityCheck(ensoNumber, javaNumber));
   }
 
   @Test
@@ -215,11 +182,7 @@ public class EqualsTest {
     long value = Long.MIN_VALUE;
     double javaNumber = Math.pow(value, 10);
     var hostNumber = ctxRule.unwrapValue(ctxRule.asValue(BigInteger.valueOf(value).pow(10)));
-    ctxRule.executeInContext(
-        () -> {
-          assertTrue(javaNumber + " == " + hostNumber, equalityCheck(javaNumber, hostNumber));
-          return null;
-        });
+    assertTrue(javaNumber + " == " + hostNumber, equalityCheck(javaNumber, hostNumber));
   }
 
   @Test
@@ -227,11 +190,7 @@ public class EqualsTest {
     long value = Long.MIN_VALUE;
     double javaNumber = Math.pow(value, 10);
     var hostNumber = ctxRule.unwrapValue(ctxRule.asValue(BigInteger.valueOf(value).pow(10)));
-    ctxRule.executeInContext(
-        () -> {
-          assertTrue(hostNumber + " == " + javaNumber, equalityCheck(hostNumber, javaNumber));
-          return null;
-        });
+    assertTrue(hostNumber + " == " + javaNumber, equalityCheck(hostNumber, javaNumber));
   }
 
   @Test
@@ -239,37 +198,25 @@ public class EqualsTest {
     Object ensoVector =
         ctxRule.unwrapValue(ctxRule.createValue("[1,2,3]", "from Standard.Base import all"));
     Object javaVector = ctxRule.unwrapValue(ctxRule.asValue(List.of(1L, 2L, 3L)));
-    ctxRule.executeInContext(
-        () -> {
-          assertTrue(equalityCheck(ensoVector, javaVector));
-          return null;
-        });
+    assertTrue(equalityCheck(ensoVector, javaVector));
   }
 
   @Test
   public void testTruffleNumberLong() {
     var ensoNumber = ctxRule.unwrapValue(ctxRule.createValue("1", ""));
     var foreignNumber = new WrappedPrimitive(1);
-    ctxRule.executeInContext(
-        () -> {
-          assertTrue(equalityCheck(ensoNumber, foreignNumber.asDirect()));
-          assertTrue(equalityCheck(ensoNumber, foreignNumber));
-          assertTrue(equalityCheck(foreignNumber, ensoNumber));
-          return null;
-        });
+    assertTrue(equalityCheck(ensoNumber, foreignNumber.asDirect()));
+    assertTrue(equalityCheck(ensoNumber, foreignNumber));
+    assertTrue(equalityCheck(foreignNumber, ensoNumber));
   }
 
   @Test
   public void testTruffleNumberDouble() {
     var ensoNumber = ctxRule.unwrapValue(ctxRule.createValue("1.0", ""));
     var foreignNumber = new WrappedPrimitive(1.0);
-    ctxRule.executeInContext(
-        () -> {
-          assertTrue(equalityCheck(ensoNumber, foreignNumber.asDirect()));
-          assertTrue(equalityCheck(ensoNumber, foreignNumber));
-          assertTrue(equalityCheck(foreignNumber, ensoNumber));
-          return null;
-        });
+    assertTrue(equalityCheck(ensoNumber, foreignNumber.asDirect()));
+    assertTrue(equalityCheck(ensoNumber, foreignNumber));
+    assertTrue(equalityCheck(foreignNumber, ensoNumber));
   }
 
   @Test
@@ -277,12 +224,8 @@ public class EqualsTest {
     var value = new BigInteger("43207431473298432194374819743291479009431478329");
     var ensoNumber = ctxRule.unwrapValue(ctxRule.createValue(value.toString(), ""));
     var foreignNumber = new WrappedPrimitive(value);
-    ctxRule.executeInContext(
-        () -> {
-          assertTrue(equalityCheck(ensoNumber, foreignNumber));
-          assertTrue(equalityCheck(foreignNumber, ensoNumber));
-          return null;
-        });
+    assertTrue(equalityCheck(ensoNumber, foreignNumber));
+    assertTrue(equalityCheck(foreignNumber, ensoNumber));
   }
 
   @Test
@@ -290,26 +233,18 @@ public class EqualsTest {
     var ensoBoolean =
         ctxRule.unwrapValue(ctxRule.createValue("True", "from Standard.Base import True"));
     var foreignBoolean = new WrappedPrimitive(true);
-    ctxRule.executeInContext(
-        () -> {
-          assertTrue(equalityCheck(ensoBoolean, foreignBoolean.asDirect()));
-          assertTrue(equalityCheck(ensoBoolean, foreignBoolean));
-          assertTrue(equalityCheck(foreignBoolean, ensoBoolean));
-          return null;
-        });
+    assertTrue(equalityCheck(ensoBoolean, foreignBoolean.asDirect()));
+    assertTrue(equalityCheck(ensoBoolean, foreignBoolean));
+    assertTrue(equalityCheck(foreignBoolean, ensoBoolean));
   }
 
   @Test
   public void testTruffleString() {
     var ensoText = ctxRule.unwrapValue(ctxRule.createValue("'Hello'", ""));
     var foreignString = new WrappedPrimitive("Hello");
-    ctxRule.executeInContext(
-        () -> {
-          assertTrue(equalityCheck(ensoText, foreignString.asDirect()));
-          assertTrue(equalityCheck(ensoText, foreignString));
-          assertTrue(equalityCheck(foreignString, ensoText));
-          return null;
-        });
+    assertTrue(equalityCheck(ensoText, foreignString.asDirect()));
+    assertTrue(equalityCheck(ensoText, foreignString));
+    assertTrue(equalityCheck(foreignString, ensoText));
   }
 
   @Test
@@ -323,12 +258,8 @@ public class EqualsTest {
     assertTrue("plus100 can be executed", plus100.canExecute());
     var foreignNumber = ctxRule.asValue(new WrappedPrimitive(42));
     var hundred42 = ctxRule.unwrapValue(plus100.execute(foreignNumber));
-    ctxRule.executeInContext(
-        () -> {
-          assertTrue(equalityCheck(142L, hundred42));
-          assertTrue(equalityCheck(hundred42, 142L));
-          return null;
-        });
+    assertTrue(equalityCheck(142L, hundred42));
+    assertTrue(equalityCheck(hundred42, 142L));
   }
 
   @Test
@@ -361,17 +292,11 @@ public class EqualsTest {
       var conv2 = UnresolvedConversion.build(scope2);
       var conv2_2 = UnresolvedConversion.build(scope2);
 
-      ctxRule.executeInContext(
-          () -> {
-            assertTrue("Conversions from same module are the same", equalityCheck(conv1, conv1_2));
-            assertTrue("Conversions from same module are the same", equalityCheck(conv2, conv2_2));
-            assertFalse(
-                "Conversions from other modules aren't the same", equalityCheck(conv1, conv2));
-            assertFalse(
-                "Conversions from other modueles aren't the same", equalityCheck(conv2_2, conv1_2));
-            return null;
-          });
-
+      assertTrue("Conversions from same module are the same", equalityCheck(conv1, conv1_2));
+      assertTrue("Conversions from same module are the same", equalityCheck(conv2, conv2_2));
+      assertFalse("Conversions from other modules aren't the same", equalityCheck(conv1, conv2));
+      assertFalse(
+          "Conversions from other modueles aren't the same", equalityCheck(conv2_2, conv1_2));
     } else {
       fail("Expecting module: " + mod1);
     }

@@ -67,9 +67,6 @@ public class EnsoMultiValueInteropTest {
 
   @Test
   public void isStringDoesntFail() {
-    ctxRule.executeInContext(
-        () -> {
-          return InteropLibrary.getUncached().isString(value);
-        });
+    InteropLibrary.getUncached().isString(value);
   }
 }

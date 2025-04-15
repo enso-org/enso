@@ -102,67 +102,52 @@ public class BinaryOpFloatTest {
 
   @Test
   public void verifyOperationOnForeignObject() {
-    ctxRule.executeInContext(
-        () -> {
-          var code = """
-        fn a b = a{op} b
-        """.replace("{op}", operation);
-          var fn =
-              ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
+    var code = """
+  fn a b = a{op} b
+  """.replace("{op}", operation);
+    var fn = ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
 
-          var r1 = execute(fn, n1, n2);
+    var r1 = execute(fn, n1, n2);
 
-          var wrap2 = ctxRule.asValue(new WrappedPrimitive(n2));
-          var r2 = execute(fn, n1, wrap2);
+    var wrap2 = ctxRule.asValue(new WrappedPrimitive(n2));
+    var r2 = execute(fn, n1, wrap2);
 
-          assertSameResult(r1, r2);
-          return null;
-        });
+    assertSameResult(r1, r2);
   }
 
   @Test
   public void verifyOperationWithConvertibleObject() {
-    ctxRule.executeInContext(
-        () -> {
-          var code = """
-        fn a b = a{op} b
-        """.replace("{op}", operation);
-          var fn =
-              ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
+    var code = """
+  fn a b = a{op} b
+  """.replace("{op}", operation);
+    var fn = ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
 
-          var r1 = fn.execute(n1, n2);
+    var r1 = fn.execute(n1, n2);
 
-          if (operation.contains("=") || operation.contains("<") || operation.contains(">")) {
-            // avoid any >=< for now
-            return null;
-          }
+    if (operation.contains("=") || operation.contains("<") || operation.contains(">")) {
+      // avoid any >=< for now
+      return;
+    }
 
-          var wrap2 = wrapReal.execute(n2);
-          var r2 = fn.execute(n1, wrap2);
+    var wrap2 = wrapReal.execute(n2);
+    var r2 = fn.execute(n1, wrap2);
 
-          assertSameResult(r1, r2);
-          return null;
-        });
+    assertSameResult(r1, r2);
   }
 
   @Test
   public void verifyOperationOnConvertibleObject() {
-    ctxRule.executeInContext(
-        () -> {
-          var code = """
-        fn a b = a{op} b
-        """.replace("{op}", operation);
-          var fn =
-              ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
+    var code = """
+  fn a b = a{op} b
+  """.replace("{op}", operation);
+    var fn = ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
 
-          var r1 = fn.execute(n1, n2);
+    var r1 = fn.execute(n1, n2);
 
-          var wrap1 = wrapReal.execute(n1);
-          var r2 = fn.execute(wrap1, n2);
+    var wrap1 = wrapReal.execute(n1);
+    var r2 = fn.execute(wrap1, n2);
 
-          assertSameResult(r1, r2);
-          return null;
-        });
+    assertSameResult(r1, r2);
   }
 
   private Value execute(Value fn, Object... args) {

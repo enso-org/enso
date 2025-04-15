@@ -113,15 +113,12 @@ public class TypeMembersTest {
         import Standard.Base.Runtime.Ref.Ref
         main = Ref
         """);
-    ctxRule.executeInContext(
-        () -> {
-          assertThat(refType.hasMember("new"), is(true));
-          return null;
-        });
+    assertThat(refType.hasMember("new"), is(true));
   }
 
   @Test
-  public void inheritedMembersFromAnyAreIncluded() {
+  public void inheritedMembersFromAnyAreIncluded()
+      throws InvalidArrayIndexException, UnsupportedMessageException {
     var type =
         ctxRule.evalModule(
             """
@@ -132,20 +129,17 @@ public class TypeMembersTest {
 
         main = My_Type
         """);
-    ctxRule.executeInContext(
-        () -> {
-          var typeUnwrapped = ctxRule.unwrapValue(type);
-          var memberNames = getAllMemberNames(typeUnwrapped);
-          var anyMethods = ctxRule.allMethodsFromAny();
-          for (var anyMethod : anyMethods) {
-            assertThat("Has method from Any", memberNames, hasItem(containsString(anyMethod)));
-          }
-          return null;
-        });
+    var typeUnwrapped = ctxRule.unwrapValue(type);
+    var memberNames = getAllMemberNames(typeUnwrapped);
+    var anyMethods = ctxRule.allMethodsFromAny();
+    for (var anyMethod : anyMethods) {
+      assertThat("Has method from Any", memberNames, hasItem(containsString(anyMethod)));
+    }
   }
 
   @Test
-  public void typeMemberNames_AreNotQualified() {
+  public void typeMemberNames_AreNotQualified()
+      throws InvalidArrayIndexException, UnsupportedMessageException {
     var type =
         ctxRule.evalModule(
             """
@@ -156,14 +150,9 @@ public class TypeMembersTest {
 
         main = My_Type
         """);
-    ctxRule.executeInContext(
-        () -> {
-          var typeUnwrapped = ctxRule.unwrapValue(type);
-          var memberNames = getAllMemberNames(typeUnwrapped);
-          assertThat(
-              "Member names are not qualified", memberNames, not(hasItem(containsString("."))));
-          return null;
-        });
+    var typeUnwrapped = ctxRule.unwrapValue(type);
+    var memberNames = getAllMemberNames(typeUnwrapped);
+    assertThat("Member names are not qualified", memberNames, not(hasItem(containsString("."))));
   }
 
   @Test
@@ -178,13 +167,9 @@ public class TypeMembersTest {
 
         main = My_Type
         """);
-    ctxRule.executeInContext(
-        () -> {
-          var displayTextRes = myType.invokeMember("to_display_text");
-          assertThat("Has correct result type", displayTextRes.isString(), is(true));
-          assertThat("Has correct result value", displayTextRes.asString(), is("My_Type"));
-          return null;
-        });
+    var displayTextRes = myType.invokeMember("to_display_text");
+    assertThat("Has correct result type", displayTextRes.isString(), is(true));
+    assertThat("Has correct result value", displayTextRes.asString(), is("My_Type"));
   }
 
   /**

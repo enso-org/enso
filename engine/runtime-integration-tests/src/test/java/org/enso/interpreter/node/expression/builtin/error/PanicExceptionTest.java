@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.error;
 import static org.junit.Assert.assertEquals;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -41,17 +42,13 @@ public class PanicExceptionTest {
   }
 
   @Test
-  public void panicExceptionMessageForAssertionError() {
-    ctxRule.executeInContext(
-        () -> {
-          var leak = ctxRule.ensoContext();
-          var text = Text.create("Some text for the exception");
-          var thrown = new java.lang.AssertionError(text.toString());
-          var ex = new PanicException(leak, text, thrown, null);
-          assertEquals(text.toString(), ex.getMessage());
-          var msg = InteropLibrary.getUncached().getExceptionMessage(ex);
-          assertEquals(text, msg);
-          return null;
-        });
+  public void panicExceptionMessageForAssertionError() throws UnsupportedMessageException {
+    var leak = ctxRule.ensoContext();
+    var text = Text.create("Some text for the exception");
+    var thrown = new java.lang.AssertionError(text.toString());
+    var ex = new PanicException(leak, text, thrown, null);
+    assertEquals(text.toString(), ex.getMessage());
+    var msg = InteropLibrary.getUncached().getExceptionMessage(ex);
+    assertEquals(text, msg);
   }
 }

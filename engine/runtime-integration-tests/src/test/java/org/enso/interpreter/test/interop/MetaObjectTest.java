@@ -302,17 +302,13 @@ main = Nothing
           gen.allValues().stream().filter(isPrimitiveOrException.negate()).toList();
     }
     var interop = InteropLibrary.getUncached();
-    ctxRule.executeInContext(
-        () -> {
-          for (var value : nonPrimitiveValues) {
-            var unwrappedValue = ctxRule.unwrapValue(value);
-            assertThat(
-                "Value " + unwrappedValue + " should have associated language",
-                interop.hasLanguage(unwrappedValue),
-                is(true));
-          }
-          return null;
-        });
+    for (var value : nonPrimitiveValues) {
+      var unwrappedValue = ctxRule.unwrapValue(value);
+      assertThat(
+          "Value " + unwrappedValue + " should have associated language",
+          interop.hasLanguage(unwrappedValue),
+          is(true));
+    }
   }
 
   @Test

@@ -45,142 +45,109 @@ public class EqualsMultiValueTest {
 
   @Test
   public void testEqualityIntegerAndMultiValue() {
-    ctxRule.executeInContext(
-        () -> {
-          var builtins = ctxRule.ensoContext().getBuiltins();
-          var intType = builtins.number().getInteger();
-          var textText = builtins.text();
-          var fourExtraText =
-              EnsoMultiValue.NewNode.getUncached()
-                  .newValue(
-                      new Type[] {intType, textText}, 1, 0, new Object[] {4L, Text.create("Hi")});
+    var builtins = ctxRule.ensoContext().getBuiltins();
+    var intType = builtins.number().getInteger();
+    var textText = builtins.text();
+    var fourExtraText =
+        EnsoMultiValue.NewNode.getUncached()
+            .newValue(new Type[] {intType, textText}, 1, 0, new Object[] {4L, Text.create("Hi")});
 
-          assertTrue("4 == 4t", equalityCheck(4L, fourExtraText));
-          assertFalse("5 != 4t", equalityCheck(5L, fourExtraText));
-          assertTrue("4t == 4", equalityCheck(fourExtraText, 4L));
-          assertFalse("4t != 5", equalityCheck(fourExtraText, 5L));
-
-          return null;
-        });
+    assertTrue("4 == 4t", equalityCheck(4L, fourExtraText));
+    assertFalse("5 != 4t", equalityCheck(5L, fourExtraText));
+    assertTrue("4t == 4", equalityCheck(fourExtraText, 4L));
+    assertFalse("4t != 5", equalityCheck(fourExtraText, 5L));
   }
 
   @Test
   public void testEqualityTextAndExtraIntegerMultiValue() {
-    ctxRule.executeInContext(
-        () -> {
-          var builtins = ctxRule.ensoContext().getBuiltins();
-          var intType = builtins.number().getInteger();
-          var textType = builtins.text();
-          var bothTypes = new Type[] {textType, intType};
+    var builtins = ctxRule.ensoContext().getBuiltins();
+    var intType = builtins.number().getInteger();
+    var textType = builtins.text();
+    var bothTypes = new Type[] {textType, intType};
 
-          var text = Text.create("Hi");
-          var ahoj = Text.create("Ahoj");
-          var integer = 4L;
-          //
-          // following variable represents result of
-          //     x = _ : (Text & Integer) : Text
-          // e.g. multi value with Text and Integer, casted to Text only
-          //
-          var multiV =
-              EnsoMultiValue.NewNode.getUncached().newValue(bothTypes, 1, 0, text, integer);
+    var text = Text.create("Hi");
+    var ahoj = Text.create("Ahoj");
+    var integer = 4L;
+    //
+    // following variable represents result of
+    //     x = _ : (Text & Integer) : Text
+    // e.g. multi value with Text and Integer, casted to Text only
+    //
+    var multiV = EnsoMultiValue.NewNode.getUncached().newValue(bothTypes, 1, 0, text, integer);
 
-          assertTrue("'Hi' == multiV", equalityCheck(text, multiV));
-          assertFalse("'Ahoj' != multiV", equalityCheck(ahoj, multiV));
-          assertFalse(
-              "Don't consider extra Integer type in equals", equalityCheck(integer, multiV));
-          assertFalse("5 != t4", equalityCheck(5L, multiV));
-          assertFalse(
-              "Don't consider extra Integer type in equals", equalityCheck(multiV, integer));
-          assertFalse("4 != t5", equalityCheck(multiV, 5L));
-          assertTrue("multiV == 'Hi'", equalityCheck(multiV, text));
-          assertFalse("multiV != 'Ahoj'", equalityCheck(multiV, ahoj));
-
-          return null;
-        });
+    assertTrue("'Hi' == multiV", equalityCheck(text, multiV));
+    assertFalse("'Ahoj' != multiV", equalityCheck(ahoj, multiV));
+    assertFalse("Don't consider extra Integer type in equals", equalityCheck(integer, multiV));
+    assertFalse("5 != t4", equalityCheck(5L, multiV));
+    assertFalse("Don't consider extra Integer type in equals", equalityCheck(multiV, integer));
+    assertFalse("4 != t5", equalityCheck(multiV, 5L));
+    assertTrue("multiV == 'Hi'", equalityCheck(multiV, text));
+    assertFalse("multiV != 'Ahoj'", equalityCheck(multiV, ahoj));
   }
 
   @Test
   public void testEqualityIntegerAndMultiValueWithBoth() {
-    ctxRule.executeInContext(
-        () -> {
-          var builtins = ctxRule.ensoContext().getBuiltins();
-          var intType = builtins.number().getInteger();
-          var textText = builtins.text();
-          var hi = Text.create("Hi");
-          var textFour =
-              EnsoMultiValue.NewNode.getUncached()
-                  .newValue(new Type[] {textText, intType}, 2, 0, new Object[] {hi, 4L});
-          var textFive =
-              EnsoMultiValue.NewNode.getUncached()
-                  .newValue(new Type[] {textText, intType}, 2, 0, new Object[] {hi, 5L});
-          var fourText =
-              EnsoMultiValue.NewNode.getUncached()
-                  .newValue(new Type[] {intType, textText}, 2, 0, new Object[] {4L, hi});
+    var builtins = ctxRule.ensoContext().getBuiltins();
+    var intType = builtins.number().getInteger();
+    var textText = builtins.text();
+    var hi = Text.create("Hi");
+    var textFour =
+        EnsoMultiValue.NewNode.getUncached()
+            .newValue(new Type[] {textText, intType}, 2, 0, new Object[] {hi, 4L});
+    var textFive =
+        EnsoMultiValue.NewNode.getUncached()
+            .newValue(new Type[] {textText, intType}, 2, 0, new Object[] {hi, 5L});
+    var fourText =
+        EnsoMultiValue.NewNode.getUncached()
+            .newValue(new Type[] {intType, textText}, 2, 0, new Object[] {4L, hi});
 
-          assertFalse("4 != t", equalityCheck(4L, hi));
-          assertFalse("4 != 4t", equalityCheck(4L, textFour));
-          assertFalse("5 != 4t", equalityCheck(5L, textFour));
-          assertFalse("5t != 4t", equalityCheck(textFive, textFour));
-          assertFalse("4t != 4", equalityCheck(textFour, 4L));
-          assertFalse("4t != 5", equalityCheck(textFour, 5L));
-          assertFalse("4t != 'Hi'", equalityCheck(textFour, hi));
-          assertFalse("'Hi' != 4t", equalityCheck(hi, textFour));
+    assertFalse("4 != t", equalityCheck(4L, hi));
+    assertFalse("4 != 4t", equalityCheck(4L, textFour));
+    assertFalse("5 != 4t", equalityCheck(5L, textFour));
+    assertFalse("5t != 4t", equalityCheck(textFive, textFour));
+    assertFalse("4t != 4", equalityCheck(textFour, 4L));
+    assertFalse("4t != 5", equalityCheck(textFour, 5L));
+    assertFalse("4t != 'Hi'", equalityCheck(textFour, hi));
+    assertFalse("'Hi' != 4t", equalityCheck(hi, textFour));
 
-          assertTrue("t4 == 4t", equalityCheck(textFour, fourText));
-          assertTrue("4t == t4", equalityCheck(fourText, textFour));
-
-          return null;
-        });
+    assertTrue("t4 == 4t", equalityCheck(textFour, fourText));
+    assertTrue("4t == t4", equalityCheck(fourText, textFour));
   }
 
   @Test
   public void testEqualityIntegerAndMultiValueWithIntText() {
-    ctxRule.executeInContext(
-        () -> {
-          var builtins = ctxRule.ensoContext().getBuiltins();
-          var intType = builtins.number().getInteger();
-          var textText = builtins.text();
-          var fourExtraText =
-              EnsoMultiValue.NewNode.getUncached()
-                  .newValue(
-                      new Type[] {intType, textText}, 2, 0, new Object[] {4L, Text.create("Hi")});
+    var builtins = ctxRule.ensoContext().getBuiltins();
+    var intType = builtins.number().getInteger();
+    var textText = builtins.text();
+    var fourExtraText =
+        EnsoMultiValue.NewNode.getUncached()
+            .newValue(new Type[] {intType, textText}, 2, 0, new Object[] {4L, Text.create("Hi")});
 
-          assertFalse("4 != 4t", equalityCheck(4L, fourExtraText));
-          assertFalse("5 != 4t", equalityCheck(5L, fourExtraText));
-          assertFalse("4t != 4", equalityCheck(fourExtraText, 4L));
-          assertFalse("4t != 5", equalityCheck(fourExtraText, 5L));
-
-          return null;
-        });
+    assertFalse("4 != 4t", equalityCheck(4L, fourExtraText));
+    assertFalse("5 != 4t", equalityCheck(5L, fourExtraText));
+    assertFalse("4t != 4", equalityCheck(fourExtraText, 4L));
+    assertFalse("4t != 5", equalityCheck(fourExtraText, 5L));
   }
 
   @Test
   public void twoMultiValues() {
-    ctxRule.executeInContext(
-        () -> {
-          var builtins = ctxRule.ensoContext().getBuiltins();
-          var intType = builtins.number().getInteger();
-          var textText = builtins.text();
-          var fourExtraText =
-              EnsoMultiValue.NewNode.getUncached()
-                  .newValue(
-                      new Type[] {intType, textText}, 1, 0, new Object[] {4L, Text.create("Hi")});
-          var fourExtraText2 =
-              EnsoMultiValue.NewNode.getUncached()
-                  .newValue(
-                      new Type[] {intType, textText}, 1, 0, new Object[] {4L, Text.create("Hi")});
-          var fiveExtraText =
-              EnsoMultiValue.NewNode.getUncached()
-                  .newValue(
-                      new Type[] {intType, textText}, 1, 0, new Object[] {5L, Text.create("Hi")});
+    var builtins = ctxRule.ensoContext().getBuiltins();
+    var intType = builtins.number().getInteger();
+    var textText = builtins.text();
+    var fourExtraText =
+        EnsoMultiValue.NewNode.getUncached()
+            .newValue(new Type[] {intType, textText}, 1, 0, new Object[] {4L, Text.create("Hi")});
+    var fourExtraText2 =
+        EnsoMultiValue.NewNode.getUncached()
+            .newValue(new Type[] {intType, textText}, 1, 0, new Object[] {4L, Text.create("Hi")});
+    var fiveExtraText =
+        EnsoMultiValue.NewNode.getUncached()
+            .newValue(new Type[] {intType, textText}, 1, 0, new Object[] {5L, Text.create("Hi")});
 
-          assertFalse("!= for sure #1", equalityCheck(fiveExtraText, fourExtraText));
-          assertFalse("!= for sure #2", equalityCheck(fourExtraText, fiveExtraText));
-          assertTrue("equals #1", equalityCheck(fourExtraText, fourExtraText2));
-          assertTrue("equals #2", equalityCheck(fourExtraText2, fourExtraText));
-
-          return null;
-        });
+    assertFalse("!= for sure #1", equalityCheck(fiveExtraText, fourExtraText));
+    assertFalse("!= for sure #2", equalityCheck(fourExtraText, fiveExtraText));
+    assertTrue("equals #1", equalityCheck(fourExtraText, fourExtraText2));
+    assertTrue("equals #2", equalityCheck(fourExtraText2, fourExtraText));
   }
 
   @Test
@@ -255,17 +222,12 @@ public class EqualsMultiValueTest {
     var complexFourValue =
         complexModule.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Complex.new 4");
 
-    ctxRule.executeInContext(
-        () -> {
-          var complexFour = ctxRule.unwrapValue(complexFourValue);
+    var complexFour = ctxRule.unwrapValue(complexFourValue);
 
-          assertTrue("4 == 4t", equalityCheck(4L, complexFour));
-          assertFalse("5 != 4t", equalityCheck(5L, complexFour));
-          assertTrue("4t == 4", equalityCheck(complexFour, 4L));
-          assertFalse("4t != 5", equalityCheck(complexFour, 5L));
-
-          return null;
-        });
+    assertTrue("4 == 4t", equalityCheck(4L, complexFour));
+    assertFalse("5 != 4t", equalityCheck(5L, complexFour));
+    assertTrue("4t == 4", equalityCheck(complexFour, 4L));
+    assertFalse("4t != 5", equalityCheck(complexFour, 5L));
   }
 
   private static boolean equalityCheck(VirtualFrame frame) {

@@ -47,57 +47,42 @@ public class TypeOfNodeValueTest {
 
   @Test
   public void typeOfUnresolvedConstructor() {
-    ctxRule.executeInContext(
-        () -> {
-          var cnstr = UnresolvedConstructor.build(null, "Unknown_Name");
-          var arr = (Object[]) testTypesCall.call(cnstr, true);
-          var type = (Type) arr[0];
-          var allTypes = (Type[]) arr[1];
-          assertEquals("Function", type.getName());
-          assertEquals("One array", 1, allTypes.length);
-          assertEquals("Also function type", type, allTypes[0]);
-          return null;
-        });
+    var cnstr = UnresolvedConstructor.build(null, "Unknown_Name");
+    var arr = (Object[]) testTypesCall.call(cnstr, true);
+    var type = (Type) arr[0];
+    var allTypes = (Type[]) arr[1];
+    assertEquals("Function", type.getName());
+    assertEquals("One array", 1, allTypes.length);
+    assertEquals("Also function type", type, allTypes[0]);
   }
 
   @Test
   public void typeOfUnresolvedSymbol() {
-    ctxRule.executeInContext(
-        () -> {
-          var cnstr = UnresolvedSymbol.build("Unknown_Name", null);
-          var arr = (Object[]) testTypesCall.call(cnstr, true);
-          var type = (Type) arr[0];
-          var allTypes = (Type[]) arr[1];
-          assertEquals("Function", type.getName());
-          assertEquals("One array", 1, allTypes.length);
-          assertEquals("Also function type", type, allTypes[0]);
-          return null;
-        });
+    var cnstr = UnresolvedSymbol.build("Unknown_Name", null);
+    var arr = (Object[]) testTypesCall.call(cnstr, true);
+    var type = (Type) arr[0];
+    var allTypes = (Type[]) arr[1];
+    assertEquals("Function", type.getName());
+    assertEquals("One array", 1, allTypes.length);
+    assertEquals("Also function type", type, allTypes[0]);
   }
 
   @Test
   public void multiValueWithHiddenType() {
-    ctxRule.executeInContext(
-        () -> {
-          var ensoCtx = EnsoContext.get(testTypesCall.getRootNode());
-          var types =
-              new Type[] {
-                ensoCtx.getBuiltins().number().getInteger(), ensoCtx.getBuiltins().text()
-              };
-          var multi =
-              EnsoMultiValue.NewNode.getUncached()
-                  .newValue(types, 1, 0, new Object[] {42L, "Meaning"});
-          var arr = (Object[]) testTypesCall.call(multi, true);
-          var allTypes = (Type[]) arr[1];
-          assertEquals("Two types", 2, allTypes.length);
-          assertEquals("Integer", types[0], allTypes[0]);
-          assertEquals("Text", types[1], allTypes[1]);
+    var ensoCtx = EnsoContext.get(testTypesCall.getRootNode());
+    var types =
+        new Type[] {ensoCtx.getBuiltins().number().getInteger(), ensoCtx.getBuiltins().text()};
+    var multi =
+        EnsoMultiValue.NewNode.getUncached().newValue(types, 1, 0, new Object[] {42L, "Meaning"});
+    var arr = (Object[]) testTypesCall.call(multi, true);
+    var allTypes = (Type[]) arr[1];
+    assertEquals("Two types", 2, allTypes.length);
+    assertEquals("Integer", types[0], allTypes[0]);
+    assertEquals("Text", types[1], allTypes[1]);
 
-          var arr1 = (Object[]) testTypesCall.call(multi, false);
-          var allTypes1 = (Type[]) arr1[1];
-          assertEquals("Just one type", 1, allTypes1.length);
-          assertEquals("Integer", types[0], allTypes1[0]);
-          return null;
-        });
+    var arr1 = (Object[]) testTypesCall.call(multi, false);
+    var allTypes1 = (Type[]) arr1[1];
+    assertEquals("Just one type", 1, allTypes1.length);
+    assertEquals("Integer", types[0], allTypes1[0]);
   }
 }

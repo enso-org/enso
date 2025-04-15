@@ -65,7 +65,7 @@ public class PrivateConstructorAccessTest {
   }
 
   @Test
-  public void privateConstructorIsNotExposedToPolyglot() throws IOException {
+  public void privateConstructorIsNotExposedToPolyglot() throws Exception {
     var mainSrc = """
         type My_Type
             private Cons data
@@ -82,17 +82,11 @@ public class PrivateConstructorAccessTest {
       var polyCtx = new PolyglotContext(ctx.context());
       var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
       var myType = mainMod.getType("My_Type");
-      ctx.executeInContext(
-          () -> {
-            var myTypeUnwrapped = ctx.unwrapValue(myType);
-            var interop = InteropLibrary.getUncached();
-            var members = interop.getMembers(myTypeUnwrapped, false);
-            assertThat(
-                "My_Type should not have any 'public' members",
-                interop.getArraySize(members),
-                is(0L));
-            return null;
-          });
+      var myTypeUnwrapped = ctx.unwrapValue(myType);
+      var interop = InteropLibrary.getUncached();
+      var members = interop.getMembers(myTypeUnwrapped, false);
+      assertThat(
+          "My_Type should not have any 'public' members", interop.getArraySize(members), is(0L));
     }
   }
 

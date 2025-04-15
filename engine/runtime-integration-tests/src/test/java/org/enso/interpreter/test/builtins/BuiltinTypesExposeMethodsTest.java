@@ -59,32 +59,25 @@ public class BuiltinTypesExposeMethodsTest {
 
   @Test
   public void builtinExposeMethods() {
-    ctxRule.executeInContext(
-        () -> {
-          assertThat(type, is(notNullValue()));
-          var typeDefScope = getType(type).getDefinitionScope();
-          var methodsDefinedInScope = typeDefScope.getMethodsForType(getType(type));
-          if (methodsDefinedInScope != null) {
-            for (var methodInScope : methodsDefinedInScope) {
-              var methodName = methodInScope.getName();
-              if (methodName.contains(".")) {
-                var items = methodName.split("\\.");
-                methodName = items[items.length - 1];
-              }
-              assertThat(
-                  "Builtin type " + type + " should have members", type.hasMembers(), is(true));
-              assertThat(
-                  "Member " + methodName + " should be present",
-                  type.hasMember(methodName),
-                  is(true));
-              assertThat(
-                  "Member " + methodName + " should be invocable",
-                  type.canInvokeMember(methodName),
-                  is(true));
-            }
-          }
-          return null;
-        });
+    assertThat(type, is(notNullValue()));
+    var typeDefScope = getType(type).getDefinitionScope();
+    var methodsDefinedInScope = typeDefScope.getMethodsForType(getType(type));
+    if (methodsDefinedInScope != null) {
+      for (var methodInScope : methodsDefinedInScope) {
+        var methodName = methodInScope.getName();
+        if (methodName.contains(".")) {
+          var items = methodName.split("\\.");
+          methodName = items[items.length - 1];
+        }
+        assertThat("Builtin type " + type + " should have members", type.hasMembers(), is(true));
+        assertThat(
+            "Member " + methodName + " should be present", type.hasMember(methodName), is(true));
+        assertThat(
+            "Member " + methodName + " should be invocable",
+            type.canInvokeMember(methodName),
+            is(true));
+      }
+    }
   }
 
   private static boolean shouldSkipType(Type type) {

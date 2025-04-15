@@ -46,15 +46,11 @@ public final class MethodResolutionTest {
 
         main = My_Type
         """);
-    ctxRule.executeInContext(
-        () -> {
-          var myType = unwrapType(myTypeVal);
-          var symbol = UnresolvedSymbol.build("to_display_text", myType.getDefinitionScope());
-          var func = methodResolverNode.executeResolution(myType, symbol);
-          assertThat("to_display_text method is found", func, is(notNullValue()));
-          assertSingleSelfArgument(func);
-          return null;
-        });
+    var myType = unwrapType(myTypeVal);
+    var symbol = UnresolvedSymbol.build("to_display_text", myType.getDefinitionScope());
+    var func = methodResolverNode.executeResolution(myType, symbol);
+    assertThat("to_display_text method is found", func, is(notNullValue()));
+    assertSingleSelfArgument(func);
   }
 
   @Test
@@ -69,15 +65,11 @@ public final class MethodResolutionTest {
         """,
             "Module",
             "main");
-    ctxRule.executeInContext(
-        () -> {
-          var myType = unwrapType(myTypeVal);
-          var symbol = UnresolvedSymbol.build("method", myType.getDefinitionScope());
-          var func = methodResolverNode.executeResolution(myType, symbol);
-          assertThat("method is found", func, is(notNullValue()));
-          assertSingleSelfArgument(func);
-          return null;
-        });
+    var myType = unwrapType(myTypeVal);
+    var symbol = UnresolvedSymbol.build("method", myType.getDefinitionScope());
+    var func = methodResolverNode.executeResolution(myType, symbol);
+    assertThat("method is found", func, is(notNullValue()));
+    assertSingleSelfArgument(func);
   }
 
   @Test
@@ -92,15 +84,11 @@ public final class MethodResolutionTest {
         """,
             "Module",
             "main");
-    ctxRule.executeInContext(
-        () -> {
-          var myType = unwrapType(myTypeVal);
-          var symbol = UnresolvedSymbol.build("method", myType.getDefinitionScope());
-          var func = methodResolverNode.executeResolution(myType, symbol);
-          assertThat("method is found", func, is(notNullValue()));
-          assertSingleSelfArgument(func);
-          return null;
-        });
+    var myType = unwrapType(myTypeVal);
+    var symbol = UnresolvedSymbol.build("method", myType.getDefinitionScope());
+    var func = methodResolverNode.executeResolution(myType, symbol);
+    assertThat("method is found", func, is(notNullValue()));
+    assertSingleSelfArgument(func);
   }
 
   @Test
@@ -115,15 +103,11 @@ public final class MethodResolutionTest {
         """,
             "Module",
             "main");
-    ctxRule.executeInContext(
-        () -> {
-          var myType = unwrapType(myTypeVal);
-          var symbol = UnresolvedSymbol.build("method", myType.getDefinitionScope());
-          var func = methodResolverNode.executeResolution(myType, symbol);
-          assertThat("method is found", func, is(notNullValue()));
-          assertSingleSelfArgument(func);
-          return null;
-        });
+    var myType = unwrapType(myTypeVal);
+    var symbol = UnresolvedSymbol.build("method", myType.getDefinitionScope());
+    var func = methodResolverNode.executeResolution(myType, symbol);
+    assertThat("method is found", func, is(notNullValue()));
+    assertSingleSelfArgument(func);
   }
 
   private void assertSingleSelfArgument(Function func) {

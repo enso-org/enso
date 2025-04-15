@@ -137,27 +137,19 @@ public class HashCodeTest {
 
   @Theory
   public void hashCodeIsConsistent(Object value) {
-    ctxRule.executeInContext(
-        () -> {
-          long firstHash = hashCodeNode.execute(value);
-          long secondHash = hashCodeNode.execute(value);
-          assertEquals("Hash code of an object should be consistent", firstHash, secondHash);
-          return null;
-        });
+    long firstHash = hashCodeNode.execute(value);
+    long secondHash = hashCodeNode.execute(value);
+    assertEquals("Hash code of an object should be consistent", firstHash, secondHash);
   }
 
   @Theory
   public void hashCodeCachedNodeIsConsistentWithUncached(Object value) {
-    ctxRule.executeInContext(
-        () -> {
-          long uncachedRes = HashCodeNodeGen.getUncached().execute(value);
-          long cachedRes = hashCodeNode.execute(value);
-          assertEquals(
-              "Result from cached HashCodeNode should be the same as from its uncached variant",
-              uncachedRes,
-              cachedRes);
-          return null;
-        });
+    long uncachedRes = HashCodeNodeGen.getUncached().execute(value);
+    long cachedRes = hashCodeNode.execute(value);
+    assertEquals(
+        "Result from cached HashCodeNode should be the same as from its uncached variant",
+        uncachedRes,
+        cachedRes);
   }
 
   private static boolean isTrue(EqualsAndInfo obj) {
