@@ -86,7 +86,8 @@ public class FixedWidthReader {
           sourceLineNumber, tableRowNumber, line.length(), minimumLineLength);
     }
 
-    if (line.length() < minimumLineLength && invalidRowsBehavior == InvalidFixedWidthRowsBehavior.DROP) {
+    if (line.length() < minimumLineLength
+        && invalidRowsBehavior == InvalidFixedWidthRowsBehavior.DROP) {
       sourceLineNumber++;
       return;
     }

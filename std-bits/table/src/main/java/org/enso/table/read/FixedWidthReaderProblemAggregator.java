@@ -29,7 +29,9 @@ public class FixedWidthReaderProblemAggregator extends ProblemAggregator {
   public void reportShortLine(
       long sourceLineNumber, Long tableRowNumber, long lineLength, long minimumLineLength) {
     if (invalidRowsCount < invalidRowsLimit) {
-      report(new InvalidFixedWidthRow(sourceLineNumber, tableRowNumber, lineLength, minimumLineLength));
+      report(
+          new InvalidFixedWidthRow(
+              sourceLineNumber, tableRowNumber, lineLength, minimumLineLength));
     }
 
     invalidRowsCount++;
