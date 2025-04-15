@@ -1,6 +1,8 @@
 /**
  * @file Copy of https://github.com/ag-grid/ag-grid/blob/v32.3.3/packages/ag-grid-vue3/src/AgGridVue.ts
- * with special overrides for Vue components removed; we handle them in a better way.
+ * with our modifications:
+ * - special overrides for Vue components removed; we handle them in a better way,
+ * - added license key registration.
  *
  * Original file licenced under The MIT License:
  *
@@ -29,20 +31,47 @@
 /* eslint-disable vue/require-prop-types */
 /* eslint-disable vue/order-in-components */
 
-import type { AgEventType, GridApi, GridOptions, IRowNode, Module } from 'ag-grid-community'
 import {
-  ALWAYS_SYNC_GLOBAL_EVENTS,
-  ComponentUtil,
   _combineAttributesAndGridOptions,
   _processOnChange,
   _warnOnce,
+  ALWAYS_SYNC_GLOBAL_EVENTS,
+  ComponentUtil,
   createGrid,
-} from 'ag-grid-community'
-import type { PropType } from 'vue'
-import { defineComponent, getCurrentInstance, h, markRaw, toRaw } from 'vue'
+  LicenseManager,
+  type AgEventType,
+  type GridApi,
+  type GridOptions,
+  type IRowNode,
+  type Module,
+} from 'ag-grid-enterprise'
+import { defineComponent, getCurrentInstance, h, markRaw, toRaw, type PropType } from 'vue'
+import { convertToRaw, getAgGridProperties, type Properties } from './Utils'
 
-import type { Properties } from './Utils'
-import { convertToRaw, getAgGridProperties } from './Utils'
+// === Loading AGGrid and its license ===
+
+if (typeof $config.AG_GRID_LICENSE_KEY !== 'string') {
+  console.warn('The AG_GRID_LICENSE_KEY is not defined.')
+  if (import.meta.env.DEV) {
+    // Hide annoying license validation errors in dev mode when the license is not defined. The
+    // missing define warning is still displayed to not forget about it, but it isn't as obnoxious.
+    const origValidateLicense = LicenseManager.prototype.validateLicense
+    LicenseManager.prototype.validateLicense = function (this) {
+      if (!('licenseManager' in this))
+        Object.defineProperty(this, 'licenseManager', {
+          configurable: true,
+          set(value: any) {
+            Object.getPrototypeOf(value).validateLicense = () => {}
+            delete this.licenseManager
+            this.licenseManager = value
+          },
+        })
+      origValidateLicense.call(this)
+    }
+  }
+} else {
+  LicenseManager.setLicenseKey($config.AG_GRID_LICENSE_KEY)
+}
 
 const ROW_DATA_EVENTS: Set<string> = new Set([
   'rowDataUpdated',

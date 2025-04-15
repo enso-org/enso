@@ -70,6 +70,7 @@
 - [Editing multiline text literals is now supported][12774]
 - [Fixed appearance of Cloud Browser scrollbars][12831]
 - [Add syntax highlighting for Table expressions][12778]
+- [Allow adding and reordering component group arguments][12850]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -111,6 +112,7 @@
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12831]: https://github.com/enso-org/enso/pull/12831
 [12778]: https://github.com/enso-org/enso/pull/12778
+[12850]: https://github.com/enso-org/enso/pull/12850
 
 #### Enso Standard Library
 
