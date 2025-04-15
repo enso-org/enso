@@ -1,3 +1,9 @@
+// Lezer grammar for Enso Table Expressions.
+//
+// This is currently maintained in parallel with the ANTLR grammar,
+// which is the normative specification of the language.
+// See: std-bits/table/src/main/antlr4/Expression.g4
+
 @top Expression { expr }
 @skip { space }
 

@@ -24,10 +24,6 @@ app/ydoc-shared/node_modules
 app/ydoc-shared/parser-codegen/node_modules
 lib/js/runner/node_modules
 
-# code generation
-app/table-expression/src/generated
-app/ydoc-shared/src/ast/generated
-
 #
 .bloop
 bazel-enso

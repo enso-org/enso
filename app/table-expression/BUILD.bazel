@@ -19,9 +19,7 @@ IGNORED_GENERATED_FILES = ["src/generated/parser.ts", "src/generated/parser.term
 
 ts_project(
     name = "tsc",
-    srcs = glob([
-        "src/**/*.ts",
-    ]) + IGNORED_GENERATED_FILES + [":generate_parser"],
+    srcs = glob(["src/**/*.ts"], IGNORED_GENERATED_FILES) + [":generate_parser"],
     composite = True,
     out_dir = "dist",
     root_dir = "src",
@@ -54,8 +52,9 @@ lezer_generator_bin.lezer_generator(
 )
 
 # Convenience rule to output built artifacts to the filesystem, so JS tooling can see them.
-# Important! Make sure the output of this rule is NOT used during the build process.
-# In this case, this is ensured by an entry in .bazelignore.
+# Important! Make sure the output of this rule is NOT used during the build process, which
+# is currently ensured by IGNORED_GENERATED_FILES being used as an glob exclusion
+# in `SRC` definition.
 write_source_files(
     name = "write_parser_codegen",
     files = {
