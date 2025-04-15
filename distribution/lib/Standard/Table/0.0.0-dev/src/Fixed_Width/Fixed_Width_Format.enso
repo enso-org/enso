@@ -10,6 +10,9 @@ import project.Internal.Fixed_Width_Reader
 import project.Internal.Telemetry
 
 ## Read fixed-width files into a Table.
+
+   A fixed-width format defines its columns as fixed column offsets and widths.
+   The columns are defined in a `Fixed_Width_Layout` object.
 type Fixed_Width_Format
     ## Read fixed-width files into a Table.
 
@@ -39,15 +42,22 @@ type Fixed_Width_Format
         _ = metadata
         Fixed_Width_Reader.read_stream self stream on_problems=..Report_Warning
 
+## PRIVATE
+   Specifies a fixed-width column. A column can be specified as a start column
+   and a witdh, or by just a width, relative to the previous column.
 type Fixed_Width_Column_Description
     Start_And_Width (name : Text | Nothing) (start:Integer) (width:Integer)
     Width (name : Text | Nothing) (width:Integer)
 
+## PRIVATE
+   Specifies a fixed-width column as a start and a width.
 type Fixed_Width_Layout_Entry
     Value (name:Text) (start:Integer) (width:Integer)
 
+## PRIVATE
+   Specifies a set of fixed-width columns.
 type Fixed_Width_Layout
-    Value (entries : Vector Fixed_Width_Layout_Entry)
+    private Value (entries : Vector Fixed_Width_Layout_Entry)
 
     from_descriptions (descs : Vector Fixed_Width_Column_Description) -> Fixed_Width_Layout =
         if descs.is_empty then
@@ -78,6 +88,8 @@ type Fixed_Width_Layout
             Fixed_Width_Layout_Entry.Value name start desc.width
         Fixed_Width_Layout.Value entries
 
+## PRIVATE
+   Helper for generating column names.
 type Column_Namer
     Value (prefix : Text) (next_ref : Ref)
 
