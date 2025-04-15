@@ -386,6 +386,7 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       @sortChanged="emit('sortOrFilterUpdated', $event)"
       @filterChanged="emit('sortOrFilterUpdated', $event)"
       @columnVisible="emit('columnStateChanged', $event)"
+      @columnMoved="emit('columnStateChanged', $event)"
       @contextmenu="stopIfPrevented"
     />
     <VueComponentHost :host="vueHost" />

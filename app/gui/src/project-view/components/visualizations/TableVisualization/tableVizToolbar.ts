@@ -15,7 +15,6 @@ import {
   getFilterValue,
   GridFilterModel,
 } from './tableVizFilterUtils'
-import { Console } from 'console'
 
 type SortDirection = 'asc' | 'desc'
 export type SortModel = {
@@ -43,6 +42,7 @@ export interface ColumnNodeButton {
   isCreateNewNodeEnabled: ToValue<boolean>
   createNodes: (...options: NodeCreationOptions[]) => void
   hiddenColumns: Ref<string[]>
+  vizColumnOrder: Ref<string[]>
   isColumnDisabled : ToValue<boolean>
 }
 
@@ -281,14 +281,16 @@ function useColumnNodesButton({
   isCreateNewNodeEnabled,
   createNodes,
   hiddenColumns,
-  isColumnDisabled
+  isColumnDisabled,
+  vizColumnOrder
 }: ColumnNodeButton): ComputedRef<ToolbarItem | undefined> {
 
   function createNewNodes() {
     const patterns = new Array<Pattern>()
     const columnsToRemove = toValue(hiddenColumns)
+    const columnOrder = toValue(vizColumnOrder)
 
-    function getAstPattern() {
+    function getRemoveColumnsAstPattern() {
       const columns = columnsToRemove.map((col) => Ast.TextLiteral.new(col))
       return Pattern.new<Ast.Expression>((ast) =>
         Ast.App.positional(
@@ -297,7 +299,24 @@ function useColumnNodesButton({
         ),
       )
     }
-    patterns.push(getAstPattern())
+
+    function getColumnOrderAstPattern() {
+      const columns = columnOrder.map((col) => Ast.TextLiteral.new(col))
+      return Pattern.new<Ast.Expression>((ast) =>
+        Ast.App.positional(
+          Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('reorder_columns')!),
+          Ast.Vector.new(ast.module, columns),
+        ),
+      )
+    }
+
+    if(columnsToRemove.length) {
+      patterns.push(getRemoveColumnsAstPattern())
+    }
+    if(columnOrder.length) {
+      patterns.push(getColumnOrderAstPattern())
+    }
+    
     createNodes(
       ...patterns.map(
         (pattern) => ({ content: pattern, commit: true }) satisfies NodeCreationOptions,

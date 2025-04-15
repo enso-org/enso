@@ -151,6 +151,7 @@ const isCreateColumnNodeEnabled = ref(false)
 const filterModel = ref<GridFilterModel[]>([])
 const sortModel = ref<SortModel[]>([])
 const hiddenColumns = ref<string[]>([])
+const vizColumnOrder = ref<string[]>([])
 const defaultColDef: Ref<ColDef> = ref({
   editable: false,
   sortable: true,
@@ -976,7 +977,10 @@ function checkSortAndFilter(e: SortChangedEvent) {
 const onColumnStateChange = (e: ColumnVisibleEvent) => {
   const colState = e.api.getColumnState()
   hiddenColumns.value = colState.filter(col => col.hide).map(col => col.colId)
-  isCreateColumnNodeEnabled.value = hiddenColumns.value.length > 0
+  //Check against OG order
+  vizColumnOrder.value = colState.filter(col => col.colId != INDEX_FIELD_NAME).map(col => col.colId)
+  //viz order set to empty if same order as OG- check against length of either 
+  isCreateColumnNodeEnabled.value = true
 }
 
 // ===============
@@ -1000,7 +1004,8 @@ config.setToolbar(
     isCreateNewNodeEnabled,
     createNodes: config.createNodes,
     getColumnValueToEnso,
-    hiddenColumns
+    hiddenColumns,
+    vizColumnOrder
   }),
 )
 </script>
