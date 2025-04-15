@@ -275,7 +275,7 @@ public final class ContextUtils implements TestRule, AutoCloseable {
    * @param callable action to invoke with given return type
    * @return Object returned from {@code callable} wrapped in {@link Value}.
    */
-  public <T> Value executeInContext(Callable<T> callable) {
+  private <T> Value executeInContext(Callable<T> callable) {
     var ctx = currentCtx();
     // Force initialization of the context
     ctx.eval("enso", "value = 0");
