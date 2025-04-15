@@ -23,8 +23,8 @@ public abstract class TruncateNode extends FloatNode {
 
   abstract Object execute(double own);
 
-  @Specialization
-  Object doDouble(double own, @CachedLibrary(limit = "1") InteropLibrary interop) {
+  @Specialization(limit = "1")
+  Object doDouble(double own, @CachedLibrary(value = "own") InteropLibrary interop) {
     if (fitsProfile.profile(interop.fitsInLong(own))) {
       return (long) own;
     } else {

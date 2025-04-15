@@ -23,8 +23,8 @@ public abstract class FloorNode extends FloatNode {
 
   abstract Object execute(double own);
 
-  @Specialization
-  Object doDouble(double own, @CachedLibrary(limit = "1") InteropLibrary interop) {
+  @Specialization(limit = "1")
+  Object doDouble(double own, @CachedLibrary(value = "own") InteropLibrary interop) {
     double floor = Math.floor(own);
     if (fitsProfile.profile(interop.fitsInLong(floor))) {
       return (long) floor;
