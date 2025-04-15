@@ -95,7 +95,7 @@ jobs:
               'failure')
                 exit 1
                 ;;
-              'skipped')
+              'skipped' | 'cancelled')
                 if [[ '${{ needs.gui-changed-files.outputs.any_changed }}' == 'true' ]]; then
                   exit 1
                 fi
