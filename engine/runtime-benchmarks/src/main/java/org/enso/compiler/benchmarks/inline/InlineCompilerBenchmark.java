@@ -59,10 +59,10 @@ public class InlineCompilerBenchmark {
 
   @TearDown
   public void tearDown() {
-    ctx.close();
     if (!ctx.getOut().isEmpty()) {
       throw new AssertionError("Unexpected output from the compiler: " + ctx.getOut());
     }
+    ctx.close();
   }
 
   @Benchmark

@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import org.enso.common.CompilationStage;
 import org.enso.compiler.benchmarks.Utils;
 import org.enso.compiler.context.CompilerContext;
@@ -73,7 +74,7 @@ public class ExportImportResolutionBenchmark {
 
   @TearDown
   public void teardown(BenchmarkParams params) throws IOException {
-    if (!ctx.getOut().isEmpty()) {
+    if (!isOutputEmpty()) {
       throw new AssertionError("Unexpected output (errors?) from the compiler: " + ctx.getOut());
     }
     ProjectUtils.deleteRecursively(projDir);
@@ -137,5 +138,11 @@ public class ExportImportResolutionBenchmark {
     if (!condition) {
       throw new AssertionError(msg);
     }
+  }
+
+  private boolean isOutputEmpty() {
+    Predicate<String> isIgnored = (str) -> str.contains("in a different working directory");
+    var linesCnt = ctx.getOut().lines().filter(line -> !isIgnored.test(line)).count();
+    return linesCnt == 0;
   }
 }
