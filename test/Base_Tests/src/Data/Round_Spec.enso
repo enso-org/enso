@@ -53,6 +53,7 @@ add_specs is_database group_builder batch_runner run_advanced =
     group_builder.specify "Can round positive decimals correctly" <|
         batch_runner.run rounding_mode=Rounding_Mode.Half_Up round_fun->
             round_fun 3.0 . should_equal 3
+            round_fun 3.0 . should_be_a Integer
             round_fun 3.00001 . should_equal 3
             round_fun 3.3 . should_equal 3
             round_fun 3.49999 . should_equal 3
@@ -63,6 +64,7 @@ add_specs is_database group_builder batch_runner run_advanced =
     group_builder.specify "Can round negative decimals correctly" <|
         batch_runner.run rounding_mode=Rounding_Mode.Half_Up round_fun->
             round_fun -3.0 . should_equal -3
+            round_fun -3.0 . should_be_a Integer
             round_fun -3.00001 . should_equal -3
             round_fun -3.3 . should_equal -3
             round_fun -3.49999 . should_equal -3
