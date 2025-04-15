@@ -208,10 +208,6 @@ add_specs suite_builder =
 
             ['crlf.csv', 'lf.csv', 'cr.csv', 'mixed.csv'].each (path >> .delete)
 
-        ##
-            Read from stream
-            Related file
-
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
