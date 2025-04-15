@@ -84,7 +84,7 @@ public class UnaryRoundOperation implements UnaryOperation {
       String msg = "Value is " + d;
       problemAggregator.reportArithmeticError(msg, builder.getCurrentSize());
       builder.appendNulls(1);
-    } else if (!Core_Math_Utils.fitsInLong(d)) {
+    } else if (!Core_Math_Utils.fitsInLongSafeRange(d)) {
       builder.append(bigDecimalFunction.apply(BigDecimal.valueOf(d)));
     } else {
       builder.append(doubleFunction.applyAsLong(d));

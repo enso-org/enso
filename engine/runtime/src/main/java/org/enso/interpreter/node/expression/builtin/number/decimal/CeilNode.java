@@ -17,7 +17,7 @@ public class CeilNode extends FloatNode {
 
   Object execute(double own) {
     double ceil = Math.ceil(own);
-    if (fitsProfile.profile(Core_Math_Utils.fitsInLong(ceil))) {
+    if (fitsProfile.profile(Core_Math_Utils.fitsInLongSafeRange(ceil))) {
       return (long) ceil;
     } else {
       return new EnsoBigInteger(ceil(ceil));

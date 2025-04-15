@@ -16,7 +16,7 @@ public class TruncateNode extends FloatNode {
   private final CountingConditionProfile fitsProfile = CountingConditionProfile.create();
 
   Object execute(double own) {
-    if (fitsProfile.profile(Core_Math_Utils.fitsInLong(own))) {
+    if (fitsProfile.profile(Core_Math_Utils.fitsInLongSafeRange(own))) {
       return (long) own;
     } else {
       return new EnsoBigInteger(toBigInteger(own));

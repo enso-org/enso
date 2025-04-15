@@ -58,7 +58,7 @@ public class RoundNode extends FloatNode {
     if (decimalPlaces > 0) {
       return resultUncast;
     } else {
-      if (fitsProfile.profile(Core_Math_Utils.fitsInLong(resultUncast))) {
+      if (fitsProfile.profile(Core_Math_Utils.fitsInLongSafeRange(resultUncast))) {
         return (long) resultUncast;
       } else {
         return new EnsoBigInteger(toBigInteger(resultUncast));

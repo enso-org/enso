@@ -17,7 +17,7 @@ public class FloorNode extends FloatNode {
 
   Object execute(double own) {
     double floor = Math.floor(own);
-    if (fitsProfile.profile(Core_Math_Utils.fitsInLong(floor))) {
+    if (fitsProfile.profile(Core_Math_Utils.fitsInLongSafeRange(floor))) {
       return (long) floor;
     } else {
       return new EnsoBigInteger(floor(floor));
