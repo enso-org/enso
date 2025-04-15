@@ -24,7 +24,6 @@ ts_project(
     ]) + IGNORED_GENERATED_FILES + [":generate_parser"],
     composite = True,
     out_dir = "dist",
-    resolve_json_module = True,
     root_dir = "src",
     tsconfig = ":tsconfig",
     validate = select({
