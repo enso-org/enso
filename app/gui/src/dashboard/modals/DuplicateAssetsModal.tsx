@@ -437,7 +437,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
           siblings.push(asset)
         }
       }
-      return { map, siblings: queries[0].data }
+      return { map, siblings }
     },
   })
 
