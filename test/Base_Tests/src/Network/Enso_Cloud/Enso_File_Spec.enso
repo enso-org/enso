@@ -399,7 +399,6 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
 
 add_data_specs suite_builder root =
     my_dir = (root / "data_specs-").create_directory
-    my_dir.should_succeed
     file_maker path_element:Text = my_dir / (path_element+".txt")
     Data_Spec.add_specs "(Enso_File) " suite_builder file_maker
 
