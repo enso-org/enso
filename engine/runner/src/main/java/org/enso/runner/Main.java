@@ -93,6 +93,7 @@ public class Main {
   private static final String NO_READ_IR_CACHES_OPTION = "no-read-ir-caches";
   private static final String DISABLE_PRIVATE_CHECK_OPTION = "disable-private-check";
   private static final String ENABLE_STATIC_ANALYSIS_OPTION = "enable-static-analysis";
+  private static final String TREAT_WARNINGS_AS_ERRORS_OPTION = "treat-warnings-as-errors";
   private static final String COMPILE_OPTION = "compile";
   private static final String NO_COMPILE_DEPENDENCIES_OPTION = "no-compile-dependencies";
   private static final String NO_GLOBAL_CACHE_OPTION = "no-global-cache";
@@ -480,6 +481,11 @@ public class Main {
             .longOpt(ENABLE_STATIC_ANALYSIS_OPTION)
             .desc("Enable static analysis (Experimental type inference).")
             .build();
+    var treatWarningsAsErrorsOption =
+        cliOptionBuilder()
+            .longOpt(TREAT_WARNINGS_AS_ERRORS_OPTION)
+            .desc("Treat compiler warnings as errors.")
+            .build();
 
     var systemPropOption =
         cliOptionBuilder()
@@ -541,7 +547,8 @@ public class Main {
         .addOption(warningsLimitOption)
         .addOption(disablePrivateCheckOption)
         .addOption(systemPropOption)
-        .addOption(enableStaticAnalysisOption);
+        .addOption(enableStaticAnalysisOption)
+        .addOption(treatWarningsAsErrorsOption);
 
     return options;
   }
@@ -656,6 +663,7 @@ public class Main {
       boolean shouldUseGlobalCache,
       boolean shouldUseIrCaches,
       boolean enableStaticAnalysis,
+      boolean treatWarningsAsErrors,
       Level logLevel,
       boolean logMasking)
       throws IOException {
@@ -676,6 +684,7 @@ public class Main {
                 .logMasking(logMasking)
                 .enableIrCaches(shouldUseIrCaches)
                 .enableStaticAnalysis(enableStaticAnalysis)
+                .treatWarningsAsErrors(treatWarningsAsErrors)
                 .strictErrors(true)
                 .useGlobalIrCacheLocation(shouldUseGlobalCache)
                 .build());
@@ -724,6 +733,7 @@ public class Main {
       boolean disablePrivateCheck,
       boolean enableAutoParallelism,
       boolean enableStaticAnalysis,
+      boolean treatWarningsAsErrors,
       boolean enableDebugServer,
       boolean inspect,
       String executionEnvironment,
@@ -763,6 +773,7 @@ public class Main {
             .strictErrors(true)
             .enableAutoParallelism(enableAutoParallelism)
             .enableStaticAnalysis(enableStaticAnalysis)
+            .treatWarningsAsErrors(treatWarningsAsErrors)
             .executionEnvironment(executionEnvironment != null ? executionEnvironment : "live")
             .warningsLimit(warningsLimit)
             .options(options);
@@ -976,7 +987,8 @@ public class Main {
       Level logLevel,
       boolean logMasking,
       boolean enableIrCaches,
-      boolean enableStaticAnalysis) {
+      boolean enableStaticAnalysis,
+      boolean treatWarningsAsErrors) {
     var mainMethodName = "internal_repl_entry_point___";
     var dummySourceToTriggerRepl =
         """
@@ -1001,6 +1013,7 @@ public class Main {
                 .enableIrCaches(enableIrCaches)
                 .disableLinting(true)
                 .enableStaticAnalysis(enableStaticAnalysis)
+                .treatWarningsAsErrors(treatWarningsAsErrors)
                 .build());
     var mainModule = context.evalModule(dummySourceToTriggerRepl, replModuleName);
     runMain(mainModule, null, Collections.emptyList(), mainMethodName);
@@ -1158,6 +1171,7 @@ public class Main {
           shouldUseGlobalCache,
           shouldEnableIrCaches(line),
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
+          line.hasOption(TREAT_WARNINGS_AS_ERRORS_OPTION),
           logLevel,
           logMasking);
     }
@@ -1173,6 +1187,7 @@ public class Main {
           line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
           line.hasOption(AUTO_PARALLELISM_OPTION),
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
+          line.hasOption(TREAT_WARNINGS_AS_ERRORS_OPTION),
           line.hasOption(REPL_OPTION),
           line.hasOption(INSPECT_OPTION),
           line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION),
@@ -1186,7 +1201,9 @@ public class Main {
           logLevel,
           logMasking,
           shouldEnableIrCaches(line),
-          line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION));
+          line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
+          line.hasOption(TREAT_WARNINGS_AS_ERRORS_OPTION)
+      );
     }
     if (line.hasOption(DOCS_OPTION)) {
       genDocs(
