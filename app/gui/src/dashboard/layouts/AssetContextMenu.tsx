@@ -28,8 +28,9 @@ import {
   deleteAssetsMutationOptions,
   downloadAssetsMutationOptions,
   restoreAssetsMutationOptions,
+  useUploadAssetsToCloud,
 } from '#/hooks/backendBatchedHooks'
-import { useNewProject, useUploadToCloud } from '#/hooks/backendHooks'
+import { useNewProject } from '#/hooks/backendHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { usePasteData } from '#/providers/DriveProvider'
 import * as featureFlagsProvider from '#/providers/FeatureFlagsProvider'
@@ -82,7 +83,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const path = asset.ensoPathValue
   const copyMutation = useCopy()
-  const uploadToCloud = useUploadToCloud()
+  const uploadAssetsToCloud = useUploadAssetsToCloud()
   const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined
   const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
 
@@ -269,7 +270,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             isUnderPaywall={!canUploadToCloud}
             feature="uploadToCloud"
             action="uploadToCloud"
-            doAction={() => uploadToCloud(asset)}
+            doAction={() => uploadAssetsToCloud([asset])}
           />
         )}
         {canExecute && !isRunningProject && !isOtherUserUsingProject && (

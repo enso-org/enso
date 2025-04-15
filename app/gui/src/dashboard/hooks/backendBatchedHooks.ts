@@ -1,7 +1,14 @@
 /** @file Hooks to do batched backend operations. */
 import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
+import { useUploadFileWithToastMutation } from '#/hooks/backendUploadFilesHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
 import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
+import { useUser } from '#/providers/AuthProvider'
+import { useRemoteBackend } from '#/providers/BackendProvider'
+import { useText } from '#/providers/TextProvider'
+import { extractTypeAndId } from '#/services/LocalBackend'
 import { getMessageOrToString } from '#/utilities/error'
 import { useMutationState, type Mutation, type QueryClient } from '@tanstack/react-query'
 import {
@@ -13,6 +20,7 @@ import {
   type DirectoryId,
   type LabelName,
 } from 'enso-common/src/services/Backend'
+import { toast } from 'react-toastify'
 
 /** Call "delete" mutations for a list of assets. */
 export function deleteAssetsMutationOptions(backend: Backend) {
@@ -425,4 +433,113 @@ export function removeAssetsLabelsMutationOptions(backend: Backend) {
       refetchType: 'all',
     },
   })
+}
+
+/** Return a callback to upload a project to the cloud. */
+function useUploadAssetToCloud() {
+  const { getText } = useText()
+  const toastAndLog = useToastAndLog()
+  const remoteBackend = useRemoteBackend()
+  const uploadFileToCloudMutation = useUploadFileWithToastMutation(remoteBackend)
+
+  return useEventCallback(
+    async (
+      asset: Pick<AnyAsset, 'id' | 'parentId' | 'title'>,
+      parentDirectoryId: DirectoryId | null = null,
+      newName?: string,
+    ) => {
+      const { parentId, id, title } = asset
+      newName ??= title
+
+      try {
+        const parentDirectoryPath = extractTypeAndId(parentId).id
+
+        const projectResponse = await fetch(
+          `./api/project-manager/projects/${extractTypeAndId(id).id}/enso-project?projectsDirectory=${parentDirectoryPath}`,
+        )
+
+        if (!projectResponse.ok) {
+          throw new Error('Something went wrong, please try again')
+        }
+
+        const fileName = `${newName}.enso-project`
+        await uploadFileToCloudMutation
+          .mutateAsync([
+            { fileName, fileId: null, parentDirectoryId },
+            new File([await projectResponse.blob()], fileName),
+          ])
+          .catch()
+        toast.success(getText('uploadProjectToCloudSuccess'))
+      } catch (error) {
+        if (error instanceof DuplicateAssetError) {
+          throw error
+        }
+        toastAndLog('uploadProjectToCloudError', error)
+      }
+    },
+  )
+}
+
+/** Return a callback to upload one or more projects to the cloud. */
+export function useUploadAssetsToCloud() {
+  const user = useUser()
+  const uploadAssetToCloud = useUploadAssetToCloud()
+
+  return useEventCallback(
+    async (assets: readonly Pick<AnyAsset, 'id' | 'parentId' | 'title'>[]) => {
+      const results = await Promise.allSettled(
+        assets.map((asset) =>
+          uploadAssetToCloud(asset).catch((error) => {
+            if (error instanceof DuplicateAssetError) {
+              return { id: asset.id, error }
+            }
+            throw error
+          }),
+        ),
+      )
+
+      const duplicateErrors = results
+        .filter((result) => result.status === 'fulfilled')
+        .map((result) =>
+          typeof result.value === 'object' && 'error' in result.value ? result.value : null,
+        )
+        .filter((error) => error != null)
+
+      const errors = results.flatMap((result): unknown =>
+        result.status === 'rejected' ? [result.reason] : [],
+      )
+
+      if (duplicateErrors.length !== 0) {
+        const resolutions = await resolveDuplications({
+          targetId: user.rootDirectoryId,
+          conflictingIds: duplicateErrors.map((error) => error.id),
+        })
+
+        const assetsMap = new Map(assets.map((asset) => [asset.id, asset]))
+        const renames = resolutions.flatMap((resolution) => {
+          if (resolution.conclusion !== 'rename') {
+            return []
+          }
+          const asset = assetsMap.get(resolution.assetId)
+          return asset ? [{ ...resolution, asset }] : []
+        })
+
+        await Promise.allSettled(
+          renames.map((resolution) =>
+            uploadAssetToCloud(resolution.asset, null, resolution.newName),
+          ),
+        )
+      }
+
+      if (errors.length !== 0) {
+        throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
+          errors,
+          failed: errors.length,
+          total: assets.length,
+        })
+      }
+
+      return results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
+    },
+  )
 }

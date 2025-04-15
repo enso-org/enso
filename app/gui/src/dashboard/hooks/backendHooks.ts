@@ -23,16 +23,12 @@ import {
   type BackendQueryMethod,
 } from 'enso-common/src/backendQuery'
 
-import { useUploadFileWithToastMutation } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHooks'
-import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useRemoteBackend } from '#/providers/BackendProvider'
 import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import {
@@ -45,11 +41,9 @@ import {
   type User,
   type UserGroupInfo,
 } from '#/services/Backend'
-import { extractTypeAndId } from '#/services/LocalBackend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
 import { useMemo } from 'react'
-import { toast } from 'react-toastify'
 import { z } from 'zod'
 
 const PROJECT_EXECUTIONS_STALE_TIME = 60_000
@@ -678,38 +672,5 @@ export function getProjectExecutionDetailsQueryOptions(
   return queryOptions({
     ...backendQueryOptions(backend, 'getProjectExecutionDetails', [id, title]),
     staleTime: PROJECT_EXECUTIONS_STALE_TIME,
-  })
-}
-
-/** Return a callback to upload a project to the cloud. */
-export function useUploadToCloud() {
-  const { getText } = useText()
-  const toastAndLog = useToastAndLog()
-  const remoteBackend = useRemoteBackend()
-  const uploadFileToCloudMutation = useUploadFileWithToastMutation(remoteBackend)
-
-  return useEventCallback(async (asset: Pick<AnyAsset, 'id' | 'parentId' | 'title'>) => {
-    const { parentId, id, title } = asset
-
-    try {
-      const parentDirectoryPath = extractTypeAndId(parentId).id
-
-      const projectResponse = await fetch(
-        `./api/project-manager/projects/${extractTypeAndId(id).id}/enso-project?projectsDirectory=${parentDirectoryPath}`,
-      )
-
-      if (!projectResponse.ok) {
-        throw new Error('Something went wrong, please try again')
-      }
-
-      const fileName = `${title}.enso-project`
-      await uploadFileToCloudMutation.mutateAsync([
-        { fileName, fileId: null, parentDirectoryId: null },
-        new File([await projectResponse.blob()], fileName),
-      ])
-      toast.success(getText('uploadProjectToCloudSuccess'))
-    } catch (error) {
-      toastAndLog('uploadProjectToCloudError', error)
-    }
   })
 }
