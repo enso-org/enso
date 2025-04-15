@@ -30,7 +30,7 @@ add_specs suite_builder =
                 + [Fixed_Width_Layout_Entry.Value "b" 4 1]
                 + [Fixed_Width_Layout_Entry.Value "c" 5 3]
                 + [Fixed_Width_Layout_Entry.Value "d" 8 3]
-            layout . should_equal (Fixed_Width_Layout.Value expected)
+            layout . get_entries . should_equal expected
 
         group_builder.specify "Should reject a format that tries to go to an earlier column" <|
             descs = []
@@ -53,7 +53,7 @@ add_specs suite_builder =
                 + [Fixed_Width_Layout_Entry.Value "b" 4 1]
                 + [Fixed_Width_Layout_Entry.Value "c" 5 3]
                 + [Fixed_Width_Layout_Entry.Value "d" 8 3]
-            layout . should_equal (Fixed_Width_Layout.Value expected)
+            layout . get_entries . should_equal expected
 
         group_builder.specify "Should be able to read a fixed-width file with an explicit format" <|
             descs = []

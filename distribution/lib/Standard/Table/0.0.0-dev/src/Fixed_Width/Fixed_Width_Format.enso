@@ -88,6 +88,9 @@ type Fixed_Width_Layout
             Fixed_Width_Layout_Entry.Value name start desc.width
         Fixed_Width_Layout.Value entries
 
+    ## PRIVATE
+    get_entries self -> Vector = self.entries
+
 ## PRIVATE
    Helper for generating column names.
 type Column_Namer
