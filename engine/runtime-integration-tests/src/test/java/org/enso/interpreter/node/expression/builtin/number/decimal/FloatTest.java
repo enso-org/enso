@@ -26,15 +26,11 @@ public class FloatTest {
 
   @BeforeClass
   public static void setup() {
-    ctxRule.executeInContext(
-        () -> {
-          absNode = AbsNode.build();
-          addNode = AddNode.build();
+    absNode = AbsNode.build();
+    addNode = AddNode.build();
 
-          root = new TestRootNode();
-          root.insertChildren(absNode, addNode);
-          return null;
-        });
+    root = new TestRootNode();
+    root.insertChildren(absNode, addNode);
   }
 
   @AfterClass

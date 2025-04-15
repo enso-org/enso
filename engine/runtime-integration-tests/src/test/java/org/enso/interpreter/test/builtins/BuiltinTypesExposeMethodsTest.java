@@ -37,17 +37,15 @@ public class BuiltinTypesExposeMethodsTest {
   public static Iterable<Value> generateBuiltinObjects() {
     var builtinTypes = new ArrayList<Value>();
     try (ValuesGenerator valuesGenerator = ValuesGenerator.create(ctxRule, Language.ENSO)) {
-      ctxRule.executeInContext(
-          () -> {
-            valuesGenerator.allTypes().stream()
-                .filter(
-                    val -> {
-                      var asType = getType(val);
-                      return !shouldSkipType(asType);
-                    })
-                .forEach(builtinTypes::add);
-            return null;
-          });
+      valuesGenerator.allTypes().stream()
+          .filter(
+              val -> {
+                var asType = getType(val);
+                return !shouldSkipType(asType);
+              })
+          .forEach(builtinTypes::add);
+    } catch (Exception e) {
+      throw new AssertionError(e);
     }
     return builtinTypes;
   }

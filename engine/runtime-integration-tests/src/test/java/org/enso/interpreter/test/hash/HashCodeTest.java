@@ -37,21 +37,17 @@ public class HashCodeTest {
 
   @BeforeClass
   public static void initContextAndData() {
-    ctxRule.executeInContext(
-        () -> {
-          hashCodeNode = HashCodeNode.build();
-          equalsNode = EqualsNode.create();
-          hostValueToEnsoNode = HostValueToEnsoNode.build();
-          testRootNode =
-              new TestRootNode(
-                  (frame) -> {
-                    @SuppressWarnings("unchecked")
-                    var fn = (Function<VirtualFrame, Object>) frame.getArguments()[0];
-                    return fn.apply(frame);
-                  });
-          testRootNode.insertChildren(hashCodeNode, equalsNode, hostValueToEnsoNode);
-          return null;
-        });
+    hashCodeNode = HashCodeNode.build();
+    equalsNode = EqualsNode.create();
+    hostValueToEnsoNode = HostValueToEnsoNode.build();
+    testRootNode =
+        new TestRootNode(
+            (frame) -> {
+              @SuppressWarnings("unchecked")
+              var fn = (Function<VirtualFrame, Object>) frame.getArguments()[0];
+              return fn.apply(frame);
+            });
+    testRootNode.insertChildren(hashCodeNode, equalsNode, hostValueToEnsoNode);
     // Initialize datapoints here, to make sure that it is initialized just once.
     unwrappedValues = fetchAllUnwrappedValues();
   }
@@ -104,7 +100,7 @@ public class HashCodeTest {
   @Theory
   public void hashCodeContractTheory(Object firstValue, Object secondValue) {
     InteropLibrary interop = InteropLibrary.getUncached();
-    executeInContextWithNode(
+    executeWithNode(
         (frame) -> {
           var firstHash = hashCodeNode.execute(firstValue);
           var secondHash = hashCodeNode.execute(secondValue);
@@ -164,8 +160,8 @@ public class HashCodeTest {
     return obj == EnsoContext.get(null).getNothing();
   }
 
-  private static Object executeInContextWithNode(Function<VirtualFrame, Object> fn) {
-    var ret = ctxRule.executeInContext(() -> testRootNode.getCallTarget().call(fn));
+  private static Object executeWithNode(Function<VirtualFrame, Object> fn) {
+    var ret = testRootNode.getCallTarget().call(fn);
     return ret;
   }
 }

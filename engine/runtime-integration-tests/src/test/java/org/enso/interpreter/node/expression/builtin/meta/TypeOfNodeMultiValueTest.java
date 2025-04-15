@@ -39,22 +39,18 @@ public class TypeOfNodeMultiValueTest {
 
   @BeforeClass
   public static void init() {
-    ctxRule.executeInContext(
-        () -> {
-          var node = TypeOfNode.create();
-          var root =
-              new TestRootNode(
-                  (frame) -> {
-                    var arg = frame.getArguments()[0];
-                    var allTypes = (boolean) frame.getArguments()[1];
-                    var t = node.findTypeOrError(arg);
-                    var all = node.findAllTypesOrNull(arg, allTypes);
-                    return new Object[] {t, all};
-                  });
-          root.insertChildren(node);
-          testTypesCall = root.getCallTarget();
-          return null;
-        });
+    var node = TypeOfNode.create();
+    var root =
+        new TestRootNode(
+            (frame) -> {
+              var arg = frame.getArguments()[0];
+              var allTypes = (boolean) frame.getArguments()[1];
+              var t = node.findTypeOrError(arg);
+              var all = node.findAllTypesOrNull(arg, allTypes);
+              return new Object[] {t, all};
+            });
+    root.insertChildren(node);
+    testTypesCall = root.getCallTarget();
     assertNotNull("Test types call initialized", testTypesCall);
   }
 

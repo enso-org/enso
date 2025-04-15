@@ -75,16 +75,12 @@ public class InvokeBuiltinMethodViaInteropTest {
         main = [1,2,3]
         """;
     var vec = ctxRule.evalModule(code);
-    ctxRule.executeInContext(
-        () -> {
-          var vecType = vec.getMetaObject();
-          assertThat(vecType, is(notNullValue()));
-          assertThat(vecType.hasMember("to_text"), is(true));
-          var res = vecType.invokeMember("to_text", new Object[] {vec});
-          assertThat("to_text method can be invoked", res, is(notNullValue()));
-          assertThat("to_text method returns correct result", res.isString(), is(true));
-          return null;
-        });
+    var vecType = vec.getMetaObject();
+    assertThat(vecType, is(notNullValue()));
+    assertThat(vecType.hasMember("to_text"), is(true));
+    var res = vecType.invokeMember("to_text", new Object[] {vec});
+    assertThat("to_text method can be invoked", res, is(notNullValue()));
+    assertThat("to_text method returns correct result", res.isString(), is(true));
   }
 
   /**

@@ -62,13 +62,9 @@ public final class MethodInvocationOnTypeConsistencyTest {
     var anyTypeVal = module.invokeMember(Module.EVAL_EXPRESSION, "any_type");
     var myTypeVal = module.invokeMember(Module.EVAL_EXPRESSION, "my_type");
     var myTypeAtomVal = module.invokeMember(Module.EVAL_EXPRESSION, "my_type_atom");
-    ctxRule.executeInContext(
-        () -> {
-          anyType = (Type) ctxRule.unwrapValue(anyTypeVal);
-          myType = (Type) ctxRule.unwrapValue(myTypeVal);
-          myTypeAtom = ctxRule.unwrapValue(myTypeAtomVal);
-          return null;
-        });
+    anyType = (Type) ctxRule.unwrapValue(anyTypeVal);
+    myType = (Type) ctxRule.unwrapValue(myTypeVal);
+    myTypeAtom = ctxRule.unwrapValue(myTypeAtomVal);
   }
 
   @AfterClass

@@ -42,14 +42,10 @@ public class EqualsTest {
 
   @BeforeClass
   public static void initContextAndData() {
-    ctxRule.executeInContext(
-        () -> {
-          testRootNode = new TestRootNode(EqualsTest::equalityCheck);
-          equalsNode = EqualsNode.create();
-          hostValueToEnsoNode = HostValueToEnsoNode.build();
-          testRootNode.insertChildren(equalsNode, hostValueToEnsoNode);
-          return null;
-        });
+    testRootNode = new TestRootNode(EqualsTest::equalityCheck);
+    equalsNode = EqualsNode.create();
+    hostValueToEnsoNode = HostValueToEnsoNode.build();
+    testRootNode.insertChildren(equalsNode, hostValueToEnsoNode);
     unwrappedValues = fetchAllUnwrappedValues();
   }
 

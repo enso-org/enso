@@ -24,14 +24,10 @@ public class PanicExceptionTest {
 
   @BeforeClass
   public static void initContextAndData() {
-    ctxRule.executeInContext(
-        () -> {
-          catchPanicNode = CatchPanicNode.build();
-          hostValueToEnsoNode = HostValueToEnsoNode.build();
-          testRootNode = new TestRootNode();
-          testRootNode.insertChildren(catchPanicNode, hostValueToEnsoNode);
-          return null;
-        });
+    catchPanicNode = CatchPanicNode.build();
+    hostValueToEnsoNode = HostValueToEnsoNode.build();
+    testRootNode = new TestRootNode();
+    testRootNode.insertChildren(catchPanicNode, hostValueToEnsoNode);
   }
 
   @AfterClass

@@ -26,14 +26,10 @@ public class EqualsMultiValueTest {
 
   @BeforeClass
   public static void initContextAndData() {
-    ctxRule.executeInContext(
-        () -> {
-          testRootNode = new TestRootNode(EqualsMultiValueTest::equalityCheck);
-          equalsNode = EqualsNode.create();
-          hostValueToEnsoNode = HostValueToEnsoNode.build();
-          testRootNode.insertChildren(equalsNode, hostValueToEnsoNode);
-          return null;
-        });
+    testRootNode = new TestRootNode(EqualsMultiValueTest::equalityCheck);
+    equalsNode = EqualsNode.create();
+    hostValueToEnsoNode = HostValueToEnsoNode.build();
+    testRootNode.insertChildren(equalsNode, hostValueToEnsoNode);
   }
 
   @AfterClass

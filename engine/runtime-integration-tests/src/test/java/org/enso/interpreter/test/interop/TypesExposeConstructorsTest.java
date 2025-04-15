@@ -36,25 +36,23 @@ public class TypesExposeConstructorsTest {
   @Parameters(name = "{index}: {0}")
   public static Iterable<TypeWithWrapper> collectTypes() {
     var collectedTypes = new ArrayList<TypeWithWrapper>();
-    ctxRule.executeInContext(
-        () -> {
-          try (ValuesGenerator valuesGenerator = ValuesGenerator.create(ctxRule, Language.ENSO)) {
-            valuesGenerator.allTypes().stream()
-                .map(
-                    tp -> {
-                      var unwrappedTp = ctxRule.unwrapValue(tp);
-                      if (unwrappedTp instanceof Type type) {
-                        return new TypeWithWrapper(type, tp);
-                      } else {
-                        return null;
-                      }
-                    })
-                .filter(Objects::nonNull)
-                .filter(tp -> !tp.type.getConstructors().isEmpty())
-                .forEach(collectedTypes::add);
-          }
-          return null;
-        });
+    try (ValuesGenerator valuesGenerator = ValuesGenerator.create(ctxRule, Language.ENSO)) {
+      valuesGenerator.allTypes().stream()
+          .map(
+              tp -> {
+                var unwrappedTp = ctxRule.unwrapValue(tp);
+                if (unwrappedTp instanceof Type type) {
+                  return new TypeWithWrapper(type, tp);
+                } else {
+                  return null;
+                }
+              })
+          .filter(Objects::nonNull)
+          .filter(tp -> !tp.type.getConstructors().isEmpty())
+          .forEach(collectedTypes::add);
+    } catch (Exception e) {
+      throw new AssertionError(e);
+    }
     return collectedTypes;
   }
 

@@ -22,11 +22,7 @@ public final class MethodResolutionTest {
 
   @BeforeClass
   public static void initCtx() {
-    ctxRule.executeInContext(
-        () -> {
-          methodResolverNode = MethodResolverNode.getUncached();
-          return null;
-        });
+    methodResolverNode = MethodResolverNode.getUncached();
   }
 
   @AfterClass
