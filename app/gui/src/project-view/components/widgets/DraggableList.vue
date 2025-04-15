@@ -32,9 +32,8 @@ const props = defineProps<{
    */
   toDragPayload?: (item: T) => string
   /**
-   * Convert payload created by `toDragPayload` back to the list item. This function can be called
-   * on the payload received from a different application instance (e.g. another browser), so it
-   * should not rely on any local state.
+   * Transform a drag position from client space to appropriate list "scene" space. Not necessary
+   * when the list is not transformed with scale.
    */
   toDragPosition?: (p: Vec2) => Vec2
   showHandles: boolean

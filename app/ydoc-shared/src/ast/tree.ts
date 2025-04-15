@@ -2610,10 +2610,7 @@ export class MutableFunctionDef extends FunctionDef implements MutableStatement 
     const defs = [...this.fields.get('argumentDefinitions')]
     const [def] = defs.splice(fromIndex, 1)
     if (def != null) {
-      // MutableVector.autospaceElement(def)
       defs.splice(toIndex, 0, def)
-      // MutableVector.autospaceElement(defs[fromIndex])
-      // MutableVector.autospaceElement(defs[toIndex + 1])
       this.fields.set('argumentDefinitions', defs)
     }
   }
@@ -2626,7 +2623,6 @@ export class MutableFunctionDef extends FunctionDef implements MutableStatement 
     const defs = [...this.fields.get('argumentDefinitions')]
     const newDefs = newValues.map((def) => mapRefs(def, ownedToRaw(this.module, this.id)))
     defs.splice(start, deletedCount, ...newDefs)
-    // MutableVector.autospaceElement(elements[start + newValues.length])
     this.fields.set('argumentDefinitions', defs)
   }
 

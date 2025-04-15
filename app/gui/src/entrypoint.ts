@@ -1,4 +1,4 @@
-import './beforeMain'
+import './beforeMain' // Keep newline below to ensure that this import is always first.
 
 import '#/styles.css'
 import '#/tailwind.css'

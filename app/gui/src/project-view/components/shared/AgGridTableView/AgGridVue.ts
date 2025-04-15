@@ -1,6 +1,8 @@
 /**
  * @file Copy of https://github.com/ag-grid/ag-grid/blob/v32.3.3/packages/ag-grid-vue3/src/AgGridVue.ts
- * with special overrides for Vue components removed; we handle them in a better way.
+ * with our modifications:
+ * - special overrides for Vue components removed; we handle them in a better way,
+ * - added license key registration.
  *
  * Original file licenced under The MIT License:
  *
