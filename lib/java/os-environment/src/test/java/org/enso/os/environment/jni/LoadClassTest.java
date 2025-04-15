@@ -7,6 +7,7 @@ import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
+import java.util.Random;
 import org.enso.os.environment.jni.JNI.JValue;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
@@ -106,9 +107,13 @@ public class LoadClassTest {
   @Test
   public void executeMainClass() throws Exception {
     var out = File.createTempFile("check-main", ".log");
-    jvm.executeMain("org/enso/os/environment/jni/TestMain", out.getPath());
-    var content = Files.readString(out.toPath());
-    assertEquals("Ciao", content);
-    out.delete();
+    var gen = new Random();
+    for (var i = 0; i < 100; i++) {
+      var n = gen.nextInt(10000, 20000);
+      jvm.executeMain("org/enso/os/environment/jni/TestMain", out.getPath(), "" + n);
+      var content = Files.readString(out.toPath());
+      assertEquals("Factorial of " + n + " is the same", TestMain.factorial(n).toString(), content);
+      out.delete();
+    }
   }
 }
