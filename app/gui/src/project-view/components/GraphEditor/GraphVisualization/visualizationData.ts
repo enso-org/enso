@@ -16,6 +16,7 @@ import { Ast } from '@/util/ast'
 import { toError } from '@/util/data/error'
 import type { ToValue } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
+import { wait } from 'lib0/promise.js'
 import {
   computed,
   onErrorCaptured,
@@ -28,7 +29,7 @@ import {
 } from 'vue'
 import { isIdentifier } from 'ydoc-shared/ast'
 import type { Opt } from 'ydoc-shared/util/data/opt'
-import type { Result } from 'ydoc-shared/util/data/result'
+import { Err, type Result } from 'ydoc-shared/util/data/result'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 /** Used for testing. */
@@ -112,26 +113,14 @@ export function useVisualizationData({
       graphDb.nodeIdToNode.get(dataSourceValue.nodeId as NodeId)?.outerAst.externalId
     if (contextId === undefined) return
 
-    try {
-      const expression = expressionFunction(identifier)
+    const expression = expressionFunction(identifier)
 
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`executeExpression timed out after ${timeoutMs}ms`)),
-          timeoutMs,
-        ),
-      )
+    const result = await Promise.race([
+      projectStore.executeExpression(contextId, expression.code()),
+      wait(timeoutMs).then(() => Err('Expression timeout')),
+    ])
 
-      const result = await Promise.race([
-        projectStore.executeExpression(contextId, expression.code()),
-        timeoutPromise,
-      ])
-
-      return result
-    } catch (e) {
-      console.error(e)
-      throw e
-    }
+    return result
   }
 
   const currentType = computed(() => {

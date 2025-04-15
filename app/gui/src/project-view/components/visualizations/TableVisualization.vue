@@ -338,52 +338,48 @@ function createServer() {
       }
     },
     getData: async (request: IServerSideGetRowsRequest) => {
-      try {
-        const columnHeaders =
-          typeof props.data === 'object' && 'header' in props.data ? (props.data.header ?? []) : []
+      const columnHeaders =
+        typeof props.data === 'object' && 'header' in props.data ? (props.data.header ?? []) : []
 
-        const { sortColIndexes, sortDirections } = convertSortModel(request, columnHeaders)
-        const { filterColumnIndexList, filterActions, valueList } = convertFilterModel(
-          request,
-          columnHeaders,
-          colTypeMap.value,
-        )
+      const { sortColIndexes, sortDirections } = convertSortModel(request, columnHeaders)
+      const { filterColumnIndexList, filterActions, valueList } = convertFilterModel(
+        request,
+        columnHeaders,
+        colTypeMap.value,
+      )
 
-        const expressionFunction = createExpressionRowTemplate(
-          'Standard.Visualization.Table.Visualization',
-          'get_rows_for_table',
-          //the index of the next bucket of rows to get
-          `${request.startRow}`,
-          //column indexes that require a sort
-          sortColIndexes as string[] | 'Nothing',
-          //direction (Ascending/Descending) for the sorts
-          sortDirections as string[] | 'Nothing',
-          //column indexes that require a filter
-          filterColumnIndexList as string[] | 'Nothing',
-          //column actions i.e Greater Than, Between...
-          filterActions as string[] | 'Nothing',
-          //values to filter on
-          valueList as string[] | 'Nothing',
-        )
+      const expressionFunction = createExpressionRowTemplate(
+        'Standard.Visualization.Table.Visualization',
+        'get_rows_for_table',
+        //the index of the next bucket of rows to get
+        `${request.startRow}`,
+        //column indexes that require a sort
+        sortColIndexes as string[] | 'Nothing',
+        //direction (Ascending/Descending) for the sorts
+        sortDirections as string[] | 'Nothing',
+        //column indexes that require a filter
+        filterColumnIndexList as string[] | 'Nothing',
+        //column actions i.e Greater Than, Between...
+        filterActions as string[] | 'Nothing',
+        //values to filter on
+        valueList as string[] | 'Nothing',
+      )
 
-        const response = await config.executeExpression(expressionFunction) // 5s timeout
+      const response = await config.executeExpression(expressionFunction)
 
-        if (response.ok) {
-          attepmtedCalls.value = 0
-          return {
-            success: true,
-            data: response.value.rows,
-            rowCount: response.value.row_count,
-          }
-        } else {
-          throw new Error('Expression execution failed')
+      if (response.ok) {
+        return {
+          success: true,
+          data: response.value.rows,
+          rowCount: response.value.row_count,
         }
-      } catch (err) {
+      } else {
         if (attepmtedCalls.value < 3) {
           grid.value?.gridApi?.refreshServerSide({ purge: true })
           attepmtedCalls.value++
+          return
         }
-        console.error('Error loading rows:', err)
+        console.error('Error loading rows:', response.error)
         return {
           success: false,
           data: null,
@@ -394,19 +390,14 @@ function createServer() {
   }
 }
 
-interface Response {
-  data: unknown[][]
-  rowCount: number
-  success: boolean
-}
 function createServerSideDatasource(): IServerSideDatasource {
   return {
     getRows: async (params) => {
       const server = ssrmServer.value
       if (server) {
-        const response: Response = await server.getData(params.request)
-        const rows = createRowsForTable(response.data, 0, true)
-        if (response.success) {
+        const response = await server.getData(params.request)
+        if (response && response.success) {
+          const rows = createRowsForTable(response.data, 0, true)
           params.success({ rowData: rows, rowCount: response.rowCount })
         } else {
           params.fail()
