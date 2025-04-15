@@ -4,6 +4,7 @@ import { linkifyUrls } from '@/components/PlainTextEditor/linkifyUrls'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { useCodeMirror } from '@/util/codemirror'
 import { useLinkTitles } from '@/util/codemirror/links'
+import { EditorView } from '@codemirror/view'
 import { useTemplateRef, type ComponentInstance } from 'vue'
 import * as Y from 'yjs'
 
@@ -13,7 +14,7 @@ const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('edi
 const vueHost = new VueHostInstance()
 const { editorView, readonly, contentElement } = useCodeMirror(editorRoot, {
   content: () => content,
-  extensions: [linkifyUrls],
+  extensions: [linkifyUrls, EditorView.lineWrapping],
   vueHost: () => vueHost,
 })
 
@@ -25,8 +26,9 @@ defineExpose({
 </script>
 
 <template>
-  <CodeMirrorRoot ref="editorRoot" v-bind="$attrs" />
-  <VueHostRender :host="vueHost" />
+  <CodeMirrorRoot ref="editorRoot" @keydown.enter.stop @keydown.up.stop @keydown.down.stop>
+    <VueHostRender :host="vueHost" />
+  </CodeMirrorRoot>
 </template>
 
 <style scoped>
