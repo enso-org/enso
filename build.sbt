@@ -225,6 +225,16 @@ ThisBuild / javacOptions ++= Seq(
   "-proc:full"        // Annotation processing is enabled
 )
 
+ThisBuild / javaOptions ++= Seq(
+  // Needed for migration from JDK 21 to JDK 24
+  // See https://github.com/oracle/graal/blob/master/sdk/CHANGELOG.md#version-2420
+  "--enable-native-access=org.graalvm.truffle",
+  // Truffle calls terminally deprecated methods from sun.misc.Unsafe in JDK24.
+  // This removes the warnings at runtime.
+  // TODO: Remove this until JDK 26
+  "--sun-misc-unsafe-memory-access=allow"
+)
+
 ThisBuild / scalacOptions ++= Seq(
   "-deprecation",                       // Emit warning and location for usages of deprecated APIs.
   "-encoding",                          // Provide explicit encoding (the next line)
