@@ -3085,7 +3085,7 @@ lazy val `runtime-integration-tests` =
         // Add necessary exports for IR module dumping to IGV
         // Which is used in the test utils
         val irDumperExports = Map(
-          "jdk.graal.compiler/org.graalvm.graphio" -> Seq(
+          "jdk.graal.compiler/jdk.graal.compiler.graphio" -> Seq(
             (`runtime-compiler-dump-igv` / javaModuleName).value
           )
         )
