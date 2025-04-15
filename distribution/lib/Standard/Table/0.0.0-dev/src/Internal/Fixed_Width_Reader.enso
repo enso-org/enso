@@ -87,7 +87,7 @@ private prepare_reader format:Fixed_Width_Format on_problems:Problem_Behavior ja
         TypeInferringParser.new format.value_formatter.get_specific_type_parsers wrapped
     FixedWidthReader.new (format_to_java format) on_invalid_rows_java value_parser warnings_as_errors java_problem_aggregator
 
-format_to_java format =
+private format_to_java format =
     format.layout.entries.map e->
         FixedWidthLayoutEntry.new e.name e.start e.width
 

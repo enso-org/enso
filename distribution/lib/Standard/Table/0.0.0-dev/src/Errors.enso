@@ -205,7 +205,7 @@ type Invalid_Row
         "The row " + loc + " had " + count_msg + " columns (expected " + self.expected_columns.to_text + ", got " + got_columns.to_text + ")."
 
 ## Indicates that when loading a fixed-width file, a row was encountered which
-   did not have enough characters.
+   was not long enough for the specified fixed-width column layout.
 
    Only the first 10 rows are reported, any additional ones are aggregated into
    a single instance of `Additional_Invalid_Rows`.
