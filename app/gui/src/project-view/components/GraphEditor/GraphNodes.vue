@@ -51,10 +51,15 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
   const currentMethod = graphStore.currentMethod.ast.value.externalId
   return uploads.filter(([, file]) => file.method === currentMethod)
 })
+
+const layerStyle = computed(() => ({
+  transform: navigator.transform,
+  willChange: navigator.transformChanging ? 'transform' : 'initial',
+}))
 </script>
 
 <template>
-  <div class="layer" :style="{ transform: navigator.transform }">
+  <div class="layer" :style="layerStyle">
     <GraphNode
       v-for="[id, node] in graphStore.db.nodeIdToNode.entries()"
       :key="id"
@@ -95,6 +100,5 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
   width: 0;
   height: 0;
   contain: layout size style;
-  will-change: transform;
 }
 </style>

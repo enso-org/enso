@@ -63,7 +63,7 @@ export class Token implements SyncTokenId {
   }
 
   /** The name of the token type of this token. */
-  get typeName(): string {
+  get typeName(): (typeof RawAst.Token.typeNames)[number] | 'Raw' {
     if (this.tokenType_ != null) return RawAst.Token.typeNames[this.tokenType_]!
     else return 'Raw'
   }

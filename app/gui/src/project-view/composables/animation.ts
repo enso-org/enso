@@ -3,6 +3,7 @@
 import type { Vec2 } from '@/util/data/vec2'
 import { watchSourceToRef } from '@/util/reactivity'
 import {
+  computed,
   onScopeDispose,
   proxyRefs,
   readonly,
@@ -142,18 +143,17 @@ function useApproachBase<T>(
   const target = watchSourceToRef(to)
   const current: Ref<T> = shallowRef(target.value)
 
-  useRaf(
-    () => !stable(target.value, current.value),
-    (_, dt) => {
-      current.value = update(target.value, current.value, dt)
-    },
-  )
+  const active = computed(() => !stable(target.value, current.value))
+
+  useRaf(active, (_, dt) => {
+    current.value = update(target.value, current.value, dt)
+  })
 
   function skip() {
     current.value = target.value
   }
 
-  return readonly(proxyRefs({ value: current, skip }))
+  return readonly(proxyRefs({ value: current, skip, active }))
 }
 
 /**

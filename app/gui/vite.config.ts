@@ -74,6 +74,16 @@ export default defineConfig({
     holdUntilCrawlEnd: true,
   },
   server: {
+    warmup: {
+      // Warming server up ***significantly*** speeds up execution of the first batch of tests in dev mode.
+      clientFiles: [
+        './src/**/*.vue',
+        './src/**/*.tsx',
+        './src/dashboard/hooks/**/*.ts',
+        './src/dashboard/tailwind.css',
+        './node_modules/@tanstack/**/*.js',
+      ],
+    },
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Resource-Policy': 'same-origin',

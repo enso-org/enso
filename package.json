@@ -57,7 +57,7 @@
     ],
     "overrides": {
       "tslib": "$tslib",
-      "jsdom": "^24.1.0",
+      "jsdom": "^26.0.0",
       "@types/react": "^18.3.1",
       "ws": "^8.18.0",
       "esbuild": "^0.25.0"

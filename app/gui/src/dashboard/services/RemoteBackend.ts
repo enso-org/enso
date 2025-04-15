@@ -468,15 +468,18 @@ export default class RemoteBackend extends Backend {
   override async getOrganization(): Promise<backend.OrganizationInfo | null> {
     const path = remoteBackendPaths.GET_ORGANIZATION_PATH
     const response = await this.get<backend.OrganizationInfo>(path)
+
     if ([STATUS_NOT_ALLOWED, STATUS_NOT_FOUND].includes(response.status)) {
       // Organization info has not yet been created.
       // or the user is not eligible to create an organization.
       return null
-    } else if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'getOrganizationBackendError')
-    } else {
-      return await response.json()
     }
+
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'getOrganizationBackendError')
+    }
+
+    return await response.json()
   }
 
   /** Update details for the current organization. */
@@ -750,11 +753,15 @@ export default class RemoteBackend extends Backend {
    * Restore an arbitrary asset from the trash.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  override async undoDeleteAsset(assetId: backend.AssetId, title: string): Promise<void> {
+  override async undoDeleteAsset(
+    assetId: backend.AssetId,
+    parentDirectoryId: backend.DirectoryId | null,
+  ): Promise<void> {
     const path = remoteBackendPaths.UNDO_DELETE_ASSET_PATH
-    const response = await this.patch(path, { assetId })
+    const response = await this.patch(path, { assetId, parentDirectoryId })
+
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'undoDeleteAssetBackendError', title)
+      return await this.throw(response, 'undoDeleteAssetBackendError')
     } else {
       return
     }
@@ -1008,13 +1015,12 @@ export default class RemoteBackend extends Backend {
       return await this.throw(response, 'getProjectDetailsBackendError')
     } else {
       const project = await response.json()
+      const { address, ...rest } = project
       return {
-        ...project,
-        ideVersion: project.ide_version,
-        engineVersion: project.engine_version,
-        jsonAddress: project.address != null ? backend.Address(`${project.address}json`) : null,
-        binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
-        ydocAddress: project.address != null ? backend.Address(`${project.address}project`) : null,
+        ...rest,
+        jsonAddress: address != null ? backend.Address(`${address}json`) : null,
+        binaryAddress: address != null ? backend.Address(`${address}binary`) : null,
+        ydocAddress: address != null ? backend.Address(`${address}project`) : null,
       }
     }
   }
@@ -1261,6 +1267,22 @@ export default class RemoteBackend extends Backend {
     const response = await this.post<backend.SecretId>(path, body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createSecretBackendError', body.name)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Create an OAuth credential.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async createCredential(
+    body: backend.CreateCredentialRequestBody,
+  ): Promise<backend.SecretId> {
+    const path = remoteBackendPaths.CREATE_CREDENTIAL_PATH
+    const response = await this.post<backend.SecretId>(path, body)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'createCredentialBackendError', body.name)
     } else {
       return await response.json()
     }
@@ -1567,15 +1589,20 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Upload the project. */
-  async uploadProject(id: backend.ProjectId, directoryId: backend.DirectoryId): Promise<void> {
-    const uploadPath = remoteBackendPaths.getProjectUploadPath(id)
+  /** Get the enso-project archive contents. */
+  async getProjectArchive(directoryId: backend.DirectoryId, fileName: string): Promise<File> {
     const queryString = new URLSearchParams({
-      uploadUrl: `${$config.API_URL}/${uploadPath}`,
       directory: extractIdFromDirectoryId(directoryId),
     })
 
-    await this.client.get(`./api/cloud/upload-project?${queryString}`)
+    const response = await this.client.get(`./api/cloud/get-project-archive?${queryString}`)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'resolveProjectAssetPathBackendError')
+    }
+
+    const responseBody = await response.arrayBuffer()
+
+    return new File([responseBody], fileName)
   }
 
   /** Fetch the URL of the customer portal. */

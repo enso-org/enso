@@ -24,7 +24,8 @@ import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { lazy } from 'react'
 
 const LazyQRCode = lazy(() =>
@@ -48,7 +49,7 @@ export function SetupTwoFaForm() {
 
   const MFAEnabled = data !== 'NOMFA'
 
-  const updateMFAPreferenceMutation = useMutation({
+  const updateMFAPreferenceMutation = useMutationCallback({
     mutationFn: (preference: MfaType) => updateMFAPreference(preference),
     meta: { invalidates: [['twoFaPreference']] },
   })
@@ -88,7 +89,7 @@ export function SetupTwoFaForm() {
                 onSubmit={({ otp }) =>
                   verifyTotpToken(otp).then((passed) => {
                     if (passed) {
-                      return updateMFAPreferenceMutation.mutateAsync('NOMFA')
+                      return updateMFAPreferenceMutation('NOMFA')
                     } else {
                       throw new Error('Invalid OTP')
                     }
@@ -127,7 +128,7 @@ export function SetupTwoFaForm() {
         if (enabled) {
           return verifyTotpToken(otp).then((passed) => {
             if (passed) {
-              return updateMFAPreferenceMutation.mutateAsync('TOTP')
+              return updateMFAPreferenceMutation('TOTP')
             } else {
               throw new Error('Invalid OTP')
             }

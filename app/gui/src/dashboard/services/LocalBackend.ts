@@ -232,7 +232,6 @@ export default class LocalBackend extends Backend {
                   type:
                     this.projectManager.projects.get(entry.metadata.id)?.state ??
                     backend.ProjectState.closed,
-                  volumeId: '',
                 },
               } satisfies backend.ProjectAsset
             }
@@ -359,17 +358,8 @@ export default class LocalBackend extends Backend {
       if (project == null) {
         throw new Error(`Could not get details of project.`)
       } else {
-        const version =
-          project.engineVersion == null ?
-            null
-          : {
-              lifecycle: backend.detectVersionLifecycle(project.engineVersion),
-              value: project.engineVersion,
-            }
         return {
           name: project.name,
-          engineVersion: version,
-          ideVersion: version,
           jsonAddress: null,
           binaryAddress: null,
           ydocAddress: null,
@@ -383,14 +373,6 @@ export default class LocalBackend extends Backend {
       const cachedProject = await state.data
       return {
         name: cachedProject.projectName,
-        engineVersion: {
-          lifecycle: backend.detectVersionLifecycle(cachedProject.engineVersion),
-          value: cachedProject.engineVersion,
-        },
-        ideVersion: {
-          lifecycle: backend.detectVersionLifecycle(cachedProject.engineVersion),
-          value: cachedProject.engineVersion,
-        },
         jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
         binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
         ydocAddress: null,
@@ -419,6 +401,11 @@ export default class LocalBackend extends Backend {
       await this.projectManager.openProject({
         projectId: id,
         missingComponentAction: projectManager.MissingComponentAction.install,
+        ...(body?.cloudProjectDirectoryPath != null ?
+          {
+            cloudProjectDirectoryPath: body.cloudProjectDirectoryPath,
+          }
+        : {}),
         ...(body?.parentId != null ?
           { projectsDirectory: extractTypeAndId(body.parentId).id }
         : {}),
@@ -441,44 +428,32 @@ export default class LocalBackend extends Backend {
     projectId: backend.ProjectId,
     body: backend.UpdateProjectRequestBody,
   ): Promise<backend.UpdatedProject> {
-    if (body.ami != null) {
-      throw new Error('Cannot change project AMI on local backend.')
+    const { id } = extractTypeAndId(projectId)
+    if (body.projectName != null) {
+      await this.projectManager.renameProject({
+        projectId: id,
+        name: projectManager.ProjectName(body.projectName),
+      })
+    }
+    const parentPath = getDirectoryAndName(this.projectManager.getProjectPath(id)).directoryPath
+    const result = await this.projectManager.listDirectory(parentPath)
+    const project = result.flatMap((listedProject) =>
+      (
+        listedProject.type === projectManager.FileSystemEntryType.ProjectEntry &&
+        listedProject.metadata.id === id
+      ) ?
+        [listedProject.metadata]
+      : [],
+    )[0]
+    if (project == null) {
+      throw new Error(`The project ID '${projectId}' is invalid.`)
     } else {
-      const { id } = extractTypeAndId(projectId)
-      if (body.projectName != null) {
-        await this.projectManager.renameProject({
-          projectId: id,
-          name: projectManager.ProjectName(body.projectName),
-        })
-      }
-      const parentPath = getDirectoryAndName(this.projectManager.getProjectPath(id)).directoryPath
-      const result = await this.projectManager.listDirectory(parentPath)
-      const project = result.flatMap((listedProject) =>
-        (
-          listedProject.type === projectManager.FileSystemEntryType.ProjectEntry &&
-          listedProject.metadata.id === id
-        ) ?
-          [listedProject.metadata]
-        : [],
-      )[0]
-      const version =
-        project?.engineVersion == null ?
-          null
-        : {
-            lifecycle: backend.detectVersionLifecycle(project.engineVersion),
-            value: project.engineVersion,
-          }
-      if (project == null) {
-        throw new Error(`The project ID '${projectId}' is invalid.`)
-      } else {
-        return {
-          ami: null,
-          engineVersion: version,
-          ideVersion: version,
-          name: project.name,
-          organizationId: backend.OrganizationId('organization-'),
-          projectId,
-        }
+      return {
+        name: project.name,
+        organizationId: backend.OrganizationId('organization-'),
+        projectId,
+        packageName: project.name,
+        state: { type: backend.ProjectState.closed },
       }
     }
   }
@@ -665,15 +640,39 @@ export default class LocalBackend extends Backend {
     assetId: backend.AssetId,
     body: backend.UpdateAssetRequestBody,
   ): Promise<void> {
-    if (body.parentDirectoryId != null) {
-      const typeAndId = extractTypeAndId(assetId)
-      const from =
-        typeAndId.type !== backend.AssetType.project ?
+    // Changing description is not supported on the Local Backend.
+    const { parentDirectoryId, title } = body
+
+    const typeAndId = extractTypeAndId(assetId)
+
+    const currentParentDirectoryPath = (() => {
+      return typeAndId.type !== backend.AssetType.project ?
           typeAndId.id
         : this.projectManager.getProjectPath(typeAndId.id)
-      const fileName = getFileName(from)
-      const to = joinPath(extractTypeAndId(body.parentDirectoryId).id, fileName)
-      await this.projectManager.moveFile(from, to)
+    })()
+
+    const newParentDirectoryPath = (() => {
+      const fileName = title == null ? getFileName(currentParentDirectoryPath) : title
+
+      if (parentDirectoryId == null) {
+        return joinPath(
+          projectManager.Path(currentParentDirectoryPath.split('/').slice(0, -1).join('/')),
+          fileName,
+        )
+      }
+
+      return joinPath(extractTypeAndId(parentDirectoryId).id, fileName)
+    })()
+
+    await this.projectManager.moveFile(currentParentDirectoryPath, newParentDirectoryPath)
+
+    // Changing the folder name for a project is _not_ enough,
+    // we also need to change the name in the package.yaml file.
+    if (typeAndId.type === backend.AssetType.project && title != null) {
+      await this.projectManager.renameProject({
+        projectId: typeAndId.id,
+        name: projectManager.ProjectName(title),
+      })
     }
   }
 
@@ -897,6 +896,11 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override createSecret() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override createCredential() {
     return this.invalidOperation()
   }
 

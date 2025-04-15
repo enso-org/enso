@@ -83,7 +83,7 @@ export const ensoDevtoolsStore = zustand.createStore<EnsoDevtoolsStore>()(
       },
     }),
     {
-      name: 'ensoDevtools',
+      name: 'enso-devtools',
       // eslint-disable-next-line @typescript-eslint/no-magic-numbers
       version: 1.1,
       partialize: (state) => ({

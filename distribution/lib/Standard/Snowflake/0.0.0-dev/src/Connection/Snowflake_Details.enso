@@ -2,10 +2,8 @@ from Standard.Base import all
 import Standard.Base.Data.Numbers.Number_Parse_Error
 import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.Type_Error
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Widget.Text_Input
-from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 
 import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Credentials.Credentials
@@ -17,7 +15,6 @@ import project.Connection.Widgets
 import project.Snowflake_Connection.Snowflake_Connection
 
 polyglot java import net.snowflake.client.jdbc.SnowflakeDriver
-polyglot java import org.enso.base.enso_cloud.InterpretAsPrivateKey
 
 type Snowflake_Details
     ## Connect to a Snowflake database.
@@ -25,12 +22,14 @@ type Snowflake_Details
        Arguments:
        - account: The name of the account to connect to.
        - credentials: The credentials to use for the connection.
+         This can either be username/password pair, a `Key_Pair_Credentials` 
+         for private key authentication or a credential created in the dashboard.
        - database: The name of the database to connect to.
        - schema: The name of the schema to connect to.
        - warehouse: The name of the warehouse to use.
     @account (Text_Input display=..Always)
     @credentials Widgets.password_or_keypair_widget
-    Snowflake (account:Text=(Missing_Argument.throw "account")) (credentials:Credentials|Key_Pair_Credentials=(Missing_Argument.throw "credentials")) database:Text="SNOWFLAKE" schema:Text="PUBLIC" warehouse:Text=""
+    Snowflake (account:Text=(Missing_Argument.throw "account")) (credentials:Credentials|Key_Pair_Credentials|Enso_Secret=(Missing_Argument.throw "credentials")) database:Text="SNOWFLAKE" schema:Text="PUBLIC" warehouse:Text=""
 
     ## PRIVATE
        Attempt to resolve the constructor.
@@ -47,14 +46,14 @@ type Snowflake_Details
     connect self options (allow_data_links : Boolean = True) =
         data_link_setup = if allow_data_links then Data_Link_Setup.Available (create_data_link_structure self) else
             Data_Link_Setup.already_a_data_link
-        properties = options.merge self.jdbc_properties
+        properties = options.merge self.common_jdbc_properties
 
         ## Cannot use default argument values as gets in an infinite loop if you do.
         make_new database schema warehouse =
             Snowflake_Details.Snowflake self.account self.credentials (database.if_nothing self.database) (schema.if_nothing self.schema) (warehouse.if_nothing self.warehouse) . connect options allow_data_links
 
         _enhance_connection_errors self <|
-            Snowflake_Connection.create self.jdbc_url properties make_new data_link_setup
+            Snowflake_Connection.create self.jdbc_url properties self.credentials make_new data_link_setup
 
     ## PRIVATE
        Provides the jdbc url for the connection.
@@ -63,37 +62,20 @@ type Snowflake_Details
         'jdbc:snowflake://' + self.account + ".snowflakecomputing.com"
 
     ## PRIVATE
-       Provides the properties for the connection.
-    jdbc_properties : Vector (Pair Text Text)
-    jdbc_properties self =
+       Provides common properties for the connection, excluding the ones related to credentials.
+    private common_jdbc_properties self -> Vector (Pair Text Text) =
         ## If Arrow dependency is to be avoided (https://community.snowflake.com/s/article/SAP-BW-Java-lang-NoClassDefFoundError-for-Apache-arrow)
         ## [Pair.new 'jdbc_query_result_format' 'json']
         ## should be prepended to properties. That would make it fallback to plain `json`.
 
         account = [Pair.new 'account' self.account]
-        credentials = case self.credentials of
-            Credentials.Username_And_Password username password -> [Pair.new 'user' username, Pair.new 'password' password]
-            Key_Pair_Credentials.Key_Pair username private_key passphrase ->
-                key_part = case private_key of
-                    local_file : File ->
-                        passphrase_part = if passphrase != Nothing then [Pair.new 'private_key_file_pwd' passphrase] else []
-                        [Pair.new 'private_key_file' local_file.absolute.path] + passphrase_part
-                    _ : Enso_File ->
-                        Error.throw (Illegal_Argument.Error "Currently only local files can be used as private keys. In Cloud, consider using a Secret instead of a file.")
-                    secret : Enso_Secret ->
-                        if passphrase != Nothing then
-                            Error.throw (Illegal_Argument.Error "Passphrase is not applicable when using a secret as a private key.")
-                        secret_as_private_key = InterpretAsPrivateKey.new (as_hideable_value secret)
-                        [Pair.new 'privateKey' secret_as_private_key]
-                [Pair.new 'user' username] + key_part
-
         database = [Pair.new 'db' self.database]
         schema = [Pair.new 'schema' self.schema]
         warehouse = if self.warehouse=="" then [] else [Pair.new 'warehouse' self.warehouse]
 
         ## Control the format of TIMESTAMP and TIME fields
         formats = [Pair.new "TIME_OUTPUT_FORMAT" "HH24:MI:SS.FF9", Pair.new "TIMESTAMP_OUTPUT_FORMAT" "YYYY-MM-DD HH24:MI:SS.FF9 TZHTZM", Pair.new "TIMESTAMP_NTZ_OUTPUT_FORMAT" "YYYY-MM-DD HH24:MI:SS.FF9", Pair.new "TIMESTAMP_LTZ_OUTPUT_FORMAT" "YYYY-MM-DD HH24:MI:SS.FF9"]
-        account + credentials + database + schema + warehouse + formats
+        account + database + schema + warehouse + formats
 
 ## PRIVATE
 private create_data_link_structure details:Snowflake_Details data_link_location:Enso_File -> JS_Object =

@@ -156,6 +156,10 @@ pub mod secret {
     // === Sentry ===
     /// The authentication token for pushing source maps to Sentry.
     pub const SENTRY_AUTH_TOKEN: &str = "SENTRY_AUTH_TOKEN";
+
+    // === OAuth Integrations ===
+    /// The client ID for the Google OAuth integration used for Google Credentials.
+    pub const ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: &str = "ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID";
 }
 
 pub mod variables {
@@ -898,6 +902,7 @@ fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
         "AWS",
         "Base",
         "Database",
+        "Generic_JDBC",
         "Google_Api",
         "Image",
         "Microsoft",

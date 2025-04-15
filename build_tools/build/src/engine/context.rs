@@ -356,7 +356,14 @@ impl RunContext {
 
         match &self.config.test_standard_library {
             Some(selection) => {
-                enso.run_tests(IrCaches::No, &sbt, PARALLEL_ENSO_TESTS, selection.clone()).await?;
+                enso.run_tests(
+                    IrCaches::No,
+                    &sbt,
+                    PARALLEL_ENSO_TESTS,
+                    selection.clone(),
+                    self.config.build_native_runner,
+                )
+                .await?;
             }
             None => {}
         }

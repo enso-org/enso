@@ -12,6 +12,8 @@ from Standard.Test import all
 import project.Database.Helpers.Name_Generator
 from project.Database.Postgres_Spec import create_connection_builder
 
+import Standard.Generic_JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
+
 import enso_dev.Generic_JDBC_Tests.Generic_JDBC_Connection_Spec
 
 add_specs suite_builder configured_connection_details =

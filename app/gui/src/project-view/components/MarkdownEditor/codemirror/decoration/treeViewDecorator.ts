@@ -38,7 +38,7 @@ export class TreeViewDecorator implements PluginValue {
 
   private buildDeco(tree: Tree, view: EditorView) {
     if (!tree.length) return Decoration.none
-    const vueHost = view.state.facet(getVueHost)
+    const vueHost = view.state.field(getVueHost)
     if (!vueHost) return Decoration.none
     const builder = new RangeSetBuilder<Decoration>()
     const doc = view.state.doc

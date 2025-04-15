@@ -83,7 +83,6 @@ interface PlaceholderOverrides {
   readonly updateFolderBackendError: [folderTitle: string]
   readonly updateAssetBackendError: [assetTitle: string]
   readonly deleteAssetBackendError: [assetTitle: string]
-  readonly undoDeleteAssetBackendError: [assetTitle: string]
   readonly createProjectBackendError: [projectTitle: string]
   readonly restoreProjectBackendError: [projectTitle: string]
   readonly duplicateProjectBackendError: [projectTitle: string]
@@ -106,6 +105,7 @@ interface PlaceholderOverrides {
   readonly getDatalinkBackendError: [datalinkTitle: string]
   readonly deleteDatalinkBackendError: [datalinkTitle: string]
   readonly createSecretBackendError: [secretTitle: string]
+  readonly createCredentialBackendError: [credentialTitle: string]
   readonly getSecretBackendError: [secretTitle: string]
   readonly updateSecretBackendError: [secretTitle: string]
   readonly createLabelBackendError: [labelName: string]
@@ -170,6 +170,12 @@ interface PlaceholderOverrides {
   readonly uploadLargeFileStatus: [uploadedParts: number, totalParts: number]
 
   readonly latestVersion: [version: string, date: string]
+  readonly copyInsteadOfMoving: [categoryName: string]
+  readonly copyInsteadOfRestoring: [categoryName: string, destinationCategoryName: string]
+  readonly copyInsteadOfRestoringDescription: [
+    categoryName: string,
+    destinationCategoryName: string,
+  ]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */
