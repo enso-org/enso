@@ -303,7 +303,9 @@ object FrgaalJavaCompiler {
         "java.desktop",
         "java.net.http",
         "java.sql",
-        "jdk.jfr"
+        "jdk.jfr",
+        // sun.misc.Unsafe
+        "jdk.unsupported"
       )
       val limitModulesArgs =
         if (shouldNotLimitModules) Seq()
