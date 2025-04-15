@@ -85,6 +85,8 @@ jobs:
           echo "GUI Checks: ${{ needs.gui-checks.result }}"
           echo "Storybook: ${{ needs.storybook.result }}"
 
+          any_changed='${{ needs.gui-changed-files.outputs.any_changed }}'
+
           declare -a checks
           checks+=("${{ needs.prettier.result }}")
           checks+=("${{ needs.gui-checks.result }}")
@@ -96,7 +98,7 @@ jobs:
                 exit 1
                 ;;
               'skipped' | 'cancelled')
-                if [[ '${{ needs.gui-changed-files.outputs.any_changed }}' == 'true' ]]; then
+                if [[ "$any_changed" == 'true' ]]; then
                   exit 1
                 fi
                 ;;
