@@ -21,10 +21,13 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
-import org.enso.table.data.table.Table;
 
 /** Class responsible for reading from Tableau Hyper files. */
 public class HyperReader {
@@ -315,35 +318,47 @@ public class HyperReader {
     }
   }
 
- public static void writeTable(
-    String path,
-    Table table
-) throws IOException {
-      getProcess();
-      var connection = new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS);
-      final SchemaName schemaName = new SchemaName("Extract");
-      connection.getCatalog().createSchema(schemaName);
-      final TableName tableName = new TableName("Extract", "Extract");
-      TableDefinition tableDef = new TableDefinition(tableName);
-      int numberOfColumns = table.getColumns().length;
-      for (int col = 0; col < numberOfColumns; ++col) {
-        String columnName = table.getColumns()[col].getName();
-        tableDef.addColumn(columnName, SqlType.text());
+  public static void writeTable(String path, Table table) throws IOException {
+    getProcess();
+    var connection = new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS);
+    final SchemaName schemaName = new SchemaName("Extract");
+    connection.getCatalog().createSchema(schemaName);
+    final TableName tableName = new TableName("Extract", "Extract");
+    TableDefinition tableDef = new TableDefinition(tableName);
+    int numberOfColumns = table.getColumns().length;
+    for (int col = 0; col < numberOfColumns; ++col) {
+      String columnName = table.getColumns()[col].getName();
+      var storage = table.getColumns()[col].getStorage();
+      switch (storage.getType()) {
+        case TextType x -> tableDef.addColumn(columnName, SqlType.text());
+        case IntegerType x -> tableDef.addColumn(columnName, SqlType.bigInt());
+        default -> throw new IllegalStateException("Unknown type");
       }
+      ;
+    }
 
-      // Create the table in the Hyper file
-      connection.getCatalog().createTable(tableDef);
+    // Create the table in the Hyper file
+    connection.getCatalog().createTable(tableDef);
 
-      int numberOfRows = table.rowCount();
-      Inserter inserter = new Inserter(connection, tableDef);
+    int numberOfRows = table.rowCount();
+    Inserter inserter = new Inserter(connection, tableDef);
     for (int row = 0; row < numberOfRows; ++row) {
       for (int col = 0; col < numberOfColumns; ++col) {
-        Object cellValue = table.getColumns()[col].getStorage().getItemBoxed(row);
-        inserter.add(cellValue.toString());
+        var storage = table.getColumns()[col].getStorage();
+        if (storage.isNothing(row)) {
+
+        } else if (storage instanceof ColumnLongStorage longStorage) {
+          inserter.add(longStorage.getItemAsLong(row));
+        } else {
+          Object value = storage.getItemBoxed(row);
+          switch (value) {
+            case String s -> inserter.add(s);
+            default -> throw new IllegalStateException("Unknown type");
+          }
+        }
       }
       inserter.endRow();
     }
-      inserter.execute();
-    }
+    inserter.execute();
+  }
 }
-
