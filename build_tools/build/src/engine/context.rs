@@ -371,8 +371,8 @@ impl RunContext {
         perhaps_test_java_generated_from_rust_job.await.transpose()?;
 
         // === Stdlib API check ===
-        debug!("Running standard libraries API check.");
         if self.config.stdlib_api_check {
+            debug!("Running standard libraries API check.");
             self.stdlib_api_check(&enso).await?;
         }
 
