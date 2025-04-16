@@ -903,7 +903,11 @@ resolve_local_file (path : Text) = handle_invalid_path path <|
         parts = Path_Helpers.split_path path
         # Special case - if there are no parts, it means path was "", so we use that as base.
         base_part = parts.get 0 if_missing=""
-        base = get_file base_part
+
+        # Handle special case when starts with ~
+        base = if base_part != '~' then get_file base_part else
+            if Enso_File.cloud_project_parent_directory == Nothing then File.home else Enso_File.home
+
         rest = parts.drop 1
         rest.fold base acc-> part-> acc.resolve_single_part part
 

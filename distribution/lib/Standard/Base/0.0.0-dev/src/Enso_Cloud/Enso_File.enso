@@ -118,7 +118,7 @@ type Enso_File
 
        ? Data Links
          If the file is a data link, this checks if the data link itself exists. 
-         It does not tell anything about existence of the data link target.       
+         It does not tell anything about existence of the data link target.
     exists : Boolean
     exists self =
         r = Existing_Enso_Asset.get_asset_reference_for self . if_not_error True
