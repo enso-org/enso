@@ -12,7 +12,7 @@ import type { VisualizationDataSource } from '@/stores/visualization'
 import type { Opt } from '@/util/data/opt'
 import { type BoundsSet, Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { computed, nextTick, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
+import { computed, nextTick, onUnmounted, proxyRefs, ref, toRef, watch, watchEffect } from 'vue'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 /**
@@ -189,14 +189,13 @@ watch(
   (f) => f && nextTick(() => panelElement.value?.focus()),
 )
 
-const visParams = computed(() => {
-  return {
-    visualization: effectiveVisualization.value,
-    data: effectiveVisualizationData.value,
-    size: contentElementSize.value,
-    nodeType: props.typename,
-    executeExpression,
-  }
+// Use proxy object instead of computed to keep granular reactive updates across the `params` prop fields.
+const visParams = proxyRefs({
+  visualization: effectiveVisualization,
+  data: effectiveVisualizationData,
+  size: contentElementSize,
+  nodeType: toRef(props, 'typename'),
+  executeExpression,
 })
 
 const resizableWidgets = injectResizableWidgetRegistry(true)

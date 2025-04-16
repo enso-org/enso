@@ -2307,6 +2307,20 @@ export interface ArgumentDefinition<T extends TreeRefs = RawRefs> {
   close?: T['token'] | undefined
 }
 
+/**
+ * Create a new function argument definition using provided "name" string as argument's pattern expression.
+ */
+export function newArgumentDefinition(
+  name: string,
+  module?: MutableModule,
+): OwnedArgumentDefinitions {
+  const expr = parseExpression(name, module)
+  assert(expr != null)
+  return {
+    pattern: autospaced(expr),
+  }
+}
+
 interface ArgumentDefault<T extends TreeRefs = RawRefs> {
   equals: T['token']
   expression: T['ast']
@@ -2558,6 +2572,9 @@ function* argumentDefinitionToConcrete(def: DeepReadonly<ArgumentDefinition>, ve
   if (close2) yield ensureSpacedOnlyIf(close2, spacedInsideParen2 ?? false, verbatim)
   if (close) yield ensureSpacedOnlyIf(close, spacedInsideParen1 ?? false, verbatim)
 }
+
+type OwnedArgumentDefinitions = ArgumentDefinition<OwnedRefs>
+
 /** TODO: Add docs */
 export class MutableFunctionDef extends FunctionDef implements MutableStatement {
   declare readonly module: MutableModule
@@ -2569,11 +2586,44 @@ export class MutableFunctionDef extends FunctionDef implements MutableStatement 
   setBody<T extends MutableExpression | MutableBodyBlock>(value: Owned<T> | undefined) {
     this.fields.set('body', unspaced(this.claimChild(value)))
   }
-  setArgumentDefinitions(defs: ArgumentDefinition<OwnedRefs>[]) {
+  setArgumentDefinitions(defs: OwnedArgumentDefinitions[]) {
     this.fields.set(
       'argumentDefinitions',
       defs.map((def) => mapRefs(def, ownedToRaw(this.module, this.id))),
     )
+  }
+
+  pushArgumentDefinitions(value: OwnedArgumentDefinitions) {
+    const defs = this.fields.get('argumentDefinitions')
+    const def = mapRefs(value, ownedToRaw(this.module, this.id))
+    this.fields.set('argumentDefinitions', [...defs, def])
+  }
+
+  /**
+   * Move an argument inside function definition.
+   * @param fromIndex index of moved argument.
+   * @param toIndex new index of moved argument.
+   *
+   * If any index is outside array index range, it's interpreted same as in {@link Array.prototype.splice|}.
+   */
+  moveArgumentDefinitions(fromIndex: number, toIndex: number) {
+    const defs = [...this.fields.get('argumentDefinitions')]
+    const [def] = defs.splice(fromIndex, 1)
+    if (def != null) {
+      defs.splice(toIndex, 0, def)
+      this.fields.set('argumentDefinitions', defs)
+    }
+  }
+
+  spliceArgumentDefinitions(
+    start: number,
+    deletedCount: number,
+    ...newValues: OwnedArgumentDefinitions[]
+  ) {
+    const defs = [...this.fields.get('argumentDefinitions')]
+    const newDefs = newValues.map((def) => mapRefs(def, ownedToRaw(this.module, this.id)))
+    defs.splice(start, deletedCount, ...newDefs)
+    this.fields.set('argumentDefinitions', defs)
   }
 
   /** Returns the body, after converting it to a block if it was empty or an inline expression. */

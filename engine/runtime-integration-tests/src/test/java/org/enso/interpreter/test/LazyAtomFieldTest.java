@@ -3,41 +3,23 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class LazyAtomFieldTest {
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
-  private static Context ctx;
-
-  @BeforeClass
-  public static void prepareCtx() {
-    ctx = ContextUtils.createDefaultContext(out);
-  }
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Before
   public void resetOut() {
-    out.reset();
-  }
-
-  @AfterClass
-  public static void disposeCtx() throws IOException {
-    ctx.close();
-    ctx = null;
-    out.close();
+    ctxRule.resetOut();
   }
 
   @Test
@@ -82,7 +64,7 @@ public class LazyAtomFieldTest {
     var meanings = evalCode(code, "meanings");
     assertEquals(42, meanings.asInt());
 
-    String log = out.toString(StandardCharsets.UTF_8);
+    String log = ctxRule.getOut();
     var lazyReadyAndThen =
         log.lines().dropWhile(l -> l.contains("Lazy value ready")).collect(Collectors.toList());
     var computingX = lazyReadyAndThen.stream().filter(l -> l.contains("Computing x done")).count();
@@ -123,7 +105,7 @@ public class LazyAtomFieldTest {
 
     var both = evalCode(code, "both");
     var sum = both.execute(100);
-    String log = out.toString(StandardCharsets.UTF_8);
+    String log = ctxRule.getOut();
     assertEquals(log, 5050, sum.asLong());
   }
 
@@ -219,7 +201,7 @@ public class LazyAtomFieldTest {
     final var testName = "test.enso";
     final URI testUri = new URI("memory://" + testName);
     final Source src = Source.newBuilder("enso", code, testName).uri(testUri).buildLiteral();
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     return module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, methodName);
   }
 }

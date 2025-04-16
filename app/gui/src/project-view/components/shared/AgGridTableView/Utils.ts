@@ -25,7 +25,7 @@
  * SOFTWARE.
  */
 
-import { ComponentUtil, _processOnChange } from 'ag-grid-community'
+import { ComponentUtil, _processOnChange } from 'ag-grid-enterprise'
 import { markRaw, toRaw } from 'vue'
 
 export const kebabProperty = (property: string) => {

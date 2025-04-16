@@ -18,7 +18,7 @@
     - min_value -> Standard.Base.Any.Any
     - negate self -> Standard.Base.Data.Numbers.Float
     - parse text:Standard.Base.Data.Text.Text locale:(Standard.Base.Data.Locale.Locale|Standard.Base.Nothing.Nothing)= format:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
-    - round self decimal_places:Standard.Base.Data.Numbers.Integer= rounding_mode:Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode= -> Standard.Base.Data.Numbers.Float
+    - round self decimal_places:Standard.Base.Data.Numbers.Integer= rounding_mode:Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode= -> Standard.Base.Any.Any
     - to_decimal self -> Standard.Base.Data.Decimal.Decimal
     - to_float self -> Standard.Base.Data.Numbers.Float
     - truncate self -> Standard.Base.Data.Numbers.Integer

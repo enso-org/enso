@@ -709,7 +709,7 @@ type Float
 
             2.5 . round rounding_mode=Rounding_Mode.Bankers == 2
     round : Integer -> Rounding_Mode -> Integer | Float ! Illegal_Argument
-    round self (decimal_places:Integer=0) (rounding_mode : Rounding_Mode = ..Half_Up) -> Float =
+    round self (decimal_places:Integer=0) (rounding_mode : Rounding_Mode = ..Half_Up) -> Integer | Float ! Illegal_Argument =
         report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
         Panic.catch Unsupported_Argument_Types handler=report_unsupported
             round_float_builtin self decimal_places (rounding_mode == Rounding_Mode.Bankers)
