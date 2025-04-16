@@ -852,7 +852,7 @@ rm dist/backend/project-manager.tar"
                             "${{ secrets.ELECTRON_IDE_CHROMATIC_PROJECT_TOKEN }}".into(),
                         ),
                         ("playwright".into(), true.into()),
-                        ("storybookBuildDir".into(), "app/ide-desktop/client/test-results".into()),
+                        ("workingDir".into(), "app/ide-desktop/client".into()),
                     ]))),
                     ..Default::default()
                 };
