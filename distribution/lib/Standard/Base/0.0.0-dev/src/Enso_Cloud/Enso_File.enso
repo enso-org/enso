@@ -306,7 +306,9 @@ type Enso_File
     ## PRIVATE
        Check if the Enso_File is a data link.
     is_data_link self -> Boolean =
-        self.asset_type == Enso_Asset_Type.Data_Link
+        if self.exists then self.asset_type == Enso_Asset_Type.Data_Link else
+            ## We know doesn't exist so check if `.datalink`.
+            Data_Link.is_data_link_name self.name
 
     ## GROUP Metadata
        ICON folder
