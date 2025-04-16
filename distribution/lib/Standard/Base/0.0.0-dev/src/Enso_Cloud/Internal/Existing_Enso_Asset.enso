@@ -183,6 +183,7 @@ type Asset_Cache
    Returns the cached reference or fetches it from the cloud.
 fetch_asset_reference (file : Enso_File) (want_metadata : Boolean) -> Existing_Enso_Asset ! File_Error = file.if_not_error <|
     case file.enso_path.to_text of
+        "enso://" -> Existing_Enso_Asset.Value "" "" Enso_Asset_Type.Directory (Asset_Metadata.Value (Date_Time.new 2024 1 1) "Enso root directory." [] Nothing)
         "enso://Users" -> Existing_Enso_Asset.Value "Users" "" Enso_Asset_Type.Directory (Asset_Metadata.Value (Date_Time.new 2024 1 1) "Enso User home directories." [] Nothing)
         "enso://Teams" -> Existing_Enso_Asset.Value "Teams" "" Enso_Asset_Type.Directory (Asset_Metadata.Value (Date_Time.new 2024 1 1) "Enso Team home directories." [] Nothing)
         path ->
