@@ -18,7 +18,7 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
     
     group_builder.specify "should be able to write a hyper file" <|
         written_file = transient / "temp1.hyper"
-        t = Table.input [['A', ['a', 'b', 'c']]]
+        t = Table.input [['A', ['a', 'b', 'c']], ['B', ['d', 'e', 'f']]]
         t.write written_file
         written_table_in_hyper = Hyper_File.new written_file . tables . first
         written_table = written_table_in_hyper.read

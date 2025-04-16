@@ -324,19 +324,25 @@ public class HyperReader {
       final SchemaName schemaName = new SchemaName("Extract");
       connection.getCatalog().createSchema(schemaName);
       final TableName tableName = new TableName("Extract", "Extract");
-      TableDefinition tableDef = new TableDefinition(tableName)
-                        .addColumn("A", SqlType.text());
+      TableDefinition tableDef = new TableDefinition(tableName);
+      int numberOfColumns = table.getColumns().length;
+      for (int col = 0; col < numberOfColumns; ++col) {
+        String columnName = table.getColumns()[col].getName();
+        tableDef.addColumn(columnName, SqlType.text());
+      }
 
-                // Create the table in the Hyper file
-                connection.getCatalog().createTable(tableDef);
+      // Create the table in the Hyper file
+      connection.getCatalog().createTable(tableDef);
 
       int numberOfRows = table.rowCount();
       Inserter inserter = new Inserter(connection, tableDef);
     for (int row = 0; row < numberOfRows; ++row) {
-        Object cellValue = table.getColumns()[0].getStorage().getItemBoxed(row);
+      for (int col = 0; col < numberOfColumns; ++col) {
+        Object cellValue = table.getColumns()[col].getStorage().getItemBoxed(row);
         inserter.add(cellValue.toString());
-        inserter.endRow();
       }
+      inserter.endRow();
+    }
       inserter.execute();
     }
 }
