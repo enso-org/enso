@@ -45,6 +45,26 @@ function pathDebugRepr(path: Path) {
   return pathUniqueId(path)
 }
 
+/**
+ * Based of given location of the module, return the location of image based on imageUrl.
+ * @returns path relative to project's root, or the full URL with schema.
+ */
+export function resolveDocImageUrl(modulePathSegments: string[], imageUrl: string) {
+  const appliedUrl = URL.parse(imageUrl, `file:///${modulePathSegments.join('/')}}`)
+  switch (appliedUrl?.protocol) {
+    case null:
+      return Err('Invalid image url')
+    case 'file:':
+      // Omit the starting '/'..
+      return Ok({ type: 'projectPath' as const, path: decodeURI(appliedUrl.pathname).substring(1) })
+    case 'http:':
+    case 'https:':
+      return Ok({ type: 'url' as const, url: appliedUrl })
+    default:
+      return Err('Unsupported protocol')
+  }
+}
+
 /** Supports loading and uploading project images. */
 export function useDocumentationImages(
   markdownEditor: ToValue<
@@ -64,13 +84,13 @@ export function useDocumentationImages(
     if (!modulePathValue) {
       return Err('Current module path is unknown.')
     }
-    const appliedUrl = new URL(url, `file:///${modulePathValue.segments.join('/')}`)
-    if (appliedUrl.protocol === 'file:') {
-      // The pathname starts with '/', so we remove "" segment.
-      const segments = decodeURI(appliedUrl.pathname).split('/').slice(1)
+    const resolvedUrl = resolveDocImageUrl(modulePathValue.segments, url)
+    if (!resolvedUrl.ok) return resolvedUrl
+    if (resolvedUrl.value.type === 'projectPath') {
+      const segments = resolvedUrl.value.path.split('/')
       return Ok({ rootId: modulePathValue.rootId, segments })
     } else {
-      // Not a relative URL, custom fetching not needed.
+      // Custom fetching not needed.
       return undefined
     }
   }

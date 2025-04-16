@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import { useLogger } from '#/providers/LoggerProvider'
 import { useText } from '#/providers/TextProvider'
+import { resolveDocImageUrl } from '@/components/DocumentationEditor/images'
 import { type UrlTransformer } from '@/components/MarkdownEditor/imageUrlTransformer'
 import { Err, Ok } from '@/util/data/result'
 import { type TestIdProps } from '../AriaComponents'
@@ -34,12 +35,12 @@ export function MarkdownViewer(props: MarkdownViewerProps) {
   const transformImageUrl: UrlTransformer = (path: string) => {
     // In Enso Documentation, the relative paths are from module's directory
     // Here we always display docs from `src/Main.enso` module
-    const appliedUrl = new URL(path, 'file:///src')
-    if (appliedUrl.protocol !== 'file:') {
-      return Promise.resolve(Ok({ url: path }))
+    const resolvedUrl = resolveDocImageUrl(['src'], path)
+    if (!resolvedUrl.ok) return Promise.resolve(resolvedUrl)
+    if (resolvedUrl.value.type === 'url') {
+      return Promise.resolve(Ok({ url: resolvedUrl.value.url.toString() }))
     } else {
-      // Omit the starting '/'.
-      return imgUrlResolver(appliedUrl.pathname.substring(1)).then(
+      return imgUrlResolver(resolvedUrl.value.path).then(
         (url) => Ok({ url }),
         (error) => {
           logger.error(error)
