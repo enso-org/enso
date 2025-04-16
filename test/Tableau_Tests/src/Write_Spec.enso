@@ -6,6 +6,7 @@ from Standard.Tableau import Hyper_File
 import Standard.Tableau.Hyper_Errors.Hyper_Table_Not_Found
 
 from Standard.Test import all
+import enso_dev.Table_Tests.Util
 
 main filter=Nothing =
     suite = Test.build suite_builder->

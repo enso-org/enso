@@ -315,12 +315,25 @@ public class HyperReader {
   }
 
  public static void writeTable(
-    String path,
-    String schemaName,
-    String tableName,
-    Column[] columns
+    String path
 ) throws IOException {
-       var connection = new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS);
+      getProcess();
+      var connection = new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS);
+      final SchemaName schemaName = new SchemaName("Extract");
+      connection.getCatalog().createSchema(schemaName);
+      final TableName tableName = new TableName("Extract", "SimpleTable");
+      TableDefinition tableDef = new TableDefinition(tableName)
+                        .addColumn("A", SqlType.text());
+
+                // Create the table in the Hyper file
+                connection.getCatalog().createTable(tableDef);
+
+                // Insert a single row with a single text value
+                try (Inserter inserter = new Inserter(connection, tableDef)) {
+                    inserter.add("a");
+                    inserter.endRow();
+                    inserter.execute();
+                }
 }
 
 
