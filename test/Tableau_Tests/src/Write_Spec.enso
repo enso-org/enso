@@ -15,11 +15,12 @@ main filter=Nothing =
 
 add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
     transient = enso_project.data / "transient"
-    names_file = transient / "names.hyper"
+    written_file = transient / "temp.hyper"
 
     group_builder.specify "should be able to write a hyper file" <|
         t = Table.input [['A', ['a']]]
-        t.write names_file
-        names_table = Hyper_File.new names_file . tables . first
-        table = names_table.read
-        table.should_equal t
+        t.write written_file
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table = written_table_in_hyper.read
+        written_table.should_equal t
+        written_file.delete
