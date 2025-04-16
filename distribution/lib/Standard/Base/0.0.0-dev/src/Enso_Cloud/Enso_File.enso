@@ -4,6 +4,7 @@ import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Vector_Lexicographic_Order
 import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
@@ -50,9 +51,6 @@ from project.Enso_Cloud.Public_Utils import get_required_field
 from project.System.File import find_extension_from_name
 from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
 from project.System.File.Generic.File_Write_Strategy import generic_copy
-
-polyglot java import java.nio.file.Path
-polyglot java import org.enso.base.file_system.File_Utils
 
 type Enso_File
     ## ICON data_input
@@ -481,10 +479,9 @@ type Enso_File
                     # Remove secrets from the list - they are handled separately in `Enso_Secret.list`.
                     assets = list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
                     filtered_assets = if name_filter == "" then assets else
-                        used_filter = if recursive.not || name_filter.contains "**" then name_filter else
-                            (if name_filter.starts_with "*" then "*" else "{**/,}") + name_filter
-                        matcher = File_Utils.matchPath "glob:"+used_filter
-                        assets.filter a-> matcher.matches (Path.of (a.name.drop Enso_Path.protocol_prefix.length))
+                        ## Does NOT support recursive matching
+                        name_regex = Regex.from_glob name_filter
+                        assets.filter a-> a.name.match name_regex
                     results = filtered_assets.map asset->
                         file = Enso_File.Value (self.enso_path.resolve asset.name)
                         Asset_Cache.update file asset
