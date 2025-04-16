@@ -443,7 +443,7 @@ type Regex
                 characters.index_of (..Not_Equal '*') index . if_nothing characters.length
             new_in_group = if char == '{' then True else (if char == '}' then False else in_group)
             new_pattern = if to_escape.contains char then pattern + "\" + char else case char of
-                '!' -> if characters.get index-1 == '[' then '^' else pattern + "\!"
+                '!' -> if characters.get index-1 == '[' then pattern + '^' else pattern + "\!"
                 '?' -> pattern + "."
                 '{' -> pattern + "("
                 '}' -> pattern + ")"
