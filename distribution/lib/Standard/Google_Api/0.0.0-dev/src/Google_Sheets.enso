@@ -1,13 +1,12 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Metadata.Display
-from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
+from Standard.Base.Metadata import make_single_choice
 
 from Standard.Table import Table
 
 polyglot java import java.io.IOException
-
 polyglot java import org.enso.google.GoogleSheetsForEnso
 polyglot java import org.enso.google.WrappedGoogleCredentials
 
@@ -52,7 +51,9 @@ type Google_Sheets
             [p.first, p.second.pad row_count Nothing]
         Table.new normalized
 
+## Error occurred when calling the Google Sheets API
 type Google_Api_Error
+    ## PRIVATE
     Error message cause
 
 private _handle_exceptions ~action =
