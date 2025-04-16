@@ -465,6 +465,9 @@ impl Processor {
                 .void_ok()
                 .boxed()
             }
+            arg::backend::Command::Lint {} => {
+
+            }
             arg::backend::Command::GenerateCloudCredentials {} => async move {
                 let auth_config = cloud_tests::build_auth_config_from_environment()?;
                 let path = Path::new("enso.credentials");

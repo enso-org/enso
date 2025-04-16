@@ -59,6 +59,8 @@ pub enum Command {
     CiCheck {},
     /// Perform the stdlib API checks
     StdlibApiCheck {},
+    /// Run linters on Enso code (type analysis, formatting)
+    Lint {},
 
     /// Generate Cloud credentials
     GenerateCloudCredentials {},
