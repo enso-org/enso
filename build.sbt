@@ -3970,6 +3970,7 @@ lazy val `engine-runner` = project
               "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
               "-H:+AddAllCharsets",
               "-H:+IncludeAllLocales",
+              "-H:+RunReachabilityHandlersConcurrently",
               // Workaround a problem with build-/runtime-initialization conflict
               // by disabling this service provider
               "-H:ServiceLoaderFeatureExcludeServiceProviders=net.snowflake.client.core.FileTypeDetector",
