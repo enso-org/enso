@@ -29,8 +29,8 @@ public class FixedWidthReader {
   private int minimumLineLength;
   private boolean firstLine = true;
   private int firstLineLength = 0;
-  private long sourceLineNumber = 0;
-  private long tableRowNumber = 0;
+  private long sourceLineNumber = 1;
+  private long tableRowNumber = 1;
 
   public FixedWidthReader(
       List<FixedWidthLayoutEntry> layoutEntries,
@@ -47,7 +47,7 @@ public class FixedWidthReader {
     this.invalidRowsBehavior = invalidRowsBehavior;
     this.valueParser = valueParser;
     this.problemAggregator =
-        new FixedWidthReaderProblemAggregator(problemAggregator, warningsAsErrors);
+        new FixedWidthReaderProblemAggregator(problemAggregator, invalidRowsBehavior, warningsAsErrors);
 
     minimumLineLength = layoutEntries.get(layoutEntries.size() - 1).end();
   }

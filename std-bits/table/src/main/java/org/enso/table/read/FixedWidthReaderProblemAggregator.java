@@ -7,13 +7,15 @@ import org.enso.table.problems.Problem;
 import org.enso.table.problems.ProblemAggregator;
 
 public class FixedWidthReaderProblemAggregator extends ProblemAggregator {
+  private InvalidFixedWidthRowsBehavior invalidRowsBehavior;
   private final boolean warningsAsErrors;
   private long invalidRowsCount;
   private final long invalidRowsLimit = 10;
   private boolean inconsistentLineLengths = false;
 
-  public FixedWidthReaderProblemAggregator(ProblemAggregator parent, boolean warningsAsErrors) {
+  public FixedWidthReaderProblemAggregator(ProblemAggregator parent, InvalidFixedWidthRowsBehavior invalidRowsBehavior, boolean warningsAsErrors) {
     super(parent);
+    this.invalidRowsBehavior = invalidRowsBehavior;
     this.warningsAsErrors = warningsAsErrors;
   }
 
@@ -29,9 +31,10 @@ public class FixedWidthReaderProblemAggregator extends ProblemAggregator {
   public void reportShortLine(
       long sourceLineNumber, Long tableRowNumber, long lineLength, long minimumLineLength) {
     if (invalidRowsCount < invalidRowsLimit) {
+      var tableRowNumberMaybe = invalidRowsBehavior == InvalidFixedWidthRowsBehavior.KEEP ? tableRowNumber : null;
       report(
           new InvalidFixedWidthRow(
-              sourceLineNumber, tableRowNumber, lineLength, minimumLineLength));
+              sourceLineNumber, tableRowNumberMaybe, lineLength, minimumLineLength));
     }
 
     invalidRowsCount++;
