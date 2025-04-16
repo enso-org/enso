@@ -31,12 +31,6 @@ import * as backendModule from '#/services/Backend'
 
 import { Text } from '#/components/AriaComponents'
 import { IndefiniteSpinner } from '#/components/Spinner'
-import {
-  useDeleteAssetsMutationState,
-  useMoveAssetsMutationState,
-  useRestoreAssetsMutationState,
-} from '#/hooks/backendBatchedHooks'
-import { useBackendMutationState } from '#/hooks/backendHooks'
 import { useDragDelayAction } from '#/hooks/dragDelayHooks'
 import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
@@ -228,18 +222,26 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const { user } = useFullUserSession()
   const setSelectedAssets = useSetSelectedAssets()
   const getAsset = useGetAsset()
-  const selected = useStore(driveStore, ({ visuallySelectedKeys, selectedIds }) =>
-    (visuallySelectedKeys ?? selectedIds).has(id),
-  )
-  const isSoleSelected = useStore(
-    driveStore,
-    ({ selectedIds, visuallySelectedKeys }) =>
-      selected && (visuallySelectedKeys ?? selectedIds).size === 1,
-  )
-  const allowContextMenu = useStore(
-    driveStore,
-    ({ selectedIds }) => selectedIds.size === 0 || !selected || isSoleSelected,
-  )
+  const { isSoleSelected, isNewlyCreated, allowContextMenu, selected, insertionVisibility } =
+    useStore(driveStore, ({ visuallySelectedKeys, selectedIds, newestFolderId, pasteData }) => {
+      const selected = (visuallySelectedKeys ?? selectedIds).has(id)
+      const isSoleSelected = selected && (visuallySelectedKeys ?? selectedIds).size === 1
+      const isNewlyCreated = selected && newestFolderId === item.id
+
+      return {
+        selected,
+        isSoleSelected,
+        isNewlyCreated,
+        allowContextMenu: isSoleSelected,
+        insertionVisibility:
+          (
+            pasteData?.type === 'move' &&
+            pasteData.data.assets.some((asset) => asset.id === item.id)
+          ) ?
+            Visibility.faded
+          : Visibility.visible,
+      }
+    })
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const draggableProps = dragAndDropHooks.useDraggable({ isDisabled: !selected })
   const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -253,55 +255,46 @@ export function RealAssetRow(props: RealAssetRowProps) {
   )
   const setLabelsDragPayload = useSetLabelsDragPayload()
 
-  const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === item.id)
   const isEditingName = innerRowState.isEditingName || isNewlyCreated
 
   const rowState = object.merge(innerRowState, { isEditingName })
 
-  const isDeletingSingleAsset =
-    useBackendMutationState(backend, 'deleteAsset', {
-      predicate: ({ state: { variables } }) => variables?.[0] === item.id,
-      select: () => null,
-    }).length !== 0
-  const isDeletingMultipleAssets =
-    useDeleteAssetsMutationState(backend, {
-      predicate: ({ state: { variables: [assetIds = []] = [] } }) => assetIds.includes(item.id),
-      select: () => null,
-    }).length !== 0
+  const isDeletingSingleAsset = false
+  // useBackendMutationState(backend, 'deleteAsset', {
+  //   predicate: ({ state: { variables } }) => variables?.[0] === item.id,
+  //   select: () => null,
+  // }).length !== 0
+  const isDeletingMultipleAssets = false
+  // useDeleteAssetsMutationState(backend, {
+  //   predicate: ({ state: { variables: [assetIds = []] = [] } }) => assetIds.includes(item.id),
+  //   select: () => null,
+  // }).length !== 0
   const isDeleting = isDeletingSingleAsset || isDeletingMultipleAssets
-  const isRestoringSingleAsset =
-    useBackendMutationState(backend, 'undoDeleteAsset', {
-      predicate: ({ state: { variables } }) => variables?.[0] === item.id,
-      select: () => null,
-    }).length !== 0
-  const isRestoringMultipleAssets =
-    useRestoreAssetsMutationState(backend, {
-      predicate: ({ state: { variables = { ids: [], parentId: null } } }) =>
-        variables.ids.includes(item.id),
-      select: () => null,
-    }).length !== 0
+  const isRestoringSingleAsset = false
+  // useBackendMutationState(backend, 'undoDeleteAsset', {
+  //   predicate: ({ state: { variables } }) => variables?.[0] === item.id,
+  //   select: () => null,
+  // }).length !== 0
+  const isRestoringMultipleAssets = false
+  // useRestoreAssetsMutationState(backend, {
+  //   predicate: ({ state: { variables = { ids: [], parentId: null } } }) =>
+  //     variables.ids.includes(item.id),
+  //   select: () => null,
+  // }).length !== 0
   const isRestoring = isRestoringSingleAsset || isRestoringMultipleAssets
-  const isUpdatingSingleAsset =
-    useBackendMutationState(backend, 'updateAsset', {
-      predicate: ({ state: { variables } }) => variables?.[0] === item.id,
-      select: () => null,
-    }).length !== 0
-  const isMovingMultipleAssets =
-    useMoveAssetsMutationState(backend, {
-      predicate: ({ state: { variables: [assetIds = []] = [] } }) => assetIds.includes(item.id),
-      select: () => null,
-    }).length !== 0
+  const isUpdatingSingleAsset = false
+  // useBackendMutationState(backend, 'updateAsset', {
+  //   predicate: ({ state: { variables } }) => variables?.[0] === item.id,
+  //   select: () => null,
+  // }).length !== 0
+  const isMovingMultipleAssets = false
+  // useMoveAssetsMutationState(backend, {
+  //   predicate: ({ state: { variables: [assetIds = []] = [] } }) => assetIds.includes(item.id),
+  //   select: () => null,
+  // }).length !== 0
 
   const isUpdating = isUpdatingSingleAsset || isMovingMultipleAssets
 
-  const insertionVisibility = useStore(driveStore, (driveState) => {
-    return (
-        driveState.pasteData?.type === 'move' &&
-          driveState.pasteData.data.assets.some((asset) => asset.id === item.id)
-      ) ?
-        Visibility.faded
-      : Visibility.visible
-  })
   const visibility =
     isDeleting || isRestoring || isUpdating ? Visibility.faded : insertionVisibility
 
@@ -424,7 +417,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
               }
             }}
             className={tailwindMerge.twMerge(
-              'h-table-row rounded-full transition-all ease-in-out rounded-rows-child [contain-intrinsic-size:44px] [content-visibility:auto]',
+              'h-table-row rounded-full transition-all ease-in-out rounded-rows-child',
               visibility,
               (isDraggedOver || selected) && 'selected',
             )}

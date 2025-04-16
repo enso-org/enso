@@ -1,4 +1,5 @@
 /** @file Table displaying a list of projects. */
+import { useVirtualizer } from '@tanstack/react-virtual'
 import {
   Children,
   cloneElement,
@@ -25,7 +26,7 @@ import * as z from 'zod'
 import DropFilesImage from '#/assets/drop_files.svg'
 import { FileTrigger, mergeProps } from '#/components/aria'
 import { Button, Text } from '#/components/AriaComponents'
-import type { AssetRowInnerProps } from '#/components/dashboard/AssetRow'
+import type { AssetRowInnerProps, AssetRowProps } from '#/components/dashboard/AssetRow'
 import { AssetRow } from '#/components/dashboard/AssetRow'
 import { INITIAL_ROW_STATE } from '#/components/dashboard/AssetRow/assetRowUtils'
 import type { SortableColumn } from '#/components/dashboard/column/columnUtils'
@@ -197,7 +198,6 @@ function AssetsTable(props: AssetsTableProps) {
   const { query, setQuery, category } = props
   const { initialProjectName } = props
 
-  const openedProjects = useLaunchedProjects()
   const openProjectLocally = useOpenProjectLocally()
   const setCanDownload = useSetCanDownload()
   const setSuggestions = useSetSuggestions()
@@ -614,7 +614,6 @@ function AssetsTable(props: AssetsTableProps) {
   const [keyboardSelectedIndex, setKeyboardSelectedIndex] = useState<number | null>(null)
   const mostRecentlySelectedIndexRef = useRef<number | null>(null)
   const selectionStartIndexRef = useRef<number | null>(null)
-  const bodyRef = useRef<HTMLTableSectionElement>(null)
 
   const setMostRecentlySelectedIndex = useEventCallback(
     (index: number | null, isKeyboard: boolean = false) => {
@@ -1283,38 +1282,6 @@ function AssetsTable(props: AssetsTableProps) {
     </tr>
   )
 
-  const itemRows = visibleItems.map((item) => {
-    const isOpenedByYou = openedProjects.some(({ id }) => item.id === id)
-    const isOpenedOnTheBackend =
-      item.projectState?.type != null ? IS_OPENING_OR_OPENED[item.projectState.type] : false
-    return (
-      <AssetRow
-        key={item.id + item.virtualParentsPath}
-        isPlaceholder={false}
-        isOpened={isOpenedByYou || isOpenedOnTheBackend}
-        columns={columns}
-        id={item.id}
-        type={item.type}
-        parentId={item.parentId}
-        state={state}
-        item={item}
-        isKeyboardSelected={
-          keyboardSelectedIndex != null && item === visibleItems[keyboardSelectedIndex]
-        }
-        grabKeyboardFocus={grabRowKeyboardFocus}
-        onClick={onRowClick}
-        select={selectRow}
-        labels={labels ?? []}
-        onDragStart={onRowDragStart}
-        onDragEnd={onRowDragEnd}
-        onDrop={onRowDrop}
-        renameAsset={doRenameAsset}
-        closeProject={closeProjectMutationCallback}
-        openProject={doOpenProject}
-      />
-    )
-  })
-
   const dropzoneText =
     isDraggingFiles ?
       droppedFilesCount === 1 ?
@@ -1322,32 +1289,30 @@ function AssetsTable(props: AssetsTableProps) {
       : getText('assetsDropFilesDescription', droppedFilesCount)
     : getText('assetsDropzoneDescription')
 
-  const specialEmptyText =
-    query.query !== '' ? getText('noFilesMatchTheCurrentFilters')
-    : currentDirectoryId !== category.homeDirectoryId ? getText('thisFolderIsEmpty')
-    : null
-
   const table = (
     <div className="flex flex-none flex-col">
-      <table className="isolate table-fixed border-collapse rounded-rows">
-        <thead className="sticky top-0 isolate z-1 bg-dashboard before:absolute before:-inset-1 before:bottom-0 before:bg-dashboard">
+      <table className="table-fixed border-collapse rounded-rows">
+        <thead className="sticky top-0 z-1 bg-dashboard before:absolute before:-inset-1 before:bottom-0 before:bg-dashboard">
           {headerRow}
         </thead>
 
-        <tbody ref={bodyRef} className="isolate">
-          {itemRows}
-          <tr className="hidden h-row first:table-row">
-            <td colSpan={columns.length} className="h-table-row bg-transparent">
-              <Text className="px-cell-x placeholder" disableLineHeightCompensation>
-                {category.type === 'trash' ?
-                  (specialEmptyText ?? getText('yourTrashIsEmpty'))
-                : category.type === 'recent' ?
-                  (specialEmptyText ?? getText('youHaveNoRecentProjects'))
-                : (specialEmptyText ?? getText('youHaveNoFiles'))}
-              </Text>
-            </td>
-          </tr>
-        </tbody>
+        <AssetsTableVirtualizer
+          visibleItems={visibleItems}
+          rootRef={rootRef}
+          columns={columns}
+          state={state}
+          keyboardSelectedIndex={keyboardSelectedIndex}
+          grabKeyboardFocus={grabRowKeyboardFocus}
+          onClick={onRowClick}
+          select={selectRow}
+          labels={labels ?? []}
+          onDragStart={onRowDragStart}
+          onDragEnd={onRowDragEnd}
+          onDrop={onRowDrop}
+          renameAsset={doRenameAsset}
+          closeProject={closeProjectMutationCallback}
+          openProject={doOpenProject}
+        />
       </table>
 
       <AssetsTableAssetsUnselector asChild>
@@ -1426,7 +1391,7 @@ function AssetsTable(props: AssetsTableProps) {
         </div>
       </div>
 
-      <IsolateLayout className="isolate h-full w-full" useRAF>
+      <IsolateLayout className="h-full w-full">
         <div
           className="h-full w-full flex-1 scroll-p-24 overflow-auto scroll-smooth container-size"
           onKeyDown={onKeyDown}
@@ -1502,6 +1467,124 @@ function AssetsTable(props: AssetsTableProps) {
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ *
+ */
+interface AssetsTableVirtualizerProps
+  extends Omit<
+    AssetRowProps,
+    'id' | 'isKeyboardSelected' | 'isOpened' | 'isPlaceholder' | 'item' | 'parentId' | 'type'
+  > {
+  readonly visibleItems: readonly AnyAsset[]
+  readonly rootRef: RefObject<HTMLElement>
+  readonly keyboardSelectedIndex: number | null
+}
+
+/**
+ *
+ */
+function useVirtualItems(visibleItems: readonly AnyAsset[], rootRef: RefObject<HTMLElement>) {
+  'use no memo'
+  const { getVirtualItems, getTotalSize } = useVirtualizer({
+    count: visibleItems.length,
+    getScrollElement: () => rootRef.current,
+    estimateSize: () => ROW_HEIGHT_PX,
+    overscan: 8,
+    useAnimationFrameWithResizeObserver: true,
+  })
+
+  return {
+    items: getVirtualItems(),
+    totalSize: getTotalSize(),
+  }
+}
+
+/**
+ * A component that renders a virtualized table of assets.
+ */
+function AssetsTableVirtualizer(props: AssetsTableVirtualizerProps) {
+  const { visibleItems, rootRef, keyboardSelectedIndex, columns, state, ...rest } = props
+  const { category, currentDirectoryId, query } = state
+
+  const { getText } = useText()
+
+  const openedProjects = useLaunchedProjects()
+  const bodyRef = useRef<HTMLTableSectionElement>(null)
+
+  const { items, totalSize } = useVirtualItems(visibleItems, rootRef)
+
+  const itemRows = items.map((virtualItem, index) => {
+    const item = visibleItems[virtualItem.index]
+
+    if (item == null) {
+      return null
+    }
+
+    const isOpenedByYou = openedProjects.some(({ id }) => item.id === id)
+    const isOpenedOnTheBackend =
+      item.projectState?.type != null ? IS_OPENING_OR_OPENED[item.projectState.type] : false
+
+    return (
+      <div
+        key={index}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: `${virtualItem.size}px`,
+          transform: `translateY(${virtualItem.start}px)`,
+        }}
+      >
+        <AssetRow
+          {...rest}
+          isPlaceholder={false}
+          item={item}
+          id={item.id}
+          type={item.type}
+          parentId={item.parentId}
+          isOpened={isOpenedByYou || isOpenedOnTheBackend}
+          isKeyboardSelected={
+            keyboardSelectedIndex != null && item === visibleItems[keyboardSelectedIndex]
+          }
+          state={state}
+          columns={columns}
+        />
+      </div>
+    )
+  })
+
+  const specialEmptyText =
+    query.query !== '' ? getText('noFilesMatchTheCurrentFilters')
+    : currentDirectoryId !== category.homeDirectoryId ? getText('thisFolderIsEmpty')
+    : null
+
+  return (
+    <tbody
+      ref={bodyRef}
+      className="isolate"
+      style={{
+        height: `${totalSize}px`,
+        position: 'relative',
+        width: '100%',
+      }}
+    >
+      {itemRows}
+      <tr className="hidden h-row first:table-row">
+        <td colSpan={columns.length} className="h-table-row bg-transparent">
+          <Text className="px-cell-x placeholder" disableLineHeightCompensation>
+            {category.type === 'trash' ?
+              (specialEmptyText ?? getText('yourTrashIsEmpty'))
+            : category.type === 'recent' ?
+              (specialEmptyText ?? getText('youHaveNoRecentProjects'))
+            : (specialEmptyText ?? getText('youHaveNoFiles'))}
+          </Text>
+        </td>
+      </tr>
+    </tbody>
   )
 }
 

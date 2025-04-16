@@ -79,7 +79,7 @@ export default function DragModal(props: DragModalProps) {
       <div className="pointer-events-none absolute size-full overflow-hidden shadow-md">
         <div
           {...passthrough}
-          style={{ left, top, ...style }}
+          style={{ transform: `translate(${left}px, ${top}px)`, ...style }}
           className={DIALOG_BACKGROUND({
             className: ['relative w-48 translate-x-3 translate-y-3', className],
           })}

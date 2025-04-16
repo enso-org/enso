@@ -167,6 +167,7 @@ export function Scroller(props: ScrollerProps) {
 
   const [measureRef] = useMeasureCallback({
     isDisabled: !showShadows,
+    useRAF: false,
     onResize: () => {
       const container = containerRef.current
 

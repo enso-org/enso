@@ -218,6 +218,9 @@ importers:
       '@tanstack/react-query':
         specifier: 5.59.20
         version: 5.59.20(react@18.3.1)
+      '@tanstack/react-virtual':
+        specifier: 3.13.6
+        version: 3.13.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/vue-query':
         specifier: 5.59.20
         version: 5.59.20(vue@3.5.13(typescript@5.7.2))
@@ -2967,6 +2970,15 @@ packages:
     resolution: {integrity: sha512-Zly0egsK0tFdfSbh5/mapSa+Zfc3Et0Zkar7Wo5sQkFzWyB3p3uZWOHR2wrlAEEV2L953eLuDBtbgFvMYiLvUw==}
     peerDependencies:
       react: ^18 || ^19
+
+  '@tanstack/react-virtual@3.13.6':
+    resolution: {integrity: sha512-WT7nWs8ximoQ0CDx/ngoFP7HbQF9Q2wQe4nh2NB+u2486eX3nZRE40P9g6ccCVq7ZfTSH5gFOuCoVH5DLNS/aA==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  '@tanstack/virtual-core@3.13.6':
+    resolution: {integrity: sha512-cnQUeWnhNP8tJ4WsGcYiX24Gjkc9ALstLbHcBj1t3E7EimN6n6kHH+DPV4PpDnuw00NApQp+ViojMj1GRdwYQg==}
 
   '@tanstack/vue-query@5.59.20':
     resolution: {integrity: sha512-kIs1GfXh7jVLycbnQDghfdrcvrZz5fxnMF7eAAp8O3ZfhHQWfP57DBXbOvww4Y+TI0EvVoh+hihX+LNFBGFKLg==}
@@ -10895,6 +10907,14 @@ snapshots:
       '@tanstack/query-core': 5.59.20
       '@types/react': 18.3.18
       react: 18.3.1
+
+  '@tanstack/react-virtual@3.13.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@tanstack/virtual-core': 3.13.6
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@tanstack/virtual-core@3.13.6': {}
 
   '@tanstack/vue-query@5.59.20(vue@3.5.13(typescript@5.7.2))':
     dependencies:

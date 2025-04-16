@@ -3,13 +3,14 @@ import FolderIcon from '#/assets/folder.svg'
 import { Button } from '#/components/AriaComponents'
 import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
-import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { useText } from '#/providers/TextProvider'
 import { titleSchema, type DirectoryAsset } from '#/services/Backend'
 import { merger } from '#/utilities/object'
-import { twMerge } from '#/utilities/tailwindMerge'
+import { twJoin } from '#/utilities/tailwindMerge'
 import { useTransition } from 'react'
+import { useGetAssetChildren } from '../../layouts/Drive/assetsTableItemsHooks'
 
 /** Props for a {@link DirectoryNameColumn}. */
 export interface DirectoryNameColumnProps extends AssetColumnProps {
@@ -30,7 +31,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const getAssetChildren = useGetAssetChildren()
 
-  const setIsEditing = (isEditingName: boolean) => {
+  const setIsEditing = useEventCallback((isEditingName: boolean) => {
     if (isEditable) {
       setRowState(merger({ isEditingName }))
     }
@@ -38,12 +39,29 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     if (!isEditingName) {
       driveStore.setState({ newestFolderId: null })
     }
-  }
+  })
 
-  const doRename = async (newTitle: string) => {
+  const doRename = useEventCallback(async (newTitle: string) => {
     await renameAsset(item.id, newTitle)
     setIsEditing(false)
-  }
+  })
+
+  const onPress = useEventCallback(() => {
+    startNavigation(() => {
+      setCurrentDirectoryId({ current: item.id, parent: item.parentId })
+    })
+  })
+
+  const schema = useEventCallback(() => {
+    return titleSchema({
+      asset: item,
+      siblings: getAssetChildren(item.parentId),
+    })
+  })
+
+  const onCancel = useEventCallback(() => {
+    setIsEditing(false)
+  })
 
   return (
     <div
@@ -63,30 +81,19 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         tooltipPlacement="left"
         testId="directory-row-navigate-button"
         className="mx-1 transition-transform duration-arrow"
-        onPress={() => {
-          startNavigation(() => {
-            setCurrentDirectoryId({ current: item.id, parent: item.parentId })
-          })
-        }}
+        onPress={onPress}
       />
 
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
-        className={twMerge(
-          'cursor-pointer bg-transparent font-naming',
+        className={twJoin(
+          'bg-transparent font-naming',
           rowState.isEditingName ? 'cursor-text' : 'cursor-pointer',
         )}
-        schema={() =>
-          titleSchema({
-            asset: item,
-            siblings: getAssetChildren(item.parentId),
-          })
-        }
+        schema={schema}
         onSubmit={doRename}
-        onCancel={() => {
-          setIsEditing(false)
-        }}
+        onCancel={onCancel}
       >
         {item.title}
       </EditableSpan>

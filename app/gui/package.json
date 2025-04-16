@@ -44,6 +44,7 @@
     "playwright:install": "playwright install chromium"
   },
   "dependencies": {
+    "@tanstack/react-virtual": "3.13.6",
     "@ag-grid-community/client-side-row-model": "^32.3.3",
     "@ag-grid-community/core": "^32.3.3",
     "@ag-grid-community/styles": "^32.3.3",
