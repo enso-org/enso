@@ -24,6 +24,7 @@ import java.util.stream.IntStream;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
+import org.enso.table.data.table.Table;
 
 /** Class responsible for reading from Tableau Hyper files. */
 public class HyperReader {
@@ -315,7 +316,8 @@ public class HyperReader {
   }
 
  public static void writeTable(
-    String path
+    String path,
+    Table table
 ) throws IOException {
       getProcess();
       var connection = new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS);
@@ -328,13 +330,14 @@ public class HyperReader {
                 // Create the table in the Hyper file
                 connection.getCatalog().createTable(tableDef);
 
-                // Insert a single row with a single text value
-                try (Inserter inserter = new Inserter(connection, tableDef)) {
-                    inserter.add("a");
-                    inserter.endRow();
-                    inserter.execute();
-                }
+      int numberOfRows = table.rowCount();
+      Inserter inserter = new Inserter(connection, tableDef);
+    for (int row = 0; row < numberOfRows; ++row) {
+        Object cellValue = table.getColumns()[0].getStorage().getItemBoxed(row);
+        inserter.add(cellValue.toString());
+        inserter.endRow();
+      }
+      inserter.execute();
+    }
 }
 
-
-}
