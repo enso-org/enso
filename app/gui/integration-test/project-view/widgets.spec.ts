@@ -82,6 +82,25 @@ test('Widget in plain AST', async ({ page }) => {
   await expect(textWidget.getByTestId('widget-text-content')).toHaveText('test')
 })
 
+test('Text widget: Convert to multiline', async ({ page }) => {
+  await actions.goToGraph(page)
+  const textNode = locate.graphNodeByBinding(page, 'text')
+  const textWidget = textNode.locator('.WidgetText')
+  await expect(textWidget).toBeVisible()
+  await expect(textWidget.getByTestId('widget-text-content')).toHaveText('test')
+  await textWidget.click()
+  await expect(textWidget.getByTestId('widget-text-content')).toBeFocused()
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('Alt+Enter')
+  await page.keyboard.insertText('Next line')
+  await page.keyboard.press('Enter')
+  await expect(textWidget.getByTestId('widget-text-content')).not.toBeFocused()
+  await expect(textWidget.getByTestId('widget-text-content').locator('.cm-line')).toHaveText([
+    'test',
+    'Next line',
+  ])
+})
+
 test('Multi-selection widget', async ({ page }) => {
   await actions.goToGraph(page)
   await mockMethodCallInfo(page, 'selected', {

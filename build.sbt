@@ -4176,7 +4176,8 @@ lazy val `test-utils` =
       libraryDependencies ++= GraalVM.modules,
       libraryDependencies ++= Seq(
         "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
-        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
+        "junit"               % "junit"                 % junitVersion
       ),
       Compile / javacOptions ++= Seq(
         "-s",

@@ -5,9 +5,7 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.PrintStream;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.enso.common.RuntimeOptions;
@@ -42,28 +40,23 @@ public class HelloWorldCacheTest {
   }
 
   private static String executeOnce(File src) throws Exception {
-    var backLog = new ByteArrayOutputStream();
-    var log = new PrintStream(backLog);
-
     try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .out(log)
-            .err(log)
-            .logHandler(log)
-            .option(RuntimeOptions.LOG_LEVEL, Level.FINE.getName())
-            .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
-            .option(RuntimeOptions.PROJECT_ROOT, findBenchmarks(src).getAbsolutePath())
-            .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true")
+        ContextUtils.newBuilder()
+            .withModifiedContext(
+                bldr ->
+                    bldr.option(RuntimeOptions.LOG_LEVEL, Level.FINE.getName())
+                        .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
+                        .option(RuntimeOptions.PROJECT_ROOT, findBenchmarks(src).getAbsolutePath())
+                        .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true"))
             .build()) {
       var code = Source.newBuilder("enso", src).build();
-      var res = ContextUtils.evalModule(ctx, code, "main");
+      var res = ctx.evalModule(code, "main");
       assertTrue("Result of IO.println is Nothing", res.isNull());
+      return ctx.getOut()
+          .lines()
+          .filter(l -> l.toUpperCase().contains("HELLO"))
+          .collect(Collectors.joining("\n"));
     }
-    return backLog
-        .toString()
-        .lines()
-        .filter(l -> l.toUpperCase().contains("HELLO"))
-        .collect(Collectors.joining("\n"));
   }
 
   private static File children(File f, String... names) {
