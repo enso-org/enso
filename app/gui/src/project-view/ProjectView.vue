@@ -1,19 +1,30 @@
 <script setup lang="ts">
 import Backend from '#/services/Backend'
+import WithCurrentProject from '$/components/WithCurrentProject.vue'
+import { injectOpenedProjects } from '$/providers/openedProjects'
 import GraphEditor from '@/components/GraphEditor.vue'
 import { provideEventLogger } from '@/providers/eventLogging'
 import { provideProjectBackend } from '@/providers/projectBackend'
 import { provideVisibility } from '@/providers/visibility'
-import { type LsUrls, provideProjectStore } from '@/stores/project'
-import { provideProjectNames } from '@/stores/projectNames'
+import { type LsUrls } from '@/stores/project'
 import { provideSettings } from '@/stores/settings'
 import { type Opt } from '@/util/data/opt'
 import { useEventListener } from '@vueuse/core'
-import { markRaw, onActivated, onDeactivated, ref, toRaw, toRef, watch } from 'vue'
+import {
+  markRaw,
+  onActivated,
+  onDeactivated,
+  onMounted,
+  onUnmounted,
+  ref,
+  toRaw,
+  toRef,
+  watch,
+} from 'vue'
 
 const props = defineProps<{
   readonly projectId: string
-  readonly projectName: string
+  readonly projectInitialName: string
   readonly projectDisplayedName: string
   readonly projectNamespace?: string
   readonly engine: LsUrls
@@ -50,23 +61,25 @@ watch(
 
 useEventListener(window, 'beforeunload', () => logger.send('ide_project_closed'))
 
-const projectNames = provideProjectNames(
-  toRef(props, 'projectNamespace'),
-  props.projectName,
-  toRef(props, 'projectDisplayedName'),
-)
-provideProjectStore(props, projectNames)
+const openedProjects = injectOpenedProjects()
 provideSettings()
 
 const visible = ref(false)
 provideVisibility(visible)
+onMounted(() => {
+  openedProjects.registerProject(props)
+})
+onUnmounted(() => {
+  openedProjects.projectClosed(props.projectId)
+})
+
 onActivated(() => (visible.value = true))
 onDeactivated(() => (visible.value = false))
 </script>
 
 <template>
   <div class="ProjectView">
-    <GraphEditor />
+    <WithCurrentProject :id="projectId" onlyDefined><GraphEditor /></WithCurrentProject>
   </div>
 </template>
 

@@ -36,13 +36,13 @@ import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackend
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import type { RightPanelData } from '$/providers/container'
 import { useBackends } from '$/providers/react'
 import {
   isUploadableAsset,
   useUploadFileToCloudMutation,
   useUploadFileToLocal,
 } from '../hooks/backendUploadFilesHooks'
-import { useSetAssetPanelProps, useSetIsAssetPanelTemporarilyVisible } from './AssetPanel'
 import { useCategories } from './Drive/Categories'
 
 /** Props for a {@link AssetContextMenu}. */
@@ -59,11 +59,12 @@ export interface AssetContextMenuProps {
     newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId,
   ) => void
+  readonly rightPanel: RightPanelData
 }
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
-  const { innerProps, event, hidden = false, triggerRef, currentDirectoryId } = props
+  const { innerProps, event, hidden = false, triggerRef, currentDirectoryId, rightPanel } = props
   const { doCopy, doCut, doPaste } = props
   const { asset, state, setRowState } = innerProps
   const { backend, category } = state
@@ -77,8 +78,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { user } = authProvider.useFullUserSession()
   const { localBackend } = useBackends()
   const { getText } = useText()
-  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
-  const setAssetPanelProps = useSetAssetPanelProps()
   const openProjectNatively = projectHooks.useOpenProjectNatively()
   const openProjectLocally = projectHooks.useOpenProjectLocally()
   const closeProject = projectHooks.useCloseProject()
@@ -312,24 +311,22 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               hidden={hidden}
               action="edit"
               doAction={() => {
-                setIsAssetPanelTemporarilyVisible(true)
-                const assetPanelProps = { backend, item: asset }
-                switch (asset.type) {
-                  case backendModule.AssetType.secret: {
-                    setAssetPanelProps({
-                      ...assetPanelProps,
-                      spotlightOn: 'secret',
-                    })
-                    break
+                rightPanel.setTemporaryTab('settings')
+                rightPanel.updateContext('drive', (ctx) => {
+                  ctx.category = category
+                  ctx.item = asset
+                  switch (asset.type) {
+                    case backendModule.AssetType.secret: {
+                      ctx.spotlightOn = 'secret'
+                      break
+                    }
+                    case backendModule.AssetType.datalink: {
+                      ctx.spotlightOn = 'datalink'
+                      break
+                    }
                   }
-                  case backendModule.AssetType.datalink: {
-                    setAssetPanelProps({
-                      ...assetPanelProps,
-                      spotlightOn: 'datalink',
-                    })
-                    break
-                  }
-                }
+                  return ctx
+                })
               }}
             />
           )}

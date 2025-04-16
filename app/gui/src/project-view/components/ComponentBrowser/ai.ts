@@ -1,6 +1,5 @@
-import { useGraphStore } from '@/stores/graph'
+import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.vue'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
-import { useProjectStore } from '@/stores/project'
 import type { LanguageServer } from 'ydoc-shared/languageServer'
 import { Err, Ok, withContext, type Result } from 'ydoc-shared/util/data/result'
 import type { ExternalId } from 'ydoc-shared/yjsModel'

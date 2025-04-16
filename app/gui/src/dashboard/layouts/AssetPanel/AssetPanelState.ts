@@ -39,7 +39,6 @@ export interface AssetPanelState {
   readonly selectedTab: AssetPanelTab
   readonly setSelectedTab: (tab: AssetPanelTab) => void
   readonly isAssetPanelPermanentlyVisible: boolean
-  readonly isAssetPanelExpanded: boolean
   readonly setIsAssetPanelExpanded: (isAssetPanelExpanded: boolean) => void
   readonly setIsAssetPanelPermanentlyVisible: (isAssetPanelTemporarilyVisible: boolean) => void
   readonly toggleIsAssetPanelPermanentlyVisible: () => void
@@ -73,7 +72,6 @@ export const assetPanelStore = zustand.createStore<AssetPanelState>((set, get) =
         localStorage.set('isAssetPanelVisible', isAssetPanelPermanentlyVisible)
       }
     },
-    isAssetPanelExpanded: false,
     setIsAssetPanelExpanded: (isAssetPanelExpanded) => {
       const state = get()
 

@@ -39,8 +39,7 @@ import {
   type ProjectAsset,
 } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
-import { useText } from '$/providers/react'
-import { useAssetPanelCurrentItem } from '../AssetPanelState'
+import { useContainerData, useText } from '$/providers/react'
 import type { AssetPanelProps } from './types'
 
 const PROJECT_EXECUTIONS_CALENDAR_STYLES = tv({
@@ -66,20 +65,20 @@ export function ProjectExecutionsCalendar(props: ProjectExecutionsCalendarProps)
   const { backend } = props
   const { getText } = useText()
 
-  const item = useAssetPanelCurrentItem()
+  const { rightPanel } = useContainerData()
 
   if (backend.type === BackendType.local) {
     return <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.localBackend')} />
   }
-  if (item == null) {
+  if (rightPanel.focusedAsset == null) {
     return <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.notSelected')} />
   }
-  if (item.type !== AssetType.project) {
+  if (rightPanel.focusedAsset.type !== AssetType.project) {
     return (
       <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.notProjectAsset')} />
     )
   }
-  return <ProjectExecutionsCalendarInternal {...props} item={item} />
+  return <ProjectExecutionsCalendarInternal {...props} item={rightPanel.focusedAsset} />
 }
 
 /** Props for a {@link ProjectExecutionsCalendarInternal}. */

@@ -20,11 +20,6 @@ import { validateDatalink } from '#/data/datalinkValidator'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
-import {
-  assetPanelStore,
-  useAssetPanelCurrentItem,
-  useSetAssetPanelProps,
-} from '#/layouts/AssetPanel/'
 import { UpsertSecretForm } from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
@@ -40,8 +35,7 @@ import {
 } from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
-import { useStore } from '#/utilities/zustand'
-import { useText } from '$/providers/react'
+import { useContainerData, useText } from '$/providers/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import type { AssetPanelProps } from './types'
@@ -64,24 +58,22 @@ export interface AssetPropertiesProps extends AssetPanelProps {
 /** Display and modify the properties of an asset. */
 export function AssetProperties(props: AssetPropertiesProps) {
   const { isReadonly = false, backend, category } = props
-
-  const item = useAssetPanelCurrentItem()
-
+  const { rightPanel } = useContainerData()
   const { getText } = useText()
 
   if (backend.type === BackendType.local) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
   }
 
-  if (item == null) {
+  if (rightPanel.focusedAsset == null) {
     return <Result status="info" title={getText('assetProperties.notSelected')} centered />
   }
 
   return (
     <AssetPropertiesInternal
-      key={item.id}
+      key={rightPanel.focusedAsset.id}
       backend={backend}
-      item={item}
+      item={rightPanel.focusedAsset}
       isReadonly={isReadonly}
       category={category}
     />
@@ -97,22 +89,20 @@ export interface AssetPropertiesInternalProps extends AssetPropertiesProps {
 function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const { backend, item, category, isReadonly = false } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
-
-  const spotlightOn = useStore(assetPanelStore, (state) => state.assetPanelProps.spotlightOn, {
-    unsafeEnableTransition: true,
-  })
-
-  const setAssetPanelProps = useSetAssetPanelProps()
+  const { rightPanel } = useContainerData()
 
   const closeSpotlight = useEventCallback(() => {
-    const assetPanelProps = assetPanelStore.getState().assetPanelProps
-    setAssetPanelProps({ ...assetPanelProps, spotlightOn: null })
+    rightPanel.updateContext('drive', (ctx) => {
+      ctx.spotlightOn = undefined
+      return ctx
+    })
   })
   const { user } = useFullUserSession()
   const isEnterprise = user.plan === Plan.enterprise
   const { getText } = useText()
   const [isEditingDescriptionRaw, setIsEditingDescriptionRaw] = React.useState(false)
-  const isEditingDescription = isEditingDescriptionRaw || spotlightOn === 'description'
+  const isEditingDescription =
+    isEditingDescriptionRaw || rightPanel.context?.spotlightOn === 'description'
   const setIsEditingDescription = useEventCallback(
     (valueOrUpdater: React.SetStateAction<boolean>) => {
       setIsEditingDescriptionRaw((currentValue) => {
@@ -142,15 +132,15 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     ),
   )
   const descriptionSpotlight = useSpotlight({
-    enabled: spotlightOn === 'description',
+    enabled: rightPanel.context?.spotlightOn === 'description',
     close: closeSpotlight,
   })
   const secretSpotlight = useSpotlight({
-    enabled: spotlightOn === 'secret',
+    enabled: rightPanel.context?.spotlightOn === 'secret',
     close: closeSpotlight,
   })
   const datalinkSpotlight = useSpotlight({
-    enabled: spotlightOn === 'datalink',
+    enabled: rightPanel.context?.spotlightOn === 'datalink',
     close: closeSpotlight,
   })
 
@@ -202,7 +192,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   }, [item.description, resetEditDescriptionForm])
 
   return (
-    <div className="flex w-full flex-col gap-8">
+    <div className="flex w-full flex-col gap-8 px-4 py-5">
       {descriptionSpotlight.spotlightElement}
       {secretSpotlight.spotlightElement}
       {datalinkSpotlight.spotlightElement}

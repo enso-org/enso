@@ -1,4 +1,13 @@
 <script setup lang="ts">
+import { ProjectId } from '#/services/Backend'
+import {
+  useGraphStore,
+  useProjectNames,
+  useProjectStore,
+  useSuggestionDbStore,
+  useWidgetRegistry,
+} from '$/components/WithCurrentProject.vue'
+import { injectConainerData } from '$/providers/container'
 import {
   codeEditorBindings,
   documentationEditorBindings,
@@ -22,13 +31,11 @@ import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { uploadedExpression, Uploader } from '@/components/GraphEditor/upload'
 import GraphMissingView from '@/components/GraphMissingView.vue'
 import GraphMouse from '@/components/GraphMouse.vue'
-import RightDockPanel from '@/components/RightDockPanel.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { builtinWidgets } from '@/components/widgets'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/composables/events'
-import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { ActionName, registerHandlers, toggledAction } from '@/providers/action'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
@@ -39,23 +46,16 @@ import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { injectKeyboard } from '@/providers/keyboard'
-import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import type { Node, NodeId } from '@/stores/graph'
-import { provideGraphStore } from '@/stores/graph'
 import { isInputNode, nodeId } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { providePersisted } from '@/stores/persisted'
-import { useProjectStore } from '@/stores/project'
 import { provideNodeExecution } from '@/stores/project/nodeExecution'
-import { injectProjectNames } from '@/stores/projectNames'
-import { provideRightDock } from '@/stores/rightDock'
-import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId, Typename } from '@/stores/suggestionDatabase/entry'
 import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { provideVisualizationStore } from '@/stores/visualization'
 import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { colorFromString } from '@/util/colors'
 import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
 import { Err, Ok, unwrapOr } from '@/util/data/result'
@@ -73,15 +73,17 @@ import {
   toRef,
   useTemplateRef,
   watch,
+  watchEffect,
   type ComponentInstance,
 } from 'vue'
 
 const keyboard = injectKeyboard()
+const containerData = injectConainerData()
 const projectStore = useProjectStore()
-const projectNames = injectProjectNames()
-const suggestionDb = provideSuggestionDbStore(projectStore, projectNames)
-const graphStore = provideGraphStore(projectStore, suggestionDb, projectNames)
-const widgetRegistry = provideWidgetRegistry(graphStore.db)
+const projectNames = useProjectNames()
+const graphStore = useGraphStore()
+const widgetRegistry = useWidgetRegistry()
+const suggestionDb = useSuggestionDbStore()
 const _visualizationStore = provideVisualizationStore(projectStore)
 
 const nodeExecution = provideNodeExecution(projectStore)
@@ -108,14 +110,12 @@ const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keybo
 
 // === Client saved state ===
 
-const persisted = providePersisted(
+providePersisted(
   () => projectStore.id,
   graphStore,
   graphNavigator,
   () => zoomToAll(true),
 )
-
-const rightDock = provideRightDock(graphStore, projectStore, persisted)
 
 // === Zoom/pan ===
 
@@ -220,8 +220,8 @@ const { copyNodesToClipboard, createNodesFromClipboard } = useGraphEditorClipboa
 
 const actionHandlers = registerHandlers({
   'graphEditor.showHelp': {
-    action: () => rightDock.toggleVisible('help'),
-    toggled: computed(() => rightDock.visible && rightDock.displayedTab === 'help'),
+    action: () => containerData.rightPanel.toggleTab('help'),
+    toggled: computed(() => containerData.rightPanel.tab === 'help'),
   },
   'graph.renameProject': toggledAction(projectNameEdited),
   'graph.addComponent': {
@@ -240,8 +240,8 @@ const actionHandlers = registerHandlers({
     toggled: () => showCodeEditor.value,
   },
   'graph.toggleDocumentationEditor': {
-    action: () => rightDock.toggleVisible(),
-    toggled: () => rightDock.visible,
+    action: () => containerData.rightPanel.toggleTab('documentation'),
+    toggled: () => containerData.rightPanel.tab === 'documentation',
   },
   'graph.refreshExecution': {
     action: () => nodeExecution.recomputeAll(),
@@ -251,11 +251,11 @@ const actionHandlers = registerHandlers({
   },
   'graph.undo': {
     action: () => graphStore.undoManager.undo(),
-    disabled: () => !graphStore.undoManager.canUndo.value,
+    disabled: () => !graphStore.undoManager.canUndo,
   },
   'graph.redo': {
     action: () => graphStore.undoManager.redo(),
-    disabled: () => !graphStore.undoManager.canRedo.value,
+    disabled: () => !graphStore.undoManager.canRedo,
   },
   'graph.fitAll': {
     action: () => zoomToSelected(),
@@ -402,18 +402,36 @@ const codeEditorHandler = codeEditorBindings.handler({
 
 // === Documentation Editor ===
 
-const displayedDocs = ref<SuggestionId>()
+const overrideDisplayedDocs = ref<SuggestionId>()
 const aiMode = ref<boolean>(false)
+const docsForSelection = computed(() => {
+  const selected = nodeSelection.tryGetSoleSelection()
+  if (!selected.ok) return Err('Select a single component to display help')
+  const suggestionId = graphStore.db.nodeMainSuggestionId.lookup(selected.value)
+  if (suggestionId == null) return Err('No documentation available for selected component')
+  return Ok(suggestionId)
+})
+const displayedDocs = computed(() =>
+  overrideDisplayedDocs.value ? Ok(overrideDisplayedDocs.value) : docsForSelection.value,
+)
+
+watchEffect(() => {
+  const projectId = projectStore.id as ProjectId
+  containerData.rightPanel.setContext(projectId, {
+    item: projectId,
+    help: { item: displayedDocs.value, aiMode: aiMode.value },
+  })
+})
 
 function toggleRightDockHelpPanel() {
-  rightDock.toggleVisible('help')
+  containerData.rightPanel.tab = 'help'
 }
 
 const docEditor = shallowRef<ComponentInstance<typeof DocumentationEditor>>()
 const documentationEditorArea = computed(() => unrefElement(docEditor))
 
 const documentationEditorHandler = documentationEditorBindings.handler({
-  toggle: () => rightDock.toggleVisible(),
+  toggle: () => containerData.rightPanel.toggleTab('documentation'),
 })
 
 // === Component Browser ===
@@ -433,7 +451,7 @@ function openComponentBrowser(usage: Usage, position: Vec2) {
 function hideComponentBrowser() {
   graphStore.editedNodeInfo = undefined
   componentBrowserOpened.value = false
-  displayedDocs.value = undefined
+  overrideDisplayedDocs.value = undefined
 }
 
 function editWithComponentBrowser(node: NodeId, cursorPos: number) {
@@ -482,10 +500,7 @@ watch(
   },
 )
 
-const componentBrowser = ref<ComponentInstance<typeof ComponentBrowser>>()
-const docPanel = ref<ComponentInstance<typeof RightDockPanel>>()
-
-const componentBrowserElements = computed(() => [componentBrowser.value?.$el, docPanel.value?.$el])
+const root = ref<HTMLElement>()
 
 // === Node Creation ===
 
@@ -632,14 +647,6 @@ provideNodeColors(graphStore, (variable) =>
   viewportElem.value ? getComputedStyle(viewportElem.value).getPropertyValue(variable) : '',
 )
 
-const groupColors = computed(() => {
-  const styles: { [key: string]: string } = {}
-  for (const group of suggestionDb.groups) {
-    styles[groupColorVar(group)] = group.color ?? colorFromString(group.name)
-  }
-  return styles
-})
-
 const contextMenuActions: ActionName[] = [
   'graph.navigateUp',
   'graph.renameProject',
@@ -659,7 +666,6 @@ const contextMenuActions: ActionName[] = [
     id="graphEditorRoot"
     class="GraphEditor"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
-    :style="groupColors"
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
@@ -691,10 +697,10 @@ const contextMenuActions: ActionName[] = [
             :navigator="graphNavigator"
             :nodePosition="componentBrowserNodePosition"
             :usage="componentBrowserUsage"
-            :associatedElements="componentBrowserElements"
+            :graphEditorRoot="root"
             @accepted="commitComponentBrowser"
             @canceled="hideComponentBrowser"
-            @selectedSuggestionId="displayedDocs = $event"
+            @selectedSuggestionId="overrideDisplayedDocs = $event"
             @isAiPrompt="aiMode = $event"
           />
         </template>
@@ -702,9 +708,11 @@ const contextMenuActions: ActionName[] = [
           v-model:recordMode="projectStore.recordMode"
           v-model:showCodeEditor="showCodeEditor"
           v-model:projectNameEdited="projectNameEdited"
-          v-model:showDocumentationEditor="rightDock.visible"
+          v-model:showDocumentationEditor="
+            actionHandlers['graph.toggleDocumentationEditor'].toggled
+          "
           :zoomLevel="100.0 * graphNavigator.targetScale"
-          :class="{ extraRightSpace: !rightDock.visible }"
+          :class="{ extraRightSpace: !containerData.rightPanel.tab }"
           :menuActions="contextMenuActions"
           @contextmenu.stop.prevent
         />
@@ -715,7 +723,6 @@ const contextMenuActions: ActionName[] = [
         <CodeEditor ref="codeEditor" />
       </BottomPanel>
     </div>
-    <RightDockPanel ref="docPanel" v-model:displayedDocs="displayedDocs" :aiMode="aiMode" />
   </div>
 </template>
 

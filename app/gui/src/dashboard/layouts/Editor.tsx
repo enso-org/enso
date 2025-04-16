@@ -239,7 +239,7 @@ function EditorInternal(props: EditorInternalProps) {
     hidden,
     projectViewProps: {
       projectId: openedProject.projectId,
-      projectName: openedProject.packageName,
+      projectInitialName: openedProject.packageName,
       projectDisplayedName: projectName,
       engine: { rpcUrl: jsonAddress, dataUrl: binaryAddress, ydocUrl: ydocAddress },
       renameProject: onRenameProject,

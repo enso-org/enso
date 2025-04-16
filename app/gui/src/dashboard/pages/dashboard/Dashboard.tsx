@@ -12,12 +12,7 @@ import DriveProvider from '#/providers/DriveProvider'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import ProjectsProvider, {
-  useClearLaunchedProjects,
-  useLaunchedProjects,
-  usePage,
-  useSetPage,
-} from '#/providers/ProjectsProvider'
+import ProjectsProvider, { useLaunchedProjects } from '#/providers/ProjectsProvider'
 
 import Page from '#/components/Page'
 
@@ -159,12 +154,9 @@ function DashboardInner() {
     [inputBindings],
   )
 
-  const page = usePage()
-  const setPage = useSetPage()
   const launchedProjects = useLaunchedProjects()
   const closeProject = projectHooks.useCloseProject()
   const closeAllProjects = projectHooks.useCloseAllProjects()
-  const clearLaunchedProjects = useClearLaunchedProjects()
 
   return (
     <Page hideInfoBar>
@@ -177,12 +169,9 @@ function DashboardInner() {
       >
         <TabView
           initialProjectName={initialProjectName}
-          page={page}
-          setPage={setPage}
           launchedProjects={launchedProjects}
           closeProject={closeProject}
           closeAllProjects={closeAllProjects}
-          clearLaunchedProjects={clearLaunchedProjects}
         />
       </div>
     </Page>

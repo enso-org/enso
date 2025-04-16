@@ -60,12 +60,6 @@ import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import {
-  assetPanelStore,
-  useResetAssetPanelProps,
-  useSetAssetPanelProps,
-  useSetIsAssetPanelTemporarilyVisible,
-} from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
@@ -113,7 +107,7 @@ import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useBackends, useText } from '$/providers/react'
+import { useBackends, useContainerData, useText } from '$/providers/react'
 import invariant from 'tiny-invariant'
 import type { AssetsDataTransferPayload } from './Drive/Categories/transferBetweenCategoriesHooks'
 import {
@@ -202,9 +196,7 @@ function AssetsTable(props: AssetsTableProps) {
   const inputBindings = useInputBindings()
   const toastAndLog = useToastAndLog()
   const [enabledColumns, setEnabledColumns] = useState(DEFAULT_ENABLED_COLUMNS)
-  const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
-  const setAssetPanelProps = useSetAssetPanelProps()
-  const resetAssetPanelProps = useResetAssetPanelProps()
+  const { rightPanel } = useContainerData()
 
   const columns = useMemo(
     () =>
@@ -303,13 +295,14 @@ function AssetsTable(props: AssetsTableProps) {
       const [soleId] = selectedIds
       const asset = soleId == null ? null : assets.find((otherAsset) => otherAsset.id === soleId)
 
-      if (asset) {
-        setAssetPanelProps({ item: asset })
-      } else {
-        setAssetPanelProps({ item: null })
-      }
+      rightPanel.setContext('drive', {
+        item: asset ?? undefined,
+        category,
+      })
+    } else {
+      rightPanel.setContext('drive', { category })
     }
-  }, [assets, driveStore, setAssetPanelProps])
+  }, [assets, driveStore, rightPanel, category])
 
   useEffect(
     () =>
@@ -320,40 +313,17 @@ function AssetsTable(props: AssetsTableProps) {
             const asset =
               soleId == null ? null : assets.find((otherAsset) => otherAsset.id === soleId)
 
-            if (asset && asset.id !== assetPanelStore.getState().assetPanelProps.item?.id) {
-              setAssetPanelProps({ backend, item: asset })
-              setIsAssetPanelTemporarilyVisible(false)
-            }
+            rightPanel.setContext('drive', {
+              item: asset ?? undefined,
+              category,
+            })
+            rightPanel.setTemporaryTab(undefined)
           } else {
-            let commonDirectoryId: AssetId | null = null
-            let otherCandidateDirectoryId: AssetId | null = null
-            const map = new Map(assets.map((asset) => [asset.id, asset]))
-            for (const id of selectedIds) {
-              const asset = map.get(id)
-              if (asset != null) {
-                if (commonDirectoryId == null) {
-                  commonDirectoryId = asset.parentId
-                  otherCandidateDirectoryId = asset.type === AssetType.directory ? asset.id : null
-                } else if (asset.id === commonDirectoryId || asset.parentId === commonDirectoryId) {
-                  otherCandidateDirectoryId = null
-                } else if (
-                  otherCandidateDirectoryId != null &&
-                  (asset.id === otherCandidateDirectoryId ||
-                    asset.parentId === otherCandidateDirectoryId)
-                ) {
-                  commonDirectoryId = otherCandidateDirectoryId
-                  otherCandidateDirectoryId = null
-                } else {
-                  // No match; there is no common parent directory for the entire selection.
-                  commonDirectoryId = null
-                  break
-                }
-              }
-            }
+            rightPanel.setContext('drive', { category })
           }
         }
       }),
-    [backend, driveStore, assets, setAssetPanelProps, setIsAssetPanelTemporarilyVisible],
+    [category, driveStore, assets, rightPanel],
   )
 
   useEffect(() => {
@@ -605,11 +575,11 @@ function AssetsTable(props: AssetsTableProps) {
     () =>
       driveStore.subscribe(({ selectedIds }) => {
         if (selectedIds.size !== 1) {
-          resetAssetPanelProps()
-          setIsAssetPanelTemporarilyVisible(false)
+          rightPanel.setContext('drive', { category })
+          rightPanel.setTemporaryTab(undefined)
         }
       }),
-    [driveStore, resetAssetPanelProps, setIsAssetPanelTemporarilyVisible],
+    [driveStore, rightPanel, category],
   )
 
   const [keyboardSelectedIndex, setKeyboardSelectedIndex] = useState<number | null>(null)
@@ -664,7 +634,7 @@ function AssetsTable(props: AssetsTableProps) {
               case AssetType.datalink: {
                 event.preventDefault()
                 event.stopPropagation()
-                setIsAssetPanelTemporarilyVisible(true)
+                rightPanel.setTemporaryTab('settings')
                 break
               }
               case AssetType.secret: {

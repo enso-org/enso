@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import ComponentEditorLabel from '@/components/ComponentBrowser/ComponentEditorLabel.vue'
 import type { ComponentBrowserMode, Usage } from '@/components/ComponentBrowser/input'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useGraphStore } from '@/stores/graph'
 import { useCodeMirror, useStringSync } from '@/util/codemirror'
 import { DEFAULT_ICON, iconOfNode, suggestionEntryToIcon } from '@/util/getIconName'
 import { computed, useTemplateRef, watch, type ComponentInstance, type DeepReadonly } from 'vue'

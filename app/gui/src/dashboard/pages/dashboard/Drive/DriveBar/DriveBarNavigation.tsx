@@ -7,14 +7,13 @@ import { Breadcrumbs, type BreadcrumbItemProps, type OnDrop } from '#/components
 import { Scroller } from '#/components/Scroller/Scroller'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { AssetPanelToggle, useSetAssetPanelDefaultItem } from '#/layouts/AssetPanel'
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { AssetDoesNotExistError, isDirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useText } from '$/providers/react'
+import { useContainerData, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useTransition } from 'react'
 import { toast } from 'react-toastify'
@@ -32,7 +31,7 @@ export function DriveBarNavigation() {
     category,
   })
 
-  const setAssetPanelDefaultItem = useSetAssetPanelDefaultItem()
+  const { rightPanel } = useContainerData()
 
   const driveStore = useDriveStore()
 
@@ -87,10 +86,12 @@ export function DriveBarNavigation() {
 
   useEffect(() => {
     if (directoryData?.asset != null) {
-      // We need to start a transition to avoid displaying a loading state
-      setAssetPanelDefaultItem(directoryData.asset)
+      rightPanel.updateContext('drive', (ctx) => {
+        ctx.defaultItem = directoryData.asset
+        return ctx
+      })
     }
-  }, [directoryData?.asset, setAssetPanelDefaultItem])
+  }, [directoryData?.asset, rightPanel])
 
   const { finalPath } = parseDirectoriesPath({
     parentsPath: directoryData?.parentsPath ?? '',
@@ -191,9 +192,9 @@ export function DriveBarNavigation() {
             </Breadcrumbs>
           </Scroller>
 
-          <div className="ml-auto">
+          {/* <div className="ml-auto">
             <AssetPanelToggle showWhen="collapsed" className="my-auto" />
-          </div>
+          </div> */}
         </div>
       )
     }

@@ -28,7 +28,6 @@ import {
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
-import { AssetPanelToggle } from '#/layouts/AssetPanel'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
 import {
@@ -184,13 +183,13 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     <AssetSearchBar backend={backend} isCloud={isCloud} query={query} setQuery={setQuery} />
   )
 
-  const assetPanelToggle = (
-    <>
-      {/* Spacing. */}
-      <div className="ml-auto" />
-      <AssetPanelToggle showWhen="collapsed" className="my-auto" />
-    </>
-  )
+  // const assetPanelToggle = (
+  //   <>
+  //     {/* Spacing. */}
+  //     <div className="ml-auto" />
+  //     <AssetPanelToggle showWhen="collapsed" className="my-auto" />
+  //   </>
+  // )
 
   const pasteDataStatus = effectivePasteData && (
     <div className="flex items-center">
@@ -215,7 +214,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
         <ButtonGroup className="grow-0">
           {pasteDataStatus}
           {searchBar}
-          {assetPanelToggle}
+          {/* {assetPanelToggle} */}
         </ButtonGroup>
       )
     }
@@ -229,7 +228,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
           >
             {pasteDataStatus}
             {searchBar}
-            {assetPanelToggle}
+            {/* {assetPanelToggle} */}
           </TrashFolderToolbar>
         </ErrorBoundary>
       )

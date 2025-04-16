@@ -26,6 +26,11 @@ interface ProjectFilesAPI {
   ensureDirExists(path: Path): Promise<Result<void>>
 }
 
+export interface MarkdownEditorAPI {
+  putText: (text: string) => void
+  putTextAtCoord: (text: string, coord: Vec2) => void
+}
+
 const supportedImageTypes: Record<MimeType, { extensions: string[] }> = {
   // List taken from https://developer.mozilla.org/en-US/docs/Web/Media/Formats/Image_types
   'image/apng': { extensions: ['apng'] },
@@ -67,13 +72,7 @@ export function resolveDocImageUrl(modulePathSegments: string[], imageUrl: strin
 
 /** Supports loading and uploading project images. */
 export function useDocumentationImages(
-  markdownEditor: ToValue<
-    | {
-        putText: (text: string) => void
-        putTextAtCoord: (text: string, coord: Vec2) => void
-      }
-    | undefined
-  >,
+  markdownEditor: ToValue<MarkdownEditorAPI | undefined>,
   modulePath: ToValue<Path | undefined>,
   projectFiles: ProjectFilesAPI,
 ) {

@@ -1,11 +1,12 @@
 import HttpClient from '#/utilities/HttpClient'
-import { BackendsStore, injectBackends } from '$/providers/backends'
+import { injectBackends, type BackendsStore } from '$/providers/backends'
 import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
 import { assert } from '@/util/assert'
 import * as react from 'react'
-import { applyPureReactInVue } from 'veaury'
-import { computed } from 'vue'
+import { applyPureReactInVue, createCrossingProviderForPureReactInVue } from 'veaury'
+import { computed, ShallowUnwrapRef } from 'vue'
 import { Router, useRoute, useRouter as useRouterVue } from 'vue-router'
+import { injectConainerData, type ContainerData as ContainerDataVue } from './container'
 import { injectHttpClient } from './httpClient'
 import { injectText, type TextStore } from './text'
 
@@ -46,7 +47,7 @@ interface ContextsForReactProviderProps {
 }
 
 /**
- * A provider for all contexts set in vue and read by react.
+ * A provider for all global contexts set in vue and read by react.
  *
  * The default "crossing providers" from veaury has some downsides, for example
  * nesting two in a row does not work.
@@ -96,3 +97,10 @@ export const ContextsForReactProvider = applyPureReactInVue(
     },
   },
 )
+
+const [useContainerDataUntyped, ContainerDataProviderForReact] =
+  createCrossingProviderForPureReactInVue(() => injectConainerData())
+
+export type ContainerData = ShallowUnwrapRef<ContainerDataVue>
+export { ContainerDataProviderForReact }
+export const useContainerData = useContainerDataUntyped as () => ContainerData

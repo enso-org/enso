@@ -1,4 +1,3 @@
-import { createContextStore } from '@/providers'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import { GraphStore } from '@/stores/graph'
@@ -401,11 +400,6 @@ function makeInputMatcher<T extends WidgetInput>(
     throw new Error('Invalid widget input matcher definiton: ' + matcher)
   }
 }
-
-export const [provideWidgetRegistry, injectWidgetRegistry] = createContextStore(
-  'Widget registry',
-  (db: GraphDb) => new WidgetRegistry(db),
-)
 
 /** TODO: Add docs */
 export class WidgetRegistry {

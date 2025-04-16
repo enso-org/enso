@@ -10,7 +10,6 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import { useText } from '$/providers/react'
 
-import { AssetPanel } from '#/layouts/AssetPanel'
 import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
@@ -187,8 +186,6 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
           </div>
         </div>
       </div>
-
-      <AssetPanel backendType={backend.type} category={deferredCategory} />
     </div>
   )
 }

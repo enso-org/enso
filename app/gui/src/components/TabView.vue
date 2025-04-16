@@ -1,9 +1,13 @@
 <script lang="ts">
 import UserBarReact from '#/layouts/UserBar'
-import { LaunchedProject, LaunchedProjectId, TabType } from '#/providers/ProjectsProvider'
+import { LaunchedProject } from '#/providers/ProjectsProvider'
 import { BackendType, ProjectId } from '#/services/Backend'
 import { Drive, Editor, Settings } from '$/components/TabView/reactTabs'
+import RightPanel from '$/components/TabView/RightPanel.vue'
 import SelectableTab from '$/components/TabView/SelectableTab.vue'
+import { provideContainerData } from '$/providers/container'
+import { provideOpenedProjects } from '$/providers/openedProjects'
+import { ContainerDataProviderForReact } from '$/providers/react'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import { applyPureReactInVue } from 'veaury'
 import { reactive, watch } from 'vue'
@@ -12,23 +16,15 @@ const UserBar = applyPureReactInVue(UserBarReact)
 </script>
 
 <script setup lang="ts">
-const {
-  initialProjectName,
-  page,
-  setPage,
-  launchedProjects,
-  closeProject,
-  closeAllProjects,
-  clearLaunchedProjects,
-} = defineProps<{
+const { initialProjectName, launchedProjects, closeProject, closeAllProjects } = defineProps<{
   initialProjectName: string | null
-  page: LaunchedProjectId | TabType | null
-  setPage(page: LaunchedProjectId | TabType): void
   launchedProjects: readonly LaunchedProject[]
   closeProject(project: LaunchedProject): void
   closeAllProjects(): void
-  clearLaunchedProjects(): void
 }>()
+
+provideOpenedProjects()
+const { tab, openedProjects } = provideContainerData(() => launchedProjects)
 
 const readyProjects = reactive(new Set<ProjectId>())
 const projectNames = reactive(new Map<ProjectId, string>())
@@ -36,7 +32,7 @@ const projectNames = reactive(new Map<ProjectId, string>())
 function setProjectReady(project: ProjectId, ready: boolean) {
   if (ready) {
     readyProjects.add(project)
-    setPage(project)
+    tab.value = project
   } else {
     readyProjects.delete(project)
   }
@@ -49,16 +45,16 @@ function loadingProjectSpinnerPhase(project: LaunchedProject) {
 }
 
 watch(
-  () => launchedProjects,
+  () => openedProjects,
   () => {
-    const openedProjects = new Set(launchedProjects.map((proj) => proj.id))
+    const openedProjectsSet = new Set(openedProjects.value.map((proj) => proj.id))
     for (const proj of readyProjects) {
-      if (!openedProjects.has(proj)) {
+      if (!openedProjectsSet.has(proj)) {
         readyProjects.delete(proj)
       }
     }
     for (const proj of projectNames.keys()) {
-      if (!openedProjects.has(proj)) {
+      if (!openedProjectsSet.has(proj)) {
         projectNames.delete(proj)
       }
     }
@@ -66,75 +62,82 @@ watch(
 )
 
 const onSignOut = () => {
-  setPage('drive')
+  tab.value = 'drive'
   void closeAllProjects()
-  clearLaunchedProjects()
 }
 </script>
 <template>
   <div class="TabView">
-    <div class="bar">
-      <div role="tablist" class="tablist">
-        <SelectableTab
-          :selected="page === 'drive'"
-          icon="drive"
-          label="Data Catalog"
-          @update:selected="$event && setPage('drive')"
-        />
-        <SelectableTab
-          v-for="project in launchedProjects"
-          :key="project.id"
-          data-testid="editor-tab-button"
-          :selected="page === project.id"
-          :icon="readyProjects.has(project.id) ? 'graph_editor' : undefined"
-          :label="projectNames.get(project.id)"
-          @update:selected="$event && setPage(project.id)"
-          @close="closeProject(project)"
-        >
-          <GrowingSpinner
-            v-if="!readyProjects.has(project.id)"
-            :phase="loadingProjectSpinnerPhase(project)"
-            :size="16"
+    <ContainerDataProviderForReact>
+      <div class="bar">
+        <div role="tablist" class="tablist">
+          <SelectableTab
+            layoutId="tab-highlight"
+            :selected="tab === 'drive'"
+            icon="drive"
+            label="Data Catalog"
+            @update:selected="$event && (tab = 'drive')"
           />
-        </SelectableTab>
-        <SelectableTab
-          v-if="page === 'settings'"
-          :selected="true"
-          icon="settings"
-          label="Settings"
-        />
+          <SelectableTab
+            v-for="project in launchedProjects"
+            :key="project.id"
+            data-testid="editor-tab-button"
+            layoutId="tab-highlight"
+            :selected="tab === project.id"
+            :icon="readyProjects.has(project.id) ? 'graph_editor' : undefined"
+            :label="projectNames.get(project.id)"
+            @update:selected="$event && (tab = project.id)"
+            @close="closeProject(project)"
+          >
+            <GrowingSpinner
+              v-if="!readyProjects.has(project.id)"
+              :phase="loadingProjectSpinnerPhase(project)"
+              :size="16"
+            />
+          </SelectableTab>
+          <SelectableTab
+            v-if="tab === 'settings'"
+            layoutId="tab-highlight"
+            :selected="true"
+            icon="settings"
+            label="Settings"
+          />
+        </div>
+        <div class="filler" />
+        <UserBar :goToSettingsPage="() => (tab = 'settings')" @signOut="onSignOut" />
       </div>
-      <div class="filler" />
-      <UserBar :goToSettingsPage="() => setPage('settings')" @signOut="onSignOut" />
-    </div>
-    <div role="tabpanel" class="panel">
-      <KeepAlive>
-        <Drive v-if="page === 'drive'" :initialProjectName="initialProjectName" />
-      </KeepAlive>
-      <!-- instead of v-if we set element hidden, because Editor.tsx is responsible for loading 
-       process -->
-      <div
-        v-for="project in launchedProjects"
-        :key="project.id"
-        class="editor"
-        :class="{ hidden: page !== project.id }"
-      >
-        <Editor
-          :hidden="page !== project.id"
-          :project="project"
-          @readyUpdate="setProjectReady(project.id, $event)"
-          @nameUpdate="projectNames.set(project.id, $event)"
-        />
+      <div id="appContainerMainView" class="mainView">
+        <div class="panel">
+          <KeepAlive>
+            <Drive v-if="tab === 'drive'" :initialProjectName="initialProjectName" />
+          </KeepAlive>
+          <div
+            v-for="project in openedProjects"
+            :key="project.id"
+            class="editor"
+            :class="{ hidden: tab !== project.id }"
+          >
+            <Editor
+              :hidden="tab !== project.id"
+              :project="project"
+              @readyUpdate="setProjectReady(project.id, $event)"
+              @nameUpdate="projectNames.set(project.id, $event)"
+            />
+          </div>
+
+          <KeepAlive>
+            <Settings v-if="tab === 'settings'" />
+          </KeepAlive>
+        </div>
+        <RightPanel />
       </div>
-      <KeepAlive>
-        <Settings v-if="page === 'settings'" />
-      </KeepAlive>
-    </div>
+    </ContainerDataProviderForReact>
   </div>
 </template>
 
 <style scoped>
 .TabView {
+  --tab-highlight: var(--color-dashboard-background);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -149,6 +152,7 @@ const onSignOut = () => {
   min-height: 3rem;
   position: relative;
   padding: 0 8px;
+  z-index: 1;
 }
 
 .tablist {
@@ -163,10 +167,11 @@ const onSignOut = () => {
   flex-grow: 1;
 }
 
-.panel {
+.mainView {
   flex-grow: 1;
   min-height: 0;
   display: flex;
+  flex-direction: row;
 }
 
 .editor {

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useGraphStore, useSuggestionDbStore } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import {
   SUPPORTED_DYNAMIC_CONFIG_KINDS,
@@ -16,9 +17,7 @@ import {
   ExpressionTag,
 } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
 import { requiredImportsByProjectPath } from '@/stores/graph/imports'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { computed } from 'vue'
 

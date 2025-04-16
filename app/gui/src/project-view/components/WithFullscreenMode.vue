@@ -92,7 +92,7 @@ const active = computed(() => props.fullscreen || animating.value)
 or used with `unrefElement`. -->
 <template>
   <div class="WithFullscreenMode fullsize">
-    <Teleport defer :disabled="!active" to="#graphEditorRoot">
+    <Teleport defer :disabled="!active" to="#appContainerMainView">
       <div ref="content" class="fullsize" :class="{ active }">
         <slot />
       </div>
