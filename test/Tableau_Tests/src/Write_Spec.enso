@@ -15,12 +15,21 @@ main filter=Nothing =
 
 add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
     transient = enso_project.data / "transient"
-    written_file = transient / "temp.hyper"
-
+    
     group_builder.specify "should be able to write a hyper file" <|
+        written_file = transient / "temp1.hyper"
         t = Table.input [['A', ['a']]]
         t.write written_file
         written_table_in_hyper = Hyper_File.new written_file . tables . first
         written_table = written_table_in_hyper.read
         written_table.should_equal t
+        written_file.delete
+
+    group_builder.specify "default schema and table name is extract" <|
+        written_file = transient / "temp2.hyper"
+        t = Table.input [['A', ['a']]]
+        t.write written_file
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.schema.should_equal "Extract"
+        written_table_in_hyper.table.should_equal "Extract"
         written_file.delete

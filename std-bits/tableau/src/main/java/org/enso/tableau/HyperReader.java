@@ -321,7 +321,7 @@ public class HyperReader {
       var connection = new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS);
       final SchemaName schemaName = new SchemaName("Extract");
       connection.getCatalog().createSchema(schemaName);
-      final TableName tableName = new TableName("Extract", "SimpleTable");
+      final TableName tableName = new TableName("Extract", "Extract");
       TableDefinition tableDef = new TableDefinition(tableName)
                         .addColumn("A", SqlType.text());
 
