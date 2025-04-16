@@ -15,7 +15,6 @@ use crate::sqlserver::EndpointConfiguration as SQLServerEndpointConfiguration;
 use crate::sqlserver::SQLServer;
 
 use ide_ci::env::accessor::TypedVariable;
-use ide_ci::extensions::command;
 use ide_ci::future::AsyncPolicy;
 use ide_ci::programs::docker::ContainerId;
 
@@ -128,43 +127,10 @@ impl BuiltEnso {
         Ok(command)
     }
 
-    pub fn compile(
-        &self,
-        project_path: impl AsRef<Path>,
-        ir_caches: IrCaches,
-        enable_type_checker: bool
-    ) -> Result<Command> {
-        let mut command = self.cmd()?;
-        command
-            .arg(ir_caches)
-            .arg("--compile")
-            .arg(project_path.as_ref())
-            .set_env(JAVA_OPTS, &ide_ci::programs::java::Option::EnableAssertions.as_ref())?;
-        if (enable_type_checker) {
-            command.arg("--enable-static-analysis")
-        }
-        Ok(command)
-    }
-
     pub fn repl(&self) -> Result<Command> {
         let mut command = self.cmd()?;
         command.arg("--repl");
         Ok(command)
-    }
-
-    pub async fn run_lint(
-        &self,
-    ) -> Result {
-        let paths = &self.paths;
-
-        let tests = crate::paths::discover_standard_library_tests(&paths.repo_root)?;
-        let libs = crate::paths::discover_standard_library_sources(&paths.repo_root)?;
-        
-        let projects_to_type_check = [&tests[..], &libs[..]].concat();
-        for project in projects_to_type_check {
-            // Currently type checking needs Ir Caches to be disabled.
-            self.compile(project, IrCaches::No, true)
-        }
     }
 
     pub async fn run_tests(

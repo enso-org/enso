@@ -52,17 +52,6 @@ pub fn discover_standard_library_tests(repo_root: &generated::RepoRoot) -> Resul
         .try_collect()
 }
 
-/// Get paths of directories containing standard libraries.
-pub fn discover_standard_library_sources(repo_root: &generated::RepoRoot) -> Result<Vec<PathBuf>> {
-    // The glob pattern will discover paths like "H:\NBO\enso\test\AWS_Tests\package.yaml".
-    let glob_pattern = "lib/*/*/*/package.yaml";
-    let glob_pattern = repo_root.distribution.join(glob_pattern);
-    glob::glob(glob_pattern.as_str())?
-        // Package manifest path -> Parent directory.
-        .map(|package_path_result| Result::Ok(package_path_result?.try_parent()?.to_path_buf()))
-        .try_collect()
-}
-
 pub fn new_repo_root(repo_root: impl Into<PathBuf>, triple: &TargetTriple) -> generated::RepoRoot {
     generated::RepoRoot::new_root(
         repo_root,
