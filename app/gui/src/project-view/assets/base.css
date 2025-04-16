@@ -102,14 +102,18 @@
   &.pending {
     --color-node-background: var(--color-node-pending);
     --color-edge-from-node: var(--color-node-pending);
+
+    --progress-background-initial: var(--color-node-pending);
+    --progress-background-final: var(--node-group-color);
   }
 
+  --color-node-selected: color-mix(
+    in oklab,
+    var(--color-node-primary) 30%,
+    white 70%
+  );
   &.selected {
-    --color-node-background: color-mix(
-      in oklab,
-      var(--color-node-primary) 30%,
-      white 70%
-    );
+    --color-node-background: var(--color-node-selected);
     --color-node-port: color-mix(
       in oklab,
       var(--color-node-background) 40%,
@@ -121,7 +125,26 @@
       var(--color-node-primary) 40%,
       white 60%
     );
+
+    --progress-background-initial: color-mix(
+      in oklab,
+      var(--color-node-primary),
+      white 90%
+    );
+    --progress-background-final: var(--color-node-selected);
   }
+
+  /**
+   * How long the component evaluation progress bar takes to advance to each intermediate position. This is a long timer
+   * because the next update will never be right away due to batching.
+   */
+  --progress-animation-step-duration: 1s;
+  /**
+   * How long the component evaluation progress bar takes to advance to the completed state. This is a short timer
+   * because we may have already received updates to dependent components (in the same update batch), and we want to
+   * avoid the impression that the dependent components begin evaluating before this component finishes.
+   */
+  --progress-animation-final-duration: 0.1s;
 }
 
 /*********************************

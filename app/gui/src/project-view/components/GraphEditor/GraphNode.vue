@@ -27,6 +27,7 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import { useComponentColors } from '@/composables/componentColors'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
+import { useProgressBackground } from '@/composables/progressBar'
 import type { ActionHandler } from '@/providers/action'
 import { registerHandlers, toggledAction } from '@/providers/action'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
@@ -37,6 +38,7 @@ import { provideResizableWidgetRegistry } from '@/providers/resizableWidgetRegis
 import { useGraphStore, type Node } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
+import { evaluationProgress } from '@/stores/project/computedValueRegistry'
 import { useNodeExecution } from '@/stores/project/nodeExecution'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
@@ -337,9 +339,9 @@ const isRecordingOverridden = computed({
   },
 })
 
-const typename = computed(
-  () => graph.db.getExpressionInfo(props.node.innerExpr.externalId)?.rawTypename,
-)
+const expressionInfo = computed(() => graph.db.getExpressionInfo(props.node.innerExpr.externalId))
+
+const typename = computed(() => expressionInfo.value?.rawTypename)
 
 const nodeEditHandler = nodeEditBindings.handler({
   cancel(e) {
@@ -410,6 +412,8 @@ function useRecomputation() {
   return { recomputeOnce, isBeingRecomputed }
 }
 
+// === Style and colors ===
+
 const nodeStyle = computed(() => {
   return {
     transform: transform.value,
@@ -433,6 +437,20 @@ const nodeClass = computed(() => {
     edited: props.edited,
   }
 })
+
+const nodeProgress = computed(() => evaluationProgress(expressionInfo.value) ?? 100)
+const { getProgressStyles, watchProgress } = useProgressBackground(nodeProgress, {
+  counterId: () => expressionInfo.value?.evaluationId,
+})
+const { progressAnimating, backgroundProgressEvents } = watchProgress()
+
+// The progress bar animation and the color change animation are incompatible. When progress is not
+// partial or animating, we stop applying progress styles and fall back to the background color set
+// by the class, so that its CSS transition will be used if the type changes. (If the type changes
+// during progress animation, we'll just change colors abruptly).
+function backgroundProgressStyles() {
+  return nodeProgress.value !== 100 || progressAnimating.value ? getProgressStyles() : {}
+}
 
 // === Component actions ===
 
@@ -601,7 +619,11 @@ const nodeName = computed(() => props.node.pattern?.code())
       :type="visibleMessage.type"
       :outputPortHovered="outputHovered"
     />
-    <div class="nodeBackground"></div>
+    <div
+      class="nodeBackground"
+      :style="backgroundProgressStyles()"
+      v-on="backgroundProgressEvents"
+    ></div>
   </div>
 </template>
 
