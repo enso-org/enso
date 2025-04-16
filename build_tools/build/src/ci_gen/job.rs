@@ -355,6 +355,20 @@ impl JobArchetype for StandardLibraryTests {
     }
 }
 
+/// Job that runs Enso lint checks (type checker, later formatting) on the Enso
+/// standard libraries and tests.
+#[derive(Clone, Copy, Debug)]
+pub struct EnsoCodeLintCheck;
+
+impl JobArchetype for EnsoCodeLintCheck {
+    fn job(&self, target: Target) -> Job {
+        let job_name = "Enso Code Lint";
+        let run_command = "backend lint";
+        let job = RunStepsBuilder::new(run_command).build_job(job_name, target);
+        job
+    }
+}
+
 /// Job that checks if any of stdlib APIs have changed, by building the Enso
 /// engine distribution, and running `enso --docs api --in-project <std-lib>`,
 /// and comparing it to the API signature files that are already in the VCS.
