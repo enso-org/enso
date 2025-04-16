@@ -19,7 +19,7 @@ export default mergeConfig(
       {
         name: 'load-svg',
         enforce: 'pre',
-        transform(_, id) {
+        load(id) {
           // Mock out SVGs that are used in the dashboard.
           if (id.endsWith('.svg')) {
             const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 100 100">
@@ -39,19 +39,6 @@ export default mergeConfig(
         },
       },
     ],
-    server: {
-      warmup: {
-        // Warming server up ***significantly*** speeds up execution of the first batch of tests in dev mode.
-        clientFiles: [
-          './src/dashboard/pages/dashboard/**/*.tsx',
-          './src/dashboard/layouts/**/*.tsx',
-          './src/dashboard/modals/**/*.tsx',
-          './src/dashboard/hooks/**/*.ts',
-          './src/dashboard/tailwind.css',
-          './node_modules/@tanstack/**/*.js',
-        ],
-      },
-    },
     resolve: {
       alias: {
         '@stripe/stripe-js/pure': fileURLToPath(

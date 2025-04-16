@@ -1,8 +1,6 @@
 package org.enso.compiler.benchmarks.module;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -14,7 +12,7 @@ import org.enso.compiler.Compiler;
 import org.enso.compiler.benchmarks.Utils;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Type;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -81,24 +79,23 @@ from Standard.Visualization import all
    */
   private static final int RESOLVED_SYMBOLS_CNT = 20;
 
-  private Context context;
+  private ContextUtils context;
   private Compiler compiler;
   private Module module;
-  private OutputStream out;
 
   @Setup
   public void setup(BenchmarkParams params) throws IOException {
-    this.out = new ByteArrayOutputStream();
     this.context =
         Utils.createDefaultContextBuilder()
-            // Enable IR caches - we don't want to compile the imported modules from the standard
-            // libraries
-            .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
-            .logHandler(out)
-            .out(out)
-            .err(out)
+            .withModifiedContext(
+                bldr ->
+                    bldr
+                        // Enable IR caches - we don't want to compile the imported modules from the
+                        // standard
+                        // libraries
+                        .option(RuntimeOptions.DISABLE_IR_CACHES, "false"))
             .build();
-    var ensoCtx = Utils.leakEnsoContext(context);
+    var ensoCtx = context.ensoContext();
 
     Set<String> symbolsToUse =
         KNOWN_IMPORTED_SYMBOLS.stream().limit(RESOLVED_SYMBOLS_CNT).collect(Collectors.toSet());
@@ -125,9 +122,9 @@ from Standard.Visualization import all
 
   @TearDown
   public void teardown() {
-    if (!out.toString().isEmpty()) {
+    if (!context.getOut().isEmpty()) {
       System.err.println(
-          "Unexpected output (warnings / errors?) from the compiler: " + out.toString());
+          "Unexpected output (warnings / errors?) from the compiler: " + context.getOut());
     }
     context.close();
   }

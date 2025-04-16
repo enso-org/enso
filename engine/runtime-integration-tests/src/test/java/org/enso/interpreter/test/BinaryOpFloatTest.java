@@ -9,11 +9,11 @@ import java.util.Random;
 import java.util.stream.Stream;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -23,6 +23,7 @@ public class BinaryOpFloatTest {
   private static final String[] OPERATIONS = {
     " +", " -", " ^", " *", " %", " <=", " <", " >=", " >", " /"
   };
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   private static Value wrapReal;
 
   @Parameterized.Parameters(name = "({1}){0} ({2})")
@@ -53,13 +54,11 @@ public class BinaryOpFloatTest {
     return s3.toArray(Object[][]::new);
   }
 
-  private static Context ctx;
-
   @BeforeClass
   public static void initContext() {
-    ctx = ContextUtils.createDefaultContext();
     wrapReal =
-        ctx.eval(
+        ctxRule
+            .eval(
                 "enso",
                 """
                 from Standard.Base import all
@@ -88,8 +87,6 @@ public class BinaryOpFloatTest {
 
   @AfterClass
   public static void closeContext() {
-    ctx.close();
-    ctx = null;
     wrapReal = null;
   }
 
@@ -105,67 +102,52 @@ public class BinaryOpFloatTest {
 
   @Test
   public void verifyOperationOnForeignObject() {
-    ContextUtils.executeInContext(
-        ctx,
-        () -> {
-          var code = """
-        fn a b = a{op} b
-        """.replace("{op}", operation);
-          var fn = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
+    var code = """
+  fn a b = a{op} b
+  """.replace("{op}", operation);
+    var fn = ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
 
-          var r1 = execute(fn, n1, n2);
+    var r1 = execute(fn, n1, n2);
 
-          var wrap2 = ctx.asValue(new WrappedPrimitive(n2));
-          var r2 = execute(fn, n1, wrap2);
+    var wrap2 = ctxRule.asValue(new WrappedPrimitive(n2));
+    var r2 = execute(fn, n1, wrap2);
 
-          assertSameResult(r1, r2);
-          return null;
-        });
+    assertSameResult(r1, r2);
   }
 
   @Test
   public void verifyOperationWithConvertibleObject() {
-    ContextUtils.executeInContext(
-        ctx,
-        () -> {
-          var code = """
-        fn a b = a{op} b
-        """.replace("{op}", operation);
-          var fn = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
+    var code = """
+  fn a b = a{op} b
+  """.replace("{op}", operation);
+    var fn = ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
 
-          var r1 = fn.execute(n1, n2);
+    var r1 = fn.execute(n1, n2);
 
-          if (operation.contains("=") || operation.contains("<") || operation.contains(">")) {
-            // avoid any >=< for now
-            return null;
-          }
+    if (operation.contains("=") || operation.contains("<") || operation.contains(">")) {
+      // avoid any >=< for now
+      return;
+    }
 
-          var wrap2 = wrapReal.execute(n2);
-          var r2 = fn.execute(n1, wrap2);
+    var wrap2 = wrapReal.execute(n2);
+    var r2 = fn.execute(n1, wrap2);
 
-          assertSameResult(r1, r2);
-          return null;
-        });
+    assertSameResult(r1, r2);
   }
 
   @Test
   public void verifyOperationOnConvertibleObject() {
-    ContextUtils.executeInContext(
-        ctx,
-        () -> {
-          var code = """
-        fn a b = a{op} b
-        """.replace("{op}", operation);
-          var fn = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
+    var code = """
+  fn a b = a{op} b
+  """.replace("{op}", operation);
+    var fn = ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
 
-          var r1 = fn.execute(n1, n2);
+    var r1 = fn.execute(n1, n2);
 
-          var wrap1 = wrapReal.execute(n1);
-          var r2 = fn.execute(wrap1, n2);
+    var wrap1 = wrapReal.execute(n1);
+    var r2 = fn.execute(wrap1, n2);
 
-          assertSameResult(r1, r2);
-          return null;
-        });
+    assertSameResult(r1, r2);
   }
 
   private Value execute(Value fn, Object... args) {

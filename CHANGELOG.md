@@ -69,6 +69,7 @@
 - [Add right-click context menu to the graph editor background][12601]
 - [Editing multiline text literals is now supported][12774]
 - [Fixed appearance of Cloud Browser scrollbars][12831]
+- [Allow adding and reordering component group arguments][12850]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -109,6 +110,7 @@
 [12601]: https://github.com/enso-org/enso/pull/12603
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12831]: https://github.com/enso-org/enso/pull/12831
+[12850]: https://github.com/enso-org/enso/pull/12850
 
 #### Enso Standard Library
 
