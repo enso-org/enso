@@ -8,6 +8,7 @@ import project.Data_Formatter.Data_Formatter
 import project.Delimited.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows
 import project.Internal.Fixed_Width_Reader
 import project.Internal.Telemetry
+import project.Table.Table
 
 ## Read fixed-width files into a Table.
 
@@ -90,6 +91,22 @@ type Fixed_Width_Layout
 
     ## PRIVATE
     get_entries self -> Vector = self.entries
+
+Fixed_Width_Layout.from (that:Table) =
+    num_cols = that.columns.length
+    if num_cols != 2 && num_cols != 3 then
+        Error.throw (Illegal_Argument.Error "A fixed-width column specification must have two or three columns (optional column name; start; width).")
+    has_names = num_cols == 3
+    names = if has_names then that.columns.at 0 . to_vector else Nothing
+    starts = if has_names then that.columns.at 1 . to_vector else that.columns.at 0 . to_vector
+    widths = if has_names then that.columns.at 2 . to_vector else that.columns.at 1 . to_vector
+    descs = 0.up_to that.row_count . map i->
+        name = if names.is_nothing then Nothing else names.at i
+        start = starts.at i
+        width = widths.at i
+        if start.is_nothing then Fixed_Width_Column_Description.Width name width else
+            Fixed_Width_Column_Description.Start_And_Width name start width
+    Fixed_Width_Layout.from_descriptions descs
 
 ## PRIVATE
    Helper for generating column names.
