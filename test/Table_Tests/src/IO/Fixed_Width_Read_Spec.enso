@@ -163,8 +163,8 @@ add_specs suite_builder setup =
                 + [Fixed_Width_Column_Description.Start_And_Width Nothing 18 3]
             layout = Fixed_Width_Layout.from_descriptions descs
             t = data1.read (Fixed_Width_Format.Fixed_Width layout)
-            Problems.expect_warning (Invalid_Fixed_Width_Row.Error 2 2 20 21) t
-            Problems.expect_warning (Invalid_Fixed_Width_Row.Error 4 4 17 21) t
+            Problems.expect_warning (Invalid_Fixed_Width_Row.Error 1 1 20 21) t
+            Problems.expect_warning (Invalid_Fixed_Width_Row.Error 3 3 17 21) t
             t.at "Column 1" . to Vector . should_equal [1234, 2345, 6789, 4343]
             t.at "Column 2" . to Vector . should_equal [98765, 87654, 51122, 1234]
             t.at "Column 3" . to Vector . should_equal ["fgh", "no", "def", ""]
@@ -176,8 +176,8 @@ add_specs suite_builder setup =
                 + [Fixed_Width_Column_Description.Start_And_Width Nothing 18 3]
             layout = Fixed_Width_Layout.from_descriptions descs
             t = data1.read (Fixed_Width_Format.Fixed_Width layout on_invalid_rows=..Drop_Invalid_Rows)
-            Problems.expect_warning (Invalid_Fixed_Width_Row.Error 2 Nothing 20 21) t
-            Problems.expect_warning (Invalid_Fixed_Width_Row.Error 4 Nothing 17 21) t
+            Problems.expect_warning (Invalid_Fixed_Width_Row.Error 1 Nothing 20 21) t
+            Problems.expect_warning (Invalid_Fixed_Width_Row.Error 3 Nothing 17 21) t
             t.at "Column 1" . to Vector . should_equal [1234, 6789]
             t.at "Column 2" . to Vector . should_equal [98765, 51122]
             t.at "Column 3" . to Vector . should_equal ["fgh", "def"]

@@ -1,5 +1,3 @@
-from Standard.Base import Boolean, False, True
-
 ## Describes what to do with rows that are too short for the specified
    fixed-width layout.
 type Invalid_Fixed_Width_Rows
