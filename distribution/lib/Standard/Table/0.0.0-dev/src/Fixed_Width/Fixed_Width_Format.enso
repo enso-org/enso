@@ -19,6 +19,41 @@ import project.Table.Table
 type Fixed_Width_Format
     ## Read fixed-width files into a Table.
 
+       Fixed-width files require have a `Fixed_Width_Layout` that specifies the
+       start and width of each column, along with an optional column name. This
+       layout can be defined using the `Fixed_Width_Column_Description` type, or
+       using an in-memory table.
+
+       In a fixed-width file, it is usually the case that every character
+       position of the input data is part of one of the columns, without gaps
+       between them. However, the `layout` defined by the `Fixed_Width_Format
+       does not have to use every character of every line; it can specify only
+       the columns that are needed.
+
+       ! Error Conditions
+
+         If a line of the input data does not have enough character position to
+         cover all of the columns specified in the `layout`, the result depends
+         on the value of `on_invalid_rows`:
+         `Drop_Invalid_Rows`: short lines are skipped.
+         `Keep_Invalid_Rows`: short lines are added to the table. Columns that
+           are missing entirely take on the empty string, and columns that are
+           partially covered by the input data take on the partial value.
+
+       Arguments:
+       - layout: A `Fixed_Width_Layout` object that defines the start and width
+         for each column, along with an optional column name.
+       - encoding: The encoding to use when reading the file.
+       - on_invalid_rows: Specifies how to handle rows that are not short enough
+         to cover the columns specified in the layout.
+       - value_formatter: formatter to parse text values into numbers, dates,
+         times, etc. if `nothing` values are left as text.
+
+       > Example
+         Specify a column layout using `Fixed_Width_Column_Description`.
+
+             descs = [Fixed_Width_Column_Description.Start_And_Width "a" 0 4, Fixed_Width_Column_Description.Width "b" 1]
+             layout = Fixed_Width_Layout.from_descriptions descs
     Fixed_Width (layout:Fixed_Width_Layout) (encoding:Encoding=Encoding.default) (on_invalid_rows:Invalid_Fixed_Width_Rows=..Keep_Invalid_Rows) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value)
 
     ## PRIVATE
@@ -52,7 +87,24 @@ type Fixed_Width_Format
    Specifies a fixed-width column. A column can be specified as a start column
    and a witdh, or by just a width, relative to the previous column.
 type Fixed_Width_Column_Description
+    ## Specify a fixed-width column using a start and width, and an optional
+       column name.
+
+       Arguments:
+       - name: The name of the column; if `Nothing`, a default name is
+         generated.
+       - start: The first character position of the column.
+       - width: The width of the column, in characters.
     Start_And_Width (name : Text | Nothing) (start:Integer) (width:Integer)
+
+    ## Specify a fixed-width column using just a width, and an optional
+       column name. The start column defaults to the character after the last
+       character of the previous column, or 0 if this is the first column.
+
+       Arguments:
+       - name: The name of the column; if `Nothing`, a default name is
+         generated.
+       - width: The width of the column, in characters.
     Width (name : Text | Nothing) (width:Integer)
 
 ## PRIVATE
