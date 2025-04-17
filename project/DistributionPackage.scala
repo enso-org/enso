@@ -355,10 +355,10 @@ object DistributionPackage {
   ): Boolean = {
     import scala.collection.JavaConverters._
 
-    val enso             = distributionRoot / "bin" / batOrExeName("enso")
-    val pb               = new java.lang.ProcessBuilder()
-    val all              = new java.util.ArrayList[String]()
-    val projectPath      = findProjectPath(args)
+    val enso        = distributionRoot / "bin" / batOrExeName("enso")
+    val pb          = new java.lang.ProcessBuilder()
+    val all         = new java.util.ArrayList[String]()
+    val projectPath = findProjectPath(args)
     val disablePrivateCheck = projectPath match {
       case Some(whatToRun) =>
         if (whatToRun.startsWith("test/") && whatToRun.endsWith("_Tests")) {
@@ -422,9 +422,9 @@ object DistributionPackage {
   }
 
   /** Returns the argument specifying the path of the project to run.
-   *
-   * It will be the argument following `--in-project`, `--run` or `--compile`.
-   */
+    *
+    * It will be the argument following `--in-project`, `--run` or `--compile`.
+    */
   private def findProjectPath(args: Seq[String]): Option[String] = {
     def findArg(name: String): Option[String] = {
       val location = args.indexOf(name)
@@ -435,7 +435,9 @@ object DistributionPackage {
       }
     }
 
-    findArg("--in-project").orElse(findArg("--run")).orElse(findArg("--compile"))
+    findArg("--in-project")
+      .orElse(findArg("--run"))
+      .orElse(findArg("--compile"))
   }
 
   def runProjectManagerPackage(
