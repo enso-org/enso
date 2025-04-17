@@ -11,6 +11,7 @@ from Standard.Table.Match_Columns import Match_Columns
 
 import project.Hyper_File.Hyper_File
 import project.Internal.Telemetry
+import Standard.Base.Runtime.Context
 
 polyglot java import org.enso.tableau.HyperReader
 
@@ -73,4 +74,5 @@ type Tableau_Format
        Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
     write_table self file table on_existing_file match_columns on_problems:Problem_Behavior =
-        HyperReader.writeTable file.file.path table.java_table
+        is_dry_run = Context.Output.is_enabled.not
+        if is_dry_run.not then HyperReader.writeTable file.file.path table.java_table

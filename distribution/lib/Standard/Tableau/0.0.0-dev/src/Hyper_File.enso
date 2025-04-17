@@ -11,6 +11,7 @@ import project.Hyper_Errors.Hyper_Table_Not_Found
 import project.Hyper_Table.Hyper_Table
 import project.Internal.Telemetry
 
+
 polyglot java import org.enso.tableau.HyperReader
 
 ## Represents a Tableau Hyper Extract file.
@@ -91,10 +92,7 @@ type Hyper_File
             result.if_not_error <|
                 Telemetry.log "Hyper_File.read" "Read Hyper table: output={}, row_count={}, column_count={}" ["Table", result.row_count, result.column_count]
                 result
-
-    write self table =
-        HyperReader.writeTable self.file.path
-
+        
 ## PRIVATE
 make_schema_selector hyper_file:Hyper_File include_any:Boolean=False =
     schemas = hyper_file.schemas.map t-> Option t t.pretty
