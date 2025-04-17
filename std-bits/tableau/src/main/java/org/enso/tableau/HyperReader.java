@@ -351,7 +351,7 @@ public class HyperReader {
       for (int col = 0; col < numberOfColumns; ++col) {
         var storage = table.getColumns()[col].getStorage();
         if (storage.isNothing(row)) {
-
+          inserter.addNull();
         } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
           inserter.add(doubleStorage.getItemAsDouble(row));
         } else if (storage instanceof ColumnLongStorage longStorage) {
