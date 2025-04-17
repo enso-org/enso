@@ -144,6 +144,17 @@ add_specs suite_builder = suite_builder.group "Stack traces" group_builder->
             (deep_stack_trace.length > 5) . should_be_true
             deep_stack_trace.take 5 . map .name . should_equal names
 
+    group_builder.specify "source location to Text" <|
+        stack = Runtime.get_stack_trace
+        el = stack.at 0
+
+        el . should_be_a Standard.Base.Runtime.Stack_Trace_Element
+
+        where = el.source_location
+        where . should_be_a Standard.Base.Runtime.Source_Location.Source_Location
+
+        where.to_display_text . should_equal "test/Base_Tests/src/Runtime/Stack_Traces_Spec.enso:148:17-39"
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
