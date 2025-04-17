@@ -20,6 +20,8 @@ import org.graalvm.polyglot.Value;
 
 public class FixedWidthReader {
   private List<FixedWidthLayoutEntry> layoutEntries;
+  private final long skipRows;
+  private final long rowLimit;
   private InvalidFixedWidthRowsBehavior invalidRowsBehavior;
   private DatatypeParser valueParser;
   private FixedWidthReaderProblemAggregator problemAggregator;
@@ -34,6 +36,8 @@ public class FixedWidthReader {
 
   public FixedWidthReader(
       List<FixedWidthLayoutEntry> layoutEntries,
+      long skipRows,
+      long rowLimit,
       InvalidFixedWidthRowsBehavior invalidRowsBehavior,
       DatatypeParser valueParser,
       boolean warningsAsErrors,
@@ -44,6 +48,8 @@ public class FixedWidthReader {
     }
 
     this.layoutEntries = layoutEntries;
+    this.skipRows = skipRows;
+    this.rowLimit = rowLimit;
     this.invalidRowsBehavior = invalidRowsBehavior;
     this.valueParser = valueParser;
     this.problemAggregator =
@@ -61,7 +67,7 @@ public class FixedWidthReader {
     while (true) {
       String line = bufferedReader.readLine();
 
-      if (line == null) {
+      if (line == null || (rowLimit != -1 && tableRowNumber >= rowLimit)) {
         break;
       }
 
@@ -79,6 +85,11 @@ public class FixedWidthReader {
       if (line.length() != firstLineLength) {
         problemAggregator.reportInconsistentLineLengths();
       }
+    }
+
+    if (sourceLineNumber < skipRows) {
+      sourceLineNumber++;
+      return;
     }
 
     if (line.length() < minimumLineLength) {
