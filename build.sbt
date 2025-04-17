@@ -5573,7 +5573,9 @@ ThisBuild / NativeImage.additionalOpts := {
     Seq()
   } else {
     var opts = if (GraalVM.EnsoLauncher.release) {
-      Seq("-O3")
+      // Picking `-Os` option instead of `-O3` in production on purpose.
+      // See https://github.com/enso-org/enso/pull/12855#issuecomment-2812552448
+      Seq("-Os")
     } else {
       Seq("-Ob")
     }
