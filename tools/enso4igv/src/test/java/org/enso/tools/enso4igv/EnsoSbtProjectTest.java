@@ -1,12 +1,15 @@
 package org.enso.tools.enso4igv;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Arrays;
 import org.netbeans.api.java.classpath.ClassPath;
 import org.netbeans.api.project.ProjectManager;
 import org.netbeans.api.project.Sources;
 import org.netbeans.junit.NbTestCase;
+import org.netbeans.spi.project.SubprojectProvider;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 
@@ -19,6 +22,37 @@ public class EnsoSbtProjectTest extends NbTestCase {
   @Override
   protected void setUp() throws Exception {
     clearWorkDir();
+  }
+
+  public void testAllProjectsWillBeFound() throws Exception {
+      var root = new File(EnsoSbtProjectTest.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+      for (;;) {
+          assertNotNull("Root isn't a dir", root);
+          var sbt = new File(root, "build.sbt");
+          if (sbt.exists()) {
+              break;
+          }
+          root = root.getParentFile();
+      }
+      var sbt = new File(root, "build.sbt");
+      assertTrue("build script found", sbt.exists());
+      var text = Files.readAllLines(sbt.toPath());
+      var aggregateAndRest = text.stream().dropWhile(l -> !l.contains(".aggregate(")).toList();
+      var aggregate = aggregateAndRest.stream().skip(1).takeWhile(l -> !l.contains(")")).toList();
+
+      assertSimilar("Aggregates are we searching for: " + aggregate, 96, aggregate.size(), 10);
+
+      var inFiles = text.stream().filter(l -> l.contains(".in(file(") || l.contains("project in file(")).toList();
+      assertSimilar("Same amount of in(file( as aggregates", aggregate.size(), inFiles.size(), 10);
+
+      var rootFO = FileUtil.toFileObject(root);
+      var prj = ProjectManager.getDefault().findProject(rootFO);
+
+      var spp = prj.getLookup().lookup(SubprojectProvider.class);
+      assertNotNull("subprojects are supported", spp);
+      var projects = spp.getSubprojects();
+
+      assertSimilar("Found exactly the same amount of projects: " + projects, aggregate.size(), projects.size(), 10);
   }
 
   public void testLanguageServerProject() throws Exception {
@@ -95,5 +129,12 @@ public class EnsoSbtProjectTest extends NbTestCase {
       os.write(txt.getBytes(StandardCharsets.UTF_8));
     }
     return root;
+  }
+
+  private static void assertSimilar(String msg, int expected, int actual, int allowedDifference) {
+      if (Math.abs(expected - actual) <= allowedDifference) {
+          return;
+      }
+      assertEquals(msg, expected, actual);
   }
 }
