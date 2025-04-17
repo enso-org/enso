@@ -38,7 +38,7 @@
     - get self selector:(Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Text.Text)= ~if_missing:Standard.Base.Any.Any= -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
     - get_row self index:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> (Standard.Table.Row.Row|Standard.Base.Any.Any)
     - get_value self selector:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= index:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-    - input columns:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any) -> Standard.Table.Table.Table
+    - input columns:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)= -> Standard.Table.Table.Table
     - join self right:Standard.Table.Table.Table= join_kind:Standard.Table.Join_Kind.Join_Kind= on:(Standard.Base.Any.Any|Standard.Base.Data.Text.Text|Standard.Table.Join_Condition.Join_Condition)= right_prefix:Standard.Base.Data.Text.Text= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
     - last_column self -> Standard.Base.Any.Any
     - last_row self -> Standard.Base.Any.Any

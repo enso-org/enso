@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Ref.Ref
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Errors.Common import Type_Error
@@ -67,6 +68,20 @@ type Fixed_Width_Format
     resolve : Function -> Fixed_Width_Format | Nothing
     resolve constructor =
         Panic.catch Type_Error (constructor:Fixed_Width_Format) _->Nothing
+
+    ## PRIVATE
+       If the File_Format supports reading from the file, return a configured instance.
+
+       We cannot infer the layout from the file metadata or contents.
+    for_read : File_Format_Metadata -> Fixed_Width_Format | Nothing
+    for_read _:File_Format_Metadata = Nothing
+
+    ## PRIVATE
+       If this File_Format should be used for writing to that file, return a configured instance.
+    for_file_write : Writable_File -> XML_Format | Nothing
+    for_file_write file:Writable_File =
+        _ = [file]
+        Nothing
 
     ## PRIVATE
     get_dropdown_options : Vector Option
