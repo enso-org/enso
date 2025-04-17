@@ -16,6 +16,7 @@ import java.nio.channels.Channels;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -30,6 +31,7 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
@@ -340,6 +342,7 @@ public class HyperReader {
         case IntegerType x -> tableDef.addColumn(columnName, SqlType.bigInt());
         case FloatType x -> tableDef.addColumn(columnName, SqlType.doublePrecision());
         case BooleanType x -> tableDef.addColumn(columnName, SqlType.bool());
+        case DateType x -> tableDef.addColumn(columnName, SqlType.date());
         default -> throw new IllegalStateException("Unknown type");
       }
       ;
@@ -365,6 +368,7 @@ public class HyperReader {
           Object value = storage.getItemBoxed(row);
           switch (value) {
             case String s -> inserter.add(s);
+            case LocalDate ld -> inserter.add(ld);
             default -> throw new IllegalStateException("Unknown type");
           }
         }

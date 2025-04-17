@@ -47,3 +47,6 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
     
     group_builder.specify "should be able to write a bool column" <|
         can_round_trip (Table.input [['bools', [True, False, Nothing]]])
+
+    group_builder.specify "should be able to write a date column" <|
+        can_round_trip (Table.input [['dates', [Date.new 2025 1 1, Date.new 2025 2 28, Nothing]]])
