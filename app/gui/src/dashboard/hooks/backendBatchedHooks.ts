@@ -489,7 +489,7 @@ function useUploadAssetToCloud() {
   const user = useUser()
   const toastAndLog = useToastAndLog()
   const remoteBackend = useRemoteBackend()
-  const uploadFileToCloudMutation = useUploadFileWithToastMutation(remoteBackend)
+  const uploadFileMutation = useUploadFileWithToastMutation(remoteBackend)
   const getSiblings = useGetSiblings()
 
   return useEventCallback(
@@ -505,7 +505,7 @@ function useUploadAssetToCloud() {
       siblings ??= await getSiblings(remoteBackend, parentDirectoryId ?? user.rootDirectoryId)
       const siblingTitles = siblings.map((sibling) => sibling.title)
 
-      if (siblingTitles.includes(asset.title)) {
+      if (siblingTitles.includes(newName)) {
         throw new DuplicateAssetError(
           'Could not upload to cloud: A resource with that title already exists.',
         )
@@ -523,7 +523,7 @@ function useUploadAssetToCloud() {
         }
 
         const fileName = `${newName}.enso-project`
-        await uploadFileToCloudMutation
+        await uploadFileMutation
           .mutateAsync([
             { fileName, fileId: null, parentDirectoryId },
             new File([await projectResponse.blob()], fileName),
@@ -531,9 +531,6 @@ function useUploadAssetToCloud() {
           .catch()
         toast.success(getText('uploadProjectToCloudSuccess'))
       } catch (error) {
-        if (error instanceof DuplicateAssetError) {
-          throw error
-        }
         toastAndLog('uploadProjectToCloudError', error)
       }
     },
