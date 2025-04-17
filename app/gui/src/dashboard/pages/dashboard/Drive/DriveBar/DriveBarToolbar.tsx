@@ -411,7 +411,7 @@ function UploadFilesToCloudButton(props: UploadFilesToCloudButtonProps) {
       size="medium"
       icon={DataUploadIcon}
       isDisabled={isDisabled}
-      aria-label={getText('uploadFilesToCloud')}
+      aria-label={isCloud ? getText('uploadFilesToCloudLocalOnly') : getText('uploadFilesToCloud')}
       onPress={uploadFilesToCloudCallback}
     />
   )
