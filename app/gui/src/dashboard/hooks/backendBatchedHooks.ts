@@ -1,17 +1,24 @@
 /** @file Hooks to do batched backend operations. */
-import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
+import {
+  backendQueryOptions,
+  listDirectoryQueryOptions,
+  mutationOptions,
+} from '#/hooks/backendHooks'
 import { useUploadFileWithToastMutation } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
+import { useCloudCategoryList } from '#/layouts/Drive/Categories'
 import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { useUser } from '#/providers/AuthProvider'
 import { useRemoteBackend } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
 import { extractTypeAndId } from '#/services/LocalBackend'
 import { getMessageOrToString } from '#/utilities/error'
+import { useEnsureQueryData } from '#/utilities/tanstackQuery'
 import { useMutationState, type Mutation, type QueryClient } from '@tanstack/react-query'
 import {
+  AssetType,
   DuplicateAssetError,
   FilterBy,
   type AnyAsset,
@@ -21,6 +28,9 @@ import {
   type LabelName,
 } from 'enso-common/src/services/Backend'
 import { toast } from 'react-toastify'
+
+/** The maximum duration of a batched operation before "list directory" query data is deemed stale. */
+const BATCH_LIST_DIRECTORY_STALE_TIME_MS = 100
 
 /** Call "delete" mutations for a list of assets. */
 export function deleteAssetsMutationOptions(backend: Backend) {
@@ -441,6 +451,12 @@ function useUploadAssetToCloud() {
   const toastAndLog = useToastAndLog()
   const remoteBackend = useRemoteBackend()
   const uploadFileToCloudMutation = useUploadFileWithToastMutation(remoteBackend)
+  const ensureQueryData = useEnsureQueryData()
+  const cloudCategories = useCloudCategoryList()
+  const cloudHomeCategory = cloudCategories.categories.find((category) => category.type === 'cloud')
+  const cloudTrashCategory = cloudCategories.categories.find(
+    (category) => category.type === 'trash',
+  )
 
   return useEventCallback(
     async (
@@ -450,6 +466,43 @@ function useUploadAssetToCloud() {
     ) => {
       const { parentId, id, title } = asset
       newName ??= title
+
+      const nonDeletedAssets =
+        cloudHomeCategory ?
+          await ensureQueryData({
+            ...listDirectoryQueryOptions({
+              backend: remoteBackend,
+              parentId: parentDirectoryId,
+              category: cloudHomeCategory,
+              refetchInterval: null,
+            }),
+            staleTime: BATCH_LIST_DIRECTORY_STALE_TIME_MS,
+          })
+        : []
+      const deletedAssets =
+        cloudTrashCategory ?
+          await ensureQueryData({
+            ...listDirectoryQueryOptions({
+              backend: remoteBackend,
+              parentId: parentDirectoryId,
+              category: cloudTrashCategory,
+              refetchInterval: null,
+            }),
+            staleTime: BATCH_LIST_DIRECTORY_STALE_TIME_MS,
+          })
+        : []
+      const siblingTitles = [...nonDeletedAssets, ...deletedAssets].flatMap((sibling) => {
+        if (sibling.type !== AssetType.project) {
+          return []
+        }
+        return [sibling.title]
+      })
+
+      if (siblingTitles.includes(asset.title)) {
+        throw new DuplicateAssetError(
+          'Could not upload to cloud: A resource with that title already exists.',
+        )
+      }
 
       try {
         const parentDirectoryPath = extractTypeAndId(parentId).id

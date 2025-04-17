@@ -319,7 +319,7 @@ export interface ListDirectoryQueryOptions {
   readonly parentId: DirectoryId | null
   readonly category: Category
   /**
-   * When using React, use {@link useListDirectoryRefetchInterval} to 0.
+   * When using React, use {@link useListDirectoryRefetchInterval} to get the correct value.
    * `undefined` is intentionally excluded as this value should be explicitly given.
    */
   readonly refetchInterval: number | null
