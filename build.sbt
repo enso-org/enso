@@ -5756,7 +5756,6 @@ lintEnso := {
         DistributionPackage.runEnginePackage(
           engineDistributionRoot.value,
           Seq(
-            "--jvm",
             "--compile",
             path,
             "--enable-static-analysis",
