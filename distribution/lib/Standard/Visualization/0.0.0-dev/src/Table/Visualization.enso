@@ -288,7 +288,7 @@ get_rows_for_table table_or_column start_number sort_col_index_list=Nothing sort
     get_vector c         = Warning.set (Vector.new bucket_size i-> make_json_for_value (c.get (i + start_number))) []
     columns              = sorted_table.columns
     rows = columns.map get_vector
-    result = JS_Object.from_pairs [["rows", rows]]
+    result = JS_Object.from_pairs [["rows", rows], ["row_count", all_rows_count]]
     result.to_text
 
 ## PRIVATE

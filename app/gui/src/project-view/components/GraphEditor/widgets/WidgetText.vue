@@ -193,7 +193,7 @@ export const widgetDefinition = defineWidget(
       ref="editorRoot"
       :data-syntax-language="syntaxLanguage"
       @focusin="editing.start()"
-      @keydown.enter.capture="onEnter"
+      @keydown.enter="onEnter"
       @keydown.tab.stop.capture="accepted"
       @keydown.up.stop
       @keydown.down.stop

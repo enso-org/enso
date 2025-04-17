@@ -123,6 +123,7 @@ const props = defineProps<{
   datasource?: IServerSideDatasource | boolean
   rowCount?: number
   isServerSideModel?: boolean
+  gridIdHash?: string | null
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -149,11 +150,16 @@ function onGridReady(event: GridReadyEvent<TData>) {
 
 const rowModelType = computed(() => (props.isServerSideModel ? 'serverSide' : 'clientSide'))
 
-const gridKey = ref(0)
+const gridKeyIncrement = ref(0)
+const gridKey = computed(() =>
+  props.gridIdHash ?
+    `${props.gridIdHash}-${gridKeyIncrement.value}`
+  : `grid-${gridKeyIncrement.value}`,
+)
 
 const forceGridRefresh = () => {
   //when using the ag grid severSide model this forces the grid to 'refresh' and call getRows
-  gridKey.value++
+  gridKeyIncrement.value++
 }
 
 watch(

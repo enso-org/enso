@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -25,6 +26,7 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.SimpleAnnotationValueVisitor9;
 import javax.tools.Diagnostic.Kind;
+import javax.tools.StandardLocation;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
@@ -66,15 +68,44 @@ public class PersistableProcessor extends AbstractProcessor {
     if (roundEnv.processingOver()) {
       for (var entry : registeredClasses.entrySet()) {
         try {
+          var props = new Properties();
+          var propsWhere = StandardLocation.SOURCE_OUTPUT;
+          var propsPkg = entry.getKey();
+          var propsName = "Persistables.properties";
           var cn = entry.getKey() + ".Persistables";
+          try {
+            var res = processingEnv.getFiler().getResource(propsWhere, propsPkg, propsName);
+            if (res != null) {
+              try (var is = res.openInputStream()) {
+                props.load(is);
+              }
+            }
+          } catch (IOException notReallyImportant) {
+            processingEnv
+                .getMessager()
+                .printMessage(
+                    Kind.OTHER,
+                    "Cannot read "
+                        + propsPkg
+                        + "."
+                        + propsName
+                        + ": "
+                        + notReallyImportant.getMessage());
+          }
           var src = processingEnv.getFiler().createSourceFile(cn);
-          try (java.io.Writer w = src.openWriter()) {
+          try (var w = src.openWriter()) {
             w.append("package " + entry.getKey() + ";\n");
             w.append("public final class Persistables {\n");
             w.append("  private Persistables() {}\n");
             w.append("  public static void initialize() {\n");
             w.append("  }\n");
+
+            // values from processor take preceedence
             for (var idName : entry.getValue().entrySet()) {
+              props.setProperty("" + idName.getKey(), idName.getValue());
+            }
+
+            for (var idName : props.entrySet()) {
               w.append(
                   "  private static final org.enso.persist.Persistance PERSIST_"
                       + idName.getKey()
@@ -83,6 +114,11 @@ public class PersistableProcessor extends AbstractProcessor {
                       + "();\n");
             }
             w.append("}\n");
+          }
+          var out = processingEnv.getFiler().createResource(propsWhere, propsPkg, propsName);
+          try (var os = out.openOutputStream()) {
+            // store accumulated key/value pairs for subsequent (incremental) update
+            props.store(os, "");
           }
         } catch (IOException ex) {
           processingEnv.getMessager().printMessage(Kind.ERROR, ex.getMessage());
