@@ -44,3 +44,6 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
 
     group_builder.specify "should be able to write a float column" <|
         can_round_trip (Table.input [['ints', [1.0, Nothing, 2.0]]])
+    
+    group_builder.specify "should be able to write a bool column" <|
+        can_round_trip (Table.input [['bools', [True, False, Nothing]]])

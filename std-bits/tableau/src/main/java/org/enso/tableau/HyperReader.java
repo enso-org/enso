@@ -23,11 +23,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
@@ -337,6 +339,7 @@ public class HyperReader {
         case TextType x -> tableDef.addColumn(columnName, SqlType.text());
         case IntegerType x -> tableDef.addColumn(columnName, SqlType.bigInt());
         case FloatType x -> tableDef.addColumn(columnName, SqlType.doublePrecision());
+        case BooleanType x -> tableDef.addColumn(columnName, SqlType.bool());
         default -> throw new IllegalStateException("Unknown type");
       }
       ;
@@ -356,6 +359,8 @@ public class HyperReader {
           inserter.add(doubleStorage.getItemAsDouble(row));
         } else if (storage instanceof ColumnLongStorage longStorage) {
           inserter.add(longStorage.getItemAsLong(row));
+        } else if (storage instanceof ColumnBooleanStorage boolStorage) {
+          inserter.add(boolStorage.getItemAsBoolean(row));
         } else {
           Object value = storage.getItemBoxed(row);
           switch (value) {
