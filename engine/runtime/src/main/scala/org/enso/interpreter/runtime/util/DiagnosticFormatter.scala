@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.util
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.{Diagnostic, IdentifiedLocation, Warning}
-import org.enso.interpreter.runtime.EnsoContext
 
 /** Formatter of IR diagnostics. Heavily inspired by GCC. Can format one-line as well as multiline
   * diagnostics. The output is colorized if the output stream supports ANSI colors.
@@ -12,11 +11,14 @@ import org.enso.interpreter.runtime.EnsoContext
   *
   * @param diagnostic the diagnostic to pretty print
   * @param source     the original source code
+  * @param isOutputRedirected whether the stdout is redirected from the console.
+  * @param isColorTerminalOutput whether the output is a color terminal.
   */
 class DiagnosticFormatter(
   private val diagnostic: Diagnostic,
   private val source: Source,
-  private val isOutputRedirected: Boolean
+  private val isOutputRedirected: Boolean,
+  private val isColorTerminalOutput: Boolean
 ) {
   private val maxLineNum                     = 99999
   private val blankLinePrefix                = "      | "
@@ -155,7 +157,7 @@ class DiagnosticFormatter(
     if (isOutputRedirected) {
       return false
     }
-    return EnsoContext.get(null).isColorTerminalOutput;
+    return isColorTerminalOutput
   }
 
   private def oneLineFromSource(lineNum: Int): String = {
