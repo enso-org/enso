@@ -64,7 +64,7 @@ import project.Internal.Common.Row_Number_Helpers
 import project.Internal.DB_Data_Link_Helpers
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
-import project.Internal.IR.From_Spec.From_Spec
+import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
@@ -1432,7 +1432,7 @@ type DB_Table
             case self.get_primary_key of
                 Nothing -> Nothing
                 primary_key_column_names : Vector -> case self.context.from_spec of
-                    From_Spec.Table _ alias _ ->
+                    SQL_IR_From_Part.Table _ alias _ ->
                         primary_key_column_names.map column_name->
                             column_expression = SQL_Expression.Column alias column_name
                             Order_Descriptor.Value column_expression Sort_Direction.Ascending
@@ -1442,7 +1442,7 @@ type DB_Table
        Returns the primary key defined for the table, if applicable.
     get_primary_key : Vector Text | Nothing
     get_primary_key self = case self.context.from_spec of
-        From_Spec.Table table_name _ _ ->
+        SQL_IR_From_Part.Table table_name _ _ ->
             # The primary key may not be valid anymore after grouping!
             is_primary_key_still_valid = self.context.groups.is_empty
             if is_primary_key_still_valid.not then Nothing else
@@ -1660,7 +1660,7 @@ type DB_Table
                 Join_Kind_Cross           -> SQL_Join_Kind.Cross
 
             problem_builder.attach_problems_before on_problems <|
-                new_from = From_Spec.Join sql_join_kind left_setup.subquery right_setup.subquery on_expressions
+                new_from = SQL_IR_From_Part.Join sql_join_kind left_setup.subquery right_setup.subquery on_expressions
                 new_ctx = Context.for_subquery new_from . set_where_filters where_expressions
                 DB_Table.new new_table_name self.connection result_columns new_ctx
 
@@ -2060,7 +2060,7 @@ type DB_Table
                         table_name_deduplicator.mark_used (all_tables.map .name)
                         union_alias = table_name_deduplicator.make_unique <|
                             all_tables.map .name . join "_"
-                        new_from = From_Spec.Union queries union_alias
+                        new_from = SQL_IR_From_Part.Union queries union_alias
                         new_ctx = Context.for_subquery new_from
                         ## TODO [RW] The result type is currently fetched
                           independently for each column, instead we should fetch it
@@ -2856,7 +2856,7 @@ type DB_Table
          table does not exist in the database. Otherwise, `False` is returned.
     is_trivial_query self (fail_if_not_found : Boolean = True) -> Boolean ! Table_Not_Found =
         case self.context.from_spec of
-            From_Spec.Table internal_table_name _ _ ->
+            SQL_IR_From_Part.Table internal_table_name _ _ ->
                 if self.name != internal_table_name then False else
                     trivial_counterpart = self.connection.query (SQL_Query.Table_Name self.name)
                     # If the table spec seems trivial, but the underlying table does not exist, we propagate the Table_Not_Found error.
@@ -3303,7 +3303,7 @@ make_literal_table connection column_vectors column_names alias =
     if total_size == 0 then Error.throw (Illegal_Argument.Error "Vectors cannot be empty") else
         if total_size > MAX_LITERAL_ELEMENT_COUNT then Error.throw (Illegal_Argument.Error "Too many elements for table literal ("+total_size.to_text+"): materialize a table into the database instead") else
             type_mapping = connection.dialect.get_type_mapping
-            from_spec = From_Spec.Literal_Values column_vectors column_names alias
+            from_spec = SQL_IR_From_Part.Literal_Values column_vectors column_names alias
             context = Context.for_subquery from_spec
 
             infer_type_from_database new_expression =

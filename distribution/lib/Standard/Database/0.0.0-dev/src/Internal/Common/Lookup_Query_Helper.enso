@@ -9,7 +9,7 @@ from Standard.Table.Errors import all
 
 import project.DB_Table.DB_Table
 import project.Internal.IR.Context.Context
-import project.Internal.IR.From_Spec.From_Spec
+import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
@@ -184,7 +184,7 @@ make_context_for_lookup_join lookup_columns subquery_setup =
             [SQL_Expression.Operation "==" [self_col.expression, lookup_col.expression]]
         _ -> []
 
-    new_from = From_Spec.Join SQL_Join_Kind.Left subquery_setup.self_sub.subquery subquery_setup.lookup_sub.subquery on_expressions
+    new_from = SQL_IR_From_Part.Join SQL_Join_Kind.Left subquery_setup.self_sub.subquery subquery_setup.lookup_sub.subquery on_expressions
     Context.for_subquery new_from
 
 ## PRIVATE

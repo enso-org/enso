@@ -5,7 +5,7 @@ import Standard.Base.Runtime.Ref.Ref
 import project.Column_Constraint.Column_Constraint
 import project.Dialect.Dialect
 import project.Internal.IR.Context.Context
-import project.Internal.IR.From_Spec.From_Spec
+import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
@@ -121,26 +121,26 @@ type SQL_Generator
        Arguments:
        - dialect: The SQL dialect for which the code is generated.
        - from_spec: A description of the FROM clause.
-    generate_from_part : Dialect -> From_Spec -> SQL_Builder
+    generate_from_part : Dialect -> SQL_IR_From_Part -> SQL_Builder
     generate_from_part self dialect from_spec = case from_spec of
-        From_Spec.Table name as_name _ ->
+        SQL_IR_From_Part.Table name as_name _ ->
             dialect.wrap_identifier name ++ alias dialect as_name
-        From_Spec.Query raw_sql as_name ->
+        SQL_IR_From_Part.Query raw_sql as_name ->
             subquery = case raw_sql of
                 prepared_statement : SQL_Statement ->
                     SQL_Builder.from_fragments prepared_statement.fragments
                 raw_code : Text ->
                     SQL_Builder.code raw_code
             subquery.paren ++ alias dialect as_name
-        From_Spec.Literal_Values vecs column_names as_name ->
+        SQL_IR_From_Part.Literal_Values vecs column_names as_name ->
             Runtime.assert (vecs.length == column_names.length) "Vectors and column names must have the same length"
             dialect.make_table_literal vecs column_names as_name
-        From_Spec.Join kind left_spec right_spec on ->
+        SQL_IR_From_Part.Join kind left_spec right_spec on ->
             left = self.generate_from_part dialect left_spec
             right = self.generate_from_part dialect right_spec
             ons = SQL_Builder.join " AND " (on.map (self.generate_expression dialect)) . prefix_if_present " ON "
             left ++ (" " + kind.to_sql + " ") ++ right ++ ons
-        From_Spec.Union queries as_name ->
+        SQL_IR_From_Part.Union queries as_name ->
             built_queries = queries.map query->
                 case query of
                     Query.Select _ _ -> Nothing
@@ -148,7 +148,7 @@ type SQL_Generator
                 self.generate_sub_query dialect query
             joined = SQL_Builder.join " UNION ALL " built_queries
             joined.paren ++ alias dialect as_name
-        From_Spec.Sub_Query columns context as_name ->
+        SQL_IR_From_Part.Sub_Query columns context as_name ->
             sub = self.generate_sub_query dialect (Query.Select columns context)
             sub.paren ++ alias dialect as_name
 
@@ -656,11 +656,11 @@ collect_table_names (query : Query) -> Vector Text =
         Query.Delete_Unmatched_Rows target_table_name source_table_name _ -> [target_table_name, source_table_name]
         Query.Delete_Matching_Rows  target_table_name source_table_name _ -> [target_table_name, source_table_name]
         SQL_Expression.Column origin _ -> [origin]
-        From_Spec.Table table_name alias _ -> [table_name, alias]
-        From_Spec.Query _ alias -> [alias]
-        From_Spec.Literal_Values _ _ alias -> [alias]
-        From_Spec.Union _ alias -> [alias]
-        From_Spec.Sub_Query _ _ alias -> [alias]
+        SQL_IR_From_Part.Table table_name alias _ -> [table_name, alias]
+        SQL_IR_From_Part.Query _ alias -> [alias]
+        SQL_IR_From_Part.Literal_Values _ _ alias -> [alias]
+        SQL_IR_From_Part.Union _ alias -> [alias]
+        SQL_IR_From_Part.Sub_Query _ _ alias -> [alias]
         _ -> Nothing
     Traversal_Helpers.traverse_and_accumulate table_name_collector query
 

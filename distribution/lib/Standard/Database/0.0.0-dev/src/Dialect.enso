@@ -13,7 +13,7 @@ import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
 import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Context.Context
-import project.Internal.IR.From_Spec.From_Spec
+import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query

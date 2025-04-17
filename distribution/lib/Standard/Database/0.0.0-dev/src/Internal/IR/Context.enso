@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
 
-import project.Internal.IR.From_Spec.From_Spec
+import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.SQL_Expression.SQL_Expression
@@ -21,11 +21,11 @@ type Context
        Arguments:
        - table_name: The name of the table for which the context is being created.
        - alias: An alias name to use for table within the query.
-       - internal_temporary_keep_alive_reference: See `From_Spec.Table` for more
+       - internal_temporary_keep_alive_reference: See `SQL_IR_From_Part.Table` for more
          details.
     for_table : Text -> Text -> Any -> Context
     for_table table_name:Text alias:Text=table_name internal_temporary_keep_alive_reference=Nothing =
-        Context.Value (From_Spec.Table table_name alias internal_temporary_keep_alive_reference=internal_temporary_keep_alive_reference) [] [] [] Nothing []
+        Context.Value (SQL_IR_From_Part.Table table_name alias internal_temporary_keep_alive_reference=internal_temporary_keep_alive_reference) [] [] [] Nothing []
 
     ## PRIVATE
 
@@ -35,7 +35,7 @@ type Context
        - raw_sql: The SQL statement (either as prepared statement or text).
        - alias: An alias name to use for table within the query.
     for_query (raw_sql:Text|SQL_Statement) (alias:Text) -> Context =
-        Context.Value (From_Spec.Query raw_sql alias) [] [] [] Nothing []
+        Context.Value (SQL_IR_From_Part.Query raw_sql alias) [] [] [] Nothing []
 
     ## PRIVATE
 
@@ -43,7 +43,7 @@ type Context
 
        Arguments:
        - subquery: The subquery to lift into a context.
-    for_subquery subquery:From_Spec -> Context =
+    for_subquery subquery:SQL_IR_From_Part -> Context =
         Context.Value subquery [] [] [] Nothing []
 
     ## PRIVATE
@@ -55,7 +55,7 @@ type Context
        query.
 
        Arguments:
-       - from_spec: the sources for the query, see `From_Spec` for more
+       - from_spec: the sources for the query, see `SQL_IR_From_Part` for more
          details.
        - where_filters: a list of expressions for filtering - only the rows
          for which these expressions evaluate to true are included in the
@@ -67,7 +67,7 @@ type Context
          grouped-by columns or aggregate expressions.
        - limit: an optional maximum number of elements that the query should
          return.
-    Value (from_spec : From_Spec) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (limit : Nothing | Integer) (extensions : Vector Context_Extension)
+    Value (from_spec : SQL_IR_From_Part) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (limit : Nothing | Integer) (extensions : Vector Context_Extension)
 
     ## PRIVATE
 
@@ -166,7 +166,7 @@ type Context
 
         encapsulated_columns = column_lists.flat_map columns->
             columns.map column-> [column.name, column.expression]
-        new_from = From_Spec.Sub_Query encapsulated_columns self alias
+        new_from = SQL_IR_From_Part.Sub_Query encapsulated_columns self alias
 
         Subquery_Setup.Value new_from new_columns rewrite_internal_column
 
@@ -186,14 +186,14 @@ type Context
 type Subquery_Setup
     ## PRIVATE
        Arguments:
-       - subquery: The From_Spec for the created subquery.
+       - subquery: The SQL_IR_From_Part for the created subquery.
        - new_columns: All columns that are available in the subquery, remapped
          to be accessible from a context that uses `subquery` as its from spec.
        - remap_column: A function that remaps an internal column to be accessible
          from a context that uses `subquery` as its from spec.
          The behaviour is undefined if this method is called with a column that
          was not part of the subquery.
-    Value (subquery : From_Spec) (new_columns : Vector (Vector Internal_Column)) (remap_column : Internal_Column -> Internal_Column)
+    Value (subquery : SQL_IR_From_Part) (new_columns : Vector (Vector Internal_Column)) (remap_column : Internal_Column -> Internal_Column)
 
 ## PRIVATE
    Describes an extension to a Context that can be used to add additional custom

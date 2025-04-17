@@ -36,7 +36,7 @@ Column expressions are represented by `SQL_Expression`. `SQL_Expression` values
 only have meaning within the context of a table expression; they do not contain
 their own table expressions.
 
-Table expressions are represented by the mutually-recursive types `From_Spec`
+Table expressions are represented by the mutually-recursive types `SQL_IR_From_Part`
 and `Context`.
 
 Top-level queries and DDL/DML commands are represented by the `Query` type.
@@ -57,7 +57,7 @@ efficiency, since backends often do their own de-duplication, but rather for
 reducing the size of the SQL, which can grow exponentially with certain kinds of
 nesting.
 
-## From_Spec
+## SQL_IR_From_Part
 
 Represents a table expression. Can be a database table (`Table`), a derived
 table built from other tables (`Join`, `Union`), or a constant value (`Query`,
@@ -115,15 +115,15 @@ An `Internal_Column` serves as a column expression, and contains a
 inside a `DB_Table`, and inherits its table expression from the `DB_Table`'s
 `Context`.
 
-A `From_Spec` serves as a table expression, and corresponds to the 'from' clause
+A `SQL_IR_From_Part` serves as a table expression, and corresponds to the 'from' clause
 of an SQL query. It can be a base value (table name, constant, etc), join,
 union, or subquery:
 
-- `From_Spec.Join`: contains `From_Spec` values from the individual tables, as
+- `SQL_IR_From_Part.Join`: contains `SQL_IR_From_Part` values from the individual tables, as
   well as `SQL_Expressions` for join conditions
-- `From_Spec.Union`: contains a vector of `Query` values for the individual
+- `SQL_IR_From_Part.Union`: contains a vector of `Query` values for the individual
   tables.
-- `From_Spec.Sub_Query`: contains column expressions as `SQL_Expression`s, and a
+- `SQL_IR_From_Part.Sub_Query`: contains column expressions as `SQL_Expression`s, and a
   table expression as a `Context`.
 
 A `Context` serves as a table expression, and corresponds to the `from` clause
@@ -195,7 +195,7 @@ The added table alias allows join conditions to refer to the columns of the
 individual tables being joined.
 
 The `Context.as_subquery` method returns a `Sub_Query_Setup`, which contains a
-table expression as a `From_Spec`, a set of simple column expressions as
+table expression as a `SQL_IR_From_Part`, a set of simple column expressions as
 `Internal_Column`s, and a helper function that can convert an original complex
 `Internal_Column` into its simplified alias form.
 

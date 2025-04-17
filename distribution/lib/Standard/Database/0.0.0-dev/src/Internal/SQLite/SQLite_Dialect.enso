@@ -20,7 +20,7 @@ import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Row_Number_Helpers
 import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Context.Context
-import project.Internal.IR.From_Spec.From_Spec
+import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query

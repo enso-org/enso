@@ -14,7 +14,7 @@ import Standard.Database.Internal.Column_Fetcher.Column_Fetcher
 import Standard.Database.Internal.Common.Database_Join_Helper
 import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.IR.Context.Context
-import Standard.Database.Internal.IR.From_Spec.From_Spec
+import Standard.Database.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
 import Standard.Database.Internal.IR.Query.Query

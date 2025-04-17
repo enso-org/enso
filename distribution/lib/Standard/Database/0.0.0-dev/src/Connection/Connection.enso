@@ -24,7 +24,7 @@ import project.Internal.DDL_Transaction
 import project.Internal.Hidden_Table_Registry
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.Context.Context
-import project.Internal.IR.From_Spec.From_Spec
+import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
