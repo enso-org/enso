@@ -1,8 +1,8 @@
 from Standard.Base import all
 
-import project.Internal.IR.Context.Context
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.SQL_Statement.SQL_Statement
 
@@ -91,7 +91,7 @@ type SQL_IR_From_Part
        - context: the context for the sub-query.
        - alias: the name upon which the results of this sub-query can be
          referred to in other parts of the query.
-    Sub_Query (columns : Vector (Pair Text SQL_Expression)) (context : Context) (alias : Text)
+    Sub_Query (columns : Vector (Pair Text SQL_Expression)) (context : SQL_IR_Source) (alias : Text)
 
     ## PRIVATE
        A bottom-up, depth-first traversal of this IR node and its children. Each

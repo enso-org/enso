@@ -63,8 +63,8 @@ import project.Internal.Common.Offset_Helpers
 import project.Internal.Common.Row_Number_Helpers
 import project.Internal.DB_Data_Link_Helpers
 import project.Internal.Helpers
-import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
@@ -93,13 +93,13 @@ type DB_Table
        - connection: The connection with which the table is associated.
        - internal_columns: The internal representation of the table columns.
        - context: The context associated with this table.
-    private Value internal_name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context
+    private Value internal_name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:SQL_IR_Source
 
     ## The internal constructor used to construct a DB_Table instance.
 
        It can perform some additional operations, like refining the type,
        so it should always be preferred over calling `DB_Table.Value` directly.
-    private new (internal_name:Text) connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context -> DB_Table =
+    private new (internal_name:Text) connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:SQL_IR_Source -> DB_Table =
         DB_Table_Refinements.refine_table <|
             DB_Table.Value internal_name connection internal_columns context
 
@@ -1661,7 +1661,7 @@ type DB_Table
 
             problem_builder.attach_problems_before on_problems <|
                 new_from = SQL_IR_From_Part.Join sql_join_kind left_setup.subquery right_setup.subquery on_expressions
-                new_ctx = Context.for_subquery new_from . set_where_filters where_expressions
+                new_ctx = SQL_IR_Source.for_subquery new_from . set_where_filters where_expressions
                 DB_Table.new new_table_name self.connection result_columns new_ctx
 
     ## ALIAS append, cartesian join
@@ -2061,7 +2061,7 @@ type DB_Table
                         union_alias = table_name_deduplicator.make_unique <|
                             all_tables.map .name . join "_"
                         new_from = SQL_IR_From_Part.Union queries union_alias
-                        new_ctx = Context.for_subquery new_from
+                        new_ctx = SQL_IR_Source.for_subquery new_from
                         ## TODO [RW] The result type is currently fetched
                           independently for each column, instead we should fetch it
                           for all columns at once.
@@ -2692,7 +2692,7 @@ type DB_Table
            computing too much we do not pass all the columns but only the first
            one.
         setup = self.context.as_subquery self.name [[self.internal_columns.first]]
-        new_ctx = Context.for_subquery setup.subquery
+        new_ctx = SQL_IR_Source.for_subquery setup.subquery
         query = Query.Select [[column_name, expr]] new_ctx
         sql = self.connection.dialect.generate_sql query
         table = self.connection.read_statement sql
@@ -2759,7 +2759,7 @@ type DB_Table
                Naively wrapping each column in a `COUNT(...)` will not
                always work as aggregates cannot be nested.
             setup = self.context.as_subquery self.name [self.internal_columns]
-            new_ctx = Context.for_subquery setup.subquery
+            new_ctx = SQL_IR_Source.for_subquery setup.subquery
             new_columns = setup.new_columns.first.map column->
                 [column.name, SQL_Expression.Operation "COUNT" [column.expression]]
             query = Query.Select new_columns new_ctx
@@ -2805,7 +2805,7 @@ type DB_Table
 
        Arguments:
        - ctx: The new context for this table.
-    updated_context : Context -> DB_Table
+    updated_context : SQL_IR_Source -> DB_Table
     updated_context self ctx = DB_Table.new self.name self.connection self.internal_columns ctx
 
     ## PRIVATE
@@ -2824,11 +2824,11 @@ type DB_Table
          avoid nesting subqueries without necessity. However, for now, for
          simplicity, we are always wrapping brittle operations. This may be
          revised in the future, to generate better and more concise SQL code.
-    updated_context_and_columns : Context -> Vector Internal_Column -> Boolean -> DB_Table
+    updated_context_and_columns : SQL_IR_Source -> Vector Internal_Column -> Boolean -> DB_Table
     updated_context_and_columns self ctx internal_columns subquery=False = case subquery of
         True ->
             setup = ctx.as_subquery self.name [internal_columns]
-            new_ctx = Context.for_subquery setup.subquery
+            new_ctx = SQL_IR_Source.for_subquery setup.subquery
             new_columns = setup.new_columns.first
             DB_Table.new self.name self.connection new_columns new_ctx
         False ->
@@ -3249,7 +3249,7 @@ type DB_Table
      column name and its expected SQL Type.
    - ctx: The context to use for the table.
    - on_problems: The behavior to use when problems are encountered.
-make_table : Connection -> Text -> Vector -> Context -> Problem_Behavior -> DB_Table
+make_table : Connection -> Text -> Vector -> SQL_IR_Source -> Problem_Behavior -> DB_Table
 make_table connection table_name columns ctx on_problems =
     if columns.is_empty then Error.throw (Illegal_State.Error "Unexpectedly attempting to create a Database Table with no columns. This is a bug in the Database library.") else
         problem_builder = Problem_Builder.new
@@ -3304,7 +3304,7 @@ make_literal_table connection column_vectors column_names alias =
         if total_size > MAX_LITERAL_ELEMENT_COUNT then Error.throw (Illegal_Argument.Error "Too many elements for table literal ("+total_size.to_text+"): materialize a table into the database instead") else
             type_mapping = connection.dialect.get_type_mapping
             from_spec = SQL_IR_From_Part.Literal_Values column_vectors column_names alias
-            context = Context.for_subquery from_spec
+            context = SQL_IR_Source.for_subquery from_spec
 
             infer_type_from_database new_expression =
                 SQL_Type_Reference.new connection context new_expression

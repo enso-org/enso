@@ -19,7 +19,7 @@ import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Row_Number_Helpers
 import project.Internal.Error_Mapper.Error_Mapper
-import project.Internal.IR.Context.Context
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
@@ -88,7 +88,7 @@ type SQLite_Dialect
 
     ## PRIVATE
        Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
-       If you add extensions using Context_Extension you have to provide an order for them here
+       If you add extensions using SQL_IR_Source_Extension you have to provide an order for them here
     get_part_order self part:SQL_Part -> Integer =
         Base_Generator.default_get_part_order part
 
@@ -153,7 +153,7 @@ type SQLite_Dialect
         distinct_expressions = new_key_columns.map column->
             value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
-        new_context = Context.for_subquery setup.subquery . set_groups distinct_expressions
+        new_context = SQL_IR_Source.for_subquery setup.subquery . set_groups distinct_expressions
         table.updated_context_and_columns new_context new_columns subquery=True
 
     ## PRIVATE
@@ -229,7 +229,7 @@ type SQLite_Dialect
         self.cast_op_type op_kind columns (SQL_Expression.Operation op_kind (columns.map c->c.expression))
 
     ## PRIVATE
-    prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
+    prepare_fetch_types_query : SQL_Expression -> SQL_IR_Source -> SQL_Statement
     prepare_fetch_types_query self expression context =
         _ = [expression, context]
         Panic.throw (Illegal_State.Error "Type inference by asking the Database for the expected types is not supported in SQLite since it tended to give wrong results. This should have never been called - if it was - that is a bug in the Database library.")

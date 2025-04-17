@@ -4,12 +4,12 @@ import Standard.Base.Runtime.Ref.Ref
 
 import project.Column_Constraint.Column_Constraint
 import project.Dialect.Dialect
-import project.Internal.IR.Context.Context
-import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Traversal_Helpers
 import project.Internal.SQL_Part.SQL_Part
@@ -180,7 +180,7 @@ type SQL_Generator
         Arguments:
         - dialect: The SQL dialect for which the code is being generated.
         - ctx: A description of the SELECT clause.
-    generate_select_query_sql : Dialect -> Vector (Pair Text SQL_Expression) -> Context -> SQL_Builder
+    generate_select_query_sql : Dialect -> Vector (Pair Text SQL_Expression) -> SQL_IR_Source -> SQL_Builder
     generate_select_query_sql self dialect columns ctx =
         gen_exprs exprs = exprs.map (expr-> dialect.generate_expression self expr for_select=False)
         gen_group_exprs exprs = exprs.map (expr-> dialect.generate_expression self expr for_select=True)
@@ -295,7 +295,7 @@ type SQL_Generator
 
 ## PRIVATE
     Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
-    If you add extensions using Context_Extension you have to provide an order for them here
+    If you add extensions using SQL_IR_Source_Extension you have to provide an order for them here
 default_get_part_order part:SQL_Part -> Integer =
     [SQL_Part.Select, SQL_Part.Columns, SQL_Part.From, SQL_Part.Where, SQL_Part.Group, SQL_Part.Order, SQL_Part.Limit] . index_of part
 

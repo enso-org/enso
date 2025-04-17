@@ -12,7 +12,7 @@ import project.Dialect_Flag.Dialect_Flag
 import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
 import project.Internal.Error_Mapper.Error_Mapper
-import project.Internal.IR.Context.Context
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
@@ -69,7 +69,7 @@ type Dialect
 
     ## PRIVATE
        Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
-       If you add extensions using Context_Extension you have to provide an order for them here
+       If you add extensions using SQL_IR_Source_Extension you have to provide an order for them here
     get_part_order self part:SQL_Part -> Integer =
         _ = [part]
         Unimplemented.throw "This is an interface only."
@@ -174,7 +174,7 @@ type Dialect
        actual work, but the resulting type will still be the same. There are
        exceptions though, like SQLite, where the best we can do is add
        `LIMIT 1`.
-    prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
+    prepare_fetch_types_query : SQL_Expression -> SQL_IR_Source -> SQL_Statement
     prepare_fetch_types_query self expression context =
         _ = [expression, context]
         Unimplemented.throw "This is an interface only."
@@ -279,7 +279,7 @@ type Dialect
        implementation defined in `Aggregate_Helper.default_build_aggregate` will
        be used. The method should be defined only if the dialect requires custom
        logic.
-    custom_build_aggregate self (base_table : DB_Table) (key_columns : Vector Internal_Column) (resolved_aggregates : Vector (Pair Text Aggregate_Column)) (problem_builder : Problem_Builder) -> Pair Context (Vector (Internal_Column | DB_Wrapped_Error)) =
+    custom_build_aggregate self (base_table : DB_Table) (key_columns : Vector Internal_Column) (resolved_aggregates : Vector (Pair Text Aggregate_Column)) (problem_builder : Problem_Builder) -> Pair SQL_IR_Source (Vector (Internal_Column | DB_Wrapped_Error)) =
         _ = [base_table, key_columns, resolved_aggregates, problem_builder]
         Unimplemented.throw "This is an interface only."
 

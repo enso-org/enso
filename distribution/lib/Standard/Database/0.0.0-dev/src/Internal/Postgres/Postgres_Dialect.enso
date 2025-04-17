@@ -19,8 +19,8 @@ import project.Internal.Base_Generator
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Error_Mapper.Error_Mapper
-import project.Internal.IR.Context.Context
-import project.Internal.IR.Context.Context_Extension
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source_Extension
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Nulls_Order.Nulls_Order
@@ -93,7 +93,7 @@ type Postgres_Dialect
 
     ## PRIVATE
        Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
-       If you add extensions using Context_Extension you have to provide an order for them here
+       If you add extensions using SQL_IR_Source_Extension you have to provide an order for them here
     get_part_order self part:SQL_Part -> Integer =
         [SQL_Part.Select, SQL_Part.Extension "postgres_distinct", SQL_Part.Columns, SQL_Part.From, SQL_Part.Where, SQL_Part.Group, SQL_Part.Order, SQL_Part.Limit] . index_of part
 
@@ -142,7 +142,7 @@ type Postgres_Dialect
         distinct_expressions = new_key_columns.map column->
             value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
-        new_context = Context.for_subquery setup.subquery . add_extension (make_distinct_extension distinct_expressions)
+        new_context = SQL_IR_Source.for_subquery setup.subquery . add_extension (make_distinct_extension distinct_expressions)
         table.updated_context_and_columns new_context new_columns subquery=True
 
     ## PRIVATE
@@ -247,7 +247,7 @@ type Postgres_Dialect
         self.cast_op_type op_kind columns (SQL_Expression.Operation op_kind (columns.map c->c.expression))
 
     ## PRIVATE
-    prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
+    prepare_fetch_types_query : SQL_Expression -> SQL_IR_Source -> SQL_Statement
     prepare_fetch_types_query self expression context =
         Base_Generator.default_fetch_types_query self expression context
 
@@ -839,7 +839,7 @@ as_int32 expr =
 make_distinct_extension expressions =
     run_generator sql_expressions =
         SQL_Builder.code "DISTINCT ON (" ++ (SQL_Builder.join ", " sql_expressions) ++ ") "
-    Context_Extension.Value part_name=(SQL_Part.Extension "postgres_distinct") expressions=expressions run_generator=run_generator
+    SQL_IR_Source_Extension.Value part_name=(SQL_Part.Extension "postgres_distinct") expressions=expressions run_generator=run_generator
 
 ## PRIVATE
    The RUNTIME_ERROR operation should allow the query to compile fine and it

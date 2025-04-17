@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import project.Internal.IR.Context.Context
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor
 import project.Internal.IR.SQL_Expression.SQL_Expression
 
@@ -18,8 +18,8 @@ type Query
          is a pair whose first element is the name of the materialized column
          and the second element is the expression to compute. If `Nothing` is
          provided, all available columns will be selected.
-       - context: The query context, see `Context` for more detail.
-    Select (expressions : Nothing | Vector (Pair Text SQL_Expression)) (context : Context)
+       - context: The query context, see `SQL_IR_Source` for more detail.
+    Select (expressions : Nothing | Vector (Pair Text SQL_Expression)) (context : SQL_IR_Source)
 
     ## PRIVATE
 

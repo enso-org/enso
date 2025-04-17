@@ -12,7 +12,7 @@ import project.SQL_Statement.SQL_Statement
 ## PRIVATE
 
    A context associated with an SQL query.
-type Context
+type SQL_IR_Source
     ## PRIVATE
 
        Creates a query context that just fetches data from a table, without any
@@ -23,9 +23,9 @@ type Context
        - alias: An alias name to use for table within the query.
        - internal_temporary_keep_alive_reference: See `SQL_IR_From_Part.Table` for more
          details.
-    for_table : Text -> Text -> Any -> Context
+    for_table : Text -> Text -> Any -> SQL_IR_Source
     for_table table_name:Text alias:Text=table_name internal_temporary_keep_alive_reference=Nothing =
-        Context.Value (SQL_IR_From_Part.Table table_name alias internal_temporary_keep_alive_reference=internal_temporary_keep_alive_reference) [] [] [] Nothing []
+        SQL_IR_Source.Value (SQL_IR_From_Part.Table table_name alias internal_temporary_keep_alive_reference=internal_temporary_keep_alive_reference) [] [] [] Nothing []
 
     ## PRIVATE
 
@@ -34,17 +34,17 @@ type Context
        Arguments:
        - raw_sql: The SQL statement (either as prepared statement or text).
        - alias: An alias name to use for table within the query.
-    for_query (raw_sql:Text|SQL_Statement) (alias:Text) -> Context =
-        Context.Value (SQL_IR_From_Part.Query raw_sql alias) [] [] [] Nothing []
+    for_query (raw_sql:Text|SQL_Statement) (alias:Text) -> SQL_IR_Source =
+        SQL_IR_Source.Value (SQL_IR_From_Part.Query raw_sql alias) [] [] [] Nothing []
 
     ## PRIVATE
 
-       Creates a Context from a Sub_Query.
+       Creates a SQL_IR_Source from a Sub_Query.
 
        Arguments:
        - subquery: The subquery to lift into a context.
-    for_subquery subquery:SQL_IR_From_Part -> Context =
-        Context.Value subquery [] [] [] Nothing []
+    for_subquery subquery:SQL_IR_From_Part -> SQL_IR_Source =
+        SQL_IR_Source.Value subquery [] [] [] Nothing []
 
     ## PRIVATE
 
@@ -67,7 +67,7 @@ type Context
          grouped-by columns or aggregate expressions.
        - limit: an optional maximum number of elements that the query should
          return.
-    Value (from_spec : SQL_IR_From_Part) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (limit : Nothing | Integer) (extensions : Vector Context_Extension)
+    Value (from_spec : SQL_IR_From_Part) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (limit : Nothing | Integer) (extensions : Vector SQL_IR_Source_Extension)
 
     ## PRIVATE
 
@@ -75,9 +75,9 @@ type Context
 
        Arguments:
        - new_filters: The new filters to set in the query.
-    set_where_filters : Vector SQL_Expression -> Context
+    set_where_filters : Vector SQL_Expression -> SQL_IR_Source
     set_where_filters self new_filters =
-        Context.Value self.from_spec new_filters self.orders self.groups self.limit self.extensions
+        SQL_IR_Source.Value self.from_spec new_filters self.orders self.groups self.limit self.extensions
 
     ## PRIVATE
 
@@ -86,9 +86,9 @@ type Context
        Arguments:
        - new_filters: The new filters to add to the existing filters in the
          query.
-    add_where_filters : Vector SQL_Expression -> Context
+    add_where_filters : Vector SQL_Expression -> SQL_IR_Source
     add_where_filters self new_filters =
-        Context.Value self.from_spec (self.where_filters+new_filters) self.orders self.groups self.limit self.extensions
+        SQL_IR_Source.Value self.from_spec (self.where_filters+new_filters) self.orders self.groups self.limit self.extensions
 
     ## PRIVATE
 
@@ -96,9 +96,9 @@ type Context
 
        Arguments:
        - new_orders: The new ordering clauses to set in the query.
-    set_orders : Vector Order_Descriptor -> Context
+    set_orders : Vector Order_Descriptor -> SQL_IR_Source
     set_orders self new_orders =
-        Context.Value self.from_spec self.where_filters new_orders self.groups self.limit self.extensions
+        SQL_IR_Source.Value self.from_spec self.where_filters new_orders self.groups self.limit self.extensions
 
     ## PRIVATE
 
@@ -110,10 +110,10 @@ type Context
 
        Arguments:
        - new_orders: The new ordering clauses to add to the query.
-    add_orders : Vector Order_Descriptor -> Context
+    add_orders : Vector Order_Descriptor -> SQL_IR_Source
     add_orders self new_orders =
         deduped_orders = new_orders+self.orders . distinct .expression
-        Context.Value self.from_spec self.where_filters deduped_orders self.groups self.limit self.extensions
+        SQL_IR_Source.Value self.from_spec self.where_filters deduped_orders self.groups self.limit self.extensions
 
     ## PRIVATE
 
@@ -121,9 +121,9 @@ type Context
 
        Arguments:
        - new_groups: The new grouping clauses to set in the query.
-    set_groups : Vector SQL_Expression -> Context
+    set_groups : Vector SQL_Expression -> SQL_IR_Source
     set_groups self new_groups =
-        Context.Value self.from_spec self.where_filters self.orders new_groups self.limit self.extensions
+        SQL_IR_Source.Value self.from_spec self.where_filters self.orders new_groups self.limit self.extensions
 
     ## PRIVATE
 
@@ -131,15 +131,15 @@ type Context
 
        Arguments:
        - new_limit: The new limit clauses to set in the query.
-    set_limit : (Nothing | Integer) -> Context
+    set_limit : (Nothing | Integer) -> SQL_IR_Source
     set_limit self new_limit =
-       Context.Value self.from_spec self.where_filters self.orders self.groups new_limit self.extensions
+       SQL_IR_Source.Value self.from_spec self.where_filters self.orders self.groups new_limit self.extensions
 
     ## PRIVATE
        Returns a copy of the context with an added extension.
-    add_extension : Context_Extension -> Context
+    add_extension : SQL_IR_Source_Extension -> SQL_IR_Source
     add_extension self extension =
-       Context.Value self.from_spec self.where_filters self.orders self.groups self.limit (self.extensions + [extension])
+       SQL_IR_Source.Value self.from_spec self.where_filters self.orders self.groups self.limit (self.extensions + [extension])
 
     ## PRIVATE
 
@@ -174,12 +174,12 @@ type Context
        A bottom-up, depth-first traversal of this IR node and its children. Each
        node is passed to the provided function, and the return value of the
        function replaces this node in the tree.
-    traverse : (Any -> Any) -> Context
-    traverse self f -> Context =
+    traverse : (Any -> Any) -> SQL_IR_Source
+    traverse self f -> SQL_IR_Source =
         rec e = e.traverse f
         new_context = case self of
-            Context.Value from_spec where_filters orders groups limit extensions ->
-                Context.Value (from_spec.traverse f) (where_filters.map rec) (orders.map rec) (groups.map rec) limit (extensions.map rec)
+            SQL_IR_Source.Value from_spec where_filters orders groups limit extensions ->
+                SQL_IR_Source.Value (from_spec.traverse f) (where_filters.map rec) (orders.map rec) (groups.map rec) limit (extensions.map rec)
         f new_context
 
 ## PRIVATE
@@ -196,9 +196,9 @@ type Subquery_Setup
     Value (subquery : SQL_IR_From_Part) (new_columns : Vector (Vector Internal_Column)) (remap_column : Internal_Column -> Internal_Column)
 
 ## PRIVATE
-   Describes an extension to a Context that can be used to add additional custom
+   Describes an extension to a SQL_IR_Source that can be used to add additional custom
    SQL code as part of the query.
-type Context_Extension
+type SQL_IR_Source_Extension
     ## A recipe for building the extension.
 
        Arguments:
@@ -215,10 +215,10 @@ type Context_Extension
        A bottom-up, depth-first traversal of this IR node and its children. Each
        node is passed to the provided function, and the return value of the
        function replaces this node in the tree.
-    traverse : (Any -> Any) -> Context_Extension
-    traverse self f -> Context_Extension =
+    traverse : (Any -> Any) -> SQL_IR_Source_Extension
+    traverse self f -> SQL_IR_Source_Extension =
         rec e = e.traverse f
         new_context_extension = case self of
-            Context_Extension.Value part_name expressions run_generator ->
-                Context_Extension.Value part_name (expressions.map rec) run_generator
+            SQL_IR_Source_Extension.Value part_name expressions run_generator ->
+                SQL_IR_Source_Extension.Value part_name (expressions.map rec) run_generator
         f new_context_extension

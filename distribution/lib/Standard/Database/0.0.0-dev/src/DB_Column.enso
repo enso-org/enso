@@ -25,10 +25,10 @@ from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
 import project.Internal.Helpers
-import project.Internal.IR.Context.Context
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL_Statement.SQL_Statement
@@ -53,7 +53,7 @@ type DB_Column
        which they come. Combined expressions must come from the same context -
        they must both have the same filtering, grouping etc. rules applied to be
        able to be combined.
-    private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
+    private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:SQL_IR_Source
 
     ## GROUP Standard.Base.Metadata
        ICON metadata

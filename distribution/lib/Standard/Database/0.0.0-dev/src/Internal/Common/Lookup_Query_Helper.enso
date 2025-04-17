@@ -8,7 +8,7 @@ from Standard.Table import Join_Kind, Value_Type
 from Standard.Table.Errors import all
 
 import project.DB_Table.DB_Table
-import project.Internal.IR.Context.Context
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
@@ -185,7 +185,7 @@ make_context_for_lookup_join lookup_columns subquery_setup =
         _ -> []
 
     new_from = SQL_IR_From_Part.Join SQL_Join_Kind.Left subquery_setup.self_sub.subquery subquery_setup.lookup_sub.subquery on_expressions
-    Context.for_subquery new_from
+    SQL_IR_Source.for_subquery new_from
 
 ## PRIVATE
    Runs a query that checks if there are any duplicate matches in the lookup
