@@ -15,10 +15,14 @@ import { useRemoteBackend } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
 import { extractTypeAndId } from '#/services/LocalBackend'
 import { getMessageOrToString } from '#/utilities/error'
-import { useEnsureQueryData } from '#/utilities/tanstackQuery'
-import { useMutationState, type Mutation, type QueryClient } from '@tanstack/react-query'
 import {
-  AssetType,
+  useMutationState,
+  useQueryClient,
+  type Mutation,
+  type QueryClient,
+} from '@tanstack/react-query'
+import type { AssetType } from 'enso-common/src/services/Backend'
+import {
   DuplicateAssetError,
   FilterBy,
   type AnyAsset,
@@ -28,9 +32,6 @@ import {
   type LabelName,
 } from 'enso-common/src/services/Backend'
 import { toast } from 'react-toastify'
-
-/** The maximum duration of a batched operation before "list directory" query data is deemed stale. */
-const BATCH_LIST_DIRECTORY_STALE_TIME_MS = 100
 
 /** Call "delete" mutations for a list of assets. */
 export function deleteAssetsMutationOptions(backend: Backend) {
@@ -445,58 +446,63 @@ export function removeAssetsLabelsMutationOptions(backend: Backend) {
   })
 }
 
-/** Return a callback to upload a project to the cloud. */
-function useUploadAssetToCloud() {
-  const { getText } = useText()
-  const toastAndLog = useToastAndLog()
-  const remoteBackend = useRemoteBackend()
-  const uploadFileToCloudMutation = useUploadFileWithToastMutation(remoteBackend)
-  const ensureQueryData = useEnsureQueryData()
+/** Get both deleted and non-deleted siblings. */
+function useGetSiblings() {
+  const queryClient = useQueryClient()
   const cloudCategories = useCloudCategoryList()
   const cloudHomeCategory = cloudCategories.categories.find((category) => category.type === 'cloud')
   const cloudTrashCategory = cloudCategories.categories.find(
     (category) => category.type === 'trash',
   )
 
+  return useEventCallback(async (backend: Backend, parentId: DirectoryId) => {
+    const nonDeletedAssets =
+      cloudHomeCategory ?
+        await queryClient.fetchQuery(
+          listDirectoryQueryOptions({
+            backend,
+            parentId,
+            category: cloudHomeCategory,
+            refetchInterval: null,
+          }),
+        )
+      : []
+    const deletedAssets =
+      cloudTrashCategory ?
+        await queryClient.fetchQuery(
+          listDirectoryQueryOptions({
+            backend,
+            parentId,
+            category: cloudTrashCategory,
+            refetchInterval: null,
+          }),
+        )
+      : []
+    return [...nonDeletedAssets, ...deletedAssets]
+  })
+}
+
+/** Return a callback to upload a project to the cloud. */
+function useUploadAssetToCloud() {
+  const { getText } = useText()
+  const user = useUser()
+  const toastAndLog = useToastAndLog()
+  const remoteBackend = useRemoteBackend()
+  const uploadFileToCloudMutation = useUploadFileWithToastMutation(remoteBackend)
+  const getSiblings = useGetSiblings()
+
   return useEventCallback(
     async (
       asset: Pick<AnyAsset, 'id' | 'parentId' | 'title'>,
       parentDirectoryId: DirectoryId | null = null,
       newName?: string,
+      /** A list of siblings, if it has been fetched already. */
+      siblings?: readonly AnyAsset<AssetType>[],
     ) => {
       const { parentId, id, title } = asset
       newName ??= title
-
-      const nonDeletedAssets =
-        cloudHomeCategory ?
-          await ensureQueryData({
-            ...listDirectoryQueryOptions({
-              backend: remoteBackend,
-              parentId: parentDirectoryId,
-              category: cloudHomeCategory,
-              refetchInterval: null,
-            }),
-            staleTime: BATCH_LIST_DIRECTORY_STALE_TIME_MS,
-          })
-        : []
-      const deletedAssets =
-        cloudTrashCategory ?
-          await ensureQueryData({
-            ...listDirectoryQueryOptions({
-              backend: remoteBackend,
-              parentId: parentDirectoryId,
-              category: cloudTrashCategory,
-              refetchInterval: null,
-            }),
-            staleTime: BATCH_LIST_DIRECTORY_STALE_TIME_MS,
-          })
-        : []
-      const siblingTitles = [...nonDeletedAssets, ...deletedAssets].flatMap((sibling) => {
-        if (sibling.type !== AssetType.project) {
-          return []
-        }
-        return [sibling.title]
-      })
+      siblings ??= await getSiblings(remoteBackend, parentDirectoryId ?? user.rootDirectoryId)
+      const siblingTitles = siblings.map((sibling) => sibling.title)
 
       if (siblingTitles.includes(asset.title)) {
         throw new DuplicateAssetError(
@@ -537,12 +543,17 @@ function useUploadAssetToCloud() {
 export function useUploadAssetsToCloud() {
   const user = useUser()
   const uploadAssetToCloud = useUploadAssetToCloud()
+  const remoteBackend = useRemoteBackend()
+  const getSiblings = useGetSiblings()
 
   return useEventCallback(
     async (assets: readonly Pick<AnyAsset, 'id' | 'parentId' | 'title'>[]) => {
+      const parentDirectoryId = user.rootDirectoryId
+      const siblings = await getSiblings(remoteBackend, parentDirectoryId)
+
       const results = await Promise.allSettled(
         assets.map((asset) =>
-          uploadAssetToCloud(asset).catch((error) => {
+          uploadAssetToCloud(asset, null, undefined, siblings).catch((error) => {
             if (error instanceof DuplicateAssetError) {
               return { id: asset.id, error }
             }
@@ -564,7 +575,7 @@ export function useUploadAssetsToCloud() {
 
       if (duplicateErrors.length !== 0) {
         const resolutions = await resolveDuplications({
-          targetId: user.rootDirectoryId,
+          targetId: parentDirectoryId,
           conflictingIds: duplicateErrors.map((error) => error.id),
         })
 
@@ -577,9 +588,10 @@ export function useUploadAssetsToCloud() {
           return asset ? [{ ...resolution, asset }] : []
         })
 
+        const newSiblings = await getSiblings(remoteBackend, parentDirectoryId)
         await Promise.allSettled(
           renames.map((resolution) =>
-            uploadAssetToCloud(resolution.asset, null, resolution.newName),
+            uploadAssetToCloud(resolution.asset, null, resolution.newName, newSiblings),
           ),
         )
       }
