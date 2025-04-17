@@ -9,7 +9,7 @@
     - fetch_primary_key self connection:Standard.Base.Any.Any table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - flagged self flag:Standard.Database.Dialect_Flag.Dialect_Flag -> Standard.Base.Data.Boolean.Boolean
     - generate_collate self collation_name:Standard.Base.Data.Text.Text -> Standard.Base.Data.Text.Text
-    - generate_expression self base_gen:Standard.Base.Any.Any expr:(Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression|Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor|Standard.Database.Internal.IR.Query.Query) for_select:Standard.Base.Data.Boolean.Boolean -> Standard.Database.SQL.SQL_Builder
+    - generate_expression self base_gen:Standard.Base.Any.Any expr:(Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression|Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor|Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement) for_select:Standard.Base.Data.Boolean.Boolean -> Standard.Database.SQL.SQL_Builder
     - generate_sql self query:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - generate_truncate_table_sql self table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - get_error_mapper self -> Standard.Base.Any.Any

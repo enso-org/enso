@@ -37,7 +37,7 @@ add_specs suite_builder create_connection_func prefix =
 
         insert_value table_name x =
             pairs = [["X", SQL_IR_Expression.Constant x]]
-            sql = data.connection.dialect.generate_sql <| Query.Insert table_name pairs
+            sql = data.connection.dialect.generate_sql <| SQL_IR_Statement.Insert table_name pairs
             data.connection.execute_update sql . should_succeed
 
         group_builder.specify "should commit the changes after the transaction returns a regular value" <|
