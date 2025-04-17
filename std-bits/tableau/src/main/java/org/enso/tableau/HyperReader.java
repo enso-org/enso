@@ -18,6 +18,7 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -32,6 +33,7 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
@@ -346,6 +348,7 @@ public class HyperReader {
         case BooleanType x -> tableDef.addColumn(columnName, SqlType.bool());
         case DateType x -> tableDef.addColumn(columnName, SqlType.date());
         case TimeOfDayType x -> tableDef.addColumn(columnName, SqlType.time());
+        case DateTimeType x -> tableDef.addColumn(columnName, SqlType.timestampTz());
         default -> throw new IllegalStateException("Unknown type");
       }
     }
@@ -372,6 +375,7 @@ public class HyperReader {
             case String s -> inserter.add(s);
             case LocalDate ld -> inserter.add(ld);
             case LocalTime lt -> inserter.add(lt);
+            case ZonedDateTime zdt -> inserter.add(zdt);
             default -> throw new IllegalStateException("Unknown type");
           }
         }
