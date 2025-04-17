@@ -32,7 +32,7 @@ table and column expression in multiple ways.
 
 # Main IR Types
 
-Column expressions are represented by `SQL_Expression`. `SQL_Expression` values
+Column expressions are represented by `SQL_IR_Expression`. `SQL_IR_Expression` values
 only have meaning within the context of a table expression; they do not contain
 their own table expressions.
 
@@ -41,14 +41,14 @@ and `Context`.
 
 Top-level queries and DDL/DML commands are represented by the `Query` type.
 
-## SQL_Expression
+## SQL_IR_Expression
 
 Represents a column expression. Can be a single column (`Column`), a derived
 expression built from other expressions (`Operation`), a constant value
 (`Constant`, `Literal`, `Text_Literal`), or a let-binding (`Let` and `Let_Ref`).
 
-`SQL_Expression`s only have meaning in the context of a particular table
-expression; for example, a `SQL_Expression.Column` value consists of the
+`SQL_IR_Expression`s only have meaning in the context of a particular table
+expression; for example, a `SQL_IR_Expression.Column` value consists of the
 name/alias of a table expression and the name of a column within it.
 
 `Let` and `Let_Ref` variants are used to express let-style bindings using SQL
@@ -108,10 +108,10 @@ A `DB_Table` serves as a user-facing table expression, and contains column
 expressions as `Internal_Column`s and a table expression as a `Context`.
 
 A `DB_Column` serves as a user-facing column expression, and contains a column
-expression as an `SQL_Expression` and a table expression as a `Context`.
+expression as an `SQL_IR_Expression` and a table expression as a `Context`.
 
 An `Internal_Column` serves as a column expression, and contains a
-`SQL_Expression`, but no table expression. An `Internal_Column` is always used
+`SQL_IR_Expression`, but no table expression. An `Internal_Column` is always used
 inside a `DB_Table`, and inherits its table expression from the `DB_Table`'s
 `Context`.
 
@@ -120,10 +120,10 @@ of an SQL query. It can be a base value (table name, constant, etc), join,
 union, or subquery:
 
 - `SQL_IR_From_Part.Join`: contains `SQL_IR_From_Part` values from the individual tables, as
-  well as `SQL_Expressions` for join conditions
+  well as `SQL_IR_Expressions` for join conditions
 - `SQL_IR_From_Part.Union`: contains a vector of `Query` values for the individual
   tables.
-- `SQL_IR_From_Part.Sub_Query`: contains column expressions as `SQL_Expression`s, and a
+- `SQL_IR_From_Part.Sub_Query`: contains column expressions as `SQL_IR_Expression`s, and a
   table expression as a `Context`.
 
 A `Context` serves as a table expression, and corresponds to the `from` clause

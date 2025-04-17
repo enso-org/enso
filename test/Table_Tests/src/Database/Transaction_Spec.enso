@@ -5,7 +5,7 @@ from Standard.Table import Value_Type
 from Standard.Database import all
 from Standard.Database.Errors import all
 import Standard.Database.Internal.IR.Query.Query
-import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
+import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 
 from Standard.Test import all
 
@@ -36,7 +36,7 @@ add_specs suite_builder create_connection_func prefix =
             data.teardown
 
         insert_value table_name x =
-            pairs = [["X", SQL_Expression.Constant x]]
+            pairs = [["X", SQL_IR_Expression.Constant x]]
             sql = data.connection.dialect.generate_sql <| Query.Insert table_name pairs
             data.connection.execute_update sql . should_succeed
 

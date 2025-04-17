@@ -29,7 +29,7 @@ import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
 import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
 import Standard.Database.Internal.IR.Query.Query
-import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
+import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import Standard.Database.Internal.Replace_Params.Replace_Params
 import Standard.Database.Internal.SQL_Part.SQL_Part
@@ -180,7 +180,7 @@ type SQLServer_Dialect
         Statement_Setter.Value custom_fill_hole
 
     ## PRIVATE
-    make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
+    make_cast : Internal_Column -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     make_cast self column target_type infer_result_type_from_database_callback =
         mapping = self.get_type_mapping
         source_type = mapping.sql_type_to_value_type column.sql_type_reference.get
@@ -188,10 +188,10 @@ type SQLServer_Dialect
         # Boolean to String casts need special handling:
         transformed_expression = case source_type.is_boolean && target_value_type.is_text of
             True ->
-                SQL_Expression.Operation "IIF" [Internals_Access.column_expression column, SQL_Expression.Literal "'True'", SQL_Expression.Literal "'False'"]
+                SQL_IR_Expression.Operation "IIF" [Internals_Access.column_expression column, SQL_IR_Expression.Literal "'True'", SQL_IR_Expression.Literal "'False'"]
             False -> Internals_Access.column_expression column
         target_type_sql_text = mapping.sql_type_to_text target_type
-        new_expression = SQL_Expression.Operation "CAST" [transformed_expression, SQL_Expression.Literal target_type_sql_text]
+        new_expression = SQL_IR_Expression.Operation "CAST" [transformed_expression, SQL_IR_Expression.Literal target_type_sql_text]
         new_sql_type_reference = infer_result_type_from_database_callback new_expression
         Internal_Column.Value column.name new_sql_type_reference new_expression
 
@@ -207,7 +207,7 @@ type SQLServer_Dialect
     temp_table_style self = Temp_Table_Style.Hash_Prefix
 
     ## PRIVATE
-    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
+    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
         _ = [approximate_result_type, infer_result_type_from_database_callback]
         column
@@ -222,7 +222,7 @@ type SQLServer_Dialect
        In most cases this method will just return the expression unchanged, it
        is used only to override the type in cases where the default one that the
        database uses is not what we want.
-    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
+    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_IR_Expression) =
         is_int ic =
             typeid = ic.sql_type_reference.get.typeid
             typeid == Java_Types.SMALLINT || typeid == Java_Types.INTEGER || typeid == Java_Types.BIGINT
@@ -237,16 +237,16 @@ type SQLServer_Dialect
             _ -> Nothing
 
         if cast_to.is_nothing then expression else
-            SQL_Expression.Operation "CAST" [expression, SQL_Expression.Literal cast_to]
+            SQL_IR_Expression.Operation "CAST" [expression, SQL_IR_Expression.Literal cast_to]
 
     ## PRIVATE
        Add an extra cast to adjust the output type of aggregate operations.
        Some DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
     cast_aggregate_columns self op_kind:Text columns:(Vector Internal_Column) =
-        SQL_Expression.Operation op_kind (columns.map c->(self.cast_op_type op_kind columns (Internals_Access.column_expression c)))
+        SQL_IR_Expression.Operation op_kind (columns.map c->(self.cast_op_type op_kind columns (Internals_Access.column_expression c)))
 
     ## PRIVATE
-    prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
+    prepare_fetch_types_query : SQL_IR_Expression -> Context -> SQL_Statement
     prepare_fetch_types_query self expression context =
         Base_Generator.default_fetch_types_query self expression context
 
@@ -400,7 +400,7 @@ type SQLServer_Dialect
             jdbc.ensure_query_has_no_holes raw_sql
 
     ## PRIVATE
-    generate_expression self base_gen expr:(SQL_Expression | Order_Descriptor | Query) for_select:Boolean -> SQL_Builder =
+    generate_expression self base_gen expr:(SQL_IR_Expression | Order_Descriptor | Query) for_select:Boolean -> SQL_Builder =
         if for_select then _generate_expression self base_gen expr Expression_Kind.Value materialize_null_check=True . first else
             _generate_expression self base_gen expr Expression_Kind.Boolean_Condition . first
 
@@ -418,26 +418,26 @@ type SQLServer_Dialect
    as the second element of the pair.
    The first element of the pair is the SQL_Builder for the expression.
 private _generate_expression dialect base_gen expr expression_kind:Expression_Kind materialize_null_check:Boolean=False = case expr of
-    SQL_Expression.Column _ _ ->
+    SQL_IR_Expression.Column _ _ ->
         wrapped_name = base_gen.generate_expression dialect expr
         typed_result = _align_type wrapped_name Expression_Kind.Value expression_kind
         pair typed_result [wrapped_name]
-    SQL_Expression.Constant value -> 
+    SQL_IR_Expression.Constant value -> 
         wrapped = case value of
             Nothing -> SQL_Builder.code "NULL"
             _ -> SQL_Builder.interpolation value
         pair wrapped [wrapped]
-    SQL_Expression.Literal value ->
+    SQL_IR_Expression.Literal value ->
         modified_value = case value of
             "TRUE" -> "1"
             "FALSE" -> "0"
             _ -> value
         wrapped = _align_type (SQL_Builder.code modified_value) Expression_Kind.Value expression_kind
         pair wrapped []
-    SQL_Expression.Text_Literal _ ->
+    SQL_IR_Expression.Text_Literal _ ->
         wrapped_literal = base_gen.generate_expression dialect expr
         pair wrapped_literal []
-    SQL_Expression.Operation op_kind arguments metadata ->
+    SQL_IR_Expression.Operation op_kind arguments metadata ->
         op = dialect.dialect_operations.operations_dict.get op_kind (Error.throw <| Unsupported_Database_Operation.Error op_kind)
         materialize_child_null_check = _op_needs_to_materialize_null_checks op_kind
         parsed_args_and_null_checks = arguments.map_with_index (i->c-> _generate_expression dialect base_gen c (_op_expected_kind op_kind i) materialize_child_null_check)
@@ -456,7 +456,7 @@ private _generate_expression dialect base_gen expr expression_kind:Expression_Ki
             converted_expr
 
         pair final_expr null_checks_result
-    SQL_Expression.List values ->
+    SQL_IR_Expression.List values ->
         parsed_args_and_null_checks = values.map (v-> _generate_expression dialect base_gen v expression_kind materialize_null_check)
         final_expr = SQL_Builder.join ", " (parsed_args_and_null_checks.map p->p.first)
         null_checks = parsed_args_and_null_checks.map .second  . flatten
