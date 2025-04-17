@@ -564,7 +564,7 @@ export function useNewProject(backend: Backend, category: Category) {
       }: {
         templateName: string | null | undefined
         templateId?: string | null | undefined
-        datalinkId?: backendModule.DatalinkId | null | undefined
+        datalinkId?: backendModule.DatalinkId | backendModule.FileId | null | undefined
       },
       parentId: DirectoryId,
       runLocally = true,
