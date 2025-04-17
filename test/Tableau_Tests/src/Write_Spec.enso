@@ -15,18 +15,12 @@ main filter=Nothing =
 
 add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
     transient = enso_project.data / "transient"
-    
-    group_builder.specify "should be able to write a hyper file" <|
-        written_file = transient / "temp1.hyper"
-        t = Table.input [['A', ['a', 'b', 'c']], ['B', ['d', 'e', 'f']]]
-        t.write written_file
-        written_table_in_hyper = Hyper_File.new written_file . tables . first
-        written_table = written_table_in_hyper.read
-        written_table.should_equal t
-        written_file.delete
 
+    get_temp_file -> File =
+        transient / (Random.uuid + ".hyper")
+    
     group_builder.specify "default schema and table name is extract" <|
-        written_file = transient / "temp2.hyper"
+        written_file = get_temp_file
         t = Table.input [['A', ['a']]]
         t.write written_file
         written_table_in_hyper = Hyper_File.new written_file . tables . first
@@ -34,11 +28,16 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         written_table_in_hyper.table.should_equal "Extract"
         written_file.delete
 
-    group_builder.specify "should be able to write a integer column" <|
-        written_file = transient / "temp3.hyper"
-        t = Table.input [['ints', [1, 2]]]
-        t.write written_file
+    can_round_trip table:Table =
+        written_file = get_temp_file
+        table.write written_file
         written_table_in_hyper = Hyper_File.new written_file . tables . first
         written_table = written_table_in_hyper.read
-        written_table.should_equal t
+        written_table.should_equal table
         written_file.delete
+
+    group_builder.specify "should be able to write a text columns" <|
+        can_round_trip (Table.input [['A', ['a', 'b', 'c']], ['B', ['d', 'e', 'f']]])
+
+    group_builder.specify "should be able to write a integer column" <|
+        can_round_trip (Table.input [['ints', [1, 2]]])
