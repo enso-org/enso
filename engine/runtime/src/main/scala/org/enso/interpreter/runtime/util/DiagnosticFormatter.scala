@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.util
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.{Diagnostic, IdentifiedLocation, Warning}
+import org.enso.interpreter.runtime.EnsoContext
 
 /** Formatter of IR diagnostics. Heavily inspired by GCC. Can format one-line as well as multiline
   * diagnostics. The output is colorized if the output stream supports ANSI colors.
@@ -154,37 +155,7 @@ class DiagnosticFormatter(
     if (isOutputRedirected) {
       return false
     }
-    return isColorTerminalOutput
-  }
-
-  /** Returns true if the output is a terminal that supports ANSI colors.
-    * See [[https://github.com/termstandard/colors/]] and [[https://no-color.org/]].
-    *
-    * Checking also system props, so that we can conveniently test this.
-    */
-  private def isColorTerminalOutput: Boolean = {
-    if (
-      System
-        .getenv("NO_COLOR") != null || System.getProperty("NO_COLOR") != null
-    ) {
-      return false
-    }
-    if (
-      System
-        .getenv("COLORTERM") != null || System.getProperty("COLORTERM") != null
-    ) {
-      return true
-    }
-    var term = System.getenv("TERM")
-    if (term == null) {
-      term = System.getProperty("TERM")
-    }
-    if (term != null) {
-      return term.toLowerCase().split("-").exists { item =>
-        item == "color" || item == "256color"
-      }
-    }
-    return false
+    return EnsoContext.get(null).isColorTerminalOutput;
   }
 
   private def oneLineFromSource(lineNum: Int): String = {

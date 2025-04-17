@@ -15,9 +15,7 @@ import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.interpreter.runtime.util.DiagnosticFormatter;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -25,18 +23,9 @@ public class DiagnosticFormatterTest {
   @ClassRule
   public static final ContextUtils ctxRule =
       ContextUtils.newBuilder()
-          .withModifiedContext(b -> b.option(RuntimeOptions.STRICT_ERRORS, "true"))
+          .withModifiedContext(
+              b -> b.option(RuntimeOptions.STRICT_ERRORS, "true").environment("NO_COLOR", "true"))
           .build();
-
-  @BeforeClass
-  public static void before() {
-    System.setProperty("NO_COLOR", "true");
-  }
-
-  @AfterClass
-  public static void after() {
-    System.clearProperty("NO_COLOR");
-  }
 
   @Before
   public void resetOut() {
