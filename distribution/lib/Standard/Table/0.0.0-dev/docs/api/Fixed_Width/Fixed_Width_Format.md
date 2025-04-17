@@ -10,7 +10,7 @@
 - type Fixed_Width_Format
     - Fixed_Width layout:Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout encoding:Standard.Base.Data.Text.Encoding.Encoding= on_invalid_rows:Standard.Table.Delimited.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows= value_formatter:(Standard.Table.Data_Formatter.Data_Formatter|Standard.Base.Nothing.Nothing)=
     - for_file_write file:Standard.Base.System.File.Generic.Writable_File.Writable_File -> Standard.Base.Any.Any
-    - for_read <internal-3>:Standard.Base.System.File_Format_Metadata.File_Format_Metadata -> Standard.Base.Any.Any
+    - for_read file:Standard.Base.System.File_Format_Metadata.File_Format_Metadata -> Standard.Base.Any.Any
     - get_dropdown_options -> Standard.Base.Any.Any
     - read self file:Standard.Base.Any.Any on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
     - read_stream self stream:Standard.Base.System.Input_Stream.Input_Stream metadata:Standard.Base.System.File_Format_Metadata.File_Format_Metadata= -> Standard.Base.Any.Any

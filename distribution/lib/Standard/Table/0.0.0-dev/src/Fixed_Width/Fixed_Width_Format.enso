@@ -74,7 +74,9 @@ type Fixed_Width_Format
 
        We cannot infer the layout from the file metadata or contents.
     for_read : File_Format_Metadata -> Fixed_Width_Format | Nothing
-    for_read _:File_Format_Metadata = Nothing
+    for_read file:File_Format_Metadata =
+        _ = [file]
+        Nothing
 
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
