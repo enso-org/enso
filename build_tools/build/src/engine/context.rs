@@ -354,6 +354,9 @@ impl RunContext {
             Ok(())
         };
 
+        let enso_lint_result =
+            if self.config.run_enso_lint { sbt.call_arg("lintEnso").await } else { Ok(()) };
+
         match &self.config.test_standard_library {
             Some(selection) => {
                 enso.run_tests(
@@ -483,6 +486,7 @@ impl RunContext {
         }
 
         scala_test_result?;
+        enso_lint_result?;
 
         Ok(ret)
     }
