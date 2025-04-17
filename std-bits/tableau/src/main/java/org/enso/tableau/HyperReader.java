@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -32,6 +33,7 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
@@ -343,9 +345,9 @@ public class HyperReader {
         case FloatType x -> tableDef.addColumn(columnName, SqlType.doublePrecision());
         case BooleanType x -> tableDef.addColumn(columnName, SqlType.bool());
         case DateType x -> tableDef.addColumn(columnName, SqlType.date());
+        case TimeOfDayType x -> tableDef.addColumn(columnName, SqlType.time());
         default -> throw new IllegalStateException("Unknown type");
       }
-      ;
     }
 
     // Create the table in the Hyper file
@@ -369,6 +371,7 @@ public class HyperReader {
           switch (value) {
             case String s -> inserter.add(s);
             case LocalDate ld -> inserter.add(ld);
+            case LocalTime lt -> inserter.add(lt);
             default -> throw new IllegalStateException("Unknown type");
           }
         }
