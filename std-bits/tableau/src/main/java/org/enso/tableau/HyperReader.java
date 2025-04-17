@@ -1,6 +1,7 @@
 package org.enso.tableau;
 
 import com.tableau.hyperapi.*;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -21,9 +22,12 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
+
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
@@ -332,6 +336,7 @@ public class HyperReader {
       switch (storage.getType()) {
         case TextType x -> tableDef.addColumn(columnName, SqlType.text());
         case IntegerType x -> tableDef.addColumn(columnName, SqlType.bigInt());
+        case FloatType x -> tableDef.addColumn(columnName, SqlType.doublePrecision());
         default -> throw new IllegalStateException("Unknown type");
       }
       ;
@@ -347,6 +352,8 @@ public class HyperReader {
         var storage = table.getColumns()[col].getStorage();
         if (storage.isNothing(row)) {
 
+        } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
+          inserter.add(doubleStorage.getItemAsDouble(row));
         } else if (storage instanceof ColumnLongStorage longStorage) {
           inserter.add(longStorage.getItemAsLong(row));
         } else {
