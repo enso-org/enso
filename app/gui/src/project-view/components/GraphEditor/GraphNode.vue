@@ -125,6 +125,7 @@ interface Message {
   type: MessageType
   text: string
   alwaysShow: boolean
+  arg_hint: string
 }
 const availableMessage = computed<Message | undefined>(() => {
   const externalId = nodeId.value
@@ -134,7 +135,7 @@ const availableMessage = computed<Message | undefined>(() => {
     case 'Panic': {
       const text = info.payload.message
       const alwaysShow = !inputExternalIds().some((id) => getPanic(id) === text)
-      return { type: 'panic', text, alwaysShow } satisfies Message
+      return { type: 'panic', text, alwaysShow, arg_hint:'' } satisfies Message
     }
     case 'DataflowError': {
       const rawText = getDataflowError(externalId)
@@ -142,7 +143,7 @@ const availableMessage = computed<Message | undefined>(() => {
       if (!text) return undefined
       const alwaysShow = !inputExternalIds().some((id) => getDataflowError(id) === rawText)
       const type = rawText.includes('Missing_Argument') ? 'missing' : 'error'
-      return { type, text, alwaysShow } satisfies Message
+      return { type, text, alwaysShow, arg_hint:'filter' } satisfies Message
     }
     case 'Value': {
       const warning = info.payload.warnings?.value
@@ -151,6 +152,7 @@ const availableMessage = computed<Message | undefined>(() => {
         type: 'warning',
         text: 'Warning: ' + warning,
         alwaysShow: false,
+        arg_hint: ""
       } satisfies Message
     }
     default:

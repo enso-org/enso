@@ -460,6 +460,12 @@ type Argument_Hinted_Error
    to_display_text self -> Text =
        self.error.to_display_text
 
+   to_json self -> Text =
+       ((Json.parse self.error.to_json).set_value "argument_hint" self.related_argument).to_json
+
+Invalid_Value_Type.from (that : Argument_Hinted_Error) -> Invalid_Value_Type =
+    that.error
+
 type Invalid_Value_Type
     ## PRIVATE
        Indicates that a column with an unexpected value type has been encountered.
