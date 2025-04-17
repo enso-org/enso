@@ -28,7 +28,7 @@ import Standard.Database.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
 import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
-import Standard.Database.Internal.IR.Query.Query
+import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import Standard.Database.Internal.Replace_Params.Replace_Params
@@ -78,7 +78,7 @@ type SQLServer_Dialect
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
-    generate_sql : Query -> SQL_Statement
+    generate_sql : SQL_IR_Statement -> SQL_Statement
     generate_sql self query =
         Base_Generator.generate_query self query . build
 
@@ -400,7 +400,7 @@ type SQLServer_Dialect
             jdbc.ensure_query_has_no_holes raw_sql
 
     ## PRIVATE
-    generate_expression self base_gen expr:(SQL_IR_Expression | Order_Descriptor | Query) for_select:Boolean -> SQL_Builder =
+    generate_expression self base_gen expr:(SQL_IR_Expression | Order_Descriptor | SQL_IR_Statement) for_select:Boolean -> SQL_Builder =
         if for_select then _generate_expression self base_gen expr Expression_Kind.Value materialize_null_check=True . first else
             _generate_expression self base_gen expr Expression_Kind.Boolean_Condition . first
 
@@ -461,7 +461,7 @@ private _generate_expression dialect base_gen expr expression_kind:Expression_Ki
         final_expr = SQL_Builder.join ", " (parsed_args_and_null_checks.map p->p.first)
         null_checks = parsed_args_and_null_checks.map .second  . flatten
         pair final_expr null_checks
-    query : Query -> pair (base_gen.generate_sub_query dialect query) []
+    query : SQL_IR_Statement -> pair (base_gen.generate_sub_query dialect query) []
     descriptor : Order_Descriptor -> pair (base_gen.generate_order dialect descriptor) []
 
 ## PRIVATE
