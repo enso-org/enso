@@ -54,11 +54,11 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         can_round_trip (Table.input [['dates', [Date.new 2025 1 1, Date.new 2025 2 28, Nothing]]])
 
     group_builder.specify "should be able to write a time column" <|
-        ## hyper onlys supports down to microsecond precision?
+        ## hyper only supports down to microsecond precision
         can_round_trip (Table.input [['times', [Time_Of_Day.new 12 1 2 3 4, Time_Of_Day.new 9 50, Nothing]]])
 
     group_builder.specify "should be able to write a date time column" <|
-        ## hyper doesn't support time zone?
+        ## hyper doesn't support time zone
         can_round_trip (Table.input [['times', [Date_Time.new 2025 1 1 12 1 2 3 4 zone=(Time_Zone.parse 'UTC'), Date_Time.new 1989 12 18 zone=(Time_Zone.parse 'UTC'), Nothing]]])
 
     group_builder.specify "should be able to write all the types at once" <|
