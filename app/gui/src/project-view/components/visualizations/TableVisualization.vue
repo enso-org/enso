@@ -19,7 +19,16 @@ import type {
   SetFilterValuesFuncParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
-import { ComponentInstance, computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
+import {
+  ComponentInstance,
+  computed,
+  onMounted,
+  ref,
+  shallowRef,
+  watch,
+  watchEffect,
+  type Ref,
+} from 'vue'
 import { ComponentExposed } from 'vue-component-type-helpers'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import {
@@ -108,6 +117,7 @@ interface UnknownTable {
   data_quality_metrics?: DataQualityMetric[]
   is_using_server_sort_and_filter: boolean
   requires_number_format: boolean[]
+  table_version_hash?: string
 }
 
 type DataQualityMetric = {
@@ -163,17 +173,35 @@ const grid = ref<
 const allRowCount = computed(() =>
   typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
 )
+
+const tableVersionHash = computed(() =>
+  typeof props.data === 'object' && 'table_version_hash' in props.data ?
+    props.data.table_version_hash
+  : null,
+)
+
 const isSSRM = computed(
   () =>
     typeof props.data === 'object' &&
     'is_using_server_sort_and_filter' in props.data &&
     props.data.is_using_server_sort_and_filter,
 )
+
+const ssrmServer = computed(() => {
+  return isSSRM.value && createServer()
+})
+
+const refreshDataSource = ref(0)
+const ssrmDatasource = computed(() => {
+  const value = refreshDataSource.value
+  return isSSRM.value && createServerSideDatasource()
+})
+
 const statusBar = computed(() =>
   allRowCount.value ?
     {
       statusPanels:
-        config.nodeType === TABLE_NODE_TYPE ?
+        config.nodeType === TABLE_NODE_TYPE || config.nodeType === COLUMN_NODE_TYPE ?
           [
             {
               statusPanel: TableVizStatusBar,
@@ -187,8 +215,13 @@ const statusBar = computed(() =>
   : null,
 )
 
+// if there are upstream updates only to the row information the table version hash change indicates the grid needs to re get rows for any potetial changes
+watch(tableVersionHash, () => {
+  refreshDataSource.value++
+})
+
 watchEffect(() => {
-  // if the column definitions remain the same but there has been updates upstream ag grid doesn't know to re fetch the row data to the updated data
+  // if the column definitions remain the same but there has been updates upstream ag grid doesn't know to change its row model or to fetch new data
   if (nodeType.value != config.nodeType) {
     grid.value?.forceGridRefresh()
     nodeType.value = config.nodeType
@@ -278,13 +311,17 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
   const colName = params.colDef.field
   if (typeof props.data === 'object' && 'header' in props.data) {
     const index = props.data.header?.findIndex((h: string) => colName === h)
-    const server = createServer()
-    const response = await server.getSetFilterValues(index)
-    if (response.success) {
-      params.success(response.data)
+    const server = ssrmServer.value
+    if (server) {
+      const response = await server.getSetFilterValues(index)
+      if (response.success) {
+        params.success(response.data)
+      }
     }
   }
 }
+
+const attepmtedCalls = ref(0)
 
 function createServer() {
   return {
@@ -302,14 +339,9 @@ function createServer() {
     },
     getData: async (request: IServerSideGetRowsRequest) => {
       const columnHeaders =
-        typeof props.data === 'object' && 'header' in props.data ?
-          props.data.header ?
-            props.data.header
-          : []
-        : []
+        typeof props.data === 'object' && 'header' in props.data ? (props.data.header ?? []) : []
 
       const { sortColIndexes, sortDirections } = convertSortModel(request, columnHeaders)
-
       const { filterColumnIndexList, filterActions, valueList } = convertFilterModel(
         request,
         columnHeaders,
@@ -332,16 +364,26 @@ function createServer() {
         //values to filter on
         valueList as string[] | 'Nothing',
       )
+
       const response = await config.executeExpression(expressionFunction)
+
       if (response.ok) {
         return {
           success: true,
           data: response.value.rows,
+          rowCount: response.value.row_count,
         }
       } else {
+        if (attepmtedCalls.value < 3) {
+          grid.value?.gridApi?.refreshServerSide({ purge: true })
+          attepmtedCalls.value++
+          return
+        }
+        console.error('Error loading rows:', response.error)
         return {
           success: false,
           data: null,
+          rowCount: undefined,
         }
       }
     },
@@ -351,18 +393,22 @@ function createServer() {
 interface Response {
   data: unknown[][]
   success: boolean
+  rowCount: number
 }
 function createServerSideDatasource(): IServerSideDatasource {
   return {
     getRows: async (params) => {
-      const server = createServer()
-      const response: Response = await server.getData(params.request)
-      const rows = createRowsForTable(response.data, 0, true)
-
-      if (response.success) {
-        params.success({ rowData: rows })
-      } else {
-        params.fail()
+      const server = ssrmServer.value
+      if (server) {
+        const serverResponse = await server.getData(params.request)
+        const response: Response =
+          serverResponse ? serverResponse : { data: [], success: false, rowCount: 0 }
+        if (response.success) {
+          const rows = createRowsForTable(response.data, 0, true)
+          params.success({ rowData: rows, rowCount: response.rowCount })
+        } else {
+          params.fail()
+        }
       }
     },
   }
@@ -768,8 +814,12 @@ watchEffect(() => {
           ...dataHeader,
         ]
       : dataHeader
+
     if (!data_.is_using_server_sort_and_filter) {
-      const hasIndexRow = config.nodeType === TABLE_NODE_TYPE
+      const hasIndexRow =
+        config.nodeType === TABLE_NODE_TYPE ||
+        config.nodeType === COLUMN_NODE_TYPE ||
+        config.nodeType === DB_TABLE_NODE_TYPE
       const shift = hasIndexRow ? 1 : 0
       rowData.value =
         data_.data ?
@@ -990,10 +1040,11 @@ config.setToolbar(
         :rowData="rowData"
         :defaultColDef="defaultColDef"
         :textFormatOption="textFormatterSelected"
-        :datasource="createServerSideDatasource()"
+        :datasource="ssrmDatasource"
         :rowCount="allRowCount"
         :isServerSideModel="isSSRM"
         :statusBar="statusBar"
+        :gridIdHash="tableVersionHash"
         @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
       />
     </Suspense>

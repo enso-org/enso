@@ -1,8 +1,4 @@
-import {
-  textEditorsBindings,
-  textEditorsStandardCommonBindings,
-  textEditorsStandardMultilineBindings,
-} from '@/bindings'
+import { textEditorsBindings, textEditorsMultilineBindings } from '@/bindings'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { type VueHost } from '@/components/VueHostRender.vue'
 import { injectKeyboard } from '@/providers/keyboard'
@@ -11,15 +7,18 @@ import {
   contentFocusedExt,
   setContentFocused,
 } from '@/util/codemirror/contentFocusedExt'
+import { baseKeymap, handlerToKeyBinding, verticalMovementKeymap } from '@/util/codemirror/keymap'
 import { useCompartment, useDispatch, useStateEffect } from '@/util/codemirror/reactivity'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
 import { elementHierarchy } from '@/util/dom'
 import { ToValue } from '@/util/reactivity'
+import { insertNewlineKeepIndent } from '@codemirror/commands'
 import {
   Compartment,
   EditorState,
   type Extension,
+  Prec,
   type SelectionRange,
   type StateEffect,
   type StateEffectType,
@@ -39,6 +38,7 @@ import {
 } from 'vue'
 import { Awareness } from 'y-protocols/awareness.js'
 import { assert } from 'ydoc-shared/util/assert'
+import { Range } from 'ydoc-shared/util/data/range'
 import * as Y from 'yjs'
 
 function disableEditContextApi() {
@@ -60,7 +60,7 @@ export function useCodeMirror(
     vueHost,
     contentTestId,
     readonly: isReadonly,
-    singleLine,
+    lineMode,
   }: {
     /** If a value is provided, the editor state will be synchronized with it. */
     content?: ToValue<string | Y.Text>
@@ -74,7 +74,7 @@ export function useCodeMirror(
     /** If provided, the element with class `cm-content` will also have the given `data-testid`. */
     contentTestId?: string | undefined
     readonly?: boolean
-    singleLine?: boolean
+    lineMode?: ToValue<'single' | 'multi' | 'auto'>
   },
 ) {
   const view = new EditorView()
@@ -91,13 +91,22 @@ export function useCodeMirror(
   const { bindingsExt } = useBindings(view)
   const sync = content ? useYTextOrReadonlySync(content) : undefined
   const extrasCompartment = new Compartment()
+  const bindingsCompartment = useCompartment(view, () =>
+    keyBindings(view, { lineMode: toValue(lineMode) }),
+  )
+  const singleLineState = computed(() => {
+    const mode = toValue(lineMode)
+    return mode && mode !== 'multi'
+  })
+  const themeCompartment = useCompartment(view, () => theme({ singleLine: singleLineState.value }))
   view.setState(
     EditorState.create({
       extensions: [
         readonlyExt,
         bindingsExt,
         placeholderExt,
-        keyBindings({ singleLine }),
+        bindingsCompartment,
+        themeCompartment,
         sync?.syncExt ?? [],
         extrasCompartment.of([]),
         extensions ?? [],
@@ -109,7 +118,7 @@ export function useCodeMirror(
 
   watchEffect(() => {
     const editorRootValue = toValue(editorRoot)
-    if (editorRootValue) editorRootValue.rootElement?.prepend(view.dom)
+    if (editorRootValue) editorRootValue.$el.prepend(view.dom)
   })
 
   /**
@@ -127,14 +136,28 @@ export function useCodeMirror(
     /** The {@link EditorView}, connecting the current state with the DOM. */
     editorView: view,
     /**
+     * Update a set of additional extensions for the editor.
+     *
      * This function can be used to provide extensions that are not ready before `useCodeMirror` can
      * be called, e.g. because they require an {@link EditorView} instance to be created. If called
      * more than once, the new collection of extra extensions will replace the previous collection.
+     *
+     * The change will be dispatched asynchronously; this avoids observing an inconsistent state:
+     * When an extension is removed, its event handlers may still fire if they were triggered in the
+     * same tick (i.e. by the same event that caused the extension to be removed); in that case, the
+     * handler would likely misbehave due to its extension not being installed, and all its state
+     * fields being missing.
+     *
+     * Delaying any extension changes ensures that, when removing an extension, it is in a valid
+     * state while handling the event that removed it; and, while adding an extension, it doesn't
+     * handle the event that caused its installation before it is ready.
      */
     setExtraExtensions: (extensions: Extension | undefined) =>
-      view.dispatch({
-        effects: extrasCompartment.reconfigure(extensions ?? []),
-      }),
+      setTimeout(() =>
+        view.dispatch({
+          effects: extrasCompartment.reconfigure(extensions ?? []),
+        }),
+      ),
     /**
      * When `useCodeMirror` is configured to set up synchronization by passing the `content`
      * argument, this value tracks whether the content synchronized with the document is writable.
@@ -208,10 +231,14 @@ export function useStringSync() {
         return view.state.doc.toString()
       }
 
-      function setText(text: string): void {
+      function setText(text: string, selection?: Range): void {
+        const safeSelection = selection?.clip(Range.fromStartAndLength(0, text.length))
+        if (selection && !selection.rangeEquals(safeSelection))
+          console.warn('Clipping invalid selection', { text, selection })
         view.dispatch({
           changes: { from: 0, to: view.state.doc.length, insert: text },
-          selection: { anchor: 0 },
+          selection:
+            safeSelection ? { anchor: safeSelection.from, head: safeSelection.to } : { anchor: 0 },
         })
       }
 
@@ -288,47 +315,89 @@ function lastEffect<T>(
   }
 }
 
-function handlerToKeyBinding(handler: (event: KeyboardEvent, stopAndPrevent: boolean) => boolean) {
+const stopEvent = (event: Event) => {
+  event.stopImmediatePropagation()
+  return false
+}
+function bindStandardBindings(view: EditorView) {
+  const autoOrMultiHandlers = handlerToKeyBinding(
+    textEditorsMultilineBindings.handler({
+      newline: (e) => {
+        e.stopImmediatePropagation()
+        return insertNewlineKeepIndent(view)
+      },
+    }),
+  )
   return {
-    any: (_view: EditorView, event: KeyboardEvent) => {
-      handler(event, false)
-      // Allow other handlers to override the default behavior.
-      return false
-    },
+    multiline: [autoOrMultiHandlers, ...verticalMovementKeymap(view)] satisfies KeyBinding[],
+    singleline: [],
+    autoline: [autoOrMultiHandlers] satisfies KeyBinding[],
   }
 }
-const stopEvent = (event: KeyboardEvent) => event.stopImmediatePropagation()
-const standardBindings = {
-  common: handlerToKeyBinding(
-    textEditorsStandardCommonBindings.handler({
-      moveLeft: stopEvent,
-      moveRight: stopEvent,
-      deleteBack: stopEvent,
-      deleteForward: stopEvent,
-    }),
-  ),
-  multiline: handlerToKeyBinding(
-    textEditorsStandardMultilineBindings.handler({
-      moveUp: stopEvent,
-      moveDown: stopEvent,
-      newline: stopEvent,
-    }),
-  ),
-  singleline: {
-    key: 'Enter',
-    run: (view) => {
-      view.contentDOM.blur()
-      return true
-    },
-    preventDefault: true,
-  } satisfies KeyBinding,
+
+function keyBindings(
+  view: EditorView,
+  { lineMode }: { lineMode?: 'single' | 'multi' | 'auto' | undefined } = {},
+): Extension {
+  const mode = lineMode ?? 'multi'
+  const standardBindings = bindStandardBindings(view)
+  return [
+    Prec.lowest(keymap.of(baseKeymap(view))),
+    Prec.low(
+      keymap.of(
+        mode === 'multi' ? standardBindings.multiline
+        : mode === 'auto' ? standardBindings.autoline
+        : standardBindings.singleline,
+      ),
+    ),
+    ...(mode === 'multi' ?
+      [
+        EditorView.domEventHandlers({
+          wheel: stopEvent,
+        }),
+      ]
+    : []),
+  ]
 }
 
-function keyBindings({ singleLine }: { singleLine?: boolean | undefined } = {}): Extension {
-  return keymap.of([
-    standardBindings.common,
-    ...(singleLine ? [standardBindings.singleline] : [standardBindings.multiline]),
-  ])
+const baseTheme = EditorView.theme({
+  '&.cm-editor': {
+    display: 'contents',
+    outline: 'none',
+  },
+  '.cm-scroller': {
+    // The default is `monospace`, but even when we want the editor to be monospace we use more
+    // specific fonts.
+    'font-family': 'unset',
+    // Prevent touchpad back gesture, which can be triggered while panning.
+    'overscroll-behavior': 'none',
+  },
+})
+
+const inlineTheme = EditorView.theme({
+  '&.cm-editor': {
+    margin: 0,
+    'min-width': '1px',
+  },
+  '.cm-scroller': {
+    display: 'contents',
+  },
+  '.cm-line': {
+    padding: 0,
+  },
+})
+
+const multilineTheme = EditorView.theme({
+  '&.cm-editor': {
+    position: 'relative',
+    height: '100%',
+    width: '100%',
+    'text-align': 'left',
+  },
+})
+
+function theme({ singleLine }: { singleLine?: boolean | undefined } = {}): Extension {
+  return [baseTheme, singleLine ? inlineTheme : multilineTheme]
 }
 
 export const selectOnMouseFocus = [

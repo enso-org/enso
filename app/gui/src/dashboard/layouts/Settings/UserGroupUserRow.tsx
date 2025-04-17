@@ -47,7 +47,7 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
                 user.name,
                 userGroup.groupName,
               )}
-              doDelete={async () => {
+              onConfirm={async () => {
                 await doRemoveUserFromUserGroup(user, userGroup)
               }}
             />,
@@ -88,7 +88,7 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
                 userGroup.groupName,
               )}
               actionButtonLabel={getText('remove')}
-              doDelete={async () => {
+              onConfirm={async () => {
                 await doRemoveUserFromUserGroup(user, userGroup)
               }}
             />

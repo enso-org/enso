@@ -1,12 +1,24 @@
 /** @file A test for basic flow of the application: open project and see if nodes appear. */
 
-import { expect } from '@playwright/test'
+import { expect, takeSnapshot } from '@chromatic-com/playwright'
+import { Page, TestInfo } from '@playwright/test'
 import fs from 'node:fs/promises'
 import pathModule from 'node:path'
-import { CONTROL_KEY, electronTest, loginAsTestUser } from './electronTest'
+import { CONTROL_KEY, loginAsTestUser, test } from './electronTest'
 
-electronTest('Local Workflow', async ({ page, app, projectsDir }) => {
-  const PROJECT_PATH = pathModule.join(projectsDir, 'NewProject1')
+const startTimestamp = Date.now()
+let screenshotIndex = 0
+async function _doScreenshot(page: Page): Promise<void> {
+  page.screenshot({ path: `test-traces/screenshots/${startTimestamp}/${screenshotIndex++}.png` })
+}
+
+async function doSnapshot(page: Page, testInfo: TestInfo): Promise<void> {
+  // Enable for local testing only:
+  // await _doScreenshot(page)
+  await takeSnapshot(page, testInfo)
+}
+
+test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   const OUTPUT_FILE = 'output.txt'
   const TEXT_TO_WRITE = 'Some text'
 
@@ -15,10 +27,16 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }) => {
   await page.getByRole('button', { name: 'New Project', exact: true }).click()
   await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
 
+  const projectName = (await page.getByTitle('Project Name').textContent()) ?? ''
+  await expect(projectName).toBeTruthy()
+  const PROJECT_PATH = pathModule.join(projectsDir, projectName.replaceAll(' ', ''))
+
   // We see the node type and visualization, so the engine is running the program
   await expect(page.locator('.node-type')).toHaveText('Table', { timeout: 30000 })
   await expect(page.locator('.TableVisualization')).toBeVisible({ timeout: 30000 })
   await expect(page.locator('.TableVisualization')).toContainText('Welcome To Enso!')
+
+  await doSnapshot(page, testInfo)
 
   // Create node connected to the first node by picking suggestion.
   await page.locator('.GraphNode').click()
@@ -29,7 +47,7 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }) => {
     hasText: 'column_count',
   })
   await expect(entry).toBeVisible()
-  await entry.click()
+  await await entry.click()
   await expect(page.locator('.GraphNode'), {}).toHaveCount(2)
   const addedNode = page.locator('.GraphNode', { hasText: 'column_count' })
   await addedNode.click()
@@ -77,6 +95,8 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }) => {
   await page.keyboard.press('Enter')
   await expect(page.locator('.GraphNode'), {}).toHaveCount(2)
 
+  await doSnapshot(page, testInfo)
+
   // Create write node
   await page.keyboard.press('Enter')
   await expect(page.locator('.ComponentBrowser')).toBeVisible()
@@ -92,22 +112,15 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }) => {
   await expect(writeNode.locator('.TableVisualization')).toContainText('output_ensodryrun')
 
   expect(await fs.readdir(PROJECT_PATH)).not.toContain(OUTPUT_FILE)
-
+  await expect(page.locator('.GraphEditor .GraphNode.pending')).toHaveCount(0)
   // Press `Write once` button.
   await writeNode.locator('.More').click()
   await writeNode.getByTestId('recompute').click()
+  await page.mouse.move(0, 0) // Avoid showing a tooltip
+  await expect(page.locator('.GraphEditor .GraphNode.pending')).toHaveCount(0)
 
   // Check that the output file is created and contains expected text.
-  try {
-    await expect(writeNode.locator('.TableVisualization')).toContainText(OUTPUT_FILE)
-  } catch {
-    // TODO[ao]
-    // The above check is flaky, because sometimes the additional engine run overrides node output back to "dry run".
-    // To confirm if this should be expected.
-    console.error(
-      'Didn\'t see the visualization update after "Write once" action; assuming it\'s already done',
-    )
-  }
+  await expect(writeNode.locator('.TableVisualization')).toContainText(OUTPUT_FILE)
   let projectFiles = await fs.readdir(PROJECT_PATH)
   expect(projectFiles).toContain(OUTPUT_FILE)
   if (projectFiles.includes(OUTPUT_FILE)) {
@@ -138,6 +151,13 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }) => {
   expect(projectFiles).toContain('images')
   const images = await fs.readdir(pathModule.join(PROJECT_PATH, 'images'))
   expect(images).toContain('image.png')
+
+  // Ensure that the graph is stable before doing the snapshot. Some nodes might still
+  // be pending at the time the image upload finishes, which can cause the snapshot to
+  // be unstable.
+  await expect(page.locator('.GraphEditor .GraphNode.pending')).toHaveCount(0)
+
+  await doSnapshot(page, testInfo)
 })
 
 async function readFile(projectDir: string, fileName: string): Promise<string> {

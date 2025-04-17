@@ -1,6 +1,5 @@
 package org.enso.interpreter.node;
 
-import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -8,9 +7,6 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.Objects;
-import java.util.function.BiFunction;
-import java.util.logging.Level;
-import org.enso.common.LanguageInfo;
 import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -20,8 +16,6 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 /** A common base class for all kinds of root node in Enso. */
 @NodeInfo(shortName = "Root", description = "A root node for Enso computations")
 public abstract class EnsoRootNode extends RootNode {
-  private static final TruffleLogger LOGGER = TruffleLogger.getLogger(LanguageInfo.ID);
-
   private final String name;
   private final int sourceStartIndex;
   private final int sourceLength;
@@ -44,7 +38,7 @@ public abstract class EnsoRootNode extends RootNode {
       ModuleScope moduleScope,
       String name,
       SourceSection sourceSection) {
-    super(language, buildFrameDescriptor(name, localScope, LOGGER));
+    super(language, buildFrameDescriptor(name, localScope));
     Objects.requireNonNull(language);
     Objects.requireNonNull(localScope);
     Objects.requireNonNull(moduleScope);
@@ -67,19 +61,11 @@ public abstract class EnsoRootNode extends RootNode {
    *
    * @return {@link FrameDescriptor} built from the variable definitions in the local localScope.
    */
-  private static FrameDescriptor buildFrameDescriptor(
-      String name, LocalScope localScope, TruffleLogger log) {
+  private static FrameDescriptor buildFrameDescriptor(String name, LocalScope localScope) {
     var descriptorBuilder = FrameDescriptor.newBuilder();
     descriptorBuilder.addSlot(FrameSlotKind.Object, LocalScope.monadicStateSlotName(), null);
 
-    BiFunction<String, Object[], Void> logFnOrNull =
-        log.isLoggable(Level.FINE)
-            ? (msg, args) -> {
-              log.log(Level.FINE, msg, args);
-              return null;
-            }
-            : null;
-    var allDefs = localScope.allSymbols(name, logFnOrNull);
+    var allDefs = localScope.allSymbols(name, null);
     for (var definition : allDefs) {
       descriptorBuilder.addSlot(FrameSlotKind.Illegal, definition, null);
     }

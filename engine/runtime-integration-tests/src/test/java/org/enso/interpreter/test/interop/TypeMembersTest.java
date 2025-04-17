@@ -18,26 +18,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class TypeMembersTest {
-  private Context ctx;
-
-  @Before
-  public void prepareCtx() {
-    ctx = ContextUtils.createDefaultContext();
-  }
-
-  @After
-  public void disposeCtx() {
-    ctx.close();
-    ctx = null;
-  }
+  @Rule public final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Test
   public void checkAtomMembers() throws Exception {
@@ -71,7 +58,7 @@ public class TypeMembersTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
 
     var headAtom = module.invokeMember("eval_expression", "list1");
     var seven = module.invokeMember("eval_expression", "list1.head");
@@ -110,7 +97,7 @@ public class TypeMembersTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var compileError = module.invokeMember("eval_expression", "v");
     assertEquals(
         "all members",
@@ -121,24 +108,19 @@ public class TypeMembersTest {
   @Test
   public void builtinMethodIsPresent() {
     var refType =
-        ContextUtils.evalModule(
-            ctx, """
+        ctxRule.evalModule(
+            """
         import Standard.Base.Runtime.Ref.Ref
         main = Ref
         """);
-    ContextUtils.executeInContext(
-        ctx,
-        () -> {
-          assertThat(refType.hasMember("new"), is(true));
-          return null;
-        });
+    assertThat(refType.hasMember("new"), is(true));
   }
 
   @Test
-  public void inheritedMembersFromAnyAreIncluded() {
+  public void inheritedMembersFromAnyAreIncluded()
+      throws InvalidArrayIndexException, UnsupportedMessageException {
     var type =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         from Standard.Base.Any import all
 
@@ -147,24 +129,19 @@ public class TypeMembersTest {
 
         main = My_Type
         """);
-    ContextUtils.executeInContext(
-        ctx,
-        () -> {
-          var typeUnwrapped = ContextUtils.unwrapValue(ctx, type);
-          var memberNames = getAllMemberNames(typeUnwrapped);
-          var anyMethods = ContextUtils.allMethodsFromAny(ctx);
-          for (var anyMethod : anyMethods) {
-            assertThat("Has method from Any", memberNames, hasItem(containsString(anyMethod)));
-          }
-          return null;
-        });
+    var typeUnwrapped = ctxRule.unwrapValue(type);
+    var memberNames = getAllMemberNames(typeUnwrapped);
+    var anyMethods = ctxRule.allMethodsFromAny();
+    for (var anyMethod : anyMethods) {
+      assertThat("Has method from Any", memberNames, hasItem(containsString(anyMethod)));
+    }
   }
 
   @Test
-  public void typeMemberNames_AreNotQualified() {
+  public void typeMemberNames_AreNotQualified()
+      throws InvalidArrayIndexException, UnsupportedMessageException {
     var type =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         from Standard.Base.Any import all
 
@@ -173,22 +150,15 @@ public class TypeMembersTest {
 
         main = My_Type
         """);
-    ContextUtils.executeInContext(
-        ctx,
-        () -> {
-          var typeUnwrapped = ContextUtils.unwrapValue(ctx, type);
-          var memberNames = getAllMemberNames(typeUnwrapped);
-          assertThat(
-              "Member names are not qualified", memberNames, not(hasItem(containsString("."))));
-          return null;
-        });
+    var typeUnwrapped = ctxRule.unwrapValue(type);
+    var memberNames = getAllMemberNames(typeUnwrapped);
+    assertThat("Member names are not qualified", memberNames, not(hasItem(containsString("."))));
   }
 
   @Test
   public void canInvokeInheritedStaticMethod_OnType() {
     var myType =
-        ContextUtils.evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         from Standard.Base.Any import all
 
@@ -197,18 +167,13 @@ public class TypeMembersTest {
 
         main = My_Type
         """);
-    ContextUtils.executeInContext(
-        ctx,
-        () -> {
-          var displayTextRes = myType.invokeMember("to_display_text");
-          assertThat("Has correct result type", displayTextRes.isString(), is(true));
-          assertThat("Has correct result value", displayTextRes.asString(), is("My_Type"));
-          return null;
-        });
+    var displayTextRes = myType.invokeMember("to_display_text");
+    assertThat("Has correct result type", displayTextRes.isString(), is(true));
+    assertThat("Has correct result value", displayTextRes.asString(), is("My_Type"));
   }
 
   /**
-   * @param obj {@link ContextUtils#unwrapValue(Context, Value) unwrapped} {@link Value value}.
+   * @param obj {@link ContextUtils#unwrapValue(Value) unwrapped} {@link Value value}.
    */
   private List<String> getAllMemberNames(Object obj)
       throws UnsupportedMessageException, InvalidArrayIndexException {

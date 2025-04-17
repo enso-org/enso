@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeMirrorInlineRoot from '@/components/CodeMirrorInlineRoot.vue'
+import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import type { ComponentBrowserMode, Usage } from '@/components/ComponentBrowser/input'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useGraphStore } from '@/stores/graph'
@@ -20,16 +20,16 @@ const props = defineProps<{
 
 const graphStore = useGraphStore()
 
-const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorInlineRoot>>('editorRoot')
+const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 
 const { syncExt, connectSync } = useStringSync()
 const { editorView } = useCodeMirror(editorRoot, {
   extensions: [syncExt],
   contentTestId: 'component-editor-content',
-  singleLine: true,
+  lineMode: 'single',
 })
 
-const { onUserAction } = connectSync(editorView)
+const { onUserAction, setText } = connectSync(editorView)
 onUserAction(
   (text, selection) =>
     (content.value = {
@@ -37,12 +37,7 @@ onUserAction(
       selection: Range.unsafeFromBounds(selection.from, selection.to),
     }),
 )
-watch(content, ({ text, selection }) =>
-  editorView.dispatch({
-    changes: { from: 0, to: editorView.state.doc.length, insert: text },
-    selection: selection ? { anchor: selection.from, head: selection.to } : { anchor: 0 },
-  }),
-)
+watch(content, ({ text, selection }) => setText(text, selection))
 
 const icon = computed(() => {
   if (props.mode.mode === 'componentBrowsing') return 'find'
@@ -93,7 +88,7 @@ const rootStyle = computed(() => {
     </div>
     <span v-if="label" class="selfArgInfo" data-testid="component-editor-label" v-text="label" />
     <SvgIcon v-if="label" class="selfArgInfoArrow" name="folder_closed" />
-    <CodeMirrorInlineRoot ref="editorRoot" />
+    <CodeMirrorRoot ref="editorRoot" />
   </div>
 </template>
 

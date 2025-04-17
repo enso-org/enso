@@ -120,9 +120,10 @@ const props = defineProps<{
   suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
   processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
-  datasource?: IServerSideDatasource
+  datasource?: IServerSideDatasource | boolean
   rowCount?: number
   isServerSideModel?: boolean
+  gridIdHash?: string | null
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -149,11 +150,16 @@ function onGridReady(event: GridReadyEvent<TData>) {
 
 const rowModelType = computed(() => (props.isServerSideModel ? 'serverSide' : 'clientSide'))
 
-const gridKey = ref(0)
+const gridKeyIncrement = ref(0)
+const gridKey = computed(() =>
+  props.gridIdHash ?
+    `${props.gridIdHash}-${gridKeyIncrement.value}`
+  : `grid-${gridKeyIncrement.value}`,
+)
 
 const forceGridRefresh = () => {
   //when using the ag grid severSide model this forces the grid to 'refresh' and call getRows
-  gridKey.value++
+  gridKeyIncrement.value++
 }
 
 watch(
@@ -276,33 +282,6 @@ function supressCopy(event: KeyboardEvent) {
   }
 }
 
-// === Loading AGGrid and its license ===
-
-const { LicenseManager } = await import('ag-grid-enterprise')
-
-if (typeof $config.AG_GRID_LICENSE_KEY !== 'string') {
-  console.warn('The AG_GRID_LICENSE_KEY is not defined.')
-  if (import.meta.env.DEV) {
-    // Hide annoying license validation errors in dev mode when the license is not defined. The
-    // missing define warning is still displayed to not forget about it, but it isn't as obnoxious.
-    const origValidateLicense = LicenseManager.prototype.validateLicense
-    LicenseManager.prototype.validateLicense = function (this) {
-      if (!('licenseManager' in this))
-        Object.defineProperty(this, 'licenseManager', {
-          configurable: true,
-          set(value: any) {
-            Object.getPrototypeOf(value).validateLicense = () => {}
-            delete this.licenseManager
-            this.licenseManager = value
-          },
-        })
-      origValidateLicense.call(this)
-    }
-  }
-} else {
-  LicenseManager.setLicenseKey($config.AG_GRID_LICENSE_KEY)
-}
-
 function stopIfPrevented(event: Event) {
   // When AG Grid handles the context menu event it prevents-default, but it doesn't stop propagation.
   if (event.defaultPrevented) event.stopPropagation()
@@ -372,7 +351,7 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       :suppressMoveWhenColumnDragging="suppressMoveWhenColumnDragging"
       :processDataFromClipboard="processDataFromClipboard"
       :allowContextMenuWithControlKey="true"
-      :cacheBlockSize="1000"
+      :cacheBlockSize="rowModelType === 'clientSide' ? undefined : 1000"
       @gridReady="onGridReady"
       @firstDataRendered="updateColumnWidths"
       @rowDataUpdated="(updateColumnWidths($event), emit('rowDataUpdated', $event))"

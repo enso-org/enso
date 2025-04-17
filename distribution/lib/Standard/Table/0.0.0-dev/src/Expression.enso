@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Metadata import Widget
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.UnsupportedOperationException
@@ -9,6 +10,7 @@ polyglot java import org.enso.table.expressions.ExpressionVisitorImpl
 
    Arguments:
    - expression: the expression to create
+@expression Widget.Text_Input syntax="enso-table-expression"
 expr : Text -> Expression
 expr expression:Text -> Expression = Expression.Value expression
 

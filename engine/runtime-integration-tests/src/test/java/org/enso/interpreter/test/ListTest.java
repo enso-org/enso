@@ -9,27 +9,27 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class ListTest {
-  private Context ctx;
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   private final int size = 100_000;
-  private Value generator;
-  private Value plusOne;
-  private Value evenOnes;
-  private Value taken;
-  private Value init;
-  private Value asVector;
-  private Value asText;
+  private static Value generator;
+  private static Value plusOne;
+  private static Value evenOnes;
+  private static Value taken;
+  private static Value init;
+  private static Value asVector;
+  private static Value asText;
 
-  @Before
-  public void prepareCtx() throws Exception {
-    this.ctx = ContextUtils.createDefaultContext();
+  @BeforeClass
+  public static void prepareCtx() throws Exception {
+    var ctx = ctxRule.context();
 
     final String code =
         """
@@ -62,8 +62,8 @@ public class ListTest {
     asText = evalCode(code, "as_text");
   }
 
-  @After
-  public void disposeCtx() {
+  @AfterClass
+  public static void disposeCtx() {
     generator = null;
     plusOne = null;
     evenOnes = null;
@@ -71,8 +71,6 @@ public class ListTest {
     init = null;
     asVector = null;
     asText = null;
-    this.ctx.close();
-    ctx = null;
   }
 
   @Test
@@ -159,11 +157,12 @@ public class ListTest {
     assertEquals("Correct number of closing braces", size, close);
   }
 
-  private Value evalCode(final String code, final String methodName) throws URISyntaxException {
+  private static Value evalCode(final String code, final String methodName)
+      throws URISyntaxException {
     final var testName = "test.enso";
     final URI testUri = new URI("memory://" + testName);
     final Source src = Source.newBuilder("enso", code, testName).uri(testUri).buildLiteral();
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var powers = module.invokeMember("eval_expression", methodName);
     return powers;
   }

@@ -11,8 +11,8 @@ import { useCodeMirror } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { useLinkTitles } from '@/util/codemirror/links'
 import { Vec2 } from '@/util/data/vec2'
-import { EditorView } from '@codemirror/view'
-import { minimalSetup } from 'codemirror'
+import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import { drawSelection, EditorView } from '@codemirror/view'
 import { computed, onMounted, ref, useCssModule, useTemplateRef, type ComponentInstance } from 'vue'
 import * as Y from 'yjs'
 
@@ -33,7 +33,8 @@ const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('edi
 const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
   content: () => content,
   extensions: [
-    minimalSetup,
+    drawSelection(),
+    syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     EditorView.lineWrapping,
     highlightStyle(useCssModule()),
     EditorView.clipboardInputFilter.of(transformPastedText),

@@ -479,6 +479,7 @@ onMounted(() => {
   align-items: start;
   justify-content: start;
   gap: 8px;
+  overflow-y: auto;
 }
 
 .centerContent {

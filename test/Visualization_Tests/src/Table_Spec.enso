@@ -49,7 +49,7 @@ type Foo_Link
     to_js_object self = JS_Object.from_pairs [["x", self.x], ["links", ["a", "b", "c"]]]
 
 add_specs suite_builder =
-    make_json header data all_rows value_type has_index_col get_child_node is_ssrm number_of_nothing=Nothing number_of_untrimmed_whitespace=Nothing number_of_untrimmed_whitespace_sampled=Nothing number_non_trivial_ws=Nothing number_non_trivial_ws_sampled=Nothing requires_number_format =
+    make_json header data all_rows value_type has_index_col get_child_node is_ssrm number_of_nothing=Nothing number_of_untrimmed_whitespace=Nothing number_of_untrimmed_whitespace_sampled=Nothing number_non_trivial_ws=Nothing number_non_trivial_ws_sampled=Nothing requires_number_format table_version_hash=Nothing =
         p_header      = ["header", header]
         p_data        = ["data",   data]
         p_all_rows    = ["all_rows_count", all_rows]
@@ -58,13 +58,14 @@ add_specs suite_builder =
         p_get_child_node = ["get_child_node_action", get_child_node]
         p_is_ssrm       = ["is_using_server_sort_and_filter", is_ssrm]
         p_requires_number_format = ["requires_number_format", requires_number_format]
+        p_table_version_hash = ["table_version_hash", table_version_hash]
         p_number_of_nothing = if number_of_nothing.is_nothing then [] else [JS_Object.from_pairs [["name", "Count nothings"], ["percentage_value", number_of_nothing]]]
         p_number_of_untrimmed_whitespace = if number_of_untrimmed_whitespace.is_nothing then [] else [JS_Object.from_pairs [["name", "Count untrimmed whitespace"], ["percentage_value", number_of_untrimmed_whitespace]]]
         p_number_non_trivial_ws = if number_non_trivial_ws.is_nothing then [] else [JS_Object.from_pairs [["name", "Count non trivial whitespace"], ["percentage_value", number_non_trivial_ws]]]
         p_number_of_untrimmed_whitespace_sampled = if number_of_untrimmed_whitespace_sampled.is_nothing then [] else [JS_Object.from_pairs [["name", "Count untrimmed whitespace (sampled)"], ["percentage_value", number_of_untrimmed_whitespace_sampled]]]
         p_number_non_trivial_ws_sampled = if number_non_trivial_ws_sampled.is_nothing then [] else [JS_Object.from_pairs [["name", "Count non trivial whitespace (sampled)"], ["percentage_value", number_non_trivial_ws_sampled]]]
         data_quality_metrics = p_number_of_nothing + p_number_of_untrimmed_whitespace + p_number_of_untrimmed_whitespace_sampled + p_number_non_trivial_ws + p_number_non_trivial_ws_sampled
-        pairs    = [p_header, p_value_type, p_data, p_all_rows, p_has_index_col, p_get_child_node, ["data_quality_metrics", data_quality_metrics], ["type", "Table"], ["child_label", "row"], p_is_ssrm, p_requires_number_format]
+        pairs    = [p_header, p_value_type, p_data, p_all_rows, p_has_index_col, p_get_child_node, ["data_quality_metrics", data_quality_metrics], ["type", "Table"], ["child_label", "row"], p_is_ssrm, p_requires_number_format, p_table_version_hash]
         JS_Object.from_pairs pairs . to_text
     
     suite_builder.group "Table Visualization" group_builder->
@@ -167,7 +168,7 @@ add_specs suite_builder =
             space_table = Table.new [["A", space_data]]
             vis = Visualization.prepare_visualization space_table 1000
             value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
-            json = make_json header=["A"] data=Nothing all_rows=11000 value_type=[value_type_char] has_index_col=True get_child_node="get_row" is_ssrm=True number_of_nothing=[0] number_of_untrimmed_whitespace_sampled=[8267] number_non_trivial_ws_sampled=[0] requires_number_format=[False]
+            json = make_json header=["A"] data=Nothing all_rows=11000 value_type=[value_type_char] has_index_col=True get_child_node="get_row" is_ssrm=True number_of_nothing=[0] number_of_untrimmed_whitespace_sampled=[8267] number_non_trivial_ws_sampled=[0] requires_number_format=[False] table_version_hash=space_table.table_version_hash
             vis . should_equal json
 
         group_builder.specify "should indicate number of non trivial whitespace with sample if more than 10000 rows" <|
@@ -178,7 +179,7 @@ add_specs suite_builder =
             space_table = Table.new [["A", space_data]]
             vis = Visualization.prepare_visualization space_table 1000
             value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
-            json = make_json header=["A"] data=Nothing all_rows=11000 value_type=[value_type_char] has_index_col=True get_child_node="get_row" is_ssrm=True number_of_nothing=[0] number_of_untrimmed_whitespace_sampled=[3659] number_non_trivial_ws_sampled=[7285] requires_number_format=[False]
+            json = make_json header=["A"] data=Nothing all_rows=11000 value_type=[value_type_char] has_index_col=True get_child_node="get_row" is_ssrm=True number_of_nothing=[0] number_of_untrimmed_whitespace_sampled=[3659] number_non_trivial_ws_sampled=[7285] requires_number_format=[False] table_version_hash=space_table.table_version_hash
             vis . should_equal json
         
         group_builder.specify "should set required numerc formatting to true if one or more entry is greater than/ less than +/999999" <|

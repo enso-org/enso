@@ -320,6 +320,11 @@ export interface VCSSave {
   message: string
 }
 
+export type SuggestionDatabaseUpdates = {
+  updates: SuggestionsDatabaseUpdate[]
+  currentVersion: number
+}
+
 export type Notifications = {
   'text/autoSave': (param: { path: Path }) => void
   'text/didChange': (param: { edits: FileEdit[] }) => void
@@ -341,10 +346,7 @@ export type Notifications = {
     message: string
     diagnostic?: Diagnostic
   }) => void
-  'search/suggestionsDatabaseUpdates': (param: {
-    updates: SuggestionsDatabaseUpdate[]
-    currentVersion: number
-  }) => void
+  'search/suggestionsDatabaseUpdates': (param: SuggestionDatabaseUpdates) => void
   'file/event': (param: { path: Path; kind: FileEventKind }) => void
   'file/rootAdded': (param: object) => void
   'file/rootRemoved': (param: object) => void

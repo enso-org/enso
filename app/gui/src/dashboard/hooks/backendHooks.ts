@@ -1,11 +1,9 @@
 /** @file Hooks for interacting with the backend. */
 import {
   queryOptions,
-  useMutation,
   useMutationState,
   useQuery,
   useQueryClient,
-  useSuspenseQuery,
   type DefaultError,
   type Mutation,
   type MutationKey,
@@ -16,7 +14,6 @@ import {
   type UseQueryOptions,
   type UseQueryResult,
 } from '@tanstack/react-query'
-import invariant from 'tiny-invariant'
 
 import {
   backendQueryOptions as backendQueryOptionsBase,
@@ -32,7 +29,6 @@ import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import {
@@ -320,7 +316,7 @@ export function useListDirectoryRefetchInterval() {
 export interface ListDirectoryQueryOptions {
   readonly backend: Backend
   readonly filterBy?: FilterBy | null | undefined
-  readonly parentId: DirectoryId
+  readonly parentId: DirectoryId | null
   readonly category: Category
   /**
    * When using React, use {@link useListDirectoryRefetchInterval} to 0.
@@ -364,7 +360,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
             labels: null,
             recentProjects: category.type === 'recent',
           },
-          parentId,
+          parentId ?? '(unknown)',
         )
       } catch (error) {
         if (error instanceof Error) {
@@ -464,24 +460,6 @@ export function useBackendMutationState<Method extends BackendMutationMethod, Re
   })
 }
 
-/** Get the root directory ID given the current backend and category. */
-export function useRootDirectoryId(backend: Backend, category: Category) {
-  const { user } = useFullUserSession()
-  const { data: organization } = useSuspenseQuery({
-    queryKey: [backend.type, 'getOrganization'],
-    queryFn: () => backend.getOrganization(),
-  })
-  const [localRootDirectory] = useLocalStorageState('localRootDirectory')
-
-  const localRootPath = localRootDirectory != null ? backendModule.Path(localRootDirectory) : null
-  const id =
-    'homeDirectoryId' in category ?
-      category.homeDirectoryId
-    : backend.rootDirectoryId(user, organization, localRootPath)
-  invariant(id, 'Missing root directory')
-  return id
-}
-
 /** Return query data for the children of a directory, fetching it if it does not exist. */
 export function useEnsureListDirectory(backend: Backend, category: Category) {
   const queryClient = useQueryClient()
@@ -573,7 +551,9 @@ export function useNewProject(backend: Backend, category: Category) {
   const openProjectNatively = useOpenProjectNatively()
   const deleteAsset = useDeleteAsset(backend, category)
 
-  const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
+  const createProjectMutation = useMutationCallback(
+    backendMutationOptions(backend, 'createProject'),
+  )
 
   return useEventCallback(
     async (
@@ -602,15 +582,14 @@ export function useNewProject(backend: Backend, category: Category) {
 
       const placeholderItem = backendModule.createPlaceholderProjectAsset(projectName, parentId)
 
-      return await createProjectMutation
-        .mutateAsync([
-          {
-            parentDirectoryId: placeholderItem.parentId,
-            projectName: placeholderItem.title,
-            ...(templateId == null ? {} : { projectTemplateName: templateId }),
-            ...(datalinkId == null ? {} : { datalinkId: datalinkId }),
-          },
-        ])
+      return await createProjectMutation([
+        {
+          parentDirectoryId: placeholderItem.parentId,
+          projectName: placeholderItem.title,
+          ...(templateId == null ? {} : { projectTemplateName: templateId }),
+          ...(datalinkId == null ? {} : { datalinkId: datalinkId }),
+        },
+      ])
         .catch((error) => {
           void deleteAsset(placeholderItem.id, parentId)
           throw error
@@ -620,12 +599,13 @@ export function useNewProject(backend: Backend, category: Category) {
             id: createdProject.projectId,
             parentId: placeholderItem.parentId,
             title: createdProject.name,
-          }
+            ...(createdProject.ensoPath != null ? { ensoPath: createdProject.ensoPath } : {}),
+          } satisfies Partial<backendModule.ProjectAsset>
           if (runLocally) {
             // Open in background.
             void openProjectLocally(openProjectParams, backend.type)
           } else {
-            openProjectNatively(openProjectParams, backend.type)
+            void openProjectNatively(openProjectParams, backend.type)
           }
 
           return createdProject
@@ -634,46 +614,11 @@ export function useNewProject(backend: Backend, category: Category) {
   )
 }
 
-/** A function to create a new secret. */
-export function useNewSecret(backend: Backend) {
-  const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
-
-  return useEventCallback(async (name: string, value: string, parentId: DirectoryId) => {
-    const placeholderItem = backendModule.createPlaceholderSecretAsset(name, parentId)
-
-    return await createSecretMutation.mutateAsync([
-      {
-        parentDirectoryId: placeholderItem.parentId,
-        name: placeholderItem.title,
-        value: value,
-      },
-    ])
-  })
-}
-
-/** A function to create a new Datalink. */
-export function useNewDatalink(backend: Backend) {
-  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
-
-  return useEventCallback(async (name: string, value: unknown, parentId: DirectoryId) => {
-    const placeholderItem = backendModule.createPlaceholderDatalinkAsset(name, parentId)
-
-    return await createDatalinkMutation.mutateAsync([
-      {
-        parentDirectoryId: placeholderItem.parentId,
-        datalinkId: null,
-        name: placeholderItem.title,
-        value,
-      },
-    ])
-  })
-}
-
 /** Remove the user's own permission from an asset. */
 export function useRemoveSelfPermissionMutation(backend: Backend) {
   const { user } = useFullUserSession()
 
-  const createPermissionMutation = useMutation(
+  const createPermissionMutation = useMutationCallback(
     backendMutationOptions(backend, 'createPermission', {
       meta: {
         invalidates: [[backend.type, 'listDirectory']],
@@ -683,7 +628,7 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
   )
 
   const mutate = useEventCallback((id: AssetId) => {
-    createPermissionMutation.mutate([
+    void createPermissionMutation([
       {
         action: null,
         resourceId: id,
@@ -693,7 +638,7 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
   })
 
   const mutateAsync = useEventCallback(async (id: AssetId) => {
-    await createPermissionMutation.mutateAsync([
+    await createPermissionMutation([
       {
         action: null,
         resourceId: id,

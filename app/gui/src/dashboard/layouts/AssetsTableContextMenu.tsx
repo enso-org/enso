@@ -13,7 +13,6 @@ import {
   type Category,
   isCloudCategory,
 } from '#/layouts/CategorySwitcher/Category'
-import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
@@ -36,6 +35,7 @@ import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import { useMutation } from '@tanstack/react-query'
 import { twJoin } from '../utilities/tailwindMerge'
+import { GlobalContextMenu } from './GlobalContextMenu'
 
 /** Props for an {@link AssetsTableContextMenu}. */
 export interface AssetsTableContextMenuProps {
@@ -91,7 +91,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       ) ?
         pasteData
       : null
-    return (effectivePasteData?.data.ids.size ?? 0) > 0
+    return (effectivePasteData?.data.assets.length ?? 0) > 0
   })
 
   // This is not a React component even though it contains JSX.
@@ -120,7 +120,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
               getText('deleteSelectedAssetActionText', soleAssetName)
             : getText('deleteSelectedAssetsActionText', selectedIds.length)
           }
-          doDelete={deleteAll}
+          onConfirm={deleteAll}
         />,
       )
     }
@@ -167,7 +167,10 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             label={getText('restoreAllFromTrashShortcut')}
             doAction={() => {
               unsetModal()
-              restoreAssetsMutation.mutate(selectedAssets.map((asset) => asset.id))
+              restoreAssetsMutation.mutate({
+                ids: selectedAssets.map((asset) => asset.id),
+                parentId: null,
+              })
             }}
           />
           <ContextMenuEntry
@@ -185,7 +188,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                       getText('deleteSelectedAssetForeverActionText', soleAssetName)
                     : getText('deleteSelectedAssetsForeverActionText', selectedAssets.length)
                   }
-                  doDelete={async () => {
+                  onConfirm={async () => {
                     setSelectedAssets([])
                     await deleteAssetsMutation.mutateAsync([
                       selectedAssets.map((otherAsset) => otherAsset.id),

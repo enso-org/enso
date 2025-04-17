@@ -57,13 +57,13 @@ add_specs (suite_builder : Suite_Builder) setup (prefix : Text) default_connecti
 
         group_builder.specify "should be able to traverse a Query to reconstruct it" <|
             col = data.t1 . at "a"
-            a = col.round * col.round use_bankers=True
+            a = col.round * col.round rounding_mode=Rounding_Mode.Bankers
             a_query = a.to_table.to_select_query
             a_query.traverse (x->x) . should_equal a_query
 
         group_builder.specify "should be able to traverse a Query to count nodes" <|
             col = data.t1 . at "a"
-            a = col.round * col.round use_bankers=True
+            a = col.round * col.round rounding_mode=Rounding_Mode.Bankers
             a_sub = (a . rename "p" . to_table . as_subquery . at "p")
             b = a_sub * a_sub
             b_sub = (b . rename "p" . to_table . as_subquery . at "p")
@@ -85,8 +85,8 @@ add_specs (suite_builder : Suite_Builder) setup (prefix : Text) default_connecti
                 ## Complex query that optionally enables let bindings at each step
                 big = wm b0 (x * y) xty->
                     wm b1 (x + y + 10) xpyp10->
-                        wm b2 (xty.round 1 use_bankers=True) r0->
-                            wm b3 (xpyp10.round use_bankers=True) r1->
+                        wm b2 (xty.round 1 rounding_mode=Rounding_Mode.Bankers) r0->
+                            wm b3 (xpyp10.round rounding_mode=Rounding_Mode.Bankers) r1->
                                 r0 + r1
                 big.to_vector
             results.flatten.flatten.flatten.distinct.length . should_equal 1

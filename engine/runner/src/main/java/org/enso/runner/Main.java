@@ -32,10 +32,12 @@ import org.enso.common.ContextFactory;
 import org.enso.common.DebugServerInfo;
 import org.enso.common.HostEnsoUtils;
 import org.enso.common.LanguageInfo;
+import org.enso.common.Platform;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.editions.DefaultEdition;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
+import org.enso.os.environment.chdir.WorkingDirectory;
 import org.enso.pkg.Contact;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.PackageManager$;
@@ -50,6 +52,7 @@ import org.enso.runner.common.ProfilingConfig;
 import org.enso.runner.common.WrongOption;
 import org.enso.version.BuildVersion;
 import org.enso.version.VersionDescription;
+import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.PolyglotException.StackFrame;
 import org.graalvm.polyglot.SourceSection;
@@ -637,7 +640,7 @@ public class Main {
   /**
    * Handles the `--compile` CLI option.
    *
-   * @param packagePath the path to the package being compiled
+   * @param path the path to the package or file being compiled
    * @param shouldCompileDependencies whether the dependencies of that package should also be
    *     compiled
    * @param shouldUseGlobalCache whether or not the compilation result should be written to the
@@ -648,22 +651,25 @@ public class Main {
    * @param logMasking whether or not log masking is enabled
    */
   private void compile(
-      String packagePath,
+      String path,
       boolean shouldCompileDependencies,
       boolean shouldUseGlobalCache,
       boolean shouldUseIrCaches,
       boolean enableStaticAnalysis,
       Level logLevel,
-      boolean logMasking) {
-    var file = new File(packagePath);
-    if (!file.exists() || !file.isDirectory()) {
-      throw exitFail("No package exists at " + file + ".");
+      boolean logMasking)
+      throws IOException {
+    var fileAndProject = Utils.findFileAndProject(path, null);
+    if (fileAndProject == null) {
+      throw exitFail("No package exists at " + path + ".");
     }
 
+    boolean isProjectMode = fileAndProject._1();
+    String projectPath = fileAndProject._3();
     var context =
         new PolyglotContext(
             ContextFactory.create()
-                .projectRoot(packagePath)
+                .projectRoot(projectPath)
                 .in(System.in)
                 .out(System.out)
                 .logLevel(logLevel)
@@ -674,9 +680,13 @@ public class Main {
                 .useGlobalIrCacheLocation(shouldUseGlobalCache)
                 .build());
 
-    var topScope = context.getTopScope();
     try {
-      topScope.compile(shouldCompileDependencies, scala.Option.empty());
+      if (isProjectMode) {
+        var topScope = context.getTopScope();
+        topScope.compile(shouldCompileDependencies, scala.Option.empty());
+      } else {
+        context.evalModule(fileAndProject._2());
+      }
       throw exitSuccess();
     } catch (Throwable t) {
       logger.error("Unexpected internal error", t);
@@ -1141,13 +1151,12 @@ public class Main {
       var packagePath = line.getOptionValue(COMPILE_OPTION);
       var shouldCompileDependencies = !line.hasOption(NO_COMPILE_DEPENDENCIES_OPTION);
       var shouldUseGlobalCache = !line.hasOption(NO_GLOBAL_CACHE_OPTION);
-      var shouldUseIrCaches = !line.hasOption(NO_IR_CACHES_OPTION);
 
       compile(
           packagePath,
           shouldCompileDependencies,
           shouldUseGlobalCache,
-          shouldUseIrCaches,
+          shouldEnableIrCaches(line),
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
           logLevel,
           logMasking);
@@ -1205,7 +1214,21 @@ public class Main {
    * @param line the command-line
    * @return `true` if caching should be enabled, `false`, otherwise
    */
-  private static boolean shouldEnableIrCaches(CommandLine line) {
+  private boolean shouldEnableIrCaches(CommandLine line) {
+    // Temporarily, enabling static analysis disables IR caches.
+    if (line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION)) {
+      if (line.hasOption(IR_CACHES_OPTION)) {
+        throw exitFail(
+            "Currently --"
+                + ENABLE_STATIC_ANALYSIS_OPTION
+                + " requires IR caches to be disabled, so --"
+                + IR_CACHES_OPTION
+                + " option cannot be used in combination with this flag.");
+      }
+
+      return false;
+    }
+
     if (line.hasOption(IR_CACHES_OPTION)) {
       return true;
     } else if (line.hasOption(NO_IR_CACHES_OPTION)) {
@@ -1448,6 +1471,10 @@ public class Main {
   private void launch(String[] args) throws IOException, InterruptedException, URISyntaxException {
     var line = preprocessArguments(args);
 
+    if (line.hasOption(RUN_OPTION)) {
+      maybeChangeWorkingDirToProjectRoot(line.getOptionValue(RUN_OPTION));
+    }
+
     var logMasking = new boolean[1];
     var logLevel = setupLogging(line, logMasking);
     var props = parseSystemProperties(line);
@@ -1511,6 +1538,68 @@ public class Main {
     } catch (Exception e) {
       printHelp();
       throw exitFail(e.getMessage());
+    }
+  }
+
+  /**
+   * This method has to be called as early as possible. It attempts to find the project root
+   * directory of the given file, and if the project root is found, it uses native code to change
+   * the working directory to the project root. In order for the JVM's {@code java.io} to reflect
+   * the working directory change, this methods must be called before any class from {@code java.io}
+   * is accessed.
+   *
+   * <p>Note that invoking native code is the only reliable way to change the working directory in
+   * the current process.
+   *
+   * <p>For detailed explanation see this <a
+   * href="https://github.com/enso-org/enso/pull/12618#issuecomment-2778451448">GH comment</a>.
+   *
+   * @param fileToRun the file to run, value of the {@code --run} option.
+   */
+  private void maybeChangeWorkingDirToProjectRoot(String fileToRun) {
+    assert fileToRun != null;
+    if (!ImageInfo.inImageRuntimeCode()) {
+      return;
+    }
+    var projectRoot = findProjectRoot(fileToRun);
+    var nativeApi = WorkingDirectory.getInstance();
+    if (projectRoot != null) {
+      var parentDir = parentFile(projectRoot);
+      assert parentDir != null;
+      var curDir = nativeApi.currentWorkingDir();
+      if (!parentDir.equals(curDir)) {
+        var dirChanged = nativeApi.changeWorkingDir(parentDir);
+        if (!dirChanged) {
+          logger.error("Cannot change working directory to {}", parentDir);
+        }
+      }
+    }
+  }
+
+  /**
+   * Attempts to find project root directory. Does not use anything from {@code java.io} on purpose.
+   *
+   * @return null if project root was not found, a canonical path otherwise.
+   */
+  private static String findProjectRoot(String path) {
+    var nativeApi = WorkingDirectory.getInstance();
+    String curPath = path;
+    while (curPath != null) {
+      if (nativeApi.exists(curPath, "package.yaml") && nativeApi.exists(curPath, "src")) {
+        return curPath;
+      }
+      curPath = parentFile(curPath);
+    }
+    return null;
+  }
+
+  private static String parentFile(String path) {
+    var separatorChar = Platform.separatorChar();
+    var lastSlash = path.lastIndexOf(separatorChar);
+    if (lastSlash == -1) {
+      return null;
+    } else {
+      return path.substring(0, lastSlash);
     }
   }
 
