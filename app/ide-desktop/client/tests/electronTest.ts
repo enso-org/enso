@@ -39,7 +39,7 @@ export const test = base.extend<{
   page: Page
 }>({
   testRunId: async function ({}, use, testInfo) {
-    await use(`${testInfo.testId}-${new Date().toISOString()}`)
+    await use(`${testInfo.testId}-${Date.now()}`)
   },
   projectsDir: async function ({ testRunId }, use) {
     const projectsDir = path.join(os.tmpdir(), 'enso-test-projects', testRunId)
