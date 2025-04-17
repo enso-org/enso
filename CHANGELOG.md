@@ -189,7 +189,7 @@
 - [Registering a value as multiple managed resources is now an error.][12395]
 - [An operator block now applies to the whole preceding expression][12505],
   rather than the last term on the line.
-- [Upgrade GraalVM to from JDK 21 to JDK 24][12855]
+- [Upgrade GraalVM from JDK 21 to JDK 24][12855]
 
 [11777]: https://github.com/enso-org/enso/pull/11777
 [11600]: https://github.com/enso-org/enso/pull/11600
