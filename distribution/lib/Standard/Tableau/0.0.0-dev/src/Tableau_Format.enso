@@ -75,4 +75,5 @@ type Tableau_Format
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
     write_table self file table on_existing_file match_columns on_problems:Problem_Behavior =
         is_dry_run = Context.Output.is_enabled.not
-        if is_dry_run.not then HyperReader.writeTable file.file.path table.java_table
+        if is_dry_run then file.file.create_dry_run_file else
+            HyperReader.writeTable file.file.path table.java_table

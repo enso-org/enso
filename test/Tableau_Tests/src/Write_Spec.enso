@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Runtime.Context
+import Standard.Base.Errors.Common.Dry_Run_Operation
 
 from Standard.Table import all
 from Standard.Tableau import Hyper_File
@@ -65,10 +66,11 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         t2 = t1.remove_columns 'appointment_datetime_datetime_withtimezone'
         can_round_trip t2
 
-    group_builder.specify "in dry run mode file should not be written" <|
+    group_builder.specify "in dry run mode file should not be written and warns" <|
         Context.Output.with_disabled <|
             written_file = get_temp_file
             t = Table.input [['A', ['a']]]
-            dry_written_file = t.write written_file
+            result = t.write written_file
             written_file.exists.should_equal False
+            Problems.expect_only_warning Dry_Run_Operation result
             ## Hyper_File.new dry_written_file . tables . first . should_equal t
