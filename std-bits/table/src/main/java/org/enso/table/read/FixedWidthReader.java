@@ -47,7 +47,8 @@ public class FixedWidthReader {
     this.invalidRowsBehavior = invalidRowsBehavior;
     this.valueParser = valueParser;
     this.problemAggregator =
-        new FixedWidthReaderProblemAggregator(problemAggregator, invalidRowsBehavior, warningsAsErrors);
+        new FixedWidthReaderProblemAggregator(
+            problemAggregator, invalidRowsBehavior, warningsAsErrors);
 
     minimumLineLength = layoutEntries.get(layoutEntries.size() - 1).end();
   }

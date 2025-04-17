@@ -13,7 +13,10 @@ public class FixedWidthReaderProblemAggregator extends ProblemAggregator {
   private final long invalidRowsLimit = 10;
   private boolean inconsistentLineLengths = false;
 
-  public FixedWidthReaderProblemAggregator(ProblemAggregator parent, InvalidFixedWidthRowsBehavior invalidRowsBehavior, boolean warningsAsErrors) {
+  public FixedWidthReaderProblemAggregator(
+      ProblemAggregator parent,
+      InvalidFixedWidthRowsBehavior invalidRowsBehavior,
+      boolean warningsAsErrors) {
     super(parent);
     this.invalidRowsBehavior = invalidRowsBehavior;
     this.warningsAsErrors = warningsAsErrors;
@@ -31,7 +34,8 @@ public class FixedWidthReaderProblemAggregator extends ProblemAggregator {
   public void reportShortLine(
       long sourceLineNumber, Long tableRowNumber, long lineLength, long minimumLineLength) {
     if (invalidRowsCount < invalidRowsLimit) {
-      var tableRowNumberMaybe = invalidRowsBehavior == InvalidFixedWidthRowsBehavior.KEEP ? tableRowNumber : null;
+      var tableRowNumberMaybe =
+          invalidRowsBehavior == InvalidFixedWidthRowsBehavior.KEEP ? tableRowNumber : null;
       report(
           new InvalidFixedWidthRow(
               sourceLineNumber, tableRowNumberMaybe, lineLength, minimumLineLength));
