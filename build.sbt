@@ -5752,10 +5752,11 @@ lintEnso := {
     for (proj <- toLint)
       yield {
         val path = proj.toAbsolutePath.toString
-        log.debug(s"Linting $path")
+        log.info(s"Linting $path")
         DistributionPackage.runEnginePackage(
           engineDistributionRoot.value,
           Seq(
+            "--jvm",
             "--compile",
             path,
             "--enable-static-analysis",
@@ -5767,7 +5768,7 @@ lintEnso := {
   val failedProjects = results.count(_ == false)
   if (failedProjects > 0) {
     throw new RuntimeException(
-      s"Lint failed due to ${failedProjects} with warnings or errors."
+      s"Lint failed due to ${failedProjects} projects with warnings or errors."
     )
   }
 }
