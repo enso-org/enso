@@ -16,7 +16,7 @@ import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
-import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Replace_Params.Replace_Params
@@ -48,7 +48,7 @@ type Dialect
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
-    generate_sql : Query -> SQL_Statement
+    generate_sql : SQL_IR_Statement -> SQL_Statement
     generate_sql self query =
         _ = [query]
         Unimplemented.throw "This is an interface only."
@@ -287,7 +287,7 @@ type Dialect
        Generates a expression for use in the SELECT OR WHERE clause. 
        Used for databases where the expression syntax is different in the SELECT clause 
        to the syntax in the WHERE clause
-    generate_expression self base_gen expr:(SQL_Expression | Order_Descriptor | Query) for_select:Boolean -> SQL_Builder =
+    generate_expression self base_gen expr:(SQL_Expression | Order_Descriptor | SQL_IR_Statement) for_select:Boolean -> SQL_Builder =
         _ = [base_gen, expr, for_select]
         Unimplemented.throw "This is an interface only."
 

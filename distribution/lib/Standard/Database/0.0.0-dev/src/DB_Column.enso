@@ -26,7 +26,7 @@ import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
 import project.Internal.Helpers
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.Replace_Params.Replace_Params
@@ -1841,7 +1841,7 @@ type DB_Column
                 result.rename new_name
             _ : Array -> self.is_in (Vector.from_polyglot_array vector)
             column : DB_Column -> if Helpers.check_connection self column . not then (Error.throw (Integrity_Error.Error "DB_Column "+column.name)) else
-                in_subquery = Query.Select [Pair.new column.name column.expression] column.context
+                in_subquery = SQL_IR_Statement.Select [Pair.new column.name column.expression] column.context
                 new_expr = SQL_Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery]
                 # This mapping should never be imprecise, if there are errors we need to amend the implementation.
                 sql_type = self.connection.dialect.get_type_mapping.value_type_to_sql Value_Type.Boolean Problem_Behavior.Report_Error

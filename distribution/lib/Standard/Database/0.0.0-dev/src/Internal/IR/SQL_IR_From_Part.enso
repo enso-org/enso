@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
@@ -78,7 +78,7 @@ type SQL_IR_From_Part
          from the first query.
        - alias: the name for the consolidated query, to be used by column
          references, referring to columns of the union.
-    Union (queries : Vector Query) (alias : Text)
+    Union (queries : Vector SQL_IR_Statement) (alias : Text)
 
     ## PRIVATE
 

@@ -67,7 +67,7 @@ import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
-import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
@@ -2054,7 +2054,7 @@ type DB_Table
                                             dialect.make_cast null_column sql_type infer_return_type
                             pairs = columns_to_select.map c->
                                 [c.name, c.expression]
-                            Query.Select pairs t.context
+                            SQL_IR_Statement.Select pairs t.context
 
                         table_name_deduplicator = self.connection.base_connection.table_naming_helper.create_unique_name_strategy
                         table_name_deduplicator.mark_used (all_tables.map .name)
@@ -2693,7 +2693,7 @@ type DB_Table
            one.
         setup = self.context.as_subquery self.name [[self.internal_columns.first]]
         new_ctx = SQL_IR_Source.for_subquery setup.subquery
-        query = Query.Select [[column_name, expr]] new_ctx
+        query = SQL_IR_Statement.Select [[column_name, expr]] new_ctx
         sql = self.connection.dialect.generate_sql query
         table = self.connection.read_statement sql
         table.at column_name . at 0
@@ -2734,11 +2734,11 @@ type DB_Table
 
     ## PRIVATE
        Creates a query corresponding to this table.
-    to_select_query : Query
+    to_select_query : SQL_IR_Statement
     to_select_query self =
         cols = self.internal_columns.map (c -> [c.name, c.expression])
         assert cols.not_empty
-        Query.Select cols self.context
+        SQL_IR_Statement.Select cols self.context
 
     ## ICON convert
        Returns an SQL statement that will be used for materializing this table.
@@ -2762,7 +2762,7 @@ type DB_Table
             new_ctx = SQL_IR_Source.for_subquery setup.subquery
             new_columns = setup.new_columns.first.map column->
                 [column.name, SQL_Expression.Operation "COUNT" [column.expression]]
-            query = Query.Select new_columns new_ctx
+            query = SQL_IR_Statement.Select new_columns new_ctx
             self.connection.dialect.generate_sql query
         count_table = self.connection.read_statement count_query
         counts = if cols.is_empty then [] else count_table.columns.map c-> c.at 0

@@ -4,7 +4,6 @@ import Standard.Base.Runtime.Ref.Ref
 
 import project.Connection.Connection.Connection
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
-import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.SQL_Type.SQL_Type
 

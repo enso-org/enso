@@ -25,7 +25,7 @@ import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
-import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
@@ -73,7 +73,7 @@ type Postgres_Dialect
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
-    generate_sql : Query -> SQL_Statement
+    generate_sql : SQL_IR_Statement -> SQL_Statement
     generate_sql self query =
         Base_Generator.generate_query self query . build
 
@@ -370,7 +370,7 @@ type Postgres_Dialect
         False
 
     ## PRIVATE
-    generate_expression self base_gen expr:(SQL_Expression | Order_Descriptor | Query) for_select:Boolean -> SQL_Builder =
+    generate_expression self base_gen expr:(SQL_Expression | Order_Descriptor | SQL_IR_Statement) for_select:Boolean -> SQL_Builder =
         _ = for_select
         base_gen.generate_expression self expr
 
