@@ -54,6 +54,12 @@ type Fixed_Width_Format
 
              descs = [Fixed_Width_Column_Description.Start_And_Width "a" 0 4, Fixed_Width_Column_Description.Width "b" 1]
              layout = Fixed_Width_Layout.from_descriptions descs
+
+       > Example
+         Specify a column layout using a `Table`.
+
+             table = Table.input [['x', [0, Nothing, Nothing, Nothing]], ['y', [4, 1, 3, 3]]]
+             layout = table : Fixed_Width_Layout
     Fixed_Width (layout:Fixed_Width_Layout) (encoding:Encoding=Encoding.default) (on_invalid_rows:Invalid_Fixed_Width_Rows=..Keep_Invalid_Rows) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value)
 
     ## PRIVATE
