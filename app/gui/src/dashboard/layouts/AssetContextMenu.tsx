@@ -219,8 +219,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             hidden={hidden}
             action="useInNewProject"
             doAction={() => {
-              console.log(asset)
-              void newProject({ templateName: asset.title, datalinkId: asset.id }, asset.parentId)
+              void newProject({ templateName: asset.title, ensoPath: asset.ensoPath }, asset.parentId)
             }}
           />
         )}
