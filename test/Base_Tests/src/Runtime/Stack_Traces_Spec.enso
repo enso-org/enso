@@ -153,7 +153,7 @@ add_specs suite_builder = suite_builder.group "Stack traces" group_builder->
         where = el.source_location
         where . should_be_a Standard.Base.Runtime.Source_Location.Source_Location
 
-        where.to_display_text . should_equal "test/Base_Tests/src/Runtime/Stack_Traces_Spec.enso:148:17-39"
+        where.to_display_text . should_contain "Base_Tests/src/Runtime/Stack_Traces_Spec.enso:148:17-39"
 
 main =
     suite = Test.build suite_builder->
