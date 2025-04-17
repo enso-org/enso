@@ -807,7 +807,7 @@ rm dist/backend/project-manager.tar"
                     prepare_packaging_steps(target.0, step, PackagingTarget::Development);
                 steps.append(&mut packaging_steps);
 
-                const TEST_COMMAND: &str = "corepack pnpm -r --filter enso exec playwright test";
+                const TEST_COMMAND: &str = "corepack pnpm -r --filter enso ide-integration-test";
                 let test_step = match target.0 {
                     OS::Linux => shell(format!("xvfb-run {TEST_COMMAND}"))
                         // See https://askubuntu.com/questions/1512287/obsidian-appimage-the-suid-sandbox-helper-binary-was-found-but-is-not-configu
@@ -843,6 +843,8 @@ rm dist/backend/project-manager.tar"
                 };
                 steps.push(upload_test_traces_step);
 
+                steps.push(shell(format!("corepack pnpm -r --filter enso ide-build-chromatic")));
+
                 let upload_chromatic_step = Step {
                     name: Some("Upload Chromatic snapshots".into()),
                     uses: Some("chromaui/action@v11".into()),
@@ -851,7 +853,7 @@ rm dist/backend/project-manager.tar"
                             "projectToken".into(),
                             "${{ secrets.ELECTRON_IDE_CHROMATIC_PROJECT_TOKEN }}".into(),
                         ),
-                        ("playwright".into(), true.into()),
+                        ("storybookBuildDir".into(), "storybook-static".into()),
                         ("workingDir".into(), "app/ide-desktop/client".into()),
                     ]))),
                     ..Default::default()
