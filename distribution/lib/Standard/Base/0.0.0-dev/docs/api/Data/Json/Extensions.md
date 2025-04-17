@@ -21,6 +21,8 @@
 - Standard.Base.Nothing.Nothing.to_js_object self -> Standard.Base.Any.Any
 - Standard.Base.Data.Numbers.Number.to_js_object self -> Standard.Base.Any.Any
 - Standard.Base.Data.Numbers.Number.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Runtime.Source_Location.Source_Location.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Runtime.Source_Location.Source_Location.to_js_object self -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.parse_fast_json self -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.parse_fast_json self -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.to_js_object self -> Standard.Base.Any.Any
