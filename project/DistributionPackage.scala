@@ -327,6 +327,27 @@ object DistributionPackage {
     }
   }
 
+  private def reduceArgs(
+    args: java.util.List[String],
+    jvmOptName: String,
+    envToFill: java.util.Map[String, String]
+  ): Unit = {
+    var prevValue = System.getenv(jvmOptName)
+    if (prevValue == null) {
+      prevValue = "-ea";
+    }
+
+    val at = args.indexOf("--debug")
+    if (at >= 0) {
+      args.set(at, "--jvm")
+      val newValue =
+        prevValue + " " + WithDebugCommand.DEBUG_OPTION
+      envToFill.put(jvmOptName, newValue)
+    } else {
+      envToFill.put(jvmOptName, prevValue)
+    }
+  }
+
   def runEnginePackage(
     distributionRoot: File,
     args: Seq[String],
@@ -349,27 +370,9 @@ object DistributionPackage {
       case None => false
     }
 
-    val runArgumentAsFile = runArgument.flatMap(createFileIfValidPath)
-    val projectDirectory  = runArgumentAsFile.flatMap(findProjectRoot)
-    val cwdOverride: Option[File] =
-      projectDirectory.flatMap(findParentFile).map(_.getAbsoluteFile)
-
     all.add(enso.getAbsolutePath)
     all.addAll(args.asJava)
-    // Override the working directory of new process to be the parent of the project directory.
-    cwdOverride.foreach { c =>
-      pb.directory(c)
-    }
-    if (cwdOverride.isDefined) {
-      // If the working directory is changed, we need to translate the path - make it absolute.
-      all.set(runArgumentIndex.get + 1, runArgumentAsFile.get.getAbsolutePath)
-    }
-    if (args.contains("--debug")) {
-      all.remove("--debug")
-      pb.environment().put("JAVA_OPTS", "-ea " + WithDebugCommand.DEBUG_OPTION)
-    } else {
-      pb.environment().put("JAVA_OPTS", "-ea")
-    }
+    reduceArgs(all, "JAVA_OPTS", pb.environment)
     if (disablePrivateCheck) {
       all.add("--disable-private-check")
     }
@@ -426,21 +429,6 @@ object DistributionPackage {
     }
   }
 
-  /** Returns a file, only if the provided string represented a valid path. */
-  private def createFileIfValidPath(path: String): Option[File] =
-    Try(new File(path)).toOption
-
-  /** Looks for a parent directory that contains `package.yaml`. */
-  private def findProjectRoot(file: File): Option[File] =
-    if (file.isDirectory && (file / "package.yaml").exists()) {
-      Some(file)
-    } else {
-      findParentFile(file).flatMap(findProjectRoot)
-    }
-
-  private def findParentFile(file: File): Option[File] =
-    Option(file.getParentFile)
-
   def runProjectManagerPackage(
     engineRoot: File,
     distributionRoot: File,
@@ -472,10 +460,7 @@ object DistributionPackage {
     pb.command(all)
     pb.environment().put("ENSO_ENGINE_PATH", engineRoot.toString())
     pb.environment().put("ENSO_JVM_PATH", System.getProperty("java.home"))
-    if (args.contains("--debug")) {
-      all.remove("--debug")
-      pb.environment().put("ENSO_JVM_OPTS", WithDebugCommand.DEBUG_OPTION)
-    }
+    reduceArgs(all, "ENSO_JVM_OPTS", pb.environment)
     pb.inheritIO()
     val p        = pb.start()
     val exitCode = p.waitFor()

@@ -19,12 +19,23 @@ import type {
   SetFilterValuesFuncParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
-import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
+import {
+  ComponentInstance,
+  computed,
+  onMounted,
+  ref,
+  shallowRef,
+  watch,
+  watchEffect,
+  type Ref,
+} from 'vue'
+import { ComponentExposed } from 'vue-component-type-helpers'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import {
   convertFilterModel,
   convertSortModel,
-  createExpressionTemplate,
+  createDistinctExpressionTemplate,
+  createExpressionRowTemplate,
 } from './TableVisualization/TableVizDataSourceUtils'
 import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
@@ -106,6 +117,7 @@ interface UnknownTable {
   data_quality_metrics?: DataQualityMetric[]
   is_using_server_sort_and_filter: boolean
   requires_number_format: boolean[]
+  table_version_hash?: string
 }
 
 type DataQualityMetric = {
@@ -154,20 +166,42 @@ const defaultColDef: Ref<ColDef> = ref({
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
+const nodeType = ref<string | undefined>(undefined)
+const grid = ref<
+  ComponentInstance<typeof AgGridTableView> & ComponentExposed<typeof AgGridTableView>
+>()
 const allRowCount = computed(() =>
   typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
 )
+
+const tableVersionHash = computed(() =>
+  typeof props.data === 'object' && 'table_version_hash' in props.data ?
+    props.data.table_version_hash
+  : null,
+)
+
 const isSSRM = computed(
   () =>
     typeof props.data === 'object' &&
     'is_using_server_sort_and_filter' in props.data &&
     props.data.is_using_server_sort_and_filter,
 )
+
+const ssrmServer = computed(() => {
+  return isSSRM.value && createServer()
+})
+
+const refreshDataSource = ref(0)
+const ssrmDatasource = computed(() => {
+  const value = refreshDataSource.value
+  return isSSRM.value && createServerSideDatasource()
+})
+
 const statusBar = computed(() =>
   allRowCount.value ?
     {
       statusPanels:
-        config.nodeType === TABLE_NODE_TYPE ?
+        config.nodeType === TABLE_NODE_TYPE || config.nodeType === COLUMN_NODE_TYPE ?
           [
             {
               statusPanel: TableVizStatusBar,
@@ -180,6 +214,19 @@ const statusBar = computed(() =>
     }
   : null,
 )
+
+// if there are upstream updates only to the row information the table version hash change indicates the grid needs to re get rows for any potetial changes
+watch(tableVersionHash, () => {
+  refreshDataSource.value++
+})
+
+watchEffect(() => {
+  // if the column definitions remain the same but there has been updates upstream ag grid doesn't know to change its row model or to fetch new data
+  if (nodeType.value != config.nodeType) {
+    grid.value?.forceGridRefresh()
+    nodeType.value = config.nodeType
+  }
+})
 
 const textFormatterSelected = ref<TextFormatOptions>('partial')
 
@@ -264,20 +311,22 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
   const colName = params.colDef.field
   if (typeof props.data === 'object' && 'header' in props.data) {
     const index = props.data.header?.findIndex((h: string) => colName === h)
-    const server = createServer()
-    const response = await server.getSetFilterValues(index)
-    setTimeout(() => {
+    const server = ssrmServer.value
+    if (server) {
+      const response = await server.getSetFilterValues(index)
       if (response.success) {
         params.success(response.data)
       }
-    }, 500)
+    }
   }
 }
+
+const attepmtedCalls = ref(0)
 
 function createServer() {
   return {
     getSetFilterValues: async (columnIndex?: number) => {
-      const expressionFunction = createExpressionTemplate(
+      const expressionFunction = createDistinctExpressionTemplate(
         'Standard.Visualization.Table.Visualization',
         'get_distinct_values_for_column',
         `${columnIndex}`,
@@ -290,40 +339,52 @@ function createServer() {
     },
     getData: async (request: IServerSideGetRowsRequest) => {
       const columnHeaders =
-        typeof props.data === 'object' && 'header' in props.data ?
-          props.data.header ?
-            props.data.header
-          : []
-        : []
+        typeof props.data === 'object' && 'header' in props.data ? (props.data.header ?? []) : []
 
       const { sortColIndexes, sortDirections } = convertSortModel(request, columnHeaders)
-
       const { filterColumnIndexList, filterActions, valueList } = convertFilterModel(
         request,
         columnHeaders,
         colTypeMap.value,
       )
 
-      const expressionFunction = createExpressionTemplate(
+      const expressionFunction = createExpressionRowTemplate(
         'Standard.Visualization.Table.Visualization',
         'get_rows_for_table',
         //the index of the next bucket of rows to get
         `${request.startRow}`,
         //column indexes that require a sort
-        sortColIndexes,
+        sortColIndexes as string[] | 'Nothing',
         //direction (Ascending/Descending) for the sorts
-        sortDirections,
+        sortDirections as string[] | 'Nothing',
         //column indexes that require a filter
-        filterColumnIndexList,
+        filterColumnIndexList as string[] | 'Nothing',
         //column actions i.e Greater Than, Between...
-        filterActions,
+        filterActions as string[] | 'Nothing',
         //values to filter on
-        valueList,
+        valueList as string[] | 'Nothing',
       )
+
       const response = await config.executeExpression(expressionFunction)
-      return {
-        success: true,
-        data: response.value.rows,
+
+      if (response.ok) {
+        return {
+          success: true,
+          data: response.value.rows,
+          rowCount: response.value.row_count,
+        }
+      } else {
+        if (attepmtedCalls.value < 3) {
+          grid.value?.gridApi?.refreshServerSide({ purge: true })
+          attepmtedCalls.value++
+          return
+        }
+        console.error('Error loading rows:', response.error)
+        return {
+          success: false,
+          data: null,
+          rowCount: undefined,
+        }
       }
     },
   }
@@ -332,20 +393,23 @@ function createServer() {
 interface Response {
   data: unknown[][]
   success: boolean
+  rowCount: number
 }
 function createServerSideDatasource(): IServerSideDatasource {
   return {
     getRows: async (params) => {
-      const server = createServer()
-      const response: Response = await server.getData(params.request)
-      const rows = createRowsForTable(response.data, 0, true)
-      setTimeout(() => {
+      const server = ssrmServer.value
+      if (server) {
+        const serverResponse = await server.getData(params.request)
+        const response: Response =
+          serverResponse ? serverResponse : { data: [], success: false, rowCount: 0 }
         if (response.success) {
-          params.success({ rowData: rows })
+          const rows = createRowsForTable(response.data, 0, true)
+          params.success({ rowData: rows, rowCount: response.rowCount })
         } else {
           params.fail()
         }
-      }, 500)
+      }
     },
   }
 }
@@ -430,7 +494,7 @@ function getFilterType(valueType: string) {
 
 function getFilterOptions(valueType: string) {
   if (valueType === 'Date') {
-    return ['equals', 'notEqual', 'greaterThan', 'lessThan']
+    return ['equals', 'notEqual', 'greaterThan', 'lessThan', 'inRange', 'blank', 'notBlank']
   } else if (isNumericType(valueType)) {
     return [
       'equals',
@@ -439,9 +503,12 @@ function getFilterOptions(valueType: string) {
       'greaterThanOrEqual',
       'lessThan',
       'lessThanOrEqual',
+      'inRange',
+      'blank',
+      'notBlank',
     ]
   } else if (valueType === 'Char') {
-    return ['equals', 'notEqual', 'contains', 'startsWith', 'endsWith']
+    return ['equals', 'notEqual', 'contains', 'startsWith', 'endsWith', 'blank', 'notBlank']
   } else {
     return null
   }
@@ -594,7 +661,10 @@ function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef 
       params.node?.rowPinned === 'top' ?
         null
       : `Double click to view this ${tooltipValue ?? 'value'} in a separate component`,
-    cellRenderer: (params: ICellRendererParams) => `<div class='link'> ${params.value} </div>`,
+    cellRenderer: (params: ICellRendererParams) =>
+      params.value !== null && params.value !== undefined ?
+        `<div class='link'> ${params.value} </div>`
+      : null,
     filter: fieldName != INDEX_FIELD_NAME,
   }
 }
@@ -744,9 +814,17 @@ watchEffect(() => {
           ...dataHeader,
         ]
       : dataHeader
+
     if (!data_.is_using_server_sort_and_filter) {
+      const hasIndexRow =
+        config.nodeType === TABLE_NODE_TYPE ||
+        config.nodeType === COLUMN_NODE_TYPE ||
+        config.nodeType === DB_TABLE_NODE_TYPE
+      const shift = hasIndexRow ? 1 : 0
       rowData.value =
-        data_.data ? createRowsForTable(data_.data, 1, data_.is_using_server_sort_and_filter) : []
+        data_.data ?
+          createRowsForTable(data_.data, shift, data_.is_using_server_sort_and_filter)
+        : []
     }
   }
   const headerGroupingMap = new Map()
@@ -956,15 +1034,17 @@ config.setToolbar(
      suspense), but for some reason it causes reactivity loop - see https://github.com/enso-org/enso/issues/10782 -->
     <Suspense>
       <AgGridTableView
+        ref="grid"
         class="scrollable grid"
         :columnDefs="columnDefs"
         :rowData="rowData"
         :defaultColDef="defaultColDef"
         :textFormatOption="textFormatterSelected"
-        :datasource="createServerSideDatasource()"
+        :datasource="ssrmDatasource"
         :rowCount="allRowCount"
         :isServerSideModel="isSSRM"
         :statusBar="statusBar"
+        :gridIdHash="tableVersionHash"
         @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
       />
     </Suspense>

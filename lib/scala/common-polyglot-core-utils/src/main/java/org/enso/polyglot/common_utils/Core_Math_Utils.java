@@ -80,8 +80,8 @@ public class Core_Math_Utils {
    * <p>For integers, rounding to 0 or more decimal places simply returns the argument.
    *
    * <p>By default, rounding uses "asymmetric round-half-up", also known as "round towards positive
-   * infinity." If use_bankers=True, then it uses "round-half-even", also known as "banker's
-   * rounding".
+   * infinity." If rounding_mode=Rounding_Mode.Bankers, then it uses "round-half-even", also known
+   * as "banker's rounding".
    *
    * @param n the number to round.
    * @param decimalPlaces the number of decimal places to round to. Can be negative, which results

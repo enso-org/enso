@@ -121,8 +121,15 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
           const root = module.root()
           if (root instanceof Ast.BodyBlock) {
             moduleRoot.value = root
-            moduleSource.applyUpdate(module, update)
-            db.updateExternalIds(root)
+            if (
+              update.nodesAdded.size != 0 ||
+              update.nodesDeleted.size != 0 ||
+              update.nodesUpdated.size != 0 ||
+              update.updateRoots.size != 0
+            ) {
+              moduleSource.applyUpdate(module, update)
+              db.updateExternalIds(root)
+            }
             // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
             const nodeMetadataUpdates = update.metadataUpdated as any as {
               id: AstId
@@ -457,6 +464,12 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       metadata.set('visualization', normalizeVisMetadata(data))
     }
 
+    function setWidgetMetadata(widget: AstId, widgetKey: string, md: unknown) {
+      const ast = syncModule.value?.tryGet(widget)
+      if (!ast) return
+      ast.setWidgetMetadata(widgetKey, md)
+    }
+
     function updateNodeRect(nodeId: NodeId, rect: Rect) {
       nodeRects.set(nodeId, rect)
       if (rect.pos.equals(Vec2.Infinity)) {
@@ -658,7 +671,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       syncModule.value.transact(f, origin)
     }
 
-    const viewModule = computed(() => syncModule.value!)
+    const viewModule = computed((): Ast.Module => syncModule.value!)
 
     // expose testing hook
     ;(window as any)._mockExpressionUpdate = mockExpressionUpdate
@@ -833,6 +846,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       setNodeContent,
       setNodePosition,
       setNodeVisualization,
+      setWidgetMetadata,
       undoManager,
       updateNodeRect,
       setNodeHovered,

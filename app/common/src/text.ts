@@ -60,9 +60,11 @@ interface PlaceholderOverrides {
   readonly electronVersionX: [electronVersion: string]
   readonly chromeVersionX: [chromeVersion: string]
   readonly userAgentX: [userAgent: string]
-  readonly compareVersionXWithLatest: [versionNumber: number]
+  readonly compareVersionXWithY: [versionNumber: number | string, versionNumber: string | number]
+  readonly compareWithVersionY: [versionNumber: number | string]
   readonly projectSessionX: [count: number]
   readonly onDateX: [dateString: string]
+  readonly byUserX: [userName: string]
   readonly xUsersAndGroupsSelected: [usersAndGroupsCount: number]
   readonly removeTheLocalDirectoryXFromFavorites: [directoryName: string]
   readonly upgradeTo: [planName: string]
@@ -81,8 +83,6 @@ interface PlaceholderOverrides {
   readonly updateFolderBackendError: [folderTitle: string]
   readonly updateAssetBackendError: [assetTitle: string]
   readonly deleteAssetBackendError: [assetTitle: string]
-  readonly undoDeleteAssetBackendError: [assetTitle: string]
-  readonly copyAssetBackendError: [assetTitle: string, newParentTitle: string]
   readonly createProjectBackendError: [projectTitle: string]
   readonly restoreProjectBackendError: [projectTitle: string]
   readonly duplicateProjectBackendError: [projectTitle: string]
@@ -105,6 +105,7 @@ interface PlaceholderOverrides {
   readonly getDatalinkBackendError: [datalinkTitle: string]
   readonly deleteDatalinkBackendError: [datalinkTitle: string]
   readonly createSecretBackendError: [secretTitle: string]
+  readonly createCredentialBackendError: [credentialTitle: string]
   readonly getSecretBackendError: [secretTitle: string]
   readonly updateSecretBackendError: [secretTitle: string]
   readonly createLabelBackendError: [labelName: string]
@@ -169,6 +170,12 @@ interface PlaceholderOverrides {
   readonly uploadLargeFileStatus: [uploadedParts: number, totalParts: number]
 
   readonly latestVersion: [version: string, date: string]
+  readonly copyInsteadOfMoving: [categoryName: string]
+  readonly copyInsteadOfRestoring: [categoryName: string, destinationCategoryName: string]
+  readonly copyInsteadOfRestoringDescription: [
+    categoryName: string,
+    destinationCategoryName: string,
+  ]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */

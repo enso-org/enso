@@ -21,6 +21,19 @@ export const textEditorsBindings = defineKeybinds('text-editors', {
   openLink: ['Mod+PointerMain'],
 })
 
+export const textEditorsCommonBindings = defineKeybinds('text-editors-common-bindings', {
+  moveLeft: ['ArrowLeft'],
+  moveRight: ['ArrowRight'],
+  deleteBack: ['Backspace'],
+  deleteForward: ['Delete'],
+})
+
+export const textEditorsMultilineBindings = defineKeybinds('text-editors-multiline-bindings', {
+  moveUp: ['ArrowUp'],
+  moveDown: ['ArrowDown'],
+  newline: ['Alt+Enter'],
+})
+
 export const listBindings = defineKeybinds('list', {
   moveUp: ['ArrowUp'],
   moveDown: ['ArrowDown'],

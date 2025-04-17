@@ -56,17 +56,15 @@ type Period
     between start_date_inclusive end_date_exclusive =
         Period.Value (Java_Period.between start_date_inclusive end_date_exclusive)
 
-    ## GROUP DateTime
-       ICON time
-       Create a new Period from years, months and days.
+    ## ICON time
+       Create a new Period for years, months, and days.
 
-       Arguments:
        - years: Amount of years.
        - months: Amount of months.
        - days: Amount of days.
 
        > Example
-         Create a Period of 2 years and 5 days
+         Create 2 years and 5 days `Period`.
 
              import Standard.Base.Data.Time.Period
 

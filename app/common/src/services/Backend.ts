@@ -221,7 +221,7 @@ export interface User extends UserInfo {
    */
   readonly userGroups: readonly UserGroupId[] | null
   readonly removeAt?: dateTime.Rfc3339DateTime | null
-  readonly plan?: Plan | undefined
+  readonly plan: Plan
   /**
    * Contains the user groups that the user is a member of.
    * Has enriched metadata, like the name of the group and the home directory ID.
@@ -269,7 +269,7 @@ export enum ProjectState {
 /** Wrapper around a project state value. */
 export interface ProjectStateType {
   readonly type: ProjectState
-  readonly volumeId: string
+  readonly volumeId?: string
   readonly instanceId?: string
   readonly executeAsync?: boolean
   readonly address?: string
@@ -315,6 +315,7 @@ export interface BaseProject {
 export interface CreatedProject extends BaseProject {
   readonly state: ProjectStateType
   readonly packageName: string
+  readonly ensoPath?: EnsoPath
 }
 
 /** A `Project` returned by the `listProjects` endpoint. */
@@ -330,22 +331,25 @@ export interface ListedProject extends CreatedProject {
 }
 
 /** A `Project` returned by `updateProject`. */
-export interface UpdatedProject extends BaseProject {
-  readonly ami: Ami | null
-  readonly ideVersion: VersionNumber | null
-  readonly engineVersion: VersionNumber | null
+export interface UpdatedProject {
+  readonly organizationId: OrganizationId
+  readonly projectId: ProjectId
+  readonly name: string
+  readonly state: ProjectStateType
+  readonly packageName: string
 }
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface ProjectRaw extends ListedProjectRaw {
-  readonly ide_version: VersionNumber | null
-  readonly engine_version: VersionNumber | null
+  readonly currentSessionId?: ProjectSessionId
+  readonly openedBy?: EmailAddress
+  /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
+  readonly url?: HttpsUrl
 }
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface Project extends ListedProject {
-  readonly ideVersion: VersionNumber | null
-  readonly engineVersion: VersionNumber | null
+  readonly currentSessionId?: ProjectSessionId
   readonly openedBy?: EmailAddress
   /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
   readonly url?: HttpsUrl
@@ -920,6 +924,16 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.specialUp]: -1,
 }
 
+/** A state associated with a credential. */
+export type CredentialSecretState = 'Expired' | 'Ready' | 'WaitingForAuthentication'
+
+/** Metadata associated with a credential asset. */
+export interface CredentialMetadata {
+  readonly serviceName: string
+  readonly expirationDate?: dateTime.Rfc3339DateTime
+  readonly state: CredentialSecretState
+}
+
 /**
  * Metadata uniquely identifying a directory entry.
  * These can be Projects, Files, Secrets, or other directories.
@@ -937,8 +951,12 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly permissions: readonly AssetPermission[] | null
   readonly labels?: readonly LabelName[] | undefined
   readonly description?: string | undefined
+  /** Asset data for a project */
   readonly projectState: Type extends AssetType.project ? ProjectStateType : null
+  /** Asset data for a file */
   readonly extension: Type extends AssetType.file ? string : null
+  /** Asset data for a credential (secret) */
+  readonly credentialMetadata?: Type extends AssetType.secret ? CredentialMetadata : undefined
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
@@ -995,6 +1013,13 @@ export function isPlaceholderId(id: AssetId) {
   return typeof id !== 'string' && PLACEHOLDER_SIGNATURE in id
 }
 
+/** Whether a given asset represents a credential. */
+export function isAssetCredential(
+  asset: Asset,
+): asset is SecretAsset & { credentialMetadata: CredentialMetadata } {
+  return asset.type === 'secret' && asset.credentialMetadata !== undefined
+}
+
 /** Extract the file extension from a file name. */
 function fileExtension(fileNameOrPath: string) {
   return fileNameOrPath.match(/[.]([^.]+?)$/)?.[1] ?? ''
@@ -1013,6 +1038,7 @@ export function createPlaceholderFileAsset(title: string, parentId: DirectoryId)
     extension: fileExtension(title),
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1025,13 +1051,11 @@ export function createPlaceholderProjectAsset(title: string, parentId: Directory
     parentId,
     permissions: [],
     modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: {
-      type: ProjectState.new,
-      volumeId: '',
-    },
+    projectState: { type: ProjectState.new },
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1051,6 +1075,7 @@ export function createPlaceholderDirectoryAsset(
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1067,6 +1092,7 @@ export function createPlaceholderSecretAsset(title: string, parentId: DirectoryI
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1086,6 +1112,7 @@ export function createPlaceholderDatalinkAsset(
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1105,6 +1132,7 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1129,6 +1157,7 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1153,6 +1182,7 @@ export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorA
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1265,6 +1295,14 @@ export interface S3ObjectVersion {
   readonly isLatest: boolean
   /** An archive containing the all the project files object in the S3 bucket. */
   readonly key: string
+  readonly user?: OtherUser
+}
+
+/** A user other than the current user */
+export interface OtherUser {
+  readonly name: string
+  readonly email: EmailAddress
+  readonly profilePicture: HttpsUrl | null
 }
 
 /** A list of asset versions. */
@@ -1285,10 +1323,10 @@ export function compareAssetPermissions(a: AssetPermission, b: AssetPermission) 
   } else {
     // NOTE [NP]: Although `userId` is unique, and therefore sufficient to sort permissions, sort
     // name first, so that it's easier to find a permission in a long list (i.e., for readability).
-    const aName = 'user' in a ? a.user.name : a.userGroup.name
-    const bName = 'user' in b ? b.user.name : b.userGroup.name
-    const aUserId = 'user' in a ? a.user.userId : a.userGroup.id
-    const bUserId = 'user' in b ? b.user.userId : b.userGroup.id
+    const aName = getAssetPermissionName(a)
+    const bName = getAssetPermissionName(b)
+    const aUserId = getAssetPermissionId(a)
+    const bUserId = getAssetPermissionId(b)
     return (
       aName < bName ? -1
       : aName > bName ? 1
@@ -1370,6 +1408,7 @@ export interface UpdateFileRequestBody {
 export interface UpdateAssetRequestBody {
   readonly parentDirectoryId: DirectoryId | null
   readonly description: string | null
+  readonly title: string | null
 }
 
 /** HTTP request body for the "delete asset" endpoint. */
@@ -1391,8 +1430,6 @@ export interface CreateProjectRequestBody {
  */
 export interface UpdateProjectRequestBody {
   readonly projectName: string | null
-  readonly ami: Ami | null
-  readonly ideVersion: VersionNumber | null
 }
 
 /** HTTP request body for the "open project" endpoint. */
@@ -1402,6 +1439,8 @@ export interface OpenProjectRequestBody {
   readonly cognitoCredentials: CognitoCredentials | null
   /** Only used by the Local backend. */
   readonly parentId: DirectoryId
+  /** Required when running in hybrid mode. */
+  readonly cloudProjectDirectoryPath: string | null
 }
 
 /** HTTP request body for the "create project execution" endpoint. */
@@ -1412,10 +1451,46 @@ export interface UpdateProjectExecutionRequestBody {
   readonly enabled?: boolean | undefined
 }
 
+/** HTTP request body for the "create secret or credential" endpoint. */
+export type CreateSecretOrCredentialRequestBody =
+  | CreateSecretRequestBody
+  | CreateCredentialRequestBody
+
 /** HTTP request body for the "create secret" endpoint. */
 export interface CreateSecretRequestBody {
   readonly name: string
   readonly value: string
+  readonly parentDirectoryId: DirectoryId | null
+}
+
+/** User settings for a Snowflake credential. */
+export interface SnowflakeCredentialInput {
+  readonly type: 'Snowflake'
+  readonly account: string
+  readonly clientId: string
+  readonly clientSecret: string
+  readonly role: string | null
+}
+
+/** User settings for a Google credential. */
+export interface GoogleCredentialInput {
+  readonly type: 'Google'
+  readonly scopes: readonly string[]
+}
+
+/** User settings for an arbitrary credential. */
+export type CredentialInput = SnowflakeCredentialInput | GoogleCredentialInput
+
+/** Metadata for an arbitrary credential, including a nonce for authentication purposes. */
+export interface CredentialConfig {
+  readonly nonce: string
+  readonly input: CredentialInput
+}
+
+/** HTTP request body for the "create credential" endpoint. */
+export interface CreateCredentialRequestBody {
+  readonly name: string
+  readonly value: CredentialConfig
   readonly parentDirectoryId: DirectoryId | null
 }
 
@@ -1640,22 +1715,40 @@ export function doesTitleContainInvalidCharacters(name: string) {
   return name.includes('/') || name.includes('\\') || name.includes('..')
 }
 
+/** A regex for matching hybrid project directories. */
+export const HYBRID_PROJECT_DIRECTORY_MASK = /^cloud-project-\w+$/
+
+/** A list of regexes for matching invalid names. */
+const INVALID_NAME_MASKS = [HYBRID_PROJECT_DIRECTORY_MASK]
+
+/**
+ * Check if the title contains invalid names.
+ */
+export function doesContainInvalidNames(title: string) {
+  return INVALID_NAME_MASKS.some((mask) => mask.test(title))
+}
+
 /**
  * A Zod schema for validating a title.
  */
 export function titleSchema(options: TitleSchemaOptions) {
   const { asset, siblings } = options
 
+  const dictionary = resolveDictionary()
+
   return z
     .string()
     .trim()
     .min(1)
     .max(512)
-    .refine((value) => isNewTitleUnique(asset, value, siblings), {
-      message: getText(resolveDictionary(), 'nameShouldBeUnique'),
+    .refine((value) => !doesContainInvalidNames(value), {
+      message: getText(dictionary, 'nameShouldNotContainInvalidCharacters'),
     })
     .refine((value) => !doesTitleContainInvalidCharacters(value), {
-      message: getText(resolveDictionary(), 'nameShouldNotContainInvalidCharacters'),
+      message: getText(dictionary, 'nameShouldNotContainInvalidCharacters'),
+    })
+    .refine((value) => isNewTitleUnique(asset, value, siblings), {
+      message: getText(dictionary, 'nameShouldBeUnique'),
     })
 }
 
@@ -1776,14 +1869,9 @@ export default abstract class Backend {
   /** Delete an arbitrary asset. */
   abstract deleteAsset(assetId: AssetId, body: DeleteAssetRequestBody, title: string): Promise<void>
   /** Restore an arbitrary asset from the trash. */
-  abstract undoDeleteAsset(assetId: AssetId, title: string): Promise<void>
+  abstract undoDeleteAsset(assetId: AssetId, parentDirectoryId: DirectoryId | null): Promise<void>
   /** Copy an arbitrary asset to another directory. */
-  abstract copyAsset(
-    assetId: AssetId,
-    parentDirectoryId: DirectoryId,
-    title: string,
-    parentDirectoryTitle: string,
-  ): Promise<CopyAssetResponse>
+  abstract copyAsset(assetId: AssetId, parentDirectoryId: DirectoryId): Promise<CopyAssetResponse>
   /** Return a list of projects belonging to the current user. */
   abstract listProjects(): Promise<readonly ListedProject[]>
   /** Create a project for the current user. */
@@ -1824,12 +1912,8 @@ export default abstract class Backend {
     projectTitle: string,
   ): Promise<ProjectExecution>
   /** Restore a project from a different version. */
-  abstract restoreProject(
-    projectId: ProjectId,
-    versionId: S3ObjectVersionId,
-    title: string,
-  ): Promise<void>
-  /** Duplicate a specific version of a project. */
+  abstract restoreAsset(assetId: AssetId, versionId: S3ObjectVersionId): Promise<void>
+  /** Duplicate a specific version of an asset. */
   abstract duplicateProject(
     projectId: ProjectId,
     versionId: S3ObjectVersionId,
@@ -1885,6 +1969,8 @@ export default abstract class Backend {
   abstract deleteDatalink(datalinkId: DatalinkId, title: string | null): Promise<void>
   /** Create a secret environment variable. */
   abstract createSecret(body: CreateSecretRequestBody): Promise<SecretId>
+  /** Create an OAuth credential. */
+  abstract createCredential(body: CreateCredentialRequestBody): Promise<SecretId>
   /** Return a secret environment variable. */
   abstract getSecret(secretId: SecretId, title: string): Promise<Secret>
   /** Change the value of a secret. */

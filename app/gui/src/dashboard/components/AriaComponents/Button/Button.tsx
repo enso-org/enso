@@ -183,7 +183,7 @@ export const Button = memo(
       targetRef: contentRef,
       children: tooltipElement,
       isDisabled: !shouldUseVisualTooltip,
-      ...(tooltipPlacement && { overlayPositionProps: { placement: tooltipPlacement } }),
+      overlayPositionProps: { placement: tooltipPlacement ?? 'top' },
     })
 
     const shouldDisplayBorder = isJoined && (position === 'first' || position === 'middle')
@@ -399,7 +399,7 @@ const Icon = memo(function Icon(props: IconProps) {
 
   const actualIcon = (() => {
     return typeof icon === 'string' ?
-        <IconComponent className={styles.icon()}>{icon}</IconComponent>
+        <IconComponent className={styles.icon()} icon={icon} />
       : <span className={styles.icon()}>{icon}</span>
   })()
 

@@ -33,6 +33,7 @@ import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectKeyboard } from '@/providers/keyboard'
+import { provideResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
@@ -44,7 +45,7 @@ import { onWindowBlur } from '@/util/autoBlur'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { computed, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
+import { ComponentInstance, computed, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
 import type { ExternalId, VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const contentNodeStyle = {
@@ -95,7 +96,9 @@ onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
+const widgetTree = ref<ComponentInstance<typeof ComponentWidgetTree>>()
 const nodeSize = useResizeObserver(rootNode)
+const widgetTreeSize = useResizeObserver(widgetTree)
 
 function inputExternalIds() {
   const externalIds = new Array<ExternalId>()
@@ -225,7 +228,10 @@ function ensureSelected() {
 const outputHovered = computed(() => graph.nodeOutputVisible.get(nodeId.value) ?? false)
 const keyboard = injectKeyboard()
 
-const visualizationWidth = computed(() => props.node.vis?.width ?? null)
+const visualizationWidth = computed({
+  get: () => props.node.vis?.width ?? null,
+  set: (value) => value && emit('update:visualizationWidth', value),
+})
 const visualizationHeight = computed(() => props.node.vis?.height ?? null)
 const isVisualizationEnabled = computed({
   get: () => props.node.vis?.visible ?? false,
@@ -258,6 +264,16 @@ watch(isVisualizationPreviewed, (newVal, oldVal) => {
     graph.db.moveNodeToTop(nodeId.value)
   }
 })
+
+const scale = computed(() => navigator?.scale ?? 1)
+provideResizableWidgetRegistry(
+  computed({
+    get: () => visualizationWidth.value && visualizationWidth.value * scale.value,
+    set: (width) => (visualizationWidth.value = width && width / scale.value),
+  }),
+  () => NODE_CONTENT_PADDING * scale.value,
+  () => widgetTreeSize.value.x,
+)
 
 const transform = computed(() => {
   const { x, y } = nodePosition.value
@@ -401,8 +417,6 @@ const nodeStyle = computed(() => {
     '--node-group-color': baseColor.value,
     ...(props.node.zIndex ? { 'z-index': props.node.zIndex } : {}),
     '--viz-below-node': `${graphSelectionSize.value.y - nodeSize.value.y}px`,
-    '--node-size-x': `${nodeSize.value.x}px`,
-    '--node-size-y': `${nodeSize.value.y}px`,
   }
 })
 
@@ -416,6 +430,7 @@ const nodeClass = computed(() => {
     outputNode: props.node.type === 'output',
     menuVisible: menuVisible.value,
     menuFull: menuFull.value,
+    edited: props.edited,
   }
 })
 
@@ -471,11 +486,12 @@ onWindowBlur(() => {
   graph.setNodeHovered(nodeId.value, false)
   updateNodeHover(undefined)
 })
+
+const nodeName = computed(() => props.node.pattern?.code())
 </script>
 
 <template>
   <div
-    v-show="!edited"
     ref="rootNode"
     class="GraphNode define-node-colors"
     :style="nodeStyle"
@@ -483,7 +499,7 @@ onWindowBlur(() => {
     :data-node-id="nodeId"
     @pointerdown.stop
   >
-    <div class="binding" v-text="node.pattern?.code()" />
+    <div class="binding" v-text="nodeName" />
     <button
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton clickable"
@@ -505,6 +521,7 @@ onWindowBlur(() => {
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
+      v-model:width="visualizationWidth"
       :nodeSize="nodeSize"
       :scale="navigator?.scale ?? 1"
       :nodePosition="nodePosition"
@@ -512,7 +529,6 @@ onWindowBlur(() => {
       :currentType="props.node.vis?.identifier"
       :dataSource="dataSource"
       :typename="typename"
-      :width="visualizationWidth"
       :height="visualizationHeight"
       :isFocused="isOnlyOneSelected"
       :isPreview="isVisualizationPreviewed"
@@ -523,7 +539,6 @@ onWindowBlur(() => {
       @update:rect="updateVisualizationRect"
       @update:id="emit('update:visualizationId', $event)"
       @update:enabled="emit('update:visualizationEnabled', $event)"
-      @update:width="emit('update:visualizationWidth', $event)"
       @update:height="emit('update:visualizationHeight', $event)"
       @update:nodePosition="graph.setNodePosition(nodeId, $event)"
       @createNodes="emit('createNodes', $event)"
@@ -561,6 +576,7 @@ onWindowBlur(() => {
         @pointermove="updateNodeHover"
       >
         <ComponentWidgetTree
+          ref="widgetTree"
           :ast="props.node.innerExpr"
           :nodeId="nodeId"
           :rootElement="rootNode"
@@ -629,11 +645,13 @@ onWindowBlur(() => {
   color: black;
   position: absolute;
   right: 100%;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  bottom: 0;
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
 }
 
 .selected .binding {
@@ -715,5 +733,11 @@ onWindowBlur(() => {
 
 .dragged {
   cursor: grabbing !important;
+}
+
+/* We use this instead of "v-show", because we want the node content being still laid out,
+   so the edges won't jump. */
+.edited {
+  visibility: hidden;
 }
 </style>

@@ -309,7 +309,8 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
           logLevel,
           opts.profilingPath,
           opts.profilingTime,
-          opts.jvmMode
+          opts.jvmMode,
+          Seq()
         )
         exitCode <- mainProcess(procConf).fold(
           th => {

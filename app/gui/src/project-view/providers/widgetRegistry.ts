@@ -1,6 +1,7 @@
 import { createContextStore } from '@/providers'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
+import { GraphStore } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
@@ -176,6 +177,52 @@ export interface WidgetUpdate {
    * An example if _nondirect_ interaction is an update of a port connected to a removed node).
    */
   directInteraction: boolean
+}
+
+/**
+ * Apply graph edits described by a `WidgetUpdate` struct.
+ */
+export function applyWidgetUpdates(update: WidgetUpdate, graph: GraphStore) {
+  function reportInvalidOrigin(origin: PortId) {
+    console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
+  }
+
+  if (!update.edit && update.portUpdate && !('value' in update.portUpdate)) {
+    // A fast-track for metadata-only updates. Edit is quite a heavy operation,
+    // and we don't need it in this case.
+    const { origin, metadata, metadataKey } = update.portUpdate
+    if (Ast.isAstId(origin)) {
+      graph.setWidgetMetadata(origin, metadataKey, metadata)
+    } else {
+      reportInvalidOrigin(origin)
+    }
+  } else {
+    const edit = update.edit ?? graph.startEdit()
+    if (update.portUpdate) {
+      const { origin } = update.portUpdate
+      if (Ast.isAstId(origin)) {
+        if ('value' in update.portUpdate) {
+          const value = update.portUpdate.value
+          const ast =
+            value instanceof Ast.Ast ? value
+            : value == null ? Ast.Wildcard.new(edit)
+            : undefined
+          if (ast) {
+            edit.replaceValue(origin, ast)
+          } else if (typeof value === 'string') {
+            edit.tryGet(origin)?.syncToCode(value)
+          }
+        }
+        if ('metadata' in update.portUpdate) {
+          const { metadataKey, metadata } = update.portUpdate
+          edit.tryGet(origin)?.setWidgetMetadata(metadataKey, metadata)
+        }
+      } else {
+        reportInvalidOrigin(origin)
+      }
+    }
+    graph.commitEdit(edit)
+  }
 }
 
 /**

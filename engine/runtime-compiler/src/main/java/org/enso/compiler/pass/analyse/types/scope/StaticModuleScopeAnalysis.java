@@ -26,6 +26,7 @@ import org.enso.compiler.pass.analyse.types.TypeRepresentation;
 import org.enso.compiler.pass.analyse.types.TypeResolver;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames$;
 import org.enso.compiler.pass.resolve.GlobalNames$;
+import org.enso.compiler.pass.resolve.MethodDefinitions;
 import org.enso.compiler.pass.resolve.TypeNames$;
 import org.enso.pkg.QualifiedName;
 import org.enso.scala.wrapper.ScalaConversions;
@@ -55,6 +56,7 @@ public class StaticModuleScopeAnalysis implements IRPass {
             BindingAnalysis$.MODULE$,
             FullyQualifiedNames$.MODULE$,
             TypeNames$.MODULE$,
+            MethodDefinitions.INSTANCE,
             TypeInferenceSignatures.INSTANCE);
     return ScalaConversions.seq(passes);
   }
@@ -117,7 +119,17 @@ public class StaticModuleScopeAnalysis implements IRPass {
 
     @Override
     protected void processConversion(Method.Conversion conversion) {
-      // TODO conversion handling is not implemented yet in the type checker
+      var toTypePointer = conversion.methodReference().typePointer();
+      if (toTypePointer.isEmpty()) {
+        throw new IllegalStateException(
+            "Conversion method " + conversion.showCode() + " has no defined target type.");
+      }
+
+      TypeScopeReference toType = getTypeResolution(toTypePointer.get());
+      TypeScopeReference fromType = getTypeResolution(conversion.sourceTypeName());
+      if (toType != null && fromType != null) {
+        scopeBuilder.registerConversionMethod(toType, fromType);
+      }
     }
 
     @Override

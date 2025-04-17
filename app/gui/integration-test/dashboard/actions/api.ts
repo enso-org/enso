@@ -993,6 +993,10 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         if (body.parentDirectoryId != null) {
           object.unsafeMutable(asset).parentId = body.parentDirectoryId
         }
+
+        if (body.title != null) {
+          object.unsafeMutable(asset).title = body.title
+        }
       }
 
       return route.fulfill({ json: asset })
@@ -1116,6 +1120,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         userGroups: null,
         isOrganizationAdmin: true,
         isEnsoTeamMember: true,
+        plan: backend.Plan.free,
       }
       return currentUser
     })
@@ -1147,18 +1152,22 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     )
     await put(remoteBackendPaths.UPDATE_CURRENT_USER_PATH + '*', async (_route, request) => {
       const body: backend.UpdateUserRequestBody = await request.postDataJSON()
+
       called('updateCurrentUser', body)
+
       if (currentUser && body.username != null) {
         currentUser = { ...currentUser, name: body.username }
       }
+
+      return currentUser
     })
     await get(remoteBackendPaths.USERS_ME_PATH + '*', (route) => {
       called('usersMe', {})
       if (currentUser == null) {
         return route.fulfill({ status: HTTP_STATUS_NOT_FOUND })
-      } else {
-        return currentUser
       }
+
+      return currentUser
     })
     await patch(remoteBackendPaths.UPDATE_ORGANIZATION_PATH + '*', async (route, request) => {
       const body: backend.UpdateOrganizationRequestBody = await request.postDataJSON()

@@ -246,9 +246,9 @@ sqlite_specific_spec suite_builder prefix create_connection_func setup =
             col . cast Value_Type.Integer . round 1 . value_type . should_equal Value_Type.Float
             col . cast Value_Type.Decimal . round 1 . value_type . should_equal Value_Type.Float
 
-            col . cast Value_Type.Float . round use_bankers=True . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Integer . round use_bankers=True . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Decimal . round use_bankers=True . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Float . round rounding_mode=Rounding_Mode.Bankers . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . round rounding_mode=Rounding_Mode.Bankers . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Decimal . round rounding_mode=Rounding_Mode.Bankers . value_type . should_equal Value_Type.Float
 
             col . cast Value_Type.Float . ceil . value_type . should_equal Value_Type.Float
             col . cast Value_Type.Integer . ceil . value_type . should_equal Value_Type.Integer
@@ -267,7 +267,7 @@ sqlite_specific_spec suite_builder prefix create_connection_func setup =
             result = table.at "x" |> op
             result.to_vector.at 0
 
-        do_round data n dp=0 use_bankers=False = do_op data n (_.round dp use_bankers)
+        do_round data n dp=0 rounding_mode=Rounding_Mode.Half_Up = do_op data n (_.round dp rounding_mode)
 
         group_builder.specify "Can round correctly near the precision limit" <|
             # This value varies depending on the version of SQLite.
@@ -277,10 +277,10 @@ sqlite_specific_spec suite_builder prefix create_connection_func setup =
             do_round data -1.2222222222222235 15 . should_equal -1.222222222222223
 
         group_builder.specify "Can round correctly near the precision limit, using banker's rounding" <|
-            do_round data 1.2222222222222225 15 use_bankers=True . should_equal 1.222222222222222
-            do_round data -1.2222222222222225 15 use_bankers=True . should_equal -1.222222222222222
-            do_round data 1.2222222222222235 15 use_bankers=True . should_equal 1.222222222222224
-            do_round data -1.2222222222222235 15 use_bankers=True . should_equal -1.222222222222224
+            do_round data 1.2222222222222225 15 rounding_mode=Rounding_Mode.Bankers . should_equal 1.222222222222222
+            do_round data -1.2222222222222225 15 rounding_mode=Rounding_Mode.Bankers . should_equal -1.222222222222222
+            do_round data 1.2222222222222235 15 rounding_mode=Rounding_Mode.Bankers . should_equal 1.222222222222224
+            do_round data -1.2222222222222235 15 rounding_mode=Rounding_Mode.Bankers . should_equal -1.222222222222224
 
         group_builder.specify "Can handle NaN/Infinity" <|
             ## SQLite does not support NaN

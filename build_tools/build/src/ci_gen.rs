@@ -156,6 +156,10 @@ pub mod secret {
     // === Sentry ===
     /// The authentication token for pushing source maps to Sentry.
     pub const SENTRY_AUTH_TOKEN: &str = "SENTRY_AUTH_TOKEN";
+
+    // === OAuth Integrations ===
+    /// The client ID for the Google OAuth integration used for Google Credentials.
+    pub const ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: &str = "ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID";
 }
 
 pub mod variables {
@@ -841,17 +845,17 @@ pub fn engine_checks_nightly() -> Result<Workflow> {
     let mut workflow = Workflow { name: "Engine Nightly Checks".into(), on, ..default() };
 
     // Oracle GraalVM jobs run only on Linux
-    add_backend_checks(&mut workflow, PRIMARY_TARGET, graalvm::Edition::Enterprise, true);
+    add_backend_checks(&mut workflow, PRIMARY_TARGET, graalvm::Edition::Enterprise, false);
 
     // Run macOS AArch64 tests only once a day, as we have only one self-hosted runner for this.
     for target in PR_CHECKED_TARGETS {
-        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, true);
+        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, false);
     }
     add_backend_checks(
         &mut workflow,
         (OS::MacOS, Arch::AArch64),
         graalvm::Edition::Community,
-        true,
+        false,
     );
     Ok(workflow)
 }
@@ -873,7 +877,7 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
     workflow.add(target, job::StandardLibraryTests {
         graal_edition:       graalvm::Edition::Community,
         cloud_tests_enabled: true,
-        native_image_mode:   true,
+        native_image_mode:   false,
     });
     Ok(workflow)
 }
@@ -885,6 +889,7 @@ fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
         "AWS",
         "Base",
         "Database",
+        "Generic_JDBC",
         "Google_Api",
         "Image",
         "Microsoft",

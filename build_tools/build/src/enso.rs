@@ -80,7 +80,6 @@ impl BuiltEnso {
 
     pub async fn run_benchmarks(&self, opt: BenchmarkOptions) -> Result {
         let filename = format!("enso{}", if TARGET_OS == OS::Windows { ".exe" } else { "" });
-        let base_working_directory = self.paths.repo_root.test.benchmarks.try_parent()?;
         let enso = self
             .paths
             .repo_root
@@ -91,7 +90,6 @@ impl BuiltEnso {
             .join(filename);
         let benchmarks = Command::new(&enso)
             .args(["--jvm", "--run", self.paths.repo_root.test.benchmarks.as_str()])
-            .current_dir(base_working_directory)
             .set_env(ENSO_BENCHMARK_TEST_DRY_RUN, &Boolean::from(opt.dry_run))?
             .run_ok()
             .await;
@@ -103,14 +101,18 @@ impl BuiltEnso {
         test_path: impl AsRef<Path>,
         ir_caches: IrCaches,
         environment_overrides: Vec<(String, String)>,
+        native_image: bool,
     ) -> Result<Command> {
-        let mut command = self.cmd()?;
-        let base_working_directory = test_path.try_parent()?;
+        let mut command = if native_image {
+            let enso = self.wrapper_script_path();
+            Command::new(&enso)
+        } else {
+            self.cmd()?
+        };
         command
             .arg(ir_caches)
             .arg("--run")
             .arg(test_path.as_ref())
-            .current_dir(base_working_directory)
             // This flag enables assertions in the JVM. Some of our stdlib tests had in the past
             // failed on Graal/Truffle assertions, so we want to have them triggered.
             .set_env(JAVA_OPTS, &ide_ci::programs::java::Option::EnableAssertions.as_ref())?;
@@ -137,6 +139,7 @@ impl BuiltEnso {
         sbt: &crate::engine::sbt::Context,
         async_policy: AsyncPolicy,
         test_selection: StandardLibraryTestsSelection,
+        native_image: bool,
     ) -> Result {
         let paths = &self.paths;
         // Environment for meta-tests. See:
@@ -248,12 +251,11 @@ impl BuiltEnso {
                 cloud_tests::env::test_controls::ENSO_RUN_REAL_CLOUD_TEST.name().to_string(),
                 "1".to_string(),
             ));
-            environment_overrides.push(("ENSO_LAUNCHER".to_string(), "native".to_string()));
         };
 
         let futures = std_tests.into_iter().map(|test_path| {
             let command: std::result::Result<Command, anyhow::Error> =
-                self.run_test(test_path, ir_caches, environment_overrides.clone());
+                self.run_test(test_path, ir_caches, environment_overrides.clone(), native_image);
             async move { command?.run_ok().await }
         });
 

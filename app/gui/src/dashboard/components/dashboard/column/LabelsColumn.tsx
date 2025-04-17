@@ -1,5 +1,4 @@
 /** @file A column listing the labels on this asset. */
-import * as React from 'react'
 
 import Plus2Icon from '#/assets/plus2.svg'
 
@@ -11,12 +10,12 @@ import { Button, DialogTrigger } from '#/components/AriaComponents'
 import ContextMenu from '#/components/ContextMenu'
 import type * as column from '#/components/dashboard/column'
 import Label from '#/components/dashboard/Label'
-import MenuEntry from '#/components/MenuEntry'
 
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 
 import * as backendModule from '#/services/Backend'
 
+import ContextMenuEntry from '#/components/ContextMenuEntry'
 import { useStore } from '#/hooks/storeHooks'
 import { useDriveStore } from '#/providers/DriveProvider'
 import * as permissions from '#/utilities/permissions'
@@ -35,10 +34,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     ({ selectedIds, isDraggingOverSelectedRow }) =>
       isDraggingOverSelectedRow && selectedIds.has(item.id),
   )
-  const labelsByName = React.useMemo(
-    () => new Map(labels.map((label) => [label.value, label])),
-    [labels],
-  )
+  const labelsByName = new Map(labels.map((label) => [label.value, label]))
   const self = permissions.tryFindSelfPermission(user, item.permissions)
   const managesThisAsset =
     category.type !== 'trash' &&
@@ -100,7 +96,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
               }
               setModal(
                 <ContextMenu aria-label={getText('labelContextMenuLabel')} event={event}>
-                  <MenuEntry
+                  <ContextMenuEntry
                     action="delete"
                     label={getText('deleteLabelShortcut')}
                     doAction={doDelete}

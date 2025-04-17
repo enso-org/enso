@@ -232,7 +232,7 @@ export function useComponentBrowserInput(
         )
         text.value = parsed.text
         sourceNodeIdentifier.value = parsed.sourceNodeIdentifier
-        selection.value = Range.emptyAt(usage.cursorPos)
+        selection.value = Range.emptyAt(usage.cursorPos - parsed.textOffset)
         break
       }
     }
@@ -250,8 +250,12 @@ export function useComponentBrowserInput(
       matchedCode != null &&
       graphDb.getIdentDefiningNode(matchedSource)
     )
-      return { text: matchedCode, sourceNodeIdentifier: matchedSource }
-    return { text: expression, sourceNodeIdentifier: undefined }
+      return {
+        text: matchedCode,
+        textOffset: matchedSource.length + 1,
+        sourceNodeIdentifier: matchedSource,
+      }
+    return { text: expression, textOffset: 0, sourceNodeIdentifier: undefined }
   }
 
   function applyAIPrompt() {
@@ -268,6 +272,7 @@ export function useComponentBrowserInput(
       (result) => {
         if (result.ok) {
           text.value = result.value
+          selection.value = Range.emptyAt(result.value.length)
         } else {
           toastError.reportError(result.error, 'Applying AI prompt failed')
         }

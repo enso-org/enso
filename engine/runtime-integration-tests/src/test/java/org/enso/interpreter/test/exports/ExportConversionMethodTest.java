@@ -8,7 +8,6 @@ import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
 import java.util.Set;
-import org.enso.common.RuntimeOptions;
 import org.enso.compiler.data.BindingsMap.ResolvedConversionMethod;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
@@ -50,11 +49,8 @@ public class ExportConversionMethodTest {
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, bMod, mainMod), projDir);
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
 
       var mainResolvedImps = ModuleUtils.getResolvedImports(ctx, "local.Proj.Main");
@@ -83,11 +79,8 @@ public class ExportConversionMethodTest {
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
 
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
 
       var aModExportedSymbols =
@@ -125,11 +118,8 @@ public class ExportConversionMethodTest {
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
 
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
 
       var aModExportedSymbols =
