@@ -1,18 +1,17 @@
 import LibraryManifestGenerator.BundledLibrary
-import org.enso.build.BenchTasks._
+import org.enso.build.BenchTasks.*
 import org.enso.build.WithDebugCommand
 import org.apache.commons.io.FileUtils
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
-import sbt.complete.DefaultParsers._
+import sbt.complete.DefaultParsers.*
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
 import sbt.internal.util.ManagedLogger
-import src.main.scala.licenses.{
-  DistributionDescription,
-  SBTDistributionComponent
-}
-import scala.sys.process._
+import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
+
+import java.nio.file.Path
+import scala.sys.process.*
 
 // This import is unnecessary, but bit adds a proper code completion features
 // to IntelliJ.
@@ -5717,6 +5716,44 @@ runEngineDistribution := {
     args,
     streams.value.log
   )
+}
+
+lazy val lintEnso =
+  inputKey[Unit]("Run Enso linter on one or many projects. If no arguments are specified, all projects are linted. Otherwise, the argument should be the full path or just the name of the project to lint.")
+lintEnso := {
+  buildEngineDistributionNoIndex.value
+  val fileTree = fileTreeView.value
+  val log = streams.value.log
+  val projectFinder = new EnsoProjects.ProjectFinder(baseDirectory.value.toPath)
+  val args: Seq[String] = spaceDelimited("<arg>").parsed
+  if (args.length > 1) {
+    throw new IllegalArgumentException("At most one argument to lintEnso expected.")
+  }
+
+  val allProjects = projectFinder.findStandardLibraries() ++ projectFinder.findTests()
+
+  val toLint: Seq[Path] = if (args.nonEmpty) {
+    val argument = args.head
+    val foundByName = allProjects.filter(_.name == argument)
+    if (foundByName.length == 1)
+      Seq(foundByName.head.path)
+    else
+      Seq(Path.of(argument))
+  } else allProjects.map(_.path)
+  val results = for (proj <- toLint)
+    yield {
+      val path = proj.toAbsolutePath.toString
+      log.debug(s"Linting $path")
+      DistributionPackage.runEnginePackage(
+        engineDistributionRoot.value,
+        Seq("--compile", path, "--enable-static-analysis", "--treat-warnings-as-errors"),
+        streams.value.log
+      )
+    }
+  val failedProjects = results.count(_ == false)
+  if (failedProjects > 0) {
+    throw new RuntimeException(s"Lint failed due to ${failedProjects} with warnings or errors.")
+  }
 }
 
 lazy val buildProjectManagerDistributionCond =
