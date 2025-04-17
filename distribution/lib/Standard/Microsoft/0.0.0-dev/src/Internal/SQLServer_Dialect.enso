@@ -22,8 +22,8 @@ import Standard.Database.Internal.Common.Database_Distinct_Helper
 import Standard.Database.Internal.Common.Database_Join_Helper
 import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.Internals_Access
-import Standard.Database.Internal.IR.Context.Context
-import Standard.Database.Internal.IR.Context.Context_Extension
+import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
+import Standard.Database.Internal.IR.SQL_IR_Source.Context_Extension
 import Standard.Database.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
@@ -150,7 +150,7 @@ type SQLServer_Dialect
         distinct_expressions = new_key_columns.map column->
             value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
-        new_context = Context.for_subquery setup.subquery . add_extension (make_distinct_extension distinct_expressions)
+        new_context = SQL_IR_Source.for_subquery setup.subquery . add_extension (make_distinct_extension distinct_expressions)
         table.updated_context_and_columns new_context new_columns subquery=True
 
     ## PRIVATE
@@ -246,7 +246,7 @@ type SQLServer_Dialect
         SQL_IR_Expression.Operation op_kind (columns.map c->(self.cast_op_type op_kind columns (Internals_Access.column_expression c)))
 
     ## PRIVATE
-    prepare_fetch_types_query : SQL_IR_Expression -> Context -> SQL_Statement
+    prepare_fetch_types_query : SQL_IR_Expression -> SQL_IR_Source -> SQL_Statement
     prepare_fetch_types_query self expression context =
         Base_Generator.default_fetch_types_query self expression context
 
