@@ -4,52 +4,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.nio.file.Paths;
-import java.util.Map;
-import java.util.logging.Level;
-import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.service.ExecutionService.FunctionPointer;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.io.IOAccess;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class FunctionPointerTest {
-
-  private Context context;
-
-  @Before
-  public void initContext() {
-    context =
-        Context.newBuilder()
-            .allowExperimentalOptions(true)
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(System.err)
-            .allowExperimentalOptions(true)
-            .allowIO(IOAccess.ALL)
-            .allowAllAccess(true)
-            .build();
-
-    var engine = context.getEngine();
-    Map<String, Language> langs = engine.getLanguages();
-    Assert.assertNotNull("Enso found: " + langs, langs.get("enso"));
-  }
-
-  @After
-  public void disposeContext() {
-    context.close();
-    context = null;
-  }
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Test
   public void moduleFunctionPointer() throws Exception {
@@ -59,11 +23,11 @@ public class FunctionPointerTest {
         run a b = a + b
         """;
     var src = Source.newBuilder("enso", rawCode, "TestFunctionPointer.enso").build();
-    var module = context.eval(src);
+    var module = ctxRule.eval(src);
     var res = module.invokeMember("eval_expression", "run");
 
     assertTrue("fn: " + res, res.canExecute());
-    var rawRes = ContextUtils.unwrapValue(context, res);
+    var rawRes = ctxRule.unwrapValue(res);
     assertTrue("function: " + rawRes, rawRes instanceof Function);
     var c = FunctionPointer.fromFunction((Function) rawRes);
     assertNotNull(c);
@@ -82,11 +46,11 @@ public class FunctionPointerTest {
             run a b = a + b
         """;
     var src = Source.newBuilder("enso", rawCode, "StaticMethodPointer.enso").build();
-    var module = context.eval(src);
+    var module = ctxRule.eval(src);
     var res = module.invokeMember("eval_expression", "X.run");
 
     assertTrue("fn: " + res, res.canExecute());
-    var rawRes = ContextUtils.unwrapValue(context, res);
+    var rawRes = ctxRule.unwrapValue(res);
     assertTrue("function: " + rawRes, rawRes instanceof Function);
     var c = FunctionPointer.fromFunction((Function) rawRes);
     assertNotNull(c);
@@ -96,7 +60,7 @@ public class FunctionPointerTest {
 
     var apply = res.execute(1);
     assertTrue("fn: " + apply, apply.canExecute());
-    var rawApply = ContextUtils.unwrapValue(context, res);
+    var rawApply = ctxRule.unwrapValue(res);
     assertTrue("function: " + rawApply, rawApply instanceof Function);
     var a = FunctionPointer.fromFunction((Function) rawApply);
     assertNotNull(a);
@@ -115,11 +79,11 @@ public class FunctionPointerTest {
             run self b c = [self, b, c]
         """;
     var src = Source.newBuilder("enso", rawCode, "InstanceMethodPointer.enso").build();
-    var module = context.eval(src);
+    var module = ctxRule.eval(src);
     var res = module.invokeMember("eval_expression", "X.run");
 
     assertTrue("fn: " + res, res.canExecute());
-    var rawRes = ContextUtils.unwrapValue(context, res);
+    var rawRes = ctxRule.unwrapValue(res);
     assertTrue("function: " + rawRes, rawRes instanceof Function);
     var c = FunctionPointer.fromFunction((Function) rawRes);
     assertNotNull(c);
@@ -129,7 +93,7 @@ public class FunctionPointerTest {
 
     var apply = res.execute(1);
     assertTrue("fn: " + apply, apply.canExecute());
-    var rawApply = ContextUtils.unwrapValue(context, res);
+    var rawApply = ctxRule.unwrapValue(res);
     assertTrue("function: " + rawApply, rawApply instanceof Function);
     var a = FunctionPointer.fromFunction((Function) rawApply);
     assertNotNull(a);
@@ -148,11 +112,11 @@ public class FunctionPointerTest {
             Run a b
         """;
     var src = Source.newBuilder("enso", rawCode, "ConstructorPointer.enso").build();
-    var module = context.eval(src);
+    var module = ctxRule.eval(src);
     var res = module.invokeMember("eval_expression", "X.Run");
 
     assertTrue("fn: " + res, res.canInstantiate());
-    var rawRes = ContextUtils.unwrapValue(context, res);
+    var rawRes = ctxRule.unwrapValue(res);
     assertTrue("function: " + rawRes.getClass(), rawRes instanceof AtomConstructor);
     var rawFn = ((AtomConstructor) rawRes).getConstructorFunction();
     var c = FunctionPointer.fromFunction(rawFn);

@@ -46,12 +46,13 @@ polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
    and a new one will be returned. Because of that, this method may make network
    requests.
 get_access_token : Text
-get_access_token = AuthenticationProvider.INSTANCE.getAccessToken
+get_access_token = Panic.recover Enso_Cloud_Error <|
+    AuthenticationProvider.INSTANCE.getAccessToken
 
 ## PRIVATE
    Forcibly refreshes the access token.
 refresh_access_token : Nothing
-refresh_access_token =
+refresh_access_token = Panic.recover Enso_Cloud_Error <|
     AuthenticationProvider.INSTANCE.getAuthenticationServiceEnsoInstance.force_refresh
 
 ## PRIVATE

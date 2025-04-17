@@ -1,6 +1,6 @@
 import project.Any.Any
-import project.Data.Numbers.Integer
 import project.Data.Number_Utils
+import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions

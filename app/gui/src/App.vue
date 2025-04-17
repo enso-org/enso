@@ -110,7 +110,6 @@ onMounted(() => {
   width: 1px;
   height: 1px;
   contain: layout size style;
-  will-change: transform;
   pointer-events: none;
   > * {
     pointer-events: auto;
