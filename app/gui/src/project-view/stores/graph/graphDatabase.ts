@@ -356,7 +356,7 @@ export class GraphDb {
         pattern,
         rootExpr,
         innerExpr,
-        primarySubject,
+        primaryApplication,
         prefixes,
         conditionalPorts,
         argIndex,
@@ -369,7 +369,13 @@ export class GraphDb {
       }
       const astFields: NodeAstField[] = ['outerAst', 'pattern', 'rootExpr', 'innerExpr']
       astFields.forEach(updateAst)
-      if (oldNode.primarySubject !== primarySubject) node.primarySubject = primarySubject
+      if (
+        !primaryApplicationEquals(
+          oldNode.primaryApplication as PrimaryApplication,
+          primaryApplication,
+        )
+      )
+        node.primaryApplication = primaryApplication
       if (!recordEqual(oldNode.prefixes, prefixes)) node.prefixes = prefixes
       syncSetDiff(node.conditionalPorts, oldNode.conditionalPorts, conditionalPorts)
       // Ensure new fields can't be added to `NodeAstData` without this code being updated.
@@ -379,7 +385,7 @@ export class GraphDb {
         pattern,
         rootExpr,
         innerExpr,
-        primarySubject,
+        primaryApplication,
         prefixes,
         conditionalPorts,
         argIndex,
@@ -521,7 +527,7 @@ export class GraphDb {
       position: Vec2.Zero,
       vis: undefined,
       prefixes: { enableRecording: undefined },
-      primarySubject: undefined,
+      primaryApplication: undefined,
       colorOverride: undefined,
       conditionalPorts: new Set(),
       outerAst,
@@ -613,8 +619,8 @@ interface AllNodeFieldsFromAst {
    Prefixes that are present in `rootExpr` but omitted in `innerExpr` to ensure a clean output.
    */
   prefixes: Record<'enableRecording', Ast.AstId[] | undefined>
-  /** A child AST in a syntactic position to be a self-argument input to the node. */
-  primarySubject: Ast.AstId | undefined
+  /** An optional information about the primary application of the node. */
+  primaryApplication: PrimaryApplication | undefined
   /** Ports that are not targetable by default; they can be targeted while holding the modifier key. */
   conditionalPorts: Set<Ast.AstId>
   /** The index of the argument in the function's argument list, if the node is an input node. */
@@ -652,3 +658,26 @@ export type Node = NodeDataFromAst &
   NodeDataFromMetadata & {
     zIndex: number
   }
+
+export interface PrimaryApplication {
+  /** A child AST in a syntactic position to be a self-argument input to the node. */
+  potentialSelfArgument: Ast.AstId
+  /** The function that is the subject of the primary application. */
+  function: Ast.AstId
+  /** All components of the property access chain from {@link function}. */
+  accessChain: Ast.AstId[]
+}
+
+/** Custom equality check for {@link PrimaryApplication}. */
+export function primaryApplicationEquals(
+  a: PrimaryApplication | undefined,
+  b: PrimaryApplication | undefined,
+) {
+  if (a == null || b == null) return false
+  return (
+    a.potentialSelfArgument === b.potentialSelfArgument &&
+    a.function === b.function &&
+    a.accessChain.length === b.accessChain.length &&
+    a.accessChain.every((id, i) => id === b.accessChain[i])
+  )
+}

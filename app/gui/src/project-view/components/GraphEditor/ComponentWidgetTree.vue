@@ -6,7 +6,7 @@ import { PortId } from '@/providers/portInfo'
 import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { WidgetEditHandlerParent } from '@/providers/widgetRegistry/editHandler'
 import { useGraphStore, type NodeId } from '@/stores/graph'
-import { type NodeType } from '@/stores/graph/graphDatabase'
+import { type NodeType, type PrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import { iconOfNode, useDisplayedIcon } from '@/util/getIconName'
 import { computed, toRef } from 'vue'
@@ -16,7 +16,7 @@ const props = defineProps<{
   nodeId: NodeId
   rootElement: HTMLElement | undefined
   nodeType: NodeType
-  potentialSelfArgumentId: Ast.AstId | undefined
+  primaryApplication: PrimaryApplication | undefined
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts: Set<Ast.AstId>
   extended: boolean
@@ -37,7 +37,7 @@ const rootPort = computed(() => {
     input.forcePort = true
   }
 
-  if (!props.potentialSelfArgumentId) {
+  if (!props.primaryApplication) {
     input[DisplayIcon] = {
       icon: displayedIcon.value,
       showContents: props.nodeType != 'output',
@@ -112,7 +112,7 @@ export const ICON_WIDTH = 16
   <WidgetTreeRoot
     class="ComponentWidgetTree"
     :externalId="nodeId"
-    :potentialSelfArgumentId="potentialSelfArgumentId"
+    :primaryApplication="primaryApplication"
     :input="rootPort"
     :rootElement="rootElement"
     :conditionalPorts="conditionalPorts"

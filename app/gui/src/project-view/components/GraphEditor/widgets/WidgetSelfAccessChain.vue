@@ -27,16 +27,20 @@ const { displayedIcon } = useDisplayedIcon(graph.db, toRef(tree, 'externalId'), 
 const iconInput = computed(() => {
   const lhs = props.input.value.lhs
   if (!lhs) return
-  // The PortId of the type annotated expression is the internal expression,
-  // not the whole Ast.TypeAnnotated, so that the connections are displayed correctly.
-  const portId =
-    lhs instanceof Ast.Group && lhs.expression instanceof Ast.TypeAnnotated ?
-      lhs.expression.expression.id
-    : lhs instanceof Ast.TypeAnnotated ? lhs.expression.id
-    : lhs.id
-  const expression = lhs instanceof Ast.Group && lhs.expression ? lhs.expression : lhs
+  let expression = lhs
+  let portId = lhs.id
+  // Unwrap the Group if present.
+  if (expression instanceof Ast.Group && expression.expression) {
+    expression = expression.expression
+    portId = expression.id
+  }
+  if (expression instanceof Ast.TypeAnnotated) {
+    // The PortId of the type annotated expression is the internal expression,
+    // not the whole Ast.TypeAnnotated, so that the connections are displayed correctly.
+    portId = expression.expression.id
+  }
   const input = WidgetInput.WithPort(WidgetInput.FromAstWithPortId(expression, portId))
-  const isTypeAnnotated = lhs instanceof Ast.Group || lhs instanceof Ast.TypeAnnotated
+  const isTypeAnnotated = expression instanceof Ast.TypeAnnotated
   const showContents = isTypeAnnotated ? true : showFullAccessChain.value
   input[DisplayIcon] = { icon: displayedIcon.value, showContents, noGap: isTypeAnnotated }
   return input
@@ -50,29 +54,16 @@ const showFullAccessChain = computed(() => /^[A-Z]/.test(props.input.value.lhs?.
 </script>
 
 <script lang="ts">
-/** Subject of the self access chain can be either a regular expression, or a type annotated expression. */
-const extractSubject = (accessChain: Ast.PropertyAccess | undefined) => {
-  const lhs = accessChain?.lhs
-  if (lhs instanceof Ast.Group && lhs.expression instanceof Ast.TypeAnnotated) {
-    return lhs.expression.expression
-  } else if (lhs instanceof Ast.TypeAnnotated) {
-    return lhs.expression
-  }
-  return lhs
-}
-
 export const widgetDefinition = defineWidget(
   WidgetInput.astMatcher(Ast.PropertyAccess),
   {
     priority: 999,
     score: (info) => {
       const tree = injectWidgetTree()
-      const selfId = tree.potentialSelfArgumentId
-      const subject = extractSubject(info.input.value)
-      if (selfId != null) {
-        if (subject?.id === selfId) {
-          return Score.Good
-        }
+      const selfId = tree.primaryApplication?.function
+      const subject = info.input.value
+      if (subject.id === selfId) {
+        return Score.Good
       }
       return Score.Mismatch
     },

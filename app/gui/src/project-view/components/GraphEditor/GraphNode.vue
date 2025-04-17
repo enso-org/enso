@@ -84,7 +84,7 @@ const navigator = injectGraphNavigator(true)
 const nodeExecution = useNodeExecution()
 
 const nodeId = computed(() => asNodeId(props.node.rootExpr.externalId))
-const potentialSelfArgumentId = computed(() => props.node.primarySubject)
+const primaryApplication = computed(() => props.node.primaryApplication)
 
 const nodePosition = computed(() => {
   // Positions of nodes that are not yet placed are set to `Infinity`.
@@ -579,7 +579,7 @@ onWindowBlur(() => {
           :nodeId="nodeId"
           :rootElement="rootNode"
           :nodeType="props.node.type"
-          :potentialSelfArgumentId="potentialSelfArgumentId"
+          :primaryApplication="primaryApplication"
           :conditionalPorts="props.node.conditionalPorts"
           :extended="isOnlyOneSelected"
         />

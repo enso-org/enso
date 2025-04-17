@@ -4,52 +4,35 @@ import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widge
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
 import { computed } from 'vue'
+import { IsTypeCastKey } from './WidgetTypeCastPort.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const tree = injectWidgetTree()
 
 const isSelfArgument = computed(() => {
-  const input = props.input.value
-  const selfId =
-    input instanceof Ast.Group ? input.expression?.id
-    : input instanceof Ast.TypeAnnotated ? input.expression.id
-    : undefined
-  return selfId === tree.potentialSelfArgumentId
+  if (!(props.input.value instanceof Ast.TypeAnnotated)) return false
+  const selfArgumentId = tree.primaryApplication?.potentialSelfArgument
+  return props.input.value.expression.id === selfArgumentId
 })
 
-const annotatedExpression = computed<Ast.TypeAnnotated>(() => {
-  if (
-    props.input.value instanceof Ast.Group &&
-    props.input.value.expression instanceof Ast.TypeAnnotated
-  ) {
-    return props.input.value.expression
-  } else {
-    return props.input.value as Ast.TypeAnnotated
-  }
+const expressionInput = computed(() => {
+  if (props.input.value instanceof Ast.TypeAnnotated)
+    return WidgetInput.FromAst(props.input.value.expression)
+  else return undefined
 })
-
-const expressionInput = computed(() =>
-  WidgetInput.WithPort(WidgetInput.FromAst(annotatedExpression.value.expression)),
-)
-const typeNodeInput = computed(() => WidgetInput.FromAst(annotatedExpression.value.typeNode))
+const typeNodeInput = computed(() => {
+  if (props.input.value instanceof Ast.TypeAnnotated)
+    return WidgetInput.FromAst(props.input.value.typeNode)
+  else return undefined
+})
 </script>
 
 <script lang="ts">
 export const widgetDefinition = defineWidget(
-  [WidgetInput.astMatcher(Ast.TypeAnnotated), WidgetInput.astMatcher(Ast.Group)],
+  IsTypeCastKey,
   {
-    priority: 1000,
-    score: (info) => {
-      // Only groups with TypeAnnotated expression are valid.
-      if (
-        info.input.value instanceof Ast.Group &&
-        !(info.input.value.expression instanceof Ast.TypeAnnotated)
-      ) {
-        return Score.Mismatch
-      } else {
-        return Score.Perfect
-      }
-    },
+    priority: 1,
+    score: () => Score.Perfect,
   },
   import.meta.hot,
 )
@@ -57,9 +40,9 @@ export const widgetDefinition = defineWidget(
 
 <template>
   <div class="WidgetTypeCast">
-    <NodeWidget v-if="!isSelfArgument" :input="expressionInput" />
+    <NodeWidget v-if="expressionInput && !isSelfArgument" :input="expressionInput" />
     <span class="typeAnnotation">:</span>
-    <NodeWidget class="typeAnnotation" :input="typeNodeInput" />
+    <NodeWidget v-if="typeNodeInput" class="typeAnnotation" :input="typeNodeInput" />
   </div>
 </template>
 
