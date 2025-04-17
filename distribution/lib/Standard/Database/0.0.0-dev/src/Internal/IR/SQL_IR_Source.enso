@@ -4,7 +4,7 @@ import Standard.Base.Data.Vector.No_Wrap
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.SQL_Part.SQL_Part
 import project.SQL.SQL_Builder
 import project.SQL_Statement.SQL_Statement
@@ -67,7 +67,7 @@ type SQL_IR_Source
          grouped-by columns or aggregate expressions.
        - limit: an optional maximum number of elements that the query should
          return.
-    Value (from_spec : SQL_IR_From_Part) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (limit : Nothing | Integer) (extensions : Vector SQL_IR_Source_Extension)
+    Value (from_spec : SQL_IR_From_Part) (where_filters : Vector SQL_IR_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_IR_Expression) (limit : Nothing | Integer) (extensions : Vector SQL_IR_Source_Extension)
 
     ## PRIVATE
 
@@ -75,7 +75,7 @@ type SQL_IR_Source
 
        Arguments:
        - new_filters: The new filters to set in the query.
-    set_where_filters : Vector SQL_Expression -> SQL_IR_Source
+    set_where_filters : Vector SQL_IR_Expression -> SQL_IR_Source
     set_where_filters self new_filters =
         SQL_IR_Source.Value self.from_spec new_filters self.orders self.groups self.limit self.extensions
 
@@ -86,7 +86,7 @@ type SQL_IR_Source
        Arguments:
        - new_filters: The new filters to add to the existing filters in the
          query.
-    add_where_filters : Vector SQL_Expression -> SQL_IR_Source
+    add_where_filters : Vector SQL_IR_Expression -> SQL_IR_Source
     add_where_filters self new_filters =
         SQL_IR_Source.Value self.from_spec (self.where_filters+new_filters) self.orders self.groups self.limit self.extensions
 
@@ -121,7 +121,7 @@ type SQL_IR_Source
 
        Arguments:
        - new_groups: The new grouping clauses to set in the query.
-    set_groups : Vector SQL_Expression -> SQL_IR_Source
+    set_groups : Vector SQL_IR_Expression -> SQL_IR_Source
     set_groups self new_groups =
         SQL_IR_Source.Value self.from_spec self.where_filters self.orders new_groups self.limit self.extensions
 
@@ -159,7 +159,7 @@ type SQL_IR_Source
     as_subquery self alias column_lists =
         rewrite_internal_column : Internal_Column -> Internal_Column
         rewrite_internal_column column =
-            Internal_Column.Value column.name column.sql_type_reference (SQL_Expression.Column alias column.name)
+            Internal_Column.Value column.name column.sql_type_reference (SQL_IR_Expression.Column alias column.name)
 
         new_columns = column_lists.map on_problems=No_Wrap.Value columns->
             columns.map on_problems=No_Wrap.Value rewrite_internal_column
@@ -209,7 +209,7 @@ type SQL_IR_Source_Extension
          generated and the results of that will be passed to `run_generator`.
        - run_generator: A function that takes the generated expressions and
          returns the SQL code that will be inserted at the desired position.
-    Value (part_name : SQL_Part) (expressions : Vector SQL_Expression) (run_generator : Vector SQL_Builder -> SQL_Builder)
+    Value (part_name : SQL_Part) (expressions : Vector SQL_IR_Expression) (run_generator : Vector SQL_Builder -> SQL_Builder)
 
     ## PRIVATE
        A bottom-up, depth-first traversal of this IR node and its children. Each

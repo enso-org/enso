@@ -7,7 +7,7 @@ import project.Dialect.Dialect
 import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
@@ -70,20 +70,20 @@ type SQL_Generator
        Arguments:
        - dialect: The SQL dialect in which the expression is being generated.
        - expr: The expression to generate SQL code for.
-    generate_expression : Dialect -> SQL_Expression | Order_Descriptor | SQL_IR_Statement -> SQL_Builder
+    generate_expression : Dialect -> SQL_IR_Expression | Order_Descriptor | SQL_IR_Statement -> SQL_Builder
     generate_expression self dialect expr = case expr of
-        SQL_Expression.Column origin name ->
+        SQL_IR_Expression.Column origin name ->
             dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
-        SQL_Expression.Constant value -> SQL_Builder.interpolation value
-        SQL_Expression.Literal value -> SQL_Builder.code value
-        SQL_Expression.Text_Literal value ->
+        SQL_IR_Expression.Constant value -> SQL_Builder.interpolation value
+        SQL_IR_Expression.Literal value -> SQL_Builder.code value
+        SQL_IR_Expression.Text_Literal value ->
             escaped = value.replace "'" "''"
             SQL_Builder.code ("'" + escaped + "'")
-        SQL_Expression.Operation kind arguments metadata ->
+        SQL_IR_Expression.Operation kind arguments metadata ->
             op = dialect.dialect_operations.operations_dict.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
             parsed_args = arguments.map (self.generate_expression dialect)
             self.apply_op_generator_with_metadata op parsed_args metadata
-        SQL_Expression.Let _ binder bindee body ->
+        SQL_IR_Expression.Let _ binder bindee body ->
             wrapped_binder = dialect.wrap_identifier binder
             bindee_exp = SQL_Builder.code "SELECT " ++ (self.generate_expression dialect bindee).paren ++ " AS " ++ "x"
 
@@ -92,7 +92,7 @@ type SQL_Generator
 
             body_exp = SQL_Builder.code "SELECT " ++ body_sql_builder ++ " FROM " ++ wrapped_binder
             (SQL_Builder.code "WITH " ++ wrapped_binder  ++ " AS " ++ bindee_exp.paren ++ " " ++ body_exp).paren
-        SQL_Expression.Let_Ref _ binder standalone_expression ->
+        SQL_IR_Expression.Let_Ref _ binder standalone_expression ->
             binding_state = self.let_bindings_ref.get
             case binding_state.contains binder of
                 True ->
@@ -100,7 +100,7 @@ type SQL_Generator
                     wrapped_binder ++ "." ++ "x"
                 False ->
                     self.generate_expression dialect standalone_expression
-        SQL_Expression.List values ->
+        SQL_IR_Expression.List values ->
             parsed_values = values.map (self.generate_expression dialect)
             SQL_Builder.join ", " parsed_values
         query : SQL_IR_Statement -> self.generate_sub_query dialect query
@@ -180,7 +180,7 @@ type SQL_Generator
         Arguments:
         - dialect: The SQL dialect for which the code is being generated.
         - ctx: A description of the SELECT clause.
-    generate_select_query_sql : Dialect -> Vector (Pair Text SQL_Expression) -> SQL_IR_Source -> SQL_Builder
+    generate_select_query_sql : Dialect -> Vector (Pair Text SQL_IR_Expression) -> SQL_IR_Source -> SQL_Builder
     generate_select_query_sql self dialect columns ctx =
         gen_exprs exprs = exprs.map (expr-> dialect.generate_expression self expr for_select=False)
         gen_group_exprs exprs = exprs.map (expr-> dialect.generate_expression self expr for_select=True)
@@ -655,7 +655,7 @@ collect_table_names (query : SQL_IR_Statement) -> Vector Text =
         SQL_IR_Statement.Update_From_Table target_table_name source_table_name _ _ -> [target_table_name, source_table_name]
         SQL_IR_Statement.Delete_Unmatched_Rows target_table_name source_table_name _ -> [target_table_name, source_table_name]
         SQL_IR_Statement.Delete_Matching_Rows  target_table_name source_table_name _ -> [target_table_name, source_table_name]
-        SQL_Expression.Column origin _ -> [origin]
+        SQL_IR_Expression.Column origin _ -> [origin]
         SQL_IR_From_Part.Table table_name alias _ -> [table_name, alias]
         SQL_IR_From_Part.Query _ alias -> [alias]
         SQL_IR_From_Part.Literal_Values _ _ alias -> [alias]
@@ -678,12 +678,12 @@ preprocess_query (query : SQL_IR_Statement) -> SQL_IR_Statement =
     renamer = Let_Binder_Renamer.new table_names
 
     transform node = case node of
-        SQL_Expression.Let name binder bindee body ->
+        SQL_IR_Expression.Let name binder bindee body ->
             new_binder = renamer.rename name binder
-            SQL_Expression.Let name new_binder bindee body
-        SQL_Expression.Let_Ref name binder standalone_expression ->
+            SQL_IR_Expression.Let name new_binder bindee body
+        SQL_IR_Expression.Let_Ref name binder standalone_expression ->
             new_binder = renamer.rename name binder
-            SQL_Expression.Let_Ref name new_binder standalone_expression
+            SQL_IR_Expression.Let_Ref name new_binder standalone_expression
         _ -> node
 
     query.traverse transform
@@ -769,7 +769,7 @@ truncate_table_truncate_table_style dialect table_name =
 
 ## PRIVATE
 default_fetch_types_query dialect expression context where_filter_always_false_literal="FALSE" =
-    empty_context = context.add_where_filters [SQL_Expression.Literal where_filter_always_false_literal]
+    empty_context = context.add_where_filters [SQL_IR_Expression.Literal where_filter_always_false_literal]
     dialect.generate_sql (SQL_IR_Statement.Select [["typed_column", expression]] empty_context)
 
 ## PRIVATE

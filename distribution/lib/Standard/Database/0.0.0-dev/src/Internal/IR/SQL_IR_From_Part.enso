@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.SQL_Statement.SQL_Statement
@@ -62,7 +62,7 @@ type SQL_IR_From_Part
        - on: a list of expressions that will be used as join conditions, these
          are usually be equalities between expressions from the left and right
          sources.
-    Join (kind : SQL_Join_Kind) (left_spec : SQL_IR_From_Part) (right_spec : SQL_IR_From_Part) (on : Vector SQL_Expression)
+    Join (kind : SQL_Join_Kind) (left_spec : SQL_IR_From_Part) (right_spec : SQL_IR_From_Part) (on : Vector SQL_IR_Expression)
 
     ## PRIVATE
 
@@ -91,7 +91,7 @@ type SQL_IR_From_Part
        - context: the context for the sub-query.
        - alias: the name upon which the results of this sub-query can be
          referred to in other parts of the query.
-    Sub_Query (columns : Vector (Pair Text SQL_Expression)) (context : SQL_IR_Source) (alias : Text)
+    Sub_Query (columns : Vector (Pair Text SQL_IR_Expression)) (context : SQL_IR_Source) (alias : Text)
 
     ## PRIVATE
        A bottom-up, depth-first traversal of this IR node and its children. Each
