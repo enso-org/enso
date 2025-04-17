@@ -12,14 +12,12 @@ import Standard.Test.Test_Environment
 
 from project.Common_Table_Operations.Util import run_default_backend
 
-add_specs suite_builder setup =
+add_specs suite_builder =
     data_dir = enso_project.data / "fixed-width"
     data0 = data_dir / "fixed0.txt"
     data1 = data_dir / "fixed1.txt"
     data2 = data_dir / "fixed2.txt"
     data3 = data_dir / "fixed3.txt"
-
-    table_builder = setup.light_table_builder
 
     suite_builder.group "Read fixed-width files" group_builder->
         group_builder.specify "Should make a layout from a description" <|
@@ -37,7 +35,7 @@ add_specs suite_builder setup =
             layout . get_entries . should_equal expected
 
         group_builder.specify "Should make a layout from a table (no column names)" <|
-            table = table_builder [['x', [0, Nothing, Nothing, Nothing]], ['y', [4, 1, 3, 3]]]
+            table = Table.input [['x', [0, Nothing, Nothing, Nothing]], ['y', [4, 1, 3, 3]]]
             layout = table : Fixed_Width_Layout
             expected = []
                 + [Fixed_Width_Layout_Entry.Value "Column 1" 0 4]
@@ -48,7 +46,7 @@ add_specs suite_builder setup =
             layout . get_entries . should_equal expected
 
         group_builder.specify "Should make a layout from a table (column names)" <|
-            table = table_builder [['c', ["a", "b", "c", "d"]], ['x', [0, Nothing, Nothing, Nothing]], ['y', [4, 1, 3, 3]]]
+            table = Table.input [['c', ["a", "b", "c", "d"]], ['x', [0, Nothing, Nothing, Nothing]], ['y', [4, 1, 3, 3]]]
             layout = table : Fixed_Width_Layout
             expected = []
                 + [Fixed_Width_Layout_Entry.Value "a" 0 4]
@@ -234,4 +232,7 @@ add_specs suite_builder setup =
 
             ['crlf.csv', 'lf.csv', 'cr.csv', 'mixed.csv'].each (path >> .delete)
 
-main filter=Nothing = run_default_backend add_specs filter
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
