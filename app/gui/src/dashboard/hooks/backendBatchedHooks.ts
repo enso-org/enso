@@ -32,6 +32,7 @@ import {
   type LabelName,
 } from 'enso-common/src/services/Backend'
 import { toast } from 'react-toastify'
+import invariant from 'tiny-invariant'
 
 /** Call "delete" mutations for a list of assets. */
 export function deleteAssetsMutationOptions(backend: Backend) {
@@ -545,6 +546,8 @@ export function useUploadAssetsToCloud() {
   const uploadAssetToCloud = useUploadAssetToCloud()
   const remoteBackend = useRemoteBackend()
   const getSiblings = useGetSiblings()
+  const cloudCategories = useCloudCategoryList()
+  const cloudHomeCategory = cloudCategories.categories.find((category) => category.type === 'cloud')
 
   return useEventCallback(
     async (assets: readonly Pick<AnyAsset, 'id' | 'parentId' | 'title'>[]) => {
@@ -574,9 +577,16 @@ export function useUploadAssetsToCloud() {
       )
 
       if (duplicateErrors.length !== 0) {
+        invariant(
+          cloudHomeCategory != null,
+          'Cloud home category must exist to upload Local project to Cloud',
+        )
+
         const resolutions = await resolveDuplications({
           targetId: parentDirectoryId,
           conflictingIds: duplicateErrors.map((error) => error.id),
+          category: cloudHomeCategory,
+          backend: remoteBackend,
         })
 
         const assetsMap = new Map(assets.map((asset) => [asset.id, asset]))

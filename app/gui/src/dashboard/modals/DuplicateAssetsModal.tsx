@@ -8,6 +8,7 @@ import * as ariaComponents from '#/components/AriaComponents'
 import AssetSummary from '#/components/dashboard/AssetSummary'
 import Modal from '#/components/Modal'
 
+import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
 import {
@@ -23,7 +24,8 @@ import {
 import { Icon } from '#/components/Icon'
 import { listDirectoryQueryOptions, unsafe_assetFromCacheQueryOptions } from '#/hooks/backendHooks'
 import { useMount } from '#/hooks/mountHooks'
-import { useCategory } from '#/layouts/Drive/Categories/categoriesHooks'
+import type { Category } from '#/layouts/CategorySwitcher/Category'
+import { useCategory } from '#/layouts/Drive/Categories'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { FilterBy } from '#/services/Backend'
 import * as fileInfo from '#/utilities/fileInfo'
@@ -372,6 +374,8 @@ export interface ReplaceDuplication {
 export interface ResolveDuplicationsProps {
   readonly targetId: backendModule.DirectoryId
   readonly conflictingIds: readonly backendModule.AssetId[]
+  readonly category?: Category
+  readonly backend?: Backend
   readonly onSubmit: (assets: readonly ResolvedDuplication[]) => Promise<void> | void
   readonly onCancel: () => void
 }
@@ -404,9 +408,13 @@ const NEW_TITLE_SUFFIX = ' (copy)'
  * The inner component of a {@link ResolveDuplicationsModal}.
  */
 function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
-  const { targetId, conflictingIds } = props
-
-  const { category, associatedBackend } = useCategory()
+  const categoryInfo = useCategory()
+  const {
+    targetId,
+    conflictingIds,
+    category = categoryInfo.category,
+    backend = categoryInfo.associatedBackend,
+  } = props
 
   const { getText } = textProvider.useText()
 
@@ -416,13 +424,13 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
     queries: [
       listDirectoryQueryOptions({
         category,
-        backend: associatedBackend,
+        backend,
         parentId: targetId,
         refetchInterval: null,
       }),
       listDirectoryQueryOptions({
         category,
-        backend: associatedBackend,
+        backend,
         parentId: targetId,
         filterBy: FilterBy.trashed,
         refetchInterval: null,
@@ -443,7 +451,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
 
   const conflictingAssets = useSuspenseQueries({
     queries: conflictingIds.map((id) =>
-      unsafe_assetFromCacheQueryOptions({ backend: associatedBackend, assetId: id, queryClient }),
+      unsafe_assetFromCacheQueryOptions({ backend: backend, assetId: id, queryClient }),
     ),
     combine: (queries) => queries.map((query) => query.data).filter((asset) => asset != null),
   })
@@ -690,23 +698,14 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
  * Options for resolving duplicates.
  */
 export interface ResolveDuplicationsOptions
-  extends Pick<ResolveDuplicationsProps, 'conflictingIds' | 'targetId'> {}
+  extends Omit<ResolveDuplicationsProps, 'onCancel' | 'onSubmit'> {}
 
 /**
  * Function for resolving duplicates.
  */
 // eslint-disable-next-line react-refresh/only-export-components
-export async function resolveDuplications(props: ResolveDuplicationsOptions) {
-  const { targetId, conflictingIds } = props
-
+export async function resolveDuplications(options: ResolveDuplicationsOptions) {
   return new Promise<readonly ResolvedDuplication[]>((resolve, reject) => {
-    setModal(
-      <ResolveDuplicationsModal
-        targetId={targetId}
-        conflictingIds={conflictingIds}
-        onSubmit={resolve}
-        onCancel={reject}
-      />,
-    )
+    setModal(<ResolveDuplicationsModal {...options} onSubmit={resolve} onCancel={reject} />)
   }).finally(unsetModal)
 }
