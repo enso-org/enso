@@ -82,7 +82,7 @@ type Redshift_Dialect
         
     ## PRIVATE
        Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
-       If you add extensions using Context_Extension you have to provide an order for them here
+       If you add extensions using SQL_IR_Source_Extension you have to provide an order for them here
     get_part_order self part:SQL_Part -> Integer =
         Base_Generator.default_get_part_order part
 
