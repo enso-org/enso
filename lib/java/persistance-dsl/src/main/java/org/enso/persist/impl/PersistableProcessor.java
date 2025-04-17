@@ -3,7 +3,6 @@ package org.enso.persist.impl;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -74,43 +73,51 @@ public class PersistableProcessor extends AbstractProcessor {
           var propsPkg = entry.getKey();
           var propsName = "Persistables.properties";
           var cn = entry.getKey() + ".Persistables";
-          var res = processingEnv.getFiler().getResource(propsWhere, propsPkg, propsName);
-          if (res != null) {
-            try (var is = res.openInputStream()) {
-              props.load(is);
-            } catch (IOException ex) {
-              // ignore and go on
+          try {
+            var res = processingEnv.getFiler().getResource(propsWhere, propsPkg, propsName);
+            if (res != null) {
+              try (var is = res.openInputStream()) {
+                props.load(is);
+              }
             }
+          } catch (IOException notReallyImportant) {
+            processingEnv
+                .getMessager()
+                .printMessage(
+                    Kind.OTHER,
+                    "Cannot read "
+                        + propsPkg
+                        + "."
+                        + propsName
+                        + ": "
+                        + notReallyImportant.getMessage());
           }
           var src = processingEnv.getFiler().createSourceFile(cn);
-          try (java.io.Writer w = src.openWriter()) {
+          try (var w = src.openWriter()) {
             w.append("package " + entry.getKey() + ";\n");
             w.append("public final class Persistables {\n");
             w.append("  private Persistables() {}\n");
             w.append("  public static void initialize() {\n");
             w.append("  }\n");
 
-            var merged = new HashMap<Integer, String>();
-            for (var newEntry : props.entrySet()) {
-              var key = Integer.parseInt(newEntry.getKey().toString());
-              merged.put(key, newEntry.getValue().toString());
-            }
             // values from processor take preceedence
-            merged.putAll(entry.getValue());
+            for (var idName : entry.getValue().entrySet()) {
+              props.setProperty("" + idName.getKey(), idName.getValue());
+            }
 
-            for (var idName : merged.entrySet()) {
+            for (var idName : props.entrySet()) {
               w.append(
                   "  private static final org.enso.persist.Persistance PERSIST_"
                       + idName.getKey()
                       + " = new "
                       + idName.getValue()
                       + "();\n");
-              props.setProperty("" + idName.getKey(), idName.getValue());
             }
             w.append("}\n");
           }
           var out = processingEnv.getFiler().createResource(propsWhere, propsPkg, propsName);
-          try (java.io.OutputStream os = out.openOutputStream()) {
+          try (var os = out.openOutputStream()) {
+            // store accumulated key/value pairs for subsequent (incremental) update
             props.store(os, "");
           }
         } catch (IOException ex) {
