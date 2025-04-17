@@ -35,6 +35,9 @@ public abstract class GetAtomFieldsNode extends Node {
       Atom atom,
       @Cached("atom.getConstructor()") AtomConstructor cons,
       @CachedLibrary(limit = LIMIT) StructsLibrary structs) {
+    if (cons.getType().hasAllConstructorsPrivate()) {
+      return ArrayLikeHelpers.asVectorEmpty();
+    }
     var arr = new Object[cons.getArity()];
     for (var i = 0; i < arr.length; i++) {
       arr[i] = structs.getField(atom, i);

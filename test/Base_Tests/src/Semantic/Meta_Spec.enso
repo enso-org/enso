@@ -1,7 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-from Standard.Base.Errors.Common import Uninitialized_State, Type_Error, Not_Found
+from Standard.Base.Errors.Common import Uninitialized_State, Type_Error, Not_Found, Private_Access
+from enso_dev.Helpers import Public_Type
 
 polyglot java import java.lang.Object as JObject
 polyglot java import java.lang.Long as JLong
@@ -89,6 +90,24 @@ add_specs suite_builder =
         group_builder.specify "should allow getting a value's constructor's fields" <|
             Meta.meta List.Nil . constructor . fields . should_equal []
             Meta.meta (List.Cons 1 List.Nil) . constructor . fields . should_equal ["x", "xs"]
+
+        group_builder.specify "prevent getting value from private constructor" <|
+            atom = Public_Type.new 6*7
+            meta = Meta.meta atom
+
+            # fields are invisible
+            meta.fields . should_equal []
+
+        group_builder.specify "prevent getting fields from private constructor" <|
+            atom = Public_Type.new 6*7
+            meta = Meta.meta atom
+
+            # constructor is inaccessible
+            meta.constructor . should_fail_with Private_Access
+
+            # fields should be invisible
+            meta.constructor.fields . should_fail_with Private_Access
+
         group_builder.specify "should allow creating atoms from atom constructors" <|
             atom_1 = Meta.meta My_Type.Value . new [1,"foo", Nothing]
             (Meta.meta atom_1).constructor.value . should_equal My_Type.Value

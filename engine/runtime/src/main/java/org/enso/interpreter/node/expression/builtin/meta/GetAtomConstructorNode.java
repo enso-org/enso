@@ -3,8 +3,10 @@ package org.enso.interpreter.node.expression.builtin.meta;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.error.DataflowError;
 
 @BuiltinMethod(
     type = "Meta",
@@ -20,7 +22,13 @@ public abstract class GetAtomConstructorNode extends Node {
 
   @Specialization
   Object doAtom(Atom atom) {
-    return atom.getConstructor();
+    var cons = atom.getConstructor();
+    if (cons.getType().hasAllConstructorsPrivate()) {
+      var ctx = EnsoContext.get(this);
+      var err = ctx.getBuiltins().error().makePrivateAccessError("", "", "");
+      return DataflowError.withDefaultTrace(err, this);
+    }
+    return cons;
   }
 
   @Specialization
