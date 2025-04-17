@@ -843,7 +843,7 @@ rm dist/backend/project-manager.tar"
                 };
                 steps.push(upload_test_traces_step);
 
-                steps.push(shell(format!("corepack pnpm -r --filter enso ide-build-chromatic")));
+                steps.push(shell("corepack pnpm -r --filter enso ide-build-chromatic"));
 
                 let upload_chromatic_step = Step {
                     name: Some("Upload Chromatic snapshots".into()),
