@@ -90,6 +90,7 @@ import project.System.Input_Stream_Spec
 import project.System.Process_Spec
 import project.System.Reporting_Stream_Decoder_Spec
 import project.System.Reporting_Stream_Encoder_Spec
+import project.System.Runner_Spec
 import project.System.System_Spec
 import project.System.Temporary_File_Spec
 
@@ -181,5 +182,6 @@ main filter=Nothing =
         Random_Spec.add_specs suite_builder
         XML_Spec.add_specs suite_builder
         Decimal_Spec.add_specs suite_builder
+        Runner_Spec.add_specs suite_builder
 
     suite.run_with_filter filter
