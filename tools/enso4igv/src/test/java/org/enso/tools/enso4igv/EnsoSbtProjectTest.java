@@ -2,9 +2,12 @@ package org.enso.tools.enso4igv;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.stream.Collectors;
+import org.junit.AssumptionViolatedException;
 import org.netbeans.api.java.classpath.ClassPath;
 import org.netbeans.api.project.ProjectManager;
 import org.netbeans.api.project.Sources;
@@ -12,6 +15,7 @@ import org.netbeans.junit.NbTestCase;
 import org.netbeans.spi.project.SubprojectProvider;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
+import org.openide.util.Utilities;
 
 public class EnsoSbtProjectTest extends NbTestCase {
 
@@ -24,35 +28,48 @@ public class EnsoSbtProjectTest extends NbTestCase {
     clearWorkDir();
   }
 
+  public void testRuntimeParserProjectFound() throws Exception {
+    var root = findRepoRoot();
+
+    var rootFO = FileUtil.toFileObject(root);
+    var prj = ProjectManager.getDefault().findProject(rootFO);
+
+    var spp = prj.getLookup().lookup(SubprojectProvider.class);
+    assertNotNull("subprojects are supported", spp);
+    var projects = spp.getSubprojects();
+
+    assertTrue("At least few projects found: " + projects, projects.size() >= 5);
+
+    var set = projects.stream().map(p -> p.getProjectDirectory()).collect(Collectors.toSet());
+
+    assertTrue("runtime-parser found: " + set, set.contains(rootFO.getFileObject("engine/runtime-parser")));
+  }
+
   public void testAllProjectsWillBeFound() throws Exception {
-      var root = new File(EnsoSbtProjectTest.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-      for (;;) {
-          assertNotNull("Root isn't a dir", root);
-          var sbt = new File(root, "build.sbt");
-          if (sbt.exists()) {
-              break;
-          }
-          root = root.getParentFile();
-      }
-      var sbt = new File(root, "build.sbt");
-      assertTrue("build script found", sbt.exists());
-      var text = Files.readAllLines(sbt.toPath());
-      var aggregateAndRest = text.stream().dropWhile(l -> !l.contains(".aggregate(")).toList();
-      var aggregate = aggregateAndRest.stream().skip(1).takeWhile(l -> !l.contains(")")).toList();
+    var root = findRepoRoot();
+    var sbt = new File(root, "build.sbt");
+    if (!assumeEssentialsAreCompiled(root)) {
+      return;
+    }
 
-      assertSimilar("Aggregates are we searching for: " + aggregate, 96, aggregate.size(), 10);
+    assertTrue("build script found", sbt.exists());
+    var text = Files.readAllLines(sbt.toPath());
+    var aggregateAndRest = text.stream().dropWhile(l -> !l.contains(".aggregate(")).toList();
+    var aggregate = aggregateAndRest.stream().skip(1).takeWhile(l -> !l.contains(")")).toList();
 
-      var inFiles = text.stream().filter(l -> l.contains(".in(file(") || l.contains("project in file(")).toList();
-      assertSimilar("Same amount of in(file( as aggregates", aggregate.size(), inFiles.size(), 10);
+    assertSimilar("Aggregates are we searching for: " + aggregate, 96, aggregate.size(), 10);
 
-      var rootFO = FileUtil.toFileObject(root);
-      var prj = ProjectManager.getDefault().findProject(rootFO);
+    var inFiles = text.stream().filter(l -> l.contains(".in(file(") || l.contains("project in file(")).toList();
+    assertSimilar("Same amount of in(file( as aggregates", aggregate.size(), inFiles.size(), 10);
 
-      var spp = prj.getLookup().lookup(SubprojectProvider.class);
-      assertNotNull("subprojects are supported", spp);
-      var projects = spp.getSubprojects();
+    var rootFO = FileUtil.toFileObject(root);
+    var prj = ProjectManager.getDefault().findProject(rootFO);
 
-      assertSimilar("Found exactly the same amount of projects: " + projects, aggregate.size(), projects.size(), 10);
+    var spp = prj.getLookup().lookup(SubprojectProvider.class);
+    assertNotNull("subprojects are supported", spp);
+    var projects = spp.getSubprojects();
+
+    assertSimilar("Found exactly the same amount of projects: " + projects, aggregate.size(), projects.size(), 15);
   }
 
   public void testLanguageServerProject() throws Exception {
@@ -132,9 +149,39 @@ public class EnsoSbtProjectTest extends NbTestCase {
   }
 
   private static void assertSimilar(String msg, int expected, int actual, int allowedDifference) {
-      if (Math.abs(expected - actual) <= allowedDifference) {
-          return;
-      }
-      assertEquals(msg, expected, actual);
+    if (Math.abs(expected - actual) <= allowedDifference) {
+      return;
+    }
+    assertEquals(msg, expected, actual);
   }
+
+  private static File findRepoRoot() throws URISyntaxException, IllegalArgumentException {
+    var root = Utilities.toFile(EnsoSbtProjectTest.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+    for (;;) {
+      assertNotNull("Root isn't a dir", root);
+      var sbt = new File(root, "build.sbt");
+      if (sbt.exists()) {
+        break;
+      }
+      root = root.getParentFile();
+    }
+    return root;
+  }
+
+  private static boolean assumeEssentialsAreCompiled(File root) {
+    var engineRuntimeCheck = new File(new File(new File(root, "engine"), "runtime"), ".enso-sources");
+    if (!engineRuntimeCheck.exists()) {
+      var msg = """
+      This test requires `sbt compile` to be executed first.
+      Such command generates `.enso-sources` meta data.
+      Without them running "check all" test makes little sense.
+      Not found: """ + engineRuntimeCheck;
+      var ex = new AssumptionViolatedException(msg);
+      ex.printStackTrace();
+      return false;
+    } else {
+      return true;
+    }
+  }
+
 }

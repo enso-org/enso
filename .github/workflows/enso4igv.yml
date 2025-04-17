@@ -169,9 +169,5 @@ jobs:
           name: VSCode Extension
           path: tools/enso4igv/*.vsix
 
-      - name: Generate .enso-sources Meta Data
-        run: |
-          ./run backend sbt -- compile
-
       - name: Run Tests with Maven
         run: mvn -B test --file tools/enso4igv/pom.xml -Denso.parser.lib=`pwd`/enso_parser/
