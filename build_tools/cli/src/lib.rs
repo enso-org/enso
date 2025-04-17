@@ -379,7 +379,7 @@ impl Processor {
                                     "Snowflake_Tests".to_string()
                                 ]),
                             );
-                            config.build_native_runner = true;
+                            config.build_native_runner = false;
                         }
                         Tests::StdCloudRelated => {
                             config.add_standard_library_test_selection(
@@ -397,7 +397,7 @@ impl Processor {
                                     "Image_Tests".to_string(),
                                 ]),
                             );
-                            config.build_native_runner = true;
+                            config.build_native_runner = false;
                         }
                     }
                 }

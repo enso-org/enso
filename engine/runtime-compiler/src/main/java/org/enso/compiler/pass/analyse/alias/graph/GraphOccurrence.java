@@ -150,9 +150,6 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
       this.symbol = symbol;
       this.externalId = externalId.nonEmpty() ? externalId.get() : null;
       this.identifier = identifier;
-      if (scope != null) {
-        scope.add(this);
-      }
     }
 
     Use(int id, String symbol, UUID identifier, scala.Option<UUID> externalId) {
