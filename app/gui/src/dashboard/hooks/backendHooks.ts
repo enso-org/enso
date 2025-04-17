@@ -560,7 +560,7 @@ export function useNewProject(backend: Backend, category: Category) {
       {
         templateName,
         templateId,
-        ensoPath
+        ensoPath,
       }: {
         templateName: string | null | undefined
         templateId?: string | null | undefined
