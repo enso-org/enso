@@ -38,8 +38,8 @@ import { AssetSearchBar } from '#/layouts/AssetSearchBar'
 import {
   canTransferBetweenCategories,
   isCloudCategory,
-  TrashCategory,
   type Category,
+  type TrashCategory,
 } from '#/layouts/Drive/CategorySwitcher'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'

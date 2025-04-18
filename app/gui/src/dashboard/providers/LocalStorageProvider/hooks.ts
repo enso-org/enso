@@ -1,7 +1,7 @@
 /** @file Hooks for `LocalStorageProvider`. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { LocalStorageData, LocalStorageKey } from '#/utilities/LocalStorage'
-import { useContext, useState, type SetStateAction } from 'react'
+import { useContext, useEffect, useState, type SetStateAction } from 'react'
 import invariant from 'tiny-invariant'
 import { LocalStorageContext } from './constants'
 

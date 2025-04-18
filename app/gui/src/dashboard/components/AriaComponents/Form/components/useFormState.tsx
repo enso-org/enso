@@ -4,7 +4,7 @@
  * A hook for subscribing to the state of a form.
  */
 import * as reactHookForm from 'react-hook-form'
-import { useFormContext } from './FormProvider'
+import { useFormContext } from './hooks'
 import type { FieldPath, FormWithValueValidation, TSchema } from './types'
 
 /** Options for {@link useFormState} hook. */

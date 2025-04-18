@@ -2,11 +2,12 @@
 import { SEARCH_PARAMS_PREFIX } from '#/appUtils'
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import { DropZone, type DropEvent } from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import type * as ariaComponents from '#/components/AriaComponents'
 import { Button, BUTTON_STYLES, DialogTrigger, Text } from '#/components/AriaComponents'
 import { Badge } from '#/components/Badge'
 import * as mimeTypes from '#/data/mimeTypes'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
+import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useTransferBetweenCategories } from '#/layouts/Drive/CategorySwitcher/useTransferBetweenCategories'
@@ -14,6 +15,7 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
+import { unsetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import { tv } from '#/utilities/tailwindVariants'
 import { memo, useTransition, type ReactNode } from 'react'
@@ -27,9 +29,6 @@ import {
 } from './Category'
 import { useCloudCategoryList, useLocalCategoryList } from './hooks'
 import { ASSETS_DATA_TRANSFER_PAYLOAD } from './useTransferBetweenCategories'
-
-import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
-import { unsetModal } from '#/providers/ModalProvider'
 
 /** Metadata for a category. */
 interface CategoryMetadata {

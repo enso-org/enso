@@ -35,7 +35,6 @@ export interface FocusAreaProps {
  * This component is mostly useless now, but it's fine -
  * in the most of cases we have proper keyboard navigation without it.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 function FocusAreaInternal(props: FocusAreaProps) {
   const { active = true, direction, children } = props
   const { focusChildClass = 'focus-child' } = props
