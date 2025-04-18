@@ -13,6 +13,8 @@ import project.Hyper_File.Hyper_File
 import project.Internal.Telemetry
 import Standard.Base.Runtime.Context
 
+from Standard.Base.System.File import file_as_java
+
 polyglot java import org.enso.tableau.HyperReader
 
 ## Read the file to a `Hyper_File` object.
@@ -69,6 +71,7 @@ type Tableau_Format
         _ = [stream, metadata]
         Error.throw (Illegal_Argument.Error "Cannot connect to a Hyper file backed by a stream. Save it to a local file first.")
 
+
     ## PRIVATE
        ADVANCED
        Implements the `Table.write` for this `File_Format`.
@@ -76,5 +79,20 @@ type Tableau_Format
     write_table self file table on_existing_file match_columns on_problems:Problem_Behavior =
         is_dry_run = Context.Output.is_enabled.not
         resolved_file = if is_dry_run then (file.file.create_dry_run_file copy_original=True).path else file.file.path
+
+        needs_backup = on_existing_file == Existing_File_Behavior.Backup
+        if needs_backup && file.exists then
+            backup_file = find_bak_file file.file
+            ## We can move instead of copying because right in next line we will overwrite the original file
+                anyway. And move should be more efficient.
+            Panic.rethrow <| file.file.move_to backup_file replace_existing=True
+
         HyperReader.writeTable resolved_file table.java_table
         resolved_file
+
+## PRIVATE
+## TODO copied from Excel_Writer.enso
+find_bak_file : File -> File
+find_bak_file base_file =
+    parent = base_file.absolute.normalize.parent
+    parent / (base_file.name + ".bak")
