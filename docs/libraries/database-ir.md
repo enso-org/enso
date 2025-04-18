@@ -37,9 +37,9 @@ only have meaning within the context of a table expression; they do not contain
 their own table expressions.
 
 Table expressions are represented by the mutually-recursive types `SQL_IR_From_Part`
-and `Context`.
+and `SQL_IR_Source`.
 
-Top-level queries and DDL/DML commands are represented by the `Query` type.
+Top-level queries and DDL/DML commands are represented by the `SQL_IR_Statement` type.
 
 ## SQL_IR_Expression
 
@@ -60,15 +60,15 @@ nesting.
 ## SQL_IR_From_Part
 
 Represents a table expression. Can be a database table (`Table`), a derived
-table built from other tables (`Join`, `Union`), or a constant value (`Query`,
+table built from other tables (`Join`, `Union`), or a constant value (`SQL_IR_Statement`,
 `Literal_Values`).
 
-A `Query` value is a complete SQL query, either as a single `Text` or as an
+An `SQL_IR_Statement` value is a complete SQL query, either as a single `Text` or as an
 `SQL_Statement` built safely from strings and values. A `Literal_Values`
 consists of a table-shaped vector-of-vectors of values and is compiled into an
 inline literal SQL table expression.
 
-`Sub_Query` is used to nest a query as a subquery, replacing column expressions
+`Sub_SQL_IR_Statement` is used to nest a query as a subquery, replacing column expressions
 with aliases to those same column expressions within the subquery. This is used
 to keep query elements such as `where`, `order by`, and `group by` separate to
 prevent unwanted interactions between them. This allows `join` and `union`
@@ -76,25 +76,25 @@ operations on complex queries, as well as more specific operations such as
 `DB_Table.add_row_number`. This is explained more fully below in the
 [`Subqueries` section](#subqueries).
 
-## Context
+## SQL_IR_Source
 
 Represents a table expression, along with `where`, `order by`, `group by` and
 `limit` clauses.
 
-A `DB_Column` contains its own reference to a `Context`, so it can be read
+A `DB_Column` contains its own reference to a `SQL_IR_Source`, so it can be read
 without relying on the `DB_Table` object that it came from. In fact, `DB_Column`
 values are standalone and not directly tied to particular `DB_Table` instance.
-Instead, they are connected to the `Context` objects they contain, and all
-`DB_Columns` from a single table expression must share the same `Context`. This
+Instead, they are connected to the `SQL_IR_Source` objects they contain, and all
+`DB_Columns` from a single table expression must share the same `SQL_IR_Source`. This
 corresponds to the idea that the columns expressions in a `SELECT` clause all
 refer to the same table expression in the `FROM` clause.
 
-And also we can 'merge' `DB_Column`s that have the same `Context` into a single
+And also we can 'merge' `DB_Column`s that have the same `SQL_IR_Source` into a single
 `DB_Table` e.g. via `DB_Table.set`, allowing to add more derived expressions to
-existing tables. Compatibility between `Context`s is verified by the
+existing tables. Compatibility between `SQL_IR_Source`s is verified by the
 `Helpers.check_integrity` method.
 
-## Query
+## SQL_IR_Statement
 
 A query (`Select`), or other DML or DDL command (`Insert`, `Create_Table`,
 `Drop_Table `, and others).
@@ -105,34 +105,34 @@ This section covers the main ways in which both the IR and user-facing types are
 combined and nested to describe typical queries; it is not comprehensive.
 
 A `DB_Table` serves as a user-facing table expression, and contains column
-expressions as `Internal_Column`s and a table expression as a `Context`.
+expressions as `Internal_Column`s and a table expression as a `SQL_IR_Source`.
 
 A `DB_Column` serves as a user-facing column expression, and contains a column
-expression as an `SQL_IR_Expression` and a table expression as a `Context`.
+expression as an `SQL_IR_Expression` and a table expression as a `SQL_IR_Source`.
 
 An `Internal_Column` serves as a column expression, and contains a
 `SQL_IR_Expression`, but no table expression. An `Internal_Column` is always used
 inside a `DB_Table`, and inherits its table expression from the `DB_Table`'s
-`Context`.
+`SQL_IR_Source`.
 
-A `SQL_IR_From_Part` serves as a table expression, and corresponds to the 'from' clause
+An `SQL_IR_From_Part` serves as a table expression, and corresponds to the 'from' clause
 of an SQL query. It can be a base value (table name, constant, etc), join,
 union, or subquery:
 
 - `SQL_IR_From_Part.Join`: contains `SQL_IR_From_Part` values from the individual tables, as
   well as `SQL_IR_Expressions` for join conditions
-- `SQL_IR_From_Part.Union`: contains a vector of `Query` values for the individual
+- `SQL_IR_From_Part.Union`: contains a vector of `SQL_IR_Statement` values for the individual
   tables.
-- `SQL_IR_From_Part.Sub_Query`: contains column expressions as `SQL_IR_Expression`s, and a
-  table expression as a `Context`.
+- `SQL_IR_From_Part.Sub_SQL_IR_Statement`: contains column expressions as `SQL_IR_Expression`s, and a
+  table expression as a `SQL_IR_Source`.
 
-A `Context` serves as a table expression, and corresponds to the `from` clause
+An `SQL_IR_Source` serves as a table expression, and corresponds to the `from` clause
 of an SQL query, as well as everything after the `from` clause, including
 `where`, `order by`, `group by` and `limit` clauses.
 
 # Subqueries
 
-Subqueries are created using `Context.as_subquery`. They correspond to (and are
+Subqueries are created using `SQL_IR_Source.as_subquery`. They correspond to (and are
 compiled into) subselects. This allows them to be referred to by an alias, and
 also nests certian clauses (`where`, `order by`, `group by` and `limit`) in a
 kind of 'scope' within the subselect so that they will not interfere with other
@@ -143,7 +143,7 @@ prepares it to be used in larger queries, such as ones formed with `join` and
 `union`, as well as other more specific operations within the database library
 (such as `DB_Table.add_row_number`).
 
-In the IR, `Context.as_subquery` prepares a table expression for nesting, but
+In the IR, `SQL_IR_Source.as_subquery` prepares a table expression for nesting, but
 does not do the actual nesting within another query. To do the actual nesting,
 you use the prepared subquery as a table expression within a larger query.
 
@@ -194,7 +194,7 @@ Thanks to this nesting, there can be no unwanted interference between the
 The added table alias allows join conditions to refer to the columns of the
 individual tables being joined.
 
-The `Context.as_subquery` method returns a `Sub_Query_Setup`, which contains a
+The `SQL_IR_Source.as_subquery` method returns a `Sub_SQL_IR_Statement_Setup`, which contains a
 table expression as a `SQL_IR_From_Part`, a set of simple column expressions as
 `Internal_Column`s, and a helper function that can convert an original complex
 `Internal_Column` into its simplified alias form.
@@ -205,7 +205,7 @@ In each of the examples below, there is an Enso value, followed by the SQL that
 the value is compiled into, and the results of the query. The first three
 examples are table expressions, and the second three are column expressions.
 
-## Query a simple table
+## SQL_IR_Statement a simple table
 
 This is a simple `select *`.
 
@@ -220,7 +220,7 @@ IR:
 ```
 (Select
   [['x', (Column 'table_0' 'x')], ['y', (Column 'table_0' 'y')]]
-  (Context.Value (Table 'table_0' 'table_0' Nothing) [] [] [] Nothing []))
+  (SQL_IR_Source.Value (Table 'table_0' 'table_0' Nothing) [] [] [] Nothing []))
 ```
 
 SQL:
@@ -254,7 +254,7 @@ IR:
 ```
 (Select
   [['x', (Column 'table_0' 'x')], ['y', (Column 'table_0' 'y')], ['prod', (Operation '*' [(Column 'table_0' 'x'), (Column 'table_0' 'x')] Nothing)]]
-  (Context.Value (Table 'table_0' 'table_0' Nothing) [] [] [] Nothing []))
+  (SQL_IR_Source.Value (Table 'table_0' 'table_0' Nothing) [] [] [] Nothing []))
 ```
 
 SQL:
@@ -290,10 +290,10 @@ IR:
 ```
 (Select
   [['x', (Column 'table_0' 'x')], ['y', (Column 'table_0' 'y')], ['prod', (Column 'table_0' 'prod')]]
-  (Context.Value
-    (Sub_Query
+  (SQL_IR_Source.Value
+    (Sub_SQL_IR_Statement
       [['x', (Column 'table_0' 'x')], ['y', (Column 'table_0' 'y')], ['prod', (Operation '*' [(Column 'table_0' 'x'), (Column 'table_0' 'x')] Nothing)]]
-      (Context.Value (Table 'table_0' 'table_0' Nothing) [] [] [] Nothing []) 'table_0')
+      (SQL_IR_Source.Value (Table 'table_0' 'table_0' Nothing) [] [] [] Nothing []) 'table_0')
     [] [] [] Nothing []))
 ```
 
@@ -329,7 +329,7 @@ IR:
 ```
 (Select
   [['prod', (Operation '*' [(Column 'table_0' 'x'), (Column 'table_0' 'x')] Nothing)]]
-  (Context.Value (Table 'table_0' 'table_0' Nothing) [] [] [] Nothing []))
+  (SQL_IR_Source.Value (Table 'table_0' 'table_0' Nothing) [] [] [] Nothing []))
 ```
 
 SQL:
@@ -363,7 +363,7 @@ IR:
 ```
 (Select
   [['prodsum', (Operation 'ADD_NUMBER' [(Operation '*' [(Column 'table_0' 'x'), (Column 'table_0' 'x')] Nothing), (Operation '*' [(Column 'table_0' 'x'), (Column 'table_0' 'x')] Nothing)] Nothing)]]
-  (Context.Value (Table 'table_0' 'table_0' Nothing) [] [] [] Nothing []))
+  (SQL_IR_Source.Value (Table 'table_0' 'table_0' Nothing) [] [] [] Nothing []))
 ```
 
 SQL:
@@ -402,7 +402,7 @@ IR:
       (Let 'prod' 'enso-table-eea768aa-06bb-4aab-88b0-e5cd45fdd35d'
            (Operation '*' [(Column 'table_0' 'x'), (Column 'table_0' 'x')] Nothing)
            (Operation 'ADD_NUMBER' [(Let_Ref 'prod' 'enso-table-eea768aa-06bb-4aab-88b0-e5cd45fdd35d'), (Let_Ref 'prod' 'enso-table-eea768aa-06bb-4aab-88b0-e5cd45fdd35d')] Nothing))]]
-  (Context.Value (Table 'table_0' 'table_0' Nothing) [] [] [] Nothing []))
+  (SQL_IR_Source.Value (Table 'table_0' 'table_0' Nothing) [] [] [] Nothing []))
 ```
 
 SQL:
@@ -422,7 +422,7 @@ Results:
  8
 ```
 
-# Context Extensions
+# SQL_IR_Source_Extension
 
 TODO
 
@@ -431,6 +431,6 @@ TODO
 - SQL_Statement
 - SQL_Fragment
 - SQL_Builder
-- SQL_Query
+- SQL_SQL_IR_Statement
 
 TODO
