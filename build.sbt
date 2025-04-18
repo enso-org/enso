@@ -3981,7 +3981,7 @@ lazy val `engine-runner` = project
               // you may need to set smallJdk := None to use following flags:
               // "--trace-class-initialization=org.enso.syntax2.Parser",
               // "--diagnostics-mode",
-              "--verbose",
+              // "--verbose",
               "-Dnic=nic",
               "-Dorg.enso.feature.native.lib.output=" + (engineDistributionRoot.value / "bin"),
               "-Dorg.sqlite.lib.exportPath=" + (engineDistributionRoot.value / "bin"),
