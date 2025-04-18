@@ -139,7 +139,7 @@ public final class DocsGenerate {
             }
           }
           case Method.Explicit m -> {
-            if (!m.isPrivate()) {
+            if (!m.isPrivate() && !m.isStaticWrapperForInstanceMethod()) {
               dispatch.dispatchMethod(null, m);
             }
           }
