@@ -132,8 +132,8 @@ public final class EnsoContext {
       DistributionManager distributionManager) {
     this.language = language;
     this.environment = environment;
-    this.out = new PrintStream(environment.out());
-    this.err = new PrintStream(environment.err());
+    this.out = new PrintStream(environment.out(), true);
+    this.err = new PrintStream(environment.err(), true);
     this.in = environment.in();
     this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
     var threadExecutors = new ThreadExecutors(environment, logger);
