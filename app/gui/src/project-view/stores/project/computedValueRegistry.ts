@@ -21,6 +21,11 @@ export interface ExpressionInfo {
   methodCall: MethodCall | undefined
   payload: ExpressionUpdatePayload
   profilingInfo: ProfilingInfo[]
+  /**
+   * This value is incremented when a new evaluation is reported, so that when interpreting the
+   * `progress` in a `Pending` payload, we can distinguish an incremental update from a separate
+   * evaluation.
+   */
   evaluationId: number
 }
 
