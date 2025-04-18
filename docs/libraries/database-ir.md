@@ -197,7 +197,7 @@ Thanks to this nesting, there can be no unwanted interference between the
 The added table alias allows join conditions to refer to the columns of the
 individual tables being joined.
 
-The `SQL_IR_Source.as_subquery` method returns a `Sub_Query_Setup`,
+The `SQL_IR_Source.as_subquery` method returns a `Subquery_Setup`,
 which contains a table expression as a `SQL_IR_From_Part`, a set of simple
 column expressions as `Internal_Column`s, and a helper function that can convert
 an original complex `Internal_Column` into its simplified alias form.
