@@ -8,10 +8,10 @@ from Standard.Table import Join_Kind, Value_Type
 from Standard.Table.Errors import all
 
 import project.DB_Table.DB_Table
-import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
-import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 from project.Internal.Upload.Helpers.Check_Queries import check_for_null_keys

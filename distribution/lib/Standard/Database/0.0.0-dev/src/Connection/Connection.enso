@@ -23,10 +23,10 @@ import project.Internal.Data_Link_Setup.Data_Link_Setup
 import project.Internal.DDL_Transaction
 import project.Internal.Hidden_Table_Registry
 import project.Internal.In_Transaction.In_Transaction
-import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQL_Warning_Helper
 import project.Internal.Statement_Setter.Statement_Setter

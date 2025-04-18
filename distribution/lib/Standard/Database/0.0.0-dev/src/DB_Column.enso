@@ -26,9 +26,9 @@ import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
 import project.Internal.Helpers
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL_Statement.SQL_Statement

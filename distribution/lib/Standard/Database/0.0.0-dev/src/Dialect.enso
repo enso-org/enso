@@ -12,12 +12,12 @@ import project.Dialect_Flag.Dialect_Flag
 import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
 import project.Internal.Error_Mapper.Error_Mapper
-import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
-import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
-import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Part.SQL_Part
