@@ -265,7 +265,11 @@ add_take_drop_specs suite_builder setup =
                 col2 = ["beta", ["A","B","C","D","E","F","G","H"]]
                 table_builder [col1, col2]
             case setup.is_database of
-                True -> unordered_table.take . should_fail_with Illegal_Argument
+                True ->
+                    err = unordered_table.take
+                    err . should_fail_with Illegal_Argument
+                    err.catch.message . should_contain "The table has no existing ordering"
+                    err.catch.message . should_contain "`take` requires"
                 False -> unordered_table.take . at "alpha" . to_vector . should_equal [1]
 
         group_builder.specify "Should work correctly after aggregation" <|
