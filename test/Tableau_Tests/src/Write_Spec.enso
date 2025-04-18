@@ -98,3 +98,13 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         t = 0.up_to 2000 . to_table
         can_round_trip t
 
+    group_builder.specify "by default backsup file and overwrites table" <|
+        written_file = get_temp_file
+        t1 = Table.input [['A', ['a']]]
+        t1.write written_file
+        t2 = Table.input [['B', ['b']]]
+        t2.write written_file
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal t2
+        written_file.delete
+
