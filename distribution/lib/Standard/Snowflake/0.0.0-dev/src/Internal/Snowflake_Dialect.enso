@@ -586,7 +586,7 @@ ends_with = Base_Generator.lift_binary_sql_function "ENDS_WITH" "ENDSWITH"
 
 ## PRIVATE
 regex_match = Base_Generator.lift_binary_op "REGEX_MATCH" str-> pattern->
-    str ++ " REGEXP " ++ pattern
+    (str ++ " REGEXP " ++ pattern).paren
 
 ## PRIVATE
 contains = Base_Generator.lift_binary_sql_function "CONTAINS" "CONTAINS"
