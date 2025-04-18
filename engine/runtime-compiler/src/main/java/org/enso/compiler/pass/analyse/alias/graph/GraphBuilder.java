@@ -111,6 +111,7 @@ public final class GraphBuilder {
     if (resolve) {
       graph.resolveLocalUsage(use);
     }
+    scope.add(use);
     return use;
   }
 

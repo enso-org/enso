@@ -8,6 +8,7 @@ import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
 import { selectOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
+import { languageExtension } from '@/util/codemirror/language'
 import { computed, ref, useTemplateRef, watch, watchEffect, type ComponentInstance } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -43,14 +44,7 @@ const placeholder = computed(() =>
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 
-const languageExtension = computed(() => {
-  switch (syntaxLanguage.value) {
-    case 'enso-table-expression':
-      // TODO (#12304)
-      return
-  }
-  return undefined
-})
+const languageExt = computed(() => languageExtension(syntaxLanguage.value))
 
 const { syncExt, connectSync } = useStringSync()
 const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
@@ -64,7 +58,7 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
 watchEffect(() =>
   setExtraExtensions([
     highlightStyle(editorRoot.value?.highlightClasses ?? {}),
-    ...[languageExtension.value ?? []],
+    ...[languageExt.value ?? []],
     ...(isMultiline.value ? [] : [selectOnMouseFocus]),
   ]),
 )

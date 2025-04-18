@@ -278,6 +278,8 @@ pub struct RunStepsBuilder {
     pub run_command: String,
     /// Condition under which the runner should be cleaned before and after the run.
     pub cleaning:    CleaningCondition,
+    /// Custom fetch depth of repo checkout action.
+    pub fetch_depth: Option<u32>,
     /// Customize the step that runs the command.
     ///
     /// Allows replacing the run step with one or more custom steps.
@@ -288,12 +290,23 @@ pub struct RunStepsBuilder {
 impl RunStepsBuilder {
     /// Create a builder with the given command.
     pub fn new(run_command: impl Into<String>) -> Self {
-        Self { run_command: run_command.into(), cleaning: default(), customize: default() }
+        Self {
+            run_command: run_command.into(),
+            cleaning:    default(),
+            customize:   default(),
+            fetch_depth: default(),
+        }
     }
 
     /// Set the cleaning condition.
     pub fn cleaning(mut self, cleaning: CleaningCondition) -> Self {
         self.cleaning = cleaning;
+        self
+    }
+
+    /// Set the cleaning condition.
+    pub fn fetch_depth(mut self, depth: u32) -> Self {
+        self.fetch_depth = Some(depth);
         self
     }
 
@@ -312,7 +325,7 @@ impl RunStepsBuilder {
             Some(customize) => customize(run_step),
             None => vec![run_step],
         };
-        let mut steps = setup_script_steps();
+        let mut steps = setup_script_steps(self.fetch_depth);
         steps.push(clean_before);
         steps.extend(run_steps);
         steps.push(clean_after);
@@ -379,12 +392,12 @@ pub fn runs_on(os: OS, runner_type: RunnerType) -> Vec<RunnerLabel> {
 }
 
 /// Initial CI job steps: check out the source code and set up the environment.
-pub fn setup_script_steps() -> Vec<Step> {
+pub fn setup_script_steps(fetch_depth: Option<u32>) -> Vec<Step> {
     let mut ret = vec![
         setup_bazel_env(),
         setup_bazel(),
         setup_artifact_api(),
-        checkout_repo_step(None),
+        checkout_repo_step(fetch_depth),
         setup_node(),
         setup_corepack(),
     ];
@@ -409,7 +422,7 @@ impl JobArchetype for DraftRelease {
         let name = "Create a release draft.".into();
 
         let prepare_step = run("release create-draft").with_id(Self::PREPARE_STEP_ID);
-        let mut steps = setup_script_steps();
+        let mut steps = setup_script_steps(None);
         steps.push(prepare_step);
 
         let mut ret = Job { name, runs_on: target.runs_on(), steps, ..default() };
