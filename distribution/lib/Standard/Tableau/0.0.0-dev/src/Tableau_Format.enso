@@ -95,7 +95,8 @@ type Tableau_Format
             resolved_table = case self of
                 Tableau_Format.Hyper_File _ -> "Extract"
                 Tableau_Format.Hyper_Table _ t -> t
-            HyperReader.writeTable resolved_file resolved_schema resolved_table table.java_table
+            Illegal_Argument.handle_java_exception <|
+                HyperReader.writeTable resolved_file resolved_schema resolved_table table.java_table
             resolved_file
 
 ## PRIVATE

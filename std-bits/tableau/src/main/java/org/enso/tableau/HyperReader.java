@@ -351,7 +351,7 @@ public class HyperReader {
           case DateType x -> tableDef.addColumn(columnName, SqlType.date());
           case TimeOfDayType x -> tableDef.addColumn(columnName, SqlType.time());
           case DateTimeType x -> tableDef.addColumn(columnName, SqlType.timestampTz());
-          default -> throw new IllegalStateException("Unknown type");
+          default -> throw new IllegalArgumentException("Unknown type");
         }
       }
 
@@ -379,7 +379,7 @@ public class HyperReader {
               case LocalDate ld -> inserter.add(ld);
               case LocalTime lt -> inserter.add(lt);
               case ZonedDateTime zdt -> inserter.add(zdt);
-              default -> throw new IllegalStateException("Unknown type");
+              default -> throw new IllegalArgumentException("Unknown type");
             }
           }
         }
