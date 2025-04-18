@@ -26,6 +26,8 @@ type Tableau_Format
        - schema: The schema to read or `*` for all schemas.
     Hyper_File (schema:Text='*')
 
+    Hyper_Table schema:Text='Extract' table:Text='Extract'
+
     ## PRIVATE
        Resolve an unresolved constructor to the actual type.
     resolve : Function -> Tableau_Format | Nothing
@@ -90,7 +92,10 @@ type Tableau_Format
                 Panic.rethrow <| file.file.move_to backup_file replace_existing=True
 
             resolved_schema = if self.schema == "*" then "Extract" else self.schema
-            HyperReader.writeTable resolved_file resolved_schema table.java_table
+            resolved_table = case self of
+                Tableau_Format.Hyper_File _ -> "Extract"
+                Tableau_Format.Hyper_Table _ t -> t
+            HyperReader.writeTable resolved_file resolved_schema resolved_table table.java_table
             resolved_file
 
 ## PRIVATE

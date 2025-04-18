@@ -330,15 +330,15 @@ public class HyperReader {
     }
   }
 
-  public static void writeTable(String path, String schemaName, Table table) throws IOException {
+  public static void writeTable(String path, String schemaName, String tableName, Table table) throws IOException {
     getProcess();
     try (var connection = new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS)) {
       final SchemaName sn = new SchemaName(schemaName);
        if (!connection.getCatalog().getSchemaNames().contains(sn)) {
             connection.getCatalog().createSchema(sn);
         }
-      final TableName tableName = new TableName(schemaName, "Extract");
-      TableDefinition tableDef = new TableDefinition(tableName);
+      
+      TableDefinition tableDef = new TableDefinition(new TableName(schemaName, tableName));
       int numberOfColumns = table.getColumns().length;
       for (int col = 0; col < numberOfColumns; ++col) {
         String columnName = table.getColumns()[col].getName();
@@ -355,7 +355,7 @@ public class HyperReader {
         }
       }
 
-      connection.executeCommand("DROP TABLE IF EXISTS \""+schemaName+"\".\"Extract\"");
+      connection.executeCommand("DROP TABLE IF EXISTS \""+schemaName+"\".\""+tableName+"\"");
       // Create the table in the Hyper file
       connection.getCatalog().createTable(tableDef);
 
