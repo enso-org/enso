@@ -28,7 +28,7 @@ type Bad_To_Json
 
 # Clear out fields that we want to ignore
 remove_fields json =
-    json.set_value  "headers" (json.at "headers" . set_value "User-Agent" "")
+    json.set_value  "headers" (json.at "headers" . set_value "User-Agent" "" . set_value "Http2-Settings" "")
 compare_responses a b = (remove_fields a).should_equal (remove_fields b)
 
 ## To run this test locally:
