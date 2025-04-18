@@ -69,7 +69,7 @@ or as an `SQL_Statement` built safely from strings and values. A
 `Literal_Values` consists of a table-shaped vector-of-vectors of values and is
 compiled into an inline literal SQL table expression.
 
-`Sub_SQL_IR_Statement` is used to nest a query as a subquery, replacing column
+`Sub_Query` is used to nest a query as a subquery, replacing column
 expressions with aliases to those same column expressions within the subquery.
 This is used to keep query elements such as `where`, `order by`, and `group by`
 separate to prevent unwanted interactions between them. This allows `join` and
@@ -125,7 +125,7 @@ etc), join, union, or subquery:
   individual tables, as well as `SQL_IR_Expressions` for join conditions
 - `SQL_IR_From_Part.Union`: contains a vector of `SQL_IR_Statement` values for
   the individual tables.
-- `SQL_IR_From_Part.Sub_SQL_IR_Statement`: contains column expressions as
+- `SQL_IR_From_Part.Sub_Query`: contains column expressions as
   `SQL_IR_Expression`s, and a table expression as a `SQL_IR_Source`.
 
 An `SQL_IR_Source` serves as a table expression, and corresponds to the `from`
@@ -197,7 +197,7 @@ Thanks to this nesting, there can be no unwanted interference between the
 The added table alias allows join conditions to refer to the columns of the
 individual tables being joined.
 
-The `SQL_IR_Source.as_subquery` method returns a `Sub_SQL_IR_Statement_Setup`,
+The `SQL_IR_Source.as_subquery` method returns a `Sub_Query_Setup`,
 which contains a table expression as a `SQL_IR_From_Part`, a set of simple
 column expressions as `Internal_Column`s, and a helper function that can convert
 an original complex `Internal_Column` into its simplified alias form.
@@ -294,7 +294,7 @@ IR:
 (Select
   [['x', (Column 'table_0' 'x')], ['y', (Column 'table_0' 'y')], ['prod', (Column 'table_0' 'prod')]]
   (SQL_IR_Source.Value
-    (Sub_SQL_IR_Statement
+    (Sub_Query
       [['x', (Column 'table_0' 'x')], ['y', (Column 'table_0' 'y')], ['prod', (Operation '*' [(Column 'table_0' 'x'), (Column 'table_0' 'x')] Nothing)]]
       (SQL_IR_Source.Value (Table 'table_0' 'table_0' Nothing) [] [] [] Nothing []) 'table_0')
     [] [] [] Nothing []))
