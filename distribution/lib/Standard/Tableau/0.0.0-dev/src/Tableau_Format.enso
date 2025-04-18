@@ -89,7 +89,8 @@ type Tableau_Format
                     anyway. And move should be more efficient.
                 Panic.rethrow <| file.file.move_to backup_file replace_existing=True
 
-            HyperReader.writeTable resolved_file table.java_table
+            resolved_schema = if self.schema == "*" then "Extract" else self.schema
+            HyperReader.writeTable resolved_file resolved_schema table.java_table
             resolved_file
 
 ## PRIVATE

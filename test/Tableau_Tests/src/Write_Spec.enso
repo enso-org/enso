@@ -21,12 +21,21 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
     get_temp_file -> File =
         transient / (Random.uuid + ".hyper")
     
-    group_builder.specify "default schema and table name is extract" <|
+    group_builder.specify "default schema and table name is Extract" <|
         written_file = get_temp_file
         t = Table.input [['A', ['a']]]
         t.write written_file
         written_table_in_hyper = Hyper_File.new written_file . tables . first
         written_table_in_hyper.schema.should_equal "Extract"
+        written_table_in_hyper.table.should_equal "Extract"
+        written_file.delete
+
+    group_builder.specify "Can set schema name" <|
+        written_file = get_temp_file
+        t = Table.input [['A', ['a']]]
+        t.write written_file (..Hyper_File "MySchemaName")
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.schema.should_equal "MySchemaName"
         written_table_in_hyper.table.should_equal "Extract"
         written_file.delete
 
@@ -98,7 +107,7 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         t = 0.up_to 2000 . to_table
         can_round_trip t
 
-    group_builder.specify "by default backsup file and overwrites table" <|
+    group_builder.specify "by default backup file and overwrite table" <|
         written_file = get_temp_file
         t1 = Table.input [['A', ['a']]]
         t1.write written_file
@@ -112,7 +121,7 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         written_file.delete
         backup_file.delete
 
-    group_builder.specify "errors on existing file if in on_existing_file=..Error mode" <|
+    group_builder.specify "error on existing file if in on_existing_file=..Error mode" <|
         written_file = get_temp_file
         t1 = Table.input [['A', ['a']]]
         t1.write written_file
@@ -130,4 +139,8 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         backup_file.exists.should_equal False
 
         written_file.delete
+
+    group_builder.specify "appends to existing file if in on_existing_file=..Append mode" <|
+        written_file = get_temp_file
+        ## TODO
 
