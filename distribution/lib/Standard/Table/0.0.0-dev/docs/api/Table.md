@@ -74,7 +74,7 @@
     - slice self start:Standard.Base.Any.Any end:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - sort self columns:(Standard.Base.Any.Any|Standard.Table.Sort_Column.Sort_Column)= text_ordering:Standard.Base.Data.Text.Text_Ordering.Text_Ordering= error_on_missing_columns:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
     - sort_columns self order:Standard.Base.Data.Sort_Direction.Sort_Direction= text_ordering:Standard.Base.Data.Text.Text_Ordering.Text_Ordering= -> Standard.Table.Table.Table
-    - split_to_columns self column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer) delimiter:Standard.Base.Data.Text.Text= column_count:Standard.Table.Columns_To_Add.Columns_To_Add= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
+    - split_to_columns self column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer) delimiter:(Standard.Base.Data.Text.Text|Standard.Base.Data.Vector.Vector)= column_count:Standard.Table.Columns_To_Add.Columns_To_Add= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
     - split_to_rows self column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer) delimiter:Standard.Base.Data.Text.Text= -> Standard.Table.Table.Table
     - table_version_hash self -> Standard.Base.Data.Text.Text
     - take self range:(Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer)= -> Standard.Table.Table.Table
