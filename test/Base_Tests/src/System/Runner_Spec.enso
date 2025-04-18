@@ -10,9 +10,7 @@ polyglot java import org.enso.base_test_helpers.ExecutableLocation as J_Executab
 
 
 add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
-    pending_on_jvm = if runs_in_aot.not then "This test only works in AOT mode" else Nothing
-
-    group_builder.specify "should be able to run a project specified with relative path" pending=pending_on_jvm <|
+    group_builder.specify "should be able to run a project specified with relative path" <|
         tmp_root = tmp_dir
 
         cleanup =
