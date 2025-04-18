@@ -1,0 +1,12 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.DB_Table.DB_Table
+
+import Standard.Table.Internal.Table_Helpers
+
+require_ordering table:DB_Table operation_name:Text ~action =
+    ordering = Table_Helpers.resolve_order_by table.columns [] ..Report_Warning
+    has_ordering = ordering.is_empty.not || table.default_ordering.is_nothing.not
+    if has_ordering then action else
+        Error.throw (Illegal_Argument.Error "The table has no existing ordering (e.g. from a `sort` operation or primary key). `"+operation_name+"` requires an ordering in database.")
