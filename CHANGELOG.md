@@ -71,6 +71,7 @@
 - [Fixed appearance of Cloud Browser scrollbars][12831]
 - [Add syntax highlighting for Table expressions][12778]
 - [Allow adding and reordering component group arguments][12850]
+- [Display component evaluation progress][12913]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -113,6 +114,7 @@
 [12831]: https://github.com/enso-org/enso/pull/12831
 [12778]: https://github.com/enso-org/enso/pull/12778
 [12850]: https://github.com/enso-org/enso/pull/12850
+[12913]: https://github.com/enso-org/enso/pull/12913
 
 #### Enso Standard Library
 
