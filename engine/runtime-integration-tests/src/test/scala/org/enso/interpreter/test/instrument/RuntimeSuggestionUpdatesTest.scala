@@ -1695,6 +1695,13 @@ class RuntimeSuggestionUpdatesTest
       Api.Response(Some(requestId), Api.OpenFileResponse)
     )
 
+    context.send(
+      Api.Request(
+        requestId,
+        Api.InvalidateModulesIndexRequest()
+      )
+    )
+
     // push main
     context.send(
       Api.Request(
@@ -1709,9 +1716,11 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
+
     context.receiveNIgnoreExpressionUpdates(
-      5
+      4
     ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.InvalidateModulesIndexResponse()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -1797,6 +1806,32 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("10", "Hello World!")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          aFile,
+          Seq(
+          ),
+          execute = true,
+          idMap = Some(
+            model.IdMap(
+              Vector(
+                (model.Span(59, 71), UUID.randomUUID())
+              )
+            )
+          )
+        )
+      )
+    )
+
+    context.receiveNIgnoreExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module  = aModuleName,
@@ -1947,9 +1982,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
-      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
-    context.consumeOut shouldEqual List("10", "Hello World!")
   }
 }
