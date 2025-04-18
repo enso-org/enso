@@ -8,7 +8,7 @@ from Standard.Base.Data.Json import Invalid_JSON
 from Standard.Test import all
 import Standard.Test.Spec_Result.Spec_Result
 
-
+polyglot java import java.io.File as JFile
 
 type Author
     Value name year_of_birth
@@ -247,7 +247,9 @@ add_specs suite_builder =
 
             json = Json.parse where.to_json
             json . field_names . should_equal ['type', 'file', 'start_line', 'start_column', 'end_column']
-            json . get "file" . get "path" . should_contain "test/Base_Tests/src/Data/Json_Spec.enso"
+
+            exp = "test/Base_Tests/src/Data/Json_Spec.enso".replace '/' JFile.separator
+            json . get "file" . get "path" . should_contain exp
 
 main filter=Nothing =
     suite = Test.build suite_builder->
