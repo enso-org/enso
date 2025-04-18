@@ -69,6 +69,7 @@
 - [Add right-click context menu to the graph editor background][12601]
 - [Editing multiline text literals is now supported][12774]
 - [Fixed appearance of Cloud Browser scrollbars][12831]
+- [Add syntax highlighting for Table expressions][12778]
 - [Allow adding and reordering component group arguments][12850]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
@@ -110,6 +111,7 @@
 [12601]: https://github.com/enso-org/enso/pull/12603
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12831]: https://github.com/enso-org/enso/pull/12831
+[12778]: https://github.com/enso-org/enso/pull/12778
 [12850]: https://github.com/enso-org/enso/pull/12850
 
 #### Enso Standard Library
@@ -144,6 +146,7 @@
 - [Changed in-memory `Column.zip` to match `Table.zip`, removing the `function`
   parameter][12626]
 - [Added Regex_match for Postgres][12663]
+- [Added Regex_match for Snowflake][12671]
 - [Replace `use_bankers` flag with `Rounding_Mode` in all `round`
   methods][12641]
 
@@ -169,6 +172,7 @@
 [12590]: https://github.com/enso-org/enso/pull/12590
 [12626]: https://github.com/enso-org/enso/pull/12626
 [12663]: https://github.com/enso-org/enso/pull/12663
+[12671]: https://github.com/enso-org/enso/pull/12671
 [12641]: https://github.com/enso-org/enso/pull/12641
 
 #### Enso Language & Runtime

@@ -1,28 +1,25 @@
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
+load("@aspect_bazel_lib//lib:run_binary.bzl", "run_binary")
+load("@aspect_bazel_lib//lib:directory_path.bzl", "make_directory_paths")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
+load("@npm//app/table-expression:@lezer/generator/package_json.bzl", lezer_generator_bin = "bin")
 
 npm_link_all_packages(name = "node_modules")
 
 ts_config(
     name = "tsconfig",
     src = "tsconfig.json",
-    visibility = ["//visibility:public"],
     deps = ["//:tsconfig"],
 )
 
-IGNORED_GENERATED_FILES = [
-    "src/ast/generated/*",
-]
+IGNORED_GENERATED_FILES = ["src/generated/parser.ts", "src/generated/parser.terms.ts"]
 
 ts_project(
     name = "tsc",
-    srcs = glob(
-        ["src/**/*.ts"],
-        IGNORED_GENERATED_FILES,
-    ) + [":generate_ast_typedefs"],
+    srcs = glob(["src/**/*.ts"], IGNORED_GENERATED_FILES) + [":generate_parser"],
     composite = True,
     out_dir = "dist",
     root_dir = "src",
@@ -31,7 +28,6 @@ ts_project(
         "@platforms//os:windows": False,
         "//conditions:default": True,
     }),
-    visibility = ["//visibility:public"],
     deps = npm_link_targets(),
 )
 
@@ -44,40 +40,14 @@ npm_package(
     visibility = ["//visibility:public"],
 )
 
-# parser-codegen
+# lezer-generator
 
-ts_config(
-    name = "parser-codegen-tsconfig",
-    src = "parser-codegen/tsconfig.json",
-    deps = [],
-)
-
-ts_project(
-    name = "parser-codegen-tsc",
-    srcs = glob(["parser-codegen/*.ts"]),
-    tsconfig = ":parser-codegen-tsconfig",
-    validate = select({
-        "@platforms//os:windows": False,
-        "//conditions:default": True,
-    }),
-    deps = npm_link_targets(),
-)
-
-js_binary(
-    name = "parser-codegen-bin",
-    data = [
-        "package.json",
-        ":parser-codegen-tsc",
-    ],
-    entry_point = "parser-codegen/index.js",
-)
-
-js_run_binary(
-    name = "generate_ast_typedefs",
-    srcs = ["//lib/rust/parser/schema:generate"],
-    args = ["$(rootpath //lib/rust/parser/schema:generate)"],
-    stdout = "src/ast/generated/ast.ts",
-    tool = ":parser-codegen-bin",
+lezer_generator_bin.lezer_generator(
+    name = "generate_parser",
+    srcs = ["src/expression.grammar"],
+    chdir = package_name(),
+    outs = IGNORED_GENERATED_FILES,
+    args = ["src/expression.grammar", "--typeScript", "-o", "src/generated/parser"],
     visibility = ["//visibility:public"],
 )
 
@@ -86,9 +56,10 @@ js_run_binary(
 # is currently ensured by IGNORED_GENERATED_FILES being used as an glob exclusion
 # in `SRC` definition.
 write_source_files(
-    name = "write_ast_codegen",
+    name = "write_parser_codegen",
     files = {
-        "src/ast/generated/ast.ts": ":generate_ast_typedefs",
+        "src/generated/parser.terms.ts": "src/generated/parser.terms.ts",
+        "src/generated/parser.ts": "src/generated/parser.ts",
     },
     suggested_update_target = "//:write_all",
     visibility = ["//visibility:public"],
