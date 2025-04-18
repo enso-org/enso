@@ -77,17 +77,7 @@ pub fn get_string_assignment_value(
 
 /// Get version of Enso from the `build.sbt` file contents.
 pub fn get_graal_version(build_sbt_contents: &str) -> Result<Version> {
-    let version_text = get_string_assignment_value(build_sbt_contents, "graalVersion")?;
-    match version_text.parse::<u64>() {
-        Ok(major) => {
-            // If the version is a single number, we assume it is the major version.
-            // We set minor and patch to 0.
-            Ok(Version::new(major, 0, 0))
-        }
-        Err(_) => Version::parse(&version_text).map_err(|e| {
-            anyhow::anyhow!("Failed to parse GraalVM version from `build.sbt` file. Error: {e}")
-        }),
-    }
+    Ok(get_string_assignment_value(build_sbt_contents, "graalVersion")?.parse()?)
 }
 
 /// Get version of GraalVM packages from the `build.sbt` file contents.
@@ -156,18 +146,6 @@ val stdLibVersion       = defaultDevEnsoVersion
         let version = get_graal_version(contents)?;
         assert_eq!(version.major, 21);
         assert_eq!(version.minor, 1);
-        assert_eq!(version.patch, 0);
-        Ok(())
-    }
-
-    #[test]
-    pub fn get_graal_version_without_minor() -> Result {
-        let contents = r#"
-val graalVersion          = "24"
-"#;
-        let version = get_graal_version(contents)?;
-        assert_eq!(version.major, 24);
-        assert_eq!(version.minor, 0);
         assert_eq!(version.patch, 0);
         Ok(())
     }
