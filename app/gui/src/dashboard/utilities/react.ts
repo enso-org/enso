@@ -7,8 +7,8 @@ import { type ForwardRefRenderFunction, forwardRef as reactForwardRef, type Reac
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function forwardRef<F extends ForwardRefRenderFunction<any, any>>(
   component: F,
-  // A union of functions becomes a single function with parameters that are the intersection
-  // of their types due to function parmeter contravariance.
+  // A union of functions is equivalent to a single function with parameters
+  // that are the intersection of their types due to function parmeter contravariance.
 ): F | ((props: { readonly ref?: Parameters<F>[1] }) => ReactNode) {
   // This is SAFE as
   // eslint-disable-next-line no-restricted-syntax

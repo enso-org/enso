@@ -2,6 +2,7 @@
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import { BackendType } from '#/services/Backend'
 import * as array from '#/utilities/array'
 import * as React from 'react'
 import {
@@ -27,6 +28,17 @@ export function ProjectsProvider(props: ProjectsProviderProps) {
   const [launchedProjects, setLaunchedProjects] = localStorageProvider.useLocalStorageState(
     'launchedProjects',
     array.EMPTY_ARRAY,
+    {
+      sanitize: (savedLaunchedProjects) =>
+        savedLaunchedProjects.map((project) => {
+          if (project.type === BackendType.local && project.hybrid == null) {
+            return project
+          } else {
+            // Disallow Cloud projects and Hybrid projects from auto-opening
+            return { ...project, preventAutoReopen: true }
+          }
+        }),
+    },
   )
   const [page, setPage] = searchParamsState.useSearchParamsState(
     'page',
@@ -40,11 +52,13 @@ export function ProjectsProvider(props: ProjectsProviderProps) {
     setLaunchedProjects((current) => [...current, project])
   })
   const removeLaunchedProject = eventCallbacks.useEventCallback((projectId: LaunchedProjectId) => {
-    setLaunchedProjects((current) => current.filter(({ id }) => id !== projectId))
+    setLaunchedProjects((current) =>
+      current.filter(({ id, hybrid }) => id !== projectId && hybrid?.cloudProjectId !== projectId),
+    )
   })
   const updateLaunchedProjects = eventCallbacks.useEventCallback(
     (update: (projects: readonly LaunchedProject[]) => readonly LaunchedProject[]) => {
-      setLaunchedProjects((current) => update(current))
+      setLaunchedProjects(update)
     },
   )
 

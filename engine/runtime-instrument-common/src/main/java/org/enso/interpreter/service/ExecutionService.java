@@ -523,14 +523,18 @@ public final class ExecutionService {
    */
   public SourceSection getSourceLocation(Object o) {
     var iop = InteropLibrary.getUncached(o);
-    if (iop.hasSourceLocation(o)) {
-      try {
-        return iop.getSourceLocation(o);
-      } catch (UnsupportedMessageException ex) {
-        // fallthru
-      }
-    }
-    return null;
+    return context.withinCtx(
+        iop,
+        () -> {
+          if (iop.hasSourceLocation(o)) {
+            try {
+              return iop.getSourceLocation(o);
+            } catch (UnsupportedMessageException ex) {
+              // fallthru
+            }
+          }
+          return null;
+        });
   }
 
   public boolean isExitException(AbstractTruffleException ex) {

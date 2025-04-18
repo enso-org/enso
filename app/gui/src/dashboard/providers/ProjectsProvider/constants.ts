@@ -30,10 +30,13 @@ const PROJECT_SCHEMA = z
     parentId: DIRECTORY_ID_SCHEMA,
     title: z.string(),
     type: z.nativeEnum(BackendType),
+    preventAutoReopen: z.boolean().optional(),
     hybrid: z.optional(
       z.object({
         cloudProjectId: PROJECT_ID_SCHEMA,
+        cloudParentId: DIRECTORY_ID_SCHEMA,
         parentId: DIRECTORY_ID_SCHEMA,
+        cloudProjectDirectoryPath: z.string(),
       }),
     ),
   })

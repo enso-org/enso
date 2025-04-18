@@ -47,7 +47,7 @@ type Generate_Rows_Range
         resolve_from_to_range from to include_end step col_type -> Column =
             from_column = resolve_to_from from col_type "from"
             to_column = resolve_to_from to col_type "to"
-            from_column.zip to_column f->t->(f.up_to t include_end step)
+            from_column.to Vector . zip (to_column.to Vector) f->t->(f.up_to t include_end step)
 
         case self of
             Generate_Rows_Range.Integer_Range from to include_end step ->

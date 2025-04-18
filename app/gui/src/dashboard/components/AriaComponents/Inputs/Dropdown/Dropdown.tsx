@@ -21,80 +21,14 @@ import {
   type FormInstance,
   type TSchema,
 } from '#/components/AriaComponents/Form'
-import { makeRoundedStyles } from '#/components/AriaComponents/utilities'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import { useEffect, useMemo, useRef, useState, type ForwardedRef, type ReactNode } from 'react'
-
-const DROPDOWN_STYLES = tv({
-  base: 'focus-child group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-input leading-cozy',
-  variants: {
-    isFocused: {
-      true: {
-        container: 'z-1',
-        options: 'before:shadow-soft before:bg-frame before:backdrop-blur-md',
-        optionsContainer: 'grid-rows-1fr',
-        input: 'z-1',
-      },
-      false: {
-        container: 'overflow-hidden',
-        options: 'before:h-full',
-        optionsContainer: 'grid-rows-0fr',
-      },
-    },
-    isReadOnly: {
-      true: {
-        input: 'read-only',
-      },
-    },
-    multiple: {
-      true: {
-        optionsItem: 'hover:font-semibold',
-      },
-    },
-    rounded: makeRoundedStyles('options', (classes) => `before:${classes}`),
-    size: {
-      medium: {
-        input: 'px-4 pb-[6.5px] pt-[8.5px]',
-        optionsItem: 'px-4',
-        hiddenOption: 'px-4',
-        icon: 'size-4',
-      },
-      small: {
-        input: 'px-4 pb-0.5 pt-1',
-        optionsItem: 'px-4',
-        hiddenOption: 'px-4',
-        icon: 'size-3',
-      },
-      custom: {},
-    },
-  },
-  slots: {
-    container: 'absolute left-0 min-h-full w-full min-w-max pb-px',
-    icon: '',
-    options:
-      'relative before:absolute before:top-0 before:h-full before:w-full before:rounded-input before:border-0.5 before:border-primary/20 before:transition-colors',
-    optionsSpacing: 'padding relative h-full',
-    optionsContainer:
-      'relative grid max-h-60 w-full overflow-auto rounded-input transition-grid-template-rows',
-    optionsList: 'overflow-hidden',
-    optionsItem:
-      'flex min-h-6 items-center gap-2 rounded-input transition-colors focus:cursor-default focus:bg-frame focus:font-bold focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
-    input: 'group relative flex items-center gap-2',
-    dropdownArrow: 'rotate-90 opacity-80 group-hover:opacity-100',
-    inputDisplay: 'grow select-none',
-    hiddenOptions: 'flex h-0 flex-col overflow-hidden',
-    hiddenOption: 'flex gap-2 font-bold',
-  },
-  defaultVariants: {
-    rounded: 'xlarge',
-    size: 'small',
-  },
-})
+import { type VariantProps } from '#/utilities/tailwindVariants'
+import { useEffect, useRef, useState, type ForwardedRef, type ReactNode } from 'react'
+import { DROPDOWN_STYLES } from './variants'
 
 /** Props for a list item child. */
 interface InternalChildProps<T> {
@@ -150,7 +84,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
     variants = DROPDOWN_STYLES,
     children: Child,
   } = props
-  const listBoxItems = useMemo(() => items.map((item, i) => ({ item, i })), [items])
+  const listBoxItems = items.map((item, i) => ({ item, i }))
   const [tempSelectedIndex, setTempSelectedIndex] = useState<number | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const [isFocusWithin, setIsFocusWithin] = useState(false)
@@ -372,7 +306,9 @@ export function FormDropdown<
             <>
               <Dropdown
                 {...inputProps}
-                selectedIndex={items.indexOf(value)}
+                selectedIndex={items.findIndex(
+                  (otherItem) => JSON.stringify(value) === JSON.stringify(otherItem),
+                )}
                 onChange={onChange}
                 rounded={rounded}
                 size={size}

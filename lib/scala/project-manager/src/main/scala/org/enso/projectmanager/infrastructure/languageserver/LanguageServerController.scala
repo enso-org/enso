@@ -92,7 +92,8 @@ class LanguageServerController(
       profilingPath                  = processConfig.profilingPath,
       profilingTime                  = processConfig.profilingTime,
       deferredLoggingServiceEndpoint = loggingServiceDescriptor.getEndpoint,
-      skipGraalVMUpdater             = bootloaderConfig.skipGraalVMUpdater
+      skipGraalVMUpdater             = bootloaderConfig.skipGraalVMUpdater,
+      extraEnv                       = processConfig.extraEnv
     )
 
   override def supervisorStrategy: SupervisorStrategy =
@@ -182,7 +183,7 @@ class LanguageServerController(
     lastClientPort: Option[Int] = None
   ): Receive =
     LoggingReceive.withLabel("supervising") {
-      case StartServer(clientId, _, requestedEngineVersion, _, _) =>
+      case StartServer(clientId, _, requestedEngineVersion, _, _, _) =>
         if (requestedEngineVersion != engineVersion) {
           sender() ! ServerBootFailed(
             new IllegalStateException(
@@ -335,7 +336,7 @@ class LanguageServerController(
   }
 
   private def bootFailed(failure: ServerStartupFailure): Receive = {
-    case StartServer(_, _, _, _, _) =>
+    case _: StartServer =>
       sender() ! failure
       stop()
   }

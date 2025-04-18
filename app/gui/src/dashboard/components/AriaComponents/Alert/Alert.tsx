@@ -1,22 +1,25 @@
 /** @file Alert component. */
-import SvgMask from '#/components/SvgMask'
+import { Icon } from '#/components/Icon'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { type ForwardedRef, type HTMLAttributes, type PropsWithChildren } from 'react'
+import type { IconProp } from '../types'
 import { ALERT_STYLES } from './variants'
 
 /** Props for an {@link Alert}. */
-export interface AlertProps
+export interface AlertProps<IconType extends string = string>
   extends PropsWithChildren,
     VariantProps<typeof ALERT_STYLES>,
     HTMLAttributes<HTMLDivElement> {
   /** The icon to display in the Alert */
-  readonly icon?: React.ReactElement | string | null | undefined
+  readonly icon?: IconProp<IconType> | null | undefined
 }
 
 /** Alert component. */
-export const Alert = forwardRef(function Alert(
-  props: AlertProps,
+// Use an explicit type assertion so that it plays nice with non-JSX `React.createElement`.
+// eslint-disable-next-line no-restricted-syntax
+export const Alert = forwardRef(function Alert<IconType extends string = string>(
+  props: AlertProps<IconType>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   const {
@@ -51,19 +54,11 @@ export const Alert = forwardRef(function Alert(
       role={role}
       {...containerProps}
     >
-      {icon != null &&
-        (() => {
-          if (typeof icon === 'string') {
-            return (
-              <div className={classes.iconContainer()}>
-                <SvgMask src={icon} />
-              </div>
-            )
-          }
-          return <div className={classes.iconContainer()}>{icon}</div>
-        })()}
+      {icon != null && <Icon icon={icon} size="medium" className={classes.iconContainer()} />}
 
       <div className={classes.children()}>{children}</div>
     </div>
   )
-})
+}) as <IconType extends string = string>(
+  props: AlertProps<IconType> & { ref?: ForwardedRef<HTMLDivElement> },
+) => JSX.Element

@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.analyse.alias.graph.test
 
+import scala.jdk.CollectionConverters._
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
@@ -21,7 +22,8 @@ import org.enso.compiler.pass.analyse.alias.AliasMetadata
 import org.enso.compiler.pass.analyse.alias.graph.{
   GraphBuilder,
   GraphImpl,
-  GraphOccurrence
+  GraphOccurrence,
+  ScopeImpl
 }
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -89,13 +91,13 @@ class AliasAnalysisTest extends CompilerTest {
 
   "The analysis scope" should {
     val complexBuilder             = GraphBuilder.create()
-    val complexScope               = complexBuilder.toScope().asInstanceOf[GraphImpl.Scope]
+    val complexScope               = complexBuilder.toScope().asInstanceOf[ScopeImpl]
     val child1                     = complexBuilder.addChild()
     val child2                     = complexBuilder.addChild()
     val childOfChild               = child1.addChild()
     val childOfChildOfChildBuilder = childOfChild.addChild()
     val childOfChildOfChild =
-      childOfChildOfChildBuilder.toScope().asInstanceOf[GraphImpl.Scope]
+      childOfChildOfChildBuilder.toScope().asInstanceOf[ScopeImpl]
 
     val aDef   = complexBuilder.newDef("a", genId, None)
     val aDefId = aDef.id
@@ -103,22 +105,22 @@ class AliasAnalysisTest extends CompilerTest {
     val bDef   = childOfChild.newDef("b", genId, None)
     val bDefId = bDef.id
 
-    val aUse   = childOfChildOfChildBuilder.newUse("a", genId, None)
+    val aUse   = childOfChildOfChildBuilder.newUse("a", genId, None, false)
     val aUseId = aUse.id
 
-    val bUse   = childOfChild.newUse("b", genId, None)
+    val bUse   = childOfChild.newUse("b", genId, None, false)
     val bUseId = bUse.id
 
-    val cUse   = child2.newUse("c", genId, None)
+    val cUse   = child2.newUse("c", genId, None, false)
     val cUseId = cUse.id
 
     "have a number of scopes of 1 without children" in {
-      val flatScope = new GraphImpl.Scope()
+      val flatScope = new ScopeImpl()
       flatScope.scopeCount shouldEqual 1
     }
 
     "have a nesting level of 1 without children" in {
-      val flatScope = new GraphImpl.Scope()
+      val flatScope = new ScopeImpl()
       flatScope.maxNesting shouldEqual 1
     }
 
@@ -132,7 +134,7 @@ class AliasAnalysisTest extends CompilerTest {
 
     "allow correctly getting the n-th parent" in {
       childOfChildOfChild.nThParent(2) shouldEqual Some(
-        child1.toScope().asInstanceOf[GraphImpl.Scope]
+        child1.toScope().asInstanceOf[ScopeImpl]
       )
     }
 
@@ -157,7 +159,7 @@ class AliasAnalysisTest extends CompilerTest {
     "correctly resolve usage links where they exist" in {
       childOfChild
         .toScope()
-        .asInstanceOf[GraphImpl.Scope]
+        .asInstanceOf[ScopeImpl]
         .resolveUsage(bUse) shouldEqual Some(
         Link(bUseId, 0, bDefId)
       )
@@ -211,19 +213,19 @@ class AliasAnalysisTest extends CompilerTest {
     "be able to check if a provided scope is a child of the current scope" in {
       child1
         .toScope()
-        .asInstanceOf[GraphImpl.Scope]
+        .asInstanceOf[ScopeImpl]
         .isChildOf(complexScope) shouldEqual true
       child2
         .toScope()
-        .asInstanceOf[GraphImpl.Scope]
+        .asInstanceOf[ScopeImpl]
         .isChildOf(complexScope) shouldEqual true
       childOfChild
         .toScope()
-        .asInstanceOf[GraphImpl.Scope]
+        .asInstanceOf[ScopeImpl]
         .isChildOf(complexScope) shouldEqual true
 
       complexScope.isChildOf(
-        child1.toScope().asInstanceOf[GraphImpl.Scope]
+        child1.toScope().asInstanceOf[ScopeImpl]
       ) shouldEqual false
     }
 
@@ -237,10 +239,10 @@ class AliasAnalysisTest extends CompilerTest {
       childOfChildOfChild.scopesToRoot shouldEqual 3
       childOfChild
         .toScope()
-        .asInstanceOf[GraphImpl.Scope]
+        .asInstanceOf[ScopeImpl]
         .scopesToRoot shouldEqual 2
-      child1.toScope().asInstanceOf[GraphImpl.Scope].scopesToRoot shouldEqual 1
-      child2.toScope().asInstanceOf[GraphImpl.Scope].scopesToRoot shouldEqual 1
+      child1.toScope().asInstanceOf[ScopeImpl].scopesToRoot shouldEqual 1
+      child2.toScope().asInstanceOf[ScopeImpl].scopesToRoot shouldEqual 1
       complexScope.scopesToRoot shouldEqual 0
     }
   }
@@ -249,28 +251,23 @@ class AliasAnalysisTest extends CompilerTest {
     val builder = GraphBuilder.create()
     val graph   = builder.toGraph().asInstanceOf[GraphImpl]
 
-    val rootScope  = builder.toScope().asInstanceOf[GraphImpl.Scope]
+    val rootScope  = builder.toScope().asInstanceOf[ScopeImpl]
     val childScope = builder.addChild()
 
     val aDef   = builder.newDef("a", genId, None)
     val aDefId = aDef.id
-    // builder.add(aDef)
 
     val bDef = builder.newDef("b", genId, None)
     bDef.getClass()
-    // builder.add(bDef)
 
-    val aUse1   = builder.newUse("a", genId, None)
+    val aUse1   = builder.newUse("a", genId, None, false)
     val aUse1Id = aUse1.id
-    // builder.add(aUse1)
 
-    val aUse2   = childScope.newUse("a", genId, None)
+    val aUse2   = childScope.newUse("a", genId, None, false)
     val aUse2Id = aUse2.id
-    // childScope.add(aUse2)
 
-    val cUse   = childScope.newUse("c", genId, None)
+    val cUse   = childScope.newUse("c", genId, None, false)
     val cUseId = cUse.id
-    // childScope.add(cUse)
 
     val use1Link = graph.resolveLocalUsage(aUse1)
     val use2Link = graph.resolveLocalUsage(aUse2)
@@ -339,11 +336,11 @@ class AliasAnalysisTest extends CompilerTest {
       aDefs shouldEqual List(rootScope)
       aUses shouldEqual List(
         rootScope,
-        childScope.toScope().asInstanceOf[GraphImpl.Scope]
+        childScope.toScope().asInstanceOf[ScopeImpl]
       )
       aOccs shouldEqual List(
         rootScope,
-        childScope.toScope().asInstanceOf[GraphImpl.Scope]
+        childScope.toScope().asInstanceOf[ScopeImpl]
       )
     }
 
@@ -613,7 +610,7 @@ class AliasAnalysisTest extends CompilerTest {
           .get
           .unsafeAs[AliasMetadata.ChildScope]
           .scope
-          .asInstanceOf[GraphImpl.Scope]
+          .asInstanceOf[ScopeImpl]
 
       val bLambdaScope = methodWithLambda.body
         .asInstanceOf[Function.Lambda]
@@ -623,7 +620,7 @@ class AliasAnalysisTest extends CompilerTest {
         .get
         .unsafeAs[AliasMetadata.ChildScope]
         .scope
-        .asInstanceOf[GraphImpl.Scope]
+        .asInstanceOf[ScopeImpl]
 
       val cLambdaScope = methodWithLambda.body
         .asInstanceOf[Function.Lambda]
@@ -635,14 +632,14 @@ class AliasAnalysisTest extends CompilerTest {
         .get
         .unsafeAs[AliasMetadata.ChildScope]
         .scope
-        .asInstanceOf[GraphImpl.Scope]
+        .asInstanceOf[ScopeImpl]
 
       val mainBlockScope = topLambdaBody
         .getMetadata(AliasAnalysis)
         .get
         .unsafeAs[AliasMetadata.ChildScope]
         .scope
-        .asInstanceOf[GraphImpl.Scope]
+        .asInstanceOf[ScopeImpl]
 
       val dALambdaScope = topLambdaBody.expressions.head
         .asInstanceOf[Expression.Binding]
@@ -652,7 +649,7 @@ class AliasAnalysisTest extends CompilerTest {
         .get
         .unsafeAs[AliasMetadata.ChildScope]
         .scope
-        .asInstanceOf[GraphImpl.Scope]
+        .asInstanceOf[ScopeImpl]
 
       val gScope = topLambdaBody
         .expressions(1)
@@ -663,7 +660,7 @@ class AliasAnalysisTest extends CompilerTest {
         .get
         .unsafeAs[AliasMetadata.ChildScope]
         .scope
-        .asInstanceOf[GraphImpl.Scope]
+        .asInstanceOf[ScopeImpl]
 
       val cUseScope = topLambdaBody.returnValue
         .asInstanceOf[Application.Prefix]
@@ -674,7 +671,7 @@ class AliasAnalysisTest extends CompilerTest {
         .get
         .unsafeAs[AliasMetadata.ChildScope]
         .scope
-        .asInstanceOf[GraphImpl.Scope]
+        .asInstanceOf[ScopeImpl]
 
       topScope.childScopes should contain(bLambdaScope)
       bLambdaScope.childScopes should contain(cLambdaScope)
@@ -917,7 +914,7 @@ class AliasAnalysisTest extends CompilerTest {
         .get
         .unsafeAs[AliasMetadata.ChildScope]
         .scope
-        .asInstanceOf[GraphImpl.Scope]
+        .asInstanceOf[ScopeImpl]
 
       topScope shouldEqual lambdaScope
       graphLinks.size shouldEqual 1
@@ -950,8 +947,8 @@ class AliasAnalysisTest extends CompilerTest {
         .unsafeAs[AliasMetadata.ChildScope]
         .scope
 
-      lambdaScope.allDefinitions.length shouldBe 2
-      val defSymbols = lambdaScope.allDefinitions
+      lambdaScope.allDefinitions.size shouldBe 2
+      val defSymbols = lambdaScope.allDefinitions.asScala
         .map(definition => definition.symbol)
       defSymbols should equal(List("self", "x"))
     }
@@ -997,7 +994,7 @@ class AliasAnalysisTest extends CompilerTest {
       graph.nesting shouldEqual 3
       graph.numScopes shouldEqual 4
 
-      val topScope = graph.rootScope.asInstanceOf[GraphImpl.Scope]
+      val topScope = graph.rootScope.asInstanceOf[ScopeImpl]
       val lambdaScope = lambda
         .getMetadata(AliasAnalysis)
         .get
@@ -1014,7 +1011,7 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "allocate new scopes where necessary" in {
-      val topScope = graph.rootScope.asInstanceOf[GraphImpl.Scope]
+      val topScope = graph.rootScope.asInstanceOf[ScopeImpl]
       val arg1Scope = app.arguments.head
         .getMetadata(AliasAnalysis)
         .get
@@ -1185,9 +1182,9 @@ class AliasAnalysisTest extends CompilerTest {
         .get
         .unsafeAs[AliasMetadata.ChildScope]
         .scope
-      consBranchScope.allDefinitions.length shouldBe 2
+      consBranchScope.allDefinitions.size shouldBe 2
 
-      val defSymbols = consBranchScope.allDefinitions
+      val defSymbols = consBranchScope.allDefinitions.asScala
         .map(definition => definition.symbol)
       defSymbols should equal(List("a", "b"))
     }
@@ -1323,7 +1320,7 @@ class AliasAnalysisTest extends CompilerTest {
             .unsafeGetMetadata(AliasAnalysis, "")
             .unsafeAs[AliasMetadata.ChildScope]
         blockScope.scope
-          .asInstanceOf[GraphImpl.Scope]
+          .asInstanceOf[ScopeImpl]
           .childScopes should contain(literalScope.scope)
       }
     }

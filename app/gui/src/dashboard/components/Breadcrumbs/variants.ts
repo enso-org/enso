@@ -7,7 +7,7 @@ export const BREADCRUMBS_STYLES = tv({
 })
 
 export const BREADCRUMB_ITEM_STYLES = tv({
-  base: 'flex items-center gap-2 bg-transparent transition-colors',
+  base: 'flex items-center gap-2 bg-transparent transition-colors rounded-4xl drop-target-after',
   slots: {
     link: 'block max-w-48 min-w-4 w-auto',
     more: 'aspect-square',
@@ -18,12 +18,8 @@ export const BREADCRUMB_ITEM_STYLES = tv({
     isCurrent: {
       true: { link: 'flex justify-center px-2 h-8' },
     },
-    isDropTarget: {
-      true: { base: 'bg-primary/10 rounded-4xl cursor-copy' },
-    },
   },
   defaultVariants: {
     isCurrent: false,
-    isDropTarget: false,
   },
 })

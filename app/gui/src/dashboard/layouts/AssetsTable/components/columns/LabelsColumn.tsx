@@ -13,7 +13,6 @@ import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
-import * as React from 'react'
 import type { AssetColumnProps } from './columnProps'
 
 /** A column listing the labels on this asset. */
@@ -29,10 +28,7 @@ export default function LabelsColumn(props: AssetColumnProps) {
     ({ selectedIds, isDraggingOverSelectedRow }) =>
       isDraggingOverSelectedRow && selectedIds.has(item.id),
   )
-  const labelsByName = React.useMemo(
-    () => new Map(labels.map((label) => [label.value, label])),
-    [labels],
-  )
+  const labelsByName = new Map(labels.map((label) => [label.value, label]))
   const self = permissions.tryFindSelfPermission(user, item.permissions)
   const managesThisAsset =
     category.type !== 'trash' &&

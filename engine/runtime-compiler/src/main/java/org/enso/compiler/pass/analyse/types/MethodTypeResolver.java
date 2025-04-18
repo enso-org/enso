@@ -31,4 +31,12 @@ class MethodTypeResolver {
 
     return resolveMethod(parent, methodName);
   }
+
+  boolean findConversion(TypeRepresentation.AtomType source, TypeRepresentation.AtomType target) {
+    TypeScopeReference sourceRef = TypeScopeReference.atomType(source.fqn());
+    TypeScopeReference targetRef = TypeScopeReference.atomType(target.fqn());
+    return methodResolutionAlgorithm.lookupConversionDefinition(
+            currentModuleScope, sourceRef, targetRef)
+        != null;
+  }
 }

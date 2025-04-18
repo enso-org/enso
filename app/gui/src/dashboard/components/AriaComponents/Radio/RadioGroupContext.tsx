@@ -12,8 +12,8 @@
  * and let them communicate with each other (e.g. to know if a sibling Radio element is being pressed)
  */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useMemo, useState, type PropsWithChildren } from 'react'
-import { RadioGroupContext, type RadioGroupContextProps } from './constants'
+import { useState, type PropsWithChildren } from 'react'
+import { RadioGroupContext } from './constants'
 
 /**
  * Context provider for RadioGroup component
@@ -22,23 +22,18 @@ import { RadioGroupContext, type RadioGroupContextProps } from './constants'
 export function RadioGroupProvider(props: PropsWithChildren) {
   const { children } = props
 
-  const [pressedRadio, setPressedRadio] = useState<string | null>(null)
-  const setRadioPressed = useEventCallback((value: string) => {
-    setPressedRadio(value)
+  const [pressedRadio, setPressedRadioRaw] = useState<string | null>(null)
+  const setPressedRadio = useEventCallback((value: string) => {
+    setPressedRadioRaw(value)
   })
 
   const clearPressedRadio = useEventCallback(() => {
-    setPressedRadio(null)
+    setPressedRadioRaw(null)
   })
 
-  const value = useMemo<RadioGroupContextProps>(
-    () => ({
-      pressedRadio,
-      setPressedRadio: setRadioPressed,
-      clearPressedRadio,
-    }),
-    [pressedRadio, setRadioPressed, clearPressedRadio],
+  return (
+    <RadioGroupContext.Provider value={{ pressedRadio, setPressedRadio, clearPressedRadio }}>
+      {children}
+    </RadioGroupContext.Provider>
   )
-
-  return <RadioGroupContext.Provider value={value}>{children}</RadioGroupContext.Provider>
 }

@@ -430,6 +430,7 @@ const nodeClass = computed(() => {
     outputNode: props.node.type === 'output',
     menuVisible: menuVisible.value,
     menuFull: menuFull.value,
+    edited: props.edited,
   }
 })
 
@@ -485,11 +486,12 @@ onWindowBlur(() => {
   graph.setNodeHovered(nodeId.value, false)
   updateNodeHover(undefined)
 })
+
+const nodeName = computed(() => props.node.pattern?.code())
 </script>
 
 <template>
   <div
-    v-show="!edited"
     ref="rootNode"
     class="GraphNode define-node-colors"
     :style="nodeStyle"
@@ -497,7 +499,7 @@ onWindowBlur(() => {
     :data-node-id="nodeId"
     @pointerdown.stop
   >
-    <div class="binding" v-text="node.pattern?.code()" />
+    <div class="binding" v-text="nodeName" />
     <button
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton clickable"
@@ -643,11 +645,13 @@ onWindowBlur(() => {
   color: black;
   position: absolute;
   right: 100%;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  bottom: 0;
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
 }
 
 .selected .binding {
@@ -729,5 +733,11 @@ onWindowBlur(() => {
 
 .dragged {
   cursor: grabbing !important;
+}
+
+/* We use this instead of "v-show", because we want the node content being still laid out,
+   so the edges won't jump. */
+.edited {
+  visibility: hidden;
 }
 </style>

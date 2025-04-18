@@ -17,7 +17,6 @@ import { validateDatalink } from '#/data/datalinkValidator'
 import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
-import { useSyncRef } from '#/hooks/syncRefHooks'
 import { assetPanelStore, useSetAssetPanelProps } from '#/layouts/AssetPanel/constants'
 import SharedWithColumn from '#/layouts/AssetsTable/components/columns/SharedWithColumn'
 import type { Category } from '#/layouts/Drive/CategorySwitcher'
@@ -26,7 +25,14 @@ import { useFullUserSession } from '#/providers/AuthProvider'
 import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { AssetType, BackendType, Plan, type AnyAsset, type DatalinkId } from '#/services/Backend'
+import {
+  AssetType,
+  BackendType,
+  isAssetCredential,
+  Plan,
+  type AnyAsset,
+  type DatalinkId,
+} from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
@@ -152,6 +158,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     self?.permission === permissions.PermissionAction.admin ||
     self?.permission === permissions.PermissionAction.edit
   const isSecret = item.type === AssetType.secret
+  const isCredential = isAssetCredential(item)
   const isDatalink = item.type === AssetType.datalink
   const isCloud = backend.type === BackendType.remote
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
@@ -188,28 +195,6 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   React.useEffect(() => {
     resetEditDescriptionForm({ description: item.description ?? '' })
   }, [item.description, resetEditDescriptionForm])
-
-  const editDatalinkForm = Form.useForm({
-    schema: (z) => z.object({ datalink: z.custom((x) => validateDatalink(x)) }),
-    defaultValues: { datalink: datalinkQuery.data },
-    onSubmit: async ({ datalink }) => {
-      await createDatalinkMutation.mutateAsync([
-        {
-          // The UI to submit this form is only visible if the asset is a datalink.
-          // eslint-disable-next-line no-restricted-syntax
-          datalinkId: item.id as DatalinkId,
-          name: item.title,
-          parentDirectoryId: null,
-          value: datalink,
-        },
-      ])
-    },
-  })
-
-  const editDatalinkFormRef = useSyncRef(editDatalinkForm)
-  React.useEffect(() => {
-    editDatalinkFormRef.current.setValue('datalink', datalinkQuery.data)
-  }, [datalinkQuery.data, editDatalinkFormRef])
 
   return (
     <div className="flex w-full flex-col gap-8">
@@ -254,6 +239,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           }
         </div>
       </div>
+
       {isCloud && (
         <div className={styles.section()}>
           <Heading
@@ -356,7 +342,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
         </div>
       )}
 
-      {isSecret && (
+      {isSecret && !isCredential && (
         <div className={styles.section()} {...secretSpotlight.props}>
           <Heading
             level={2}
@@ -378,6 +364,59 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
         </div>
       )}
 
+      {isSecret && isCredential && (
+        <div className={styles.section()} {...secretSpotlight.props}>
+          <Heading
+            level={2}
+            className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
+          >
+            {getText('configuration')}
+          </Heading>
+          <table>
+            <tbody>
+              <tr className="h-row">
+                <td className="my-auto min-w-side-panel-label p-0">
+                  <Text>{getText('credentialServiceName')}</Text>
+                </td>
+                <td className="w-full p-0">
+                  <div className="flex items-center gap-2">
+                    <Text className="w-0 grow" truncate="1">
+                      {item.credentialMetadata.serviceName}
+                    </Text>
+                  </div>
+                </td>
+              </tr>
+              <tr className="h-row">
+                <td className="my-auto min-w-side-panel-label p-0">
+                  <Text>{getText('credentialState')}</Text>
+                </td>
+                <td className="w-full p-0">
+                  <div className="flex items-center gap-2">
+                    <Text className="w-0 grow" truncate="1">
+                      {getText(`credentialState${item.credentialMetadata.state}`)}
+                    </Text>
+                  </div>
+                </td>
+              </tr>
+              {item.credentialMetadata.expirationDate && (
+                <tr className="h-row">
+                  <td className="my-auto min-w-side-panel-label p-0">
+                    <Text>{getText('credentialExpiresAt')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <div className="flex items-center gap-2">
+                      <Text className="w-0 grow" truncate="1">
+                        {toReadableIsoString(new Date(item.credentialMetadata.expirationDate))}
+                      </Text>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {isDatalink && (
         <div className={styles.section()} {...datalinkSpotlight.props}>
           <Heading
@@ -390,22 +429,38 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
             <div className="grid place-items-center self-stretch">
               <StatelessSpinner size={48} state="loading-medium" />
             </div>
-          : <Form form={editDatalinkForm} className="w-full">
-              <DatalinkFormInput
-                form={editDatalinkForm}
-                name="datalink"
-                readOnly={!canEditThisAsset}
-                dropdownTitle={getText('type')}
-              />
-              {canEditThisAsset && (
-                <ButtonGroup>
-                  <Form.Submit>{getText('update')}</Form.Submit>
-                  <Form.Reset
-                    onPress={() => {
-                      editDatalinkForm.reset({ datalink: datalinkQuery.data })
-                    }}
+          : <Form
+              schema={(z) => z.object({ datalink: z.custom((x) => validateDatalink(x)) })}
+              defaultValues={{ datalink: datalinkQuery.data }}
+              onSubmit={({ datalink }) =>
+                createDatalinkMutation.mutateAsync([
+                  {
+                    datalinkId: item.id,
+                    name: item.title,
+                    parentDirectoryId: null,
+                    value: datalink,
+                  },
+                ])
+              }
+              className="w-full bg-white"
+            >
+              {(form) => (
+                <>
+                  <DatalinkFormInput
+                    name="datalink"
+                    readOnly={!canEditThisAsset}
+                    dropdownTitle={getText('type')}
                   />
-                </ButtonGroup>
+
+                  {canEditThisAsset && form.formState.isDirty && (
+                    <ButtonGroup>
+                      <Form.Submit>{getText('update')}</Form.Submit>
+                      <Form.Reset />
+                    </ButtonGroup>
+                  )}
+
+                  <Form.FormError />
+                </>
               )}
             </Form>
           }

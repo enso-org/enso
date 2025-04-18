@@ -31,9 +31,8 @@ export const ALERT_STYLES = tv({
     },
   },
   slots: {
-    iconContainer: 'flex items-center justify-center w-6 h-6',
+    iconContainer: 'mt-1',
     children: 'flex flex-col items-stretch',
-    icon: 'flex items-center justify-center w-6 h-6 mr-2',
   },
   defaultVariants: {
     fullWidth: true,

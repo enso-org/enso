@@ -46,7 +46,7 @@ export default function UserRow(props: UserRowProps) {
               <ConfirmDeleteModal
                 defaultOpen
                 actionText={getText('deleteUserActionText', user.name)}
-                doDelete={async () => {
+                onConfirm={async () => {
                   await doDeleteUser(user)
                 }}
               />,
@@ -102,7 +102,7 @@ export default function UserRow(props: UserRowProps) {
             </ariaComponents.Button>
             <ConfirmDeleteModal
               actionText={getText('deleteUserActionText', user.name)}
-              doDelete={async () => {
+              onConfirm={async () => {
                 await doDeleteUser(user)
               }}
             />

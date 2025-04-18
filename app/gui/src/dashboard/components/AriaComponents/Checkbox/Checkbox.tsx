@@ -40,29 +40,36 @@ import { CheckboxStandaloneProvider } from './CheckboxContext'
 import { CheckboxGroup } from './CheckboxGroup'
 import { CHECKBOX_STYLES } from './constants'
 
-/** Props for the {@link Checkbox} component. */
-export type CheckboxProps<
-  Schema extends TSchema,
-  FieldName extends FieldPath<Schema, boolean>,
-> = Omit<VariantProps<typeof CHECKBOX_STYLES>, 'isDisabled' | 'isInvalid'> &
-  TestIdProps & {
-    readonly className?: string
-    readonly style?: CSSProperties
-    readonly checkboxRef?: MutableRefObject<HTMLInputElement>
-  } & (CheckboxGroupCheckboxProps | StandaloneCheckboxProps<Schema, FieldName>)
-
-/** Props for the {@link Checkbox} component when used inside a {@link CheckboxGroup}. */
-interface CheckboxGroupCheckboxProps extends AriaCheckboxProps {
-  readonly value: string
-  readonly form?: never
-  readonly name?: never
+/** Props common between all {@link CheckboxProps} variants. */
+interface CheckboxSharedProps
+  extends Omit<VariantProps<typeof CHECKBOX_STYLES>, 'isDisabled' | 'isInvalid'>,
+    TestIdProps {
+  readonly className?: string
+  readonly style?: CSSProperties
+  readonly checkboxRef?: MutableRefObject<HTMLInputElement>
 }
 
+/** Props for the {@link Checkbox} component. */
+export type CheckboxProps<Schema extends TSchema, TFieldName extends FieldPath<Schema, boolean>> =
+  | CheckboxGroupCheckboxProps
+  | StandaloneCheckboxProps<Schema, TFieldName>
+
+/** Props for the {@link Checkbox} component when used inside a {@link CheckboxGroup}. */
+export type CheckboxGroupCheckboxProps = AriaCheckboxProps &
+  CheckboxSharedProps & {
+    readonly value: string
+    readonly form?: never
+    readonly name?: never
+  }
+
 /** Props for the {@link Checkbox} component when used outside of a {@link CheckboxGroup}. */
-type StandaloneCheckboxProps<
+export type StandaloneCheckboxProps<
   Schema extends TSchema,
-  FieldName extends FieldPath<Schema, boolean>,
-> = FieldProps & FieldStateProps<AriaCheckboxProps, Schema, FieldName, boolean> & FieldVariantProps
+  TFieldName extends FieldPath<Schema, boolean>,
+> = CheckboxSharedProps &
+  FieldProps &
+  FieldStateProps<AriaCheckboxProps, Schema, TFieldName, boolean> &
+  FieldVariantProps
 
 /** Checkboxes allow users to select multiple items from a list of individual items, or to mark one individual item as selected. */
 // eslint-disable-next-line no-restricted-syntax

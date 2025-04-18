@@ -12,7 +12,7 @@ import { createStore, useStore } from '#/utilities/zustand.ts'
 import type { AnyAsset, AssetId } from 'enso-common/src/services/Backend'
 import { AssetType, getAssetPermissionName } from 'enso-common/src/services/Backend'
 import { PermissionAction } from 'enso-common/src/utilities/permissions'
-import { useEffect } from 'react'
+import { startTransition, useEffect } from 'react'
 
 /** Options for {@link useAssetsTableItems}. */
 export interface UseAssetsTableOptions {
@@ -61,7 +61,10 @@ export function useAssetsTableItems(options: UseAssetsTableOptions) {
   const { parentId, assets: items, sortInfo, query } = options
 
   const { locale } = useText()
-  const setAssetItems = useStore(ASSET_ITEMS_STORE, (store) => store.setItems)
+
+  const setAssetItems = useStore(ASSET_ITEMS_STORE, (store) => store.setItems, {
+    unsafeEnableTransition: true,
+  })
 
   const filter = (() => {
     const globCache: Record<string, RegExp> = {}
@@ -169,7 +172,9 @@ export function useAssetsTableItems(options: UseAssetsTableOptions) {
   })()
 
   useEffect(() => {
-    setAssetItems(parentId, items)
+    startTransition(() => {
+      setAssetItems(parentId, items)
+    })
   }, [items, parentId, setAssetItems])
 
   const compare = sortInfo ? assetCompareFunction(sortInfo, locale) : null

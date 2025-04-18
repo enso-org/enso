@@ -9,7 +9,6 @@ import SvgMask from '#/components/SvgMask'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import { AssetPanel } from '#/layouts/AssetPanel'
-import type * as assetsTable from '#/layouts/AssetsTable'
 import { AssetsTable, AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
 import * as categoryModule from '#/layouts/Drive/CategorySwitcher'
 import { CategorySwitcher, type Category } from '#/layouts/Drive/CategorySwitcher'
@@ -18,22 +17,19 @@ import { DriveBar } from '#/pages/dashboard/Drive/DriveBar'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
+
 import { DirectoryDoesNotExistError } from '#/services/Backend'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import { OfflineError } from '#/utilities/HttpClient'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
-import { memo, useDeferredValue, useState, type Ref } from 'react'
+import { memo, useDeferredValue, useState } from 'react'
 import { toast } from 'react-toastify'
 import { useCategoriesAPI } from './CategorySwitcher'
-import { useDirectoryIds } from './directoryIdsHooks'
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-  readonly hidden: boolean
   readonly initialProjectName: string | null
-  readonly assetsManagementApiRef: Ref<assetsTable.AssetManagementApi>
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
@@ -136,13 +132,7 @@ interface DriveAssetsViewProps extends DriveProps {
  * The assets view of the Drive.
  */
 function DriveAssetsView(props: DriveAssetsViewProps) {
-  const {
-    category,
-    setCategory,
-    hidden = false,
-    initialProjectName,
-    assetsManagementApiRef,
-  } = props
+  const { category, setCategory, initialProjectName } = props
 
   const deferredCategory = useDeferredValue(category)
 
@@ -161,10 +151,8 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
     : isCloud && !user.isEnabled ? 'not-enabled'
     : 'ok'
 
-  const { rootDirectoryId } = useDirectoryIds({ category })
-
   return (
-    <div className={tailwindMerge.twMerge('relative flex grow', hidden && 'hidden')}>
+    <div className="relative flex grow">
       <div
         data-testid="drive-view"
         className="mt-4 flex flex-1 flex-col gap-4 overflow-visible px-4"
@@ -186,21 +174,13 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
           </div>
 
           <div className="grid-col-2 flex flex-col gap-3">
-            <DriveBar
-              key={rootDirectoryId}
-              backend={backend}
-              query={query}
-              setQuery={setQuery}
-              category={category}
-            />
+            <DriveBar backend={backend} query={query} setQuery={setQuery} category={category} />
 
             {status === 'offline' ?
               <OfflineMessage supportLocalBackend={supportLocalBackend} setCategory={setCategory} />
             : <Suspense>
                 <ErrorBoundary>
                   <AssetsTable
-                    assetManagementApiRef={assetsManagementApiRef}
-                    hidden={hidden}
                     query={query}
                     setQuery={setQuery}
                     category={deferredCategory}

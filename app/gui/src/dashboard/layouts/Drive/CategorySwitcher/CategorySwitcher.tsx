@@ -1,12 +1,11 @@
 /** @file Switcher to choose the currently visible assets table category. */
 import { SEARCH_PARAMS_PREFIX } from '#/appUtils'
-import FolderAddIcon from '#/assets/folder_add.svg'
-import Minus2Icon from '#/assets/minus2.svg'
-import SettingsIcon from '#/assets/settings.svg'
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import { DropZone, type DropEvent } from '#/components/aria'
-import { BUTTON_STYLES, Button, DialogTrigger, Text } from '#/components/AriaComponents'
+import * as ariaComponents from '#/components/AriaComponents'
+import { Button, BUTTON_STYLES, DialogTrigger, Text } from '#/components/AriaComponents'
 import { Badge } from '#/components/Badge'
+import * as mimeTypes from '#/data/mimeTypes'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
@@ -15,21 +14,28 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
-import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
-import type { AssetId } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { memo, useTransition, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { twJoin } from 'tailwind-merge'
-import { areCategoriesEqual, canTransferBetweenCategories, type Category } from './Category'
+import {
+  areCategoriesEqual,
+  canTransferBetweenCategories,
+  dropOperationBetweenCategories,
+  type Category,
+} from './Category'
 import { useCloudCategoryList, useLocalCategoryList } from './hooks'
+import { ASSETS_DATA_TRANSFER_PAYLOAD } from './useTransferBetweenCategories'
 
-/** Metadata for a categoryModule.categoryType. */
+import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
+import { unsetModal } from '#/providers/ModalProvider'
+
+/** Metadata for a category. */
 interface CategoryMetadata {
   readonly isNested?: boolean
   readonly category: Category
-  readonly icon: string
+  readonly icon: ariaComponents.SvgUseIcon | (string & {})
   readonly label: string
   readonly buttonLabel: string
   readonly dropZoneLabel: string
@@ -62,7 +68,6 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const [isTransitioning, startTransition] = useTransition()
 
   const { user } = useFullUserSession()
-  const { unsetModal } = useSetModal()
   const { getText } = useText()
   const localBackend = useLocalBackend()
   const { isOffline } = useOffline()
@@ -123,36 +128,54 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 
   const onDrop = useEventCallback((event: DropEvent) => {
     unsetModal()
+
+    if (event.dropOperation === 'cancel') {
+      return
+    }
+
+    const payloadSchema = ASSETS_DATA_TRANSFER_PAYLOAD
+
     void Promise.all(
-      event.items.flatMap(async (item) => {
-        if (item.kind === 'text') {
-          const text = await item.getText(ASSETS_MIME_TYPE)
-          const payload: unknown = JSON.parse(text)
-          return Array.isArray(payload) ?
-              payload.flatMap((key) =>
-                // This is SAFE, assuming only this app creates payloads with
-                // the specific mimetype above.
-                // eslint-disable-next-line no-restricted-syntax
-                typeof key === 'string' ? [key as AssetId] : [],
-              )
-            : []
-        } else {
-          return []
-        }
-      }),
-    ).then((keys) => {
-      transferBetweenCategories(currentCategory, category, keys.flat(1))
-    })
+      event.items
+        .filter((item) => item.kind === 'text')
+        .map(async (item) => {
+          const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
+          const parsedPayload = payloadSchema.safeParse(JSON.parse(text))
+
+          return parsedPayload.success ? parsedPayload.data : null
+        }),
+    ).then((payloads) =>
+      Promise.all(
+        payloads
+          .filter((payload) => payload != null)
+          .map((payload) =>
+            transferBetweenCategories(
+              payload.category,
+              category,
+              payload.items,
+              null,
+              event.dropOperation,
+            ),
+          ),
+      ),
+    )
   })
+
+  const dragDelayProps = useAriaDragDelayAction(onPress)
 
   const element = (
     <DropZone
       aria-label={dropZoneLabel}
-      getDropOperation={(types) =>
-        acceptedDragTypes.some((type) => types.has(type)) ? 'move' : 'cancel'
-      }
+      getDropOperation={(types) => {
+        if (acceptedDragTypes.some((type) => types.has(type))) {
+          return dropOperationBetweenCategories(currentCategory, category)
+        }
+
+        return 'cancel'
+      }}
       className="group relative flex w-full min-w-0 flex-auto items-start rounded-full drop-target-after"
       onDrop={onDrop}
+      {...dragDelayProps}
     >
       <AnimatedBackground.Item
         isSelected={isCurrent}
@@ -301,7 +324,7 @@ export const CategorySwitcher = memo(function CategorySwitcher(props: CategorySw
                 size="medium"
                 variant="icon"
                 extraClickZone="small"
-                icon={SettingsIcon}
+                icon="settings"
                 aria-label={getText('changeLocalRootDirectoryInSettings')}
                 className="my-auto opacity-0 transition-opacity group-hover:opacity-100"
                 onPress={() => {
@@ -332,7 +355,7 @@ export const CategorySwitcher = memo(function CategorySwitcher(props: CategorySw
                     size="medium"
                     variant="icon"
                     extraClickZone={false}
-                    icon={Minus2Icon}
+                    icon="minus"
                     aria-label={getText('removeDirectoryFromFavorites')}
                     className="hidden group-hover:block"
                   />
@@ -340,9 +363,8 @@ export const CategorySwitcher = memo(function CategorySwitcher(props: CategorySw
                   <ConfirmDeleteModal
                     actionText={getText('removeTheLocalDirectoryXFromFavorites', directory.label)}
                     actionButtonLabel={getText('remove')}
-                    doDelete={async () => {
+                    onConfirm={() => {
                       removeDirectory(directory.id)
-                      await Promise.resolve()
                     }}
                   />
                 </DialogTrigger>
@@ -356,13 +378,19 @@ export const CategorySwitcher = memo(function CategorySwitcher(props: CategorySw
               <Button
                 size="medium"
                 variant="icon"
-                icon={FolderAddIcon}
+                icon="folder_add_small"
                 loaderPosition="icon"
                 onPress={async () => {
                   const [newDirectory] =
                     (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+
                   if (newDirectory != null) {
-                    addDirectory(newDirectory)
+                    const addedDirectory = directories.find(
+                      (directory) => directory.rootPath === newDirectory,
+                    )
+
+                    const newCategory = addedDirectory ?? addDirectory(newDirectory)
+                    setCategoryId(newCategory.id)
                   }
                 }}
               >

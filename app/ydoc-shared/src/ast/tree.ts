@@ -1817,6 +1817,10 @@ export class TextLiteral extends BaseExpression {
     return uninterpolatedText(this.fields.get('elements'), this.module)
   }
 
+  get isBlock(): boolean {
+    return (this.open?.code().length ?? 1) > 1
+  }
+
   /** TODO: Add docs */
   *concreteChildren({ verbatim, indent }: PrintContext): IterableIterator<RawConcreteChild> {
     const { open, newline, elements, close } = getAll(this.fields)
@@ -1919,23 +1923,43 @@ export class MutableTextLiteral extends TextLiteral implements MutableExpression
    * transformed to use escape sequences when necessary.
    */
   setRawTextContent(rawText: string) {
-    let boundary = this.boundaryTokenCode()
-    const isInterpolated = this.isInterpolated()
-    const mustBecomeInterpolated = !isInterpolated && (!boundary || rawText.match(/["\n\r]/))
-    if (mustBecomeInterpolated) {
-      boundary = "'"
-      this.setBoundaries(boundary)
-    }
-    const literalContents =
-      isInterpolated || mustBecomeInterpolated ? escapeTextLiteral(rawText) : rawText
-    const parsed = parseExpression(`${boundary}${literalContents}${boundary}`)
-    assert(parsed instanceof TextLiteral)
-    const elements = parsed.elements.map((e) => mapRefs(e, concreteToOwned(this.module)))
-    this.setElements(elements)
+    if (!this.boundaryTokenCode() || (this.boundaryTokenCode() === '"' && rawText.match(/["\n\r]/)))
+      this.setBoundaries("'")
+    const boundary = this.boundaryTokenCode()!
+    const isBlock = boundary.length > 1
+    const literalContents = this.isInterpolated() ? escapeTextLiteral(rawText, isBlock) : rawText
+
+    // As a simple way to ensure the text elements are consistent with what the parser would
+    // produce, instead of creating them directly we generate code and parse it.
+
+    const parsed = TextLiteral.tryParse(
+      isBlock ?
+        `${boundary}\n${literalContents.split('\n').join('\n    ')}`
+      : `${boundary}${literalContents}${boundary}`,
+      this.module,
+    )
+    assertDefined(parsed)
+    // First, we parse with the arbitrary concrete indentation level generated above.
+    const elementsWithArbitraryConcreteWhitespace = parsed.elements.map((e) =>
+      mapRefs(e, concreteToOwned(this.module)),
+    )
+    // Now strip indentation information to let the block be indented appropriately for its context.
+    const elementsWithAbstractWhitespace = elementsWithArbitraryConcreteWhitespace.map(
+      textElementRemoveConcreteWhitespace,
+    )
+    this.setElements(elementsWithAbstractWhitespace)
   }
 }
 export interface MutableTextLiteral extends TextLiteral, MutableExpression {}
 applyMixins(MutableTextLiteral, [MutableAst])
+
+function textElementRemoveConcreteWhitespace<T extends TreeRefs>(
+  element: TextElement<T>,
+): TextElement<T> {
+  return element.type === 'token' && element.token.node.typeName === 'Newline' ?
+      { ...element, token: { node: element.token.node, whitespace: undefined } }
+    : element
+}
 
 interface ExpressionStatementFields {
   docLine: DocLine | undefined
@@ -2283,6 +2307,20 @@ export interface ArgumentDefinition<T extends TreeRefs = RawRefs> {
   close?: T['token'] | undefined
 }
 
+/**
+ * Create a new function argument definition using provided "name" string as argument's pattern expression.
+ */
+export function newArgumentDefinition(
+  name: string,
+  module?: MutableModule,
+): OwnedArgumentDefinitions {
+  const expr = parseExpression(name, module)
+  assert(expr != null)
+  return {
+    pattern: autospaced(expr),
+  }
+}
+
 interface ArgumentDefault<T extends TreeRefs = RawRefs> {
   equals: T['token']
   expression: T['ast']
@@ -2534,6 +2572,9 @@ function* argumentDefinitionToConcrete(def: DeepReadonly<ArgumentDefinition>, ve
   if (close2) yield ensureSpacedOnlyIf(close2, spacedInsideParen2 ?? false, verbatim)
   if (close) yield ensureSpacedOnlyIf(close, spacedInsideParen1 ?? false, verbatim)
 }
+
+type OwnedArgumentDefinitions = ArgumentDefinition<OwnedRefs>
+
 /** TODO: Add docs */
 export class MutableFunctionDef extends FunctionDef implements MutableStatement {
   declare readonly module: MutableModule
@@ -2545,11 +2586,44 @@ export class MutableFunctionDef extends FunctionDef implements MutableStatement 
   setBody<T extends MutableExpression | MutableBodyBlock>(value: Owned<T> | undefined) {
     this.fields.set('body', unspaced(this.claimChild(value)))
   }
-  setArgumentDefinitions(defs: ArgumentDefinition<OwnedRefs>[]) {
+  setArgumentDefinitions(defs: OwnedArgumentDefinitions[]) {
     this.fields.set(
       'argumentDefinitions',
       defs.map((def) => mapRefs(def, ownedToRaw(this.module, this.id))),
     )
+  }
+
+  pushArgumentDefinitions(value: OwnedArgumentDefinitions) {
+    const defs = this.fields.get('argumentDefinitions')
+    const def = mapRefs(value, ownedToRaw(this.module, this.id))
+    this.fields.set('argumentDefinitions', [...defs, def])
+  }
+
+  /**
+   * Move an argument inside function definition.
+   * @param fromIndex index of moved argument.
+   * @param toIndex new index of moved argument.
+   *
+   * If any index is outside array index range, it's interpreted same as in {@link Array.prototype.splice|}.
+   */
+  moveArgumentDefinitions(fromIndex: number, toIndex: number) {
+    const defs = [...this.fields.get('argumentDefinitions')]
+    const [def] = defs.splice(fromIndex, 1)
+    if (def != null) {
+      defs.splice(toIndex, 0, def)
+      this.fields.set('argumentDefinitions', defs)
+    }
+  }
+
+  spliceArgumentDefinitions(
+    start: number,
+    deletedCount: number,
+    ...newValues: OwnedArgumentDefinitions[]
+  ) {
+    const defs = [...this.fields.get('argumentDefinitions')]
+    const newDefs = newValues.map((def) => mapRefs(def, ownedToRaw(this.module, this.id)))
+    defs.splice(start, deletedCount, ...newDefs)
+    this.fields.set('argumentDefinitions', defs)
   }
 
   /** Returns the body, after converting it to a block if it was empty or an inline expression. */

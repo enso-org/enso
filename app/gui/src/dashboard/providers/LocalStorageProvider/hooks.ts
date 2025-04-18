@@ -1,7 +1,7 @@
 /** @file Hooks for `LocalStorageProvider`. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { LocalStorageData, LocalStorageKey } from '#/utilities/LocalStorage'
-import { useContext, useEffect, useState, type SetStateAction } from 'react'
+import { useContext, useState, type SetStateAction } from 'react'
 import invariant from 'tiny-invariant'
 import { LocalStorageContext } from './constants'
 
@@ -12,34 +12,51 @@ export function useLocalStorage() {
   return context
 }
 
+/** Options for {@link useLocalStorageState}. */
+export interface LocalStorageStateOptions<K extends LocalStorageKey> {
+  readonly sanitize?: (value: LocalStorageData[K]) => LocalStorageData[K] | undefined
+}
+
 export function useLocalStorageState<K extends LocalStorageKey>(
   key: K,
+  defaultValue?: undefined,
+  options?: LocalStorageStateOptions<K>,
 ): readonly [
   value: LocalStorageData[K] | undefined,
-  setValue: (newValue: SetStateAction<LocalStorageData[K] | undefined>) => void,
+  setValue: (newValue: React.SetStateAction<LocalStorageData[K] | undefined>) => void,
 ]
 
 export function useLocalStorageState<K extends LocalStorageKey>(
   key: K,
   defaultValue: LocalStorageData[K],
+  options?: LocalStorageStateOptions<K>,
 ): readonly [
   value: LocalStorageData[K],
-  setValue: (newValue: SetStateAction<LocalStorageData[K]>) => void,
+  setValue: (newValue: React.SetStateAction<LocalStorageData[K]>) => void,
 ]
 
 /** Subscribe to Local Storage updates for a specific key. */
 export function useLocalStorageState<K extends LocalStorageKey>(
   key: K,
   defaultValue?: LocalStorageData[K],
+  options: LocalStorageStateOptions<K> = {},
 ): readonly [
   value: LocalStorageData[K] | undefined,
   setValue: (newValue: LocalStorageData[K] | undefined) => void,
 ] {
   const { localStorage } = useLocalStorage()
+  const { sanitize } = options
 
-  const [value, privateSetValue] = useState<LocalStorageData[K] | undefined>(
-    () => localStorage.get(key) ?? defaultValue,
-  )
+  const [value, privateSetValue] = useState<LocalStorageData[K] | undefined>(() => {
+    let savedValue: LocalStorageData[K] | undefined = localStorage.get(key)
+    if (savedValue !== undefined && sanitize) {
+      savedValue = sanitize(savedValue)
+    }
+    if (savedValue === undefined) {
+      return defaultValue
+    }
+    return savedValue
+  })
 
   const setValue = useEventCallback((newValue: SetStateAction<LocalStorageData[K] | undefined>) => {
     privateSetValue((currentValue) => {

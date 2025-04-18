@@ -1,6 +1,8 @@
 /** @file Hooks for `BackendProvider`. */
 import { type Category, isCloudCategory } from '#/layouts/Drive/CategorySwitcher/Category'
 import { BackendType } from '#/services/Backend'
+import type { LocalBackend } from '#/services/LocalBackend'
+import type { RemoteBackend } from '#/services/RemoteBackend'
 import { PRODUCT_NAME } from 'enso-common'
 import { useContext } from 'react'
 import invariant from 'tiny-invariant'
@@ -26,23 +28,34 @@ export function useLocalBackend() {
 }
 
 /**
- * Get the corresponding backend for the given property.
- * @throws {Error} when neither the Remote Backend nor the Local Backend are supported.
- * This should never happen unless the build is misconfigured.
+ * Get the corresponding backend for the given category.
  */
 export function useBackend(category: Category) {
   const remoteBackend = useRemoteBackend()
   const localBackend = useLocalBackend()
 
+  return pickBackend(category, remoteBackend, localBackend)
+}
+
+/**
+ * Pick the backend for the given category.
+ * @throws {Error} when a Local Backend is requested for a non-local project.
+ */
+function pickBackend(
+  category: Category,
+  remoteBackend: RemoteBackend,
+  localBackend: LocalBackend | null,
+) {
   if (isCloudCategory(category)) {
     return remoteBackend
-  } else {
-    invariant(
-      localBackend != null,
-      `This distribution of ${PRODUCT_NAME} does not support the Local Backend.`,
-    )
-    return localBackend
   }
+
+  invariant(
+    localBackend != null,
+    `This distribution of ${PRODUCT_NAME} does not support the Local Backend.`,
+  )
+
+  return localBackend
 }
 
 /**

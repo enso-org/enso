@@ -1,2 +1,2 @@
-/** @file Barrle file for `AssetsTable`. */
+/** @file Barrel file for `AssetsTable`. */
 export * from './AssetsTable'

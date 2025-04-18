@@ -8,6 +8,7 @@ import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry/constants'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 import type { DashboardBindingKey } from '#/configurations/inputBindings'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useFocusChild } from '#/hooks/focusHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
@@ -66,6 +67,10 @@ export function MenuEntry(props: MenuEntryProps) {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const isDisabledRef = useSyncRef(isDisabled)
 
+  const doActionCallback = useEventCallback(() => {
+    doAction()
+  })
+
   const labelTextId: TextId = (() => {
     if (action === 'openInFileBrowser') {
       return (
@@ -83,10 +88,10 @@ export function MenuEntry(props: MenuEntryProps) {
       inputBindings.attach(document.body, 'keydown', {
         [action]: () => {
           if (isDisabledRef.current) return
-          doAction()
+          doActionCallback()
         },
       }),
-    [inputBindings, action, doAction, isDisabledRef],
+    [inputBindings, action, doActionCallback, isDisabledRef],
   )
 
   const { tooltip, targetProps } = useVisualTooltip({

@@ -1,4 +1,4 @@
-/** @file Barrel file for `Form`. */
+/** @file Barrel file for form components. */
 export { Controller, useWatch } from 'react-hook-form'
 export * from './Field'
 export * from './FieldValue'
@@ -15,3 +15,4 @@ export * from './useFieldState'
 export * from './useForm'
 export * from './useFormError'
 export * from './useFormSchema'
+export * from './useFormState'

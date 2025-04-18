@@ -2,10 +2,8 @@
 import AccessedByProjectsIcon from '#/assets/accessed_by_projects.svg'
 import AccessedDataIcon from '#/assets/accessed_data.svg'
 import BlankIcon from '#/assets/blank.svg'
-import DirectoryIcon from '#/assets/folder.svg'
-import PeopleIcon from '#/assets/people.svg'
 import TagIcon from '#/assets/tag.svg'
-import TimeIcon from '#/assets/time.svg'
+import type { SvgUseIcon } from '#/components/AriaComponents'
 import type { TextId } from 'enso-common/src/text'
 import { memo } from 'react'
 import type { AssetColumnHeadingProps, AssetColumnProps } from './columnProps'
@@ -58,16 +56,16 @@ export const DEFAULT_ENABLED_COLUMNS: ReadonlySet<Column> = new Set([
   Column.path,
 ])
 
-export const COLUMN_ICONS: Readonly<Record<Column, string>> = {
+export const COLUMN_ICONS: Readonly<Record<Column, SvgUseIcon | (string & {})>> = {
   /* The file column does not have an icon, however this does not matter as it is not
    * collapsible. */
   [Column.name]: BlankIcon,
-  [Column.modified]: TimeIcon,
-  [Column.sharedWith]: PeopleIcon,
+  [Column.modified]: 'time',
+  [Column.sharedWith]: 'people',
   [Column.labels]: TagIcon,
   [Column.accessedByProjects]: AccessedByProjectsIcon,
   [Column.accessedData]: AccessedDataIcon,
-  [Column.path]: DirectoryIcon,
+  [Column.path]: 'folder',
 }
 
 export const COLUMN_SHOW_TEXT_ID: Readonly<Record<Column, TextId>> = {
@@ -86,7 +84,7 @@ const NORMAL_COLUMN_CSS_CLASSES = `px-cell-x py ${COLUMN_CSS_CLASSES}`
 
 /** CSS classes for every  */
 export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
-  [Column.name]: `z-10 sticky left-0 bg-dashboard rounded-rows-skip-level min-w-drive-name-column h-full p-0 border-l-0 after:absolute after:right-0 after:top-0 after:bottom-0 after:border-r-[1.5px] after:border-primary/5 ${COLUMN_CSS_CLASSES}`,
+  [Column.name]: `z-10 sticky left-0 bg-dashboard rounded-rows-skip-level min-w-96 h-full p-0 border-l-0 after:absolute after:right-0 after:top-0 after:bottom-0 after:border-r-[1.5px] after:border-primary/5 ${COLUMN_CSS_CLASSES}`,
   [Column.modified]: `min-w-drive-modified-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.sharedWith]: `min-w-drive-shared-with-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.labels]: `min-w-drive-labels-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,

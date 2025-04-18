@@ -2,11 +2,9 @@
  * @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components.
  */
-import * as aria from '#/components/aria'
 import Page from '#/components/Page'
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as projectHooks from '#/hooks/projectHooks'
-import type * as assetTable from '#/layouts/AssetsTable'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import { CategoriesProvider, useCategoriesAPI } from '#/layouts/Drive/CategorySwitcher'
@@ -30,6 +28,7 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
+import { Tabs } from '#/components/aria'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import { document } from '#/utilities/sanitizedEventTargets'
@@ -89,8 +88,6 @@ function DashboardInner(props: DashboardProps) {
   const localBackend = backendProvider.useLocalBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
-
-  const assetManagementApiRef = React.useRef<assetTable.AssetManagementApi | null>(null)
 
   const initialLocalProjectPath =
     initialProjectNameRaw != null ? fileURLToPath(initialProjectNameRaw) : null
@@ -169,13 +166,21 @@ function DashboardInner(props: DashboardProps) {
 
   const onSignOut = eventCallbacks.useEventCallback(() => {
     setPage('drive')
-    closeAllProjects()
+    void closeAllProjects()
     clearLaunchedProjects()
   })
 
   const goToSettings = eventCallbacks.useEventCallback(() => {
     setPage('settings')
   })
+
+  const onSelectionChange = eventCallbacks.useEventCallback((newPage: React.Key) => {
+    // This is safe as we render only valid pages.
+    // eslint-disable-next-line no-restricted-syntax
+    setPage(newPage as TabType)
+  })
+
+  const selectedTab = React.useDeferredValue(page)
 
   return (
     <Page hideInfoBar hideChat>
@@ -186,14 +191,10 @@ function DashboardInner(props: DashboardProps) {
           modalProvider.unsetModal()
         }}
       >
-        <aria.Tabs
+        <Tabs
           className="relative flex min-h-full grow select-none flex-col container-size"
-          selectedKey={page}
-          onSelectionChange={(newPage) => {
-            // This is safe as we render only valid pages.
-            // eslint-disable-next-line no-restricted-syntax
-            setPage(newPage as TabType)
-          }}
+          selectedKey={selectedTab}
+          onSelectionChange={onSelectionChange}
         >
           <div className="flex">
             <DashboardTabBar onCloseProject={closeProject} onOpenEditor={openEditor} />
@@ -205,12 +206,8 @@ function DashboardInner(props: DashboardProps) {
             />
           </div>
 
-          <DashboardTabPanels
-            initialProjectName={initialProjectName}
-            ydocUrl={ydocUrl}
-            assetManagementApiRef={assetManagementApiRef}
-          />
-        </aria.Tabs>
+          <DashboardTabPanels initialProjectName={initialProjectName} ydocUrl={ydocUrl} />
+        </Tabs>
         {$config.CHAT_URL != null ?
           <Chat
             isOpen={isHelpChatOpen}

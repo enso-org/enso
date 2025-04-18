@@ -4,8 +4,24 @@ import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import { useBackend, useLocalBackend } from '#/providers/BackendProvider'
 import type { ReactNode } from 'react'
+import { createStore } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type { Category, CategoryId } from './Category'
 import { CategoriesContext, useCategories, type CategoriesContextValue } from './hooks'
+
+/** State for {@link categoryIdStore}. */
+interface CategoryIdStoreState {
+  readonly categoryId: CategoryId | null
+}
+
+const categoryIdStore = createStore<CategoryIdStoreState>()(
+  persist(
+    (): CategoryIdStoreState => ({
+      categoryId: null,
+    }),
+    { name: 'enso-category-id', version: 1 },
+  ),
+)
 
 /** Props for the {@link CategoriesProvider}. */
 export interface CategoriesProviderProps {
@@ -14,34 +30,51 @@ export interface CategoriesProviderProps {
 }
 
 /** Provider for categories. */
-export function CategoriesProvider(props: CategoriesProviderProps) {
+export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.Element {
   const { children, onCategoryChange = () => {} } = props
 
   const { cloudCategories, localCategories, findCategoryById } = useCategories()
   const localBackend = useLocalBackend()
   const { isOffline } = useOffline()
 
-  const [categoryId, privateSetCategoryId, resetCategoryId] = useSearchParamsState<CategoryId>(
-    'driveCategory',
-    () => {
-      if (isOffline && localBackend != null) {
-        return 'local'
-      }
+  const [categoryId, privateSetCategoryId, privateResetCategoryId] =
+    useSearchParamsState<CategoryId>(
+      'driveCategory',
+      () => {
+        const savedId = categoryIdStore.getState().categoryId
 
-      return localBackend != null ? 'local' : 'cloud'
-    },
-    // This is safe, because we enshure the type inside the function
-    // eslint-disable-next-line no-restricted-syntax
-    (value): value is CategoryId => findCategoryById(value as CategoryId) != null,
-  )
+        if (savedId != null && findCategoryById(savedId) != null) {
+          return savedId
+        }
+
+        if (isOffline && localBackend != null) {
+          return 'local'
+        }
+
+        return localBackend != null ? 'local' : 'cloud'
+      },
+      // This is safe, because we enshure the type inside the function
+      // eslint-disable-next-line no-restricted-syntax
+      (value): value is CategoryId => findCategoryById(value as CategoryId) != null,
+    )
 
   const setCategoryId = useEventCallback((nextCategoryId: CategoryId) => {
     const previousCategory = findCategoryById(categoryId)
     privateSetCategoryId(nextCategoryId)
+    categoryIdStore.setState({
+      categoryId: nextCategoryId,
+    })
 
     // This is safe, because we know that the result will have the correct type.
     // eslint-disable-next-line no-restricted-syntax
     onCategoryChange(previousCategory, findCategoryById(nextCategoryId) as Category)
+  })
+
+  const resetCategoryId = useEventCallback((replace?: boolean) => {
+    privateResetCategoryId(replace)
+    categoryIdStore.setState({
+      categoryId: null,
+    })
   })
 
   const category = findCategoryById(categoryId)
@@ -54,7 +87,7 @@ export function CategoriesProvider(props: CategoriesProviderProps) {
   // We reset the category to the default.
   if (category == null) {
     resetCategoryId(true)
-    return null
+    return <></>
   }
 
   const contextValue = {

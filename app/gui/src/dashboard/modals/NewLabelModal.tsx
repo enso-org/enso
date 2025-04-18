@@ -9,7 +9,7 @@ import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { findLeastUsedColor } from '#/services/Backend'
-import { useMutation } from '@tanstack/react-query'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 
 /** Props for a {@link NewLabelModal}. */
 export interface NewLabelModalProps {
@@ -25,7 +25,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
   const labelNamesRef = useSyncRef(labelNames)
   const leastUsedColor = findLeastUsedColor(labels)
 
-  const createTag = useMutation(backendMutationOptions(backend, 'createTag')).mutateAsync
+  const createTag = useMutationCallback(backendMutationOptions(backend, 'createTag'))
 
   return (
     <Popover>

@@ -5,10 +5,11 @@ import { useAuth } from '#/providers/AuthProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import { memo } from 'react'
 import { Outlet } from 'react-router'
 
 /** Modal for accepting the terms of service. */
-export function AgreementsModal() {
+export const AgreementsModal = memo(function AgreementsModal() {
   const { getText } = useText()
   const { session } = useAuth()
 
@@ -119,4 +120,4 @@ export function AgreementsModal() {
   }
 
   return <Outlet context={session} />
-}
+})

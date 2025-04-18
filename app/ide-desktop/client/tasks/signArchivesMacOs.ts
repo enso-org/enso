@@ -81,6 +81,13 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
       ],
     ],
     [
+      'component/truffle-api-*.jar',
+      [
+        'META-INF/resources/engine/libtruffleattach/darwin/amd64/bin/libtruffleattach.dylib',
+        'META-INF/resources/engine/libtruffleattach/darwin/aarch64/bin/libtruffleattach.dylib',
+      ],
+    ],
+    [
       'component/truffle-nfi-libffi-*.jar',
       ['META-INF/resources/nfi-native/libnfi/darwin/*/bin/libtrufflenfi.dylib'],
     ],
@@ -91,6 +98,7 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
         'META-INF/resources/engine/libtruffleattach/darwin/aarch64/bin/libtruffleattach.dylib',
       ],
     ],
+
     ['component/jna-*.jar', ['com/sun/jna/*/libjnidispatch.jnilib']],
     [
       'component/jline-native-*.jar',
@@ -110,11 +118,12 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
       ],
     ],
     [
-      'lib/Standard/Snowflake/*/polyglot/java/snowflake-jdbc-*.jar',
-      [
-        'META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib',
-        'META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib',
-      ],
+      'lib/Standard/Snowflake/*/polyglot/java/conscrypt-openjdk-uber-*.jar',
+      ['META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib'],
+    ],
+    [
+      'lib/Standard/Snowflake/*/polyglot/java/grpc-netty-shaded-*.jar',
+      ['META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib'],
     ],
     [
       'lib/Standard/Google_Api/*/polyglot/java/grpc-netty-shaded-*.jar',

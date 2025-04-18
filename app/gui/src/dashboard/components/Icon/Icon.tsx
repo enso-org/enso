@@ -26,13 +26,11 @@ interface BaseIconProps<Render = never> extends VariantProps<typeof ICON_STYLES>
 /** @deprecated Prefer defined keys over importing from `#/assets/*.svg`. */
 export interface LegacyIconProps<Icon extends string, Render = never>
   extends BaseIconProps<Render> {
-  readonly children: LegacyIconProp<Icon, Render>
-  readonly icon?: never
+  readonly icon: LegacyIconProp<Icon, Render>
 }
 
 /** Generic type for icons imported from Figma. */
 export interface SvgUseIconProps<Render = never> {
-  readonly children?: never
   readonly icon: IconPropSvgUse<Render>
 }
 
@@ -42,18 +40,6 @@ export const Icon = memo(function Icon<Render = never>(props: IconProps<Render>)
   const { className, variants = ICON_STYLES, size, testId, renderProps, color, alt } = props
 
   const styles = variants({ size, className, color })
-
-  if ('children' in props) {
-    return (
-      <IconInternal<Render>
-        icon={props.children}
-        className={styles}
-        testId={testId}
-        renderProps={renderProps}
-        alt={alt}
-      />
-    )
-  }
 
   return (
     <IconInternal<Render>

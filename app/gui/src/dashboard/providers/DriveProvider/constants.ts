@@ -1,4 +1,5 @@
 /** @file Constants for `DriveProvider`. */
+import type { TransferrableAsset } from '#/layouts/Drive/CategorySwitcher'
 import type { Category } from '#/layouts/Drive/CategorySwitcher/Category'
 import type { PasteData } from '#/utilities/pasteData'
 import type { StoreApi } from '#/utilities/zustand'
@@ -15,7 +16,7 @@ import { createContext } from 'react'
 export interface DrivePastePayload {
   readonly backendType: BackendType
   readonly category: Category
-  readonly ids: ReadonlySet<AssetId>
+  readonly assets: readonly TransferrableAsset[]
 }
 
 /** The subset of asset information required for selections. */

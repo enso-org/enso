@@ -6,6 +6,7 @@ import { createStore } from '#/utilities/zustand'
 import type { DirectoryId } from 'enso-common/src/services/Backend'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 import { useState, type ReactNode } from 'react'
+import { persist } from 'zustand/middleware'
 import {
   CurrentDirectoryIdContext,
   DriveContext,
@@ -13,6 +14,19 @@ import {
   type DriveStore,
   type ProjectsContextType,
 } from './constants'
+
+/** State for {@link categoryIdStore}. */
+type CurrentDirectoryIdStoreState = CurrentDirectoryIdContextType['currentDirectoryId']
+
+const currentDirectoryIdStore = createStore<CurrentDirectoryIdStoreState>()(
+  persist(
+    (): CurrentDirectoryIdStoreState => ({
+      current: null,
+      parent: null,
+    }),
+    { name: 'enso-current-directory-id', version: 1 },
+  ),
+)
 
 /** Props for a {@link DriveProvider}. */
 export interface ProjectsProviderProps {
@@ -30,7 +44,7 @@ export function DriveProvider(props: ProjectsProviderProps) {
 
   const [currentDirectoryId, privateSetCurrentDirectoryId] = useSearchParamsState<
     CurrentDirectoryIdContextType['currentDirectoryId']
-  >('currentDirectoryId', { current: null, parent: null })
+  >('currentDirectoryId', () => currentDirectoryIdStore.getState())
 
   const [store] = useState(() =>
     createStore<DriveStore>((set, get) => ({
@@ -102,11 +116,13 @@ export function DriveProvider(props: ProjectsProviderProps) {
   const resetAssetTableState = useEventCallback(() => {
     store.getState().removeSelection()
     privateSetCurrentDirectoryId({ current: null, parent: null })
+    currentDirectoryIdStore.setState({ current: null, parent: null })
   })
 
   const setCurrentDirectoryId = useEventCallback(
     ({ current, parent }: { current: DirectoryId | null; parent: DirectoryId | null }) => {
       privateSetCurrentDirectoryId({ current, parent })
+      currentDirectoryIdStore.setState({ current, parent })
       store.getState().removeSelection()
     },
   )

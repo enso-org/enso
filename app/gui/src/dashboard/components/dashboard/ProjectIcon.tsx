@@ -1,5 +1,4 @@
 /** @file An interactive button indicating the status of a project. */
-import * as reactQuery from '@tanstack/react-query'
 
 import PlayIcon from '#/assets/play.svg'
 import StopIcon from '#/assets/stop.svg'
@@ -19,6 +18,7 @@ import * as backendModule from '#/services/Backend'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import type { LaunchedProject } from '../../providers/ProjectsProvider'
 
 /**
  * The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState},
@@ -59,43 +59,39 @@ export interface ProjectIconProps {
   readonly isDisabled: boolean
   readonly isOpened: boolean
   readonly item: backendModule.ProjectAsset
+  readonly closeProject: (project: LaunchedProject) => Promise<void>
+  readonly openProject: (projectId: backendModule.ProjectId) => Promise<void>
 }
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { backend, item, isOpened, isDisabled: isDisabledRaw, isPlaceholder } = props
+  const {
+    backend,
+    item,
+    isOpened,
+    isDisabled: isDisabledRaw,
+    isPlaceholder,
+    closeProject,
+    openProject,
+  } = props
 
   const isUnconditionallyDisabled = !projectHooks.useCanOpenProjects()
 
   const isDisabled = isDisabledRaw || isUnconditionallyDisabled
 
-  const openProjectLocally = projectHooks.useOpenProjectLocally()
-  const closeProject = projectHooks.useCloseProject()
-
   const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
 
-  const { data: projectState, isError } = reactQuery.useQuery({
-    ...projectHooks.createGetProjectDetailsQuery({
-      assetId: item.id,
-      backend,
-    }),
-    select: (data) => data.state,
-    enabled: !isPlaceholder && isOpened && !isUnconditionallyDisabled,
-  })
+  const projectState = item.projectState
 
-  const status = projectState?.type
-  const isRunningInBackground = projectState?.executeAsync ?? false
-
-  const isCloud = backend.type === backendModule.BackendType.remote
+  const status = projectState.type
+  const isRunningInBackground = projectState.executeAsync ?? false
 
   const isOtherUserUsingProject =
-    isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user.email
+    projectState.openedBy != null && projectState.openedBy !== user.email
 
   const userOpeningProjectTooltip =
-    item.projectState.openedBy == null ?
-      null
-    : getText('xIsUsingTheProject', item.projectState.openedBy)
+    isOtherUserUsingProject ? getText('xIsUsingTheProject', projectState.openedBy) : null
   const disabledTooltip = isUnconditionallyDisabled ? getText('downloadToOpenWorkflow') : null
 
   const state = (() => {
@@ -104,13 +100,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
     }
     // Project is closed, show open button
     if (!isOpened) {
-      return (projectState ?? item.projectState).type
+      return projectState.type
     }
 
-    if (status == null) {
-      // Project is opened, but not yet queried.
-      return backendModule.ProjectState.openInProgress
-    }
     if (status === backendModule.ProjectState.closed) {
       // Project is opened locally, but not on the backend yet.
       return backendModule.ProjectState.openInProgress
@@ -121,22 +113,19 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const spinnerState = ((): SpinnerState => {
     if (!isOpened) {
       return 'loading-slow'
-    } else if (isError) {
-      return 'initial'
-    } else if (status == null) {
-      return 'loading-slow'
-    } else {
-      return backend.type === backendModule.BackendType.remote ?
-          REMOTE_SPINNER_STATE[status]
-        : LOCAL_SPINNER_STATE[status]
     }
+
+    return backend.type === backendModule.BackendType.remote ?
+        REMOTE_SPINNER_STATE[status]
+      : LOCAL_SPINNER_STATE[status]
   })()
 
   const doOpenProject = useEventCallback(async () => {
-    await openProjectLocally(item, backend.type)
+    await openProject(item.id)
   })
-  const doCloseProject = useEventCallback(() => {
-    closeProject({ ...item, type: backend.type })
+
+  const doCloseProject = useEventCallback(async () => {
+    await closeProject({ ...item, type: backend.type })
   })
 
   const getTooltip = (defaultTooltip: string) =>
@@ -155,7 +144,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           aria-label={getTooltip(getText('openInEditor'))}
           tooltipPlacement="left"
           extraClickZone="xsmall"
-          isDisabled={isDisabled || projectState?.type === backendModule.ProjectState.closing}
+          isDisabled={isDisabled || projectState.type === backendModule.ProjectState.closing}
           className="shrink-0"
           onPress={doOpenProject}
           testId="open-project"

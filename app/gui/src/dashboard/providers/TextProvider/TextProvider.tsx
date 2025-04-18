@@ -3,8 +3,8 @@
  * React context.
  */
 import { LANGUAGE_TO_LOCALE, resolveUserLanguage } from 'enso-common/src/text'
-import { useMemo, useState, type PropsWithChildren } from 'react'
-import { TextContext, type TextContextType } from './constants'
+import { useState, type PropsWithChildren } from 'react'
+import { TextContext } from './constants'
 
 /** Props for a {@link TextProvider}. */
 export type TextProviderProps = Readonly<PropsWithChildren>
@@ -16,10 +16,9 @@ export function TextProvider(props: TextProviderProps) {
   const [language, setLanguage] = useState(() => resolveUserLanguage())
   const locale = LANGUAGE_TO_LOCALE[language]
 
-  const contextValue = useMemo<TextContextType>(
-    () => ({ language, setLanguage, locale }),
-    [language, locale],
+  return (
+    <TextContext.Provider value={{ language, setLanguage, locale }}>
+      {children}
+    </TextContext.Provider>
   )
-
-  return <TextContext.Provider value={contextValue}>{children}</TextContext.Provider>
 }
