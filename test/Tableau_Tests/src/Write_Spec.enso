@@ -106,8 +106,28 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         t2.write written_file
         written_table_in_hyper = Hyper_File.new written_file . tables . first
         written_table_in_hyper.read.should_equal t2
-        backup_file = written_file.path + ".bak"
+        backup_file = File.new (written_file.path + ".bak")
         backup_file_written_table_in_hyper = Hyper_File.new backup_file . tables . first
         backup_file_written_table_in_hyper.read.should_equal t1
+        written_file.delete
+        backup_file.delete
+
+    group_builder.specify "errors on existing file if in on_existing_file=..Error mode" <|
+        written_file = get_temp_file
+        t1 = Table.input [['A', ['a']]]
+        t1.write written_file
+        t2 = Table.input [['B', ['b']]]
+        r = t2.write written_file on_existing_file=..Error
+        r.should_fail_with File_Error
+        r.catch.should_be_a File_Error.Already_Exists
+
+        ## Data is still t1 as we didn't overwrite
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal t1
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
         written_file.delete
 
