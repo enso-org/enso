@@ -1,0 +1,48 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Missing_Argument
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Metadata.Widget.Text_Input
+
+import Standard.Database.Connection.Connection_Options.Connection_Options
+import Standard.Database.Connection.Credentials.Credentials
+
+import project.Connection.Key_Pair_Credentials.Key_Pair_Credentials
+import project.Connection.Widgets
+import project.MySQL_Connection.MySQL_Connection
+
+polyglot java import net.snowflake.client.jdbc.SnowflakeDriver
+
+type MySQL_Details
+    ## Connect to a MySQL database.
+
+       Arguments:
+       - account: The name of the account to connect to.
+       - credentials: The credentials to use for the connection.
+         This can either be username/password pair, a `Key_Pair_Credentials`
+         for private key authentication or a credential created in the dashboard.
+       - database: The name of the database to connect to.
+    @account (Text_Input display=..Always)
+    @credentials Widgets.password_or_keypair_widget
+    MySQL (account:Text=(Missing_Argument.throw "account")) (credentials:Credentials|Key_Pair_Credentials|Enso_Secret=(Missing_Argument.throw "credentials")) database:Text=(Missing_Argument.throw "database")
+
+    ## PRIVATE
+       Attempt to resolve the constructor.
+    resolve : Function -> MySQL_Details | Nothing
+    resolve constructor =
+        Panic.catch Type_Error (constructor:MySQL_Details) _->Nothing
+
+    ## PRIVATE
+       Build the Connection resource.
+
+       Arguments:
+       - options: Overrides for the connection properties.
+    connect : Connection_Options -> Boolean -> MySQL_Connection
+    connect self options (allow_data_links : Boolean = False) =
+        properties = options.merge self.common_jdbc_properties
+        Snowflake_Connection.create self.jdbc_url properties self.credentials
+
+    ## PRIVATE
+       Provides the jdbc url for the connection.
+    jdbc_url : Text
+    jdbc_url self =
+        'jdbc:snowflake://' + self.account + ".snowflakecomputing.com"

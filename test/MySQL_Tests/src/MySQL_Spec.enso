@@ -1,0 +1,134 @@
+from Standard.Base import all
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Ref.Ref
+from Standard.Base.Enso_Cloud.Data_Link_Helpers import secure_value_to_json
+
+from Standard.Table import Table, Value_Type, Aggregate_Column, Bits, expr
+from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, Duplicate_Output_Column_Names
+
+import Standard.Database.DB_Column.DB_Column
+import Standard.Database.DB_Table.DB_Table
+import Standard.Database.Feature.Feature
+import Standard.Database.Dialect_Flag.Dialect_Flag
+import Standard.Database.SQL_Type.SQL_Type
+import Standard.Database.Internal.Replace_Params.Replace_Params
+from Standard.Database import all
+from Standard.Database.Errors import all
+
+from Standard.Snowflake import all
+
+from Standard.Test import all
+import Standard.Test.Test_Environment
+
+import enso_dev.Table_Tests
+import enso_dev.Table_Tests.Database.Common.Audit_Spec
+import enso_dev.Table_Tests.Database.Common.Common_Spec
+import enso_dev.Table_Tests.Database.Common.IR_Spec
+import enso_dev.Table_Tests.Database.Common.Save_Connection_Data_Link
+import enso_dev.Table_Tests.Database.Transaction_Spec
+import enso_dev.Table_Tests.Database.Upload_Spec
+import enso_dev.Table_Tests.Database.Helpers.Name_Generator
+import enso_dev.Table_Tests.Common_Table_Operations
+from enso_dev.Table_Tests.Common_Table_Operations.Util import all
+
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+
+import project.Auth_Spec
+
+type Lazy_Ref
+   Value ~get
+
+mysql_specific_spec suite_builder default_connection db_name setup =
+    table_builder = setup.table_builder
+    light_table_builder = setup.light_table_builder
+    materialize = setup.materialize
+
+    suite_builder.group "[Snowflake] Schemas and Databases" group_builder->
+        group_builder.specify "should be able to get current database and list databases" <|
+            connection = default_connection.get
+            connection.database.equals_ignore_case db_name . should_be_true
+            connection.databases.length . should_not_equal 0
+            connection.databases.find (name-> name.equals_ignore_case db_name) . should_succeed
+            Meta.is_same_object connection (connection.set_database db_name) . should_be_true
+
+## PRIVATE
+supported_replace_params : Hashset Replace_Params
+supported_replace_params =
+    Hashset.from_vector []
+
+add_mysql_specs suite_builder create_connection_fn db_name =
+    prefix = "[MySQL] "
+    name_counter = Ref.new 0
+
+    ## We prefer to keep a single connection for most tests, to avoid the overhead of initializing a new connection multiple times.
+       It is initialized lazily, so that it is actually established only if actually used. Merely listing the tests to run should not establish the connection.
+    default_connection = Lazy_Ref.Value (create_connection_fn Nothing
+    table_builder columns connection=Nothing =
+        ix = name_counter.get
+        name_counter . put ix+1
+        name = Name_Generator.random_name "table_"+ix.to_text
+        in_mem_table = Table.new columns
+        in_mem_table.select_into_database_table (connection.if_nothing default_connection.get) name primary_key=Nothing temporary=True
+    light_table_builder columns =
+        default_connection.get.base_connection.create_literal_table (Table.new columns) "literal_table"
+    materialize = .read
+
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=supported_replace_params run_advanced_edge_case_tests_by_default=False
+    aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False text_concat=False
+    agg_in_memory_table = ((Project_Description.new enso_dev.Table_Tests).data / "data.csv") . read
+
+    agg_table_fn = _->
+        agg_in_memory_table.select_into_database_table default_connection.get (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
+
+    empty_agg_table_fn = _->
+        (agg_in_memory_table.take (..First 0)).select_into_database_table default_connection.get (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
+
+    is_feature_supported_fn feature:Feature = default_connection.get.dialect.is_feature_supported feature
+    is_operation_supported_fn operation:Text = default_connection.get.dialect.is_operation_supported operation
+    flagged_fn = default_connection.get.dialect.flagged
+
+    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table_fn empty_agg_table_fn table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_fn light_table_builder=light_table_builder is_feature_supported=is_feature_supported_fn flagged=flagged_fn is_operation_supported=is_operation_supported_fn
+
+    mysql_specific_spec suite_builder default_connection db_name setup
+    Common_Spec.add_specs suite_builder prefix create_connection_fn default_connection setup
+    Common_Table_Operations.Main.add_specs suite_builder setup
+    Upload_Spec.add_specs suite_builder setup create_connection_fn
+    IR_Spec.add_specs suite_builder setup prefix default_connection.get
+    Auth_Spec.add_specs suite_builder default_connection.get
+
+add_table_specs suite_builder =
+    case get_configured_connection_details of
+        Nothing ->
+            message = "MySQL test connection is not configured. See README.md for instructions."
+            suite_builder.group "[MySQL] Database tests" pending=message (_-> Nothing)
+        connection_details ->
+            db_name = connection_details.database
+            connection_builder = _ -> Database.connect connection_details
+            add_mysql_specs suite_builder connection_builder db_name
+
+## We rethrow any dataflow errors to ensure that they are reported.
+   Without it, a dataflow error could make some tests just not be registered and
+   not run, without displaying any failures.
+get_configured_connection_details = Panic.rethrow <|
+    get_var name =
+        value = Environment.get name if_missing=(Panic.throw (Illegal_State.Error "Environment variable "+name+" is not set. Please set all required environment variables."))
+        if value.is_empty then
+            Panic.throw (Illegal_State.Error "The "+name+" environment variable is set, but it is empty. Please set all required environment variables.")
+        value
+    user = get_var "ENSO_MYSQL_USER"
+    password = get_var "ENSO_MYSQL_PASSWORD"
+    database = get_var "ENSO_MYSQL_DATABASE"
+
+    resolved_password = if password.starts_with "enso://" then Enso_Secret.get password else password
+    credentials = Credentials.Username_And_Password user resolved_password
+    MySQL_Details.MySQL account_name credentials database
+
+add_specs suite_builder =
+    add_table_specs suite_builder
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
