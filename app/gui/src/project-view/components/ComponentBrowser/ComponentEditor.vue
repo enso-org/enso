@@ -76,15 +76,10 @@ const rootStyle = computed(() => {
     <div :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }">
       <SvgIcon :name="icon" />
     </div>
-    <ComponentEditorLabel
-      v-if="props.mode.mode === 'componentBrowsing'"
-      :selfArg="props.mode.filter.selfArg"
-    />
-    <SvgIcon
-      v-if="props.mode.mode === 'componentBrowsing'"
-      class="selfArgInfoArrow"
-      name="folder_closed"
-    />
+    <template v-if="props.mode.mode === 'componentBrowsing'">
+      <ComponentEditorLabel :selfArg="props.mode.filter.selfArg" />
+      <SvgIcon class="selfArgInfoArrow" name="folder_closed" />
+    </template>
     <CodeMirrorRoot ref="editorRoot" />
   </div>
 </template>
