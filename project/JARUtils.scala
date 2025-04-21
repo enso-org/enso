@@ -22,6 +22,10 @@ object JARUtils {
     * @param renameFunc        Function that renames the extracted files. The extracted file name is taken
     *                          from the jar entry, and thus may contain slashes. If None is returned, the
     *                          file is ignored and not extracted.
+    * @param logger SBT's logger
+    * @param cacheStoreFactory SBT's cache sotre factory
+    * @param previousRun summary of previous extraction data, if available
+    * @return list of extracted native libraries
     */
   def extractFilesFromJar(
     inputJarPath: Path,
@@ -31,7 +35,7 @@ object JARUtils {
     renameFunc: String => Option[String],
     logger: sbt.util.Logger,
     cacheStoreFactory: CacheStoreFactory,
-    previousRun: Option[ExtractNativeLibAnalysis]
+    previousRun: Option[ExtractedNativeLibSummary]
   ): Try[List[File]] = {
     val dependencyStore = cacheStoreFactory.make("extract-jar-files")
     val inputJarFile    = inputJarPath.toFile

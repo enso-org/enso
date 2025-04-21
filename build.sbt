@@ -4999,8 +4999,8 @@ lazy val `std-table` = project
   )
   .dependsOn(`std-base` % "provided")
 
-lazy val extractNativeLibs = taskKey[ExtractNativeLibsAnalysis](
-  "Helper task to extract native libraries from OpenCV JAR"
+lazy val extractNativeLibs = taskKey[AnalysisOfExtractedNativeLibs](
+  "Helper task to extract native libraries from a dependency JAR"
 )
 
 lazy val cleanPolyglotRoot = taskKey[Unit](
@@ -5062,12 +5062,12 @@ lazy val `std-image` = project
       StdBits.ensureDirExistsAndIsClean(
         `image-polyglot-root`.toPath,
         logger,
-        forceClean = forceClean
+        forceClean
       )
       StdBits.ensureDirExistsAndIsClean(
         `image-native-libs`.toPath,
         logger,
-        forceClean = forceClean
+        forceClean
       )
     }.value,
     Compile / packageBin := Def
@@ -5423,7 +5423,7 @@ lazy val `std-tableau` = project
       val logger            = streams.value.log
       val cacheStoreFactory = streams.value.cacheStoreFactory
       import sbt.util.CacheImplicits._
-      val prev = extractNativeLibs.previous
+      val prev               = extractNativeLibs.previous
       val tableauSuffixInJar = s"tableauhyperapi-${StdBits.plainOsName()}"
       val tableauNativeLibJar = (Compile / unmanagedJars).value
         .map(_.data)
