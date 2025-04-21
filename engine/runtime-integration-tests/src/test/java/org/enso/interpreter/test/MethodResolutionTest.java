@@ -1,8 +1,5 @@
 package org.enso.interpreter.test;
 
-import static org.enso.test.utils.ContextUtils.createDefaultContext;
-import static org.enso.test.utils.ContextUtils.evalModule;
-import static org.enso.test.utils.ContextUtils.executeInContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -13,39 +10,30 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public final class MethodResolutionTest {
   private static MethodResolverNode methodResolverNode;
-  private static Context ctx;
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @BeforeClass
   public static void initCtx() {
-    ctx = createDefaultContext();
-    executeInContext(
-        ctx,
-        () -> {
-          methodResolverNode = MethodResolverNode.getUncached();
-          return null;
-        });
+    methodResolverNode = MethodResolverNode.getUncached();
   }
 
   @AfterClass
   public static void disposeCtx() {
-    ctx.close();
-    ctx = null;
     methodResolverNode = null;
   }
 
   @Test
   public void resolveStaticMethodFromAny() {
     var myTypeVal =
-        evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         from Standard.Base import all
 
@@ -54,23 +42,17 @@ public final class MethodResolutionTest {
 
         main = My_Type
         """);
-    executeInContext(
-        ctx,
-        () -> {
-          var myType = unwrapType(myTypeVal);
-          var symbol = UnresolvedSymbol.build("to_display_text", myType.getDefinitionScope());
-          var func = methodResolverNode.executeResolution(myType, symbol);
-          assertThat("to_display_text method is found", func, is(notNullValue()));
-          assertSingleSelfArgument(func);
-          return null;
-        });
+    var myType = unwrapType(myTypeVal);
+    var symbol = UnresolvedSymbol.build("to_display_text", myType.getDefinitionScope());
+    var func = methodResolverNode.executeResolution(myType, symbol);
+    assertThat("to_display_text method is found", func, is(notNullValue()));
+    assertSingleSelfArgument(func);
   }
 
   @Test
   public void resolveInstanceMethodFromMyType() {
     var myTypeVal =
-        evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             method self = 42
@@ -79,23 +61,17 @@ public final class MethodResolutionTest {
         """,
             "Module",
             "main");
-    executeInContext(
-        ctx,
-        () -> {
-          var myType = unwrapType(myTypeVal);
-          var symbol = UnresolvedSymbol.build("method", myType.getDefinitionScope());
-          var func = methodResolverNode.executeResolution(myType, symbol);
-          assertThat("method is found", func, is(notNullValue()));
-          assertSingleSelfArgument(func);
-          return null;
-        });
+    var myType = unwrapType(myTypeVal);
+    var symbol = UnresolvedSymbol.build("method", myType.getDefinitionScope());
+    var func = methodResolverNode.executeResolution(myType, symbol);
+    assertThat("method is found", func, is(notNullValue()));
+    assertSingleSelfArgument(func);
   }
 
   @Test
   public void resolveStaticMethodFromMyType() {
     var myTypeVal =
-        evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
             method = 42
@@ -104,23 +80,17 @@ public final class MethodResolutionTest {
         """,
             "Module",
             "main");
-    executeInContext(
-        ctx,
-        () -> {
-          var myType = unwrapType(myTypeVal);
-          var symbol = UnresolvedSymbol.build("method", myType.getDefinitionScope());
-          var func = methodResolverNode.executeResolution(myType, symbol);
-          assertThat("method is found", func, is(notNullValue()));
-          assertSingleSelfArgument(func);
-          return null;
-        });
+    var myType = unwrapType(myTypeVal);
+    var symbol = UnresolvedSymbol.build("method", myType.getDefinitionScope());
+    var func = methodResolverNode.executeResolution(myType, symbol);
+    assertThat("method is found", func, is(notNullValue()));
+    assertSingleSelfArgument(func);
   }
 
   @Test
   public void resolveExtensionMethodFromMyType() {
     var myTypeVal =
-        evalModule(
-            ctx,
+        ctxRule.evalModule(
             """
         type My_Type
         My_Type.method = 42
@@ -129,16 +99,11 @@ public final class MethodResolutionTest {
         """,
             "Module",
             "main");
-    executeInContext(
-        ctx,
-        () -> {
-          var myType = unwrapType(myTypeVal);
-          var symbol = UnresolvedSymbol.build("method", myType.getDefinitionScope());
-          var func = methodResolverNode.executeResolution(myType, symbol);
-          assertThat("method is found", func, is(notNullValue()));
-          assertSingleSelfArgument(func);
-          return null;
-        });
+    var myType = unwrapType(myTypeVal);
+    var symbol = UnresolvedSymbol.build("method", myType.getDefinitionScope());
+    var func = methodResolverNode.executeResolution(myType, symbol);
+    assertThat("method is found", func, is(notNullValue()));
+    assertSingleSelfArgument(func);
   }
 
   private void assertSingleSelfArgument(Function func) {
@@ -150,7 +115,7 @@ public final class MethodResolutionTest {
   }
 
   private Type unwrapType(Value val) {
-    var unwrapped = ContextUtils.unwrapValue(ctx, val);
+    var unwrapped = ctxRule.unwrapValue(val);
     return (Type) unwrapped;
   }
 }

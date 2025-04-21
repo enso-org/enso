@@ -1,8 +1,4 @@
-import {
-  textEditorsBindings,
-  textEditorsStandardCommonBindings,
-  textEditorsStandardMultilineBindings,
-} from '@/bindings'
+import { textEditorsBindings, textEditorsMultilineBindings } from '@/bindings'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { type VueHost } from '@/components/VueHostRender.vue'
 import { injectKeyboard } from '@/providers/keyboard'
@@ -11,12 +7,13 @@ import {
   contentFocusedExt,
   setContentFocused,
 } from '@/util/codemirror/contentFocusedExt'
+import { baseKeymap, handlerToKeyBinding, verticalMovementKeymap } from '@/util/codemirror/keymap'
 import { useCompartment, useDispatch, useStateEffect } from '@/util/codemirror/reactivity'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
 import { elementHierarchy } from '@/util/dom'
 import { ToValue } from '@/util/reactivity'
-import { standardKeymap } from '@codemirror/commands'
+import { insertNewlineKeepIndent } from '@codemirror/commands'
 import {
   Compartment,
   EditorState,
@@ -95,7 +92,7 @@ export function useCodeMirror(
   const sync = content ? useYTextOrReadonlySync(content) : undefined
   const extrasCompartment = new Compartment()
   const bindingsCompartment = useCompartment(view, () =>
-    keyBindings({ lineMode: toValue(lineMode) }),
+    keyBindings(view, { lineMode: toValue(lineMode) }),
   )
   const singleLineState = computed(() => {
     const mode = toValue(lineMode)
@@ -318,91 +315,40 @@ function lastEffect<T>(
   }
 }
 
-function handlerToKeyBinding(handler: (event: KeyboardEvent, stopAndPrevent: boolean) => boolean) {
+const stopEvent = (event: Event) => {
+  event.stopImmediatePropagation()
+  return false
+}
+function bindStandardBindings(view: EditorView) {
+  const autoOrMultiHandlers = handlerToKeyBinding(
+    textEditorsMultilineBindings.handler({
+      newline: (e) => {
+        e.stopImmediatePropagation()
+        return insertNewlineKeepIndent(view)
+      },
+    }),
+  )
   return {
-    any: (_view: EditorView, event: KeyboardEvent) => {
-      handler(event, false)
-      // Allow other handlers to override the default behavior.
-      return false
-    },
+    multiline: [autoOrMultiHandlers, ...verticalMovementKeymap(view)] satisfies KeyBinding[],
+    singleline: [],
+    autoline: [autoOrMultiHandlers] satisfies KeyBinding[],
   }
 }
-const stopEvent = (event: Event) => event.stopImmediatePropagation()
-const standardBindings = {
-  common: [
-    handlerToKeyBinding(
-      textEditorsStandardCommonBindings.handler({
-        moveLeft: stopEvent,
-        moveRight: stopEvent,
-        deleteBack: stopEvent,
-        deleteForward: stopEvent,
-      }),
-    ),
-  ] satisfies KeyBinding[],
-  multiline: [
-    handlerToKeyBinding(
-      textEditorsStandardMultilineBindings.handler({
-        moveUp: stopEvent,
-        moveDown: stopEvent,
-        newline: stopEvent,
-      }),
-    ),
-    {
-      // This is handled by `standardKeymap`, but it doesn't `stop` handled events.
-      key: 'Shift-Enter',
-      stopPropagation: true,
-    },
-  ] satisfies KeyBinding[],
-  singleline: [
-    {
-      key: 'Enter',
-      run: (view) => {
-        view.contentDOM.blur()
-        return true
-      },
-      preventDefault: true,
-      stopPropagation: false,
-    },
-    {
-      key: 'Shift-Enter',
-      run: (view) => {
-        view.contentDOM.blur()
-        return true
-      },
-      preventDefault: true,
-      stopPropagation: false,
-    },
-  ] satisfies KeyBinding[],
-  autoline: [
-    {
-      key: 'Enter',
-      run: (view) => {
-        view.contentDOM.blur()
-        return true
-      },
-      preventDefault: true,
-    },
-    {
-      // This is handled by `standardKeymap`, but it doesn't `stop` handled events.
-      key: 'Shift-Enter',
-      stopPropagation: true,
-    },
-  ] satisfies KeyBinding[],
-}
 
-function keyBindings({
-  lineMode,
-}: { lineMode?: 'single' | 'multi' | 'auto' | undefined } = {}): Extension {
+function keyBindings(
+  view: EditorView,
+  { lineMode }: { lineMode?: 'single' | 'multi' | 'auto' | undefined } = {},
+): Extension {
   const mode = lineMode ?? 'multi'
+  const standardBindings = bindStandardBindings(view)
   return [
-    Prec.lowest(keymap.of(standardKeymap)),
+    Prec.lowest(keymap.of(baseKeymap(view))),
     Prec.low(
-      keymap.of([
-        ...standardBindings.common,
-        ...(mode === 'multi' ? standardBindings.multiline
+      keymap.of(
+        mode === 'multi' ? standardBindings.multiline
         : mode === 'auto' ? standardBindings.autoline
-        : standardBindings.singleline),
-      ]),
+        : standardBindings.singleline,
+      ),
     ),
     ...(mode === 'multi' ?
       [

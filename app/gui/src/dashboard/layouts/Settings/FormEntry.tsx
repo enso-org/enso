@@ -2,7 +2,7 @@
 import { ButtonGroup, Form } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import SettingsInput from './Input'
 import type { SettingsContext, SettingsFormEntryData } from './data'
 
@@ -27,10 +27,6 @@ export function SettingsFormEntry<T extends Record<keyof T, string>>(
   const [initialValueString] = useState(() => JSON.stringify(value))
   const valueStringRef = useRef(initialValueString)
 
-  const schema = useMemo(
-    () => (typeof schemaRaw === 'function' ? schemaRaw(context) : schemaRaw),
-    [context, schemaRaw],
-  )
   const isEditable = data.inputs.some((inputData) =>
     typeof inputData.editable === 'boolean' ?
       inputData.editable
@@ -39,15 +35,15 @@ export function SettingsFormEntry<T extends Record<keyof T, string>>(
 
   const form = Form.useForm({
     // @ts-expect-error This is SAFE, as the type `T` is statically known.
-    schema,
+    schema: typeof schemaRaw === 'function' ? schemaRaw(context) : schemaRaw,
     defaultValues: value,
-    onSubmit: async (newValue) => {
+    onSubmit: (newValue) => {
       // @ts-expect-error This is SAFE, as the type `T` is statically known.
-      await onSubmit(context, newValue)
-      form.reset(newValue)
-      // The form should not be reset on error.
+      return onSubmit(context, newValue)
     },
   })
+
+  const { isDirty } = Form.useFormState({ form })
 
   useEffect(() => {
     const newValueString = JSON.stringify(value)
@@ -60,7 +56,7 @@ export function SettingsFormEntry<T extends Record<keyof T, string>>(
 
   if (!visible) return null
 
-  const shouldShowSaveButton = isEditable && form.formState.isDirty
+  const shouldShowSaveButton = isEditable && isDirty
 
   return (
     <Form form={form}>

@@ -5,34 +5,16 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.stream.Collectors;
 import org.enso.common.MethodNames;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.logger.ObservedMessage;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 public class ProgressTest {
-  private static Context ctx;
-  private static EnsoContext ensoCtx;
-
-  @BeforeClass
-  public static void initCtx() throws Exception {
-    ctx = ContextUtils.createDefaultContext();
-    ensoCtx = ContextUtils.leakContext(ctx);
-  }
-
-  @AfterClass
-  public static void closeCtx() throws Exception {
-    ctx.close();
-    ctx = null;
-    ensoCtx.shutdown();
-    ensoCtx = null;
-  }
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   public ProgressTest() {}
 
@@ -61,7 +43,7 @@ public class ProgressTest {
     """;
     var log = LoggerFactory.getLogger("Standard.Base.Logging.Progress");
 
-    var geom = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "geom");
+    var geom = ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "geom");
 
     var oneTimeLog =
         ObservedMessage.collect(
@@ -130,7 +112,7 @@ public class ProgressTest {
 
             loop n
     """;
-    var upTo = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "up_to");
+    var upTo = ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "up_to");
 
     var log = LoggerFactory.getLogger("Standard.Base.Logging.Progress");
 
@@ -243,7 +225,7 @@ public class ProgressTest {
     up_to n host =
         host n
     """;
-    var upTo = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "up_to");
+    var upTo = ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "up_to");
 
     var log = LoggerFactory.getLogger("Standard.Base.Logging.Progress");
 

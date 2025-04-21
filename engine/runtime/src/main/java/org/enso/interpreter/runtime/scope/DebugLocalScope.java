@@ -81,8 +81,10 @@ public class DebugLocalScope extends EnsoObject {
 
   @TruffleBoundary
   public static DebugLocalScope createFromFrame(EnsoRootNode rootNode, MaterializedFrame frame) {
-    return new DebugLocalScope(
-        rootNode, frame, gatherBindingsByLevels(rootNode.getLocalScope().flattenBindings()), 0);
+    var scope = rootNode.getLocalScope();
+    var flatten = scope.flattenBindings();
+    var byLevels = gatherBindingsByLevels(flatten);
+    return new DebugLocalScope(rootNode, frame, byLevels, 0);
   }
 
   @TruffleBoundary

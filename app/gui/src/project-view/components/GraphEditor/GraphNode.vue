@@ -486,6 +486,8 @@ onWindowBlur(() => {
   graph.setNodeHovered(nodeId.value, false)
   updateNodeHover(undefined)
 })
+
+const nodeName = computed(() => props.node.pattern?.code())
 </script>
 
 <template>
@@ -497,7 +499,7 @@ onWindowBlur(() => {
     :data-node-id="nodeId"
     @pointerdown.stop
   >
-    <div class="binding" v-text="node.pattern?.code()" />
+    <div class="binding" v-text="nodeName" />
     <button
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton clickable"
@@ -643,11 +645,13 @@ onWindowBlur(() => {
   color: black;
   position: absolute;
   right: 100%;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  bottom: 0;
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
 }
 
 .selected .binding {

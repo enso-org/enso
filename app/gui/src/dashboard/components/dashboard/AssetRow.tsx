@@ -9,7 +9,6 @@ import BlankIcon from '#/assets/blank.svg'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 
-import type { DrivePastePayload } from '#/providers/DriveProvider'
 import {
   useDriveStore,
   useSetCurrentDirectoryId,
@@ -77,11 +76,6 @@ export interface AssetRowProps {
   readonly columns: columnUtils.Column[]
   readonly isKeyboardSelected: boolean
   readonly labels: readonly Label[]
-  readonly cutAndPaste: (
-    newParentKey: backendModule.DirectoryId,
-    newParentId: backendModule.DirectoryId,
-    pasteData: DrivePastePayload,
-  ) => void
   readonly grabKeyboardFocus: (item: backendModule.AnyAsset) => void
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
   readonly select: (item: backendModule.AnyAsset) => void
@@ -101,15 +95,6 @@ export interface AssetRowProps {
     event: React.DragEvent<HTMLTableRowElement>,
     item: backendModule.AnyAsset,
   ) => void
-  readonly onCutAndPaste?: (
-    newParentKey: backendModule.DirectoryId,
-    newParentId: backendModule.DirectoryId,
-    pasteData: DrivePastePayload,
-  ) => void
-  readonly uploadFiles: (
-    files: readonly File[],
-    parentId: backendModule.DirectoryId,
-  ) => Promise<void>
   readonly renameAsset: (assetId: backendModule.AssetId, newTitle: string) => Promise<void>
   readonly closeProject: (project: LaunchedProject) => Promise<void>
   readonly openProject: (projectId: backendModule.ProjectId) => Promise<void>
@@ -229,10 +214,8 @@ export function RealAssetRow(props: RealAssetRowProps) {
     isPlaceholder,
     type,
     item,
-    cutAndPaste,
     labels,
     grabKeyboardFocus,
-    uploadFiles,
     renameAsset,
     closeProject,
     openProject,
@@ -264,7 +247,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const setIsDraggingOverSelectedRow = useSetIsDraggingOverSelectedRow()
   const setDragTargetAssetId = useSetDragTargetAssetId()
   const rootRef = React.useRef<HTMLElement | null>(null)
-  const dragOverTimeoutHandle = React.useRef<number | null>(null)
   const grabKeyboardFocusRef = useSyncRef(grabKeyboardFocus)
   const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(
     assetRowUtils.INITIAL_ROW_STATE,
@@ -274,9 +256,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === item.id)
   const isEditingName = innerRowState.isEditingName || isNewlyCreated
 
-  const rowState = React.useMemo(() => {
-    return object.merge(innerRowState, { isEditingName })
-  }, [isEditingName, innerRowState])
+  const rowState = object.merge(innerRowState, { isEditingName })
 
   const isDeletingSingleAsset =
     useBackendMutationState(backend, 'deleteAsset', {
@@ -296,7 +276,8 @@ export function RealAssetRow(props: RealAssetRowProps) {
     }).length !== 0
   const isRestoringMultipleAssets =
     useRestoreAssetsMutationState(backend, {
-      predicate: ({ state: { variables: assetIds = [] } }) => assetIds.includes(item.id),
+      predicate: ({ state: { variables = { ids: [], parentId: null } } }) =>
+        variables.ids.includes(item.id),
       select: () => null,
     }).length !== 0
   const isRestoring = isRestoringSingleAsset || isRestoringMultipleAssets
@@ -313,11 +294,14 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
   const isUpdating = isUpdatingSingleAsset || isMovingMultipleAssets
 
-  const insertionVisibility = useStore(driveStore, (driveState) =>
-    driveState.pasteData?.type === 'move' && driveState.pasteData.data.ids.has(id) ?
-      Visibility.faded
-    : Visibility.visible,
-  )
+  const insertionVisibility = useStore(driveStore, (driveState) => {
+    return (
+        driveState.pasteData?.type === 'move' &&
+          driveState.pasteData.data.assets.some((asset) => asset.id === item.id)
+      ) ?
+        Visibility.faded
+      : Visibility.visible
+  })
   const visibility =
     isDeleting || isRestoring || isUpdating ? Visibility.faded : insertionVisibility
 
@@ -369,7 +353,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
     }
     const payload = drag.ASSET_ROWS.lookup(event)
     const isPayloadMatch =
-      payload != null && payload.every((innerItem) => innerItem.key !== directoryId)
+      payload != null && payload.items.every((innerItem) => innerItem.key !== directoryId)
     const canPaste = (() => {
       if (!isPayloadMatch) {
         return false
@@ -377,8 +361,8 @@ export function RealAssetRow(props: RealAssetRowProps) {
       if (isLocalCategory(category)) {
         return true
       }
-      return payload.every((payloadItem) => {
-        const payloadParentId = getAsset(payloadItem.key)?.parentId
+      return payload.items.every(({ asset }) => {
+        const payloadParentId = getAsset(asset.id)?.parentId
         const parent = payloadParentId == null ? null : getAsset(payloadParentId)
         if (!parent) {
           // Assume the parent is the root directory.
@@ -498,9 +482,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
               props.onDragStart?.(event, item)
             }}
             onDragEnter={(event) => {
-              if (dragOverTimeoutHandle.current != null) {
-                window.clearTimeout(dragOverTimeoutHandle.current)
-              }
               // Required because `dragover` does not fire on `mouseenter`.
               onDragOver(event)
               dragDelayProps.onDragEnter(event)
@@ -518,13 +499,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
             }}
             onDragLeave={(event) => {
               if (
-                dragOverTimeoutHandle.current != null &&
-                (!(event.relatedTarget instanceof Node) ||
-                  !event.currentTarget.contains(event.relatedTarget))
-              ) {
-                window.clearTimeout(dragOverTimeoutHandle.current)
-              }
-              if (
                 event.relatedTarget instanceof Node &&
                 !event.currentTarget.contains(event.relatedTarget)
               ) {
@@ -535,31 +509,11 @@ export function RealAssetRow(props: RealAssetRowProps) {
               dragDelayProps.onDragLeave(event)
             }}
             onDrop={(event) => {
-              if (state.category.type === 'trash' || state.category.type === 'recent') {
-                return
-              }
-              props.onDrop?.(event, item)
+              event.preventDefault()
+              event.stopPropagation()
+
               setIsDraggedOver(false)
-              const directoryId =
-                item.type === backendModule.AssetType.directory ? item.id : parentId
-              const payload = drag.ASSET_ROWS.lookup(event)
-              if (payload != null && payload.every((innerItem) => innerItem.key !== directoryId)) {
-                event.preventDefault()
-                event.stopPropagation()
-                unsetModal()
-                const ids = payload
-                  .filter((payloadItem) => payloadItem.asset.parentId !== directoryId)
-                  .map((dragItem) => dragItem.key)
-                cutAndPaste(directoryId, directoryId, {
-                  backendType: backend.type,
-                  ids: new Set(ids),
-                  category,
-                })
-              } else if (event.dataTransfer.types.includes('Files')) {
-                event.preventDefault()
-                event.stopPropagation()
-                void uploadFiles(Array.from(event.dataTransfer.files), directoryId)
-              }
+              props.onDrop?.(event, item)
             }}
           >
             {columns.map((column) => {
