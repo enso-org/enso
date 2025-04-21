@@ -12,7 +12,7 @@ import type { AstId, NodeMetadata } from '@/util/ast/abstract'
 import { MutableModule } from '@/util/ast/abstract'
 import { analyzeBindings, type BindingInfo } from '@/util/ast/bindings'
 import { inputNodeFromAst, nodeFromAst, nodeRootExpr } from '@/util/ast/node'
-import { tryGetIndex } from '@/util/data/array'
+import { arrayEquals, tryGetIndex } from '@/util/data/array'
 import { recordEqual } from '@/util/data/object'
 import { unwrap } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
@@ -369,13 +369,7 @@ export class GraphDb {
       }
       const astFields: NodeAstField[] = ['outerAst', 'pattern', 'rootExpr', 'innerExpr']
       astFields.forEach(updateAst)
-      if (
-        !primaryApplicationEquals(
-          oldNode.primaryApplication as PrimaryApplication,
-          primaryApplication,
-        )
-      )
-        node.primaryApplication = primaryApplication
+      updatePrimaryApplication(node, newNode)
       if (!recordEqual(oldNode.prefixes, prefixes)) node.prefixes = prefixes
       syncSetDiff(node.conditionalPorts, oldNode.conditionalPorts, conditionalPorts)
       // Ensure new fields can't be added to `NodeAstData` without this code being updated.
@@ -673,11 +667,34 @@ export function primaryApplicationEquals(
   a: PrimaryApplication | undefined,
   b: PrimaryApplication | undefined,
 ) {
+  if (a == null && b == null) return true
   if (a == null || b == null) return false
   return (
     a.potentialSelfArgument === b.potentialSelfArgument &&
     a.function === b.function &&
-    a.accessChain.length === b.accessChain.length &&
-    a.accessChain.every((id, i) => id === b.accessChain[i])
+    arrayEquals(a.accessChain, b.accessChain)
   )
+}
+
+function updatePrimaryApplication<T extends { primaryApplication: PrimaryApplication | undefined }>(
+  node: T,
+  newNode: T,
+) {
+  if (node.primaryApplication == null) {
+    if (newNode.primaryApplication == null) return
+    node.primaryApplication = newNode.primaryApplication
+  } else if (newNode.primaryApplication == null) {
+    node.primaryApplication = undefined
+  } else {
+    const { function: newFunction, potentialSelfArgument, accessChain } = newNode.primaryApplication
+    if (node.primaryApplication.function !== newFunction) {
+      node.primaryApplication.function = newNode.primaryApplication.function
+    }
+    if (node.primaryApplication.potentialSelfArgument !== potentialSelfArgument) {
+      node.primaryApplication.potentialSelfArgument = potentialSelfArgument
+    }
+    if (!arrayEquals(node.primaryApplication.accessChain, accessChain)) {
+      node.primaryApplication.accessChain = accessChain
+    }
+  }
 }
