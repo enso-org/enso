@@ -69,12 +69,12 @@ or as an `SQL_Statement` built safely from strings and values. A
 `Literal_Values` consists of a table-shaped vector-of-vectors of values and is
 compiled into an inline literal SQL table expression.
 
-`Sub_Query` is used to nest a query as a subquery, replacing column
-expressions with aliases to those same column expressions within the subquery.
-This is used to keep query elements such as `where`, `order by`, and `group by`
-separate to prevent unwanted interactions between them. This allows `join` and
-`union` operations on complex queries, as well as more specific operations such
-as `DB_Table.add_row_number`. This is explained more fully below in the
+`Sub_Query` is used to nest a query as a subquery, replacing column expressions
+with aliases to those same column expressions within the subquery. This is used
+to keep query elements such as `where`, `order by`, and `group by` separate to
+prevent unwanted interactions between them. This allows `join` and `union`
+operations on complex queries, as well as more specific operations such as
+`DB_Table.add_row_number`. This is explained more fully below in the
 [`Subqueries` section](#subqueries).
 
 ## SQL_IR_Source
@@ -197,10 +197,10 @@ Thanks to this nesting, there can be no unwanted interference between the
 The added table alias allows join conditions to refer to the columns of the
 individual tables being joined.
 
-The `SQL_IR_Source.as_subquery` method returns a `Subquery_Setup`,
-which contains a table expression as a `SQL_IR_From_Part`, a set of simple
-column expressions as `Internal_Column`s, and a helper function that can convert
-an original complex `Internal_Column` into its simplified alias form.
+The `SQL_IR_Source.as_subquery` method returns a `Subquery_Setup`, which
+contains a table expression as a `SQL_IR_From_Part`, a set of simple column
+expressions as `Internal_Column`s, and a helper function that can convert an
+original complex `Internal_Column` into its simplified alias form.
 
 # Examples
 
