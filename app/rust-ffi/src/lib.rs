@@ -63,9 +63,9 @@ pub fn self_arg_separator(code: &str) -> i32 {
         [] => return -1,
     };
     if token.operator_properties().is_some() {
-        return right_spacing as i32;
+        right_spacing as i32
     } else {
-        return -1;
+        -1
     }
 }
 
