@@ -38,7 +38,14 @@ export interface FormatMenuOptions {
   textFormatterSelected: Ref<TextFormatOptions>
 }
 
-export interface Options extends SortFilterNodesButtonOptions, FormatMenuOptions {}
+export interface RefreshButtonOptions {
+  refreshGrid: () => void
+}
+
+export interface Options
+  extends SortFilterNodesButtonOptions,
+    FormatMenuOptions,
+    RefreshButtonOptions {}
 
 function useSortFilterNodesButton({
   filterModel,
@@ -302,9 +309,18 @@ function createFormatMenu({ textFormatterSelected }: FormatMenuOptions): Toolbar
   }
 }
 
+function createRefreshMenu({ refreshGrid }: RefreshButtonOptions): ToolbarItem {
+  return {
+    title: 'Refresh Grid',
+    icon: 'refresh',
+    onClick: refreshGrid,
+  }
+}
+
 /** TODO: Add docs */
 export function useTableVizToolbar(options: Options): ComputedRef<ToolbarItem[]> {
   const createNodesButton = useSortFilterNodesButton(options)
   const formatMenu = createFormatMenu(options)
-  return computed(() => [formatMenu, ...(createNodesButton.value ? [createNodesButton.value] : [])])
+  const refreshButton = createRefreshMenu(options)
+  return computed(() => [formatMenu, ...(createNodesButton.value ? [createNodesButton.value] : []), refreshButton])
 }

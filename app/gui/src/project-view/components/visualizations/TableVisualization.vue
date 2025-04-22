@@ -988,6 +988,11 @@ function checkSortAndFilter(e: SortChangedEvent) {
   }
 }
 
+const refreshGrid = () => {
+  grid.value?.gridApi?.setFilterModel(null);
+  grid.value?.gridApi?.resetColumnState();
+}
+
 // ===============
 // === Updates ===
 // ===============
@@ -1008,6 +1013,7 @@ config.setToolbar(
     isFilterSortNodeEnabled,
     createNodes: config.createNodes,
     getColumnValueToEnso,
+    refreshGrid: () => refreshGrid()
   }),
 )
 </script>
