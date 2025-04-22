@@ -311,13 +311,17 @@ final class TruffleCompilerContext implements CompilerContext {
           throw new AssertionError(e);
         }
         assert source != null;
-        diagnosticFormatter = new DiagnosticFormatter(diagnostic, source, isOutputRedirected);
+        diagnosticFormatter =
+            new DiagnosticFormatter(
+                diagnostic, source, isOutputRedirected, context.isColorTerminalOutput());
         return new CompilationAbortedException(
             diagnosticFormatter.format(), diagnosticFormatter.where());
       }
     }
     var emptySource = Source.newBuilder(LanguageInfo.ID, "", null).build();
-    diagnosticFormatter = new DiagnosticFormatter(diagnostic, emptySource, isOutputRedirected);
+    diagnosticFormatter =
+        new DiagnosticFormatter(
+            diagnostic, emptySource, isOutputRedirected, context.isColorTerminalOutput());
     return new CompilationAbortedException(diagnosticFormatter.format(), null);
   }
 

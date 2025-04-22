@@ -7,4 +7,6 @@
 --add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED
 --add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED
 --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED
---add-exports=jdk.internal.vm.compiler/org.graalvm.graphio=ALL-UNNAMED
+--add-exports=jdk.graal.compiler/jdk.graal.compiler.graphio=ALL-UNNAMED
+--enable-native-access=ALL-UNNAMED
+--sun-misc-unsafe-memory-access=allow

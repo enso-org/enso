@@ -1,6 +1,7 @@
 package org.enso.tools.enso4igv.scala;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 import java.util.Collections;
 import java.util.Set;
@@ -54,7 +55,7 @@ public class ToggleScalaBreakpointActionProvider extends ActionsProvider {
         try {
             var b = LineBreakpoint.create(url, line);
 
-            FileObject fo = URLMapper.findFileObject(new URL(url));
+            FileObject fo = URLMapper.findFileObject(URI.create(url).toURL());
             for (String code : fo.asLines()) {
                 Matcher match = PACKAGE.matcher(code);
                 if (match.matches()) {

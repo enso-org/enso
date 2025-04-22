@@ -1427,6 +1427,8 @@ public class Main {
         commandAndArgs.add("-D" + e.getKey() + "=" + e.getValue());
       }
     }
+    commandAndArgs.add("--sun-misc-unsafe-memory-access=allow");
+    commandAndArgs.add("--enable-native-access=org.graalvm.truffle");
     commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
     commandAndArgs.add("--module-path");
     if (!component.isDirectory()) {
