@@ -82,7 +82,6 @@ import LocalBackend from '#/services/LocalBackend'
 import ProjectManager, * as projectManager from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 
-import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
 import { Path } from '#/utilities/path'
@@ -165,7 +164,7 @@ export default function App(props: AppProps) {
     },
     queryFn: async () => {
       if (props.supportsLocalBackend && props.projectManagerUrl != null) {
-        const response = await fetch(`${appBaseUrl.APP_BASE_URL}/api/root-directory`)
+        const response = await fetch(`/api/root-directory`)
         const text = await response.text()
         const rootDirectory = projectManager.Path(text)
 

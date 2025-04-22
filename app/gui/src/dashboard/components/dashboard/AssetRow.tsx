@@ -228,7 +228,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const { user } = useFullUserSession()
   const setSelectedAssets = useSetSelectedAssets()
   const getAsset = useGetAsset()
-  const { isSelected, isSoleSelected } = useStore(
+  const { isSelected, isSoleSelected, isNothingSelected, isMultiSelected } = useStore(
     driveStore,
     ({ visuallySelectedKeys, selectedIds }) => {
       const selection = visuallySelectedKeys ?? selectedIds
@@ -238,8 +238,11 @@ export function RealAssetRow(props: RealAssetRowProps) {
       return {
         isSelected: selected,
         isSoleSelected: soleSelected,
+        isNothingSelected: selection.size === 0,
+        isMultiSelected: selection.size > 1,
       }
     },
+    { areEqual: 'shallow', unsafeEnableTransition: true },
   )
 
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
@@ -447,6 +450,13 @@ export function RealAssetRow(props: RealAssetRowProps) {
               }
             }}
             onContextMenu={(event) => {
+              // We show the asset row context menu if the asset is included in the selection.
+              // Or we click on a asset row outside of the selection. In that case we reset the
+              // selection to the clicked asset.
+              if (isSelected && isMultiSelected) {
+                return
+              }
+
               event.preventDefault()
               event.stopPropagation()
 
