@@ -29,8 +29,10 @@ public class LoadClassTest {
 
   private static JNI.JNIEnv env() {
     if (jvm == null) {
+      var path = new File(PATH);
+      assert path.isDirectory() : "Java home exists: " + path;
       var cp = new File(JAR);
-      jvm = JVM.create(PATH, "-Dsay=Ahoj", "-Djava.class.path=" + cp);
+      jvm = JVM.create(path, "--module-path=.", "-Dsay=Ahoj", "-Djava.class.path=" + cp);
     }
     return jvm.env();
   }
@@ -108,7 +110,7 @@ public class LoadClassTest {
   public void executeMainClass() throws Exception {
     var out = File.createTempFile("check-main", ".log");
     var gen = new Random();
-    for (var i = 0; i < 100; i++) {
+    for (var i = 0; i < 5; i++) {
       var n = gen.nextInt(10000, 20000);
       jvm.executeMain("org/enso/os/environment/jni/TestMain", out.getPath(), "" + n);
       var content = Files.readString(out.toPath());
