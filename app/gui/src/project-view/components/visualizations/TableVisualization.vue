@@ -513,6 +513,13 @@ function getFilterOptions(valueType: string) {
     return null
   }
 }
+function getFilterButtons(valueType: string) {
+  if (valueType === 'Date') {
+    return ['apply', 'clear']
+  } else {
+    return ['clear']
+  }
+}
 
 function getCellDataType(valueType: string) {
   if (valueType === 'Date') {
@@ -548,6 +555,7 @@ function toField(
   const icon = valueType ? getValueTypeIcon(valueType.constructor) : null
   const filterType = valueType ? getFilterType(valueType.constructor) : null
   const filterOptions = valueType ? getFilterOptions(valueType.constructor) : null
+  const filterButtons = valueType ? getFilterButtons(valueType.constructor)  : null
   const cellValueType = valueType ? getCellDataType(valueType.constructor) : false
 
   const dataQualityMetrics =
@@ -587,7 +595,7 @@ function toField(
       maxNumConditions: 1,
       values: getFilterValues,
       filterOptions: filterOptions,
-      buttons: ['clear'],
+      buttons: filterButtons,
     },
     headerComponentParams: {
       template,
