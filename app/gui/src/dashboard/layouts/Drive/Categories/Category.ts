@@ -23,6 +23,11 @@ const EACH_CATEGORY_SCHEMA = z.object({
   icon: z.custom<SvgUseIcon | (string & {})>(
     (icon) => typeof icon === 'string' && (isIconName(icon) || isUrlString(icon)),
   ),
+  /**
+   * Internal type discriminator.
+   * Used to determine the type of the category without having to check for any other properties.
+   */
+  $$type: z.literal('cloud').or(z.literal('local')),
 })
 
 /** A category corresponding to the root of the user or organization. */
@@ -31,6 +36,7 @@ const CLOUD_CATEGORY_SCHEMA = z
     type: z.literal('cloud'),
     id: z.literal('cloud'),
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
+    $$type: z.literal('cloud'),
   })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()
@@ -43,6 +49,7 @@ const RECENT_CATEGORY_SCHEMA = z
     type: z.literal('recent'),
     id: z.literal('recent'),
     homeDirectoryId: z.null(),
+    $$type: z.literal('cloud'),
   })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()
@@ -55,6 +62,7 @@ const TRASH_CATEGORY_SCHEMA = z
     type: z.literal('trash'),
     id: z.literal('trash'),
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
+    $$type: z.literal('cloud'),
   })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()
@@ -69,6 +77,7 @@ export const USER_CATEGORY_SCHEMA = z
     id: z.custom<UserId>(() => true),
     rootPath: PATH_SCHEMA,
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
+    $$type: z.literal('cloud'),
   })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()
@@ -82,6 +91,7 @@ export const TEAM_CATEGORY_SCHEMA = z
     team: z.custom<UserGroup>(() => true),
     rootPath: PATH_SCHEMA,
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
+    $$type: z.literal('cloud'),
   })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()
@@ -96,6 +106,7 @@ const LOCAL_CATEGORY_SCHEMA = z
     id: z.literal('local'),
     rootPath: PATH_SCHEMA,
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
+    $$type: z.literal('local'),
   })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()
@@ -109,6 +120,7 @@ export const LOCAL_DIRECTORY_CATEGORY_SCHEMA = z
     id: z.custom<DirectoryId>(() => true),
     rootPath: PATH_SCHEMA,
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
+    $$type: z.literal('local'),
   })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()
@@ -159,48 +171,14 @@ export const CATEGORY_TO_FILTER_BY: Readonly<Record<Category['type'], FilterBy |
   'local-directory': FilterBy.active,
 }
 
-/**
- * The type of the cached value for a category.
- * We use const enums because they compile to numeric values and they are faster than strings.
- */
-const enum CategoryCacheType {
-  cloud = 0,
-  local = 1,
-}
-
-const CATEGORY_CACHE = new Map<Category['type'], CategoryCacheType>()
-
 /** Whether the category is only accessible from the cloud. */
 export function isCloudCategory(category: Category): category is AnyCloudCategory {
-  const cached = CATEGORY_CACHE.get(category.type)
-
-  if (cached != null) {
-    return cached === CategoryCacheType.cloud
-  }
-
-  const result = ANY_CLOUD_CATEGORY_SCHEMA.safeParse(category)
-  CATEGORY_CACHE.set(
-    category.type,
-    result.success ? CategoryCacheType.cloud : CategoryCacheType.local,
-  )
-
-  return result.success
+  return category.$$type === 'cloud'
 }
 
 /** Whether the category is only accessible locally. */
 export function isLocalCategory(category: Category): category is AnyLocalCategory {
-  const cached = CATEGORY_CACHE.get(category.type)
-
-  if (cached != null) {
-    return cached === CategoryCacheType.local
-  }
-
-  const result = ANY_LOCAL_CATEGORY_SCHEMA.safeParse(category)
-  CATEGORY_CACHE.set(
-    category.type,
-    result.success ? CategoryCacheType.local : CategoryCacheType.cloud,
-  )
-  return result.success
+  return category.$$type === 'local'
 }
 
 /** Whether the given categories are equal. */
@@ -235,19 +213,24 @@ export function dropOperationBetweenCategories(
     return 'cancel'
   }
 
-  if (to.type === 'recent') {
+  if (to.type === 'recent' || from.type === 'recent') {
     return 'cancel'
+  }
+
+  if (isLocalCategory(from)) {
+    if (to.type === 'trash') {
+      return 'cancel'
+    }
   }
 
   if (isCloudCategory(from) || isCloudCategory(to)) {
     if (isLocalCategory(from) || isLocalCategory(to)) {
-      return 'cancel'
+      return 'copy'
     }
   }
 
   switch (from.type) {
     case 'cloud':
-    case 'recent':
     case 'user': {
       return 'move'
     }
@@ -263,6 +246,10 @@ export function dropOperationBetweenCategories(
     }
     case 'local':
     case 'local-directory': {
+      if (isCloudCategory(to)) {
+        return 'copy'
+      }
+
       return 'move'
     }
   }

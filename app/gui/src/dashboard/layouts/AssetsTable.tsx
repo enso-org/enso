@@ -73,7 +73,7 @@ import {
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
-import { canTransferBetweenCategories, type Category } from '#/layouts/CategorySwitcher/Category'
+import { type Category } from '#/layouts/CategorySwitcher/Category'
 import { useAssetsTableItems, useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import DragModal from '#/modals/DragModal'
@@ -850,25 +850,30 @@ function AssetsTable(props: AssetsTableProps) {
 
     const { pasteData } = driveStore.getState()
 
-    if (
-      pasteData?.data.backendType === backend.type &&
-      canTransferBetweenCategories(pasteData.data.category, category, newParentId)
-    ) {
-      if (pasteData.data.assets.some((asset) => asset.id === newParentKey)) {
-        toast.error('Cannot paste a folder into itself.')
-        return
-      }
-
-      void paste({
-        fromCategory: pasteData.data.category,
-        toCategory: category,
-        newParentId,
-        pasteData: pasteData.data,
-        method: pasteData.type,
-      })
-
-      setPasteData(null)
+    if (pasteData == null) {
+      return
     }
+
+    if (pasteData.data.assets.some((asset) => asset.id === newParentKey)) {
+      toast.error('Cannot paste a folder into itself.')
+      return
+    }
+
+    console.log('doPaste', {
+      pasteData,
+      newParentKey,
+      newParentId,
+    })
+
+    void paste({
+      fromCategory: pasteData.data.category,
+      toCategory: category,
+      newParentId,
+      pasteData: pasteData.data,
+      method: pasteData.type,
+    })
+
+    setPasteData(null)
   })
 
   const hiddenContextMenu =

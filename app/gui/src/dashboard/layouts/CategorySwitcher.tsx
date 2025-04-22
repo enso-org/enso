@@ -27,10 +27,7 @@ import { tv } from '#/utilities/tailwindVariants'
 import { twJoin } from 'tailwind-merge'
 
 import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
-import {
-  useCloudCategoryList,
-  useLocalCategoryList,
-} from '#/layouts/Drive/Categories/categoriesHooks'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { unsetModal } from '#/providers/ModalProvider'
 
@@ -246,8 +243,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
 
   const { isOffline } = offlineHooks.useOffline()
 
-  const cloudCategories = useCloudCategoryList()
-  const localCategories = useLocalCategoryList()
+  const { cloudCategories, localCategories } = useCategoriesAPI()
 
   const itemProps = { currentCategory: category, setCategoryId }
 

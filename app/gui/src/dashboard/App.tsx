@@ -48,7 +48,6 @@ import * as appUtils from '#/appUtils'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider, { useLocalBackend } from '#/providers/BackendProvider'
-import { useHttpClientStrict } from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import { useLogger } from '#/providers/LoggerProvider'
@@ -93,6 +92,7 @@ import { useInitAuthService } from '#/authentication/service'
 import { useOffline } from '#/hooks/offlineHooks'
 import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
 import { CloudBrowserDisabledLayout } from '#/providers/AuthProvider'
+import { useHttpClient } from './providers/HttpClientProvider'
 import { useMutationCallback } from './utilities/tanstackQuery'
 import { unsafeWriteValue } from './utilities/write'
 
@@ -252,7 +252,7 @@ export interface AppRouterProps extends AppProps {
  */
 function AppRouter(props: AppRouterProps) {
   const { onAuthenticated, projectManagerInstance } = props
-  const httpClient = useHttpClientStrict()
+  const httpClient = useHttpClient()
   const logger = useLogger()
   const navigate = router.useNavigate()
 

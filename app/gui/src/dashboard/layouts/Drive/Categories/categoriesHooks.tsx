@@ -13,7 +13,7 @@ import { useUser } from '#/providers/AuthProvider'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
-import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import { useBackend, useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
@@ -22,7 +22,6 @@ import { newDirectoryId } from '#/services/LocalBackend'
 import { organizationIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
-import { useSuspenseQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
@@ -78,17 +77,9 @@ export type CloudCategoryResult = ReturnType<typeof useCloudCategoryList>
 /**
  * List of categories in the Cloud.
  */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useCloudCategoryList() {
+function useCloudCategoryList() {
   const user = useUser()
   const { getText } = useText()
-  const backend = useRemoteBackend()
-  const { data: organization } = useSuspenseQuery({
-    queryKey: [backend.type, 'getOrganization'],
-    queryFn: () => backend.getOrganization(),
-  })
-  const organizationRootDirectoryId =
-    organization != null ? organizationIdToDirectoryId(organization.id) : user.rootDirectoryId
 
   const cloudCategory: CloudCategory = {
     type: 'cloud',
@@ -96,6 +87,7 @@ export function useCloudCategoryList() {
     label: getText('cloudCategory'),
     icon: 'cloud',
     homeDirectoryId: user.rootDirectoryId,
+    $$type: 'cloud',
   }
 
   const recentCategory: RecentCategory = {
@@ -104,6 +96,7 @@ export function useCloudCategoryList() {
     label: getText('recentCategory'),
     icon: RecentIcon,
     homeDirectoryId: null,
+    $$type: 'cloud',
   }
 
   const trashCategory: TrashCategory = {
@@ -111,7 +104,8 @@ export function useCloudCategoryList() {
     id: 'trash',
     label: getText('trashCategory'),
     icon: 'trash_small',
-    homeDirectoryId: organizationRootDirectoryId,
+    homeDirectoryId: organizationIdToDirectoryId(user.organizationId),
+    $$type: 'cloud',
   }
 
   const predefinedCloudCategories: AnyCloudCategory[] = [
@@ -128,6 +122,7 @@ export function useCloudCategoryList() {
     homeDirectoryId: group.homeDirectoryId,
     label: getText('teamCategory', group.name),
     icon: 'people',
+    $$type: 'cloud',
   }))
 
   const categories = [...predefinedCloudCategories, ...teamCategories] satisfies AnyCloudCategory[]
@@ -177,6 +172,7 @@ function createLocalDirectoryCategory(directory: string): LocalDirectoryCategory
     homeDirectoryId: newDirectoryId(Path(directory)),
     label: getFileName(directory),
     icon: 'folder_small',
+    $$type: 'local',
   }
 }
 
@@ -184,8 +180,7 @@ function createLocalDirectoryCategory(directory: string): LocalDirectoryCategory
  * List of all categories in the LocalBackend.
  * Usually these are the root folder and the list of favorites
  */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useLocalCategoryList() {
+function useLocalCategoryList() {
   const { getText } = useText()
   const localBackend = useLocalBackend()
   const [localRootDirectory] = useLocalStorageState('localRootDirectory')
@@ -248,6 +243,7 @@ export function useLocalCategoryList() {
     icon: ComputerIcon,
     homeDirectoryId: newDirectoryId(rootPath),
     rootPath,
+    $$type: 'local',
   }
 
   const predefinedLocalCategories: AnyLocalCategory[] = [localCategory]
