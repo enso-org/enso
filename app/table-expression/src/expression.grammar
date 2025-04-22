@@ -1,0 +1,183 @@
+// Lezer grammar for Enso Table Expressions.
+//
+// This is currently maintained in parallel with the ANTLR grammar,
+// which is the normative specification of the language.
+// See: std-bits/table/src/main/antlr4/Expression.g4
+
+@top Expression { expr }
+@skip { space }
+
+expr {
+  value
+    | binOp
+    | unaryOp
+    | circumfixOp
+    | in
+    | between
+    | ifElse
+    | function
+    | Column
+}
+
+value { Number | Regex | LiteralKeyword | Date | String }
+
+LiteralKeyword {
+ NULL | NOTHING | TRUE | FALSE
+}
+
+Date {
+  Punctuation<'#'> dateBody Punctuation<'#'>
+}
+
+String {
+  Quote<'"'> excelStringBody? Quote<'"'>
+    | Quote<"'"> pythonStringBody? Quote<"'">
+}
+
+Number { integer decimal? }
+
+Regex {
+  openRegex regexBody? closeRegex
+}
+
+@precedence {
+  power,
+  multDivMod @left,
+  addSub @left,
+  compare @left,
+  isNull,
+  like @left,
+  in,
+  between,
+  unaryNot,
+  and @left,
+  or @left,
+  if @left,
+  unaryMinus
+}
+
+binOp {
+  expr !multDivMod ArithOp<'*' | '/' | '%'> expr
+    | expr !addSub ArithOp<'+' | '-'> expr
+    | expr !compare CompareOp<'=' | '==' | '!=' | '<>' | '<=' | '>=' | '<' | '>'> expr
+    | expr !like CompareOp<NOT? LIKE> expr
+    | andExpr
+    | expr !or LogicOp<OR | '||'> expr
+}
+
+andExpr {
+  // When used in `between`, this should be highlighted as a `CompareOp`.
+  // We can't distinguish the two usages of `AND` while parsing,
+  // but we can contextually reinterpret this in the highlighting rules.
+  expr !and LogicOp<AND | '&&'> expr
+}
+
+in {
+  expr !in CompareOp<NOT? IN> parenthesized<expr (',' expr)*>
+}
+
+between {
+  expr !between CompareOp<NOT? BETWEEN> andExpr
+}
+
+unaryOp {
+  !power ArithOp<'^'> expr
+    | expr !isNull TypeOp<IS NOT? (EMPTY | NULL)>
+    | !unaryNot ArithOp<'!' | NOT>
+    | !unaryMinus ArithOp<'-'>
+    | Atom
+}
+
+Atom {
+  Punctuation<'..'> identifier
+}
+
+circumfixOp {
+  parenthesized<expr>
+}
+
+ifElse {
+  !if ControlOp<IF> expr !if ControlOp<THEN> expr !if ControlOp<ELSE> expr !if ControlOp<END IF?>?
+}
+
+function {
+  identifier parenthesized<(expr (',' expr)*)?>
+}
+
+parenthesized<term> {
+  Paren<'('> term Paren<')'>
+}
+
+Column {
+  SquareBracket<'['> columnName SquareBracket<']'>
+}
+
+@external specialize { identifier } specializeIdent from '../keywords' {
+  AND,
+  BETWEEN,
+  ELSE,
+  EMPTY,
+  END,
+  FALSE,
+  IF,
+  IN,
+  IS,
+  LIKE,
+  NOT,
+  NOTHING,
+  NULL,
+  OR,
+  THEN,
+  TRUE
+}
+
+ArithOp<t> { t }
+TypeOp<t> { t }
+CompareOp<t> { t }
+LogicOp<t> { t }
+ControlOp<t> { t }
+
+@tokens {
+  space { @whitespace+ }
+
+  identifier { @asciiLetter (@asciiLetter | @digit | '_')* }
+
+  columnName { (columnNameBracketEscape | ![\]])+ }
+  columnNameBracketEscape { ']]' }
+
+  Punctuation<t> { t }
+  Paren<t> { t }
+  SquareBracket<t> { t }
+  Quote<t> { t }
+
+  regexBody { ('\\/' | ![/\r\n] )+ }
+  openRegex { Punctuation<'r/'> }
+  closeRegex { Punctuation<'/'> }
+
+  // Numbers
+  integer { '0' | (nonzeroDigit (@digit | '_')*) }
+  decimal { '.' (@digit | '_')+ }
+  nonzeroDigit { $[1-9] }
+
+  // TODO: Parse contents
+  dateBody {
+    ![#]+
+  }
+
+  // TODO: Escaping
+  excelStringBody {
+    !["]+
+  }
+
+  // TODO: Escaping
+  pythonStringBody {
+    ![']+
+  }
+
+  @precedence { openRegex, identifier }
+  @precedence { regexBody, space }
+  @precedence { dateBody, space }
+  @precedence { excelStringBody, space }
+  @precedence { pythonStringBody, space }
+  @precedence { columnName, space }
+}

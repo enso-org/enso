@@ -311,13 +311,17 @@ final class TruffleCompilerContext implements CompilerContext {
           throw new AssertionError(e);
         }
         assert source != null;
-        diagnosticFormatter = new DiagnosticFormatter(diagnostic, source, isOutputRedirected);
+        diagnosticFormatter =
+            new DiagnosticFormatter(
+                diagnostic, source, isOutputRedirected, context.isColorTerminalOutput());
         return new CompilationAbortedException(
             diagnosticFormatter.format(), diagnosticFormatter.where());
       }
     }
     var emptySource = Source.newBuilder(LanguageInfo.ID, "", null).build();
-    diagnosticFormatter = new DiagnosticFormatter(diagnostic, emptySource, isOutputRedirected);
+    diagnosticFormatter =
+        new DiagnosticFormatter(
+            diagnostic, emptySource, isOutputRedirected, context.isColorTerminalOutput());
     return new CompilationAbortedException(diagnosticFormatter.format(), null);
   }
 
@@ -760,7 +764,7 @@ final class TruffleCompilerContext implements CompilerContext {
         module.module.setLoadedFromCache(loadedFromCache);
       }
       if (resetScope) {
-        module.module.newScopeBuilder(true);
+        module.module.newScopeBuilder();
       }
       if (invalidateCache) {
         module.module.getCache().invalidate(context);
@@ -870,7 +874,7 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public ModuleScopeBuilder newScopeBuilder() {
       return new org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder(
-          module.newScopeBuilder(false));
+          module.newScopeBuilder());
     }
 
     @Override

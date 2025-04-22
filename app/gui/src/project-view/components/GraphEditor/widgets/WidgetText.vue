@@ -8,6 +8,7 @@ import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
 import { selectOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
+import { languageExtension } from '@/util/codemirror/language'
 import { computed, ref, useTemplateRef, watch, watchEffect, type ComponentInstance } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -43,14 +44,7 @@ const placeholder = computed(() =>
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 
-const languageExtension = computed(() => {
-  switch (syntaxLanguage.value) {
-    case 'enso-table-expression':
-      // TODO (#12304)
-      return
-  }
-  return undefined
-})
+const languageExt = computed(() => languageExtension(syntaxLanguage.value))
 
 const { syncExt, connectSync } = useStringSync()
 const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
@@ -64,7 +58,7 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
 watchEffect(() =>
   setExtraExtensions([
     highlightStyle(editorRoot.value?.highlightClasses ?? {}),
-    ...[languageExtension.value ?? []],
+    ...[languageExt.value ?? []],
     ...(isMultiline.value ? [] : [selectOnMouseFocus]),
   ]),
 )
@@ -193,7 +187,7 @@ export const widgetDefinition = defineWidget(
       ref="editorRoot"
       :data-syntax-language="syntaxLanguage"
       @focusin="editing.start()"
-      @keydown.enter.capture="onEnter"
+      @keydown.enter="onEnter"
       @keydown.tab.stop.capture="accepted"
       @keydown.up.stop
       @keydown.down.stop
@@ -223,6 +217,11 @@ export const widgetDefinition = defineWidget(
 
   &:deep(::selection) {
     background: var(--color-widget-selection);
+  }
+
+  &:deep(.cm-placeholder) {
+    font-style: italic;
+    color: var(--color-node-text-placeholder);
   }
 }
 
@@ -258,7 +257,7 @@ export const widgetDefinition = defineWidget(
   }
 }
 
-.GraphNode:not(.selected) .WidgetText :deep(.cm-content) * {
+.GraphNode:not(.selected) .WidgetText :deep(.cm-content *:not(.cm-placeholder)) {
   color: inherit;
 }
 </style>

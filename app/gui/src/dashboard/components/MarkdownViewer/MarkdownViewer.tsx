@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import { useLogger } from '#/providers/LoggerProvider'
 import { useText } from '#/providers/TextProvider'
+import { resolveDocImageUrl } from '@/components/DocumentationEditor/images'
 import { type UrlTransformer } from '@/components/MarkdownEditor/imageUrlTransformer'
 import { Err, Ok } from '@/util/data/result'
 import { type TestIdProps } from '../AriaComponents'
@@ -31,16 +32,23 @@ export function MarkdownViewer(props: MarkdownViewerProps) {
   const logger = useLogger()
   const { getText } = useText()
 
-  const transformImageUrl: UrlTransformer = (path: string) =>
-    /^https?:/.test(path) ?
-      Promise.resolve(Ok({ url: path }))
-    : imgUrlResolver(path).then(
+  const transformImageUrl: UrlTransformer = (path: string) => {
+    // In Enso Documentation, the relative paths are from module's directory
+    // Here we always display docs from `src/Main.enso` module
+    const resolvedUrl = resolveDocImageUrl(['src'], path)
+    if (!resolvedUrl.ok) return Promise.resolve(resolvedUrl)
+    if (resolvedUrl.value.type === 'url') {
+      return Promise.resolve(Ok({ url: resolvedUrl.value.url.toString() }))
+    } else {
+      return imgUrlResolver(resolvedUrl.value.path).then(
         (url) => Ok({ url }),
         (error) => {
           logger.error(error)
           return Err(getText('arbitraryFetchImageError'))
         },
       )
+    }
+  }
 
   return (
     <LazyMarkdownEditor

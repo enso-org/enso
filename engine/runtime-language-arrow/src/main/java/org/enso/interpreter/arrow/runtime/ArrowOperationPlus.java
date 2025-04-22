@@ -54,7 +54,7 @@ public final class ArrowOperationPlus implements TruffleObject {
   @ExportMessage(limit = "3")
   Object execute(
       Object[] args,
-      @Bind("$node") Node node,
+      @Bind Node node,
       @Cached(value = "this.layout()", allowUncached = true) LogicalLayout cachedLayout,
       @Cached ArrowFixedSizeArrayFactory.InstantiateNode factory,
       @CachedLibrary("args(args, 0)") InteropLibrary iopArray0,

@@ -157,7 +157,7 @@ public final class DataflowError extends AbstractTruffleException {
   }
 
   @ExportMessage
-  Type getMetaObject(@Bind("$node") Node node) {
+  Type getMetaObject(@Bind Node node) {
     return EnsoContext.get(node).getBuiltins().dataflowError();
   }
 
@@ -223,7 +223,7 @@ public final class DataflowError extends AbstractTruffleException {
   }
 
   @ExportMessage
-  Type getType(@Bind("$node") Node node) {
+  Type getType(@Bind Node node) {
     return EnsoContext.get(node).getBuiltins().dataflowError();
   }
 }

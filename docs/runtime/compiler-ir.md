@@ -18,14 +18,14 @@ to how GraalVM graphs are dumped, which is documented in
 [enso4igv](https://github.com/enso-org/enso/blob/2e714a70ddf12456e9f3fa9e132fd2ac43aa3b77/tools/enso4igv/IGV.md#using-the-igv).
 
 When using the `enso.compiler.dumpIr` property, one has to add
-`--add-exports jdk.internal.vm.compiler/org.graalvm.graphio=org.enso.runtime.compiler.dump.igv`
+`--add-exports jdk.graal.compiler/jdk.graal.compiler.graphio=org.enso.runtime.compiler.dump.igv`
 to the `JAVA_OPTS` env var, because the IGV dumper uses an internal package of
 GraalVM JDK's module which is not exported by default.
 
 Usage example:
 
 ```
-$ env JAVA_OPTS='--add-exports jdk.internal.vm.compiler/org.graalvm.graphio=org.enso.runtime.compiler.dump.igv' ./built-distribution/*/bin/enso --vm.D enso.compiler.dumpIr=Vector --no-ir-caches --run tmp.enso
+$ env JAVA_OPTS='--add-exports jdk.graal.compiler/jdk.graal.compiler.graphio=org.enso.runtime.compiler.dump.igv' ./built-distribution/*/bin/enso --vm.D enso.compiler.dumpIr=Vector --no-ir-caches --run tmp.enso
 ```
 
 The IR graphs are dumped directly to IGV, if it is running, or to the `ir-dumps`
