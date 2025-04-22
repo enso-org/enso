@@ -383,8 +383,6 @@ export function generateDirectoryName(name: string, directory = getProjectsDirec
   // Use only the last path component.
   let baseName = pathModule.parse(name).name
 
-  console.log('generateDirectoryName', { name, directory, baseName })
-
   // If the name already consists a suffix, reuse it.
   const matches = baseName.match(/^(.*)_(\d+)$/)
   // Matches start with the whole match, so we need to skip it. Then come our two capture groups.
