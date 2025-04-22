@@ -115,3 +115,8 @@ type AWS_Region_Service
 private _make_client credentials region_service http hash =
     builder = ClientBuilder.new credentials.as_java (AWS_Region.Region region_service.region).as_java
     builder.createSignedClient region_service.region region_service.service (internal_http_client http "") hash
+
+foo =
+   unused = 4
+   2.nonexistent
+   1 + "x"
