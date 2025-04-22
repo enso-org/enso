@@ -158,6 +158,11 @@ export const widgetDefinition = defineWidget(
   &:deep(::selection) {
     background: var(--color-widget-selection);
   }
+
+  &:deep(.cm-placeholder) {
+    font-style: italic;
+    color: var(--color-node-text-placeholder);
+  }
 }
 
 .selected .WidgetText {

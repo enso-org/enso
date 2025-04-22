@@ -142,6 +142,7 @@ defineExpose({
   }
   &::placeholder {
     font-style: italic;
+    color: var(--color-node-text-placeholder);
   }
 }
 
