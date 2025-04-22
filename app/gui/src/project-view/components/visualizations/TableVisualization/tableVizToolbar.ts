@@ -311,7 +311,7 @@ function createFormatMenu({ textFormatterSelected }: FormatMenuOptions): Toolbar
 
 function createRefreshMenu({ refreshGrid }: RefreshButtonOptions): ToolbarItem {
   return {
-    title: 'Reset any sort, filter or columns changes made to the table',
+    title: 'Reset any sort, filter or column changes made to the table',
     icon: 'refresh',
     onClick: refreshGrid,
   }
@@ -322,5 +322,9 @@ export function useTableVizToolbar(options: Options): ComputedRef<ToolbarItem[]>
   const createNodesButton = useSortFilterNodesButton(options)
   const formatMenu = createFormatMenu(options)
   const refreshButton = createRefreshMenu(options)
-  return computed(() => [formatMenu, ...(createNodesButton.value ? [createNodesButton.value] : []), refreshButton])
+  return computed(() => [
+    formatMenu,
+    ...(createNodesButton.value ? [createNodesButton.value] : []),
+    refreshButton,
+  ])
 }

@@ -555,7 +555,7 @@ function toField(
   const icon = valueType ? getValueTypeIcon(valueType.constructor) : null
   const filterType = valueType ? getFilterType(valueType.constructor) : null
   const filterOptions = valueType ? getFilterOptions(valueType.constructor) : null
-  const filterButtons = valueType ? getFilterButtons(valueType.constructor)  : null
+  const filterButtons = valueType ? getFilterButtons(valueType.constructor) : null
   const cellValueType = valueType ? getCellDataType(valueType.constructor) : false
 
   const dataQualityMetrics =
@@ -989,8 +989,8 @@ function checkSortAndFilter(e: SortChangedEvent) {
 }
 
 const refreshGrid = () => {
-  grid.value?.gridApi?.setFilterModel(null);
-  grid.value?.gridApi?.resetColumnState();
+  grid.value?.gridApi?.setFilterModel(null)
+  grid.value?.gridApi?.resetColumnState()
 }
 
 // ===============
@@ -1013,7 +1013,7 @@ config.setToolbar(
     isFilterSortNodeEnabled,
     createNodes: config.createNodes,
     getColumnValueToEnso,
-    refreshGrid: () => refreshGrid()
+    refreshGrid: () => refreshGrid(),
   }),
 )
 </script>
