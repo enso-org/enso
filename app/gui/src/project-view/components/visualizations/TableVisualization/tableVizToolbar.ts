@@ -311,7 +311,7 @@ function createFormatMenu({ textFormatterSelected }: FormatMenuOptions): Toolbar
 
 function createRefreshMenu({ refreshGrid }: RefreshButtonOptions): ToolbarItem {
   return {
-    title: 'Refresh Grid',
+    title: 'Reset any sort, filter or columns changes made to the table',
     icon: 'refresh',
     onClick: refreshGrid,
   }
