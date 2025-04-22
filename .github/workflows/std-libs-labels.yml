@@ -164,6 +164,31 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           labels: -libs-API-change-Image
+  stdlib-api-check-MySQL-linux-amd64:
+    name: MySQL-change-labels
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
+      - id: MySQL-changed-files
+        name: MySQL-changed-files
+        uses: step-security/changed-files@v45
+        with:
+          files: distribution/lib/Standard/MySQL/**/docs/api/**/**.md
+      - name: List all changed files in MySQL
+        run: "\n        if [[ \"${{ steps.MySQL-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        env:
+          ALL_CHANGED_FILES: ${{ steps.MySQL-changed-files.outputs.all_changed_files }}
+      - if: steps.MySQL-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-MySQL label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-MySQL
   stdlib-api-check-Microsoft-linux-amd64:
     name: Microsoft-change-labels
     runs-on:

@@ -7,21 +7,22 @@ from Standard.Base.Metadata.Widget import Single_Choice
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table, Value_Type
 
-import project.Column_Description.Column_Description
-import project.Connection.Connection.Connection
-import project.DB_Table.DB_Table
-import project.Dialect
-import project.Internal.Common.Connections_Helpers
-import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
-import project.Internal.IR.Query.Query
-import project.Internal.JDBC_Connection
-import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-import project.SQL_Query.SQL_Query
-import project.SQL_Statement.SQL_Statement
-import project.SQL_Type.SQL_Type
-from project.Connection.Connection import make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
-from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
-from project.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
+import Standard.Database.Column_Description.Column_Description
+import Standard.Database.Connection.Connection.Connection
+import Standard.Database.Connection.Credentials.Credentials
+import Standard.Database.DB_Table.DB_Table
+import Standard.Database.Dialect
+import Standard.Database.Internal.Common.Connections_Helpers
+import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
+import Standard.Database.Internal.IR.Query.Query
+import Standard.Database.Internal.JDBC_Connection
+import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
+import Standard.Database.SQL_Query.SQL_Query
+import Standard.Database.SQL_Statement.SQL_Statement
+import Standard.Database.SQL_Type.SQL_Type
+from Standard.Database.Connection.Connection import make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
+from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
+from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 
 type MySQL_Connection
     ## PRIVATE
@@ -32,9 +33,9 @@ type MySQL_Connection
        - url: The URL to connect to.
        - properties: A vector of properties for the connection.
     create : Text -> Vector -> MySQL_Connection
-    create url properties credentials:Credentials|Key_Pair_Credentials|Enso_Secret =
+    create url properties credentials:Credentials =
         jdbc_connection = JDBC_Connection.create url properties
-        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=True
+        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection
         MySQL_Connection.Value (Connection.new jdbc_connection MySQL_Dialect.mysql entity_naming_properties)
 
     ## PRIVATE

@@ -183,7 +183,11 @@ GatherLicenses.distributions := Seq(
     "Microsoft",
     Distribution.sbtProjects(`std-microsoft`)
   ),
-  makeStdLibDistribution("Tableau", Distribution.sbtProjects(`std-tableau`))
+  makeStdLibDistribution("Tableau", Distribution.sbtProjects(`std-tableau`)),
+  makeStdLibDistribution(
+    "MySQL",
+    Distribution.sbtProjects(`std-mysql`)
+  ),
 )
 
 GatherLicenses.licenseConfigurations := Set("compile")
@@ -396,6 +400,7 @@ lazy val enso = (project in file("."))
     `std-google-api`,
     `std-image`,
     `std-microsoft`,
+    `std-mysql`,
     `std-snowflake`,
     `std-table`,
     `std-tableau`,
@@ -656,6 +661,7 @@ val fansiVersion            = "0.4.0"
 val httpComponentsVersion   = "4.4.1"
 val apacheArrowVersion      = "14.0.1"
 val snowflakeJDBCVersion    = "3.15.0"
+val mysqlJDBCVersion        = "9.2.0"
 val mssqlserverJDBCVersion  = "12.6.2.jre11"
 val jsoniterVersion         = "2.28.5"
 val jnaVersion              = "5.14.0"
@@ -2888,6 +2894,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-snowflake` / Compile / packageBin)
       .dependsOn(`std-microsoft` / Compile / packageBin)
       .dependsOn(`std-tableau` / Compile / packageBin)
+      .dependsOn(`std-mysql` / Compile / packageBin)
       .value
   )
   .dependsOn(`common-polyglot-core-utils`)
@@ -3865,6 +3872,9 @@ lazy val `engine-runner` = project
           .map(_.getAbsolutePath()) ++
         `std-tableau-polyglot-root`
           .listFiles("*.jar")
+          .map(_.getAbsolutePath()) ++
+        `std-mysql-polyglot-root`
+          .listFiles("*.jar")
           .map(_.getAbsolutePath())
       core ++ stdLibsJars ++ extraNITestLibs.value
     },
@@ -3964,7 +3974,8 @@ lazy val `engine-runner` = project
             // native library from the jar.
             excludeConfigs = Seq(
               s".*sqlite-jdbc-.*\\.jar,META-INF/native-image/org\\.xerial/sqlite-jdbc/native-image\\.properties",
-              s".*snowflake-jdbc-.*\\.jar,META-INF/native-image/.*"
+              s".*snowflake-jdbc-.*\\.jar,META-INF/native-image/.*",
+              s".*mysql-connector-j-.*\\.jar,META-INF/native-image/.*"
             ),
             additionalOptions = Seq(
               "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
@@ -4016,6 +4027,7 @@ lazy val `engine-runner` = project
               "io.grpc",
               "io.opencensus",
               "net.snowflake.client",
+              "com.mysql.cj.jdbc",
               "com.sun.jna",
               "com.tableau.hyperapi",
               // See https://github.com/HarrDevY/native-register-bouncy-castle
@@ -4815,6 +4827,8 @@ val `std-tableau-polyglot-root` =
   stdLibComponentRoot("Tableau") / "polyglot" / "java"
 val `std-tableau-native-libs` =
   stdLibComponentRoot("Tableau") / "polyglot" / "lib"
+val `std-mysql-polyglot-root` =
+  stdLibComponentRoot("MySQL") / "polyglot" / "java"
 
 lazy val `std-base` = project
   .in(file("std-bits") / "base")
@@ -5539,6 +5553,41 @@ lazy val `std-tableau` = project
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
 
+lazy val `std-mysql` = project
+  .in(file("std-bits") / "mysql")
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
+    Compile / packageBin / artifactPath :=
+      `std-mysql-polyglot-root` / "std-mysql.jar",
+    libraryDependencies ++= Seq(
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "com.mysql"        % "mysql-connector-j"       % mysqlJDBCVersion
+    ),
+    Compile / packageBin := {
+      val result            = (Compile / packageBin).value
+      val cacheStoreFactory = streams.value.cacheStoreFactory
+      StdBits
+        .copyDependencies(
+          `std-mysql-polyglot-root`,
+          Seq("std-mysql.jar"),
+          ignoreScalaLibrary = true,
+          libraryUpdates     = (Compile / update).value,
+          unmanagedClasspath = (Compile / unmanagedClasspath).value,
+          logger             = streams.value.log,
+          cacheStoreFactory,
+          previousRun = None
+        )
+      result
+    }
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+  .dependsOn(`std-database` % "provided")
+
 lazy val fetchZipToUnmanaged =
   taskKey[Seq[Attributed[File]]](
     "Download zip file from an `unmanagedExternalZip` url and unpack jars to unmanaged libs directory"
@@ -5759,6 +5808,7 @@ val stdBitsProjects =
     "Google_Api",
     "Image",
     "Microsoft",
+    "MySQL",
     "Snowflake",
     "Table"
   ) ++ allStdBitsSuffix
@@ -5839,6 +5889,8 @@ pkgStdLibInternal := Def.inputTask {
       (`std-microsoft` / Compile / packageBin).value
     case "Tableau" =>
       (`std-tableau` / Compile / packageBin).value
+    case "MySQL" =>
+      (`std-mysql` / Compile / packageBin).value
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
@@ -5855,6 +5907,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-snowflake` / Compile / packageBin).value
       (`std-microsoft` / Compile / packageBin).value
       (`std-tableau` / Compile / packageBin).value
+      (`std-mysql` / Compile / packageBin).value
     case _ =>
   }
   val libs =
