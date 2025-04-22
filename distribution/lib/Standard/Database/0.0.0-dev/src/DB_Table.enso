@@ -2436,7 +2436,7 @@ type DB_Table
     @column Widget_Helpers.make_column_name_selector
     @delimiter make_delimiter_selector
     @column_count Columns_To_Add.default_widget
-    split_to_columns self (column : Text | Integer) delimiter:Text="," column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
+    split_to_columns self (column : Text | Integer) delimiter:Text|Vector="," column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> DB_Table =
         _ = [column, delimiter, column_count.columns_to_split, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "split_to_columns")
 
