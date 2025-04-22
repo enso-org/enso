@@ -169,11 +169,6 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public CharSequence getCharacters(CompilerContext.Module module) throws IOException {
-    return module.getCharacters();
-  }
-
-  @Override
   public IdMap getIdMap(CompilerContext.Module module) {
     return module.getIdMap();
   }

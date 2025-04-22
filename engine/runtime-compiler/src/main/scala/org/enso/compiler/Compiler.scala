@@ -708,7 +708,7 @@ class Compiler(
       isGeneratingDocs = generateDocs
     )
 
-    val src   = context.getCharacters(module)
+    val src   = module.getCharacters()
     val idMap = Option(context.getIdMap(module))
     val expr  = EnsoParser.compile(src, idMap.map(_.values).orNull)
 

@@ -87,8 +87,6 @@ public interface CompilerContext extends CompilerStub {
 
   QualifiedName getModuleName(Module module);
 
-  CharSequence getCharacters(Module module) throws IOException;
-
   IdMap getIdMap(Module module);
 
   void updateModule(Module module, Consumer<Updater> callback);
