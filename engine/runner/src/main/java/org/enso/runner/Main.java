@@ -1408,15 +1408,6 @@ public class Main {
       CommandLine line, Map<String, String> props, File component, File javaExecutable)
       throws IOException, InterruptedException {
     var commandAndArgs = new ArrayList<String>();
-    var jvmOptions = System.getenv("JAVA_OPTS");
-    if (jvmOptions != null) {
-      for (var op : jvmOptions.split(" ")) {
-        if (op.isEmpty()) {
-          continue;
-        }
-        commandAndArgs.add(op);
-      }
-    }
     var assertsOn = false;
     assert assertsOn = true;
     if (assertsOn) {
@@ -1432,9 +1423,8 @@ public class Main {
       throw new IOException("Cannot find " + component + " directory");
     }
     commandAndArgs.add("--module-path=" + component.getPath());
+    commandAndArgs.add("-Djdk.module.main=org.enso.runner");
     var javaHome = javaExecutable.getParentFile().getParentFile();
-    commandAndArgs.add("-Djava.home=" + javaHome.getPath());
-    commandAndArgs.add("-Djava.library.path=" + new File(javaHome, "lib").getPath());
     var jvm = JVM.create(javaHome, commandAndArgs.toArray(new String[0]));
     commandAndArgs.clear();
     var it = line.iterator();

@@ -1,6 +1,8 @@
 package org.enso.os.environment.jni;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 import org.enso.common.Platform;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.UnmanagedMemory;
@@ -33,7 +35,31 @@ public final class JVM {
           case WINDOWS -> WindowsJVM.createImpl(javaHome);
           case LINUX, MACOS -> PosixJVM.createImpl(javaHome);
         };
-    return new JVM(createJvmFn, options);
+
+    var jvmArgs = new ArrayList<String>();
+
+    // java.home
+    jvmArgs.add("-Djava.home=" + javaHome);
+
+    var jvmOptions = System.getenv("JAVA_OPTS");
+    if (jvmOptions != null) {
+      for (var op : jvmOptions.split(" ")) {
+        if (op.isEmpty()) {
+          continue;
+        }
+        jvmArgs.add(op);
+      }
+    }
+    jvmArgs.addAll(Arrays.asList(options));
+
+    /*
+    var libPath = System.getProperty("java.library.path");
+    var libPathPlus = libPath + File.pathSeparator + new File(javaHome, "lib");
+    commandAndArgs.add("-Djava.library.path=" + libPathPlus);
+    System.err.println("cmds: " + commandAndArgs);
+    */
+
+    return new JVM(createJvmFn, jvmArgs.toArray(new String[0]));
   }
 
   /**
