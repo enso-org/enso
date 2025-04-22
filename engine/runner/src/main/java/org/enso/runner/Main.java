@@ -1581,11 +1581,18 @@ public class Main {
   /**
    * Attempts to find project root directory. Does not use anything from {@code java.io} on purpose.
    *
+   * @param path Can be absolute or relative. Not null.
    * @return null if project root was not found, a canonical path otherwise.
    */
   private static String findProjectRoot(String path) {
+    assert path != null;
     var nativeApi = WorkingDirectory.getInstance();
-    String curPath = path;
+    String curPath;
+    if (isPathAbsolute(path)) {
+      curPath = path;
+    } else {
+      curPath = nativeApi.currentWorkingDir() + Platform.separatorChar() + path;
+    }
     while (curPath != null) {
       if (nativeApi.exists(curPath, "package.yaml") && nativeApi.exists(curPath, "src")) {
         return curPath;
@@ -1593,6 +1600,10 @@ public class Main {
       curPath = parentFile(curPath);
     }
     return null;
+  }
+
+  private static boolean isPathAbsolute(String path) {
+    return path.charAt(0) == Platform.separatorChar();
   }
 
   private static String parentFile(String path) {
