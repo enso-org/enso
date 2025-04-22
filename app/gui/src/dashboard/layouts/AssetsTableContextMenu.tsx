@@ -23,16 +23,20 @@ import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
 import { Separator } from '#/components/AriaComponents'
+import { ContextMenuEntry as PaywallContextMenuEntry } from '#/components/Paywall'
 import {
   deleteAssetsMutationOptions,
   restoreAssetsMutationOptions,
+  useUploadAssetsToCloud,
 } from '#/hooks/backendBatchedHooks'
 import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useUser } from '#/providers/AuthProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
+import { extractTypeAndId } from '#/services/LocalBackend'
 import { useMutation } from '@tanstack/react-query'
 import { twJoin } from '../utilities/tailwindMerge'
 import { GlobalContextMenu } from './GlobalContextMenu'
@@ -73,6 +77,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { setModal, unsetModal } = useSetModal()
   const { getText } = useText()
 
+  const user = useUser()
   const isCloud = isCloudCategory(category)
   const getAsset = useGetAsset()
   const selectedAssets = useSelectedAssets()
@@ -82,6 +87,27 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const restoreAssetsMutation = useMutation(restoreAssetsMutationOptions(backend))
   const showDeveloperIds = useFeatureFlag('showDeveloperIds')
   const copyMutation = useCopy()
+  const uploadFilesToCloud = useUploadAssetsToCloud()
+
+  const canUploadToCloud = user.plan !== backendModule.Plan.free
+
+  const canUploadAllProjectsToCloud = useStore(
+    driveStore,
+    (state) =>
+      !isCloud &&
+      [...state.selectedIds].every(
+        (id) => extractTypeAndId(id).type === backendModule.AssetType.project,
+      ),
+  )
+
+  const uploadFilesToCloudCallback = useEventCallback(async () => {
+    const selectedIds = [...driveStore.getState().selectedIds]
+    const files = selectedIds.flatMap((id) => {
+      const asset = getAsset(id)
+      return asset ? [asset] : []
+    })
+    await uploadFilesToCloud(Array.from(files))
+  })
 
   const hasPasteData = useStore(driveStore, ({ pasteData }) => {
     const effectivePasteData =
@@ -229,6 +255,16 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             action="delete"
             label={isCloud ? getText('moveAllToTrashShortcut') : getText('deleteAllShortcut')}
             doAction={doDeleteAll}
+          />
+        )}
+        {selectedAssets.length !== 0 && canUploadAllProjectsToCloud && (
+          <PaywallContextMenuEntry
+            hidden={hidden}
+            isUnderPaywall={!canUploadToCloud}
+            action="uploadToCloud"
+            feature="uploadToCloud"
+            label={getText('uploadAllToCloudShortcut')}
+            doAction={uploadFilesToCloudCallback}
           />
         )}
         {selectedAssets.length !== 0 && isCloud && (

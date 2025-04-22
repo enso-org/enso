@@ -596,7 +596,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                                   field.onChange('replace')
                                 }}
                               >
-                                {getText('update')}
+                                {getText('replace')}
                               </Button>
                             )}
 

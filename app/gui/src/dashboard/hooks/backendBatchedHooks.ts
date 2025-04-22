@@ -510,8 +510,12 @@ function useUploadAssetToCloud() {
         title,
         parentDirectoryId = null,
         newName = title,
-        siblings = await getSiblings(remoteBackend, parentDirectoryId ?? user.rootDirectoryId),
       } = asset
+      const siblings =
+        cloudId != null ?
+          []
+        : (asset.siblings ??
+          (await getSiblings(remoteBackend, parentDirectoryId ?? user.rootDirectoryId)))
       const siblingTitles = siblings.map((sibling) => sibling.title)
 
       if (siblingTitles.includes(newName)) {

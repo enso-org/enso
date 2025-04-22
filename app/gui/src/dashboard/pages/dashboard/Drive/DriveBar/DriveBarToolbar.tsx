@@ -10,6 +10,7 @@ import AddFolderIcon from '#/assets/add_folder.svg'
 import AddKeyIcon from '#/assets/add_key.svg'
 import DataDownloadIcon from '#/assets/data_download.svg'
 import DataUploadIcon from '#/assets/data_upload.svg'
+import LockIcon from '#/assets/lock.svg'
 import Plus2Icon from '#/assets/plus2.svg'
 import {
   Button,
@@ -19,6 +20,7 @@ import {
   useVisualTooltip,
 } from '#/components/AriaComponents'
 import { ErrorBoundary, InlineErrorDisplay } from '#/components/ErrorBoundary'
+import { PaywallDialog } from '#/components/Paywall'
 import {
   deleteAssetsMutationOptions,
   downloadAssetsMutationOptions,
@@ -34,6 +36,7 @@ import {
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
+import { useStore } from '#/hooks/storeHooks'
 import { AssetPanelToggle } from '#/layouts/AssetPanel'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
@@ -48,17 +51,13 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
-import {
-  useCanDownload,
-  useDriveStore,
-  usePasteData,
-  useSelectedIds,
-} from '#/providers/DriveProvider'
+import { useUser } from '#/providers/AuthProvider'
+import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
-import { useSetModal } from '#/providers/ModalProvider'
+import { setModal, useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { AssetType, type CredentialConfig } from '#/services/Backend'
+import { AssetType, Plan, type CredentialConfig } from '#/services/Backend'
 import { extractTypeAndId } from '#/services/LocalBackend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -389,16 +388,24 @@ export interface UploadFilesToCloudButtonProps {
 function UploadFilesToCloudButton(props: UploadFilesToCloudButtonProps) {
   const { category } = props
 
+  const user = useUser()
   const getAsset = useGetAsset()
   const { getText } = useText()
-  const selectedIds = useSelectedIds()
   const uploadFilesToCloud = useUploadAssetsToCloud()
   const isCloud = isCloudCategory(category)
-  const isDisabled =
-    isCloud || [...selectedIds].some((id) => extractTypeAndId(id).type !== AssetType.project)
+  const driveStore = useDriveStore()
+  const isDisabled = useStore(
+    driveStore,
+    (state) =>
+      isCloud ||
+      [...state.selectedIds].some((id) => extractTypeAndId(id).type !== AssetType.project),
+  )
+  const canUploadToCloud = user.plan !== Plan.free
+  const isUnderPaywall = !canUploadToCloud
 
   const uploadFilesToCloudCallback = useEventCallback(async () => {
-    const files = [...selectedIds].flatMap((id) => {
+    const selectedIds = [...driveStore.getState().selectedIds]
+    const files = selectedIds.flatMap((id) => {
       const asset = getAsset(id)
       return asset ? [asset] : []
     })
@@ -409,10 +416,16 @@ function UploadFilesToCloudButton(props: UploadFilesToCloudButtonProps) {
     <Button
       variant="icon"
       size="medium"
-      icon={DataUploadIcon}
+      icon={isUnderPaywall ? LockIcon : DataUploadIcon}
       isDisabled={isDisabled}
       aria-label={isCloud ? getText('uploadFilesToCloudLocalOnly') : getText('uploadFilesToCloud')}
-      onPress={uploadFilesToCloudCallback}
+      onPress={async () => {
+        if (isUnderPaywall) {
+          setModal(<PaywallDialog modalProps={{ defaultOpen: true }} feature="uploadToCloud" />)
+        } else {
+          await uploadFilesToCloudCallback()
+        }
+      }}
     />
   )
 }

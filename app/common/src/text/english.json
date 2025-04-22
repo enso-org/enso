@@ -836,6 +836,7 @@
   "runShortcut": "Open in Cloud",
   "closeShortcut": "Close",
   "uploadToCloudShortcut": "Upload to Cloud",
+  "uploadAllToCloudShortcut": "Upload All to Cloud",
   "renameShortcut": "Rename",
   "editShortcut": "Edit",
   "snapshotShortcut": "Snapshot",
