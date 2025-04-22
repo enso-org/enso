@@ -735,7 +735,7 @@ const contextMenuActions: ActionName[] = [
   }
   & .vertical {
     flex: auto;
-    overflow-x: clip;
+    overflow-x: hidden;
   }
 }
 
