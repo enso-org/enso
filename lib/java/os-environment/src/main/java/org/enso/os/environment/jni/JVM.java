@@ -1,5 +1,6 @@
 package org.enso.os.environment.jni;
 
+import java.io.File;
 import org.enso.common.Platform;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.UnmanagedMemory;
@@ -19,13 +20,14 @@ public final class JVM {
   }
 
   /**
-   * Create new JVM. Use {@link #env()} to obtain reference to JNI interface and make calls into the
+   * Create new JVM.Use {@link #env()} to obtain reference to JNI interface and make calls into the
    * JVM.
    *
    * @param javaHome path where the JDK is installed
+   * @param options parameters to pass to the JVM
    * @return new instance of the JVM
    */
-  public static JVM create(String javaHome, String... options) {
+  public static JVM create(File javaHome, String... options) {
     var createJvmFn =
         switch (Platform.getOperatingSystem()) {
           case WINDOWS -> WindowsJVM.createImpl(javaHome);
@@ -81,11 +83,12 @@ public final class JVM {
 
   private synchronized JNI.JNIEnv initializeEnv() {
     var jvmArgs = StackValue.get(JNIBoot.Args.class);
-    jvmArgs.nOptions(options.length);
+    var optionsCount = options.length;
+    jvmArgs.nOptions(optionsCount);
     var sizeOfOption = SizeOf.get(JNIBoot.Option.class);
-    JNIBoot.Option jvmOpts = UnmanagedMemory.calloc(options.length * sizeOfOption);
-    var holder = new CTypeConversion.CCharPointerHolder[options.length];
-    for (var i = 0; i < options.length; i++) {
+    JNIBoot.Option jvmOpts = UnmanagedMemory.calloc(optionsCount * sizeOfOption);
+    var holder = new CTypeConversion.CCharPointerHolder[optionsCount];
+    for (var i = 0; i < optionsCount; i++) {
       holder[i] = CTypeConversion.toCString(options[i]);
       var nth = jvmOpts.addressOf(i);
       nth.setOptionString(holder[i].get());
@@ -99,9 +102,11 @@ public final class JVM {
     var envPtr = StackValue.get(JNI.JNIEnvPointer.class);
 
     int res = createJvmFn.call(jvmPtr, envPtr, jvmArgs);
-    assert res == 0 : "Error creating JVM: " + res;
+    if (res != 0) {
+      throw new AssertionError("Error creating JVM: " + res);
+    }
 
-    for (var i = 0; i < options.length; i++) {
+    for (var i = 0; i < optionsCount; i++) {
       holder[i].close();
     }
     UnmanagedMemory.free(jvmOpts);

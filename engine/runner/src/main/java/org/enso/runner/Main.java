@@ -1405,7 +1405,7 @@ public class Main {
   }
 
   private void launchJvm(
-      CommandLine line, Map<String, String> props, File component, String javaHome)
+      CommandLine line, Map<String, String> props, File component, File javaExecutable)
       throws IOException, InterruptedException {
     var commandAndArgs = new ArrayList<String>();
     var jvmOptions = System.getenv("JAVA_OPTS");
@@ -1428,14 +1428,13 @@ public class Main {
       }
     }
     commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
-    commandAndArgs.add("--module-path");
     if (!component.isDirectory()) {
       throw new IOException("Cannot find " + component + " directory");
     }
-    commandAndArgs.add(component.getPath());
-    commandAndArgs.add("-m");
-    commandAndArgs.add("org.enso.runner/org.enso.runner.Main");
-
+    commandAndArgs.add("--module-path=" + component.getPath());
+    var javaHome = javaExecutable.getParentFile().getParentFile();
+    commandAndArgs.add("-Djava.home=" + javaHome.getPath());
+    commandAndArgs.add("-Djava.library.path=" + new File(javaHome, "lib").getPath());
     var jvm = JVM.create(javaHome, commandAndArgs.toArray(new String[0]));
     commandAndArgs.clear();
     var it = line.iterator();
@@ -1501,16 +1500,15 @@ public class Main {
           var javaExe = JavaFinder.findJavaExecutable();
           if (javaExe == null) {
             // Try your best if `jvm` mode enabled in a project
-            if (!jvmInProjectEnforced) throw exitFail("Cannot find java executable");
+            if (!jvmInProjectEnforced) {
+              throw exitFail("Cannot find java executable");
+            }
           } else {
             launchJvm(line, props, component, javaExe);
           }
         } else {
-          launchJvm(
-              line,
-              props,
-              component,
-              new File(new File(new File(jvm), "bin"), "java").getAbsolutePath());
+          var javaExecutable = new File(new File(new File(jvm), "bin"), "java").getAbsoluteFile();
+          launchJvm(line, props, component, javaExecutable);
         }
       }
     }

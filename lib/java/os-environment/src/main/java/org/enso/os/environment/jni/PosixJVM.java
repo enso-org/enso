@@ -12,26 +12,34 @@ import org.graalvm.word.PointerBase;
 
 @CContext(PosixJVM.Direct.class)
 final class PosixJVM {
-  static JNIBoot.JNICreateJavaVMPointer createImpl(String javaHome) {
+  static JNIBoot.JNICreateJavaVMPointer createImpl(File javaHome) {
     var libJvmPath = findDynamicLibrary(javaHome).getPath();
     try (var libPath = CTypeConversion.toCString(libJvmPath);
         var createJvm = CTypeConversion.toCString("JNI_CreateJavaVM")) {
       var jvmSo = dlopen(libPath.get(), RTLD_NOW());
-      assert jvmSo.isNonNull()
-          : "Cannot load dynamic library "
-              + libJvmPath
-              + " error: "
-              + CTypeConversion.toJavaString(dlerror());
-      return dlsym(jvmSo, createJvm.get());
+      if (jvmSo.isNull()) {
+        var err = new StringBuilder("Cannot load ").append(libJvmPath);
+        err.append(" error: ").append(CTypeConversion.toJavaString(dlerror()));
+        throw new AssertionError(err.toString());
+      }
+      JNIBoot.JNICreateJavaVMPointer sym = dlsym(jvmSo, createJvm.get());
+      if (sym.isNull()) {
+        throw new AssertionError("No such symbol found in " + libJvmPath);
+      }
+      return sym;
     }
   }
 
-  private static File findDynamicLibrary(String javaHome) {
+  private static File findDynamicLibrary(File javaHome) {
     var libName = "libjvm.so";
     if (System.getProperty("os.name").contains("Mac")) {
       libName = "libjvm.dylib";
     }
-    return new File(new File(new File(new File(javaHome), "lib"), "server"), libName);
+    var lib = new File(new File(new File(javaHome, "lib"), "server"), libName);
+    if (!lib.exists()) {
+      throw new IllegalStateException("Cannot find " + lib);
+    }
+    return lib;
   }
 
   @CConstant
