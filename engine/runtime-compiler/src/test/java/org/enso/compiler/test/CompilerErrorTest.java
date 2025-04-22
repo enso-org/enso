@@ -61,7 +61,7 @@ public final class CompilerErrorTest {
     var out = new ByteArrayOutputStream();
     var ps = new PrintStream(out);
     var repo = new MockPackageRepository();
-    var ctx = new MockCompilerContext(repo, ps, qName);
+    var ctx = new MockCompilerContext(repo, ps);
     var cfg =
         new CompilerConfig(
             true, true, true, true, scala.Option.empty(), true, true, scala.Option.apply(ps));
@@ -194,15 +194,13 @@ public final class CompilerErrorTest {
     }
   }
 
-  private class MockPackageRepository implements PackageRepository {
+  private static class MockPackageRepository implements PackageRepository {
 
-    public MockPackageRepository() {}
-
-    CompilerContext.Module MODULE_ANY;
+    MockPackageRepository() {}
 
     @Override
     public Either<PackageRepository.Error, BoxedUnit> initialize() {
-      return new Right<PackageRepository.Error, BoxedUnit>(null);
+      return new Right<>(null);
     }
 
     @Override
@@ -249,7 +247,7 @@ public final class CompilerErrorTest {
     @Override
     public Option<CompilerContext.Module> getLoadedModule(String qualifiedName) {
       return switch (qualifiedName) {
-        case "Standard.Base.Any" -> Option.apply(MODULE_ANY);
+        case "Standard.Base.Any" -> Option.apply(null);
         default -> throw new UnsupportedOperationException("no module: " + qualifiedName);
       };
     }
@@ -260,6 +258,7 @@ public final class CompilerErrorTest {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public Option<Package<Object>> getMainProjectPackage() {
       try {
         var pm = new PackageManager<File>(FileSystem.Default$.MODULE$);
@@ -318,16 +317,14 @@ public final class CompilerErrorTest {
     }
   }
 
-  private static class MockCompilerContext implements CompilerContext {
+  private static final class MockCompilerContext implements CompilerContext {
 
     private final MockPackageRepository repo;
-    private final PrintStream ps;
-    private final QualifiedName qName;
+    private final PrintStream outErr;
 
-    public MockCompilerContext(MockPackageRepository repo, PrintStream ps, QualifiedName qName) {
+    MockCompilerContext(MockPackageRepository repo, PrintStream ps) {
       this.repo = repo;
-      this.ps = ps;
-      this.qName = qName;
+      this.outErr = ps;
     }
 
     @Override
@@ -357,24 +354,24 @@ public final class CompilerErrorTest {
 
     @Override
     public PrintStream getErr() {
-      return ps;
+      return outErr;
     }
 
     @Override
     public PrintStream getOut() {
-      return ps;
+      return outErr;
     }
 
     @Override
     public void log(Level level, String msg, Object... args) {
-      ps.println(msg + " " + Arrays.toString(args));
+      outErr.println(msg + " " + Arrays.toString(args));
     }
 
     @Override
     public void log(Level level, String msg, Throwable ex) {
-      ps.println("" + msg);
+      outErr.println("" + msg);
       if (ex != null) {
-        ex.printStackTrace(ps);
+        ex.printStackTrace(outErr);
       }
     }
 
@@ -437,23 +434,19 @@ public final class CompilerErrorTest {
         Passes passes) {}
 
     @Override
-    public QualifiedName getModuleName(CompilerContext.Module module) {
-      return qName;
-    }
-
-    @Override
     public IdMap getIdMap(CompilerContext.Module module) {
       return null;
     }
 
     @Override
     public void updateModule(
-        CompilerContext.Module module, Consumer<CompilerContext.Updater> callback) {
+        CompilerContext.Module raw, Consumer<CompilerContext.Updater> callback) {
+      var module = (MockModule) raw;
       callback.accept(
           new Updater() {
             @Override
             public void bindingsMap(BindingsMap map) {
-              ((MockModule) module).bm = map;
+              module.bm = map;
             }
 
             @Override
@@ -463,12 +456,12 @@ public final class CompilerErrorTest {
 
             @Override
             public void ir(org.enso.compiler.core.ir.Module ir) {
-              ((MockModule) module).ir = ir;
+              module.ir = ir;
             }
 
             @Override
             public void compilationStage(CompilationStage stage) {
-              ((MockModule) module).stage = stage;
+              module.stage = stage;
             }
 
             @Override

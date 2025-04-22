@@ -163,10 +163,6 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   // module related
-  @Override
-  public QualifiedName getModuleName(CompilerContext.Module module) {
-    return module.getName();
-  }
 
   @Override
   public IdMap getIdMap(CompilerContext.Module module) {

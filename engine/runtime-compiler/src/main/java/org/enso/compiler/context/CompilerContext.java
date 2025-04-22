@@ -85,8 +85,6 @@ public interface CompilerContext extends CompilerStub {
   void initializeBuiltinsIr(
       Compiler compiler, boolean irCachingEnabled, FreshNameSupply freshNameSupply, Passes passes);
 
-  QualifiedName getModuleName(Module module);
-
   IdMap getIdMap(Module module);
 
   void updateModule(Module module, Consumer<Updater> callback);

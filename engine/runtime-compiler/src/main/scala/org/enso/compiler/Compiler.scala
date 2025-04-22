@@ -318,12 +318,12 @@ class Compiler(
       ) {
         val importedModulesLoadedFromSource = importedModules
           .filter(isLoadedFromSource)
-          .map(context.getModuleName)
+          .map(_.getName)
         context.log(
           Compiler.defaultLogLevel,
           "{} imported module caches were invalided, forcing invalidation of {}. [{}]",
           importedModulesLoadedFromSource.length,
-          context.getModuleName(module).toString,
+          module.getName().toString,
           importedModulesLoadedFromSource.take(10).mkString("", ",", "...")
         )
         context.updateModule(module, _.invalidateCache())
@@ -490,7 +490,7 @@ class Compiler(
             context.log(
               Compiler.defaultLogLevel,
               "Generating code for module [{0}].",
-              context.getModuleName(module)
+              module.getName()
             )
 
             context.truffleRunCodegen(module, moduleScopeBuilder, config)
@@ -515,7 +515,7 @@ class Compiler(
               !context.isInteractive(module) && !module.isSynthetic()
             ) {
               if (isInteractiveMode) {
-                context.notifySerializeModule(context.getModuleName(module))
+                context.notifySerializeModule(module.getName())
               } else {
                 context.serializeModule(
                   this,
@@ -529,7 +529,7 @@ class Compiler(
             context.log(
               Compiler.defaultLogLevel,
               "Skipping serialization for [{0}].",
-              context.getModuleName(module)
+              module.getName()
             )
           }
         }
@@ -645,8 +645,7 @@ class Compiler(
         Nil
       case other =>
         throw new CompilerError(
-          s"Unexpected import type after processing ${context
-            .getModuleName(module)}: [$other]."
+          s"Unexpected import type after processing ${module.getName()}: [$other]."
         )
     }
     importedModules.distinct.map(_.qualifiedName).toArray
@@ -661,7 +660,7 @@ class Compiler(
     context.log(
       Compiler.defaultLogLevel,
       "Parsing module [{0}].",
-      context.getModuleName(module)
+      module.getName()
     )
     context.updateModule(module, _.resetScope())
 
@@ -697,7 +696,7 @@ class Compiler(
     context.log(
       Compiler.defaultLogLevel,
       "Loading module [{0}] from source.",
-      context.getModuleName(module)
+      module.getName()
     )
     context.updateModule(module, _.resetScope())
 
