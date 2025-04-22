@@ -378,7 +378,7 @@ onMounted(() => {
     <div v-if="writeMode" class="fileNameBar">
       <input
         v-model="filenameInputContents"
-        class="fileNameInput"
+        class="inputField fileNameInput"
         @pointerdown.stop
         @click.stop
         @contextmenu.stop
@@ -387,6 +387,17 @@ onMounted(() => {
         @keydown.arrow-left.stop
         @keydown.arrow-right.stop
         @keydown.enter.stop="tryAcceptCurrentFile"
+      />
+      <div class="fileExtensionSeparator"></div>
+      <input
+        class="inputField fileExtensionInput"
+        @pointerdown.stop
+        @click.stop
+        @contextmenu.stop
+        @keydown.backspace.stop
+        @keydown.delete.stop
+        @keydown.arrow-left.stop
+        @keydown.arrow-right.stop
       />
       <SvgButton
         class="fileNameAcceptButton"
@@ -519,15 +530,34 @@ onMounted(() => {
   gap: var(--border-width);
 }
 
-.fileNameInput {
+.inputField {
   border-radius: var(--border-radius-inner);
   height: calc(var(--border-radius-inner) * 2);
   padding: 0 8px;
   background-color: var(--color-frame-selected-bg);
-  flex-grow: 1;
   appearance: textfield;
   -moz-appearance: textfield;
   user-select: all;
+}
+
+.fileNameInput {
+  flex-grow: 1;
+}
+
+.fileExtensionInput {
+  width: 40px;
+}
+
+.fileExtensionSeparator {
+  width: 0;
+  &::before {
+    content: '.';
+    font-size: 26px;
+    color: var(--color-frame-selected-bg);
+    position: relative;
+    left: -4px;
+    bottom: -4px;
+  }
 }
 
 .fileNameAcceptButton,
