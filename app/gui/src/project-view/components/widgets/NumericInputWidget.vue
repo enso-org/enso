@@ -156,6 +156,7 @@ defineExpose({
   user-select: none;
   padding: 0 4px;
   background: var(--color-widget);
+  transition: background-color 0.2s ease;
   &:focus {
     background: var(--color-widget-focus);
   }

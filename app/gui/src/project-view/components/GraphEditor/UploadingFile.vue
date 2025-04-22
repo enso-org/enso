@@ -13,11 +13,11 @@ const transform = computed(() => {
   return `translate(${pos.x}px, ${pos.y}px)`
 })
 
-const { getProgressStyles } = useProgressBackground(() => file.sizePercentage)
+const { progressStyles } = useProgressBackground(() => file.sizePercentage)
 </script>
 
 <template>
-  <div class="UploadingFile" :style="{ transform, ...getProgressStyles() }">
+  <div class="UploadingFile" :style="{ transform, ...progressStyles }">
     {{ `Uploading ${name} (${file.sizePercentage}%)` }}
   </div>
 </template>

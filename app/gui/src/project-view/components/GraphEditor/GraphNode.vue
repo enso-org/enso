@@ -426,10 +426,21 @@ const nodeStyle = computed(() => {
 
 const { baseColor, selected, pending } = useComponentColors(graph.db, nodeSelection, nodeId)
 
+const nodeProgress = computed(() => evaluationProgress(expressionInfo.value) ?? 100)
+const { progressStyles, watchProgress } = useProgressBackground(nodeProgress, {
+  progressId: () => expressionInfo.value?.evaluationId ?? 0,
+  initialColor: 'var(--color-node-background-pending)',
+  finalColor: 'var(--color-node-background)',
+})
+const { progressAnimating, backgroundProgressEvents } = watchProgress()
+
+const showProgressBar = computed(() => nodeProgress.value !== 100 || progressAnimating.value)
+
 const nodeClass = computed(() => {
   return {
     selected: selected.value,
     pending: pending.value,
+    evaluating: showProgressBar.value,
     inputNode: props.node.type === 'input',
     outputNode: props.node.type === 'output',
     menuVisible: menuVisible.value,
@@ -438,18 +449,25 @@ const nodeClass = computed(() => {
   }
 })
 
-const nodeProgress = computed(() => evaluationProgress(expressionInfo.value) ?? 100)
-const { getProgressStyles, watchProgress } = useProgressBackground(nodeProgress, {
-  counterId: () => expressionInfo.value?.evaluationId,
-})
-const { progressAnimating, backgroundProgressEvents } = watchProgress()
+const backgroundStyles = computed(() =>
+  composeTransition(showProgressBar.value ? progressStyles.value : {}, [
+    '--color-node-background 0.2s ease',
+    '--color-node-background-pending 0.2s ease',
+  ]),
+)
 
-// The progress bar animation and the color change animation are incompatible. When progress is not
-// partial or animating, we stop applying progress styles and fall back to the background color set
-// by the class, so that its CSS transition will be used if the type changes. (If the type changes
-// during progress animation, we'll just change colors abruptly).
-function backgroundProgressStyles() {
-  return nodeProgress.value !== 100 || progressAnimating.value ? getProgressStyles() : {}
+/**
+ * Returns the provided CSS style properties, with the provided additional transitions combined with any existing
+ * `transition`.
+ */
+function composeTransition(style: Record<string, string>, additionalTransitions: string[]) {
+  return {
+    ...style,
+    transition: (style.transition ?
+      [style.transition, ...additionalTransitions]
+    : additionalTransitions
+    ).join(','),
+  }
 }
 
 // === Component actions ===
@@ -619,11 +637,7 @@ const nodeName = computed(() => props.node.pattern?.code())
       :type="visibleMessage.type"
       :outputPortHovered="outputHovered"
     />
-    <div
-      class="nodeBackground"
-      :style="backgroundProgressStyles()"
-      v-on="backgroundProgressEvents"
-    ></div>
+    <div class="nodeBackground" :style="backgroundStyles" v-on="backgroundProgressEvents"></div>
   </div>
 </template>
 

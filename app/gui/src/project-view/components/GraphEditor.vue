@@ -738,6 +738,11 @@ const contextMenuActions: ActionName[] = [
   & .vertical {
     flex: auto;
     overflow-x: hidden;
+    /*
+     * If this isn't set then during the BottomPanel opening/closing transition the native scrollbar
+     * may be displayed momentarily, causing the viewport to "shake".
+     */
+    overflow-y: hidden;
   }
 }
 
