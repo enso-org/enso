@@ -41,9 +41,9 @@ type Lazy_Ref
    Value ~get
 
 mysql_specific_spec suite_builder default_connection db_name setup =
-    table_builder = setup.table_builder
-    light_table_builder = setup.light_table_builder
-    materialize = setup.materialize
+    #table_builder = setup.table_builder
+    #light_table_builder = setup.light_table_builder
+    #materialize = setup.materialize
 
     suite_builder.group "[Snowflake] Schemas and Databases" group_builder->
         group_builder.specify "should be able to get current database and list databases" <|

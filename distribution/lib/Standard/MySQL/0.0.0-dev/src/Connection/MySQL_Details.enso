@@ -5,10 +5,8 @@ import Standard.Base.Metadata.Widget.Text_Input
 
 import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Credentials.Credentials
-
-import project.Connection.Key_Pair_Credentials.Key_Pair_Credentials
-import project.Connection.Widgets
-import project.MySQL_Connection.MySQL_Connection
+import Standard.Database.Connection.Widgets
+import Standard.Database.MySQL_Connection.MySQL_Connection
 
 polyglot java import net.snowflake.client.jdbc.SnowflakeDriver
 
@@ -18,8 +16,6 @@ type MySQL_Details
        Arguments:
        - account: The name of the account to connect to.
        - credentials: The credentials to use for the connection.
-         This can either be username/password pair, a `Key_Pair_Credentials`
-         for private key authentication or a credential created in the dashboard.
        - database: The name of the database to connect to.
     @account (Text_Input display=..Always)
     @credentials Widgets.password_or_keypair_widget
@@ -36,10 +32,10 @@ type MySQL_Details
 
        Arguments:
        - options: Overrides for the connection properties.
-    connect : Connection_Options -> Boolean -> MySQL_Connection
-    connect self options (allow_data_links : Boolean = False) =
+    connect : Connection_Options -> MySQL_Connection
+    connect self options =
         properties = options.merge self.common_jdbc_properties
-        Snowflake_Connection.create self.jdbc_url properties self.credentials
+        MySQL_Connection.create self.jdbc_url properties self.credentials
 
     ## PRIVATE
        Provides the jdbc url for the connection.
@@ -52,4 +48,4 @@ type MySQL_Details
     jdbc_properties : Vector (Pair Text Text)
     jdbc_properties self =
         if self.credentials.is_nothing then [] else
-            [Pair.new 'user' credentials.username, Pair.new 'password' credentials.password]
+            [Pair.new 'user' self.credentials.username, Pair.new 'password' self.credentials.password]
