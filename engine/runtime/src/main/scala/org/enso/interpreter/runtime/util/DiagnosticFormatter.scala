@@ -5,6 +5,9 @@ import fansi.Str
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.{Diagnostic, IdentifiedLocation, Warning}
 
+import java.nio.file.Path
+import scala.annotation.tailrec
+
 /** Formatter of IR diagnostics. Heavily inspired by GCC. Can format one-line as well as multiline
   * diagnostics. The output is colorized if the output stream supports ANSI colors.
   * Also prints the offending lines from the source along with line number - the same way as
@@ -98,9 +101,22 @@ class DiagnosticFormatter(
     def asGithubAnnotation(): GithubAnnotation
   }
 
-  private case class SingleLineLocation(
+  private object Location {
+    sealed trait FileLocation
+    case class SourcePath(path: String) extends FileLocation {
+      override def toString: String = path
+    }
+    case class SourceName(name: String) extends FileLocation {
+      override def toString: String = name
+    }
+    case object Unknown extends FileLocation {
+      override def toString: String = "<Unknown source>"
+    }
+  }
+
+  private case class SingleLineSection(
     sourceSection: SourceSection,
-    srcPath: String,
+    fileLocation: Location.FileLocation,
     lineNumber: Int,
     startColumn: Int,
     endColumn: Int
@@ -108,7 +124,9 @@ class DiagnosticFormatter(
     override def format(): fansi.Str = {
       var str = fansi.Str()
       str ++= fansi
-        .Str(srcPath + ":" + lineNumber + ":" + startColumn + ": ")
+        .Str(
+          fileLocation.toString + ":" + lineNumber + ":" + startColumn + ": "
+        )
         .overlay(fansi.Bold.On)
       str ++= fansi.Str(subject).overlay(textAttrs)
       str ++= diagnostic.formattedMessage(fileLocationFromSection)
@@ -126,7 +144,7 @@ class DiagnosticFormatter(
       GithubAnnotation(
         kind    = diagnosticKind,
         message = diagnostic.formattedMessage(fileLocationFromSection),
-        file    = srcPath,
+        file    = fileLocation,
         line    = Some(lineNumber),
         endLine = None,
         col     = Some(startColumn),
@@ -134,9 +152,9 @@ class DiagnosticFormatter(
       )
   }
 
-  private case class MultiLineLocation(
+  private case class MultiLineSection(
     sourceSection: SourceSection,
-    srcPath: String,
+    fileLocation: Location.FileLocation,
     startLine: Int,
     endLine: Int,
     startColumn: Int,
@@ -146,7 +164,7 @@ class DiagnosticFormatter(
       var str = fansi.Str()
       str ++= fansi
         .Str(
-          srcPath + ":[" + startLine + ":" + startColumn + "-" + endLine + ":" + endColumn + "]: "
+          fileLocation.toString + ":[" + startLine + ":" + startColumn + "-" + endLine + ":" + endColumn + "]: "
         )
         .overlay(fansi.Bold.On)
       str ++= fansi.Str(subject).overlay(textAttrs)
@@ -174,7 +192,7 @@ class DiagnosticFormatter(
       GithubAnnotation(
         kind    = diagnosticKind,
         message = diagnostic.formattedMessage(fileLocationFromSection),
-        file    = srcPath,
+        file    = fileLocation,
         line    = Some(startLine),
         endLine = Some(endLine),
         col     = Some(startColumn),
@@ -182,15 +200,15 @@ class DiagnosticFormatter(
       )
   }
 
-  private case class UnknownLocation(
-    fileLocation: String
+  private case class UnknownSection(
+    fileLocation: Location.FileLocation
   ) extends Location {
     override def sourceSection: SourceSection = null
 
     override def format(): Str = {
       var str = fansi.Str()
       str ++= fansi
-        .Str(fileLocation)
+        .Str(fileLocation.toString)
         .overlay(fansi.Bold.On)
       str ++= ": "
       str ++= fansi.Str(subject).overlay(textAttrs)
@@ -211,24 +229,24 @@ class DiagnosticFormatter(
   }
 
   private def computeLocation(): Location = {
+    val fileLocation: Location.FileLocation =
+      if (source.getPath == null && source.getName == null) {
+        Location.Unknown
+      } else if (source.getPath != null) {
+        Location.SourcePath(source.getPath)
+      } else {
+        Location.SourceName(source.getName)
+      }
     sourceSection match {
       case Some(section) =>
-        val isOneLine = section.getStartLine == section.getEndLine
-        val srcPath: String =
-          if (source.getPath == null && source.getName == null) {
-            "<Unknown source>"
-          } else if (source.getPath != null) {
-            source.getPath
-          } else {
-            source.getName
-          }
+        val isOneLine   = section.getStartLine == section.getEndLine
         val startColumn = section.getStartColumn
         val endColumn   = section.getEndColumn
         if (isOneLine) {
           val lineNumber = section.getStartLine
-          SingleLineLocation(
+          SingleLineSection(
             section,
-            srcPath,
+            fileLocation,
             lineNumber,
             startColumn,
             endColumn
@@ -236,25 +254,17 @@ class DiagnosticFormatter(
         } else {
           val startLine = section.getStartLine
           val endLine   = section.getEndLine
-          MultiLineLocation(
+          MultiLineSection(
             section,
-            srcPath,
+            fileLocation,
             startLine,
             endLine,
             startColumn,
             endColumn
           )
         }
-      case None =>
-        // There is no source section associated with the diagnostics
-        val fileLocation = diagnostic.location match {
-          case Some(_) =>
-            fileLocationFromSectionOption(diagnostic.location, source)
-          case None =>
-            Option(source.getPath).getOrElse("<Unknown source>")
-        }
-
-        UnknownLocation(fileLocation)
+      // There is no source section associated with the diagnostics
+      case None => UnknownSection(fileLocation)
     }
   }
 
@@ -313,41 +323,13 @@ class DiagnosticFormatter(
     fansi.Str("^" + ("~" * sectionLen)).overlay(textAttrs)
   }
 
-  private def fileLocationFromSectionOption(
-    loc: Option[IdentifiedLocation],
-    source: Source
-  ): String = {
-    val srcLocation = loc match {
-      case Some(identifiedLoc)
-          if isLocationInSourceBounds(identifiedLoc, source) =>
-        val section =
-          source.createSection(identifiedLoc.start, identifiedLoc.length)
-        val locStr =
-          "" + section.getStartLine + ":" +
-          section.getStartColumn + "-" +
-          section.getEndLine + ":" +
-          section.getEndColumn
-        "[" + locStr + "]"
-      case _ => ""
-    }
-
-    source.getPath + ":" + srcLocation
-  }
-
-  private def isLocationInSourceBounds(
-    loc: IdentifiedLocation,
-    source: Source
-  ): Boolean = {
-    loc.end() <= source.getLength
-  }
-
   private def includeGithubAnnotation: Boolean =
     sys.env("GITHUB_ACTIONS") == "true"
 
   private case class GithubAnnotation(
     kind: DiagnosticKind,
     message: String,
-    file: String,
+    file: Location.FileLocation,
     line: Option[Int],
     col: Option[Int],
     endLine: Option[Int],
@@ -364,8 +346,16 @@ class DiagnosticFormatter(
         case DiagnosticKind.Warning => s"Enso Compiler Warning @ $file"
       }
 
+      val path = file match {
+        case Location.SourcePath(path) =>
+          RepositoryFinder.root
+            .map(_.relativize(Path.of(path)))
+            .map(_.toString)
+            .getOrElse(path)
+        case _ => file.toString
+      }
       val parameters = Map(
-        "file"             -> sanitizeParameter(file),
+        "file"             -> sanitizeParameter(path),
         "title"            -> sanitizeParameter(title)
       ) ++ line.map("line" -> _.toString) ++ col.map(
         "col" -> _.toString
@@ -379,13 +369,35 @@ class DiagnosticFormatter(
 
       s"::${annotationLevel} $parametersStr::${sanitizeMessage(message)}"
     }
+
+    private def sanitizeMessage(message: String): String = {
+      message.replace("%", "%25").replace("\n", "%0A").replace("::", "%3A%3A")
+    }
+
+    private def sanitizeParameter(message: String): String = {
+      sanitizeMessage(message).replace(",", "%2C")
+    }
   }
 
-  private def sanitizeMessage(message: String): String = {
-    message.replace("%", "%25").replace("\n", "%0A").replace("::", "%3A%3A")
-  }
+  private object RepositoryFinder {
+    @tailrec
+    private def findRepositoryRoot(path: Path): Option[Path] = {
+      val gitDir = path.resolve(".git")
+      if (gitDir.toFile.exists()) {
+        Some(path)
+      } else {
+        val parent = path.getParent
+        if (parent != null) {
+          findRepositoryRoot(parent)
+        } else {
+          None
+        }
+      }
+    }
 
-  private def sanitizeParameter(message: String): String = {
-    sanitizeMessage(message).replace(",", "%2C")
+    lazy val root: Option[Path] = {
+      val currentDir = Path.of(".").toAbsolutePath.normalize()
+      findRepositoryRoot(currentDir)
+    }
   }
 }
