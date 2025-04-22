@@ -26,11 +26,30 @@ class DiagnosticFormatter(
   private val maxSourceLinesToPrint          = 3
   private val linePrefixSize                 = blankLinePrefix.length
   private val outSupportsAnsiColors: Boolean = outSupportsColors
-  private val (textAttrs: fansi.Attrs, subject: String) = diagnostic match {
-    case _: Error   => (fansi.Color.Red ++ fansi.Bold.On, "error: ")
-    case _: Warning => (fansi.Color.Yellow ++ fansi.Bold.On, "warning: ")
+
+  sealed private trait DiagnosticKind
+
+  private object DiagnosticKind {
+    case object Error   extends DiagnosticKind
+    case object Warning extends DiagnosticKind
+  }
+
+  private val diagnosticKind: DiagnosticKind = diagnostic match {
+    case _: Error   => DiagnosticKind.Error
+    case _: Warning => DiagnosticKind.Warning
     case _          => throw new IllegalStateException("Unexpected diagnostic type")
   }
+
+  private val textAttrs: fansi.Attrs = diagnosticKind match {
+    case DiagnosticKind.Error   => fansi.Color.Red ++ fansi.Bold.On
+    case DiagnosticKind.Warning => fansi.Color.Yellow ++ fansi.Bold.On
+  }
+
+  private val subject: String = diagnosticKind match {
+    case DiagnosticKind.Error   => "error: "
+    case DiagnosticKind.Warning => "warning: "
+  }
+
   private lazy val location = computeLocation()
 
   def format(): String = {
@@ -42,7 +61,7 @@ class DiagnosticFormatter(
     }
 
     if (includeGithubAnnotation) {
-      location.formatForGithub() + "\n" + text
+      location.asGithubAnnotation().format() + "\n" + text
     } else text
   }
 
@@ -73,15 +92,18 @@ class DiagnosticFormatter(
     case None => false
   }
 
-  private sealed trait Location {
-    def sourceSection: SourceSection
-    def format(): fansi.Str
-    def formatForGithub(): String
+  sealed private trait Location {
+    def sourceSection:        SourceSection
+    def format():             fansi.Str
+    def asGithubAnnotation(): GithubAnnotation
   }
 
   private case class SingleLineLocation(
     sourceSection: SourceSection,
-    srcPath: String, lineNumber: Int, startColumn: Int, endColumn: Int
+    srcPath: String,
+    lineNumber: Int,
+    startColumn: Int,
+    endColumn: Int
   ) extends Location {
     override def format(): fansi.Str = {
       var str = fansi.Str()
@@ -100,14 +122,26 @@ class DiagnosticFormatter(
       str
     }
 
-    override def formatForGithub(): String = ???
+    override def asGithubAnnotation(): GithubAnnotation =
+      GithubAnnotation(
+        kind    = diagnosticKind,
+        message = diagnostic.formattedMessage(fileLocationFromSection),
+        file    = srcPath,
+        line    = Some(lineNumber),
+        endLine = None,
+        col     = Some(startColumn),
+        endCol  = Some(endColumn)
+      )
   }
 
-
   private case class MultiLineLocation(
-                                         sourceSection: SourceSection,
-                                         srcPath: String, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int
-                                       ) extends Location {
+    sourceSection: SourceSection,
+    srcPath: String,
+    startLine: Int,
+    endLine: Int,
+    startColumn: Int,
+    endColumn: Int
+  ) extends Location {
     override def format(): Str = {
       var str = fansi.Str()
       str ++= fansi
@@ -136,7 +170,16 @@ class DiagnosticFormatter(
       str
     }
 
-    override def formatForGithub(): String = ???
+    override def asGithubAnnotation(): GithubAnnotation =
+      GithubAnnotation(
+        kind    = diagnosticKind,
+        message = diagnostic.formattedMessage(fileLocationFromSection),
+        file    = srcPath,
+        line    = Some(startLine),
+        endLine = Some(endLine),
+        col     = Some(startColumn),
+        endCol  = Some(endColumn)
+      )
   }
 
   private case class UnknownLocation(
@@ -155,7 +198,16 @@ class DiagnosticFormatter(
       str
     }
 
-    override def formatForGithub(): String = ???
+    override def asGithubAnnotation(): GithubAnnotation =
+      GithubAnnotation(
+        kind    = diagnosticKind,
+        message = diagnostic.formattedMessage(fileLocationFromSection),
+        file    = fileLocation,
+        line    = None,
+        endLine = None,
+        col     = None,
+        endCol  = None
+      )
   }
 
   private def computeLocation(): Location = {
@@ -170,15 +222,28 @@ class DiagnosticFormatter(
           } else {
             source.getName
           }
-        val startColumn     = section.getStartColumn
-        val endColumn       = section.getEndColumn
+        val startColumn = section.getStartColumn
+        val endColumn   = section.getEndColumn
         if (isOneLine) {
-          val lineNumber      = section.getStartLine
-          SingleLineLocation(section, srcPath, lineNumber, startColumn, endColumn)
+          val lineNumber = section.getStartLine
+          SingleLineLocation(
+            section,
+            srcPath,
+            lineNumber,
+            startColumn,
+            endColumn
+          )
         } else {
-          val startLine      = section.getStartLine
-          val endLine        = section.getEndLine
-          MultiLineLocation(section, srcPath, startLine, endLine, startColumn, endColumn)
+          val startLine = section.getStartLine
+          val endLine   = section.getEndLine
+          MultiLineLocation(
+            section,
+            srcPath,
+            startLine,
+            endLine,
+            startColumn,
+            endColumn
+          )
         }
       case None =>
         // There is no source section associated with the diagnostics
@@ -192,7 +257,6 @@ class DiagnosticFormatter(
         UnknownLocation(fileLocation)
     }
   }
-
 
   /** @see https://github.com/termstandard/colors/
     * @see https://no-color.org/
@@ -277,5 +341,51 @@ class DiagnosticFormatter(
     loc.end() <= source.getLength
   }
 
-  private def includeGithubAnnotation: Boolean = sys.env("GITHUB_ACTIONS") == "true"
+  private def includeGithubAnnotation: Boolean =
+    sys.env("GITHUB_ACTIONS") == "true"
+
+  private case class GithubAnnotation(
+    kind: DiagnosticKind,
+    message: String,
+    file: String,
+    line: Option[Int],
+    col: Option[Int],
+    endLine: Option[Int],
+    endCol: Option[Int]
+  ) {
+    def format(): String = {
+      val annotationLevel = kind match {
+        case DiagnosticKind.Error   => "error"
+        case DiagnosticKind.Warning => "warning"
+      }
+
+      val title = kind match {
+        case DiagnosticKind.Error   => s"Enso Compiler Error @ $file"
+        case DiagnosticKind.Warning => s"Enso Compiler Warning @ $file"
+      }
+
+      val parameters = Map(
+        "file"             -> sanitizeParameter(file),
+        "title"            -> sanitizeParameter(title)
+      ) ++ line.map("line" -> _.toString) ++ col.map(
+        "col" -> _.toString
+      ) ++ endLine.map("endLine" -> _.toString) ++ endCol.map(
+        "endCol" -> _.toString
+      )
+
+      val parametersStr = parameters
+        .map { case (k, v) => s"$k=$v" }
+        .mkString(",")
+
+      s"::${annotationLevel} $parametersStr::${sanitizeMessage(message)}"
+    }
+  }
+
+  private def sanitizeMessage(message: String): String = {
+    message.replace("%", "%25").replace("\n", "%0A").replace("::", "%3A%3A")
+  }
+
+  private def sanitizeParameter(message: String): String = {
+    sanitizeMessage(message).replace(",", "%2C")
+  }
 }
