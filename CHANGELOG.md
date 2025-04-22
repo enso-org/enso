@@ -1,5 +1,12 @@
 # Next Next Release
 
+#### Enso IDE
+
+- [Type annotations are now visible in the graph editor][12751]
+- [Component Browser shows methods with respect to possible type casts][12751]
+
+[12751]: https://github.com/enso-org/enso/pull/12751
+
 #### Enso Language & Runtime
 
 - [Upgrading Truffle][12500] (including its
