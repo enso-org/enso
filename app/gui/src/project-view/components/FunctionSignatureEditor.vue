@@ -77,6 +77,9 @@ const rootStyle = computed(() => {
       groupBasedColor.value ?? returnTypeBasedColor.value ?? 'var(--group-color-fallback)',
   }
 })
+
+// We surely don’t have primary application for the function definition.
+const primaryApplication = { function: null, accessChain: null, potentialSelfArgument: null }
 </script>
 
 <template>
@@ -84,6 +87,7 @@ const rootStyle = computed(() => {
     <WidgetTreeRoot
       :externalId="functionAst.externalId"
       :input="treeRootInput"
+      :primaryApplication="primaryApplication"
       :rootElement="rootElement"
       :extended="true"
       :onUpdate="handleWidgetUpdates"

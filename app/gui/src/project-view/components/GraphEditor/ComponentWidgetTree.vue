@@ -15,7 +15,7 @@ const props = defineProps<{
   nodeId: NodeId
   rootElement: HTMLElement | undefined
   nodeType: NodeType
-  primaryApplication: PrimaryApplication | undefined
+  primaryApplication: PrimaryApplication
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts: Set<Ast.AstId>
   extended: boolean
@@ -36,7 +36,7 @@ const rootPort = computed(() => {
     input.forcePort = true
   }
 
-  if (!props.primaryApplication) {
+  if (props.primaryApplication.function == null) {
     input[DisplayIcon] = {
       icon: displayedIcon.value,
       showContents: props.nodeType != 'output',

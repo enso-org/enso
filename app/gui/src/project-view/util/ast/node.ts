@@ -34,7 +34,7 @@ export function inputNodeFromAst(ast: Ast.Expression, argIndex: number): NodeDat
     rootExpr: ast,
     innerExpr: ast,
     prefixes: { enableRecording: undefined },
-    primaryApplication: undefined,
+    primaryApplication: { function: null, accessChain: null, potentialSelfArgument: null },
     conditionalPorts: new Set(),
     argIndex,
   }
@@ -60,17 +60,22 @@ export function nodeFromAst(ast: Ast.Statement, isOutput: boolean): NodeDataFrom
 }
 
 /**
- * Given a node root, find a child AST that is the root of the access chain that is the subject of the primary
- *  application.
+ * Given a node root, find the primary application of the node, if any.
+ * Returns empty primary application information otherwise.
  */
-export function primaryApplication(ast: Ast.Expression): PrimaryApplication | undefined {
+export function primaryApplication(ast: Ast.Expression): PrimaryApplication {
   // Descend into LHS of any sequence of applications.
   while (ast instanceof Ast.App) ast = ast.function
   const unrolledChain = Ast.accessChain(ast)
   let subject = unrolledChain.subject
   const accessChain = unrolledChain.accessChain
+  const emptyPrimaryApplication: PrimaryApplication = {
+    function: null,
+    accessChain: null,
+    potentialSelfArgument: null,
+  }
   // Require at least one property access.
-  if (accessChain.length === 0) return
+  if (accessChain.length === 0) return emptyPrimaryApplication
 
   const isAcceptableSubject = (subject: Ast.Ast) =>
     (subject instanceof Ast.Ident && !subject.isTypeOrConstructor()) ||
@@ -82,7 +87,7 @@ export function primaryApplication(ast: Ast.Expression): PrimaryApplication | un
   if (subject instanceof Ast.TypeAnnotated && subject.expression) {
     subject = subject.expression
   }
-  if (!isAcceptableSubject(subject)) return
+  if (!isAcceptableSubject(subject)) return emptyPrimaryApplication
   return {
     potentialSelfArgument: subject.id,
     function: ast.id,

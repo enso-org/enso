@@ -14,7 +14,7 @@ const props = defineProps<{
   externalId: string & ExternalId
   input: WidgetInput
   rootElement: HTMLElement | undefined
-  primaryApplication?: PrimaryApplication | undefined
+  primaryApplication: PrimaryApplication
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts?: Set<Ast.AstId> | undefined
   extended: boolean

@@ -13,7 +13,7 @@ export const [provideWidgetTree, injectWidgetTree] = createContextStore(
     conditionalPorts: Ref<Set<Ast.AstId> | undefined>,
     extended: Ref<boolean>,
     hasActiveAnimations: Ref<boolean>,
-    primaryApplication: Ref<PrimaryApplication | undefined>,
+    primaryApplication: Ref<PrimaryApplication>,
   ) => {
     const { setCurrentEditRoot, currentEdit } = useCurrentEdit()
     return proxyRefs({

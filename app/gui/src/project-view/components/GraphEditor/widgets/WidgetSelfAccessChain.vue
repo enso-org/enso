@@ -60,7 +60,7 @@ export const widgetDefinition = defineWidget(
     priority: 999,
     score: (info) => {
       const tree = injectWidgetTree()
-      const selfId = tree.primaryApplication?.function
+      const selfId = tree.primaryApplication.function
       const subject = info.input.value
       if (subject.id === selfId) {
         return Score.Good

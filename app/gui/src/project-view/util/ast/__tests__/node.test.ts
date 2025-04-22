@@ -50,17 +50,17 @@ test.each`
   const module = ast.module
   const primaryApp = primaryApplication(ast)
   const expected = { selfArg, function: func, accessChain }
-  const analyzed =
-    primaryApp == null ?
-      { selfArg: undefined, function: undefined, accessChain: undefined }
-    : {
-        selfArg: module.get(primaryApp.potentialSelfArgument).code(),
-        function: module.get(primaryApp.function).code(),
-        accessChain: primaryApp.accessChain.map((id) => {
-          const ast = module.get(id)
-          assert(ast instanceof Ast.MutablePropertyAccess)
-          return ast.rhs.code()
-        }),
-      }
+  const analyzed = {
+    selfArg:
+      primaryApp.potentialSelfArgument ?
+        module.get(primaryApp.potentialSelfArgument).code()
+      : undefined,
+    function: primaryApp.function ? module.get(primaryApp.function).code() : undefined,
+    accessChain: primaryApp.accessChain?.map((id) => {
+      const ast = module.get(id)
+      assert(ast instanceof Ast.MutablePropertyAccess)
+      return ast.rhs.code()
+    }),
+  }
   expect(analyzed).toEqual(expected)
 })

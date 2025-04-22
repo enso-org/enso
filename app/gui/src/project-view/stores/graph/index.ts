@@ -263,7 +263,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
 
     const editedNodeDisconnectedTarget = computed(() =>
       editedNodeInfo.value ?
-        db.nodeIdToNode.get(editedNodeInfo.value.id)?.primaryApplication?.potentialSelfArgument
+        db.nodeIdToNode.get(editedNodeInfo.value.id)?.primaryApplication.potentialSelfArgument
       : undefined,
     )
 

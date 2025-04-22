@@ -369,7 +369,24 @@ export class GraphDb {
       }
       const astFields: NodeAstField[] = ['outerAst', 'pattern', 'rootExpr', 'innerExpr']
       astFields.forEach(updateAst)
-      updatePrimaryApplication(node, newNode)
+      if (oldNode.primaryApplication.function !== newNode.primaryApplication.function) {
+        node.primaryApplication.function = newNode.primaryApplication.function
+      }
+      if (
+        oldNode.primaryApplication.potentialSelfArgument !==
+        newNode.primaryApplication.potentialSelfArgument
+      ) {
+        node.primaryApplication.potentialSelfArgument =
+          newNode.primaryApplication.potentialSelfArgument
+      }
+      if (
+        !arrayEquals(
+          (oldNode.primaryApplication.accessChain as AstId[] | null) ?? [],
+          newNode.primaryApplication.accessChain ?? [],
+        )
+      ) {
+        node.primaryApplication.accessChain = newNode.primaryApplication.accessChain
+      }
       if (!recordEqual(oldNode.prefixes, prefixes)) node.prefixes = prefixes
       syncSetDiff(node.conditionalPorts, oldNode.conditionalPorts, conditionalPorts)
       // Ensure new fields can't be added to `NodeAstData` without this code being updated.
@@ -521,7 +538,7 @@ export class GraphDb {
       position: Vec2.Zero,
       vis: undefined,
       prefixes: { enableRecording: undefined },
-      primaryApplication: undefined,
+      primaryApplication: { function: null, accessChain: null, potentialSelfArgument: null },
       colorOverride: undefined,
       conditionalPorts: new Set(),
       outerAst,
@@ -614,7 +631,7 @@ interface AllNodeFieldsFromAst {
    */
   prefixes: Record<'enableRecording', Ast.AstId[] | undefined>
   /** An optional information about the primary application of the node. */
-  primaryApplication: PrimaryApplication | undefined
+  primaryApplication: PrimaryApplication
   /** Ports that are not targetable by default; they can be targeted while holding the modifier key. */
   conditionalPorts: Set<Ast.AstId>
   /** The index of the argument in the function's argument list, if the node is an input node. */
@@ -655,46 +672,18 @@ export type Node = NodeDataFromAst &
 
 export interface PrimaryApplication {
   /** A child AST in a syntactic position to be a self-argument input to the node. */
-  potentialSelfArgument: Ast.AstId
+  potentialSelfArgument: Ast.AstId | null
   /** The function that is the subject of the primary application. */
-  function: Ast.AstId
+  function: Ast.AstId | null
   /** All components of the property access chain from {@link function}. */
-  accessChain: Ast.AstId[]
+  accessChain: Ast.AstId[] | null
 }
 
 /** Custom equality check for {@link PrimaryApplication}. */
-export function primaryApplicationEquals(
-  a: PrimaryApplication | undefined,
-  b: PrimaryApplication | undefined,
-) {
-  if (a == null && b == null) return true
-  if (a == null || b == null) return false
+export function primaryApplicationEquals(a: PrimaryApplication, b: PrimaryApplication) {
   return (
     a.potentialSelfArgument === b.potentialSelfArgument &&
     a.function === b.function &&
-    arrayEquals(a.accessChain, b.accessChain)
+    arrayEquals(a.accessChain ?? [], b.accessChain ?? [])
   )
-}
-
-function updatePrimaryApplication<T extends { primaryApplication: PrimaryApplication | undefined }>(
-  node: T,
-  newNode: T,
-) {
-  if (node.primaryApplication == null) {
-    if (newNode.primaryApplication == null) return
-    node.primaryApplication = newNode.primaryApplication
-  } else if (newNode.primaryApplication == null) {
-    node.primaryApplication = undefined
-  } else {
-    const { function: newFunction, potentialSelfArgument, accessChain } = newNode.primaryApplication
-    if (node.primaryApplication.function !== newFunction) {
-      node.primaryApplication.function = newNode.primaryApplication.function
-    }
-    if (node.primaryApplication.potentialSelfArgument !== potentialSelfArgument) {
-      node.primaryApplication.potentialSelfArgument = potentialSelfArgument
-    }
-    if (!arrayEquals(node.primaryApplication.accessChain, accessChain)) {
-      node.primaryApplication.accessChain = accessChain
-    }
-  }
 }
