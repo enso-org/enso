@@ -361,8 +361,11 @@ object DistributionPackage {
     val projectPath = findProjectPath(args)
     val disablePrivateCheck = projectPath match {
       case Some(whatToRun) =>
-        if (whatToRun.startsWith("test/") && whatToRun.endsWith("_Tests")) {
-          whatToRun.contains("_Internal_")
+        val pathToRun       = file(whatToRun).toPath
+        val projectName     = pathToRun.getFileName.toString
+        val isTestDirectory = pathToRun.getParent.getFileName.toString == "test"
+        if (isTestDirectory && projectName.endsWith("_Tests")) {
+          projectName.contains("_Internal_")
         } else {
           false
         }
