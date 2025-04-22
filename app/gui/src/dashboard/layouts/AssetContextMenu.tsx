@@ -214,12 +214,16 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     : !canManageThisAsset ? null
     : <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden} event={event}>
         {copyIdEntry}
-        {asset.type === backendModule.AssetType.datalink && (
+        {(asset.type === backendModule.AssetType.datalink ||
+          asset.type === backendModule.AssetType.file) && (
           <ContextMenuEntry
             hidden={hidden}
             action="useInNewProject"
             doAction={() => {
-              void newProject({ templateName: asset.title, datalinkId: asset.id }, asset.parentId)
+              void newProject(
+                { templateName: asset.title, ensoPath: asset.ensoPath },
+                asset.parentId,
+              )
             }}
           />
         )}

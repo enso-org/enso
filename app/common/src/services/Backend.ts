@@ -1421,7 +1421,7 @@ export interface CreateProjectRequestBody {
   readonly projectName: string
   readonly projectTemplateName?: string
   readonly parentDirectoryId?: DirectoryId
-  readonly datalinkId?: DatalinkId
+  readonly ensoPath?: string
 }
 
 /**
