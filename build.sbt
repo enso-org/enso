@@ -4823,13 +4823,18 @@ lazy val `std-base` = project
       val result = (Compile / packageBin).value
       val _ensureCoreIsCompiled =
         (`common-polyglot-core-utils` / Compile / packageBin).value
-      val _ = StdBits
+      val cacheStoreFactory = streams.value.cacheStoreFactory
+      StdBits
         .copyDependencies(
           `base-polyglot-root`,
           Seq("std-base.jar", "common-polyglot-core-utils.jar"),
-          ignoreScalaLibrary = true
+          ignoreScalaLibrary = true,
+          libraryUpdates     = (Compile / update).value,
+          logger             = streams.value.log,
+          cacheStoreFactory  = cacheStoreFactory,
+          unmanagedClasspath = (Compile / unmanagedJars).value,
+          previousRun        = None
         )
-        .value
       result
     }
   )
@@ -4886,17 +4891,22 @@ lazy val `generic-jdbc-connection-spec-dependencies` = project
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided",
       "com.h2database"       % "h2"       % h2Version
     ),
-    Compile / packageBin := Def.task {
-      val result = (Compile / packageBin).value
-      val _ = StdBits
+    Compile / packageBin := {
+      val result            = (Compile / packageBin).value
+      val cacheStoreFactory = streams.value.cacheStoreFactory
+      StdBits
         .copyDependencies(
           file("test/Generic_JDBC_Tests/polyglot/java/"),
           Seq(),
-          ignoreScalaLibrary = true
+          ignoreScalaLibrary = true,
+          libraryUpdates     = (Compile / update).value,
+          logger             = streams.value.log,
+          cacheStoreFactory  = cacheStoreFactory,
+          unmanagedClasspath = (Compile / unmanagedJars).value,
+          previousRun        = None
         )
-        .value
       result
-    }.value
+    }
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -4985,22 +4995,27 @@ lazy val `std-table` = project
       "org.mockito"              % "mockito-core"            % mockitoJavaVersion        % Test,
       "org.mockito"              % "mockito-junit-jupiter"   % mockitoJavaVersion        % Test
     ),
-    Compile / packageBin := Def.task {
-      val result = (Compile / packageBin).value
+    Compile / packageBin := {
+      val result            = (Compile / packageBin).value
+      val cacheStoreFactory = streams.value.cacheStoreFactory
       StdBits
         .copyDependencies(
           `table-polyglot-root`,
           Seq("std-table.jar"),
-          ignoreScalaLibrary = true
+          ignoreScalaLibrary = true,
+          libraryUpdates     = (Compile / update).value,
+          unmanagedClasspath = (Compile / unmanagedJars).value,
+          logger             = streams.value.log,
+          cacheStoreFactory  = cacheStoreFactory,
+          previousRun        = None
         )
-        .value
       result
-    }.value
+    }
   )
   .dependsOn(`std-base` % "provided")
 
-lazy val extractNativeLibs = taskKey[Unit](
-  "Helper task to extract native libraries from OpenCV JAR"
+lazy val extractNativeLibs = taskKey[AnalysisOfExtractedNativeLibs](
+  "Helper task to extract native libraries from a dependency JAR"
 )
 
 lazy val cleanPolyglotRoot = taskKey[Unit](
@@ -5025,33 +5040,49 @@ lazy val `std-image` = project
     // Extract native libraries from opencv.jar, and put them under
     // Standard/Image/polyglot/lib directory. The minimized opencv.jar will
     // be put under Standard/Image/polyglot/java directory.
-    extractNativeLibs := (
+    extractNativeLibs := Def.task {
+      val logger            = streams.value.log
+      val cacheStoreFactory = streams.value.cacheStoreFactory
+      import sbt.util.CacheImplicits._
+      val prev = extractNativeLibs.previous
+      StdBits
+        .copyDependencies(
+          `image-polyglot-root`,
+          Seq("std-image.jar", "opencv.jar"),
+          ignoreScalaLibrary = true,
+          ignoreDependency   = Some("org.openpnp" % "opencv" % opencvVersion),
+          libraryUpdates     = (Compile / update).value,
+          logger             = logger,
+          cacheStoreFactory  = cacheStoreFactory,
+          unmanagedClasspath = (Compile / unmanagedJars).value,
+          previousRun        = prev
+        )
       StdBits
         .extractNativeLibsFromOpenCV(
           `image-polyglot-root`,
           `image-native-libs`,
-          opencvVersion
+          opencvVersion,
+          logger,
+          updateReport = (Compile / update).value,
+          moduleName.value,
+          scalaBinaryVersion.value,
+          cacheStoreFactory,
+          prev
         )
-      )
-      .dependsOn(
-        // Ensure dependencies are first copied.
-        StdBits
-          .copyDependencies(
-            `image-polyglot-root`,
-            Seq("std-image.jar", "opencv.jar"),
-            ignoreScalaLibrary = true,
-            ignoreDependency   = Some("org.openpnp" % "opencv" % opencvVersion)
-          )
-      )
-      .value,
+    }.value,
     cleanPolyglotRoot := Def.task {
+      import sbt.util.CacheImplicits._
+      val forceClean = extractNativeLibs.previous.isEmpty
+      val logger     = streams.value.log
       StdBits.ensureDirExistsAndIsClean(
         `image-polyglot-root`.toPath,
-        streams.value.log
+        logger,
+        forceClean
       )
       StdBits.ensureDirExistsAndIsClean(
         `image-native-libs`.toPath,
-        streams.value.log
+        logger,
+        forceClean
       )
     }.value,
     Compile / packageBin := Def
@@ -5080,14 +5111,19 @@ lazy val `std-generic-jdbc` = project
       "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided"
     ),
     Compile / packageBin := {
-      val result = (Compile / packageBin).value
+      val result            = (Compile / packageBin).value
+      val cacheStoreFactory = streams.value.cacheStoreFactory
       StdBits
         .copyDependencies(
           `generic-jdbc-polyglot-root`,
           Seq("std-generic-jdbc.jar"),
-          ignoreScalaLibrary = true
+          ignoreScalaLibrary = true,
+          libraryUpdates     = (Compile / update).value,
+          unmanagedClasspath = (Compile / unmanagedClasspath).value,
+          logger             = streams.value.log,
+          cacheStoreFactory,
+          previousRun = None
         )
-        .value
       result
     }
   )
@@ -5115,33 +5151,50 @@ lazy val `std-google-api` = project
     // Extract native libraries from grpc-netty-shaded-***.jar, and put them under
     // Standard/Google_Api/polyglot/lib directory. The minimized jar will
     // be put under Standard/Google_Api/polyglot/java directory.
-    extractNativeLibs := (
+    extractNativeLibs := Def.task {
+      val logger            = streams.value.log
+      val cacheStoreFactory = streams.value.cacheStoreFactory
+      import sbt.util.CacheImplicits._
+      val prev = extractNativeLibs.previous
+      StdBits
+        .copyDependencies(
+          `google-api-polyglot-root`,
+          Seq("std-google-api.jar"),
+          ignoreScalaLibrary = true,
+          ignoreDependencyIncludeTransitive =
+            Some(s"grpc-netty-shaded-${grpcVersion}"),
+          libraryUpdates     = (Compile / update).value,
+          logger             = streams.value.log,
+          cacheStoreFactory  = cacheStoreFactory,
+          unmanagedClasspath = (Compile / unmanagedJars).value,
+          previousRun        = prev
+        )
       StdBits
         .extractNativeLibsFromGrpc(
           `google-api-polyglot-root`,
           `google-api-native-libs`,
-          grpcVersion
+          grpcVersion,
+          updateReport       = (Compile / update).value,
+          logger             = streams.value.log,
+          moduleName         = moduleName.value,
+          scalaBinaryVersion = scalaBinaryVersion.value,
+          cacheStoreFactory  = cacheStoreFactory,
+          previousRun        = prev
         )
-      )
-      .dependsOn(
-        StdBits
-          .copyDependencies(
-            `google-api-polyglot-root`,
-            Seq("std-google-api.jar"),
-            ignoreScalaLibrary = true,
-            ignoreDependencyIncludeTransitive =
-              Some(s"grpc-netty-shaded-${grpcVersion}")
-          )
-      )
-      .value,
+    }.value,
     cleanPolyglotRoot := Def.task {
+      import sbt.util.CacheImplicits._
+      val forceClean = extractNativeLibs.previous.isEmpty
+      val logger     = streams.value.log
       StdBits.ensureDirExistsAndIsClean(
         `google-api-polyglot-root`.toPath,
-        streams.value.log
+        logger,
+        forceClean
       )
       StdBits.ensureDirExistsAndIsClean(
         `google-api-native-libs`.toPath,
-        streams.value.log
+        logger,
+        forceClean
       )
     }.value,
     Compile / packageBin := Def
@@ -5173,14 +5226,19 @@ lazy val `std-database` = project
       "org.postgresql"       % "postgresql"              % postgresVersion
     ),
     Compile / packageBin := {
-      val result = (Compile / packageBin).value
+      val result            = (Compile / packageBin).value
+      val cacheStoreFactory = streams.value.cacheStoreFactory
       StdBits
         .copyDependencies(
           `database-polyglot-root`,
           Seq("std-database.jar"),
-          ignoreScalaLibrary = true
+          ignoreScalaLibrary = true,
+          libraryUpdates     = (Compile / update).value,
+          unmanagedClasspath = (Compile / unmanagedClasspath).value,
+          logger             = streams.value.log,
+          cacheStoreFactory,
+          previousRun = None
         )
-        .value
       result
     }
   )
@@ -5210,14 +5268,19 @@ lazy val `std-aws` = project
       "software.amazon.awssdk" % "ssooidc"                 % awsJavaSdkV2Version
     ),
     Compile / packageBin := {
-      val result = (Compile / packageBin).value
+      val result            = (Compile / packageBin).value
+      val cacheStoreFactory = streams.value.cacheStoreFactory
       StdBits
         .copyDependencies(
           `std-aws-polyglot-root`,
           Seq("std-aws.jar"),
-          ignoreScalaLibrary = true
+          ignoreScalaLibrary = true,
+          libraryUpdates     = (Compile / update).value,
+          unmanagedClasspath = (Compile / unmanagedClasspath).value,
+          logger             = streams.value.log,
+          cacheStoreFactory,
+          previousRun = None
         )
-        .value
       result
     }
   )
@@ -5240,14 +5303,19 @@ lazy val `std-snowflake` = project
       "net.snowflake"    % "snowflake-jdbc-thin"     % snowflakeJDBCVersion exclude ("io.grpc", "grpc-xds")
     ),
     Compile / packageBin := {
-      val result = (Compile / packageBin).value
+      val result            = (Compile / packageBin).value
+      val cacheStoreFactory = streams.value.cacheStoreFactory
       StdBits
         .copyDependencies(
           `std-snowflake-polyglot-root`,
           Seq("std-snowflake.jar"),
-          ignoreScalaLibrary = true
+          ignoreScalaLibrary = true,
+          libraryUpdates     = (Compile / update).value,
+          unmanagedClasspath = (Compile / unmanagedClasspath).value,
+          logger             = streams.value.log,
+          cacheStoreFactory,
+          previousRun = None
         )
-        .value
       result
     }
   )
@@ -5270,14 +5338,19 @@ lazy val `std-microsoft` = project
       "com.microsoft.sqlserver" % "mssql-jdbc"              % mssqlserverJDBCVersion
     ),
     Compile / packageBin := {
-      val result = (Compile / packageBin).value
+      val result            = (Compile / packageBin).value
+      val cacheStoreFactory = streams.value.cacheStoreFactory
       StdBits
         .copyDependencies(
           `std-microsoft-polyglot-root`,
           Seq("std-microsoft.jar"),
-          ignoreScalaLibrary = true
+          ignoreScalaLibrary = true,
+          libraryUpdates     = (Compile / update).value,
+          unmanagedClasspath = (Compile / unmanagedClasspath).value,
+          logger             = streams.value.log,
+          cacheStoreFactory,
+          previousRun = None
         )
-        .value
       result
     }
   )
@@ -5386,34 +5459,60 @@ lazy val `std-tableau` = project
     ),
     // Extract native libraries from tableau's jar, and put them under
     // Standard/Tableau/polyglot/lib directory.
-    extractNativeLibs := (
+    extractNativeLibs := Def.task {
+      val logger            = streams.value.log
+      val cacheStoreFactory = streams.value.cacheStoreFactory
+      import sbt.util.CacheImplicits._
+      val prev               = extractNativeLibs.previous
+      val tableauSuffixInJar = s"tableauhyperapi-${StdBits.plainOsName()}"
+      val tableauNativeLibJar = (Compile / unmanagedJars).value
+        .map(_.data)
+        .filter(f => f.getName.contains(tableauSuffixInJar))
+        .head
+      val libraryUpdates     = (Compile / update).value
+      val unmanagedClasspath = (Compile / unmanagedJars).value
+      StdBits
+        .copyDependencies(
+          `std-tableau-polyglot-root`,
+          Seq("std-tableau.jar"),
+          ignoreScalaLibrary = true,
+          ignoreUnmanagedDependency =
+            Some(!_.getName.endsWith("tableauhyperapi.jar")),
+          libraryUpdates     = libraryUpdates,
+          logger             = logger,
+          cacheStoreFactory  = cacheStoreFactory,
+          unmanagedClasspath = unmanagedClasspath,
+          previousRun        = prev
+        )
+
       StdBits
         .extractNativeLibsFromTableau(
           `std-tableau-polyglot-root`,
           `std-tableau-native-libs`,
           tableauVersion,
-          jnaVersion
+          jnaVersion,
+          updateReport       = libraryUpdates,
+          unmanagedClasspath = unmanagedClasspath,
+          logger             = logger,
+          moduleName         = moduleName.value,
+          scalaBinaryVersion = scalaBinaryVersion.value,
+          cacheStoreFactory  = cacheStoreFactory,
+          previousRun        = prev
         )
-      )
-      .dependsOn(
-        StdBits
-          .copyDependencies(
-            `std-tableau-polyglot-root`,
-            Seq("std-tableau.jar"),
-            ignoreScalaLibrary = true,
-            ignoreUnmanagedDependency =
-              Some(!_.getName.endsWith("tableauhyperapi.jar"))
-          )
-      )
-      .value,
+    }.value,
     cleanPolyglotRoot := Def.task {
+      import sbt.util.CacheImplicits._
+      val forceClean = extractNativeLibs.previous.isEmpty
+      val logger     = streams.value.log
       StdBits.ensureDirExistsAndIsClean(
         `std-tableau-polyglot-root`.toPath,
-        streams.value.log
+        logger,
+        forceClean
       )
       StdBits.ensureDirExistsAndIsClean(
         `std-tableau-native-libs`.toPath,
-        streams.value.log
+        logger,
+        forceClean
       )
     }.value,
     Compile / packageBin := Def
