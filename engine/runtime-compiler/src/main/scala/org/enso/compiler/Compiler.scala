@@ -358,8 +358,8 @@ class Compiler(
     }
     requiredModules.foreach { module =>
       if (
-        !context
-          .getCompilationStage(module)
+        !module
+          .getCompilationStage()
           .isAtLeast(
             CompilationStage.AFTER_GLOBAL_TYPES
           )
@@ -391,8 +391,8 @@ class Compiler(
 
       requiredModules.foreach { module =>
         if (
-          !context
-            .getCompilationStage(module)
+          !module
+            .getCompilationStage()
             .isAtLeast(
               CompilationStage.AFTER_STATIC_PASSES
             )
@@ -423,8 +423,8 @@ class Compiler(
 
       requiredModules.foreach { module =>
         if (
-          !context
-            .getCompilationStage(module)
+          !module
+            .getCompilationStage()
             .isAtLeast(
               CompilationStage.AFTER_TYPE_INFERENCE_PASSES
             )
@@ -457,8 +457,8 @@ class Compiler(
 
       val requiredModulesWithScope = requiredModules.map { module =>
         if (
-          !context
-            .getCompilationStage(module)
+          !module
+            .getCompilationStage()
             .isAtLeast(
               CompilationStage.AFTER_RUNTIME_STUBS
             )
@@ -479,8 +479,8 @@ class Compiler(
 
       requiredModulesWithScope.foreach { case (module, moduleScopeBuilder) =>
         if (
-          !context
-            .getCompilationStage(module)
+          !module
+            .getCompilationStage()
             .isAtLeast(
               CompilationStage.AFTER_CODEGEN
             )
@@ -775,8 +775,8 @@ class Compiler(
     generateDocs: Boolean
   ): Unit = {
     if (
-      !context
-        .getCompilationStage(module)
+      !module
+        .getCompilationStage()
         .isAtLeast(
           CompilationStage.AFTER_PARSING
         )

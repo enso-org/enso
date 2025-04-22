@@ -200,11 +200,6 @@ final class TruffleCompilerContext implements CompilerContext {
     return module.getIr();
   }
 
-  @Override
-  public CompilationStage getCompilationStage(CompilerContext.Module module) {
-    return module.getCompilationStage();
-  }
-
   final TypeGraph getTypeHierarchy() {
     return Types.getTypeHierarchy();
   }

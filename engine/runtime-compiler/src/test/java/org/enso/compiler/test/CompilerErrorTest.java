@@ -510,12 +510,6 @@ public final class CompilerErrorTest {
     }
 
     @Override
-    public CompilationStage getCompilationStage(CompilerContext.Module module) {
-      // XXX duplicated
-      return module.getCompilationStage();
-    }
-
-    @Override
     public Future<Boolean> serializeLibrary(
         Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations) {
       throw new UnsupportedOperationException();

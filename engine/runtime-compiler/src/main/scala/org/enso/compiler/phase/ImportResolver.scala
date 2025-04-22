@@ -66,8 +66,8 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
         }
       // put the list of resolved imports in the module metadata
       if (
-        context
-          .getCompilationStage(current)
+        current
+          .getCompilationStage()
           .isBefore(
             CompilationStage.AFTER_IMPORT_RESOLUTION
           )

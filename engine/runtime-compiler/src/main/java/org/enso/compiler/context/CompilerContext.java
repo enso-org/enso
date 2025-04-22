@@ -101,8 +101,6 @@ public interface CompilerContext extends CompilerStub {
 
   org.enso.compiler.core.ir.Module getIr(Module module);
 
-  CompilationStage getCompilationStage(Module module);
-
   Future<Boolean> serializeLibrary(
       Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations);
 
