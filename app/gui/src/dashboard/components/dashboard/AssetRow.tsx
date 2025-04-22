@@ -233,11 +233,10 @@ export function RealAssetRow(props: RealAssetRowProps) {
     ({ visuallySelectedKeys, selectedIds }) => {
       const selection = visuallySelectedKeys ?? selectedIds
       const selected = selection.has(id)
-      const soleSelected = selected && selection.size === 1
 
       return {
         isSelected: selected,
-        isSoleSelected: soleSelected,
+        isSoleSelected: selected && selection.size === 1,
         isMultiSelected: selection.size > 1,
       }
     },
