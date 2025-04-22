@@ -208,7 +208,7 @@ const statusBar = computed(() =>
               statusPanel: TableVizStatusBar,
               statusPanelParams: {
                 total: allRowCount.value,
-                filtered: filteredRowCount.value
+                filtered: filteredRowCount.value,
               },
             },
           ]
@@ -369,7 +369,8 @@ function createServer() {
 
       const response = await config.executeExpression(expressionFunction)
       if (response.ok) {
-        filteredRowCount.value = response.value.filtered_table_count
+        console.log({ response })
+        filteredRowCount.value = response.value.row_count
         return {
           success: true,
           data: response.value.rows,
