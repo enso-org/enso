@@ -23,7 +23,7 @@ type MySQL_Details
        - database: The name of the database to connect to.
     @account (Text_Input display=..Always)
     @credentials Widgets.password_or_keypair_widget
-    MySQL (account:Text=(Missing_Argument.throw "account")) (credentials:Credentials|Key_Pair_Credentials|Enso_Secret=(Missing_Argument.throw "credentials")) database:Text=(Missing_Argument.throw "database")
+    MySQL (host:Text) (port:Integer) (credentials:Credentials|Nothing) database:Text=(Missing_Argument.throw "database")
 
     ## PRIVATE
        Attempt to resolve the constructor.
@@ -45,4 +45,11 @@ type MySQL_Details
        Provides the jdbc url for the connection.
     jdbc_url : Text
     jdbc_url self =
-        'jdbc:snowflake://' + self.account + ".snowflakecomputing.com"
+        'jdbc:mysql://' + self.host + ':' + self.port.to_text + '/' + self.database
+
+    ## PRIVATE
+       Provides the properties for the connection.
+    jdbc_properties : Vector (Pair Text Text)
+    jdbc_properties self =
+        if self.credentials.is_nothing then [] else
+            [Pair.new 'user' credentials.username, Pair.new 'password' credentials.password]
