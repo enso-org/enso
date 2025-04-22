@@ -369,7 +369,6 @@ function createServer() {
 
       const response = await config.executeExpression(expressionFunction)
       if (response.ok) {
-        console.log({ response })
         filteredRowCount.value = response.value.row_count
         return {
           success: true,
