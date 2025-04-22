@@ -86,6 +86,12 @@
     var(--color-node-primary) 70%,
     black 30%
   );
+  --color-node-text-placeholder: rgba(255, 255, 255, 0.6);
+  --color-node-text-placeholder-selected: color-mix(
+    in oklab,
+    var(--color-node-primary) 30%,
+    oklab(0.75 0 0) 70%
+  );
   --color-node-output-port: color-mix(
     in oklab,
     var(--color-node-primary) 85%,
@@ -132,6 +138,7 @@
     );
     --color-node-port: rgb(255 255 255 / 0.6);
     --color-node-text: var(--color-node-text-selected);
+    --color-node-text-placeholder: var(--color-node-text-placeholder-selected);
     --color-edge-from-node: color-mix(
       in oklab,
       var(--color-node-primary),
