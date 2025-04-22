@@ -225,8 +225,6 @@ export function useTransferBetweenCategories(currentCategory: Category) {
             'The Local backend must be present to transfer assets from or to the local category.',
           )
 
-          console.log('local', assetsArray, newParentId, to)
-
           if (isCloudCategory(to)) {
             return uploadFileToCloudMutation(localBackend, {
               assets: assetsArray,

@@ -1524,8 +1524,6 @@ export default class RemoteBackend extends Backend {
     const { id: targetPath } =
       targetDirectoryId ? extractTypeAndId(targetDirectoryId) : { id: null }
 
-    console.log('targetPath', { id, title, targetDirectoryId, targetPath })
-
     switch (asset.type) {
       case backend.AssetType.project: {
         const details = await this.getProjectDetails(asset.id, true)
@@ -1536,7 +1534,6 @@ export default class RemoteBackend extends Backend {
       case backend.AssetType.file: {
         const details = await this.getFileDetails(asset.id, title, true)
         invariant(details.url != null, 'The download URL of the file must be present.')
-        console.log('download', details)
         await download.download(details.url, details.file.fileName ?? '', targetPath)
         break
       }

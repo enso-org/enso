@@ -859,12 +859,6 @@ function AssetsTable(props: AssetsTableProps) {
       return
     }
 
-    console.log('doPaste', {
-      pasteData,
-      newParentKey,
-      newParentId,
-    })
-
     void paste({
       fromCategory: pasteData.data.category,
       toCategory: category,
