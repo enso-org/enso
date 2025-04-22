@@ -105,9 +105,7 @@ public final class CompilerErrorTest {
 
     @Override
     public int findLine(IdentifiedLocation loc) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -117,9 +115,7 @@ public final class CompilerErrorTest {
 
     @Override
     public URI getUri() {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -147,9 +143,7 @@ public final class CompilerErrorTest {
 
     @Override
     public IdMap getIdMap() {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -174,23 +168,17 @@ public final class CompilerErrorTest {
 
     @Override
     public boolean isPrivate() {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public CompilerContext.ModuleScopeBuilder getScopeBuilder() {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public CompilerContext.ModuleScopeBuilder newScopeBuilder() {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
   }
 
@@ -220,58 +208,42 @@ public final class CompilerErrorTest {
     @Override
     public Either<PackageRepository.Error, BoxedUnit> ensurePackageIsLoaded(
         LibraryName libraryName) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public boolean isPackageLoaded(LibraryName libraryName) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public Seq<Package<Object>> getLoadedPackages() {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public Seq<CompilerContext.Module> getLoadedModules() {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public Map<String, CompilerContext.Module> getModuleMap() {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public scala.collection.immutable.Map<String, CompilerContext.Module> freezeModuleMap() {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public scala.collection.immutable.Map<LibraryName, ComponentGroups> getComponents() {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public ListSet<CompilerContext.Module> getPendingModules() {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -284,9 +256,7 @@ public final class CompilerErrorTest {
 
     @Override
     public void registerMainProjectPackage(LibraryName libraryName, Package<Object> pkg) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -303,66 +273,48 @@ public final class CompilerErrorTest {
 
     @Override
     public void registerModuleCreatedInRuntime(CompilerContext.Module module) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public void registerSyntheticPackage(String namespace, String name) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public void deregisterModule(String qualifiedName) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public void renameProject(String namespace, String oldName, String newName) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public boolean isNamespaceRegistered(String namespace) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public Option<Package<Object>> getPackageForLibrary(LibraryName lib) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public List<CompilerContext.Module> getModulesForLibrary(LibraryName libraryName) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public Option<Module> getLibraryBindings(
         LibraryName libraryName, QualifiedName moduleName, CompilerContext context) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public void shutdown() {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
   }
 
@@ -385,9 +337,7 @@ public final class CompilerErrorTest {
 
     @Override
     public boolean isPrivateCheckDisabled() {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -430,23 +380,17 @@ public final class CompilerErrorTest {
 
     @Override
     public void logSerializationManager(Level level, String msg, Object... args) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public void notifySerializeModule(QualifiedName moduleName) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public CompilerContext.Module findTopScopeModule(String name) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -457,16 +401,12 @@ public final class CompilerErrorTest {
 
     @Override
     public boolean isCreateThreadAllowed() {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public ExecutorService newParsingPool() {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -475,24 +415,18 @@ public final class CompilerErrorTest {
         CompilerContext.ModuleScopeBuilder scopeBuilder,
         CompilerConfig config)
         throws IOException {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public void runStubsGenerator(
         CompilerContext.Module module, CompilerContext.ModuleScopeBuilder scopeBuilder) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public boolean typeContainsValues(String name) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -530,9 +464,7 @@ public final class CompilerErrorTest {
 
             @Override
             public void idMap(IdMap idMap) {
-              throw new UnsupportedOperationException(
-                  "Not supported yet."); // Generated from
-                                         // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+              throw new UnsupportedOperationException();
             }
 
             @Override
@@ -564,16 +496,12 @@ public final class CompilerErrorTest {
 
     @Override
     public boolean isInteractive(CompilerContext.Module module) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public boolean isModuleInRootPackage(CompilerContext.Module module) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -596,17 +524,13 @@ public final class CompilerErrorTest {
     @Override
     public Future<Boolean> serializeLibrary(
         Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public Option<Object> deserializeSuggestions(LibraryName libraryName)
         throws InterruptedException {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -615,30 +539,22 @@ public final class CompilerErrorTest {
         CompilerContext.Module module,
         boolean useGlobalCacheLocations,
         boolean usePool) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public boolean deserializeModule(Compiler compiler, CompilerContext.Module module) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public void shutdown(boolean waitForPendingJobCompletion) {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public RuntimeException throwAbortedException() {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+      throw new UnsupportedOperationException();
     }
   }
 }
