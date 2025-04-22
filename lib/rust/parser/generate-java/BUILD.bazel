@@ -1,0 +1,33 @@
+load("@crates//:defs.bzl", "aliases", "all_crate_deps")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library")
+
+rust_library(
+    name = "enso-parser-generate-java-lib",
+    crate_name = "enso_parser_generate_java",
+    srcs = glob(["src/lib.rs", "src/serialization.rs"]),
+    aliases = aliases(),
+    edition = "2021",
+    proc_macro_deps = all_crate_deps(proc_macro = True),
+    visibility = ["//visibility:public"],
+    deps = all_crate_deps(normal = True) + [
+        "//lib/rust/metamodel:enso-metamodel",
+        "//lib/rust/reflect:enso-reflect",
+        "//lib/rust/parser:enso-parser",
+    ],
+)
+
+
+rust_binary(
+    name = "enso-parser-generate-java",
+    srcs = glob(["src/main.rs"]),
+    aliases = aliases(),
+    edition = "2021",
+    proc_macro_deps = all_crate_deps(proc_macro = True),
+    visibility = ["//visibility:public"],
+    deps = all_crate_deps(normal = True) + [
+        "enso-parser-generate-java-lib",
+        "//lib/rust/metamodel:enso-metamodel",
+        "//lib/rust/reflect:enso-reflect",
+        "//lib/rust/parser:enso-parser",
+    ],
+)

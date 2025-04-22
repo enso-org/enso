@@ -1,15 +1,12 @@
 /** @file Types and constants related to `Column`s. */
 import type * as text from 'enso-common/src/text'
 
-import DirectoryIcon from '#/assets/folder.svg'
-
 import AccessedByProjectsIcon from '#/assets/accessed_by_projects.svg'
 import AccessedDataIcon from '#/assets/accessed_data.svg'
 import BlankIcon from '#/assets/blank.svg'
-import PeopleIcon from '#/assets/people.svg'
 import TagIcon from '#/assets/tag.svg'
-import TimeIcon from '#/assets/time.svg'
 
+import type { SvgUseIcon } from '#/components/AriaComponents'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import * as backend from '#/services/Backend'
 
@@ -35,16 +32,16 @@ export const DEFAULT_ENABLED_COLUMNS: ReadonlySet<Column> = new Set([
   Column.path,
 ])
 
-export const COLUMN_ICONS: Readonly<Record<Column, string>> = {
+export const COLUMN_ICONS: Readonly<Record<Column, SvgUseIcon | (string & {})>> = {
   /* The file column does not have an icon, however this does not matter as it is not
    * collapsible. */
   [Column.name]: BlankIcon,
-  [Column.modified]: TimeIcon,
-  [Column.sharedWith]: PeopleIcon,
+  [Column.modified]: 'time',
+  [Column.sharedWith]: 'people',
   [Column.labels]: TagIcon,
   [Column.accessedByProjects]: AccessedByProjectsIcon,
   [Column.accessedData]: AccessedDataIcon,
-  [Column.path]: DirectoryIcon,
+  [Column.path]: 'folder',
 }
 
 export const COLUMN_SHOW_TEXT_ID: Readonly<Record<Column, text.TextId>> = {

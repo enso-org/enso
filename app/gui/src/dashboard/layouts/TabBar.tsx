@@ -17,9 +17,11 @@ import SvgMask from '#/components/SvgMask'
 
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import { Await } from '#/components/Await'
+import { Icon } from '#/components/Icon'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useBackendForProjectType } from '#/providers/BackendProvider'
+import { useBackendForProjectType, useRemoteBackend } from '#/providers/BackendProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
+import { useText } from '#/providers/TextProvider'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { twJoin } from '#/utilities/tailwindMerge'
@@ -34,7 +36,7 @@ export interface TabBarProps<T extends object> extends TabListProps<T> {
 export default function TabBar<T extends object>(props: TabBarProps<T>) {
   const { className, ...rest } = props
 
-  const classes = React.useMemo(() => tailwindMerge.twJoin('flex grow', className), [className])
+  const classes = tailwindMerge.twJoin('flex grow', className)
 
   return (
     <AnimatedBackground>
@@ -50,10 +52,12 @@ export interface TabProps extends Readonly<React.PropsWithChildren> {
   readonly 'data-testid'?: string
   readonly id: string
   readonly isActive: boolean
-  readonly isHidden?: boolean
-  readonly icon: React.ReactNode | string | null
+  readonly isHidden?: boolean | undefined
+  readonly isFaded?: boolean | undefined
+  readonly icon: ariaComponents.IconPropSvgUse<string>
+  readonly tooltip?: string | undefined
   readonly labelId: text.TextId
-  readonly onClose?: () => void
+  readonly onClose?: (() => void) | undefined
 }
 
 const UNDERLAY_ELEMENT = (
@@ -66,7 +70,17 @@ const UNDERLAY_ELEMENT = (
 
 /** A tab in a {@link TabBar}. */
 export function Tab(props: TabProps) {
-  const { id, isActive, isHidden = false, icon, labelId, children, onClose } = props
+  const {
+    id,
+    isActive,
+    isHidden = false,
+    isFaded = false,
+    icon,
+    labelId,
+    tooltip,
+    children,
+    onClose,
+  } = props
   const { getText } = textProvider.useText()
   const inputBindings = useInputBindings()
 
@@ -87,11 +101,7 @@ export function Tab(props: TabProps) {
       data-testid={props['data-testid']}
       id={id}
       aria-label={getText(labelId)}
-      className={tailwindMerge.twJoin(
-        'disabled:cursor-not-allowed disabled:opacity-30 [&.disabled]:cursor-not-allowed [&.disabled]:opacity-30',
-        !isActive && 'cursor-pointer',
-        isHidden && 'hidden',
-      )}
+      className={tailwindMerge.twJoin(!isActive && 'cursor-pointer', isHidden && 'hidden')}
     >
       {({ isSelected, isHovered }) => (
         <AnimatedBackground.Item
@@ -111,14 +121,15 @@ export function Tab(props: TabProps) {
               animate={!isSelected && isHovered ? 'active' : 'inactive'}
               className="pointer-events-none absolute -inset-x-2.5 inset-y-2 -z-1 rounded-3xl bg-dashboard transition-colors duration-300"
             />
-            {typeof icon === 'string' ?
-              <SvgMask
-                src={icon}
+            <ariaComponents.VisualTooltip className="flex cursor-help" tooltip={tooltip}>
+              <Icon
+                icon={icon}
                 className={tailwindMerge.twJoin(
                   onClose && 'group-hover:hidden focus-visible:hidden',
+                  isFaded && 'opacity-30',
                 )}
               />
-            : icon}
+            </ariaComponents.VisualTooltip>
             <ariaComponents.Text truncate="1" className="max-w-40" color="current" nowrap>
               {children}
             </ariaComponents.Text>
@@ -143,9 +154,12 @@ const SPINNER = <StatelessSpinner state="loading-medium" size={16} />
 /** A {@link Tab} that displays the name of the project. */
 export function ProjectTab(props: ProjectTabProps) {
   const { project, onLoadEnd, onClose, icon: iconRaw, ...rest } = props
+  const { preventAutoReopen = false } = project
 
+  const { getText } = useText()
   const didNotifyOnLoadEnd = React.useRef(false)
   const backend = useBackendForProjectType(project.type)
+  const remoteBackend = useRemoteBackend()
 
   const stableOnLoadEnd = useEventCallback(() => {
     onLoadEnd?.(project)
@@ -155,15 +169,29 @@ export function ProjectTab(props: ProjectTabProps) {
     onClose?.(project)
   })
 
-  const { data, isSuccess, isError, promise } = reactQuery.useQuery({
+  const isHybrid = project.hybrid != null
+  const projectId = isHybrid ? project.hybrid.cloudProjectId : project.id
+
+  const { data, isSuccess, isError } = reactQuery.useQuery({
     ...projectHooks.createGetProjectDetailsQuery({ assetId: project.id, backend }),
     select: (projectDetails) => ({
-      title: projectDetails.name,
       isOpened: projectHooks.OPENED_PROJECT_STATES.has(projectDetails.state.type),
     }),
   })
 
+  // We get title separately because the title differs depending on whenever project is in hybrid mode
+  // but it's fine, because react-query will deduplicate the queries automatically
+  const { promise } = reactQuery.useQuery({
+    ...projectHooks.createGetProjectDetailsQuery({
+      assetId: projectId,
+      // If it's a hybrid project, we need to fetch the project details from the remote backend.
+      backend: isHybrid ? remoteBackend : backend,
+    }),
+    select: (projectDetails) => ({ title: projectDetails.name }),
+  })
+
   const isReady = isSuccess && data.isOpened
+  const wasNeverRun = preventAutoReopen && !isReady
 
   React.useEffect(() => {
     if (isReady && !didNotifyOnLoadEnd.current) {
@@ -179,7 +207,7 @@ export function ProjectTab(props: ProjectTabProps) {
   }, [isReady])
 
   const icon = (() => {
-    if (isReady) {
+    if (isReady || preventAutoReopen) {
       return iconRaw
     }
 
@@ -191,8 +219,18 @@ export function ProjectTab(props: ProjectTabProps) {
   })()
 
   return (
-    <Tab {...rest} icon={icon} onClose={stableOnClose}>
-      <Await promise={promise} fallback={null}>
+    <Tab
+      {...rest}
+      isFaded={wasNeverRun}
+      tooltip={wasNeverRun ? getText('projectStoppedDescription') : undefined}
+      icon={icon}
+      onClose={stableOnClose}
+    >
+      <Await
+        promise={promise}
+        fallback={<></>}
+        FallbackComponent={() => getText('projectTabBarErrorTitle')}
+      >
         {({ title }) => title}
       </Await>
     </Tab>

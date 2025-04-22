@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
 import { WidgetInput } from '@/providers/widgetRegistry'
 import { computed } from 'vue'
 import { ArgumentDefinition, ConcreteRefs } from 'ydoc-shared/ast'
@@ -28,7 +27,6 @@ const allWidgets = computed(() =>
 
 <template>
   <div class="ArgumentRow widgetResetPadding widgetRounded">
-    <SvgIcon name="grab" />
     <NodeWidget v-for="[key, widget] of allWidgets" :key="key" :input="widget" />
   </div>
 </template>
@@ -39,7 +37,6 @@ const allWidgets = computed(() =>
   flex-direction: row;
   place-items: center;
   overflow-x: clip;
-  margin-left: 24px;
 
   .SvgIcon {
     color: color-mix(in srgb, currentColor, transparent 50%);

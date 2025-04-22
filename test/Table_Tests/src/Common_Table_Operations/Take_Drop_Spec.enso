@@ -4,7 +4,7 @@ import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Aggregate_Column
+from Standard.Table import Aggregate_Column, Table
 from Standard.Table.Errors import all
 
 import Standard.Database.Feature.Feature
@@ -199,6 +199,14 @@ add_take_drop_specs suite_builder setup =
             data.empty.drop (..Every 2) . should_equal data.empty
             data.table.drop (..Every 0) . should_fail_with Illegal_Argument
             data.empty.drop (..Every 0) . should_fail_with Illegal_Argument
+
+        if setup.is_database.not then
+            group_builder.specify "handles column of nothings" <|
+                table1 = Table.input [['Column 1', ['a', 'b', 'c']], ['Column 2', ['1', '2', '3']], ['Column 3', [Nothing, Nothing, Nothing]]]
+                table2 = table1.drop ..First
+                table3 = table2.select_columns ['Column 1', 'Column 3']
+                table3 . at "Column 1" . to_vector . should_equal ["b", "c"]
+                table3 . at "Column 3" . to_vector . should_equal [Nothing, Nothing]
 
         if setup.is_database.not then
             group_builder.specify "should allow sampling rows" <|

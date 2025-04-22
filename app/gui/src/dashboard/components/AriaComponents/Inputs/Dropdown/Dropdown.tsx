@@ -1,5 +1,5 @@
 /** @file A styled dropdown. */
-import { useEffect, useMemo, useRef, useState, type ForwardedRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ForwardedRef, type ReactNode } from 'react'
 
 import CheckMarkIcon from '#/assets/check_mark.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
@@ -152,7 +152,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
     variants = DROPDOWN_STYLES,
     children: Child,
   } = props
-  const listBoxItems = useMemo(() => items.map((item, i) => ({ item, i })), [items])
+  const listBoxItems = items.map((item, i) => ({ item, i }))
   const [tempSelectedIndex, setTempSelectedIndex] = useState<number | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const [isFocusWithin, setIsFocusWithin] = useState(false)

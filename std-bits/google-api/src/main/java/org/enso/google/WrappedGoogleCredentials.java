@@ -10,10 +10,14 @@ public sealed interface WrappedGoogleCredentials {
   record SecretCredentials(ExternalLibraryCredentialHelper.CredentialReference reference)
       implements WrappedGoogleCredentials {}
 
-  @SuppressWarnings("deprecation")
-  record LocalFileCredentials(GoogleCredentials credential) implements WrappedGoogleCredentials {
-    static LocalFileCredentials fromStream(InputStream stream) throws IOException {
-      return new LocalFileCredentials(GoogleCredentials.fromStream(stream));
-    }
+  record LocalFileCredentials(GoogleCredentials credential) implements WrappedGoogleCredentials {}
+
+  static SecretCredentials fromCredentialReference(
+      ExternalLibraryCredentialHelper.CredentialReference reference) {
+    return new SecretCredentials(reference);
+  }
+
+  static LocalFileCredentials fromStream(InputStream stream) throws IOException {
+    return new LocalFileCredentials(GoogleCredentials.fromStream(stream));
   }
 }

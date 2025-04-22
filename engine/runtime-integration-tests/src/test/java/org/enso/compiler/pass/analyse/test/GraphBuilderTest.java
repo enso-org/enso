@@ -55,7 +55,7 @@ public class GraphBuilderTest {
     assertEquals("One child scope", 1, s.childScopes().size());
     var chScope = s.childScopes().apply(0);
     assertEquals("One variable in child", 1, chScope.allDefinitions().size());
-    var def = chScope.allDefinitions().get(0);
+    var def = chScope.allDefinitions().iterator().next();
     assertSame(chScope, def.scope());
   }
 

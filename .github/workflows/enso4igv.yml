@@ -146,7 +146,7 @@ jobs:
           mvn versions:set -DnewVersion="$POM_VERSION.$MICRO_VERSION"
 
       - name: Build with Maven
-        run: mvn -B -Pvsix package --file tools/enso4igv/pom.xml -Denso.parser.lib=`pwd`/enso_parser/
+        run: mvn -B -Pvsix package --file tools/enso4igv/pom.xml -Denso.parser.lib=`pwd`/enso_parser/ -DskipTests
 
       - name: Archive NBM file
         uses: actions/upload-artifact@v4
@@ -168,3 +168,6 @@ jobs:
         with:
           name: VSCode Extension
           path: tools/enso4igv/*.vsix
+
+      - name: Run Tests with Maven
+        run: mvn -B test --file tools/enso4igv/pom.xml -Denso.parser.lib=`pwd`/enso_parser/

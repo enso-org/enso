@@ -53,14 +53,14 @@ import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId, Typename } from '@/stores/suggestionDatabase/entry'
 import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { provideVisualizationStore } from '@/stores/visualization'
-import { bail } from '@/util/assert'
+import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { colorFromString } from '@/util/colors'
 import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
 import { Err, Ok, unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
-import { VueInstance } from '@vueuse/core'
+import { isDef, VueInstance } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { set } from 'lib0'
 import {
@@ -119,19 +119,14 @@ const rightDock = provideRightDock(graphStore, projectStore, persisted)
 
 // === Zoom/pan ===
 
+const scrollBounds = computed(() => Rect.Bounding(...graphStore.visibleNodeAreas) ?? Rect.Zero)
+
 function nodesBounds(nodeIds: Iterable<NodeId>) {
-  let bounds = Rect.Bounding()
-  for (const id of nodeIds) {
-    const rect = graphStore.visibleArea(id)
-    if (rect) bounds = Rect.Bounding(bounds, rect)
-  }
-  if (bounds.isFinite()) return bounds
+  return Rect.Bounding(...Array.from(nodeIds, (id) => graphStore.visibleArea(id)).filter(isDef))
 }
 
 function selectionBounds() {
-  const selected = nodeSelection.selected
-  const nodesToCenter = selected.size === 0 ? graphStore.db.nodeIds() : selected
-  return nodesBounds(nodesToCenter)
+  return nodesBounds(nodeSelection.selected) ?? scrollBounds.value
 }
 
 function zoomToSelected(skipAnimation: boolean = false) {
@@ -141,7 +136,7 @@ function zoomToSelected(skipAnimation: boolean = false) {
 }
 
 function zoomToAll(skipAnimation: boolean = false) {
-  const bounds = nodesBounds(graphStore.db.nodeIds())
+  const bounds = scrollBounds.value
   if (bounds)
     graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale), skipAnimation)
 }
@@ -521,7 +516,8 @@ function clearFocus() {
 function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[]) {
   const sourcePort = graphStore.db.getNodeFirstOutputPort(sourceNode)
   if (sourcePort == null) return
-  const sourcePortAst = graphStore.viewModule.get(sourcePort) as Ast.Expression
+  const sourcePortAst = graphStore.viewModule.get(sourcePort)
+  assert(sourcePortAst.isExpression())
   const [toCommit, toEdit] = partition(options, (opts) => opts.commit)
   createNodes(
     toCommit.map((options: NodeCreationOptions) => ({
@@ -712,10 +708,7 @@ const contextMenuActions: ActionName[] = [
           :menuActions="contextMenuActions"
           @contextmenu.stop.prevent
         />
-        <SceneScroller
-          :navigator="graphNavigator"
-          :scrollableArea="Rect.Bounding(...graphStore.visibleNodeAreas)"
-        />
+        <SceneScroller :navigator="graphNavigator" :scrollableArea="scrollBounds" />
         <GraphMouse />
       </ContextMenuTrigger>
       <BottomPanel v-model:show="showCodeEditor">

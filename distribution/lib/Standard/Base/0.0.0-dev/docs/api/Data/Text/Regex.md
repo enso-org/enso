@@ -9,6 +9,7 @@
     - escape expression:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - find self input:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - find_all self input:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - from_glob expression:Standard.Base.Data.Text.Text -> Standard.Base.Data.Text.Regex.Regex
     - group_count self -> Standard.Base.Any.Any
     - group_nums_to_names self -> Standard.Base.Any.Any
     - iterator self input:Standard.Base.Any.Any -> Standard.Base.Any.Any
