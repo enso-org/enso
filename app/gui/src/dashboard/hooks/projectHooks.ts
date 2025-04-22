@@ -601,6 +601,7 @@ export function useCloseProject() {
 export function useCloseAllProjects() {
   const closeProject = useCloseProject()
   const projectsStore = useProjectsStore()
+  const removeLaunchedProject = useRemoveLaunchedProject()
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const ensureQueryData = useEnsureQueryData<
@@ -629,6 +630,8 @@ export function useCloseAllProjects() {
         )
         if (backendModule.IS_OPENING_OR_OPENED[projectDetails.state.type]) {
           await closeProject(project)
+        } else {
+          removeLaunchedProject(project.id)
         }
       }),
     )
