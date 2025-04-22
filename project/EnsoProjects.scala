@@ -3,6 +3,10 @@ import sbt.nio.file.FileTreeView
 
 import java.nio.file.Path
 
+/** Helper for locating Enso projects stored in the source tree.
+  *
+  * The projects include standard libraries, test suites, benchmarks.
+  */
 object EnsoProjects {
   case class Project(name: String, path: Path)
 
