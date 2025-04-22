@@ -324,7 +324,7 @@ class DiagnosticFormatter(
   }
 
   private def includeGithubAnnotation: Boolean =
-    sys.env("GITHUB_ACTIONS") == "true"
+    sys.env.get("GITHUB_ACTIONS").contains("true")
 
   private case class GithubAnnotation(
     kind: DiagnosticKind,
