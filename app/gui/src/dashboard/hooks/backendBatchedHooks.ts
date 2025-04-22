@@ -494,15 +494,24 @@ function useUploadAssetToCloud() {
 
   return useEventCallback(
     async (
-      asset: Pick<AnyAsset, 'id' | 'parentId' | 'title'>,
-      parentDirectoryId: DirectoryId | null = null,
-      newName?: string,
-      /** A list of siblings, if it has been fetched already. */
-      siblings?: readonly AnyAsset<AssetType>[],
+      asset: Pick<AnyAsset, 'id' | 'parentId' | 'title'> & {
+        readonly parentDirectoryId: DirectoryId | null
+        readonly newName?: string
+        /** The id of an existing cloud asset to replace. */
+        readonly cloudId?: AssetId
+        /** A list of siblings, if it has been fetched already. */
+        readonly siblings?: readonly AnyAsset<AssetType>[]
+      },
     ) => {
-      const { parentId, id, title } = asset
-      newName ??= title
-      siblings ??= await getSiblings(remoteBackend, parentDirectoryId ?? user.rootDirectoryId)
+      const {
+        parentId,
+        id,
+        cloudId = null,
+        title,
+        parentDirectoryId = null,
+        newName = title,
+        siblings = await getSiblings(remoteBackend, parentDirectoryId ?? user.rootDirectoryId),
+      } = asset
       const siblingTitles = siblings.map((sibling) => sibling.title)
 
       if (siblingTitles.includes(newName)) {
@@ -525,7 +534,7 @@ function useUploadAssetToCloud() {
         const fileName = `${newName}.enso-project`
         await uploadFileMutation
           .mutateAsync([
-            { fileName, fileId: null, parentDirectoryId },
+            { fileName, fileId: cloudId, parentDirectoryId },
             new File([await projectResponse.blob()], fileName),
           ])
           .catch()
@@ -553,7 +562,7 @@ export function useUploadAssetsToCloud() {
 
       const results = await Promise.allSettled(
         assets.map((asset) =>
-          uploadAssetToCloud(asset, null, undefined, siblings).catch((error) => {
+          uploadAssetToCloud({ ...asset, parentDirectoryId: null, siblings }).catch((error) => {
             if (error instanceof DuplicateAssetError) {
               return { id: asset.id, error }
             }
@@ -580,6 +589,7 @@ export function useUploadAssetsToCloud() {
         )
 
         const resolutions = await resolveDuplications({
+          canReplace: true,
           targetId: parentDirectoryId,
           conflictingIds: duplicateErrors.map((error) => error.id),
           category: cloudHomeCategory,
@@ -587,20 +597,51 @@ export function useUploadAssetsToCloud() {
         })
 
         const assetsMap = new Map(assets.map((asset) => [asset.id, asset]))
+        const siblingsMap = new Map(siblings.map((sibling) => [sibling.title, sibling]))
         const renames = resolutions.flatMap((resolution) => {
           if (resolution.conclusion !== 'rename') {
             return []
           }
           const asset = assetsMap.get(resolution.assetId)
-          return asset ? [{ ...resolution, asset }] : []
+          if (!asset) {
+            return []
+          }
+          return [{ ...resolution, asset }]
+        })
+        const replaces = resolutions.flatMap((resolution) => {
+          if (resolution.conclusion !== 'replace') {
+            return []
+          }
+          const asset = assetsMap.get(resolution.assetId)
+          if (!asset) {
+            return []
+          }
+          const sibling = siblingsMap.get(asset.title)
+          if (!sibling) {
+            return []
+          }
+          return [{ ...resolution, asset, cloudId: sibling.id }]
         })
 
         const newSiblings = await getSiblings(remoteBackend, parentDirectoryId)
-        await Promise.allSettled(
+        await Promise.allSettled([
           renames.map((resolution) =>
-            uploadAssetToCloud(resolution.asset, null, resolution.newName, newSiblings),
+            uploadAssetToCloud({
+              ...resolution.asset,
+              parentDirectoryId: null,
+              newName: resolution.newName,
+              siblings: newSiblings,
+            }),
           ),
-        )
+          replaces.map((resolution) =>
+            uploadAssetToCloud({
+              ...resolution.asset,
+              cloudId: resolution.cloudId,
+              parentDirectoryId: null,
+              siblings: newSiblings,
+            }),
+          ),
+        ])
       }
 
       if (errors.length !== 0) {

@@ -376,6 +376,8 @@ export interface ResolveDuplicationsProps {
   readonly conflictingIds: readonly backendModule.AssetId[]
   readonly category?: Category
   readonly backend?: Backend
+  /** Whether to show the 'replace'/'update' option. */
+  readonly canReplace?: boolean
   readonly onSubmit: (assets: readonly ResolvedDuplication[]) => Promise<void> | void
   readonly onCancel: () => void
 }
@@ -414,6 +416,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
     conflictingIds,
     category = categoryInfo.category,
     backend = categoryInfo.associatedBackend,
+    canReplace = false,
   } = props
 
   const { getText } = textProvider.useText()
@@ -584,6 +587,18 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                             >
                               {getText('skip')}
                             </Button>
+
+                            {canReplace && (
+                              <Button
+                                variant="outline"
+                                className="min-w-16"
+                                onPress={() => {
+                                  field.onChange('replace')
+                                }}
+                              >
+                                {getText('update')}
+                              </Button>
+                            )}
 
                             <Popover.Trigger>
                               <Button variant="primary" className="min-w-16">
