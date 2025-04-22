@@ -712,9 +712,7 @@ const contextMenuActions: ActionName[] = [
         <GraphMouse />
       </ContextMenuTrigger>
       <BottomPanel v-model:show="showCodeEditor">
-        <Suspense>
-          <CodeEditor ref="codeEditor" />
-        </Suspense>
+        <CodeEditor ref="codeEditor" />
       </BottomPanel>
     </div>
     <RightDockPanel ref="docPanel" v-model:displayedDocs="displayedDocs" :aiMode="aiMode" />
@@ -737,12 +735,7 @@ const contextMenuActions: ActionName[] = [
   }
   & .vertical {
     flex: auto;
-    overflow-x: hidden;
-    /*
-     * If this isn't set then during the BottomPanel opening/closing transition the native scrollbar
-     * may be displayed momentarily, causing the viewport to "shake".
-     */
-    overflow-y: hidden;
+    overflow-x: clip;
   }
 }
 
