@@ -653,7 +653,9 @@ public class Main {
    * @param shouldUseGlobalCache whether or not the compilation result should be written to the
    *     global cache
    * @param shouldUseIrCaches whether or not IR caches should be used.
+   * @param disablePrivateCheck whether or not the private check should be disabled
    * @param enableStaticAnalysis whether or not static type checking should be enabled
+   * @param treatWarningsAsErrors whether or not warnings should be treated as errors
    * @param logLevel the logging level
    * @param logMasking whether or not log masking is enabled
    */
@@ -662,6 +664,7 @@ public class Main {
       boolean shouldCompileDependencies,
       boolean shouldUseGlobalCache,
       boolean shouldUseIrCaches,
+      boolean disablePrivateCheck,
       boolean enableStaticAnalysis,
       boolean treatWarningsAsErrors,
       Level logLevel,
@@ -683,6 +686,7 @@ public class Main {
                 .logLevel(logLevel)
                 .logMasking(logMasking)
                 .enableIrCaches(shouldUseIrCaches)
+                .disablePrivateCheck(disablePrivateCheck)
                 .enableStaticAnalysis(enableStaticAnalysis)
                 .treatWarningsAsErrors(treatWarningsAsErrors)
                 .strictErrors(true)
@@ -698,8 +702,16 @@ public class Main {
       }
       throw exitSuccess();
     } catch (Throwable t) {
-      logger.error("Unexpected internal error", t);
-      throw exitFail("Unexpected internal error");
+      boolean compilationFailed = t instanceof PolyglotException polyglotException && polyglotException.isSyntaxError();
+      if (compilationFailed) {
+        var reason = treatWarningsAsErrors ? "warnings or errors" : "errors";
+        throw exitFail("Compilation failed due to "+reason+".");
+      } else {
+        String message = "Unexpected internal error: " + t.getMessage();
+        logger.error(message, t);
+        throw exitFail(message);
+      }
+
     } finally {
       context.context().close();
     }
@@ -719,6 +731,7 @@ public class Main {
    * @param disablePrivateCheck Is private modules check disabled. If yes, `private` keyword is
    *     ignored.
    * @param enableStaticAnalysis whether or not static type checking should be enabled
+   * @param treatWarningsAsErrors whether or not warnings should be treated as errors
    * @param inspect shall inspect option be enabled
    * @param executionEnvironment name of the execution environment to use during execution or {@code
    *     null}
@@ -981,6 +994,7 @@ public class Main {
    * @param logMasking is the log masking enabled
    * @param enableIrCaches are IR caches enabled
    * @param enableStaticAnalysis whether or not static type checking should be enabled
+   * @param treatWarningsAsErrors whether or not warnings should be treated as errors
    */
   private void runRepl(
       String projectPath,
@@ -1170,6 +1184,7 @@ public class Main {
           shouldCompileDependencies,
           shouldUseGlobalCache,
           shouldEnableIrCaches(line),
+          line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
           line.hasOption(TREAT_WARNINGS_AS_ERRORS_OPTION),
           logLevel,
