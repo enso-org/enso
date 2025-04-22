@@ -142,8 +142,8 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
     .flatMap((projectExecution) =>
       getProjectExecutionRepetitionsForDateRange(
         projectExecution,
-        toZoned(selectedDate, timeZone),
-        toZoned(selectedDate.add({ days: 1 }), timeZone),
+        toZoned(selectedDate, projectExecution.timeZone),
+        toZoned(selectedDate.add({ days: 1 }), projectExecution.timeZone),
       ).flatMap((date) => ({ date, projectExecution })),
     )
     .sort((a, b) => Number(a.date) - Number(b.date))

@@ -34,7 +34,13 @@ import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
-import { getLocalTimeZone, now, parseAbsolute, type ZonedDateTime } from '@internationalized/date'
+import {
+  getLocalTimeZone,
+  now,
+  parseAbsolute,
+  toZoned,
+  type ZonedDateTime,
+} from '@internationalized/date'
 
 /** The maximum duration, in milliseconds, between two dates to be considered the same project execution. */
 const EXECUTION_TIME_DIFFERENCE_THRESHOLD_MS = 60_000
@@ -69,10 +75,11 @@ export interface ProjectExecutionProps {
 
 /** Displays information describing a specific version of an asset. */
 export function ProjectExecution(props: ProjectExecutionProps) {
-  const { compact = false, backend, item, projectExecution, date } = props
+  const { compact = false, backend, item, projectExecution } = props
   const { getText } = useText()
   const getOrdinal = useGetOrdinal()
   const [timeZone = getLocalTimeZone()] = useLocalStorageState('preferredTimeZone')
+  const date = props.date == null ? null : toZoned(props.date, timeZone)
   const enableAdvancedProjectExecutionOptions = useFeatureFlag(
     'enableAdvancedProjectExecutionOptions',
   )
@@ -87,7 +94,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
     date == null ? null : (
       sessions?.find(
         (otherSession) =>
-          Number(new Date(otherSession.createdAt)) - Number(date.toDate()) <
+          Math.abs(Number(new Date(otherSession.createdAt)) - Number(date.toDate())) <
           EXECUTION_TIME_DIFFERENCE_THRESHOLD_MS,
       )
     )
