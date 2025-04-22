@@ -93,8 +93,6 @@ public interface CompilerContext extends CompilerStub {
 
   void updateModule(Module module, Consumer<Updater> callback);
 
-  boolean isSynthetic(Module module);
-
   boolean isInteractive(Module module);
 
   boolean isModuleInRootPackage(Module module);

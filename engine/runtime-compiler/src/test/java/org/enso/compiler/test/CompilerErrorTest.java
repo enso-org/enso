@@ -489,12 +489,6 @@ public final class CompilerErrorTest {
     }
 
     @Override
-    public boolean isSynthetic(CompilerContext.Module module) {
-      // XXX duplicated
-      return module.isSynthetic();
-    }
-
-    @Override
     public boolean isInteractive(CompilerContext.Module module) {
       throw new UnsupportedOperationException();
     }

@@ -306,7 +306,7 @@ class Compiler(
 
     val requiredModules = modules.flatMap { module =>
       val isLoadedFromSource =
-        (m: Module) => !context.wasLoadedFromCache(m) && !context.isSynthetic(m)
+        (m: Module) => !context.wasLoadedFromCache(m) && !m.isSynthetic()
       val importedModules = runImportsAndExportsResolution(
         module,
         generateCode && context.wasLoadedFromCache(module)
@@ -512,7 +512,7 @@ class Compiler(
               irCachingEnabled && !context.wasLoadedFromCache(module)
             if (
               shouldStoreCache && !hasErrors(module) &&
-              !context.isInteractive(module) && !context.isSynthetic(module)
+              !context.isInteractive(module) && !module.isSynthetic()
             ) {
               if (isInteractiveMode) {
                 context.notifySerializeModule(context.getModuleName(module))
@@ -599,7 +599,7 @@ class Compiler(
         false
       )
     }
-    if (context.isSynthetic(module)) {
+    if (module.isSynthetic()) {
       // Synthetic modules need to be import-analyzed
       // i.e. we need to fill in resolved{Imports/Exports} and exportedSymbols in bindings
       // because we do not generate (and deserialize) IR for them
@@ -713,7 +713,7 @@ class Compiler(
     val expr  = EnsoParser.compile(src, idMap.map(_.values).orNull)
 
     val exprWithModuleExports =
-      if (context.isSynthetic(module))
+      if (module.isSynthetic())
         expr
       else
         injectSyntheticModuleExports(expr, module.getDirectModulesRefs)
