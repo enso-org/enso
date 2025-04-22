@@ -32,10 +32,10 @@ class DiagnosticFormatter(
   }
   private lazy val both = textAndLocation()
 
-  def format() = both._1
-  def where()  = both._2
+  def format(): String = both._1
+  def where(): SourceSection = both._2
 
-  def fileLocationFromSection(loc: IdentifiedLocation) = {
+  def fileLocationFromSection(loc: IdentifiedLocation): String = {
     val section =
       source.createSection(loc.location().start(), loc.location().length());
     val locStr = "" + section.getStartLine() + ":" + section
@@ -72,47 +72,15 @@ class DiagnosticFormatter(
           } else {
             source.getName
           }
-        var str = fansi.Str()
-        if (isOneLine) {
+        val startColumn     = section.getStartColumn
+        val endColumn       = section.getEndColumn
+        val str = if (isOneLine) {
           val lineNumber      = section.getStartLine
-          val startColumn     = section.getStartColumn
-          val endColumn       = section.getEndColumn
-          val isLocationEmpty = startColumn == endColumn
-          str ++= fansi
-            .Str(srcPath + ":" + lineNumber + ":" + startColumn + ": ")
-            .overlay(fansi.Bold.On)
-          str ++= fansi.Str(subject).overlay(textAttrs)
-          str ++= diagnostic.formattedMessage(fileLocationFromSection)
-          if (!isLocationEmpty) {
-            str ++= "\n"
-            str ++= oneLineFromSourceColored(lineNumber, startColumn, endColumn)
-            str ++= "\n"
-            str ++= underline(startColumn, endColumn)
-          }
+          renderSingleLine(srcPath, lineNumber, startColumn, endColumn)
         } else {
-          str ++= fansi
-            .Str(
-              srcPath + ":[" + section.getStartLine + ":" + section.getStartColumn + "-" + section.getEndLine + ":" + section.getEndColumn + "]: "
-            )
-            .overlay(fansi.Bold.On)
-          str ++= fansi.Str(subject).overlay(textAttrs)
-          str ++= diagnostic.formattedMessage(fileLocationFromSection)
-          str ++= "\n"
-          val printAllSourceLines =
-            section.getEndLine - section.getStartLine <= maxSourceLinesToPrint
-          val endLine =
-            if (printAllSourceLines) section.getEndLine
-            else section.getStartLine + maxSourceLinesToPrint
-          for (lineNum <- section.getStartLine to endLine) {
-            str ++= oneLineFromSource(lineNum)
-            str ++= "\n"
-          }
-          if (!printAllSourceLines) {
-            val restLineCount =
-              section.getEndLine - section.getStartLine - maxSourceLinesToPrint
-            str ++= blankLinePrefix + "... and " + restLineCount + " more lines ..."
-            str ++= "\n"
-          }
+          val startLine      = section.getStartLine
+          val endLine        = section.getEndLine
+          renderMultiLine(srcPath, startLine, endLine, startColumn, endColumn)
         }
         val text = if (outSupportsAnsiColors) {
           str.render.stripLineEnd
@@ -122,7 +90,6 @@ class DiagnosticFormatter(
         (text, section)
       case None =>
         // There is no source section associated with the diagnostics
-        var str = fansi.Str()
         val fileLocation = diagnostic.location match {
           case Some(_) =>
             fileLocationFromSectionOption(diagnostic.location, source)
@@ -130,12 +97,7 @@ class DiagnosticFormatter(
             Option(source.getPath).getOrElse("<Unknown source>")
         }
 
-        str ++= fansi
-          .Str(fileLocation)
-          .overlay(fansi.Bold.On)
-        str ++= ": "
-        str ++= fansi.Str(subject).overlay(textAttrs)
-        str ++= diagnostic.formattedMessage(fileLocationFromSection)
+        val str = renderUnknownLocation(fileLocation)
         val text = if (outSupportsAnsiColors) {
           str.render.stripLineEnd
         } else {
@@ -143,6 +105,62 @@ class DiagnosticFormatter(
         }
         (text, null)
     }
+  }
+
+  private def renderSingleLine(srcPath: String, lineNumber: Int, startColumn: Int, endColumn: Int): fansi.Str = {
+    var str = fansi.Str()
+    str ++= fansi
+      .Str(srcPath + ":" + lineNumber + ":" + startColumn + ": ")
+      .overlay(fansi.Bold.On)
+    str ++= fansi.Str(subject).overlay(textAttrs)
+    str ++= diagnostic.formattedMessage(fileLocationFromSection)
+    val isLocationEmpty = startColumn == endColumn
+    if (!isLocationEmpty) {
+      str ++= "\n"
+      str ++= oneLineFromSourceColored(lineNumber, startColumn, endColumn)
+      str ++= "\n"
+      str ++= underline(startColumn, endColumn)
+    }
+    str
+  }
+
+  private def renderMultiLine(srcPath: String, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int): fansi.Str = {
+    var str = fansi.Str()
+    str ++= fansi
+      .Str(
+        srcPath + ":[" + startLine + ":" + startColumn + "-" + endLine + ":" + endColumn + "]: "
+      )
+      .overlay(fansi.Bold.On)
+    str ++= fansi.Str(subject).overlay(textAttrs)
+    str ++= diagnostic.formattedMessage(fileLocationFromSection)
+    str ++= "\n"
+    val printAllSourceLines =
+      endLine - startLine <= maxSourceLinesToPrint
+    val printEndLine =
+      if (printAllSourceLines) endLine
+      else startLine + maxSourceLinesToPrint
+    for (lineNum <- startLine to printEndLine) {
+      str ++= oneLineFromSource(lineNum)
+      str ++= "\n"
+    }
+    if (!printAllSourceLines) {
+      val restLineCount =
+        endLine - startLine - maxSourceLinesToPrint
+      str ++= blankLinePrefix + "... and " + restLineCount + " more lines ..."
+      str ++= "\n"
+    }
+    str
+  }
+
+  private def renderUnknownLocation(fileLocation: String): fansi.Str = {
+    var str = fansi.Str()
+    str ++= fansi
+      .Str(fileLocation)
+      .overlay(fansi.Bold.On)
+    str ++= ": "
+    str ++= fansi.Str(subject).overlay(textAttrs)
+    str ++= diagnostic.formattedMessage(fileLocationFromSection)
+    str
   }
 
   /** @see https://github.com/termstandard/colors/
@@ -227,4 +245,6 @@ class DiagnosticFormatter(
   ): Boolean = {
     loc.end() <= source.getLength
   }
+
+  private def includeGithubAnnotation: Boolean = sys.env("GITHUB_ACTIONS") == "true"
 }
