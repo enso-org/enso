@@ -97,8 +97,6 @@ public interface CompilerContext extends CompilerStub {
 
   boolean wasLoadedFromCache(Module module);
 
-  org.enso.compiler.core.ir.Module getIr(Module module);
-
   Future<Boolean> serializeLibrary(
       Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations);
 

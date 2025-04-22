@@ -498,12 +498,6 @@ public final class CompilerErrorTest {
     }
 
     @Override
-    public org.enso.compiler.core.ir.Module getIr(CompilerContext.Module module) {
-      // XXX duplicated
-      return module.getIr();
-    }
-
-    @Override
     public Future<Boolean> serializeLibrary(
         Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations) {
       throw new UnsupportedOperationException();

@@ -190,11 +190,6 @@ final class TruffleCompilerContext implements CompilerContext {
     return ((Module) module).unsafeModule().wasLoadedFromCache();
   }
 
-  @Override
-  public org.enso.compiler.core.ir.Module getIr(CompilerContext.Module module) {
-    return module.getIr();
-  }
-
   final TypeGraph getTypeHierarchy() {
     return Types.getTypeHierarchy();
   }

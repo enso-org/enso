@@ -373,7 +373,7 @@ class Compiler(
         )
         val compilerOutput =
           runGlobalTypingPasses(
-            context.getIr(module),
+            module.getIr(),
             moduleContext,
             irDumper = getOrCreateDumper(module)
           )
@@ -407,7 +407,7 @@ class Compiler(
           )
           val compilerOutput =
             runMethodBodyPasses(
-              context.getIr(module),
+              module.getIr(),
               moduleContext,
               irDumper = getOrCreateDumper(module)
             )
@@ -439,7 +439,7 @@ class Compiler(
           )
           val compilerOutput =
             runFinalTypeInferencePasses(
-              context.getIr(module),
+              module.getIr(),
               moduleContext,
               irDumper = getOrCreateDumper(module)
             )
@@ -632,7 +632,7 @@ class Compiler(
       irCachingEnabled && !context.isInteractive(module),
       false
     )
-    val importedModules = context.getIr(module).imports.flatMap {
+    val importedModules = module.getIr().imports.flatMap {
       case imp: Import.Module =>
         imp.name.parts.take(2).map(_.name) match {
           case List(namespace, name) => List(LibraryName(namespace, name))
@@ -1021,7 +1021,7 @@ class Compiler(
   private def gatherDiagnostics(module: Module): List[Diagnostic] = {
     GatherDiagnostics
       .runModule(
-        context.getIr(module),
+        module.getIr(),
         ModuleContext(module, compilerConfig = config)
       )
       .unsafeGetMetadata(
