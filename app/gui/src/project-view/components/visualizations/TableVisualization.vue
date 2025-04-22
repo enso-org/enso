@@ -1013,7 +1013,7 @@ config.setToolbar(
     isFilterSortNodeEnabled,
     createNodes: config.createNodes,
     getColumnValueToEnso,
-    refreshGrid: () => refreshGrid(),
+    refreshGrid,
   }),
 )
 </script>
