@@ -12,12 +12,12 @@ import {
 
 import LogsIcon from '#/assets/logs.svg'
 import RepeatIcon from '#/assets/repeat.svg'
-import { DialogTrigger } from '#/components/aria'
 import {
   Button,
   ButtonGroup,
-  CloseButton,
+  Dialog,
   IconDisplay,
+  Menu,
   Text,
   VisualTooltip,
 } from '#/components/AriaComponents'
@@ -30,6 +30,7 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ProjectLogsModal from '#/modals/ProjectLogsModal'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
+import { setModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
@@ -208,30 +209,49 @@ export function ProjectExecution(props: ProjectExecutionProps) {
             {repeatEl}
           </VisualTooltip>
         }
-        {session && (
-          <DialogTrigger>
-            <Button variant="icon" isActive icon={LogsIcon} aria-label={getText('showLogs')} />
+        <Button.GroupJoin
+          className="shrink-0 grow-0"
+          buttonVariants={{ size: 'small', variant: 'outline' }}
+        >
+          {session && (
+            <Dialog.Trigger>
+              <Button icon={LogsIcon}>{getText('showLogs')}</Button>
 
-            <ProjectLogsModal
-              backend={backend}
-              projectSessionId={session.projectSessionId}
-              projectTitle={item.title}
-            />
-          </DialogTrigger>
-        )}
-        <DialogTrigger>
-          <CloseButton
-            className={styles.timeButtons()}
-            tooltip={getText('delete')}
-            tooltipPlacement="top left"
-          />
-          <ConfirmDeleteModal
-            actionText={getText('deleteThisProjectExecution')}
-            onConfirm={async () => {
-              await deleteProjectExecution.mutateAsync([projectExecution.executionId, item.title])
-            }}
-          />
-        </DialogTrigger>
+              <ProjectLogsModal
+                backend={backend}
+                projectSessionId={session.projectSessionId}
+                projectTitle={item.title}
+              />
+            </Dialog.Trigger>
+          )}
+          <Menu.Trigger>
+            <Button icon="folder_opened" iconPosition="end" variant="outline">
+              {!session && getText('actions')}
+            </Button>
+
+            <Menu>
+              <Menu.Item
+                icon="trash2"
+                onAction={() => {
+                  setModal(
+                    <ConfirmDeleteModal
+                      defaultOpen
+                      actionText={getText('deleteThisProjectExecution')}
+                      onConfirm={async () => {
+                        await deleteProjectExecution.mutateAsync([
+                          projectExecution.executionId,
+                          item.title,
+                        ])
+                      }}
+                    />,
+                  )
+                }}
+              >
+                {getText('delete')}
+              </Menu.Item>
+            </Menu>
+          </Menu.Trigger>
+        </Button.GroupJoin>
       </div>
       {!compact && (
         <ButtonGroup className={styles.infoContainer()}>
