@@ -228,7 +228,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const { user } = useFullUserSession()
   const setSelectedAssets = useSetSelectedAssets()
   const getAsset = useGetAsset()
-  const { isSelected, isSoleSelected, isNothingSelected, isMultiSelected } = useStore(
+  const { isSelected, isSoleSelected, isMultiSelected } = useStore(
     driveStore,
     ({ visuallySelectedKeys, selectedIds }) => {
       const selection = visuallySelectedKeys ?? selectedIds
@@ -238,7 +238,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
       return {
         isSelected: selected,
         isSoleSelected: soleSelected,
-        isNothingSelected: selection.size === 0,
         isMultiSelected: selection.size > 1,
       }
     },
