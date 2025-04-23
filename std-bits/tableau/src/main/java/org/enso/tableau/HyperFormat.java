@@ -41,8 +41,8 @@ import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-/** Class responsible for reading from Tableau Hyper files. */
-public class HyperReader {
+/** Class responsible for reading/writing Tableau Hyper files. */
+public class HyperFormat {
   public static final Path HYPER_PATH = Path.of(getHyperPath());
   private static HyperProcess process;
 
@@ -133,7 +133,7 @@ public class HyperReader {
 
   private static final class TableauClassLoader extends ClassLoader {
     private TableauClassLoader() {
-      super(HyperReader.class.getClassLoader());
+      super(HyperFormat.class.getClassLoader());
     }
 
     @Override
@@ -215,7 +215,7 @@ public class HyperReader {
   }
 
   private static Connection getConnection(String path) throws IOException {
-    var process = getProcess();
+    getProcess();
     try {
       return new Connection(process.getEndpoint(), path, CreateMode.NONE);
     } catch (HyperException e) {

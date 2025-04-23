@@ -17,7 +17,7 @@ from Standard.Base.System.File import file_as_java
 import project.Hyper_Errors
 import Standard.Base.Errors.File_Error.File_Error
 
-polyglot java import org.enso.tableau.HyperReader
+polyglot java import org.enso.tableau.HyperFormat
 
 ## Read the file to a `Hyper_File` object.
 type Tableau_Format
@@ -97,7 +97,7 @@ type Tableau_Format
                 Tableau_Format.Hyper_File _ -> "Extract"
                 Tableau_Format.Hyper_Table _ t -> t
             Hyper_Errors.handle_java_exceptions <|
-                HyperReader.writeTable resolved_file resolved_schema resolved_table table.java_table
+                HyperFormat.writeTable resolved_file resolved_schema resolved_table table.java_table
             resolved_file
 
 private _find_bak_file base_file:File -> File =
