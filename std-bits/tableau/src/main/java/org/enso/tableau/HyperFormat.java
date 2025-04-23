@@ -333,33 +333,10 @@ public class HyperFormat {
   public static void writeTable(String path, String schemaName, String tableName, Table table) throws IOException {
     getProcess();
     try (var connection = new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS)) {
-      final SchemaName sn = new SchemaName(schemaName);
-       if (!connection.getCatalog().getSchemaNames().contains(sn)) {
-            connection.getCatalog().createSchema(sn);
-        }
-      
-      TableDefinition tableDef = new TableDefinition(new TableName(schemaName, tableName));
-      int numberOfColumns = table.getColumns().length;
-      for (int col = 0; col < numberOfColumns; ++col) {
-        String columnName = table.getColumns()[col].getName();
-        var storage = table.getColumns()[col].getStorage();
-        switch (storage.getType()) {
-          case TextType x -> tableDef.addColumn(columnName, SqlType.text());
-          case IntegerType x -> tableDef.addColumn(columnName, SqlType.bigInt());
-          case FloatType x -> tableDef.addColumn(columnName, SqlType.doublePrecision());
-          case BooleanType x -> tableDef.addColumn(columnName, SqlType.bool());
-          case DateType x -> tableDef.addColumn(columnName, SqlType.date());
-          case TimeOfDayType x -> tableDef.addColumn(columnName, SqlType.time());
-          case DateTimeType x -> tableDef.addColumn(columnName, SqlType.timestampTz());
-          default -> throw new HyperUnsupportedTypeError(storage.getType().toString());
-        }
-      }
-
-      connection.executeCommand("DROP TABLE IF EXISTS \""+schemaName+"\".\""+tableName+"\"");
-      // Create the table in the Hyper file
-      connection.getCatalog().createTable(tableDef);
+      var tableDef = createTable(schemaName, tableName, table.getColumns(), connection);
 
       int numberOfRows = table.rowCount();
+      int numberOfColumns = table.getColumns().length;
       Inserter inserter = new Inserter(connection, tableDef);
       for (int row = 0; row < numberOfRows; ++row) {
         for (int col = 0; col < numberOfColumns; ++col) {
@@ -387,5 +364,33 @@ public class HyperFormat {
       }
       inserter.execute();
     }
+  }
+
+  private static TableDefinition createTable(String schemaName, String tableName, Column[] columns, Connection connection) {
+      final SchemaName sn = new SchemaName(schemaName);
+      if (!connection.getCatalog().getSchemaNames().contains(sn)) {
+          connection.getCatalog().createSchema(sn);
+      }
+      
+      TableDefinition tableDef = new TableDefinition(new TableName(schemaName, tableName));
+      for (int col = 0; col < columns.length; ++col) {
+        String columnName = columns[col].getName();
+        var storage = columns[col].getStorage();
+        switch (storage.getType()) {
+          case TextType _ -> tableDef.addColumn(columnName, SqlType.text());
+          case IntegerType _ -> tableDef.addColumn(columnName, SqlType.bigInt());
+          case FloatType _ -> tableDef.addColumn(columnName, SqlType.doublePrecision());
+          case BooleanType _ -> tableDef.addColumn(columnName, SqlType.bool());
+          case DateType _ -> tableDef.addColumn(columnName, SqlType.date());
+          case TimeOfDayType _ -> tableDef.addColumn(columnName, SqlType.time());
+          case DateTimeType _ -> tableDef.addColumn(columnName, SqlType.timestampTz());
+          default -> throw new HyperUnsupportedTypeError(storage.getType().toString());
+        }
+      }
+
+      connection.executeCommand("DROP TABLE IF EXISTS \""+schemaName+"\".\""+tableName+"\"");
+      // Create the table in the Hyper file
+      connection.getCatalog().createTable(tableDef);
+      return tableDef;
   }
 }
