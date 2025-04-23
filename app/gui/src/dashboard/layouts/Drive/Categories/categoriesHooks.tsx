@@ -13,7 +13,7 @@ import { useUser } from '#/providers/AuthProvider'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
-import { useBackend, useLocalBackend } from '#/providers/BackendProvider'
+import { pickBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
@@ -324,6 +324,7 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
 
   const { cloudCategories, localCategories, findCategoryById } = useCategories()
   const localBackend = useLocalBackend()
+  const remoteBackend = useRemoteBackend()
   const { isOffline } = useOffline()
 
   const [categoryId, privateSetCategoryId, privateResetCategoryId] =
@@ -368,16 +369,14 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
 
   const category = findCategoryById(categoryId)
 
-  // This is safe, because a category always specified
-  // eslint-disable-next-line no-restricted-syntax
-  const backend = useBackend(category as Category)
-
   // This usually doesn't happen but if so,
   // We reset the category to the default.
   if (category == null) {
     resetCategoryId(true)
     return <></>
   }
+
+  const backend = pickBackend(category, remoteBackend, localBackend)
 
   const contextValue = {
     cloudCategories,
