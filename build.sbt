@@ -4265,7 +4265,7 @@ lazy val `os-environment` =
           val exeFile =
             (Test / target).value / ("test-os-env" + exeSuffix)
           val binPath = exeFile.getAbsolutePath
-          val res     = binPath ! logger
+          val res     = Process(Seq(binPath), None, "JAVA_OPTS" -> "") ! logger
           if (res != 0) {
             logger.error("Some test in os-environment failed")
             throw new TestsFailedException()
