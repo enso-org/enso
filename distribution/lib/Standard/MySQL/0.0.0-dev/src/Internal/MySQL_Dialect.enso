@@ -1,0 +1,111 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Errors.Unimplemented.Unimplemented
+
+## PRIVATE
+   The dialect of MySQL databases.
+mysql : MySQL_Dialect
+mysql =
+    MySQL_Dialect.Value make_dialect_operations
+
+## PRIVATE
+   The dialect of MySQL databases.
+type MySQL_Dialect
+    ## PRIVATE
+       The dialect of MySQL databases.
+    Value dialect_operations
+
+    ## PRIVATE
+       Name of the dialect.
+    name : Text
+    name self = mysql_dialect_name
+
+    ## PRIVATE
+    to_text : Text
+    to_text self = "MySQL_Dialect"
+
+    ## PRIVATE
+       A function which generates SQL code from the internal representation
+       according to the specific dialect.
+    generate_sql : Query -> SQL_Statement
+    generate_sql self query =
+        Base_Generator.generate_query self query . build
+
+    ## PRIVATE
+       Generates SQL to truncate a table.
+    generate_truncate_table_sql : Text -> SQL_Builder
+    generate_truncate_table_sql self table_name =
+        Base_Generator.truncate_table_truncate_table_style self table_name
+
+    ## PRIVATE
+       Generates SQL modifier for limiting the number of rows and its position in the query
+    get_limit_sql_modifier : Integer -> Any
+    get_limit_sql_modifier self limit =
+        case limit of
+            Nothing -> ""
+            _ : Integer -> SQL_Builder.code (" LIMIT " + limit.to_text)
+
+    ## PRIVATE
+       Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
+       If you add extensions using Context_Extension you have to provide an order for them here
+    get_part_order self part:SQL_Part -> Integer =
+        [SQL_Part.Select, SQL_Part.Columns, SQL_Part.From, SQL_Part.Where, SQL_Part.Group, SQL_Part.Order, SQL_Part.Limit] . index_of part
+
+    ## PRIVATE
+       Wraps and possibly escapes the identifier so that it can be used in a
+       generated query regardless of what characters it contains.
+       The quotes used will depend on the dialect.
+    wrap_identifier : Text -> SQL_Builder
+    wrap_identifier self identifier =
+        Base_Generator.wrap_in_quotes identifier
+
+    ## PRIVATE
+       Generates a SQL expression for a table literal.
+    make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
+    make_table_literal self vecs column_names as_name =
+        Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
+
+    ## PRIVATE
+       Prepares an ordering descriptor.
+
+       One of the purposes of this method is to verify if the expected ordering
+       settings are supported by the given database backend.
+
+       Arguments:
+       - internal_column: the column to order by.
+       - sort_direction: the direction of the ordering.
+       - text_ordering: If provided, specifies that the column should be treated
+         as text values according to the provided ordering. For non-text types,
+         it should be set to `Nothing`.
+    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
+    prepare_order_descriptor self internal_column sort_direction text_ordering =
+        make_order_descriptor internal_column sort_direction text_ordering
+
+    ## PRIVATE
+       Prepares a distinct operation.
+    prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> DB_Table
+    prepare_distinct self table key_columns case_sensitivity problem_builder =
+        table_name_deduplicator = (Internals_Access.get_connection table).base_connection.table_naming_helper.create_unique_name_strategy
+        table_name_deduplicator.mark_used table.name
+        inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
+        setup = (Internals_Access.get_context table).as_subquery inner_table_alias [Internals_Access.internal_columns table]
+        new_columns = setup.new_columns.first
+        column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
+        new_key_columns = key_columns.map c-> column_mapping.at c.name
+        type_mapping = self.get_type_mapping
+        # TODO simpler distinct if distinct_expressions are all columns?
+        distinct_expressions = new_key_columns.map column->
+            value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
+            Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
+        new_context = Context.for_subquery setup.subquery
+            . add_extension (make_distinct_extension distinct_expressions)
+        table.updated_context_and_columns new_context new_columns subquery=True
+
+## PRIVATE
+make_dialect_operations =
+    my_mappings = []
+    Base_Generator.base_dialect_operations . extend_with my_mappings
+
+## PRIVATE
+mysql_dialect_name = "MySQL"

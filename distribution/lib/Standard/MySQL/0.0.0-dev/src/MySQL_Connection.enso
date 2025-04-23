@@ -24,6 +24,8 @@ from Standard.Database.Connection.Connection import make_schema_selector, make_s
 from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 
+import Standard.MySQL.Internal.MySQL_Dialect.MySQL_Dialect
+
 type MySQL_Connection
     ## PRIVATE
 
