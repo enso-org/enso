@@ -310,6 +310,22 @@ function AssetsTable(props: AssetsTableProps) {
     setNewestFolderId(null)
   }, [category, setNewestFolderId])
 
+  // temporary solution to update the asset panel when the selected asset changes
+  useEffect(() => {
+    const selectedIds = driveStore.getState().selectedIds
+
+    if (selectedIds.size === 1) {
+      const [soleId] = selectedIds
+      const asset = soleId == null ? null : assets.find((otherAsset) => otherAsset.id === soleId)
+
+      if (asset) {
+        setAssetPanelProps({ item: asset })
+      } else {
+        setAssetPanelProps({ item: null })
+      }
+    }
+  }, [assets, driveStore, setAssetPanelProps])
+
   useEffect(
     () =>
       driveStore.subscribe(({ selectedIds }, { selectedIds: oldSelectedIds }) => {
