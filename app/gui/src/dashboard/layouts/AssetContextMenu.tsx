@@ -6,7 +6,6 @@ import * as projectHooks from '#/hooks/projectHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
@@ -28,16 +27,17 @@ import {
   deleteAssetsMutationOptions,
   downloadAssetsMutationOptions,
   restoreAssetsMutationOptions,
-  useUploadAssetsToCloud,
 } from '#/hooks/backendBatchedHooks'
 import { useNewProject } from '#/hooks/backendHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { usePasteData } from '#/providers/DriveProvider'
 import * as featureFlagsProvider from '#/providers/FeatureFlagsProvider'
+import { setModal } from '#/providers/ModalProvider'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useUploadFileToCloudMutation } from '../hooks/backendUploadFilesHooks'
 import { useSetAssetPanelProps, useSetIsAssetPanelTemporarilyVisible } from './AssetPanel'
 
 /** Props for a {@link AssetContextMenu}. */
@@ -68,7 +68,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const getAsset = useGetAsset()
   const canOpenProjects = projectHooks.useCanOpenProjects()
   const { user } = authProvider.useFullUserSession()
-  const { setModal } = modalProvider.useSetModal()
   const localBackend = backendProvider.useLocalBackend()
   const { getText } = textProvider.useText()
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
@@ -83,7 +82,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const path = asset.ensoPathValue
   const copyMutation = useCopy()
-  const uploadAssetsToCloud = useUploadAssetsToCloud()
+  const uploadFileToCloudMutation = useUploadFileToCloudMutation(backend)
   const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined
   const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
 
@@ -268,13 +267,18 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               }}
             />
           )}
-        {asset.type === backendModule.AssetType.project && !isCloud && (
+        {asset.type === backendModule.AssetType.project && !isCloud && localBackend != null && (
           <PaywallContextMenuEntry
             hidden={hidden}
             isUnderPaywall={!canUploadToCloud}
             feature="uploadToCloud"
             action="uploadToCloud"
-            doAction={() => uploadAssetsToCloud([asset])}
+            doAction={async () => {
+              await uploadFileToCloudMutation(localBackend, {
+                assets: [asset],
+                targetDirectoryId: currentDirectoryId,
+              })
+            }}
           />
         )}
         {canExecute && !isRunningProject && !isOtherUserUsingProject && (
@@ -379,7 +383,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {isCloud && <ContextMenuEntry hidden={hidden} action="copy" doAction={doCopy} />}
+        {<ContextMenuEntry hidden={hidden} action="copy" doAction={doCopy} />}
         {path != null && (
           <ContextMenuEntry
             hidden={hidden}
@@ -398,7 +402,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             isDisabled={asset.type === backendModule.AssetType.secret}
             action="download"
             doAction={() => {
-              void downloadAssetsMutation([{ id: asset.id, title: asset.title }])
+              void downloadAssetsMutation({
+                ids: [{ id: asset.id, title: asset.title }],
+                targetDirectoryId: null,
+              })
             }}
           />
         )}

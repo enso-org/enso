@@ -71,6 +71,7 @@
 - [Fixed appearance of Cloud Browser scrollbars][12831]
 - [Add syntax highlighting for Table expressions][12778]
 - [Allow adding and reordering component group arguments][12850]
+- [Display component evaluation progress][12913]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -113,6 +114,7 @@
 [12831]: https://github.com/enso-org/enso/pull/12831
 [12778]: https://github.com/enso-org/enso/pull/12778
 [12850]: https://github.com/enso-org/enso/pull/12850
+[12913]: https://github.com/enso-org/enso/pull/12913
 
 #### Enso Standard Library
 
@@ -193,6 +195,7 @@
 - [Registering a value as multiple managed resources is now an error.][12395]
 - [An operator block now applies to the whole preceding expression][12505],
   rather than the last term on the line.
+- [Upgrade GraalVM from JDK 21 to JDK 24][12855]
 
 [11777]: https://github.com/enso-org/enso/pull/11777
 [11600]: https://github.com/enso-org/enso/pull/11600
@@ -207,6 +210,7 @@
 [12238]: https://github.com/enso-org/enso/pull/12238
 [12395]: https://github.com/enso-org/enso/pull/12395
 [12505]: https://github.com/enso-org/enso/pull/12505
+[12855]: https://github.com/enso-org/enso/pull/12855
 
 # Enso 2024.5
 

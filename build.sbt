@@ -29,9 +29,9 @@ import java.nio.file.Paths
 
 val scalacVersion = "2.13.15"
 // source version of the Java language
-val javaVersion = "21"
+val javaVersion = "24"
 // version of the GraalVM JDK
-val graalVersion = "21.0.2"
+val graalVersion = "24.0.1"
 // Version used for the Graal/Truffle related Maven packages
 // Keep in sync with GraalVM.version. Do not change the name of this variable,
 // it is used by the Rust build script via regex matching.
@@ -223,6 +223,16 @@ ThisBuild / javacOptions ++= Seq(
   "-g",               // Include debugging information
   "-Xlint:unchecked", // Enable additional warnings
   "-proc:full"        // Annotation processing is enabled
+)
+
+ThisBuild / javaOptions ++= Seq(
+  // Needed for migration from JDK 21 to JDK 24
+  // See https://github.com/oracle/graal/blob/master/sdk/CHANGELOG.md#version-2420
+  "--enable-native-access=org.graalvm.truffle",
+  // Truffle calls terminally deprecated methods from sun.misc.Unsafe in JDK24.
+  // This removes the warnings at runtime.
+  // TODO: Remove this until JDK 26
+  "--sun-misc-unsafe-memory-access=allow"
 )
 
 ThisBuild / scalacOptions ++= Seq(
@@ -1633,6 +1643,7 @@ lazy val `task-progress-notifications` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     version := "0.1",
     compileOrder := CompileOrder.ScalaThenJava,
@@ -3074,7 +3085,7 @@ lazy val `runtime-integration-tests` =
         // Add necessary exports for IR module dumping to IGV
         // Which is used in the test utils
         val irDumperExports = Map(
-          "jdk.internal.vm.compiler/org.graalvm.graphio" -> Seq(
+          "jdk.graal.compiler/jdk.graal.compiler.graphio" -> Seq(
             (`runtime-compiler-dump-igv` / javaModuleName).value
           )
         )
@@ -3487,7 +3498,7 @@ lazy val `runtime-compiler-dump` =
     .dependsOn(`runtime-parser`)
 
 /** This is a standalone project that is not compiled with Frgaal on purpose.
-  * It depends on jdk.internal.vm.compiler module, which cannot be included in Frgaal.
+  * It depends on jdk.graal.compiler module, which cannot be included in Frgaal.
   * It includes a service provider for service definition in `runtime-compiler-dump`.
   */
 lazy val `runtime-compiler-dump-igv` =
@@ -3508,7 +3519,7 @@ lazy val `runtime-compiler-dump-igv` =
       ),
       Compile / addExports ++= {
         Map(
-          "jdk.internal.vm.compiler/org.graalvm.graphio" -> Seq(
+          "jdk.graal.compiler/jdk.graal.compiler.graphio" -> Seq(
             javaModuleName.value
           )
         )
@@ -3959,6 +3970,7 @@ lazy val `engine-runner` = project
               "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
               "-H:+AddAllCharsets",
               "-H:+IncludeAllLocales",
+              "-H:+RunReachabilityHandlersConcurrently",
               // Workaround a problem with build-/runtime-initialization conflict
               // by disabling this service provider
               "-H:ServiceLoaderFeatureExcludeServiceProviders=net.snowflake.client.core.FileTypeDetector",
@@ -5660,7 +5672,9 @@ ThisBuild / NativeImage.additionalOpts := {
     Seq()
   } else {
     var opts = if (GraalVM.EnsoLauncher.release) {
-      Seq("-O3")
+      // Picking `-Os` option instead of `-O3` in production on purpose.
+      // See https://github.com/enso-org/enso/pull/12855#issuecomment-2812552448
+      Seq("-Os")
     } else {
       Seq("-Ob")
     }
@@ -5938,7 +5952,7 @@ updateLibraryManifests := {
   val runtimeCp  = (`runtime` / Runtime / fullClasspath).value
   val fullCp     = (runnerCp ++ runtimeCp).distinct
   val modulePath = componentModulesPaths.value
-  val javaOpts = Seq(
+  val javaOpts = (ThisBuild / javaOptions).value ++ Seq(
     "--module-path",
     modulePath.map(_.getAbsolutePath).mkString(File.pathSeparator),
     "-m",

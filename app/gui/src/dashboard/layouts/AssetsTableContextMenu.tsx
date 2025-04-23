@@ -27,17 +27,19 @@ import { ContextMenuEntry as PaywallContextMenuEntry } from '#/components/Paywal
 import {
   deleteAssetsMutationOptions,
   restoreAssetsMutationOptions,
-  useUploadAssetsToCloud,
 } from '#/hooks/backendBatchedHooks'
+import { useUploadFileToCloudMutation } from '#/hooks/backendUploadFilesHooks'
 import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useUser } from '#/providers/AuthProvider'
+import { useLocalBackend } from '#/providers/BackendProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import { extractTypeAndId } from '#/services/LocalBackend'
 import { useMutation } from '@tanstack/react-query'
+import invariant from 'tiny-invariant'
 import { twJoin } from '../utilities/tailwindMerge'
 import { GlobalContextMenu } from './GlobalContextMenu'
 
@@ -77,6 +79,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { setModal, unsetModal } = useSetModal()
   const { getText } = useText()
 
+  const localBackend = useLocalBackend()
   const user = useUser()
   const isCloud = isCloudCategory(category)
   const getAsset = useGetAsset()
@@ -87,7 +90,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const restoreAssetsMutation = useMutation(restoreAssetsMutationOptions(backend))
   const showDeveloperIds = useFeatureFlag('showDeveloperIds')
   const copyMutation = useCopy()
-  const uploadFilesToCloud = useUploadAssetsToCloud()
+  const uploadFileToCloudMutation = useUploadFileToCloudMutation(backend)
 
   const canUploadToCloud = user.plan !== backendModule.Plan.free
 
@@ -106,7 +109,11 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       const asset = getAsset(id)
       return asset ? [asset] : []
     })
-    await uploadFilesToCloud(Array.from(files))
+    invariant(localBackend != null, 'Cannot upload to cloud when not on Local backend')
+    await uploadFileToCloudMutation(localBackend, {
+      assets: [...files],
+      targetDirectoryId: user.rootDirectoryId,
+    })
   })
 
   const hasPasteData = useStore(driveStore, ({ pasteData }) => {

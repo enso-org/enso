@@ -1,27 +1,11 @@
 /** @file Hooks to do batched backend operations. */
-import {
-  backendQueryOptions,
-  listDirectoryQueryOptions,
-  mutationOptions,
-} from '#/hooks/backendHooks'
-import { useUploadFileWithToastMutation } from '#/hooks/backendUploadFilesHooks'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
-import { useCloudCategoryList } from '#/layouts/Drive/Categories'
 import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
-import { useUser } from '#/providers/AuthProvider'
-import { useRemoteBackend } from '#/providers/BackendProvider'
-import { useText } from '#/providers/TextProvider'
-import { extractTypeAndId } from '#/services/LocalBackend'
+import LocalBackend from '#/services/LocalBackend'
+import RemoteBackend from '#/services/RemoteBackend'
 import { getMessageOrToString } from '#/utilities/error'
-import {
-  useMutationState,
-  useQueryClient,
-  type Mutation,
-  type QueryClient,
-} from '@tanstack/react-query'
-import type { AssetType } from 'enso-common/src/services/Backend'
+import { useMutationState, type Mutation, type QueryClient } from '@tanstack/react-query'
 import {
   DuplicateAssetError,
   FilterBy,
@@ -31,8 +15,6 @@ import {
   type DirectoryId,
   type LabelName,
 } from 'enso-common/src/services/Backend'
-import { toast } from 'react-toastify'
-import invariant from 'tiny-invariant'
 
 /** Call "delete" mutations for a list of assets. */
 export function deleteAssetsMutationOptions(backend: Backend) {
@@ -349,24 +331,47 @@ export async function getAllTrashedItems(
   )
 }
 
+/**
+ * Options for the "download" mutation.
+ */
+export interface DownloadAssetsMutationOptions {
+  readonly ids: readonly Pick<AnyAsset, 'id' | 'title'>[]
+  readonly targetDirectoryId: DirectoryId | null
+}
+
 /** Call "download" mutations for a list of assets. */
 export function downloadAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
-    mutationFn: async (infos: readonly { id: AssetId; title: string }[]) => {
-      const results = await Promise.allSettled(
-        infos.map(({ id, title }) => backend.download(id, title)),
-      )
-      const errors = results.flatMap((result): unknown =>
-        result.status === 'rejected' ? [result.reason] : [],
-      )
-      if (errors.length !== 0) {
-        throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
-          errors,
-          failed: errors.length,
-          total: infos.length,
+    mutationKey: [backend.type, 'downloadAssets'],
+    mutationFn: async (options: DownloadAssetsMutationOptions) => {
+      const { ids, targetDirectoryId } = options
+
+      // Downloading assets should be done in order, because we want to avoid potential
+      // race conditions.
+      const rejects = []
+      for (const { id, title } of ids) {
+        try {
+          await backend.download(id, title, targetDirectoryId)
+        } catch (error) {
+          rejects.push(error)
+        }
+      }
+
+      if (rejects.length !== 0) {
+        throw Object.assign(new Error(rejects.map(getMessageOrToString).join('\n')), {
+          errors: rejects,
+          failed: rejects.length,
+          total: ids.length,
         })
       }
       return null
+    },
+    meta: {
+      invalidates: [
+        [RemoteBackend.type, 'listDirectory'],
+        [LocalBackend.type, 'listDirectory'],
+      ],
+      awaitInvalidates: true,
     },
   })
 }
@@ -374,6 +379,7 @@ export function downloadAssetsMutationOptions(backend: Backend) {
 /** Call "add label" mutations for a list of assets. */
 export function addAssetsLabelsMutationOptions(backend: Backend) {
   return mutationOptions({
+    mutationKey: [backend.type, 'addAssetsLabels'],
     mutationFn: async ([infos, labelNames]: [
       infos: readonly Pick<AnyAsset, 'id' | 'labels'>[],
       labelNames: readonly LabelName[],
@@ -445,218 +451,4 @@ export function removeAssetsLabelsMutationOptions(backend: Backend) {
       refetchType: 'all',
     },
   })
-}
-
-/** Get both deleted and non-deleted siblings. */
-function useGetSiblings() {
-  const queryClient = useQueryClient()
-  const cloudCategories = useCloudCategoryList()
-  const cloudHomeCategory = cloudCategories.categories.find((category) => category.type === 'cloud')
-  const cloudTrashCategory = cloudCategories.categories.find(
-    (category) => category.type === 'trash',
-  )
-
-  return useEventCallback(async (backend: Backend, parentId: DirectoryId) => {
-    const nonDeletedAssets =
-      cloudHomeCategory ?
-        await queryClient.fetchQuery(
-          listDirectoryQueryOptions({
-            backend,
-            parentId,
-            category: cloudHomeCategory,
-            refetchInterval: null,
-          }),
-        )
-      : []
-    const deletedAssets =
-      cloudTrashCategory ?
-        await queryClient.fetchQuery(
-          listDirectoryQueryOptions({
-            backend,
-            parentId,
-            category: cloudTrashCategory,
-            refetchInterval: null,
-          }),
-        )
-      : []
-    return [...nonDeletedAssets, ...deletedAssets]
-  })
-}
-
-/** Return a callback to upload a project to the cloud. */
-function useUploadAssetToCloud() {
-  const { getText } = useText()
-  const user = useUser()
-  const toastAndLog = useToastAndLog()
-  const remoteBackend = useRemoteBackend()
-  const uploadFileMutation = useUploadFileWithToastMutation(remoteBackend)
-  const getSiblings = useGetSiblings()
-
-  return useEventCallback(
-    async (
-      asset: Pick<AnyAsset, 'id' | 'parentId' | 'title'> & {
-        readonly parentDirectoryId: DirectoryId | null
-        readonly newName?: string
-        /** The id of an existing cloud asset to replace. */
-        readonly cloudId?: AssetId
-        /** A list of siblings, if it has been fetched already. */
-        readonly siblings?: readonly AnyAsset<AssetType>[]
-      },
-    ) => {
-      const {
-        parentId,
-        id,
-        cloudId = null,
-        title,
-        parentDirectoryId = null,
-        newName = title,
-      } = asset
-      const siblings =
-        cloudId != null ?
-          []
-        : (asset.siblings ??
-          (await getSiblings(remoteBackend, parentDirectoryId ?? user.rootDirectoryId)))
-      const siblingTitles = siblings.map((sibling) => sibling.title)
-
-      if (siblingTitles.includes(newName)) {
-        throw new DuplicateAssetError(
-          'Could not upload to cloud: A resource with that title already exists.',
-        )
-      }
-
-      try {
-        const parentDirectoryPath = extractTypeAndId(parentId).id
-
-        const projectResponse = await fetch(
-          `./api/project-manager/projects/${extractTypeAndId(id).id}/enso-project?projectsDirectory=${parentDirectoryPath}`,
-        )
-
-        if (!projectResponse.ok) {
-          throw new Error('Something went wrong, please try again')
-        }
-
-        const fileName = `${newName}.enso-project`
-        await uploadFileMutation
-          .mutateAsync([
-            { fileName, fileId: cloudId, parentDirectoryId },
-            new File([await projectResponse.blob()], fileName),
-          ])
-          .catch()
-        toast.success(getText('uploadProjectToCloudSuccess'))
-      } catch (error) {
-        toastAndLog('uploadProjectToCloudError', error)
-      }
-    },
-  )
-}
-
-/** Return a callback to upload one or more projects to the cloud. */
-export function useUploadAssetsToCloud() {
-  const user = useUser()
-  const uploadAssetToCloud = useUploadAssetToCloud()
-  const remoteBackend = useRemoteBackend()
-  const getSiblings = useGetSiblings()
-  const cloudCategories = useCloudCategoryList()
-  const cloudHomeCategory = cloudCategories.categories.find((category) => category.type === 'cloud')
-
-  return useEventCallback(
-    async (assets: readonly Pick<AnyAsset, 'id' | 'parentId' | 'title'>[]) => {
-      const parentDirectoryId = user.rootDirectoryId
-      const siblings = await getSiblings(remoteBackend, parentDirectoryId)
-
-      const results = await Promise.allSettled(
-        assets.map((asset) =>
-          uploadAssetToCloud({ ...asset, parentDirectoryId: null, siblings }).catch((error) => {
-            if (error instanceof DuplicateAssetError) {
-              return { id: asset.id, error }
-            }
-            throw error
-          }),
-        ),
-      )
-
-      const duplicateErrors = results
-        .filter((result) => result.status === 'fulfilled')
-        .map((result) =>
-          typeof result.value === 'object' && 'error' in result.value ? result.value : null,
-        )
-        .filter((error) => error != null)
-
-      const errors = results.flatMap((result): unknown =>
-        result.status === 'rejected' ? [result.reason] : [],
-      )
-
-      if (duplicateErrors.length !== 0) {
-        invariant(
-          cloudHomeCategory != null,
-          'Cloud home category must exist to upload Local project to Cloud',
-        )
-
-        const resolutions = await resolveDuplications({
-          canReplace: true,
-          targetId: parentDirectoryId,
-          conflictingIds: duplicateErrors.map((error) => error.id),
-          category: cloudHomeCategory,
-          backend: remoteBackend,
-        })
-
-        const assetsMap = new Map(assets.map((asset) => [asset.id, asset]))
-        const siblingsMap = new Map(siblings.map((sibling) => [sibling.title, sibling]))
-        const renames = resolutions.flatMap((resolution) => {
-          if (resolution.conclusion !== 'rename') {
-            return []
-          }
-          const asset = assetsMap.get(resolution.assetId)
-          if (!asset) {
-            return []
-          }
-          return [{ ...resolution, asset }]
-        })
-        const replaces = resolutions.flatMap((resolution) => {
-          if (resolution.conclusion !== 'replace') {
-            return []
-          }
-          const asset = assetsMap.get(resolution.assetId)
-          if (!asset) {
-            return []
-          }
-          const sibling = siblingsMap.get(asset.title)
-          if (!sibling) {
-            return []
-          }
-          return [{ ...resolution, asset, cloudId: sibling.id }]
-        })
-
-        const newSiblings = await getSiblings(remoteBackend, parentDirectoryId)
-        await Promise.allSettled([
-          renames.map((resolution) =>
-            uploadAssetToCloud({
-              ...resolution.asset,
-              parentDirectoryId: null,
-              newName: resolution.newName,
-              siblings: newSiblings,
-            }),
-          ),
-          replaces.map((resolution) =>
-            uploadAssetToCloud({
-              ...resolution.asset,
-              cloudId: resolution.cloudId,
-              parentDirectoryId: null,
-              siblings: newSiblings,
-            }),
-          ),
-        ])
-      }
-
-      if (errors.length !== 0) {
-        throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
-          errors,
-          failed: errors.length,
-          total: assets.length,
-        })
-      }
-
-      return results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
-    },
-  )
 }
