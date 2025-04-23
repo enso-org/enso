@@ -87,7 +87,7 @@ type Tableau_Format
 
             needs_backup = on_existing_file == Existing_File_Behavior.Backup
             if needs_backup && file.exists then
-                backup_file = find_bak_file file.file
+                backup_file = _find_bak_file file.file
                 ## We can move instead of copying because right in next line we will overwrite the original file
                     anyway. And move should be more efficient.
                 Panic.rethrow <| file.file.move_to backup_file replace_existing=True
@@ -100,9 +100,6 @@ type Tableau_Format
                 HyperReader.writeTable resolved_file resolved_schema resolved_table table.java_table
             resolved_file
 
-## PRIVATE
-## TODO copied from Excel_Writer.enso
-find_bak_file : File -> File
-find_bak_file base_file =
+private _find_bak_file base_file:File -> File =
     parent = base_file.absolute.normalize.parent
     parent / (base_file.name + ".bak")
