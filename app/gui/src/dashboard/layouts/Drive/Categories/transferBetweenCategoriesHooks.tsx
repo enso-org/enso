@@ -1,17 +1,20 @@
 /** @file The categories available in the category switcher. */
 import invariant from 'tiny-invariant'
 
+import type { Resolution } from '#/components/AriaComponents'
 import { Alert, AlertDialog, ask, Text } from '#/components/AriaComponents'
 import {
   copyAssetsMutationOptions,
   deleteAssetsMutationOptions,
+  downloadAssetsMutationOptions,
   moveAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
+import { useUploadFileToCloudMutation } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useUser } from '#/providers/AuthProvider'
-import { useBackend, useLocalBackend } from '#/providers/BackendProvider'
-import { useText } from '#/providers/TextProvider'
+import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import { useText, type GetText } from '#/providers/TextProvider'
 import { AssetType, type AssetId, type DirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
@@ -20,6 +23,7 @@ import { z } from 'zod'
 import {
   CATEGORY_SCHEMA,
   dropOperationBetweenCategories,
+  isCloudCategory,
   isLocalCategory,
   type Category,
 } from './Category'
@@ -60,6 +64,7 @@ export type TransferrableAsset = z.infer<typeof TRANSFERRABLE_ASSET_SCHEMA>
 /** A function to transfer a list of assets between categories. */
 export function useTransferBetweenCategories(currentCategory: Category) {
   const localBackend = useLocalBackend()
+  const remoteBackend = useRemoteBackend()
   const backend = useBackend(currentCategory)
 
   const { rootDirectoryId } = useUser()
@@ -68,6 +73,8 @@ export function useTransferBetweenCategories(currentCategory: Category) {
 
   const { getText } = useText()
 
+  const uploadFileToCloudMutation = useUploadFileToCloudMutation(remoteBackend)
+  const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(remoteBackend))
   const deleteAssetsMutation = useMutationCallback(deleteAssetsMutationOptions(backend))
   const copyAssetsMutation = useMutationCallback(copyAssetsMutationOptions(backend))
   const restoreAssetsMutation = useMutationCallback(restoreAssetsMutationOptions(backend))
@@ -91,7 +98,6 @@ export function useTransferBetweenCategories(currentCategory: Category) {
       method: DropOperation = 'move',
     ) => {
       const operation = dropOperationBetweenCategories(from, to, newParentId)
-      const keysArray = Array.from(assets).map((asset) => asset.id)
 
       if (operation === 'cancel') {
         return
@@ -101,33 +107,46 @@ export function useTransferBetweenCategories(currentCategory: Category) {
         return
       }
 
+      const assetsArray = Array.from(assets)
+      const keysArray = assetsArray.map((asset) => asset.id)
+      const targetDirectoryId = newParentId ?? to.homeDirectoryId
+
       switch (from.type) {
         case 'team': {
           if (to.type === 'trash') {
             return deleteAssetsMutation([keysArray, false])
           }
 
-          if (to.type === 'cloud' || to.type === 'user') {
-            return ask(AlertDialog, {
-              title: getText('actionUnavailable'),
-              confirm: getText('copyInstead'),
-              children: (
-                <>
-                  <Text>{getText('copyInsteadOfMoving', from.label)}</Text>
+          if (isLocalCategory(to)) {
+            if (method === 'move') {
+              return askToCopyInstead(getText, getText('copyInsteadOfMoving', from.label))
+            }
 
-                  <Alert variant="outline" icon="copy2">
-                    <Text>{getText('youCanCopyInstead')}</Text>
-                  </Alert>
-                </>
-              ),
-            }).then((resolution) => {
-              if (resolution === 'confirm') {
-                return copyAssetsMutation([keysArray, newParentId ?? to.homeDirectoryId])
-              }
+            return downloadAssetsMutation({
+              ids: assetsArray,
+              targetDirectoryId,
             })
           }
 
-          return mutationByOperation[method](keysArray, newParentId ?? to.homeDirectoryId)
+          if (to.type === 'cloud' || to.type === 'user') {
+            let resolution: Resolution = 'confirm'
+
+            if (method === 'move') {
+              resolution = await askToCopyInstead(
+                getText,
+                getText('copyInsteadOfMoving', from.label),
+              )
+            }
+
+            if (resolution === 'confirm') {
+              return downloadAssetsMutation({
+                ids: assetsArray,
+                targetDirectoryId,
+              })
+            }
+          }
+
+          return mutationByOperation[method](keysArray, targetDirectoryId)
         }
         case 'cloud':
         case 'user': {
@@ -135,7 +154,14 @@ export function useTransferBetweenCategories(currentCategory: Category) {
             return deleteAssetsMutation([keysArray, false])
           }
 
-          return mutationByOperation[method](keysArray, newParentId ?? to.homeDirectoryId)
+          if (isLocalCategory(to)) {
+            return downloadAssetsMutation({
+              ids: assetsArray,
+              targetDirectoryId: newParentId ?? to.homeDirectoryId,
+            })
+          }
+
+          return mutationByOperation[method](keysArray, targetDirectoryId)
         }
         case 'trash': {
           if (to.type === 'trash') {
@@ -157,12 +183,12 @@ export function useTransferBetweenCategories(currentCategory: Category) {
           return Promise.all([
             ...entries
               .filter(([category]) => category.type === 'user' || category.type === 'cloud')
-              .map(([category, assetsByCategory]) => {
+              .map(([_, assetsByCategory]) => {
                 const assetsIds = assetsByCategory.map((asset) => asset.id)
 
                 return restoreAssetsMutation({
                   ids: assetsIds,
-                  parentId: newParentId ?? category.homeDirectoryId,
+                  parentId: targetDirectoryId,
                 })
               }),
             ...entries
@@ -186,7 +212,7 @@ export function useTransferBetweenCategories(currentCategory: Category) {
                   ),
                 }).then((resolution) => {
                   if (resolution === 'confirm') {
-                    return copyAssetsMutation([assetsIds, newParentId ?? to.homeDirectoryId])
+                    return copyAssetsMutation([assetsIds, targetDirectoryId])
                   }
                 })
               }),
@@ -194,12 +220,20 @@ export function useTransferBetweenCategories(currentCategory: Category) {
         }
         case 'local':
         case 'local-directory': {
-          if (to.type === 'local' || to.type === 'local-directory') {
-            const parentDirectory = to.type === 'local' ? localBackend?.rootPath() : to.rootPath
+          invariant(
+            localBackend != null,
+            'The Local backend must be present to transfer assets from or to the local category.',
+          )
 
-            invariant(parentDirectory != null, 'The Local backend is missing a root directory.')
+          if (isCloudCategory(to)) {
+            return uploadFileToCloudMutation(localBackend, {
+              assets: assetsArray,
+              targetDirectoryId,
+            })
+          }
 
-            return mutationByOperation[method](keysArray, newParentId ?? to.homeDirectoryId)
+          if (to.type === 'local') {
+            return mutationByOperation[method](keysArray, targetDirectoryId)
           }
 
           return
@@ -238,4 +272,23 @@ function groupTransferrableAssetsByCategory(
   }
 
   return groups
+}
+
+/**
+ * Asks the user to copy instead of the operation.
+ */
+function askToCopyInstead(getText: GetText, text: string) {
+  return ask(AlertDialog, {
+    title: getText('actionUnavailable'),
+    confirm: getText('copyInstead'),
+    children: (
+      <>
+        <Text>{text}</Text>
+
+        <Alert variant="outline" icon="copy2">
+          <Text>{getText('youCanCopyInstead')}</Text>
+        </Alert>
+      </>
+    ),
+  })
 }

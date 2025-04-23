@@ -4,4 +4,3 @@
 - goal_placeholder -> Standard.Base.Any.Any
 - print subject:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Table.Table.Table.build_ai_prompt self -> Standard.Base.Any.Any
-- Standard.Table.Table.Table.build_ai_prompt self -> Standard.Base.Any.Any

@@ -278,4 +278,5 @@ type Command_Line_Progress_Reporter
 ## PRIVATE
    Checks if the current process is running in an interactive terminal session.
 is_terminal_interactive -> Boolean =
-    Java_System.console != Nothing
+    console = Java_System.console
+    console != Nothing && console.isTerminal
