@@ -4,6 +4,7 @@ import * as z from 'zod'
 import type { SvgUseIcon } from '#/components/AriaComponents'
 import type { UserId } from '#/services/Backend'
 import {
+  BackendType,
   FilterBy,
   type DirectoryId,
   type Path,
@@ -27,7 +28,7 @@ const EACH_CATEGORY_SCHEMA = z.object({
    * Internal type discriminator.
    * Used to determine the type of the category without having to check for any other properties.
    */
-  $$type: z.literal('cloud').or(z.literal('local')),
+  backend: z.nativeEnum(BackendType),
 })
 
 /** A category corresponding to the root of the user or organization. */
@@ -36,9 +37,9 @@ const CLOUD_CATEGORY_SCHEMA = z
     type: z.literal('cloud'),
     id: z.literal('cloud'),
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
-    $$type: z.literal('cloud'),
   })
   .merge(EACH_CATEGORY_SCHEMA)
+  .merge(z.object({ backend: z.literal(BackendType.remote) }))
   .readonly()
 /** A category corresponding to the root of the user or organization. */
 export type CloudCategory = z.infer<typeof CLOUD_CATEGORY_SCHEMA>
@@ -49,9 +50,9 @@ const RECENT_CATEGORY_SCHEMA = z
     type: z.literal('recent'),
     id: z.literal('recent'),
     homeDirectoryId: z.null(),
-    $$type: z.literal('cloud'),
   })
   .merge(EACH_CATEGORY_SCHEMA)
+  .merge(z.object({ backend: z.literal(BackendType.remote) }))
   .readonly()
 /** A category containing recently opened Cloud projects. */
 export type RecentCategory = z.infer<typeof RECENT_CATEGORY_SCHEMA>
@@ -62,9 +63,9 @@ const TRASH_CATEGORY_SCHEMA = z
     type: z.literal('trash'),
     id: z.literal('trash'),
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
-    $$type: z.literal('cloud'),
   })
   .merge(EACH_CATEGORY_SCHEMA)
+  .merge(z.object({ backend: z.literal(BackendType.remote) }))
   .readonly()
 /** A category containing recently deleted Cloud items. */
 export type TrashCategory = z.infer<typeof TRASH_CATEGORY_SCHEMA>
@@ -77,9 +78,9 @@ export const USER_CATEGORY_SCHEMA = z
     id: z.custom<UserId>(() => true),
     rootPath: PATH_SCHEMA,
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
-    $$type: z.literal('cloud'),
   })
   .merge(EACH_CATEGORY_SCHEMA)
+  .merge(z.object({ backend: z.literal(BackendType.remote) }))
   .readonly()
 /** A category corresponding to the root directory of a user. */
 export type UserCategory = z.infer<typeof USER_CATEGORY_SCHEMA>
@@ -91,9 +92,9 @@ export const TEAM_CATEGORY_SCHEMA = z
     team: z.custom<UserGroup>(() => true),
     rootPath: PATH_SCHEMA,
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
-    $$type: z.literal('cloud'),
   })
   .merge(EACH_CATEGORY_SCHEMA)
+  .merge(z.object({ backend: z.literal(BackendType.remote) }))
   .readonly()
 /** A category corresponding to the root directory of a team within an organization. */
 export type TeamCategory = z.infer<typeof TEAM_CATEGORY_SCHEMA>
@@ -106,9 +107,9 @@ const LOCAL_CATEGORY_SCHEMA = z
     id: z.literal('local'),
     rootPath: PATH_SCHEMA,
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
-    $$type: z.literal('local'),
   })
   .merge(EACH_CATEGORY_SCHEMA)
+  .merge(z.object({ backend: z.literal(BackendType.local) }))
   .readonly()
 /** A category corresponding to the primary root directory for Local projects. */
 export type LocalCategory = z.infer<typeof LOCAL_CATEGORY_SCHEMA>
@@ -120,9 +121,9 @@ export const LOCAL_DIRECTORY_CATEGORY_SCHEMA = z
     id: z.custom<DirectoryId>(() => true),
     rootPath: PATH_SCHEMA,
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
-    $$type: z.literal('local'),
   })
   .merge(EACH_CATEGORY_SCHEMA)
+  .merge(z.object({ backend: z.literal(BackendType.local) }))
   .readonly()
 /** A category corresponding to an alternate local root directory. */
 export type LocalDirectoryCategory = z.infer<typeof LOCAL_DIRECTORY_CATEGORY_SCHEMA>
@@ -173,12 +174,12 @@ export const CATEGORY_TO_FILTER_BY: Readonly<Record<Category['type'], FilterBy |
 
 /** Whether the category is only accessible from the cloud. */
 export function isCloudCategory(category: Category): category is AnyCloudCategory {
-  return category.$$type === 'cloud'
+  return category.backend === BackendType.remote
 }
 
 /** Whether the category is only accessible locally. */
 export function isLocalCategory(category: Category): category is AnyLocalCategory {
-  return category.$$type === 'local'
+  return category.backend === BackendType.local
 }
 
 /** Whether the given categories are equal. */

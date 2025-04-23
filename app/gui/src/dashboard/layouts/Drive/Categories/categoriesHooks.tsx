@@ -17,7 +17,7 @@ import { useBackend, useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { Path, type DirectoryId } from '#/services/Backend'
+import { BackendType, Path, type DirectoryId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 import { organizationIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
@@ -87,7 +87,7 @@ function useCloudCategoryList() {
     label: getText('cloudCategory'),
     icon: 'cloud',
     homeDirectoryId: user.rootDirectoryId,
-    $$type: 'cloud',
+    backend: BackendType.remote,
   }
 
   const recentCategory: RecentCategory = {
@@ -96,7 +96,7 @@ function useCloudCategoryList() {
     label: getText('recentCategory'),
     icon: RecentIcon,
     homeDirectoryId: null,
-    $$type: 'cloud',
+    backend: BackendType.remote,
   }
 
   const trashCategory: TrashCategory = {
@@ -105,7 +105,7 @@ function useCloudCategoryList() {
     label: getText('trashCategory'),
     icon: 'trash_small',
     homeDirectoryId: organizationIdToDirectoryId(user.organizationId),
-    $$type: 'cloud',
+    backend: BackendType.remote,
   }
 
   const predefinedCloudCategories: AnyCloudCategory[] = [
@@ -122,7 +122,7 @@ function useCloudCategoryList() {
     homeDirectoryId: group.homeDirectoryId,
     label: getText('teamCategory', group.name),
     icon: 'people',
-    $$type: 'cloud',
+    backend: BackendType.remote,
   }))
 
   const categories = [...predefinedCloudCategories, ...teamCategories] satisfies AnyCloudCategory[]
@@ -172,7 +172,7 @@ function createLocalDirectoryCategory(directory: string): LocalDirectoryCategory
     homeDirectoryId: newDirectoryId(Path(directory)),
     label: getFileName(directory),
     icon: 'folder_small',
-    $$type: 'local',
+    backend: BackendType.local,
   }
 }
 
@@ -243,7 +243,7 @@ function useLocalCategoryList() {
     icon: ComputerIcon,
     homeDirectoryId: newDirectoryId(rootPath),
     rootPath,
-    $$type: 'local',
+    backend: BackendType.local,
   }
 
   const predefinedLocalCategories: AnyLocalCategory[] = [localCategory]
