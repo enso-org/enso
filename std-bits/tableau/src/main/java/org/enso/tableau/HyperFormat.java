@@ -339,12 +339,12 @@ public class HyperFormat {
   }
 
   private static TableDefinition createTable(String schemaName, String tableName, Column[] columns, Connection connection) {
-      final SchemaName sn = new SchemaName(schemaName);
+      final var sn = new SchemaName(schemaName);
       if (!connection.getCatalog().getSchemaNames().contains(sn)) {
           connection.getCatalog().createSchema(sn);
       }
       
-      TableDefinition tableDef = new TableDefinition(new TableName(schemaName, tableName));
+      var tableDef = new TableDefinition(new TableName(schemaName, tableName));
       for (var col : columns) {
         String columnName = col.getName();
         var storage = col.getStorage();
@@ -359,9 +359,7 @@ public class HyperFormat {
           default -> throw new HyperUnsupportedTypeError(storage.getType().toString());
         }
       }
-
       connection.executeCommand("DROP TABLE IF EXISTS \""+schemaName+"\".\""+tableName+"\"");
-      // Create the table in the Hyper file
       connection.getCatalog().createTable(tableDef);
       return tableDef;
   }
