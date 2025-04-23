@@ -465,19 +465,6 @@ impl Processor {
                 .void_ok()
                 .boxed()
             }
-            arg::backend::Command::Lint {} => {
-                let config = enso_build::engine::BuildConfigurationFlags {
-                    run_enso_lint: true,
-                    ..default()
-                };
-                let context = self.prepare_backend_context(config);
-                async move {
-                    let context = context.await?;
-                    context.build().await
-                }
-                .void_ok()
-                .boxed()
-            }
             arg::backend::Command::GenerateCloudCredentials {} => async move {
                 let auth_config = cloud_tests::build_auth_config_from_environment()?;
                 let path = Path::new("enso.credentials");
@@ -853,7 +840,12 @@ pub async fn main_internal(config: Option<Config>) -> Result {
         }
         Target::Libraries(command) => match command.action {
             libraries::Command::Lint => {
-                enso_build::rust::enso_linter::lint_all(ctx.repo_root.clone()).await?;
+                let config = enso_build::engine::BuildConfigurationFlags {
+                    run_enso_lint: true,
+                    ..default()
+                };
+                let backend_context = ctx.prepare_backend_context(config).await?;
+                backend_context.build().await?;
             }
         },
     };

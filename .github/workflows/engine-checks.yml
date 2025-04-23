@@ -152,7 +152,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend lint
+      - run: ./run libraries lint
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"

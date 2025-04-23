@@ -363,7 +363,7 @@ pub struct EnsoCodeLintCheck;
 impl JobArchetype for EnsoCodeLintCheck {
     fn job(&self, target: Target) -> Job {
         let job_name = "Enso Code Lint";
-        let run_command = "backend lint";
+        let run_command = "libraries lint";
         let job = RunStepsBuilder::new(run_command).build_job(job_name, target);
         job
     }
