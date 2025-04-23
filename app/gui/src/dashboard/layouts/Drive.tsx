@@ -82,7 +82,7 @@ function Drive(props: DriveProps) {
                   if (downloadUrl == null) {
                     toastAndLog('noAppDownloadError')
                   } else {
-                    download.download(downloadUrl)
+                    void download.download(downloadUrl)
                   }
                 }}
               >

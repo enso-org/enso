@@ -1644,4 +1644,345 @@ class RuntimeSuggestionUpdatesTest
       context.executionComplete(contextId)
     )
   }
+
+  it should "send suggestions for non-Main module" in {
+    val contextId   = UUID.randomUUID()
+    val requestId   = UUID.randomUUID()
+    val moduleName  = "Enso_Test.Test.Main"
+    val aModuleName = "Enso_Test.Test.A"
+
+    val mainCode =
+      """import Standard.Base.IO
+        |
+        |import project.A
+        |
+        |main =
+        |    t = A.newType 10
+        |    v = t.foo
+        |    IO.println v.to_text
+        |    IO.println "Hello World!"
+        |""".stripMargin.linesIterator.mkString("\n")
+    val aCode =
+      """|
+         |type MyType
+         |    MkA a
+         |
+         |    foo self = self.a
+         |
+         |newType a = MyType.MkA a
+         |""".stripMargin.linesIterator.mkString("\n")
+
+    val mainFile = context.writeMain(mainCode)
+    val aFile    = context.writeInSrcDir("A", aCode)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open files
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, mainCode))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(aFile, aCode))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    context.send(
+      Api.Request(
+        requestId,
+        Api.InvalidateModulesIndexRequest()
+      )
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+
+    context.receiveNIgnoreExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.InvalidateModulesIndexResponse()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          module = "Enso_Test.Test.Main",
+          actions =
+            Vector(Api.SuggestionsDatabaseAction.Clean("Enso_Test.Test.Main")),
+          exports = Vector(
+            Api.ExportsUpdate(
+              ModuleExports(
+                "Enso_Test.Test.Main",
+                ListSet(
+                  ExportedSymbol.Method("Enso_Test.Test.Main", "main")
+                )
+              ),
+              Api.ExportsAction.Add()
+            )
+          ),
+          updates = Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Module(
+                    "Enso_Test.Test.Main",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.DefinedMethod(
+                    None,
+                    moduleName,
+                    "main",
+                    List(),
+                    moduleName,
+                    ConstantsGen.ANY,
+                    true,
+                    None,
+                    Seq()
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector(
+                  Tree.Node(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        None,
+                        moduleName,
+                        "t",
+                        ConstantsGen.ANY,
+                        Suggestion.Scope(
+                          Suggestion.Position(4, 6),
+                          Suggestion.Position(8, 29)
+                        ),
+                        None
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  ),
+                  Tree.Node(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        None,
+                        moduleName,
+                        "v",
+                        ConstantsGen.ANY,
+                        Suggestion.Scope(
+                          Suggestion.Position(4, 6),
+                          Suggestion.Position(8, 29)
+                        ),
+                        None
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("10", "Hello World!")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          aFile,
+          Seq(
+          ),
+          execute = true,
+          idMap = Some(
+            model.IdMap(
+              Vector(
+                (model.Span(59, 71), UUID.randomUUID())
+              )
+            )
+          )
+        )
+      )
+    )
+
+    context.receiveNIgnoreExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          module  = aModuleName,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(aModuleName)),
+          exports = Vector(
+            Api.ExportsUpdate(
+              ModuleExports(
+                aModuleName,
+                Set(
+                  ExportedSymbol.Type(aModuleName, "MyType"),
+                  ExportedSymbol.Method(aModuleName, "newType")
+                )
+              ),
+              Api.ExportsAction.Add()
+            )
+          ),
+          updates = Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Module(aModuleName, None, ListSet()),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Type(
+                    None,
+                    aModuleName,
+                    "MyType",
+                    List(),
+                    "Enso_Test.Test.A.MyType",
+                    Some(ConstantsGen.ANY),
+                    None,
+                    ListSet()
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Constructor(
+                    None,
+                    aModuleName,
+                    "MkA",
+                    List(
+                      Suggestion.Argument(
+                        "a",
+                        ConstantsGen.ANY,
+                        false,
+                        false,
+                        None,
+                        None
+                      )
+                    ),
+                    "Enso_Test.Test.A.MyType",
+                    None,
+                    List(),
+                    ListSet()
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Getter(
+                    None,
+                    aModuleName,
+                    "a",
+                    List(
+                      Suggestion.Argument(
+                        "self",
+                        "Enso_Test.Test.A.MyType",
+                        false,
+                        false,
+                        None,
+                        None
+                      )
+                    ),
+                    "Enso_Test.Test.A.MyType",
+                    ConstantsGen.ANY,
+                    None,
+                    List(),
+                    ListSet()
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.DefinedMethod(
+                    None,
+                    aModuleName,
+                    "foo",
+                    List(
+                      Suggestion.Argument(
+                        "self",
+                        "Enso_Test.Test.A.MyType",
+                        false,
+                        false,
+                        None,
+                        None
+                      )
+                    ),
+                    "Enso_Test.Test.A.MyType",
+                    ConstantsGen.ANY,
+                    false,
+                    None,
+                    List(),
+                    ListSet()
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.DefinedMethod(
+                    None,
+                    "Enso_Test.Test.A",
+                    "newType",
+                    List(
+                      Suggestion.Argument(
+                        "a",
+                        ConstantsGen.ANY,
+                        false,
+                        false,
+                        None,
+                        None
+                      )
+                    ),
+                    "Enso_Test.Test.A",
+                    ConstantsGen.ANY,
+                    true,
+                    None,
+                    List(),
+                    ListSet()
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
 }

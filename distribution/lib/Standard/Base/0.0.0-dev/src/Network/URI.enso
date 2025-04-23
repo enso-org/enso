@@ -152,6 +152,7 @@ type URI
 
     ## GROUP Operators
        ICON folder
+       SUGGESTED 2
        Extends the path of this URI with an additional segment.
 
        Arguments:
@@ -185,6 +186,7 @@ type URI
 
     ## GROUP Calculations
        ICON edit
+       SUGGESTED 1
        Adds a query parameter to the URI.
 
        Arguments:

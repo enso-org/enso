@@ -228,20 +228,23 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const { user } = useFullUserSession()
   const setSelectedAssets = useSetSelectedAssets()
   const getAsset = useGetAsset()
-  const selected = useStore(driveStore, ({ visuallySelectedKeys, selectedIds }) =>
-    (visuallySelectedKeys ?? selectedIds).has(id),
-  )
-  const isSoleSelected = useStore(
+  const { isSelected, isSoleSelected, isMultiSelected } = useStore(
     driveStore,
-    ({ selectedIds, visuallySelectedKeys }) =>
-      selected && (visuallySelectedKeys ?? selectedIds).size === 1,
+    ({ visuallySelectedKeys, selectedIds }) => {
+      const selection = visuallySelectedKeys ?? selectedIds
+      const selected = selection.has(id)
+
+      return {
+        isSelected: selected,
+        isSoleSelected: selected && selection.size === 1,
+        isMultiSelected: selection.size > 1,
+      }
+    },
+    { areEqual: 'shallow', unsafeEnableTransition: true },
   )
-  const allowContextMenu = useStore(
-    driveStore,
-    ({ selectedIds }) => selectedIds.size === 0 || !selected || isSoleSelected,
-  )
+
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
-  const draggableProps = dragAndDropHooks.useDraggable({ isDisabled: !selected })
+  const draggableProps = dragAndDropHooks.useDraggable({ isDisabled: !isSelected })
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const setIsDraggingOverSelectedRow = useSetIsDraggingOverSelectedRow()
@@ -315,10 +318,10 @@ export function RealAssetRow(props: RealAssetRowProps) {
   })
 
   React.useEffect(() => {
-    if (selected && insertionVisibility !== Visibility.visible) {
+    if (isSelected && insertionVisibility !== Visibility.visible) {
       setSelected(false)
     }
-  }, [selected, insertionVisibility, setSelected])
+  }, [isSelected, insertionVisibility, setSelected])
 
   React.useEffect(() => {
     if (isKeyboardSelected) {
@@ -346,8 +349,8 @@ export function RealAssetRow(props: RealAssetRowProps) {
       event.preventDefault()
       event.stopPropagation()
       setDragTargetAssetId(item.id)
-      if (selected !== isDraggingOverSelectedRow) {
-        setIsDraggingOverSelectedRow(selected)
+      if (isSelected !== isDraggingOverSelectedRow) {
+        setIsDraggingOverSelectedRow(isSelected)
       }
       return
     }
@@ -403,7 +406,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
           <tr
             data-testid="asset-row"
             tabIndex={0}
-            data-selected={selected}
+            data-selected={isSelected}
             data-id={item.id}
             onDoubleClick={() => {
               if (item.type === backendModule.AssetType.directory) {
@@ -426,7 +429,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
             className={tailwindMerge.twMerge(
               'h-table-row rounded-full transition-all ease-in-out rounded-rows-child [contain-intrinsic-size:44px] [content-visibility:auto]',
               visibility,
-              (isDraggedOver || selected) && 'selected',
+              (isDraggedOver || isSelected) && 'selected',
             )}
             {...draggableProps}
             onClick={(event) => {
@@ -445,27 +448,34 @@ export function RealAssetRow(props: RealAssetRowProps) {
               }
             }}
             onContextMenu={(event) => {
-              if (allowContextMenu) {
-                event.preventDefault()
-                event.stopPropagation()
-                if (!selected) {
-                  select(item)
-                }
-                setModal(
-                  <AssetContextMenu
-                    innerProps={innerProps}
-                    currentDirectoryId={currentDirectoryId}
-                    triggerRef={rootRef}
-                    event={event}
-                    eventTarget={
-                      event.target instanceof HTMLElement ? event.target : event.currentTarget
-                    }
-                    doCopy={doCopy}
-                    doCut={doCut}
-                    doPaste={doPaste}
-                  />,
-                )
+              // We show the asset row context menu if the asset is included in the selection.
+              // Or we click on a asset row outside of the selection. In that case we reset the
+              // selection to the clicked asset.
+              if (isSelected && isMultiSelected) {
+                return
               }
+
+              event.preventDefault()
+              event.stopPropagation()
+
+              if (!isSelected) {
+                select(item)
+              }
+
+              setModal(
+                <AssetContextMenu
+                  innerProps={innerProps}
+                  currentDirectoryId={currentDirectoryId}
+                  triggerRef={rootRef}
+                  event={event}
+                  eventTarget={
+                    event.target instanceof HTMLElement ? event.target : event.currentTarget
+                  }
+                  doCopy={doCopy}
+                  doCut={doCut}
+                  doPaste={doPaste}
+                />,
+              )
             }}
             onDragStart={(event) => {
               if (rowState.isEditingName) {
@@ -541,7 +551,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
             })}
           </tr>
 
-          {isSoleSelected && allowContextMenu && (
+          {isSoleSelected && (
             // This is a copy of the context menu, since the context menu registers keyboard
             // shortcut handlers. This is a bit of a hack, however it is preferable to duplicating
             // the entire context menu (once for the keyboard actions, once for the JSX).

@@ -100,7 +100,7 @@ export default function VersionChecker() {
     if (downloadUrl == null) {
       toastAndLog('noAppDownloadError')
     } else {
-      download(downloadUrl)
+      void download(downloadUrl)
       stepperState.nextStep()
     }
   })

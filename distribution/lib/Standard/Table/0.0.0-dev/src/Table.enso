@@ -1872,7 +1872,7 @@ type Table
     @column Widget_Helpers.make_column_name_selector
     @delimiter make_delimiter_selector
     @column_count Columns_To_Add.default_widget
-    split_to_columns self (column : Text | Integer) delimiter:Text="," column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table =
+    split_to_columns self (column : Text | Integer) delimiter:Text|Vector="," column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table =
         Split_Tokenize.split_to_columns self column delimiter column_count=column_count on_problems
 
     ## ALIAS parse, tokenize

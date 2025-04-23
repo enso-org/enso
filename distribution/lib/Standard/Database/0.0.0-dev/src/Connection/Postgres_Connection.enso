@@ -13,7 +13,7 @@ import project.Dialect
 import project.Internal.Common.Connections_Helpers
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.Data_Link_Setup.Data_Link_Setup
-import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.JDBC_Connection
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL_Query.SQL_Query

@@ -10,7 +10,7 @@ from Standard.Table.Errors import Inexact_Type_Coercion
 
 import Standard.Database.Internal.Column_Fetcher as Column_Fetcher_Module
 import Standard.Database.Internal.Column_Fetcher.Column_Fetcher
-import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
+import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Internal.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.SQL_Type.SQL_Type
@@ -102,7 +102,7 @@ type Snowflake_Type_Mapping
     ## PRIVATE
        The Snowflake_Type_Mapping always relies on the return type determined by
        the database backend.
-    infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference
+    infer_return_type : (SQL_IR_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_IR_Expression -> SQL_Type_Reference
     infer_return_type infer_from_database_callback op_name arguments expression =
         _ = [op_name, arguments]
         infer_from_database_callback expression
