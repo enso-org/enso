@@ -35,7 +35,7 @@ type Fixed_Width_Format
 
        ! Error Conditions
 
-         If a line of the input data does not have enough character offset to
+         If a line of the input data does not have enough characters to
          cover all of the columns specified in the `layout`, the result depends
          on the value of `on_invalid_rows`:
          `Drop_Invalid_Rows`: short lines are skipped.
