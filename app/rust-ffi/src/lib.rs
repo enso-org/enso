@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 
-use enso_parser::lexer::test::TokenOperatorProperties;
+use enso_parser::syntax::token::TokenOperatorProperties;
 use enso_parser::Parser;
 
 
