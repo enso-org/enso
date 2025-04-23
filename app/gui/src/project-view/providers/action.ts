@@ -46,7 +46,7 @@ const actions = {
     shortcut: graphBindings.bindings.copyNode,
   },
   'components.deleteSelected': {
-    icon: 'trash2',
+    icon: 'trash',
     description: 'Delete Selected Components',
     shortcut: graphBindings.bindings.deleteSelected,
     testid: 'removeNode',
