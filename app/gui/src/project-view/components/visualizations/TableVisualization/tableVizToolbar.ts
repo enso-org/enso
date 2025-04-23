@@ -26,7 +26,6 @@ export type SortModel = {
 export interface SortFilterNodesButtonOptions {
   filterModel: ToValue<GridFilterModel[]>
   sortModel: ToValue<SortModel[]>
-  isFilterAndSortDisabled: ToValue<boolean>
   isCreateNewNodeEnabled: ToValue<boolean>
   createNodes: (...options: NodeCreationOptions[]) => void
   getColumnValueToEnso: (
@@ -43,22 +42,22 @@ export interface ColumnNodeButton {
   createNodes: (...options: NodeCreationOptions[]) => void
   hiddenColumns: Ref<string[]>
   vizColumnOrder: Ref<string[]>
-  isColumnDisabled: ToValue<boolean>
 }
 
-interface NewNodeOptions extends SortFilterNodesButtonOptions, ColumnNodeButton {}
+interface NewNodeOptions extends SortFilterNodesButtonOptions, ColumnNodeButton {
+  isButtonDisabled: ToValue<boolean>
+}
 
 export interface Options extends NewNodeOptions, FormatMenuOptions {}
 
 function useSortFilterNodesButton({
   filterModel,
   sortModel,
-  isFilterAndSortDisabled,
+  isButtonDisabled,
   isCreateNewNodeEnabled,
   createNodes,
   getColumnValueToEnso,
   hiddenColumns,
-  isColumnDisabled,
   vizColumnOrder,
 }: NewNodeOptions): ComputedRef<ToolbarItem | undefined> {
   const sortPatternPattern = computed(() => Pattern.parseExpression('(..Name __ __ )')!)
@@ -305,7 +304,7 @@ function useSortFilterNodesButton({
   const createNodesButton: ToolbarItem = {
     icon: 'add_to_graph_editor',
     title: "Create new component(s) with the current grid's state applied to the workflow",
-    disabled: false,
+    disabled: isButtonDisabled,
     onClick: createNewNodes,
   }
 

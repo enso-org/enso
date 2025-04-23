@@ -146,8 +146,7 @@ const pageLimit = ref(0)
 const rowCount = ref(0)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
-const isCreateFilterAndSortNodeEnabled = ref(false)
-const isCreateColumnNodeEnabled = ref(false)
+const isCreateNodeButtonEnabled = ref(false)
 const filterModel = ref<GridFilterModel[]>([])
 const sortModel = ref<SortModel[]>([])
 const hiddenColumns = ref<string[]>([])
@@ -946,7 +945,7 @@ function checkSortAndFilter(e: SortChangedEvent) {
   const gridApi = e.api
   if (gridApi == null) {
     console.warn('AG Grid column API does not exist.')
-    isCreateFilterAndSortNodeEnabled.value = false
+    isCreateNodeButtonEnabled.value = false
     return
   }
   const colState = gridApi.getColumnState()
@@ -964,25 +963,30 @@ function checkSortAndFilter(e: SortChangedEvent) {
     .filter((sort) => sort)
   const filter = makeFilterModelList(gridFilterModel)
   if (sort.length || filter.length) {
-    isCreateFilterAndSortNodeEnabled.value = true
     sortModel.value = sort as SortModel[]
     filterModel.value = filter
   } else {
-    isCreateFilterAndSortNodeEnabled.value = false
     sortModel.value = []
     filterModel.value = []
   }
+  enableCreateNodeButton()
 }
 
 const onColumnStateChange = (e: ColumnVisibleEvent) => {
   const colState = e.api.getColumnState()
   hiddenColumns.value = colState.filter((col) => col.hide).map((col) => col.colId)
-  //Check against OG order
   vizColumnOrder.value = colState
     .filter((col) => col.colId != INDEX_FIELD_NAME)
     .map((col) => col.colId)
-  //viz order set to empty if same order as OG- check against length of either
-  isCreateColumnNodeEnabled.value = true
+  enableCreateNodeButton()
+}
+
+const enableCreateNodeButton = () => {
+  isCreateNodeButtonEnabled.value =
+    sortModel.value.length > 0 ||
+    filterModel.value.length > 0 ||
+    hiddenColumns.value.length > 0 ||
+    vizColumnOrder.value.length > 0
 }
 
 // ===============
@@ -1001,8 +1005,7 @@ config.setToolbar(
     textFormatterSelected,
     filterModel,
     sortModel,
-    isFilterAndSortDisabled: () => !isCreateFilterAndSortNodeEnabled.value,
-    isColumnDisabled: () => !isCreateColumnNodeEnabled.value,
+    isButtonDisabled: () => !isCreateNodeButtonEnabled.value,
     isCreateNewNodeEnabled,
     createNodes: config.createNodes,
     getColumnValueToEnso,
