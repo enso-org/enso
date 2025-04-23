@@ -12,12 +12,12 @@ import project.Dialect_Flag.Dialect_Flag
 import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
 import project.Internal.Error_Mapper.Error_Mapper
-import project.Internal.IR.Context.Context
-import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
-import project.Internal.IR.Query.Query
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Part.SQL_Part
@@ -48,7 +48,7 @@ type Dialect
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
-    generate_sql : Query -> SQL_Statement
+    generate_sql : SQL_IR_Statement -> SQL_Statement
     generate_sql self query =
         _ = [query]
         Unimplemented.throw "This is an interface only."
@@ -69,7 +69,7 @@ type Dialect
 
     ## PRIVATE
        Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
-       If you add extensions using Context_Extension you have to provide an order for them here
+       If you add extensions using SQL_IR_Source_Extension you have to provide an order for them here
     get_part_order self part:SQL_Part -> Integer =
         _ = [part]
         Unimplemented.throw "This is an interface only."
@@ -125,7 +125,7 @@ type Dialect
        - infer_result_type_from_database_callback: A callback that can be used
          to infer the type of the newly built expression from the Database. It
          should be used by default, unless an override is chosen.
-    make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
+    make_cast : Internal_Column -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     make_cast self column target_type infer_result_type_from_database_callback =
         _ = [column, target_type, infer_result_type_from_database_callback]
         Unimplemented.throw "This is an interface only."
@@ -159,7 +159,7 @@ type Dialect
 
        These transformations depend on the dialect. They can be used to align
        the result types, for example.
-    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
+    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
         _ = [column, approximate_result_type, infer_result_type_from_database_callback]
         Unimplemented.throw "This is an interface only."
@@ -174,7 +174,7 @@ type Dialect
        actual work, but the resulting type will still be the same. There are
        exceptions though, like SQLite, where the best we can do is add
        `LIMIT 1`.
-    prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
+    prepare_fetch_types_query : SQL_IR_Expression -> SQL_IR_Source -> SQL_Statement
     prepare_fetch_types_query self expression context =
         _ = [expression, context]
         Unimplemented.throw "This is an interface only."
@@ -279,7 +279,7 @@ type Dialect
        implementation defined in `Aggregate_Helper.default_build_aggregate` will
        be used. The method should be defined only if the dialect requires custom
        logic.
-    custom_build_aggregate self (base_table : DB_Table) (key_columns : Vector Internal_Column) (resolved_aggregates : Vector (Pair Text Aggregate_Column)) (problem_builder : Problem_Builder) -> Pair Context (Vector (Internal_Column | DB_Wrapped_Error)) =
+    custom_build_aggregate self (base_table : DB_Table) (key_columns : Vector Internal_Column) (resolved_aggregates : Vector (Pair Text Aggregate_Column)) (problem_builder : Problem_Builder) -> Pair SQL_IR_Source (Vector (Internal_Column | DB_Wrapped_Error)) =
         _ = [base_table, key_columns, resolved_aggregates, problem_builder]
         Unimplemented.throw "This is an interface only."
 
@@ -287,7 +287,7 @@ type Dialect
        Generates a expression for use in the SELECT OR WHERE clause. 
        Used for databases where the expression syntax is different in the SELECT clause 
        to the syntax in the WHERE clause
-    generate_expression self base_gen expr:(SQL_Expression | Order_Descriptor | Query) for_select:Boolean -> SQL_Builder =
+    generate_expression self base_gen expr:(SQL_IR_Expression | Order_Descriptor | SQL_IR_Statement) for_select:Boolean -> SQL_Builder =
         _ = [base_gen, expr, for_select]
         Unimplemented.throw "This is an interface only."
 

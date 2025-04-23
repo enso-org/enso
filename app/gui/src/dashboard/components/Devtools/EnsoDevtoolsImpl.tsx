@@ -384,7 +384,7 @@ export function EnsoDevtools() {
               aria-label={getText('deleteAll')}
               size="small"
               variant="icon"
-              icon="trash2"
+              icon="trash"
               onPress={() => {
                 for (const key of LocalStorage.getAllKeys()) {
                   localStorage.delete(key)

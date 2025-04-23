@@ -11,7 +11,7 @@ import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
 import project.Internal.DDL_Transaction.Transactional_Table_Description
 import project.Internal.In_Transaction.In_Transaction
-import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.SQL_Query.SQL_Query
 from project.Dialect import Temp_Table_Style
 from project.Errors import Different_Connections, SQL_Error, Table_Already_Exists
@@ -123,7 +123,7 @@ private _create_database_table_upload_op (source_table : DB_Table) connection ta
            table. But we create both from the same source table, so
            that is guaranteed.
         copy_into_statement = connection.dialect.generate_sql <|
-            Query.Insert_From_Select table_name effective_source_table.column_names effective_source_table.to_select_query
+            SQL_IR_Statement.Insert_From_Select table_name effective_source_table.column_names effective_source_table.to_select_query
 
         callback _ = In_Transaction.ensure_in_transaction <|
             upload_status =

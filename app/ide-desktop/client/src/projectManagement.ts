@@ -53,6 +53,15 @@ export interface ProjectInfo {
 // ======================
 
 /**
+ * Check if the given path is a project bundle.
+ * @param path - The path to check.
+ * @returns `true` if the path is a project bundle, `false` otherwise.
+ */
+export function isProjectBundle(path: string): boolean {
+  return pathModule.extname(path).endsWith(BUNDLED_PROJECT_SUFFIX)
+}
+
+/**
  * Open a project from the given path. Path can be either a source file under the project root,
  * or the project bundle. If needed, the project will be imported into the Project Manager-enabled
  * location.
@@ -65,7 +74,7 @@ export function importProjectFromPath(
   name: string | null = null,
 ) {
   directory ??= getProjectsDirectory()
-  if (pathModule.extname(openedPath).endsWith(BUNDLED_PROJECT_SUFFIX)) {
+  if (isProjectBundle(openedPath)) {
     logger.log(`Path '${openedPath}' denotes a bundled project.`)
     // The second part of condition is for the case when someone names a directory
     // like `my-project.enso-project` and stores the project there.
@@ -101,7 +110,9 @@ export function importBundle(
   name: string | null = null,
 ) {
   directory ??= getProjectsDirectory()
-  logger.log(`Importing project '${bundlePath}' from bundle${name != null ? ` as '${name}'` : ''}.`)
+  logger.log(
+    `Importing project '${bundlePath}' from bundle${name != null ? ` as '${name}'` : ''}. Target directory: '${directory}'.`,
+  )
   // The bundle is a tarball, so we just need to extract it to the right location.
   const bundlePrefix = prefixInBundle(bundlePath)
   // We care about spurious '.' and '..' when stripping paths but not when generating name.
@@ -336,12 +347,8 @@ export function updateMetadata(
  */
 export function isProjectRoot(candidatePath: string): boolean {
   const projectJsonPath = pathModule.join(candidatePath, PROJECT_METADATA_RELATIVE_PATH)
-  try {
-    fs.accessSync(projectJsonPath, fs.constants.R_OK)
-    return true
-  } catch {
-    return false
-  }
+
+  return fs.existsSync(projectJsonPath)
 }
 
 /**
@@ -374,18 +381,18 @@ export function prefixInBundle(bundlePath: string): string | null {
  */
 export function generateDirectoryName(name: string, directory = getProjectsDirectory()): string {
   // Use only the last path component.
-  name = pathModule.parse(name).name
+  let baseName = pathModule.parse(name).name
 
   // If the name already consists a suffix, reuse it.
-  const matches = name.match(/^(.*)_(\d+)$/)
+  const matches = baseName.match(/^(.*)_(\d+)$/)
   // Matches start with the whole match, so we need to skip it. Then come our two capture groups.
   const [matchedName, matchedSuffix] = matches?.slice(1) ?? []
 
   if (typeof matchedName !== 'undefined' && typeof matchedSuffix !== 'undefined') {
-    name = matchedName
+    baseName = matchedName
   }
 
-  return pathModule.join(directory, name)
+  return pathModule.join(directory, baseName)
 }
 
 /**

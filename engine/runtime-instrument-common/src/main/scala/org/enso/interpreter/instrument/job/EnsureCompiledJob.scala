@@ -648,14 +648,6 @@ object EnsureCompiledJob {
       }
   }
 
-  /** Create [[EnsureCompiledJob]] for a single file.
-    *
-    * @param file the file to compile
-    * @return new instance of [[EnsureCompiledJob]]
-    */
-  def apply(file: File): EnsureCompiledJob =
-    new EnsureCompiledJob(Seq(file))
-
   /** Create [[EnsureCompiledJob]] for a stack.
     *
     * @param stack the call stack to compile

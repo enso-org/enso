@@ -1,5 +1,6 @@
 import { type NodeId } from '@/stores/graph'
 import { type GraphDb } from '@/stores/graph/graphDatabase'
+import { evaluationProgress } from '@/stores/project/computedValueRegistry'
 import {
   SuggestionKind,
   type SuggestionEntry,
@@ -9,7 +10,7 @@ import { type URLString } from '@/util/data/urlString'
 import { type Icon } from '@/util/iconMetadata/iconName'
 import { type MethodPointer } from '@/util/methodPointer'
 import { type ToValue } from '@/util/reactivity'
-import { computed, toValue } from 'vue'
+import { computed, toValue, type ComputedRef } from 'vue'
 import { type ExternalId } from 'ydoc-shared/yjsModel'
 
 const typeNameToIconLookup: Record<string, Icon> = {
@@ -74,19 +75,21 @@ export function iconOfNode(node: NodeId, graphDb: GraphDb) {
 }
 
 /**
- * Returns the icon to show on a component, using either the provided base icon or an icon representing its current
- * status.
+ * Returns the icon to show on a component, using either the provided base icon or an icon
+ * representing its current status.
  */
 export function useDisplayedIcon(
   graphDb: GraphDb,
   externalId: ToValue<ExternalId>,
   baseIcon: ToValue<Icon | URLString>,
-) {
-  const evaluating = computed(() => {
-    const payload = graphDb.getExpressionInfo(toValue(externalId))?.payload
-    return payload?.type === 'Pending' && payload.progress
-  })
+): {
+  displayedIcon: ComputedRef<Icon | URLString | '$evaluating'>
+} {
   return {
-    displayedIcon: computed(() => (evaluating.value ? '$evaluating' : toValue(baseIcon))),
+    displayedIcon: computed(() =>
+      evaluationProgress(graphDb.getExpressionInfo(toValue(externalId))) == null ?
+        toValue(baseIcon)
+      : '$evaluating',
+    ),
   }
 }

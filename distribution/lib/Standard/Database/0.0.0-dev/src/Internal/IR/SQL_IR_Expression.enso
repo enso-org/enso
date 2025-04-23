@@ -7,7 +7,7 @@ import project.SQL_Type.SQL_Type
    The internal representation of an SQL expression which can be a column
    reference, an interpolated constant or an operation that combines other
    expressions.
-type SQL_Expression
+type SQL_IR_Expression
     ## PRIVATE
 
        The internal representation of an SQL expression that gets a value from a
@@ -63,7 +63,7 @@ type SQL_Expression
          `Nothing` for most operations, but some operations that need to be
          parametrized by additional settings can use this field to pass that
          information to the code generator.
-    Operation (kind : Text) (expressions : Vector SQL_Expression) (metadata : Any | Nothing = Nothing)
+    Operation (kind : Text) (expressions : Vector SQL_IR_Expression) (metadata : Any | Nothing = Nothing)
 
     ## PRIVATE
        The internal representation of a `WITH ... AS` CTE expression. A `Let`
@@ -80,7 +80,7 @@ type SQL_Expression
        - binder: the lexically-scoped name of the CTE expression.
        - bindee: the CTE expression.
        - body: the larger expression that contains references to the CTE.
-    Let (name : Text) (binder : Text) (bindee : SQL_Expression) (body : SQL_Expression)
+    Let (name : Text) (binder : Text) (bindee : SQL_IR_Expression) (body : SQL_IR_Expression)
 
     ## PRIVATE
        The internal representation of a "reference" to a CTE expression.
@@ -101,7 +101,7 @@ type SQL_Expression
        - binder: the lexically-scoped name of the CTE expression.
        - standalone_expression: the full, original expression bound in the
          enclosing `Let` value.
-    Let_Ref (name : Text) (binder : Text) (standalone_expression : SQL_Expression)
+    Let_Ref (name : Text) (binder : Text) (standalone_expression : SQL_IR_Expression)
 
     ## PRIVATE
        The internal representation of an  list of SQL expressions which will be
@@ -117,20 +117,20 @@ type SQL_Expression
        A bottom-up, depth-first traversal of this IR node and its children. Each
        node is passed to the provided function, and the return value of the
        function replaces this node in the tree.
-    traverse : (Any -> Any) -> SQL_Expression
-    traverse self f -> SQL_Expression =
+    traverse : (Any -> Any) -> SQL_IR_Expression
+    traverse self f -> SQL_IR_Expression =
         rec e = e.traverse f
         new_sql_expression = case self of
-            SQL_Expression.Column _ _ -> self
-            SQL_Expression.Constant _ -> self
-            SQL_Expression.Literal _ -> self
-            SQL_Expression.Text_Literal _ -> self
-            SQL_Expression.Operation kind expressions metadata ->
-                SQL_Expression.Operation kind (expressions.map rec) metadata
-            SQL_Expression.Let name binder bindee body ->
-                SQL_Expression.Let name binder (rec bindee) (rec body)
-            SQL_Expression.Let_Ref name binder standalone_expression ->
-                SQL_Expression.Let_Ref name binder (rec standalone_expression)
-            SQL_Expression.List values ->
-                SQL_Expression.List (values.map rec)
+            SQL_IR_Expression.Column _ _ -> self
+            SQL_IR_Expression.Constant _ -> self
+            SQL_IR_Expression.Literal _ -> self
+            SQL_IR_Expression.Text_Literal _ -> self
+            SQL_IR_Expression.Operation kind expressions metadata ->
+                SQL_IR_Expression.Operation kind (expressions.map rec) metadata
+            SQL_IR_Expression.Let name binder bindee body ->
+                SQL_IR_Expression.Let name binder (rec bindee) (rec body)
+            SQL_IR_Expression.Let_Ref name binder standalone_expression ->
+                SQL_IR_Expression.Let_Ref name binder (rec standalone_expression)
+            SQL_IR_Expression.List values ->
+                SQL_IR_Expression.List (values.map rec)
         f new_sql_expression
