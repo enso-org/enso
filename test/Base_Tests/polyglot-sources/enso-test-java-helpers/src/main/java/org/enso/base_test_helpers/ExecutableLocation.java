@@ -53,13 +53,20 @@ public final class ExecutableLocation {
     if (!binDir.toFile().exists() || !binDir.toFile().isDirectory()) {
       throw new AssertionError(binDir + " is not a bin directory");
     }
-    var exec = binDir.resolve("enso").toFile();
-    if (!exec.exists()) {
+    File exec;
+    if (isOnWindows()) {
       exec = binDir.resolve("enso.bat").toFile();
+    } else {
+      exec = binDir.resolve("enso").toFile();
     }
     if (!(exec.exists() && exec.isFile() && exec.canExecute())) {
       throw new AssertionError(exec + " is not a valid executable");
     }
     return exec;
+  }
+
+  private static boolean isOnWindows() {
+    String os = System.getProperty("os.name").toLowerCase();
+    return os.contains("windows");
   }
 }
