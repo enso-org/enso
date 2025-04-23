@@ -89,7 +89,7 @@ private prepare_reader format:Fixed_Width_Format on_problems:Problem_Behavior ja
 
 private format_to_java format =
     format.layout.entries.map e->
-        FixedWidthLayoutEntry.new e.name e.start e.width
+        FixedWidthLayoutEntry.new e.start e.width e.name
 
 ## PRIVATE
 private handle_io_exception related_file ~action = Panic.catch IOException action cause->

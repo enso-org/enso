@@ -104,7 +104,7 @@ public class FixedWidthReader {
           builders.get(i).append(line.substring(entry.start, line.length()));
         } else {
           // The column is completely off the end.
-          builders.get(i).append("");
+          builders.get(i).append(null);
         }
       } else {
         builders.get(i).append(line.substring(entry.start, entry.end()));
@@ -149,7 +149,7 @@ public class FixedWidthReader {
     return Builder.getForText(TextType.VARIABLE_LENGTH, initialCapacity);
   }
 
-  public record FixedWidthLayoutEntry(String columnName, int start, int width) {
+  public record FixedWidthLayoutEntry(int start, int width, String columnName) {
     public int end() {
       return start + width;
     }
