@@ -7,6 +7,7 @@ declare const brandTargetType: unique symbol
 
 <script setup lang="ts">
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
+import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
@@ -15,7 +16,11 @@ import { Directory, useFileBrowserStack } from '@/components/widgets/FileBrowser
 import { useBackend } from '@/composables/backend'
 import { Action } from '@/providers/action'
 import { injectProjectBackend } from '@/providers/backend'
+import { injectInteractionHandler, Interaction } from '@/providers/interactionHandler'
+import { injectProjectNames } from '@/stores/projectNames'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert } from '@/util/assert'
+import { endOnClickOutside } from '@/util/autoBlur'
 import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import type { AnyAsset, DirectoryAsset, DirectoryId } from 'enso-common/src/services/Backend'
@@ -26,7 +31,8 @@ import Backend, {
   assetIsSecret,
   AssetType,
 } from 'enso-common/src/services/Backend'
-import { computed, onMounted, reactive, ref, toRef, toValue, watch } from 'vue'
+import { computed, onMounted, reactive, ref, toRef, toValue, useTemplateRef, watch } from 'vue'
+import { Entry, ExpressionTag } from '../GraphEditor/widgets/WidgetSelection/tags'
 
 const props = withDefaults(
   defineProps<{
@@ -298,113 +304,192 @@ onMounted(() => {
     },
   )
 })
+
+const suggestions = useSuggestionDbStore()
+const projectNames = injectProjectNames()
+
+const root = useTemplateRef('root')
+const fileExtensionInput = useTemplateRef('fileExtensionInput')
+
+const rootElement = computed(() => (root.value == null ? undefined : root.value))
+const fileExtensionInputElement = computed(() =>
+  fileExtensionInput.value == null ? undefined : fileExtensionInput.value,
+)
+const fileExtensionEntries = computed(() => {
+  return [
+    {
+      tag: ExpressionTag.FromExpression(suggestions, projectNames, 'something'),
+      value: 'json',
+      selected: false,
+    },
+  ]
+})
+
+const interaction = injectInteractionHandler()
+const parentInteraction = ref<Interaction | undefined>()
+const fileExtensionDropdownOpened = ref(false)
+
+const fileExtensionDropdownInteraction: Interaction = endOnClickOutside(rootElement, {
+  cancel: () => {
+    fileExtensionDropdownOpened.value = false
+  },
+  end: () => {
+    if (parentInteraction.value) {
+      interaction.setCurrent(parentInteraction.value)
+    }
+    fileExtensionDropdownOpened.value = false
+  },
+})
+
+interaction.setWhen(() => fileExtensionDropdownOpened.value, fileExtensionDropdownInteraction)
+
+function openDropdown() {
+  if (!fileExtensionDropdownOpened.value) {
+    parentInteraction.value = interaction.getCurrent()
+    if (parentInteraction.value) {
+      interaction.ended(parentInteraction.value)
+    }
+    fileExtensionDropdownOpened.value = true
+  }
+}
+
+const fileExtensionModel = ref('')
+
+function extensionSelected(entry: Entry) {
+  console.log('extension selected', entry)
+  interaction.end(fileExtensionDropdownInteraction)
+  fileExtensionModel.value = entry.value
+}
 </script>
 
 <template>
-  <div class="FileBrowserWidget">
-    <div v-if="askForOverwrite" class="confirmationModal">
-      <div class="confirmationText">
-        {{ `File '${filenameInputContents ?? ''}' already exists. Overwrite?` }}
-      </div>
-      <div class="confirmationButtons">
-        <SvgButton class="confirmationButton" label="No" @click.stop="overwriteCancelled" />
-        <SvgButton class="confirmationButton" label="Yes" @click.stop="overwriteConfirmed" />
-      </div>
-    </div>
-    <div v-if="warningText" class="confirmationModal">
-      <div class="confirmationText">{{ 'Warning: ' + warningText }}</div>
-      <SvgButton class="confirmationButton" label="Dismiss" @click.stop="warningDismissed" />
-    </div>
-    <div class="topBar">
-      <div class="directoryStack">
-        <SvgButton name="navigate_up" title="Up" :disabled="!canPop" @click.stop="popDirectory" />
-        <div class="breadcrumbs">
-          <TransitionGroup>
-            <template v-for="(directory, index) in directoryStack" :key="directory.id ?? 'root'">
-              <SvgIcon v-if="index > 0" name="navigate_breadcrumb" />
-              <div
-                class="clickable"
-                :class="{ nonInteractive: index === directoryStack.length - 1 }"
-                @click.stop="popTo(index)"
-                v-text="directory.title"
-              ></div>
-            </template>
-          </TransitionGroup>
+  <div ref="root" class="FileBrowserWidgetWrapper">
+    <SelectionSubmenu
+      ref="submenuRef"
+      :rootElement="undefined"
+      :floatReference="fileExtensionInputElement"
+      :show="fileExtensionDropdownOpened"
+      :entries="fileExtensionEntries"
+      :selectedExpressions="new Set()"
+      :topLevel="true"
+      :color="'white'"
+      :backgroundColor="'var(--background-color)'"
+      :style="{ zIndex: -5 }"
+      @clickedEntry="extensionSelected"
+    />
+    <div class="FileBrowserWidget">
+      <div v-if="askForOverwrite" class="confirmationModal">
+        <div class="confirmationText">
+          {{ `File '${filenameInputContents ?? ''}' already exists. Overwrite?` }}
+        </div>
+        <div class="confirmationButtons">
+          <SvgButton class="confirmationButton" label="No" @click.stop="overwriteCancelled" />
+          <SvgButton class="confirmationButton" label="Yes" @click.stop="overwriteConfirmed" />
         </div>
       </div>
-      <SvgButton
-        name="folder_add"
-        title="Add New Folder"
-        :disabled="editedAsset != null"
-        @click.stop="addNewDirectory"
-      />
-    </div>
+      <div v-if="warningText" class="confirmationModal">
+        <div class="confirmationText">{{ 'Warning: ' + warningText }}</div>
+        <SvgButton class="confirmationButton" label="Dismiss" @click.stop="warningDismissed" />
+      </div>
+      <div class="topBar">
+        <div class="directoryStack">
+          <SvgButton name="navigate_up" title="Up" :disabled="!canPop" @click.stop="popDirectory" />
+          <div class="breadcrumbs">
+            <TransitionGroup>
+              <template v-for="(directory, index) in directoryStack" :key="directory.id ?? 'root'">
+                <SvgIcon v-if="index > 0" name="navigate_breadcrumb" />
+                <div
+                  class="clickable"
+                  :class="{ nonInteractive: index === directoryStack.length - 1 }"
+                  @click.stop="popTo(index)"
+                  v-text="directory.title"
+                ></div>
+              </template>
+            </TransitionGroup>
+          </div>
+        </div>
+        <SvgButton
+          name="folder_add"
+          title="Add New Folder"
+          :disabled="editedAsset != null"
+          @click.stop="addNewDirectory"
+        />
+      </div>
 
-    <div v-if="anyError" class="centerContent contents">Error: {{ anyError }}</div>
-    <div v-else-if="isBusy" class="centerContent contents"><LoadingSpinner /></div>
-    <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
-    <div v-else :key="currentDirectory?.id ?? 'root'" class="listing contents">
-      <ContextMenuTrigger :actions="[renameAction]" @hidden="focusedDirectory = undefined">
-        <TransitionGroup>
-          <FileBrowserEntry
-            v-if="editedAsset && editedAsset.asset == null"
-            :key="keyOverride.get(newDirPlaceholder) ?? newDirPlaceholder"
-            icon="folder"
-            :title="editedAsset.name"
-            :editingState="editedAsset.state"
-            @nameAccepted="acceptName($event)"
+      <div v-if="anyError" class="centerContent contents">Error: {{ anyError }}</div>
+      <div v-else-if="isBusy" class="centerContent contents"><LoadingSpinner /></div>
+      <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
+      <div v-else :key="currentDirectory?.id ?? 'root'" class="listing contents">
+        <ContextMenuTrigger :actions="[renameAction]" @hidden="focusedDirectory = undefined">
+          <TransitionGroup>
+            <FileBrowserEntry
+              v-if="editedAsset && editedAsset.asset == null"
+              :key="keyOverride.get(newDirPlaceholder) ?? newDirPlaceholder"
+              icon="folder"
+              :title="editedAsset.name"
+              :editingState="editedAsset.state"
+              @nameAccepted="acceptName($event)"
+            />
+            <FileBrowserEntry
+              v-for="entry in directories"
+              :key="keyOverride.get(entry.id) ?? entry.id"
+              icon="folder"
+              :title="editedAsset?.asset?.id === entry.id ? editedAsset.name : entry.title"
+              :editingState="editedAsset?.asset?.id === entry.id ? editedAsset.state : undefined"
+              @click="enterDir(entry)"
+              @nameAccepted="acceptName($event)"
+              @contextmenu="focusedDirectory = entry"
+            />
+            <FileBrowserEntry
+              v-for="entry in files"
+              :key="entry.id"
+              icon="text2"
+              :title="entry.title"
+              :highlighted="entry.title === highlightedName"
+              @click="chooseFile(entry)"
+            />
+          </TransitionGroup>
+        </ContextMenuTrigger>
+      </div>
+      <div v-if="writeMode" class="fileNameBar">
+        <input
+          v-model="filenameInputContents"
+          class="inputField fileNameInput"
+          @pointerdown.stop
+          @click.stop
+          @contextmenu.stop
+          @keydown.backspace.stop
+          @keydown.delete.stop
+          @keydown.arrow-left.stop
+          @keydown.arrow-right.stop
+          @keydown.enter.stop="tryAcceptCurrentFile"
+        />
+        <div class="fileExtensionSeparator"></div>
+        <div ref="fileExtensionInput" class="fileExtensionInputContainer">
+          <SvgIcon
+            name="arrow_right_head_only"
+            class="arrow widgetOutOfLayout"
+            :class="{ hovered: false }"
           />
-          <FileBrowserEntry
-            v-for="entry in directories"
-            :key="keyOverride.get(entry.id) ?? entry.id"
-            icon="folder"
-            :title="editedAsset?.asset?.id === entry.id ? editedAsset.name : entry.title"
-            :editingState="editedAsset?.asset?.id === entry.id ? editedAsset.state : undefined"
-            @click="enterDir(entry)"
-            @nameAccepted="acceptName($event)"
-            @contextmenu="focusedDirectory = entry"
+          <input
+            v-model="fileExtensionModel"
+            class="inputField fileExtensionInput"
+            @pointerdown.stop
+            @contextmenu.stop
+            @keydown.backspace.stop
+            @keydown.delete.stop
+            @keydown.arrow-left.stop
+            @keydown.arrow-right.stop
+            @click.stop="openDropdown()"
           />
-          <FileBrowserEntry
-            v-for="entry in files"
-            :key="entry.id"
-            icon="text2"
-            :title="entry.title"
-            :highlighted="entry.title === highlightedName"
-            @click="chooseFile(entry)"
-          />
-        </TransitionGroup>
-      </ContextMenuTrigger>
-    </div>
-    <div v-if="writeMode" class="fileNameBar">
-      <input
-        v-model="filenameInputContents"
-        class="inputField fileNameInput"
-        @pointerdown.stop
-        @click.stop
-        @contextmenu.stop
-        @keydown.backspace.stop
-        @keydown.delete.stop
-        @keydown.arrow-left.stop
-        @keydown.arrow-right.stop
-        @keydown.enter.stop="tryAcceptCurrentFile"
-      />
-      <div class="fileExtensionSeparator"></div>
-      <input
-        class="inputField fileExtensionInput"
-        @pointerdown.stop
-        @click.stop
-        @contextmenu.stop
-        @keydown.backspace.stop
-        @keydown.delete.stop
-        @keydown.arrow-left.stop
-        @keydown.arrow-right.stop
-      />
-      <SvgButton
-        class="fileNameAcceptButton"
-        label="Ok"
-        :disabled="!filenameInputContents"
-        @click.stop="tryAcceptCurrentFile"
-      />
+        </div>
+        <SvgButton
+          class="fileNameAcceptButton"
+          label="Ok"
+          :disabled="!filenameInputContents"
+          @click.stop="tryAcceptCurrentFile"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -556,6 +641,24 @@ onMounted(() => {
     position: relative;
     left: -4px;
     bottom: -4px;
+  }
+}
+
+.fileExtensionInputContainer {
+  position: relative;
+}
+
+svg.arrow {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%) rotate(90deg) scale(0.7);
+  transform-origin: center;
+  opacity: 0.5;
+  /* Prevent the parent from receiving a pointerout event if the mouse is over the arrow, which causes flickering. */
+  pointer-events: none;
+  &.hovered {
+    opacity: 0.9;
   }
 }
 

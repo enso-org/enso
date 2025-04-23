@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ConditionalTeleport from '@/components/ConditionalTeleport.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import DropdownWidget, { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
@@ -14,6 +15,8 @@ const props = defineProps<{
   entries: Entry[]
   selectedExpressions: Set<string>
   topLevel?: boolean
+  color?: string | undefined
+  backgroundColor?: string | undefined
 }>()
 
 const emit = defineEmits<{
@@ -105,21 +108,26 @@ defineExpose({
 </script>
 
 <template>
-  <Teleport v-if="props.rootElement" :to="props.rootElement">
-    <div ref="dropdownElement" :style="floatingStyles" class="SelectionSubmenu widgetOutOfLayout">
+  <ConditionalTeleport :target="props.rootElement" v-bind="$attrs">
+    <div
+      ref="dropdownElement"
+      :style="floatingStyles"
+      class="SelectionSubmenu widgetOutOfLayout"
+      v-bind="$attrs"
+    >
       <SizeTransition height :duration="100">
         <DropdownWidget
           v-if="props.show"
           :class="{ ExtendUpwards: props.topLevel }"
-          color="var(--color-node-text)"
-          backgroundColor="var(--color-node-background)"
+          :color="props.color ?? 'var(--color-node-text)'"
+          :backgroundColor="props.backgroundColor ?? 'var(--color-node-background)'"
           :entries="entries"
           @clickEntry="onClick"
           @scroll="onScroll"
         />
       </SizeTransition>
     </div>
-  </Teleport>
+  </ConditionalTeleport>
   <SelectionSubmenu
     v-if="nestedEntriesPresent"
     ref="submenuRef"
