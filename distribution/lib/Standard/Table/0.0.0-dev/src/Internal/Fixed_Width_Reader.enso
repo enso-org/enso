@@ -1,0 +1,96 @@
+from Standard.Base import all
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.System.Input_Stream.Input_Stream
+
+import project.Delimited.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows
+import project.Fixed_Width.Fixed_Width_Format.Fixed_Width_Format
+import project.Internal.Java_Problems
+from project.Errors import Empty_File_Error
+from project.Table import from_java_table
+
+polyglot java import java.io.IOException
+polyglot java import java.io.Reader
+polyglot java import org.enso.table.parsing.IdentityParser
+polyglot java import org.enso.table.parsing.TypeInferringParser
+polyglot java import org.enso.table.read.InvalidFixedWidthRowsBehavior
+polyglot java import org.enso.table.read.FixedWidthReader
+polyglot java import org.enso.table.read.FixedWidthReader.FixedWidthLayoutEntry
+
+## PRIVATE
+   Reads a fixed-width column file according to the provided format.
+
+   Arguments:
+   - format: The specification of format of the file, including the column
+     layout.
+   - file: The file to read.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     operation. By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+read_file : Fixed_Width_Format -> File -> Problem_Behavior -> Any
+read_file format file on_problems:Problem_Behavior =
+    file.with_input_stream [File_Access.Read] stream->
+        read_stream format stream on_problems related_file=file
+
+## PRIVATE
+   Reads fixed-width column data from an input stream according to the provided
+   format.
+
+   Arguments:
+   - format: The specification of format of the file, including the column
+     layout.
+   - stream: An `Input_Stream` to be used as the data source.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     operation. By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+   - related_file: The file related to the provided `java_stream`, if available,
+     or `Nothing`. It is used for more detailed error reporting.
+read_stream : Fixed_Width_Format -> Input_Stream -> Problem_Behavior -> File | Nothing -> Any
+read_stream format stream on_problems:Problem_Behavior related_file=Nothing =
+    handle_io_exception related_file <|
+        stream.with_stream_decoder format.encoding on_problems reporting_stream_decoder->
+            read_from_reader format reporting_stream_decoder on_problems
+
+## PRIVATE
+   Reads fixed-width column data from the provided `Reader` according to the
+   provided format.
+
+   The `encoding` parameter is ignored, instead the provided reader should
+   handle any necessary decoding.
+
+   Arguments:
+   - format: The specification of format of the file, including the column
+     layout.
+   - java_reader: A Java `Reader` used as the source of decoded characters.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     operation. By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+read_from_reader : Fixed_Width_Format -> Reader -> Problem_Behavior -> Any
+read_from_reader format java_reader on_problems:Problem_Behavior =
+    Illegal_Argument.handle_java_exception <| Empty_File_Error.handle_java_exception <|
+        Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+            reader = prepare_reader format on_problems java_problem_aggregator
+            java_table = reader.read java_reader
+            from_java_table java_table
+
+## Prepare a FixedWidthReader for reading.
+private prepare_reader format:Fixed_Width_Format on_problems:Problem_Behavior java_problem_aggregator =
+    warnings_as_errors = on_problems == Problem_Behavior.Report_Error
+    on_invalid_rows_java = case format.on_invalid_rows of
+        Invalid_Fixed_Width_Rows.Keep_Invalid_Rows -> InvalidFixedWidthRowsBehavior.KEEP
+        Invalid_Fixed_Width_Rows.Drop_Invalid_Rows -> InvalidFixedWidthRowsBehavior.DROP
+    value_parser = if format.value_formatter.is_nothing then IdentityParser.new else
+        wrapped = format.value_formatter.wrap_base_parser IdentityParser.new
+        TypeInferringParser.new format.value_formatter.get_specific_type_parsers wrapped
+    FixedWidthReader.new (format_to_java format) on_invalid_rows_java value_parser warnings_as_errors java_problem_aggregator
+
+private format_to_java format =
+    format.layout.entries.map e->
+        FixedWidthLayoutEntry.new e.name e.start e.width
+
+## PRIVATE
+private handle_io_exception related_file ~action = Panic.catch IOException action cause->
+    File_Error.wrap_io_exception related_file cause.payload

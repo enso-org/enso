@@ -1,0 +1,238 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Table import all
+import Standard.Table.Errors.Additional_Invalid_Rows
+import Standard.Table.Errors.Inconsistent_Fixed_Width_Lengths
+import Standard.Table.Errors.Invalid_Fixed_Width_Row
+import Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout_Entry
+
+from Standard.Test import all
+import Standard.Test.Test_Environment
+
+from project.Common_Table_Operations.Util import run_default_backend
+
+add_specs suite_builder =
+    data_dir = enso_project.data / "fixed-width"
+    data0 = data_dir / "fixed0.txt"
+    data1 = data_dir / "fixed1.txt"
+    data2 = data_dir / "fixed2.txt"
+    data3 = data_dir / "fixed3.txt"
+
+    suite_builder.group "Read fixed-width files" group_builder->
+        group_builder.specify "Should make a layout from a description" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width "a" 0 4]
+                + [Fixed_Width_Column_Description.Width "b" 1]
+                + [Fixed_Width_Column_Description.Width "c" 3]
+                + [Fixed_Width_Column_Description.Width "d" 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            expected = []
+                + [Fixed_Width_Layout_Entry.Value "a" 0 4]
+                + [Fixed_Width_Layout_Entry.Value "b" 4 1]
+                + [Fixed_Width_Layout_Entry.Value "c" 5 3]
+                + [Fixed_Width_Layout_Entry.Value "d" 8 3]
+            layout . get_entries . should_equal expected
+
+        group_builder.specify "Should make a layout from a table (no column names)" <|
+            table = Table.input [['x', [0, Nothing, Nothing, Nothing]], ['y', [4, 1, 3, 3]]]
+            layout = table : Fixed_Width_Layout
+            expected = []
+                + [Fixed_Width_Layout_Entry.Value "Column 1" 0 4]
+                + [Fixed_Width_Layout_Entry.Value "Column 2" 4 1]
+                + [Fixed_Width_Layout_Entry.Value "Column 3" 5 3]
+                + [Fixed_Width_Layout_Entry.Value "Column 4" 8 3]
+            layout . should_be_a Fixed_Width_Layout
+            layout . get_entries . should_equal expected
+
+        group_builder.specify "Should make a layout from a table (column names)" <|
+            table = Table.input [['c', ["a", "b", "c", "d"]], ['x', [0, Nothing, Nothing, Nothing]], ['y', [4, 1, 3, 3]]]
+            layout = table : Fixed_Width_Layout
+            expected = []
+                + [Fixed_Width_Layout_Entry.Value "a" 0 4]
+                + [Fixed_Width_Layout_Entry.Value "b" 4 1]
+                + [Fixed_Width_Layout_Entry.Value "c" 5 3]
+                + [Fixed_Width_Layout_Entry.Value "d" 8 3]
+            layout . should_be_a Fixed_Width_Layout
+            layout . get_entries . should_equal expected
+
+        group_builder.specify "Should reject a format that tries to go to an earlier column" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Width "a" 4]
+                + [Fixed_Width_Column_Description.Start_And_Width "b" 3 1]
+                + [Fixed_Width_Column_Description.Width "c" 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            layout.should_fail_with Illegal_Argument
+            layout.catch.message . should_contain "must start at column"
+
+        group_builder.specify "Should be able to specify only column ends" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Width "a" 4]
+                + [Fixed_Width_Column_Description.Width "b" 1]
+                + [Fixed_Width_Column_Description.Width "c" 3]
+                + [Fixed_Width_Column_Description.Width "d" 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            expected = []
+                + [Fixed_Width_Layout_Entry.Value "a" 0 4]
+                + [Fixed_Width_Layout_Entry.Value "b" 4 1]
+                + [Fixed_Width_Layout_Entry.Value "c" 5 3]
+                + [Fixed_Width_Layout_Entry.Value "d" 8 3]
+            layout . get_entries . should_equal expected
+
+        group_builder.specify "Should be able to read a fixed-width file with an explicit format" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 0 4]
+                + [Fixed_Width_Column_Description.Width Nothing 1]
+                + [Fixed_Width_Column_Description.Width Nothing 3]
+                + [Fixed_Width_Column_Description.Width Nothing 3]
+                + [Fixed_Width_Column_Description.Width Nothing 1]
+                + [Fixed_Width_Column_Description.Width Nothing 1]
+                + [Fixed_Width_Column_Description.Width Nothing 5]
+                + [Fixed_Width_Column_Description.Width Nothing 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = data0.read (Fixed_Width_Format.Fixed_Width layout)
+            t.at "Column 1" . to Vector . should_equal [1234, 2345]
+            t.at "Column 2" . to Vector . should_equal ["a", "i"]
+            t.at "Column 3" . to Vector . should_equal [567, 678]
+            t.at "Column 4" . to Vector . should_equal ["bcd", "jkl"]
+            t.at "Column 5" . to Vector . should_equal [8, 9]
+            t.at "Column 6" . to Vector . should_equal ["e", "m"]
+            t.at "Column 7" . to Vector . should_equal [98765, 87654]
+            t.at "Column 8" . to Vector . should_equal ["fgh", "nop"]
+
+        group_builder.specify "Should use specified column names" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width "x" 0 4]
+                + [Fixed_Width_Column_Description.Width "y" 1]
+                + [Fixed_Width_Column_Description.Width "z" 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = data0.read (Fixed_Width_Format.Fixed_Width layout)
+            t.columns . map .name . should_equal ["x", "y", "z"]
+
+        group_builder.specify "Should generate default column names" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 0 4]
+                + [Fixed_Width_Column_Description.Width Nothing 1]
+                + [Fixed_Width_Column_Description.Width Nothing 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = data0.read (Fixed_Width_Format.Fixed_Width layout)
+            t.columns . map .name . should_equal ["Column 1", "Column 2", "Column 3"]
+
+        group_builder.specify "Should be able to read a fixed-width file with sparse columns" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 0 4]
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 8 3]
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 12 1]
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 18 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = data0.read (Fixed_Width_Format.Fixed_Width layout)
+            t.at "Column 1" . to Vector . should_equal [1234, 2345]
+            t.at "Column 2" . to Vector . should_equal ["bcd", "jkl"]
+            t.at "Column 3" . to Vector . should_equal ["e", "m"]
+            t.at "Column 4" . to Vector . should_equal ["fgh", "nop"]
+
+        group_builder.specify "Should not allow a layout definition with no columns" <|
+            err = Fixed_Width_Layout.from_descriptions []
+            err.should_fail_with Illegal_Argument
+            err.catch.message . should_contain "must have at least one column"
+
+        group_builder.specify "Should not allow illegal start / width values" <|
+            err1 = Fixed_Width_Layout.from_descriptions [Fixed_Width_Column_Description.Start_And_Width "a" 0 0]
+            err1.should_fail_with Illegal_Argument
+            err1.catch.message . should_contain "must have a width of 1 or more"
+
+            err2 = Fixed_Width_Layout.from_descriptions [Fixed_Width_Column_Description.Start_And_Width "a" -2 4]
+            err2.should_fail_with Illegal_Argument
+            err2.catch.message . should_contain "column start cannot be negative"
+
+            err3 = Fixed_Width_Layout.from_descriptions [Fixed_Width_Column_Description.Width "a" 0]
+            err3.should_fail_with Illegal_Argument
+            err3.catch.message . should_contain "must have a width of 1 or more"
+
+        group_builder.specify "Should warn about different line lengths" <|
+            descs = [Fixed_Width_Column_Description.Start_And_Width Nothing 0 4]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            Problems.expect_warning Inconsistent_Fixed_Width_Lengths (data1.read (Fixed_Width_Format.Fixed_Width layout))
+
+        group_builder.specify "Should keep short lines with Invalid_Rows.Keep_Invalid_Rows" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 0 4]
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 13 5]
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 18 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = data1.read (Fixed_Width_Format.Fixed_Width layout)
+            Problems.expect_warning (Invalid_Fixed_Width_Row.Error 1 1 20 21) t
+            Problems.expect_warning (Invalid_Fixed_Width_Row.Error 3 3 17 21) t
+            t.at "Column 1" . to Vector . should_equal [1234, 2345, 6789, 4343]
+            t.at "Column 2" . to Vector . should_equal [98765, 87654, 51122, 1234]
+            t.at "Column 3" . to Vector . should_equal ["fgh", "no", "def", ""]
+
+        group_builder.specify "Should drop short lines with Invalid_Rows.Drop_Invalid_Rows" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 0 4]
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 13 5]
+                + [Fixed_Width_Column_Description.Start_And_Width Nothing 18 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = data1.read (Fixed_Width_Format.Fixed_Width layout on_invalid_rows=..Drop_Invalid_Rows)
+            Problems.expect_warning (Invalid_Fixed_Width_Row.Error 1 Nothing 20 21) t
+            Problems.expect_warning (Invalid_Fixed_Width_Row.Error 3 Nothing 17 21) t
+            t.at "Column 1" . to Vector . should_equal [1234, 6789]
+            t.at "Column 2" . to Vector . should_equal [98765, 51122]
+            t.at "Column 3" . to Vector . should_equal ["fgh", "def"]
+
+        group_builder.specify "Should attach an Additional_Invalid_Row row warning" <|
+            descs = [Fixed_Width_Column_Description.Start_And_Width Nothing 0 4]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = data2.read (Fixed_Width_Format.Fixed_Width layout)
+            Problems.expect_warning Additional_Invalid_Rows t
+
+        group_builder.specify "Supports Data_Formatter" <|
+            custom_formatter = Data_Formatter.Value true_values=["A", "B", "C"] false_values=["D", "E", "F"]
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width "x" 0 1]
+                + [Fixed_Width_Column_Description.Width "y" 1]
+                + [Fixed_Width_Column_Description.Width "z" 3]
+            layout = Fixed_Width_Layout.from_descriptions descs
+            t = data3.read (Fixed_Width_Format.Fixed_Width layout value_formatter=custom_formatter)
+            t.at "x" . value_type . should_equal Value_Type.Boolean
+            t.at "y" . value_type . should_equal Value_Type.Boolean
+            t.at "z" . value_type . should_equal Value_Type.Char
+            t.at "x" . to Vector . should_equal [True, True, False]
+            t.at "y" . to Vector . should_equal [True, False, False]
+            t.at "z" . to Vector . should_equal ["J", "C", "E"]
+
+        group_builder.specify "should work with all kinds of line endings" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Start_And_Width "x" 0 1]
+                + [Fixed_Width_Column_Description.Width "y" 1]
+                + [Fixed_Width_Column_Description.Width "z" 1]
+            layout = Fixed_Width_Layout.from_descriptions descs
+
+            path name = enso_project.data / 'transient' / name
+            create_file name ending_style =
+                lines = ['abc', 'def', '123']
+                text = lines.join ending_style
+                text.write (path name)
+
+            test_file name =
+                table = Data.read (path name) (Fixed_Width_Format.Fixed_Width layout) ..Report_Error
+                table.columns.map .name . should_equal ['x', 'y', 'z']
+                table.at 'x' . to_vector . should_equal ['a', 'd', '1']
+                table.at 'y' . to_vector . should_equal ['b', 'e', '2']
+                table.at 'z' . to_vector . should_equal ['c', 'f', '3']
+
+            create_file 'crlf.csv' '\r\n'
+            test_file 'crlf.csv'
+            create_file 'lf.csv' '\n'
+            test_file 'lf.csv'
+            create_file 'cr.csv' '\r'
+            test_file 'cr.csv'
+            'abc\ndef\r123'.write (path 'mixed.csv')
+            test_file 'mixed.csv'
+
+            ['crlf.csv', 'lf.csv', 'cr.csv', 'mixed.csv'].each (path >> .delete)
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

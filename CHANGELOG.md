@@ -151,6 +151,7 @@
 - [Added Regex_match for Snowflake][12671]
 - [Replace `use_bankers` flag with `Rounding_Mode` in all `round`
   methods][12641]
+- [Support for reading fixed-width-column data files.][12726]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
@@ -176,6 +177,7 @@
 [12663]: https://github.com/enso-org/enso/pull/12663
 [12671]: https://github.com/enso-org/enso/pull/12671
 [12641]: https://github.com/enso-org/enso/pull/12641
+[12726]: https://github.com/enso-org/enso/pull/12726
 
 #### Enso Language & Runtime
 
