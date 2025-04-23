@@ -702,10 +702,11 @@ public class Main {
       }
       throw exitSuccess();
     } catch (Throwable t) {
-      boolean compilationFailed = t instanceof PolyglotException polyglotException && polyglotException.isSyntaxError();
+      boolean compilationFailed =
+          t instanceof PolyglotException polyglotException && polyglotException.isSyntaxError();
       if (compilationFailed) {
         var reason = treatWarningsAsErrors ? "warnings or errors" : "errors";
-        throw exitFail("Compilation failed due to "+reason+".");
+        throw exitFail("Compilation failed due to " + reason + ".");
       } else {
         String message = "Unexpected internal error: " + t.getMessage();
         logger.error(message, t);
@@ -1217,8 +1218,7 @@ public class Main {
           logMasking,
           shouldEnableIrCaches(line),
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
-          line.hasOption(TREAT_WARNINGS_AS_ERRORS_OPTION)
-      );
+          line.hasOption(TREAT_WARNINGS_AS_ERRORS_OPTION));
     }
     if (line.hasOption(DOCS_OPTION)) {
       genDocs(
