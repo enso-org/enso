@@ -5727,49 +5727,24 @@ lazy val lintEnso =
   )
 lintEnso := {
   buildEngineDistributionNoIndex.value
-  val fileTree          = fileTreeView.value
-  val log               = streams.value.log
-  val projectFinder     = new EnsoProjects.ProjectFinder(baseDirectory.value.toPath)
+  val fileTree = fileTreeView.value
+
   val args: Seq[String] = spaceDelimited("<arg>").parsed
-  if (args.length > 1) {
-    throw new IllegalArgumentException(
-      "At most one argument to lintEnso expected."
-    )
+  val whatToLint = args match {
+    case Seq()     => EnsoLint.LintTarget.All
+    case Seq(name) => EnsoLint.LintTarget.FindByName(name)
+    case _ =>
+      throw new IllegalArgumentException(
+        "At most one argument to lintEnso expected."
+      )
   }
 
-  val allProjects =
-    projectFinder.findStandardLibraries() ++ projectFinder.findTests()
-
-  val toLint: Seq[Path] = if (args.nonEmpty) {
-    val argument    = args.head
-    val foundByName = allProjects.filter(_.name == argument)
-    if (foundByName.length == 1)
-      Seq(foundByName.head.path)
-    else
-      Seq(Path.of(argument))
-  } else allProjects.map(_.path)
-  val results =
-    for (proj <- toLint)
-      yield {
-        val path = proj.toAbsolutePath.toString
-        log.info(s"Linting $path")
-        DistributionPackage.runEnginePackage(
-          engineDistributionRoot.value,
-          Seq(
-            "--compile",
-            path,
-            "--enable-static-analysis",
-            "--treat-warnings-as-errors"
-          ),
-          streams.value.log
-        )
-      }
-  val failedProjects = results.count(_ == false)
-  if (failedProjects > 0) {
-    throw new RuntimeException(
-      s"Lint failed due to ${failedProjects} projects with warnings or errors."
-    )
-  }
+  val linter = new EnsoLint(
+    baseDirectory.value,
+    engineDistributionRoot.value,
+    streams.value.log
+  )
+  linter.check(whatToLint)
 }
 
 lazy val buildProjectManagerDistributionCond =

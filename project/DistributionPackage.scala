@@ -351,7 +351,8 @@ object DistributionPackage {
   def runEnginePackage(
     distributionRoot: File,
     args: Seq[String],
-    log: Logger
+    log: Logger,
+    workingDirectory: Option[File] = None
   ): Boolean = {
     import scala.collection.JavaConverters._
 
@@ -379,9 +380,9 @@ object DistributionPackage {
       all.add("--disable-private-check")
     }
     pb.command(all)
-    projectPath.foreach(path => {
-      pb.directory(new File(path).getParentFile)
-    })
+    workingDirectory
+      .orElse(projectPath.map(new File(_).getParentFile))
+      .foreach(pb.directory)
     pb.inheritIO()
     log.info(s"Executing ${all.asScala.mkString(" ")}")
     val p        = pb.start()
