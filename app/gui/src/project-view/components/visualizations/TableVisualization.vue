@@ -975,9 +975,18 @@ function checkSortAndFilter(e: SortChangedEvent) {
 const onColumnStateChange = (e: ColumnVisibleEvent) => {
   const colState = e.api.getColumnState()
   hiddenColumns.value = colState.filter((col) => col.hide).map((col) => col.colId)
-  vizColumnOrder.value = colState
+  const gridColOrder = colState
     .filter((col) => col.colId != INDEX_FIELD_NAME)
     .map((col) => col.colId)
+  const defaultColOrder =
+    typeof props.data === 'object' && 'header' in props.data && props.data.header ?
+      props.data.header
+    : []
+  if (gridColOrder.every((val, index) => val === defaultColOrder[index])) {
+    vizColumnOrder.value = []
+  } else {
+    vizColumnOrder.value = gridColOrder
+  }
   enableCreateNodeButton()
 }
 
