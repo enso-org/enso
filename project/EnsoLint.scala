@@ -71,7 +71,7 @@ class EnsoLint(
             s"Project ${project.name} does not have a namespace but was included for linting."
           )
         }
-        s"import ${project.namespace}.${project.name}"
+        s"import ${namespace}.${project.name}"
       }
       val code     = imports.mkString("\n")
       val codeFile = aggregateProjectPath / "src" / "Main.enso"
