@@ -3340,7 +3340,7 @@ private _resolve_grouping_columns columns_helper:Table_Column_Helper group_by:Ve
 
 ## PRIVATE
 private _resolve_order_descriptors table ordering operation_name:Text =
-    Ordering_Helpers.require_ordering table operation_name <|
+    Ordering_Helpers.require_ordering table operation_name ordering=ordering <|
         dialect = table.connection.dialect
         default_ordering = table.default_ordering
         case ordering.is_empty of
