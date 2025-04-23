@@ -11,7 +11,7 @@ from Standard.Table import all hiding Table
 from Standard.Table.Errors import all
 import Standard.Table.Expression.Expression_Error
 
-import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
+import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Feature.Feature
 from Standard.Database.Errors import all
 

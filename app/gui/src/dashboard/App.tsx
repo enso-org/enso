@@ -48,7 +48,6 @@ import * as appUtils from '#/appUtils'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider, { useLocalBackend } from '#/providers/BackendProvider'
-import { useHttpClientStrict } from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import { useLogger } from '#/providers/LoggerProvider'
@@ -83,7 +82,6 @@ import LocalBackend from '#/services/LocalBackend'
 import ProjectManager, * as projectManager from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 
-import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
 import { Path } from '#/utilities/path'
@@ -93,6 +91,7 @@ import { useInitAuthService } from '#/authentication/service'
 import { useOffline } from '#/hooks/offlineHooks'
 import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
 import { CloudBrowserDisabledLayout } from '#/providers/AuthProvider'
+import { useHttpClient } from './providers/HttpClientProvider'
 import { useMutationCallback } from './utilities/tanstackQuery'
 import { unsafeWriteValue } from './utilities/write'
 
@@ -165,7 +164,7 @@ export default function App(props: AppProps) {
     },
     queryFn: async () => {
       if (props.supportsLocalBackend && props.projectManagerUrl != null) {
-        const response = await fetch(`${appBaseUrl.APP_BASE_URL}/api/root-directory`)
+        const response = await fetch(`/api/root-directory`)
         const text = await response.text()
         const rootDirectory = projectManager.Path(text)
 
@@ -252,7 +251,7 @@ export interface AppRouterProps extends AppProps {
  */
 function AppRouter(props: AppRouterProps) {
   const { onAuthenticated, projectManagerInstance } = props
-  const httpClient = useHttpClientStrict()
+  const httpClient = useHttpClient()
   const logger = useLogger()
   const navigate = router.useNavigate()
 

@@ -13,7 +13,7 @@ import { Opt } from '@/util/data/opt'
 import { Icon, isIconName } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
-import { ToValue } from '@/util/reactivity'
+import { type ToValue } from '@/util/reactivity'
 import { VNode } from 'vue'
 
 /**

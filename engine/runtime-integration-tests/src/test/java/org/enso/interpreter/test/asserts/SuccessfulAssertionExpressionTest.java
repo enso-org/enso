@@ -2,15 +2,9 @@ package org.enso.interpreter.test.asserts;
 
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.List;
-import org.enso.common.LanguageInfo;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -20,32 +14,11 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class SuccessfulAssertionExpressionTest {
 
-  private static Context ctx;
-
-  private static ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-  @BeforeClass
-  public static void setupCtx() {
-    ctx =
-        ContextUtils.defaultContextBuilder(LanguageInfo.ID)
-            .environment("ENSO_ENABLE_ASSERTIONS", "true")
-            .out(out)
-            .err(out)
-            .build();
-  }
-
-  @AfterClass
-  public static void disposeCtx() throws IOException {
-    ctx.close(true);
-    ctx = null;
-    out.close();
-    out = null;
-  }
-
-  @After
-  public void resetOutput() {
-    out.reset();
-  }
+  @ClassRule
+  public static final ContextUtils ctxRule =
+      ContextUtils.newBuilder()
+          .withModifiedContext(b -> b.environment("ENSO_ENABLE_ASSERTIONS", "true"))
+          .build();
 
   private static final String imports =
       """
@@ -73,7 +46,7 @@ eq_method x y =
     sb.append(imports).append("\n");
     sb.append("main = Runtime.assert (").append(succExpr).append(")\n");
     var code = sb.toString();
-    var res = ContextUtils.evalModule(ctx, code);
+    var res = ctxRule.evalModule(code);
     assertTrue(res.isNull());
   }
 }

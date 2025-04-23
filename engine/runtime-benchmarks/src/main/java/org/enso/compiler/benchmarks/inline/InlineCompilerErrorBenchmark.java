@@ -1,13 +1,11 @@
 package org.enso.compiler.benchmarks.inline;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.concurrent.TimeUnit;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.benchmarks.Utils;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextUtils;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -41,12 +39,10 @@ public class InlineCompilerErrorBenchmark {
 
   private static final int LONG_EXPR_SIZE = 5;
 
-  private final OutputStream out = new ByteArrayOutputStream();
-
   /** How many variables should be declared in the main method. */
   private Compiler compiler;
 
-  private Context ctx;
+  private ContextUtils ctx;
   private InlineContextResourceFactory mainInlineContextResourceFactory;
   private String expressionWithErrors;
 
@@ -54,12 +50,9 @@ public class InlineCompilerErrorBenchmark {
   public void setup() throws IOException {
     ctx =
         Utils.createDefaultContextBuilder()
-            .out(out)
-            .err(out)
-            .logHandler(out)
-            .option(RuntimeOptions.STRICT_ERRORS, "false")
+            .withModifiedContext(bldr -> bldr.option(RuntimeOptions.STRICT_ERRORS, "false"))
             .build();
-    var ensoCtx = Utils.leakEnsoContext(ctx);
+    var ensoCtx = ctx.ensoContext();
     compiler = ensoCtx.getCompiler();
 
     var localVarNames = InlineContextUtils.localVarNames(LOCAL_VARS_CNT);
@@ -72,10 +65,10 @@ public class InlineCompilerErrorBenchmark {
 
   @TearDown
   public void teardown() {
-    ctx.close();
-    if (out.toString().isEmpty()) {
+    if (ctx.getOut().isEmpty()) {
       throw new AssertionError("Expected some output (some errors) from the compiler");
     }
+    ctx.close();
   }
 
   @Benchmark

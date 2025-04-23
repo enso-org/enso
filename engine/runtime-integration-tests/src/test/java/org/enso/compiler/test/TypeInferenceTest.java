@@ -1798,14 +1798,16 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     ProjectUtils.createProject("Proj", mainSrc, projDir);
     var out = new ByteArrayOutputStream();
     var ctxBuilder =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
-            .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true")
-            .option(RuntimeOptions.STRICT_ERRORS, "true")
-            .currentWorkingDirectory(projDir.getParent())
-            .out(out)
-            .err(out)
-            .logHandler(out);
+        ContextUtils.newBuilder()
+            .withModifiedContext(
+                bldr ->
+                    bldr.option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+                        .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true")
+                        .option(RuntimeOptions.STRICT_ERRORS, "true")
+                        .currentWorkingDirectory(projDir.getParent())
+                        .out(out)
+                        .err(out)
+                        .logHandler(out));
     ProjectUtils.testProjectRun(
         ctxBuilder,
         projDir,

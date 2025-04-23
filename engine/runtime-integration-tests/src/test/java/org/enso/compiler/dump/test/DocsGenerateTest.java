@@ -13,7 +13,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import org.enso.compiler.Compiler;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.Definition;
@@ -21,40 +20,19 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.docs.DocsGenerate;
 import org.enso.compiler.docs.DocsVisit;
 import org.enso.editions.LibraryName;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.QualifiedName;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
-import org.graalvm.polyglot.Context;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class DocsGenerateTest {
   @ClassRule public static final TemporaryFolder TEMP = new TemporaryFolder();
-
-  private static Context ctx;
-  private static EnsoContext leak;
-  private static Compiler compiler;
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   public DocsGenerateTest() {}
-
-  @BeforeClass
-  public static void initCtx() {
-    ctx = ContextUtils.defaultContextBuilder().build();
-    leak = ContextUtils.leakContext(ctx);
-  }
-
-  @AfterClass
-  public static void closeCtx() {
-    ctx.close();
-    ctx = null;
-    leak.shutdown();
-    leak = null;
-  }
 
   @Test
   public void simpleType() throws Exception {
@@ -236,7 +214,7 @@ public class DocsGenerateTest {
   public void noSignatureIsGenerated_ForEmptyModule() throws IOException {
     var emptyCode = "";
     var modName = "local.Empty.Main";
-    var sig = DumpTestUtils.generateSignatures(ctx, emptyCode, modName);
+    var sig = DumpTestUtils.generateSignatures(ctxRule, emptyCode, modName);
     assertTrue("Empty signature for empty module", sig.isEmpty());
   }
 
@@ -248,7 +226,7 @@ public class DocsGenerateTest {
         import Standard.Base.Data.Vector.Vector
         """;
     var modName = "local.Empty.Main";
-    var sig = DumpTestUtils.generateSignatures(ctx, codeWithImports, modName);
+    var sig = DumpTestUtils.generateSignatures(ctxRule, codeWithImports, modName);
     assertTrue("Empty signature for module with only imports", sig.isEmpty());
   }
 
@@ -269,7 +247,7 @@ public class DocsGenerateTest {
         My_Type.from (that: Integer) = My_Type.Cons that
         """;
     var modName = "local.Proj.Main";
-    var sig = DumpTestUtils.generateSignatures(ctx, code, modName);
+    var sig = DumpTestUtils.generateSignatures(ctxRule, code, modName);
     sig.lines()
         .forEach(
             line -> {
@@ -292,10 +270,10 @@ public class DocsGenerateTest {
     ProjectUtils.createProject(projName, modules, projDir.toPath());
     ProjectUtils.generateProjectDocs(
         "api",
-        ContextUtils.defaultContextBuilder(),
+        ContextUtils.newBuilder(),
         projDir.toPath(),
         ctx -> {
-          var ensoCtx = ContextUtils.leakContext(ctx);
+          var ensoCtx = ctx.ensoContext();
           var pkg =
               ensoCtx
                   .getPackageRepository()

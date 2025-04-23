@@ -61,11 +61,10 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
     {
       id: 'drive',
       className: 'flex min-h-0 grow [&[data-inert]]:hidden',
-      wrapInActivity: true,
-      shouldForceMount: true,
+      wrapInActivity: false,
+      shouldForceMount: false,
       children: <LazyDrive initialProjectName={initialProjectName} />,
     },
-
     ...launchedProjects.map((project) => ({
       id: project.id,
       shouldForceMount: true,
@@ -81,10 +80,10 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
         />
       ),
     })),
-
     {
       id: 'settings',
-      wrapInActivity: true,
+      wrapInActivity: false,
+      shouldForceMount: false,
       className: 'flex min-h-0 grow',
       children: <LazySettings />,
     },
@@ -101,6 +100,8 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
               </Suspense>
             )
 
+            // Activity is very experimental and not yet ready for use.
+            // We need to figure it out how to hide portals, tooltips and disable keyboard shortcuts.
             if (tabPanelProps.wrapInActivity) {
               return (
                 <Activity mode={state.selectedKey === tabPanelProps.id ? 'active' : 'inactive'}>

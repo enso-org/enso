@@ -8,7 +8,6 @@
 import Backend, * as backend from '#/services/Backend'
 import type ProjectManager from '#/services/ProjectManager'
 import * as projectManager from '#/services/ProjectManager'
-import { APP_BASE_URL } from '#/utilities/appBaseUrl'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
 import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/utilities/fileInfo'
@@ -692,7 +691,7 @@ export default class LocalBackend extends Backend {
         ['file_name', body.fileName],
         ...(body.parentDirectoryId == null ? [] : [['directory', parentPath]]),
       ]).toString()
-      const path = `${APP_BASE_URL}/api/upload-file?${searchParams}`
+      const path = `/api/upload-file?${searchParams}`
       await fetch(path, { method: 'POST', body: file })
       this.uploadedFiles.set(uploadId, { id: newFileId(filePath), project: null })
     } else {
@@ -715,7 +714,7 @@ export default class LocalBackend extends Backend {
           directory: parentPath,
           name: title,
         }).toString()
-        const path = `${APP_BASE_URL}/api/upload-project?${searchParams}`
+        const path = `/api/upload-project?${searchParams}`
         const response = await fetch(path, { method: 'POST', body: file })
         id = await response.text()
       }
@@ -788,7 +787,7 @@ export default class LocalBackend extends Backend {
       const queryString = new URLSearchParams({
         projectsDirectory: typeAndId.directory,
       }).toString()
-      download(
+      await download(
         `./api/project-manager/projects/${typeAndId.id}/enso-project?${queryString}`,
         `${title}.enso-project`,
       )

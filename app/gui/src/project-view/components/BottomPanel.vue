@@ -76,9 +76,13 @@ const style = computed(() =>
 .BottomPanel {
   --panel-size: var(--code-editor-default-height);
   position: relative;
-  bottom: 0;
   height: var(--panel-size);
   margin-right: 1px;
+  /*
+   * Ensure that the content height doesn't exceed the panel's height while animating, which can
+   * cause the native scrollbar to appear momentarily, "shaking" the viewport.
+   */
+  contain: layout;
 }
 .v-enter-active,
 .v-leave-active {
