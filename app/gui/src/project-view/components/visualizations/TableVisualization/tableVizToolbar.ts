@@ -46,7 +46,9 @@ export interface ColumnNodeButton {
   isColumnDisabled : ToValue<boolean>
 }
 
-export interface Options extends SortFilterNodesButtonOptions, FormatMenuOptions, ColumnNodeButton {}
+interface NewNodeOptions extends SortFilterNodesButtonOptions, ColumnNodeButton {}
+
+export interface Options extends NewNodeOptions, FormatMenuOptions {}
 
 function useSortFilterNodesButton({
   filterModel,
@@ -55,7 +57,10 @@ function useSortFilterNodesButton({
   isCreateNewNodeEnabled,
   createNodes,
   getColumnValueToEnso,
-}: SortFilterNodesButtonOptions): ComputedRef<ToolbarItem | undefined> {
+  hiddenColumns,
+  isColumnDisabled,
+  vizColumnOrder
+}: NewNodeOptions): ComputedRef<ToolbarItem | undefined> {
   const sortPatternPattern = computed(() => Pattern.parseExpression('(..Name __ __ )')!)
 
   const sortDirection = computed(() => ({
@@ -259,36 +264,6 @@ function useSortFilterNodesButton({
     } else if (sortModelValue.length) {
       patterns.push(getAstPatternSort())
     }
-    createNodes(
-      ...patterns.map(
-        (pattern) => ({ content: pattern, commit: true }) satisfies NodeCreationOptions,
-      ),
-    )
-  }
-
-  const createNodesButton: ToolbarItem = {
-    icon: 'add_to_graph_editor',
-    title:
-      "Create new component(s) with the current grid's sort and filters applied to the workflow",
-    disabled: isFilterAndSortDisabled,
-    onClick: createNewNodes,
-  }
-
-  return computed(() => (toValue(isCreateNewNodeEnabled) ? createNodesButton : undefined))
-}
-
-function useColumnNodesButton({
-  isCreateNewNodeEnabled,
-  createNodes,
-  hiddenColumns,
-  isColumnDisabled,
-  vizColumnOrder
-}: ColumnNodeButton): ComputedRef<ToolbarItem | undefined> {
-
-  function createNewNodes() {
-    const patterns = new Array<Pattern>()
-    const columnsToRemove = toValue(hiddenColumns)
-    const columnOrder = toValue(vizColumnOrder)
 
     function getRemoveColumnsAstPattern() {
       const columns = columnsToRemove.map((col) => Ast.TextLiteral.new(col))
@@ -310,13 +285,16 @@ function useColumnNodesButton({
       )
     }
 
+    const columnsToRemove = toValue(hiddenColumns)
+    const columnOrder = toValue(vizColumnOrder)
+
     if(columnsToRemove.length) {
       patterns.push(getRemoveColumnsAstPattern())
     }
     if(columnOrder.length) {
       patterns.push(getColumnOrderAstPattern())
     }
-    
+
     createNodes(
       ...patterns.map(
         (pattern) => ({ content: pattern, commit: true }) satisfies NodeCreationOptions,
@@ -325,16 +303,15 @@ function useColumnNodesButton({
   }
 
   const createNodesButton: ToolbarItem = {
-    icon: 'column_add',
+    icon: 'add_to_graph_editor',
     title:
-      "Create new component(s) with the current grid's column state",
-    disabled: isColumnDisabled,
+      "Create new component(s) with the current grid's state applied to the workflow",
+    disabled: false,
     onClick: createNewNodes,
   }
 
   return computed(() => (toValue(isCreateNewNodeEnabled) ? createNodesButton : undefined))
 }
-
 
 function createFormatMenu({ textFormatterSelected }: FormatMenuOptions): ToolbarItem {
   return {
@@ -373,6 +350,5 @@ function createFormatMenu({ textFormatterSelected }: FormatMenuOptions): Toolbar
 export function useTableVizToolbar(options: Options): ComputedRef<ToolbarItem[]> {
   const createNodesButton = useSortFilterNodesButton(options)
   const formatMenu = createFormatMenu(options)
-  const columnButton = useColumnNodesButton(options)
-  return computed(() => [formatMenu, ...(createNodesButton.value ? [createNodesButton.value] : []), ...(columnButton.value ? [columnButton.value] : [])])
+  return computed(() => [formatMenu, ...(createNodesButton.value ? [createNodesButton.value] : [])])
 }
