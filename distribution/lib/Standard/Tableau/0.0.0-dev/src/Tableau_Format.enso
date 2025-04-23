@@ -75,30 +75,30 @@ type Tableau_Format
         _ = [stream, metadata]
         Error.throw (Illegal_Argument.Error "Cannot connect to a Hyper file backed by a stream. Save it to a local file first.")
 
-
     ## PRIVATE
        ADVANCED
        Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
     write_table self file table on_existing_file match_columns on_problems:Problem_Behavior =
-        if (on_existing_file == Existing_File_Behavior.Error) && file.exists then Error.throw (File_Error.Already_Exists file) else
-            is_dry_run = Context.Output.is_enabled.not
-            resolved_file = if is_dry_run then (file.file.create_dry_run_file copy_original=True).path else file.file.path
+        if (on_existing_file == Existing_File_Behavior.Append) then Error.throw (Illegal_Argument.Error "Hyper file do not support append") else
+            if (on_existing_file == Existing_File_Behavior.Error) && file.exists then Error.throw (File_Error.Already_Exists file) else
+                is_dry_run = Context.Output.is_enabled.not
+                resolved_file = if is_dry_run then (file.file.create_dry_run_file copy_original=True).path else file.file.path
 
-            needs_backup = on_existing_file == Existing_File_Behavior.Backup
-            if needs_backup && file.exists then
-                backup_file = _find_bak_file file.file
-                ## We can move instead of copying because right in next line we will overwrite the original file
-                    anyway. And move should be more efficient.
-                Panic.rethrow <| file.file.move_to backup_file replace_existing=True
+                needs_backup = on_existing_file == Existing_File_Behavior.Backup
+                if needs_backup && file.exists then
+                    backup_file = _find_bak_file file.file
+                    ## We can move instead of copying because right in next line we will overwrite the original file
+                        anyway. And move should be more efficient.
+                    Panic.rethrow <| file.file.move_to backup_file replace_existing=True
 
-            resolved_schema = if self.schema == "*" then "Extract" else self.schema
-            resolved_table = case self of
-                Tableau_Format.Hyper_File _ -> "Extract"
-                Tableau_Format.Hyper_Table _ t -> t
-            Hyper_Errors.handle_java_exceptions <|
-                HyperFormat.writeTable resolved_file resolved_schema resolved_table table.java_table
-            resolved_file
+                resolved_schema = if self.schema == "*" then "Extract" else self.schema
+                resolved_table = case self of
+                    Tableau_Format.Hyper_File _ -> "Extract"
+                    Tableau_Format.Hyper_Table _ t -> t
+                Hyper_Errors.handle_java_exceptions <|
+                    HyperFormat.writeTable resolved_file resolved_schema resolved_table table.java_table
+                resolved_file
 
 private _find_bak_file base_file:File -> File =
     parent = base_file.absolute.normalize.parent

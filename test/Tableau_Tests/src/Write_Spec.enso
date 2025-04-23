@@ -7,6 +7,7 @@ from Standard.Table import all
 from Standard.Tableau import Hyper_File
 import Standard.Tableau.Hyper_Errors.Hyper_Table_Not_Found
 import Standard.Tableau.Hyper_Errors.Unsupported_Type
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import all
 import enso_dev.Table_Tests.Util
@@ -156,7 +157,21 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
 
         written_file.delete
 
-    group_builder.specify "appends to existing file if in on_existing_file=..Append mode" <|
+    group_builder.specify "appends to existing file not yet supported" <|
         written_file = get_temp_file
-        ## TODO
+        t1 = Table.input [['A', ['a']]]
+        t1.write written_file
+        t2 = Table.input [['B', ['b']]]
+        r = t2.write written_file on_existing_file=..Append
+        r.should_fail_with Illegal_Argument
+
+        ## Data is still t1 as we didn't append
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal t1
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
+        written_file.delete
 
