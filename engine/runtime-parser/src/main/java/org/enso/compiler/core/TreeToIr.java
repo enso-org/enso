@@ -1985,8 +1985,6 @@ final class TreeToIr {
     long end;
     if (ast.getClose() != null) {
       end = ast.getClose().getEndCode();
-    } else if (ast.getDefault() != null) {
-      end = ast.getDefault().getEquals().getEndCode();
     } else if (ast.getClose2() != null) {
       end = ast.getClose2().getEndCode();
     } else if (ast.getType() != null) {
