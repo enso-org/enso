@@ -1,6 +1,6 @@
 /** @file Functions to initiate a download. */
 
-import invariant from 'tiny-invariant'
+import type { SystemApi } from '../../../env'
 import type { Path } from './path'
 
 /** Initiate a download for the specified url. */
@@ -8,7 +8,7 @@ export async function download(url: string, name?: string | null, path?: Path | 
   const systemApi = window.systemApi
 
   if (systemApi != null) {
-    return downloadUsingElectron(url, path, name)
+    return downloadUsingElectron({ url, path, filename: name, downloadURL: systemApi.downloadURL })
   }
 
   url = new URL(url, location.toString()).toString()
@@ -35,14 +35,22 @@ export async function downloadWithHeaders(
 }
 
 /**
+ * Options for `downloadUsingElectron`.
+ */
+export interface DownloadUsingElectronOptions {
+  readonly downloadURL: SystemApi['downloadURL']
+  /** The URL to download. */
+  readonly url: string
+  /** The path to save the file to. */
+  readonly path?: Path | null | undefined
+  /** The name of the file to save. */
+  readonly filename?: string | null | undefined
+}
+
+/**
  * Initiate a download for the specified url using Electron's download API.
  * @throws invariant if you try to use this function in a non-Electron environment.
  */
-export async function downloadUsingElectron(
-  url: string,
-  path?: Path | null,
-  filename?: string | null,
-) {
-  invariant(window.systemApi != null, 'Electron is not available.')
-  await window.systemApi.downloadURL(url, path, filename)
+export async function downloadUsingElectron(options: DownloadUsingElectronOptions) {
+  await options.downloadURL(options.url, options.path, options.filename)
 }
