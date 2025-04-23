@@ -52,10 +52,7 @@ export interface RefreshButtonOptions {
   refreshGrid: () => void
 }
 
-export interface Options
-  extends NewNodeOptions,
-    FormatMenuOptions,
-    RefreshButtonOptions {}
+export interface Options extends NewNodeOptions, FormatMenuOptions, RefreshButtonOptions {}
 
 function useSortFilterNodesButton({
   filterModel,
