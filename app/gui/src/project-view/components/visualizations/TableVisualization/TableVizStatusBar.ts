@@ -9,7 +9,7 @@ export class TableVizStatusBar {
    * @param params The statusbar parameter: total row count.
    */
   init(params: { total: number; filtered: number }) {
-    const showFilteredCount = params.filtered && params.filtered != params.total
+    const showFilteredCount = params.filtered != null && params.filtered != params.total
     const display = showFilteredCount ? 'block' : 'none'
     this.eGui = document.createElement('div')
     this.eGui.innerHTML = `
