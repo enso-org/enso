@@ -10,6 +10,7 @@ from Standard.Base.Metadata.Choice import Option
 
 import project.Data_Formatter.Data_Formatter
 import project.Delimited.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows
+import project.Fixed_Width.Internal.Column_Namer.Column_Namer
 import project.Internal.Fixed_Width_Reader
 import project.Internal.Telemetry
 import project.Table.Table
@@ -188,12 +189,3 @@ Fixed_Width_Layout.from (that:Table) =
         if start.is_nothing then Fixed_Width_Column_Description.Width width name else
             Fixed_Width_Column_Description.Start_And_Width start width name
     Fixed_Width_Layout.from_descriptions descs
-
-## PRIVATE
-   Helper for generating column names.
-type Column_Namer
-    Value (prefix : Text) (next_ref : Ref)
-
-    new (prefix : Text) -> Column_Namer = Column_Namer.Value prefix (Ref.new 1)
-
-    next self -> Text = self.prefix.to_text + " " + (self.next_ref.modify (+1)).to_text
