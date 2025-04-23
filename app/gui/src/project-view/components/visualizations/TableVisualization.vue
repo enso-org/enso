@@ -976,10 +976,12 @@ function checkSortAndFilter(e: SortChangedEvent) {
 
 const onColumnStateChange = (e: ColumnVisibleEvent) => {
   const colState = e.api.getColumnState()
-  hiddenColumns.value = colState.filter(col => col.hide).map(col => col.colId)
+  hiddenColumns.value = colState.filter((col) => col.hide).map((col) => col.colId)
   //Check against OG order
-  vizColumnOrder.value = colState.filter(col => col.colId != INDEX_FIELD_NAME).map(col => col.colId)
-  //viz order set to empty if same order as OG- check against length of either 
+  vizColumnOrder.value = colState
+    .filter((col) => col.colId != INDEX_FIELD_NAME)
+    .map((col) => col.colId)
+  //viz order set to empty if same order as OG- check against length of either
   isCreateColumnNodeEnabled.value = true
 }
 
@@ -1005,7 +1007,7 @@ config.setToolbar(
     createNodes: config.createNodes,
     getColumnValueToEnso,
     hiddenColumns,
-    vizColumnOrder
+    vizColumnOrder,
   }),
 )
 </script>

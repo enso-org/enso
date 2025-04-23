@@ -43,7 +43,7 @@ export interface ColumnNodeButton {
   createNodes: (...options: NodeCreationOptions[]) => void
   hiddenColumns: Ref<string[]>
   vizColumnOrder: Ref<string[]>
-  isColumnDisabled : ToValue<boolean>
+  isColumnDisabled: ToValue<boolean>
 }
 
 interface NewNodeOptions extends SortFilterNodesButtonOptions, ColumnNodeButton {}
@@ -59,7 +59,7 @@ function useSortFilterNodesButton({
   getColumnValueToEnso,
   hiddenColumns,
   isColumnDisabled,
-  vizColumnOrder
+  vizColumnOrder,
 }: NewNodeOptions): ComputedRef<ToolbarItem | undefined> {
   const sortPatternPattern = computed(() => Pattern.parseExpression('(..Name __ __ )')!)
 
@@ -288,10 +288,10 @@ function useSortFilterNodesButton({
     const columnsToRemove = toValue(hiddenColumns)
     const columnOrder = toValue(vizColumnOrder)
 
-    if(columnsToRemove.length) {
+    if (columnsToRemove.length) {
       patterns.push(getRemoveColumnsAstPattern())
     }
-    if(columnOrder.length) {
+    if (columnOrder.length) {
       patterns.push(getColumnOrderAstPattern())
     }
 
@@ -304,8 +304,7 @@ function useSortFilterNodesButton({
 
   const createNodesButton: ToolbarItem = {
     icon: 'add_to_graph_editor',
-    title:
-      "Create new component(s) with the current grid's state applied to the workflow",
+    title: "Create new component(s) with the current grid's state applied to the workflow",
     disabled: false,
     onClick: createNewNodes,
   }
