@@ -8,27 +8,14 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.function.Consumer;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyArray;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class VectorTest {
-  private static Context ctx;
-
-  @BeforeClass
-  public static void prepareCtx() {
-    ctx = ContextUtils.createDefaultContext();
-  }
-
-  @AfterClass
-  public static void disposeCtx() {
-    ctx.close();
-    ctx = null;
-  }
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Test
   public void evaluation() throws Exception {
@@ -50,7 +37,7 @@ public class VectorTest {
             .uri(facUri)
             .buildLiteral();
 
-    var module = ctx.eval(facSrc);
+    var module = ctxRule.eval(facSrc);
     var res = module.invokeMember("eval_expression", "check");
     assertEquals("is vector type", res.asString());
   }
@@ -65,7 +52,7 @@ public class VectorTest {
             .uri(facUri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var res = module.invokeMember("eval_expression", "check");
     assertEquals("[1, 2, 3]", res.toString());
   }
@@ -80,7 +67,7 @@ public class VectorTest {
             .uri(facUri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
     var res = module.invokeMember("eval_expression", "check");
     assertEquals("[1, 2, 3]", res.toString());
   }
@@ -100,7 +87,7 @@ public class VectorTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
 
     class ConsumeList implements Consumer<List<Long>> {
       boolean called;
@@ -141,7 +128,7 @@ public class VectorTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
 
     var callback = module.invokeMember("eval_expression", "how_long");
 
@@ -218,7 +205,7 @@ public class VectorTest {
             .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
 
     {
       QUERIED.clear();

@@ -30,6 +30,7 @@ Text.to_uri self = URI.parse self
 ## ALIAS download, http get
    GROUP Input
    ICON data_input
+   SUGGESTED 3
    Fetches from the URI and returns the response, parsing the body if the
    content-type is recognised. Returns an  error if the status code does not
    represent a successful response.
@@ -52,6 +53,7 @@ URI.fetch self (method:HTTP_Method=..Get) headers=[] format=Auto_Detect =
 ## ALIAS http post, upload
    GROUP Output
    ICON data_upload
+   SUGGESTED 4
    Writes the provided data to the provided URI. Returns the response,
    parsing the body if the content-type is recognised. Returns an  error if the
    status code does not represent a successful response.

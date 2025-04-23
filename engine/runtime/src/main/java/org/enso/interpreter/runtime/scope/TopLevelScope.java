@@ -237,7 +237,7 @@ public final class TopLevelScope extends EnsoObject {
 
     @Specialization
     static Object doInvoke(
-        TopLevelScope scope, String member, Object[] arguments, @Bind("$node") Node node)
+        TopLevelScope scope, String member, Object[] arguments, @Bind Node node)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
       var ctx = EnsoContext.get(node);
       switch (member) {

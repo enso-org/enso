@@ -5,15 +5,13 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import { useRaf } from '@/composables/animation'
 import { useEvent } from '@/composables/events'
 import { useAppClass } from '@/providers/appClass'
-import { injectWidgetTree } from '@/providers/widgetTree'
 import { Vec2 } from '@/util/data/vec2'
 import { uuidv4 } from 'lib0/random'
 import { computed, type Ref, ref, shallowReactive, watchEffect, watchPostEffect } from 'vue'
 import { Range } from 'ydoc-shared/util/data/range'
 
 const props = defineProps<{
-  modelValue: T[]
-  newItem: () => T | undefined
+  items: T[]
   getKey?: (item: T) => string | number | undefined
   /**
    * If present, a {@link DataTransferItem} is added with a MIME type of `text/plain`.
@@ -32,20 +30,21 @@ const props = defineProps<{
    * Convert the list item to a drag payload stored under `dragMimeType`. When in doubt, this
    * should be `JSON.stringify` of data describing the object.
    */
-  toDragPayload: (item: T) => string
+  toDragPayload?: (item: T) => string
   /**
-   * Convert payload created by `toDragPayload` back to the list item. This function can be called
-   * on the payload received from a different application instance (e.g. another browser), so it
-   * should not rely on any local state.
+   * Transform a drag position from client space to appropriate list "scene" space. Not necessary
+   * when the list is not transformed with scale.
    */
-  fromDragPayload: (payload: string) => T | undefined
-  toDragPosition: (p: Vec2) => Vec2
+  toDragPosition?: (p: Vec2) => Vec2
+  showHandles: boolean
+  axis: 'x' | 'y'
 }>()
 const emit = defineEmits<{
-  'update:modelValue': [modelValue: T[]]
+  addItem: []
+  reorder: [oldIndex: number, newIndex: number]
+  remove: [index: number]
+  dropInsert: [index: number, payload: string]
 }>()
-
-const tree = injectWidgetTree()
 
 const listUuid = uuidv4()
 
@@ -90,7 +89,7 @@ interface NonPlaceholderItem extends BaseItem {
 
 interface PlaceholderItem extends BaseItem {
   type: 'placeholder'
-  width: number
+  size: number
 }
 
 type DragItem = NonPlaceholderItem | PlaceholderItem
@@ -98,7 +97,7 @@ type DragItem = NonPlaceholderItem | PlaceholderItem
 const defaultPlaceholderKey = '__placeholder_key__'
 
 const mappedItems = computed<DragItem[]>(() => {
-  return props.modelValue.map((item, index) => ({
+  return props.items.map((item, index) => ({
     type: 'item',
     index,
     item,
@@ -115,7 +114,7 @@ watchEffect(() => {
   if (info == null) {
     dropIndex.value = undefined
   } else {
-    const index = getDropIndex(info, itemHorizontalBounds)
+    const index = getDropIndex(info, itemAxisBounds)
     if (index !== dropIndex.value) dropIndex.value = index
   }
 })
@@ -129,16 +128,24 @@ const displayedChildren = computed(() => {
 
     items.splice(index, 0, {
       type: 'placeholder',
-      width: meta.width,
+      size: meta.size,
       key,
     } as const)
   }
   return items.filter((item) => item.type !== 'item' || item.index !== draggedIndex.value)
 })
 
-const rootNode = ref<HTMLElement>()
+const cssPropsToCopy = [
+  '--color-node-primary',
+  '--color-node-port',
+  '--node-border-radius',
+  'font-family',
+  'font-size',
+]
 
-const cssPropsToCopy = ['--color-node-primary', '--color-node-port', '--node-border-radius']
+function transformPosition(p: Vec2): Vec2 {
+  return props.toDragPosition?.(p) ?? p
+}
 
 function onDragStart(event: DragEvent, index: number) {
   if (!event.dataTransfer) return
@@ -150,18 +157,25 @@ function onDragStart(event: DragEvent, index: number) {
   const sizeElement = previewElement.parentElement
   if (!(sizeElement instanceof HTMLElement)) return
 
+  const xAxis = props.axis === 'x'
+
   // Create a fake offscreen DOM element to use as the drag "ghost" image. It will hold a visual
   // clone of the widget being dragged. The ghost style is modified to add a background color
   // and additional border, as well as apply appropriate element scaling in cross-browser way.
-  const elementOffsetWidth = sizeElement.offsetWidth
+  const elementOffsetSize = xAxis ? sizeElement.offsetWidth : sizeElement.offsetHeight
   const elementRect = originalBoundingClientRect.call(sizeElement)
-  const elementScale = elementRect.width / elementOffsetWidth
+  const rectAxisSize = xAxis ? elementRect.width : elementRect.height
+  const elementScale = rectAxisSize / elementOffsetSize
+  // Drag ghost need two layers, root and actual ghost element. Othwerwise some styles
+  // (such as transform) are not respected for drag images when applied directly to root.
+  const dragGhostRoot = document.createElement('div')
   const dragGhost = document.createElement('div')
-  dragGhost.classList.add('ListWidget-drag-ghost')
+  dragGhost.classList.add('draggableList-drag-ghost')
   const previewElementStyle = getComputedStyle(previewElement)
-  const elementTopLeft = props.toDragPosition(new Vec2(elementRect.left, elementRect.top))
-  const currentMousePos = props.toDragPosition(new Vec2(event.clientX, event.clientY))
-  const elementRelativeOffset = currentMousePos.sub(elementTopLeft)
+
+  const elementTopLeft = transformPosition(new Vec2(elementRect.left, elementRect.top))
+  const currentMousePos = transformPosition(new Vec2(event.clientX, event.clientY))
+  const elementRelativeOffset = currentMousePos.sub(elementTopLeft).scale(elementScale)
   // To maintain appropriate styling, we have to copy over a set of node tree CSS variables from
   // the preview element to the ghost element.
   cssPropsToCopy.forEach((prop) => {
@@ -169,23 +183,25 @@ function onDragStart(event: DragEvent, index: number) {
   })
   dragGhost.style.setProperty('transform', `scale(${elementScale})`)
   dragGhost.appendChild(previewElement.cloneNode(true))
-  document.body.appendChild(dragGhost)
-  event.dataTransfer.setDragImage(dragGhost, elementRelativeOffset.x, elementRelativeOffset.y)
+  dragGhostRoot.appendChild(dragGhost)
+  document.body.appendChild(dragGhostRoot)
+  event.dataTransfer.setDragImage(dragGhostRoot, elementRelativeOffset.x, elementRelativeOffset.y)
   // Remove the ghost element after a short delay, giving the browser time to render it and set
   // the drag image.
-  setTimeout(() => dragGhost.remove(), 0)
+  setTimeout(() => dragGhostRoot.remove(), 0)
 
   event.dataTransfer.effectAllowed = 'move'
   // `dropEffect: none` does not work for removing an element - it disables drop completely.
   event.dataTransfer.dropEffect = 'move'
-  const dragItem = props.modelValue[index]!
+  const dragItem = props.items[index]!
 
   const meta: DropMetadata = {
     list: listUuid,
     key: props.getKey?.(dragItem) ?? index,
-    width: elementOffsetWidth,
+    size: elementOffsetSize,
   }
-  const payload = props.toDragPayload(dragItem)
+
+  const payload = props.toDragPayload?.(dragItem) ?? ''
   event.dataTransfer.setData(mimeType.value, payload)
 
   if (props.toPlainText) {
@@ -206,11 +222,11 @@ function onDragStart(event: DragEvent, index: number) {
 interface DropMetadata {
   list: string
   key: string | number
-  width: number
+  size: number
 }
 
 function metaEquals(a: DropMetadata, b: DropMetadata) {
-  return a.list === b.list && a.key === b.key && a.width === b.width
+  return a.list === b.list && a.key === b.key && a.size === b.size
 }
 
 interface DropHoverInfo {
@@ -221,13 +237,13 @@ interface DropHoverInfo {
 function areaDragOver(e: DragEvent) {
   const metaMime = e.dataTransfer?.types.find((ty) => ty.startsWith(dragMetaMimePrefix))
   const typesMatch = e.dataTransfer?.types.includes(mimeType.value)
-  if (!metaMime || !typesMatch) return
+  if (!metaMime || (!typesMatch && draggedIndex.value == null)) return
   e.preventDefault()
   const meta = decodeMetadataFromMime(metaMime)
   if (meta == null) return
 
   const clientPos = new Vec2(e.clientX, e.clientY)
-  const position = props.toDragPosition(clientPos)
+  const position = transformPosition(clientPos)
   const info = dropInfo.value
   if (info != null) {
     if (!metaEquals(info.meta, meta)) info.meta = meta
@@ -237,22 +253,22 @@ function areaDragOver(e: DragEvent) {
   }
 }
 
-const itemHorizontalBounds = shallowReactive<(Range | undefined)[]>([])
+const itemAxisBounds = shallowReactive<(Range | undefined)[]>([])
 useRaf(() => dropInfo.value != null, updateItemBounds)
 function updateItemBounds() {
-  itemHorizontalBounds.length = itemRefs.length
+  itemAxisBounds.length = itemRefs.length
   for (let i = 0; i < itemRefs.length; i++) {
     const item = itemRefs[i]
-    const currentRange = itemHorizontalBounds[i]
+    const currentRange = itemAxisBounds[i]
     if (item == null) {
-      itemHorizontalBounds[i] = undefined
+      itemAxisBounds[i] = undefined
       continue
     }
     const rect = originalBoundingClientRect.call(item)
-    const from = props.toDragPosition(new Vec2(rect.left, rect.top)).x
-    const to = props.toDragPosition(new Vec2(rect.right, rect.bottom)).x
+    const from = transformPosition(new Vec2(rect.left, rect.top))[props.axis]
+    const to = transformPosition(new Vec2(rect.right, rect.bottom))[props.axis]
     if (currentRange?.from !== from || currentRange?.to !== to) {
-      itemHorizontalBounds[i] = Range.tryFromBounds(from, to)
+      itemAxisBounds[i] = Range.tryFromBounds(from, to)
     }
   }
 }
@@ -260,7 +276,7 @@ function updateItemBounds() {
 function getDropIndex(info: DropHoverInfo, bounds: (Range | undefined)[]): number {
   const pos = info.position
   const insertIndex = bounds.findIndex(
-    (range) => range != null && (range.from + range.to) / 2 > pos.x,
+    (range) => range != null && (range.from + range.to) / 2 > pos[props.axis],
   )
   return insertIndex >= 0 ? insertIndex : bounds.length
 }
@@ -270,22 +286,16 @@ function areaDragLeave(_event: DragEvent) {
 }
 
 function areaOnDrop(e: DragEvent) {
-  const payload = e.dataTransfer?.getData(mimeType.value)
   const index = dropIndex.value
-  if (index == null || index < 0 || payload == null) return
+  if (index == null || index < 0) return
   e.preventDefault()
   e.stopImmediatePropagation()
 
-  const item = props.fromDragPayload(payload)
-  if (item != null) {
-    let modelValue = [...props.modelValue]
-    let insertIndex = index
-    if (draggedIndex.value != null) {
-      if (draggedIndex.value <= insertIndex) insertIndex -= 1
-      modelValue = modelValue.filter((_, i) => i !== draggedIndex.value)
-    }
-    modelValue.splice(insertIndex, 0, item)
-    emit('update:modelValue', modelValue)
+  if (draggedIndex.value != null) {
+    emit('reorder', draggedIndex.value, index)
+  } else {
+    const payload = e.dataTransfer?.getData(mimeType.value)
+    if (payload) emit('dropInsert', index, payload)
   }
 
   draggedIndex.value = undefined
@@ -295,8 +305,7 @@ function areaOnDrop(e: DragEvent) {
 function onDragEnd(event: DragEvent) {
   const effect = event.dataTransfer?.dropEffect
   if (effect !== 'none' && draggedIndex.value != null) {
-    const modelValue = props.modelValue.filter((_, i) => i !== draggedIndex.value)
-    emit('update:modelValue', modelValue)
+    deleteItem(draggedIndex.value)
   }
   draggedIndex.value = undefined
   dropInfo.value = undefined
@@ -364,98 +373,87 @@ function setItemRef(el: unknown, index: number) {
 }
 
 watchPostEffect(() => {
-  itemRefs.length = props.modelValue.length
+  itemRefs.length = props.items.length
 })
 
 function addItem() {
-  const item = props.newItem()
-  if (item) emit('update:modelValue', [...props.modelValue, item])
+  emit('addItem')
 }
 
 function deleteItem(index: number) {
-  const modelValue = props.modelValue.filter((_, i) => i !== index)
-  emit('update:modelValue', modelValue)
+  emit('remove', index)
 }
+
+const placeholderSizeProp = computed(() => `--placeholder-${props.axis}` as const)
 </script>
 
 <template>
-  <div
-    ref="rootNode"
-    class="VectorWidget"
-    :class="{ animate: dropInfo != null || draggedIndex != null }"
+  <TransitionGroup
+    tag="ul"
+    name="list"
+    class="DraggableList"
+    :class="{ animate: dropInfo != null || draggedIndex != null, [`axis-${axis}`]: true }"
+    :css="dropInfo != null || draggedIndex != null"
     @pointerdown="
       !$event.shiftKey && !$event.altKey && !$event.metaKey && $event.stopImmediatePropagation()
     "
   >
-    <div class="vector-literal">
-      <span class="token widgetApplyPadding">[</span>
-      <TransitionGroup
-        tag="ul"
-        name="list"
-        class="items"
-        :css="dropInfo != null || draggedIndex != null"
-      >
-        <template v-for="entry in displayedChildren" :key="entry.key">
-          <template v-if="entry.type === 'item'">
-            <li :ref="patchBoundingClientRectScaling" class="item">
-              <div :ref="(el) => setItemRef(el, entry.index)" class="draggableContent">
-                <SizeTransition width>
-                  <!-- This wrapper is needed because an SVG element cannot directly be draggable. -->
-                  <div
-                    v-if="tree.extended"
-                    class="deletable"
-                    :class="{ hintDeletable: entry.hintDeletable.value }"
-                    draggable="true"
-                    @dragstart="onDragStart($event, entry.index)"
-                    @dragend="onDragEnd"
-                  >
-                    <SvgIcon name="grab" class="handle" />
-                  </div>
-                </SizeTransition>
-                <div
-                  class="deletable"
-                  :class="{ hintDeletable: entry.hintDeletable.value }"
-                  data-testid="list-item-content"
-                >
-                  <slot :item="entry.item"></slot>
-                </div>
-                <SizeTransition width>
-                  <!-- This wrapper is needed to animate an `SvgButton` because it ultimately contains a `TooltipTrigger`,
-                       which has a fragment root. -->
-                  <div v-if="tree.extended" class="displayContents">
-                    <SvgButton
-                      class="item-button"
-                      name="close"
-                      title="Remove item"
-                      @click.stop="deleteItem(entry.index)"
-                      @pointerenter="entry.hintDeletable.value = true"
-                      @pointerleave="entry.hintDeletable.value = false"
-                    />
-                  </div>
-                </SizeTransition>
-              </div>
+    <template v-for="entry in displayedChildren" :key="entry.key">
+      <template v-if="entry.type === 'item'">
+        <li :ref="patchBoundingClientRectScaling" class="item">
+          <div :ref="(el) => setItemRef(el, entry.index)" class="draggableContent">
+            <SizeTransition width>
+              <!-- This wrapper is needed because an SVG element cannot directly be draggable. -->
               <div
-                v-if="entry.index != props.modelValue.length - 1"
-                class="token widgetApplyPadding"
+                v-if="props.showHandles"
+                class="deletable"
+                :class="{ hintDeletable: entry.hintDeletable.value }"
+                draggable="true"
+                @dragstart="onDragStart($event, entry.index)"
+                @dragend="onDragEnd"
               >
-                ,&nbsp;
+                <SvgIcon name="grab" class="handle" />
               </div>
-            </li>
-          </template>
-          <template v-else>
-            <li
-              :ref="patchBoundingClientRectScaling"
-              data-testid="dragPlaceholder"
-              class="placeholder"
-              :style="{ '--placeholder-width': entry.width + 'px' }"
-            ></li>
-          </template>
-        </template>
-      </TransitionGroup>
-      <SizeTransition width>
+            </SizeTransition>
+            <div
+              class="deletable"
+              :class="{ hintDeletable: entry.hintDeletable.value }"
+              data-testid="list-item-content"
+            >
+              <slot :item="entry.item"></slot>
+            </div>
+            <SizeTransition width>
+              <!-- This wrapper is needed to animate an `SvgButton` because it ultimately contains a `TooltipTrigger`,
+                       which has a fragment root. -->
+              <div v-if="props.showHandles" class="iconWrapper">
+                <SvgButton
+                  class="item-button"
+                  name="close"
+                  title="Remove item"
+                  @click.stop="deleteItem(entry.index)"
+                  @pointerenter="entry.hintDeletable.value = true"
+                  @pointerleave="entry.hintDeletable.value = false"
+                />
+              </div>
+            </SizeTransition>
+          </div>
+          <slot v-if="entry.index != props.items.length - 1" name="separator" />
+        </li>
+      </template>
+      <template v-else>
+        <li
+          :ref="patchBoundingClientRectScaling"
+          data-testid="dragPlaceholder"
+          class="placeholder"
+          :style="{ [placeholderSizeProp]: entry.size + 'px' }"
+        ></li>
+      </template>
+    </template>
+    <div key="add-icon">
+      <SizeTransition :width="axis === 'x'" :height="axis === 'y'">
         <!-- This wrapper is a workaround: If the `v-if` is applied to the `SvgIcon`, once the button is shown it will
              never go back to hidden. This might be a Vue bug? -->
-        <div v-if="tree.extended" class="displayContents">
+        <div v-if="props.showHandles" class="iconWrapper axisAligned">
           <SvgButton
             class="item-button after-last-item"
             name="vector_add"
@@ -464,28 +462,39 @@ function deleteItem(index: number) {
           />
         </div>
       </SizeTransition>
-      <span class="token widgetApplyPadding">]</span>
     </div>
     <div
+      key="drop-area"
       class="drop-area widgetOutOfLayout"
       @dragleave="areaDragLeave"
       @dragover="areaDragOver"
       @drop="areaOnDrop"
     ></div>
-  </div>
+  </TransitionGroup>
 </template>
 
 <style scoped>
-.VectorWidget {
+.DraggableList {
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  list-style: none;
+  --placeholder-x: 0;
+  --placeholder-y: 0;
+
+  &.axis-x {
+    align-items: center;
+    flex-direction: row;
+  }
+  &.axis-y {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
-.VectorWidget.animate {
+.DraggableList.animate {
   .placeholder {
     display: flex;
-    width: var(--placeholder-width);
+    width: var(--placeholder-x);
+    height: var(--placeholder-y);
   }
 
   .item.list-leave-active {
@@ -520,18 +529,6 @@ div {
   display: inline-block;
 }
 
-.vector-literal {
-  display: flex;
-  align-items: center;
-}
-
-.items {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  list-style: none;
-}
-
 .item {
   display: flex;
   flex-direction: row;
@@ -542,11 +539,6 @@ div {
   display: flex;
   flex-direction: row;
   align-items: center;
-}
-
-.token {
-  opacity: 0.33;
-  user-select: none;
 }
 
 .drop-area {
@@ -591,11 +583,11 @@ div {
   }
 }
 
-.after-last-item {
+.DraggableList.axis-x .after-last-item {
   margin-left: 4px;
 }
 
-:global(.ListWidget-drag-ghost) {
+:global(.draggableList-drag-ghost) {
   position: absolute;
   left: -5000px;
   background-color: var(--color-node-primary);
@@ -612,8 +604,16 @@ div {
   }
 }
 
-.displayContents {
-  display: contents;
+.iconWrapper {
+  /* display: contents; */
+  flex-direction: row;
+  overflow: clip;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  .axis-y &.axisAligned {
+    flex-direction: column;
+  }
 }
 
 .SvgButton {

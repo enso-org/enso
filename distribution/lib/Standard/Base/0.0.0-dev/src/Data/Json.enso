@@ -398,6 +398,9 @@ render object depth=0 max_depth=5 max_length=100 = case object of
     _ : Text -> object.to_json
     _ : Boolean -> object.to_json
     _ : Number -> object.to_json
+    _ : Date -> object.to_json
+    _ : Date_Time -> object.to_json
+    _ : Time_Of_Day -> object.to_json
     _ -> @Tail_Call render (JS_Object.new object) depth max_depth max_length
 
 ## PRIVATE

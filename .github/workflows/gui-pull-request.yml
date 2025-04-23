@@ -76,7 +76,7 @@ jobs:
   required-checks:
     name: GUI Required Checks
     runs-on: ubuntu-latest
-    needs: [prettier, gui-checks, storybook]
+    needs: [gui-changed-files, prettier, gui-checks, storybook]
     if: always()
     steps:
       - name: Checks Summary
@@ -85,15 +85,24 @@ jobs:
           echo "GUI Checks: ${{ needs.gui-checks.result }}"
           echo "Storybook: ${{ needs.storybook.result }}"
 
+          any_changed='${{ needs.gui-changed-files.outputs.any_changed }}'
+
           declare -a checks
           checks+=("${{ needs.prettier.result }}")
           checks+=("${{ needs.gui-checks.result }}")
           checks+=("${{ needs.storybook.result }}")
 
           for result in "${checks[@]}"; do
-            if [[ "$result" == "failure" ]]; then
-              exit 1
-            fi
+            case "$result" in
+              'failure')
+                exit 1
+                ;;
+              'skipped' | 'cancelled')
+                if [[ "$any_changed" == 'true' ]]; then
+                  exit 1
+                fi
+                ;;
+            esac
           done
 
           echo "Success!"

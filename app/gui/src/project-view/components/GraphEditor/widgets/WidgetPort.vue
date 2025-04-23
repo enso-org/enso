@@ -237,8 +237,8 @@ export const widgetDefinition = defineWidget(
   }
 
   &.connected::before {
-    left: 0px;
-    right: 0px;
+    left: 0;
+    right: 0;
   }
 }
 </style>

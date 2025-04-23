@@ -14,9 +14,9 @@ import project.DB_Table.DB_Table
 import project.Dialect.Dialect
 import project.Internal.Common.Row_Number_Helpers
 import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
-import project.Internal.IR.Context.Context
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 from project.Errors import Aggregagtion_Requires_Order
 
@@ -32,7 +32,7 @@ from project.Errors import Aggregagtion_Requires_Order
      operation, list of input columns and a raw SQL IR Expression) and returns
      the inferred type for the aggregation.
    - problem_builder: A `Problem_Builder` instance used for reporting warnings.
-make_aggregate_column : DB_Table -> Aggregate_Column -> Text -> Dialect -> (Text -> Vector -> SQL_Expression -> SQL_Type_Reference) -> Problem_Builder -> Internal_Column
+make_aggregate_column : DB_Table -> Aggregate_Column -> Text -> Dialect -> (Text -> Vector -> SQL_IR_Expression -> SQL_Type_Reference) -> Problem_Builder -> Internal_Column
 make_aggregate_column table aggregate as dialect infer_return_type problem_builder -> Internal_Column =
     simple_aggregate op_kind columns =
         expression = dialect.cast_aggregate_columns op_kind columns
@@ -43,7 +43,7 @@ make_aggregate_column table aggregate as dialect infer_return_type problem_build
         order_bys = order_by.map sc->
             effective_ordering = if sc.column.value_type.is_text then Text_Ordering.Default else Nothing
             dialect.prepare_order_descriptor sc.column.as_internal sc.direction effective_ordering
-        expression = SQL_Expression.Operation op_kind [column.expression]+order_bys
+        expression = SQL_IR_Expression.Operation op_kind [column.expression]+order_bys
         sql_type_ref = infer_return_type op_kind [column] expression
         Internal_Column.Value as sql_type_ref expression
 
@@ -61,7 +61,7 @@ make_aggregate_column table aggregate as dialect infer_return_type problem_build
         Aggregate_Column.Count_Empty c _ -> simple_aggregate "COUNT_EMPTY" [c]
         Aggregate_Column.Percentile p c _ ->
             op_kind = "PERCENTILE"
-            expression = SQL_Expression.Operation op_kind [SQL_Expression.Literal p.to_text, c.expression]
+            expression = SQL_IR_Expression.Operation op_kind [SQL_IR_Expression.Literal p.to_text, c.expression]
             sql_type_ref = infer_return_type op_kind [c] expression
             Internal_Column.Value as sql_type_ref expression
         Aggregate_Column.Mode c _ ->
@@ -91,15 +91,15 @@ make_aggregate_column table aggregate as dialect infer_return_type problem_build
             True -> simple_aggregate "STDDEV_POP" [c]
             False -> simple_aggregate "STDDEV_SAMP" [c]
         Aggregate_Column.Concatenate c _ separator prefix suffix quote_char ->
-            base_args = [c.expression, SQL_Expression.Constant separator, SQL_Expression.Constant prefix, SQL_Expression.Constant suffix]
+            base_args = [c.expression, SQL_IR_Expression.Constant separator, SQL_IR_Expression.Constant prefix, SQL_IR_Expression.Constant suffix]
             op_kind = case quote_char.is_empty of
                 True -> "CONCAT"
                 False -> "CONCAT_QUOTE_IF_NEEDED"
             effective_args = case op_kind of
                 "CONCAT_QUOTE_IF_NEEDED" ->
-                    base_args+[SQL_Expression.Constant quote_char]
+                    base_args+[SQL_IR_Expression.Constant quote_char]
                 "CONCAT" -> base_args
-            expression = SQL_Expression.Operation op_kind effective_args
+            expression = SQL_IR_Expression.Operation op_kind effective_args
             sql_type_ref = infer_return_type op_kind [c] expression
             Internal_Column.Value as sql_type_ref expression
         Aggregate_Column.Sum c _ -> simple_aggregate "SUM" [c]
@@ -203,7 +203,7 @@ make_infer_return_type dialect connection context =
    created.
 type Aggregate_With_Helper_Expressions
     ## PRIVATE
-    Value (create_helper_expressions : Aggregate_Column -> Vector Internal_Column -> Vector (Pair Text SQL_Expression)) (make_aggregate : Aggregate_Column -> Text -> Vector Internal_Column -> DB_Table -> (Text -> Vector -> SQL_Expression -> SQL_Type_Reference) -> Problem_Builder -> Internal_Column)
+    Value (create_helper_expressions : Aggregate_Column -> Vector Internal_Column -> Vector (Pair Text SQL_IR_Expression)) (make_aggregate : Aggregate_Column -> Text -> Vector Internal_Column -> DB_Table -> (Text -> Vector -> SQL_IR_Expression -> SQL_Type_Reference) -> Problem_Builder -> Internal_Column)
 
     ## PRIVATE
        This method should be declared as result of `dialect.custom_build_aggregate` to use this setup.
@@ -226,9 +226,9 @@ type Aggregate_With_Helper_Expressions
                 subquery_setup = base_table.context.as_subquery base_table.name [base_table.internal_columns, helper_columns]
                 remapped_key_expressions = key_columns.map key_column->
                     subquery_setup.remap_column key_column . expression
-                new_ctx = (Context.for_subquery subquery_setup.subquery).set_groups remapped_key_expressions
+                new_ctx = (SQL_IR_Source.for_subquery subquery_setup.subquery).set_groups remapped_key_expressions
 
-                # Mapping from a requested expression represented by (Pair Text SQL_Expression) to the column generated for that expression, in the subquery.
+                # Mapping from a requested expression represented by (Pair Text SQL_IR_Expression) to the column generated for that expression, in the subquery.
                 helper_columns_mapping = Dictionary.from_vector <| needed_expressions.zip subquery_setup.new_columns.second
 
                 # For each aggregate, we map the requested expressions to the columns generated in the subquery.

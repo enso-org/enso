@@ -25,10 +25,10 @@ from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
 import project.Internal.Helpers
-import project.Internal.IR.Context.Context
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.Query.Query
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL_Statement.SQL_Statement
@@ -53,7 +53,7 @@ type DB_Column
        which they come. Combined expressions must come from the same context -
        they must both have the same filtering, grouping etc. rules applied to be
        able to be combined.
-    private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
+    private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_IR_Expression context:SQL_IR_Source
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -303,11 +303,11 @@ type DB_Column
         if use_ctes.not then callback self else
             binder = self.connection.base_connection.table_naming_helper.generate_random_table_name
 
-            ref_expression = SQL_Expression.Let_Ref name binder self.expression
+            ref_expression = SQL_IR_Expression.Let_Ref name binder self.expression
             ref_column = DB_Column.Value binder self.connection self.sql_type_reference ref_expression self.context
             inner_value = callback ref_column
 
-            let_expression = SQL_Expression.Let name binder self.expression inner_value.expression
+            let_expression = SQL_IR_Expression.Let name binder self.expression inner_value.expression
             DB_Column.Value inner_value.internal_name inner_value.connection inner_value.sql_type_reference let_expression inner_value.context
 
     ## PRIVATE
@@ -318,7 +318,7 @@ type DB_Column
        - operands: A vector of additional operation arguments (the column itself
          is always passed as the first argument).
        - new_name: The name of the resulting column.
-       - metadata: Optional metadata for the `SQL_Expression.Operation`.
+       - metadata: Optional metadata for the `SQL_IR_Expression.Operation`.
     make_op : Text -> Vector Text -> (Text | Nothing) -> (Any | Nothing) -> DB_Column
     make_op self op_kind operands new_name metadata=Nothing =
         checked_support = if self.connection.dialect.is_operation_supported op_kind then True else
@@ -329,13 +329,13 @@ type DB_Column
                 other_column : DB_Column ->
                     if Helpers.check_integrity self other_column then other_column.expression else
                         Error.throw (Integrity_Error.Error "DB_Column "+other_column.name)
-                sql_expression : SQL_Expression ->
+                sql_expression : SQL_IR_Expression ->
                     sql_expression
                 constant ->
-                    SQL_Expression.Constant constant
+                    SQL_IR_Expression.Constant constant
 
             expressions = operands.map prepare_operand
-            new_expr = SQL_Expression.Operation op_kind ([self.expression] + expressions) metadata
+            new_expr = SQL_IR_Expression.Operation op_kind ([self.expression] + expressions) metadata
 
             infer_from_database_callback expression =
                 SQL_Type_Reference.new self.connection self.context expression
@@ -920,13 +920,13 @@ type DB_Column
         new_name = self.naming_helper.function_name "round" [self]
         case rounding_mode of
             Rounding_Mode.Bankers ->
-                    self.make_binary_op "ROUND_BANKERS" (SQL_Expression.Literal decimal_places.to_text) new_name
+                    self.make_binary_op "ROUND_BANKERS" (SQL_IR_Expression.Literal decimal_places.to_text) new_name
             Rounding_Mode.Half_Up ->
                 case decimal_places == 0 of
                     True ->
                         self.make_unary_op "ROUND" new_name
                     False ->
-                        self.make_binary_op "ROUND" (SQL_Expression.Literal decimal_places.to_text) new_name
+                        self.make_binary_op "ROUND" (SQL_IR_Expression.Literal decimal_places.to_text) new_name
 
     ## PRIVATE
        Round a float-like column.
@@ -1841,8 +1841,8 @@ type DB_Column
                 result.rename new_name
             _ : Array -> self.is_in (Vector.from_polyglot_array vector)
             column : DB_Column -> if Helpers.check_connection self column . not then (Error.throw (Integrity_Error.Error "DB_Column "+column.name)) else
-                in_subquery = Query.Select [Pair.new column.name column.expression] column.context
-                new_expr = SQL_Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery]
+                in_subquery = SQL_IR_Statement.Select [Pair.new column.name column.expression] column.context
+                new_expr = SQL_IR_Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery]
                 # This mapping should never be imprecise, if there are errors we need to amend the implementation.
                 sql_type = self.connection.dialect.get_type_mapping.value_type_to_sql Value_Type.Boolean Problem_Behavior.Report_Error
                 new_type_ref = SQL_Type_Reference.from_constant sql_type . catch Inexact_Type_Coercion _->

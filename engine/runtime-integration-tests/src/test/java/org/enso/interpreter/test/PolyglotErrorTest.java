@@ -4,24 +4,25 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class PolyglotErrorTest {
-  private Context ctx;
-  private Value panic;
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
+  private static Value panic;
 
   public static String bar(Object o) {
     return "[[" + o + "]]";
   }
 
-  @Before
-  public void prepareCtx() throws Exception {
-    this.ctx = ContextUtils.createDefaultContext();
+  @BeforeClass
+  public static void prepareCtx() throws Exception {
+    var ctx = ctxRule.context();
 
     var code =
         """
@@ -94,15 +95,13 @@ public class PolyglotErrorTest {
     var src = Source.newBuilder("enso", code, "test.enso").build();
     var module = ctx.eval(src);
 
-    this.panic = module.invokeMember("eval_expression", "panic");
-    assertTrue("It is a function", this.panic.canExecute());
+    panic = module.invokeMember("eval_expression", "panic");
+    assertTrue("It is a function", panic.canExecute());
   }
 
-  @After
-  public void disposeCtx() {
-    this.panic = null;
-    this.ctx.close();
-    ctx = null;
+  @AfterClass
+  public static void disposeCtx() {
+    panic = null;
   }
 
   @Test
