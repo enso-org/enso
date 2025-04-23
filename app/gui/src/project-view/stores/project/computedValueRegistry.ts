@@ -3,8 +3,9 @@ import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNam
 import { Ok, Result, unwrapOr } from '@/util/data/result'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
+import { arrayEquals } from '@/util/equals'
 import { parseMethodPointer, type MethodCall } from '@/util/methodPointer'
-import { type ProjectPath } from '@/util/projectPath'
+import type { ProjectPath } from '@/util/projectPath'
 import { markRaw } from 'vue'
 import type {
   ExpressionId,
@@ -81,7 +82,8 @@ function updateInfo(
 ) {
   const newInfo = combineInfo(info, update, projectNames)
   if (newInfo.typename !== info.typename) info.typename = newInfo.typename
-  if (newInfo.hiddenTypes !== info.hiddenTypes) info.hiddenTypes = newInfo.hiddenTypes
+  if (!arrayEquals(newInfo.hiddenTypes, info.hiddenTypes, (a, b) => a.equals(b)))
+    info.hiddenTypes = newInfo.hiddenTypes
   if (newInfo.rawTypename !== info.rawTypename) info.rawTypename = newInfo.rawTypename
   if (newInfo.methodCall !== info.methodCall) info.methodCall = newInfo.methodCall
   if (newInfo.payload !== info.payload) info.payload = newInfo.payload
