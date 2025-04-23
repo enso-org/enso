@@ -208,7 +208,7 @@ const statusBar = computed(() =>
               statusPanel: TableVizStatusBar,
               statusPanelParams: {
                 total: allRowCount.value,
-                filtered: filteredRowCount.value,
+                filtered: isSSRM.value ? filteredRowCount.value : null,
               },
             },
           ]
