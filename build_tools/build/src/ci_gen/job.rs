@@ -946,7 +946,7 @@ pub struct BuildEngineDistribution {
 impl JobArchetype for BuildEngineDistribution {
     fn job(&self, target: Target) -> Job {
         let job_name = format!("Build Engine Distribution ({})", self.graal_edition);
-        let mut job = RunStepsBuilder::new("backend sbt buildEngineDistribution")
+        let mut job = RunStepsBuilder::new("backend sbt -- buildEngineDistribution")
             .customize(move |step| {
                 let archive_engine_distribution = Step {
                     name: Some("Archive Engine Distribution".into()),

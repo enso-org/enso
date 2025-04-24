@@ -52,7 +52,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend sbt buildEngineDistribution
+      - run: ./run backend sbt -- buildEngineDistribution
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Archive Engine Distribution
@@ -112,7 +112,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend sbt buildEngineDistribution
+      - run: ./run backend sbt -- buildEngineDistribution
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Archive Engine Distribution
@@ -170,7 +170,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend sbt buildEngineDistribution
+      - run: ./run backend sbt -- buildEngineDistribution
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Archive Engine Distribution
@@ -229,7 +229,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend sbt buildEngineDistribution
+      - run: ./run backend sbt -- buildEngineDistribution
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Archive Engine Distribution
@@ -288,7 +288,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend sbt buildEngineDistribution
+      - run: ./run backend sbt -- buildEngineDistribution
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Archive Engine Distribution
