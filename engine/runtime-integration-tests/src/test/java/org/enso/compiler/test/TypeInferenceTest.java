@@ -1392,6 +1392,46 @@ public class TypeInferenceTest extends StaticAnalysisTest {
   }
 
   @Test
+  public void noSuchMethodInsideMethodWithDefaultArgs() throws Exception {
+    final URI uri = new URI("memory://noSuchMethodInsideMethodWithArgs.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    import Standard.Base.Any.Any
+
+                    type My_Type
+                        Value v
+                        method_one self = 42
+
+                    foo arg1 arg2="default" =
+                        inst = My_Type.Value 23
+                        x1 = inst.method_one
+                        x2 = inst.nonexistent
+                        [x1, x2]
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = ModuleUtils.findStaticMethod(module, "foo");
+    var x1 = ModuleUtils.findAssignment(foo, "x1");
+    var x2 = ModuleUtils.findAssignment(foo, "x2");
+
+    // member method is defined
+    assertEquals(List.of(), ModuleUtils.getDescendantsDiagnostics(x1.expression()));
+
+    // this method is not found
+    assertEquals(
+        List.of(
+            new Warning.NoSuchMethod(
+                x2.expression().identifiedLocation(),
+                "member method `nonexistent` on type My_Type")),
+        ModuleUtils.getImmediateDiagnostics(x2.expression()));
+  }
+
+  @Test
   public void alwaysKnowsMethodsOfAny() throws Exception {
     final URI uri = new URI("memory://alwaysKnowsMethodsOfAny.enso");
     final Source src =
