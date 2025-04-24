@@ -15,8 +15,11 @@
 #### Enso Standard Library
 
 - [Support for reading fixed-width-column data files.][12726]
+- [Added ``row_limit` parameter to the `Fixed_Width` format.][12950]
+
 
 [12726]: https://github.com/enso-org/enso/pull/12726
+[12950]: https://github.com/enso-org/enso/pull/12950
 
 #### Enso Language & Runtime
 
