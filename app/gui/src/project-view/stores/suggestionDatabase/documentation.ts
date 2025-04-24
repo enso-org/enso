@@ -9,8 +9,8 @@ import { type DeepReadonly } from 'vue'
 export interface DocumentationData {
   documentation: Doc.Section[]
   docSummaryHtml: string | undefined
-  aliases: string[]
-  macros: { [k: string]: string }
+  aliasesAndMacros: string[]
+  macros: Record<string, string>
   /** A name of a custom icon to use when displaying the entry. */
   iconName: Icon | undefined
   /** An index of a group from group list in suggestionDb store this entry belongs to. */
@@ -95,7 +95,7 @@ export function documentationData(
       }
       return acc
     },
-    {} as { [k: string]: string },
+    {} as Record<string, string>,
   )
 
   const aliases =
@@ -108,7 +108,7 @@ export function documentationData(
     docSummaryHtml: getDocumentationSummary(parsed),
     iconName: iconName != null ? (iconName as Icon) : undefined,
     groupIndex,
-    aliases: [...aliases, ...Object.keys(macros)].sort(),
+    aliasesAndMacros: [...aliases, ...Object.keys(macros)].sort(),
     macros,
     isPrivate: isSome(tagValue(parsed, 'Private')),
     isUnstable: isSome(tagValue(parsed, 'Unstable')) || isSome(tagValue(parsed, 'Advanced')),
