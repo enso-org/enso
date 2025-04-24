@@ -35,6 +35,13 @@
 [12905]: https://github.com/enso-org/enso/pull/12905
 
 # Enso 2025.1
+#### Enso Standard Library
+
+- [Add Tableau Hyper write support][12900]
+
+[12900]: https://github.com/enso-org/enso/pull/12900
+
+# Next Release
 
 #### Enso IDE
 
