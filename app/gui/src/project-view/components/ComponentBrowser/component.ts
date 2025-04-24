@@ -31,7 +31,6 @@ export interface Component extends ComponentLabel {
   suggestionId?: SuggestionId
   icon: Icon
   group?: number | undefined
-  matchedAlias?: string | undefined
   macroSuffix?: string | undefined
 }
 
@@ -108,7 +107,6 @@ export function makeComponent({ id, entry, match }: MatchedSuggestion): Componen
     suggestionId: id,
     icon: displayedIconOf(entry),
     group: entry.groupIndex,
-    matchedAlias: match.matchedAlias,
     macroSuffix,
   }
 }
