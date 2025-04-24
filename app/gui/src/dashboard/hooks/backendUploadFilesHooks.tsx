@@ -432,7 +432,8 @@ export function useUploadFileToCloudMutation() {
           const isUploadable = isUploadableAsset(asset)
 
           if (isUploadable) {
-            const sibling = asset.cloudId == null ? siblingsMap.get(asset.title) : null
+            const newName = asset.newName ?? asset.title
+            const sibling = asset.cloudId == null ? siblingsMap.get(newName) : null
             if (sibling) {
               acc.conflictingAssets.push({ ...asset, cloudId: sibling.id })
             } else {
@@ -547,7 +548,7 @@ export function useUploadFileToCloudMutation() {
 
             await uploadFileMutation.mutateAsync([
               {
-                fileName: asset.newName ?? fileData.fileName,
+                fileName: fileData.fileName,
                 fileId: asset.cloudId ?? null,
                 parentDirectoryId: targetDirectoryId,
               },
