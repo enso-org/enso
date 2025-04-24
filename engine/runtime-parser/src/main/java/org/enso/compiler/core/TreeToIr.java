@@ -1965,42 +1965,6 @@ final class TreeToIr {
     };
   }
 
-  private IdentifiedLocation getIdentifiedLocation(ArgumentDefinition ast) {
-    // Note: In the IR, `DefinitionArgument` is a type of AST node; in the parser, it is not an AST-level type, but a
-    // type used only in specific locations. As a result, the IR expects it to have a source-code location, but the
-    // parser doesn't have a span for it. Here we synthesize one. This will not be necessary if we refactor IR so that
-    // `ArgumentDefinition` is not an AST node, though that change would have effects throughout the compiler and may
-    // not be worthwhile if IR is expected to be replaced.
-    long begin;
-    if (ast.getOpen() != null) {
-      begin = ast.getOpen().getStartCode();
-    } else if (ast.getOpen2() != null) {
-      begin = ast.getOpen2().getStartCode();
-    } else if (ast.getSuspension() != null) {
-      begin = ast.getSuspension().getStartCode();
-    } else {
-      begin = ast.getPattern().getStartCode();
-    }
-    int begin_ = castToInt(begin);
-    long end;
-    if (ast.getClose() != null) {
-      end = ast.getClose().getEndCode();
-    } else if (ast.getDefault() != null) {
-      end = ast.getDefault().getEquals().getEndCode();
-    } else if (ast.getClose2() != null) {
-      end = ast.getClose2().getEndCode();
-    } else if (ast.getType() != null) {
-      end = ast.getType().getOperator().getEndCode();
-    } else {
-      end = ast.getPattern().getEndCode();
-    }
-    int end_ = castToInt(end);
-
-    var location = new Location(begin_, end_);
-    var uuid = idMap.get(location);
-    return new IdentifiedLocation(begin_, end_, uuid);
-  }
-
   private IdentifiedLocation getIdentifiedLocation(FunctionAnnotation anno) {
     final var start = getIdentifiedLocation(anno.getOperator());
     IdentifiedLocation end;
