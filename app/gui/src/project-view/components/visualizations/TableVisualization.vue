@@ -163,7 +163,6 @@ const defaultColDef: Ref<ColDef> = ref({
     'separator',
     'export',
   ],
-  autoHeight: true,
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
@@ -611,6 +610,7 @@ function toField(
       showDataQuality,
     },
     cellDataType: cellValueType,
+    autoHeight: (cellValueType === 'text' && isSSRM.value)
   }
 }
 
