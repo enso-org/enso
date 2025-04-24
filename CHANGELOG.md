@@ -20,6 +20,7 @@
 
 #### Enso Language & Runtime
 
+- [Prevent `Meta` access to private constructors and private fields][12905]
 - [Upgrading Truffle][12500] (including its
   [JavaScript](https://www.graalvm.org/javascript/) and
   [Python](https://www.graalvm.org/python/)) to version `24.2.0`.
@@ -27,6 +28,7 @@
 
 [12500]: https://github.com/enso-org/enso/pull/12500
 [12855]: https://github.com/enso-org/enso/pull/12855
+[12905]: https://github.com/enso-org/enso/pull/12905
 
 # Enso 2025.1
 
