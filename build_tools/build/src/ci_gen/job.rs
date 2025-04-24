@@ -229,14 +229,6 @@ impl JobArchetype for JvmTests {
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
         let job_name = format!("JVM Tests ({graal_edition})");
-        let test_results_dir = paths::ENSO_TEST_JUNIT_DIR
-            .get()
-            .ok()
-            .and_then(|buf| buf.to_str().map(|s| s.to_owned()))
-            .unwrap_or_else(|| "target/test-results/".to_owned());
-        let _upload_artifact_job = step::upload_artifact("Upload test results")
-            .with_custom_argument("name", format!("Test_Results_{}", target.0))
-            .with_custom_argument("path", test_results_dir);
         let mut job = RunStepsBuilder::new("backend test jvm")
             .customize(move |step| {
                 let download_engine_distribution =
@@ -1000,24 +992,7 @@ pub struct CiCheckBackend {
 impl JobArchetype for CiCheckBackend {
     fn job(&self, target: Target) -> Job {
         let job_name = format!("Engine ({})", self.graal_edition);
-        let mut job = RunStepsBuilder::new("backend ci-check")
-            .customize(move |step| {
-                let download_engine_distribution =
-                    step::download_artifact("Download Engine Distribution")
-                        .with_custom_argument("name", format!("engine-distribution-{}", target.0));
-
-                let unpack_engine_distribution = Step {
-                    run: Some(
-                        "tar -xvf built-distribution.tar
-rm built-distribution.tar"
-                            .into(),
-                    ),
-                    ..Default::default()
-                };
-
-                vec![download_engine_distribution, unpack_engine_distribution, step]
-            })
-            .build_job(job_name, target);
+        let mut job = RunStepsBuilder::new("backend ci-check").build_job(job_name, target);
         match self.graal_edition {
             graalvm::Edition::Community =>
                 job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Community),

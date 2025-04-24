@@ -341,11 +341,6 @@ impl RunContext {
         // We store Scala test result but not immediately fail on it, as we want to run all the
         // tests (including standard library ones) even if Scala tests fail.
         let scala_test_result = if self.config.test_jvm {
-            // Make sure that `sbt buildEngineDistributionNoIndex` is run before
-            // `project-manager/test`. Note that we do not have to run
-            // `buildEngineDistribution` (with indexing), because it is unnecessary.
-            sbt.call_arg("buildEngineDistributionNoIndex").await?;
-
             // Run unit tests
             sbt.call_arg("set Global / parallelExecution := false; test").await.inspect_err(|e| {
                 ide_ci::actions::workflow::error(format!("Scala Tests failed: {e:?}"))

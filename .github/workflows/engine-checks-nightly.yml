@@ -310,8 +310,6 @@ jobs:
       GRAAL_EDITION: Oracle GraalVM
   enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-linux-amd64:
     name: Engine (GraalVM CE) (linux, amd64)
-    needs:
-      - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-linux-amd64
     runs-on:
       - self-hosted
       - Linux
@@ -349,13 +347,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Download Engine Distribution
-        uses: actions/download-artifact@v4
-        with:
-          name: engine-distribution-linux
-      - run: |-
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -368,8 +359,6 @@ jobs:
       GRAAL_EDITION: GraalVM CE
   enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-macos-aarch64:
     name: Engine (GraalVM CE) (macos, aarch64)
-    needs:
-      - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-aarch64
     runs-on:
       - self-hosted
       - macOS
@@ -408,13 +397,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Download Engine Distribution
-        uses: actions/download-artifact@v4
-        with:
-          name: engine-distribution-macos
-      - run: |-
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -427,8 +409,6 @@ jobs:
       GRAAL_EDITION: GraalVM CE
   enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-macos-amd64:
     name: Engine (GraalVM CE) (macos, amd64)
-    needs:
-      - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
     runs-on:
       - macos-13
     steps:
@@ -465,13 +445,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Download Engine Distribution
-        uses: actions/download-artifact@v4
-        with:
-          name: engine-distribution-macos
-      - run: |-
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -484,8 +457,6 @@ jobs:
       GRAAL_EDITION: GraalVM CE
   enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-windows-amd64:
     name: Engine (GraalVM CE) (windows, amd64)
-    needs:
-      - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-windows-amd64
     runs-on:
       - self-hosted
       - Windows
@@ -523,13 +494,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Download Engine Distribution
-        uses: actions/download-artifact@v4
-        with:
-          name: engine-distribution-windows
-      - run: |-
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -542,8 +506,6 @@ jobs:
       GRAAL_EDITION: GraalVM CE
   enso-build-ci-gen-job-ci-check-backend-oracle-graal-vm-linux-amd64:
     name: Engine (Oracle GraalVM) (linux, amd64)
-    needs:
-      - enso-build-ci-gen-job-build-engine-distribution-oracle-graal-vm-linux-amd64
     runs-on:
       - self-hosted
       - Linux
@@ -581,13 +543,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Download Engine Distribution
-        uses: actions/download-artifact@v4
-        with:
-          name: engine-distribution-linux
-      - run: |-
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
