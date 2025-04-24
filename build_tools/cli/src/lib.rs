@@ -416,7 +416,8 @@ impl Processor {
             arg::backend::Command::CiCheck {} => {
                 let config = enso_build::engine::BuildConfigurationFlags {
                     build_benchmarks: true,
-                    use_native_runner: true,
+                    // TODO: #1285
+                    use_native_runner: false,
                     build_native_ydoc: TARGET_OS == OS::Linux,
                     execute_benchmarks: {
                         // Run benchmarks only on Linux.
