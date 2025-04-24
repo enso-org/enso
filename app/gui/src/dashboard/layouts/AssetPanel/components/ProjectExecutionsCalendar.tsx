@@ -202,7 +202,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
                             )}
                             size="xxsmall"
                             variant="custom"
-                            className="disabled:opacity-100"
+                            className="disabled:cursor-unset disabled:opacity-100"
                             icon={CalendarIcon}
                           >
                             {todaysExecutions.length}
