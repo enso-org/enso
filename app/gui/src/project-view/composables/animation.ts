@@ -1,14 +1,16 @@
 /** @file Vue composables for running a callback on every frame, and smooth interpolation. */
 
 import type { Vec2 } from '@/util/data/vec2'
-import { watchSourceToRef } from '@/util/reactivity'
+import { watchSourceToRef, type ToValue } from '@/util/reactivity'
 import {
   computed,
+  nextTick,
   onScopeDispose,
   proxyRefs,
   readonly,
   ref,
   shallowRef,
+  toValue,
   watch,
   type Ref,
   type WatchSource,
@@ -188,4 +190,22 @@ export function useTransitioning(observedProperties?: Set<string>) {
       transitioncancel: onTransitionEnd,
     },
   }
+}
+
+/**
+ * Given a watch source `stateId`, creates a value `isTransitionalFrame` that will be `true` for one
+ * frame when `stateId` changes.
+ *
+ * `stateId` values are compared only for distinctness. `stateId` should never change to a value it
+ * has previously held.
+ *
+ * If `stateId` is `undefined`, `isTransitionalFrame` will be `true` for one frame and then will be
+ * `false`.
+ */
+export function useTransitionalFrame(stateId: ToValue<number> | undefined) {
+  const currentStateId = computed(() => (stateId != null ? toValue(stateId) : 1))
+  const lastStateId = ref<number>()
+  watch(currentStateId, (stateId) => (lastStateId.value = stateId), { flush: 'post' })
+  nextTick(() => (lastStateId.value = currentStateId.value)).then()
+  return { isTransitionalFrame: computed(() => lastStateId.value != currentStateId.value) }
 }

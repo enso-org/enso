@@ -353,7 +353,7 @@ public abstract class InvokeCallableNode extends BaseNode {
       VirtualFrame frame,
       State state,
       Object[] arguments,
-      @Bind("$node") Node node,
+      @Bind Node node,
       @CachedLibrary(limit = "3") InteropLibrary iop,
       @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @CachedLibrary(limit = "3") TypesLibrary types,

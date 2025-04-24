@@ -1,8 +1,9 @@
-import sbt.Keys._
-import sbt._
+import sbt.Keys.*
+import sbt.*
 import sbt.internal.util.ManagedLogger
 import sbt.io.IO
 import sbt.librarymanagement.{ConfigurationFilter, DependencyFilter}
+import sbt.util.CacheStoreFactory
 
 import java.io.{File, IOException}
 import java.nio.file.Path
@@ -21,118 +22,150 @@ object StdBits {
     * @param ignoreScalaLibrary whether to ignore Scala dependencies that are
     *                           added by default be SBT and are not relevant in
     *                           pure-Java projects
+    * @param libraryUpdates resolution report
+    * @param unmanagedClasspath classpath of unmanaged jars, if any
+    * @param logger SBT's logger
+    * @param cacheStoreFactory SBT's cache sotre factory
     * @param ignoreDependency A dependency that should be ignored - not copied to the destination
     * @param ignoreDependencyIncludeTransitive An optional filter to indicate that a direct dependency should be ignored except for its (transitive) dependencies
     * @param ignoreUnmanagedDependency An optional filter that tests if an unmanaged dependency should be ignored
+    *
+    * @param previousRun summary of previous extraction data, if available
     */
   def copyDependencies(
     destination: File,
     providedJarNames: Seq[String],
     ignoreScalaLibrary: Boolean,
+    libraryUpdates: UpdateReport,
+    unmanagedClasspath: Classpath,
+    logger: ManagedLogger,
+    cacheStoreFactory: sbt.util.CacheStoreFactory,
     ignoreDependency: Option[ModuleID]                 = None,
     ignoreDependencyIncludeTransitive: Option[String]  = None,
-    ignoreUnmanagedDependency: Option[File => Boolean] = None
-  ): Def.Initialize[Task[Unit]] =
-    Def.task {
-      val libraryUpdates = (Compile / update).value
-      val log            = streams.value.log
+    ignoreUnmanagedDependency: Option[File => Boolean] = None,
+    previousRun: Option[AnalysisOfExtractedNativeLibs] = None
+  ): Unit = {
 
-      val baseFilter: NameFilter = new ExactFilter(Configurations.Runtime.name)
-      val validConfig =
-        if (ignoreScalaLibrary)
-          baseFilter - new ExactFilter(Configurations.ScalaTool.name)
-        else baseFilter
-      val configFilter: ConfigurationFilter =
-        DependencyFilter.configurationFilter(name = validConfig)
-      val graalVmOrgs = if ("espresso".equals(System.getenv("ENSO_JAVA"))) {
-        Seq()
-      } else {
-        GraalVM.modules.map(_.organization).distinct
-      }
-      // All graal related modules must be filtered away - they will be provided in
-      // module-path, and so, they must not be included in std-bits polyglot directories.
-      val graalModuleFilter = DependencyFilter.moduleFilter(
-        organization = new SimpleFilter(orgName => {
-          !graalVmOrgs.contains(orgName)
-        })
-      )
-      val moduleFilter = ignoreDependency match {
-        case None => graalModuleFilter
-        case Some(ignoreDepID) =>
-          DependencyFilter.moduleFilter(
-            organization = new SimpleFilter(orgName => {
-              !graalVmOrgs.contains(
-                orgName
-              ) && orgName != ignoreDepID.organization
-            }),
-            name = new SimpleFilter(nm => {
-              nm != ignoreDepID.name
-            })
-          )
-      }
-      val unmanagedFiles0 = (Compile / unmanagedJars).value.map(_.data)
-      val unmanagedFiles = ignoreUnmanagedDependency
-        .map(fun => unmanagedFiles0.filterNot(fun))
-        .getOrElse(unmanagedFiles0)
-      val relevantFiles0 =
-        libraryUpdates
-          .select(
-            configuration = configFilter,
-            module        = moduleFilter,
-            artifact      = DependencyFilter.artifactFilter()
-          ) ++ unmanagedFiles
-      val relevantFiles =
-        ignoreDependencyIncludeTransitive
-          .map(filter => relevantFiles0.filterNot(_.getName.contains(filter)))
-          .getOrElse(relevantFiles0)
-      val dependencyStore =
-        streams.value.cacheStoreFactory.make("std-bits-dependencies")
-      Tracked.diffInputs(dependencyStore, FileInfo.hash)(relevantFiles.toSet) {
-        report =>
-          val expectedFileNames =
-            report.checked.map(file => file.getName) ++ providedJarNames
-          for (existing <- IO.listFiles(destination)) {
-            if (
-              !expectedFileNames.contains(
-                existing.getName
-              ) && ignoreDependencyIncludeTransitive
-                .forall(filter => !existing.getName.contains(filter))
-            ) {
-              log.info(
+    val baseFilter: NameFilter = new ExactFilter(Configurations.Runtime.name)
+    val validConfig =
+      if (ignoreScalaLibrary)
+        baseFilter - new ExactFilter(Configurations.ScalaTool.name)
+      else baseFilter
+    val configFilter: ConfigurationFilter =
+      DependencyFilter.configurationFilter(name = validConfig)
+    val graalVmOrgs = if ("espresso".equals(System.getenv("ENSO_JAVA"))) {
+      Seq()
+    } else {
+      GraalVM.modules.map(_.organization).distinct
+    }
+    // All graal related modules must be filtered away - they will be provided in
+    // module-path, and so, they must not be included in std-bits polyglot directories.
+    val graalModuleFilter = DependencyFilter.moduleFilter(
+      organization = new SimpleFilter(!graalVmOrgs.contains(_))
+    )
+    val moduleFilter = ignoreDependency match {
+      case None => graalModuleFilter
+      case Some(ignoreDepID) =>
+        DependencyFilter.moduleFilter(
+          organization = new SimpleFilter(orgName =>
+            !graalVmOrgs.contains(
+              orgName
+            ) && orgName != ignoreDepID.organization
+          ),
+          name = new SimpleFilter(_ != ignoreDepID.name)
+        )
+    }
+    val unmanagedFiles0 = unmanagedClasspath.map(_.data)
+    val unmanagedFiles = ignoreUnmanagedDependency
+      .map(fun => unmanagedFiles0.filterNot(fun))
+      .getOrElse(unmanagedFiles0)
+    val relevantFiles0 =
+      libraryUpdates
+        .select(
+          configuration = configFilter,
+          module        = moduleFilter,
+          artifact      = DependencyFilter.artifactFilter()
+        ) ++ unmanagedFiles
+    val relevantFiles =
+      ignoreDependencyIncludeTransitive
+        .map(filter => relevantFiles0.filterNot(_.getName.contains(filter)))
+        .getOrElse(relevantFiles0)
+    val dependencyStore =
+      cacheStoreFactory.make("std-bits-dependencies")
+    Tracked.diffInputs(dependencyStore, FileInfo.hash)(relevantFiles.toSet) {
+      report =>
+        val expectedFileNames =
+          report.checked.map(file => file.getName) ++ providedJarNames
+        for (existing <- IO.listFiles(destination)) {
+          if (
+            !expectedFileNames.contains(
+              existing.getName
+            ) && ignoreDependencyIncludeTransitive
+              .forall(filter => !existing.getName.contains(filter))
+          ) {
+            val outdatedArtifact =
+              !previousRun
+                .exists(analysis =>
+                  analysis.libs.exists(a =>
+                    a.matchesTargetArtifact(existing) && !a.isOutdated
+                  )
+                )
+            if (outdatedArtifact) {
+              logger.info(
                 s"Removing outdated std-bits dependency ${existing.getName}."
               )
               IO.delete(existing)
+            } else {
+              logger.info(
+                s"Keeping target ${existing.getName} jar as a dependency. Still up-to-date"
+              )
             }
           }
-          for (changed <- report.modified -- report.removed) {
-            log.info(
-              s"Updating changed std-bits dependency ${changed.getName}."
-            )
-            updateDependency(changed, destination, log)
+        }
+        for (changed <- report.modified -- report.removed) {
+          logger.info(
+            s"Updating changed std-bits dependency ${changed.getName}."
+          )
+          updateDependency(changed, destination, logger)
+        }
+        for (file <- report.unmodified) {
+          val dest = destination / file.getName
+          if (!dest.exists()) {
+            logger.info(s"Adding missing std-bits dependency ${file.getName}.")
+            updateDependency(file, destination, logger)
           }
-          for (file <- report.unmodified) {
-            val dest = destination / file.getName
-            if (!dest.exists()) {
-              log.info(s"Adding missing std-bits dependency ${file.getName}.")
-              updateDependency(file, destination, log)
-            }
-          }
-      }
+        }
     }
+  }
 
   /** Extract native libraries from `opencv.jar` and put them under
     * `Standard/Image/polyglot/lib` directory. The minimized `opencv.jar` will
     * be put under `Standard/Image/polyglot/java` directory.
     * @param imagePolyglotRoot root dir of Std image polyglot dir
     * @param imageNativeLibs root dir of Std image lib dir
+    * @param opencvVersion OpenCV's version
+    * @param logger SBT's logger
+    * @param updateReport resolution report
+    * @param moduleName name of the project where extraction happens
+    * @param scalaBinaryVersion Scala's version
+    * @param cacheStoreFactory SBT's cache sotre factory
+    * @param previousRun summary of previous extraction data, if available
     * @return
     */
   def extractNativeLibsFromOpenCV(
     imagePolyglotRoot: File,
     imageNativeLibs: File,
-    opencvVersion: String
-  ): Def.Initialize[Task[Unit]] = Def.task {
-
+    opencvVersion: String,
+    logger: ManagedLogger,
+    updateReport: UpdateReport,
+    moduleName: String,
+    scalaBinaryVersion: String,
+    cacheStoreFactory: CacheStoreFactory,
+    previousRun: Option[AnalysisOfExtractedNativeLibs]
+  ): AnalysisOfExtractedNativeLibs = {
+    if (previousRun.exists(!_.isOutdated)) {
+      return previousRun.get
+    }
     val extractPrefix = "nu/pattern/opencv"
     val validOsName   = osName()
     val validArch     = arch()
@@ -164,27 +197,33 @@ object StdBits {
       }
     }
 
-    val logger = streams.value.log
     val openCvJar = JPMSUtils
       .filterModulesFromUpdate(
-        update.value,
+        updateReport,
         Seq("org.openpnp" % "opencv" % opencvVersion),
         logger,
-        moduleName.value,
-        scalaBinaryVersion.value,
+        moduleName,
+        scalaBinaryVersion,
         shouldContainAll = true
       )
       .head
     val outputJarPath     = (imagePolyglotRoot / "opencv.jar").toPath
+    val thinOutputJar     = outputJarPath.toFile
     val extractedFilesDir = imageNativeLibs.toPath
-    JARUtils.extractFilesFromJar(
+    val extractedLibs = JARUtils.extractFilesFromJar(
       openCvJar.toPath,
       Some(extractPrefix),
       Some(outputJarPath),
       extractedFilesDir,
       renameFunc,
       logger,
-      streams.value.cacheStoreFactory
+      cacheStoreFactory,
+      previousRun.flatMap(_.forJar(openCvJar))
+    )
+    AnalysisOfExtractedNativeLibs(
+      openCvJar,
+      extractedLibs.getOrElse(Nil),
+      Some(thinOutputJar)
     )
   }
 
@@ -192,15 +231,33 @@ object StdBits {
     * `Standard/Tableau/polyglot/lib` directory.
     * @param tableauPolyglotRoot root dir of Std tableau polyglot dir
     * @param tableauNativeLibs root dir of Std tableau lib dir
+    * @param tableauVersion Tableau's dependency version
+    * @param jnaVersion JNA's version
+    * @param logger SBT's logger
+    * @param updateReport resolution report
+    * @param unmanagedClasspath classpath of unmanaged jars, if any
+    * @param moduleName name of the project where extraction happens
+    * @param scalaBinaryVersion Scala's version
+    * @param cacheStoreFactory SBT's cache sotre factory
+    * @param previousRun summary of previous extraction data, if available
     * @return
     */
   def extractNativeLibsFromTableau(
     tableauPolyglotRoot: File,
     tableauNativeLibs: File,
     tableauVersion: String,
-    jnaVersion: String
-  ): Def.Initialize[Task[Unit]] = Def.task {
-
+    jnaVersion: String,
+    logger: ManagedLogger,
+    updateReport: UpdateReport,
+    unmanagedClasspath: Classpath,
+    moduleName: String,
+    scalaBinaryVersion: String,
+    cacheStoreFactory: CacheStoreFactory,
+    previousRun: Option[AnalysisOfExtractedNativeLibs]
+  ): AnalysisOfExtractedNativeLibs = {
+    if (previousRun.exists(!_.isOutdated)) {
+      return previousRun.get
+    }
     val validOsName = osName(unixName = true)
     val validOsExt  = osExt()
     val validArch   = arch().replace("_", "-")
@@ -230,58 +287,88 @@ object StdBits {
 
     // Extract native library from tableauhyperapi-$arch's jar
     val tableauSuffixInJar = s"tableauhyperapi-${plainOsName()}"
-    val tableauNativeLibJar = (Compile / unmanagedJars).value
+    val tableauNativeLibJar = unmanagedClasspath
       .map(_.data)
       .filter(f => f.getName.contains(tableauSuffixInJar))
       .head
-    val logger = streams.value.log
 
     val extractedFilesDir = tableauNativeLibs.toPath
-    JARUtils.extractFilesFromJar(
+    val extractedTableauLibs = JARUtils.extractFilesFromJar(
       tableauNativeLibJar.toPath,
       None,
       None,
       extractedFilesDir,
       renameFunc(""),
       logger,
-      streams.value.cacheStoreFactory
+      cacheStoreFactory,
+      previousRun.flatMap(_.forJar(tableauNativeLibJar))
+    )
+    val extractedTableau = ExtractedNativeLibSummary(
+      tableauNativeLibJar,
+      extractedTableauLibs.getOrElse(Nil),
+      None
     )
 
     // Extract native library from jna's jar
     val jnaJar = JPMSUtils
       .filterModulesFromUpdate(
-        update.value,
+        updateReport,
         Seq("net.java.dev.jna" % "jna" % jnaVersion),
         logger,
-        moduleName.value,
-        scalaBinaryVersion.value,
+        moduleName,
+        scalaBinaryVersion,
         shouldContainAll = true
       )
       .head
-    val outputJnaJarPath = (tableauPolyglotRoot / s"jna-$jnaVersion.jar").toPath
-    val extractPrefix    = "com/sun/jna"
-    JARUtils.extractFilesFromJar(
+    val outputJnaJarPath =
+      (tableauPolyglotRoot / s"jna-${validOsName}-$jnaVersion.jar").toPath
+    val outputJnaJar  = outputJnaJarPath.toFile
+    val extractPrefix = "com/sun/jna"
+    val extractedJnaLibs = JARUtils.extractFilesFromJar(
       jnaJar.toPath,
       Some(extractPrefix),
       Some(outputJnaJarPath),
       extractedFilesDir,
       renameFunc(extractPrefix),
       logger,
-      streams.value.cacheStoreFactory
+      cacheStoreFactory,
+      previousRun.flatMap(_.forJar(jnaJar))
     )
+    val extractedJna = ExtractedNativeLibSummary(
+      jnaJar,
+      extractedJnaLibs.getOrElse(Nil),
+      Some(outputJnaJar)
+    )
+    AnalysisOfExtractedNativeLibs(extractedTableau :: extractedJna :: Nil)
   }
 
   /** Extract native libraries from `grpc-netty-shaded-<version>.jar` and put them under
     * `Standard/Google_Api/polyglot/lib` directory.
     * @param grpcPolyglotRoot root dir of Std Google polyglot dir
     * @param grpcNativeLibs root dir of Std Google lib dir
+    * @param grpcVersion GRPC's library version
+    * @param updateReport resolution report
+    * @param logger SBT's logger
+    * @param moduleName name of the project where extraction happens
+    * @param scalaBinaryVersion Scala's version
+    * @param cacheStoreFactory SBT's cache sotre factory
+    * @param previousRun summary of previous extraction data, if available
     * @return
     */
   def extractNativeLibsFromGrpc(
     grpcPolyglotRoot: File,
     grpcNativeLibs: File,
-    grpcVersion: String
-  ): Def.Initialize[Task[Unit]] = Def.task {
+    grpcVersion: String,
+    updateReport: UpdateReport,
+    logger: ManagedLogger,
+    moduleName: String,
+    scalaBinaryVersion: String,
+    cacheStoreFactory: CacheStoreFactory,
+    previousRun: Option[AnalysisOfExtractedNativeLibs]
+  ): AnalysisOfExtractedNativeLibs = {
+    if (previousRun.exists(!_.isOutdated)) {
+      return previousRun.get
+    }
     val validOsName = osName()
     val validOsExt  = osExt()
     val validArch   = arch().replace("-", "_")
@@ -305,40 +392,47 @@ object StdBits {
       }
     }
 
-    val logger = streams.value.log
     val grpcJar = JPMSUtils
       .filterModulesFromUpdate(
-        update.value,
+        updateReport,
         Seq("io.grpc" % "grpc-netty-shaded" % grpcVersion),
         logger,
-        moduleName.value,
-        scalaBinaryVersion.value,
+        moduleName,
+        scalaBinaryVersion,
         shouldContainAll = true
       )
       .head
     val outputGrpcNettyShaded =
       (grpcPolyglotRoot / s"grpc-netty-shaded-thin-$grpcVersion.jar").toPath
     val extractPrefix = "META-INF/native"
-    JARUtils.extractFilesFromJar(
+    val extractedLibs = JARUtils.extractFilesFromJar(
       grpcJar.toPath,
       Some(extractPrefix),
       Some(outputGrpcNettyShaded),
       grpcNativeLibs.toPath,
       renameFunc(extractPrefix),
       logger,
-      streams.value.cacheStoreFactory
+      cacheStoreFactory,
+      previousRun.flatMap(_.forJar(grpcJar))
+    )
+    AnalysisOfExtractedNativeLibs(
+      grpcJar,
+      extractedLibs.getOrElse(Nil),
+      Some(outputGrpcNettyShaded.toFile)
     )
   }
 
   def ensureDirExistsAndIsClean(
     path: Path,
-    logger: sbt.util.Logger
+    logger: sbt.util.Logger,
+    forceClean: Boolean = true
   ): Unit = {
     require(path != null)
     val dir = path.toFile
     if (dir.exists && dir.isDirectory) {
       // Clean previous contents
-      IO.delete(IO.listFiles(dir))
+      if (forceClean)
+        IO.delete(IO.listFiles(dir))
     } else {
       try {
         IO.createDirectory(dir)
@@ -372,7 +466,7 @@ object StdBits {
   }
 
   // Human-accepted name of OS. One of many at least.
-  private def plainOsName(): String = {
+  def plainOsName(): String = {
     var osName = System.getProperty("os.name").toLowerCase(Locale.ENGLISH)
     if (osName.contains(" ")) {
       // Strip version

@@ -163,7 +163,7 @@ AlertDialog.Confirm = function Confirm<IconType extends string>(
   const { isDestructive } = AlertDialogProvider.useContextStrict()
   const { variant = isDestructive ? 'delete' : 'primary', ...rest } = props
 
-  return <Form.Submit name="response" value="confirm" variant={variant} {...rest} />
+  return <Form.Submit autoFocus name="response" value="confirm" variant={variant} {...rest} />
 }
 
 AlertDialog.Trigger = Dialog.Trigger

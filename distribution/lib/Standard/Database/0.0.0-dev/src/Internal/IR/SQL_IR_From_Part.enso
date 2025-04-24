@@ -1,15 +1,15 @@
 from Standard.Base import all
 
-import project.Internal.IR.Context.Context
-import project.Internal.IR.Query.Query
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.SQL_Statement.SQL_Statement
 
 ## PRIVATE
 
    Used as part of the context, specifies the sources of the query.
-type From_Spec
+type SQL_IR_From_Part
     ## PRIVATE
 
        A query source that takes data directly from a table in the
@@ -62,7 +62,7 @@ type From_Spec
        - on: a list of expressions that will be used as join conditions, these
          are usually be equalities between expressions from the left and right
          sources.
-    Join (kind : SQL_Join_Kind) (left_spec : From_Spec) (right_spec : From_Spec) (on : Vector SQL_Expression)
+    Join (kind : SQL_Join_Kind) (left_spec : SQL_IR_From_Part) (right_spec : SQL_IR_From_Part) (on : Vector SQL_IR_Expression)
 
     ## PRIVATE
 
@@ -78,7 +78,7 @@ type From_Spec
          from the first query.
        - alias: the name for the consolidated query, to be used by column
          references, referring to columns of the union.
-    Union (queries : Vector Query) (alias : Text)
+    Union (queries : Vector SQL_IR_Statement) (alias : Text)
 
     ## PRIVATE
 
@@ -91,49 +91,49 @@ type From_Spec
        - context: the context for the sub-query.
        - alias: the name upon which the results of this sub-query can be
          referred to in other parts of the query.
-    Sub_Query (columns : Vector (Pair Text SQL_Expression)) (context : Context) (alias : Text)
+    Sub_Query (columns : Vector (Pair Text SQL_IR_Expression)) (context : SQL_IR_Source) (alias : Text)
 
     ## PRIVATE
        A bottom-up, depth-first traversal of this IR node and its children. Each
        node is passed to the provided function, and the return value of the
        function replaces this node in the tree.
-    traverse : (Any -> Any) -> From_Spec
-    traverse self f -> From_Spec =
+    traverse : (Any -> Any) -> SQL_IR_From_Part
+    traverse self f -> SQL_IR_From_Part =
         rec e = e.traverse f
         do_name_exps pairs = pairs.if_not_nothing (pairs.map pair-> [pair.first, rec pair.second])
 
         new_from_spec = case self of
-            From_Spec.Table _ _ _ -> self
-            From_Spec.Query _ _ -> self
-            From_Spec.Literal_Values _ _ _ -> self
-            From_Spec.Join kind left_spec right_spec on ->
-                From_Spec.Join kind (rec left_spec) (rec right_spec) (on.map rec)
-            From_Spec.Union queries alias ->
-                From_Spec.Union (queries.map rec) alias
-            From_Spec.Sub_Query columns context alias ->
-                From_Spec.Sub_Query (do_name_exps columns) (rec context) alias
+            SQL_IR_From_Part.Table _ _ _ -> self
+            SQL_IR_From_Part.Query _ _ -> self
+            SQL_IR_From_Part.Literal_Values _ _ _ -> self
+            SQL_IR_From_Part.Join kind left_spec right_spec on ->
+                SQL_IR_From_Part.Join kind (rec left_spec) (rec right_spec) (on.map rec)
+            SQL_IR_From_Part.Union queries alias ->
+                SQL_IR_From_Part.Union (queries.map rec) alias
+            SQL_IR_From_Part.Sub_Query columns context alias ->
+                SQL_IR_From_Part.Sub_Query (do_name_exps columns) (rec context) alias
         f new_from_spec
 
 ## PRIVATE
-type From_Spec_Comparator
+type SQL_IR_From_Part_Comparator
     ## PRIVATE
        Special handling to ignore the alias and internal temporary keep alive
-       reference when comparing two `From_Spec.Table` values.
+       reference when comparing two `SQL_IR_From_Part.Table` values.
     compare x y = case x of
-        From_Spec.Table table_name _ _ -> case y of
-            From_Spec.Table other_table_name _ _ ->
+        SQL_IR_From_Part.Table table_name _ _ -> case y of
+            SQL_IR_From_Part.Table other_table_name _ _ ->
                 if table_name == other_table_name then Ordering.Equal else Nothing
             _ -> Nothing
-        From_Spec.Literal_Values _ _ _ -> case y of
-            From_Spec.Literal_Values _ _ _ ->
+        SQL_IR_From_Part.Literal_Values _ _ _ -> case y of
+            SQL_IR_From_Part.Literal_Values _ _ _ ->
                 Nothing 
         _ -> Ordering.compare x y
 
     ## PRIVATE
     hash x = case x of
-        From_Spec.Table table_name _ _ ->
+        SQL_IR_From_Part.Table table_name _ _ ->
             Ordering.hash table_name
         _ -> Ordering.hash x
 
 ## PRIVATE
-Comparable.from (that : From_Spec) = Comparable.new that From_Spec_Comparator
+Comparable.from (that : SQL_IR_From_Part) = Comparable.new that SQL_IR_From_Part_Comparator

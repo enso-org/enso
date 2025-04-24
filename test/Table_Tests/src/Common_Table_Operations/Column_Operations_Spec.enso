@@ -1887,14 +1887,14 @@ add_column_operation_specs suite_builder setup =
             c3_prime.value_type.should_equal Value_Type.Time
 
         group_builder.specify "Should allow the creation of constant columns on a table with no rows" <|
-            t = table_builder [["x", ["1", "2", "3"]]]
+            t = table_builder [["x", ["1", "2", "3"]]] . order_by ["x"]
             empty = t.take 0
             constant = empty.make_constant_column 42
             empty2 = empty.set constant
             empty2.column_names.should_equal ['x', '42']
 
         group_builder.specify "Should create a column of the correct type on a table with no rows" <|
-            t = table_builder [["x", ["1", "2", "3"]]]
+            t = table_builder [["x", ["1", "2", "3"]]] . order_by ["x"]
             empty = t.take 0
 
             check value expected_type =
@@ -1911,7 +1911,7 @@ add_column_operation_specs suite_builder setup =
             setup.expect_integer_type c
 
         group_builder.specify "Should create a column of the correct type on a table with no rows" <|
-            t = table_builder [["x", ["1", "2", "3"]]]
+            t = table_builder [["x", ["1", "2", "3"]]] . order_by ["x"]
             empty = t.take 0
             c = empty.make_constant_column Nothing
             should_be_supported = setup.is_database.not || c.is_error.not

@@ -98,6 +98,7 @@
     "install": "^0.13.0",
     "is-network-error": "^1.1.0",
     "lexical": "^0.21.0",
+    "lezer-enso-table-expr": "workspace:*",
     "lib0": "^0.2.99",
     "magic-string": "^0.30.17",
     "modern-isomorphic-ws": "^1.0.5",
