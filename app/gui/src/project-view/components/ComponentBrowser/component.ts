@@ -100,7 +100,7 @@ export function compareSuggestions(a: MatchedSuggestion, b: MatchedSuggestion): 
 
 /** Create {@link Component} from information about suggestion and matching. */
 export function makeComponent({ id, entry, match }: MatchedSuggestion): Component {
-  const macroSuffix = match.matchedAlias && entry.macros[match.matchedAlias] || undefined;
+  const macroSuffix = (match.matchedAlias && entry.macros[match.matchedAlias]) || undefined
 
   return {
     ...formatLabel(labelOfEntry(entry, match)),
