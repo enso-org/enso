@@ -610,7 +610,7 @@ function toField(
       showDataQuality,
     },
     cellDataType: cellValueType,
-    autoHeight: (cellValueType === 'text' && isSSRM.value)
+    autoHeight: cellValueType === 'text' && isSSRM.value,
   }
 }
 
