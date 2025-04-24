@@ -2,8 +2,10 @@ package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.DataflowError;
 
 @BuiltinMethod(
     type = "Meta",
@@ -11,7 +13,12 @@ import org.enso.interpreter.runtime.data.text.Text;
     description = "Gets the name of a constructor.",
     autoRegister = false)
 public class GetConstructorNameNode extends Node {
-  Text execute(AtomConstructor cons) {
+  Object execute(AtomConstructor cons) {
+    if (cons.getType().hasAllConstructorsPrivate()) {
+      var ctx = EnsoContext.get(this);
+      var err = ctx.getBuiltins().error().makePrivateAccessError(null, null, "constructor");
+      return DataflowError.withDefaultTrace(err, this);
+    }
     return Text.create(cons.getName());
   }
 }

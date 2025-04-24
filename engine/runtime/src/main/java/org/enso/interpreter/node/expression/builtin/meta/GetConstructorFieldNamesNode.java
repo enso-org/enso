@@ -5,7 +5,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -28,15 +27,16 @@ public abstract class GetConstructorFieldNamesNode extends Node {
   final Object fieldNamesForAtomCtor(AtomConstructor atomConstructor) {
     if (atomConstructor.getType().hasAllConstructorsPrivate()) {
       var ctx = EnsoContext.get(this);
-      var err = ctx.getBuiltins().error().makePrivateAccessError("", "", "");
+      var err = ctx.getBuiltins().error().makePrivateAccessError(null, null, "constructor");
       return DataflowError.withDefaultTrace(err, this);
+    } else {
+      var fields = atomConstructor.getFields();
+      var result = new Text[fields.length];
+      for (int i = 0; i < fields.length; i++) {
+        result[i] = Text.create(fields[i].getName());
+      }
+      return ArrayLikeHelpers.asVectorEnsoObjects(result);
     }
-    ArgumentDefinition[] fields = atomConstructor.getFields();
-    Text[] result = new Text[fields.length];
-    for (int i = 0; i < fields.length; i++) {
-      result[i] = Text.create(fields[i].getName());
-    }
-    return ArrayLikeHelpers.asVectorEnsoObjects(result);
   }
 
   @Fallback

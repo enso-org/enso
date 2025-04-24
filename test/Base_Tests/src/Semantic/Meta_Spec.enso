@@ -113,6 +113,25 @@ add_specs suite_builder =
             # fields cannot be obtained as cons is already an error
             cons.fields . should_fail_with Private_Access
 
+        group_builder.specify "prevent getting fields from private constructor in the same project" <|
+            # type R has all constructors private
+            atom = R.V "meaning" 6*7
+            meta = Meta.meta atom
+
+            # constructor is inaccessible via Meta
+            meta.constructor . should_fail_with Private_Access
+
+            # but constructor can be accessed directly
+            cons = Meta.meta R.V
+
+            cons . should_be_a Meta.Constructor
+
+            # obtaining name of private constructor is forbidden
+            cons . name . should_fail_with Private_Access
+
+            # fields cannot be obtained for private Constructor
+            cons.fields . should_fail_with Private_Access
+
         group_builder.specify "should allow creating atoms from atom constructors" <|
             atom_1 = Meta.meta My_Type.Value . new [1,"foo", Nothing]
             (Meta.meta atom_1).constructor.value . should_equal My_Type.Value
