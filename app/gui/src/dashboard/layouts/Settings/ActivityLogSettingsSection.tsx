@@ -16,10 +16,13 @@ import SvgMask from '#/components/SvgMask'
 import { useBackendQuery } from '#/hooks/backendHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { EVENT_TYPES, EventType, type Event } from '#/services/Backend'
+import { EVENT_TYPES, EventType, type AuditLogEvent } from '#/services/Backend'
 import { iconIdFor, nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
+
+/** Lambda kinds for events, ordered roughly in order of decreasing level of admin access. */
+const ORDERED_LAMBDA_KINDS = ['GET /users', 'GET /log_events', 'GET /organizations/me'] as const
 
 const EVENT_TYPE_ICON: Record<EventType, string> = {
   [EventType.GetSecret]: KeyIcon,
@@ -69,7 +72,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const allEmails = React.useMemo(() => (users ?? []).map((user) => user.email), [users])
   const logsQuery = useBackendQuery(backend, 'getLogEvents', [])
-  const logs = logsQuery.data
+  const logs = logsQuery.data?.events
 
   const form = Form.useForm({ schema: createActivityLogSchema() })
   const startDate = form.watch('startDate')
@@ -79,24 +82,23 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const filteredLogs = React.useMemo(() => {
     const typesSet = new Set(types.length > 0 ? types : EVENT_TYPES)
     const emailsSet = new Set(emails.length > 0 ? emails : allEmails)
-    return logs == null ? null : (
-        logs.filter((log) => {
-          const date = log.timestamp == null ? null : fromDate(new Date(log.timestamp), 'UTC')
-          return (
-            typesSet.has(log.metadata.type) &&
-            emailsSet.has(log.userEmail) &&
-            (date == null ||
-              ((startDate == null || date >= startDate) && (endDate == null || date <= endDate)))
-          )
-        })
+    return logs?.filter((log) => {
+      const date = log.timestamp == null ? null : fromDate(new Date(log.timestamp), 'UTC')
+      return (
+        log.metadata != null &&
+        typesSet.has(log.metadata.type) &&
+        emailsSet.has(log.userEmail) &&
+        (date == null ||
+          ((startDate == null || date >= startDate) && (endDate == null || date <= endDate)))
       )
+    })
   }, [logs, types, emails, startDate, endDate, allEmails])
 
   const sortedLogs = React.useMemo(() => {
     if (sortInfo == null || filteredLogs == null) {
       return filteredLogs
     } else {
-      let compare: (a: Event, b: Event) => number
+      let compare: (a: AuditLogEvent, b: AuditLogEvent) => number
       const multiplier = sortInfo.direction === SortDirection.ascending ? 1 : -1
       switch (sortInfo.field) {
         case ActivityLogSortableColumn.type: {

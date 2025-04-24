@@ -746,12 +746,17 @@ export enum FilterBy {
 }
 
 /** An event in an audit log. */
-export interface Event {
+export interface AuditLogEvent {
   readonly organizationId: OrganizationId
   readonly userEmail: EmailAddress
   readonly timestamp: dateTime.Rfc3339DateTime | null
-  // Called `EventKind` in the backend.
-  readonly metadata: EventMetadata
+  /** The type is called `EventType` in the backend. */
+  readonly metadata: EventMetadata | null
+  readonly message: string | null
+  readonly projectId: ProjectId | null
+  readonly url: string | null
+  readonly method: string | null
+  readonly lambdaKind: string | null
 }
 
 /** Possible types of event in an audit log. */
@@ -761,6 +766,8 @@ export enum EventType {
   ListSecrets = 'listSecrets',
   OpenProject = 'openProject',
   UploadFile = 'uploadFile',
+  Lib = 'lib',
+  Telemetry = 'telemetry',
 }
 
 export const EVENT_TYPES = Object.freeze(Object.values(EventType))
@@ -791,6 +798,16 @@ interface UploadFileEventMetadata {
   readonly type: EventType.UploadFile
 }
 
+/** An event indicating that a file was uploaded. */
+interface LibEventMetadata {
+  readonly type: EventType.Lib
+}
+
+/** An event indicating that a file was uploaded. */
+interface TelemetryEventMetadata {
+  readonly type: EventType.Telemetry
+}
+
 /** All possible types of metadata for an event in the audit log. */
 export type EventMetadata =
   | DeleteAssetsEventMetadata
@@ -798,6 +815,8 @@ export type EventMetadata =
   | ListSecretsEventMetadata
   | OpenProjectEventMetadata
   | UploadFileEventMetadata
+  | LibEventMetadata
+  | TelemetryEventMetadata
 
 /** A color in the LCh colorspace. */
 export interface LChColor {
@@ -1379,6 +1398,11 @@ export interface Invitation {
   readonly organizationId: OrganizationId
   readonly userEmail: EmailAddress
   readonly expireAt: dateTime.Rfc3339DateTime
+}
+
+/** HTTP response body for the "list audit log events" endpoint. */
+export interface ListAuditLogEventsResponseBody {
+  readonly events: readonly AuditLogEvent[]
 }
 
 /** HTTP request body for the "create permission" endpoint. */
@@ -2004,7 +2028,7 @@ export default abstract class Backend {
   /** Get the status of a payment checkout session. */
   abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
   /** List events in the organization's audit log. */
-  abstract getLogEvents(): Promise<readonly Event[]>
+  abstract getLogEvents(): Promise<ListAuditLogEventsResponseBody>
   /** Log an event that will be visible in the organization audit log. */
   abstract logEvent(
     message: string,
