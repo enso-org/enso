@@ -51,7 +51,7 @@ type Tableau_Format
 
     ## PRIVATE
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "Tableau Hyper" "..Hyper_File"]
+    get_dropdown_options = [Option "Tableau Hyper" "..Hyper_File", Option "Tableau Hyper Table" "..Hyper_Table"]
 
     ## PRIVATE
     get_name_patterns -> Vector File_Name_Pattern =

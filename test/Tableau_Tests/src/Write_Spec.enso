@@ -42,19 +42,22 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
     group_builder.specify "Can set schema name" <|
         written_file = get_temp_file
         t = Table.input [['A', ['a']]]
-        t.write written_file (..Hyper_Table "MySchemaName" "MyTableName")
-        written_table_in_hyper = Hyper_File.new written_file . tables . first
-        written_table_in_hyper.schema.should_equal "MySchemaName"
-        written_table_in_hyper.table.should_equal "MyTableName"
-        written_file.delete
-
-    group_builder.specify "Can set schema and table name" <|
-        written_file = get_temp_file
-        t = Table.input [['A', ['a']]]
         t.write written_file (..Hyper_File "MySchemaName")
         written_table_in_hyper = Hyper_File.new written_file . tables . first
         written_table_in_hyper.schema.should_equal "MySchemaName"
         written_table_in_hyper.table.should_equal "Extract"
+        written_file.delete
+
+    group_builder.specify "Can set schema name and table name" <|
+        written_file = get_temp_file
+        t = Table.input [['A', ['a']]]
+        r = t.write written_file (..Hyper_Table "MySchemaName" "MyTableName")
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.schema.should_equal "MySchemaName"
+        written_table_in_hyper.table.should_equal "MyTableName"
+        written_table = written_table_in_hyper.read
+        written_table.should_equal t
+        (r.read.read "MyTableName" "MySchemaName").should_equal t
         written_file.delete
 
     can_round_trip table:Table =
