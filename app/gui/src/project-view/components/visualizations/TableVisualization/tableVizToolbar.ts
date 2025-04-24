@@ -40,8 +40,8 @@ export interface FormatMenuOptions {
 export interface ColumnNodeButton {
   isCreateNewNodeEnabled: ToValue<boolean>
   createNodes: (...options: NodeCreationOptions[]) => void
-  hiddenColumns: Ref<string[]>
-  vizColumnOrder: Ref<string[]>
+  hiddenColumns: ToValue<string[]>
+  vizColumnOrder: ToValue<string[] | null>
 }
 
 interface NewNodeOptions extends SortFilterNodesButtonOptions, ColumnNodeButton {
@@ -54,6 +54,21 @@ export interface RefreshButtonOptions {
 
 export interface Options extends NewNodeOptions, FormatMenuOptions, RefreshButtonOptions {}
 
+/***
+ * function that returns a toolbar button item used to apply new nodes to the graph reflecting the sort filter and column changes applied to the current table visualization
+ *
+ * @param {FilterModel} options.filterModel - The current filter model applied to the table.
+ * @param {SortModel} options.sortModel - The current sort model applied to the table.
+ * @param {boolean} options.isButtonDisabled - Whether the button should be disabled, the button will be disabled if there are no changes to the table viz.
+ * @param {boolean} options.isCreateNewNodeEnabled - Whether the functionality to create new nodes is enabled, only enabled for tables (i.e not rows, vectors).
+ * @param options.createNodes - Function to trigger creation of new nodes.
+ * @param {(columnId: string, value: unknown) => EnsoValue} options.getColumnValueToEnso - Function to convert column values to a format compatible with Enso.
+ * @param {string[]} options.hiddenColumns - A list of column Ids that are currently hidden.
+ * @param {string[] | null} options.vizColumnOrder - A list of all column Ids in their new order; if the order is unchanged, this will be null.
+ *
+ * @returns {ComputedRef<ToolbarItem | undefined>} A computed reference to a toolbar item,
+ * or undefined if the button should not be rendered.
+ */
 function useSortFilterNodesButton({
   filterModel,
   sortModel,
@@ -269,23 +284,23 @@ function useSortFilterNodesButton({
     }
 
     function getRemoveColumnsAstPattern() {
-      const columns = columnsToRemove.map((col) => Ast.TextLiteral.new(col))
-      return Pattern.new<Ast.Expression>((ast) =>
-        Ast.App.positional(
+      return Pattern.new<Ast.Expression>((ast) => {
+        const columns = Ast.Vector.build(columnsToRemove, Ast.TextLiteral.new, ast.module)
+        return Ast.App.positional(
           Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('remove_columns')!),
-          Ast.Vector.new(ast.module, columns),
-        ),
-      )
+          columns,
+        )
+      })
     }
 
     function getColumnOrderAstPattern() {
-      const columns = columnOrder.map((col) => Ast.TextLiteral.new(col))
-      return Pattern.new<Ast.Expression>((ast) =>
-        Ast.App.positional(
+      return Pattern.new<Ast.Expression>((ast) => {
+        const columns = Ast.Vector.build(columnOrder!, Ast.TextLiteral.new, ast.module)
+        return Ast.App.positional(
           Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('reorder_columns')!),
-          Ast.Vector.new(ast.module, columns),
-        ),
-      )
+          columns,
+        )
+      })
     }
 
     const columnsToRemove = toValue(hiddenColumns)
@@ -294,7 +309,7 @@ function useSortFilterNodesButton({
     if (columnsToRemove.length) {
       patterns.push(getRemoveColumnsAstPattern())
     }
-    if (columnOrder.length) {
+    if (columnOrder != null) {
       patterns.push(getColumnOrderAstPattern())
     }
 
