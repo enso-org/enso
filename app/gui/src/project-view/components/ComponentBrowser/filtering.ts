@@ -10,6 +10,8 @@ export type SelfArg =
       type: 'known'
       /** Type of the self argument. */
       typename: ProjectPath
+      /** Ancestors of the type of the self argument. Does not include `Any` type. */
+      ancestors: ProjectPath[]
       /** Additional (or ‘hidden’) types of the self argument. E.g. `Column` for single-column table.*/
       additionalTypes: ProjectPath[]
     }
@@ -46,9 +48,17 @@ interface MatchedParts {
 }
 
 export interface MatchResult extends MatchedParts {
+  /** Score of the match. Lower is better. */
   score: number
-  /** Populated only if matched entry is provided by ‘additional’ type of the self argument, like methods of `Column` type for single-column table. */
+  /**
+   * Populated only if matched entry is provided by ‘additional’ type of the self argument, like methods of `Column` type for single-column table.
+   * It is used for type casting suggestions.
+   */
   fromType: ProjectPath | undefined
+}
+
+function exactMatch(): MatchResult {
+  return { score: 0, fromType: undefined }
 }
 
 class FilteringName {
@@ -266,21 +276,19 @@ export class Filtering {
     this.selfArg = selfArg
   }
 
-  private selfTypeMatches(
-    entry: SuggestionEntry,
-  ): { score: number; fromType: ProjectPath | undefined } | null {
+  private selfTypeMatches(entry: SuggestionEntry): MatchResult | null {
     if (this.selfArg == null)
-      return entry.kind !== SuggestionKind.Method || entry.selfType == null ?
-          { score: 0, fromType: undefined }
-        : null
+      return entry.kind !== SuggestionKind.Method || entry.selfType == null ? exactMatch() : null
     if (entry.kind !== SuggestionKind.Method || entry.selfType == null) return null
-    if (this.selfArg.type !== 'known') return { score: 0, fromType: undefined }
+    if (this.selfArg.type !== 'known') return exactMatch()
     const entrySelfType = entry.selfType
-    if (entrySelfType.equals(this.selfArg.typename)) return { score: 0, fromType: undefined }
-    const additionalSelfTypes = this.selfArg.additionalTypes
-    const additionalSelfType = additionalSelfTypes.find((t) => entrySelfType.equals(t))
-    if (entrySelfType.equals(ANY_TYPE) || additionalSelfType != null)
-      return { score: DIFFERENT_TYPE_PENALTY, fromType: additionalSelfType }
+    if (entrySelfType.equals(this.selfArg.typename)) return exactMatch()
+    const { additionalTypes, ancestors } = this.selfArg
+    const additionalType = additionalTypes.find((t) => entrySelfType.equals(t))
+    const matchedAncestor = ancestors.find((t) => entrySelfType.equals(t))
+    if (entrySelfType.equals(ANY_TYPE) || additionalType != null || matchedAncestor != null)
+      // Matched ancestor are not added to `fromType`.
+      return { score: DIFFERENT_TYPE_PENALTY, fromType: additionalType }
     return null
   }
 
@@ -292,7 +300,7 @@ export class Filtering {
   private mainViewFilter(entry: SuggestionEntry): MatchResult | null {
     const hasGroup = entry.groupIndex != null
     const isInTopModule = entry.definedIn.isTopElement()
-    if (hasGroup || isInTopModule) return { score: 0, fromType: undefined }
+    if (hasGroup || isInTopModule) return exactMatch()
     else return null
   }
 
@@ -300,7 +308,14 @@ export class Filtering {
     return this.currentModule != null && entry.definedIn.equals(this.currentModule)
   }
 
-  /** TODO: Add docs */
+  /**
+   * Check if given entry matches the filtering criteria.
+   *
+   * - If {@link selfArg} is available, it is used to filter out methods that do not match the self type.
+   * - If {@link pattern} is available, it is used to narrow down the list further.
+   * - When {@link selfArg} is not available, {@link mainViewFilter} is used to only display
+   * entries with a group defined or in the top module.
+   */
   filter(entry: SuggestionEntry): MatchResult | null {
     if (entry.isPrivate || entry.kind != SuggestionKind.Method) return null
     if (this.selfArg == null && isInternal(entry)) return null

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { applyWidgetUpdates, WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
+import { emptyPrimaryApplication } from '@/stores/graph/graphDatabase'
 import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { documentationData } from '@/stores/suggestionDatabase/documentation'
@@ -79,7 +80,7 @@ const rootStyle = computed(() => {
 })
 
 // We surely don’t have primary application for the function definition.
-const primaryApplication = { function: null, accessChain: null, potentialSelfArgument: null }
+const primaryApplication = emptyPrimaryApplication()
 </script>
 
 <template>

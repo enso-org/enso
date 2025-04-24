@@ -11,7 +11,7 @@ const tree = injectWidgetTree()
 
 const isSelfArgument = computed(() => {
   if (!(props.input.value instanceof Ast.TypeAnnotated)) return false
-  const selfArgumentId = tree.primaryApplication.potentialSelfArgument
+  const selfArgumentId = tree.primaryApplication.selfArgument
   return props.input.value.expression.id === selfArgumentId
 })
 

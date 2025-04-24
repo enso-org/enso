@@ -31,19 +31,23 @@ test.each(['## Documentation only'])("'%s' should not be a node", (line) => {
 })
 
 test.each`
-  code                                        | selfArg        | func                             | accessChain
-  ${'operator1'}                              | ${undefined}   | ${undefined}                     | ${undefined}
-  ${'operator1 foo bar'}                      | ${undefined}   | ${undefined}                     | ${undefined}
-  ${'operator1.parse_json'}                   | ${'operator1'} | ${'operator1.parse_json'}        | ${['parse_json']}
-  ${'operator1 . parse_json'}                 | ${'operator1'} | ${'operator1 . parse_json'}      | ${['parse_json']}
-  ${'operator1.parse_json operator2.to_json'} | ${'operator1'} | ${'operator1.parse_json'}        | ${['parse_json']}
-  ${'operator1.parse_json foo bar'}           | ${'operator1'} | ${'operator1.parse_json'}        | ${['parse_json']}
-  ${'operator1.parse_json.length'}            | ${'operator1'} | ${'operator1.parse_json.length'} | ${['parse_json', 'length']}
-  ${'operator1.parse_json.length foo bar'}    | ${'operator1'} | ${'operator1.parse_json.length'} | ${['parse_json', 'length']}
-  ${'operator1 + operator2'}                  | ${undefined}   | ${undefined}                     | ${undefined}
-  ${'(operator1).parse_json'}                 | ${'operator1'} | ${'(operator1).parse_json'}      | ${['parse_json']}
-  ${'(operator1:Type).parse_json'}            | ${'operator1'} | ${'(operator1:Type).parse_json'} | ${['parse_json']}
-  ${'operator1:Type . parse_json'}            | ${'operator1'} | ${'operator1:Type . parse_json'} | ${['parse_json']}
+  code                                        | selfArg        | func                                      | accessChain
+  ${'operator1'}                              | ${undefined}   | ${undefined}                              | ${undefined}
+  ${'operator1 foo bar'}                      | ${undefined}   | ${undefined}                              | ${undefined}
+  ${'operator1.parse_json'}                   | ${'operator1'} | ${'operator1.parse_json'}                 | ${['parse_json']}
+  ${'operator1 . parse_json'}                 | ${'operator1'} | ${'operator1 . parse_json'}               | ${['parse_json']}
+  ${'operator1.parse_json operator2.to_json'} | ${'operator1'} | ${'operator1.parse_json'}                 | ${['parse_json']}
+  ${'operator1.parse_json foo bar'}           | ${'operator1'} | ${'operator1.parse_json'}                 | ${['parse_json']}
+  ${'operator1.parse_json.length'}            | ${'operator1'} | ${'operator1.parse_json.length'}          | ${['parse_json', 'length']}
+  ${'operator1.parse_json.length foo bar'}    | ${'operator1'} | ${'operator1.parse_json.length'}          | ${['parse_json', 'length']}
+  ${'operator1 + operator2'}                  | ${undefined}   | ${undefined}                              | ${undefined}
+  ${'(operator1).parse_json'}                 | ${'operator1'} | ${'(operator1).parse_json'}               | ${['parse_json']}
+  ${'(operator1:Type).parse_json'}            | ${'operator1'} | ${'(operator1:Type).parse_json'}          | ${['parse_json']}
+  ${'((operator1:Type)).parse_json'}          | ${'operator1'} | ${'((operator1:Type)).parse_json'}        | ${['parse_json']}
+  ${'operator1:Type . parse_json'}            | ${'operator1'} | ${'operator1:Type . parse_json'}          | ${['parse_json']}
+  ${'(operator1):Type . parse_json'}          | ${'operator1'} | ${'(operator1):Type . parse_json'}        | ${['parse_json']}
+  ${'(operator1:Type):Type . parse_json'}     | ${'operator1'} | ${'(operator1:Type):Type . parse_json'}   | ${['parse_json']}
+  ${'((operator1):Type):Type . parse_json'}   | ${'operator1'} | ${'((operator1):Type):Type . parse_json'} | ${['parse_json']}
 `('Primary application of $code', ({ code, selfArg, func, accessChain }) => {
   const ast = Ast.parseExpression(code)
   assertDefined(ast)
@@ -51,10 +55,7 @@ test.each`
   const primaryApp = primaryApplication(ast)
   const expected = { selfArg, function: func, accessChain }
   const analyzed = {
-    selfArg:
-      primaryApp.potentialSelfArgument ?
-        module.get(primaryApp.potentialSelfArgument).code()
-      : undefined,
+    selfArg: primaryApp.selfArgument ? module.get(primaryApp.selfArgument).code() : undefined,
     function: primaryApp.function ? module.get(primaryApp.function).code() : undefined,
     accessChain: primaryApp.accessChain?.map((id) => {
       const ast = module.get(id)

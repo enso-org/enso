@@ -147,10 +147,7 @@ export const widgetDefinition = defineWidget(
       // in argument positions. A port needs to be created with portId override, and it
       // will be handled by `WidgetTypeCastPort`. Without this check, the port will be
       // created with invalid portId because of `ArgumentInfoKey` being set on the input.
-      if (
-        props.input.value instanceof Ast.TypeAnnotated &&
-        props.input.value.id === props.input.portId
-      ) {
+      if (value instanceof Ast.TypeAnnotated && value.id === props.input.portId) {
         return Score.Mismatch
       }
       if (portInfo != null && value instanceof Ast.Ast && portInfo.portId === value.id) {

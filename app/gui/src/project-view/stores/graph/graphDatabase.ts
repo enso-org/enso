@@ -372,12 +372,8 @@ export class GraphDb {
       if (oldNode.primaryApplication.function !== newNode.primaryApplication.function) {
         node.primaryApplication.function = newNode.primaryApplication.function
       }
-      if (
-        oldNode.primaryApplication.potentialSelfArgument !==
-        newNode.primaryApplication.potentialSelfArgument
-      ) {
-        node.primaryApplication.potentialSelfArgument =
-          newNode.primaryApplication.potentialSelfArgument
+      if (oldNode.primaryApplication.selfArgument !== newNode.primaryApplication.selfArgument) {
+        node.primaryApplication.selfArgument = newNode.primaryApplication.selfArgument
       }
       if (
         !arrayEquals(
@@ -538,7 +534,7 @@ export class GraphDb {
       position: Vec2.Zero,
       vis: undefined,
       prefixes: { enableRecording: undefined },
-      primaryApplication: { function: null, accessChain: null, potentialSelfArgument: null },
+      primaryApplication: { function: null, accessChain: null, selfArgument: null },
       colorOverride: undefined,
       conditionalPorts: new Set(),
       outerAst,
@@ -671,8 +667,11 @@ export type Node = NodeDataFromAst &
   }
 
 export interface PrimaryApplication {
-  /** A child AST in a syntactic position to be a self-argument input to the node. */
-  potentialSelfArgument: Ast.AstId | null
+  /**
+   * A child AST in a syntactic position to be a self-argument input to the node.
+   * Usually it is either an Ident or a Wildcard, but consult `primaryApplication` function for details.
+   */
+  selfArgument: Ast.AstId | null
   /** The function that is the subject of the primary application. */
   function: Ast.AstId | null
   /** All components of the property access chain from {@link function}. */
@@ -682,8 +681,17 @@ export interface PrimaryApplication {
 /** Custom equality check for {@link PrimaryApplication}. */
 export function primaryApplicationEquals(a: PrimaryApplication, b: PrimaryApplication) {
   return (
-    a.potentialSelfArgument === b.potentialSelfArgument &&
+    a.selfArgument === b.selfArgument &&
     a.function === b.function &&
     arrayEquals(a.accessChain ?? [], b.accessChain ?? [])
   )
+}
+
+/** Returns an empty {@link PrimaryApplication}. */
+export function emptyPrimaryApplication(): PrimaryApplication {
+  return {
+    selfArgument: null,
+    function: null,
+    accessChain: null,
+  }
 }

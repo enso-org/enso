@@ -144,6 +144,7 @@ test.each`
         type: 'known',
         typename: ProjectPath.create(undefined, 'Column' as QualifiedName),
         additionalTypes: [ProjectPath.create(undefined, 'Table' as QualifiedName)],
+        ancestors: [],
       },
     })
     const match = filtering.filter(entry)

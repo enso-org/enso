@@ -1,5 +1,5 @@
 import type { NodeDataFromAst } from '@/stores/graph'
-import { PrimaryApplication } from '@/stores/graph/graphDatabase'
+import { emptyPrimaryApplication, PrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import { Prefixes } from '@/util/ast/prefixes'
 import * as Y from 'yjs'
@@ -34,7 +34,7 @@ export function inputNodeFromAst(ast: Ast.Expression, argIndex: number): NodeDat
     rootExpr: ast,
     innerExpr: ast,
     prefixes: { enableRecording: undefined },
-    primaryApplication: { function: null, accessChain: null, potentialSelfArgument: null },
+    primaryApplication: { function: null, accessChain: null, selfArgument: null },
     conditionalPorts: new Set(),
     argIndex,
   }
@@ -69,27 +69,26 @@ export function primaryApplication(ast: Ast.Expression): PrimaryApplication {
   const unrolledChain = Ast.accessChain(ast)
   let subject = unrolledChain.subject
   const accessChain = unrolledChain.accessChain
-  const emptyPrimaryApplication: PrimaryApplication = {
-    function: null,
-    accessChain: null,
-    potentialSelfArgument: null,
-  }
   // Require at least one property access.
-  if (accessChain.length === 0) return emptyPrimaryApplication
+  if (accessChain.length === 0) return emptyPrimaryApplication()
 
   const isAcceptableSubject = (subject: Ast.Ast) =>
     (subject instanceof Ast.Ident && !subject.isTypeOrConstructor()) ||
     subject instanceof Ast.Wildcard
 
-  if (subject instanceof Ast.Group && subject.expression) {
-    subject = subject.expression
+  // Descend into any sequence of groups or type annotations.
+  while (subject instanceof Ast.Group || subject instanceof Ast.TypeAnnotated) {
+    if (subject instanceof Ast.Group && subject.expression) {
+      subject = subject.expression
+    } else if (subject instanceof Ast.TypeAnnotated && subject.expression) {
+      subject = subject.expression
+    } else {
+      break
+    }
   }
-  if (subject instanceof Ast.TypeAnnotated && subject.expression) {
-    subject = subject.expression
-  }
-  if (!isAcceptableSubject(subject)) return emptyPrimaryApplication
+  if (!isAcceptableSubject(subject)) return emptyPrimaryApplication()
   return {
-    potentialSelfArgument: subject.id,
+    selfArgument: subject.id,
     function: ast.id,
     accessChain: accessChain.map((ast) => ast.id),
   }

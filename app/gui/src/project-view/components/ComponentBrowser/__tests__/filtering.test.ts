@@ -53,6 +53,7 @@ test('An Instance method is shown when self arg matches', () => {
       type: 'known',
       typename: stdPath('Standard.Base.Data.Vector.Vector'),
       additionalTypes: [],
+      ancestors: [],
     },
   })
   expect(filteringWithSelfType.filter(entry1)).not.toBeNull()
@@ -75,6 +76,7 @@ test('`Any` type methods taken into account when filtering', () => {
       type: 'known',
       typename: stdPath('Standard.Base.Data.Vector.Vector'),
       additionalTypes: [],
+      ancestors: [],
     },
   })
   expect(filtering.filter(entry1)).not.toBeNull()
@@ -85,7 +87,7 @@ test('`Any` type methods taken into account when filtering', () => {
   expect(filteringWithoutSelfType.filter(entry2)).toBeNull()
 })
 
-test('Additional self types are taken into account when filtering', () => {
+test('Additional self types and ancestors are taken into account when filtering', () => {
   const entry1 = makeMethod('Standard.Base.Data.Numbers.Float.abs')
   const entry2 = makeMethod('Standard.Base.Data.Numbers.Number.sqrt')
   const additionalSelfType = stdPath('Standard.Base.Data.Numbers.Number')
@@ -94,6 +96,7 @@ test('Additional self types are taken into account when filtering', () => {
       type: 'known',
       typename: stdPath('Standard.Base.Data.Numbers.Float'),
       additionalTypes: [additionalSelfType],
+      ancestors: [],
     },
   })
   expect(filteringWithAdditionalSelfType.filter(entry1)).not.toBeNull()
@@ -102,6 +105,17 @@ test('Additional self types are taken into account when filtering', () => {
   const filteringWithoutSelfType = new Filtering({})
   expect(filteringWithoutSelfType.filter(entry1)).toBeNull()
   expect(filteringWithoutSelfType.filter(entry2)).toBeNull()
+
+  const filteringWithAncestors = new Filtering({
+    selfArg: {
+      type: 'known',
+      typename: stdPath('Standard.Base.Data.Numbers.Float'),
+      additionalTypes: [],
+      ancestors: [additionalSelfType],
+    },
+  })
+  expect(filteringWithAncestors.filter(entry1)).not.toBeNull()
+  expect(filteringWithAncestors.filter(entry2)).not.toBeNull()
 })
 
 test.each([
@@ -118,6 +132,7 @@ test.each([
       type: 'known',
       typename: stdPath('Standard.Base.Data.Vector.Vector'),
       additionalTypes: [],
+      ancestors: [],
     },
   })
   expect(filtering.filter(entry)).toBeNull()

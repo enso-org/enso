@@ -15,7 +15,7 @@ const props = defineProps(widgetProps(widgetDefinition))
 const input = computed(() => {
   const portId = props.input.value.expression.id
   const input = WidgetInput.FromAstWithPortId(props.input.value, portId)
-  return { ...input, [IsTypeCastKey]: true, forcePort: true }
+  return { ...input, [IsTypeCastKey]: true as const, forcePort: true }
 })
 </script>
 
@@ -32,7 +32,7 @@ export const widgetDefinition = defineWidget(
 export const IsTypeCastKey: unique symbol = Symbol.for('WidgetInput:IsTypeCast')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
-    [IsTypeCastKey]?: boolean | undefined
+    [IsTypeCastKey]?: true | undefined
   }
 }
 </script>
