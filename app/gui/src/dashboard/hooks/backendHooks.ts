@@ -560,11 +560,11 @@ export function useNewProject(backend: Backend, category: Category) {
       {
         templateName,
         templateId,
-        datalinkId,
+        ensoPath,
       }: {
         templateName: string | null | undefined
         templateId?: string | null | undefined
-        datalinkId?: backendModule.DatalinkId | null | undefined
+        ensoPath?: string | null | undefined
       },
       parentId: DirectoryId,
       runLocally = true,
@@ -587,7 +587,7 @@ export function useNewProject(backend: Backend, category: Category) {
           parentDirectoryId: placeholderItem.parentId,
           projectName: placeholderItem.title,
           ...(templateId == null ? {} : { projectTemplateName: templateId }),
-          ...(datalinkId == null ? {} : { datalinkId: datalinkId }),
+          ...(ensoPath == null ? {} : { ensoPath }),
         },
       ])
         .catch((error) => {

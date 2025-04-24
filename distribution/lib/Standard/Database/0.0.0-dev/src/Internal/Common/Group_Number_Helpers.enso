@@ -1,17 +1,17 @@
 from Standard.Base import all
 
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 
 ## PRIVATE
-make_group_number (from : Integer) (step : Integer) (grouping_expressions : Vector SQL_Expression) -> SQL_Expression =
+make_group_number (from : Integer) (step : Integer) (grouping_expressions : Vector SQL_IR_Expression) -> SQL_IR_Expression =
     # The SQL dense_rank() counts from 1, so we adjust the offset.
     offset = (from - step) : Integer
-    params = [SQL_Expression.Literal offset.to_text, SQL_Expression.Literal step.to_text] + grouping_expressions
-    SQL_Expression.Operation "GROUP_NUMBER" params
+    params = [SQL_IR_Expression.Literal offset.to_text, SQL_IR_Expression.Literal step.to_text] + grouping_expressions
+    SQL_IR_Expression.Operation "GROUP_NUMBER" params
 
 ## PRIVATE
-make_group_number_equal_count (from : Integer) (step : Integer) (group_count : Integer) (ordering_expressions : Vector SQL_Expression) -> SQL_Expression =
+make_group_number_equal_count (from : Integer) (step : Integer) (group_count : Integer) (ordering_expressions : Vector SQL_IR_Expression) -> SQL_IR_Expression =
     # The SQL row_number() counts from 1, so we adjust the offset.
     offset = (from - step) : Integer
-    params = [SQL_Expression.Literal offset.to_text, SQL_Expression.Literal step.to_text, SQL_Expression.Literal group_count.to_text] + ordering_expressions
-    SQL_Expression.Operation "GROUP_NUMBER_EQUAL_COUNT" params
+    params = [SQL_IR_Expression.Literal offset.to_text, SQL_IR_Expression.Literal step.to_text, SQL_IR_Expression.Literal group_count.to_text] + ordering_expressions
+    SQL_IR_Expression.Operation "GROUP_NUMBER_EQUAL_COUNT" params

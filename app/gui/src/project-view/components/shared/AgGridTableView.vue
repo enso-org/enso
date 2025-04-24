@@ -76,6 +76,7 @@ import type {
   ColDef,
   ColGroupDef,
   ColumnResizedEvent,
+  ColumnVisibleEvent,
   FirstDataRenderedEvent,
   GetRowIdFunc,
   GridApi,
@@ -132,6 +133,7 @@ const emit = defineEmits<{
   rowEditingStopped: [event: RowEditingStoppedEvent]
   rowDataUpdated: [event: RowDataUpdatedEvent]
   sortOrFilterUpdated: [event: SortChangedEvent]
+  columnStateChanged: [event: ColumnVisibleEvent]
 }>()
 
 const widths = reactive(new Map<string, number>())
@@ -362,6 +364,8 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       @rowEditingStopped="emit('rowEditingStopped', $event)"
       @sortChanged="emit('sortOrFilterUpdated', $event)"
       @filterChanged="emit('sortOrFilterUpdated', $event)"
+      @columnVisible="emit('columnStateChanged', $event)"
+      @columnMoved="emit('columnStateChanged', $event)"
       @contextmenu="stopIfPrevented"
     />
     <VueComponentHost :host="vueHost" />

@@ -2,8 +2,8 @@ import { createContextStore } from '@/providers'
 import { PortId } from '@/providers/portInfo'
 import { BoundsSet, Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { ToValue } from '@/util/reactivity'
-import { ref, Ref, toValue, watch } from 'vue'
+import { type ToValue } from '@/util/reactivity'
+import { ref, type Ref, toValue, watch } from 'vue'
 
 /**
  * Registry of resizable widgets.
