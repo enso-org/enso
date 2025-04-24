@@ -170,13 +170,17 @@ type SQLServer_Dialect
                         ## SQLServer needs its NULLS to be typed at least for TIME.
                         type_mapping = self.get_type_mapping
                         sql_type = type_mapping.value_type_to_sql type_hint Problem_Behavior.Ignore
-                        sql_type.typeid                            
+                        sql_type.typeid
+                IO.println "Setting "+stmt.to_text+" "+i.to_text+" to NULL of type "+java_type.to_text
                 stmt.setNull i java_type
-            _ : Float     -> 
+            _ : Float     ->
+                IO.println "Setting "+stmt.to_text+" "+i.to_text+" to Float "+value.to_text
                 if value.is_nan || value.is_infinite then stmt.setNull i Java_Types.REAL else
                     stmt.setDouble i value
             # Fallback to default logic for everything else
-            _ -> fill_hole_default stmt i type_hint value
+            _ ->
+                IO.println "Setting "+stmt.to_text+" "+i.to_text+" to "+value.to_text
+                fill_hole_default stmt i type_hint value
         Statement_Setter.Value custom_fill_hole
 
     ## PRIVATE
@@ -248,6 +252,7 @@ type SQLServer_Dialect
     ## PRIVATE
     prepare_fetch_types_query : SQL_IR_Expression -> SQL_IR_Source -> SQL_Statement
     prepare_fetch_types_query self expression context =
+        Standard.Base.IO.println expression
         Base_Generator.default_fetch_types_query self expression context
 
     ## PRIVATE
