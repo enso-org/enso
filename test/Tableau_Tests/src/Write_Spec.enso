@@ -32,6 +32,13 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         written_table_in_hyper.table.should_equal "Extract"
         written_file.delete
 
+    group_builder.specify "returns a readable File" <|
+        written_file = get_temp_file
+        t = Table.input [['A', ['a']]]
+        r = t.write written_file
+        r.read.tables.first.read.should_equal t
+        written_file.delete
+
     group_builder.specify "Can set schema name" <|
         written_file = get_temp_file
         t = Table.input [['A', ['a']]]

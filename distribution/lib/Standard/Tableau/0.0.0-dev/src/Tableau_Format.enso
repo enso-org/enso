@@ -98,7 +98,7 @@ type Tableau_Format
                 Hyper_Errors.handle_java_exceptions <|
                     jtable = (Java_Table_Access.Value table).java_table
                     HyperFormat.writeTable resolved_file resolved_schema resolved_table jtable
-                resolved_file
+                File.new resolved_file
 
 private _find_bak_file base_file:File -> File =
     parent = base_file.absolute.normalize.parent
