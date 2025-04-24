@@ -101,22 +101,15 @@ add_specs suite_builder =
             t.at "Column 7" . to Vector . should_equal [98765, 87654]
             t.at "Column 8" . to Vector . should_equal ["fgh", "nop"]
 
-        group_builder.specify "Should support skip_rows and row_limit" <|
+        group_builder.specify "Should support row_limit" <|
             descs = []
                 + [Fixed_Width_Column_Description.Width 2 "x"]
                 + [Fixed_Width_Column_Description.Width 3 "y"]
             layout = Fixed_Width_Layout.from_descriptions descs
-            t0 = data4.read (Fixed_Width_Format.Fixed_Width layout skip_rows=3)
-            t0.at "x" . to_vector . should_equal ["de", "ef", "fg", "gh", "hi"]
-            t0.at "y" . to_vector . should_equal [104, 105, 106, 107, 108]
 
-            t1 = data4.read (Fixed_Width_Format.Fixed_Width layout row_limit=4)
-            t1.at "x" . to_vector . should_equal ["ab", "bc", "cd", "de"]
-            t1.at "y" . to_vector . should_equal [101, 102, 103, 104]
-
-            t2 = data4.read (Fixed_Width_Format.Fixed_Width layout skip_rows=2 row_limit=4)
-            t2.at "x" . to_vector . should_equal ["cd", "de", "ef", "fg"]
-            t2.at "y" . to_vector . should_equal [103, 104, 105, 106]
+            t0 = data4.read (Fixed_Width_Format.Fixed_Width layout row_limit=4)
+            t0.at "x" . to_vector . should_equal ["ab", "bc", "cd", "de"]
+            t0.at "y" . to_vector . should_equal [101, 102, 103, 104]
 
         group_builder.specify "Should use specified column names" <|
             descs = []
