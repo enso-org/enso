@@ -21,6 +21,7 @@ import java.util.Set;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Diagnostic;
+import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.core.ir.Warning;
@@ -1279,6 +1280,36 @@ public class TypeInferenceTest extends StaticAnalysisTest {
 
     var x1 = ModuleUtils.findAssignment(foo, "x1");
     assertTypeMismatch(x1.expression(), "My_Type", "Other_Type");
+  }
+
+  @Test
+  public void defaultArgumentWithWrongType() throws Exception {
+    final URI uri = new URI("memory://defaultArgumentWithWrongType.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+            type My_Type
+                Value v
+
+            type Other_Type
+                Constructor v
+
+            foo (arg : My_Type = Other_Type.Constructor 1) = arg
+            """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = ModuleUtils.findStaticMethod(module, "foo");
+    var fooBody = foo.body();
+    if (!(fooBody instanceof Function.Lambda fooLambda)) {
+      fail("Expected the body of the function to be a lambda, but got " + fooBody);
+    } else {
+      var arg = fooLambda.arguments().head();
+      assertTypeMismatch(arg, "My_Type", "Other_Type");
+    }
   }
 
   @Test
