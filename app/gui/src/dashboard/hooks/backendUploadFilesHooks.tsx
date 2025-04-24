@@ -405,21 +405,21 @@ function useGetSiblings() {
  * Packs a project into a file and uploads it to the cloud.
  * Does not work in environments that do not have a local backend.
  */
-export function useUploadFileToCloudMutation(backend: Backend) {
-  const uploadFileMutation = useUploadFileWithToastMutation(backend)
-
+export function useUploadFileToCloudMutation() {
   const { getText } = useText()
   const httpClient = useHttpClient()
   const toastAndLog = useToastAndLog()
   const remoteBackend = useRemoteBackend()
+  const uploadFileMutation = useUploadFileWithToastMutation(remoteBackend)
   const getSiblings = useGetSiblings()
   const { cloudCategories } = useCategoriesAPI()
   const cloudHomeCategory = cloudCategories.categories.find((category) => category.type === 'cloud')
 
-  /**
-   * @param _backend - ignored, only used to double-check that the environment has a local backend
-   */
   const upload = useEventCallback(
+    /**
+     * Upload a file from the Local backend to the Cloud backend.
+     * @param localBackend - ignored, only used to double-check that the environment has a local backend
+     */
     async (localBackend: LocalBackend, options: UploadFileToCloudMutationOptions) => {
       const { assets, targetDirectoryId } = options
       const siblings = await getSiblings(remoteBackend, targetDirectoryId)
@@ -546,7 +546,11 @@ export function useUploadFileToCloudMutation(backend: Backend) {
             })()
 
             await uploadFileMutation.mutateAsync([
-              { fileName: fileData.fileName, fileId: null, parentDirectoryId: targetDirectoryId },
+              {
+                fileName: asset.newName ?? fileData.fileName,
+                fileId: asset.cloudId ?? null,
+                parentDirectoryId: targetDirectoryId,
+              },
               fileData.file,
             ])
 

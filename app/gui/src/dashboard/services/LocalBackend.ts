@@ -701,7 +701,8 @@ export default class LocalBackend extends Backend {
         'backendApi' in window &&
         // This non-standard property is defined in Electron.
         'path' in file &&
-        typeof file.path === 'string'
+        typeof file.path === 'string' &&
+        file.path !== ''
       ) {
         const projectInfo = await window.backendApi.importProjectFromPath(
           file.path,

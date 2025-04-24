@@ -82,7 +82,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const path = asset.ensoPathValue
   const copyMutation = useCopy()
-  const uploadFileToCloudMutation = useUploadFileToCloudMutation(backend)
+  const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined
   const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
 

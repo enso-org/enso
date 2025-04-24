@@ -90,7 +90,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const restoreAssetsMutation = useMutation(restoreAssetsMutationOptions(backend))
   const showDeveloperIds = useFeatureFlag('showDeveloperIds')
   const copyMutation = useCopy()
-  const uploadFileToCloudMutation = useUploadFileToCloudMutation(backend)
+  const uploadFileToCloudMutation = useUploadFileToCloudMutation()
 
   const canUploadToCloud = user.plan !== backendModule.Plan.free
 

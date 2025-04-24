@@ -307,7 +307,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 aria-label={getText('uploadFiles')}
                 onPress={uploadFilesCallback}
               />
-              <UploadFilesToCloudButton backend={backend} category={category} />
+              <UploadFilesToCloudButton category={category} />
               <Button
                 isDisabled={!canDownload}
                 variant="icon"
@@ -385,19 +385,18 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
 
 /** Props for {@link UploadFilesToCloudButton}. */
 export interface UploadFilesToCloudButtonProps {
-  readonly backend: Backend
   readonly category: Category
 }
 
 /** A button to upload assets to the cloud. */
 function UploadFilesToCloudButton(props: UploadFilesToCloudButtonProps) {
-  const { backend, category } = props
+  const { category } = props
 
   const user = useUser()
   const getAsset = useGetAsset()
   const { getText } = useText()
   const localBackend = useLocalBackend()
-  const uploadFilesToCloud = useUploadFileToCloudMutation(backend)
+  const uploadFilesToCloud = useUploadFileToCloudMutation()
   const isCloud = isCloudCategory(category)
   const driveStore = useDriveStore()
   const isDisabled = useStore(
