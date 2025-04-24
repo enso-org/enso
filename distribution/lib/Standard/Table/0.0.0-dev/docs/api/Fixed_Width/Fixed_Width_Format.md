@@ -1,12 +1,8 @@
 ## Enso Signatures 1.0
 ## module Standard.Table.Fixed_Width.Fixed_Width_Format
-- type Column_Namer
-    - Value prefix:Standard.Base.Data.Text.Text next_ref:Standard.Base.Runtime.Ref.Ref
-    - new prefix:Standard.Base.Data.Text.Text -> Standard.Table.Fixed_Width.Fixed_Width_Format.Column_Namer
-    - next self -> Standard.Base.Data.Text.Text
 - type Fixed_Width_Column_Description
-    - Start_And_Width name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) start:Standard.Base.Data.Numbers.Integer width:Standard.Base.Data.Numbers.Integer
-    - Width name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) width:Standard.Base.Data.Numbers.Integer
+    - Start_And_Width start:Standard.Base.Data.Numbers.Integer width:Standard.Base.Data.Numbers.Integer name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)=
+    - Width width:Standard.Base.Data.Numbers.Integer name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)=
 - type Fixed_Width_Format
     - Fixed_Width layout:Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout encoding:Standard.Base.Data.Text.Encoding.Encoding= on_invalid_rows:Standard.Table.Delimited.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows= value_formatter:(Standard.Table.Data_Formatter.Data_Formatter|Standard.Base.Nothing.Nothing)=
     - for_file_write file:Standard.Base.System.File.Generic.Writable_File.Writable_File -> Standard.Base.Any.Any
@@ -17,8 +13,8 @@
     - read_stream self stream:Standard.Base.System.Input_Stream.Input_Stream metadata:Standard.Base.System.File_Format_Metadata.File_Format_Metadata= -> Standard.Base.Any.Any
     - resolve constructor:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - type Fixed_Width_Layout
+    - entries self -> Standard.Base.Data.Vector.Vector
     - from_descriptions descs:(Standard.Base.Data.Vector.Vector Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Column_Description) -> Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout
-    - get_entries self -> Standard.Base.Data.Vector.Vector
 - Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout.from that:Standard.Table.Table.Table -> Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout
 - type Fixed_Width_Layout_Entry
-    - Value name:Standard.Base.Data.Text.Text start:Standard.Base.Data.Numbers.Integer width:Standard.Base.Data.Numbers.Integer
+    - Value start:Standard.Base.Data.Numbers.Integer width:Standard.Base.Data.Numbers.Integer name:Standard.Base.Data.Text.Text

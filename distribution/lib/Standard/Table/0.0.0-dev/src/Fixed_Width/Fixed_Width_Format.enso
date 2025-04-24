@@ -10,6 +10,7 @@ from Standard.Base.Metadata.Choice import Option
 
 import project.Data_Formatter.Data_Formatter
 import project.Delimited.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows
+import project.Fixed_Width.Internal.Column_Namer.Column_Namer
 import project.Internal.Fixed_Width_Reader
 import project.Internal.Telemetry
 import project.Table.Table
@@ -24,17 +25,17 @@ type Fixed_Width_Format
        Fixed-width files require have a `Fixed_Width_Layout` that specifies the
        start and width of each column, along with an optional column name. This
        layout can be defined using the `Fixed_Width_Column_Description` type, or
-       using an in-memory table.
+       using a table.
 
        In a fixed-width file, it is usually the case that every character
-       position of the input data is part of one of the columns, without gaps
+       offset of the input data is part of one of the columns, without gaps
        between them. However, the `layout` defined by the `Fixed_Width_Format
        does not have to use every character of every line; it can specify only
        the columns that are needed.
 
        ! Error Conditions
 
-         If a line of the input data does not have enough character position to
+         If a line of the input data does not have enough characters to
          cover all of the columns specified in the `layout`, the result depends
          on the value of `on_invalid_rows`:
          `Drop_Invalid_Rows`: short lines are skipped.
@@ -54,7 +55,7 @@ type Fixed_Width_Format
        > Example
          Specify a column layout using `Fixed_Width_Column_Description`.
 
-             descs = [Fixed_Width_Column_Description.Start_And_Width "a" 0 4, Fixed_Width_Column_Description.Width "b" 1]
+             descs = [Fixed_Width_Column_Description.Start_And_Width 0 4, Fixed_Width_Column_Description.Width 1]
              layout = Fixed_Width_Layout.from_descriptions descs
 
        > Example
@@ -111,8 +112,8 @@ type Fixed_Width_Format
         Fixed_Width_Reader.read_stream self stream on_problems=..Report_Warning
 
 ## PRIVATE
-   Specifies a fixed-width column. A column can be specified as a start column
-   and a witdh, or by just a width, relative to the previous column.
+   Specifies a fixed-width column. A column can be specified as a start offset
+   and a witdh, or by just a width, starting just after the previous column.
 type Fixed_Width_Column_Description
     ## Specify a fixed-width column using a start and width, and an optional
        column name.
@@ -120,9 +121,9 @@ type Fixed_Width_Column_Description
        Arguments:
        - name: The name of the column; if `Nothing`, a default name is
          generated.
-       - start: The first character position of the column.
+       - start: The first character offset of the column.
        - width: The width of the column, in characters.
-    Start_And_Width (name : Text | Nothing) (start:Integer) (width:Integer)
+    Start_And_Width (start:Integer) (width:Integer) (name : Text | Nothing = Nothing)
 
     ## Specify a fixed-width column using just a width, and an optional
        column name. The start column defaults to the character after the last
@@ -132,49 +133,46 @@ type Fixed_Width_Column_Description
        - name: The name of the column; if `Nothing`, a default name is
          generated.
        - width: The width of the column, in characters.
-    Width (name : Text | Nothing) (width:Integer)
+    Width (width:Integer) (name : Text | Nothing = Nothing)
 
 ## PRIVATE
    Specifies a fixed-width column as a start and a width.
 type Fixed_Width_Layout_Entry
-    Value (name:Text) (start:Integer) (width:Integer)
+    Value (start:Integer) (width:Integer) (name:Text)
 
 ## PRIVATE
    Specifies a set of fixed-width columns.
 type Fixed_Width_Layout
-    private Value (entries : Vector Fixed_Width_Layout_Entry)
+    private Value (internal_entries : Vector Fixed_Width_Layout_Entry)
 
     from_descriptions (descs : Vector Fixed_Width_Column_Description) -> Fixed_Width_Layout =
         if descs.is_empty then
             Error.throw (Illegal_Argument.Error "A fixed-width layout must have at least one column.")
 
         starts = Vector.build builder->
-            go i current =
-                if i >= descs.length then Nothing else
-                    desc = descs.at i
-                    if desc.width <= 0 then
-                        Error.throw (Illegal_Argument.Error "A fixed-width layout column must have a width of 1 or more.")
-                    start = case desc of
-                        Fixed_Width_Column_Description.Start_And_Width _ start _ ->
-                            if desc.start < 0 then
-                                Error.throw (Illegal_Argument.Error "A fixed-width layout column start cannot be negative.")
-                            if start < current then Error.throw (Illegal_Argument.Error "Entry "+desc.to_text+" must start at column "+current.to_text+" or later") else
-                                start
-                        Fixed_Width_Column_Description.Width _ _ ->
-                            current
-                    builder.append start
-                    width = desc.width
-                    @Tail_Call go (i + 1) (start + width)
-            go 0 0
+            descs.fold 0 current_offset-> desc->
+                if desc.width <= 0 then
+                    Error.throw (Illegal_Argument.Error "A fixed-width layout column must have a width of 1 or more.")
+                start = case desc of
+                    Fixed_Width_Column_Description.Start_And_Width start _ _ ->
+                        if desc.start < 0 then
+                            Error.throw (Illegal_Argument.Error "A fixed-width layout column start cannot be negative.")
+                        if start < current_offset then Error.throw (Illegal_Argument.Error "Entry "+desc.to_text+" must start at column "+current_offset.to_text+" or later") else
+                            start
+                    Fixed_Width_Column_Description.Width _ _ ->
+                        current_offset
+                builder.append start
+                width = desc.width
+                start + width
 
         namer = Column_Namer.new "Column"
         entries = starts.zip descs start-> desc->
             name = desc.name.if_nothing namer.next
-            Fixed_Width_Layout_Entry.Value name start desc.width
+            Fixed_Width_Layout_Entry.Value start desc.width name
         Fixed_Width_Layout.Value entries
 
     ## PRIVATE
-    get_entries self -> Vector = self.entries
+    entries self -> Vector = self.internal_entries
 
 Fixed_Width_Layout.from (that:Table) =
     num_cols = that.columns.length
@@ -188,15 +186,6 @@ Fixed_Width_Layout.from (that:Table) =
         name = if names.is_nothing then Nothing else names.at i
         start = starts.at i
         width = widths.at i
-        if start.is_nothing then Fixed_Width_Column_Description.Width name width else
-            Fixed_Width_Column_Description.Start_And_Width name start width
+        if start.is_nothing then Fixed_Width_Column_Description.Width width name else
+            Fixed_Width_Column_Description.Start_And_Width start width name
     Fixed_Width_Layout.from_descriptions descs
-
-## PRIVATE
-   Helper for generating column names.
-type Column_Namer
-    Value (prefix : Text) (next_ref : Ref)
-
-    new (prefix : Text) -> Column_Namer = Column_Namer.Value prefix (Ref.new 1)
-
-    next self -> Text = self.prefix.to_text + " " + (self.next_ref.modify (+1)).to_text

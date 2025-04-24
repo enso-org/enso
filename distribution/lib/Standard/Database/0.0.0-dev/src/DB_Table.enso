@@ -60,6 +60,7 @@ import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Group_Number_Helpers
 import project.Internal.Common.Lookup_Query_Helper
 import project.Internal.Common.Offset_Helpers
+import project.Internal.Common.Ordering_Helpers
 import project.Internal.Common.Row_Number_Helpers
 import project.Internal.DB_Data_Link_Helpers
 import project.Internal.Helpers
@@ -806,7 +807,8 @@ type DB_Table
     @range Index_Sub_Range.default_widget
     take self (range : Index_Sub_Range | Range | Integer = ..First) -> DB_Table =
         Feature.Sample.if_supported_else_throw self.connection.dialect "take" <|
-            Take_Drop_Helpers.take_drop_helper Take_Drop.Take self range
+            Ordering_Helpers.require_ordering self "take" <|
+                Take_Drop_Helpers.take_drop_helper Take_Drop.Take self range
 
     ## ALIAS remove, skip
        GROUP Standard.Base.Selections
@@ -838,7 +840,8 @@ type DB_Table
     @range Index_Sub_Range.default_widget
     drop self (range : Index_Sub_Range | Range | Integer = ..First) -> DB_Table =
         Feature.Sample.if_supported_else_throw self.connection.dialect "drop" <|
-            Take_Drop_Helpers.take_drop_helper Take_Drop.Drop self range
+            Ordering_Helpers.require_ordering self "drop" <|
+                Take_Drop_Helpers.take_drop_helper Take_Drop.Drop self range
 
     ## PRIVATE
        Filter out all rows.
@@ -889,7 +892,7 @@ type DB_Table
             grouping_columns = _resolve_grouping_columns self.columns_helper group_by problem_builder
             ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
             problem_builder.attach_problems_before on_problems <|
-                order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering "add_row_number"
+                order_descriptors = _resolve_order_descriptors self ordering "add_row_number"
                 grouping_expressions = (grouping_columns.map _.as_internal).map .expression
 
                 new_expr = Row_Number_Helpers.make_row_number from step order_descriptors grouping_expressions
@@ -1027,7 +1030,7 @@ type DB_Table
                         Error.throw (Illegal_Argument.Error "group_count must be at least 1")
                     ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
                     problem_builder.attach_problems_before on_problems <|
-                        order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering "add_group_number"
+                        order_descriptors = _resolve_order_descriptors self ordering "add_group_number"
 
                         new_expr = Group_Number_Helpers.make_group_number_equal_count from step group_count order_descriptors
 
@@ -3183,7 +3186,7 @@ type DB_Table
             ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
             resolved_columns = self.columns_helper.select_columns_helper columns Case_Sensitivity.Default True problem_builder
             problem_builder.attach_problems_before on_problems <| if columns.is_empty then self else
-                order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering "offset"
+                order_descriptors = _resolve_order_descriptors self ordering "offset"
                 grouping_expressions = (grouping_columns.map _.as_internal).map .expression
                 
                 offset_expr c:DB_Column -> SQL_IR_Expression =
@@ -3336,15 +3339,16 @@ private _resolve_grouping_columns columns_helper:Table_Column_Helper group_by:Ve
     grouping_columns
 
 ## PRIVATE
-private _resolve_order_descriptors dialect ordering default_ordering operation_name:Text =
-    case ordering.is_empty of
-        False -> ordering.map element->
-            column = element.column
-            associated_selector = element.associated_selector
-            dialect.prepare_order_descriptor column associated_selector.direction text_ordering=Nothing
-        True -> case default_ordering of
-            Nothing -> Error.throw (Illegal_Argument.Error "The table has no existing ordering (e.g. from a `sort` operation or primary key). `"+operation_name+"` requires an ordering in database.")
-            descriptors -> descriptors
+private _resolve_order_descriptors table ordering operation_name:Text =
+    Ordering_Helpers.require_ordering table operation_name ordering=ordering <|
+        dialect = table.connection.dialect
+        default_ordering = table.default_ordering
+        case ordering.is_empty of
+            False -> ordering.map element->
+                column = element.column
+                associated_selector = element.associated_selector
+                dialect.prepare_order_descriptor column associated_selector.direction text_ordering=Nothing
+            True -> default_ordering
 
 ## PRIVATE
 Many_Files_List.from (that : DB_Table) =
