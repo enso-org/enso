@@ -248,14 +248,6 @@ impl BuildConfigurationFlags {
         self.build_native_runner || self.use_native_runner
     }
 
-    pub fn build_engine_package(&self) -> bool {
-        self.build_engine_package
-            || self.build_launcher_bundle
-            || self.build_project_manager_bundle
-            || self.test_standard_library.is_some()
-            || self.build_native_runner
-    }
-
     pub fn build_project_manager_package(&self) -> bool {
         self.build_project_manager_package || self.build_project_manager_bundle
     }

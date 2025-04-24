@@ -380,6 +380,7 @@ impl Processor {
                                 ]),
                             );
                             config.build_native_runner = false;
+                            config.build_engine_package = true;
                         }
                         Tests::StdCloudRelated => {
                             config.add_standard_library_test_selection(
@@ -398,6 +399,7 @@ impl Processor {
                                 ]),
                             );
                             config.build_native_runner = false;
+                            config.build_engine_package = true;
                         }
                     }
                 }

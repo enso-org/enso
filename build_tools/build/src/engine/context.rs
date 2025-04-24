@@ -243,7 +243,7 @@ impl RunContext {
         ide_ci::fs::remove_if_exists(&self.paths.repo_root.engine.runtime.target)?;
         // cleanup distribution from previous build
         // it is fast to assemble it again
-        if self.config.build_engine_package() {
+        if self.config.build_engine_package {
             ide_ci::fs::remove_if_exists(&self.paths.repo_root.built_distribution)?;
         }
 
@@ -284,7 +284,7 @@ impl RunContext {
 
         // === Build project-manager distribution and native image ===
         let mut tasks = vec![];
-        if self.config.build_engine_package() {
+        if self.config.build_engine_package {
             tasks.push("buildEngineDistribution");
         }
         if self.config.build_native_ydoc {
