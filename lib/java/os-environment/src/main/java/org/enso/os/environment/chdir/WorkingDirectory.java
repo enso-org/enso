@@ -73,7 +73,7 @@ public abstract sealed class WorkingDirectory
     return null;
   }
 
-  public String parentFile(String path) {
+  public final String parentFile(String path) {
     var separatorChar = Platform.separatorChar();
     var lastSlash = path.lastIndexOf(separatorChar);
     if (lastSlash == -1) {
