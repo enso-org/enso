@@ -1,5 +1,7 @@
 from Standard.Base import all
+import Standard.Base.Runtime.Context
 import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format.File_Name_Pattern
@@ -7,16 +9,12 @@ import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Metadata.Choice import Option
 from Standard.Table import Table
+import Standard.Table.Internal.Java_Table_Access.Java_Table_Access
 from Standard.Table.Match_Columns import Match_Columns
 
+import project.Hyper_Errors
 import project.Hyper_File.Hyper_File
 import project.Internal.Telemetry
-import Standard.Base.Runtime.Context
-import Standard.Table.Internal.Java_Table_Access.Java_Table_Access
-
-from Standard.Base.System.File import file_as_java
-import project.Hyper_Errors
-import Standard.Base.Errors.File_Error.File_Error
 
 polyglot java import org.enso.tableau.HyperFormat
 
@@ -79,8 +77,7 @@ type Tableau_Format
     ## PRIVATE
        ADVANCED
        Implements the `Table.write` for this `File_Format`.
-    write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
-    write_table self file table on_existing_file match_columns on_problems:Problem_Behavior =
+    write_table self file:Writable_File table:Table on_existing_file match_columns:Match_Columns on_problems:Problem_Behavior =
         _ = [match_columns, on_problems]
         if (on_existing_file == Existing_File_Behavior.Append) then Error.throw (Illegal_Argument.Error "Hyper file do not support append") else
             if (on_existing_file == Existing_File_Behavior.Error) && file.exists then Error.throw (File_Error.Already_Exists file) else
