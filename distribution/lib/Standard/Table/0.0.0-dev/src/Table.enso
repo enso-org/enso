@@ -249,7 +249,7 @@ type Table
     private Value internal_java_table
     ## PRIVATE
        A getter that is a workaround for bug https://github.com/enso-org/enso/issues/12180
-    java_table self = self.internal_java_table
+    private java_table self = self.internal_java_table
 
     ## PRIVATE
        ADVANCED

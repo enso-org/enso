@@ -12,6 +12,7 @@ from Standard.Table.Match_Columns import Match_Columns
 import project.Hyper_File.Hyper_File
 import project.Internal.Telemetry
 import Standard.Base.Runtime.Context
+import Standard.Table.Internal.Java_Table_Access.Java_Table_Access
 
 from Standard.Base.System.File import file_as_java
 import project.Hyper_Errors
@@ -80,6 +81,7 @@ type Tableau_Format
        Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
     write_table self file table on_existing_file match_columns on_problems:Problem_Behavior =
+        _ = [match_columns, on_problems]
         if (on_existing_file == Existing_File_Behavior.Append) then Error.throw (Illegal_Argument.Error "Hyper file do not support append") else
             if (on_existing_file == Existing_File_Behavior.Error) && file.exists then Error.throw (File_Error.Already_Exists file) else
                 is_dry_run = Context.Output.is_enabled.not
@@ -97,7 +99,8 @@ type Tableau_Format
                     Tableau_Format.Hyper_File _ -> "Extract"
                     Tableau_Format.Hyper_Table _ t -> t
                 Hyper_Errors.handle_java_exceptions <|
-                    HyperFormat.writeTable resolved_file resolved_schema resolved_table table.java_table
+                    jtable = (Java_Table_Access.Value table).java_table
+                    HyperFormat.writeTable resolved_file resolved_schema resolved_table jtable
                 resolved_file
 
 private _find_bak_file base_file:File -> File =
