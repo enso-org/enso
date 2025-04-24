@@ -362,8 +362,8 @@ object DistributionPackage {
     val projectPath = findProjectPath(args)
     val disablePrivateCheck = projectPath match {
       case Some(whatToRun) =>
-        val pathToRun       = file(whatToRun).toPath
-        val projectName     = pathToRun.getFileName.toString
+        val pathToRun   = file(whatToRun).toPath
+        val projectName = pathToRun.getFileName.toString
         EnsoProjects.Project(None, projectName, pathToRun).usesPrivateAccess
       case None => false
     }

@@ -18,7 +18,7 @@ class EnsoLint(
         val foundByName = allProjects.filter(_.name == name)
         val project = foundByName match {
           case Seq(proj) => proj
-          case _ => EnsoProjects.ofPath(Path.of(name))
+          case _         => EnsoProjects.ofPath(Path.of(name))
         }
         runCompiler(project.path.toFile)
       case EnsoLint.LintTarget.All =>
