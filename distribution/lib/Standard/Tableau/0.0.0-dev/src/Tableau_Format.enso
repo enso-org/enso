@@ -84,7 +84,7 @@ type Tableau_Format
                 is_dry_run = Context.Output.is_enabled.not
                 resolved_file = if is_dry_run then (file.file.create_dry_run_file copy_original=True).path else file.file.path
 
-                needs_backup = on_existing_file == Existing_File_Behavior.Backup
+                needs_backup = on_existing_file == Existing_File_Behavior.Backup && is_dry_run.not
                 if needs_backup && file.exists then
                     backup_file = _find_bak_file file.file
                     ## We can move instead of copying because right in next line we will overwrite the original file
