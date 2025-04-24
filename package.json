@@ -167,8 +167,8 @@
         }
       },
       "veaury": {
-        "peerDependencies": { 
-          "vue": "*" 
+        "peerDependencies": {
+          "vue": "*"
         }
       }
     },
