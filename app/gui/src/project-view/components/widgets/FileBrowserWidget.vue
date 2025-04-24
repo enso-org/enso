@@ -322,33 +322,45 @@ const fileExtensionEntries = computed(() => {
       value: 'json',
       selected: false,
     },
+    {
+      tag: ExpressionTag.FromExpression(suggestions, projectNames, 'something'),
+      value: 'xml',
+      selected: false,
+    },
+    {
+      tag: ExpressionTag.FromExpression(suggestions, projectNames, 'something'),
+      value: 'csv',
+      selected: false,
+    },
+    {
+      tag: ExpressionTag.FromExpression(suggestions, projectNames, 'something'),
+      value: 'txt',
+      selected: false,
+    },
   ]
 })
 
 const interaction = injectInteractionHandler()
-const parentInteraction = ref<Interaction | undefined>()
 const fileExtensionDropdownOpened = ref(false)
 
 const fileExtensionDropdownInteraction: Interaction = endOnClickOutside(rootElement, {
   cancel: () => {
+    console.log('cancel')
     fileExtensionDropdownOpened.value = false
   },
   end: () => {
-    if (parentInteraction.value) {
-      interaction.setCurrent(parentInteraction.value)
-    }
+    console.log('end')
     fileExtensionDropdownOpened.value = false
   },
 })
 
-interaction.setWhen(() => fileExtensionDropdownOpened.value, fileExtensionDropdownInteraction)
+interaction.setWhenWithParent(
+  () => fileExtensionDropdownOpened.value,
+  fileExtensionDropdownInteraction,
+)
 
 function openDropdown() {
   if (!fileExtensionDropdownOpened.value) {
-    parentInteraction.value = interaction.getCurrent()
-    if (parentInteraction.value) {
-      interaction.ended(parentInteraction.value)
-    }
     fileExtensionDropdownOpened.value = true
   }
 }

@@ -55,7 +55,7 @@ registerAutoBlurHandler()
 registerGlobalBlurHandler()
 
 const interactionBindingsHandler = interactionBindings.handler({
-  cancel: () => interaction.handleCancel(),
+  cancel: () => interaction.cancelAll(),
 })
 
 useEvent(window, 'keydown', interactionBindingsHandler)

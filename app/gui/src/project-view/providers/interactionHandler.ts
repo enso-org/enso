@@ -1,21 +1,24 @@
 import { createContextStore } from '@/providers'
-import { shallowRef, watch, type WatchSource } from 'vue'
+import { ref, shallowRef, toRaw, watch, type WatchSource } from 'vue'
 
 export const [provideInteractionHandler, injectInteractionHandler] = createContextStore(
   'Interaction handler',
   () => new InteractionHandler(),
 )
 
-/** TODO: Add docs */
+/** A storage and controller for interactions. */
 export class InteractionHandler {
   private currentInteraction = shallowRef<Interaction>()
 
-  /** Check if given interaction is the current interaction. */
-  isActive(interaction: Interaction | undefined): interaction is Interaction {
+  /**
+   * Check if given interaction is the current interaction.
+   * It does not consider the whole interaction stack, only the last one.
+   */
+  isActive(interaction: Interaction | undefined) {
     return interaction != null && interaction === this.currentInteraction.value
   }
 
-  /** Automatically activate specified interaction any time a specified condition becomes true. */
+  /** Automatically activate/deactivate specified interaction by the specified condition. */
   setWhen(active: WatchSource<boolean>, interaction: Interaction) {
     watch(active, (active) => {
       if (active) {
@@ -26,15 +29,38 @@ export class InteractionHandler {
     })
   }
 
-  /** Set current interactoin. Any existing interaction will be ended (not cancelled). */
+  /**
+   * Same as {@link setWhen}, but provides a callback which will be called with the currently active interaction.
+   *
+   * It is roughly the same as `setWhen(active, interactionBuider(handler.getCurrent()))`.
+   */
+  setWhenWithParent(
+    active: WatchSource<boolean>,
+    interactionBuilder: (parent: Interaction | undefined) => Interaction,
+  ) {
+    const activeInteraction = ref<Interaction>()
+    watch(active, (active) => {
+      if (active) {
+        const interaction = interactionBuilder(this.getCurrent())
+        this.setCurrent(interaction)
+        activeInteraction.value = interaction
+      } else if (activeInteraction.value) {
+        this.end(toRaw(activeInteraction.value))
+      }
+    })
+  }
+
+  /** Set the current interaction. Any existing interactions will be ended (not cancelled). */
   setCurrent(interaction: Interaction | undefined) {
     if (!this.isActive(interaction)) {
-      this.currentInteraction.value?.end?.()
+      if (interaction?.parentInteraction !== this.currentInteraction.value) {
+        this.endAll()
+      }
       this.currentInteraction.value = interaction
     }
   }
 
-  /** TODO: Add docs */
+  /** Get currently active interaction. */
   getCurrent(): Interaction | undefined {
     return this.currentInteraction.value
   }
@@ -44,37 +70,70 @@ export class InteractionHandler {
     if (this.isActive(interaction)) this.currentInteraction.value = undefined
   }
 
-  /** End the current interaction, if it is the specified instance. */
+  /**
+   * End the interaction, if it is currently active.
+   * Any children interactions of the given interaction will be ended as well.
+   */
   end(interaction: Interaction) {
-    if (this.isActive(interaction)) {
-      this.currentInteraction.value = undefined
-      interaction.end?.()
-    }
+    search(this.currentInteraction.value, interaction, (found, children) => {
+      this.currentInteraction.value = found.parentInteraction
+      found.end?.()
+      for (const interaction of children) {
+        interaction.end?.()
+      }
+    })
   }
 
-  /** Cancel the current interaction, if it is the specified instance. */
+  /** End all interactions, in the order from child to parent. */
+  endAll() {
+    let current = this.currentInteraction.value
+    while (current != null) {
+      current.end?.()
+      current = current.parentInteraction
+    }
+    this.currentInteraction.value = undefined
+  }
+
+  /**
+   * Cancel the interaction, if it is currently active.
+   * Any children interactions of the given interaction will be cancelled as well.
+   */
   cancel(interaction: Interaction) {
-    if (this.isActive(interaction)) {
-      this.currentInteraction.value = undefined
-      interaction.cancel?.()
-    }
+    search(this.currentInteraction.value, interaction, (found, children) => {
+      this.currentInteraction.value = found.parentInteraction
+      found.cancel?.()
+      for (const interaction of children) {
+        interaction.cancel?.()
+      }
+    })
   }
 
-  /** TODO: Add docs */
-  handleCancel(): boolean {
+  /**
+   * Cancel all interactions, in the order from child to parent.
+   * @returns `true` if the current interaction was cancelled.
+   */
+  cancelAll(): boolean {
     const hasCurrent = this.currentInteraction.value != null
-    this.currentInteraction.value?.cancel?.()
+    let interaction = this.currentInteraction.value
+    while (interaction != null) {
+      interaction.cancel?.()
+      interaction = interaction.parentInteraction
+    }
     this.currentInteraction.value = undefined
     return hasCurrent
   }
 
   /**
-   * Handle pointer event in capture. Calls `pointerdown` handler of currently active handler.
+   * Handle pointer event in capture. Calls the corresponding handler of the currently active interaction.
    *
    * Because usually the handlers check for clicks outside the active panel, even if event is handled,
    * it is NOT stopped, and its default action is NOT prevented.
+   *
+   * Only the current interaction is considered, its ancestors are not notified.
    */
-  handlePointerEvent<HandlerName extends keyof Interaction>(
+  handlePointerEvent<
+    HandlerName extends keyof Omit<Interaction, 'cancel' | 'end' | 'parentInteraction'>,
+  >(
     event: PointerEvent,
     handlerName: Interaction[HandlerName] extends InteractionEventHandler | undefined ? HandlerName
     : never,
@@ -83,6 +142,28 @@ export class InteractionHandler {
     const handler = this.currentInteraction.value[handlerName]
     if (!handler) return false
     return handler.bind(this.currentInteraction.value)(event) !== false
+  }
+}
+
+/**
+ * Search interactions stack.
+ * @param stack - Stack to traverse.
+ * @param needle - Interaction to find.
+ * @param whenFound - Callback to call when the needle is found.
+ */
+function search(
+  stack: Interaction | undefined,
+  needle: Interaction,
+  whenFound: (current: Interaction, children: Interaction[]) => void,
+) {
+  const children = []
+  let current = stack
+  while (current != null && current !== needle) {
+    children.push(current)
+    current = current.parentInteraction
+  }
+  if (current === needle) {
+    whenFound(current, children)
   }
 }
 
@@ -101,4 +182,6 @@ export interface Interaction {
    * edges)
    */
   pointerup?: InteractionEventHandler
+  /** Parent interaction, to support nesting. */
+  parentInteraction?: Interaction | undefined
 }
