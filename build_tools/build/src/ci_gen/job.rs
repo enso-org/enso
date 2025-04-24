@@ -945,7 +945,7 @@ pub struct BuildEngineDistribution {
 
 impl JobArchetype for BuildEngineDistribution {
     fn job(&self, target: Target) -> Job {
-        let args_separator = if target.0 == OS::Windows { "--%" } else { "--" };
+        let args_separator = if target.0 == OS::Windows { "'--'" } else { "--" };
         let job_name = format!("Build Engine Distribution ({})", self.graal_edition);
         let mut job =
             RunStepsBuilder::new(format!("backend sbt {} buildEngineDistribution", args_separator))
