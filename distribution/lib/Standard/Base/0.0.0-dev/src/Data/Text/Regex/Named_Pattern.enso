@@ -45,9 +45,9 @@ type Named_Pattern
     regex_pattern self = case self of
         Named_Pattern.Leading_Whitespace -> "^\s+"
         Named_Pattern.Trailing_Whitespace -> "\s+$"
-        Named_Pattern.Duplicate_Whitespace -> "(?<=\s)\s+"
+        Named_Pattern.Duplicate_Whitespace -> "(?:\s)\s+"
         Named_Pattern.All_Whitespace -> "\s+"
-        Named_Pattern.Newlines -> "(?:\r\n?|\n)"
+        Named_Pattern.Newlines -> "\r\n|\r|\n"
         Named_Pattern.Leading_Numbers -> "^\d+"
         Named_Pattern.Trailing_Numbers -> "\d+$"
         Named_Pattern.Non_ASCII -> "[^\x00-\x7F]"
