@@ -143,8 +143,8 @@ export function useComponentBrowserInput(
     const entry = suggestionDb.get(id)
     if (!entry) return Err(`No entry with id ${id}`)
 
-    const matchedLabel = label.replace(/^.+?(?:\((.*)\))?$/g,'$1')
-    const suffix = matchedLabel ? (entry.macros[matchedLabel] ?? "") : ""
+    const matchedLabel = label.replace(/^.+?(?:\((.*)\))?$/g, '$1')
+    const suffix = matchedLabel ? (entry.macros[matchedLabel] ?? '') : ''
 
     switchedToCodeMode.value = { appliedSuggestion: entry }
     const { newText, requiredImport } = inputAfterApplyingSuggestion(entry)

@@ -10,7 +10,7 @@ export interface DocumentationData {
   documentation: Doc.Section[]
   docSummaryHtml: string | undefined
   aliases: string[]
-  macros: {[k: string]: string}
+  macros: { [k: string]: string }
   /** A name of a custom icon to use when displaying the entry. */
   iconName: Icon | undefined
   /** An index of a group from group list in suggestionDb store this entry belongs to. */
@@ -82,22 +82,26 @@ export function documentationData(
   const iconName = tagValue(parsed, 'Icon')
 
   const macroFilter = isTagNamed('Macro')
-  const macros = parsed
-      .filter(macroFilter)
-      .reduce((acc, section) => {
-        const body = section.Tag.body
-        const match = body.match(/^(\S+) (.+)$/)
-        if (match) {
-          const name = match[1]
-          const description = match[2]
-          if (name && description) {
-            acc[name] = description
-          }
+  const macros = parsed.filter(macroFilter).reduce(
+    (acc, section) => {
+      const body = section.Tag.body
+      const match = body.match(/^(\S+) (.+)$/)
+      if (match) {
+        const name = match[1]
+        const description = match[2]
+        if (name && description) {
+          acc[name] = description
         }
-        return acc
-      }, {} as {[k:string]: string})
+      }
+      return acc
+    },
+    {} as { [k: string]: string },
+  )
 
-  const aliases = tagValue(parsed, 'Alias')?.trim().split(/\s*,\s*/g) ?? []
+  const aliases =
+    tagValue(parsed, 'Alias')
+      ?.trim()
+      .split(/\s*,\s*/g) ?? []
 
   return {
     documentation: parsed,

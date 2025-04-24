@@ -685,6 +685,7 @@ mod tests {
 
         let docs = r#"
         ALIAS From Text
+        MACRO parse format="blob"
 
         Parses a textual <representation> of an integer into an integer number, returning
         a `Number_Parse_Error` if the text does not represent a valid integer.
@@ -707,6 +708,7 @@ mod tests {
         let res = parse(docs);
         let expected = [
             Tag { tag: Alias, body: "From Text".into() },
+            Tag { tag: Macro, body: "parse format=\"blob\"".into() },
             Paragraph { body: "Parses a textual &lt;representation&gt; of an integer into an integer number, \
                 returning a <code>Number_Parse_Error</code> if the text does not represent a valid integer.".into() },
             Keyed { key: "Arguments".into(), body: "".into() },
