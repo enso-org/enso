@@ -270,6 +270,7 @@ type Postgres_Dialect
     is_feature_supported self feature:Feature -> Boolean =
         case feature of
             Feature.Generate_Rows -> False
+            Feature.Cross_Tab -> False
             _ -> True
 
     ## PRIVATE

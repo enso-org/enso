@@ -7,6 +7,7 @@ import Standard.Table.Expression.Expression_Error
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import SQL_Error
+import Standard.Database.Feature.Feature
 
 from Standard.Test import all
 
@@ -28,7 +29,7 @@ type Data
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    db_todo = if setup.is_database.not then Nothing else "Table.cross_tab is not implemented yet in Database."
+    db_todo = if setup.is_feature_supported Feature.Cross_Tab then Nothing else "Table.cross_tab is not implemented yet in Database."
     table_builder = setup.table_builder
     suite_builder.group prefix+"Table.cross_tab" pending=db_todo group_builder->
         data = Data.setup setup.table_builder

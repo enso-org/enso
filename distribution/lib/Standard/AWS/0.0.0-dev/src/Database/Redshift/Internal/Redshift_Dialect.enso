@@ -197,6 +197,7 @@ type Redshift_Dialect
         case feature of
             Feature.Offset -> False
             Feature.Generate_Rows -> False
+            Feature.Cross_Tab -> False
             _ -> True
 
     ## PRIVATE
