@@ -51,7 +51,7 @@ class EnsoLint(
         "--compile",
         path.getAbsoluteFile.toString,
         "--enable-static-analysis",
-        "--treat-warnings-as-errors"
+        "-Werror"
       ),
       log
     )

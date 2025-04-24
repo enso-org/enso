@@ -93,7 +93,7 @@ public class Main {
   private static final String NO_READ_IR_CACHES_OPTION = "no-read-ir-caches";
   private static final String DISABLE_PRIVATE_CHECK_OPTION = "disable-private-check";
   private static final String ENABLE_STATIC_ANALYSIS_OPTION = "enable-static-analysis";
-  private static final String TREAT_WARNINGS_AS_ERRORS_OPTION = "treat-warnings-as-errors";
+  private static final String TREAT_WARNINGS_AS_ERRORS_OPTION = "Werror";
   private static final String COMPILE_OPTION = "compile";
   private static final String NO_COMPILE_DEPENDENCIES_OPTION = "no-compile-dependencies";
   private static final String NO_GLOBAL_CACHE_OPTION = "no-global-cache";
@@ -483,7 +483,7 @@ public class Main {
             .build();
     var treatWarningsAsErrorsOption =
         cliOptionBuilder()
-            .longOpt(TREAT_WARNINGS_AS_ERRORS_OPTION)
+            .option(TREAT_WARNINGS_AS_ERRORS_OPTION)
             .desc("Treat compiler warnings as errors.")
             .build();
 
