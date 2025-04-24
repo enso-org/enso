@@ -25,7 +25,6 @@ import {
   deleteAssetsMutationOptions,
   downloadAssetsMutationOptions,
   getAllTrashedItems,
-  useUploadAssetsToCloud,
 } from '#/hooks/backendBatchedHooks'
 import {
   backendMutationOptions,
@@ -33,7 +32,7 @@ import {
   useNewFolder,
   useNewProject,
 } from '#/hooks/backendHooks'
-import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
+import { useUploadFiles, useUploadFileToCloudMutation } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useStore } from '#/hooks/storeHooks'
@@ -52,6 +51,7 @@ import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useUser } from '#/providers/AuthProvider'
+import { useLocalBackend } from '#/providers/BackendProvider'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { setModal, useSetModal } from '#/providers/ModalProvider'
@@ -65,6 +65,7 @@ import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import type { PropsWithChildren } from 'react'
+import invariant from 'tiny-invariant'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarToolbarProps {
@@ -306,7 +307,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 aria-label={getText('uploadFiles')}
                 onPress={uploadFilesCallback}
               />
-              <UploadFilesToCloudButton category={category} />
+              <UploadFilesToCloudButton backend={backend} category={category} />
               <Button
                 isDisabled={!canDownload}
                 variant="icon"
@@ -384,17 +385,19 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
 
 /** Props for {@link UploadFilesToCloudButton}. */
 export interface UploadFilesToCloudButtonProps {
+  readonly backend: Backend
   readonly category: Category
 }
 
 /** A button to upload assets to the cloud. */
 function UploadFilesToCloudButton(props: UploadFilesToCloudButtonProps) {
-  const { category } = props
+  const { backend, category } = props
 
   const user = useUser()
   const getAsset = useGetAsset()
   const { getText } = useText()
-  const uploadFilesToCloud = useUploadAssetsToCloud()
+  const localBackend = useLocalBackend()
+  const uploadFilesToCloud = useUploadFileToCloudMutation(backend)
   const isCloud = isCloudCategory(category)
   const driveStore = useDriveStore()
   const isDisabled = useStore(
@@ -407,12 +410,16 @@ function UploadFilesToCloudButton(props: UploadFilesToCloudButtonProps) {
   const isUnderPaywall = !canUploadToCloud
 
   const uploadFilesToCloudCallback = useEventCallback(async () => {
+    invariant(localBackend != null, 'Cannot upload to cloud when not on Local backend')
     const selectedIds = [...driveStore.getState().selectedIds]
     const files = selectedIds.flatMap((id) => {
       const asset = getAsset(id)
       return asset ? [asset] : []
     })
-    await uploadFilesToCloud(Array.from(files))
+    await uploadFilesToCloud(localBackend, {
+      assets: Array.from(files),
+      targetDirectoryId: user.rootDirectoryId,
+    })
   })
 
   return (

@@ -452,7 +452,7 @@ export function useUploadFileToCloudMutation(backend: Backend) {
       )
 
       return Promise.all([
-        async () => {
+        (async () => {
           if (conflictingAssets.length === 0) {
             return
           }
@@ -511,7 +511,7 @@ export function useUploadFileToCloudMutation(backend: Backend) {
             ],
             targetDirectoryId,
           })
-        },
+        })(),
         ...uploadableAssets.map(async (asset) => {
           try {
             const newName = asset.newName ?? asset.title

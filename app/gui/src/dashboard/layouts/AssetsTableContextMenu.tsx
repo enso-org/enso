@@ -104,12 +104,12 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   )
 
   const uploadFilesToCloudCallback = useEventCallback(async () => {
+    invariant(localBackend != null, 'Cannot upload to cloud when not on Local backend')
     const selectedIds = [...driveStore.getState().selectedIds]
     const files = selectedIds.flatMap((id) => {
       const asset = getAsset(id)
       return asset ? [asset] : []
     })
-    invariant(localBackend != null, 'Cannot upload to cloud when not on Local backend')
     await uploadFileToCloudMutation(localBackend, {
       assets: [...files],
       targetDirectoryId: user.rootDirectoryId,
