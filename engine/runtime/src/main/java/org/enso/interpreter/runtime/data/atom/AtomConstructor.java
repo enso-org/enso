@@ -592,7 +592,7 @@ public final class AtomConstructor extends EnsoObject {
   }
 
   @ExportMessage
-  Type getType(@Bind("$node") Node node) {
+  Type getType(@Bind Node node) {
     return EnsoContext.get(node).getBuiltins().function();
   }
 
@@ -602,7 +602,7 @@ public final class AtomConstructor extends EnsoObject {
   }
 
   @ExportMessage
-  Type getMetaObject(@Bind("$node") Node node) {
+  Type getMetaObject(@Bind Node node) {
     return EnsoContext.get(node).getBuiltins().function();
   }
 }

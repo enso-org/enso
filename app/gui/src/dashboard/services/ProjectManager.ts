@@ -6,10 +6,10 @@
 import invariant from 'tiny-invariant'
 
 import * as backend from '#/services/Backend'
-import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as newtype from '#/utilities/newtype'
 import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
+import { getFileName } from '../utilities/fileInfo'
 
 /** Duration before the {@link ProjectManager} tries to create a WebSocket again. */
 const RETRY_INTERVAL_MS = 1000
@@ -546,10 +546,20 @@ export default class ProjectManager {
       'json',
       parentId,
     )
-    const result = response.entries.map((entry) => ({
-      ...entry,
-      path: normalizeSlashes(entry.path),
-    }))
+    const result = response.entries
+      .filter((entry) => {
+        // Ignore hybrid project directories.
+        if (entry.type === FileSystemEntryType.DirectoryEntry) {
+          const directoryName = getFileName(entry.path)
+          return !backend.HYBRID_PROJECT_DIRECTORY_MASK.test(directoryName)
+        }
+
+        return true
+      })
+      .map((entry) => ({
+        ...entry,
+        path: normalizeSlashes(entry.path),
+      }))
 
     this.internalDirectories.set(parentId, result)
 
@@ -699,13 +709,10 @@ export default class ProjectManager {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       'cli-arguments': JSON.stringify([`--${name}`, ...cliArguments]),
     }).toString()
-    const response = await fetch(
-      `${appBaseUrl.APP_BASE_URL}/api/run-project-manager-command?${searchParams}`,
-      {
-        method: 'POST',
-        body,
-      },
-    )
+    const response = await fetch(`/api/run-project-manager-command?${searchParams}`, {
+      method: 'POST',
+      body,
+    })
     if (responseType === 'json') {
       // There is no way to avoid this as `JSON.parse` returns `any`.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

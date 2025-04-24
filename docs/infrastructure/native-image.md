@@ -23,16 +23,17 @@ Native Image is used for building the Launcher.
 - [Configuration](#configuration)
   - [`ensoup` Configuration](#ensoup-configuration)
   - [Project Manager Configuration](#project-manager-configuration)
+- [Tips and tricks](#tips-and-tricks)
 
 <!-- /MarkdownTOC -->
 
 ## Requirements
 
-### Native Image Component
+### GraalVM JDK
 
-The Native Image component has to be installed within the used GraalVM
-distribution. It can be installed by running
-`<path-to-graal-home>/bin/gu install native-image`.
+Since
+[GraalVM JDK 17](https://github.com/graalvm/graalvm-ce-builds/releases/tag/jdk-17.0.7),
+the `native-image` executable is part of the JDK release.
 
 ### Additional Linux Dependencies
 
@@ -316,3 +317,24 @@ $ ENSO_JAVA=espresso ./built-distribution/enso-engine-*/enso-*/bin/enso --run he
 ```
 
 to execute native image build of Enso together with Espresso.
+
+## Tips and tricks
+
+### Size
+
+Try to keep the size of the generated binary within reasonable limits. Since
+[GraalVM JDK 24](https://github.com/graalvm/graalvm-ce-builds/releases/tag/jdk-24.0.0),
+once can generate a
+[Build report](https://www.graalvm.org/jdk24/reference-manual/native-image/overview/build-report/)
+that allows to inspect classes, fields, methods, and other contents of the
+generated binary.
+
+### Helpful cmdline options
+
+- Since
+  [GraalVM JDK 24](https://github.com/graalvm/graalvm-ce-builds/releases/tag/jdk-24.0.0),
+  native image recognizes `NATIVE_IMAGE_OPTIONS` env var and prepends it to its
+  command line options. Use it, e.g., like
+  `env NATIVE_IMAGE_OPTIONS=--verbose sbt engine-runner/buildNativeImage`.
+- `--diagnostics` - generates a report with information about the generated
+  image - classes initialized at runtime and buildtime, cmdline options, etc.

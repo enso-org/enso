@@ -4,9 +4,6 @@ import * as React from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { SEARCH_PARAMS_PREFIX } from '#/appUtils'
-import FolderAddIcon from '#/assets/folder_add.svg'
-import Minus2Icon from '#/assets/minus2.svg'
-import SettingsIcon from '#/assets/settings.svg'
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -30,18 +27,15 @@ import { tv } from '#/utilities/tailwindVariants'
 import { twJoin } from 'tailwind-merge'
 
 import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
-import {
-  useCloudCategoryList,
-  useLocalCategoryList,
-} from '#/layouts/Drive/Categories/categoriesHooks'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { unsetModal } from '#/providers/ModalProvider'
 
-/** Metadata for a categoryModule.categoryType. */
+/** Metadata for a category. */
 interface CategoryMetadata {
   readonly isNested?: boolean
   readonly category: Category
-  readonly icon: string
+  readonly icon: ariaComponents.SvgUseIcon | (string & {})
   readonly label: string
   readonly buttonLabel: string
   readonly dropZoneLabel: string
@@ -249,8 +243,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
 
   const { isOffline } = offlineHooks.useOffline()
 
-  const cloudCategories = useCloudCategoryList()
-  const localCategories = useLocalCategoryList()
+  const { cloudCategories, localCategories } = useCategoriesAPI()
 
   const itemProps = { currentCategory: category, setCategoryId }
 
@@ -335,7 +328,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                 size="medium"
                 variant="icon"
                 extraClickZone="small"
-                icon={SettingsIcon}
+                icon="settings"
                 aria-label={getText('changeLocalRootDirectoryInSettings')}
                 className="my-auto opacity-0 transition-opacity group-hover:opacity-100"
                 onPress={() => {
@@ -366,7 +359,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                     size="medium"
                     variant="icon"
                     extraClickZone={false}
-                    icon={Minus2Icon}
+                    icon="minus"
                     aria-label={getText('removeDirectoryFromFavorites')}
                     showIconOnHover
                   />
@@ -389,13 +382,19 @@ function CategorySwitcher(props: CategorySwitcherProps) {
               <ariaComponents.Button
                 size="medium"
                 variant="icon"
-                icon={FolderAddIcon}
+                icon="folder_add_small"
                 loaderPosition="icon"
                 onPress={async () => {
                   const [newDirectory] =
                     (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+
                   if (newDirectory != null) {
-                    addDirectory(newDirectory)
+                    const addedDirectory = directories.find(
+                      (directory) => directory.rootPath === newDirectory,
+                    )
+
+                    const newCategory = addedDirectory ?? addDirectory(newDirectory)
+                    setCategoryId(newCategory.id)
                   }
                 }}
               >

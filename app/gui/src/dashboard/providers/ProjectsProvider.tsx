@@ -37,6 +37,7 @@ const PROJECT_SCHEMA = z
     parentId: DIRECTORY_ID_SCHEMA,
     title: z.string(),
     type: z.nativeEnum(backendModule.BackendType),
+    preventAutoReopen: z.boolean().optional(),
     hybrid: z.optional(
       z.object({
         cloudProjectId: PROJECT_ID_SCHEMA,
@@ -102,6 +103,17 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
   const [launchedProjects, setLaunchedProjects] = localStorageProvider.useLocalStorageState(
     'launchedProjects',
     array.EMPTY_ARRAY,
+    {
+      sanitize: (savedLaunchedProjects) =>
+        savedLaunchedProjects.map((project) => {
+          if (project.type === backendModule.BackendType.local && project.hybrid == null) {
+            return project
+          } else {
+            // Disallow Cloud projects and Hybrid projects from auto-opening
+            return { ...project, preventAutoReopen: true }
+          }
+        }),
+    },
   )
   const [page, setPage] = searchParamsState.useSearchParamsState(
     'page',
@@ -115,7 +127,9 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
     setLaunchedProjects((current) => [...current, project])
   })
   const removeLaunchedProject = eventCallbacks.useEventCallback((projectId: LaunchedProjectId) => {
-    setLaunchedProjects((current) => current.filter(({ id }) => id !== projectId))
+    setLaunchedProjects((current) =>
+      current.filter(({ id, hybrid }) => id !== projectId && hybrid?.cloudProjectId !== projectId),
+    )
   })
   const updateLaunchedProjects = eventCallbacks.useEventCallback(
     (update: (projects: readonly LaunchedProject[]) => readonly LaunchedProject[]) => {

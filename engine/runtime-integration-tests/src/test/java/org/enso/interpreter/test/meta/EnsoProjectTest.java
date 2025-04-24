@@ -25,10 +25,9 @@ public class EnsoProjectTest {
 
   @Test
   public void noProjectWhenEvaluatingSingleFile() {
-    try (var ctx = ContextUtils.createDefaultContext()) {
+    try (var ctx = ContextUtils.createDefault()) {
       var res =
-          ContextUtils.evalModule(
-              ctx,
+          ctx.evalModule(
               """
           from Standard.Base import all
           from Standard.Base.Errors.Common import Module_Not_In_Package_Error
@@ -105,13 +104,15 @@ public class EnsoProjectTest {
     var mainModFile = projDir.resolve("src").resolve("Main.enso");
     assertThat(mainModFile.toFile().exists(), is(true));
     try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+        ContextUtils.newBuilder()
+            .withModifiedContext(
+                bldr ->
+                    bldr.option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString()))
             .build()) {
       var mainSrc = Source.newBuilder(LanguageInfo.ID, mainModFile.toFile()).build();
       // First eval the source so that everything is compiled.
       ctx.eval(mainSrc);
-      var polyCtx = new PolyglotContext(ctx);
+      var polyCtx = new PolyglotContext(ctx.context());
       var mod = polyCtx.getTopScope().getModule("Standard.Base.Meta.Enso_Project");
       var assocType = mod.getAssociatedType();
       var ensoProjMethod = mod.getMethod(assocType, "enso_project").get();

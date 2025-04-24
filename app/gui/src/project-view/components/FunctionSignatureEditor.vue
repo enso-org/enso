@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { WidgetInput } from '@/providers/widgetRegistry'
+import { applyWidgetUpdates, WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
+import { useGraphStore } from '@/stores/graph'
 import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { documentationData } from '@/stores/suggestionDatabase/documentation'
@@ -48,7 +49,11 @@ const treeRootInput = computed((): WidgetInput => {
 
 const rootElement = ref<HTMLElement>()
 
-function handleWidgetUpdates() {
+const graph = useGraphStore()
+
+function handleWidgetUpdates(update: WidgetUpdate) {
+  applyWidgetUpdates(update, graph)
+  // This handler is guaranteed to be the last handler in the chain.
   return true
 }
 

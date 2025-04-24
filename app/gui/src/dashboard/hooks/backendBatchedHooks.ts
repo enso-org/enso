@@ -2,11 +2,14 @@
 import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
 import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
+import LocalBackend from '#/services/LocalBackend'
+import RemoteBackend from '#/services/RemoteBackend'
 import { getMessageOrToString } from '#/utilities/error'
 import { useMutationState, type Mutation, type QueryClient } from '@tanstack/react-query'
 import {
   DuplicateAssetError,
   FilterBy,
+  type AnyAsset,
   type AssetId,
   type default as Backend,
   type DirectoryId,
@@ -327,24 +330,47 @@ export async function getAllTrashedItems(
   )
 }
 
+/**
+ * Options for the "download" mutation.
+ */
+export interface DownloadAssetsMutationOptions {
+  readonly ids: readonly Pick<AnyAsset, 'id' | 'title'>[]
+  readonly targetDirectoryId: DirectoryId | null
+}
+
 /** Call "download" mutations for a list of assets. */
 export function downloadAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
-    mutationFn: async (infos: readonly { id: AssetId; title: string }[]) => {
-      const results = await Promise.allSettled(
-        infos.map(({ id, title }) => backend.download(id, title)),
-      )
-      const errors = results.flatMap((result): unknown =>
-        result.status === 'rejected' ? [result.reason] : [],
-      )
-      if (errors.length !== 0) {
-        throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
-          errors,
-          failed: errors.length,
-          total: infos.length,
+    mutationKey: [backend.type, 'downloadAssets'],
+    mutationFn: async (options: DownloadAssetsMutationOptions) => {
+      const { ids, targetDirectoryId } = options
+
+      // Downloading assets should be done in order, because we want to avoid potential
+      // race conditions.
+      const rejects = []
+      for (const { id, title } of ids) {
+        try {
+          await backend.download(id, title, targetDirectoryId)
+        } catch (error) {
+          rejects.push(error)
+        }
+      }
+
+      if (rejects.length !== 0) {
+        throw Object.assign(new Error(rejects.map(getMessageOrToString).join('\n')), {
+          errors: rejects,
+          failed: rejects.length,
+          total: ids.length,
         })
       }
       return null
+    },
+    meta: {
+      invalidates: [
+        [RemoteBackend.type, 'listDirectory'],
+        [LocalBackend.type, 'listDirectory'],
+      ],
+      awaitInvalidates: true,
     },
   })
 }

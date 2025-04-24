@@ -28,15 +28,24 @@ jobs:
   required-checks:
     name: WASM Required Checks
     runs-on: ubuntu-latest
-    needs: [wasm-checks]
+    needs: [wasm-changed-files, wasm-checks]
     if: always()
     steps:
       - name: Checks Summary
         run: |
           echo "WASM Checks: ${{ needs.wasm-checks.result }}"
 
-          if [[ "${{ needs.wasm-checks.result }}" == "failure" ]]; then
-            exit 1
-          fi
+          any_changed='${{ needs.wasm-changed-files.outputs.any_changed }}'
+
+          case '${{ needs.wasm-checks.result }}' in
+            'failure')
+              exit 1
+              ;;
+            'skipped' | 'cancelled')
+              if [[ "$any_changed" == 'true' ]]; then
+                exit 1
+              fi
+              ;;
+          esac
 
           echo "Success!"

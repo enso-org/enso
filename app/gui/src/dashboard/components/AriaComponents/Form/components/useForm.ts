@@ -60,6 +60,12 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
     `,
   )
 
+  // We need to disable the eslint rules here, because we call hooks conditionally
+  // but it's safe to do so, because we don't switch between the two types of arguments
+  // and if we do, we throw an error.
+
+  /* eslint-disable react-compiler/react-compiler */
+  /* eslint-disable react-hooks/rules-of-hooks */
   if ('formState' in optionsOrFormInstance) {
     return optionsOrFormInstance
   } else {
@@ -134,29 +140,32 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
       ),
     })
 
-    const register: types.UseFormRegister<Schema> = (name, opts) => {
-      const registered = formInstance.register(name, opts)
+    const register: types.UseFormRegister<Schema> = React.useCallback(
+      (name, opts) => {
+        const registered = formInstance.register(name, opts)
 
-      const onChange: types.UseFormRegisterReturn<Schema>['onChange'] = (value) =>
-        registered.onChange(mapValueOnEvent(value))
+        const onChange: types.UseFormRegisterReturn<Schema>['onChange'] = (value) =>
+          registered.onChange(mapValueOnEvent(value))
 
-      const onBlur: types.UseFormRegisterReturn<Schema>['onBlur'] = (value) =>
-        registered.onBlur(mapValueOnEvent(value))
+        const onBlur: types.UseFormRegisterReturn<Schema>['onBlur'] = (value) =>
+          registered.onBlur(mapValueOnEvent(value))
 
-      const result: types.UseFormRegisterReturn<Schema, typeof name> = {
-        ...registered,
-        disabled: registered.disabled ?? false,
-        isDisabled: registered.disabled ?? false,
-        invalid: !!formInstance.formState.errors[name],
-        isInvalid: !!formInstance.formState.errors[name],
-        required: registered.required ?? false,
-        isRequired: registered.required ?? false,
-        onChange,
-        onBlur,
-      }
+        const result: types.UseFormRegisterReturn<Schema, typeof name> = {
+          ...registered,
+          disabled: registered.disabled ?? false,
+          isDisabled: registered.disabled ?? false,
+          invalid: !!formInstance.formState.errors[name],
+          isInvalid: !!formInstance.formState.errors[name],
+          required: registered.required ?? false,
+          isRequired: registered.required ?? false,
+          onChange,
+          onBlur,
+        }
 
-      return result
-    }
+        return result
+      },
+      [formInstance],
+    )
 
     // We need to disable the eslint rules here, because we call hooks conditionally
     // but it's safe to do so, because we don't switch between the two types of arguments
@@ -181,7 +190,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
           }
 
           if (resetOnSubmit) {
-            formInstance.reset()
+            form.reset()
           }
 
           return result
@@ -248,8 +257,14 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
       formInstance.setError('root.submit', { message: error })
     })
 
+    const reset = useEventCallback(() => {
+      // eslint-disable-next-line no-restricted-syntax
+      formInstance.reset(options.defaultValues as types.FieldValues<Schema>)
+    })
+
     const form: types.UseFormReturn<Schema> = {
       ...formInstance,
+      reset,
       submit,
       // @ts-expect-error Our `UseFormRegister<Schema>` is the same as `react-hook-form`'s,
       // just with an added constraint.
@@ -264,8 +279,8 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
 
     return form
   }
-  /* eslint-enable react-compiler/react-compiler */
   /* eslint-enable react-hooks/rules-of-hooks */
+  /* eslint-enable react-compiler/react-compiler */
 }
 
 /** Get the type of arguments passed to the useForm hook */

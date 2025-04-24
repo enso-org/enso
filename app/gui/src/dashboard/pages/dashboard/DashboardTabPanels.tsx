@@ -7,7 +7,7 @@ import { TabPanel, type TabPanelRenderProps } from '#/components/aria'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useOpenProjectMutation, useRenameProjectMutation } from '#/hooks/projectHooks'
+import { useRenameProjectMutation } from '#/hooks/projectHooks'
 import { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useLaunchedProjects, usePage } from '#/providers/ProjectsProvider'
 import { BackendType, type ProjectId } from '#/services/Backend'
@@ -33,7 +33,6 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
   const page = usePage()
 
   const launchedProjects = useLaunchedProjects()
-  const openProjectMutation = useOpenProjectMutation()
   const renameProjectMutation = useRenameProjectMutation()
   const remoteBackend = useRemoteBackend()
   const localBackend = useLocalBackend()
@@ -62,11 +61,10 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
     {
       id: 'drive',
       className: 'flex min-h-0 grow [&[data-inert]]:hidden',
-      wrapInActivity: true,
-      shouldForceMount: true,
+      wrapInActivity: false,
+      shouldForceMount: false,
       children: <LazyDrive initialProjectName={initialProjectName} />,
     },
-
     ...launchedProjects.map((project) => ({
       id: project.id,
       shouldForceMount: true,
@@ -78,17 +76,14 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
           ydocUrl={ydocUrl}
           project={project}
           projectId={project.id}
-          isOpeningFailed={openProjectMutation.isError}
-          openingError={openProjectMutation.error}
-          startProject={openProjectMutation.mutate}
           renameProject={onRenameProject}
         />
       ),
     })),
-
     {
       id: 'settings',
-      wrapInActivity: true,
+      wrapInActivity: false,
+      shouldForceMount: false,
       className: 'flex min-h-0 grow',
       children: <LazySettings />,
     },
@@ -105,6 +100,8 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
               </Suspense>
             )
 
+            // Activity is very experimental and not yet ready for use.
+            // We need to figure it out how to hide portals, tooltips and disable keyboard shortcuts.
             if (tabPanelProps.wrapInActivity) {
               return (
                 <Activity mode={state.selectedKey === tabPanelProps.id ? 'active' : 'inactive'}>

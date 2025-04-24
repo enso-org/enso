@@ -1,13 +1,13 @@
 from Standard.Base import all
 
-import project.Internal.IR.Context.Context
 import project.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 
 ## PRIVATE
 
    Describes a full SQL query.
-type Query
+type SQL_IR_Statement
 
     ## PRIVATE
 
@@ -18,8 +18,8 @@ type Query
          is a pair whose first element is the name of the materialized column
          and the second element is the expression to compute. If `Nothing` is
          provided, all available columns will be selected.
-       - context: The query context, see `Context` for more detail.
-    Select (expressions : Nothing | Vector (Pair Text SQL_Expression)) (context : Context)
+       - context: The query context, see `SQL_IR_Source` for more detail.
+    Select (expressions : Nothing | Vector (Pair Text SQL_IR_Expression)) (context : SQL_IR_Source)
 
     ## PRIVATE
 
@@ -28,7 +28,7 @@ type Query
        Arguments:
        - table_name: The name of the table to insert to.
        - pairs: A list of pairs consisting of a column name and and expression.
-    Insert (table_name : Text) (pairs : Vector (Pair Text SQL_Expression))
+    Insert (table_name : Text) (pairs : Vector (Pair Text SQL_IR_Expression))
 
     ## PRIVATE
 
@@ -73,7 +73,7 @@ type Query
        - select: the query whose results will be inserted into the target table.
          The columns in that query should correspond to the columns in specified
          in `column_names`, matching by position.
-    Insert_From_Select (table_name:Text) (column_names : Vector Text) (select:Query)
+    Insert_From_Select (table_name:Text) (column_names : Vector Text) (select:SQL_IR_Statement)
 
     ## PRIVATE
        An SQL UPDATE query that updates rows in the target table with values
@@ -109,22 +109,22 @@ type Query
        A bottom-up, depth-first traversal of this IR node and its children. Each
        node is passed to the provided function, and the return value of the
        function replaces this node in the tree.
-    traverse : (Any -> Any) -> Query
-    traverse self f -> Query =
+    traverse : (Any -> Any) -> SQL_IR_Statement
+    traverse self f -> SQL_IR_Statement =
         rec e = e.traverse f
         do_name_exps pairs = pairs.if_not_nothing (pairs.map pair-> [pair.first, rec pair.second])
 
         new_query = case self of
-            Query.Select expressions context ->
-                Query.Select (do_name_exps expressions) (rec context)
-            Query.Insert table_name pairs ->
-                Query.Insert table_name (do_name_exps pairs)
-            Query.Create_Table _ _ _ _ -> self
-            Query.Drop_Table _ _ -> self
-            Query.Truncate_Table _ -> self
-            Query.Insert_From_Select table_name column_names select ->
-                Query.Insert_From_Select table_name column_names (rec select)
-            Query.Update_From_Table _ _ _ _ -> self
-            Query.Delete_Unmatched_Rows _ _ _ -> self
-            Query.Delete_Matching_Rows _ _ _ -> self
+            SQL_IR_Statement.Select expressions context ->
+                SQL_IR_Statement.Select (do_name_exps expressions) (rec context)
+            SQL_IR_Statement.Insert table_name pairs ->
+                SQL_IR_Statement.Insert table_name (do_name_exps pairs)
+            SQL_IR_Statement.Create_Table _ _ _ _ -> self
+            SQL_IR_Statement.Drop_Table _ _ -> self
+            SQL_IR_Statement.Truncate_Table _ -> self
+            SQL_IR_Statement.Insert_From_Select table_name column_names select ->
+                SQL_IR_Statement.Insert_From_Select table_name column_names (rec select)
+            SQL_IR_Statement.Update_From_Table _ _ _ _ -> self
+            SQL_IR_Statement.Delete_Unmatched_Rows _ _ _ -> self
+            SQL_IR_Statement.Delete_Matching_Rows _ _ _ -> self
         f new_query

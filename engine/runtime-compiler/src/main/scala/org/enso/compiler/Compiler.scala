@@ -306,7 +306,7 @@ class Compiler(
 
     val requiredModules = modules.flatMap { module =>
       val isLoadedFromSource =
-        (m: Module) => !context.wasLoadedFromCache(m) && !context.isSynthetic(m)
+        (m: Module) => !context.wasLoadedFromCache(m) && !m.isSynthetic()
       val importedModules = runImportsAndExportsResolution(
         module,
         generateCode && context.wasLoadedFromCache(module)
@@ -318,12 +318,12 @@ class Compiler(
       ) {
         val importedModulesLoadedFromSource = importedModules
           .filter(isLoadedFromSource)
-          .map(context.getModuleName)
+          .map(_.getName)
         context.log(
           Compiler.defaultLogLevel,
           "{} imported module caches were invalided, forcing invalidation of {}. [{}]",
           importedModulesLoadedFromSource.length,
-          context.getModuleName(module).toString,
+          module.getName().toString,
           importedModulesLoadedFromSource.take(10).mkString("", ",", "...")
         )
         context.updateModule(module, _.invalidateCache())
@@ -358,8 +358,8 @@ class Compiler(
     }
     requiredModules.foreach { module =>
       if (
-        !context
-          .getCompilationStage(module)
+        !module
+          .getCompilationStage()
           .isAtLeast(
             CompilationStage.AFTER_GLOBAL_TYPES
           )
@@ -373,7 +373,7 @@ class Compiler(
         )
         val compilerOutput =
           runGlobalTypingPasses(
-            context.getIr(module),
+            module.getIr(),
             moduleContext,
             irDumper = getOrCreateDumper(module)
           )
@@ -391,8 +391,8 @@ class Compiler(
 
       requiredModules.foreach { module =>
         if (
-          !context
-            .getCompilationStage(module)
+          !module
+            .getCompilationStage()
             .isAtLeast(
               CompilationStage.AFTER_STATIC_PASSES
             )
@@ -407,7 +407,7 @@ class Compiler(
           )
           val compilerOutput =
             runMethodBodyPasses(
-              context.getIr(module),
+              module.getIr(),
               moduleContext,
               irDumper = getOrCreateDumper(module)
             )
@@ -423,8 +423,8 @@ class Compiler(
 
       requiredModules.foreach { module =>
         if (
-          !context
-            .getCompilationStage(module)
+          !module
+            .getCompilationStage()
             .isAtLeast(
               CompilationStage.AFTER_TYPE_INFERENCE_PASSES
             )
@@ -439,7 +439,7 @@ class Compiler(
           )
           val compilerOutput =
             runFinalTypeInferencePasses(
-              context.getIr(module),
+              module.getIr(),
               moduleContext,
               irDumper = getOrCreateDumper(module)
             )
@@ -457,8 +457,8 @@ class Compiler(
 
       val requiredModulesWithScope = requiredModules.map { module =>
         if (
-          !context
-            .getCompilationStage(module)
+          !module
+            .getCompilationStage()
             .isAtLeast(
               CompilationStage.AFTER_RUNTIME_STUBS
             )
@@ -479,8 +479,8 @@ class Compiler(
 
       requiredModulesWithScope.foreach { case (module, moduleScopeBuilder) =>
         if (
-          !context
-            .getCompilationStage(module)
+          !module
+            .getCompilationStage()
             .isAtLeast(
               CompilationStage.AFTER_CODEGEN
             )
@@ -490,7 +490,7 @@ class Compiler(
             context.log(
               Compiler.defaultLogLevel,
               "Generating code for module [{0}].",
-              context.getModuleName(module)
+              module.getName()
             )
 
             context.truffleRunCodegen(module, moduleScopeBuilder, config)
@@ -512,10 +512,10 @@ class Compiler(
               irCachingEnabled && !context.wasLoadedFromCache(module)
             if (
               shouldStoreCache && !hasErrors(module) &&
-              !context.isInteractive(module) && !context.isSynthetic(module)
+              !context.isInteractive(module) && !module.isSynthetic()
             ) {
               if (isInteractiveMode) {
-                context.notifySerializeModule(context.getModuleName(module))
+                context.notifySerializeModule(module.getName())
               } else {
                 context.serializeModule(
                   this,
@@ -529,7 +529,7 @@ class Compiler(
             context.log(
               Compiler.defaultLogLevel,
               "Skipping serialization for [{0}].",
-              context.getModuleName(module)
+              module.getName()
             )
           }
         }
@@ -599,7 +599,7 @@ class Compiler(
         false
       )
     }
-    if (context.isSynthetic(module)) {
+    if (module.isSynthetic()) {
       // Synthetic modules need to be import-analyzed
       // i.e. we need to fill in resolved{Imports/Exports} and exportedSymbols in bindings
       // because we do not generate (and deserialize) IR for them
@@ -632,7 +632,7 @@ class Compiler(
       irCachingEnabled && !context.isInteractive(module),
       false
     )
-    val importedModules = context.getIr(module).imports.flatMap {
+    val importedModules = module.getIr().imports.flatMap {
       case imp: Import.Module =>
         imp.name.parts.take(2).map(_.name) match {
           case List(namespace, name) => List(LibraryName(namespace, name))
@@ -645,8 +645,7 @@ class Compiler(
         Nil
       case other =>
         throw new CompilerError(
-          s"Unexpected import type after processing ${context
-            .getModuleName(module)}: [$other]."
+          s"Unexpected import type after processing ${module.getName()}: [$other]."
         )
     }
     importedModules.distinct.map(_.qualifiedName).toArray
@@ -661,7 +660,7 @@ class Compiler(
     context.log(
       Compiler.defaultLogLevel,
       "Parsing module [{0}].",
-      context.getModuleName(module)
+      module.getName()
     )
     context.updateModule(module, _.resetScope())
 
@@ -697,7 +696,7 @@ class Compiler(
     context.log(
       Compiler.defaultLogLevel,
       "Loading module [{0}] from source.",
-      context.getModuleName(module)
+      module.getName()
     )
     context.updateModule(module, _.resetScope())
 
@@ -708,12 +707,12 @@ class Compiler(
       isGeneratingDocs = generateDocs
     )
 
-    val src   = context.getCharacters(module)
+    val src   = module.getCharacters()
     val idMap = Option(context.getIdMap(module))
     val expr  = EnsoParser.compile(src, idMap.map(_.values).orNull)
 
     val exprWithModuleExports =
-      if (context.isSynthetic(module))
+      if (module.isSynthetic())
         expr
       else
         injectSyntheticModuleExports(expr, module.getDirectModulesRefs)
@@ -775,8 +774,8 @@ class Compiler(
     generateDocs: Boolean
   ): Unit = {
     if (
-      !context
-        .getCompilationStage(module)
+      !module
+        .getCompilationStage()
         .isAtLeast(
           CompilationStage.AFTER_PARSING
         )
@@ -1021,7 +1020,7 @@ class Compiler(
   private def gatherDiagnostics(module: Module): List[Diagnostic] = {
     GatherDiagnostics
       .runModule(
-        context.getIr(module),
+        module.getIr(),
         ModuleContext(module, compilerConfig = config)
       )
       .unsafeGetMetadata(

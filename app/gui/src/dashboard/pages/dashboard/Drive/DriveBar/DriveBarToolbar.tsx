@@ -180,7 +180,10 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const downloadFilesCallback = useEventCallback(async () => {
     unsetModal()
     const { selectedAssets } = driveStore.getState()
-    await downloadAssetsMutation(selectedAssets)
+    await downloadAssetsMutation({
+      ids: selectedAssets,
+      targetDirectoryId: null,
+    })
   })
 
   const searchBar = (

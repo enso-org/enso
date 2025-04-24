@@ -69,7 +69,7 @@ import {
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
-import { canTransferBetweenCategories, type Category } from '#/layouts/CategorySwitcher/Category'
+import { type Category } from '#/layouts/CategorySwitcher/Category'
 import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import DragModal from '#/modals/DragModal'
@@ -300,6 +300,22 @@ function AssetsTable(props: AssetsTableProps) {
   useEffect(() => {
     setNewestFolderId(null)
   }, [category, setNewestFolderId])
+
+  // temporary solution to update the asset panel when the selected asset changes
+  useEffect(() => {
+    const selectedIds = driveStore.getState().selectedIds
+
+    if (selectedIds.size === 1) {
+      const [soleId] = selectedIds
+      const asset = soleId == null ? null : assets.find((otherAsset) => otherAsset.id === soleId)
+
+      if (asset) {
+        setAssetPanelProps({ item: asset })
+      } else {
+        setAssetPanelProps({ item: null })
+      }
+    }
+  }, [assets, driveStore, setAssetPanelProps])
 
   useEffect(
     () =>
@@ -797,7 +813,7 @@ function AssetsTable(props: AssetsTableProps) {
   const doOpenProject = useEventCallback((projectId: ProjectId) => {
     const project = assets.find((asset) => asset.id === projectId)
 
-    if (project == null || project.type !== AssetType.project) {
+    if (project?.type !== AssetType.project) {
       return Promise.resolve()
     }
 
@@ -841,25 +857,24 @@ function AssetsTable(props: AssetsTableProps) {
 
     const { pasteData } = driveStore.getState()
 
-    if (
-      pasteData?.data.backendType === backend.type &&
-      canTransferBetweenCategories(pasteData.data.category, category, newParentId)
-    ) {
-      if (pasteData.data.assets.some((asset) => asset.id === newParentKey)) {
-        toast.error('Cannot paste a folder into itself.')
-        return
-      }
-
-      void paste({
-        fromCategory: pasteData.data.category,
-        toCategory: category,
-        newParentId,
-        pasteData: pasteData.data,
-        method: pasteData.type,
-      })
-
-      setPasteData(null)
+    if (pasteData == null) {
+      return
     }
+
+    if (pasteData.data.assets.some((asset) => asset.id === newParentKey)) {
+      toast.error('Cannot paste a folder into itself.')
+      return
+    }
+
+    void paste({
+      fromCategory: pasteData.data.category,
+      toCategory: category,
+      newParentId,
+      pasteData: pasteData.data,
+      method: pasteData.type,
+    })
+
+    setPasteData(null)
   })
 
   const hiddenContextMenu =

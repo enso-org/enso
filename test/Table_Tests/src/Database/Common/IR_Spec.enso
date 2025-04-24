@@ -4,7 +4,7 @@ import Standard.Base.Runtime.Ref.Ref
 from Standard.Table import Join_Condition, Join_Kind, Table
 
 from Standard.Database import all
-import Standard.Database.Internal.IR.Query.Query
+import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 
 from Standard.Test import all
 import Standard.Test.Suite.Suite_Builder
@@ -55,13 +55,13 @@ add_specs (suite_builder : Suite_Builder) setup (prefix : Text) default_connecti
         group_builder.teardown <|
             data.teardown
 
-        group_builder.specify "should be able to traverse a Query to reconstruct it" <|
+        group_builder.specify "should be able to traverse a SQL_IR_Statement to reconstruct it" <|
             col = data.t1 . at "a"
             a = col.round * col.round rounding_mode=Rounding_Mode.Bankers
             a_query = a.to_table.to_select_query
             a_query.traverse (x->x) . should_equal a_query
 
-        group_builder.specify "should be able to traverse a Query to count nodes" <|
+        group_builder.specify "should be able to traverse a SQL_IR_Statement to count nodes" <|
             col = data.t1 . at "a"
             a = col.round * col.round rounding_mode=Rounding_Mode.Bankers
             a_sub = (a . rename "p" . to_table . as_subquery . at "p")

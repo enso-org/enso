@@ -8,7 +8,7 @@ from Standard.Table.Errors import all
 from Standard.Database import all
 from Standard.Database.Errors import all
 import Standard.Database.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor
-import Standard.Database.Internal.IR.Query.Query
+import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 
 from Standard.Test import all
 import Standard.Test.Suite.Suite_Builder
@@ -432,7 +432,7 @@ add_commmon_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connec
             connection = default_connection.get
             name = Name_Generator.random_name "clashing-table"
             statement = connection.dialect.generate_sql <|
-                Query.Create_Table name [Create_Column_Descriptor.Value "x" "CHAR" []] primary_key=Nothing temporary=True
+                SQL_IR_Statement.Create_Table name [Create_Column_Descriptor.Value "x" "CHAR" []] primary_key=Nothing temporary=True
 
             Problems.assume_no_problems <| connection.execute_update statement
 

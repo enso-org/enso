@@ -4,23 +4,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import com.oracle.truffle.api.dsl.UnsupportedSpecializationException;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.function.Supplier;
-import java.util.logging.Level;
-import org.enso.common.LanguageInfo;
-import org.enso.common.MethodNames.TopScope;
-import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.EnsoLanguage;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.io.IOAccess;
-import org.junit.After;
-import org.junit.Before;
+import org.enso.test.utils.ContextUtils;
+import org.junit.Rule;
 import org.junit.Test;
 
 /**
@@ -32,6 +24,8 @@ import org.junit.Test;
  * <p>These tests checks this contract.
  */
 public class ThrowableCatchTest {
+  @Rule public final ContextUtils ctxRule = ContextUtils.createDefault();
+
   private static List<Class<?>> shouldBeHandledExceptionTypes =
       List.of(UnsupportedSpecializationException.class);
 
@@ -42,35 +36,7 @@ public class ThrowableCatchTest {
           CustomError::new,
           ThreadDeath::new);
 
-  private Context ctx;
-  private EnsoContext ensoCtx;
-
   private static class CustomError extends Error {}
-
-  @Before
-  public void setup() {
-    ctx =
-        Context.newBuilder()
-            .allowExperimentalOptions(true)
-            .allowIO(IOAccess.ALL)
-            .allowAllAccess(true)
-            .logHandler(System.err)
-            .option(RuntimeOptions.STRICT_ERRORS, "true")
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .build();
-    ensoCtx = ctx.getBindings(LanguageInfo.ID).invokeMember(TopScope.LEAK_CONTEXT).asHostObject();
-    ctx.initialize(LanguageInfo.ID);
-    ctx.enter();
-  }
-
-  @After
-  public void tearDown() {
-    ctx.leave();
-    ctx.close();
-  }
 
   @Test
   public void testMostErrorsCanPropagateFromBuiltinMethods() {

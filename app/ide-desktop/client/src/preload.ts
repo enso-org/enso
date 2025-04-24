@@ -193,8 +193,8 @@ exposeInMainWorld(MENU_API_KEY, {
 // ==================
 
 exposeInMainWorld(SYSTEM_API_KEY, {
-  downloadURL: (url: string, headers?: Record<string, string>) => {
-    electron.ipcRenderer.send(ipc.Channel.downloadURL, url, headers)
+  downloadURL: (url: string, path?: string, filename?: string) => {
+    return electron.ipcRenderer.invoke(ipc.Channel.downloadURL, url, path, filename)
   },
   showItemInFolder: (fullPath: string) => {
     electron.ipcRenderer.send(ipc.Channel.showItemInFolder, fullPath)

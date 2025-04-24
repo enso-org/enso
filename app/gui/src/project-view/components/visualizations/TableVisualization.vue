@@ -321,6 +321,8 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
   }
 }
 
+const attepmtedCalls = ref(0)
+
 function createServer() {
   return {
     getSetFilterValues: async (columnIndex?: number) => {
@@ -337,14 +339,9 @@ function createServer() {
     },
     getData: async (request: IServerSideGetRowsRequest) => {
       const columnHeaders =
-        typeof props.data === 'object' && 'header' in props.data ?
-          props.data.header ?
-            props.data.header
-          : []
-        : []
+        typeof props.data === 'object' && 'header' in props.data ? (props.data.header ?? []) : []
 
       const { sortColIndexes, sortDirections } = convertSortModel(request, columnHeaders)
-
       const { filterColumnIndexList, filterActions, valueList } = convertFilterModel(
         request,
         columnHeaders,
@@ -367,16 +364,26 @@ function createServer() {
         //values to filter on
         valueList as string[] | 'Nothing',
       )
+
       const response = await config.executeExpression(expressionFunction)
+
       if (response.ok) {
         return {
           success: true,
           data: response.value.rows,
+          rowCount: response.value.row_count,
         }
       } else {
+        if (attepmtedCalls.value < 3) {
+          grid.value?.gridApi?.refreshServerSide({ purge: true })
+          attepmtedCalls.value++
+          return
+        }
+        console.error('Error loading rows:', response.error)
         return {
           success: false,
           data: null,
+          rowCount: undefined,
         }
       }
     },
@@ -386,17 +393,19 @@ function createServer() {
 interface Response {
   data: unknown[][]
   success: boolean
+  rowCount: number
 }
 function createServerSideDatasource(): IServerSideDatasource {
   return {
     getRows: async (params) => {
       const server = ssrmServer.value
       if (server) {
-        const response: Response = await server.getData(params.request)
-        const rows = createRowsForTable(response.data, 0, true)
-
+        const serverResponse = await server.getData(params.request)
+        const response: Response =
+          serverResponse ? serverResponse : { data: [], success: false, rowCount: 0 }
         if (response.success) {
-          params.success({ rowData: rows })
+          const rows = createRowsForTable(response.data, 0, true)
+          params.success({ rowData: rows, rowCount: response.rowCount })
         } else {
           params.fail()
         }
@@ -504,6 +513,13 @@ function getFilterOptions(valueType: string) {
     return null
   }
 }
+function getFilterButtons(valueType: string) {
+  if (valueType === 'Date') {
+    return ['apply', 'clear']
+  } else {
+    return ['clear']
+  }
+}
 
 function getCellDataType(valueType: string) {
   if (valueType === 'Date') {
@@ -539,6 +555,7 @@ function toField(
   const icon = valueType ? getValueTypeIcon(valueType.constructor) : null
   const filterType = valueType ? getFilterType(valueType.constructor) : null
   const filterOptions = valueType ? getFilterOptions(valueType.constructor) : null
+  const filterButtons = valueType ? getFilterButtons(valueType.constructor) : null
   const cellValueType = valueType ? getCellDataType(valueType.constructor) : false
 
   const dataQualityMetrics =
@@ -578,7 +595,7 @@ function toField(
       maxNumConditions: 1,
       values: getFilterValues,
       filterOptions: filterOptions,
-      buttons: ['clear'],
+      buttons: filterButtons,
     },
     headerComponentParams: {
       template,
@@ -805,6 +822,7 @@ watchEffect(() => {
           ...dataHeader,
         ]
       : dataHeader
+
     if (!data_.is_using_server_sort_and_filter) {
       const hasIndexRow =
         config.nodeType === TABLE_NODE_TYPE ||
@@ -970,6 +988,11 @@ function checkSortAndFilter(e: SortChangedEvent) {
   }
 }
 
+const refreshGrid = () => {
+  grid.value?.gridApi?.setFilterModel(null)
+  grid.value?.gridApi?.resetColumnState()
+}
+
 // ===============
 // === Updates ===
 // ===============
@@ -990,6 +1013,7 @@ config.setToolbar(
     isFilterSortNodeEnabled,
     createNodes: config.createNodes,
     getColumnValueToEnso,
+    refreshGrid,
   }),
 )
 </script>
@@ -1034,6 +1058,7 @@ config.setToolbar(
         :rowCount="allRowCount"
         :isServerSideModel="isSSRM"
         :statusBar="statusBar"
+        :gridIdHash="tableVersionHash"
         @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
       />
     </Suspense>
