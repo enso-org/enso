@@ -16,11 +16,10 @@ class EnsoLint(
     val success = what match {
       case EnsoLint.LintTarget.FindByName(name) =>
         val foundByName = allProjects.filter(_.name == name)
-        val project =
-          if (foundByName.length == 1)
-            foundByName.head
-          else
-            EnsoProjects.ofPath(Path.of(name))
+        val project = foundByName match {
+          case Seq(proj) => proj
+          case _ => EnsoProjects.ofPath(Path.of(name))
+        }
         runCompiler(project.path.toFile)
       case EnsoLint.LintTarget.All =>
         runAll(allProjects)
