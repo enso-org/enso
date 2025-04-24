@@ -1312,6 +1312,31 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     }
   }
 
+  @Ignore("TODO")
+  @Test
+  public void returnWrongType() throws Exception {
+    final URI uri = new URI("memory://returnWrongType.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+            type My_Type
+                Value v
+
+            type Other_Type
+                Constructor v
+
+            foo -> My_Type = Other_Type.Constructor 1
+            """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = ModuleUtils.findStaticMethod(module, "foo");
+    assertTypeMismatch(foo, "My_Type", "Other_Type");
+  }
+
   @Test
   public void callingFieldGetters() throws Exception {
     final URI uri = new URI("memory://callingFieldGetters.enso");
