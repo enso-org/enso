@@ -3,6 +3,7 @@ use crate::prelude::*;
 use crate::ci::input;
 use crate::ci_gen::job::prepare_packaging_steps;
 use crate::ci_gen::job::RunsOn;
+use crate::engine;
 use crate::engine::env;
 use crate::version::promote::Designation;
 use crate::version::ENSO_EDITION;
@@ -625,15 +626,34 @@ pub fn add_backend_checks_customized(
     native_image_mode: bool,
     continue_on_error: impl Fn(&Target) -> Option<bool>,
 ) {
-    workflow.add_customized(target, job::CiCheckBackend { graal_edition }, |job| {
-        job.continue_on_error = continue_on_error(&target);
-    });
-    workflow.add_customized(target, job::JvmTests { graal_edition }, |job| {
-        job.continue_on_error = continue_on_error(&target);
-    });
-    workflow.add_customized(
+    let engine_launcher = if native_image_mode {
+        engine::EngineLauncher::TestNative
+    } else {
+        engine::EngineLauncher::Shell
+    };
+    let build_engine_distribution_id =
+        workflow.add(target, job::BuildEngineDistribution { graal_edition, engine_launcher });
+
+    workflow.add_dependent_customized(
+        target,
+        job::CiCheckBackend { graal_edition },
+        &[build_engine_distribution_id.clone()],
+        |job| {
+            job.continue_on_error = continue_on_error(&target);
+        },
+    );
+    workflow.add_dependent_customized(
+        target,
+        job::JvmTests { graal_edition },
+        &[build_engine_distribution_id.clone()],
+        |job| {
+            job.continue_on_error = continue_on_error(&target);
+        },
+    );
+    workflow.add_dependent_customized(
         target,
         job::StandardLibraryTests { graal_edition, cloud_tests_enabled: false, native_image_mode },
+        &[build_engine_distribution_id],
         |job| {
             job.continue_on_error = continue_on_error(&target);
         },
