@@ -25,7 +25,7 @@ public abstract class GetAtomConstructorNode extends Node {
     var cons = atom.getConstructor();
     if (cons.getType().hasAllConstructorsPrivate()) {
       var ctx = EnsoContext.get(this);
-      var err = ctx.getBuiltins().error().makePrivateAccessError("", "", "");
+      var err = ctx.getBuiltins().error().makePrivateAccessError(null, null, "constructor");
       return DataflowError.withDefaultTrace(err, this);
     }
     return cons;

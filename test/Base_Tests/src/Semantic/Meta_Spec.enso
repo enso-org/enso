@@ -102,11 +102,16 @@ add_specs suite_builder =
             atom = Public_Type.new 6*7
             meta = Meta.meta atom
 
-            # constructor is inaccessible
-            meta.constructor . should_fail_with Private_Access
+            cons = meta.constructor
 
-            # fields should be invisible
-            meta.constructor.fields . should_fail_with Private_Access
+            # constructor is inaccessible
+            cons . should_fail_with Private_Access
+
+            cons.catch.to_display_text . should_equal
+                "Private access error: The project-private method 'constructor' in unknown project cannot be accessed from unknown project."
+
+            # fields cannot be obtained as cons is already an error
+            cons.fields . should_fail_with Private_Access
 
         group_builder.specify "should allow creating atoms from atom constructors" <|
             atom_1 = Meta.meta My_Type.Value . new [1,"foo", Nothing]
