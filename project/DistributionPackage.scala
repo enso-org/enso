@@ -364,12 +364,7 @@ object DistributionPackage {
       case Some(whatToRun) =>
         val pathToRun       = file(whatToRun).toPath
         val projectName     = pathToRun.getFileName.toString
-        val isTestDirectory = pathToRun.getParent.getFileName.toString == "test"
-        if (isTestDirectory && projectName.endsWith("_Tests")) {
-          projectName.contains("_Internal_")
-        } else {
-          false
-        }
+        EnsoProjects.Project(None, projectName, pathToRun).usesPrivateAccess
       case None => false
     }
 
