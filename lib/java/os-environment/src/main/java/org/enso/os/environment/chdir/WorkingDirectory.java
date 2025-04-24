@@ -55,7 +55,7 @@ public abstract sealed class WorkingDirectory
    * @param path Can be absolute or relative. Not null.
    * @return null if project root was not found, a canonical path otherwise.
    */
-  public String findProjectRoot(String path) {
+  public final String findProjectRoot(String path) {
     assert path != null;
     var nativeApi = WorkingDirectory.getInstance();
     String curPath;
