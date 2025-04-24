@@ -46,6 +46,7 @@ class TopScope(private val value: Value) {
     val docsArg = generateDocs.map {
       case "api" => "api"
       case "md"  => "md"
+      case "type-coverage" => "type-coverage"
       case other =>
         throw new IllegalStateException("Invalid docs format: " + other)
     }
