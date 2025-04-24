@@ -13,7 +13,6 @@ import src.main.scala.licenses.{
   SBTDistributionComponent
 }
 
-import java.nio.file.Path
 import scala.sys.process._
 
 // This import is unnecessary, but bit adds a proper code completion features
