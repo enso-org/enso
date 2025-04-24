@@ -739,7 +739,7 @@ replace args metadata =
                     _ ->
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ pair.second ++ ", 1, 1)"
         Regex ->
-            pair = if raw_pattern.pattern!="(?:\s)\s+" || replacement!=empty_string then [raw_pattern.pattern, replacement] else
+            pair = if raw_pattern.pattern!="(?<=\s)\s+" || replacement!=empty_string then [raw_pattern.pattern, replacement] else
                 ["(\s)\s+", SQL_Builder.interpolation "$1"]
             pattern_text = SQL_Builder.interpolation pair.first
             case replace_params.only_first of
