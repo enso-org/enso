@@ -14,7 +14,7 @@ on:
         default: false
 jobs:
   enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-linux-amd64:
-    name: Build Engine Distribution (GraalVM CE) (linux, amd64)
+    name: Build Engine Distribution (shell) (GraalVM CE) (linux, amd64)
     runs-on:
       - self-hosted
       - Linux
@@ -60,7 +60,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          name: engine-distribution-linux
+          name: engine-distribution-shell-linux
           path: built-distribution.tar
       - name: Cleanup
         run: rm built-distribution.tar
@@ -73,7 +73,7 @@ jobs:
       ENSO_LAUNCHER: shell
       GRAAL_EDITION: GraalVM CE
   enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-aarch64:
-    name: Build Engine Distribution (GraalVM CE) (macos, aarch64)
+    name: Build Engine Distribution (shell) (GraalVM CE) (macos, aarch64)
     runs-on:
       - self-hosted
       - macOS
@@ -120,7 +120,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          name: engine-distribution-macos
+          name: engine-distribution-shell-macos
           path: built-distribution.tar
       - name: Cleanup
         run: rm built-distribution.tar
@@ -133,7 +133,7 @@ jobs:
       ENSO_LAUNCHER: shell
       GRAAL_EDITION: GraalVM CE
   enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64:
-    name: Build Engine Distribution (GraalVM CE) (macos, amd64)
+    name: Build Engine Distribution (shell) (GraalVM CE) (macos, amd64)
     runs-on:
       - macos-13
     steps:
@@ -178,7 +178,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          name: engine-distribution-macos
+          name: engine-distribution-shell-macos
           path: built-distribution.tar
       - name: Cleanup
         run: rm built-distribution.tar
@@ -191,7 +191,7 @@ jobs:
       ENSO_LAUNCHER: shell
       GRAAL_EDITION: GraalVM CE
   enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-windows-amd64:
-    name: Build Engine Distribution (GraalVM CE) (windows, amd64)
+    name: Build Engine Distribution (shell) (GraalVM CE) (windows, amd64)
     runs-on:
       - self-hosted
       - Windows
@@ -237,7 +237,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          name: engine-distribution-windows
+          name: engine-distribution-shell-windows
           path: built-distribution.tar
       - name: Cleanup
         run: rm built-distribution.tar
@@ -250,7 +250,7 @@ jobs:
       ENSO_LAUNCHER: shell
       GRAAL_EDITION: GraalVM CE
   enso-build-ci-gen-job-build-engine-distribution-oracle-graal-vm-linux-amd64:
-    name: Build Engine Distribution (Oracle GraalVM) (linux, amd64)
+    name: Build Engine Distribution (shell) (Oracle GraalVM) (linux, amd64)
     runs-on:
       - self-hosted
       - Linux
@@ -296,7 +296,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          name: engine-distribution-linux
+          name: engine-distribution-shell-linux
           path: built-distribution.tar
       - name: Cleanup
         run: rm built-distribution.tar
@@ -597,7 +597,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-linux
+          name: engine-distribution-shell-linux
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -667,7 +667,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-macos
+          name: engine-distribution-shell-macos
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -735,7 +735,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-macos
+          name: engine-distribution-shell-macos
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -804,7 +804,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-windows
+          name: engine-distribution-shell-windows
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -873,7 +873,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-linux
+          name: engine-distribution-shell-linux
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -942,7 +942,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-linux
+          name: engine-distribution-shell-linux
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -1015,7 +1015,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-macos
+          name: engine-distribution-shell-macos
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -1086,7 +1086,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-macos
+          name: engine-distribution-shell-macos
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -1158,7 +1158,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-windows
+          name: engine-distribution-shell-windows
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -1230,7 +1230,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-linux
+          name: engine-distribution-shell-linux
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar

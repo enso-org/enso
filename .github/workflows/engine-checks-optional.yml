@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/develop' }}
 jobs:
   enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64:
-    name: Build Engine Distribution (GraalVM CE) (macos, amd64)
+    name: Build Engine Distribution (shell) (GraalVM CE) (macos, amd64)
     runs-on:
       - macos-13
     steps:
@@ -61,7 +61,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          name: engine-distribution-macos
+          name: engine-distribution-shell-macos
           path: built-distribution.tar
       - name: Cleanup
         run: rm built-distribution.tar
@@ -166,7 +166,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-macos
+          name: engine-distribution-shell-macos
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -235,7 +235,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-macos
+          name: engine-distribution-shell-macos
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar

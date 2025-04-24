@@ -634,17 +634,13 @@ pub fn add_backend_checks_customized(
     let build_engine_distribution_id =
         workflow.add(target, job::BuildEngineDistribution { graal_edition, engine_launcher });
 
-    workflow.add_customized(
-        target,
-        job::CiCheckBackend { graal_edition },
-        |job| {
-            job.continue_on_error = continue_on_error(&target);
-        },
-    );
+    workflow.add_customized(target, job::CiCheckBackend { graal_edition }, |job| {
+        job.continue_on_error = continue_on_error(&target);
+    });
     // Engine distribution is required to run project manager tests.
     workflow.add_dependent_customized(
         target,
-        job::JvmTests { graal_edition },
+        job::JvmTests { graal_edition, engine_launcher },
         &[build_engine_distribution_id.clone()],
         |job| {
             job.continue_on_error = continue_on_error(&target);
@@ -652,7 +648,7 @@ pub fn add_backend_checks_customized(
     );
     workflow.add_dependent_customized(
         target,
-        job::StandardLibraryTests { graal_edition, cloud_tests_enabled: false, native_image_mode },
+        job::StandardLibraryTests { graal_edition, engine_launcher, cloud_tests_enabled: false },
         &[build_engine_distribution_id],
         |job| {
             job.continue_on_error = continue_on_error(&target);
@@ -910,8 +906,8 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
     workflow.add(target, job::SnowflakeTests {});
     workflow.add(target, job::StandardLibraryTests {
         graal_edition:       graalvm::Edition::Community,
+        engine_launcher:     engine::EngineLauncher::Shell,
         cloud_tests_enabled: true,
-        native_image_mode:   false,
     });
     Ok(workflow)
 }

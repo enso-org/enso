@@ -125,7 +125,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-linux
+          name: engine-distribution-shell-linux
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar

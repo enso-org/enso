@@ -371,7 +371,7 @@ impl Processor {
                             config.add_standard_library_test_selection(
                                 StandardLibraryTestsSelection::All,
                             );
-                            config.build_native_runner = true;
+                            config.use_native_runner = true;
                         }
                         Tests::StdSnowflake => {
                             config.add_standard_library_test_selection(
