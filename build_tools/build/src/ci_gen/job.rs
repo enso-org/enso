@@ -945,29 +945,34 @@ pub struct BuildEngineDistribution {
 
 impl JobArchetype for BuildEngineDistribution {
     fn job(&self, target: Target) -> Job {
+        let args_separator = if target.0 == OS::Windows { "--%" } else { "--" };
         let job_name = format!("Build Engine Distribution ({})", self.graal_edition);
-        let mut job = RunStepsBuilder::new("backend sbt -- buildEngineDistribution")
-            .customize(move |step| {
-                let archive_engine_distribution = Step {
-                    name: Some("Archive Engine Distribution".into()),
-                    run: Some("tar -cvf built-distribution.tar built-distribution".into()),
-                    ..Default::default()
-                };
+        let mut job =
+            RunStepsBuilder::new(format!("backend sbt {} buildEngineDistribution", args_separator))
+                .customize(move |step| {
+                    let archive_engine_distribution = Step {
+                        name: Some("Archive Engine Distribution".into()),
+                        run: Some("tar -cvf built-distribution.tar built-distribution".into()),
+                        ..Default::default()
+                    };
 
-                let upload_engine_distribution =
-                    step::upload_artifact("Upload Engine Distribution")
-                        .with_custom_argument("name", format!("engine-distribution-{}", target.0))
-                        .with_custom_argument("path", "built-distribution.tar");
+                    let upload_engine_distribution =
+                        step::upload_artifact("Upload Engine Distribution")
+                            .with_custom_argument(
+                                "name",
+                                format!("engine-distribution-{}", target.0),
+                            )
+                            .with_custom_argument("path", "built-distribution.tar");
 
-                let cleanup = Step {
-                    name: Some("Cleanup".into()),
-                    run: Some("rm built-distribution.tar".into()),
-                    ..Default::default()
-                };
+                    let cleanup = Step {
+                        name: Some("Cleanup".into()),
+                        run: Some("rm built-distribution.tar".into()),
+                        ..Default::default()
+                    };
 
-                vec![step, archive_engine_distribution, upload_engine_distribution, cleanup]
-            })
-            .build_job(job_name, target);
+                    vec![step, archive_engine_distribution, upload_engine_distribution, cleanup]
+                })
+                .build_job(job_name, target);
         job.env(engine_env::ENSO_LAUNCHER, self.engine_launcher);
         match self.graal_edition {
             graalvm::Edition::Community =>
