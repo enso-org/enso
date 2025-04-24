@@ -1,3 +1,4 @@
+use crate::engine;
 use crate::prelude::*;
 
 use crate::ci_gen::input;
@@ -237,7 +238,27 @@ impl JobArchetype for JvmTests {
             .with_custom_argument("name", format!("Test_Results_{}", target.0))
             .with_custom_argument("path", test_results_dir);
         let mut job = RunStepsBuilder::new("backend test jvm")
-            .customize(move |step| vec![step, step::engine_test_reporter(target, graal_edition)])
+            .customize(move |step| {
+                let download_engine_distribution =
+                    step::download_artifact("Download Engine Distribution")
+                        .with_custom_argument("name", format!("engine-distribution-{}", target.0));
+
+                let unpack_engine_distribution = Step {
+                    run: Some(
+                        "tar -xvf built-distribution.tar
+rm built-distribution.tar"
+                            .into(),
+                    ),
+                    ..Default::default()
+                };
+
+                vec![
+                    download_engine_distribution,
+                    unpack_engine_distribution,
+                    step,
+                    step::engine_test_reporter(target, graal_edition),
+                ]
+            })
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
@@ -303,6 +324,19 @@ impl JobArchetype for StandardLibraryTests {
         let job_name = format!("Standard Library Tests ({graal_edition})");
         let run_command = format!("backend test {test_scope}");
         let run_steps_builder = RunStepsBuilder::new(run_command).customize(move |step| {
+            let download_engine_distribution =
+                step::download_artifact("Download Engine Distribution")
+                    .with_custom_argument("name", format!("engine-distribution-{}", target.0));
+
+            let unpack_engine_distribution = Step {
+                run: Some(
+                    "tar -xvf built-distribution.tar
+rm built-distribution.tar"
+                        .into(),
+                ),
+                ..Default::default()
+            };
+
             let main_step = step
                 .with_secret_exposed_as(
                     secret::ENSO_LIB_S3_AWS_REGION,
@@ -320,7 +354,12 @@ impl JobArchetype for StandardLibraryTests {
             let updated_main_step =
                 if should_enable_cloud_tests { enable_cloud_tests(main_step) } else { main_step };
 
-            vec![updated_main_step, step::stdlib_test_reporter(target, graal_edition)]
+            vec![
+                download_engine_distribution,
+                unpack_engine_distribution,
+                updated_main_step,
+                step::stdlib_test_reporter(target, graal_edition),
+            ]
         });
         let mut job = build_job_ensuring_cloud_tests_run_on_github(
             run_steps_builder,
@@ -899,6 +938,56 @@ rm dist/backend/project-manager.tar"
 }
 
 #[derive(Clone, Copy, Debug)]
+pub struct BuildEngineDistribution {
+    pub graal_edition:   graalvm::Edition,
+    pub engine_launcher: engine::EngineLauncher,
+}
+
+impl JobArchetype for BuildEngineDistribution {
+    fn job(&self, target: Target) -> Job {
+        let job_name = format!("Build Engine Distribution ({})", self.graal_edition);
+        let mut job = RunStepsBuilder::new("backend sbt buildEngineDistribution")
+            .customize(move |step| {
+                let archive_engine_distribution = Step {
+                    name: Some("Archive Engine Distribution".into()),
+                    run: Some("tar -cvf built-distribution.tar built-distribution".into()),
+                    ..Default::default()
+                };
+
+                let upload_engine_distribution =
+                    step::upload_artifact("Upload Engine Distribution")
+                        .with_custom_argument("name", format!("engine-distribution-{}", target.0))
+                        .with_custom_argument("path", "built-distribution.tar");
+
+                let cleanup = Step {
+                    name: Some("Cleanup".into()),
+                    run: Some("rm built-distribution.tar".into()),
+                    ..Default::default()
+                };
+
+                vec![step, archive_engine_distribution, upload_engine_distribution, cleanup]
+            })
+            .build_job(job_name, target);
+        job.env(engine_env::ENSO_LAUNCHER, self.engine_launcher);
+        match self.graal_edition {
+            graalvm::Edition::Community =>
+                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Community),
+            graalvm::Edition::Enterprise =>
+                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+        }
+        job
+    }
+
+    fn key(&self, (os, arch): Target) -> String {
+        format!(
+            "{}-{}-{os}-{arch}",
+            self.id_key_base(),
+            self.graal_edition.to_string().to_kebab_case()
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct CiCheckBackend {
     pub graal_edition: graalvm::Edition,
 }
@@ -906,7 +995,24 @@ pub struct CiCheckBackend {
 impl JobArchetype for CiCheckBackend {
     fn job(&self, target: Target) -> Job {
         let job_name = format!("Engine ({})", self.graal_edition);
-        let mut job = RunStepsBuilder::new("backend ci-check").build_job(job_name, target);
+        let mut job = RunStepsBuilder::new("backend ci-check")
+            .customize(move |step| {
+                let download_engine_distribution =
+                    step::download_artifact("Download Engine Distribution")
+                        .with_custom_argument("name", format!("engine-distribution-{}", target.0));
+
+                let unpack_engine_distribution = Step {
+                    run: Some(
+                        "tar -xvf built-distribution.tar
+rm built-distribution.tar"
+                            .into(),
+                    ),
+                    ..Default::default()
+                };
+
+                vec![download_engine_distribution, unpack_engine_distribution, step]
+            })
+            .build_job(job_name, target);
         match self.graal_edition {
             graalvm::Edition::Community =>
                 job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Community),

@@ -17,7 +17,6 @@ use crate::paths::cache_directory;
 use crate::paths::Paths;
 use crate::paths::TargetTriple;
 use crate::paths::ENSO_DATA_DIRECTORY;
-use crate::paths::ENSO_JAVA;
 use crate::paths::ENSO_TEST_JUNIT_DIR;
 use crate::project::ProcessWrapper;
 
@@ -244,7 +243,9 @@ impl RunContext {
         ide_ci::fs::remove_if_exists(&self.paths.repo_root.engine.runtime.target)?;
         // cleanup distribution from previous build
         // it is fast to assemble it again
-        ide_ci::fs::remove_if_exists(&self.paths.repo_root.built_distribution)?;
+        if self.config.build_engine_package() {
+            ide_ci::fs::remove_if_exists(&self.paths.repo_root.built_distribution)?;
+        }
 
         // We want to start this earlier, and await only before Engine build starts.
         let perhaps_generate_java_from_rust_job =
@@ -364,7 +365,7 @@ impl RunContext {
                     &sbt,
                     PARALLEL_ENSO_TESTS,
                     selection.clone(),
-                    self.config.build_native_runner,
+                    self.config.has_native_runner(),
                 )
                 .await?;
             }
@@ -448,15 +449,6 @@ impl RunContext {
                 .join("enso")
                 .with_executable_extension();
             ide_ci::fs::remove_file_if_exists(&enso)?;
-            if self.config.build_espresso_runner {
-                let enso_java = "espresso";
-                sbt.command()?
-                    .env(ENSO_JAVA, enso_java)
-                    .arg("engine-runner/buildNativeImage")
-                    .run_ok()
-                    .await?;
-                runner_sanity_test(&self.repo_root, Some(enso_java)).await?;
-            }
         }
 
         // Verify Integrity of Generated License Packages in Distributions

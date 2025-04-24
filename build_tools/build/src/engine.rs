@@ -111,6 +111,7 @@ pub enum EngineLauncher {
     #[default]
     Shell,
 }
+
 impl FromStr for EngineLauncher {
     type Err = anyhow::Error;
 
@@ -129,6 +130,12 @@ impl Display for EngineLauncher {
         };
 
         write!(f, "{}", str)
+    }
+}
+
+impl From<EngineLauncher> for String {
+    fn from(value: EngineLauncher) -> Self {
+        value.to_string()
     }
 }
 
@@ -155,12 +162,12 @@ pub struct BuildConfigurationFlags {
     /// Used to check that benchmarks do not fail on runtime, rather than obtaining the results.
     pub execute_benchmarks_once: bool,
     pub build_engine_package: bool,
+    /// Use the NI Engine Runner during the build.
+    pub use_native_runner: bool,
     /// Build the NI Engine Runner.
     pub build_native_runner: bool,
     /// Build the Ydoc Native Image
     pub build_native_ydoc: bool,
-    /// Build the experimental Espresso+NI Engine Runner.
-    pub build_espresso_runner: bool,
     pub build_launcher_package: bool,
     pub build_project_manager_package: bool,
     pub build_launcher_bundle: bool,
@@ -200,6 +207,7 @@ impl BuildConfigurationResolved {
             config.build_engine_package = true;
         }
 
+        /* TODO: #12845
         // Check for components that require Enso Engine runner. Basically everything that needs to
         // run pure Enso code.
         if config.test_standard_library.is_some()
@@ -208,6 +216,7 @@ impl BuildConfigurationResolved {
         {
             config.build_engine_package = true;
         }
+        */
 
         // If we are about to run pure Enso benchmarks, there is no reason to try them in dry run.
         if Self::should_run_enso_benchmarks(&config) {
@@ -218,9 +227,11 @@ impl BuildConfigurationResolved {
             config.generate_java_from_rust = true;
         }
 
+        /* TODO: #12845
         if config.stdlib_api_check {
             config.build_engine_package = true;
         }
+        */
         Self(config)
     }
 
@@ -233,6 +244,10 @@ impl BuildConfigurationResolved {
 }
 
 impl BuildConfigurationFlags {
+    pub fn has_native_runner(&self) -> bool {
+        self.build_native_runner || self.use_native_runner
+    }
+
     pub fn build_engine_package(&self) -> bool {
         self.build_engine_package
             || self.build_launcher_bundle
@@ -277,9 +292,9 @@ impl Default for BuildConfigurationFlags {
             execute_benchmarks_once: false,
             build_engine_package: false,
             build_launcher_package: false,
+            use_native_runner: false,
             build_native_runner: false,
             build_native_ydoc: false,
-            build_espresso_runner: false,
             build_project_manager_package: false,
             build_launcher_bundle: false,
             build_project_manager_bundle: false,
