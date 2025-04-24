@@ -7,7 +7,6 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import { Badge } from '#/components/Badge'
 import * as mimeTypes from '#/data/mimeTypes'
-import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import {
@@ -21,16 +20,14 @@ import {
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import * as textProvider from '#/providers/TextProvider'
 import { tv } from '#/utilities/tailwindVariants'
 import { useRouterInReact } from '$/providers/react'
 import { twJoin } from 'tailwind-merge'
 
-import {
-  useCloudCategoryList,
-  useLocalCategoryList,
-} from '#/layouts/Drive/Categories/categoriesHooks'
+import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
+import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { unsetModal } from '#/providers/ModalProvider'
 
 /** Metadata for a category. */
@@ -244,8 +241,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
 
   const { isOffline } = offlineHooks.useOffline()
 
-  const cloudCategories = useCloudCategoryList()
-  const localCategories = useLocalCategoryList()
+  const { cloudCategories, localCategories } = useCategoriesAPI()
 
   const itemProps = { currentCategory: category, setCategoryId }
 

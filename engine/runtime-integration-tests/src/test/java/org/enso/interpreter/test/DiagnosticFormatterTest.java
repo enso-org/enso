@@ -56,7 +56,7 @@ tmp_test:1:8: error: The name `foo` could not be found.
 
     var src = Source.newBuilder(LanguageInfo.ID, code, "tmp_test").build();
     var diag = diags.get(0);
-    var diagFormatter = new DiagnosticFormatter(diag, src, true);
+    var diagFormatter = new DiagnosticFormatter(diag, src, true, false);
     var formattedDiag = diagFormatter.format();
     assertThat(formattedDiag, containsString(expectedDiagnostics));
   }

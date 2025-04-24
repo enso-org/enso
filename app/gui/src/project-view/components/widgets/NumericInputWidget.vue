@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
 import { usePointer } from '@/composables/events'
+import { clamp } from 'enso-common/src/utilities/data/math'
 import { computed, ref, watch, type CSSProperties, type ComponentInstance } from 'vue'
 import { isNumericLiteral } from 'ydoc-shared/ast/tree'
-import AutoSizedInput from './AutoSizedInput.vue'
 
 const props = defineProps<{
   modelValue: number | undefined
@@ -63,7 +64,7 @@ const dragPointer = usePointer(
     const { min, max } = props.limits
     const rect = slider.getBoundingClientRect()
     const fractionRaw = (position.absolute.x - rect.left) / (rect.right - rect.left)
-    const fraction = Math.max(0, Math.min(1, fractionRaw))
+    const fraction = clamp(fractionRaw, 0, 1)
     const newValue = min + Math.round(fraction * (max - min))
     editedValue.value = `${newValue}`
     if (eventType === 'stop') emitUpdate()
@@ -155,6 +156,7 @@ defineExpose({
   user-select: none;
   padding: 0 4px;
   background: var(--color-widget);
+  transition: background-color 0.2s ease;
   &:focus {
     background: var(--color-widget-focus);
   }

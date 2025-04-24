@@ -47,7 +47,6 @@ import * as appUtils from '#/appUtils'
 
 import AuthProvider from '#/providers/AuthProvider'
 import BackendProvider, { useLocalBackend } from '#/providers/BackendProvider'
-import { useHttpClientStrict } from '#/providers/HttpClientProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import { useLogger } from '#/providers/LoggerProvider'
@@ -65,7 +64,6 @@ import LocalBackend from '#/services/LocalBackend'
 import ProjectManager, * as projectManager from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 
-import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
 import { Path } from '#/utilities/path'
@@ -76,6 +74,7 @@ import { useOffline } from '#/hooks/offlineHooks'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useConfigInReact, useRouterInReact } from '$/providers/react'
+import { useHttpClient } from './providers/HttpClientProvider'
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -141,7 +140,7 @@ export default function App(props: React.PropsWithChildren<AppProps>) {
     },
     queryFn: async () => {
       if (props.supportsLocalBackend && config.projectManagerUrl != null) {
-        const response = await fetch(`${appBaseUrl.APP_BASE_URL}/api/root-directory`)
+        const response = await fetch(`/api/root-directory`)
         const text = await response.text()
         const rootDirectory = projectManager.Path(text)
 
@@ -222,7 +221,7 @@ export interface AppRouterProps extends AppProps {
  */
 function AppRouter(props: React.PropsWithChildren<AppRouterProps>) {
   const { onAuthenticated, projectManagerInstance, children } = props
-  const httpClient = useHttpClientStrict()
+  const httpClient = useHttpClient()
   const logger = useLogger()
   const { router } = useRouterInReact()
   const navigate = router.push.bind(router)

@@ -27,6 +27,7 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import { useComponentColors } from '@/composables/componentColors'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
+import { useProgressBackground } from '@/composables/progressBar'
 import type { ActionHandler } from '@/providers/action'
 import { registerHandlers, toggledAction } from '@/providers/action'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
@@ -37,6 +38,7 @@ import { provideResizableWidgetRegistry } from '@/providers/resizableWidgetRegis
 import { useGraphStore, type Node } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
+import { evaluationProgress } from '@/stores/project/computedValueRegistry'
 import { useNodeExecution } from '@/stores/project/nodeExecution'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
@@ -337,9 +339,9 @@ const isRecordingOverridden = computed({
   },
 })
 
-const typename = computed(
-  () => graph.db.getExpressionInfo(props.node.innerExpr.externalId)?.rawTypename,
-)
+const expressionInfo = computed(() => graph.db.getExpressionInfo(props.node.innerExpr.externalId))
+
+const typename = computed(() => expressionInfo.value?.rawTypename)
 
 const nodeEditHandler = nodeEditBindings.handler({
   cancel(e) {
@@ -410,6 +412,8 @@ function useRecomputation() {
   return { recomputeOnce, isBeingRecomputed }
 }
 
+// === Style and colors ===
+
 const nodeStyle = computed(() => {
   return {
     transform: transform.value,
@@ -422,10 +426,21 @@ const nodeStyle = computed(() => {
 
 const { baseColor, selected, pending } = useComponentColors(graph.db, nodeSelection, nodeId)
 
+const nodeProgress = computed(() => evaluationProgress(expressionInfo.value) ?? 100)
+const { progressStyles, watchProgress } = useProgressBackground(nodeProgress, {
+  progressId: () => expressionInfo.value?.evaluationId ?? 0,
+  initialColor: 'var(--color-node-background-pending)',
+  finalColor: 'var(--color-node-background)',
+})
+const { progressAnimating, backgroundProgressEvents } = watchProgress()
+
+const showProgressBar = computed(() => nodeProgress.value !== 100 || progressAnimating.value)
+
 const nodeClass = computed(() => {
   return {
     selected: selected.value,
     pending: pending.value,
+    evaluating: showProgressBar.value,
     inputNode: props.node.type === 'input',
     outputNode: props.node.type === 'output',
     menuVisible: menuVisible.value,
@@ -433,6 +448,27 @@ const nodeClass = computed(() => {
     edited: props.edited,
   }
 })
+
+const backgroundStyles = computed(() =>
+  composeTransition(showProgressBar.value ? progressStyles.value : {}, [
+    '--color-node-background 0.2s ease',
+    '--color-node-background-pending 0.2s ease',
+  ]),
+)
+
+/**
+ * Returns the provided CSS style properties, with the provided additional transitions combined with any existing
+ * `transition`.
+ */
+function composeTransition(style: Record<string, string>, additionalTransitions: string[]) {
+  return {
+    ...style,
+    transition: (style.transition ?
+      [style.transition, ...additionalTransitions]
+    : additionalTransitions
+    ).join(','),
+  }
+}
 
 // === Component actions ===
 
@@ -601,7 +637,7 @@ const nodeName = computed(() => props.node.pattern?.code())
       :type="visibleMessage.type"
       :outputPortHovered="outputHovered"
     />
-    <div class="nodeBackground"></div>
+    <div class="nodeBackground" :style="backgroundStyles" v-on="backgroundProgressEvents"></div>
   </div>
 </template>
 

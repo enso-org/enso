@@ -39,6 +39,7 @@ import * as security from '@/security'
 import * as server from '@/server'
 import * as urlAssociations from '@/urlAssociations'
 
+import * as download from 'electron-dl'
 const logger = contentConfig.logger
 
 /** Convert path to proper `file://` URL. */
@@ -523,13 +524,41 @@ class App {
         event.reply(ipc.Channel.importProjectFromPath, path, info)
       },
     )
-    electron.ipcMain.on(
+    electron.ipcMain.handle(
       ipc.Channel.downloadURL,
-      (_event, url: string, headers?: Record<string, string>) => {
-        electron.BrowserWindow.getFocusedWindow()?.webContents.downloadURL(
-          url,
-          headers ? { headers } : {},
-        )
+      async (_event, url: string, path?: string | null, filename?: string | null) => {
+        // This should never happen, but we'll check for it anyway.
+        if (!this.window) {
+          throw new Error('Window is not available.')
+        }
+
+        await download.download(this.window, url, {
+          ...(path != null ? { directory: path } : {}),
+          ...(filename != null ? { filename } : {}),
+          onCompleted: (file) => {
+            const path = file.path
+            const clone = { path, filename: pathModule.basename(path) }
+
+            try {
+              if (
+                projectManagement.isProjectBundle(clone.path) ||
+                projectManagement.isProjectRoot(clone.path)
+              ) {
+                // in case we're importing a project bundle, we need to remove the extension
+                // from the filename
+                const filename = clone.filename.replace(pathModule.extname(clone.filename), '')
+                const directory = pathModule.dirname(clone.path)
+
+                projectManagement.importProjectFromPath(clone.path, directory, filename)
+                fsSync.unlinkSync(clone.path)
+              }
+            } catch (error) {
+              console.error('Error downloading URL', error)
+            }
+          },
+        })
+
+        return
       },
     )
     electron.ipcMain.on(ipc.Channel.showItemInFolder, (_event, fullPath: string) => {

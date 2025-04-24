@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Floating_Point_Equality
 
 import project.Internal.Helpers
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 
 ## PRIVATE
 get_data_viz_pairs =

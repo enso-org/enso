@@ -49,7 +49,7 @@ export default function UserMenu(props: UserMenuProps) {
             if (downloadUrl == null) {
               toastAndLog('noAppDownloadError')
             } else {
-              download(downloadUrl)
+              void download(downloadUrl)
             }
           }}
         />

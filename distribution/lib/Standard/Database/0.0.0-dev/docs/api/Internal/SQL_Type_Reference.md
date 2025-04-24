@@ -1,7 +1,7 @@
 ## Enso Signatures 1.0
 ## module Standard.Database.Internal.SQL_Type_Reference
 - type SQL_Type_Recipe
-    - Value connection:Standard.Database.Connection.Connection.Connection context:Standard.Database.Internal.IR.Context.Context expression:Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
+    - Value connection:Standard.Database.Connection.Connection.Connection context:Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source expression:Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 - type SQL_Type_Reference
     - Computed_By_Database ref:(Standard.Base.Runtime.Ref.Ref Standard.Base.Any.Any)
     - Null
