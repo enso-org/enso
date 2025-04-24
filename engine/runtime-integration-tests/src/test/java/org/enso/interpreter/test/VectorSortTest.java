@@ -7,11 +7,11 @@ import java.util.ArrayList;
 import java.util.List;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
@@ -22,13 +22,12 @@ import org.junit.runner.RunWith;
  */
 @RunWith(Theories.class)
 public class VectorSortTest {
-  private static Context context;
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   private static Value sortFunc;
   private static Value equalsFunc;
 
   @BeforeClass
-  public static void initCtxAndNodes() {
-    context = ContextUtils.createDefaultContext();
+  public static void initNodes() {
     var code =
         """
     from Standard.Base import all
@@ -36,12 +35,12 @@ public class VectorSortTest {
     sort val1 val2 = [val1, val2].sort
     equals val1 val2 = val1 == val2
     """;
-    sortFunc = ContextUtils.getMethodFromModule(context, code, "sort");
-    equalsFunc = ContextUtils.getMethodFromModule(context, code, "equals");
+    sortFunc = ctxRule.getMethodFromModule(code, "sort");
+    equalsFunc = ctxRule.getMethodFromModule(code, "equals");
 
     values = new ArrayList<>();
     try (ValuesGenerator valuesGenerator =
-        ValuesGenerator.create(context, Language.ENSO, Language.JAVA)) {
+        ValuesGenerator.create(ctxRule, Language.ENSO, Language.JAVA)) {
       values.addAll(valuesGenerator.numbers());
       values.addAll(valuesGenerator.vectors());
       values.addAll(valuesGenerator.arrayLike());
@@ -52,10 +51,8 @@ public class VectorSortTest {
   }
 
   @AfterClass
-  public static void disposeCtx() {
+  public static void disposeNodes() {
     values.clear();
-    context.close();
-    context = null;
     sortFunc = null;
     equalsFunc = null;
   }
@@ -64,23 +61,18 @@ public class VectorSortTest {
 
   @Theory
   public void testSortHandlesAllValues(Value value1, Value value2) {
-    ContextUtils.executeInContext(
-        context,
-        () -> {
-          Assume.assumeFalse(isNan(value1) || isNan(value2));
-          Value res = sortFunc.execute(value1, value2);
-          assertTrue(res.hasArrayElements());
-          assertEquals(2, res.getArraySize());
-          List<Value> resArray = readPolyglotArray(res);
-          // check that value1 is there unchanged on some index, and the same for value2
-          assertTrue(
-              "Sorted vector should contain the first value at any index",
-              invokeEquals(value1, resArray.get(0)) || invokeEquals(value1, resArray.get(1)));
-          assertTrue(
-              "Sorted vector should contain the second value at any index",
-              invokeEquals(value2, resArray.get(0)) || invokeEquals(value2, resArray.get(1)));
-          return null;
-        });
+    Assume.assumeFalse(isNan(value1) || isNan(value2));
+    Value res = sortFunc.execute(value1, value2);
+    assertTrue(res.hasArrayElements());
+    assertEquals(2, res.getArraySize());
+    List<Value> resArray = readPolyglotArray(res);
+    // check that value1 is there unchanged on some index, and the same for value2
+    assertTrue(
+        "Sorted vector should contain the first value at any index",
+        invokeEquals(value1, resArray.get(0)) || invokeEquals(value1, resArray.get(1)));
+    assertTrue(
+        "Sorted vector should contain the second value at any index",
+        invokeEquals(value2, resArray.get(0)) || invokeEquals(value2, resArray.get(1)));
   }
 
   private boolean isNan(Value value) {

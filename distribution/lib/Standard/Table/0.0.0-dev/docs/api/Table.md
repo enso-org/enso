@@ -38,7 +38,7 @@
     - get self selector:(Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Text.Text)= ~if_missing:Standard.Base.Any.Any= -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
     - get_row self index:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> (Standard.Table.Row.Row|Standard.Base.Any.Any)
     - get_value self selector:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= index:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-    - input columns:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any) -> Standard.Table.Table.Table
+    - input columns:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)= -> Standard.Table.Table.Table
     - join self right:Standard.Table.Table.Table= join_kind:Standard.Table.Join_Kind.Join_Kind= on:(Standard.Base.Any.Any|Standard.Base.Data.Text.Text|Standard.Table.Join_Condition.Join_Condition)= right_prefix:Standard.Base.Data.Text.Text= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
     - last_column self -> Standard.Base.Any.Any
     - last_row self -> Standard.Base.Any.Any
@@ -74,7 +74,7 @@
     - slice self start:Standard.Base.Any.Any end:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - sort self columns:(Standard.Base.Any.Any|Standard.Table.Sort_Column.Sort_Column)= text_ordering:Standard.Base.Data.Text.Text_Ordering.Text_Ordering= error_on_missing_columns:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
     - sort_columns self order:Standard.Base.Data.Sort_Direction.Sort_Direction= text_ordering:Standard.Base.Data.Text.Text_Ordering.Text_Ordering= -> Standard.Table.Table.Table
-    - split_to_columns self column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer) delimiter:Standard.Base.Data.Text.Text= column_count:Standard.Table.Columns_To_Add.Columns_To_Add= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
+    - split_to_columns self column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer) delimiter:(Standard.Base.Data.Text.Text|Standard.Base.Data.Vector.Vector)= column_count:Standard.Table.Columns_To_Add.Columns_To_Add= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
     - split_to_rows self column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer) delimiter:Standard.Base.Data.Text.Text= -> Standard.Table.Table.Table
     - table_version_hash self -> Standard.Base.Data.Text.Text
     - take self range:(Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer)= -> Standard.Table.Table.Table

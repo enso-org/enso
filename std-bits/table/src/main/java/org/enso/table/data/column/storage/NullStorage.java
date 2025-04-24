@@ -110,7 +110,8 @@ public class NullStorage extends Storage<Void> {
 
   @Override
   public Storage<Void> slice(int offset, int limit) {
-    return new NullStorage(limit - offset);
+    long newSize = Math.min(this.size - offset, limit);
+    return new NullStorage(newSize);
   }
 
   @Override

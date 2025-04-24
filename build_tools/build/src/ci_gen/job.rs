@@ -784,6 +784,7 @@ pub struct PackageIde;
 impl JobArchetype for PackageIde {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("ide build --backend-source local --gui-upload-artifact false")
+            .fetch_depth(2)
             .customize(move |step| {
                 let mut steps = vec![];
 
@@ -806,7 +807,7 @@ rm dist/backend/project-manager.tar"
                     prepare_packaging_steps(target.0, step, PackagingTarget::Development);
                 steps.append(&mut packaging_steps);
 
-                const TEST_COMMAND: &str = "corepack pnpm -r --filter enso exec playwright test";
+                const TEST_COMMAND: &str = "corepack pnpm -r --filter enso ide-integration-test";
                 let test_step = match target.0 {
                     OS::Linux => shell(format!("xvfb-run {TEST_COMMAND}"))
                         // See https://askubuntu.com/questions/1512287/obsidian-appimage-the-suid-sandbox-helper-binary-was-found-but-is-not-configu
@@ -841,6 +842,23 @@ rm dist/backend/project-manager.tar"
                     ..Default::default()
                 };
                 steps.push(upload_test_traces_step);
+
+                steps.push(shell("corepack pnpm -r --filter enso ide-build-chromatic"));
+
+                let upload_chromatic_step = Step {
+                    name: Some("Upload Chromatic snapshots".into()),
+                    uses: Some("chromaui/action@v11".into()),
+                    with: Some(Argument::Other(BTreeMap::from_iter([
+                        (
+                            "projectToken".into(),
+                            "${{ secrets.ELECTRON_IDE_CHROMATIC_PROJECT_TOKEN }}".into(),
+                        ),
+                        ("storybookBuildDir".into(), "storybook-static".into()),
+                        ("workingDir".into(), "app/ide-desktop/client".into()),
+                    ]))),
+                    ..Default::default()
+                };
+                steps.push(upload_chromatic_step);
 
                 let upload_ide = step::upload_artifact("Upload ide")
                     .with_custom_argument("name", format!("ide-{}", target.0))

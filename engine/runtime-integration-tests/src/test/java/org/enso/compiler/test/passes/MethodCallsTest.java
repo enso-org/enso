@@ -26,13 +26,14 @@ public class MethodCallsTest {
         main =
             Test.module_method 42
         """;
-    var ctx = ContextUtils.createDefaultContext();
-    var ir = ContextUtils.compileModule(ctx, code, "Test");
-    var methodCall = findMethodCall(ir, "module_method");
-    var meta = methodCall.function().passData().get(MethodCalls$.MODULE$);
-    assertThat(meta.isDefined(), is(true));
-    var metaTarget = ((BindingsMap.Resolution) meta.get()).target();
-    assertThat(metaTarget, is(instanceOf(BindingsMap.ResolvedModuleMethod.class)));
+    try (var ctx = ContextUtils.createDefault()) {
+      var ir = ctx.compileModule(code, "Test");
+      var methodCall = findMethodCall(ir, "module_method");
+      var meta = methodCall.function().passData().get(MethodCalls$.MODULE$);
+      assertThat(meta.isDefined(), is(true));
+      var metaTarget = ((BindingsMap.Resolution) meta.get()).target();
+      assertThat(metaTarget, is(instanceOf(BindingsMap.ResolvedModuleMethod.class)));
+    }
   }
 
   private Application.Prefix findMethodCall(Module ir, String methodName) {

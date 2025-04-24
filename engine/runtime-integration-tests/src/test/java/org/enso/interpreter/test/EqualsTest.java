@@ -1,9 +1,5 @@
 package org.enso.interpreter.test;
 
-import static org.enso.test.utils.ContextUtils.createDefaultContext;
-import static org.enso.test.utils.ContextUtils.createValue;
-import static org.enso.test.utils.ContextUtils.executeInContext;
-import static org.enso.test.utils.ContextUtils.unwrapValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -24,12 +20,13 @@ import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
@@ -38,30 +35,22 @@ import org.junit.runner.RunWith;
 
 @RunWith(Theories.class)
 public class EqualsTest {
-  private static Context context;
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   private static EqualsNode equalsNode;
   private static TestRootNode testRootNode;
   private static HostValueToEnsoNode hostValueToEnsoNode;
 
   @BeforeClass
   public static void initContextAndData() {
-    context = createDefaultContext();
-    executeInContext(
-        context,
-        () -> {
-          testRootNode = new TestRootNode(EqualsTest::equalityCheck);
-          equalsNode = EqualsNode.create();
-          hostValueToEnsoNode = HostValueToEnsoNode.build();
-          testRootNode.insertChildren(equalsNode, hostValueToEnsoNode);
-          return null;
-        });
+    testRootNode = new TestRootNode(EqualsTest::equalityCheck);
+    equalsNode = EqualsNode.create();
+    hostValueToEnsoNode = HostValueToEnsoNode.build();
+    testRootNode.insertChildren(equalsNode, hostValueToEnsoNode);
     unwrappedValues = fetchAllUnwrappedValues();
   }
 
   @AfterClass
   public static void disposeContext() {
-    context.close();
-    context = null;
     unwrappedValues = null;
     equalsNode = null;
     testRootNode = null;
@@ -74,7 +63,7 @@ public class EqualsTest {
     List<Value> values = new ArrayList<>();
     try (ValuesGenerator valGenerator =
         ValuesGenerator.create(
-            context, ValuesGenerator.Language.ENSO, ValuesGenerator.Language.JAVA)) {
+            ctxRule, ValuesGenerator.Language.ENSO, ValuesGenerator.Language.JAVA)) {
       values.addAll(valGenerator.numbers());
       values.addAll(valGenerator.booleans());
       values.addAll(valGenerator.textual());
@@ -89,7 +78,7 @@ public class EqualsTest {
       values.addAll(valGenerator.warnings());
       try {
         return values.stream()
-            .map(value -> unwrapValue(context, value))
+            .map(ctxRule::unwrapValue)
             .map(unwrappedValue -> hostValueToEnsoNode.execute(unwrappedValue))
             .collect(Collectors.toList())
             .toArray(new Object[] {});
@@ -110,100 +99,62 @@ public class EqualsTest {
 
   @Theory
   public void equalsOperatorShouldBeSymmetric(Object firstValue, Object secondValue) {
-    executeInContext(
-        context,
-        () -> {
-          boolean firstResult = equalityCheck(firstValue, secondValue);
-          boolean secondResult = equalityCheck(secondValue, firstValue);
-          assertEquals("equals should be symmetric", firstResult, secondResult);
-          return null;
-        });
+    boolean firstResult = equalityCheck(firstValue, secondValue);
+    boolean secondResult = equalityCheck(secondValue, firstValue);
+    assertEquals("equals should be symmetric", firstResult, secondResult);
   }
 
   @Theory
   public void equalsOperatorShouldBeConsistent(Object value) {
-    executeInContext(
-        context,
-        () -> {
-          Object firstResult = equalityCheck(value, value);
-          Object secondResult = equalityCheck(value, value);
-          assertEquals("equals should be consistent", firstResult, secondResult);
-          return null;
-        });
+    Object firstResult = equalityCheck(value, value);
+    Object secondResult = equalityCheck(value, value);
+    assertEquals("equals should be consistent", firstResult, secondResult);
   }
 
   @Theory
   public void equalsNodeCachedIsConsistentWithUncached(Object firstVal, Object secondVal) {
-    executeInContext(
-        context,
-        () -> {
-          Object uncachedRes = EqualsNode.getUncached().execute(null, firstVal, secondVal).isTrue();
-          Object cachedRes = equalityCheck(firstVal, secondVal);
-          assertEquals(
-              "Result from uncached EqualsNode should be the same as result from its cached"
-                  + " variant",
-              uncachedRes,
-              cachedRes);
-          return null;
-        });
+    Object uncachedRes = EqualsNode.getUncached().execute(null, firstVal, secondVal).isTrue();
+    Object cachedRes = equalityCheck(firstVal, secondVal);
+    assertEquals(
+        "Result from uncached EqualsNode should be the same as result from its cached" + " variant",
+        uncachedRes,
+        cachedRes);
   }
 
   /** Test for some specific values, for which we know that they are equal. */
   @Test
   public void testDateEquality() {
     Object ensoDate =
-        unwrapValue(
-            context,
-            createValue(
-                context, "(Date.new 1999 3 23)", "import Standard.Base.Data.Time.Date.Date"));
-    Object javaDate = unwrapValue(context, context.asValue(LocalDate.of(1999, 3, 23)));
-    executeInContext(
-        context,
-        () -> {
-          assertTrue(equalityCheck(ensoDate, javaDate));
-          return null;
-        });
+        ctxRule.unwrapValue(
+            ctxRule.createValue(
+                "(Date.new 1999 3 23)", "import Standard.Base.Data.Time.Date.Date"));
+    Object javaDate = ctxRule.unwrapValue(ctxRule.asValue(LocalDate.of(1999, 3, 23)));
+    assertTrue(equalityCheck(ensoDate, javaDate));
   }
 
   @Test
   public void testTimeEquality() {
     Object ensoTime =
-        unwrapValue(
-            context,
-            createValue(
-                context,
-                "Time_Of_Day.new 23 59",
-                "import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day"));
-    Object javaDate = unwrapValue(context, context.asValue(LocalTime.of(23, 59)));
-    executeInContext(
-        context,
-        () -> {
-          assertTrue(equalityCheck(ensoTime, javaDate));
-          return null;
-        });
+        ctxRule.unwrapValue(
+            ctxRule.createValue(
+                "Time_Of_Day.new 23 59", "import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day"));
+    Object javaDate = ctxRule.unwrapValue(ctxRule.asValue(LocalTime.of(23, 59)));
+    assertTrue(equalityCheck(ensoTime, javaDate));
   }
 
   @Test
   public void testDateTimeEquality() {
     Object ensoDateTime =
-        unwrapValue(
-            context,
-            createValue(
-                context,
+        ctxRule.unwrapValue(
+            ctxRule.createValue(
                 "(Date_Time.new 1999 3 1 23 59)",
                 "import Standard.Base.Data.Time.Date_Time.Date_Time"));
     Object javaDateTime =
-        unwrapValue(
-            context,
-            context.asValue(
+        ctxRule.unwrapValue(
+            ctxRule.asValue(
                 ZonedDateTime.of(
                     LocalDate.of(1999, 3, 1), LocalTime.of(23, 59), ZoneId.systemDefault())));
-    executeInContext(
-        context,
-        () -> {
-          assertTrue(equalityCheck(ensoDateTime, javaDateTime));
-          return null;
-        });
+    assertTrue(equalityCheck(ensoDateTime, javaDateTime));
   }
 
   @Test
@@ -211,12 +162,7 @@ public class EqualsTest {
     long value = Long.MIN_VALUE;
     double javaNumber = Math.pow(value, 10);
     var ensoNumber = new EnsoBigInteger(BigInteger.valueOf(value).pow(10));
-    executeInContext(
-        context,
-        () -> {
-          assertTrue(javaNumber + " == " + ensoNumber, equalityCheck(javaNumber, ensoNumber));
-          return null;
-        });
+    assertTrue(javaNumber + " == " + ensoNumber, equalityCheck(javaNumber, ensoNumber));
   }
 
   @Test
@@ -224,155 +170,105 @@ public class EqualsTest {
     long value = Long.MIN_VALUE;
     double javaNumber = Math.pow(value, 10);
     var ensoNumber = new EnsoBigInteger(BigInteger.valueOf(value).pow(10));
-    executeInContext(
-        context,
-        () -> {
-          assertTrue(ensoNumber + " == " + javaNumber, equalityCheck(ensoNumber, javaNumber));
-          return null;
-        });
+    assertTrue(ensoNumber + " == " + javaNumber, equalityCheck(ensoNumber, javaNumber));
   }
 
   @Test
   public void testDoubleEqualsJavaBigInteger() {
     long value = Long.MIN_VALUE;
     double javaNumber = Math.pow(value, 10);
-    var hostNumber = unwrapValue(context, context.asValue(BigInteger.valueOf(value).pow(10)));
-    executeInContext(
-        context,
-        () -> {
-          assertTrue(javaNumber + " == " + hostNumber, equalityCheck(javaNumber, hostNumber));
-          return null;
-        });
+    var hostNumber = ctxRule.unwrapValue(ctxRule.asValue(BigInteger.valueOf(value).pow(10)));
+    assertTrue(javaNumber + " == " + hostNumber, equalityCheck(javaNumber, hostNumber));
   }
 
   @Test
   public void testJavaBigIntegerEqualsDoubleEquals() {
     long value = Long.MIN_VALUE;
     double javaNumber = Math.pow(value, 10);
-    var hostNumber = unwrapValue(context, context.asValue(BigInteger.valueOf(value).pow(10)));
-    executeInContext(
-        context,
-        () -> {
-          assertTrue(hostNumber + " == " + javaNumber, equalityCheck(hostNumber, javaNumber));
-          return null;
-        });
+    var hostNumber = ctxRule.unwrapValue(ctxRule.asValue(BigInteger.valueOf(value).pow(10)));
+    assertTrue(hostNumber + " == " + javaNumber, equalityCheck(hostNumber, javaNumber));
   }
 
   @Test
   public void testVectorsEquality() {
     Object ensoVector =
-        unwrapValue(context, createValue(context, "[1,2,3]", "from Standard.Base import all"));
-    Object javaVector = unwrapValue(context, context.asValue(List.of(1L, 2L, 3L)));
-    executeInContext(
-        context,
-        () -> {
-          assertTrue(equalityCheck(ensoVector, javaVector));
-          return null;
-        });
+        ctxRule.unwrapValue(ctxRule.createValue("[1,2,3]", "from Standard.Base import all"));
+    Object javaVector = ctxRule.unwrapValue(ctxRule.asValue(List.of(1L, 2L, 3L)));
+    assertTrue(equalityCheck(ensoVector, javaVector));
   }
 
   @Test
   public void testTruffleNumberLong() {
-    var ensoNumber = unwrapValue(context, createValue(context, "1", ""));
+    var ensoNumber = ctxRule.unwrapValue(ctxRule.createValue("1", ""));
     var foreignNumber = new WrappedPrimitive(1);
-    executeInContext(
-        context,
-        () -> {
-          assertTrue(equalityCheck(ensoNumber, foreignNumber.asDirect()));
-          assertTrue(equalityCheck(ensoNumber, foreignNumber));
-          assertTrue(equalityCheck(foreignNumber, ensoNumber));
-          return null;
-        });
+    assertTrue(equalityCheck(ensoNumber, foreignNumber.asDirect()));
+    assertTrue(equalityCheck(ensoNumber, foreignNumber));
+    assertTrue(equalityCheck(foreignNumber, ensoNumber));
   }
 
   @Test
   public void testTruffleNumberDouble() {
-    var ensoNumber = unwrapValue(context, createValue(context, "1.0", ""));
+    var ensoNumber = ctxRule.unwrapValue(ctxRule.createValue("1.0", ""));
     var foreignNumber = new WrappedPrimitive(1.0);
-    executeInContext(
-        context,
-        () -> {
-          assertTrue(equalityCheck(ensoNumber, foreignNumber.asDirect()));
-          assertTrue(equalityCheck(ensoNumber, foreignNumber));
-          assertTrue(equalityCheck(foreignNumber, ensoNumber));
-          return null;
-        });
+    assertTrue(equalityCheck(ensoNumber, foreignNumber.asDirect()));
+    assertTrue(equalityCheck(ensoNumber, foreignNumber));
+    assertTrue(equalityCheck(foreignNumber, ensoNumber));
   }
 
   @Test
   public void testTruffleNumberBigInt() {
     var value = new BigInteger("43207431473298432194374819743291479009431478329");
-    var ensoNumber = unwrapValue(context, createValue(context, value.toString(), ""));
+    var ensoNumber = ctxRule.unwrapValue(ctxRule.createValue(value.toString(), ""));
     var foreignNumber = new WrappedPrimitive(value);
-    executeInContext(
-        context,
-        () -> {
-          assertTrue(equalityCheck(ensoNumber, foreignNumber));
-          assertTrue(equalityCheck(foreignNumber, ensoNumber));
-          return null;
-        });
+    assertTrue(equalityCheck(ensoNumber, foreignNumber));
+    assertTrue(equalityCheck(foreignNumber, ensoNumber));
   }
 
   @Test
   public void testTruffleBoolean() {
     var ensoBoolean =
-        unwrapValue(context, createValue(context, "True", "from Standard.Base import True"));
+        ctxRule.unwrapValue(ctxRule.createValue("True", "from Standard.Base import True"));
     var foreignBoolean = new WrappedPrimitive(true);
-    executeInContext(
-        context,
-        () -> {
-          assertTrue(equalityCheck(ensoBoolean, foreignBoolean.asDirect()));
-          assertTrue(equalityCheck(ensoBoolean, foreignBoolean));
-          assertTrue(equalityCheck(foreignBoolean, ensoBoolean));
-          return null;
-        });
+    assertTrue(equalityCheck(ensoBoolean, foreignBoolean.asDirect()));
+    assertTrue(equalityCheck(ensoBoolean, foreignBoolean));
+    assertTrue(equalityCheck(foreignBoolean, ensoBoolean));
   }
 
   @Test
   public void testTruffleString() {
-    var ensoText = unwrapValue(context, createValue(context, "'Hello'", ""));
+    var ensoText = ctxRule.unwrapValue(ctxRule.createValue("'Hello'", ""));
     var foreignString = new WrappedPrimitive("Hello");
-    executeInContext(
-        context,
-        () -> {
-          assertTrue(equalityCheck(ensoText, foreignString.asDirect()));
-          assertTrue(equalityCheck(ensoText, foreignString));
-          assertTrue(equalityCheck(foreignString, ensoText));
-          return null;
-        });
+    assertTrue(equalityCheck(ensoText, foreignString.asDirect()));
+    assertTrue(equalityCheck(ensoText, foreignString));
+    assertTrue(equalityCheck(foreignString, ensoText));
   }
 
   @Test
   public void testTruffleNumberPlus() {
     var plus100 =
-        context
+        ctxRule
             .eval("enso", """
     plus100 x = 100+x
     """)
             .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plus100");
     assertTrue("plus100 can be executed", plus100.canExecute());
-    var foreignNumber = context.asValue(new WrappedPrimitive(42));
-    var hundred42 = unwrapValue(context, plus100.execute(foreignNumber));
-    executeInContext(
-        context,
-        () -> {
-          assertTrue(equalityCheck(142L, hundred42));
-          assertTrue(equalityCheck(hundred42, 142L));
-          return null;
-        });
+    var foreignNumber = ctxRule.asValue(new WrappedPrimitive(42));
+    var hundred42 = ctxRule.unwrapValue(plus100.execute(foreignNumber));
+    assertTrue(equalityCheck(142L, hundred42));
+    assertTrue(equalityCheck(hundred42, 142L));
   }
 
   @Test
   public void testUnresolvedConversionInNamedModules() throws Exception {
-    var mod1 = context.eval(Source.newBuilder("enso", "one = 'one'", "one.enso").build());
-    var mod2 = context.eval(Source.newBuilder("enso", "two = 'two'", "two.enso").build());
+    var mod1 = ctxRule.eval(Source.newBuilder("enso", "one = 'one'", "one.enso").build());
+    var mod2 = ctxRule.eval(Source.newBuilder("enso", "two = 'two'", "two.enso").build());
     assertUnresolvedConversions(mod1, mod2);
   }
 
   @Test
-  public void testUnresolvedConversionInUnamedModules() throws Exception {
-    var mod1 = context.eval("enso", "one = 'one'");
-    var mod2 = context.eval("enso", "two = 'two'");
+  public void testUnresolvedConversionInUnamedModules() {
+    var mod1 = ctxRule.eval("enso", "one = 'one'");
+    var mod2 = ctxRule.eval("enso", "two = 'two'");
     assertUnresolvedConversions(mod1, mod2);
   }
 
@@ -381,8 +277,8 @@ public class EqualsTest {
     assertEquals("one", mod1.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "one").asString());
     assertEquals("two", mod2.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "two").asString());
 
-    if (unwrapValue(context, mod1) instanceof org.enso.interpreter.runtime.Module m1
-        && unwrapValue(context, mod2) instanceof org.enso.interpreter.runtime.Module m2) {
+    if (ctxRule.unwrapValue(mod1) instanceof org.enso.interpreter.runtime.Module m1
+        && ctxRule.unwrapValue(mod2) instanceof org.enso.interpreter.runtime.Module m2) {
       var scope1 = m1.getScope();
       var scope2 = m2.getScope();
       assertNotEquals("Different modules have different scopes", scope1, scope2);
@@ -392,18 +288,11 @@ public class EqualsTest {
       var conv2 = UnresolvedConversion.build(scope2);
       var conv2_2 = UnresolvedConversion.build(scope2);
 
-      executeInContext(
-          context,
-          () -> {
-            assertTrue("Conversions from same module are the same", equalityCheck(conv1, conv1_2));
-            assertTrue("Conversions from same module are the same", equalityCheck(conv2, conv2_2));
-            assertFalse(
-                "Conversions from other modules aren't the same", equalityCheck(conv1, conv2));
-            assertFalse(
-                "Conversions from other modueles aren't the same", equalityCheck(conv2_2, conv1_2));
-            return null;
-          });
-
+      assertTrue("Conversions from same module are the same", equalityCheck(conv1, conv1_2));
+      assertTrue("Conversions from same module are the same", equalityCheck(conv2, conv2_2));
+      assertFalse("Conversions from other modules aren't the same", equalityCheck(conv1, conv2));
+      assertFalse(
+          "Conversions from other modueles aren't the same", equalityCheck(conv2_2, conv1_2));
     } else {
       fail("Expecting module: " + mod1);
     }

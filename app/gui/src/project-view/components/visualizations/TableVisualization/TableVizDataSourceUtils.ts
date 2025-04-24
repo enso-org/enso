@@ -1,6 +1,6 @@
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { IServerSideGetRowsRequest } from 'ag-grid-community'
+import type { IServerSideGetRowsRequest } from 'ag-grid-enterprise'
 import {
   actionMap,
   FilterAction,

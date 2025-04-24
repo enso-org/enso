@@ -1,6 +1,5 @@
 package org.enso.compiler.dump.test;
 
-import static org.enso.test.utils.ContextUtils.defaultContextBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -8,25 +7,13 @@ import static org.hamcrest.Matchers.not;
 
 import java.io.IOException;
 import java.util.function.BiConsumer;
-import org.graalvm.polyglot.Context;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.enso.test.utils.ContextUtils;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 /** Tests recognitions of API changes in Enso code. */
 public final class ApiModificationTest {
-  private static Context ctx;
-
-  @BeforeClass
-  public static void initCtx() {
-    ctx = defaultContextBuilder().build();
-  }
-
-  @AfterClass
-  public static void disposeCtx() {
-    ctx.close();
-    ctx = null;
-  }
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Test
   public void reorderingMethods_DoesNotModifyApi() throws IOException {
@@ -190,8 +177,8 @@ public final class ApiModificationTest {
       String prevSource, String newSource, BiConsumer<String, String> signatureComparator)
       throws IOException {
     var modName = "local.Proj.Main";
-    var prevSignature = DumpTestUtils.generateSignatures(ctx, prevSource, modName);
-    var newSignature = DumpTestUtils.generateSignatures(ctx, newSource, modName);
+    var prevSignature = DumpTestUtils.generateSignatures(ctxRule, prevSource, modName);
+    var newSignature = DumpTestUtils.generateSignatures(ctxRule, newSource, modName);
     assertThat("Signature was generated", prevSignature.isEmpty(), is(false));
     assertThat("Signature was generated", newSignature.isEmpty(), is(false));
     signatureComparator.accept(prevSignature, newSignature);

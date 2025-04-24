@@ -11,6 +11,7 @@ import java.util.concurrent.Executor;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManagerFactory;
 import org.enso.shttp.cloud_mock.CloudAuthRenew;
 import org.enso.shttp.cloud_mock.CloudRoot;
@@ -65,10 +66,11 @@ public class HybridHTTPServer {
     public void configure(HttpsParameters params) {
       SSLContext ctx = getSSLContext();
       SSLEngine engine = ctx.createSSLEngine();
-      params.setNeedClientAuth(false);
-      params.setCipherSuites(engine.getEnabledCipherSuites());
-      params.setProtocols(engine.getEnabledProtocols());
-      params.setSSLParameters(ctx.getDefaultSSLParameters());
+      SSLParameters sslParams = ctx.getDefaultSSLParameters();
+      sslParams.setNeedClientAuth(false);
+      sslParams.setCipherSuites(engine.getEnabledCipherSuites());
+      sslParams.setProtocols(engine.getEnabledProtocols());
+      params.setSSLParameters(sslParams);
     }
   }
 

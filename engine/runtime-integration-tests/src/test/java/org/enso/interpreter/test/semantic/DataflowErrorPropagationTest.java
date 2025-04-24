@@ -6,21 +6,22 @@ import static org.junit.Assert.assertTrue;
 
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class DataflowErrorPropagationTest {
-  private static Context ctx;
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
+
   private static Value suppressError;
   private static Value suppressErrorWithAssign;
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = ContextUtils.createDefaultContext();
+    var ctx = ctxRule.context();
     var code =
         """
     from Standard.Base import all
@@ -46,8 +47,6 @@ public class DataflowErrorPropagationTest {
 
   @AfterClass
   public static void disposeCtx() {
-    ctx.close();
-    ctx = null;
     suppressError = null;
     suppressErrorWithAssign = null;
   }
