@@ -30,6 +30,7 @@ import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { FilterBy } from '#/services/Backend'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
+import { regexEscape } from '#/utilities/string'
 import { useMutation, useQueryClient, useSuspenseQueries } from '@tanstack/react-query'
 import { Fragment } from 'react'
 import invariant from 'tiny-invariant'
@@ -330,6 +331,33 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   )
 }
 
+/** Get a unique name based on sibling names. */
+function getUniqueName(title: string, siblingTitles: readonly string[]) {
+  const regex = new RegExp(`^${regexEscape(title)}( \\(copy(?: (\\d+))?\\))?$`)
+  let maximum: number | null = null
+  for (const siblingTitle of siblingTitles) {
+    const [match, isCopy, number] = siblingTitle.match(regex) ?? []
+    let newMaximum: number
+    if (match == null) {
+      continue
+    } else if (isCopy == null) {
+      newMaximum = 0
+    } else if (number == null) {
+      newMaximum = 1
+    } else {
+      newMaximum = parseInt(number, 10)
+    }
+    maximum = Math.max(maximum ?? 0, newMaximum)
+  }
+  if (maximum == null) {
+    return title
+  }
+  if (maximum === 0) {
+    return `${title} (copy)`
+  }
+  return `${title} (copy ${maximum + 1})`
+}
+
 /**
  * The conclusion of a resolved duplication.
  */
@@ -404,8 +432,6 @@ export function ResolveDuplicationsModal(props: ResolveDuplicationsProps) {
   )
 }
 
-const NEW_TITLE_SUFFIX = ' (copy)'
-
 /**
  * The inner component of a {@link ResolveDuplicationsModal}.
  */
@@ -451,6 +477,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
       return { map, siblings }
     },
   })
+  const siblingTitles = siblingFiles.siblings.map((sibling) => sibling.title)
 
   const conflictingAssets = useSuspenseQueries({
     queries: conflictingIds.map((id) =>
@@ -477,7 +504,15 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
   return (
     <Form
       defaultValues={Object.fromEntries(
-        conflictingAssets.map((asset) => [asset.id, { assetId: asset.id, type: asset.type }]),
+        conflictingAssets.map((asset) => [
+          asset.id,
+          {
+            assetId: asset.id,
+            type: asset.type,
+            conclusion: 'rename' as const,
+            newName: getUniqueName(asset.title, siblingTitles),
+          },
+        ]),
       )}
       method="dialog"
       className="pb-20"
@@ -608,7 +643,9 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                               <Popover placement="bottom start">
                                 <Form
                                   method="dialog"
-                                  defaultValues={{ newName: asset.title + NEW_TITLE_SUFFIX }}
+                                  defaultValues={{
+                                    newName: getUniqueName(asset.title, siblingTitles),
+                                  }}
                                   schema={(schema) =>
                                     schema.object({
                                       newName: backendModule.titleSchema({
