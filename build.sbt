@@ -487,6 +487,7 @@ val commonsIoVersion          = "2.12.0"
 val commonsTextVersion        = "1.10.0"
 val commonsMathVersion        = "3.6.1"
 val commonsCompressVersion    = "1.23.0"
+val commonsVfsVersion         = "2.10.0"
 val commonsCliVersion         = "1.5.0"
 val commons = Seq(
   "org.apache.commons" % "commons-collections4" % commonsCollectionsVersion,
@@ -3408,7 +3409,8 @@ lazy val `runtime-compiler` =
         "org.yaml"             % "snakeyaml"               % snakeyamlVersion          % Test,
         "com.typesafe"         % "config"                  % typesafeConfigVersion     % Test,
         "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % Test,
-        "org.hamcrest"         % "hamcrest-all"            % hamcrestVersion           % Test
+        "org.hamcrest"         % "hamcrest-all"            % hamcrestVersion           % Test,
+        "org.apache.commons"   % "commons-vfs2"            % commonsVfsVersion         % Test
       ),
       Compile / moduleDependencies ++= Seq(
         "org.slf4j"        % "slf4j-api"               % slf4jVersion,
