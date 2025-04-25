@@ -19,7 +19,7 @@ public final class CompilerErrorTest {
   @Rule public final WithMockCompilerContext compilerCtx = WithMockCompilerContext.createDefault();
 
   @Test
-  public void varialesIsRedefinedInIfBranch() {
+  public void variablesIsRedefinedInIfBranch() {
     var modName = QualifiedName.fromString("Check");
     var code = """
     check x =
