@@ -93,14 +93,13 @@ const dynamicTags = computed<(ExpressionTag | NestedChoiceTag)[]>(() => {
     if (choice.value instanceof Array) {
       return new NestedChoiceTag(choice.label ?? '…', choice.value.map(choiceToTag))
     } else {
-      const tag = ExpressionTag.FromExpression(
+      return ExpressionTag.FromExpression(
         suggestions,
         projectNames,
         choice.value,
         choice.label,
         choice.icon,
       )
-      return tag
     }
   }
 
@@ -117,18 +116,21 @@ const filteredTags = computed(() => {
     )
     return flattened.filter(expressionFilter)
   } else {
-    const actionTags = props.input[CustomDropdownItemsKey]?.map(ActionTag.FromItem) ?? []
-    return [...actionTags, ...expressionTags]
+    const customTags =
+      props.input[CustomDropdownItemsKey]?.map((entry) =>
+        entry instanceof ExpressionTag ? entry : ActionTag.FromItem(entry),
+      ) ?? []
+    return [...customTags, ...expressionTags]
   }
 })
-const entries = computed<Entry[]>(() => {
-  return filteredTags.value.map((tag) => ({
+const entries = computed<Entry[]>(() =>
+  filteredTags.value.map((tag) => ({
     value: tag.label,
     selected: tag instanceof ExpressionTag && selectedExpressions.value.has(tag.expression),
-    icon: tag instanceof ExpressionTag ? tag.icon : undefined,
+    icon: tag instanceof ExpressionTag || tag instanceof ActionTag ? tag.icon : undefined,
     tag,
-  }))
-})
+  })),
+)
 
 const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(])|([)]$)/g, '')
 
@@ -160,22 +162,30 @@ const innerWidgetInput = computed<WidgetInput>(() => {
   }
 })
 
+function selectionArrowTarget(ast: Ast.Expression): Ast.Expression | Ast.Token | null {
+  let node = ast
+  // If the input is a constructor application, place the arrow under the constructor name.
+  while (node instanceof Ast.Ast) {
+    if (node instanceof Ast.AutoscopedIdentifier) return node.identifier
+    else if (node instanceof Ast.PropertyAccess) return node.rhs
+    else if (node instanceof Ast.App) node = node.function
+    else if (node instanceof Ast.Group && node.expression) node = node.expression
+    else break
+  }
+  return null
+}
+
 const parentSelectionArrow = injectSelectionArrow(true)
 const arrowSuppressed = ref(false)
 const showArrow = computed(() => !arrowSuppressed.value && (tree.extended || isHovered.value))
 provideSelectionArrow(
   proxyRefs({
-    id: computed(() => {
-      // Find the top-most PropertyAccess, and return its rhs id.
-      // It will be used to place the dropdown arrow under the constructor name.
-      let node = props.input.value
-      while (node instanceof Ast.Ast) {
-        if (node instanceof Ast.AutoscopedIdentifier) return node.identifier.id
-        if (node instanceof Ast.PropertyAccess) return node.rhs.id
-        if (node instanceof Ast.App) node = node.function
-        else break
-      }
-      return null
+    id: computed((): Ast.AstId | Ast.TokenId | null => {
+      const node = props.input.value
+      if (!(node instanceof Ast.Ast)) return null
+      if (!node.isExpression()) return null
+      const target = selectionArrowTarget(node)
+      return target ? target.id : null
     }),
     requestArrow: (target: RendererNode) => {
       arrowLocation.value = target
@@ -364,7 +374,7 @@ export const widgetDefinition = defineWidget(
 export { CustomDropdownItemsKey }
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
-    [CustomDropdownItemsKey]?: readonly CustomDropdownItem[]
+    [CustomDropdownItemsKey]?: readonly (CustomDropdownItem | ExpressionTag)[]
   }
 }
 </script>
