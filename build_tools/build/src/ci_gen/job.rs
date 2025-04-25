@@ -26,6 +26,7 @@ use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
 use ide_ci::actions::workflow::definition::Permission;
 use ide_ci::actions::workflow::definition::RunnerLabel;
+use ide_ci::actions::workflow::definition::Shell;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
@@ -967,6 +968,7 @@ impl JobArchetype for BuildEngineDistribution {
                     let cleanup_built_distribution = Step {
                         name: Some("Cleanup built-distribution".into()),
                         run: Some("rm -rf built-distribution".into()),
+                        shell: Some(Shell::Bash),
                         ..Default::default()
                     };
 
