@@ -14,7 +14,7 @@ on:
         default: false
 jobs:
   enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-linux-amd64:
-    name: Build Engine Distribution (shell) (GraalVM CE) (linux, amd64)
+    name: Build Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
     runs-on:
       - self-hosted
       - Linux
@@ -60,7 +60,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          name: engine-distribution-shell-linux
+          name: engine-distribution-linux-native,test
           path: built-distribution.tar
       - name: Cleanup
         run: rm built-distribution.tar
@@ -70,10 +70,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_LAUNCHER: shell
+      ENSO_LAUNCHER: native,test
       GRAAL_EDITION: GraalVM CE
   enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-aarch64:
-    name: Build Engine Distribution (shell) (GraalVM CE) (macos, aarch64)
+    name: Build Engine Distribution (GraalVM CE) (native,test) (macos, aarch64)
     runs-on:
       - self-hosted
       - macOS
@@ -120,7 +120,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          name: engine-distribution-shell-macos
+          name: engine-distribution-macos-native,test
           path: built-distribution.tar
       - name: Cleanup
         run: rm built-distribution.tar
@@ -130,10 +130,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_LAUNCHER: shell
+      ENSO_LAUNCHER: native,test
       GRAAL_EDITION: GraalVM CE
   enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64:
-    name: Build Engine Distribution (shell) (GraalVM CE) (macos, amd64)
+    name: Build Engine Distribution (GraalVM CE) (native,test) (macos, amd64)
     runs-on:
       - macos-13
     steps:
@@ -178,7 +178,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          name: engine-distribution-shell-macos
+          name: engine-distribution-macos-native,test
           path: built-distribution.tar
       - name: Cleanup
         run: rm built-distribution.tar
@@ -188,10 +188,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_LAUNCHER: shell
+      ENSO_LAUNCHER: native,test
       GRAAL_EDITION: GraalVM CE
   enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-windows-amd64:
-    name: Build Engine Distribution (shell) (GraalVM CE) (windows, amd64)
+    name: Build Engine Distribution (GraalVM CE) (native,test) (windows, amd64)
     runs-on:
       - self-hosted
       - Windows
@@ -237,7 +237,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          name: engine-distribution-shell-windows
+          name: engine-distribution-windows-native,test
           path: built-distribution.tar
       - name: Cleanup
         run: rm built-distribution.tar
@@ -247,10 +247,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_LAUNCHER: shell
+      ENSO_LAUNCHER: native,test
       GRAAL_EDITION: GraalVM CE
   enso-build-ci-gen-job-build-engine-distribution-oracle-graal-vm-linux-amd64:
-    name: Build Engine Distribution (shell) (Oracle GraalVM) (linux, amd64)
+    name: Build Engine Distribution (Oracle GraalVM) (native,test) (linux, amd64)
     runs-on:
       - self-hosted
       - Linux
@@ -296,7 +296,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          name: engine-distribution-shell-linux
+          name: engine-distribution-linux-native,test
           path: built-distribution.tar
       - name: Cleanup
         run: rm built-distribution.tar
@@ -306,7 +306,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      ENSO_LAUNCHER: shell
+      ENSO_LAUNCHER: native,test
       GRAAL_EDITION: Oracle GraalVM
   enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-linux-amd64:
     name: Engine (GraalVM CE) (linux, amd64)
@@ -597,7 +597,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-shell-linux
+          name: engine-distribution-linux-native,test
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -667,7 +667,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-shell-macos
+          name: engine-distribution-macos-native,test
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -735,7 +735,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-shell-macos
+          name: engine-distribution-macos-native,test
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -804,7 +804,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-shell-windows
+          name: engine-distribution-windows-native,test
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -873,7 +873,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-shell-linux
+          name: engine-distribution-linux-native,test
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -898,8 +898,8 @@ jobs:
       GRAAL_EDITION: Oracle GraalVM
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-linux-amd64:
-    name: Standard Library Tests (GraalVM CE) (linux, amd64)
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-jvm-linux-amd64:
+    name: Standard Library Tests (GraalVM CE) (jvm) (linux, amd64)
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-linux-amd64
     runs-on:
@@ -942,7 +942,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-shell-linux
+          name: engine-distribution-linux-native,test
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -970,8 +970,8 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-macos-aarch64:
-    name: Standard Library Tests (GraalVM CE) (macos, aarch64)
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-jvm-macos-aarch64:
+    name: Standard Library Tests (GraalVM CE) (jvm) (macos, aarch64)
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-aarch64
     runs-on:
@@ -1015,7 +1015,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-shell-macos
+          name: engine-distribution-macos-native,test
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -1043,8 +1043,8 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-macos-amd64:
-    name: Standard Library Tests (GraalVM CE) (macos, amd64)
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-jvm-macos-amd64:
+    name: Standard Library Tests (GraalVM CE) (jvm) (macos, amd64)
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
     runs-on:
@@ -1086,7 +1086,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-shell-macos
+          name: engine-distribution-macos-native,test
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -1114,8 +1114,8 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-windows-amd64:
-    name: Standard Library Tests (GraalVM CE) (windows, amd64)
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-jvm-windows-amd64:
+    name: Standard Library Tests (GraalVM CE) (jvm) (windows, amd64)
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-windows-amd64
     runs-on:
@@ -1158,7 +1158,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-shell-windows
+          name: engine-distribution-windows-native,test
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
@@ -1186,8 +1186,296 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-oracle-graal-vm-linux-amd64:
-    name: Standard Library Tests (Oracle GraalVM) (linux, amd64)
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-native-linux-amd64:
+    name: Standard Library Tests (GraalVM CE) (native) (linux, amd64)
+    needs:
+      - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-linux-amd64
+    runs-on:
+      - self-hosted
+      - Linux
+    steps:
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
+        with:
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v7
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
+      - name: Build Script Setup
+        run: ./run --help || (git clean -ffdx && ./run --help)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download Engine Distribution
+        uses: actions/download-artifact@v4
+        with:
+          name: engine-distribution-linux-native,test
+      - run: |-
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
+      - run: ./run backend test standard-library-in-native
+        env:
+          ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
+          ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
+          ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Standard Library Test Reporter
+        uses: dorny/test-reporter@v1
+        with:
+          max-annotations: 50
+          name: Standard Library Tests Report (GraalVM CE, linux, amd64)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GRAAL_EDITION: GraalVM CE
+    permissions:
+      checks: write
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-native-macos-aarch64:
+    name: Standard Library Tests (GraalVM CE) (native) (macos, aarch64)
+    needs:
+      - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-aarch64
+    runs-on:
+      - self-hosted
+      - macOS
+      - ARM64
+    steps:
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
+        with:
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v7
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
+      - name: Build Script Setup
+        run: ./run --help || (git clean -ffdx && ./run --help)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download Engine Distribution
+        uses: actions/download-artifact@v4
+        with:
+          name: engine-distribution-macos-native,test
+      - run: |-
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
+      - run: ./run backend test standard-library-in-native
+        env:
+          ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
+          ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
+          ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Standard Library Test Reporter
+        uses: dorny/test-reporter@v1
+        with:
+          max-annotations: 50
+          name: Standard Library Tests Report (GraalVM CE, macos, aarch64)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GRAAL_EDITION: GraalVM CE
+    permissions:
+      checks: write
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-native-macos-amd64:
+    name: Standard Library Tests (GraalVM CE) (native) (macos, amd64)
+    needs:
+      - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
+    runs-on:
+      - macos-13
+    steps:
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
+        with:
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v7
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
+      - name: Build Script Setup
+        run: ./run --help || (git clean -ffdx && ./run --help)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download Engine Distribution
+        uses: actions/download-artifact@v4
+        with:
+          name: engine-distribution-macos-native,test
+      - run: |-
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
+      - run: ./run backend test standard-library-in-native
+        env:
+          ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
+          ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
+          ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Standard Library Test Reporter
+        uses: dorny/test-reporter@v1
+        with:
+          max-annotations: 50
+          name: Standard Library Tests Report (GraalVM CE, macos, amd64)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GRAAL_EDITION: GraalVM CE
+    permissions:
+      checks: write
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-native-windows-amd64:
+    name: Standard Library Tests (GraalVM CE) (native) (windows, amd64)
+    needs:
+      - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-windows-amd64
+    runs-on:
+      - self-hosted
+      - Windows
+    steps:
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
+        with:
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v7
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
+      - name: Build Script Setup
+        run: ./run --help || (git clean -ffdx && ./run --help)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download Engine Distribution
+        uses: actions/download-artifact@v4
+        with:
+          name: engine-distribution-windows-native,test
+      - run: |-
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
+      - run: ./run backend test standard-library-in-native
+        env:
+          ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
+          ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
+          ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Standard Library Test Reporter
+        uses: dorny/test-reporter@v1
+        with:
+          max-annotations: 50
+          name: Standard Library Tests Report (GraalVM CE, windows, amd64)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GRAAL_EDITION: GraalVM CE
+    permissions:
+      checks: write
+  enso-build-ci-gen-job-standard-library-tests-oracle-graal-vm-jvm-linux-amd64:
+    name: Standard Library Tests (Oracle GraalVM) (jvm) (linux, amd64)
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-oracle-graal-vm-linux-amd64
     runs-on:
@@ -1230,11 +1518,83 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-shell-linux
+          name: engine-distribution-linux-native,test
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
       - run: ./run backend test standard-library
+        env:
+          ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
+          ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
+          ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Standard Library Test Reporter
+        uses: dorny/test-reporter@v1
+        with:
+          max-annotations: 50
+          name: Standard Library Tests Report (Oracle GraalVM, linux, amd64)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GRAAL_EDITION: Oracle GraalVM
+    permissions:
+      checks: write
+  enso-build-ci-gen-job-standard-library-tests-oracle-graal-vm-native-linux-amd64:
+    name: Standard Library Tests (Oracle GraalVM) (native) (linux, amd64)
+    needs:
+      - enso-build-ci-gen-job-build-engine-distribution-oracle-graal-vm-linux-amd64
+    runs-on:
+      - self-hosted
+      - Linux
+    steps:
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
+        with:
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v7
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
+      - name: Build Script Setup
+        run: ./run --help || (git clean -ffdx && ./run --help)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download Engine Distribution
+        uses: actions/download-artifact@v4
+        with:
+          name: engine-distribution-linux-native,test
+      - run: |-
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
+      - run: ./run backend test standard-library-in-native
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
           ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}

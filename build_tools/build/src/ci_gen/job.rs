@@ -236,7 +236,7 @@ impl JobArchetype for JvmTests {
                 let download_engine_distribution =
                     step::download_artifact("Download Engine Distribution").with_custom_argument(
                         "name",
-                        format!("engine-distribution-{}-{}", engine_launcher, target.0),
+                        format!("engine-distribution-{}-{}", target.0, engine_launcher),
                     );
 
                 let unpack_engine_distribution = Step {
@@ -303,6 +303,17 @@ pub struct StandardLibraryTests {
     pub graal_edition:       graalvm::Edition,
     pub engine_launcher:     engine::EngineLauncher,
     pub cloud_tests_enabled: bool,
+    pub native_image_mode:   bool,
+}
+
+impl StandardLibraryTests {
+    fn mode_name(&self) -> String {
+        if self.native_image_mode {
+            "native".into()
+        } else {
+            "jvm".into()
+        }
+    }
 }
 
 impl JobArchetype for StandardLibraryTests {
@@ -310,22 +321,22 @@ impl JobArchetype for StandardLibraryTests {
         let graal_edition = self.graal_edition;
         let engine_launcher = self.engine_launcher;
         let should_enable_cloud_tests = self.cloud_tests_enabled;
-        let native_image_mode = self.engine_launcher != engine::EngineLauncher::Shell;
         // If cloud tests are enabled, we run only cloud related tests.
         let test_scope = if should_enable_cloud_tests {
             "std-cloud-related"
-        } else if native_image_mode {
+        } else if self.native_image_mode {
             "standard-library-in-native"
         } else {
             "standard-library"
         };
-        let job_name = format!("Standard Library Tests ({graal_edition})");
+        let job_mode_name = self.mode_name();
+        let job_name = format!("Standard Library Tests ({graal_edition}) ({job_mode_name})");
         let run_command = format!("backend test {test_scope}");
         let run_steps_builder = RunStepsBuilder::new(run_command).customize(move |step| {
             let download_engine_distribution =
                 step::download_artifact("Download Engine Distribution").with_custom_argument(
                     "name",
-                    format!("engine-distribution-{}-{}", engine_launcher, target.0),
+                    format!("engine-distribution-{}-{}", target.0, engine_launcher),
                 );
 
             let unpack_engine_distribution = Step {
@@ -387,9 +398,10 @@ rm built-distribution.tar"
 
     fn key(&self, (os, arch): Target) -> String {
         format!(
-            "{}-{}-{os}-{arch}",
+            "{}-{}-{}-{os}-{arch}",
             self.id_key_base(),
-            self.graal_edition.to_string().to_kebab_case()
+            self.graal_edition.to_string().to_kebab_case(),
+            self.mode_name(),
         )
     }
 }
@@ -948,7 +960,7 @@ impl JobArchetype for BuildEngineDistribution {
         let args_separator = if target.0 == OS::Windows { "'--'" } else { "--" };
         let engine_launcher = self.engine_launcher;
         let job_name =
-            format!("Build Engine Distribution ({}) ({})", engine_launcher, self.graal_edition);
+            format!("Build Engine Distribution ({}) ({})", self.graal_edition, engine_launcher);
         let mut job =
             RunStepsBuilder::new(format!("backend sbt {} buildEngineDistribution", args_separator))
                 .customize(move |step| {
@@ -962,7 +974,7 @@ impl JobArchetype for BuildEngineDistribution {
                         step::upload_artifact("Upload Engine Distribution")
                             .with_custom_argument(
                                 "name",
-                                format!("engine-distribution-{}-{}", engine_launcher, target.0),
+                                format!("engine-distribution-{}-{}", target.0, engine_launcher),
                             )
                             .with_custom_argument("path", "built-distribution.tar");
 

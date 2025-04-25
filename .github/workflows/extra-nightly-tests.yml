@@ -84,8 +84,8 @@ jobs:
       REPORT_ALL_TESTS: "1"
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-linux-amd64:
-    name: Standard Library Tests (GraalVM CE) (LinuxLatest)
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-jvm-linux-amd64:
+    name: Standard Library Tests (GraalVM CE) (jvm) (LinuxLatest)
     runs-on:
       - ubuntu-latest
     steps:
@@ -125,7 +125,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-shell-linux
+          name: engine-distribution-linux-native,test
       - run: |-
           tar -xvf built-distribution.tar
           rm built-distribution.tar
