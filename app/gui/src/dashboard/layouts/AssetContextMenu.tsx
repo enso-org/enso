@@ -276,7 +276,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={async () => {
               await uploadFileToCloudMutation(localBackend, {
                 assets: [asset],
-                targetDirectoryId: currentDirectoryId,
+                targetDirectoryId: user.rootDirectoryId,
               })
             }}
           />

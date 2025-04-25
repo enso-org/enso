@@ -396,7 +396,7 @@ function UploadFilesToCloudButton(props: UploadFilesToCloudButtonProps) {
   const getAsset = useGetAsset()
   const { getText } = useText()
   const localBackend = useLocalBackend()
-  const uploadFilesToCloud = useUploadFileToCloudMutation()
+  const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const isCloud = isCloudCategory(category)
   const driveStore = useDriveStore()
   const isDisabled = useStore(
@@ -415,7 +415,7 @@ function UploadFilesToCloudButton(props: UploadFilesToCloudButtonProps) {
       const asset = getAsset(id)
       return asset ? [asset] : []
     })
-    await uploadFilesToCloud(localBackend, {
+    await uploadFileToCloudMutation(localBackend, {
       assets: Array.from(files),
       targetDirectoryId: user.rootDirectoryId,
     })
