@@ -315,7 +315,7 @@ impl Program for BuiltEnso {
     }
 
     fn cmd(&self) -> Result<Command> {
-        ide_ci::platform::DEFAULT_SHELL.run_script(self.wrapper_script_path(true))
+        Ok(Command::new(self.wrapper_script_path(true)))
     }
 
     fn version_string(&self) -> BoxFuture<'static, Result<String>> {
