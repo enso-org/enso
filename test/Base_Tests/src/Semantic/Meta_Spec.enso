@@ -118,18 +118,24 @@ add_specs suite_builder =
             atom = R.V "meaning" 6*7
             meta = Meta.meta atom
 
+            # meta for atom can be obtained
+            meta.is_nothing . should_be_false
+
             # constructor is inaccessible via Meta
             meta.constructor . should_fail_with Private_Access
 
-            # but constructor can be accessed directly
+            # possible to access private constructor in the same project
+            rv = R.V
+            rv . is_nothing . should_be_false
+
+            # impossible to create meta for it
             cons = Meta.meta R.V
+            cons . should_fail_with Private_Access
 
-            cons . should_be_a Meta.Constructor
-
-            # obtaining name of private constructor is forbidden
+            # obtaining name inherently fails
             cons . name . should_fail_with Private_Access
 
-            # fields cannot be obtained for private Constructor
+            # obtaining fields inherently fails
             cons.fields . should_fail_with Private_Access
 
         group_builder.specify "should allow creating atoms from atom constructors" <|

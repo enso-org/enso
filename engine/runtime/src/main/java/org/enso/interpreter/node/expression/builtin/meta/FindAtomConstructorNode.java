@@ -10,8 +10,8 @@ import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.error.DataflowError;
 
 @BuiltinMethod(
     type = "Meta",
@@ -19,17 +19,23 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
     description = "Checks if the argument is a constructor.",
     autoRegister = false)
 final class FindAtomConstructorNode extends Node {
-  EnsoObject execute(VirtualFrame frame, @Suspend @AcceptsError Object value) {
-    var ac = findConstructor(value, frame);
+  Object execute(VirtualFrame frame, @Suspend @AcceptsError Object value) {
+    var ctx = EnsoContext.get(this);
+    var ac = findConstructorOrNull(ctx, value, frame);
     if (ac != null) {
-      return ac;
+      if (ac.getType().hasAllConstructorsPrivate()) {
+        var err = ctx.getBuiltins().error().makePrivateAccessError(null, null, "constructor");
+        return DataflowError.withDefaultTrace(err, this);
+      } else {
+        return ac;
+      }
     } else {
-      var ctx = EnsoContext.get(this);
       return ctx.getNothing();
     }
   }
 
-  private AtomConstructor findConstructor(Object value, VirtualFrame frame) {
+  private static AtomConstructor findConstructorOrNull(
+      EnsoContext ctx, Object value, VirtualFrame frame) {
     for (; ; ) {
       if (value instanceof AtomConstructor atom) {
         return atom;
@@ -42,7 +48,6 @@ final class FindAtomConstructorNode extends Node {
           return atom;
         }
         if (fn.isThunk()) {
-          var ctx = EnsoContext.get(this);
           var state = ctx.currentState();
           var thunkSolver = ThunkExecutorNode.getUncached();
           value = thunkSolver.executeThunk(frame, value, state, BaseNode.TailStatus.NOT_TAIL);
