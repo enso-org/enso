@@ -1617,7 +1617,7 @@ type DB_Column
     @new_text (Text_Input display=..Always)
     text_replace self (term : Text | Regex | DB_Column = "") (new_text : Text | DB_Column = "") case_sensitivity:Case_Sensitivity=..Default only_first:Boolean=False -> DB_Column ! Unsupported_Database_Operation =
         Value_Type.expect_text self <| case_sensitivity.disallow_non_default_locale <|
-            input_type = Meta.type_of term
+            input_type = if term.is_error then term else Meta.type_of term
             params = Replace_Params.Value input_type case_sensitivity only_first
             self.connection.dialect.if_replace_params_supports params <|
                 new_name = self.naming_helper.function_name "replace" [self, term, new_text]

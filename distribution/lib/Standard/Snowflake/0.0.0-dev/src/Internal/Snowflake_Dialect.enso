@@ -702,6 +702,10 @@ supported_replace_params =
     Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
 ## PRIVATE
+empty_string : SQL_Builder
+empty_string = SQL_Builder.interpolation ""
+
+## PRIVATE
 replace : Vector SQL_Builder -> Any -> SQL_Builder
 replace args metadata =
     input = args.at 0
@@ -735,18 +739,20 @@ replace args metadata =
                     _ ->
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 1, 1)"
         Regex ->
-            pattern_text = SQL_Builder.interpolation raw_pattern.pattern
+            pair = if raw_pattern.pattern!="(?<=\s)\s+" || replacement!=empty_string then [raw_pattern.pattern, replacement] else
+                ["(\s)\s+", SQL_Builder.interpolation "$1"]
+            pattern_text = SQL_Builder.interpolation pair.first
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 1, 0, 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ pair.second ++ ", 1, 0, 'i')"
                     _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ")"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ pair.second ++ ")"
                 True -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 1, 1, 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ pair.second ++ ", 1, 1, 'i')"
                     _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 1, 1)"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ pair.second ++ ", 1, 1)"
         DB_Column ->
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
