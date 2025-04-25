@@ -726,18 +726,18 @@ replace args metadata =
     expression = case replace_params.input_type of
         Text ->
             ## To use REGEXP_REPLACE on a non-regex, we have to escape it.
-            escaped_pattern = SQL_Builder.interpolation (Regex.escape pair.first)
+            escaped_pattern = SQL_Builder.interpolation (Regex.escape raw_pattern)
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ pair.second ++ ", 1, 0, 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 1, 0, 'i')"
                     _ ->
-                        SQL_Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ pair.second ++ ")"
+                        SQL_Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
                 True -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ pair.second ++ ", 1, 1, 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 1, 1, 'i')"
                     _ ->
-                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ pair.second ++ ", 1, 1)"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 1, 1)"
         Regex ->
             pair = if raw_pattern.pattern!="(?<=\s)\s+" || replacement!=empty_string then [raw_pattern.pattern, replacement] else
                 ["(\s)\s+", SQL_Builder.interpolation "$1"]
