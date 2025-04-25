@@ -548,9 +548,13 @@ jobs:
         with:
           name: engine-distribution-linux-native,test
       - run: |-
+          echo 'Unpack Engine Distribution'
           rm -rf built-distribution
+          echo 'built-distribution removed'
           tar -xvf built-distribution.tar
+          echo 'built-distribution unpacked'
           rm built-distribution.tar
+          echo 'built-distribution.tar removed'
         shell: bash
       - run: ./run backend stdlib-api-check
         env:
