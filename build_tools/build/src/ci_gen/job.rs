@@ -449,13 +449,14 @@ impl JobArchetype for StandardLibraryApiCheck {
 
                 let unpack_engine_distribution = Step {
                     run: Some(
-                        "echo 'Unpack Engine Distribution'
-rm -rf built-distribution
-echo 'built-distribution removed'
-tar -xvf built-distribution.tar
-echo 'built-distribution unpacked'
-rm built-distribution.tar
-echo 'built-distribution.tar removed'"
+                        "echo 'Unpack Engine Distribution';
+rm -rf built-distribution;
+echo 'built-distribution removed';
+tar -xvf built-distribution.tar;
+echo 'built-distribution unpacked';
+rm built-distribution.tar;
+echo 'built-distribution.tar removed';
+"
                             .into(),
                     ),
                     shell: Some(Shell::Bash),
