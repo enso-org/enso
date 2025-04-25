@@ -266,12 +266,6 @@ abstract class TypePropagation {
       Function.Lambda lambda, LocalBindingsTyping localBindingsTyping) {
     boolean hasAnyDefaults =
         lambda.arguments().find((arg) -> arg.defaultValue().isDefined()).isDefined();
-    if (hasAnyDefaults) {
-      // Inferring function types with default arguments is not supported yet.
-      // TODO we will need to mark defaults in the TypeRepresentation to know when they may be
-      // FORCEd
-      return null;
-    }
 
     scala.collection.immutable.List<TypeRepresentation> argTypesScala =
         lambda
@@ -299,6 +293,11 @@ abstract class TypePropagation {
     if (returnType == null && argTypesScala.isEmpty()) {
       // If the return type is unknown and we have no arguments, we do not infer anything useful -
       // so we withdraw.
+      return null;
+    }
+
+    if (hasAnyDefaults) {
+      // TODO we don't yet have ability to return a signature with default arguments
       return null;
     }
 
