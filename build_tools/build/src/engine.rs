@@ -148,6 +148,7 @@ pub struct BuildConfigurationFlags {
     pub test_jvm: bool,
     /// Whether the Enso standard library should be tested.
     pub test_standard_library: Option<StandardLibraryTestsSelection>,
+    pub extra_engine_runner_flags: Option<Vec<String>>,
     /// Whether benchmarks are compiled.
     ///
     /// Note that this does not run the benchmarks, only ensures that they are buildable.
@@ -271,6 +272,12 @@ impl BuildConfigurationFlags {
         };
         self.test_standard_library = Some(combined_selection);
     }
+
+    pub fn add_engine_runner_flag(&mut self, flag: &str) {
+        if let Some(engine_runner_flags) = &mut self.extra_engine_runner_flags {
+            engine_runner_flags.push(flag.into());
+        }
+    }
 }
 
 impl Default for BuildConfigurationFlags {
@@ -278,6 +285,7 @@ impl Default for BuildConfigurationFlags {
         Self {
             test_jvm: false,
             test_standard_library: None,
+            extra_engine_runner_flags: None,
             build_benchmarks: false,
             check_enso_benchmarks: false,
             execute_benchmarks: default(),

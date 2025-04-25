@@ -368,6 +368,7 @@ impl Processor {
                             config.add_standard_library_test_selection(
                                 StandardLibraryTestsSelection::All,
                             );
+                            config.add_engine_runner_flag("--jvm");
                             config.use_native_runner = true;
                         }
                         Tests::StandardLibraryInNative => {

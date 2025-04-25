@@ -139,13 +139,18 @@ impl BuiltEnso {
         sbt: &crate::engine::sbt::Context,
         async_policy: AsyncPolicy,
         test_selection: StandardLibraryTestsSelection,
+        extra_runner_flags: Option<Vec<String>>,
         native_image: bool,
     ) -> Result {
         let paths = &self.paths;
         // Environment for meta-tests. See:
         // https://github.com/enso-org/enso/tree/develop/test/Meta_Test_Suite_Tests
         ENSO_META_TEST_COMMAND.set(&self.wrapper_script_path())?;
-        ENSO_META_TEST_ARGS.set(&format!("{} --run", ir_caches.flag()))?;
+        if let Some(flags) = extra_runner_flags {
+            ENSO_META_TEST_ARGS.set(&format!("{} {} --run", ir_caches.flag(), flags.join(" ")))?;
+        } else {
+            ENSO_META_TEST_ARGS.set(&format!("{} --run", ir_caches.flag()))?;
+        }
 
         ENSO_ENABLE_ASSERTIONS.set("true")?;
         ENSO_TEST_ANSI_COLORS.set("true")?;

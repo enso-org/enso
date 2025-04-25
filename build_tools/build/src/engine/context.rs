@@ -360,6 +360,7 @@ impl RunContext {
                     &sbt,
                     PARALLEL_ENSO_TESTS,
                     selection.clone(),
+                    self.config.extra_engine_runner_flags.clone(),
                     self.config.has_native_runner(),
                 )
                 .await?;
