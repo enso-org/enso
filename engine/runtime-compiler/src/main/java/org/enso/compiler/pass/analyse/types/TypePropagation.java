@@ -273,19 +273,28 @@ abstract class TypePropagation {
             .filter((arg) -> !(arg.name() instanceof Name.Self))
             .map(
                 (arg) -> {
+                  var resolvedTyp = TypeRepresentation.UNKNOWN;
                   if (arg.ascribedType().isDefined()) {
                     Expression typeExpression = arg.ascribedType().get();
-                    var resolvedTyp = typeResolver.resolveTypeExpression(typeExpression);
+                    resolvedTyp = typeResolver.resolveTypeExpression(typeExpression);
                     if (resolvedTyp != null) {
                       // We register the type of the argument in the local bindings map, so that it
                       // can be used by expressions that refer to this argument.
                       // No need to fork it, because there is just one code path.
                       registerBinding(arg, resolvedTyp, localBindingsTyping);
-                      return resolvedTyp;
                     }
                   }
 
-                  return TypeRepresentation.UNKNOWN;
+                  // TODO
+                  if (arg.defaultValue().isDefined()) {
+                    var defaultValueTyp =
+                        tryInferringType(arg.defaultValue().get(), localBindingsTyping);
+                    if (defaultValueTyp != null && resolvedTyp != null) {
+                      checkTypeCompatibility(arg, resolvedTyp, defaultValueTyp);
+                    }
+                  }
+
+                  return resolvedTyp;
                 });
 
     TypeRepresentation returnType = tryInferringType(lambda.body(), localBindingsTyping);
