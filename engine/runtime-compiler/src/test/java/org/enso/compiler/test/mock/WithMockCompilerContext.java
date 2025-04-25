@@ -23,12 +23,12 @@ import scala.jdk.javaapi.CollectionConverters;
  */
 public final class WithMockCompilerContext implements TestRule {
   private final MockPackageRepository repo;
-  private final PrintStream out;
+  private final ByteArrayOutputStream out;
   private final CompilerConfig compilerCfg;
   private final MockCompilerContext compilerContext;
   private final Compiler compiler;
 
-  private WithMockCompilerContext(PrintStream out, CompilerConfig compilerCfg) {
+  private WithMockCompilerContext(ByteArrayOutputStream out, CompilerConfig compilerCfg) {
     this.repo = MockPackageRepository.create();
     this.out = out;
     this.compilerCfg = compilerCfg;
@@ -92,14 +92,25 @@ public final class WithMockCompilerContext implements TestRule {
       try {
         base.evaluate();
       } catch (Throwable e) {
-        var allFiles = repo.listAllFilesInVfs();
-        System.err.println("=== All files in VFS === ");
-        System.err.println(allFiles);
-        System.err.println("=== End of VFS === ");
+        printCompilerOutput();
+        printAllVfsFiles();
         throw e;
       } finally {
         repo.getVfs().deleteAll();
       }
+    }
+
+    private void printCompilerOutput() {
+      System.err.println("=== Compiler Output ===");
+      System.err.println(out);
+      System.err.println("=== End of Compiler Output ===");
+    }
+
+    private void printAllVfsFiles() {
+      var allFiles = repo.listAllFilesInVfs();
+      System.err.println("=== All files in VFS === ");
+      System.err.println(allFiles);
+      System.err.println("=== End of VFS === ");
     }
   }
 
@@ -132,7 +143,7 @@ public final class WithMockCompilerContext implements TestRule {
     }
 
     public WithMockCompilerContext build() {
-      var out = new PrintStream(new ByteArrayOutputStream());
+      var out = new ByteArrayOutputStream();
       var compilerCfg =
           new CompilerConfig(
               true,
@@ -142,7 +153,7 @@ public final class WithMockCompilerContext implements TestRule {
               scala.Option.empty(),
               isStringErrors,
               enableLinting,
-              scala.Some.apply(out));
+              scala.Some.apply(new PrintStream(out)));
       return new WithMockCompilerContext(out, compilerCfg);
     }
   }
