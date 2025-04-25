@@ -73,8 +73,9 @@ pub struct BuiltEnso {
 }
 
 impl BuiltEnso {
-    pub fn wrapper_script_path(&self) -> PathBuf {
-        let filename = format!("enso{}", if TARGET_OS == OS::Windows { ".bat" } else { "" });
+    pub fn wrapper_script_path(&self, native_image: bool) -> PathBuf {
+        let win_ext = if native_image { ".exe" } else { ".bat" };
+        let filename = format!("enso{}", if TARGET_OS == OS::Windows { win_ext } else { "" });
         self.paths.repo_root.built_distribution.enso_engine_triple.engine_package.bin.join(filename)
     }
 
@@ -105,7 +106,7 @@ impl BuiltEnso {
         native_image: bool,
     ) -> Result<Command> {
         let mut command = if native_image {
-            let enso = self.wrapper_script_path();
+            let enso = self.wrapper_script_path(native_image);
             Command::new(&enso)
         } else {
             self.cmd()?
@@ -149,7 +150,7 @@ impl BuiltEnso {
         let paths = &self.paths;
         // Environment for meta-tests. See:
         // https://github.com/enso-org/enso/tree/develop/test/Meta_Test_Suite_Tests
-        ENSO_META_TEST_COMMAND.set(&self.wrapper_script_path())?;
+        ENSO_META_TEST_COMMAND.set(&self.wrapper_script_path(native_image))?;
         if let Some(args) = &extra_runner_args {
             ENSO_META_TEST_ARGS.set(&format!("{} {} --run", ir_caches.flag(), args.join(" ")))?;
         } else {
@@ -314,7 +315,7 @@ impl Program for BuiltEnso {
     }
 
     fn cmd(&self) -> Result<Command> {
-        ide_ci::platform::DEFAULT_SHELL.run_script(self.wrapper_script_path())
+        ide_ci::platform::DEFAULT_SHELL.run_script(self.wrapper_script_path(true))
     }
 
     fn version_string(&self) -> BoxFuture<'static, Result<String>> {
