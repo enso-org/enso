@@ -348,6 +348,15 @@
         ]
     },
     {
+        "name": "org.enso.base_test_helpers.ExecutableLocation",
+        "methods": [
+            {
+                "name": "getExecutableLocation",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
         "name": "org.slf4j.Logger",
         "methods": [
             {

@@ -325,7 +325,7 @@ export class Filtering {
       const additionalSelfTypes = this.selfArg?.type === 'known' ? this.selfArg.additionalTypes : []
       const patternMatch = this.pattern.tryMatch(
         entry.name,
-        entry.aliases,
+        entry.aliasesAndMacros,
         entry.memberOf,
         additionalSelfTypes,
       )

@@ -159,7 +159,7 @@ test("Modifying suggestion entries' fields", () => {
   test.expectedType.definedIn = stdPath('Standard.Base2.Main')
   test.expectedType.definitionPath = stdPath('Standard.Base2.Main.Type')
   test.expectedType.returnType = () => 'Standard.Base2.Type'
-  test.expectedType.aliases = ['Test Type 2']
+  test.expectedType.aliasesAndMacros = ['Test Type 2']
   test.expectedType.documentation = parseDocs(typeDocs2)
   test.expectedCon.memberOf = stdPath('Standard.Base2.Main.Type')
   test.expectedCon.definitionPath = stdPath('Standard.Base2.Main.Type.Con')
@@ -194,7 +194,7 @@ test("Unsetting suggestion entries' fields", () => {
   const db = test.createDbWithExpected()
   test.expectedModule.reexportedIn = undefined
   test.expectedType.documentation = []
-  test.expectedType.aliases = []
+  test.expectedType.aliasesAndMacros = []
   test.expectedCon.documentation = []
   test.expectedCon.isUnstable = false
   test.expectedMethod.documentation = []
@@ -347,7 +347,7 @@ class Fixture {
     returnType: () => 'Standard.Base',
     documentation: parseDocs(this.moduleDocs),
     reexportedIn: stdPath('Standard.Base.Another.Module'),
-    aliases: [],
+    aliasesAndMacros: [],
     isPrivate: false,
     isUnstable: false,
     iconName: undefined,
@@ -361,7 +361,7 @@ class Fixture {
     arguments: [this.arg1],
     returnType: () => 'Standard.Base.Type',
     documentation: parseDocs(this.typeDocs),
-    aliases: ['Test Type'],
+    aliasesAndMacros: ['Test Type'],
     isPrivate: false,
     isUnstable: false,
     parentType: undefined,
@@ -378,7 +378,7 @@ class Fixture {
     arguments: [this.arg1],
     returnType: () => 'Standard.Base.Type',
     documentation: parseDocs(this.conDocs),
-    aliases: [],
+    aliasesAndMacros: [],
     isPrivate: false,
     isUnstable: true,
     reexportedIn: stdPath('Standard.Base.Another.Module'),
@@ -397,7 +397,7 @@ class Fixture {
     returnType: () => 'Standard.Base.Number',
     documentation: parseDocs(this.methodDocs),
     groupIndex: 0,
-    aliases: [],
+    aliasesAndMacros: [],
     isPrivate: false,
     isUnstable: false,
     annotations: ['Annotation 2', 'Annotation 3'],
@@ -414,7 +414,7 @@ class Fixture {
     returnType: () => 'Standard.Base.Number',
     documentation: parseDocs(this.staticMethodDocs),
     groupIndex: 1,
-    aliases: [],
+    aliasesAndMacros: [],
     isPrivate: false,
     isUnstable: false,
     reexportedIn: stdPath('Standard.Base.Another.Module'),
@@ -430,7 +430,7 @@ class Fixture {
     arguments: [this.arg1],
     returnType: () => 'Standard.Base.Number',
     documentation: parseDocs(this.functionDocs),
-    aliases: [],
+    aliasesAndMacros: [],
     isPrivate: false,
     isUnstable: false,
     scope: this.scope,
@@ -444,7 +444,7 @@ class Fixture {
     definitionPath: stdPath('Standard.Base.Main.local'),
     returnType: () => 'Standard.Base.Number',
     documentation: parseDocs(this.localDocs),
-    aliases: [],
+    aliasesAndMacros: [],
     isPrivate: false,
     isUnstable: false,
     scope: this.scope,
@@ -469,7 +469,7 @@ class Fixture {
     definitionPath: ProjectPath.create(undefined, 'Main.collapsed' as QualifiedName),
     documentation: [{ Tag: { tag: 'Icon', body: 'group' } }, { Paragraph: { body: '' } }],
     iconName: 'group',
-    aliases: [],
+    aliasesAndMacros: [],
     isPrivate: false,
     isUnstable: false,
     memberOf: ProjectPath.create(undefined, 'Main' as Identifier),
