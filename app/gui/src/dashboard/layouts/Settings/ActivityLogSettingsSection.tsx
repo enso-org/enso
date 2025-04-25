@@ -174,7 +174,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 renderMultiple={({ items }) =>
                   items.length === 0 || items.length === ORDERED_LAMBDA_KINDS.length ?
                     'All'
-                  : (items[0] != null ? EVENT_TYPE_NAME_ID[items[0]] : '') +
+                  : (items[0] != null ? getText(EVENT_TYPE_NAME_ID[items[0]]) : '') +
                     (items.length <= 1 ? '' : ` (+${items.length - 1})`)
                 }
                 onChange={(items, indices) => {
@@ -182,7 +182,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   setTypeIndices(indices)
                 }}
               >
-                {({ item }) => EVENT_TYPE_NAME_ID[item]}
+                {({ item }) => getText(EVENT_TYPE_NAME_ID[item])}
               </Dropdown>
             </div>
             <div className="flex items-center gap-2">
