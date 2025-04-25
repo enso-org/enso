@@ -66,14 +66,9 @@ function applyLayouts(
   components: ((props: PropsWithChildren) => ReactNode)[],
   children: RouteRecordRaw[],
 ) {
-  const reducedComponent = components.reduceRight(
-    (Composed, Next) =>
-      ({ children }: PropsWithChildren) => (
-        <Next>
-          <Composed>{children}</Composed>
-        </Next>
-      ),
-  )
+  const reducedComponent = components.reduceRight((composed, Next) => (props) => (
+    <Next>{composed(props)}</Next>
+  ))
   return {
     component: ReactLayoutWrapper,
     props: {

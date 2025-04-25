@@ -34,6 +34,7 @@ const {
 }>()
 
 const readyProjects = reactive(new Set<ProjectId>())
+const projectNames = reactive(new Map<ProjectId, string>())
 
 function setProjectReady(project: ProjectId, ready: boolean) {
   if (ready) {
@@ -51,6 +52,11 @@ watch(
     for (const proj of readyProjects) {
       if (!openedProjects.has(proj)) {
         readyProjects.delete(proj)
+      }
+    }
+    for (const proj of projectNames.keys()) {
+      if (!openedProjects.has(proj)) {
+        openedProjects.delete(proj)
       }
     }
   },
@@ -78,7 +84,7 @@ const onSignOut = () => {
         >
           <SvgIcon v-if="readyProjects.has(project.id)" name="graph_editor" />
           <LoadingSpinner v-else :size="16" />
-          <span>{{ project.title }}</span>
+          <span>{{ projectNames.get(project.id) }}</span>
           <SvgIcon name="close" @click="closeProject(project)" />
         </SelectableTab>
         <SelectableTab v-if="page === 'settings'" :selected="true">Settings</SelectableTab>
@@ -100,6 +106,7 @@ const onSignOut = () => {
         :hidden="page !== project.id"
         :project="project"
         @readyUpdate="setProjectReady(project.id, $event)"
+        @nameUpdate="projectNames.set(project.id, $event)"
       />
       <KeepAlive>
         <Settings v-if="page === 'settings'" />

@@ -70,10 +70,7 @@ export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
               onPressStart={onClose}
               onPress={() => {
                 onClose()
-                const newQuery = { ...route.query }
-                membersSearchParams.forEach(([key, value]) => {
-                  newQuery[key] = value
-                })
+                const newQuery = { ...route.query, ...Object.fromEntries(membersSearchParams) }
                 void router.push({ query: newQuery })
               }}
             >
