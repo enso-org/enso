@@ -10,6 +10,7 @@ import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import UpsertSecretPanel from '@/components/UpsertSecretPanel.vue'
 import FileBrowserEntry from '@/components/widgets/FileBrowserWidget/FileBrowserEntry.vue'
 import { Directory, useFileBrowserStack } from '@/components/widgets/FileBrowserWidget/paths'
 import { useBackend } from '@/composables/backend'
@@ -194,7 +195,9 @@ function warningDismissed() {
   warningText.value = null
 }
 
-const isBusy = computed(() => isDirectoryStackInitializing.value || isPending.value)
+const isBusy = computed(
+  () => isDirectoryStackInitializing.value || isPending.value || commitSecretPending.value,
+)
 
 const anyError = computed(() =>
   isError.value ? error
@@ -216,6 +219,7 @@ const editedAsset = ref<{
 // `keyOverride` property before getting update from backend.
 const createDir = mutation('createDirectory', { meta: { awaitInvalidates: false } })
 const updateDir = mutation('updateDirectory')
+const createSecret = mutation('createSecret', { meta: { awaitInvalidates: false } })
 
 function addNewDirectory() {
   assert(editedAsset.value == null)
@@ -270,6 +274,21 @@ async function acceptName(name: string) {
   )
 }
 
+const creatingSecret = ref(false)
+const commitSecretPending = ref(false)
+async function commitSecret(value: string, name: string) {
+  creatingSecret.value = false
+  filenameInputContents.value = name
+  commitSecretPending.value = true
+  await createSecret.mutateAsync([
+    { name, value, parentDirectoryId: currentDirectory.value?.id ?? null },
+  ])
+  commitSecretPending.value = false
+  acceptCurrentFile()
+}
+
+const enableTopBarButtons = computed(() => !creatingSecret.value)
+
 watch(
   directories,
   (dirs) => {
@@ -315,9 +334,14 @@ onMounted(() => {
       <div class="confirmationText">{{ 'Warning: ' + warningText }}</div>
       <SvgButton class="confirmationButton" label="Dismiss" @click.stop="warningDismissed" />
     </div>
-    <div class="topBar">
+    <div class="topBar" :class="{ nonInteractive: !enableTopBarButtons }">
       <div class="directoryStack">
-        <SvgButton name="navigate_up" title="Up" :disabled="!canPop" @click.stop="popDirectory" />
+        <SvgButton
+          name="navigate_up"
+          title="Up"
+          :disabled="!enableTopBarButtons || !canPop"
+          @click.stop="popDirectory"
+        />
         <div class="breadcrumbs">
           <TransitionGroup>
             <template v-for="(directory, index) in directoryStack" :key="directory.id ?? 'root'">
@@ -334,16 +358,26 @@ onMounted(() => {
       </div>
       <SvgButton
         name="folder_add"
-        title="Add New Folder"
-        :disabled="editedAsset != null"
+        title="New Folder"
+        :disabled="!enableTopBarButtons || editedAsset != null"
         @click.stop="addNewDirectory"
+      />
+      <SvgButton
+        v-if="props.type === 'secret'"
+        name="key_add"
+        title="New Secret"
+        :disabled="!enableTopBarButtons"
+        @click.stop="creatingSecret = true"
       />
     </div>
 
-    <div v-if="anyError" class="centerContent contents">Error: {{ anyError }}</div>
-    <div v-else-if="isBusy" class="centerContent contents"><LoadingSpinner /></div>
-    <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
-    <div v-else :key="currentDirectory?.id ?? 'root'" class="listing contents">
+    <div v-if="anyError" class="centerContent browserContents">Error: {{ anyError }}</div>
+    <div v-else-if="creatingSecret" class="altContents browserContents">
+      <UpsertSecretPanel @accepted="commitSecret" @canceled="creatingSecret = false" />
+    </div>
+    <div v-else-if="isBusy" class="centerContent browserContents"><LoadingSpinner /></div>
+    <div v-else-if="isEmpty" class="centerContent browserContents">Directory is empty</div>
+    <div v-else :key="currentDirectory?.id ?? 'root'" class="listing browserContents">
       <ContextMenuTrigger :actions="[renameAction]" @hidden="focusedDirectory = undefined">
         <TransitionGroup>
           <FileBrowserEntry
@@ -412,6 +446,7 @@ onMounted(() => {
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
+  contain: layout;
 }
 
 .confirmationModal {
@@ -451,6 +486,7 @@ onMounted(() => {
   display: flex;
   flex-direction: row;
   padding: 2px 8px;
+  gap: 4px;
 }
 
 .directoryStack {
@@ -468,7 +504,7 @@ onMounted(() => {
   gap: 2px; /* breadcrumb spacing */
 }
 
-.contents {
+.browserContents {
   flex: 1;
   width: 100%;
   background-color: var(--color-frame-selected-bg);

@@ -58,7 +58,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
             event.stopPropagation()
             setModal(
               <UpsertSecretModal
-                id={item.id}
+                secretId={item.id}
                 name={item.title}
                 doCreate={async (title, value) => {
                   try {

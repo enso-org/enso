@@ -1,75 +1,29 @@
 /** @file A modal for creating and editing a secret. */
-import { ButtonGroup, Dialog, DialogDismiss, Form, Input } from '#/components/AriaComponents'
+import { Dialog } from '#/components/AriaComponents'
+import UpsertSecretMenu, { type UpsertSecretMenuProps } from '#/layouts/UpsertSecretMenu'
 import { useText } from '#/providers/TextProvider'
-import type { SecretId } from '#/services/Backend'
 
 /** Props for a {@link UpsertSecretModal}. */
-export interface UpsertSecretModalProps {
-  readonly noDialog?: boolean
-  readonly id: SecretId | null
-  readonly name: string | null
+export interface UpsertSecretModalProps extends Omit<UpsertSecretMenuProps, 'doCancel'> {
   readonly defaultOpen?: boolean
-  readonly doCreate: (name: string, value: string) => Promise<void> | void
   /** Defaults to `true`. */
   readonly canCancel?: boolean
-  /** Defaults to `false`. */
-  readonly canReset?: boolean
 }
 
 /** A modal for creating and editing a secret. */
 export default function UpsertSecretModal(props: UpsertSecretModalProps) {
-  const { noDialog = false, id, name: nameRaw, defaultOpen, doCreate } = props
-  const { canCancel = true, canReset = false } = props
+  const { defaultOpen, canCancel = true, secretId } = props
   const { getText } = useText()
 
-  const isCreatingSecret = id == null
+  const isCreatingSecret = secretId == null
 
-  const content = (
-    <Form
-      schema={(z) => z.object({ title: z.string().min(1), value: z.string() })}
-      defaultValues={{ title: nameRaw ?? '', value: '' }}
-      onSubmit={({ title, value }) => doCreate(title, value)}
-      method="dialog"
-      testId="upsert-secret-modal"
-      className="w-full"
+  return (
+    <Dialog
+      title={isCreatingSecret ? getText('newSecret') : getText('editSecret')}
+      modalProps={defaultOpen == null ? {} : { defaultOpen }}
+      isDismissable={false}
     >
-      {isCreatingSecret && (
-        <Input
-          name="title"
-          autoFocus
-          autoComplete="off"
-          label={getText('name')}
-          placeholder={getText('secretNamePlaceholder')}
-        />
-      )}
-
-      <Input
-        name="value"
-        type="password"
-        autoComplete="off"
-        label={getText('value')}
-        placeholder={
-          nameRaw == null ? getText('secretValuePlaceholder') : getText('secretValueHidden')
-        }
-      />
-
-      <ButtonGroup className="mt-2">
-        <Form.Submit>{isCreatingSecret ? getText('create') : getText('update')}</Form.Submit>
-        {canCancel && <DialogDismiss />}
-        {canReset && <Form.Reset>{getText('cancel')}</Form.Reset>}
-      </ButtonGroup>
-
-      <Form.FormError />
-    </Form>
+      <UpsertSecretMenu {...props} doCancel={canCancel ? 'close' : null} />
+    </Dialog>
   )
-
-  return noDialog ? content : (
-      <Dialog
-        title={isCreatingSecret ? getText('newSecret') : getText('editSecret')}
-        modalProps={defaultOpen == null ? {} : { defaultOpen }}
-        isDismissable={false}
-      >
-        {content}
-      </Dialog>
-    )
 }

@@ -22,7 +22,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
 import { assetPanelStore, useSetAssetPanelProps } from '#/layouts/AssetPanel/'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import UpsertSecretMenu from '#/layouts/UpsertSecretMenu'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
@@ -383,16 +383,14 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           >
             {getText('configuration')}
           </Heading>
-          <UpsertSecretModal
+          <UpsertSecretMenu
             key={item.id}
-            noDialog
-            canReset
-            canCancel={false}
-            id={item.id}
+            doCancel="reset"
+            secretId={item.id}
             name={item.title}
-            doCreate={async (title, value) => {
-              await updateSecretMutation.mutateAsync([item.id, { title, value }, title])
-            }}
+            doCreate={(title, value) =>
+              updateSecretMutation.mutateAsync([item.id, { title, value }, title])
+            }
           />
         </div>
       )}
