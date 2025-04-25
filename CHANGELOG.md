@@ -6,11 +6,13 @@
 - [Allow adding and reordering component group arguments][12850]
 - [Display component evaluation progress][12913]
 - [Editing multiline text literals is now supported][12774]
+- [Add option to browse cloud for secret values][12953]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
 [12850]: https://github.com/enso-org/enso/pull/12850
 [12913]: https://github.com/enso-org/enso/pull/12913
+[12953]: https://github.com/enso-org/enso/pull/12953
 
 #### Enso Standard Library
 
