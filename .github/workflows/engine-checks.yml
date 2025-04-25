@@ -406,8 +406,10 @@ jobs:
         with:
           name: engine-distribution-linux-native,test
       - run: |-
+          rm -rf built-distribution
           tar -xvf built-distribution.tar
           rm built-distribution.tar
+        shell: bash
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -475,8 +477,10 @@ jobs:
         with:
           name: engine-distribution-windows-native,test
       - run: |-
+          rm -rf built-distribution
           tar -xvf built-distribution.tar
           rm built-distribution.tar
+        shell: bash
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -500,6 +504,8 @@ jobs:
       checks: write
   enso-build-ci-gen-job-standard-library-api-check-linux-amd64:
     name: Standard Library API check (linux, amd64)
+    needs:
+      - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-linux-amd64
     runs-on:
       - self-hosted
       - Linux
@@ -537,6 +543,15 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download Engine Distribution
+        uses: actions/download-artifact@v4
+        with:
+          name: engine-distribution-linux-native,test
+      - run: |-
+          rm -rf built-distribution
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
+        shell: bash
       - run: ./run backend stdlib-api-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -591,8 +606,10 @@ jobs:
         with:
           name: engine-distribution-linux-native,test
       - run: |-
+          rm -rf built-distribution
           tar -xvf built-distribution.tar
           rm built-distribution.tar
+        shell: bash
       - run: ./run backend test standard-library
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
@@ -663,8 +680,10 @@ jobs:
         with:
           name: engine-distribution-windows-native,test
       - run: |-
+          rm -rf built-distribution
           tar -xvf built-distribution.tar
           rm built-distribution.tar
+        shell: bash
       - run: ./run backend test standard-library
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
@@ -735,8 +754,10 @@ jobs:
         with:
           name: engine-distribution-linux-native,test
       - run: |-
+          rm -rf built-distribution
           tar -xvf built-distribution.tar
           rm built-distribution.tar
+        shell: bash
       - run: ./run backend test standard-library-in-native
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
@@ -807,8 +828,10 @@ jobs:
         with:
           name: engine-distribution-windows-native,test
       - run: |-
+          rm -rf built-distribution
           tar -xvf built-distribution.tar
           rm built-distribution.tar
+        shell: bash
       - run: ./run backend test standard-library-in-native
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}

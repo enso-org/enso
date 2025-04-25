@@ -242,10 +242,12 @@ impl JobArchetype for JvmTests {
 
                 let unpack_engine_distribution = Step {
                     run: Some(
-                        "tar -xvf built-distribution.tar
+                        "rm -rf built-distribution
+tar -xvf built-distribution.tar
 rm built-distribution.tar"
                             .into(),
                     ),
+                    shell: Some(Shell::Bash),
                     ..Default::default()
                 };
 
@@ -342,10 +344,12 @@ impl JobArchetype for StandardLibraryTests {
 
             let unpack_engine_distribution = Step {
                 run: Some(
-                    "tar -xvf built-distribution.tar
+                    "rm -rf built-distribution
+tar -xvf built-distribution.tar
 rm built-distribution.tar"
                         .into(),
                 ),
+                shell: Some(Shell::Bash),
                 ..Default::default()
             };
 
@@ -426,13 +430,37 @@ impl JobArchetype for EnsoCodeLintCheck {
 /// engine distribution, and running `enso --docs api --in-project <std-lib>`,
 /// and comparing it to the API signature files that are already in the VCS.
 #[derive(Clone, Copy, Debug)]
-pub struct StandardLibraryApiCheck;
+pub struct StandardLibraryApiCheck {
+    pub engine_launcher: engine::EngineLauncher,
+}
 
 impl JobArchetype for StandardLibraryApiCheck {
     fn job(&self, target: Target) -> Job {
         let job_name = "Standard Library API check";
+        let engine_launcher = self.engine_launcher;
         let run_command = "backend stdlib-api-check";
-        let job = RunStepsBuilder::new(run_command).build_job(job_name, target);
+        let job = RunStepsBuilder::new(run_command)
+            .customize(move |step| {
+                let download_engine_distribution =
+                    step::download_artifact("Download Engine Distribution").with_custom_argument(
+                        "name",
+                        format!("engine-distribution-{}-{}", target.0, engine_launcher),
+                    );
+
+                let unpack_engine_distribution = Step {
+                    run: Some(
+                        "rm -rf built-distribution
+tar -xvf built-distribution.tar
+rm built-distribution.tar"
+                            .into(),
+                    ),
+                    shell: Some(Shell::Bash),
+                    ..Default::default()
+                };
+
+                vec![download_engine_distribution, unpack_engine_distribution, step]
+            })
+            .build_job(job_name, target);
         job
     }
 }

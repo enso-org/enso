@@ -127,8 +127,10 @@ jobs:
         with:
           name: engine-distribution-linux-native,test
       - run: |-
+          rm -rf built-distribution
           tar -xvf built-distribution.tar
           rm built-distribution.tar
+        shell: bash
       - run: ./run backend test std-cloud-related
         env:
           ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
