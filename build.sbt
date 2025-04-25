@@ -3412,6 +3412,9 @@ lazy val `runtime-compiler` =
         "org.hamcrest"         % "hamcrest-all"            % hamcrestVersion           % Test,
         "org.apache.commons"   % "commons-vfs2"            % commonsVfsVersion         % Test
       ),
+      libraryDependencies ++= {
+        logbackPkg.map(_ % Test) ++ ioSentry.map(_ % Test)
+      },
       Compile / moduleDependencies ++= Seq(
         "org.slf4j"        % "slf4j-api"               % slf4jVersion,
         "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
@@ -3426,8 +3429,9 @@ lazy val `runtime-compiler` =
         (`persistance` / Compile / exportedModule).value,
         (`editions` / Compile / exportedModule).value
       ),
+      Test / javaOptions ++= testLogProviderOptions,
       Test / moduleDependencies := {
-        (Compile / moduleDependencies).value ++ scalaLibrary ++ scalaReflect ++ Seq(
+        (Compile / moduleDependencies).value ++ scalaLibrary ++ scalaReflect ++ logbackPkg ++ ioSentry ++ Seq(
           "org.apache.commons"   % "commons-compress" % commonsCompressVersion,
           "org.yaml"             % "snakeyaml"        % snakeyamlVersion,
           "com.typesafe"         % "config"           % typesafeConfigVersion,
@@ -3442,6 +3446,9 @@ lazy val `runtime-compiler` =
           (`version-output` / Compile / exportedModule).value,
           (`scala-yaml` / Compile / exportedModule).value,
           (`logging-config` / Compile / exportedModule).value,
+          (`logging-service` / Compile / exportedModule).value,
+          (`logging-service-logback` / Compile / exportedModule).value,
+          (`logging-service-logback` / Test / exportedModule).value,
           (`logging-utils` / Compile / exportedModule).value,
           (`semver` / Compile / exportedModule).value
         )
@@ -3481,6 +3488,8 @@ lazy val `runtime-compiler` =
     .dependsOn(`engine-common`)
     .dependsOn(editions)
     .dependsOn(`persistance-dsl` % "provided")
+    .dependsOn(`logging-service-logback` % "test->test")
+    .dependsOn(`logging-service` % "test->compile")
 
 /** This project contains only a single service (interface) definition.
   */
