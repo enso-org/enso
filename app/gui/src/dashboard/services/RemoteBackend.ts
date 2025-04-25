@@ -1470,10 +1470,10 @@ export default class RemoteBackend extends Backend {
   }
 
   /** List events in the organization's audit log. */
-  override async getLogEvents(): Promise<backend.Event[]> {
+  override async getLogEvents(): Promise<readonly backend.AuditLogEvent[]> {
     /** The type of the response body of this endpoint. */
     interface ResponseBody {
-      readonly events: backend.Event[]
+      readonly events: backend.AuditLogEvent[]
     }
 
     const path = remoteBackendPaths.GET_LOG_EVENTS_PATH

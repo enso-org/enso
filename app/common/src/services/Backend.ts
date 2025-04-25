@@ -1400,11 +1400,6 @@ export interface Invitation {
   readonly expireAt: dateTime.Rfc3339DateTime
 }
 
-/** HTTP response body for the "list audit log events" endpoint. */
-export interface ListAuditLogEventsResponseBody {
-  readonly events: readonly AuditLogEvent[]
-}
-
 /** HTTP request body for the "create permission" endpoint. */
 export interface CreatePermissionRequestBody {
   readonly actorsIds: readonly UserPermissionIdentifier[]
@@ -2028,7 +2023,7 @@ export default abstract class Backend {
   /** Get the status of a payment checkout session. */
   abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
   /** List events in the organization's audit log. */
-  abstract getLogEvents(): Promise<ListAuditLogEventsResponseBody>
+  abstract getLogEvents(): Promise<readonly AuditLogEvent[]>
   /** Log an event that will be visible in the organization audit log. */
   abstract logEvent(
     message: string,

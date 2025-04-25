@@ -4,41 +4,25 @@ import * as React from 'react'
 import { fromDate, getLocalTimeZone, today, ZonedDateTime } from '@internationalized/date'
 import * as z from 'zod'
 
-import DataUploadIcon from '#/assets/data_upload.svg'
-import KeyIcon from '#/assets/key.svg'
-import Play2Icon from '#/assets/play2.svg'
-import TrashIcon from '#/assets/trash.svg'
 import { Button, DatePicker, Dropdown, Form, Text } from '#/components/AriaComponents'
 import { Icon } from '#/components/Icon'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import FocusArea from '#/components/styled/FocusArea'
-import SvgMask from '#/components/SvgMask'
 import { useBackendQuery } from '#/hooks/backendHooks'
+import {
+  DEFAULT_EVENT_ICON,
+  EVENT_TYPE_ICON,
+  EVENT_TYPE_NAME_ID,
+  LambdaKind,
+  normalizeLambdaKind,
+  ORDERED_LAMBDA_KINDS,
+} from '#/layouts/Settings/lambdaKinds'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { EVENT_TYPES, EventType, type AuditLogEvent } from '#/services/Backend'
+import { type AuditLogEvent } from '#/services/Backend'
 import { iconIdFor, nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
-
-/** Lambda kinds for events, ordered roughly in order of decreasing level of admin access. */
-const ORDERED_LAMBDA_KINDS = ['GET /users', 'GET /log_events', 'GET /organizations/me'] as const
-
-const EVENT_TYPE_ICON: Record<EventType, string> = {
-  [EventType.GetSecret]: KeyIcon,
-  [EventType.DeleteAssets]: TrashIcon,
-  [EventType.ListSecrets]: KeyIcon,
-  [EventType.OpenProject]: Play2Icon,
-  [EventType.UploadFile]: DataUploadIcon,
-}
-
-const EVENT_TYPE_NAME: Record<EventType, string> = {
-  [EventType.GetSecret]: 'Get Secret',
-  [EventType.DeleteAssets]: 'Delete Assets',
-  [EventType.ListSecrets]: 'List Secrets',
-  [EventType.OpenProject]: 'Open Project',
-  [EventType.UploadFile]: 'Upload File',
-}
 
 /** Create the schema for this form. */
 function createActivityLogSchema() {
@@ -64,7 +48,7 @@ export interface ActivityLogSettingsSectionProps {
 export default function ActivityLogSettingsSection(props: ActivityLogSettingsSectionProps) {
   const { backend } = props
   const { getText } = useText()
-  const [types, setTypes] = React.useState<readonly EventType[]>([])
+  const [types, setTypes] = React.useState<readonly LambdaKind[]>([])
   const [typeIndices, setTypeIndices] = React.useState<readonly number[]>([])
   const [emails, setEmails] = React.useState<readonly string[]>([])
   const [emailIndices, setEmailIndices] = React.useState<readonly number[]>([])
@@ -72,7 +56,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const allEmails = React.useMemo(() => (users ?? []).map((user) => user.email), [users])
   const logsQuery = useBackendQuery(backend, 'getLogEvents', [])
-  const logs = logsQuery.data?.events
+  const logs = logsQuery.data
 
   const form = Form.useForm({ schema: createActivityLogSchema() })
   const startDate = form.watch('startDate')
@@ -80,17 +64,27 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const maxDate = today(getLocalTimeZone())
 
   const filteredLogs = React.useMemo(() => {
-    const typesSet = new Set(types.length > 0 ? types : EVENT_TYPES)
+    const typesSet = new Set(types.length > 0 ? types : ORDERED_LAMBDA_KINDS)
     const emailsSet = new Set(emails.length > 0 ? emails : allEmails)
     return logs?.filter((log) => {
       const date = log.timestamp == null ? null : fromDate(new Date(log.timestamp), 'UTC')
-      return (
-        log.metadata != null &&
-        typesSet.has(log.metadata.type) &&
-        emailsSet.has(log.userEmail) &&
-        (date == null ||
-          ((startDate == null || date >= startDate) && (endDate == null || date <= endDate)))
-      )
+      if (log.lambdaKind == null) {
+        return false
+      }
+      const kind = normalizeLambdaKind(log.lambdaKind)
+      if (!kind.valid) {
+        return false
+      }
+      if (!typesSet.has(kind.kind)) {
+        return false
+      }
+      if (!emailsSet.has(log.userEmail)) {
+        return false
+      }
+      if (date == null) {
+        return true
+      }
+      return (startDate == null || date >= startDate) && (endDate == null || date <= endDate)
     })
   }, [logs, types, emails, startDate, endDate, allEmails])
 
@@ -102,11 +96,24 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       const multiplier = sortInfo.direction === SortDirection.ascending ? 1 : -1
       switch (sortInfo.field) {
         case ActivityLogSortableColumn.type: {
-          compare = (a, b) =>
-            multiplier *
-            (a.metadata.type < b.metadata.type ? -1
-            : a.metadata.type > b.metadata.type ? 1
-            : 0)
+          compare = (a, b) => {
+            if (a.lambdaKind == null) {
+              if (b.lambdaKind == null) {
+                return 0
+              }
+              return multiplier
+            }
+            if (b.lambdaKind == null) {
+              return -multiplier
+            }
+            const aKind = normalizeLambdaKind(a.lambdaKind)
+            const aIndex =
+              aKind.valid ? ORDERED_LAMBDA_KINDS.indexOf(aKind.kind) : ORDERED_LAMBDA_KINDS.length
+            const bKind = normalizeLambdaKind(b.lambdaKind)
+            const bIndex =
+              bKind.valid ? ORDERED_LAMBDA_KINDS.indexOf(bKind.kind) : ORDERED_LAMBDA_KINDS.length
+            return multiplier * (aIndex - bIndex)
+          }
           break
         }
         case ActivityLogSortableColumn.email: {
@@ -162,12 +169,12 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
               <Dropdown
                 aria-label={getText('types')}
                 multiple
-                items={EVENT_TYPES}
+                items={ORDERED_LAMBDA_KINDS}
                 selectedIndices={typeIndices}
                 renderMultiple={({ items }) =>
-                  items.length === 0 || items.length === EVENT_TYPES.length ?
+                  items.length === 0 || items.length === ORDERED_LAMBDA_KINDS.length ?
                     'All'
-                  : (items[0] != null ? EVENT_TYPE_NAME[items[0]] : '') +
+                  : (items[0] != null ? EVENT_TYPE_NAME_ID[items[0]] : '') +
                     (items.length <= 1 ? '' : ` (+${items.length - 1})`)
                 }
                 onChange={(items, indices) => {
@@ -175,7 +182,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   setTypeIndices(indices)
                 }}
               >
-                {({ item }) => EVENT_TYPE_NAME[item]}
+                {({ item }) => EVENT_TYPE_NAME_ID[item]}
               </Dropdown>
             </div>
             <div className="flex items-center gap-2">
@@ -343,20 +350,27 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 </div>
               </td>
             </tr>
-          : sortedLogs.map((log, i) => (
-              <tr key={i} className="h-table-row">
-                <ActivityLogTableCell>
-                  <div className="flex items-center">
-                    <SvgMask src={EVENT_TYPE_ICON[log.metadata.type]} />
-                  </div>
-                </ActivityLogTableCell>
-                <ActivityLogTableCell>{EVENT_TYPE_NAME[log.metadata.type]}</ActivityLogTableCell>
-                <ActivityLogTableCell>{log.userEmail}</ActivityLogTableCell>
-                <ActivityLogTableCell>
-                  {log.timestamp ? toReadableIsoString(new Date(log.timestamp)) : ''}
-                </ActivityLogTableCell>
-              </tr>
-            ))
+          : sortedLogs.map((log, i) => {
+              const kind = log.lambdaKind == null ? null : normalizeLambdaKind(log.lambdaKind)
+              return (
+                <tr key={i} className="h-table-row">
+                  <ActivityLogTableCell>
+                    <div className="flex items-center">
+                      <Icon icon={kind?.valid ? EVENT_TYPE_ICON[kind.kind] : DEFAULT_EVENT_ICON} />
+                    </div>
+                  </ActivityLogTableCell>
+                  <ActivityLogTableCell>
+                    {kind?.valid ?
+                      getText(EVENT_TYPE_NAME_ID[kind.kind])
+                    : (kind?.invalidKind ?? '(unknown)')}
+                  </ActivityLogTableCell>
+                  <ActivityLogTableCell>{log.userEmail}</ActivityLogTableCell>
+                  <ActivityLogTableCell>
+                    {log.timestamp ? toReadableIsoString(new Date(log.timestamp)) : ''}
+                  </ActivityLogTableCell>
+                </tr>
+              )
+            })
           }
         </tbody>
       </table>
