@@ -286,7 +286,7 @@ export class Filtering {
     const selfTypeMatch = this.selfTypeMatches(entry, additionalSelfTypes)
     if (selfTypeMatch == null) return null
     if (this.pattern) {
-      const patternMatch = this.pattern.tryMatch(entry.name, entry.aliases, entry.memberOf)
+      const patternMatch = this.pattern.tryMatch(entry.name, entry.aliasesAndMacros, entry.memberOf)
       if (!patternMatch) return null
       if (this.isLocal(entry)) patternMatch.score *= 2
       patternMatch.score += selfTypeMatch.score

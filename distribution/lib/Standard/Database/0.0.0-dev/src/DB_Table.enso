@@ -662,6 +662,8 @@ type DB_Table
                         Panic.throw (Integrity_Error.Error "DB_Column "+column.name)
 
     ## ALIAS filter rows, where
+       MACRO equals filter=..Equal
+       MACRO less_than filter=..Less
        GROUP Standard.Base.Selections
        ICON preparation
 
@@ -2081,7 +2083,10 @@ type DB_Table
 
                         DB_Table.new union_alias self.connection new_columns new_ctx
 
-    ## ALIAS average, count, count distinct, first, group by, last, longest, maximum, mean, median, minimum, mode, percentile, shortest, standard deviation, sum, summarize, variance
+    ## ALIAS average, first, group by, last, longest, maximum, mean, median, minimum, mode, percentile, shortest, standard deviation, summarize, variance
+       MACRO sum columns=[..Sum]
+       MACRO count columns=[..Count]
+       MACRO count_distinct columns=[..Count_Distinct]
        GROUP Standard.Base.Calculations
        ICON transform4
 

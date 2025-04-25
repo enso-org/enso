@@ -139,13 +139,14 @@ export function useComponentBrowserInput(
   })
 
   /** Apply given suggested entry to the input. */
-  function applySuggestion(id: SuggestionId): Result {
+  function applySuggestion(id: SuggestionId, suffix: string | undefined): Result {
     const entry = suggestionDb.get(id)
     if (!entry) return Err(`No entry with id ${id}`)
     switchedToCodeMode.value = { appliedSuggestion: entry }
     const { newText, requiredImport } = inputAfterApplyingSuggestion(entry)
-    text.value = newText
-    selection.value = Range.emptyAt(newText.length)
+    const newTextWithSuffix = suffix ? `${newText}${suffix}` : newText
+    text.value = newTextWithSuffix
+    selection.value = Range.emptyAt(newTextWithSuffix.length)
     if (requiredImport) {
       const importId = suggestionDb.findByProjectPath(requiredImport)
       if (importId) {

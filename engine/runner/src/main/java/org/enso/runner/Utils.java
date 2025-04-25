@@ -2,6 +2,7 @@ package org.enso.runner;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -26,8 +27,21 @@ final class Utils {
       throws IOException {
     var file = new File(path);
     if (!file.exists()) {
-      System.err.println("File " + file + " does not exist.");
-      return null;
+      // It is possible that the current working directory was changed to the
+      // parent directory of project root. In that case, we need to iterate
+      // the names of the given path from left to right.
+      var p = Path.of(path);
+      while (p.getNameCount() != 0) {
+        if (p.toFile().exists()) {
+          file = p.toFile();
+          break;
+        }
+        p = p.subpath(1, p.getNameCount());
+      }
+      if (!file.exists()) {
+        System.err.println("File " + file + " does not exist.");
+        return null;
+      }
     }
     var projectMode = file.isDirectory();
     var canonicalFile = file.getCanonicalFile();
