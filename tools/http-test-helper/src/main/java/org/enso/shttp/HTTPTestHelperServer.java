@@ -6,9 +6,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Semaphore;
 import java.util.stream.Stream;
 import org.enso.shttp.auth.BasicAuthTestHandler;
 import org.enso.shttp.auth.TokenAuthTestHandler;
@@ -16,9 +14,12 @@ import org.enso.shttp.cloud_mock.CloudAuthRenew;
 import org.enso.shttp.cloud_mock.CloudMockSetup;
 import org.enso.shttp.cloud_mock.CloudRoot;
 import org.enso.shttp.cloud_mock.ExpiredTokensCounter;
-import org.enso.shttp.test_helpers.*;
-import sun.misc.Signal;
-import sun.misc.SignalHandler;
+import org.enso.shttp.test_helpers.CrashingTestHandler;
+import org.enso.shttp.test_helpers.DownloadTestHandler;
+import org.enso.shttp.test_helpers.GenerateDataLinkHandler;
+import org.enso.shttp.test_helpers.HeaderTestHandler;
+import org.enso.shttp.test_helpers.RedirectTestHandler;
+import org.enso.shttp.test_helpers.TestHandler;
 
 public class HTTPTestHelperServer {
 
@@ -30,7 +31,6 @@ public class HTTPTestHelperServer {
     String host = args[0];
     int port = Integer.parseInt(args[1]);
     String[] remainingArgs = Arrays.copyOfRange(args, 2, args.length);
-    final Semaphore stopNotification = new Semaphore(0, false);
     HybridHTTPServer server = null;
     try {
       CloudMockSetup cloudMockSetup = CloudMockSetup.fromArgs(remainingArgs);
@@ -40,23 +40,16 @@ public class HTTPTestHelperServer {
       System.exit(1);
     }
 
-    SignalHandler stopServerHandler =
-        (Signal sig) -> {
-          System.out.println("Stopping server... (SIG" + sig.getName() + ")");
-          stopNotification.release();
-        };
-    for (String signalName : List.of("TERM", "INT")) {
-      Signal.handle(new Signal(signalName), stopServerHandler);
-    }
-
     server.start();
-
+    System.out.println("Server started. Press any key to stop...");
     try {
-      // Make sure the main thread is blocked for as long as the server is running.
-      stopNotification.acquire();
-    } catch (InterruptedException e) {
-      System.out.println(
-          "Server main thread was unexpectedly interrupted. The server will now stop.");
+      System.in.read();
+      System.out.println("Shutting down server, as requested by user.");
+    } catch (IOException e) {
+      System.err.println(
+          "Encountered an error while the server was running: "
+              + e.getMessage()
+              + ". Shutting down...");
     } finally {
       server.stop();
     }

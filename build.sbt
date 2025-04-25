@@ -2592,7 +2592,10 @@ lazy val annotationProcSetting = Seq(
   // See https://stackoverflow.com/questions/55558849/how-do-i-build-a-mixed-java-scala-project-which-uses-java-annotation-code-genera
   Compile / logManager :=
     sbt.internal.util.CustomLogManager.excludeMsg(
-      "Could not determine source for class ",
+      List(
+        "Could not determine source for class ",
+        "javac: File for type"
+      ),
       Level.Warn
     )
 )

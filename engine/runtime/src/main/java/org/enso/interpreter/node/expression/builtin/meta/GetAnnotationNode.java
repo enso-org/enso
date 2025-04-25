@@ -23,6 +23,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
     name = "get_annotation",
     description = "Get annotation associated with an object",
     autoRegister = false)
+@SuppressWarnings("truffle-splitting")
 public abstract class GetAnnotationNode extends BaseNode {
 
   abstract Object execute(VirtualFrame frame, Object target, Object method, Object parameter);
