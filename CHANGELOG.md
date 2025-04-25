@@ -6,24 +6,20 @@
 - [Allow adding and reordering component group arguments][12850]
 - [Display component evaluation progress][12913]
 - [Editing multiline text literals is now supported][12774]
+- [Type annotations are now visible in the graph editor][12751]
+- [Component Browser shows methods with respect to possible type casts][12751]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
 [12850]: https://github.com/enso-org/enso/pull/12850
 [12913]: https://github.com/enso-org/enso/pull/12913
+[12751]: https://github.com/enso-org/enso/pull/12751
 
 #### Enso Standard Library
 
 - [Support for reading fixed-width-column data files.][12726]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
-
-#### Enso IDE
-
-- [Type annotations are now visible in the graph editor][12751]
-- [Component Browser shows methods with respect to possible type casts][12751]
-
-[12751]: https://github.com/enso-org/enso/pull/12751
 
 #### Enso Language & Runtime
 
