@@ -9,11 +9,12 @@ import { Icon } from '#/components/Icon'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import FocusArea from '#/components/styled/FocusArea'
 import { useBackendQuery } from '#/hooks/backendHooks'
+import type { LambdaKind } from '#/layouts/Settings/lambdaKinds'
 import {
   DEFAULT_EVENT_ICON,
   EVENT_TYPE_ICON,
   EVENT_TYPE_NAME_ID,
-  LambdaKind,
+  IS_EVENT_HIDDEN_BY_DEFAULT,
   normalizeLambdaKind,
   ORDERED_LAMBDA_KINDS,
 } from '#/layouts/Settings/lambdaKinds'
@@ -22,7 +23,9 @@ import type Backend from '#/services/Backend'
 import { type AuditLogEvent } from '#/services/Backend'
 import { iconIdFor, nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
+import { toReadableIsoString, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+
+const GET_LOG_EVENTS_PAGE_SIZE = 1000
 
 /** Create the schema for this form. */
 function createActivityLogSchema() {
@@ -55,13 +58,20 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const [sortInfo, setSortInfo] = React.useState<SortInfo<ActivityLogSortableColumn> | null>(null)
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const allEmails = React.useMemo(() => (users ?? []).map((user) => user.email), [users])
-  const logsQuery = useBackendQuery(backend, 'getLogEvents', [])
-  const logs = logsQuery.data
 
   const form = Form.useForm({ schema: createActivityLogSchema() })
   const startDate = form.watch('startDate')
   const endDate = form.watch('endDate')
   const maxDate = today(getLocalTimeZone())
+
+  const logsQuery = useBackendQuery(backend, 'getLogEvents', [
+    {
+      startDate: startDate && toRfc3339(startDate.toDate()),
+      endDate: endDate && toRfc3339(endDate.toDate()),
+      pageSize: GET_LOG_EVENTS_PAGE_SIZE,
+    },
+  ])
+  const logs = logsQuery.data
 
   const filteredLogs = React.useMemo(() => {
     const typesSet = new Set(types.length > 0 ? types : ORDERED_LAMBDA_KINDS)
@@ -73,6 +83,9 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       }
       const kind = normalizeLambdaKind(log.lambdaKind)
       if (!kind.valid) {
+        return false
+      }
+      if (IS_EVENT_HIDDEN_BY_DEFAULT[kind.kind] && !types.includes(kind.kind)) {
         return false
       }
       if (!typesSet.has(kind.kind)) {
@@ -212,7 +225,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
         <thead>
           <tr className="h-table-row">
             <ActivityLogHeaderCell className="w-8" />
-            <ActivityLogHeaderCell className="w-32">
+            <ActivityLogHeaderCell className="w-60">
               <Button
                 size="custom"
                 variant="custom"
@@ -356,11 +369,15 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 <tr key={i} className="h-table-row">
                   <ActivityLogTableCell>
                     <div className="flex items-center">
-                      <Icon icon={kind?.valid ? EVENT_TYPE_ICON[kind.kind] : DEFAULT_EVENT_ICON} />
+                      <Icon
+                        icon={
+                          kind?.valid === true ? EVENT_TYPE_ICON[kind.kind] : DEFAULT_EVENT_ICON
+                        }
+                      />
                     </div>
                   </ActivityLogTableCell>
                   <ActivityLogTableCell>
-                    {kind?.valid ?
+                    {kind?.valid === true ?
                       getText(EVENT_TYPE_NAME_ID[kind.kind])
                     : (kind?.invalidKind ?? '(unknown)')}
                   </ActivityLogTableCell>

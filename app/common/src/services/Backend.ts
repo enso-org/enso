@@ -1546,6 +1546,16 @@ export interface CreateCheckoutSessionRequestBody {
   readonly interval: number
 }
 
+/** URL query string parameters for the "get log events" endpoint. */
+export interface GetLogEventsRequestParams {
+  readonly userEmail?: EmailAddress | null | undefined
+  readonly startDate?: dateTime.Rfc3339DateTime | null | undefined
+  readonly endDate?: dateTime.Rfc3339DateTime | null | undefined
+  /** Pagination offset */
+  readonly from?: number | null | undefined
+  readonly pageSize?: number | null | undefined
+}
+
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
   readonly parentId: DirectoryId | null
@@ -2023,7 +2033,7 @@ export default abstract class Backend {
   /** Get the status of a payment checkout session. */
   abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
   /** List events in the organization's audit log. */
-  abstract getLogEvents(): Promise<readonly AuditLogEvent[]>
+  abstract getLogEvents(options: GetLogEventsRequestParams): Promise<readonly AuditLogEvent[]>
   /** Log an event that will be visible in the organization audit log. */
   abstract logEvent(
     message: string,

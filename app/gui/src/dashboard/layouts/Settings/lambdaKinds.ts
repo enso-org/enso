@@ -101,6 +101,18 @@ export const ORDERED_LAMBDA_KINDS = [
 export const isLambdaKind = includesPredicate(ORDERED_LAMBDA_KINDS)
 
 /* eslint-disable @typescript-eslint/naming-convention */
+export const IS_EVENT_HIDDEN_BY_DEFAULT: Partial<Record<LambdaKind, true>> = {
+  'GET /organizations/me': true,
+  'GET /usergroups': true,
+  'GET /users': true,
+  'GET /tags': true,
+  'GET /log_events': true,
+  'GET /projects/{PROJECT_ID}/executions': true,
+  'GET /projects/{PROJECT_ID}': true,
+  'POST /projects/{PROJECT_ID}/hybrid_set_open_in_progress': true,
+  'POST /files/upload/start': true,
+}
+
 export const EVENT_TYPE_ICON: Record<LambdaKind, IconPropSvgUse<never>> = {
   'POST /auth': 'icon/lock',
   'GET /organizations/me': 'home2',
@@ -148,8 +160,8 @@ export const EVENT_TYPE_ICON: Record<LambdaKind, IconPropSvgUse<never>> = {
   'POST /projects/{PROJECT_ID}/versions/clone': 'clone',
   'POST /projects/{PROJECT_ID}/hybrid_set_opened': 'open',
   'POST /projects/{PROJECT_ID}/hybrid_set_open_in_progress': 'open',
-  'GET /projects/{PROJECT_ID}/executions': 'workflow_play',
-  'POST /projects/{PROJECT_ID}/executions/new': 'workflow_play',
+  'GET /projects/{PROJECT_ID}/executions': 'schedule',
+  'POST /projects/{PROJECT_ID}/executions/new': 'schedule',
   'GET /project-sessions': 'log',
   'GET /project-sessions/{PROJECT_SESSION_ID}/logs': 'log',
   'GET /executions/{EXECUTION_ID}': 'schedule',
