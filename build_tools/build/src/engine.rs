@@ -276,6 +276,8 @@ impl BuildConfigurationFlags {
     pub fn add_engine_runner_flag(&mut self, flag: &str) {
         if let Some(engine_runner_flags) = &mut self.extra_engine_runner_flags {
             engine_runner_flags.push(flag.into());
+        } else {
+            self.extra_engine_runner_flags = Some(vec![flag.into()]);
         }
     }
 }
