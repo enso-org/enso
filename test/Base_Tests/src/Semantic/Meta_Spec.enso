@@ -113,6 +113,10 @@ add_specs suite_builder =
             # fields cannot be obtained as cons is already an error
             cons.fields . should_fail_with Private_Access
 
+        group_builder.specify "prevent getting private constructors in the same project" <|
+            # type R has all constructors private
+            Meta.meta R . constructors . should_equal []
+
         group_builder.specify "prevent getting fields from private constructor in the same project" <|
             # type R has all constructors private
             atom = R.V "meaning" 6*7

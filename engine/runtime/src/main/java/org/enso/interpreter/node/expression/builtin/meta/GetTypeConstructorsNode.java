@@ -36,7 +36,7 @@ public abstract class GetTypeConstructorsNode extends Node {
     for (var cons : rawConstructors) {
       var withCheck = FindAtomConstructorNode.findAtomConstructor(this, cons, null);
       if (withCheck != cons) {
-        return withCheck;
+        return ArrayLikeHelpers.asVectorEmpty();
       }
       var metaCons = AtomNewInstanceNode.getUncached().newInstance(factory, cons);
       rawResult[at++] = metaCons;

@@ -24,7 +24,10 @@ type Type
     ## ADVANCED
        ICON metadata
 
-       Returns a vector of `Meta.Constructor` for this type
+       Returns a vector of `Meta.Constructor` instances for this type.
+       Only publicly visible constructors are returned. A type with no
+       public constructors returns `[]`.
+
     constructors self -> Vector Constructor =
         Meta_Helpers.get_type_constructors_builtin self.value Meta.Constructor.Value
 
@@ -126,7 +129,7 @@ type Constructor
 
        Returns a vector of field names defined by a constructor.
     fields self -> Vector Text =
-        @Tail_Call Meta_Helpers.get_constructor_fields_builtin (self.impl...)
+        Meta_Helpers.get_constructor_fields_builtin (self.impl...)
 
     ## ADVANCED
        GROUP Metadata
