@@ -20,12 +20,34 @@ import org.enso.interpreter.runtime.error.DataflowError;
     autoRegister = false)
 final class FindAtomConstructorNode extends Node {
   Object execute(VirtualFrame frame, @Suspend @AcceptsError Object value) {
-    var ctx = EnsoContext.get(this);
+    return findAtomConstructor(this, value, frame);
+  }
+
+  /**
+   * "Enso facing" method to turn a value into {@link AtomConstructor} for purposes of <em>meta
+   * programming API</em>. Executes "common logic" for finding the constructor for provided value
+   * (which is "identity" if the value already is an {@link AtomConstructor}). Then it performs
+   * <em>encapsulation related accessiblity checks</em> and returns an <em>interop value</em> that
+   * can flow via Enso interpreter freely.
+   *
+   * @param who the node performing the query
+   * @param value value to check
+   * @param frame the frame to further evaluate {@code value} at if necessary, the value can be
+   *     {@code null} especially when the {@code value} is known to be {@link AtomConstructor}
+   *     already
+   * @return either {@link AtomConstructor} on success, or {@code Nothing} when the {@code value}
+   *     doesn't represent a constructor, or a [@link DataflowError} with {@code Private_Access}
+   *     failure when the value is a constructor, but it is not accessible due to encapsulation
+   *     rules
+   */
+  static Object findAtomConstructor(Node who, Object value, VirtualFrame frame) {
+    var ctx = EnsoContext.get(who);
     var ac = findConstructorOrNull(ctx, value, frame);
     if (ac != null) {
       if (ac.getType().hasAllConstructorsPrivate()) {
-        var err = ctx.getBuiltins().error().makePrivateAccessError(null, null, "constructor");
-        return DataflowError.withDefaultTrace(err, this);
+        var errors = ctx.getBuiltins().error();
+        var err = errors.makePrivateAccessError(null, null, "constructor");
+        return DataflowError.withDefaultTrace(err, who);
       } else {
         return ac;
       }

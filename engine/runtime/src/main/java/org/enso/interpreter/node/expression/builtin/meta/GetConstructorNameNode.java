@@ -2,10 +2,8 @@ package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.DataflowError;
 
 @BuiltinMethod(
     type = "Meta",
@@ -14,11 +12,12 @@ import org.enso.interpreter.runtime.error.DataflowError;
     autoRegister = false)
 public class GetConstructorNameNode extends Node {
   Object execute(AtomConstructor cons) {
-    if (cons.getType().hasAllConstructorsPrivate()) {
-      var ctx = EnsoContext.get(this);
-      var err = ctx.getBuiltins().error().makePrivateAccessError(null, null, "constructor");
-      return DataflowError.withDefaultTrace(err, this);
+    var withCheck = FindAtomConstructorNode.findAtomConstructor(this, cons, null);
+
+    if (withCheck == cons) {
+      return Text.create(cons.getName());
+    } else {
+      return withCheck;
     }
-    return Text.create(cons.getName());
   }
 }
