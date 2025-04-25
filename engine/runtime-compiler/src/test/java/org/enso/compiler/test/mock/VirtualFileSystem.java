@@ -200,8 +200,7 @@ final class VirtualFileSystem implements FileSystem<FileObject> {
     return bldr.toString();
   }
 
-  void listFiles(FileObject current, int depth, StringBuilder strBldr)
-      throws FileSystemException {
+  void listFiles(FileObject current, int depth, StringBuilder strBldr) throws FileSystemException {
     var fName = current.getName().getBaseName();
     if (current.isFile()) {
       addEntry(strBldr, depth, fName);
