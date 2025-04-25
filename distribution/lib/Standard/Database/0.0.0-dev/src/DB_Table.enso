@@ -82,6 +82,7 @@ from project.Take_Drop_Helpers import Take_Drop
 
 polyglot java import java.sql.JDBCType
 polyglot java import java.util.UUID
+polyglot java import java.sql.Types
 
 ## Represents a column-oriented table data structure backed by a database.
 type DB_Table
@@ -2268,7 +2269,28 @@ type DB_Table
     cross_tab self (group_by : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex = []) (names : Text | Integer = self.column_names.first) (values : Aggregate_Column | Vector Aggregate_Column = ..Count) on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names =
         _ = [group_by, names, values, on_problems]
         Feature.Cross_Tab.if_supported_else_throw self.connection.dialect "cross_tab" <|
-            1
+            problem_builder = Problem_Builder.new
+            base_connection = self.connection.base_connection
+            column_names_validator = base_connection.column_naming_helper.create_unique_name_strategy
+            table_name_deduplicator = base_connection.table_naming_helper.create_unique_name_strategy
+            table_name_deduplicator.mark_used self.name
+            inner_table_alias = table_name_deduplicator.make_unique self.name+"_inner"
+            fields = (self.aggregate ['Key']).read.at 0
+            new_columns = fields.to_vector.sort.map p->
+                raw_name = p
+                sql_type = SQL_Type.Value Types.DECIMAL "NUMERIC" 38 0
+                # We ensure that the name used in the Enso table is a valid name for Enso column and is unique, possibly changing the input name slightly.
+                enso_name = column_names_validator.make_unique raw_name
+                # The expression keeps the original 'raw' name coming from the database.
+                expression = SQL_IR_Expression.Column "bingo" ("'" + raw_name + "'")
+                Internal_Column.Value enso_name (SQL_Type_Reference.from_constant sql_type) expression            
+
+
+            setup = self.context.as_subquery self.name [self.internal_columns]
+
+            new_from = SQL_IR_From_Part.Pivot Nothing Nothing setup.subquery "bingo"
+            new_ctx = SQL_IR_Source.for_subquery new_from
+            DB_Table.new inner_table_alias self.connection new_columns new_ctx
 
     ## GROUP Standard.Base.Conversions
        ICON convert
