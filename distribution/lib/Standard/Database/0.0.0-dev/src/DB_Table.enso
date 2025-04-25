@@ -2948,7 +2948,7 @@ type DB_Table
         row_limit = 100000
 
         ## Read one extra row to check if the table is too large.
-        materialized = self.read ..First (row_limit+1)
+        materialized = self.read (..First row_limit+1)
         if materialized.row_count <= row_limit then materialized.write path format on_existing_file match_columns on_problems else
             Error.throw (Illegal_Argument.Error "DB_Table contains more than 100,000 rows. Use `read` to materialize first.")
 
