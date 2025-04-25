@@ -101,6 +101,7 @@ impl BuiltEnso {
         test_path: impl AsRef<Path>,
         ir_caches: IrCaches,
         environment_overrides: Vec<(String, String)>,
+        extra_args: Option<Vec<String>>,
         native_image: bool,
     ) -> Result<Command> {
         let mut command = if native_image {
@@ -109,6 +110,9 @@ impl BuiltEnso {
         } else {
             self.cmd()?
         };
+        if let Some(args) = extra_args {
+            command.args(args);
+        }
         command
             .arg(ir_caches)
             .arg("--run")
@@ -139,15 +143,15 @@ impl BuiltEnso {
         sbt: &crate::engine::sbt::Context,
         async_policy: AsyncPolicy,
         test_selection: StandardLibraryTestsSelection,
-        extra_runner_flags: Option<Vec<String>>,
+        extra_runner_args: Option<Vec<String>>,
         native_image: bool,
     ) -> Result {
         let paths = &self.paths;
         // Environment for meta-tests. See:
         // https://github.com/enso-org/enso/tree/develop/test/Meta_Test_Suite_Tests
         ENSO_META_TEST_COMMAND.set(&self.wrapper_script_path())?;
-        if let Some(flags) = extra_runner_flags {
-            ENSO_META_TEST_ARGS.set(&format!("{} {} --run", ir_caches.flag(), flags.join(" ")))?;
+        if let Some(args) = &extra_runner_args {
+            ENSO_META_TEST_ARGS.set(&format!("{} {} --run", ir_caches.flag(), args.join(" ")))?;
         } else {
             ENSO_META_TEST_ARGS.set(&format!("{} --run", ir_caches.flag()))?;
         }
@@ -259,8 +263,13 @@ impl BuiltEnso {
         };
 
         let futures = std_tests.into_iter().map(|test_path| {
-            let command: std::result::Result<Command, anyhow::Error> =
-                self.run_test(test_path, ir_caches, environment_overrides.clone(), native_image);
+            let command: std::result::Result<Command, anyhow::Error> = self.run_test(
+                test_path,
+                ir_caches,
+                environment_overrides.clone(),
+                extra_runner_args.clone(),
+                native_image,
+            );
             async move { command?.run_ok().await }
         });
 
