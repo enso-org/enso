@@ -28,6 +28,7 @@ import scala.collection.immutable.Seq;
 import scala.jdk.javaapi.CollectionConverters;
 import scala.runtime.BoxedUnit;
 import scala.util.Either;
+import scala.util.Left;
 import scala.util.Right;
 
 /**
@@ -90,21 +91,26 @@ final class MockPackageRepository implements PackageRepository {
           LOGGER.error("Failed to write to file " + srcFile.getName().getFriendlyURI(), e);
           throw new IllegalStateException(e);
         }
-        if (!readFile(srcFile).equals(module.content())) {
-          var contentRead = readFile(srcFile);
-          var expectedContent = module.content();
-          LOGGER.error(
-              "Writing content to file {} failed. Read content: '{}'. Expected content: '{}'",
-              srcFile.getName().getPath(),
-              contentRead,
-              expectedContent);
-          throw new AssertionError("Read content mismatch in " + srcFile.getName().getPath());
-        }
+        expectContentWritten(srcFile, module.content());
       }
     } catch (FileSystemException e) {
       LOGGER.error("Failed to create package " + pkgName, e);
     }
     return pkg;
+  }
+
+  /** Ignores whitespaces. Is just a sanity check anyway. */
+  private void expectContentWritten(FileObject file, String content) {
+    var contentRead = readFile(file).trim();
+    var expectedContent = content.trim();
+    if (!contentRead.equals(expectedContent)) {
+      LOGGER.error(
+          "Writing content to file {} failed. Read content: '{}'. Expected content: '{}'",
+          file.getName().getPath(),
+          contentRead,
+          expectedContent);
+      throw new AssertionError("Read content mismatch in " + file.getName().getPath());
+    }
   }
 
   /** Same as {@link #createPackage(LibraryName, Set)}, but with just a single source module */
@@ -119,7 +125,12 @@ final class MockPackageRepository implements PackageRepository {
 
   @Override
   public Either<Error, BoxedUnit> ensurePackageIsLoaded(LibraryName libraryName) {
-    throw new UnsupportedOperationException();
+    if (loadedPackages.containsKey(libraryName)) {
+      return Right.apply(BoxedUnit.UNIT);
+    } else {
+      return Left.apply(
+          PackageRepository.packageLoadingError("Library " + libraryName + " was not loaded"));
+    }
   }
 
   @Override
@@ -273,6 +284,6 @@ final class MockPackageRepository implements PackageRepository {
       LOGGER.error("Failed to read file " + vfs.getAbsolutePath(file), e);
       throw new IllegalStateException(e);
     }
-    return lines.stream().collect(Collectors.joining("\n")) + "\n";
+    return lines.stream().collect(Collectors.joining("\n"));
   }
 }

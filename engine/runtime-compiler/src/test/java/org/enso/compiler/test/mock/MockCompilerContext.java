@@ -90,7 +90,8 @@ final class MockCompilerContext implements CompilerContext {
 
   @Override
   public Module findTopScopeModule(String name) {
-    throw new UnsupportedOperationException();
+    var mod = repo.getLoadedModule(name);
+    return mod.isEmpty() ? null : mod.get();
   }
 
   @Override
