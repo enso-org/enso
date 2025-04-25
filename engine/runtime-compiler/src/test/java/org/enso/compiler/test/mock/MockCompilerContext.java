@@ -1,6 +1,5 @@
 package org.enso.compiler.test.mock;
 
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
@@ -21,12 +20,12 @@ import org.enso.editions.LibraryName;
 import org.enso.pkg.QualifiedName;
 import scala.Option;
 
-public final class MockCompilerContext implements CompilerContext {
+final class MockCompilerContext implements CompilerContext {
 
   private final MockPackageRepository repo;
   private final PrintStream outErr;
 
-  public MockCompilerContext(MockPackageRepository repo, PrintStream ps) {
+  MockCompilerContext(MockPackageRepository repo, PrintStream ps) {
     this.repo = repo;
     this.outErr = ps;
   }
@@ -112,13 +111,13 @@ public final class MockCompilerContext implements CompilerContext {
 
   @Override
   public void truffleRunCodegen(
-      Module module, ModuleScopeBuilder scopeBuilder, CompilerConfig config) throws IOException {
-    throw new UnsupportedOperationException();
+      Module module, ModuleScopeBuilder scopeBuilder, CompilerConfig config) {
+    // nop
   }
 
   @Override
   public void runStubsGenerator(Module module, ModuleScopeBuilder scopeBuilder) {
-    throw new UnsupportedOperationException();
+    // nop
   }
 
   @Override

@@ -191,4 +191,29 @@ final class VirtualFileSystem implements FileSystem<FileObject> {
   public FileTime getCreationTime(FileObject file) throws IOException {
     return FileTime.fromMillis(file.getContent().getLastModifiedTime());
   }
+
+  String listAllFiles() throws IOException {
+    var bldr = new StringBuilder();
+    for (var child : ramRoot.getChildren()) {
+      listFiles(child, 0, bldr);
+    }
+    return bldr.toString();
+  }
+
+  void listFiles(FileObject current, int depth, StringBuilder strBldr)
+      throws FileSystemException {
+    var fName = current.getName().getBaseName();
+    if (current.isFile()) {
+      addEntry(strBldr, depth, fName);
+    } else {
+      addEntry(strBldr, depth, fName + "/");
+      for (var child : current.getChildren()) {
+        listFiles(child, depth + 1, strBldr);
+      }
+    }
+  }
+
+  private static void addEntry(StringBuilder bldr, int depth, String msg) {
+    bldr.append(System.lineSeparator()).append("  ".repeat(depth)).append(msg);
+  }
 }

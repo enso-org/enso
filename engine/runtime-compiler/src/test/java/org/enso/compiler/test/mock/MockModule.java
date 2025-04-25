@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.URI;
 import org.enso.common.CompilationStage;
 import org.enso.compiler.context.CompilerContext;
+import org.enso.compiler.context.CompilerContext.ModuleScopeBuilder;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.data.BindingsMap;
@@ -12,18 +13,19 @@ import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 
-public final class MockModule extends CompilerContext.Module {
+final class MockModule extends CompilerContext.Module {
 
   private final QualifiedName qName;
   private final String code;
   private final String path;
   private final org.enso.pkg.Package<? extends Object> pkg;
+  private final MockScopeBuilder scopeBuilder = new MockScopeBuilder();
 
   org.enso.compiler.core.ir.Module ir;
   BindingsMap bm;
   CompilationStage stage;
 
-  public MockModule(org.enso.pkg.Package<?> pkg, QualifiedName qName, String path, String code) {
+  MockModule(org.enso.pkg.Package<?> pkg, QualifiedName qName, String path, String code) {
     this.pkg = pkg;
     this.qName = qName;
     this.path = path;
@@ -106,11 +108,18 @@ public final class MockModule extends CompilerContext.Module {
 
   @Override
   public CompilerContext.ModuleScopeBuilder getScopeBuilder() {
-    throw new UnsupportedOperationException();
+    return scopeBuilder;
   }
 
   @Override
   public CompilerContext.ModuleScopeBuilder newScopeBuilder() {
-    throw new UnsupportedOperationException();
+    return new MockScopeBuilder();
   }
+
+  @Override
+  public String toString() {
+    return "MockModule{qName='" + qName + "'}";
+  }
+
+  static final class MockScopeBuilder extends ModuleScopeBuilder {}
 }
