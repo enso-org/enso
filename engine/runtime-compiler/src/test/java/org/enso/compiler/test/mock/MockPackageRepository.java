@@ -90,6 +90,16 @@ final class MockPackageRepository implements PackageRepository {
           LOGGER.error("Failed to write to file " + srcFile.getName().getFriendlyURI(), e);
           throw new IllegalStateException(e);
         }
+        if (!readFile(srcFile).equals(module.content())) {
+          var contentRead = readFile(srcFile);
+          var expectedContent = module.content();
+          LOGGER.error(
+              "Writing content to file {} failed. Read content: '{}'. Expected content: '{}'",
+              srcFile.getName().getPath(),
+              contentRead,
+              expectedContent);
+          throw new AssertionError("Read content mismatch in " + srcFile.getName().getPath());
+        }
       }
     } catch (FileSystemException e) {
       LOGGER.error("Failed to create package " + pkgName, e);
@@ -254,11 +264,15 @@ final class MockPackageRepository implements PackageRepository {
   private String readFile(FileObject file) {
     var lines = new ArrayList<String>();
     try (var reader = vfs.newBufferedReader(file)) {
-      lines.add(reader.readLine());
+      var line = reader.readLine();
+      while (line != null) {
+        lines.add(line);
+        line = reader.readLine();
+      }
     } catch (IOException e) {
       LOGGER.error("Failed to read file " + vfs.getAbsolutePath(file), e);
       throw new IllegalStateException(e);
     }
-    return lines.stream().collect(Collectors.joining("\n"));
+    return lines.stream().collect(Collectors.joining("\n")) + "\n";
   }
 }
