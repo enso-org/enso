@@ -54,6 +54,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Cleanup built-distribution
+        run: rm -rf built-distribution
       - run: ./run backend sbt -- buildEngineDistribution
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -113,6 +115,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Cleanup built-distribution
+        run: rm -rf built-distribution
       - run: ./run backend sbt '--' buildEngineDistribution
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

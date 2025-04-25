@@ -964,6 +964,12 @@ impl JobArchetype for BuildEngineDistribution {
         let mut job =
             RunStepsBuilder::new(format!("backend sbt {} buildEngineDistribution", args_separator))
                 .customize(move |step| {
+                    let cleanup_built_distribution = Step {
+                        name: Some("Cleanup built-distribution".into()),
+                        run: Some("rm -rf built-distribution".into()),
+                        ..Default::default()
+                    };
+
                     let archive_engine_distribution = Step {
                         name: Some("Archive Engine Distribution".into()),
                         run: Some("tar -cvf built-distribution.tar built-distribution".into()),
@@ -978,13 +984,19 @@ impl JobArchetype for BuildEngineDistribution {
                             )
                             .with_custom_argument("path", "built-distribution.tar");
 
-                    let cleanup = Step {
+                    let cleanup_archive = Step {
                         name: Some("Cleanup".into()),
                         run: Some("rm built-distribution.tar".into()),
                         ..Default::default()
                     };
 
-                    vec![step, archive_engine_distribution, upload_engine_distribution, cleanup]
+                    vec![
+                        cleanup_built_distribution,
+                        step,
+                        archive_engine_distribution,
+                        upload_engine_distribution,
+                        cleanup_archive,
+                    ]
                 })
                 .build_job(job_name, target);
         job.env(engine_env::ENSO_LAUNCHER, self.engine_launcher);
