@@ -2288,7 +2288,10 @@ type DB_Table
 
             setup = self.context.as_subquery self.name [self.internal_columns]
 
-            new_from = SQL_IR_From_Part.Pivot Nothing Nothing setup.subquery "bingo"
+            value = case values of
+                _ : Vector -> values.at 0
+                _ -> values
+            new_from = SQL_IR_From_Part.Pivot value Nothing setup.subquery "bingo"
             new_ctx = SQL_IR_Source.for_subquery new_from
             DB_Table.new inner_table_alias self.connection new_columns new_ctx
 

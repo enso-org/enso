@@ -114,8 +114,8 @@ type SQL_IR_From_Part
                 SQL_IR_From_Part.Join kind (rec left_spec) (rec right_spec) (on.map rec)
             SQL_IR_From_Part.Union queries alias ->
                 SQL_IR_From_Part.Union (queries.map rec) alias
-            SQL_IR_From_Part.Pivot type column incoming_spec alias ->
-                SQL_IR_From_Part.Pivot type column (rec incoming_spec) alias
+            SQL_IR_From_Part.Pivot values column incoming_spec alias ->
+                SQL_IR_From_Part.Pivot values column (rec incoming_spec) alias
             SQL_IR_From_Part.Sub_Query columns context alias ->
                 SQL_IR_From_Part.Sub_Query (do_name_exps columns) (rec context) alias
         f new_from_spec

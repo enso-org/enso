@@ -33,7 +33,7 @@ add_specs suite_builder setup =
     table_builder = setup.table_builder
     suite_builder.group prefix+"Table.cross_tab" pending=db_todo group_builder->
         data = Data.setup setup.table_builder
-        group_builder.specify "should cross_tab counts by default using first column as names" <|
+        group_builder.specify "shouldyy cross_tab counts by default using first column as names" <|
             t1 = data.table.cross_tab [] "Key"
             t1.column_names . should_equal ["x", "y", "z"]
             t1.row_count . should_equal 1
@@ -41,7 +41,7 @@ add_specs suite_builder setup =
             t1.at "y" . to_vector . should_equal [3]
             t1.at "z" . to_vector . should_equal [2]
 
-        group_builder.specify "should allow a different aggregate" <|
+        group_builder.specify "shouldyy allow a different aggregate" <|
             t1 = data.table.cross_tab [] "Key" values=[Aggregate_Column.Sum "Value"]
             t1.column_names . should_equal ["x", "y", "z"]
             t1.row_count . should_equal 1

@@ -19,6 +19,8 @@ from project.Dialect import Temp_Table_Style
 from project.Errors import Unsupported_Database_Operation
 from project.Internal.IR.Operation_Metadata import Row_Number_Metadata
 
+from Standard.Table import Aggregate_Column
+
 type Dialect_Operations
 
     ## PRIVATE
@@ -148,9 +150,12 @@ type SQL_Generator
                 self.generate_sub_query dialect query
             joined = SQL_Builder.join " UNION ALL " built_queries
             joined.paren ++ alias dialect as_name
-        SQL_IR_From_Part.Pivot type column incoming_spec as_name ->
+        SQL_IR_From_Part.Pivot value column incoming_spec as_name ->
             base_table = self.generate_from_part dialect incoming_spec
-            base_table.paren ++ ' PIVOT (COUNT("Value") FOR "Key" IN (ANY)) ' ++ alias dialect as_name
+            value_part = case value of
+                Aggregate_Column.Count _ -> 'COUNT("Value")'
+                Aggregate_Column.Sum col _ -> SQL_Builder.code 'SUM("' ++ col ++ '")'
+            base_table.paren ++ ' PIVOT (' ++ value_part ++ ' FOR "Key" IN (ANY)) ' ++ alias dialect as_name
         SQL_IR_From_Part.Sub_Query columns context as_name ->
             sub = self.generate_sub_query dialect (SQL_IR_Statement.Select columns context)
             sub.paren ++ alias dialect as_name
