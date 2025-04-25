@@ -66,6 +66,9 @@ type R
         r
     as_int self = self:Integer
 
+    private private_instance_method self = self.i
+    private private_static_method v = R.V "private" v
+
 Text.from (that:R) = that.a
 Integer.from (that:R) = that.i
 
@@ -116,6 +119,18 @@ add_specs suite_builder =
         group_builder.specify "prevent getting private constructors in the same project" <|
             # type R has all constructors private
             Meta.meta R . constructors . should_equal []
+
+        group_builder.specify "prevent getting private methods in the same project" <|
+            R.private_static_method 43 . private_instance_method . should_equal 43
+
+            arr = Meta.meta R . methods
+
+            # there are some methods
+            arr.length>10 . should_be_true
+
+            # neither private_instance_method nor private_static_method
+            # are in the list
+            arr.filter (\n->n.contains "_method") . should_equal []
 
         group_builder.specify "prevent getting fields from private constructor in the same project" <|
             # type R has all constructors private

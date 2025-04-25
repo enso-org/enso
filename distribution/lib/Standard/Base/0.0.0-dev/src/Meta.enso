@@ -36,7 +36,8 @@ type Type
        ICON metadata
 
        Returns a vector of method names that can be invoked
-       on instances of this type.
+       on instances of this type. Only public methods are returned.
+
        ? Static Methods
 
          To obtain list of _static methods_ on a given type
