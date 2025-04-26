@@ -56,9 +56,27 @@ jobs:
       - name: Cleanup built-distribution
         run: rm -rf built-distribution
         shell: bash
-      - run: ./run backend sbt -- buildEngineDistribution
+      - run: ./run backend sbt '--' buildEngineDistribution
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - id: check-engine-distribution
+        name: Prepare Check Engine Distribution
+        run: |
+          third_party=$(find $(pwd)/built-distribution/ -type d -name 'THIRD-PARTY')
+
+          tasks=''
+          for path in $third_party; do
+            libname=$(basename $(dirname $(dirname $path)))
+            if [[ $libname == *"engine"* ]]; then
+              libname='engine'
+            fi
+            task="enso/verifyGeneratedPackage $libname $path"
+            echo $task
+            tasks="$tasks $task;"
+          done
+
+          ./run backend sbt '--' "$tasks"
+        shell: bash
       - name: Archive Engine Distribution
         run: tar -cvf built-distribution.tar built-distribution
       - name: Upload Engine Distribution
