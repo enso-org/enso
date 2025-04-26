@@ -16,7 +16,7 @@
 - interpret_json_as_data_link json:Standard.Base.Any.Any source:Standard.Base.Enso_Cloud.Data_Link_Helpers.Data_Link_Source_Metadata= -> Standard.Base.Any.Any
 - is_directory file:Standard.Base.Any.Any ~check_file_directly:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - is_regular_file file:Standard.Base.Any.Any ~check_file_directly:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- parse_format json:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- parse_format json:Standard.Base.Any.Any -> Standard.Base.Any.Any!Standard.Base.Errors.Illegal_State.Illegal_State
 - parse_secure_value json:Standard.Base.Any.Any -> (Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret)
 - read_and_interpret_data_link file:Standard.Base.System.File.Generic.File_Like.File_Like -> Standard.Base.Any.Any
 - read_data_link file:Standard.Base.System.File.Generic.File_Like.File_Like format:Standard.Base.Any.Any on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any

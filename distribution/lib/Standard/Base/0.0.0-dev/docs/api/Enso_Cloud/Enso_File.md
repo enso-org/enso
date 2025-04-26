@@ -7,7 +7,7 @@
     - Project
     - Secret
 - type Enso_File
-    - / self name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - / self name:Standard.Base.Data.Text.Text -> (Standard.Base.Enso_Cloud.Enso_File.Enso_File|Standard.Base.Any.Any)!Standard.Base.Errors.Common.Not_Found
     - add_label self label:Standard.Base.Data.Text.Text -> Standard.Base.Enso_Cloud.Enso_File.Enso_File
     - asset_type self -> Standard.Base.Enso_Cloud.Enso_File.Enso_Asset_Type
     - cloud_project_parent_directory -> Standard.Base.Any.Any

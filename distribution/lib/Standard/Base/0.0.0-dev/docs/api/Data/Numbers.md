@@ -1,7 +1,7 @@
 ## Enso Signatures 1.0
 ## module Standard.Base.Data.Numbers
 - type Float
-    - % self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Any.Any
+    - % self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Numbers.Number!Standard.Base.Errors.Common.Arithmetic_Error
     - * self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Numbers.Number
     - + self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Numbers.Number
     - - self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Numbers.Number
@@ -17,13 +17,13 @@
     - max_value -> Standard.Base.Any.Any
     - min_value -> Standard.Base.Any.Any
     - negate self -> Standard.Base.Data.Numbers.Float
-    - parse text:Standard.Base.Data.Text.Text locale:(Standard.Base.Data.Locale.Locale|Standard.Base.Nothing.Nothing)= format:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
-    - round self decimal_places:Standard.Base.Data.Numbers.Integer= rounding_mode:Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode= -> Standard.Base.Any.Any
+    - parse text:Standard.Base.Data.Text.Text locale:(Standard.Base.Data.Locale.Locale|Standard.Base.Nothing.Nothing)= format:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= -> Standard.Base.Data.Numbers.Float!(Standard.Base.Data.Numbers.Number_Parse_Error|Standard.Base.Errors.Illegal_Argument.Illegal_Argument)
+    - round self decimal_places:Standard.Base.Data.Numbers.Integer= rounding_mode:Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode= -> (Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Numbers.Float)!Standard.Base.Errors.Illegal_Argument.Illegal_Argument
     - to_decimal self -> Standard.Base.Data.Decimal.Decimal
     - to_float self -> Standard.Base.Data.Numbers.Float
     - truncate self -> Standard.Base.Data.Numbers.Integer
 - type Integer
-    - % self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
+    - % self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Integer!Standard.Base.Errors.Common.Arithmetic_Error
     - * self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Integer
     - + self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Integer
     - - self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Integer
@@ -37,17 +37,17 @@
     - bit_and self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Integer
     - bit_not self -> Standard.Base.Data.Numbers.Integer
     - bit_or self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Integer
-    - bit_shift self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
-    - bit_shift_l self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
-    - bit_shift_r self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
+    - bit_shift self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Integer!Standard.Base.Errors.Common.Arithmetic_Error
+    - bit_shift_l self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Integer!Standard.Base.Errors.Common.Arithmetic_Error
+    - bit_shift_r self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Integer!Standard.Base.Errors.Common.Arithmetic_Error
     - bit_xor self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Integer
     - ceil self -> Standard.Base.Data.Numbers.Integer
-    - div self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
+    - div self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Integer!Standard.Base.Errors.Common.Arithmetic_Error
     - fits_in_long self -> Standard.Base.Data.Boolean.Boolean
     - floor self -> Standard.Base.Data.Numbers.Integer
     - negate self -> Standard.Base.Data.Numbers.Integer
-    - parse text:Standard.Base.Data.Text.Text radix:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
-    - round self decimal_places:Standard.Base.Data.Numbers.Integer= rounding_mode:Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode= -> Standard.Base.Any.Any
+    - parse text:Standard.Base.Data.Text.Text radix:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Data.Numbers.Integer!Standard.Base.Data.Numbers.Number_Parse_Error
+    - round self decimal_places:Standard.Base.Data.Numbers.Integer= rounding_mode:Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode= -> Standard.Base.Data.Numbers.Integer!Standard.Base.Errors.Illegal_Argument.Illegal_Argument
     - to_decimal self -> Standard.Base.Data.Decimal.Decimal
     - to_float self -> Standard.Base.Data.Numbers.Float
     - truncate self -> Standard.Base.Data.Numbers.Integer
@@ -63,7 +63,7 @@
     - atan_2 self y:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - cos self -> Standard.Base.Any.Any
     - cosh self -> Standard.Base.Any.Any
-    - equals self that:Standard.Base.Data.Numbers.Number epsilon:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - equals self that:Standard.Base.Data.Numbers.Number epsilon:Standard.Base.Any.Any= -> Standard.Base.Data.Boolean.Boolean!Standard.Base.Errors.Common.Incomparable_Values
     - exp self -> Standard.Base.Any.Any
     - format self format:Standard.Base.Data.Text.Text= locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Any.Any
     - is_finite self -> Standard.Base.Any.Any
