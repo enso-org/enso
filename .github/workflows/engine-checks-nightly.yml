@@ -74,7 +74,7 @@ jobs:
             tasks="$tasks $task;"
           done
 
-          ./run backend sbt '--' "$tasks"
+          sbt "$tasks"
         shell: bash
       - name: Archive Engine Distribution
         run: tar -cvf built-distribution.tar built-distribution
@@ -155,7 +155,7 @@ jobs:
             tasks="$tasks $task;"
           done
 
-          ./run backend sbt '--' "$tasks"
+          sbt "$tasks"
         shell: bash
       - name: Archive Engine Distribution
         run: tar -cvf built-distribution.tar built-distribution
@@ -234,7 +234,7 @@ jobs:
             tasks="$tasks $task;"
           done
 
-          ./run backend sbt '--' "$tasks"
+          sbt "$tasks"
         shell: bash
       - name: Archive Engine Distribution
         run: tar -cvf built-distribution.tar built-distribution
@@ -314,7 +314,7 @@ jobs:
             tasks="$tasks $task;"
           done
 
-          ./run backend sbt '--' "$tasks"
+          sbt "$tasks"
         shell: bash
       - name: Archive Engine Distribution
         run: tar -cvf built-distribution.tar built-distribution
@@ -394,7 +394,7 @@ jobs:
             tasks="$tasks $task;"
           done
 
-          ./run backend sbt '--' "$tasks"
+          sbt "$tasks"
         shell: bash
       - name: Archive Engine Distribution
         run: tar -cvf built-distribution.tar built-distribution

@@ -1020,7 +1020,7 @@ for path in $third_party; do
   tasks="$tasks $task;"
 done
 
-./run backend sbt '--' "$tasks"
+sbt "$tasks"
 "#.into()),
                     shell: Some(Shell::Bash),
                     ..Default::default()
