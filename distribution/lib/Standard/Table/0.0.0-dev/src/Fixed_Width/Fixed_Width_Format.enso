@@ -13,6 +13,7 @@ import project.Delimited.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows
 import project.Fixed_Width.Internal.Column_Namer.Column_Namer
 import project.Internal.Fixed_Width_Reader
 import project.Internal.Telemetry
+import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 
 ## Read fixed-width files into a Table.
@@ -47,6 +48,7 @@ type Fixed_Width_Format
        - layout: A `Fixed_Width_Layout` object that defines the start and width
          for each column, along with an optional column name.
        - encoding: The encoding to use when reading the file.
+       - row_limit: The maximum number of rows to read from the file.
        - on_invalid_rows: Specifies how to handle rows that are not short enough
          to cover the columns specified in the layout.
        - value_formatter: formatter to parse text values into numbers, dates,
@@ -63,7 +65,7 @@ type Fixed_Width_Format
 
              table = Table.input [['x', [0, Nothing, Nothing, Nothing]], ['y', [4, 1, 3, 3]]]
              layout = table : Fixed_Width_Layout
-    Fixed_Width (layout:Fixed_Width_Layout) (encoding:Encoding=Encoding.default) (on_invalid_rows:Invalid_Fixed_Width_Rows=..Keep_Invalid_Rows) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value)
+    Fixed_Width (layout:Fixed_Width_Layout) (encoding:Encoding=Encoding.default) (row_limit:Rows_To_Read=..All_Rows) (on_invalid_rows:Invalid_Fixed_Width_Rows=..Keep_Invalid_Rows) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value)
 
     ## PRIVATE
        Resolve an unresolved constructor to the actual type.
