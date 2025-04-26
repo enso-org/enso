@@ -182,11 +182,60 @@ pub struct BuildConfigurationFlags {
 }
 
 #[derive(Clone, Debug)]
+pub enum Filter<T> {
+    Whitelist(HashSet<T>),
+    Blacklist(HashSet<T>),
+}
+
+impl<T> Filter<T>
+where T: Eq + Hash
+{
+    pub fn whitelist(items: impl IntoIterator<Item = T>) -> Self {
+        Self::Whitelist(items.into_iter().collect())
+    }
+
+    pub fn blacklist(items: impl IntoIterator<Item = T>) -> Self {
+        Self::Blacklist(items.into_iter().collect())
+    }
+
+    pub fn allow(&mut self, item: T) {
+        match self {
+            Self::Whitelist(ref mut set) => {
+                set.insert(item);
+            }
+            Self::Blacklist(ref mut set) => {
+                set.remove(&item);
+            }
+        }
+    }
+
+    pub fn deny(&mut self, item: T) {
+        match self {
+            Self::Whitelist(ref mut set) => {
+                set.remove(&item);
+            }
+            Self::Blacklist(ref mut set) => {
+                set.insert(item);
+            }
+        }
+    }
+
+    pub fn is_allowed(&self, item: &T) -> bool {
+        match self {
+            Self::Whitelist(set) => set.contains(item),
+            Self::Blacklist(set) => !set.contains(item),
+        }
+    }
+}
+
+pub type StandardLibraryTestsSelection = Filter<String>;
+
+/* #[derive(Clone, Debug)]
 pub enum StandardLibraryTestsSelection {
     All,
     Selected(Vec<String>),
 }
-
+ */
 impl From<BuildConfigurationFlags> for BuildConfigurationResolved {
     fn from(value: BuildConfigurationFlags) -> Self {
         Self::new(value)
@@ -257,20 +306,11 @@ impl BuildConfigurationFlags {
         self.build_launcher_package || self.build_launcher_bundle
     }
 
-    pub fn add_standard_library_test_selection(
+    pub fn set_standard_library_test_selection(
         &mut self,
         selection: StandardLibraryTestsSelection,
     ) {
-        use StandardLibraryTestsSelection::*;
-        let combined_selection = match (self.test_standard_library.take(), selection) {
-            (None, selection) => selection,
-            (Some(All), _) | (_, All) => All,
-            (Some(Selected(mut selection)), Selected(new_selection)) => {
-                selection.extend(new_selection);
-                Selected(selection)
-            }
-        };
-        self.test_standard_library = Some(combined_selection);
+        self.test_standard_library = Some(selection);
     }
 
     pub fn add_engine_runner_arg(&mut self, flag: &str) {

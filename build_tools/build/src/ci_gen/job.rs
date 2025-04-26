@@ -241,11 +241,13 @@ impl JobArchetype for JvmTests {
                     );
 
                 let unpack_engine_distribution = Step {
+                    name: Some("Unpack Engine Distribution".into()),
                     run: Some(
-                        "rm -rf built-distribution
-tar -xvf built-distribution.tar
-rm built-distribution.tar"
-                            .into(),
+                        "rm -rf built-distribution;
+tar -xvf built-distribution.tar;
+rm built-distribution.tar;
+"
+                        .into(),
                     ),
                     shell: Some(Shell::Bash),
                     ..Default::default()
@@ -343,11 +345,13 @@ impl JobArchetype for StandardLibraryTests {
                 );
 
             let unpack_engine_distribution = Step {
+                name: Some("Unpack Engine Distribution".into()),
                 run: Some(
-                    "rm -rf built-distribution
-tar -xvf built-distribution.tar
-rm built-distribution.tar"
-                        .into(),
+                    "rm -rf built-distribution;
+tar -xvf built-distribution.tar;
+rm built-distribution.tar;
+"
+                    .into(),
                 ),
                 shell: Some(Shell::Bash),
                 ..Default::default()
@@ -448,16 +452,13 @@ impl JobArchetype for StandardLibraryApiCheck {
                     );
 
                 let unpack_engine_distribution = Step {
+                    name: Some("Unpack Engine Distribution".into()),
                     run: Some(
-                        "echo 'Unpack Engine Distribution';
-rm -rf built-distribution;
-echo 'built-distribution removed';
+                        "rm -rf built-distribution;
 tar -xvf built-distribution.tar;
-echo 'built-distribution unpacked';
 rm built-distribution.tar;
-echo 'built-distribution.tar removed';
 "
-                            .into(),
+                        .into(),
                     ),
                     shell: Some(Shell::Bash),
                     ..Default::default()

@@ -613,10 +613,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-linux-native,test
-      - run: |-
-          rm -rf built-distribution
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
+      - name: Unpack Engine Distribution
+        run: |
+          rm -rf built-distribution;
+          tar -xvf built-distribution.tar;
+          rm built-distribution.tar;
         shell: bash
       - run: ./run backend test jvm
         env:
@@ -685,10 +686,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-macos-native,test
-      - run: |-
-          rm -rf built-distribution
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
+      - name: Unpack Engine Distribution
+        run: |
+          rm -rf built-distribution;
+          tar -xvf built-distribution.tar;
+          rm built-distribution.tar;
         shell: bash
       - run: ./run backend test jvm
         env:
@@ -755,10 +757,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-macos-native,test
-      - run: |-
-          rm -rf built-distribution
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
+      - name: Unpack Engine Distribution
+        run: |
+          rm -rf built-distribution;
+          tar -xvf built-distribution.tar;
+          rm built-distribution.tar;
         shell: bash
       - run: ./run backend test jvm
         env:
@@ -826,10 +829,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-windows-native,test
-      - run: |-
-          rm -rf built-distribution
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
+      - name: Unpack Engine Distribution
+        run: |
+          rm -rf built-distribution;
+          tar -xvf built-distribution.tar;
+          rm built-distribution.tar;
         shell: bash
       - run: ./run backend test jvm
         env:
@@ -897,10 +901,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-linux-native,test
-      - run: |-
-          rm -rf built-distribution
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
+      - name: Unpack Engine Distribution
+        run: |
+          rm -rf built-distribution;
+          tar -xvf built-distribution.tar;
+          rm built-distribution.tar;
         shell: bash
       - run: ./run backend test jvm
         env:
@@ -968,14 +973,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-linux-native,test
-      - run: |
-          echo 'Unpack Engine Distribution';
+      - name: Unpack Engine Distribution
+        run: |
           rm -rf built-distribution;
-          echo 'built-distribution removed';
           tar -xvf built-distribution.tar;
-          echo 'built-distribution unpacked';
           rm built-distribution.tar;
-          echo 'built-distribution.tar removed';
         shell: bash
       - run: ./run backend stdlib-api-check
         env:
@@ -1030,10 +1032,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-linux-native,test
-      - run: |-
-          rm -rf built-distribution
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
+      - name: Unpack Engine Distribution
+        run: |
+          rm -rf built-distribution;
+          tar -xvf built-distribution.tar;
+          rm built-distribution.tar;
         shell: bash
       - run: ./run backend test standard-library
         env:
@@ -1105,10 +1108,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-macos-native,test
-      - run: |-
-          rm -rf built-distribution
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
+      - name: Unpack Engine Distribution
+        run: |
+          rm -rf built-distribution;
+          tar -xvf built-distribution.tar;
+          rm built-distribution.tar;
         shell: bash
       - run: ./run backend test standard-library
         env:
@@ -1178,10 +1182,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-macos-native,test
-      - run: |-
-          rm -rf built-distribution
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
+      - name: Unpack Engine Distribution
+        run: |
+          rm -rf built-distribution;
+          tar -xvf built-distribution.tar;
+          rm built-distribution.tar;
         shell: bash
       - run: ./run backend test standard-library
         env:
@@ -1252,10 +1257,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-windows-native,test
-      - run: |-
-          rm -rf built-distribution
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
+      - name: Unpack Engine Distribution
+        run: |
+          rm -rf built-distribution;
+          tar -xvf built-distribution.tar;
+          rm built-distribution.tar;
         shell: bash
       - run: ./run backend test standard-library
         env:
@@ -1326,10 +1332,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-linux-native,test
-      - run: |-
-          rm -rf built-distribution
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
+      - name: Unpack Engine Distribution
+        run: |
+          rm -rf built-distribution;
+          tar -xvf built-distribution.tar;
+          rm built-distribution.tar;
         shell: bash
       - run: ./run backend test standard-library-in-native
         env:
@@ -1401,10 +1408,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-macos-native,test
-      - run: |-
-          rm -rf built-distribution
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
+      - name: Unpack Engine Distribution
+        run: |
+          rm -rf built-distribution;
+          tar -xvf built-distribution.tar;
+          rm built-distribution.tar;
         shell: bash
       - run: ./run backend test standard-library-in-native
         env:
@@ -1474,10 +1482,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-macos-native,test
-      - run: |-
-          rm -rf built-distribution
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
+      - name: Unpack Engine Distribution
+        run: |
+          rm -rf built-distribution;
+          tar -xvf built-distribution.tar;
+          rm built-distribution.tar;
         shell: bash
       - run: ./run backend test standard-library-in-native
         env:
@@ -1548,10 +1557,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-windows-native,test
-      - run: |-
-          rm -rf built-distribution
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
+      - name: Unpack Engine Distribution
+        run: |
+          rm -rf built-distribution;
+          tar -xvf built-distribution.tar;
+          rm built-distribution.tar;
         shell: bash
       - run: ./run backend test standard-library-in-native
         env:
@@ -1622,10 +1632,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-linux-native,test
-      - run: |-
-          rm -rf built-distribution
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
+      - name: Unpack Engine Distribution
+        run: |
+          rm -rf built-distribution;
+          tar -xvf built-distribution.tar;
+          rm built-distribution.tar;
         shell: bash
       - run: ./run backend test standard-library
         env:
@@ -1696,10 +1707,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-linux-native,test
-      - run: |-
-          rm -rf built-distribution
-          tar -xvf built-distribution.tar
-          rm built-distribution.tar
+      - name: Unpack Engine Distribution
+        run: |
+          rm -rf built-distribution;
+          tar -xvf built-distribution.tar;
+          rm built-distribution.tar;
         shell: bash
       - run: ./run backend test standard-library-in-native
         env:

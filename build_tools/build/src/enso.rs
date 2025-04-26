@@ -168,22 +168,28 @@ impl BuiltEnso {
             ide_ci::fs::write(google_api_test_data_dir.join("secret.json"), gdoc_key)?;
         }
 
-        let std_tests = match &test_selection {
-            StandardLibraryTestsSelection::All =>
-                crate::paths::discover_standard_library_tests(&paths.repo_root)?,
-            StandardLibraryTestsSelection::Selected(only) =>
-                only.iter().map(|test| paths.repo_root.test.join(test)).collect(),
+        let std_tests: Vec<_> = match &test_selection {
+            StandardLibraryTestsSelection::Whitelist(whitelist) => {
+                let all_tests = crate::paths::discover_standard_library_tests(&paths.repo_root)?;
+                all_tests
+                    .into_iter()
+                    .filter(|test| {
+                        whitelist.iter().any(|allow| test.to_string_lossy().contains(allow))
+                    })
+                    .collect()
+            }
+            StandardLibraryTestsSelection::Blacklist(blacklist) => {
+                let all_tests = crate::paths::discover_standard_library_tests(&paths.repo_root)?;
+                all_tests
+                    .into_iter()
+                    .filter(|test| {
+                        blacklist.iter().all(|deny| !test.to_string_lossy().contains(deny))
+                    })
+                    .collect()
+            }
         };
-        let may_need_postgres = match &test_selection {
-            StandardLibraryTestsSelection::All => true,
-            StandardLibraryTestsSelection::Selected(only) =>
-                only.iter().any(|test| test.contains("Table_Tests")),
-        };
-        let may_need_sqlserver = match &test_selection {
-            StandardLibraryTestsSelection::All => true,
-            StandardLibraryTestsSelection::Selected(only) =>
-                only.iter().any(|test| test.contains("Microsoft_Tests")),
-        };
+        let may_need_postgres = test_selection.is_allowed(&"Table_Tests".to_owned());
+        let may_need_sqlserver = test_selection.is_allowed(&"Microsoft_Tests".to_owned());
 
         let cloud_credentials_file = match cloud_tests::build_auth_config_from_environment() {
             Ok(config) => {

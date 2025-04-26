@@ -365,21 +365,25 @@ impl Processor {
                             config.test_java_generated_from_rust = true;
                         }
                         Tests::StandardLibrary => {
-                            config.add_standard_library_test_selection(
-                                StandardLibraryTestsSelection::All,
+                            config.set_standard_library_test_selection(
+                                StandardLibraryTestsSelection::blacklist(vec![
+                                    "Examples_Tests".to_string()
+                                ]),
                             );
                             config.add_engine_runner_arg("--jvm");
                             config.use_native_runner = true;
                         }
                         Tests::StandardLibraryInNative => {
-                            config.add_standard_library_test_selection(
-                                StandardLibraryTestsSelection::All,
+                            config.set_standard_library_test_selection(
+                                StandardLibraryTestsSelection::blacklist(vec![
+                                    "Examples_Tests".to_string()
+                                ]),
                             );
                             config.use_native_runner = true;
                         }
                         Tests::StdSnowflake => {
-                            config.add_standard_library_test_selection(
-                                StandardLibraryTestsSelection::Selected(vec![
+                            config.set_standard_library_test_selection(
+                                StandardLibraryTestsSelection::whitelist(vec![
                                     "Snowflake_Tests".to_string()
                                 ]),
                             );
@@ -387,8 +391,8 @@ impl Processor {
                             config.build_engine_package = true;
                         }
                         Tests::StdCloudRelated => {
-                            config.add_standard_library_test_selection(
-                                StandardLibraryTestsSelection::Selected(vec![
+                            config.set_standard_library_test_selection(
+                                StandardLibraryTestsSelection::whitelist(vec![
                                     "Base_Tests".to_string(),
                                     // Base Internal tests contain some cloud tests that need
                                     // access to cloud internals
