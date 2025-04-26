@@ -1008,6 +1008,7 @@ impl JobArchetype for BuildEngineDistribution {
                     name: Some("Prepare Check Engine Distribution".into()),
                     id: Some("check-engine-distribution".into()),
                     run: Some(r#"third_party=$(find $(pwd)/built-distribution/ -type d -name 'THIRD-PARTY')
+sbt=$(find /home/ci -type f -executable -name 'sbt' | head)
 
 tasks=''
 for path in $third_party; do
@@ -1020,7 +1021,7 @@ for path in $third_party; do
   tasks="$tasks $task;"
 done
 
-sbt "$tasks"
+$sbt "$tasks"
 "#.into()),
                     shell: Some(Shell::Bash),
                     ..Default::default()

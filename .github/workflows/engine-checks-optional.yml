@@ -63,6 +63,7 @@ jobs:
         name: Prepare Check Engine Distribution
         run: |
           third_party=$(find $(pwd)/built-distribution/ -type d -name 'THIRD-PARTY')
+          sbt=$(find /home/ci -type f -executable -name 'sbt' | head)
 
           tasks=''
           for path in $third_party; do
@@ -75,7 +76,7 @@ jobs:
             tasks="$tasks $task;"
           done
 
-          sbt "$tasks"
+          $sbt "$tasks"
         shell: bash
       - name: Archive Engine Distribution
         run: tar -cvf built-distribution.tar built-distribution
