@@ -62,7 +62,6 @@ pub enum Command {
 
     /// Generate Cloud credentials
     GenerateCloudCredentials {},
-
 }
 
 #[derive(Args, Clone, Debug, PartialEq)]

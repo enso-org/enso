@@ -55,7 +55,12 @@ public final class ExecutableLocation {
     }
     File exec;
     if (isOnWindows()) {
-      exec = binDir.resolve("enso.bat").toFile();
+      var bat = binDir.resolve("enso.bat").toFile();
+      if (bat.canExecute()) {
+        exec = bat;
+      } else {
+        exec = binDir.resolve("enso.exe").toFile();
+      }
     } else {
       exec = binDir.resolve("enso").toFile();
     }
