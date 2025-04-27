@@ -160,6 +160,21 @@
         "name": "org.enso.base.enso_cloud.audit.AuditLog"
     },
     {
+        "name": "org.enso.base.enso_cloud.audit.AuditLog$AuditLogError"
+    },
+    {
+        "name": "org.enso.base.enso_cloud.audit.AuditLog.AuditLogError"
+    },
+    {
+        "name": "org.enso.base.enso_cloud.audit.AuditLogApiAccess",
+        "fields": [
+            {
+                "name": "INSTANCE"
+            }
+        ],
+        "allPublicMethods": true
+    },
+    {
         "name": "org.enso.base.file_format.FileFormatSPI"
     },
     {
@@ -491,6 +506,15 @@
             {
                 "name": "init",
                 "parameterTypes": ["javax.net.ssl.KeyManager[]", "javax.net.ssl.TrustManager[]", "java.security.SecureRandom"]
+            }
+        ]
+    },
+    {
+        "name": "java.io.Console",
+        "methods": [
+            {
+                "name": "isTerminal",
+                "parameterTypes": []
             }
         ]
     }
