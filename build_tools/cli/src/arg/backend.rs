@@ -57,11 +57,14 @@ pub enum Command {
     },
     /// Perform the CI check routine for the backend.
     CiCheck {},
+    /// Build Engine Distribution
+    CiBuildEngineDistribution {},
     /// Perform the stdlib API checks
     StdlibApiCheck {},
 
     /// Generate Cloud credentials
     GenerateCloudCredentials {},
+
 }
 
 #[derive(Args, Clone, Debug, PartialEq)]

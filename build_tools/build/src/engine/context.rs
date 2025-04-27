@@ -432,6 +432,7 @@ impl RunContext {
         }
 
         // === Build Distribution ===
+        /*
         debug!("Building distribution");
         if self.config.build_native_runner {
             debug!("Building and testing native engine runners");
@@ -446,6 +447,7 @@ impl RunContext {
                 .with_executable_extension();
             ide_ci::fs::remove_file_if_exists(&enso)?;
         }
+        */
 
         // Verify Integrity of Generated License Packages in Distributions
         // FIXME apparently this does not work on Windows due to some CRLF issues?

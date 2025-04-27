@@ -54,31 +54,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Cleanup built-distribution
-        run: rm -rf built-distribution
-        shell: bash
-      - run: ./run backend sbt '--' buildEngineDistribution
+      - run: ./run backend ci-build-engine-distribution
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - id: check-engine-distribution
-        name: Prepare Check Engine Distribution
-        run: |
-          third_party=$(find $(pwd)/built-distribution/ -type d -name 'THIRD-PARTY')
-          sbt=$(find /home/ci -type f -executable -name 'sbt' | head)
-
-          tasks=''
-          for path in $third_party; do
-            libname=$(basename $(dirname $(dirname $path)))
-            if [[ $libname == *"engine"* ]]; then
-              libname='engine'
-            fi
-            task="enso/verifyGeneratedPackage $libname $path"
-            echo $task
-            tasks="$tasks $task;"
-          done
-
-          $sbt "$tasks"
-        shell: bash
       - name: Archive Engine Distribution
         run: tar -cvf built-distribution.tar built-distribution
       - name: Upload Engine Distribution
@@ -135,31 +113,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Cleanup built-distribution
-        run: rm -rf built-distribution
-        shell: bash
-      - run: ./run backend sbt '--' buildEngineDistribution
+      - run: ./run backend ci-build-engine-distribution
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - id: check-engine-distribution
-        name: Prepare Check Engine Distribution
-        run: |
-          third_party=$(find $(pwd)/built-distribution/ -type d -name 'THIRD-PARTY')
-          sbt=$(find /home/ci -type f -executable -name 'sbt' | head)
-
-          tasks=''
-          for path in $third_party; do
-            libname=$(basename $(dirname $(dirname $path)))
-            if [[ $libname == *"engine"* ]]; then
-              libname='engine'
-            fi
-            task="enso/verifyGeneratedPackage $libname $path"
-            echo $task
-            tasks="$tasks $task;"
-          done
-
-          $sbt "$tasks"
-        shell: bash
       - name: Archive Engine Distribution
         run: tar -cvf built-distribution.tar built-distribution
       - name: Upload Engine Distribution

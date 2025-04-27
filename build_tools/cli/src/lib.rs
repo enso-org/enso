@@ -480,6 +480,21 @@ impl Processor {
                 cloud_tests::build_credentials_file(auth_config, path).await
             }
             .boxed(),
+            arg::backend::Command::CiBuildEngineDistribution {} => {
+                let config = enso_build::engine::BuildConfigurationFlags {
+                    build_engine_package: true,
+                    build_native_runner: true,
+                    verify_packages: true,
+                    ..default()
+                };
+                let context = self.prepare_backend_context(config);
+                async move {
+                    let context = context.await?;
+                    context.build().await
+                }
+                .void_ok()
+                .boxed()
+            }
         }
     }
 

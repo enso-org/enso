@@ -995,38 +995,8 @@ impl JobArchetype for BuildEngineDistribution {
         let engine_launcher = self.engine_launcher;
         let job_name =
             format!("Build Engine Distribution ({}) ({})", self.graal_edition, engine_launcher);
-        let mut job = RunStepsBuilder::new("backend sbt '--' buildEngineDistribution")
+        let mut job = RunStepsBuilder::new("backend ci-build-engine-distribution")
             .customize(move |step| {
-                let cleanup_built_distribution = Step {
-                    name: Some("Cleanup built-distribution".into()),
-                    run: Some("rm -rf built-distribution".into()),
-                    shell: Some(Shell::Bash),
-                    ..Default::default()
-                };
-
-                let check_engine_distribution = Step {
-                    name: Some("Prepare Check Engine Distribution".into()),
-                    id: Some("check-engine-distribution".into()),
-                    run: Some(r#"third_party=$(find $(pwd)/built-distribution/ -type d -name 'THIRD-PARTY')
-sbt=$(find /home/ci -type f -executable -name 'sbt' | head)
-
-tasks=''
-for path in $third_party; do
-  libname=$(basename $(dirname $(dirname $path)))
-  if [[ $libname == *"engine"* ]]; then
-    libname='engine'
-  fi
-  task="enso/verifyGeneratedPackage $libname $path"
-  echo $task
-  tasks="$tasks $task;"
-done
-
-$sbt "$tasks"
-"#.into()),
-                    shell: Some(Shell::Bash),
-                    ..Default::default()
-                };
-
                 let archive_engine_distribution = Step {
                     name: Some("Archive Engine Distribution".into()),
                     run: Some("tar -cvf built-distribution.tar built-distribution".into()),
@@ -1047,14 +1017,7 @@ $sbt "$tasks"
                     ..Default::default()
                 };
 
-                vec![
-                    cleanup_built_distribution,
-                    step,
-                    check_engine_distribution,
-                    archive_engine_distribution,
-                    upload_engine_distribution,
-                    cleanup_archive,
-                ]
+                vec![step, archive_engine_distribution, upload_engine_distribution, cleanup_archive]
             })
             .build_job(job_name, target);
         job.env(engine_env::ENSO_LAUNCHER, self.engine_launcher);
