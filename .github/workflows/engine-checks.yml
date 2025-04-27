@@ -62,6 +62,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
+          compression-level: 0
           name: engine-distribution-linux-native,test
           path: built-distribution.tar
       - name: Cleanup
@@ -121,6 +122,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
+          compression-level: 0
           name: engine-distribution-windows-native,test
           path: built-distribution.tar
       - name: Cleanup

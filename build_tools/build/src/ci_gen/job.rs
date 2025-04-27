@@ -1009,7 +1009,8 @@ impl JobArchetype for BuildEngineDistribution {
                             "name",
                             format!("engine-distribution-{}-{}", target.0, engine_launcher),
                         )
-                        .with_custom_argument("path", "built-distribution.tar");
+                        .with_custom_argument("path", "built-distribution.tar")
+                        .with_custom_argument("compression-level", 0);
 
                 let cleanup_archive = Step {
                     name: Some("Cleanup".into()),
