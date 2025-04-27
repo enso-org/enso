@@ -385,34 +385,31 @@ impl Processor {
                             config.check_enso_benchmarks = TARGET_OS == OS::Linux;
                         }
                         Tests::StandardLibrary => {
-                            config.set_standard_library_test_selection(
-                                StandardLibraryTestsSelection::blacklist(vec![
-                                    "Examples_Tests".to_string()
-                                ]),
-                            );
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::blacklist(vec![
+                                    "Examples_Tests".to_string(),
+                                ]));
                             config.add_engine_runner_arg("--jvm");
                             config.use_native_runner = true;
                         }
                         Tests::StandardLibraryInNative => {
-                            config.set_standard_library_test_selection(
-                                StandardLibraryTestsSelection::blacklist(vec![
-                                    "Examples_Tests".to_string()
-                                ]),
-                            );
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::blacklist(vec![
+                                    "Examples_Tests".to_string(),
+                                ]));
                             config.use_native_runner = true;
                         }
                         Tests::StdSnowflake => {
-                            config.set_standard_library_test_selection(
-                                StandardLibraryTestsSelection::whitelist(vec![
-                                    "Snowflake_Tests".to_string()
-                                ]),
-                            );
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::whitelist(vec![
+                                    "Snowflake_Tests".to_string(),
+                                ]));
                             config.build_native_runner = false;
                             config.build_engine_package = true;
                         }
                         Tests::StdCloudRelated => {
-                            config.set_standard_library_test_selection(
-                                StandardLibraryTestsSelection::whitelist(vec![
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::whitelist(vec![
                                     "Base_Tests".to_string(),
                                     // Base Internal tests contain some cloud tests that need
                                     // access to cloud internals
@@ -424,8 +421,7 @@ impl Processor {
                                     // Image tests check interaction between Image read/write and
                                     // datalinks
                                     "Image_Tests".to_string(),
-                                ]),
-                            );
+                                ]));
                             config.build_native_runner = false;
                             config.build_engine_package = true;
                         }

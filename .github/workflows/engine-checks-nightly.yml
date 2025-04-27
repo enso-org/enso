@@ -63,7 +63,7 @@ jobs:
           compression-level: 0
           name: engine-distribution-linux-native,test
           path: built-distribution.tar
-      - name: Cleanup
+      - name: Cleanup Archive
         run: rm built-distribution.tar
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
@@ -124,7 +124,7 @@ jobs:
           compression-level: 0
           name: engine-distribution-macos-native,test
           path: built-distribution.tar
-      - name: Cleanup
+      - name: Cleanup Archive
         run: rm built-distribution.tar
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
@@ -183,7 +183,7 @@ jobs:
           compression-level: 0
           name: engine-distribution-macos-native,test
           path: built-distribution.tar
-      - name: Cleanup
+      - name: Cleanup Archive
         run: rm built-distribution.tar
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
@@ -243,7 +243,7 @@ jobs:
           compression-level: 0
           name: engine-distribution-windows-native,test
           path: built-distribution.tar
-      - name: Cleanup
+      - name: Cleanup Archive
         run: rm built-distribution.tar
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
@@ -303,7 +303,7 @@ jobs:
           compression-level: 0
           name: engine-distribution-linux-native,test
           path: built-distribution.tar
-      - name: Cleanup
+      - name: Cleanup Archive
         run: rm built-distribution.tar
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after

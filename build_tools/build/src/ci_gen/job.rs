@@ -1,4 +1,3 @@
-use crate::engine;
 use crate::prelude::*;
 
 use crate::ci_gen::input;
@@ -10,8 +9,8 @@ use crate::ci_gen::variables;
 use crate::ci_gen::RunStepsBuilder;
 use crate::ci_gen::RunnerType;
 use crate::ci_gen::RELEASE_CLEANING_POLICY;
-use crate::engine::env as engine_env;
-use crate::ide::web::env as ide_env;
+use crate::engine;
+use crate::ide;
 use crate::paths;
 
 use core::panic;
@@ -134,47 +133,50 @@ pub fn sbt_command(command: impl AsRef<str>) -> String {
 
 /// Expose variables for the GUI build.
 pub fn expose_gui_vars(step: Step) -> Step {
-    step.with_variable_exposed_as(variables::ENSO_CLOUD_ENVIRONMENT, ide_env::ENSO_IDE_ENVIRONMENT)
-        .with_variable_exposed_as(variables::ENSO_CLOUD_API_URL, ide_env::ENSO_IDE_API_URL)
-        .with_variable_exposed_as(variables::ENSO_CLOUD_CHAT_URL, ide_env::ENSO_IDE_CHAT_URL)
-        .with_variable_exposed_as(variables::ENSO_CLOUD_SENTRY_DSN, ide_env::ENSO_IDE_SENTRY_DSN)
-        .with_variable_exposed_as(variables::ENSO_CLOUD_STRIPE_KEY, ide_env::ENSO_IDE_STRIPE_KEY)
-        .with_variable_exposed_as(
-            variables::ENSO_CLOUD_AUTH_ENDPOINT,
-            ide_env::ENSO_IDE_AUTH_ENDPOINT,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_CLOUD_COGNITO_USER_POOL_ID,
-            ide_env::ENSO_IDE_COGNITO_USER_POOL_ID,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
-            ide_env::ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_CLOUD_COGNITO_DOMAIN,
-            ide_env::ENSO_IDE_COGNITO_DOMAIN,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_CLOUD_COGNITO_REGION,
-            ide_env::ENSO_IDE_COGNITO_REGION,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_CLOUD_GOOGLE_ANALYTICS_TAG,
-            ide_env::ENSO_IDE_GOOGLE_ANALYTICS_TAG,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_AG_GRID_LICENSE_KEY,
-            ide_env::ENSO_IDE_AG_GRID_LICENSE_KEY,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_MAPBOX_API_TOKEN,
-            ide_env::ENSO_IDE_MAPBOX_API_TOKEN,
-        )
-        .with_secret_exposed_as(
-            secret::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
-            ide_env::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
-        )
+    step.with_variable_exposed_as(
+        variables::ENSO_CLOUD_ENVIRONMENT,
+        ide::web::env::ENSO_IDE_ENVIRONMENT,
+    )
+    .with_variable_exposed_as(variables::ENSO_CLOUD_API_URL, ide::web::env::ENSO_IDE_API_URL)
+    .with_variable_exposed_as(variables::ENSO_CLOUD_CHAT_URL, ide::web::env::ENSO_IDE_CHAT_URL)
+    .with_variable_exposed_as(variables::ENSO_CLOUD_SENTRY_DSN, ide::web::env::ENSO_IDE_SENTRY_DSN)
+    .with_variable_exposed_as(variables::ENSO_CLOUD_STRIPE_KEY, ide::web::env::ENSO_IDE_STRIPE_KEY)
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_AUTH_ENDPOINT,
+        ide::web::env::ENSO_IDE_AUTH_ENDPOINT,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_COGNITO_USER_POOL_ID,
+        ide::web::env::ENSO_IDE_COGNITO_USER_POOL_ID,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
+        ide::web::env::ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_COGNITO_DOMAIN,
+        ide::web::env::ENSO_IDE_COGNITO_DOMAIN,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_COGNITO_REGION,
+        ide::web::env::ENSO_IDE_COGNITO_REGION,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_GOOGLE_ANALYTICS_TAG,
+        ide::web::env::ENSO_IDE_GOOGLE_ANALYTICS_TAG,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_AG_GRID_LICENSE_KEY,
+        ide::web::env::ENSO_IDE_AG_GRID_LICENSE_KEY,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_MAPBOX_API_TOKEN,
+        ide::web::env::ENSO_IDE_MAPBOX_API_TOKEN,
+    )
+    .with_secret_exposed_as(
+        secret::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
+        ide::web::env::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
+    )
 }
 
 /// Expose variables for debugging purposes.
@@ -182,11 +184,11 @@ pub fn expose_debugging_vars(step: Step) -> Step {
     step.with_secret_exposed(secret::SENTRY_AUTH_TOKEN)
         .with_variable_exposed_as(
             variables::ENSO_CLOUD_SENTRY_ORGANIZATION,
-            ide_env::ENSO_IDE_SENTRY_ORGANIZATION,
+            ide::web::env::ENSO_IDE_SENTRY_ORGANIZATION,
         )
         .with_variable_exposed_as(
             variables::ENSO_CLOUD_SENTRY_PROJECT,
-            ide_env::ENSO_IDE_SENTRY_PROJECT,
+            ide::web::env::ENSO_IDE_SENTRY_PROJECT,
         )
 }
 
@@ -264,9 +266,9 @@ rm built-distribution.tar;
             .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
             graalvm::Edition::Community =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Community),
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise),
         }
         job
     }
@@ -390,9 +392,9 @@ rm built-distribution.tar;
         .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
             graalvm::Edition::Community =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Community),
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise),
         }
 
         // If running extra cloud tests, enable reporting all tests. These tests run on a nightly
@@ -633,7 +635,7 @@ impl JobArchetype for SnowflakeTests {
             })
             .build_job(job_name, RunnerLabel::LinuxLatest)
             .with_permission(Permission::Checks, Access::Write);
-        job.env(engine_env::GRAAL_EDITION, GRAAL_EDITION_FOR_EXTRA_TESTS);
+        job.env(engine::env::GRAAL_EDITION, GRAAL_EDITION_FOR_EXTRA_TESTS);
         job.env(crate::libraries_tests::env::REPORT_ALL_TESTS, "1");
         job
     }
@@ -832,23 +834,29 @@ impl JobArchetype for DispatchBuildImage {
 pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
     match os {
         OS::Windows => step
-            .with_secret_exposed_as(secret::WINDOWS_CERT_PATH, &ide_env::WIN_CSC_LINK)
-            .with_secret_exposed_as(secret::WINDOWS_CERT_PASSWORD, &ide_env::WIN_CSC_KEY_PASSWORD),
+            .with_secret_exposed_as(secret::WINDOWS_CERT_PATH, &ide::web::env::WIN_CSC_LINK)
+            .with_secret_exposed_as(
+                secret::WINDOWS_CERT_PASSWORD,
+                &ide::web::env::WIN_CSC_KEY_PASSWORD,
+            ),
         OS::MacOS => step
-            .with_secret_exposed_as(secret::APPLE_CODE_SIGNING_CERT, &ide_env::CSC_LINK)
+            .with_secret_exposed_as(secret::APPLE_CODE_SIGNING_CERT, &ide::web::env::CSC_LINK)
             .with_secret_exposed_as(
                 secret::APPLE_CODE_SIGNING_CERT_PASSWORD,
-                &ide_env::CSC_KEY_PASSWORD,
+                &ide::web::env::CSC_KEY_PASSWORD,
             )
-            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_USERNAME, &ide_env::APPLEID)
-            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_PASSWORD, &ide_env::APPLEIDPASS)
-            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_TEAM_ID, &ide_env::APPLETEAMID)
-            .with_env(ide_env::CSC_IDENTITY_AUTO_DISCOVERY, "true")
+            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_USERNAME, &ide::web::env::APPLEID)
+            .with_secret_exposed_as(
+                secret::APPLE_NOTARIZATION_PASSWORD,
+                &ide::web::env::APPLEIDPASS,
+            )
+            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_TEAM_ID, &ide::web::env::APPLETEAMID)
+            .with_env(ide::web::env::CSC_IDENTITY_AUTO_DISCOVERY, "true")
             // `CSC_FOR_PULL_REQUEST` can potentially expose sensitive information to third-party,
             // see the comment in the definition of `CSC_FOR_PULL_REQUEST` for more information.
             //
             // In our case, we are safe here, as any PRs from forks do not get the secrets exposed.
-            .with_env(ide_env::CSC_FOR_PULL_REQUEST, "true"),
+            .with_env(ide::web::env::CSC_FOR_PULL_REQUEST, "true"),
         _ => step,
     }
 }
@@ -1013,7 +1021,7 @@ impl JobArchetype for BuildEngineDistribution {
                         .with_custom_argument("compression-level", 0);
 
                 let cleanup_archive = Step {
-                    name: Some("Cleanup".into()),
+                    name: Some("Cleanup Archive".into()),
                     run: Some("rm built-distribution.tar".into()),
                     ..Default::default()
                 };
@@ -1021,12 +1029,12 @@ impl JobArchetype for BuildEngineDistribution {
                 vec![step, archive_engine_distribution, upload_engine_distribution, cleanup_archive]
             })
             .build_job(job_name, target);
-        job.env(engine_env::ENSO_LAUNCHER, self.engine_launcher);
+        job.env(engine::env::ENSO_LAUNCHER, self.engine_launcher);
         match self.graal_edition {
             graalvm::Edition::Community =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Community),
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise),
         }
         job
     }

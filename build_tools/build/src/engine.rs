@@ -230,12 +230,6 @@ where T: Eq + Hash
 
 pub type StandardLibraryTestsSelection = Filter<String>;
 
-/* #[derive(Clone, Debug)]
-pub enum StandardLibraryTestsSelection {
-    All,
-    Selected(Vec<String>),
-}
- */
 impl From<BuildConfigurationFlags> for BuildConfigurationResolved {
     fn from(value: BuildConfigurationFlags) -> Self {
         Self::new(value)
@@ -304,13 +298,6 @@ impl BuildConfigurationFlags {
 
     pub fn build_launcher_package(&self) -> bool {
         self.build_launcher_package || self.build_launcher_bundle
-    }
-
-    pub fn set_standard_library_test_selection(
-        &mut self,
-        selection: StandardLibraryTestsSelection,
-    ) {
-        self.test_standard_library = Some(selection);
     }
 
     pub fn add_engine_runner_arg(&mut self, flag: &str) {
