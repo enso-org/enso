@@ -363,6 +363,26 @@ impl Processor {
                             config.test_jvm = true;
                             // We also test the Java parser integration when running the JVM tests.
                             config.test_java_generated_from_rust = true;
+                            config.build_native_ydoc = TARGET_OS == OS::Linux;
+                            // Benchmarks are only checked on Linux because:
+                            // * they are then run only on Linux;
+                            // * checking takes time;
+                            // * this rather verifies the Enso code correctness which should not be
+                            //   platform specific.
+                            // Checking benchmarks on Windows has caused some CI issues, see
+                            // https://github.com/enso-org/enso/issues/8777#issuecomment-1895749820 for the
+                            // possible explanation.
+                            config.build_benchmarks = TARGET_OS == OS::Linux;
+                            config.execute_benchmarks_once = true;
+                            config.execute_benchmarks = if TARGET_OS == OS::Linux {
+                                Some(Benchmarks {
+                                    bench_name: None,
+                                    bench_type: BenchmarkType::Runtime,
+                                })
+                            } else {
+                                None
+                            };
+                            config.check_enso_benchmarks = TARGET_OS == OS::Linux;
                         }
                         Tests::StandardLibrary => {
                             config.set_standard_library_test_selection(
@@ -421,44 +441,6 @@ impl Processor {
                     let context = context.await?;
                     context.execute(operation).await
                 }
-                .boxed()
-            }
-            arg::backend::Command::CiCheck {} => {
-                let config = enso_build::engine::BuildConfigurationFlags {
-                    build_benchmarks: true,
-                    // TODO: #1285
-                    use_native_runner: false,
-                    build_native_ydoc: TARGET_OS == OS::Linux,
-                    execute_benchmarks: {
-                        // Run benchmarks only on Linux.
-                        if TARGET_OS == OS::Linux {
-                            Some(Benchmarks {
-                                bench_name: None,
-                                bench_type: BenchmarkType::Runtime,
-                            })
-                        } else {
-                            None
-                        }
-                    },
-                    execute_benchmarks_once: true,
-                    // Benchmarks are only checked on Linux because:
-                    // * they are then run only on Linux;
-                    // * checking takes time;
-                    // * this rather verifies the Enso code correctness which should not be platform
-                    //   specific.
-                    // Checking benchmarks on Windows has caused some CI issues, see
-                    // https://github.com/enso-org/enso/issues/8777#issuecomment-1895749820 for the
-                    // possible explanation.
-                    check_enso_benchmarks: TARGET_OS == OS::Linux,
-                    verify_packages: true,
-                    ..default()
-                };
-                let context = self.prepare_backend_context(config);
-                async move {
-                    let context = context.await?;
-                    context.build().await
-                }
-                .void_ok()
                 .boxed()
             }
             arg::backend::Command::StdlibApiCheck {} => {

@@ -455,7 +455,6 @@ impl RunContext {
             for package in ret.packages() {
                 package.verify_package_sbt(&sbt).await?;
             }
-            // TODO: #12845 move to BuildEngineDistribution
             if self.config.build_engine_package {
                 for libname in ["Base", "Table", "Image", "Database"] {
                     let lib_path = self

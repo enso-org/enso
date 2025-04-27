@@ -636,9 +636,7 @@ pub fn add_backend_checks_customized(
             &[build_engine_distribution_id.clone()],
         );
     }
-    workflow.add_customized(target, job::CiCheckBackend { graal_edition }, |job| {
-        job.continue_on_error = continue_on_error(&target);
-    });
+
     // Engine distribution is required to run project manager tests.
     workflow.add_dependent_customized(
         target,

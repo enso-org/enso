@@ -1038,30 +1038,3 @@ impl JobArchetype for BuildEngineDistribution {
         )
     }
 }
-
-#[derive(Clone, Copy, Debug)]
-pub struct CiCheckBackend {
-    pub graal_edition: graalvm::Edition,
-}
-
-impl JobArchetype for CiCheckBackend {
-    fn job(&self, target: Target) -> Job {
-        let job_name = format!("Engine ({})", self.graal_edition);
-        let mut job = RunStepsBuilder::new("backend ci-check").build_job(job_name, target);
-        match self.graal_edition {
-            graalvm::Edition::Community =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Community),
-            graalvm::Edition::Enterprise =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Enterprise),
-        }
-        job
-    }
-
-    fn key(&self, (os, arch): Target) -> String {
-        format!(
-            "{}-{}-{os}-{arch}",
-            self.id_key_base(),
-            self.graal_edition.to_string().to_kebab_case()
-        )
-    }
-}
