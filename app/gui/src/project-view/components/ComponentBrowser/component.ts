@@ -31,6 +31,7 @@ export interface Component extends ComponentLabel {
   suggestionId?: SuggestionId
   icon: Icon
   group?: number | undefined
+  macroSuffix?: string | undefined
 }
 
 export interface SuggestedComponent extends Component {
@@ -99,11 +100,14 @@ export function compareSuggestions(a: MatchedSuggestion, b: MatchedSuggestion): 
 
 /** Create {@link Component} from information about suggestion and matching. */
 export function makeComponent({ id, entry, match }: MatchedSuggestion): Component {
+  const macroSuffix = (match.matchedAlias && entry.macros[match.matchedAlias]) || undefined
+
   return {
     ...formatLabel(labelOfEntry(entry, match)),
     suggestionId: id,
     icon: displayedIconOf(entry),
     group: entry.groupIndex,
+    macroSuffix,
   }
 }
 

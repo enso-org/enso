@@ -115,7 +115,8 @@ export function useBackend(category: Category) {
  * Pick the backend for the given category.
  * @throws {Error} when a Local Backend is requested for a non-local project.
  */
-function pickBackend(
+// eslint-disable-next-line react-refresh/only-export-components
+export function pickBackend(
   category: Category,
   remoteBackend: RemoteBackend,
   localBackend: LocalBackend | null,

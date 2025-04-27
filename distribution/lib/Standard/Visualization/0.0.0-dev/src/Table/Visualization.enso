@@ -34,8 +34,12 @@ prepare_visualization y max_rows=1000 = if y.is_error then (make_json_for_error 
         c : Column -> prepare_visualization c.to_table max_rows
         t : DB_Table ->
             dataframe = t.read (..First max_rows)
-            all_rows_count = t.row_count
-            make_json_for_table dataframe max_rows all_rows_count True
+            case dataframe.is_error of
+                False ->
+                    all_rows_count = t.row_count
+                    make_json_for_table dataframe max_rows all_rows_count True
+                True ->
+                    JS_Object.from_pairs [["error", 'Error querying the database:\n' + dataframe.catch.to_display_text]] . to_text
         c : DB_Column -> prepare_visualization c.to_table max_rows
         f : Function ->
             pairs = [['_display_text_', '[Function '+f.to_text+']']]

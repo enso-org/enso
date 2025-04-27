@@ -63,11 +63,23 @@
   --group-color-fallback: #006b8a;
 }
 
+@property --color-node-background {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: white;
+}
+@property --color-node-background-pending {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: white;
+}
+
 /**
  * Class used on containers that need access to computed node color variables.
  * Expects variable `--node-group-color` to be defined on the element to which this class is applied.
  */
 .define-node-colors {
+  --color-node-primary: var(--node-group-color);
   --color-node-text: white;
   --color-node-text-selected: color-mix(
     in oklab,
@@ -80,55 +92,71 @@
     var(--color-node-primary) 30%,
     oklab(0.75 0 0) 70%
   );
-  --color-node-background: var(--node-group-color);
-  --color-node-primary: var(--node-group-color);
-  --color-node-edge: color-mix(
+  --color-node-output-port: color-mix(
     in oklab,
-    var(--node-group-color) 85%,
+    var(--color-node-primary) 85%,
     white 15%
   );
-  --color-node-port: var(--color-node-edge);
+  --color-node-port: rgb(255 255 255 / 0.15);
   --color-node-error: color-mix(
     in oklab,
-    var(--node-group-color) 30%,
+    var(--color-node-primary) 30%,
     rgb(255, 0, 0) 70%
   );
   --color-node-pending: color-mix(
     in oklab,
-    var(--node-group-color) 60%,
+    var(--color-node-primary) 60%,
     #aaa 40%
   );
   --color-node-text-missing-value: white;
   --color-edge-from-node: color-mix(
     in oklab,
-    var(--node-group-color) 85%,
+    var(--color-node-primary) 85%,
     white 15%
   );
 
+  --color-node-background: var(--color-node-primary);
+  --color-node-background-pending: var(--color-node-pending);
+
   &.pending {
-    --color-node-background: var(--color-node-pending);
+    &:not(.evaluating) {
+      --color-node-background: var(--color-node-pending);
+    }
     --color-edge-from-node: var(--color-node-pending);
   }
 
   &.selected {
     --color-node-background: color-mix(
       in oklab,
-      var(--color-node-primary) 30%,
+      var(--color-node-primary),
       white 70%
     );
-    --color-node-port: color-mix(
+    --color-node-background-pending: color-mix(
       in oklab,
-      var(--color-node-background) 40%,
-      white 60%
+      var(--color-node-primary),
+      white 90%
     );
+    --color-node-port: rgb(255 255 255 / 0.6);
     --color-node-text: var(--color-node-text-selected);
     --color-node-text-placeholder: var(--color-node-text-placeholder-selected);
     --color-edge-from-node: color-mix(
       in oklab,
-      var(--color-node-primary) 40%,
-      white 60%
+      var(--color-node-primary),
+      white 70%
     );
   }
+
+  /**
+   * How long the component evaluation progress bar takes to advance to each intermediate position. This is a long timer
+   * because the next update will never be right away due to batching.
+   */
+  --progress-animation-step-duration: 1s;
+  /**
+   * How long the component evaluation progress bar takes to advance to the completed state. This is a short timer
+   * because we may have already received updates to dependent components (in the same update batch), and we want to
+   * avoid the impression that the dependent components begin evaluating before this component finishes.
+   */
+  --progress-animation-final-duration: 0.1s;
 }
 
 /*********************************

@@ -20,6 +20,7 @@ import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import invariant from 'tiny-invariant'
 import { z } from 'zod'
+import { extractTypeAndId } from './LocalBackend'
 
 /** HTTP status indicating that the request was successful. */
 const STATUS_SUCCESS_FIRST = 200
@@ -1514,31 +1515,39 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Download an asset. */
-  override async download(id: backend.AssetId, title: string) {
+  override async download(
+    id: backend.AssetId,
+    title: string,
+    targetDirectoryId: backend.DirectoryId | null,
+  ) {
     const asset = backend.extractTypeFromId(id)
+    const { id: targetPath } =
+      targetDirectoryId ? extractTypeAndId(targetDirectoryId) : { id: null }
+
     switch (asset.type) {
       case backend.AssetType.project: {
         const details = await this.getProjectDetails(asset.id, true)
         invariant(details.url != null, 'The download URL of the project must be present.')
-        download.download(details.url, `${title}.enso-project`)
+        await download.download(details.url, `${title}.enso-project`, targetPath)
         break
       }
       case backend.AssetType.file: {
         const details = await this.getFileDetails(asset.id, title, true)
         invariant(details.url != null, 'The download URL of the file must be present.')
-        download.download(details.url, details.file.fileName ?? '')
+        await download.download(details.url, details.file.fileName ?? '', targetPath)
         break
       }
       case backend.AssetType.datalink: {
         const value = await this.getDatalink(asset.id, title)
         const fileName = `${title}.datalink`
-        download.download(
+        await download.download(
           URL.createObjectURL(
             new File([JSON.stringify(value)], fileName, {
               type: 'application/json+x-enso-data-link',
             }),
           ),
           fileName,
+          targetPath,
         )
         break
       }

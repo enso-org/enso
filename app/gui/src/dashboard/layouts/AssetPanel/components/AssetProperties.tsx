@@ -470,7 +470,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                   {
                     datalinkId: item.id,
                     name: item.title,
-                    parentDirectoryId: null,
+                    parentDirectoryId: item.parentId,
                     value: datalink,
                   },
                 ])

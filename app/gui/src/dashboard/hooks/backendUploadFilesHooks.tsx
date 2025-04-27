@@ -35,6 +35,9 @@ import {
 import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
 import { useId, useState } from 'react'
 import { toast } from 'react-toastify'
+import { useHttpClient } from '../providers/HttpClientProvider'
+import type LocalBackend from '../services/LocalBackend'
+import { extractTypeAndId } from '../services/LocalBackend'
 
 /** The number of bytes in 1 megabyte. */
 const MB_BYTES = 1_000_000
@@ -310,6 +313,128 @@ export function useUploadFileWithToastMutation(
   usePreventNavigation({ message: getText('anUploadIsInProgress'), isEnabled: mutation.isPending })
 
   return mutation
+}
+
+/**
+ * Options for {@link useUploadFileToCloudMutation}.
+ */
+export interface UploadFileToCloudMutationOptions {
+  /** The assets to upload. */
+  readonly assets: UploadToCloudAsset<AnyAsset['type']>[]
+  /** The directory to upload the assets to. */
+  readonly targetDirectoryId: DirectoryId
+}
+
+/**
+ * Type that represents an asset that can be uploaded to the cloud.
+ * From the local backend's perspective, this is any asset that is not a folder.
+ * Theoretically, we _could_ upload folders to the cloud, but at this point it is a bit complex to do
+ */
+export type UploadableAsset =
+  | UploadToCloudAsset<AssetType.file>
+  | UploadToCloudAsset<AssetType.project>
+
+/**
+ * An asset that can be uploaded to the cloud.
+ */
+export type UploadToCloudAsset<Type extends AssetType> = Pick<
+  AnyAsset,
+  'id' | 'parentId' | 'title'
+> & {
+  readonly type: Type
+}
+
+const UPLOADABLE_ASSETS_SET = new Set([AssetType.file, AssetType.project])
+
+/**
+ * Whether the asset is uploadable.
+ */
+function isUploadableAsset(asset: UploadToCloudAsset<AssetType>): asset is UploadableAsset {
+  return UPLOADABLE_ASSETS_SET.has(asset.type)
+}
+
+/**
+ * Packs a project into a file and uploads it to the cloud.
+ * Does not work in environments that do not have a local backend.
+ */
+export function useUploadFileToCloudMutation(backend: Backend) {
+  const uploadFileMutation = useUploadFileWithToastMutation(backend)
+
+  const { getText } = useText()
+  const httpClient = useHttpClient()
+  const toastAndLog = useToastAndLog()
+
+  /**
+   * @param _backend - ignored, only used to double-check that the environment has a local backend
+   */
+  return useEventCallback(
+    async (_backend: LocalBackend, options: UploadFileToCloudMutationOptions) => {
+      const { assets, targetDirectoryId } = options
+
+      const { uploadableAssets } = assets.reduce(
+        (acc, asset) => {
+          const isUploadable = isUploadableAsset(asset)
+
+          if (isUploadable) {
+            acc.uploadableAssets.push(asset)
+          } else {
+            acc.nonUploadableAssets.push(asset)
+          }
+
+          return acc
+        },
+        {
+          uploadableAssets: new Array<UploadableAsset>(),
+          nonUploadableAssets: new Array<UploadToCloudAsset<AnyAsset['type']>>(),
+        },
+      )
+
+      return Promise.all(
+        uploadableAssets.map(async (asset) => {
+          try {
+            const fileData = await (async () => {
+              switch (asset.type) {
+                case AssetType.project: {
+                  // Folder's id matches the pattern `<type>-<Full Path>`, i.e. `directory-/Users/user/enso/folder 1`
+                  const parentDirectoryPath = extractTypeAndId(asset.parentId).id
+
+                  const projectResponse = await httpClient.get(
+                    `/api/project-manager/projects/${extractTypeAndId(asset.id).id}/enso-project?projectsDirectory=${parentDirectoryPath}`,
+                  )
+
+                  if (!projectResponse.ok) {
+                    throw new Error('Something went wrong, please try again')
+                  }
+
+                  const fileName = `${asset.title}.enso-project`
+
+                  return {
+                    fileName,
+                    file: new File([await projectResponse.blob()], fileName),
+                  }
+                }
+                case AssetType.file: {
+                  // TODO: @MrFlashAccount  Implement file upload
+                  throw new Error('File upload is not supported yet')
+                }
+                default:
+                  throw new Error('Unknown asset type')
+              }
+            })()
+
+            await uploadFileMutation.mutateAsync([
+              { fileName: fileData.fileName, fileId: null, parentDirectoryId: targetDirectoryId },
+              fileData.file,
+            ])
+
+            toast.success(getText('uploadProjectToCloudSuccess'))
+          } catch (error) {
+            toastAndLog('uploadProjectToCloudError', error)
+          }
+        }),
+      )
+    },
+  )
 }
 
 /**

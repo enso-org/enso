@@ -162,7 +162,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
           }}
         />
       )}
-      {isCloud && directoryId == null && hasPasteData && (
+      {hasPasteData && directoryId == null && (
         <ContextMenuEntry
           hidden={hidden}
           action="paste"

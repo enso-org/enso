@@ -11,6 +11,7 @@ import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Error.Error as Base_Error
 import project.Errors.Common.Not_Found
+import project.Errors.Common.Private_Access
 import project.Function.Function
 import project.Internal.Meta_Helpers
 import project.Nothing.Nothing
@@ -24,7 +25,10 @@ type Type
     ## ADVANCED
        ICON metadata
 
-       Returns a vector of `Meta.Constructor` for this type
+       Returns a vector of `Meta.Constructor` instances for this type.
+       Only publicly visible constructors are returned. A type with no
+       public constructors returns `[]`.
+
     constructors self -> Vector Constructor =
         Meta_Helpers.get_type_constructors_builtin self.value Meta.Constructor.Value
 
@@ -33,7 +37,8 @@ type Type
        ICON metadata
 
        Returns a vector of method names that can be invoked
-       on instances of this type.
+       on instances of this type. Only public methods are returned.
+
        ? Static Methods
 
          To obtain list of _static methods_ on a given type
@@ -100,12 +105,18 @@ type Atom
        ICON metadata
 
        Returns a vector of field values of the given atom.
+       Only values of public fields are returned. Should an atom
+       have no public fields, then `[]` is returned.
+
     fields self -> Vector Any = Meta_Helpers.get_atom_fields_builtin self.value
 
     ## ADVANCED
        ICON metadata
 
-       Returns a constructor value of the given atom.
+       Returns a constructor value of the given atom. If the atom
+       doesn't have a public constructor, then `Private_Access` error
+       is returned.
+
     constructor self -> Constructor =
         c = Meta_Helpers.get_atom_constructor_builtin self.impl ...
         Meta.Constructor.Value c...
@@ -273,7 +284,9 @@ atom_with_hole factory = @Tail_Call Meta_Helpers.atom_with_hole_builtin factory
 ## PRIVATE
    ADVANCED
 
-   Returns a meta-representation of a given runtime entity.
+   Returns a meta-representation of a given runtime entity. If the entity
+   isn't public (like a private constructor), then an `Private_Access` error
+   is yielded.
 
    Arguments:
    - value: The runtime entity to get the meta representation of.
