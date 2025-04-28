@@ -1308,7 +1308,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
       fail("Expected the body of the function to be a lambda, but got " + fooBody);
     } else {
       var arg = fooLambda.arguments().find((a) -> a.name().name().equals("arg")).get();
-      assertTypeMismatch(arg, "My_Type", "Other_Type");
+      assertTypeMismatch(arg.defaultValue().get(), "My_Type", "Other_Type");
     }
   }
 
