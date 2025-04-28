@@ -2,6 +2,7 @@ from Standard.Base import all
 
 polyglot java import org.enso.tableau.HyperQueryError
 polyglot java import org.enso.tableau.HyperTableNotFound
+polyglot java import org.enso.tableau.HyperUnsupportedTypeError
 
 ## Error when a Table is not found in a Hyper File.
 type Hyper_Table_Not_Found
@@ -13,8 +14,13 @@ type Query_Failed
     ## PRIVATE
     Error message:Text query:Text
 
+type Unsupported_Type
+    ## PRIVATE
+    Error type_name:Text
+
 ## PRIVATE
 private handle_java_exceptions ~action =
     Panic.catch HyperTableNotFound handler=(c-> Error.throw (Hyper_Table_Not_Found.Error c.payload.getSchema c.payload.getName)) <|
         Panic.catch HyperQueryError handler=(c-> Error.throw (Query_Failed.Error c.payload.getMessage c.payload.getQuery)) <|
-            action
+            Panic.catch HyperUnsupportedTypeError handler=(c-> Error.throw (Unsupported_Type.Error c.payload.getTypeName)) <|
+                action
