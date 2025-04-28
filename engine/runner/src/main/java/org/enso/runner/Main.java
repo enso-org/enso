@@ -865,7 +865,6 @@ public class Main {
    */
   private void generateDocsFrom(
       String docsFormat, String path, Level logLevel, boolean logMasking, boolean enableIrCaches) {
-    boolean enableStaticAnalysis = docsFormat.equals("type-coverage");
     var executionContext =
         new PolyglotContext(
             ContextFactory.create()
@@ -875,7 +874,6 @@ public class Main {
                 .logLevel(logLevel)
                 .logMasking(logMasking)
                 .enableIrCaches(enableIrCaches)
-                .enableStaticAnalysis(enableStaticAnalysis)
                 .build());
 
     var file = new File(path);
