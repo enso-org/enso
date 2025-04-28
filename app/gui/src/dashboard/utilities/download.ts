@@ -52,6 +52,5 @@ export interface DownloadUsingElectronOptions {
  * @throws invariant if you try to use this function in a non-Electron environment.
  */
 export async function downloadUsingElectron(options: DownloadUsingElectronOptions) {
-  console.log('downloadUsingElectron', { options })
   await options.downloadURL(options.url, options.path, options.filename)
 }
