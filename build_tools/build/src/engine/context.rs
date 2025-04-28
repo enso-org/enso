@@ -284,7 +284,10 @@ impl RunContext {
 
         // === Build project-manager distribution and native image ===
         let mut tasks = vec![];
+        // Run `clean` before executing other sbt tasks
+        let mut clean_before = false;
         if self.config.build_engine_package {
+            clean_before = true;
             tasks.push("buildEngineDistribution");
         }
         if self.config.build_native_ydoc {
@@ -299,11 +302,14 @@ impl RunContext {
 
         if !tasks.is_empty() {
             debug!("Building distributions and native images.");
-            if crate::ci::big_memory_machine() {
-                sbt.call_arg(Sbt::concurrent_tasks(tasks)).await?;
+            let mut command = if crate::ci::big_memory_machine() {
+                Sbt::concurrent_tasks(tasks)
             } else {
-                sbt.call_arg(Sbt::sequential_tasks(tasks)).await?;
-            }
+                Sbt::sequential_tasks(tasks)
+            };
+            command =
+                if clean_before { Sbt::sequential_tasks(vec!["clean", &command]) } else { command };
+            sbt.call_arg(command).await?;
         }
 
         // === End of Build project-manager distribution and native image ===
