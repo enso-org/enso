@@ -169,6 +169,9 @@ const grid = ref<
   ComponentInstance<typeof AgGridTableView> & ComponentExposed<typeof AgGridTableView>
 >()
 
+const getSvgTemplate = (icon: string) =>
+    `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
+
 const getContextMenuItems = (params: GetContextMenuItemsParams) => [
   commonContextMenuActions.copy,
   commonContextMenuActions.copyWithHeaders,
@@ -179,18 +182,21 @@ const getContextMenuItems = (params: GetContextMenuItemsParams) => [
     action: () => {
       createValueNode(params.column?.colId, undefined,'at')
     },
+    icon: getSvgTemplate('select_column')
   },
   {
     name: 'Get Row',
     action: () => {
       createValueNode(undefined, params.node?.rowIndex, 'get_row')
     },
+    icon: getSvgTemplate('select_row')
   },
   {
     name: 'Get Value',
     action: () => {
       createValueNode(params.column?.colId, params.node?.rowIndex, 'get_value')
     },
+    icon: getSvgTemplate('local_scope4')
   },
 ]
 
