@@ -1321,7 +1321,7 @@ export interface S3ObjectVersion {
 export interface OtherUser {
   readonly name: string
   readonly email: EmailAddress
-  readonly profilePicture: HttpsUrl | null
+  readonly profilePicture?: HttpsUrl | null
 }
 
 /** A list of asset versions. */

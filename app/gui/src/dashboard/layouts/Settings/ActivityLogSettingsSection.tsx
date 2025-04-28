@@ -8,6 +8,7 @@ import { Button, DatePicker, Dropdown, Form, Text } from '#/components/AriaCompo
 import { Icon } from '#/components/Icon'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import FocusArea from '#/components/styled/FocusArea'
+import { UserWithPopover } from '#/components/UserWithPopover'
 import { backendQueryOptions } from '#/hooks/backendHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
@@ -58,8 +59,9 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const [emails, setEmails] = React.useState<readonly string[]>([])
   const [emailIndices, setEmailIndices] = React.useState<readonly number[]>([])
   const [sortInfo, setSortInfo] = React.useState<SortInfo<ActivityLogSortableColumn> | null>(null)
-  const { data: users } = useQuery(backendQueryOptions(backend, 'listUsers', []))
-  const allEmails = React.useMemo(() => (users ?? []).map((user) => user.email), [users])
+  const { data: users = [] } = useQuery(backendQueryOptions(backend, 'listUsers', []))
+  const allEmails = users.map((user) => user.email)
+  const usersByEmail = new Map(users.map((user) => [user.email, user]))
 
   const form = Form.useForm({
     schema: createActivityLogSchema(),
@@ -309,10 +311,10 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   }
                 }}
               >
-                <Text weight="bold">{getText('email')}</Text>
+                <Text weight="bold">{getText('user')}</Text>
               </Button>
             </ActivityLogHeaderCell>
-            <ActivityLogHeaderCell className="w-36">
+            <ActivityLogHeaderCell className="w-40">
               <Button
                 size="custom"
                 variant="custom"
@@ -368,6 +370,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
             </tr>
           : sortedLogs.map((log, i) => {
               const kind = log.lambdaKind == null ? null : normalizeLambdaKind(log.lambdaKind)
+              const user = usersByEmail.get(log.userEmail)
               return (
                 <tr key={i} className="h-table-row">
                   <ActivityLogTableCell>
@@ -384,7 +387,13 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                       getText(EVENT_TYPE_NAME_ID[kind.kind])
                     : (kind?.invalidKind ?? '(unknown)')}
                   </ActivityLogTableCell>
-                  <ActivityLogTableCell>{log.userEmail}</ActivityLogTableCell>
+                  <ActivityLogTableCell>
+                    {user ?
+                      <div className="flex w-48">
+                        <UserWithPopover user={user} />
+                      </div>
+                    : log.userEmail}
+                  </ActivityLogTableCell>
                   <ActivityLogTableCell>
                     {log.timestamp ? toReadableIsoString(new Date(log.timestamp)) : ''}
                   </ActivityLogTableCell>
@@ -420,7 +429,7 @@ function ActivityLogHeaderCell(props: ActivityLogHeaderCellProps) {
 }
 
 /** Props for a {@link ActivityLogTableCell}. */
-export type ActivityLogTableCellProps = Readonly<React.PropsWithChildren>
+type ActivityLogTableCellProps = Readonly<React.PropsWithChildren>
 
 /** A styled table cell for an {@link ActivityLogSettingsSection}. */
 function ActivityLogTableCell(props: ActivityLogTableCellProps) {

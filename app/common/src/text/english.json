@@ -234,6 +234,7 @@
   "disable": "Disable",
   "enable": "Enable",
   "email": "Email",
+  "user": "User",
   "intro": "Intro",
   "emailIsRequired": "Email is required",
   "emailIsInvalid": "Email is invalid",
