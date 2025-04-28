@@ -7,7 +7,7 @@ import java.nio.file.Path
 import scala.annotation.tailrec
 
 /** An extension of [[DiagnosticFormatter]] that additionally prints commands for a GitHub workflow that will add annotations for each warning/error. */
-class GitHubDiagnosticFormatter(
+private[util] class GitHubDiagnosticFormatter(
   diagnostic: Diagnostic,
   source: Source,
   isOutputRedirected: Boolean,
@@ -20,13 +20,14 @@ class GitHubDiagnosticFormatter(
     ) {
 
   override def format(): String = {
-    createAnnotationCommandFor(location).format() + "\n" + super.format()
+    createAnnotationCommandFor(sectionForDisplay).format() + "\n" + super
+      .format()
   }
 
   private case class GithubAnnotation(
     kind: DiagnosticKind,
     message: String,
-    file: Location.FileLocation,
+    file: FileLocation,
     line: Option[Int],
     col: Option[Int],
     endLine: Option[Int],
@@ -34,17 +35,17 @@ class GitHubDiagnosticFormatter(
   ) {
     def format(): String = {
       val annotationLevel = kind match {
-        case DiagnosticKind.Error   => "error"
-        case DiagnosticKind.Warning => "warning"
+        case DiagnosticKind.ERROR   => "error"
+        case DiagnosticKind.WARNING => "warning"
       }
 
       val title = kind match {
-        case DiagnosticKind.Error   => s"Enso Compiler Error @ $file"
-        case DiagnosticKind.Warning => s"Enso Compiler Warning @ $file"
+        case DiagnosticKind.ERROR   => s"Enso Compiler Error @ $file"
+        case DiagnosticKind.WARNING => s"Enso Compiler Warning @ $file"
       }
 
       val path = file match {
-        case Location.SourcePath(path) =>
+        case FileLocation.SourcePath(path) =>
           RepositoryFinder.root
             .map(_.relativize(Path.of(path)))
             .map(_.toString)
@@ -98,7 +99,9 @@ class GitHubDiagnosticFormatter(
     }
   }
 
-  private def createAnnotationCommandFor(location: Location): GithubAnnotation =
+  private def createAnnotationCommandFor(
+    location: SourceSectionForDisplay
+  ): GithubAnnotation =
     location match {
       case SingleLineSection(
             sourceSection,

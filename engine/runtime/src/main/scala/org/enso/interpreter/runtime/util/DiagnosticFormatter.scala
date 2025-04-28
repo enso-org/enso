@@ -27,33 +27,64 @@ class DiagnosticFormatter(
   private val linePrefixSize                 = blankLinePrefix.length
   private val outSupportsAnsiColors: Boolean = outSupportsColors
 
-  sealed protected trait DiagnosticKind
-
-  protected object DiagnosticKind {
-    case object Error   extends DiagnosticKind
-    case object Warning extends DiagnosticKind
-  }
-
   protected val diagnosticKind: DiagnosticKind = diagnostic match {
-    case _: Error   => DiagnosticKind.Error
-    case _: Warning => DiagnosticKind.Warning
+    case _: Error   => DiagnosticKind.ERROR
+    case _: Warning => DiagnosticKind.WARNING
     case _          => throw new IllegalStateException("Unexpected diagnostic type")
   }
 
-  private val textAttrs: fansi.Attrs = diagnosticKind match {
-    case DiagnosticKind.Error   => fansi.Color.Red ++ fansi.Bold.On
-    case DiagnosticKind.Warning => fansi.Color.Yellow ++ fansi.Bold.On
+  private def textAttrs: fansi.Attrs = diagnosticKind match {
+    case DiagnosticKind.ERROR   => fansi.Color.Red ++ fansi.Bold.On
+    case DiagnosticKind.WARNING => fansi.Color.Yellow ++ fansi.Bold.On
   }
 
-  private val subject: String = diagnosticKind match {
-    case DiagnosticKind.Error   => "error: "
-    case DiagnosticKind.Warning => "warning: "
+  private def subject: String = diagnosticKind match {
+    case DiagnosticKind.ERROR   => "error: "
+    case DiagnosticKind.WARNING => "warning: "
   }
 
-  protected lazy val location: Location = computeLocation()
+  protected lazy val sectionForDisplay: SourceSectionForDisplay = {
+    val fileLocation: FileLocation =
+      if (source.getPath == null && source.getName == null) {
+        FileLocation.Unknown
+      } else if (source.getPath != null) {
+        FileLocation.SourcePath(source.getPath)
+      } else {
+        FileLocation.SourceName(source.getName)
+      }
+    sourceSectionFromDiagnostic match {
+      case Some(section) =>
+        val isOneLine   = section.getStartLine == section.getEndLine
+        val startColumn = section.getStartColumn
+        val endColumn   = section.getEndColumn
+        if (isOneLine) {
+          val lineNumber = section.getStartLine
+          SingleLineSection(
+            section,
+            fileLocation,
+            lineNumber,
+            startColumn,
+            endColumn
+          )
+        } else {
+          val startLine = section.getStartLine
+          val endLine   = section.getEndLine
+          MultiLineSection(
+            section,
+            fileLocation,
+            startLine,
+            endLine,
+            startColumn,
+            endColumn
+          )
+        }
+      // There is no source section associated with the diagnostics
+      case None => UnknownSection(fileLocation)
+    }
+  }
 
   def format(): String = {
-    val str = location.format()
+    val str = sectionForDisplay.format()
     if (outSupportsAnsiColors) {
       str.render.stripLineEnd
     } else {
@@ -61,7 +92,7 @@ class DiagnosticFormatter(
     }
   }
 
-  final def where(): SourceSection = location.sourceSection
+  final def where(): SourceSection = sectionForDisplay.sourceSection
 
   final protected def fileLocationFromSection(
     loc: IdentifiedLocation
@@ -74,7 +105,7 @@ class DiagnosticFormatter(
     source.getName() + "[" + locStr + "]";
   }
 
-  private val sourceSection: Option[SourceSection] =
+  private def sourceSectionFromDiagnostic: Option[SourceSection] =
     diagnostic.location match {
       case Some(location) =>
         if (location.length > source.getLength) {
@@ -84,19 +115,20 @@ class DiagnosticFormatter(
         }
       case None => None
     }
-  private val shouldPrintLineNumber = sourceSection match {
+
+  private def shouldPrintLineNumber = sourceSectionFromDiagnostic match {
     case Some(section) =>
       section.getStartLine <= maxLineNum && section.getEndLine <= maxLineNum
     case None => false
   }
 
-  sealed protected trait Location {
+  sealed protected trait SourceSectionForDisplay {
     def sourceSection: SourceSection
     def format():      fansi.Str
   }
 
-  protected object Location {
-    sealed trait FileLocation
+  sealed trait FileLocation
+  protected object FileLocation {
     case class SourcePath(path: String) extends FileLocation {
       override def toString: String = path
     }
@@ -110,11 +142,11 @@ class DiagnosticFormatter(
 
   protected case class SingleLineSection(
     sourceSection: SourceSection,
-    fileLocation: Location.FileLocation,
+    fileLocation: FileLocation,
     lineNumber: Int,
     startColumn: Int,
     endColumn: Int
-  ) extends Location {
+  ) extends SourceSectionForDisplay {
     override def format(): fansi.Str = {
       var str = fansi.Str()
       str ++= fansi
@@ -137,12 +169,12 @@ class DiagnosticFormatter(
 
   protected case class MultiLineSection(
     sourceSection: SourceSection,
-    fileLocation: Location.FileLocation,
+    fileLocation: FileLocation,
     startLine: Int,
     endLine: Int,
     startColumn: Int,
     endColumn: Int
-  ) extends Location {
+  ) extends SourceSectionForDisplay {
     override def format(): Str = {
       var str = fansi.Str()
       str ++= fansi
@@ -173,8 +205,8 @@ class DiagnosticFormatter(
   }
 
   protected case class UnknownSection(
-    fileLocation: Location.FileLocation
-  ) extends Location {
+    fileLocation: FileLocation
+  ) extends SourceSectionForDisplay {
     override def sourceSection: SourceSection = null
 
     override def format(): Str = {
@@ -186,46 +218,6 @@ class DiagnosticFormatter(
       str ++= fansi.Str(subject).overlay(textAttrs)
       str ++= diagnostic.formattedMessage(fileLocationFromSection)
       str
-    }
-  }
-
-  private def computeLocation(): Location = {
-    val fileLocation: Location.FileLocation =
-      if (source.getPath == null && source.getName == null) {
-        Location.Unknown
-      } else if (source.getPath != null) {
-        Location.SourcePath(source.getPath)
-      } else {
-        Location.SourceName(source.getName)
-      }
-    sourceSection match {
-      case Some(section) =>
-        val isOneLine   = section.getStartLine == section.getEndLine
-        val startColumn = section.getStartColumn
-        val endColumn   = section.getEndColumn
-        if (isOneLine) {
-          val lineNumber = section.getStartLine
-          SingleLineSection(
-            section,
-            fileLocation,
-            lineNumber,
-            startColumn,
-            endColumn
-          )
-        } else {
-          val startLine = section.getStartLine
-          val endLine   = section.getEndLine
-          MultiLineSection(
-            section,
-            fileLocation,
-            startLine,
-            endLine,
-            startColumn,
-            endColumn
-          )
-        }
-      // There is no source section associated with the diagnostics
-      case None => UnknownSection(fileLocation)
     }
   }
 
