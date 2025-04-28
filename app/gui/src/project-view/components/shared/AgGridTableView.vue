@@ -78,6 +78,7 @@ import type {
   ColumnResizedEvent,
   ColumnVisibleEvent,
   FirstDataRenderedEvent,
+  GetContextMenuItemsParams,
   GetRowIdFunc,
   GridApi,
   GridReadyEvent,
@@ -125,6 +126,7 @@ const props = defineProps<{
   rowCount?: number
   isServerSideModel?: boolean
   gridIdHash?: string | null
+  getContextMenuItems: (params: GetContextMenuItemsParams) => any
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -354,6 +356,7 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       :processDataFromClipboard="processDataFromClipboard"
       :allowContextMenuWithControlKey="true"
       :cacheBlockSize="rowModelType === 'clientSide' ? undefined : 1000"
+      :getContextMenuItems="getContextMenuItems"
       @gridReady="onGridReady"
       @firstDataRendered="updateColumnWidths"
       @rowDataUpdated="(updateColumnWidths($event), emit('rowDataUpdated', $event))"

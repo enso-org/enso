@@ -13,6 +13,7 @@ import type {
   CellDoubleClickedEvent,
   ColDef,
   ColumnVisibleEvent,
+  GetContextMenuItemsParams,
   ICellRendererParams,
   IServerSideDatasource,
   IServerSideGetRowsRequest,
@@ -159,12 +160,6 @@ const defaultColDef: Ref<ColDef> = ref({
   cellRenderer: cellRenderer,
   cellClass: cellClass,
   cellStyle: { 'padding-left': 0, 'border-right': '1px solid #C0C0C0' },
-  contextMenuItems: [
-    commonContextMenuActions.copy,
-    commonContextMenuActions.copyWithHeaders,
-    'separator',
-    'export',
-  ],
   autoHeight: true,
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
@@ -173,6 +168,85 @@ const nodeType = ref<string | undefined>(undefined)
 const grid = ref<
   ComponentInstance<typeof AgGridTableView> & ComponentExposed<typeof AgGridTableView>
 >()
+
+const getContextMenuItems = (params: GetContextMenuItemsParams) => [
+  commonContextMenuActions.copy,
+  commonContextMenuActions.copyWithHeaders,
+  'separator',
+  'export',
+  {
+    name: 'Get Column',
+    action: () => {
+      createValueNode(params.column?.colId, 'at')
+    },
+  },
+  {
+    name: 'Get Row',
+    action: () => {
+      createValueNode(params.node?.rowIndex, 'get_row')
+    },
+  },
+  {
+    name: 'Get Value',
+    action: () => {
+      createValueNode(params.column?.colId, params.node?.rowIndex, 'get_value')
+    },
+  },
+]
+
+function getAstValuePattern(value?: string | number, action?: string) {
+  if (action && value != null) {
+    return Pattern.new<Ast.Expression>((ast) =>
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
+        typeof value === 'number' ?
+          Ast.tryNumberToEnso(value, ast.module)!
+        : Ast.TextLiteral.new(value, ast.module),
+      ),
+    )
+  }
+}
+
+function getAstGetValuePattern(columnId?: string | number, rowIndex?: string | number, action?: string) {
+  if (action && columnId && rowIndex != null) {
+    const pattern = Pattern.parseExpression('__ __ __')
+    return Pattern.new<Ast.Expression>((ast) => {
+      return pattern.instantiateCopied([
+        Ast.TextLiteral.new(action),
+        Ast.TextLiteral.new(columnId as string, ast.module),
+        Ast.tryNumberToEnso(rowIndex as number, ast.module)!
+      ])
+    }
+    )
+  }
+}
+
+
+function createValueNode(
+  columnId?: string,
+  rowIndex?: number,
+  action?: string,
+) {
+  let pattern;
+  if(action === 'at' && columnId != null) {
+    pattern = getAstValuePattern(columnId, action)
+  }
+  if(action === 'get_row' && rowIndex != null) {
+    pattern = getAstValuePattern(rowIndex, action)
+  }
+  if(action === 'get_value'  && columnId != null && rowIndex != null) {
+    pattern = getAstGetValuePattern(columnId, rowIndex, action)
+  }
+  
+  if (pattern) {
+    config.createNodes({
+      content: pattern,
+      commit: true,
+    })
+  }
+}
+
+
 const allRowCount = computed(() =>
   typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
 )
@@ -1087,6 +1161,7 @@ config.setToolbar(
         :isServerSideModel="isSSRM"
         :statusBar="statusBar"
         :gridIdHash="tableVersionHash"
+        :getContextMenuItems="getContextMenuItems"
         @sortOrFilterUpdated="checkSortAndFilter"
         @columnStateChanged="onColumnStateChange"
       />
