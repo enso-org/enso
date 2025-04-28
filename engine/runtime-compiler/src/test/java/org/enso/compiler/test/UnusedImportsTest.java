@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.is;
 import java.util.Set;
 import org.apache.commons.vfs2.FileObject;
 import org.enso.compiler.MetadataInteropHelpers;
-import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
@@ -35,7 +34,7 @@ public class UnusedImportsTest {
             """));
     Package<FileObject> pkg = compilerCtx.createPackage(pkgName, srcModules);
     compilerCtx.registerMainProjectPackage(pkgName, pkg);
-    var mainMod = getMainModule();
+    var mainMod = compilerCtx.findModule(QualifiedName.fromString("local.Proj.Main"));
     compilerCtx.getCompiler().run(mainMod);
     var modIr = mainMod.getIr();
     var bm = getBindingsMap(modIr);
@@ -61,17 +60,10 @@ public class UnusedImportsTest {
             """));
     Package<FileObject> pkg = compilerCtx.createPackage(pkgName, srcModules);
     compilerCtx.registerMainProjectPackage(pkgName, pkg);
-    var mainMod = getMainModule();
+    var mainMod = compilerCtx.findModule(QualifiedName.fromString("local.Proj.Main"));
     compilerCtx.getCompiler().run(mainMod);
     var bm = getBindingsMap(mainMod.getIr());
     assertThat(bm.resolvedImports().size(), is(1));
-  }
-
-  private CompilerContext.Module getMainModule() {
-    return compilerCtx.getLoadedModules().stream()
-        .filter(mod -> mod.getName().item().equals("Main"))
-        .findFirst()
-        .orElseThrow(() -> new AssertionError("Main module not found"));
   }
 
   private static BindingsMap getBindingsMap(Module modIr) {

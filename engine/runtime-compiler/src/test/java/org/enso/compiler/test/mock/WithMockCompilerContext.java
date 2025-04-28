@@ -10,6 +10,7 @@ import org.enso.compiler.context.CompilerContext.Module;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.editions.LibraryName;
 import org.enso.pkg.Package;
+import org.enso.pkg.QualifiedName;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -73,6 +74,19 @@ public final class WithMockCompilerContext implements TestRule {
 
   public List<Module> getLoadedModules() {
     return CollectionConverters.asJava(repo.getLoadedModules());
+  }
+
+  /**
+   * Finds the module with the given qualified name. Returns null if not found.
+   *
+   * @param modName Name of the module to find.
+   * @return Module with the given name, or null if not found.
+   */
+  public Module findModule(QualifiedName modName) {
+    return getLoadedModules().stream()
+        .filter(mod -> mod.getName().toString().equals(modName.toString()))
+        .findFirst()
+        .orElse(null);
   }
 
   @Override
