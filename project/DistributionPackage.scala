@@ -370,9 +370,22 @@ object DistributionPackage {
       case None => false
     }
 
+    val runArgumentAsFile = runArgument.flatMap(createFileIfValidPath)
+    val projectDirectory  = runArgumentAsFile.flatMap(findProjectRoot)
+    val cwdOverride: Option[File] =
+      projectDirectory.flatMap(findParentFile).map(_.getAbsoluteFile)
+
     all.add(enso.getAbsolutePath)
     all.addAll(args.asJava)
     reduceArgs(all, "JAVA_OPTS", pb.environment)
+    // Override the working directory of new process to be the parent of the project directory.
+    cwdOverride.foreach { c =>
+      pb.directory(c)
+    }
+    if (cwdOverride.isDefined) {
+      // If the working directory is changed, we need to translate the path - make it absolute.
+      all.set(runArgumentIndex.get + 1, runArgumentAsFile.get.getAbsolutePath)
+    }
     if (disablePrivateCheck) {
       all.add("--disable-private-check")
     }
@@ -428,6 +441,21 @@ object DistributionPackage {
       None
     }
   }
+
+  /** Returns a file, only if the provided string represented a valid path. */
+  private def createFileIfValidPath(path: String): Option[File] =
+    Try(new File(path)).toOption
+
+  /** Looks for a parent directory that contains `package.yaml`. */
+  private def findProjectRoot(file: File): Option[File] =
+    if (file.isDirectory && (file / "package.yaml").exists()) {
+      Some(file)
+    } else {
+      findParentFile(file).flatMap(findProjectRoot)
+    }
+
+  private def findParentFile(file: File): Option[File] =
+    Option(file.getParentFile)
 
   def runProjectManagerPackage(
     engineRoot: File,
