@@ -56,7 +56,7 @@ watch(
     }
     for (const proj of projectNames.keys()) {
       if (!openedProjects.has(proj)) {
-        openedProjects.delete(proj)
+        projectNames.delete(proj)
       }
     }
   },
