@@ -9,6 +9,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
@@ -40,10 +41,11 @@ public class ExecStrictCompilerTest {
     } catch (PolyglotException ex) {
       assertTrue("Syntax error", ex.isSyntaxError());
       assertTrue("Guest exception", ex.isGuestException());
-      assertEquals(
-          "Unnamed:2:17: error: Redefining arguments is not supported: a is defined multiple"
-              + " times.",
-          ex.getMessage());
+      assertThat(
+          ex.getMessage(),
+          containsString(
+              "Unnamed:2:17: error: Redefining arguments is not supported: a is defined multiple"
+                  + " times."));
 
       var errors = ctxRule.getOut();
       assertNotEquals(
@@ -97,7 +99,11 @@ public class ExecStrictCompilerTest {
       var module = ctxRule.eval(src);
       fail("Unexpected result: " + module);
     } catch (PolyglotException ex) {
-      var firstLine = ex.getMessage().split("\n")[0];
+      var firstLine =
+          Arrays.stream(ex.getMessage().split("\n"))
+              .filter(line -> !line.startsWith("::"))
+              .findFirst()
+              .get();
       assertEquals("extension:1:1: error: The name `Unknown_Type` could not be found.", firstLine);
     }
   }

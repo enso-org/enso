@@ -14,8 +14,14 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
   override def contextModifiers: Option[Context#Builder => Context#Builder] =
     Some(_.option(RuntimeOptions.STRICT_ERRORS, "true"))
 
-  private def isDiagnosticLine(line: String): Boolean = {
-    line.contains(" | ")
+  /** Denotes lines other than the main error message. */
+  private def shouldSkipLine(line: String): Boolean = {
+    line.contains(" | ") || line.startsWith("::")
+  }
+
+  /** Denotes lines to ignore (e.g. GitHub commands), keeping the context lines. */
+  private def shouldIgnoreLine(line: String): Boolean = {
+    line.startsWith("::")
   }
 
   override def specify(implicit
@@ -35,7 +41,7 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
 
       val diagnostics = consumeOut
       diagnostics
-        .filterNot(isDiagnosticLine)
+        .filterNot(shouldSkipLine)
         .toSet shouldEqual Set(
         "Test:4:1: error: Method overloads are not supported: Nothing.foo is defined multiple times in this module."
       )
@@ -52,7 +58,7 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
 
       val diagnostics = consumeOut
       diagnostics
-        .filterNot(isDiagnosticLine)
+        .filterNot(shouldSkipLine)
         .toSet shouldEqual Set(
         "Test:2:1: error: Method overloads are not supported: bar is defined multiple times in this module."
       )
@@ -71,7 +77,7 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
 
       val diagnostics = consumeOut
       diagnostics
-        .filterNot(isDiagnosticLine)
+        .filterNot(shouldSkipLine)
         .toSet shouldEqual Set(
         "Test:3:1: error: Redefining atoms is not supported: MyAtom is defined multiple times in this module."
       )
@@ -91,7 +97,7 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
       val ex = the[InterpreterException] thrownBy eval(code)
       ex.getMessage should include("Ambiguous conversion:")
 
-      val diagnostics = consumeOut
+      val diagnostics = consumeOut.filterNot(shouldIgnoreLine)
       diagnostics should have length 3
       val line0 =
         "Test:7:1: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this module."
@@ -118,7 +124,7 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
       val ex = the[InterpreterException] thrownBy eval(code)
       ex.getMessage should include("Ambiguous conversion:")
 
-      val diagnostics = consumeOut
+      val diagnostics = consumeOut.filterNot(shouldIgnoreLine)
       diagnostics should have length 4
       val line0 =
         "Test:[9:1-11:16]: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this module."
