@@ -97,10 +97,6 @@ const ORDERED_LAMBDA_KINDS = [
   'GET /path/resolve',
 ] as const
 
-export const LAMBDA_KINDS = ORDERED_LAMBDA_KINDS.filter(
-  (kind) => IS_EVENT_HIDDEN_BY_DEFAULT[kind] !== true,
-)
-
 // eslint-disable-next-line no-restricted-syntax
 export const isLambdaKind = includesPredicate(ORDERED_LAMBDA_KINDS)
 
@@ -117,6 +113,10 @@ export const IS_EVENT_HIDDEN_BY_DEFAULT: Partial<Record<LambdaKind, true>> = {
   'POST /projects/{PROJECT_ID}/hybrid_set_open_in_progress': true,
   'POST /files/upload/start': true,
 }
+
+export const LAMBDA_KINDS = ORDERED_LAMBDA_KINDS.filter(
+  (kind) => IS_EVENT_HIDDEN_BY_DEFAULT[kind] !== true,
+)
 
 export const EVENT_TYPE_ICON: Record<LambdaKind, IconPropSvgUse<never>> = {
   'POST /auth': 'icon/lock',
