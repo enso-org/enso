@@ -279,7 +279,7 @@ class DiagnosticFormatter(
 }
 
 object DiagnosticFormatter {
-  def make(
+  def create(
     diagnostic: Diagnostic,
     source: Source,
     isOutputRedirected: Boolean,
