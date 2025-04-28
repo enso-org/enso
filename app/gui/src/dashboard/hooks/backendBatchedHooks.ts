@@ -363,6 +363,7 @@ export function downloadAssetsMutationOptions(backend: Backend) {
           total: ids.length,
         })
       }
+
       return null
     },
     meta: {

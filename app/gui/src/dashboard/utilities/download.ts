@@ -5,13 +5,13 @@ import type { Path } from './path'
 
 /** Initiate a download for the specified url. */
 export async function download(url: string, name?: string | null, path?: Path | null) {
+  url = new URL(url, location.toString()).toString()
   const systemApi = window.systemApi
 
   if (systemApi != null) {
     return downloadUsingElectron({ url, path, filename: name, downloadURL: systemApi.downloadURL })
   }
 
-  url = new URL(url, location.toString()).toString()
   const link = document.createElement('a')
   link.href = url
   link.download = name ?? url.match(/[^/]+$/)?.[0] ?? ''
@@ -52,5 +52,6 @@ export interface DownloadUsingElectronOptions {
  * @throws invariant if you try to use this function in a non-Electron environment.
  */
 export async function downloadUsingElectron(options: DownloadUsingElectronOptions) {
+  console.log('downloadUsingElectron', { options })
   await options.downloadURL(options.url, options.path, options.filename)
 }

@@ -788,8 +788,9 @@ export default class LocalBackend extends Backend {
       const queryString = new URLSearchParams({
         projectsDirectory: typeAndId.directory,
       }).toString()
+
       await download(
-        `./api/project-manager/projects/${typeAndId.id}/enso-project?${queryString}`,
+        `/api/project-manager/projects/${typeAndId.id}/enso-project?${queryString}`,
         `${title}.enso-project`,
       )
     }

@@ -12,8 +12,11 @@ import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import DuplicateAssetsModal, { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { useRemoteBackend } from '#/providers/BackendProvider'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
+import { useHttpClient } from '#/providers/HttpClientProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
+import type LocalBackend from '#/services/LocalBackend'
+import { extractTypeAndId } from '#/services/LocalBackend'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
 import {
@@ -42,9 +45,6 @@ import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/ob
 import { useId, useState } from 'react'
 import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
-import { useHttpClient } from '../providers/HttpClientProvider'
-import type LocalBackend from '../services/LocalBackend'
-import { extractTypeAndId } from '../services/LocalBackend'
 
 /** The number of bytes in 1 megabyte. */
 const MB_BYTES = 1_000_000
@@ -361,7 +361,7 @@ const UPLOADABLE_ASSETS_SET = new Set([AssetType.file, AssetType.project])
 /**
  * Whether the asset is uploadable.
  */
-function isUploadableAsset(asset: UploadToCloudAsset<AssetType>): asset is UploadableAsset {
+export function isUploadableAsset(asset: UploadToCloudAsset<AssetType>): asset is UploadableAsset {
   return UPLOADABLE_ASSETS_SET.has(asset.type)
 }
 

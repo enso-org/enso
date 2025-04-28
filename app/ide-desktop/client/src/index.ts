@@ -532,9 +532,12 @@ class App {
           throw new Error('Window is not available.')
         }
 
+        console.log('downloadURL', { url, path, filename })
+
         await download.download(this.window, url, {
           ...(path != null ? { directory: path } : {}),
           ...(filename != null ? { filename } : {}),
+          saveAs: path == null,
           onCompleted: (file) => {
             const path = file.path
             const clone = { path, filename: pathModule.basename(path) }
