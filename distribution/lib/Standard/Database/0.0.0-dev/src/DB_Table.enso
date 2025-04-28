@@ -2944,11 +2944,11 @@ type DB_Table
                  table.write (enso_project.data / "example_csv_output.csv")
     @path (Widget.Text_Input display=Display.Always)
     @format Widget_Helpers.write_table_selector
-    write self path:Writable_File format=Auto_Detect on_existing_file:Existing_File_Behavior=..Backup match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Nothing ! Column_Count_Mismatch | Illegal_Argument | File_Error =
+    write self path:Writable_File format=Auto_Detect on_existing_file:Existing_File_Behavior=..Backup match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> File | Any ! Column_Count_Mismatch | Illegal_Argument | File_Error =
         row_limit = 100000
 
         ## Read one extra row to check if the table is too large.
-        materialized = self.read ..First (row_limit+1)
+        materialized = self.read (..First row_limit+1)
         if materialized.row_count <= row_limit then materialized.write path format on_existing_file match_columns on_problems else
             Error.throw (Illegal_Argument.Error "DB_Table contains more than 100,000 rows. Use `read` to materialize first.")
 

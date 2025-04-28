@@ -67,12 +67,21 @@ public class ReloadDetector {
    */
   private static class ReloadSentinel {
     private Value ensoReloadSentinel;
+    private boolean initialized;
 
     public ReloadSentinel() {
-      resetEnsoReloadSentinel();
+      initialized = false;
+    }
+
+    private void ensureInitialized() {
+      if (!initialized) {
+        resetEnsoReloadSentinel();
+      }
+      initialized = true;
     }
 
     public boolean hasReloadOccurred() {
+      ensureInitialized();
       var reloadHasOccurred = ensoReloadSentinel.invokeMember("has_reload_occurred").asBoolean();
       if (reloadHasOccurred) {
         resetEnsoReloadSentinel();
@@ -87,6 +96,7 @@ public class ReloadDetector {
     }
 
     public void simulateReloadTestOnly() {
+      ensureInitialized();
       EnsoMeta.callStaticModuleMethod(
           "Standard.Base.Network.Reload_Sentinel", "simulate_reload_test_only", ensoReloadSentinel);
     }

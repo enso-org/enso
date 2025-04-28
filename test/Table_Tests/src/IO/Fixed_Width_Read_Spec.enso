@@ -18,6 +18,7 @@ add_specs suite_builder =
     data1 = data_dir / "fixed1.txt"
     data2 = data_dir / "fixed2.txt"
     data3 = data_dir / "fixed3.txt"
+    data4 = data_dir / "fixed4.txt"
 
     suite_builder.group "Read fixed-width files" group_builder->
         group_builder.specify "Should make a layout from a description" <|
@@ -99,6 +100,16 @@ add_specs suite_builder =
             t.at "Column 6" . to Vector . should_equal ["e", "m"]
             t.at "Column 7" . to Vector . should_equal [98765, 87654]
             t.at "Column 8" . to Vector . should_equal ["fgh", "nop"]
+
+        group_builder.specify "Should support row_limit" <|
+            descs = []
+                + [Fixed_Width_Column_Description.Width 2 "x"]
+                + [Fixed_Width_Column_Description.Width 3 "y"]
+            layout = Fixed_Width_Layout.from_descriptions descs
+
+            t0 = data4.read (Fixed_Width_Format.Fixed_Width layout row_limit=4)
+            t0.at "x" . to_vector . should_equal ["ab", "bc", "cd", "de"]
+            t0.at "y" . to_vector . should_equal [101, 102, 103, 104]
 
         group_builder.specify "Should use specified column names" <|
             descs = []

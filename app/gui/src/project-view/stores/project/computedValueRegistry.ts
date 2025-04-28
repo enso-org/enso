@@ -3,6 +3,7 @@ import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNam
 import { Ok, Result, unwrapOr } from '@/util/data/result'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
+import { arrayEquals } from '@/util/equals'
 import { parseMethodPointer, type MethodCall } from '@/util/methodPointer'
 import { type ProjectPath } from '@/util/projectPath'
 import { clamp } from 'enso-common/src/utilities/data/math'
@@ -14,9 +15,11 @@ import type {
   MethodCall as LSMethodCall,
   ProfilingInfo,
 } from 'ydoc-shared/languageServerTypes'
+import { isSome } from 'ydoc-shared/util/data/opt'
 
 export interface ExpressionInfo {
   typename: ProjectPath | undefined
+  hiddenTypes: ProjectPath[]
   rawTypename: string | undefined
   methodCall: MethodCall | undefined
   payload: ExpressionUpdatePayload
@@ -102,6 +105,8 @@ function updateInfo(
 ) {
   const newInfo = combineInfo(info, update, projectNames)
   if (newInfo.typename !== info.typename) info.typename = newInfo.typename
+  if (!arrayEquals(newInfo.hiddenTypes, info.hiddenTypes, (a, b) => a.equals(b)))
+    info.hiddenTypes = newInfo.hiddenTypes
   if (newInfo.rawTypename !== info.rawTypename) info.rawTypename = newInfo.rawTypename
   if (newInfo.methodCall !== info.methodCall) info.methodCall = newInfo.methodCall
   if (newInfo.payload !== info.payload) info.payload = newInfo.payload
@@ -110,6 +115,7 @@ function updateInfo(
   // Ensure new fields can't be added to `ExpressionInfo` without this code being updated.
   const _allFieldsHandled = {
     typename: newInfo.typename,
+    hiddenTypes: newInfo.hiddenTypes,
     rawTypename: newInfo.rawTypename,
     methodCall: newInfo.methodCall,
     payload: newInfo.payload,
@@ -152,6 +158,14 @@ function combineInfo(
   if (typename && !typename.ok) {
     typename.error.log('Discarding invalid type in expression update')
   }
+  const hiddenTypes = update.hiddenType.map((t) => {
+    const path = projectNames.parseProjectPathRaw(t)
+    if (!path.ok) {
+      path.error.log('Discarding invalid additional type in expression update')
+      return undefined
+    }
+    return path.value
+  })
   const newMethodCall =
     update.methodCall ? translateMethodCall(update.methodCall, projectNames) : undefined
   if (newMethodCall && !newMethodCall.ok) {
@@ -164,6 +178,7 @@ function combineInfo(
     : 0
   return {
     typename: typename ? unwrapOr(typename, undefined) : undefined,
+    hiddenTypes: hiddenTypes.filter(isSome),
     rawTypename,
     methodCall:
       newMethodCall?.ok ? newMethodCall.value
