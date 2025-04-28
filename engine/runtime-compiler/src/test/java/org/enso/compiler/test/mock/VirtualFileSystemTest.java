@@ -15,13 +15,9 @@ import java.nio.charset.Charset;
 import org.apache.commons.vfs2.FileObject;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public class VirtualFileSystemTest {
-  @ClassRule public static final TemporaryFolder TMP_DIR = new TemporaryFolder();
-
   private VirtualFileSystem vfs;
 
   @Before
