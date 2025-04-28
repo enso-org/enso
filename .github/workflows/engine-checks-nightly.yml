@@ -60,7 +60,6 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          compression-level: 0
           name: engine-distribution-linux-native,test
           path: built-distribution.tar
       - name: Cleanup Archive
@@ -121,7 +120,6 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          compression-level: 0
           name: engine-distribution-macos-native,test
           path: built-distribution.tar
       - name: Cleanup Archive
@@ -180,7 +178,6 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          compression-level: 0
           name: engine-distribution-macos-native,test
           path: built-distribution.tar
       - name: Cleanup Archive
@@ -240,7 +237,6 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          compression-level: 0
           name: engine-distribution-windows-native,test
           path: built-distribution.tar
       - name: Cleanup Archive
@@ -300,7 +296,6 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          compression-level: 0
           name: engine-distribution-linux-native,test
           path: built-distribution.tar
       - name: Cleanup Archive
@@ -354,16 +349,16 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-linux-native,test
       - name: Unpack Engine Distribution
         run: |
-          rm -rf built-distribution;
-          tar -xvf built-distribution.tar;
-          rm built-distribution.tar;
-        shell: bash
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -427,16 +422,16 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-macos-native,test
       - name: Unpack Engine Distribution
         run: |
-          rm -rf built-distribution;
-          tar -xvf built-distribution.tar;
-          rm built-distribution.tar;
-        shell: bash
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -498,16 +493,16 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-macos-native,test
       - name: Unpack Engine Distribution
         run: |
-          rm -rf built-distribution;
-          tar -xvf built-distribution.tar;
-          rm built-distribution.tar;
-        shell: bash
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -570,16 +565,16 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-windows-native,test
       - name: Unpack Engine Distribution
         run: |
-          rm -rf built-distribution;
-          tar -xvf built-distribution.tar;
-          rm built-distribution.tar;
-        shell: bash
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -642,16 +637,16 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-linux-native,test
       - name: Unpack Engine Distribution
         run: |
-          rm -rf built-distribution;
-          tar -xvf built-distribution.tar;
-          rm built-distribution.tar;
-        shell: bash
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -714,16 +709,16 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-linux-native,test
       - name: Unpack Engine Distribution
         run: |
-          rm -rf built-distribution;
-          tar -xvf built-distribution.tar;
-          rm built-distribution.tar;
-        shell: bash
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
       - run: ./run backend stdlib-api-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -773,16 +768,16 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-linux-native,test
       - name: Unpack Engine Distribution
         run: |
-          rm -rf built-distribution;
-          tar -xvf built-distribution.tar;
-          rm built-distribution.tar;
-        shell: bash
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
       - run: ./run backend test standard-library
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
@@ -849,16 +844,16 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-macos-native,test
       - name: Unpack Engine Distribution
         run: |
-          rm -rf built-distribution;
-          tar -xvf built-distribution.tar;
-          rm built-distribution.tar;
-        shell: bash
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
       - run: ./run backend test standard-library
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
@@ -923,16 +918,16 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-macos-native,test
       - name: Unpack Engine Distribution
         run: |
-          rm -rf built-distribution;
-          tar -xvf built-distribution.tar;
-          rm built-distribution.tar;
-        shell: bash
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
       - run: ./run backend test standard-library
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
@@ -998,16 +993,16 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-windows-native,test
       - name: Unpack Engine Distribution
         run: |
-          rm -rf built-distribution;
-          tar -xvf built-distribution.tar;
-          rm built-distribution.tar;
-        shell: bash
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
       - run: ./run backend test standard-library
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
@@ -1073,16 +1068,16 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-linux-native,test
       - name: Unpack Engine Distribution
         run: |
-          rm -rf built-distribution;
-          tar -xvf built-distribution.tar;
-          rm built-distribution.tar;
-        shell: bash
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
       - run: ./run backend test standard-library-in-native
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
@@ -1149,16 +1144,16 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-macos-native,test
       - name: Unpack Engine Distribution
         run: |
-          rm -rf built-distribution;
-          tar -xvf built-distribution.tar;
-          rm built-distribution.tar;
-        shell: bash
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
       - run: ./run backend test standard-library-in-native
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
@@ -1223,16 +1218,16 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-macos-native,test
       - name: Unpack Engine Distribution
         run: |
-          rm -rf built-distribution;
-          tar -xvf built-distribution.tar;
-          rm built-distribution.tar;
-        shell: bash
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
       - run: ./run backend test standard-library-in-native
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
@@ -1298,16 +1293,16 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-windows-native,test
       - name: Unpack Engine Distribution
         run: |
-          rm -rf built-distribution;
-          tar -xvf built-distribution.tar;
-          rm built-distribution.tar;
-        shell: bash
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
       - run: ./run backend test standard-library-in-native
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
@@ -1373,16 +1368,16 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-linux-native,test
       - name: Unpack Engine Distribution
         run: |
-          rm -rf built-distribution;
-          tar -xvf built-distribution.tar;
-          rm built-distribution.tar;
-        shell: bash
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
       - run: ./run backend test standard-library
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
@@ -1448,16 +1443,16 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
           name: engine-distribution-linux-native,test
       - name: Unpack Engine Distribution
         run: |
-          rm -rf built-distribution;
-          tar -xvf built-distribution.tar;
-          rm built-distribution.tar;
-        shell: bash
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
       - run: ./run backend test standard-library-in-native
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}

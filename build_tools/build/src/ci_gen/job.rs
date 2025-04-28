@@ -236,6 +236,12 @@ impl JobArchetype for JvmTests {
         let job_name = format!("JVM Tests ({graal_edition})");
         let mut job = RunStepsBuilder::new("backend test jvm")
             .customize(move |step| {
+                let cleanup_engine_distribution = Step {
+                    run: Some("rm -rf built-distribution".into()),
+                    shell: Some(Shell::Bash),
+                    ..Default::default()
+                };
+
                 let download_engine_distribution =
                     step::download_artifact("Download Engine Distribution").with_custom_argument(
                         "name",
@@ -245,17 +251,16 @@ impl JobArchetype for JvmTests {
                 let unpack_engine_distribution = Step {
                     name: Some("Unpack Engine Distribution".into()),
                     run: Some(
-                        "rm -rf built-distribution;
-tar -xvf built-distribution.tar;
-rm built-distribution.tar;
+                        "tar -xvf built-distribution.tar
+rm built-distribution.tar
 "
                         .into(),
                     ),
-                    shell: Some(Shell::Bash),
                     ..Default::default()
                 };
 
                 vec![
+                    cleanup_engine_distribution,
                     download_engine_distribution,
                     unpack_engine_distribution,
                     step,
@@ -340,6 +345,12 @@ impl JobArchetype for StandardLibraryTests {
         let job_name = format!("Standard Library Tests ({graal_edition}) ({job_mode_name})");
         let run_command = format!("backend test {test_scope}");
         let run_steps_builder = RunStepsBuilder::new(run_command).customize(move |step| {
+            let cleanup_engine_distribution = Step {
+                run: Some("rm -rf built-distribution".into()),
+                shell: Some(Shell::Bash),
+                ..Default::default()
+            };
+
             let download_engine_distribution =
                 step::download_artifact("Download Engine Distribution").with_custom_argument(
                     "name",
@@ -349,13 +360,11 @@ impl JobArchetype for StandardLibraryTests {
             let unpack_engine_distribution = Step {
                 name: Some("Unpack Engine Distribution".into()),
                 run: Some(
-                    "rm -rf built-distribution;
-tar -xvf built-distribution.tar;
-rm built-distribution.tar;
+                    "tar -xvf built-distribution.tar
+rm built-distribution.tar
 "
                     .into(),
                 ),
-                shell: Some(Shell::Bash),
                 ..Default::default()
             };
 
@@ -377,6 +386,7 @@ rm built-distribution.tar;
                 if should_enable_cloud_tests { enable_cloud_tests(main_step) } else { main_step };
 
             vec![
+                cleanup_engine_distribution,
                 download_engine_distribution,
                 unpack_engine_distribution,
                 updated_main_step,
@@ -447,6 +457,12 @@ impl JobArchetype for StandardLibraryApiCheck {
         let run_command = "backend stdlib-api-check";
         let job = RunStepsBuilder::new(run_command)
             .customize(move |step| {
+                let cleanup_engine_distribution = Step {
+                    run: Some("rm -rf built-distribution".into()),
+                    shell: Some(Shell::Bash),
+                    ..Default::default()
+                };
+
                 let download_engine_distribution =
                     step::download_artifact("Download Engine Distribution").with_custom_argument(
                         "name",
@@ -456,17 +472,20 @@ impl JobArchetype for StandardLibraryApiCheck {
                 let unpack_engine_distribution = Step {
                     name: Some("Unpack Engine Distribution".into()),
                     run: Some(
-                        "rm -rf built-distribution;
-tar -xvf built-distribution.tar;
-rm built-distribution.tar;
+                        "tar -xvf built-distribution.tar
+rm built-distribution.tar
 "
                         .into(),
                     ),
-                    shell: Some(Shell::Bash),
                     ..Default::default()
                 };
 
-                vec![download_engine_distribution, unpack_engine_distribution, step]
+                vec![
+                    cleanup_engine_distribution,
+                    download_engine_distribution,
+                    unpack_engine_distribution,
+                    step,
+                ]
             })
             .build_job(job_name, target);
         job
@@ -1017,8 +1036,7 @@ impl JobArchetype for BuildEngineDistribution {
                             "name",
                             format!("engine-distribution-{}-{}", target.0, engine_launcher),
                         )
-                        .with_custom_argument("path", "built-distribution.tar")
-                        .with_custom_argument("compression-level", 0);
+                        .with_custom_argument("path", "built-distribution.tar");
 
                 let cleanup_archive = Step {
                     name: Some("Cleanup Archive".into()),
