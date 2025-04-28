@@ -22,16 +22,18 @@ import {
   EVENT_TYPE_NAME_ID,
   LAMBDA_KINDS,
   normalizeLambdaKind,
+  SELECTABLE_LAMBDA_KINDS,
   type LambdaKind,
 } from './lambdaKinds'
 
-const GET_LOG_EVENTS_PAGE_SIZE = 1000
+const GET_LOG_EVENTS_DEFAULT_PAGE_SIZE = 100
 
 /** Create the schema for this form. */
 function createActivityLogSchema() {
   return z.object({
     startDate: z.instanceof(ZonedDateTime).optional(),
     endDate: z.instanceof(ZonedDateTime).optional(),
+    pageSize: z.number().int(),
   })
 }
 
@@ -59,9 +61,13 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const { data: users } = useQuery(backendQueryOptions(backend, 'listUsers', []))
   const allEmails = React.useMemo(() => (users ?? []).map((user) => user.email), [users])
 
-  const form = Form.useForm({ schema: createActivityLogSchema() })
+  const form = Form.useForm({
+    schema: createActivityLogSchema(),
+    defaultValues: { pageSize: GET_LOG_EVENTS_DEFAULT_PAGE_SIZE },
+  })
   const startDate = form.watch('startDate')
   const endDate = form.watch('endDate')
+  const pageSize = form.watch('pageSize')
   const maxDate = today(getLocalTimeZone())
 
   const logsQuery = useQuery(
@@ -69,7 +75,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       {
         startDate: startDate && toRfc3339(startDate.toDate()),
         endDate: endDate && toRfc3339(endDate.toDate()),
-        pageSize: GET_LOG_EVENTS_PAGE_SIZE,
+        pageSize,
       },
     ]),
   )
@@ -179,10 +185,10 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
               <Dropdown
                 aria-label={getText('types')}
                 multiple
-                items={LAMBDA_KINDS}
+                items={SELECTABLE_LAMBDA_KINDS}
                 selectedIndices={typeIndices}
                 renderMultiple={({ items }) =>
-                  items.length === 0 || items.length === LAMBDA_KINDS.length ?
+                  items.length === 0 || items.length === SELECTABLE_LAMBDA_KINDS.length ?
                     'All'
                   : (items[0] != null ? getText(EVENT_TYPE_NAME_ID[items[0]]) : '') +
                     (items.length <= 1 ? '' : ` (+${items.length - 1})`)

@@ -4,7 +4,7 @@ import { includesPredicate } from '#/utilities/array'
 import type { TextId } from 'enso-common/src/text'
 
 /** Possible kinds of audit log entry, excluding the "get secret" endpoint. */
-export type LambdaKind = (typeof ORDERED_LAMBDA_KINDS)[number]
+export type LambdaKind = (typeof LAMBDA_KINDS)[number]
 
 /** Attempt to validate an arbitrary string into a {@link LambdaKind}. */
 export function normalizeLambdaKind(lambdaKind: string) {
@@ -20,7 +20,7 @@ export function normalizeLambdaKind(lambdaKind: string) {
 export const DEFAULT_EVENT_ICON = 'log' satisfies SvgUseIcon
 
 /** Lambda kinds for events, ordered roughly in order of decreasing level of admin access. */
-const ORDERED_LAMBDA_KINDS = [
+export const LAMBDA_KINDS = [
   'POST /auth',
   'GET /organizations/me',
   'PATCH /organizations/me',
@@ -98,7 +98,7 @@ const ORDERED_LAMBDA_KINDS = [
 ] as const
 
 // eslint-disable-next-line no-restricted-syntax
-export const isLambdaKind = includesPredicate(ORDERED_LAMBDA_KINDS)
+export const isLambdaKind = includesPredicate(LAMBDA_KINDS)
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export const IS_EVENT_HIDDEN_BY_DEFAULT: Partial<Record<LambdaKind, true>> = {
@@ -114,7 +114,7 @@ export const IS_EVENT_HIDDEN_BY_DEFAULT: Partial<Record<LambdaKind, true>> = {
   'POST /files/upload/start': true,
 }
 
-export const LAMBDA_KINDS = ORDERED_LAMBDA_KINDS.filter(
+export const SELECTABLE_LAMBDA_KINDS = LAMBDA_KINDS.filter(
   (kind) => IS_EVENT_HIDDEN_BY_DEFAULT[kind] !== true,
 )
 
