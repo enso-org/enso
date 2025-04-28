@@ -1,11 +1,22 @@
 package org.enso.compiler
 
 import scala.jdk.CollectionConverters.IterableHasAsJava
-import org.enso.compiler.context.{CompilerContext, FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.context.{
+  CompilerContext,
+  FreshNameSupply,
+  InlineContext,
+  ModuleContext
+}
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.{Diagnostic, Expression, Name, Warning, Module => IRModule}
+import org.enso.compiler.core.ir.{
+  Diagnostic,
+  Expression,
+  Name,
+  Warning,
+  Module => IRModule
+}
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.module.scope.Export
@@ -19,14 +30,23 @@ import org.enso.compiler.phase.{ImportResolver, ImportResolverAlgorithm}
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.common.CompilationStage
-import org.enso.compiler.docs.{DocsGenerate, DocsVisit, TypesCoverageVisit}
+import org.enso.compiler.docs.{DocsGenerate, DocsVisit}
 import org.enso.compiler.dump.service.{IRDumpFactoryService, IRDumper}
-import org.enso.compiler.phase.exports.{ExportCycleException, ExportSymbolAnalysis, ExportsResolution}
+import org.enso.compiler.phase.exports.{
+  ExportCycleException,
+  ExportSymbolAnalysis,
+  ExportsResolution
+}
 import org.enso.syntax2.Tree
 import org.enso.syntax2.Parser
 
 import java.io.PrintStream
-import java.util.concurrent.{CompletableFuture, ExecutorService, Future, TimeUnit}
+import java.util.concurrent.{
+  CompletableFuture,
+  ExecutorService,
+  Future,
+  TimeUnit
+}
 import java.util.logging.Level
 import scala.collection.immutable.HashMap
 
@@ -161,19 +181,14 @@ class Compiler(
               shouldCompileDependencies
             )
 
-            generateDocs match {
-              case Some(generateDocsOption) =>
-                val visitor = generateDocsOption match {
-                  case "api" =>
-                    DocsVisit.createSignatures()
-                  case "type-coverage" =>
-                    new TypesCoverageVisit()
-                  case _ =>
-                    DocsVisit.createMarkdown()
-                }
-                val outDir = DocsGenerate.write(visitor, pkg, packageModules.asJava)
-                printDiagnostic(s"Documentation generated to ${outDir}")
-              case None =>
+            if (generateDocs.isDefined) {
+              val v = if (generateDocs.get == "api") {
+                DocsVisit.createSignatures()
+              } else {
+                DocsVisit.createMarkdown();
+              }
+              val outDir = DocsGenerate.write(v, pkg, packageModules.asJava)
+              printDiagnostic(s"Documentation generated to ${outDir}")
             }
 
             if (shouldWriteCache) {
