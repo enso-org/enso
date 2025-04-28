@@ -84,7 +84,7 @@ public final class WithMockCompilerContext implements TestRule {
    */
   public Module findModule(QualifiedName modName) {
     return getLoadedModules().stream()
-        .filter(mod -> mod.getName().toString().equals(modName.toString()))
+        .filter(mod -> mod.getName().equals(modName))
         .findFirst()
         .orElse(null);
   }
