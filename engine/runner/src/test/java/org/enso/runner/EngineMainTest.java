@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,6 +28,7 @@ public class EngineMainTest {
       var file = tempDir.newFile("some.enso");
       var line = m.preprocessArguments("--repl --inspect", "--run", file.getAbsolutePath());
       m.mainEntry(line, Level.INFO, false);
+      fail("Expecting exception");
     } catch (ExitCode ex) {
       assertEquals("Execution fails", 1, ex.exitCode);
       assertEquals("One line printed", 1, linesOut.size());
@@ -56,6 +58,7 @@ public class EngineMainTest {
     try {
       var line = m.preprocessArguments("--run", file.getAbsolutePath());
       m.mainEntry(line, Level.INFO, false);
+      fail("Expecting exception");
     } catch (ExitCode ex) {
       assertEquals("Execution fails", 1, ex.exitCode);
       assertEquals("No special output printed", 0, linesOut.size());
@@ -73,6 +76,7 @@ public class EngineMainTest {
       var file = tempDir.newFile("some.enso");
       var line = m.preprocessArguments("--repl", "--inspect", "--run", file.getAbsolutePath());
       m.mainEntry(line, Level.INFO, false);
+      fail("Expecting exception");
     } catch (ExitCode ex) {
       assertEquals("Execution fails", 1, ex.exitCode);
       assertEquals("One line printed", 1, linesOut.size());
@@ -117,6 +121,7 @@ public class EngineMainTest {
       var file = tempDir.newFile("some.enso");
       var line = m.preprocessArguments("--run", file.getAbsolutePath(), "--vm.D", "foo=bar=baz");
       m.parseSystemProperties(line);
+      fail("Expecting exception");
     } catch (ExitCode e) {
       assertEquals("Execution fails", 1, e.exitCode);
       assertEquals("One line printed", 1, linesOut.size());
@@ -132,6 +137,7 @@ public class EngineMainTest {
       var line =
           m.preprocessArguments("--in-project", "NON_EXISTING_DIR/foo/bar/xxx/zz", "--docs", "api");
       m.mainEntry(line, Level.INFO, false);
+      fail("Expecting exception");
     } catch (ExitCode ex) {
       assertEquals("Execution fails", 1, ex.exitCode);
       assertEquals("One line printed", 1, linesOut.size());
