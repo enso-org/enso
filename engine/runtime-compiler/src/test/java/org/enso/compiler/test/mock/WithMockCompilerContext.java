@@ -3,11 +3,13 @@ package org.enso.compiler.test.mock;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.function.Function;
 import org.apache.commons.vfs2.FileObject;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.CompilerResult;
 import org.enso.compiler.context.CompilerContext.Module;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.compiler.data.CompilerConfig.Builder;
 import org.enso.editions.LibraryName;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
@@ -45,14 +47,12 @@ import scala.jdk.javaapi.CollectionConverters;
 public final class WithMockCompilerContext implements TestRule {
   private final MockPackageRepository repo;
   private final ByteArrayOutputStream out;
-  private final CompilerConfig compilerCfg;
   private final MockCompilerContext compilerContext;
   private final Compiler compiler;
 
   private WithMockCompilerContext(ByteArrayOutputStream out, CompilerConfig compilerCfg) {
     this.repo = MockPackageRepository.create();
     this.out = out;
-    this.compilerCfg = compilerCfg;
     this.compilerContext = new MockCompilerContext(repo, new PrintStream(out));
     this.compiler = new Compiler(compilerContext, repo, compilerCfg);
   }
@@ -143,45 +143,27 @@ public final class WithMockCompilerContext implements TestRule {
   }
 
   public static final class Builder {
-    private boolean enableWarnings = true;
-    private boolean enableStaticTypeInference = false;
-    private boolean isStringErrors = true;
-    private boolean enableLinting = true;
+    private CompilerConfig.Builder compilerConfigBldr = CompilerConfig.builder();
 
     Builder() {}
 
-    public Builder enableWarnings(boolean enable) {
-      this.enableWarnings = enable;
-      return this;
-    }
-
-    public Builder enableStaticTypeInference(boolean enable) {
-      this.enableStaticTypeInference = enable;
-      return this;
-    }
-
-    public Builder isStringErrors(boolean enable) {
-      this.isStringErrors = enable;
-      return this;
-    }
-
-    public Builder enableLinting(boolean enable) {
-      this.enableLinting = enable;
+    public Builder withModifiedCompilerConfig(
+        Function<CompilerConfig.Builder, CompilerConfig.Builder> cfgFunc) {
+      compilerConfigBldr = cfgFunc.apply(compilerConfigBldr);
       return this;
     }
 
     public WithMockCompilerContext build() {
       var out = new ByteArrayOutputStream();
       var compilerCfg =
-          new CompilerConfig(
-              true,
-              enableWarnings,
-              true,
-              enableStaticTypeInference,
-              scala.Option.empty(),
-              isStringErrors,
-              enableLinting,
-              scala.Some.apply(new PrintStream(out)));
+          compilerConfigBldr
+              .autoParallelismEnabled(true)
+              .warningsEnabled(true)
+              .staticTypeInferenceEnabled(false)
+              .isStrictErrors(true)
+              .isLintingDisabled(false)
+              .outputRedirect(scala.Some.apply(new PrintStream(out)))
+              .build();
       return new WithMockCompilerContext(out, compilerCfg);
     }
   }
