@@ -1,12 +1,12 @@
 package org.enso.compiler.test.mock;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.commons.vfs2.FileObject;
-import org.apache.commons.vfs2.FileSystemException;
 import org.enso.common.CompilationStage;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.context.CompilerContext;
@@ -36,11 +36,11 @@ import scala.util.Right;
 final class MockPackageRepository implements PackageRepository {
   private static final Logger LOGGER = LoggerFactory.getLogger(MockPackageRepository.class);
   private final VirtualFileSystem vfs;
-  private final FileObject vfsRoot;
-  private final PackageManager<FileObject> pkgManager;
-  private final Map<LibraryName, Package<FileObject>> loadedPackages = new HashMap<>();
+  private final Path vfsRoot;
+  private final PackageManager<Path> pkgManager;
+  private final Map<LibraryName, Package<Path>> loadedPackages = new HashMap<>();
   private final Map<String, CompilerContext.Module> loadedModules = new HashMap<>();
-  private Package<FileObject> mainProjectPkg;
+  private Package<Path> mainProjectPkg;
 
   private MockPackageRepository() {
     this.vfs = VirtualFileSystem.create();
@@ -65,13 +65,12 @@ final class MockPackageRepository implements PackageRepository {
     return vfs;
   }
 
-  private Package<FileObject> createEmptyPackage(LibraryName pkgName, FileObject pkgRoot)
-      throws FileSystemException {
+  private Package<Path> createEmptyPackage(LibraryName pkgName, Path pkgRoot) throws IOException {
     var pkg = pkgManager.getOrCreate(pkgRoot);
     // Delete all the automatically created sources, and replace them with
     // our custom sources
     for (var src : pkg.listSourcesJava()) {
-      src.file().delete();
+      Files.delete(src.file());
     }
     loadedPackages.put(pkgName, pkg);
     return pkg;
@@ -90,24 +89,24 @@ final class MockPackageRepository implements PackageRepository {
     var modPath = modName.pathAsJava();
     LibraryName pkgName = LibraryName.apply(modPath.get(0), modPath.get(1));
     try {
-      var pkgDir = vfsRoot.resolveFile(modPath.get(0)).resolveFile(modPath.get(1));
-      Package<FileObject> pkg;
-      if (!pkgDir.exists()) {
+      var pkgDir = vfsRoot.resolve(modPath.get(0)).resolve(modPath.get(1));
+      Package<Path> pkg;
+      if (!Files.exists(pkgDir)) {
         pkg = createEmptyPackage(pkgName, pkgDir);
       } else {
         pkg = pkgManager.getOrCreate(pkgDir);
       }
-      var srcDir = pkgDir.resolveFile("src");
-      if (!srcDir.exists()) {
-        srcDir.createFolder();
+      var srcDir = pkgDir.resolve("src");
+      if (!Files.exists(srcDir)) {
+        Files.createDirectories(srcDir);
       }
       var srcPath = modPath.stream().skip(2).collect(Collectors.joining("/"));
-      var subSrcDir = srcDir.resolveFile(srcPath);
-      if (!subSrcDir.exists()) {
-        subSrcDir.createFolder();
+      var subSrcDir = srcDir.resolve(srcPath);
+      if (!Files.exists(subSrcDir)) {
+        Files.createDirectories(subSrcDir);
       }
-      var srcFile = subSrcDir.resolveFile(modName.item() + ".enso");
-      if (srcFile.exists()) {
+      var srcFile = subSrcDir.resolve(modName.item() + ".enso");
+      if (Files.exists(srcFile)) {
         throw new IllegalArgumentException("Module '" + modName + "' already exists");
       }
       VirtualFileSystem.write(srcFile, content);
@@ -270,16 +269,16 @@ final class MockPackageRepository implements PackageRepository {
   }
 
   @SuppressWarnings("unchecked")
-  static Package<Object> castVirtualPkg(Package<FileObject> pkg) {
+  static Package<Object> castVirtualPkg(Package<Path> pkg) {
     return (Package) pkg;
   }
 
   @SuppressWarnings("unchecked")
-  static Package<FileObject> castObjectPkg(Package<Object> pkg) {
+  static Package<Path> castObjectPkg(Package<Object> pkg) {
     return (Package) pkg;
   }
 
-  private String readFile(FileObject file) {
+  private String readFile(Path file) {
     var lines = new ArrayList<String>();
     try (var reader = vfs.newBufferedReader(file)) {
       var line = reader.readLine();

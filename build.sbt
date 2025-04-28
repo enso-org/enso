@@ -487,7 +487,6 @@ val commonsIoVersion          = "2.12.0"
 val commonsTextVersion        = "1.10.0"
 val commonsMathVersion        = "3.6.1"
 val commonsCompressVersion    = "1.23.0"
-val commonsVfsVersion         = "2.10.0"
 val commonsCliVersion         = "1.5.0"
 val commons = Seq(
   "org.apache.commons" % "commons-collections4" % commonsCollectionsVersion,
@@ -664,6 +663,7 @@ val googleProtobufVersion   = "3.25.1"
 val shapelessVersion        = "2.3.10"
 val postgresVersion         = "42.4.0"
 val h2Version               = "2.3.232"
+val jimFsVersion            = "1.3.0"
 
 // ============================================================================
 // === Utility methods =====================================================
@@ -3410,7 +3410,7 @@ lazy val `runtime-compiler` =
         "com.typesafe"         % "config"                  % typesafeConfigVersion     % Test,
         "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % Test,
         "org.hamcrest"         % "hamcrest-all"            % hamcrestVersion           % Test,
-        "org.apache.commons"   % "commons-vfs2"            % commonsVfsVersion         % Test
+        "com.google.jimfs"     % "jimfs"                   % jimFsVersion              % Test
       ),
       libraryDependencies ++= {
         logbackPkg.map(_ % Test) ++ ioSentry.map(_ % Test)

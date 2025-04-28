@@ -4,14 +4,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.function.Function;
-import org.apache.commons.vfs2.FileObject;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.CompilerResult;
 import org.enso.compiler.context.CompilerContext.Module;
 import org.enso.compiler.data.CompilerConfig;
-import org.enso.compiler.data.CompilerConfig.Builder;
-import org.enso.editions.LibraryName;
-import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -80,10 +76,6 @@ public final class WithMockCompilerContext implements TestRule {
    */
   public Module createModule(QualifiedName modName, String content) {
     return repo.createModule(modName, content);
-  }
-
-  public void registerMainProjectPackage(LibraryName pkgName, Package<FileObject> mainPkg) {
-    repo.registerMainProjectPackage(pkgName, MockPackageRepository.castVirtualPkg(mainPkg));
   }
 
   public List<Module> getLoadedModules() {

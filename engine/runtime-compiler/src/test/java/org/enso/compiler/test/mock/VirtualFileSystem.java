@@ -1,224 +1,206 @@
 package org.enso.compiler.test.mock;
 
+import com.google.common.jimfs.Configuration;
+import com.google.common.jimfs.Jimfs;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.Arrays;
 import java.util.stream.Stream;
-import org.apache.commons.vfs2.AllFileSelector;
-import org.apache.commons.vfs2.FileObject;
-import org.apache.commons.vfs2.FileSystemException;
-import org.apache.commons.vfs2.FileSystemManager;
-import org.apache.commons.vfs2.VFS;
 import org.enso.filesystem.FileSystem;
 
 /**
  * {@link FileSystem} implementation for Apache Commons VFS2. So far, only RAM file system is
  * supported.
  */
-final class VirtualFileSystem implements FileSystem<FileObject> {
-  private final FileSystemManager fileSystemManager;
-  private final FileObject ramRoot;
+final class VirtualFileSystem implements FileSystem<Path>, AutoCloseable {
+  private final java.nio.file.FileSystem fileSystem;
+  private final Path inMemoryRoot;
 
-  private VirtualFileSystem(FileSystemManager fileSystemManager, FileObject ramRoot) {
-    this.fileSystemManager = fileSystemManager;
-    this.ramRoot = ramRoot;
+  private VirtualFileSystem(java.nio.file.FileSystem fileSystem, Path inMemoryRoot) {
+    this.fileSystem = fileSystem;
+    this.inMemoryRoot = inMemoryRoot;
   }
 
-  static void write(FileObject file, String content) throws IOException {
-    try (var out = new OutputStreamWriter(file.getContent().getOutputStream())) {
-      out.write(content);
-    }
+  static void write(Path file, String content) throws IOException {
+    Files.writeString(file, content);
+  }
+
+  @Override
+  public void close() throws Exception {
+    fileSystem.close();
   }
 
   public void deleteAll() throws IOException {
-    for (var child : ramRoot.getChildren()) {
-      child.deleteAll();
-    }
+    Files.walkFileTree(
+        inMemoryRoot,
+        new SimpleFileVisitor<>() {
+          @Override
+          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+              throws IOException {
+            Files.delete(file);
+            return FileVisitResult.CONTINUE;
+          }
+
+          @Override
+          public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+            var isRoot = Files.isSameFile(inMemoryRoot, dir);
+            if (!isRoot) {
+              Files.delete(dir);
+            }
+            return FileVisitResult.CONTINUE;
+          }
+        });
   }
 
   public static VirtualFileSystem create() {
-    FileSystemManager manager;
-    FileObject ramRoot;
-    try {
-      manager = VFS.getManager();
-      ramRoot = manager.resolveFile("ram:///");
-    } catch (FileSystemException e) {
-      throw new IllegalStateException("Cannot create Virtual file system", e);
-    }
-    return new VirtualFileSystem(manager, ramRoot);
+    var fs = Jimfs.newFileSystem(Configuration.unix());
+    var inMemoryRoot = fs.getPath("/");
+    return new VirtualFileSystem(fs, inMemoryRoot);
   }
 
-  /**
-   * Creates the file in RAM file system.
-   *
-   * @param path Absolute or relative path. Does not have to start with "ram://"
-   * @param content Content of the file.
-   */
-  public void createFile(String path, String content) throws IOException {
-    var newFile = ramRoot.resolveFile(path);
-    newFile.createFile();
-    try (var writer =
-        new PrintWriter(new OutputStreamWriter(newFile.getContent().getOutputStream()))) {
-      writer.println(content);
-    }
-  }
-
-  FileObject getRoot() {
-    return ramRoot;
+  Path getRoot() {
+    return inMemoryRoot;
   }
 
   @Override
-  public FileObject getChild(FileObject parent, String childName) {
-    var newPath = parent.getName().getURI() + "/" + childName;
-    try {
-      return fileSystemManager.resolveFile(newPath);
-    } catch (FileSystemException ex) {
-      throw new AssertionError("path should be ok", ex);
-    }
+  public Path getChild(Path parent, String childName) {
+    return parent.resolve(childName);
   }
 
   @Override
-  public FileObject getParent(FileObject path) {
-    try {
-      return path.getParent();
-    } catch (FileSystemException e) {
-      var parentPath = path.getPath().getParent();
-      try {
-        fileSystemManager.resolveFile(parentPath.toUri());
-      } catch (FileSystemException ex) {
-        throw new IllegalStateException(ex);
-      }
-    }
-    return null;
+  public Path getParent(Path path) {
+    return path.getParent();
   }
 
   @Override
-  public boolean exists(FileObject file) {
-    try {
-      return file.exists();
-    } catch (FileSystemException e) {
-      throw new IllegalStateException(e);
-    }
+  public boolean exists(Path file) {
+    return Files.exists(file);
   }
 
   @Override
-  public void createDirectories(FileObject file) throws IOException {
-    file.createFolder();
+  public void createDirectories(Path file) throws IOException {
+    Files.createDirectories(file);
   }
 
   @Override
-  public FileObject relativize(FileObject parent, FileObject child) {
-    try {
-      var relativeName = parent.getName().getRelativeName(child.getName());
-      return ramRoot.resolveFile(relativeName);
-    } catch (FileSystemException e) {
-      throw new IllegalStateException(e);
-    }
+  public Path relativize(Path parent, Path child) {
+    return parent.relativize(child);
   }
 
   @Override
-  public Iterable<String> getSegments(FileObject file) {
-    return Arrays.stream(file.getName().getPath().split("/"))
-        // Skip the first empty string
-        .skip(1)
+  public Iterable<String> getSegments(Path file) {
+    var absPath = file.toString();
+    return Arrays.stream(absPath.split(fileSystem.getSeparator()))
+        .dropWhile(String::isEmpty)
         .toList();
   }
 
   @Override
-  public String getAbsolutePath(FileObject file) {
-    return file.getName().getPath();
+  public String getAbsolutePath(Path file) {
+    return file.toAbsolutePath().toString();
   }
 
   @Override
-  public String getName(FileObject file) {
-    return file.getName().getBaseName();
+  public String getName(Path file) {
+    return file.getFileName().toString();
   }
 
   @Override
-  public InputStream newInputStream(FileObject file) throws IOException {
-    return file.getContent().getInputStream();
+  public InputStream newInputStream(Path file) throws IOException {
+    return Files.newInputStream(file);
   }
 
   @Override
-  public OutputStream newOutputStream(FileObject file) throws IOException {
-    return file.getContent().getOutputStream();
+  public OutputStream newOutputStream(Path file) throws IOException {
+    return Files.newOutputStream(file);
   }
 
   @Override
-  public BufferedWriter newBufferedWriter(FileObject file) throws IOException {
-    var os = file.getContent().getOutputStream();
-    return new BufferedWriter(new OutputStreamWriter(os));
+  public BufferedWriter newBufferedWriter(Path file) throws IOException {
+    return Files.newBufferedWriter(file);
   }
 
   @Override
-  public BufferedReader newBufferedReader(FileObject file) throws IOException {
-    if (!file.exists()) {
-      throw new IOException("File does not exist: " + file.getName().getPath());
-    }
-    var is = file.getContent().getInputStream();
-    return new BufferedReader(new java.io.InputStreamReader(is));
+  public BufferedReader newBufferedReader(Path file) throws IOException {
+    return Files.newBufferedReader(file);
   }
 
   @Override
-  public Stream<FileObject> list(FileObject file) throws IOException {
-    return Arrays.stream(file.getChildren());
+  public Stream<Path> list(Path file) throws IOException {
+    return Files.list(file);
   }
 
   @Override
-  public Stream<FileObject> walk(FileObject file) throws IOException {
-    return Arrays.stream(file.findFiles(new AllFileSelector()));
+  public Stream<Path> walk(Path file) throws IOException {
+    return Files.walk(file);
   }
 
   @Override
-  public boolean isDirectory(FileObject file) {
-    try {
-      return file.isFolder();
-    } catch (FileSystemException e) {
-      throw new IllegalStateException(e);
-    }
+  public boolean isDirectory(Path file) {
+    return Files.isDirectory(file);
   }
 
   @Override
-  public boolean isRegularFile(FileObject file) {
-    try {
-      return file.isFile();
-    } catch (FileSystemException e) {
-      throw new IllegalStateException(e);
-    }
+  public boolean isRegularFile(Path file) {
+    return Files.isRegularFile(file);
   }
 
   @Override
-  public FileTime getCreationTime(FileObject file) throws IOException {
-    return FileTime.fromMillis(file.getContent().getLastModifiedTime());
+  public FileTime getCreationTime(Path file) throws IOException {
+    var attrs = Files.readAttributes(file, BasicFileAttributes.class);
+    return attrs.creationTime();
   }
 
   String listAllFiles() throws IOException {
-    var bldr = new StringBuilder();
-    for (var child : ramRoot.getChildren()) {
-      listFiles(child, 0, bldr);
-    }
-    return bldr.toString();
+    var sb = new StringBuilder();
+    var printFileVisitor = new PrintFileVisitor(sb);
+    Files.walkFileTree(inMemoryRoot, printFileVisitor);
+    return sb.toString();
   }
 
-  void listFiles(FileObject current, int depth, StringBuilder strBldr) throws FileSystemException {
-    var fName = current.getName().getBaseName();
-    if (current.isFile()) {
-      addEntry(strBldr, depth, fName);
-    } else {
-      addEntry(strBldr, depth, fName + "/");
-      for (var child : current.getChildren()) {
-        listFiles(child, depth + 1, strBldr);
-      }
-    }
-  }
+  private static final class PrintFileVisitor extends SimpleFileVisitor<Path> {
+    private int depth;
+    private StringBuilder sb;
 
-  private static void addEntry(StringBuilder bldr, int depth, String msg) {
-    bldr.append(System.lineSeparator()).append("  ".repeat(depth)).append(msg);
+    private PrintFileVisitor(StringBuilder sb) {
+      this.sb = sb;
+    }
+
+    @Override
+    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+      addEntry(fileName(file));
+      return FileVisitResult.CONTINUE;
+    }
+
+    @Override
+    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
+        throws IOException {
+      addEntry(fileName(dir) + "/");
+      depth++;
+      return FileVisitResult.CONTINUE;
+    }
+
+    @Override
+    public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+      depth--;
+      return FileVisitResult.CONTINUE;
+    }
+
+    private void addEntry(String msg) {
+      sb.append(System.lineSeparator()).append("  ".repeat(depth)).append(msg);
+    }
+
+    private static String fileName(Path path) {
+      return path.getFileName() == null ? "root" : path.getFileName().toString();
+    }
   }
 }
