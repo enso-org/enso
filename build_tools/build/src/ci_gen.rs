@@ -633,7 +633,7 @@ pub fn add_backend_checks_customized(
         workflow.add_dependent(
             PRIMARY_TARGET,
             job::StandardLibraryApiCheck { engine_launcher },
-            &[build_engine_distribution_id.clone()],
+            &[&build_engine_distribution_id],
         );
     }
 
@@ -641,7 +641,7 @@ pub fn add_backend_checks_customized(
     workflow.add_dependent_customized(
         target,
         job::JvmTests { graal_edition, engine_launcher },
-        &[build_engine_distribution_id.clone()],
+        &[&build_engine_distribution_id],
         |job| {
             job.continue_on_error = continue_on_error(&target);
         },
@@ -654,7 +654,7 @@ pub fn add_backend_checks_customized(
             cloud_tests_enabled: false,
             native_image_mode: true,
         },
-        &[build_engine_distribution_id.clone()],
+        &[&build_engine_distribution_id],
         |job| {
             job.continue_on_error = continue_on_error(&target);
         },
@@ -667,7 +667,7 @@ pub fn add_backend_checks_customized(
             cloud_tests_enabled: false,
             native_image_mode: false,
         },
-        &[build_engine_distribution_id],
+        &[&build_engine_distribution_id],
         |job| {
             job.continue_on_error = continue_on_error(&target);
         },
@@ -929,14 +929,22 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
     // We run the extra tests only on Linux, as they should not contain any platform-specific
     // behavior.
     let target = PRIMARY_TARGET;
-    workflow.add(target, job::SnowflakeTests {});
-    // TODO: #12845 Add dependency on Engine Distribution
-    workflow.add(target, job::StandardLibraryTests {
-        graal_edition:       graalvm::Edition::Community,
-        engine_launcher:     engine::EngineLauncher::TestNative,
-        cloud_tests_enabled: true,
-        native_image_mode:   false,
-    });
+    let graal_edition = graalvm::Edition::Community;
+    let engine_launcher = engine::EngineLauncher::TestNative;
+    let build_engine_distribution_id =
+        workflow.add(target, job::BuildEngineDistribution { graal_edition, engine_launcher });
+    workflow.add_dependent(target, job::SnowflakeTests {}, &[&build_engine_distribution_id]);
+    workflow.add_dependent(
+        target,
+        job::StandardLibraryTests {
+            graal_edition,
+            engine_launcher,
+            cloud_tests_enabled: true,
+            native_image_mode: true,
+        },
+        &[&build_engine_distribution_id],
+    );
+
     Ok(workflow)
 }
 
