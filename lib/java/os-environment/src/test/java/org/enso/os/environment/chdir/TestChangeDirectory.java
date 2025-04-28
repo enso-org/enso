@@ -2,12 +2,19 @@ package org.enso.os.environment.chdir;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.enso.common.Platform;
 import org.graalvm.nativeimage.ImageInfo;
@@ -106,6 +113,78 @@ public class TestChangeDirectory {
     var dirExists =
         nativeApi.exists(dir.toAbsolutePath().toString(), tmpDir.getFileName().toString());
     assertFalse(dirExists);
+  }
+
+  @Test
+  public void testFindProjectRoot_AbsolutePath() throws IOException {
+    var projDir = TMP_DIR.newFolder().toPath();
+    createDummyProject(projDir);
+    var main = projDir.resolve("src").resolve("Main.enso");
+    var mainAbsPath = main.toFile().getCanonicalPath();
+    var expectedProjRoot = projDir.toFile().getCanonicalPath();
+    var actualProjRoot = nativeApi.findProjectRoot(mainAbsPath);
+    assertEquals(
+        "Should be able to find project root for " + mainAbsPath, expectedProjRoot, actualProjRoot);
+  }
+
+  /** Create Proj directory in the current working directory and try to determine its root. */
+  @Test
+  public void testFindProjectRoot_RelativePath() throws IOException {
+    var projDir = Path.of("Proj");
+    try {
+      var wasCreated = projDir.toFile().mkdir();
+      if (!wasCreated) {
+        throw new IOException(projDir + " directory already exists");
+      }
+      createDummyProject(projDir);
+      var main = projDir.resolve("src").resolve("Main.enso");
+      var mainAbsPath = main.toFile().getCanonicalPath();
+      var expectedProjRoot = projDir.toFile().getCanonicalPath();
+      var actualProjRoot = nativeApi.findProjectRoot(mainAbsPath);
+      assertEquals(
+          "Should be able to find project root for " + mainAbsPath,
+          expectedProjRoot,
+          actualProjRoot);
+    } finally {
+      deleteRecursively(projDir);
+    }
+  }
+
+  private static void deleteRecursively(Path projDir) throws IOException {
+    Files.walkFileTree(
+        projDir,
+        new SimpleFileVisitor<>() {
+          @Override
+          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+              throws IOException {
+            Files.delete(file);
+            return FileVisitResult.CONTINUE;
+          }
+
+          @Override
+          public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+            Files.delete(dir);
+            return FileVisitResult.CONTINUE;
+          }
+        });
+  }
+
+  @Test
+  public void testNoProjectRoot() throws IOException {
+    var tmpDirAbsPath = TMP_DIR.newFolder().getCanonicalPath();
+    var actualProjRoot = nativeApi.findProjectRoot(tmpDirAbsPath);
+    assertNull("Should not be able to find project root in " + tmpDirAbsPath, actualProjRoot);
+  }
+
+  private static void createDummyProject(Path projDir) throws IOException {
+    Files.write(
+        projDir.resolve("package.yaml"),
+        List.of("name: Proj", "version: 0.0.0-dev"),
+        StandardOpenOption.CREATE_NEW);
+    var dirCreated = projDir.resolve("src").toFile().mkdir();
+    assertTrue(dirCreated);
+    var main = projDir.resolve("src").resolve("Main.enso");
+    Files.write(main, List.of("main = 42"), StandardOpenOption.CREATE_NEW);
   }
 
   private String invokePwd() throws IOException, InterruptedException {

@@ -4,7 +4,7 @@
     - Start_And_Width start:Standard.Base.Data.Numbers.Integer width:Standard.Base.Data.Numbers.Integer name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)=
     - Width width:Standard.Base.Data.Numbers.Integer name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)=
 - type Fixed_Width_Format
-    - Fixed_Width layout:Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout encoding:Standard.Base.Data.Text.Encoding.Encoding= on_invalid_rows:Standard.Table.Delimited.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows= value_formatter:(Standard.Table.Data_Formatter.Data_Formatter|Standard.Base.Nothing.Nothing)=
+    - Fixed_Width layout:Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout encoding:Standard.Base.Data.Text.Encoding.Encoding= row_limit:Standard.Table.Rows_To_Read.Rows_To_Read= on_invalid_rows:Standard.Table.Delimited.Invalid_Fixed_Width_Rows.Invalid_Fixed_Width_Rows= value_formatter:(Standard.Table.Data_Formatter.Data_Formatter|Standard.Base.Nothing.Nothing)=
     - for_file_write file:Standard.Base.System.File.Generic.Writable_File.Writable_File -> Standard.Base.Any.Any
     - for_read file:Standard.Base.System.File_Format_Metadata.File_Format_Metadata -> Standard.Base.Any.Any
     - get_dropdown_options -> Standard.Base.Any.Any
