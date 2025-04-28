@@ -5,6 +5,7 @@ import java.io.PrintStream;
 import java.util.List;
 import org.apache.commons.vfs2.FileObject;
 import org.enso.compiler.Compiler;
+import org.enso.compiler.CompilerResult;
 import org.enso.compiler.context.CompilerContext.Module;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.editions.LibraryName;
@@ -16,10 +17,30 @@ import org.junit.runners.model.Statement;
 import scala.jdk.javaapi.CollectionConverters;
 
 /**
- * A {@link TestRule} to use with the {@link MockCompilerContext}.
+ * A {@link TestRule} that uses an alternative implementation of {@link
+ * org.enso.compiler.context.CompilerContext} that holds all the information about modules in
+ * memory. It is not able to resolve any standard libraries. This class only sees the modules
+ * created with {@link #createModule(QualifiedName, String)}.
  *
  * <p>I recommend to use it as a {@link org.junit.Rule}, instead of {@link org.junit.ClassRule} to
  * ensure that the whole context is reset before each test.
+ *
+ * <h2>Usage </h2>
+ *
+ * To use it, {@link #createModule(QualifiedName, String) create} the necessary amount of modules.
+ * If multiple projects (libraries, packages) are needed, ensure that the qualified names given to
+ * the {@link #createModule(QualifiedName, String)} method contain the required library names. For
+ * example:
+ *
+ * <pre>
+ *   compilerCtx.createModule(QualifiedName.fromString("local.Proj.Main", "main = 1"));
+ *   compilerCtx.createModule(QualifiedName.fromString("local.Other_Proj.Main", "main = 2"));
+ * </pre>
+ *
+ * will create two projects with one module each.
+ *
+ * <p>After modules are created, the {@link #getCompiler() compiler} can be used to compile them.
+ * The {@link CompilerResult#compiledModules() compiled IRs} can be inspected afterwards.
  */
 public final class WithMockCompilerContext implements TestRule {
   private final MockPackageRepository repo;
