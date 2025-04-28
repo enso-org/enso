@@ -9,21 +9,20 @@ import { Icon } from '#/components/Icon'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import FocusArea from '#/components/styled/FocusArea'
 import { useBackendQuery } from '#/hooks/backendHooks'
-import type { LambdaKind } from '#/layouts/Settings/lambdaKinds'
-import {
-  DEFAULT_EVENT_ICON,
-  EVENT_TYPE_ICON,
-  EVENT_TYPE_NAME_ID,
-  IS_EVENT_HIDDEN_BY_DEFAULT,
-  normalizeLambdaKind,
-  ORDERED_LAMBDA_KINDS,
-} from '#/layouts/Settings/lambdaKinds'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { type AuditLogEvent } from '#/services/Backend'
 import { iconIdFor, nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { toReadableIsoString, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import {
+  DEFAULT_EVENT_ICON,
+  EVENT_TYPE_ICON,
+  EVENT_TYPE_NAME_ID,
+  LAMBDA_KINDS,
+  normalizeLambdaKind,
+  type LambdaKind,
+} from './lambdaKinds'
 
 const GET_LOG_EVENTS_PAGE_SIZE = 1000
 
@@ -74,7 +73,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const logs = logsQuery.data
 
   const filteredLogs = React.useMemo(() => {
-    const typesSet = new Set(types.length > 0 ? types : ORDERED_LAMBDA_KINDS)
+    const typesSet = new Set(types.length > 0 ? types : LAMBDA_KINDS)
     const emailsSet = new Set(emails.length > 0 ? emails : allEmails)
     return logs?.filter((log) => {
       const date = log.timestamp == null ? null : fromDate(new Date(log.timestamp), 'UTC')
@@ -83,9 +82,6 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       }
       const kind = normalizeLambdaKind(log.lambdaKind)
       if (!kind.valid) {
-        return false
-      }
-      if (IS_EVENT_HIDDEN_BY_DEFAULT[kind.kind] && !types.includes(kind.kind)) {
         return false
       }
       if (!typesSet.has(kind.kind)) {
@@ -120,11 +116,9 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
               return -multiplier
             }
             const aKind = normalizeLambdaKind(a.lambdaKind)
-            const aIndex =
-              aKind.valid ? ORDERED_LAMBDA_KINDS.indexOf(aKind.kind) : ORDERED_LAMBDA_KINDS.length
+            const aIndex = aKind.valid ? LAMBDA_KINDS.indexOf(aKind.kind) : LAMBDA_KINDS.length
             const bKind = normalizeLambdaKind(b.lambdaKind)
-            const bIndex =
-              bKind.valid ? ORDERED_LAMBDA_KINDS.indexOf(bKind.kind) : ORDERED_LAMBDA_KINDS.length
+            const bIndex = bKind.valid ? LAMBDA_KINDS.indexOf(bKind.kind) : LAMBDA_KINDS.length
             return multiplier * (aIndex - bIndex)
           }
           break
@@ -182,10 +176,10 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
               <Dropdown
                 aria-label={getText('types')}
                 multiple
-                items={ORDERED_LAMBDA_KINDS}
+                items={LAMBDA_KINDS}
                 selectedIndices={typeIndices}
                 renderMultiple={({ items }) =>
-                  items.length === 0 || items.length === ORDERED_LAMBDA_KINDS.length ?
+                  items.length === 0 || items.length === LAMBDA_KINDS.length ?
                     'All'
                   : (items[0] != null ? getText(EVENT_TYPE_NAME_ID[items[0]]) : '') +
                     (items.length <= 1 ? '' : ` (+${items.length - 1})`)

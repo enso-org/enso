@@ -20,7 +20,7 @@ export function normalizeLambdaKind(lambdaKind: string) {
 export const DEFAULT_EVENT_ICON = 'log' satisfies SvgUseIcon
 
 /** Lambda kinds for events, ordered roughly in order of decreasing level of admin access. */
-export const ORDERED_LAMBDA_KINDS = [
+const ORDERED_LAMBDA_KINDS = [
   'POST /auth',
   'GET /organizations/me',
   'PATCH /organizations/me',
@@ -97,11 +97,16 @@ export const ORDERED_LAMBDA_KINDS = [
   'GET /path/resolve',
 ] as const
 
+export const LAMBDA_KINDS = ORDERED_LAMBDA_KINDS.filter(
+  (kind) => IS_EVENT_HIDDEN_BY_DEFAULT[kind] !== true,
+)
+
 // eslint-disable-next-line no-restricted-syntax
 export const isLambdaKind = includesPredicate(ORDERED_LAMBDA_KINDS)
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export const IS_EVENT_HIDDEN_BY_DEFAULT: Partial<Record<LambdaKind, true>> = {
+  'GET /directories/{DIRECTORY_ID}': true,
   'GET /organizations/me': true,
   'GET /usergroups': true,
   'GET /users': true,
