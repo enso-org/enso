@@ -5,9 +5,6 @@ import fansi.Str
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.{Diagnostic, IdentifiedLocation, Warning}
 
-import java.nio.file.Path
-import scala.annotation.tailrec
-
 /** Formatter of IR diagnostics. Heavily inspired by GCC. Can format one-line as well as multiline
   * diagnostics. The output is colorized if the output stream supports ANSI colors.
   * Also prints the offending lines from the source along with line number - the same way as
