@@ -96,6 +96,9 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         t = Table.input [['Mixed', ['a', 1]]]
         r = t.write written_file
         r.should_fail_with Unsupported_Type
+        ## TODO
+           written_file.exists.should_equal False
+        written_file.delete
 
     group_builder.specify "should be able to write all the types at once" <|
         t1 = enso_project.data/'all_data_types.csv' . read
