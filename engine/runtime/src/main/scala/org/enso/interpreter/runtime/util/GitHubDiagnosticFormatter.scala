@@ -20,8 +20,8 @@ private[util] class GitHubDiagnosticFormatter(
     ) {
 
   override def format(): String = {
-    createAnnotationCommandFor(sectionForDisplay).format() + "\n" + super
-      .format()
+    val githubCommand = createAnnotationCommandFor(sectionForDisplay).format()
+    githubCommand + "\n" + super.format()
   }
 
   private case class GithubAnnotation(
