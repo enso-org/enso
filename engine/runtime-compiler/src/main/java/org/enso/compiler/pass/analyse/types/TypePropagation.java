@@ -285,12 +285,13 @@ abstract class TypePropagation {
                     }
                   }
 
-                  // TODO
+                  // If default value is present, make sure that its type is compatible with the ascription.
                   if (arg.defaultValue().isDefined()) {
+                    var defaultValue = arg.defaultValue().get();
                     var defaultValueTyp =
-                        tryInferringType(arg.defaultValue().get(), localBindingsTyping);
+                        tryInferringType(defaultValue, localBindingsTyping);
                     if (defaultValueTyp != null && resolvedTyp != null) {
-                      checkTypeCompatibility(arg, resolvedTyp, defaultValueTyp);
+                      checkTypeCompatibility(defaultValue, resolvedTyp, defaultValueTyp);
                     }
                   }
 
