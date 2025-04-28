@@ -64,6 +64,7 @@ export function useFileBrowserStack(
   listDirectory: (dir: Directory) => Promise<readonly AnyAsset<AssetType>[]>,
 ) {
   const filenameInputContents = ref<string>('')
+  const fileExtensionInputContents = ref<string>('')
   const directoryStack = ref<Directory[]>([])
   const isDirectoryStackInitializing = computed(() => directoryStack.value.length === 0)
   const currentDirectory = computed(() => directoryStack.value[directoryStack.value.length - 1])
@@ -105,7 +106,7 @@ export function useFileBrowserStack(
     () =>
       filenameInputContents.value &&
       currentPath.value &&
-      `${currentPath.value}${filenameInputContents.value}`,
+      `${currentPath.value}${filenameInputContents.value}${fileExtensionInputContents.value ? `.${fileExtensionInputContents.value}` : ''}`,
   )
 
   type AssetExists = { exists: true; type: AssetType } | { exists: false }
@@ -183,7 +184,13 @@ export function useFileBrowserStack(
             breakReason === 'notDir' ||
             (breakReason === 'notFound' && index == toEnter.length - 1)
           ) {
-            filenameInputContents.value = name
+            const extensionDot = name.lastIndexOf('.')
+            if (extensionDot !== -1) {
+              fileExtensionInputContents.value = name.slice(extensionDot + 1)
+              filenameInputContents.value = name.slice(0, extensionDot)
+            } else {
+              filenameInputContents.value = name
+            }
           } else if (breakReason != 'notFound') {
             return result
           }
@@ -197,6 +204,7 @@ export function useFileBrowserStack(
 
   return {
     filenameInputContents,
+    fileExtensionInputContents,
     directoryStack,
     currentDirectory,
     currentPath,

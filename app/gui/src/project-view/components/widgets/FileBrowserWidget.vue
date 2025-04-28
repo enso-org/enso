@@ -68,6 +68,7 @@ const currentOrganization = query('getOrganization', [])
 
 const {
   filenameInputContents,
+  fileExtensionInputContents,
   directoryStack,
   currentDirectory,
   currentFilePath,
@@ -111,6 +112,7 @@ const compareTitle = (a: { title: string }, b: { title: string }) => a.title.loc
 const directories = computed(
   () => data.value && data.value.filter((asset) => assetIsDirectory(asset)).sort(compareTitle),
 )
+
 function assetIsTargetType(asset: AnyAsset): asset is TargetType {
   switch (props.type) {
     case 'file':
@@ -120,11 +122,18 @@ function assetIsTargetType(asset: AnyAsset): asset is TargetType {
   }
 }
 const files = computed<TargetType[]>(
-  () => data.value?.filter(assetIsTargetType).sort(compareTitle) ?? [],
+  () => data.value?.filter(assetIsTargetType).filter(extensionMatches).sort(compareTitle) ?? [],
 )
 const isEmpty = computed(
   () => directories.value?.length === 0 && files.value?.length === 0 && editedAsset.value == null,
 )
+
+function extensionMatches(file: TargetType): boolean {
+  return (
+    fileExtensionInputContents.value === '*' ||
+    file.title.endsWith(fileExtensionInputContents.value)
+  )
+}
 
 // === Prefetching ===
 
@@ -319,6 +328,11 @@ const fileExtensionEntries = computed(() => {
   return [
     {
       tag: ExpressionTag.FromExpression(suggestions, projectNames, 'something'),
+      value: '*',
+      selected: false,
+    },
+    {
+      tag: ExpressionTag.FromExpression(suggestions, projectNames, 'something'),
       value: 'json',
       selected: false,
     },
@@ -356,21 +370,25 @@ const fileExtensionDropdownInteraction: Interaction = endOnClickOutside(rootElem
 
 interaction.setWhenWithParent(
   () => fileExtensionDropdownOpened.value,
-  fileExtensionDropdownInteraction,
+  (parentInteraction) => ({ ...fileExtensionDropdownInteraction, parentInteraction }),
 )
+
+const fileExtensionInputRef = useTemplateRef('fileExtensionInput')
 
 function openDropdown() {
   if (!fileExtensionDropdownOpened.value) {
     fileExtensionDropdownOpened.value = true
   }
+  fileExtensionInputRef.value?.select()
 }
-
-const fileExtensionModel = ref('')
 
 function extensionSelected(entry: Entry) {
   console.log('extension selected', entry)
   interaction.end(fileExtensionDropdownInteraction)
-  fileExtensionModel.value = entry.value
+  if (fileExtensionInputContents.value !== entry.value) {
+    filenameInputContents.value = ''
+  }
+  fileExtensionInputContents.value = entry.value
 }
 </script>
 
@@ -484,7 +502,8 @@ function extensionSelected(entry: Entry) {
             :class="{ hovered: false }"
           />
           <input
-            v-model="fileExtensionModel"
+            ref="fileExtensionInput"
+            v-model="fileExtensionInputContents"
             class="inputField fileExtensionInput"
             @pointerdown.stop
             @contextmenu.stop
