@@ -3,6 +3,9 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Errors.Common import Uninitialized_State, Type_Error, Not_Found, Private_Access
 from enso_dev.Helpers import Public_Type
+import project.Data.Complex_Helpers
+import project.Data.Complex_Helpers.Complex_Comparator
+
 
 polyglot java import java.lang.Object as JObject
 polyglot java import java.lang.Long as JLong
@@ -131,6 +134,14 @@ add_specs suite_builder =
             # neither private_instance_method nor private_static_method
             # are in the list
             arr.filter (\n->n.contains "_method") . should_equal []
+
+        group_builder.specify "prevent access to private module's type" <|
+            private_typ = Complex_Comparator
+            Meta.meta private_typ . should_fail_with Private_Access
+
+        group_builder.specify "prevent access to private module" <|
+            private_mod = Complex_Helpers
+            Meta.meta private_mod . should_fail_with Private_Access
 
         group_builder.specify "prevent getting fields from private constructor in the same project" <|
             # type R has all constructors private
