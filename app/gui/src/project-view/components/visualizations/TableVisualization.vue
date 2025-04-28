@@ -170,35 +170,32 @@ const grid = ref<
 >()
 
 const getSvgTemplate = (icon: string) =>
-    `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
+  `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
 
-const getContextMenuItems = (params: GetContextMenuItemsParams) => [
-  commonContextMenuActions.copy,
-  commonContextMenuActions.copyWithHeaders,
-  'separator',
-  'export',
-  {
-    name: 'Get Column',
-    action: () => {
-      createValueNode(params.column?.colId, undefined,'at')
-    },
-    icon: getSvgTemplate('select_column')
-  },
-  {
-    name: 'Get Row',
-    action: () => {
-      createValueNode(undefined, params.node?.rowIndex, 'get_row')
-    },
-    icon: getSvgTemplate('select_row')
-  },
-  {
-    name: 'Get Value',
-    action: () => {
-      createValueNode(params.column?.colId, params.node?.rowIndex, 'get_value')
-    },
-    icon: getSvgTemplate('local_scope4')
-  },
-]
+const getContextMenuItems = (params: GetContextMenuItemsParams) => {
+  const { colId } = params.column ?? {}
+  const { rowIndex } = params.node ?? {}
+
+  const actions = [
+    { name: 'Get Column', action: 'at', colId, icon: 'select_column' },
+    { name: 'Get Row', action: 'get_row', rowIndex, icon: 'select_row' },
+    { name: 'Get Value', action: 'get_value', colId, rowIndex, icon: 'local_scope4' },
+  ]
+
+  const createMenuItem = ({ name, action, colId, rowIndex, icon }: (typeof actions)[number]) => ({
+    name,
+    action: () => createValueNode(colId, rowIndex, action),
+    icon: getSvgTemplate(icon),
+  })
+
+  return [
+    commonContextMenuActions.copy,
+    commonContextMenuActions.copyWithHeaders,
+    'separator',
+    'export',
+    ...actions.map(createMenuItem),
+  ]
+}
 
 function getAstValuePattern(value?: string | number, action?: string) {
   if (action && value != null) {
@@ -213,35 +210,37 @@ function getAstValuePattern(value?: string | number, action?: string) {
   }
 }
 
-function getAstGetValuePattern(columnId?: string | number, rowIndex?: string | number, action?: string) {
+function getAstGetValuePattern(
+  columnId?: string | number,
+  rowIndex?: string | number,
+  action?: string,
+) {
   if (action && columnId && rowIndex != null) {
     const pattern = Pattern.parseExpression('__ __')
-    return Pattern.new<Ast.Expression>((ast) => 
+    return Pattern.new<Ast.Expression>((ast) =>
       Ast.App.positional(
         Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('get_value')!),
-        pattern.instantiateCopied([Ast.TextLiteral.new(columnId as string, ast.module), Ast.tryNumberToEnso(rowIndex as number, ast.module)])
+        pattern.instantiateCopied([
+          Ast.TextLiteral.new(columnId as string, ast.module),
+          Ast.tryNumberToEnso(rowIndex as number, ast.module)!,
+        ]),
       ),
     )
   }
 }
 
-
-function createValueNode(
-  columnId?: string,
-  rowIndex?: number,
-  action?: string,
-) {
-  let pattern;
-  if(action === 'at' && columnId != null) {
+function createValueNode(columnId?: string | null, rowIndex?: number | null, action?: string) {
+  let pattern
+  if (action === 'at' && columnId != null) {
     pattern = getAstValuePattern(columnId, action)
   }
-  if(action === 'get_row' && rowIndex != null) {
+  if (action === 'get_row' && rowIndex != null) {
     pattern = getAstValuePattern(rowIndex, action)
   }
-  if(action === 'get_value'  && columnId != null && rowIndex != null) {
+  if (action === 'get_value' && columnId != null && rowIndex != null) {
     pattern = getAstGetValuePattern(columnId, rowIndex, action)
   }
-  
+
   if (pattern) {
     config.createNodes({
       content: pattern,
@@ -249,7 +248,6 @@ function createValueNode(
     })
   }
 }
-
 
 const allRowCount = computed(() =>
   typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
@@ -658,8 +656,6 @@ function toField(
   const showDataQuality =
     dataQualityMetrics.filter((obj) => (Object.values(obj)[0] as number) > 0).length > 0
 
-  const getSvgTemplate = (icon: string) =>
-    `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
   const svgTemplateWarning = showDataQuality ? getSvgTemplate('warning') : ''
   const menu = `<span data-ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"> </span>`
   const filterButton = `<span data-ref="eFilterButton" class="ag-header-icon ag-header-cell-filter-button" aria-hidden="true"></span>`
