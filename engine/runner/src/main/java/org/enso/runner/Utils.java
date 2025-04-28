@@ -24,14 +24,14 @@ final class Utils {
    *     execution shall finish
    */
   static scala.Tuple3<Boolean, File, String> findFileAndProject(String path, String projectPath)
-      throws IOException {
+      throws IOException, ExitCode {
     var file = new File(path);
     if (!file.exists()) {
       // It is possible that the current working directory was changed to the
       // parent directory of project root. In that case, we need to iterate
       // the names of the given path from left to right.
       var p = Path.of(path);
-      while (p.getNameCount() != 0) {
+      while (p.getNameCount() > 1) {
         if (p.toFile().exists()) {
           file = p.toFile();
           break;
@@ -39,8 +39,7 @@ final class Utils {
         p = p.subpath(1, p.getNameCount());
       }
       if (!file.exists()) {
-        System.err.println("File " + file + " does not exist.");
-        return null;
+        throw new ExitCode("File " + file + " does not exist.", 1);
       }
     }
     var projectMode = file.isDirectory();
@@ -58,8 +57,7 @@ final class Utils {
                   + canonicalProjectFile
                   + "), please do not use the `--in-project` option for "
                   + "running projects.";
-          System.err.println(msg);
-          return null;
+          throw new ExitCode(msg, 1);
         }
       }
       projectRoot = canonicalFile.getPath();

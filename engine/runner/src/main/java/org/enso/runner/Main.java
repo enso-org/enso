@@ -659,9 +659,7 @@ public class Main {
       boolean logMasking)
       throws IOException {
     var fileAndProject = Utils.findFileAndProject(path, null);
-    if (fileAndProject == null) {
-      throw exitFail("No package exists at " + path + ".");
-    }
+    assert fileAndProject != null;
 
     boolean isProjectMode = fileAndProject._1();
     String projectPath = fileAndProject._3();
@@ -729,9 +727,7 @@ public class Main {
       int warningsLimit)
       throws IOException {
     var fileAndProject = Utils.findFileAndProject(path, projectPath);
-    if (fileAndProject == null) {
-      throw exitFail("Cannot find " + path + " and " + projectPath);
-    }
+    assert fileAndProject != null;
     var projectMode = fileAndProject._1();
     var file = fileAndProject._2();
     var mainFile = file;
@@ -1634,6 +1630,8 @@ public class Main {
                 mainEntry(line, logLevel, logMasking);
                 return BoxedUnit.UNIT;
               });
+        } catch (ExitCode ex) {
+          throw exitFail(ex.getMessage());
         } catch (IOException ex) {
           if (logger.isDebugEnabled()) {
             logger.error("Error during execution", ex);

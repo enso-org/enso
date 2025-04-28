@@ -3,8 +3,10 @@ package org.enso.runner;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +32,37 @@ public class EngineMainTest {
       assertEquals("One line printed", 1, linesOut.size());
       assertEquals("Unrecognized option: --repl --inspect", linesOut.get(0));
       assertTrue("Also help was printed", m.helpPrinted);
+    }
+  }
+
+  /**
+   * Following code used to yield an error.
+   *
+   * <pre>
+   * java.lang.IllegalArgumentException: null
+   *   at sun.nio.fs.UnixPath.subpath(UnixPath.java:338)
+   *   at sun.nio.fs.UnixPath.subpath(UnixPath.java:52)
+   *   at org.enso.runner.Utils.findFileAndProject(Utils.java:39)
+   *   at org.enso.runner.Main.handleRun(Main.java:731)
+   *   at org.enso.runner.Main.mainEntry(Main.java:1165)
+   *   at org.enso.runner.EngineMainTest.nonExistingFile(EngineMainTest.java:57)
+   * </pre>
+   */
+  @Test
+  public void nonExistingFile() throws Exception {
+    var m = new MainMock();
+    var dir = tempDir.newFolder();
+    var file = new File(dir, "non_existing.enso");
+    try {
+      var line = m.preprocessArguments("--run", file.getAbsolutePath());
+      m.mainEntry(line, Level.INFO, false);
+    } catch (ExitCode ex) {
+      assertEquals("Execution fails", 1, ex.exitCode);
+      assertEquals("No special output printed", 0, linesOut.size());
+      assertFalse("No help was printed", m.helpPrinted);
+      var out = ex.getMessage();
+      assertEquals("No 'null' in the message: " + out, -1, out.indexOf("null"));
+      assertEquals("File " + file + " does not exist.", out);
     }
   }
 
@@ -111,7 +144,7 @@ public class EngineMainTest {
 
     @Override
     RuntimeException doExit(int exitCode) {
-      throw new ExitCode(exitCode);
+      throw raise(RuntimeException.class, new ExitCode("MockExit", exitCode));
     }
 
     @Override
@@ -130,11 +163,8 @@ public class EngineMainTest {
     }
   }
 
-  private static final class ExitCode extends RuntimeException {
-    final int exitCode;
-
-    ExitCode(int exitCode) {
-      this.exitCode = exitCode;
-    }
+  @SuppressWarnings("unchecked")
+  private static <E extends Throwable> E raise(Class<E> clazz, Throwable t) throws E {
+    throw (E) t;
   }
 }
