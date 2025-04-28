@@ -95,6 +95,7 @@
 - make_fill_nothing_default_widget table:Standard.Base.Any.Any cache:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - make_join_helpers left_table:Standard.Base.Any.Any right_table:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - slice_ranges table:Standard.Base.Any.Any ranges:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- to_java_table table:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Table.Table.Table.from that:Standard.Table.Column.Column -> Standard.Table.Table.Table
 - Standard.Table.Table.Table.from that:Standard.Base.Data.Text.Text format:Standard.Base.Any.Any= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
 - Standard.Table.Table.Table.from that:Standard.Base.Data.Vector.Vector fields:(Standard.Base.Data.Vector.Vector|Standard.Base.Nothing.Nothing)= -> Standard.Table.Table.Table

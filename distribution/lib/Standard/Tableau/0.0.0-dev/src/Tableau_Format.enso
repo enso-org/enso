@@ -9,7 +9,7 @@ import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Metadata.Choice import Option
 from Standard.Table import Table
-import Standard.Table.Internal.Java_Table_Access.Java_Table_Access
+from Standard.Table.Table import to_java_table
 from Standard.Table.Match_Columns import Match_Columns
 
 import project.Hyper_Errors
@@ -96,8 +96,7 @@ type Tableau_Format
                     Tableau_Format.Hyper_File _ -> "Extract"
                     Tableau_Format.Hyper_Table _ t -> t
                 Hyper_Errors.handle_java_exceptions <|
-                    jtable = (Java_Table_Access.Value table).java_table
-                    HyperFormat.writeTable resolved_file resolved_schema resolved_table jtable
+                    HyperFormat.writeTable resolved_file resolved_schema resolved_table (to_java_table table)
                 File.new resolved_file
 
 private _find_bak_file base_file:File -> File =

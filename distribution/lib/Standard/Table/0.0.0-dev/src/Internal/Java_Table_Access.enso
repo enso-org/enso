@@ -1,9 +1,0 @@
-from Standard.Base import all
-
-## PRIVATE
-   Internal Enso use only. Allows access to the underlying java_table for modules outside of Standard.Table
-type Java_Table_Access
-    Value table
-
-    java_table self =
-        self.table.java_table
