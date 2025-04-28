@@ -30,14 +30,14 @@ class DiagnosticFormatter(
   private val linePrefixSize                 = blankLinePrefix.length
   private val outSupportsAnsiColors: Boolean = outSupportsColors
 
-  sealed private trait DiagnosticKind
+  sealed protected trait DiagnosticKind
 
-  private object DiagnosticKind {
+  protected object DiagnosticKind {
     case object Error   extends DiagnosticKind
     case object Warning extends DiagnosticKind
   }
 
-  private val diagnosticKind: DiagnosticKind = diagnostic match {
+  protected val diagnosticKind: DiagnosticKind = diagnostic match {
     case _: Error   => DiagnosticKind.Error
     case _: Warning => DiagnosticKind.Warning
     case _          => throw new IllegalStateException("Unexpected diagnostic type")
@@ -53,24 +53,22 @@ class DiagnosticFormatter(
     case DiagnosticKind.Warning => "warning: "
   }
 
-  private lazy val location = computeLocation()
+  protected lazy val location: Location = computeLocation()
 
   def format(): String = {
     val str = location.format()
-    val text = if (outSupportsAnsiColors) {
+    if (outSupportsAnsiColors) {
       str.render.stripLineEnd
     } else {
       str.plainText.stripLineEnd
     }
-
-    if (includeGithubAnnotation) {
-      location.asGithubAnnotation().format() + "\n" + text
-    } else text
   }
 
-  def where(): SourceSection = location.sourceSection
+  final def where(): SourceSection = location.sourceSection
 
-  def fileLocationFromSection(loc: IdentifiedLocation): String = {
+  final protected def fileLocationFromSection(
+    loc: IdentifiedLocation
+  ): String = {
     val section =
       source.createSection(loc.location().start(), loc.location().length());
     val locStr = "" + section.getStartLine() + ":" + section
@@ -95,13 +93,12 @@ class DiagnosticFormatter(
     case None => false
   }
 
-  sealed private trait Location {
-    def sourceSection:        SourceSection
-    def format():             fansi.Str
-    def asGithubAnnotation(): GithubAnnotation
+  sealed protected trait Location {
+    def sourceSection: SourceSection
+    def format():      fansi.Str
   }
 
-  private object Location {
+  protected object Location {
     sealed trait FileLocation
     case class SourcePath(path: String) extends FileLocation {
       override def toString: String = path
@@ -114,7 +111,7 @@ class DiagnosticFormatter(
     }
   }
 
-  private case class SingleLineSection(
+  protected case class SingleLineSection(
     sourceSection: SourceSection,
     fileLocation: Location.FileLocation,
     lineNumber: Int,
@@ -139,20 +136,9 @@ class DiagnosticFormatter(
       }
       str
     }
-
-    override def asGithubAnnotation(): GithubAnnotation =
-      GithubAnnotation(
-        kind    = diagnosticKind,
-        message = diagnostic.formattedMessage(fileLocationFromSection),
-        file    = fileLocation,
-        line    = Some(lineNumber),
-        endLine = None,
-        col     = Some(startColumn),
-        endCol  = Some(endColumn)
-      )
   }
 
-  private case class MultiLineSection(
+  protected case class MultiLineSection(
     sourceSection: SourceSection,
     fileLocation: Location.FileLocation,
     startLine: Int,
@@ -187,20 +173,9 @@ class DiagnosticFormatter(
       }
       str
     }
-
-    override def asGithubAnnotation(): GithubAnnotation =
-      GithubAnnotation(
-        kind    = diagnosticKind,
-        message = diagnostic.formattedMessage(fileLocationFromSection),
-        file    = fileLocation,
-        line    = Some(startLine),
-        endLine = Some(endLine),
-        col     = Some(startColumn),
-        endCol  = Some(endColumn)
-      )
   }
 
-  private case class UnknownSection(
+  protected case class UnknownSection(
     fileLocation: Location.FileLocation
   ) extends Location {
     override def sourceSection: SourceSection = null
@@ -215,17 +190,6 @@ class DiagnosticFormatter(
       str ++= diagnostic.formattedMessage(fileLocationFromSection)
       str
     }
-
-    override def asGithubAnnotation(): GithubAnnotation =
-      GithubAnnotation(
-        kind    = diagnosticKind,
-        message = diagnostic.formattedMessage(fileLocationFromSection),
-        file    = fileLocation,
-        line    = None,
-        endLine = None,
-        col     = None,
-        endCol  = None
-      )
   }
 
   private def computeLocation(): Location = {
@@ -323,81 +287,27 @@ class DiagnosticFormatter(
     fansi.Str("^" + ("~" * sectionLen)).overlay(textAttrs)
   }
 
-  private def includeGithubAnnotation: Boolean =
-    sys.env.get("GITHUB_ACTIONS").contains("true")
+}
 
-  private case class GithubAnnotation(
-    kind: DiagnosticKind,
-    message: String,
-    file: Location.FileLocation,
-    line: Option[Int],
-    col: Option[Int],
-    endLine: Option[Int],
-    endCol: Option[Int]
-  ) {
-    def format(): String = {
-      val annotationLevel = kind match {
-        case DiagnosticKind.Error   => "error"
-        case DiagnosticKind.Warning => "warning"
-      }
-
-      val title = kind match {
-        case DiagnosticKind.Error   => s"Enso Compiler Error @ $file"
-        case DiagnosticKind.Warning => s"Enso Compiler Warning @ $file"
-      }
-
-      val path = file match {
-        case Location.SourcePath(path) =>
-          RepositoryFinder.root
-            .map(_.relativize(Path.of(path)))
-            .map(_.toString)
-            .getOrElse(path)
-        case _ => file.toString
-      }
-      val parameters = Map(
-        "file"             -> sanitizeParameter(path),
-        "title"            -> sanitizeParameter(title)
-      ) ++ line.map("line" -> _.toString) ++ col.map(
-        "col" -> _.toString
-      ) ++ endLine.map("endLine" -> _.toString) ++ endCol.map(
-        "endCol" -> _.toString
+object DiagnosticFormatter {
+  def make(
+    diagnostic: Diagnostic,
+    source: Source,
+    isOutputRedirected: Boolean,
+    isColorTerminalOutput: Boolean
+  ): DiagnosticFormatter =
+    if (GitHubDiagnosticFormatter.shouldIncludeGithubAnnotations)
+      new GitHubDiagnosticFormatter(
+        diagnostic,
+        source,
+        isOutputRedirected,
+        isColorTerminalOutput
       )
-
-      val parametersStr = parameters
-        .map { case (k, v) => s"$k=$v" }
-        .mkString(",")
-
-      s"::${annotationLevel} $parametersStr::${sanitizeMessage(message)}"
-    }
-
-    private def sanitizeMessage(message: String): String = {
-      message.replace("%", "%25").replace("\n", "%0A").replace("::", "%3A%3A")
-    }
-
-    private def sanitizeParameter(message: String): String = {
-      sanitizeMessage(message).replace(",", "%2C")
-    }
-  }
-
-  private object RepositoryFinder {
-    @tailrec
-    private def findRepositoryRoot(path: Path): Option[Path] = {
-      val gitDir = path.resolve(".git")
-      if (gitDir.toFile.exists()) {
-        Some(path)
-      } else {
-        val parent = path.getParent
-        if (parent != null) {
-          findRepositoryRoot(parent)
-        } else {
-          None
-        }
-      }
-    }
-
-    lazy val root: Option[Path] = {
-      val currentDir = Path.of(".").toAbsolutePath.normalize()
-      findRepositoryRoot(currentDir)
-    }
-  }
+    else
+      new DiagnosticFormatter(
+        diagnostic,
+        source,
+        isOutputRedirected,
+        isColorTerminalOutput
+      )
 }

@@ -288,7 +288,7 @@ final class TruffleCompilerContext implements CompilerContext {
         }
         assert source != null;
         diagnosticFormatter =
-            new DiagnosticFormatter(
+            DiagnosticFormatter.make(
                 diagnostic, source, isOutputRedirected, context.isColorTerminalOutput());
         return new CompilationAbortedException(
             diagnosticFormatter.format(), diagnosticFormatter.where());
@@ -296,7 +296,7 @@ final class TruffleCompilerContext implements CompilerContext {
     }
     var emptySource = Source.newBuilder(LanguageInfo.ID, "", null).build();
     diagnosticFormatter =
-        new DiagnosticFormatter(
+        DiagnosticFormatter.make(
             diagnostic, emptySource, isOutputRedirected, context.isColorTerminalOutput());
     return new CompilationAbortedException(diagnosticFormatter.format(), null);
   }
