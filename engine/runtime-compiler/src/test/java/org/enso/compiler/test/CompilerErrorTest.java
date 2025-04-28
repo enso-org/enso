@@ -8,9 +8,7 @@ import static org.junit.Assert.fail;
 
 import org.enso.compiler.core.ir.expression.errors.Redefined;
 import org.enso.compiler.test.mock.DiagnosticException;
-import org.enso.compiler.test.mock.SourceModule;
 import org.enso.compiler.test.mock.WithMockCompilerContext;
-import org.enso.editions.LibraryName;
 import org.enso.pkg.QualifiedName;
 import org.junit.Rule;
 import org.junit.Test;
@@ -20,16 +18,13 @@ public final class CompilerErrorTest {
 
   @Test
   public void variablesIsRedefinedInIfBranch() {
-    var modName = QualifiedName.fromString("Check");
+    var modName = QualifiedName.fromString("local.Proj.Check");
     var code = """
     check x =
         x = 'No'
         x == 'False'
     """;
-    var pkgName = LibraryName.apply("local", "Proj");
-    var pkg = compilerCtx.createPackage(pkgName, new SourceModule(modName, code));
-    compilerCtx.registerMainProjectPackage(pkgName, pkg);
-    var m = compilerCtx.getLoadedModules().get(0);
+    var m = compilerCtx.createModule(modName, code);
     try {
       var res = compilerCtx.getCompiler().run(m);
       fail("Compilation shall fail, but got: " + res);

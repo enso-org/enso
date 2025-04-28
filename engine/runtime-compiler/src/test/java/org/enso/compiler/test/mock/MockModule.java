@@ -103,7 +103,7 @@ final class MockModule extends CompilerContext.Module {
 
   @Override
   public boolean isPrivate() {
-    throw new UnsupportedOperationException();
+    return false;
   }
 
   @Override

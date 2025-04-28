@@ -30,6 +30,12 @@ final class VirtualFileSystem implements FileSystem<FileObject> {
     this.ramRoot = ramRoot;
   }
 
+  static void write(FileObject file, String content) throws IOException {
+    try (var out = new OutputStreamWriter(file.getContent().getOutputStream())) {
+      out.write(content);
+    }
+  }
+
   public void deleteAll() throws IOException {
     for (var child : ramRoot.getChildren()) {
       child.deleteAll();

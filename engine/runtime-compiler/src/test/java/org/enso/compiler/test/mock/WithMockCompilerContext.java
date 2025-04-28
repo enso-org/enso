@@ -3,7 +3,6 @@ package org.enso.compiler.test.mock;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.List;
-import java.util.Set;
 import org.apache.commons.vfs2.FileObject;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.context.CompilerContext.Module;
@@ -45,27 +44,21 @@ public final class WithMockCompilerContext implements TestRule {
     return new Builder();
   }
 
-  public MockPackageRepository getRepo() {
-    return repo;
-  }
-
   public Compiler getCompiler() {
     return compiler;
   }
 
-  public Package<FileObject> createPackage(LibraryName pkgName, SourceModule module) {
-    return repo.createPackage(pkgName, module);
-  }
-
   /**
-   * Create a package with the given set of source modules in the virtual file system.
+   * Creates a single module with the given name and content in the virtual file system. If the
+   * package that the module is contained in does not exist, it will be created. If the module with
+   * the name already exists, an {@link IllegalArgumentException} is thrown.
    *
-   * @param pkgName
-   * @param modules
-   * @return Created package, or null if an error occurred.
+   * @param modName Qualified name of the module.
+   * @param content Content of the module.
+   * @return Created module. Not null.
    */
-  public Package<FileObject> createPackage(LibraryName pkgName, Set<SourceModule> modules) {
-    return repo.createPackage(pkgName, modules);
+  public Module createModule(QualifiedName modName, String content) {
+    return repo.createModule(modName, content);
   }
 
   public void registerMainProjectPackage(LibraryName pkgName, Package<FileObject> mainPkg) {

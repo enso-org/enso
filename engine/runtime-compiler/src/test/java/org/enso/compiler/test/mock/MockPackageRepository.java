@@ -1,11 +1,9 @@
 package org.enso.compiler.test.mock;
 
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
@@ -67,55 +65,60 @@ final class MockPackageRepository implements PackageRepository {
     return vfs;
   }
 
-  Package<FileObject> createPackage(LibraryName pkgName, Set<SourceModule> modules) {
-    Package<FileObject> pkg = null;
-    try {
-      var pkgRoot = vfsRoot.resolveFile(pkgName.namespace()).resolveFile(pkgName.name());
-      pkg = pkgManager.getOrCreate(pkgRoot);
-      // Delete all the automatically created sources, and replace them with
-      // our custom sources
-      for (var src : pkg.listSourcesJava()) {
-        src.file().delete();
-      }
-      var srcDir = pkg.sourceDir();
-      for (var module : modules) {
-        var srcPath = module.name().pathAsJava();
-        var srcName = module.name().item() + ".enso";
-        var subSrcDir = srcDir.resolveFile(String.join("/", srcPath));
-        subSrcDir.createFolder();
-        var srcFile = subSrcDir.resolveFile(srcName);
-        srcFile.createFile();
-        try (var os = new OutputStreamWriter(srcFile.getContent().getOutputStream())) {
-          os.write(module.content());
-        } catch (IOException e) {
-          LOGGER.error("Failed to write to file " + srcFile.getName().getFriendlyURI(), e);
-          throw new IllegalStateException(e);
-        }
-        expectContentWritten(srcFile, module.content());
-      }
-    } catch (FileSystemException e) {
-      LOGGER.error("Failed to create package " + pkgName, e);
+  private Package<FileObject> createEmptyPackage(LibraryName pkgName, FileObject pkgRoot)
+      throws FileSystemException {
+    var pkg = pkgManager.getOrCreate(pkgRoot);
+    // Delete all the automatically created sources, and replace them with
+    // our custom sources
+    for (var src : pkg.listSourcesJava()) {
+      src.file().delete();
     }
+    loadedPackages.put(pkgName, pkg);
     return pkg;
   }
 
-  /** Ignores whitespaces. Is just a sanity check anyway. */
-  private void expectContentWritten(FileObject file, String content) {
-    var contentRead = readFile(file).trim();
-    var expectedContent = content.trim();
-    if (!contentRead.equals(expectedContent)) {
-      LOGGER.error(
-          "Writing content to file {} failed. Read content: '{}'. Expected content: '{}'",
-          file.getName().getPath(),
-          contentRead,
-          expectedContent);
-      throw new AssertionError("Read content mismatch in " + file.getName().getPath());
+  /**
+   * Creates a module. If the package of the module does not exist, it is created. If the module
+   * with the given name already exists, an {@link IllegalArgumentException} is thrown.
+   *
+   * @param modName
+   * @param content
+   * @return
+   */
+  Module createModule(QualifiedName modName, String content) {
+    assert !modName.isSimple();
+    var modPath = modName.pathAsJava();
+    LibraryName pkgName = LibraryName.apply(modPath.get(0), modPath.get(1));
+    try {
+      var pkgDir = vfsRoot.resolveFile(modPath.get(0)).resolveFile(modPath.get(1));
+      Package<FileObject> pkg;
+      if (!pkgDir.exists()) {
+        pkg = createEmptyPackage(pkgName, pkgDir);
+      } else {
+        pkg = pkgManager.getOrCreate(pkgDir);
+      }
+      var srcDir = pkgDir.resolveFile("src");
+      if (!srcDir.exists()) {
+        srcDir.createFolder();
+      }
+      var srcPath = modPath.stream().skip(2).collect(Collectors.joining("/"));
+      var subSrcDir = srcDir.resolveFile(srcPath);
+      if (!subSrcDir.exists()) {
+        subSrcDir.createFolder();
+      }
+      var srcFile = subSrcDir.resolveFile(modName.item() + ".enso");
+      if (srcFile.exists()) {
+        throw new IllegalArgumentException("Module '" + modName + "' already exists");
+      }
+      VirtualFileSystem.write(srcFile, content);
+      var modAbsPath = vfs.getAbsolutePath(srcFile);
+      var module = new MockModule(pkg, modName, modAbsPath, content);
+      loadedModules.put(modName.toString(), module);
+      return module;
+    } catch (IOException e) {
+      LOGGER.error("Failed to create module " + modName, e);
+      throw new IllegalStateException(e);
     }
-  }
-
-  /** Same as {@link #createPackage(LibraryName, Set)}, but with just a single source module */
-  Package<FileObject> createPackage(LibraryName pkgName, SourceModule module) {
-    return createPackage(pkgName, Set.of(module));
   }
 
   @Override
@@ -231,7 +234,11 @@ final class MockPackageRepository implements PackageRepository {
 
   @Override
   public boolean isNamespaceRegistered(String namespace) {
-    throw new UnsupportedOperationException();
+    var libWithNamespace =
+        loadedPackages.keySet().stream()
+            .filter(libName -> libName.namespace().equals(namespace))
+            .findFirst();
+    return libWithNamespace.isPresent();
   }
 
   @Override
