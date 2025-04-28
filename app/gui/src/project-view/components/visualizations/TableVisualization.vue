@@ -177,13 +177,13 @@ const getContextMenuItems = (params: GetContextMenuItemsParams) => [
   {
     name: 'Get Column',
     action: () => {
-      createValueNode(params.column?.colId, 'at')
+      createValueNode(params.column?.colId, undefined,'at')
     },
   },
   {
     name: 'Get Row',
     action: () => {
-      createValueNode(params.node?.rowIndex, 'get_row')
+      createValueNode(undefined, params.node?.rowIndex, 'get_row')
     },
   },
   {
@@ -209,14 +209,12 @@ function getAstValuePattern(value?: string | number, action?: string) {
 
 function getAstGetValuePattern(columnId?: string | number, rowIndex?: string | number, action?: string) {
   if (action && columnId && rowIndex != null) {
-    const pattern = Pattern.parseExpression('__ __ __')
-    return Pattern.new<Ast.Expression>((ast) => {
-      return pattern.instantiateCopied([
-        Ast.TextLiteral.new(action),
-        Ast.TextLiteral.new(columnId as string, ast.module),
-        Ast.tryNumberToEnso(rowIndex as number, ast.module)!
-      ])
-    }
+    const pattern = Pattern.parseExpression('__ __')
+    return Pattern.new<Ast.Expression>((ast) => 
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('get_value')!),
+        pattern.instantiateCopied([Ast.TextLiteral.new(columnId as string, ast.module), Ast.tryNumberToEnso(rowIndex as number, ast.module)])
+      ),
     )
   }
 }
