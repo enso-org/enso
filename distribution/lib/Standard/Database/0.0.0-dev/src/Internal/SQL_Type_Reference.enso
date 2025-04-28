@@ -110,7 +110,6 @@ get_or_compute (ref : Ref (SQL_Type_Recipe | SQL_Type)) -> SQL_Type =
         SQL_Type_Recipe.Value connection context expression ->
             statement = connection.dialect.prepare_fetch_types_query expression context
             statement_setter = connection.dialect.get_statement_setter
-            IO.println "Executing SQL type query: "+statement.to_text
             columns = connection.fetch_columns statement statement_setter
             only_column = columns.first
             computed_type = only_column.second
