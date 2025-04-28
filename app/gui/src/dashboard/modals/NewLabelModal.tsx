@@ -4,12 +4,13 @@ import * as z from 'zod'
 import { ButtonGroup, DialogDismiss, Form, Input, Popover, Text } from '#/components/AriaComponents'
 import ColorPicker from '#/components/ColorPicker'
 import FocusArea from '#/components/styled/FocusArea'
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { findLeastUsedColor } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useQuery } from '@tanstack/react-query'
 
 /** Props for a {@link NewLabelModal}. */
 export interface NewLabelModalProps {
@@ -20,7 +21,7 @@ export interface NewLabelModalProps {
 export default function NewLabelModal(props: NewLabelModalProps) {
   const { backend } = props
   const { getText } = useText()
-  const labels = useBackendQuery(backend, 'listTags', []).data ?? []
+  const { data: labels = [] } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const labelNames = new Set<string>(labels.map((label) => label.value))
   const labelNamesRef = useSyncRef(labelNames)
   const leastUsedColor = findLeastUsedColor(labels)

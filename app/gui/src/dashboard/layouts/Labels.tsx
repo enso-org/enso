@@ -5,7 +5,7 @@ import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
 import Label from '#/components/dashboard/Label'
 import { Scroller } from '#/components/Scroller'
 import FocusRing from '#/components/styled/FocusRing'
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import DragModal from '#/modals/DragModal'
@@ -18,6 +18,7 @@ import { shallowEqual } from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
 import { setDragImageToBlank } from '#/utilities/drag'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useQuery } from '@tanstack/react-query'
 import type { Dispatch, SetStateAction } from 'react'
 
 /** Props for a {@link Labels}. */
@@ -38,7 +39,7 @@ export default function Labels(props: LabelsProps) {
   const driveStore = useDriveStore()
   const getAsset = useGetAsset()
   const setLabelsDragPayload = useSetLabelsDragPayload()
-  const labels = useBackendQuery(backend, 'listTags', []).data ?? []
+  const { data: labels = [] } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const deleteTagMutation = useMutationCallback(backendMutationOptions(backend, 'deleteTag'))
 
   return (

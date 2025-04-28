@@ -8,12 +8,13 @@ import { Button, DatePicker, Dropdown, Form, Text } from '#/components/AriaCompo
 import { Icon } from '#/components/Icon'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import FocusArea from '#/components/styled/FocusArea'
-import { useBackendQuery } from '#/hooks/backendHooks'
+import { backendQueryOptions } from '#/hooks/backendHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { type AuditLogEvent } from '#/services/Backend'
 import { iconIdFor, nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useQuery } from '@tanstack/react-query'
 import { toReadableIsoString, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import {
   DEFAULT_EVENT_ICON,
@@ -55,7 +56,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const [emails, setEmails] = React.useState<readonly string[]>([])
   const [emailIndices, setEmailIndices] = React.useState<readonly number[]>([])
   const [sortInfo, setSortInfo] = React.useState<SortInfo<ActivityLogSortableColumn> | null>(null)
-  const { data: users } = useBackendQuery(backend, 'listUsers', [])
+  const { data: users } = useQuery(backendQueryOptions(backend, 'listUsers', []))
   const allEmails = React.useMemo(() => (users ?? []).map((user) => user.email), [users])
 
   const form = Form.useForm({ schema: createActivityLogSchema() })
@@ -63,13 +64,15 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const endDate = form.watch('endDate')
   const maxDate = today(getLocalTimeZone())
 
-  const logsQuery = useBackendQuery(backend, 'getLogEvents', [
-    {
-      startDate: startDate && toRfc3339(startDate.toDate()),
-      endDate: endDate && toRfc3339(endDate.toDate()),
-      pageSize: GET_LOG_EVENTS_PAGE_SIZE,
-    },
-  ])
+  const logsQuery = useQuery(
+    backendQueryOptions(backend, 'getLogEvents', [
+      {
+        startDate: startDate && toRfc3339(startDate.toDate()),
+        endDate: endDate && toRfc3339(endDate.toDate()),
+        pageSize: GET_LOG_EVENTS_PAGE_SIZE,
+      },
+    ]),
+  )
   const logs = logsQuery.data
 
   const filteredLogs = React.useMemo(() => {
