@@ -4061,5 +4061,10 @@ from_java_table java_table -> Table =
         Table.Value java_table
 
 ## PRIVATE
+   Helper method for internal use to make a Java Table from a Table.
+to_java_table table =
+    table.java_table
+
+## PRIVATE
 Many_Files_List.from (that : Table) =
     Read_Many_Helpers.find_files_list_in_table that
