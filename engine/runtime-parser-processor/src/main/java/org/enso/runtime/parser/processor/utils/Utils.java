@@ -314,7 +314,7 @@ public final class Utils {
         return iterationResult;
       }
       // Add all super interfaces to the queue
-      for (var superInterface : current.getInterfaces()) {
+      for (var superInterface : InterfaceCollector.collect(current, processingEnv.getTypeUtils())) {
         var superInterfaceElem = processingEnv.getTypeUtils().asElement(superInterface);
         if (superInterfaceElem instanceof TypeElement superInterfaceTypeElem) {
           interfacesToProcess.add(superInterfaceTypeElem);
