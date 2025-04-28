@@ -1,8 +1,10 @@
 package org.enso.table.read;
 
-import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.IOException;
-import java.io.Reader;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import org.enso.table.data.column.builder.Builder;
@@ -20,6 +22,7 @@ import org.graalvm.polyglot.Value;
 
 public class FixedWidthReader {
   private List<FixedWidthLayoutEntry> layoutEntries;
+  private final Charset charset;
   private final long rowLimit;
   private InvalidFixedWidthRowsBehavior invalidRowsBehavior;
   private DatatypeParser valueParser;
@@ -35,17 +38,19 @@ public class FixedWidthReader {
 
   public FixedWidthReader(
       List<FixedWidthLayoutEntry> layoutEntries,
+      Charset charset,
       long rowLimit,
       InvalidFixedWidthRowsBehavior invalidRowsBehavior,
       DatatypeParser valueParser,
       boolean warningsAsErrors,
       ProblemAggregator problemAggregator) {
 
-    if (layoutEntries.size() == 0) {
+    if (layoutEntries.isEmpty()) {
       throw new IllegalArgumentException("Must specify at least one column");
     }
 
     this.layoutEntries = layoutEntries;
+    this.charset = charset;
     this.rowLimit = rowLimit;
     this.invalidRowsBehavior = invalidRowsBehavior;
     this.valueParser = valueParser;
@@ -56,41 +61,42 @@ public class FixedWidthReader {
     minimumLineLength = layoutEntries.get(layoutEntries.size() - 1).end();
   }
 
-  public Table read(Reader reader) throws IOException {
-    BufferedReader bufferedReader = new BufferedReader(reader);
-
+  public Table read(InputStream inputStream) throws IOException {
     initBuilders(layoutEntries.size());
+    byte[] readBuffer = new byte[minimumLineLength];
 
     while (true) {
-      String line = bufferedReader.readLine();
+      int lineLength = readLine(inputStream, readBuffer);
 
-      if (line == null || (rowLimit != -1 && tableRowNumber >= rowLimit)) {
+      if (lineLength == -1 || (rowLimit != -1 && tableRowNumber >= rowLimit)) {
         break;
       }
 
-      addRow(line);
+      addRow(readBuffer, lineLength);
     }
 
     return makeFinalTable();
   }
-
-  private void addRow(String line) {
+  
+  // lineLength is the length of the actual line from the input stream, which
+  // might be larger than minimumLineLength and the buffer capacity.
+  private void addRow(byte[] line, int lineLength) {
     if (firstLine) {
       firstLine = false;
-      firstLineLength = line.length();
+      firstLineLength = lineLength;
     } else {
-      if (line.length() != firstLineLength) {
+      if (lineLength != firstLineLength) {
         problemAggregator.reportInconsistentLineLengths();
       }
     }
 
-    if (line.length() < minimumLineLength) {
+    if (lineLength < minimumLineLength) {
       var trn = invalidRowsBehavior == InvalidFixedWidthRowsBehavior.KEEP ? tableRowNumber : null;
       problemAggregator.reportShortLine(
-          sourceLineNumber, tableRowNumber, line.length(), minimumLineLength);
+          sourceLineNumber, trn, lineLength, minimumLineLength);
     }
 
-    if (line.length() < minimumLineLength
+    if (lineLength < minimumLineLength
         && invalidRowsBehavior == InvalidFixedWidthRowsBehavior.DROP) {
       sourceLineNumber++;
       return;
@@ -100,22 +106,53 @@ public class FixedWidthReader {
       var entry = layoutEntries.get(i);
       var builder = builders.get(i);
 
-      if (entry.end() > line.length()) {
+      var startPosition = Math.min(lineLength, entry.start());
+      var endPosition = Math.min(lineLength, entry.end());
+      var actualWidth = endPosition - startPosition;
+      ByteBuffer bb = ByteBuffer.wrap(line, startPosition, actualWidth);
+      CharBuffer cb = charset.decode(bb);
+      String value = cb.toString();
+
+      if (entry.end() > lineLength) {
         assert invalidRowsBehavior == InvalidFixedWidthRowsBehavior.KEEP;
-        if (entry.start < line.length()) {
-          // There is a partial column.
-          builders.get(i).append(line.substring(entry.start, line.length()));
-        } else {
-          // The column is completely off the end.
-          builders.get(i).append(null);
-        }
-      } else {
-        builders.get(i).append(line.substring(entry.start, entry.end()));
       }
+
+      builder.append(value);
     }
 
     tableRowNumber++;
     sourceLineNumber++;
+  }
+
+  /*
+   * Reads up to `minimumLineLength` bytes into the buffer. Returns the actual
+   * length of the entire line, even if that is not equal to
+   * `minimumLineLength`.
+   * Returns -1 if the first read attempt is EOF.
+   */
+  private int readLine(InputStream inputStream, byte[] buffer) throws IOException {
+    int lineLength = 0;
+    while (true) {
+      int c = inputStream.read();
+      if (c == -1) {
+        if (lineLength == 0) {
+          // First attempt was EOF, so return -1 to signify that the stream is done.
+          return -1;
+        } else {
+          break;
+        }
+      } else if (c == '\n') {
+        // Line is done. Don't include the newline.
+        break;
+      } else {
+        if (lineLength < minimumLineLength) {
+          // There is room for the next byte.
+          buffer[lineLength] = (byte) c;
+        }
+        lineLength ++;
+      }
+    }
+    return lineLength;
   }
 
   private Table makeFinalTable() {
