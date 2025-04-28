@@ -2,6 +2,7 @@
 export default {
   name: 'FileBrowserWidget',
 }
+declare const brandTargetType: unique symbol
 </script>
 
 <script setup lang="ts">
@@ -17,16 +18,12 @@ import { injectBackend } from '@/providers/backend'
 import { assert } from '@/util/assert'
 import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
-import type {
-  DatalinkAsset,
-  DirectoryAsset,
-  DirectoryId,
-  FileAsset,
-} from 'enso-common/src/services/Backend'
+import type { AnyAsset, DirectoryAsset, DirectoryId } from 'enso-common/src/services/Backend'
 import Backend, {
   assetIsDatalink,
   assetIsDirectory,
   assetIsFile,
+  assetIsSecret,
   AssetType,
 } from 'enso-common/src/services/Backend'
 import { computed, onMounted, reactive, ref, toRef, toValue, watch } from 'vue'
@@ -35,8 +32,9 @@ const props = withDefaults(
   defineProps<{
     writeMode?: boolean
     choosenPath?: string
+    type?: 'file' | 'secret'
   }>(),
-  { writeMode: false, choosenPath: '' },
+  { writeMode: false, choosenPath: '', type: 'file' },
 )
 
 const emit = defineEmits<{
@@ -107,10 +105,16 @@ const compareTitle = (a: { title: string }, b: { title: string }) => a.title.loc
 const directories = computed(
   () => data.value && data.value.filter((asset) => assetIsDirectory(asset)).sort(compareTitle),
 )
-const files = computed(
-  () =>
-    data.value &&
-    data.value.filter((asset) => assetIsFile(asset) || assetIsDatalink(asset)).sort(compareTitle),
+function assetIsTargetType(asset: AnyAsset): asset is TargetType {
+  switch (props.type) {
+    case 'file':
+      return assetIsFile(asset) || assetIsDatalink(asset)
+    case 'secret':
+      return assetIsSecret(asset)
+  }
+}
+const files = computed<TargetType[]>(
+  () => data.value?.filter(assetIsTargetType).sort(compareTitle) ?? [],
 )
 const isEmpty = computed(
   () => directories.value?.length === 0 && files.value?.length === 0 && editedAsset.value == null,
@@ -144,7 +148,8 @@ function popDirectory() {
 
 const canPop = computed(() => directoryStack.value.length > 1)
 
-function chooseFile(file: FileAsset | DatalinkAsset) {
+type TargetType = AnyAsset & { [brandTargetType]: never }
+function chooseFile(file: TargetType) {
   filenameInputContents.value = file.title
   if (!props.writeMode) {
     acceptCurrentFile()
@@ -288,8 +293,8 @@ const renameAction: Action = {
 
 onMounted(() => {
   Promise.all([currentUser.promise.value, currentOrganization.promise.value]).then(
-    ([user, organizaton]) => {
-      initializeStack(user, organizaton)
+    ([user, organization]) => {
+      initializeStack(user, organization)
     },
   )
 })

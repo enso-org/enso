@@ -20,6 +20,7 @@ import org.graalvm.polyglot.Value;
 
 public class FixedWidthReader {
   private List<FixedWidthLayoutEntry> layoutEntries;
+  private final long rowLimit;
   private InvalidFixedWidthRowsBehavior invalidRowsBehavior;
   private DatatypeParser valueParser;
   private FixedWidthReaderProblemAggregator problemAggregator;
@@ -34,6 +35,7 @@ public class FixedWidthReader {
 
   public FixedWidthReader(
       List<FixedWidthLayoutEntry> layoutEntries,
+      long rowLimit,
       InvalidFixedWidthRowsBehavior invalidRowsBehavior,
       DatatypeParser valueParser,
       boolean warningsAsErrors,
@@ -44,6 +46,7 @@ public class FixedWidthReader {
     }
 
     this.layoutEntries = layoutEntries;
+    this.rowLimit = rowLimit;
     this.invalidRowsBehavior = invalidRowsBehavior;
     this.valueParser = valueParser;
     this.problemAggregator =
@@ -61,7 +64,7 @@ public class FixedWidthReader {
     while (true) {
       String line = bufferedReader.readLine();
 
-      if (line == null) {
+      if (line == null || (rowLimit != -1 && tableRowNumber >= rowLimit)) {
         break;
       }
 
@@ -104,7 +107,7 @@ public class FixedWidthReader {
           builders.get(i).append(line.substring(entry.start, line.length()));
         } else {
           // The column is completely off the end.
-          builders.get(i).append("");
+          builders.get(i).append(null);
         }
       } else {
         builders.get(i).append(line.substring(entry.start, entry.end()));
@@ -149,7 +152,7 @@ public class FixedWidthReader {
     return Builder.getForText(TextType.VARIABLE_LENGTH, initialCapacity);
   }
 
-  public record FixedWidthLayoutEntry(String columnName, int start, int width) {
+  public record FixedWidthLayoutEntry(int start, int width, String columnName) {
     public int end() {
       return start + width;
     }

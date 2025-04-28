@@ -170,12 +170,20 @@ const mainIdent = 'Main' as Identifier
 
 /** Returns the partial path to use when displaying the name with only the final segment of the parent path. */
 export function entryDisplayPath(entry: SuggestionEntry & IsMemberOf): QualifiedName {
-  return qnJoin(
-    entry.memberOf.path && entry.memberOf.path !== 'Main' ? qnLastSegment(entry.memberOf.path)
-    : entry.memberOf.project ? qnLastSegment(entry.memberOf.project)
-    : mainIdent,
-    entry.name,
-  )
+  return qnJoin(entryDisplayOwner(entry), entry.name)
+}
+
+/** Returns the final segment of the parent path. */
+export function entryDisplayOwner(entry: SuggestionEntry & IsMemberOf): QualifiedName {
+  const owner = entry.memberOf
+  if (owner.path && owner.path !== mainIdent) return qnLastSegment(owner.path)
+  if (owner.project) return qnLastSegment(owner.project)
+  return mainIdent
+}
+
+/** Type predicate for {@link SuggestionEntry} that have the `memberOf` field. */
+export function entryHasOwner(entry: SuggestionEntry): entry is SuggestionEntry & IsMemberOf {
+  return entry.kind === SuggestionKind.Method || entry.kind === SuggestionKind.Constructor
 }
 
 const DOCUMENTATION_ROOT = 'https://help.enso.org/docs/api'

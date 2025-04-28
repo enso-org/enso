@@ -32,7 +32,6 @@ import org.enso.common.ContextFactory;
 import org.enso.common.DebugServerInfo;
 import org.enso.common.HostEnsoUtils;
 import org.enso.common.LanguageInfo;
-import org.enso.common.Platform;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.editions.DefaultEdition;
@@ -1563,10 +1562,10 @@ public class Main {
     if (!ImageInfo.inImageRuntimeCode()) {
       return;
     }
-    var projectRoot = findProjectRoot(fileToRun);
     var nativeApi = WorkingDirectory.getInstance();
+    var projectRoot = nativeApi.findProjectRoot(fileToRun);
     if (projectRoot != null) {
-      var parentDir = parentFile(projectRoot);
+      var parentDir = nativeApi.parentFile(projectRoot);
       assert parentDir != null;
       var curDir = nativeApi.currentWorkingDir();
       if (!parentDir.equals(curDir)) {
@@ -1575,33 +1574,6 @@ public class Main {
           logger.error("Cannot change working directory to {}", parentDir);
         }
       }
-    }
-  }
-
-  /**
-   * Attempts to find project root directory. Does not use anything from {@code java.io} on purpose.
-   *
-   * @return null if project root was not found, a canonical path otherwise.
-   */
-  private static String findProjectRoot(String path) {
-    var nativeApi = WorkingDirectory.getInstance();
-    String curPath = path;
-    while (curPath != null) {
-      if (nativeApi.exists(curPath, "package.yaml") && nativeApi.exists(curPath, "src")) {
-        return curPath;
-      }
-      curPath = parentFile(curPath);
-    }
-    return null;
-  }
-
-  private static String parentFile(String path) {
-    var separatorChar = Platform.separatorChar();
-    var lastSlash = path.lastIndexOf(separatorChar);
-    if (lastSlash == -1) {
-      return null;
-    } else {
-      return path.substring(0, lastSlash);
     }
   }
 
