@@ -161,9 +161,10 @@ case object NestedPatternMatch extends IRPass {
     freshNameSupply: FreshNameSupply
   ): Expression = {
     expr match {
-      case expr @ Case.Expr(scrutinee, branches, _, _, _) =>
+      case expr: Case.Expr =>
         val scrutineeBindingName = freshNameSupply.newName()
-        val scrutineeExpression  = desugarExpression(scrutinee, freshNameSupply)
+        val scrutineeExpression =
+          desugarExpression(expr.scrutinee, freshNameSupply)
         val scrutineeBinding =
           Expression.Binding(
             scrutineeBindingName,
@@ -173,12 +174,13 @@ case object NestedPatternMatch extends IRPass {
 
         val caseExprScrutinee = scrutineeBindingName.duplicate()
 
-        val processedBranches = branches.zipWithIndex.map { case (branch, _) =>
-          desugarCaseBranch(
-            branch,
-            branch.location,
-            freshNameSupply
-          )
+        val processedBranches = expr.branches.zipWithIndex.map {
+          case (branch, _) =>
+            desugarCaseBranch(
+              branch,
+              branch.location,
+              freshNameSupply
+            )
         }
 
         val desugaredCaseExpr = expr.copy(
