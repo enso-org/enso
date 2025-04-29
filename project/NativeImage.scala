@@ -193,7 +193,8 @@ object NativeImage {
       val cpStr  = fullCp.mkString(File.pathSeparator)
       log.debug("Class-path: " + cpStr)
 
-      val verboseOpt = if (verbose) Seq("--verbose") else Seq()
+      val isCi       = sys.env.contains("CI")
+      val verboseOpt = if (verbose || isCi) Seq("--verbose") else Seq()
       val excludeConfigsOpt =
         if (excludeConfigs.nonEmpty)
           excludeConfigs.flatMap(ex => Seq("--exclude-config") ++ ex.split(","))
