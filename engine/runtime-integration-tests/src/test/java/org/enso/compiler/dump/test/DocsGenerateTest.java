@@ -374,6 +374,35 @@ public class DocsGenerateTest {
         sig);
   }
 
+  @Test
+  public void typesWithError() throws Exception {
+    var code =
+        """
+        type A
+        type B
+        type C
+
+        one a:A -> A & B ! C = a
+        """;
+
+    var v = new MockVisitor();
+    generateDocumentation("Error", code, v);
+
+    assertEquals("One methods", 1, v.visitMethod.size());
+    assertEquals("No constructors", 0, v.visitConstructor.size());
+
+    var p = v.visitMethod.get(0);
+    assertNull("It is a module method", p.t());
+
+    var m = p.ir();
+    var sig = DocsVisit.toSignature(m);
+    assertEquals("one", m.methodName().name());
+    assertEquals(
+        "Generates vector with argument type as return type",
+        "one a:local.Error.Main.A -> (local.Error.Main.A&local.Error.Main.B)!local.Error.Main.C",
+        sig);
+  }
+
   private static void generateDocumentation(String projectName, String code, DocsVisit v)
       throws IOException {
     var pathCalc = TEMP.newFolder(projectName);

@@ -93,7 +93,7 @@ export function EnsoDevtools() {
           />
         </ariaComponents.Underlay>
 
-        <Popover>
+        <Popover shouldCloseOnInteractOutside={() => true}>
           <div className="flex items-center justify-between">
             <Text.Heading disableLineHeightCompensation>
               {getText('ensoDevtoolsPopoverHeading')}

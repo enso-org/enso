@@ -8,7 +8,12 @@ import { Range } from 'ydoc-shared/util/data/range'
 export type SelfArg =
   | {
       type: 'known'
+      /** Type of the self argument. */
       typename: ProjectPath
+      /** Ancestors of the type of the self argument. Does not include `Any` type. */
+      ancestors: ProjectPath[]
+      /** Additional (or ‘hidden’) types of the self argument. E.g. `Column` for single-column table.*/
+      additionalTypes: ProjectPath[]
     }
   | { type: 'unknown' }
 
@@ -43,7 +48,17 @@ interface MatchedParts {
 }
 
 export interface MatchResult extends MatchedParts {
+  /** Score of the match. Lower is better. */
   score: number
+  /**
+   * Populated only if matched entry is provided by ‘additional’ type of the self argument, like methods of `Column` type for single-column table.
+   * It is used for type casting suggestions.
+   */
+  fromType: ProjectPath | undefined
+}
+
+function exactMatch(): MatchResult {
+  return { score: 0, fromType: undefined }
 }
 
 class FilteringName {
@@ -151,11 +166,13 @@ class FilteringName {
 }
 
 class FilteringWithPattern {
-  nameFilter: FilteringName
+  nameFilter: FilteringName | null
   ownerNameFilter: FilteringName
   bothFiltersMustMatch: boolean
 
   constructor(pattern: string) {
+    const isTypeFiltering = pattern.startsWith(':')
+    if (isTypeFiltering) pattern = pattern.slice(1)
     const split = pattern.lastIndexOf('.')
     if (split >= 0) {
       // If there is a dot in the pattern, the segment before must match owner name,
@@ -163,6 +180,11 @@ class FilteringWithPattern {
       this.nameFilter = new FilteringName(pattern.slice(split + 1))
       this.ownerNameFilter = new FilteringName(pattern.slice(0, split))
       this.bothFiltersMustMatch = true
+    } else if (isTypeFiltering) {
+      // the pattern has to match the owner name
+      this.nameFilter = null
+      this.ownerNameFilter = new FilteringName(pattern)
+      this.bothFiltersMustMatch = false
     } else {
       // the pattern has to match name or the owner name
       this.nameFilter = new FilteringName(pattern)
@@ -173,22 +195,28 @@ class FilteringWithPattern {
 
   private firstMatchingAlias(aliases: string[]) {
     for (const alias of aliases) {
-      const match = this.nameFilter.tryMatch(alias)
+      const match = this.nameFilter?.tryMatch(alias)
       if (match != null) return { alias, ...match }
     }
     return null
   }
 
-  tryMatch(name: string, aliases: string[], memberOf: ProjectPath): MatchResult | null {
+  tryMatch(
+    name: string,
+    aliases: string[],
+    memberOf: ProjectPath,
+    additionalSelfTypes: ProjectPath[],
+  ): MatchResult | null {
     const nameMatch: (NameMatchResult & { alias?: string }) | null =
-      this.nameFilter.tryMatch(name) ?? this.firstMatchingAlias(aliases)
+      this.nameFilter?.tryMatch(name) ?? this.firstMatchingAlias(aliases)
     const ownerNameMatch = this.ownerNameFilter.tryMatch(
       memberOf.path ? qnLastSegment(memberOf.path) : 'Main',
     )
     if (!nameMatch && !ownerNameMatch) return null
     if (this.bothFiltersMustMatch && (!nameMatch || !ownerNameMatch)) return null
 
-    const result: MatchResult = { score: 0 }
+    const fromType = additionalSelfTypes.find((t) => t.equals(memberOf)) ? memberOf : undefined
+    const result: MatchResult = { score: 0, fromType }
     if (nameMatch) {
       result.score += nameMatch.score
       if ('alias' in nameMatch) {
@@ -248,18 +276,19 @@ export class Filtering {
     this.selfArg = selfArg
   }
 
-  private selfTypeMatches(
-    entry: SuggestionEntry,
-    additionalSelfTypes: ProjectPath[],
-  ): { score: number } | null {
+  private selfTypeMatches(entry: SuggestionEntry): MatchResult | null {
     if (this.selfArg == null)
-      return entry.kind !== SuggestionKind.Method || entry.selfType == null ? { score: 0 } : null
+      return entry.kind !== SuggestionKind.Method || entry.selfType == null ? exactMatch() : null
     if (entry.kind !== SuggestionKind.Method || entry.selfType == null) return null
-    if (this.selfArg.type !== 'known') return { score: 0 }
+    if (this.selfArg.type !== 'known') return exactMatch()
     const entrySelfType = entry.selfType
-    if (entrySelfType.equals(this.selfArg.typename)) return { score: 0 }
-    if (entrySelfType.equals(ANY_TYPE) || additionalSelfTypes.some((t) => entrySelfType.equals(t)))
-      return { score: DIFFERENT_TYPE_PENALTY }
+    if (entrySelfType.equals(this.selfArg.typename)) return exactMatch()
+    const { additionalTypes, ancestors } = this.selfArg
+    const additionalType = additionalTypes.find((t) => entrySelfType.equals(t))
+    const matchedAncestor = ancestors.find((t) => entrySelfType.equals(t))
+    if (entrySelfType.equals(ANY_TYPE) || additionalType != null || matchedAncestor != null)
+      // Matched ancestor are not added to `fromType`.
+      return { score: DIFFERENT_TYPE_PENALTY, fromType: additionalType }
     return null
   }
 
@@ -271,7 +300,7 @@ export class Filtering {
   private mainViewFilter(entry: SuggestionEntry): MatchResult | null {
     const hasGroup = entry.groupIndex != null
     const isInTopModule = entry.definedIn.isTopElement()
-    if (hasGroup || isInTopModule) return { score: 0 }
+    if (hasGroup || isInTopModule) return exactMatch()
     else return null
   }
 
@@ -279,14 +308,27 @@ export class Filtering {
     return this.currentModule != null && entry.definedIn.equals(this.currentModule)
   }
 
-  /** TODO: Add docs */
-  filter(entry: SuggestionEntry, additionalSelfTypes: ProjectPath[]): MatchResult | null {
+  /**
+   * Check if given entry matches the filtering criteria.
+   *
+   * - If {@link selfArg} is available, it is used to filter out methods that do not match the self type.
+   * - If {@link pattern} is available, it is used to narrow down the list further.
+   * - When {@link selfArg} is not available, {@link mainViewFilter} is used to only display
+   * entries with a group defined or in the top module.
+   */
+  filter(entry: SuggestionEntry): MatchResult | null {
     if (entry.isPrivate || entry.kind != SuggestionKind.Method) return null
     if (this.selfArg == null && isInternal(entry)) return null
-    const selfTypeMatch = this.selfTypeMatches(entry, additionalSelfTypes)
+    const selfTypeMatch = this.selfTypeMatches(entry)
     if (selfTypeMatch == null) return null
     if (this.pattern) {
-      const patternMatch = this.pattern.tryMatch(entry.name, entry.aliasesAndMacros, entry.memberOf)
+      const additionalSelfTypes = this.selfArg?.type === 'known' ? this.selfArg.additionalTypes : []
+      const patternMatch = this.pattern.tryMatch(
+        entry.name,
+        entry.aliasesAndMacros,
+        entry.memberOf,
+        additionalSelfTypes,
+      )
       if (!patternMatch) return null
       if (this.isLocal(entry)) patternMatch.score *= 2
       patternMatch.score += selfTypeMatch.score

@@ -161,7 +161,6 @@ const defaultColDef: Ref<ColDef> = ref({
   cellRenderer: cellRenderer,
   cellClass: cellClass,
   cellStyle: { 'padding-left': 0, 'border-right': '1px solid #C0C0C0' },
-  autoHeight: true,
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
@@ -376,7 +375,7 @@ function formatNumber(params: ICellRendererParams) {
     value = params.value
   }
   const needsGrouping = dataGroupingMap.value?.get(params.colDef?.field || '')
-  return needsGrouping ? numberFormatGroupped.value.format(value) : numberFormat.value.format(value)
+  return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
 }
 
 const createRowsForTable = (data: unknown[][], shift: number, isSSrm: boolean) => {
@@ -696,6 +695,7 @@ function toField(
       showDataQuality,
     },
     cellDataType: cellValueType,
+    autoHeight: cellValueType === 'text' && isSSRM.value,
   }
 }
 

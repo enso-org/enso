@@ -356,12 +356,6 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
               page.getByLabel(TEXT.accessedDataColumnName).click(),
             )
           },
-          /** Toggle visibility for the "docs" column. */
-          docs() {
-            return self.step('Toggle "docs" column', (page) =>
-              page.getByLabel(TEXT.docsColumnName).click(),
-            )
-          },
         }
       },
     }

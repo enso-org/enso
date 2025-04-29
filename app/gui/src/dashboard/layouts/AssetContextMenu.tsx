@@ -82,7 +82,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const path = asset.ensoPathValue
   const copyMutation = useCopy()
-  const uploadFileToCloudMutation = useUploadFileToCloudMutation(backend)
+  const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined
   const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
 
@@ -276,7 +276,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={async () => {
               await uploadFileToCloudMutation(localBackend, {
                 assets: [asset],
-                targetDirectoryId: currentDirectoryId,
+                targetDirectoryId: user.rootDirectoryId,
               })
             }}
           />
@@ -378,8 +378,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <ContextMenuEntry
             hidden={hidden}
             action="duplicate"
-            doAction={() => {
-              void copyAssetsMutation([[asset.id], asset.parentId])
+            doAction={async () => {
+              await copyAssetsMutation([[asset.id], asset.parentId])
             }}
           />
         )}

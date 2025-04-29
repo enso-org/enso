@@ -2,6 +2,10 @@ import project.Internal.Priv_Type
 
 ## Provides access to the methods of the Priv_Type
 type Public_Type
+    private Hidden_Cons data
+
+    new d = Public_Type.Hidden_Cons d
+
     cons = Priv_Type.Cons
     create data = Priv_Type.create data
     in_ctx ~action = Priv_Type.in_ctx action...

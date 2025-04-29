@@ -1,0 +1,14 @@
+## Conversions that are used for type refinements.
+   They should never be exported or used elsewhere.
+private
+
+import project.Column.Column
+import project.Table.Table
+import project.Refined_Types.Numeric_Column.Numeric_Column
+
+from project.Internal.Type_Refinements.Single_Column_Table_Conversions import all
+from project.Internal.Type_Refinements.Typed_Column_Conversions import all
+
+## This conversion is internal and should never be exported.
+Numeric_Column.from (that : Table) =
+    Numeric_Column.from (Column.from that)

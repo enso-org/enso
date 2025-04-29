@@ -1165,14 +1165,16 @@ add_column_operation_specs suite_builder setup =
 
         if setup.is_database.not then
             group_builder.specify "ceil, floor and truncate should work correctly on Floats outside the java Long range" <|
-                positive_values = [9223372036854775000.0, 9223372036854776000.0, 9223372036854775807000000.0]
+                positive_values = [9223372036854774784.0, 9223372036854776000.0, 9223372036854775807000000.0]
                 values = positive_values + positive_values.map .negate
-                values.map x->
-                    x_int = x.truncate
+                values.map x-> Test.with_clue "(x="+x.to_text+") " <|
                     c = table_builder [["x", [x, -x]]] . at "x"
-                    c.ceil . to_vector . should_equal [x_int, -x_int]
-                    c.floor . to_vector . should_equal [x_int, -x_int]
-                    c.truncate . to_vector . should_equal [x_int, -x_int]
+                    c.value_type.should_equal Value_Type.Float
+
+                    vec = [x.truncate, (-x).truncate]
+                    c.ceil . to_vector . should_equal vec
+                    c.floor . to_vector . should_equal vec
+                    c.truncate . to_vector . should_equal vec
 
         if setup.flagged ..Supports_Decimal_Type then
             group_builder.specify "ceil, floor and truncate should work correctly on Decimals" <|

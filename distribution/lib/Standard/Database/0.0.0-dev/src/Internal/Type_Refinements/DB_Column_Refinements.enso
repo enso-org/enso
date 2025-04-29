@@ -1,0 +1,18 @@
+private
+
+from Standard.Base import all
+
+from Standard.Table import Value_Type
+import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
+
+import project.DB_Column.DB_Column
+from project.Internal.Type_Refinements.Typed_DB_Column_Conversions import all
+
+refine_column (column : DB_Column) =
+    inferred_value_type = column.inferred_precise_value_type
+    case inferred_value_type of
+        Value_Type.Integer _ -> (column : DB_Column & Numeric_Column)
+        Value_Type.Byte -> (column : DB_Column & Numeric_Column)
+        Value_Type.Float _ -> (column : DB_Column & Numeric_Column)
+        Value_Type.Decimal _ _ -> (column : DB_Column & Numeric_Column)
+        _ -> column

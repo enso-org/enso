@@ -20,6 +20,7 @@ declare module '@/providers/widgetRegistry' {
       icon: Icon | URLString | '$evaluating'
       allowChoice?: boolean
       showContents?: boolean
+      noGap?: boolean
     }
   }
 }
@@ -35,7 +36,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetIcon">
+  <div :class="{ WidgetIcon: true, noGap: props.input[DisplayIcon].noGap === true }">
     <div class="iconContainer">
       <Transition>
         <LoadingSpinner
@@ -56,6 +57,9 @@ export const widgetDefinition = defineWidget(
   flex-direction: row;
   align-items: center;
   gap: var(--widget-token-pad-unit);
+  &.noGap {
+    gap: 0;
+  }
 }
 .iconContainer {
   position: relative;

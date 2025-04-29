@@ -5,7 +5,7 @@ import * as iter from 'enso-common/src/utilities/data/iter'
 import { expect, test } from 'vitest'
 import { watchEffect } from 'vue'
 import { type AstId } from 'ydoc-shared/ast'
-import { type SourceRange } from 'ydoc-shared/util/data/text'
+import { SourceRange } from 'ydoc-shared/util/data/text'
 import { IdMap, type ExternalId } from 'ydoc-shared/yjsModel'
 
 /** TODO: Add docs */
@@ -43,20 +43,20 @@ test('Reading graph from definition', () => {
     node3 = node2 + 1
     node3`
   const spans = {
-    functionName: { from: 0, to: 8 },
-    parameter: { from: 9, to: 10 },
-    node1Id: { from: 17, to: 22 },
-    node1Content: { from: 25, to: 30 },
-    node1LParam: { from: 25, to: 26 },
-    node1RParam: { from: 29, to: 30 },
-    node2Id: { from: 35, to: 40 },
-    node2Content: { from: 43, to: 52 },
-    node2LParam: { from: 43, to: 48 },
-    node2RParam: { from: 51, to: 52 },
-    node3Id: { from: 57, to: 62 },
-    node3Content: { from: 65, to: 74 },
-    output: { from: 79, to: 84 },
-  }
+    functionName: SourceRange.unsafeFromBounds(0, 8),
+    parameter: SourceRange.unsafeFromBounds(9, 10),
+    node1Id: SourceRange.unsafeFromBounds(17, 22),
+    node1Content: SourceRange.unsafeFromBounds(25, 30),
+    node1LParam: SourceRange.unsafeFromBounds(25, 26),
+    node1RParam: SourceRange.unsafeFromBounds(29, 30),
+    node2Id: SourceRange.unsafeFromBounds(35, 40),
+    node2Content: SourceRange.unsafeFromBounds(43, 52),
+    node2LParam: SourceRange.unsafeFromBounds(43, 48),
+    node2RParam: SourceRange.unsafeFromBounds(51, 52),
+    node3Id: SourceRange.unsafeFromBounds(57, 62),
+    node3Content: SourceRange.unsafeFromBounds(65, 74),
+    output: SourceRange.unsafeFromBounds(79, 84),
+  } satisfies Record<string, SourceRange>
 
   const { ast, id, eid, getSpan } = parseWithSpans(code, spans)
 
