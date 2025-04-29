@@ -10,9 +10,11 @@ import Standard.Table.Fixed_Width.Fixed_Width_Format.Fixed_Width_Layout_Entry
 from Standard.Test import all
 import Standard.Test.Test_Environment
 
+import enso_dev.Base_Tests.Data.Text.Encoding_Spec
+
 from project.Common_Table_Operations.Util import run_default_backend
 
-add_specs suite_builder =
+add_direct_specs suite_builder =
     data_dir = enso_project.data / "fixed-width"
     data0 = data_dir / "fixed0.txt"
     data1 = data_dir / "fixed1.txt"
@@ -242,6 +244,45 @@ add_specs suite_builder =
             test_file 'mixed.csv'
 
             ['crlf.csv', 'lf.csv', 'cr.csv', 'mixed.csv'].each (path >> .delete)
+
+fixed_width_spec_from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
+fixed_width_spec_from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Error) =
+    table_bytes =
+        spaces = (' ' * bytes.length).bytes
+        newline = '\n'.bytes
+
+        row_a = 'abc'.bytes + spaces + 'qwer'.bytes + newline
+        row_b = 'def'.bytes + bytes  + 'asdf'.bytes + newline
+        row_c = 'ghi'.bytes + spaces + 'zxcv'.bytes + newline
+        row_a + row_b + row_c
+
+    get_decoded_value table =
+        table.at "b" . to_vector . at 1
+
+    layout =
+        descs = []
+            + [Fixed_Width_Column_Description.Width 3 "a"]
+            + [Fixed_Width_Column_Description.Width bytes.length "b"]
+            + [Fixed_Width_Column_Description.Width 4 "c"]
+        Fixed_Width_Layout.from_descriptions descs
+
+    with_file ~action =
+        file = File.create_temporary_file
+        Panic.with_finalizer file.delete <|
+            file.with_output_stream [File_Access.Create, File_Access.Write] stream->
+                stream.write_bytes table_bytes
+            action file
+
+    with_file file->
+        t = file.read (Fixed_Width_Format.Fixed_Width layout encoding) on_problems
+        get_decoded_value t
+
+add_encoding_spec_specs suite_builder =
+    Encoding_Spec.add_codec_specs fixed_width_spec_from_bytes .bytes suite_builder
+
+add_specs suite_builder =
+    add_direct_specs suite_builder
+    add_encoding_spec_specs suite_builder
 
 main filter=Nothing =
     suite = Test.build suite_builder->
