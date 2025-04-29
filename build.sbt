@@ -3460,6 +3460,7 @@ lazy val `runtime-compiler-tests` =
     .enablePlugins(PackageListPlugin)
     .settings(
       frgaalJavaCompilerSetting,
+      inConfig(Test)(truffleRunOptionsSettings),
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= Seq(
         "junit"                % "junit"                   % junitVersion              % Test,
