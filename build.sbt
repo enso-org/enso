@@ -3493,6 +3493,7 @@ lazy val `runtime-compiler-tests` =
           (`runtime-compiler` / Compile / internalModuleDependencies).value
         compileDeps ++ Seq(
           (`runtime-compiler` / Compile / exportedModule).value,
+          (`runtime-compiler-dump-igv` / Compile / exportedModule).value,
           (`scala-libs-wrapper` / Compile / exportedModule).value,
           (`version-output` / Compile / exportedModule).value,
           (`scala-yaml` / Compile / exportedModule).value,
@@ -3521,12 +3522,21 @@ lazy val `runtime-compiler-tests` =
         )
       },
       Test / addExports := {
+        // Add necessary exports for IR module dumping to IGV
+        // Which is used in the test utils
+        val irDumperExports = Map(
+          "jdk.graal.compiler/jdk.graal.compiler.graphio" -> Seq(
+            (`runtime-compiler-dump-igv` / javaModuleName).value
+          )
+        )
+
         val modName  = (`runtime-compiler` / javaModuleName).value
         val testPkgs = (Test / packages).value
         val testPkgsExports = testPkgs.map { pkg =>
           modName + "/" + pkg -> Seq("ALL-UNNAMED")
         }.toMap
-        testPkgsExports
+
+        testPkgsExports ++ irDumperExports
       },
       Test / addReads := {
         val modName = (`runtime-compiler` / javaModuleName).value
