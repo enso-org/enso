@@ -41,9 +41,13 @@ final class MockModule extends CompilerContext.Module {
     return code;
   }
 
+  /**
+   * A dummy implementation. Computing line number for a file inside virtual file system that will
+   * be deleted soon is not worth it.
+   */
   @Override
   public int findLine(IdentifiedLocation loc) {
-    throw new UnsupportedOperationException();
+    return -1;
   }
 
   @Override
