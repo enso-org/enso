@@ -304,15 +304,6 @@ const isCreateNodeButtonEnabled = computed(
     vizColumnOrder.value != null,
 )
 
-const roundWhenFormatting = computed(
-  () =>
-    config.nodeType === TABLE_NODE_TYPE ||
-    config.nodeType === DB_TABLE_NODE_TYPE ||
-    config.nodeType === VECTOR_NODE_TYPE ||
-    config.nodeType === COLUMN_NODE_TYPE ||
-    config.nodeType === ROW_NODE_TYPE,
-)
-
 // if there are upstream updates only to the row information the table version hash change indicates the grid needs to re get rows for any potetial changes
 watch(tableVersionHash, () => {
   refreshDataSource.value++
@@ -362,33 +353,17 @@ const isCreateNewNodeEnabled = computed(
   () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
 )
 
-const numberFormatGroupped = computed(() =>
-  roundWhenFormatting.value ?
-    new Intl.NumberFormat(undefined, {
-      style: 'decimal',
-      maximumSignificantDigits: 12,
-      useGrouping: true,
-    })
-  : new Intl.NumberFormat(undefined, {
-      style: 'decimal',
-      maximumFractionDigits: 100,
-      useGrouping: true,
-    }),
-)
+const numberFormatGroupped = new Intl.NumberFormat(undefined, {
+  style: 'decimal',
+  maximumSignificantDigits: 16,
+  useGrouping: true,
+})
 
-const numberFormat = computed(() =>
-  roundWhenFormatting.value ?
-    new Intl.NumberFormat(undefined, {
-      style: 'decimal',
-      maximumSignificantDigits: 12,
-      useGrouping: false,
-    })
-  : new Intl.NumberFormat(undefined, {
-      style: 'decimal',
-      maximumFractionDigits: 100,
-      useGrouping: false,
-    }),
-)
+const numberFormat = new Intl.NumberFormat(undefined, {
+  style: 'decimal',
+  maximumSignificantDigits: 16,
+  useGrouping: false,
+})
 
 function formatNumber(params: ICellRendererParams) {
   const valueType = params.value?.type
