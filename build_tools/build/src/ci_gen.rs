@@ -936,7 +936,9 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
     let engine_launcher = engine::EngineLauncher::TestNative;
     let build_engine_distribution_id =
         workflow.add(target, job::BuildEngineDistribution { graal_edition, engine_launcher });
-    workflow.add_dependent(target, job::SnowflakeTests {}, &[&build_engine_distribution_id]);
+    workflow.add_dependent(target, job::SnowflakeTests { engine_launcher }, &[
+        &build_engine_distribution_id,
+    ]);
     workflow.add_dependent(
         target,
         job::StandardLibraryTests {

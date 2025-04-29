@@ -605,7 +605,9 @@ fn build_job_ensuring_cloud_tests_run_on_github(
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct SnowflakeTests {}
+pub struct SnowflakeTests {
+    pub engine_launcher: engine::EngineLauncher,
+}
 
 const GRAAL_EDITION_FOR_EXTRA_TESTS: graalvm::Edition = graalvm::Edition::Community;
 
@@ -615,6 +617,7 @@ impl JobArchetype for SnowflakeTests {
             panic!("Snowflake tests currently require GitHub hosted runner for Cloud auth, so they only run on Linux.");
         }
         let job_name = "Snowflake Tests";
+        let engine_launcher = self.engine_launcher;
         let mut job = RunStepsBuilder::new("backend test std-snowflake")
             .customize(move |step| {
                 let main_step = step
@@ -647,7 +650,33 @@ impl JobArchetype for SnowflakeTests {
                 // Enso Cloud as well. They need it to test data link integration.
                 let updated_main_step = enable_cloud_tests(main_step);
 
+                let cleanup_engine_distribution = Step {
+                    run: Some("rm -rf built-distribution".into()),
+                    shell: Some(Shell::Bash),
+                    ..Default::default()
+                };
+
+                let download_engine_distribution =
+                    step::download_artifact("Download Engine Distribution").with_custom_argument(
+                        "name",
+                        format!("engine-distribution-{}-{}", target.0, engine_launcher),
+                    );
+
+                let unpack_engine_distribution = Step {
+                    name: Some("Unpack Engine Distribution".into()),
+                    run: Some(
+                        "tar -xvf built-distribution.tar
+    rm built-distribution.tar
+    "
+                        .into(),
+                    ),
+                    ..Default::default()
+                };
+
                 vec![
+                    cleanup_engine_distribution,
+                    download_engine_distribution,
+                    unpack_engine_distribution,
                     updated_main_step,
                     step::extra_stdlib_test_reporter(target, GRAAL_EDITION_FOR_EXTRA_TESTS),
                 ]

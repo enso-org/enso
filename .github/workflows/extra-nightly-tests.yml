@@ -112,6 +112,14 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
+      - name: Download Engine Distribution
+        uses: actions/download-artifact@v4
+        with:
+          name: engine-distribution-linux-native,test
+      - name: Unpack Engine Distribution
+        run: "tar -xvf built-distribution.tar\n    rm built-distribution.tar\n    "
       - run: ./run backend test std-snowflake
         env:
           ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
