@@ -781,7 +781,12 @@ export default class LocalBackend extends Backend {
   }
 
   /** Download an asset. */
-  override async download(id: backend.AssetId, title: string) {
+  override async download(
+    id: backend.AssetId,
+    title: string,
+    _targetDirectoryId: backend.DirectoryId | null,
+    shouldUnpackProject = true,
+  ) {
     const asset = backend.extractTypeFromId(id)
     if (asset.type === backend.AssetType.project) {
       const typeAndId = extractTypeAndId(asset.id)
@@ -789,10 +794,13 @@ export default class LocalBackend extends Backend {
         projectsDirectory: typeAndId.directory,
       }).toString()
 
-      await download(
-        `/api/project-manager/projects/${typeAndId.id}/enso-project?${queryString}`,
-        `${title}.enso-project`,
-      )
+      await download({
+        url: `/api/project-manager/projects/${typeAndId.id}/enso-project?${queryString}`,
+        name: `${title}.enso-project`,
+        electronOptions: {
+          shouldUnpackProject,
+        },
+      })
     }
     await Promise.resolve()
   }

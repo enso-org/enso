@@ -526,18 +526,19 @@ class App {
     )
     electron.ipcMain.handle(
       ipc.Channel.downloadURL,
-      async (_event, url: string, path?: string | null, filename?: string | null) => {
+      async (_event, options: DownloadUrlOptions) => {
+        const { url, path, name, shouldUnpackProject, showFileDialog } = options
         // This should never happen, but we'll check for it anyway.
         if (!this.window) {
           throw new Error('Window is not available.')
         }
 
-        console.log('downloadURL', { url, path, filename })
+        console.log('downloadURL', { url, path, name, shouldUnpackProject, showFileDialog })
 
         await download.download(this.window, url, {
           ...(path != null ? { directory: path } : {}),
-          ...(filename != null ? { filename } : {}),
-          saveAs: path == null,
+          ...(name != null ? { filename: name } : {}),
+          saveAs: showFileDialog != null ? showFileDialog : path == null,
           onCompleted: (file) => {
             const path = file.path
             const clone = { path, filename: pathModule.basename(path) }
@@ -547,6 +548,9 @@ class App {
                 projectManagement.isProjectBundle(clone.path) ||
                 projectManagement.isProjectRoot(clone.path)
               ) {
+                if (!shouldUnpackProject) {
+                  return
+                }
                 // in case we're importing a project bundle, we need to remove the extension
                 // from the filename
                 const filename = clone.filename.replace(pathModule.extname(clone.filename), '')

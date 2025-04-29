@@ -66,7 +66,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
 
   const isCloud = categoryModule.isCloudCategory(category)
 
-  const { localCategories, setCategory } = useCategoriesAPI()
+  const { localCategories } = useCategoriesAPI()
 
   const getAsset = useGetAsset()
   const canOpenProjects = projectHooks.useCanOpenProjects()
@@ -409,10 +409,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 ids: [{ id: asset.id, title: asset.title }],
                 targetDirectoryId:
                   !isCloud ? (localCategories.localCategory?.homeDirectoryId ?? null) : null,
-              }).then(() => {
-                if (localCategories.localCategory != null) {
-                  setCategory(localCategories.localCategory.id)
-                }
+                shouldUnpackProject: false,
               })
             }}
           />

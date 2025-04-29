@@ -2016,6 +2016,7 @@ export default abstract class Backend {
     assetId: AssetId,
     title: string,
     targetDirectoryId: DirectoryId | null,
+    shouldUnpackProject?: boolean,
   ): Promise<void>
 
   /**
