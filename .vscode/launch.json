@@ -32,7 +32,7 @@
       "type": "nativeimage",
       "request": "launch",
       "name": "Launch Native Image",
-      "nativeImagePath": "${workspaceFolder}/runner",
+      "nativeImagePath": "${workspaceFolder}/enso",
       "args": "--run ${file}"
     }
   ]

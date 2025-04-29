@@ -268,6 +268,25 @@ object NativeImage {
         throw new RuntimeException("Native Image build failed")
       }
       log.info(s"$targetLoc native image build successful.")
+      if (targetDir != null) {
+        val symlinkTargetFile = artifactFile(null, name)
+        if (symlinkTargetFile.exists()) {
+          symlinkTargetFile.delete()
+        }
+        try {
+          val res = Files.createSymbolicLink(
+            symlinkTargetFile.toPath(),
+            targetLoc.toPath()
+          )
+          log.info(s"Symlink $res to $targetLoc created.")
+        } catch {
+          case io: java.io.IOException =>
+            log.error(
+              s"Failed to create $symlinkTargetFile symlink to $targetLoc"
+            )
+        }
+
+      }
     }
     .tag(nativeImageBuildTag)
     .dependsOn(Compile / compile)
