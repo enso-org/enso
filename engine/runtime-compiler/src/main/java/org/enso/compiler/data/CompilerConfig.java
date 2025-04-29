@@ -10,6 +10,7 @@ import scala.Option;
  * @param warningsEnabled whether or not warnings are enabled
  * @param privateCheckEnabled whether or not private keyword is enabled
  * @param staticTypeInferenceEnabled whether or not type inference is enabled
+ * @param treatWarningsAsErrors If warnings should be treated as errors.
  * @param dumpModuleIR identification (name) of a module to dump
  * @param isStrictErrors if true, presence of any Error in IR will result in an exception
  * @param isLintingDisabled if true, compilation should not run any linting passes
@@ -20,6 +21,7 @@ public record CompilerConfig(
     boolean warningsEnabled,
     boolean privateCheckEnabled,
     boolean staticTypeInferenceEnabled,
+    boolean treatWarningsAsErrors,
     Option<String> dumpModuleIR,
     boolean isStrictErrors,
     boolean isLintingDisabled,
@@ -38,6 +40,7 @@ public record CompilerConfig(
     private boolean warningsEnabled = true;
     private boolean privateCheckEnabled = true;
     private boolean staticTypeInferenceEnabled = false;
+    private boolean treatWarningsAsErrors = false;
     private Option<String> dumpModuleIR = Option.empty();
     private boolean isStrictErrors = false;
     private boolean isLintingDisabled = false;
@@ -61,6 +64,11 @@ public record CompilerConfig(
 
     public Builder staticTypeInferenceEnabled(boolean staticTypeInferenceEnabled) {
       this.staticTypeInferenceEnabled = staticTypeInferenceEnabled;
+      return this;
+    }
+
+    public Builder treatWarningsAsErrors(boolean treatWarningsAsErrors) {
+      this.treatWarningsAsErrors = treatWarningsAsErrors;
       return this;
     }
 
@@ -95,6 +103,7 @@ public record CompilerConfig(
           warningsEnabled,
           privateCheckEnabled,
           staticTypeInferenceEnabled,
+          treatWarningsAsErrors,
           dumpModuleIR,
           isStrictErrors,
           isLintingDisabled,
