@@ -41,7 +41,6 @@ const item: CustomDropdownItem = {
           },
         }),
       ),
-      true,
     )
   },
 }

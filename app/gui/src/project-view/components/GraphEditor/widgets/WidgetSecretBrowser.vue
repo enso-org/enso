@@ -99,7 +99,6 @@ const secretBrowserItem: CustomDropdownItem = {
           },
         }),
       ),
-      true,
     )
   },
 }
