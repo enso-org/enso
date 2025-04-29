@@ -404,8 +404,7 @@ impl Processor {
                                 Some(StandardLibraryTestsSelection::whitelist(vec![
                                     "Snowflake_Tests".to_string(),
                                 ]));
-                            config.build_native_runner = false;
-                            config.build_engine_package = true;
+                            config.use_native_runner = false;
                         }
                         Tests::StdCloudRelated => {
                             config.test_standard_library =
@@ -422,8 +421,7 @@ impl Processor {
                                     // datalinks
                                     "Image_Tests".to_string(),
                                 ]));
-                            config.build_native_runner = false;
-                            config.build_engine_package = true;
+                            config.use_native_runner = true;
                         }
                     }
                 }
