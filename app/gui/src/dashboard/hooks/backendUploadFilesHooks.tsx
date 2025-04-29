@@ -10,14 +10,13 @@ import { useToastAndLog, useToastAndLogWithId } from '#/hooks/toastAndLogHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import DuplicateAssetsModal, { resolveDuplications } from '#/modals/DuplicateAssetsModal'
-import { useRemoteBackend } from '#/providers/BackendProvider'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
-import { useHttpClient } from '#/providers/HttpClientProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type LocalBackend from '#/services/LocalBackend'
 import { extractTypeAndId } from '#/services/LocalBackend'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
+import { useBackendsInReact, useHttpClientInReact } from '$/providers/react'
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
 import {
   assetIsFile,
@@ -407,9 +406,9 @@ function useGetSiblings() {
  */
 export function useUploadFileToCloudMutation() {
   const { getText } = useText()
-  const httpClient = useHttpClient()
+  const httpClient = useHttpClientInReact()
   const toastAndLog = useToastAndLog()
-  const remoteBackend = useRemoteBackend()
+  const { remoteBackend } = useBackendsInReact()
   const uploadFileMutation = useUploadFileWithToastMutation(remoteBackend)
   const getSiblings = useGetSiblings()
   const { cloudCategories } = useCategoriesAPI()

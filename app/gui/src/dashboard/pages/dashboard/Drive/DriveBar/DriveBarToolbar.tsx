@@ -52,7 +52,6 @@ import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useUser } from '#/providers/AuthProvider'
-import { useLocalBackend } from '#/providers/BackendProvider'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { setModal, useSetModal } from '#/providers/ModalProvider'
@@ -63,6 +62,7 @@ import { extractTypeAndId } from '#/services/LocalBackend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useBackendsInReact } from '$/providers/react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import type { PropsWithChildren } from 'react'
@@ -403,7 +403,7 @@ function UploadFilesToCloudButton(props: UploadFilesToCloudButtonProps) {
   const user = useUser()
   const getAsset = useGetAsset()
   const { getText } = useText()
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackendsInReact()
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const isCloud = isCloudCategory(category)
   const driveStore = useDriveStore()

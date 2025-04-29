@@ -7,13 +7,12 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as gtagHooks from '#/hooks/gtagHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { useTimeoutCallback } from '#/hooks/timeoutHooks'
-import * as backendProvider from '#/providers/BackendProvider'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/Backend'
 import * as twMerge from '#/utilities/tailwindMerge'
 import { vueComponent } from '#/utilities/vue'
-import { useConfigInReact } from '$/providers/react'
+import { useBackendsInReact, useConfigInReact } from '$/providers/react'
 import * as reactQuery from '@tanstack/react-query'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
@@ -42,9 +41,8 @@ export default function Editor(props: EditorProps) {
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
   const startProject = projectHooks.useReopenProject(openProjectMutation)
 
-  const backend = backendProvider.useBackendForProjectType(project.type)
-  const remoteBackend = backendProvider.useRemoteBackend()
-  const localBackend = backendProvider.useLocalBackend()
+  const { localBackend, remoteBackend, backendForProjectType } = useBackendsInReact()
+  const backend = backendForProjectType(project.type)
 
   const projectStatusQuery = projectHooks.createGetProjectDetailsQuery({
     assetId: project.id,
@@ -222,8 +220,7 @@ function EditorInternal(props: EditorInternalProps) {
   const gtagEvent = gtagHooks.useGtagEvent()
   const config = useConfigInReact()
 
-  const localBackend = backendProvider.useLocalBackend()
-  const remoteBackend = backendProvider.useRemoteBackend()
+  const { localBackend, remoteBackend } = useBackendsInReact()
 
   React.useEffect(() => {
     if (!hidden) {

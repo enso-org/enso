@@ -9,7 +9,6 @@ import { IS_DEV_MODE } from 'enso-common/src/detect'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 
 import { useEnableVersionChecker, useSetEnableVersionChecker } from '#/components/Devtools'
-import { useLocalBackend } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
 
 import { Button, ButtonGroup, Dialog, Text } from '#/components/AriaComponents'
@@ -18,6 +17,7 @@ import { Stepper } from '#/components/Stepper'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { download } from '#/utilities/download'
 import { getDownloadUrl, getLatestRelease } from '#/utilities/github'
+import { useBackendsInReact } from '$/providers/react'
 import { startTransition, useState } from 'react'
 
 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
@@ -36,7 +36,7 @@ export default function VersionChecker() {
 
   const { getText, locale } = useText()
   const toastAndLog = useToastAndLog()
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackendsInReact()
 
   const supportsLocalBackend = localBackend != null
   const overrideValue = useEnableVersionChecker()

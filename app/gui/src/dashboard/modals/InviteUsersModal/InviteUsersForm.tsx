@@ -9,7 +9,6 @@ import * as billingHooks from '#/hooks/billing'
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -18,6 +17,7 @@ import * as paywallComponents from '#/components/Paywall'
 import type * as backendModule from '#/services/Backend'
 
 import * as parserUserEmails from '#/utilities/parseUserEmails'
+import { useBackendsInReact } from '$/providers/react'
 
 /** Props for an {@link InviteUsersForm}. */
 export interface InviteUsersFormProps {
@@ -28,7 +28,7 @@ export interface InviteUsersFormProps {
 export function InviteUsersForm(props: InviteUsersFormProps) {
   const { onSubmitted } = props
   const { getText } = textProvider.useText()
-  const backend = backendProvider.useRemoteBackend()
+  const { remoteBackend: backend } = useBackendsInReact()
   const inputRef = React.useRef<HTMLDivElement>(null)
 
   const { user } = authProvider.useFullUserSession()

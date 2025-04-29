@@ -7,7 +7,6 @@ import { merge } from 'enso-common/src/utilities/data/object'
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import {
   useAddLaunchedProject,
   useProjectsStore,
@@ -22,6 +21,7 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
+import { useBackendsInReact } from '$/providers/react'
 import { useEnsureQueryData, useMutationCallback } from '../utilities/tanstackQuery'
 import { useUploadFileWithToastMutation } from './backendUploadFilesHooks'
 
@@ -211,8 +211,7 @@ createGetProjectDetailsQuery.getQueryKey = (id: LaunchedProjectId) => ['project'
 export function useOpenProjectMutation() {
   const client = reactQuery.useQueryClient()
   const session = authProvider.useFullUserSession()
-  const remoteBackend = backendProvider.useRemoteBackend()
-  const localBackend = backendProvider.useLocalBackend()
+  const { remoteBackend, localBackend } = useBackendsInReact()
   const setProjectAsset = useSetProjectAsset()
 
   return reactQuery.useMutation({
@@ -275,8 +274,7 @@ export function useOpenProjectMutation() {
 /** Mutation to close a project. */
 export function useCloseProjectMutation() {
   const client = reactQuery.useQueryClient()
-  const remoteBackend = backendProvider.useRemoteBackend()
-  const localBackend = backendProvider.useLocalBackend()
+  const { remoteBackend, localBackend } = useBackendsInReact()
   const setProjectAsset = useSetProjectAsset()
   const uploadFileMutation = useUploadFileWithToastMutation(remoteBackend)
   const toastAndLog = useToastAndLog()
@@ -446,8 +444,7 @@ function useOpenProject() {
 
 /** Return a hook to open a project in Hybrid Mode. */
 export function useOpenHybridProject() {
-  const localBackend = backendProvider.useLocalBackend()
-  const remoteBackend = backendProvider.useRemoteBackend()
+  const { localBackend, remoteBackend } = useBackendsInReact()
   const toastAndLog = useToastAndLog()
   const openProject = useOpenProject()
   const closeProject = useCloseProject()
@@ -498,7 +495,7 @@ export function useOpenHybridProject() {
 
 /** Return a function to reopen a previously opened project that has since been closed. */
 export function useReopenProject(openProjectMutation: ReturnType<typeof useOpenProjectMutation>) {
-  const remoteBackend = backendProvider.useRemoteBackend()
+  const { remoteBackend } = useBackendsInReact()
 
   return eventCallbacks.useEventCallback(
     async (project: LaunchedProject & { readonly suppressHybridProjectOpen?: boolean }) => {
@@ -601,8 +598,7 @@ export function useCloseProject() {
 export function useCloseAllProjects() {
   const closeProject = useCloseProject()
   const projectsStore = useProjectsStore()
-  const remoteBackend = backendProvider.useRemoteBackend()
-  const localBackend = backendProvider.useLocalBackend()
+  const { remoteBackend, localBackend } = useBackendsInReact()
   const ensureQueryData = useEnsureQueryData()
 
   return eventCallbacks.useEventCallback(async () => {

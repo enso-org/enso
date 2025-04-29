@@ -9,13 +9,13 @@ import type {
 } from '#/authentication/cognito'
 import { render, screen, waitFor } from '#/test'
 import HttpClient from '#/utilities/HttpClient'
+import { HTTPClientContext } from '$/providers/react'
 import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Suspense } from 'react'
 import { Result } from 'ts-results'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SessionProvider } from '.'
-import { HttpClientProvider } from '../HttpClientProvider'
 
 class MockAuthService implements ISessionProvider {
   saveAccessToken = vi.fn()
@@ -73,13 +73,15 @@ describe('SessionProvider', () => {
   it('Should retrieve the user session', async () => {
     const { getByText } = render(
       <Suspense fallback={<div>Loading...</div>}>
-        <SessionProvider
-          authService={authService}
-          mainPageUrl={mainPageUrl}
-          registerAuthEventListener={registerAuthEventListener}
-        >
-          <div>Hello</div>
-        </SessionProvider>
+        <HTTPClientContext.Provider value={new HttpClient()}>
+          <SessionProvider
+            authService={authService}
+            mainPageUrl={mainPageUrl}
+            registerAuthEventListener={registerAuthEventListener}
+          >
+            <div>Hello</div>
+          </SessionProvider>
+        </HTTPClientContext.Provider>
       </Suspense>,
     )
 
@@ -98,7 +100,7 @@ describe('SessionProvider', () => {
 
     render(
       <Suspense fallback={<div>Loading...</div>}>
-        <HttpClientProvider httpClient={httpClient}>
+        <HTTPClientContext.Provider value={httpClient}>
           <SessionProvider
             authService={authService}
             mainPageUrl={mainPageUrl}
@@ -106,7 +108,7 @@ describe('SessionProvider', () => {
           >
             <div>Hello</div>
           </SessionProvider>
-        </HttpClientProvider>
+        </HTTPClientContext.Provider>
       </Suspense>,
     )
 
@@ -126,13 +128,15 @@ describe('SessionProvider', () => {
 
     render(
       <Suspense fallback={<div>Loading...</div>}>
-        <SessionProvider
-          authService={authService}
-          mainPageUrl={mainPageUrl}
-          registerAuthEventListener={registerAuthEventListener}
-        >
-          <div>Hello</div>
-        </SessionProvider>
+        <HTTPClientContext.Provider value={new HttpClient()}>
+          <SessionProvider
+            authService={authService}
+            mainPageUrl={mainPageUrl}
+            registerAuthEventListener={registerAuthEventListener}
+          >
+            <div>Hello</div>
+          </SessionProvider>
+        </HTTPClientContext.Provider>
       </Suspense>,
     )
 
@@ -157,16 +161,18 @@ describe('SessionProvider', () => {
 
     render(
       <Suspense fallback={<div>Loading...</div>}>
-        <SessionProvider
-          authService={authService}
-          mainPageUrl={mainPageUrl}
-          registerAuthEventListener={registerAuthEventListener}
-        >
-          {({ session: sessionFromContext }) => {
-            session = sessionFromContext
-            return null
-          }}
-        </SessionProvider>
+        <HTTPClientContext.Provider value={new HttpClient()}>
+          <SessionProvider
+            authService={authService}
+            mainPageUrl={mainPageUrl}
+            registerAuthEventListener={registerAuthEventListener}
+          >
+            {({ session: sessionFromContext }) => {
+              session = sessionFromContext
+              return null
+            }}
+          </SessionProvider>
+        </HTTPClientContext.Provider>
       </Suspense>,
     )
 
@@ -186,13 +192,15 @@ describe('SessionProvider', () => {
   it('Should call registerAuthEventListener when the session is updated', async () => {
     render(
       <Suspense fallback={<div>Loading...</div>}>
-        <SessionProvider
-          authService={authService}
-          mainPageUrl={mainPageUrl}
-          registerAuthEventListener={registerAuthEventListener}
-        >
-          <div>Hello</div>
-        </SessionProvider>
+        <HTTPClientContext.Provider value={new HttpClient()}>
+          <SessionProvider
+            authService={authService}
+            mainPageUrl={mainPageUrl}
+            registerAuthEventListener={registerAuthEventListener}
+          >
+            <div>Hello</div>
+          </SessionProvider>
+        </HTTPClientContext.Provider>
       </Suspense>,
     )
 

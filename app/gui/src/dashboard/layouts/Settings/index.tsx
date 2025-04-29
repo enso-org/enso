@@ -13,13 +13,13 @@ import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import SearchBar from '#/layouts/SearchBar'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
 import { Path } from '#/services/ProjectManager'
 import { includesPredicate } from '#/utilities/array'
 import { regexEscape } from '#/utilities/string'
+import { useBackendsInReact } from '$/providers/react'
 import {
   ALL_SETTINGS_TABS,
   SETTINGS_DATA,
@@ -36,8 +36,7 @@ import SettingsTabType from './TabType'
 /** Settings screen. */
 export default function Settings() {
   const queryClient = useQueryClient()
-  const backend = useRemoteBackend()
-  const localBackend = useLocalBackend()
+  const { remoteBackend: backend, localBackend } = useBackendsInReact()
   const [tab, setTab] = useSearchParamsState(
     'SettingsTab',
     SettingsTabType.account,
@@ -64,9 +63,7 @@ export default function Settings() {
   const [localRootDirectory, setLocalRootDirectory] = useLocalStorageState('localRootDirectory')
   const updateLocalRootPath = useEventCallback((value: string) => {
     setLocalRootDirectory(value)
-    if (localBackend) {
-      localBackend.setRootPath(Path(value))
-    }
+    localBackend?.setRootPath(Path(value))
   })
   const resetLocalRootPath = useEventCallback(() => {
     setLocalRootDirectory(undefined)

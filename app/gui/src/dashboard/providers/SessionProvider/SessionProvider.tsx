@@ -7,8 +7,6 @@ import * as React from 'react'
 import * as sentry from '@sentry/vue'
 import * as reactQuery from '@tanstack/react-query'
 
-import * as httpClientProvider from '#/providers/HttpClientProvider'
-
 import * as errorModule from '#/utilities/error'
 
 import type * as cognito from '#/authentication/cognito'
@@ -22,6 +20,7 @@ import { useOffline } from '#/hooks/offlineHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { unsetModal } from '#/providers/ModalProvider'
 import { unsafeWriteValue } from '#/utilities/write'
+import { useHttpClientInReact } from '$/providers/react'
 import { toast } from 'react-toastify'
 import { useText } from '../TextProvider'
 import { SessionContext } from './hooks'
@@ -46,7 +45,7 @@ export function SessionProvider(props: SessionProviderProps) {
     authService.saveAccessToken(accessToken)
   })
 
-  const httpClient = httpClientProvider.useHttpClient()
+  const httpClient = useHttpClientInReact()
   const queryClient = reactQuery.useQueryClient()
   const toastAndLog = useToastAndLog()
 

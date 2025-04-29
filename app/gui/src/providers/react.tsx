@@ -1,9 +1,12 @@
+import HttpClient from '#/utilities/HttpClient'
 import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
 import { assert } from '@/util/assert'
 import * as react from 'react'
 import { applyPureReactInVue } from 'veaury'
-import { computed } from 'vue'
+import { computed, proxyRefs, ShallowUnwrapRef } from 'vue'
 import { Router, useRoute, useRouter } from 'vue-router'
+import { injectBackends } from './backends'
+import { injectHttpClient } from './httpClient'
 
 function useInReactFunction<T>(context: react.Context<T | null>) {
   return () => {
@@ -24,6 +27,13 @@ export const useRouterInReact = useInReactFunction(RouterContext)
 const ConfigContext = react.createContext<GuiConfig | null>(null)
 export const useConfigInReact = useInReactFunction(ConfigContext)
 
+export const HTTPClientContext = react.createContext<HttpClient | null>(null)
+export const useHttpClientInReact = useInReactFunction(HTTPClientContext)
+
+type BackendForReact = ShallowUnwrapRef<ReturnType<typeof injectBackends>>
+const BackendsContext = react.createContext<BackendForReact | null>(null)
+export const useBackendsInReact = useInReactFunction(BackendsContext)
+
 /**
  * A provider for all contexts set in vue and read by react.
  *
@@ -31,14 +41,22 @@ export const useConfigInReact = useInReactFunction(ConfigContext)
  * nesting two in a row does not work.
  */
 export const ContextsForReactProvider = applyPureReactInVue(
-  ({
-    children,
-    router,
-    config,
-  }: react.PropsWithChildren<{ router: RouterForReact; config: GuiConfig }>) => {
+  (
+    props: react.PropsWithChildren<{
+      router: RouterForReact
+      config: GuiConfig
+      httpClient: HttpClient
+      backends: BackendForReact
+    }>,
+  ) => {
+    const { children, router, config, httpClient, backends } = props
     return (
       <RouterContext.Provider value={router}>
-        <ConfigContext.Provider value={config}>{children}</ConfigContext.Provider>
+        <ConfigContext.Provider value={config}>
+          <HTTPClientContext.Provider value={httpClient}>
+            <BackendsContext.Provider value={backends}>{children}</BackendsContext.Provider>
+          </HTTPClientContext.Provider>
+        </ConfigContext.Provider>
       </RouterContext.Provider>
     )
   },
@@ -65,6 +83,8 @@ export const ContextsForReactProvider = applyPureReactInVue(
           }
         }),
         config: injectGuiConfig(),
+        httpClient: injectHttpClient(),
+        backends: proxyRefs(injectBackends()),
       }
     },
   },

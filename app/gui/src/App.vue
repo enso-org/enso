@@ -19,12 +19,15 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { applyPureReactInVue } from 'veaury'
 import { computed, onMounted } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
+import { provideBackends } from './providers/backends'
+import { provideHttpClient } from './providers/httpClient'
 
-const { projectViewOnly, onAuthenticated } = defineProps<{
+const { projectViewOnly, onAuthenticated, rootDirPath } = defineProps<{
   // Used in Project View integration tests. Once both test projects will be merged, this should be
   // removed
   projectViewOnly?: { options: ComponentProps<typeof ProjectView> } | null
   onAuthenticated?: (accessToken: string | null) => void
+  rootDirPath: string | undefined
 }>()
 
 const classSet = provideAppClassSet()
@@ -47,10 +50,9 @@ const ReactRootWrapper = applyPureReactInVue(ReactRoot)
 const queryClient = useQueryClient()
 
 provideKeyboard()
-provideGuiConfig(appConfigValue)
+const config = provideGuiConfig(appConfigValue)
 const interaction = provideInteractionHandler()
 initializeActions()
-
 registerAutoBlurHandler()
 registerGlobalBlurHandler()
 
@@ -65,6 +67,8 @@ useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointe
 useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
   capture: true,
 })
+const httpClient = provideHttpClient()
+provideBackends(httpClient, config, rootDirPath)
 
 onMounted(() => {
   if (appConfigValue.value.window.vibrancy) {

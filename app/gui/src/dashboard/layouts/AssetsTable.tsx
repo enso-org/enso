@@ -76,11 +76,6 @@ import DragModal from '#/modals/DragModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import {
-  useBackend,
-  useDidLoadingProjectManagerFail,
-  useReconnectToProjectManager,
-} from '#/providers/BackendProvider'
-import {
   useDriveStore,
   useSetCanDownload,
   useSetNewestFolderId,
@@ -119,6 +114,7 @@ import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useBackendsInReact } from '$/providers/react'
 import invariant from 'tiny-invariant'
 import type { AssetsDataTransferPayload } from './Drive/Categories/transferBetweenCategoriesHooks'
 import {
@@ -198,15 +194,15 @@ function AssetsTable(props: AssetsTableProps) {
   const setSuggestions = useSetSuggestions()
 
   const { user } = useFullUserSession()
-  const backend = useBackend(category)
+  const { backendByCategory, didLoadingProjectManagerFail, reconnectToProjectManager } =
+    useBackendsInReact()
+  const backend = backendByCategory(category)
   const { data: labels } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const { setModal, unsetModal } = useSetModal()
   const { localStorage } = useLocalStorage()
   const { getText } = useText()
   const inputBindings = useInputBindings()
   const toastAndLog = useToastAndLog()
-  const didLoadingProjectManagerFail = useDidLoadingProjectManagerFail()
-  const reconnectToProjectManager = useReconnectToProjectManager()
   const [enabledColumns, setEnabledColumns] = useState(DEFAULT_ENABLED_COLUMNS)
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const setAssetPanelProps = useSetAssetPanelProps()

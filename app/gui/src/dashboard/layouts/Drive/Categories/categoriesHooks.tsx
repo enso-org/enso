@@ -13,7 +13,6 @@ import { useUser } from '#/providers/AuthProvider'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
-import { pickBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
@@ -22,6 +21,8 @@ import { newDirectoryId } from '#/services/LocalBackend'
 import { organizationIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
+import { pickBackend } from '$/providers/backends'
+import { useBackendsInReact } from '$/providers/react'
 import type { ReactNode } from 'react'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
@@ -182,7 +183,7 @@ function createLocalDirectoryCategory(directory: string): LocalDirectoryCategory
  */
 function useLocalCategoryList() {
   const { getText } = useText()
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackendsInReact()
   const [localRootDirectory] = useLocalStorageState('localRootDirectory')
   const rootPath = localRootDirectory != null ? Path(localRootDirectory) : localBackend?.rootPath()
   const [localRootDirectories, setLocalRootDirectories] = useLocalStorageState(
@@ -323,8 +324,7 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
   const { children, onCategoryChange = () => {} } = props
 
   const { cloudCategories, localCategories, findCategoryById } = useCategories()
-  const localBackend = useLocalBackend()
-  const remoteBackend = useRemoteBackend()
+  const { localBackend, remoteBackend } = useBackendsInReact()
   const { isOffline } = useOffline()
 
   const [categoryId, privateSetCategoryId, privateResetCategoryId] =

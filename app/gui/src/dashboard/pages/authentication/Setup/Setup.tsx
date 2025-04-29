@@ -16,7 +16,6 @@ import { DASHBOARD_PATH, LOGIN_PATH, ORGANIZATION_NAME_MAX_LENGTH } from '#/appU
 import { useIsFirstRender } from '#/hooks/mountHooks'
 
 import { useAuth, UserSessionType, useUserSession } from '#/providers/AuthProvider'
-import { useRemoteBackend } from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -27,7 +26,7 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { InviteUsersForm } from '#/modals/InviteUsersModal'
 import { PlanSelector } from '#/modules/payments'
 import { Plan } from '#/services/Backend'
-import { useRouterInReact } from '$/providers/react'
+import { useBackendsInReact, useRouterInReact } from '$/providers/react'
 
 /** Step in the setup process */
 interface Step {
@@ -140,7 +139,7 @@ const BASE_STEPS: Step[] = [
     /** Setup step for setting organization name. */
     component: function SetOrganizationNameStep({ goToNextStep, goToPreviousStep, session }) {
       const { getText } = textProvider.useText()
-      const remoteBackend = useRemoteBackend()
+      const { remoteBackend } = useBackendsInReact()
       const userId = session && 'user' in session ? session.user.userId : null
 
       const { data: defaultOrgName } = useSuspenseQuery({
@@ -245,7 +244,7 @@ const BASE_STEPS: Step[] = [
     /** Setup step for creating the first user group. */
     component: function CreateUserGroupStep({ goToNextStep, goToPreviousStep }) {
       const { getText } = textProvider.useText()
-      const remoteBackend = useRemoteBackend()
+      const { remoteBackend } = useBackendsInReact()
 
       const defaultUserGroupMaxLength = 64
 

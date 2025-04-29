@@ -7,13 +7,12 @@ import { ProfilePicture } from '#/components/ProfilePicture'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AboutModal from '#/modals/AboutModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useLocalBackend } from '#/providers/BackendProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
-import { useRouterInReact } from '$/providers/react'
+import { useBackendsInReact, useRouterInReact } from '$/providers/react'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 
 /** Props for a {@link UserMenu}. */
@@ -29,7 +28,7 @@ export default function UserMenu(props: UserMenuProps) {
   const { hidden = false, goToSettingsPage, onSignOut } = props
 
   const { router } = useRouterInReact()
-  const localBackend = useLocalBackend()
+  const { localBackend } = useBackendsInReact()
   const { signOut } = useSessionAPI()
   const { user } = useFullUserSession()
   const { setModal, unsetModal } = useSetModal()

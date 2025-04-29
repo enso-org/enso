@@ -18,9 +18,9 @@ import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { AssetDocs } from '#/layouts/AssetDocs'
 import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Category'
-import { useBackend } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
 import { useStore } from '#/utilities/zustand'
+import { useBackendsInReact } from '$/providers/react'
 import { useFeatureFlag } from '../../providers/FeatureFlagsProvider'
 import {
   assetPanelStore,
@@ -100,6 +100,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
   props: AssetPanelProps & { panelWidth: number },
 ) {
   const { category, panelWidth } = props
+  const { backendByCategory } = useBackendsInReact()
 
   const itemId = useStore(
     assetPanelStore,
@@ -131,7 +132,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
     setIsExpanded(true)
   })
 
-  const backend = useBackend(category)
+  const backend = backendByCategory(category)
 
   const getTranslation = useEventCallback(() => ASSET_SIDEBAR_COLLAPSED_WIDTH)
 

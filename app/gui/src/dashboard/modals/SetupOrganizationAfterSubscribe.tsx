@@ -6,7 +6,6 @@ import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import type { GetText } from '#/providers/TextProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -17,6 +16,7 @@ import { Button } from '#/components/AriaComponents'
 import { Result } from '#/components/Result'
 import { Stepper } from '#/components/Stepper'
 import * as backendModule from '#/services/Backend'
+import { useBackendsInReact } from '$/providers/react'
 import type RemoteBackend from '../services/RemoteBackend'
 
 const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.enterprise]
@@ -26,7 +26,7 @@ const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.e
  * Shows up when the user is on the team plan and the organization name is the default.
  */
 export function SetupOrganizationAfterSubscribe({ children }: React.PropsWithChildren) {
-  const backend = backendProvider.useRemoteBackend()
+  const { remoteBackend: backend } = useBackendsInReact()
 
   const session = authProvider.useFullUserSession()
   const { user } = session

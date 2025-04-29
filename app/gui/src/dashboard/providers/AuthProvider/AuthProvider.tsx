@@ -19,7 +19,6 @@ import * as appUtils from '#/appUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as gtagHooks from '#/hooks/gtagHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -43,7 +42,7 @@ import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useRouterInReact } from '$/providers/react'
+import { useBackendsInReact, useRouterInReact } from '$/providers/react'
 import { Suspense } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import { AuthContext, useAuth } from './hooks'
@@ -82,7 +81,7 @@ export interface AuthProviderProps {
 export function AuthProvider(props: AuthProviderProps) {
   const { onAuthenticated, children } = props
 
-  const remoteBackend = backendProvider.useRemoteBackend()
+  const { remoteBackend } = useBackendsInReact()
   const setFeatureFlags = useSetFeatureFlags()
 
   const { session, organizationId, signOut } = sessionProvider.useSession()

@@ -8,7 +8,6 @@ import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import { AssetPanel } from '#/layouts/AssetPanel'
@@ -28,6 +27,7 @@ import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import { OfflineError } from '#/utilities/HttpClient'
+import { useBackendsInReact } from '$/providers/react'
 import { useDeferredValue } from 'react'
 import { toast } from 'react-toastify'
 import { Suspense } from '../components/Suspense'
@@ -43,7 +43,7 @@ function Drive(props: DriveProps) {
   const { isOffline } = offlineHooks.useOffline()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useFullUserSession()
-  const localBackend = backendProvider.useLocalBackend()
+  const { localBackend } = useBackendsInReact()
   const { getText } = textProvider.useText()
   const categoriesAPI = useCategoriesAPI()
   const { category, resetCategory, setCategory } = categoriesAPI
@@ -144,8 +144,8 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
 
   const { isOffline } = offlineHooks.useOffline()
   const { user } = authProvider.useFullUserSession()
-  const localBackend = backendProvider.useLocalBackend()
-  const backend = backendProvider.useBackend(category)
+  const { localBackend, backendByCategory } = useBackendsInReact()
+  const backend = backendByCategory(category)
 
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
 

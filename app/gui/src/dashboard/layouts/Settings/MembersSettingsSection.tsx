@@ -5,7 +5,6 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -15,13 +14,14 @@ import InviteUsersModal from '#/modals/InviteUsersModal'
 
 import type * as backendModule from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
+import { useBackendsInReact } from '$/providers/react'
 
 const LIST_USERS_STALE_TIME_MS = 60_000
 
 /** Settings tab for viewing and editing organization members. */
 export default function MembersSettingsSection() {
   const { getText } = textProvider.useText()
-  const backend = backendProvider.useRemoteBackend()
+  const { remoteBackend: backend } = useBackendsInReact()
   const { user } = authProvider.useFullUserSession()
 
   const { isFeatureUnderPaywall, getFeature } = billingHooks.usePaywall({ plan: user.plan })
