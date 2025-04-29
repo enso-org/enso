@@ -4,21 +4,11 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  AmbiguousImportsAnalysis,
-  BindingAnalysis,
-  ImportSymbolAnalysis,
-  PrivateConstructorAnalysis,
-  PrivateModuleAnalysis
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, AmbiguousImportsAnalysis, BindingAnalysis, ImportSymbolAnalysis, PrivateConstructorAnalysis, PrivateModuleAnalysis}
 import org.enso.compiler.pass.desugar._
-import org.enso.compiler.pass.lint.{
-  ModuleNameConflicts,
-  ShadowedPatternFields,
-  UnusedBindings
-}
+import org.enso.compiler.pass.lint.{ModuleNameConflicts, ShadowedPatternFields, UnusedBindings}
 import org.enso.compiler.pass.optimise.UnreachableMatchBranches
 import org.enso.compiler.pass.resolve._
 
@@ -85,7 +75,9 @@ class PassesTest extends CompilerTest {
   }
 
   "Compiler pass ordering slicing" should {
-    val passes = new Passes(defaultConfig.copy(isLintingDisabled = true))
+    val passes = new Passes(
+      CompilerConfig.builder().isLintingDisabled(true).build()
+    )
 
     "not include linting passes when disabled" in {
       passes.allPassOrdering should not contain UnusedBindings
