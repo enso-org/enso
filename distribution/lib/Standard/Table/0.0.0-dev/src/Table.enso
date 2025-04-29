@@ -247,6 +247,7 @@ type Table
        Arguments:
        - internal_java_table: The internal java representation of the table.
     private Value internal_java_table
+
     ## PRIVATE
        A getter that is a workaround for bug https://github.com/enso-org/enso/issues/12180
     private java_table self = self.internal_java_table
@@ -1070,7 +1071,10 @@ type Table
         problem_builder.attach_problems_before on_problems <|
             self.drop (..First 1) . rename_columns new_names_cleaned on_problems=on_problems
 
-    ## ALIAS average, count, count distinct, first, group by, last, longest, maximum, mean, median, minimum, mode, percentile, shortest, standard deviation, sum, summarize, variance
+    ## ALIAS average, first, group by, last, longest, maximum, mean, median, minimum, mode, percentile, shortest, standard deviation, summarize, variance
+       MACRO sum columns=[..Sum]
+       MACRO count columns=[..Count]
+       MACRO count_distinct columns=[..Count_Distinct]
        GROUP Standard.Base.Calculations
        ICON transform4
        SUGGESTED 7
@@ -2043,6 +2047,8 @@ type Table
         Expand_Objects_Helpers.expand_to_rows self column at_least_one_row sequences_only=False
 
     ## ALIAS filter rows, regex, where
+       MACRO equals filter=..Equal
+       MACRO less_than filter=..Less
        GROUP Standard.Base.Selections
        ICON preparation
        SUGGESTED 2
@@ -4054,6 +4060,11 @@ make_fill_nothing_default_widget table cache=Nothing =
 from_java_table java_table -> Table =
     Table_Refinements.refine_table <|
         Table.Value java_table
+
+## PRIVATE
+   Helper method for internal use to make a Java Table from a Table.
+to_java_table table =
+    table.java_table
 
 ## PRIVATE
 Many_Files_List.from (that : Table) =

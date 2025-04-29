@@ -171,6 +171,7 @@ export class ActionTag {
    */
   constructor(
     readonly label: string,
+    readonly icon: Icon | undefined,
     readonly onClick: (dropdownActions: Actions) => void,
   ) {}
 
@@ -178,7 +179,7 @@ export class ActionTag {
    * Create a new {@link ActionTag} from a {@link CustomDropdownItem}.
    */
   static FromItem(item: CustomDropdownItem): ActionTag {
-    return new ActionTag(item.label, item.onClick)
+    return new ActionTag(item.label, item.icon, item.onClick)
   }
 }
 
@@ -186,6 +187,8 @@ export class ActionTag {
 export interface CustomDropdownItem {
   /** Displayed label. */
   label: string
+  /** Displayed icon. */
+  icon?: Icon
   /** Action to perform when clicked. */
   onClick: (dropdownActions: Actions) => void
 }

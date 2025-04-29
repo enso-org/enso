@@ -26,8 +26,7 @@ export type SortModel = {
 export interface SortFilterNodesButtonOptions {
   filterModel: ToValue<GridFilterModel[]>
   sortModel: ToValue<SortModel[]>
-  isDisabled: ToValue<boolean>
-  isFilterSortNodeEnabled: ToValue<boolean>
+  isCreateNewNodeEnabled: ToValue<boolean>
   createNodes: (...options: NodeCreationOptions[]) => void
   getColumnValueToEnso: (
     columnName: string,
@@ -38,23 +37,48 @@ export interface FormatMenuOptions {
   textFormatterSelected: Ref<TextFormatOptions>
 }
 
+export interface ColumnNodeButton {
+  isCreateNewNodeEnabled: ToValue<boolean>
+  createNodes: (...options: NodeCreationOptions[]) => void
+  hiddenColumns: ToValue<string[]>
+  vizColumnOrder: ToValue<string[] | null>
+}
+
+interface NewNodeOptions extends SortFilterNodesButtonOptions, ColumnNodeButton {
+  isButtonDisabled: ToValue<boolean>
+}
+
 export interface RefreshButtonOptions {
   refreshGrid: () => void
 }
 
-export interface Options
-  extends SortFilterNodesButtonOptions,
-    FormatMenuOptions,
-    RefreshButtonOptions {}
+export interface Options extends NewNodeOptions, FormatMenuOptions, RefreshButtonOptions {}
 
+/***
+ * function that returns a toolbar button item used to apply new nodes to the graph reflecting the sort filter and column changes applied to the current table visualization
+ *
+ * @param {FilterModel} options.filterModel - The current filter model applied to the table.
+ * @param {SortModel} options.sortModel - The current sort model applied to the table.
+ * @param {boolean} options.isButtonDisabled - Whether the button should be disabled, the button will be disabled if there are no changes to the table viz.
+ * @param {boolean} options.isCreateNewNodeEnabled - Whether the functionality to create new nodes is enabled, only enabled for tables (i.e not rows, vectors).
+ * @param options.createNodes - Function to trigger creation of new nodes.
+ * @param {(columnId: string, value: unknown) => EnsoValue} options.getColumnValueToEnso - Function to convert column values to a format compatible with Enso.
+ * @param {string[]} options.hiddenColumns - A list of column Ids that are currently hidden.
+ * @param {string[] | null} options.vizColumnOrder - A list of all column Ids in their new order; if the order is unchanged, this will be null.
+ *
+ * @returns {ComputedRef<ToolbarItem | undefined>} A computed reference to a toolbar item,
+ * or undefined if the button should not be rendered.
+ */
 function useSortFilterNodesButton({
   filterModel,
   sortModel,
-  isDisabled,
-  isFilterSortNodeEnabled,
+  isButtonDisabled,
+  isCreateNewNodeEnabled,
   createNodes,
   getColumnValueToEnso,
-}: SortFilterNodesButtonOptions): ComputedRef<ToolbarItem | undefined> {
+  hiddenColumns,
+  vizColumnOrder,
+}: NewNodeOptions): ComputedRef<ToolbarItem | undefined> {
   const sortPatternPattern = computed(() => Pattern.parseExpression('(..Name __ __ )')!)
 
   const sortDirection = computed(() => ({
@@ -258,6 +282,37 @@ function useSortFilterNodesButton({
     } else if (sortModelValue.length) {
       patterns.push(getAstPatternSort())
     }
+
+    function getRemoveColumnsAstPattern() {
+      return Pattern.new<Ast.Expression>((ast) => {
+        const columns = Ast.Vector.build(columnsToRemove, Ast.TextLiteral.new, ast.module)
+        return Ast.App.positional(
+          Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('remove_columns')!),
+          columns,
+        )
+      })
+    }
+
+    function getColumnOrderAstPattern() {
+      return Pattern.new<Ast.Expression>((ast) => {
+        const columns = Ast.Vector.build(columnOrder!, Ast.TextLiteral.new, ast.module)
+        return Ast.App.positional(
+          Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('reorder_columns')!),
+          columns,
+        )
+      })
+    }
+
+    const columnsToRemove = toValue(hiddenColumns)
+    const columnOrder = toValue(vizColumnOrder)
+
+    if (columnsToRemove.length) {
+      patterns.push(getRemoveColumnsAstPattern())
+    }
+    if (columnOrder != null) {
+      patterns.push(getColumnOrderAstPattern())
+    }
+
     createNodes(
       ...patterns.map(
         (pattern) => ({ content: pattern, commit: true }) satisfies NodeCreationOptions,
@@ -267,13 +322,12 @@ function useSortFilterNodesButton({
 
   const createNodesButton: ToolbarItem = {
     icon: 'add_to_graph_editor',
-    title:
-      "Create new component(s) with the current grid's sort and filters applied to the workflow",
-    disabled: isDisabled,
+    title: "Create new component(s) with the current grid's state applied to the workflow",
+    disabled: isButtonDisabled,
     onClick: createNewNodes,
   }
 
-  return computed(() => (toValue(isFilterSortNodeEnabled) ? createNodesButton : undefined))
+  return computed(() => (toValue(isCreateNewNodeEnabled) ? createNodesButton : undefined))
 }
 
 function createFormatMenu({ textFormatterSelected }: FormatMenuOptions): ToolbarItem {

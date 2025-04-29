@@ -5,16 +5,16 @@ import { useLayoutAnimationsState } from '@/providers/animationCounter'
 import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { WidgetEditHandlerParent } from '@/providers/widgetRegistry/editHandler'
 import { provideWidgetTree } from '@/providers/widgetTree'
+import { type PrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import { computed, toRef, watch } from 'vue'
-import { AstId } from 'ydoc-shared/ast'
 import { ExternalId } from 'ydoc-shared/yjsModel'
 
 const props = defineProps<{
   externalId: string & ExternalId
   input: WidgetInput
   rootElement: HTMLElement | undefined
-  potentialSelfArgumentId?: AstId | undefined
+  primaryApplication: PrimaryApplication
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts?: Set<Ast.AstId> | undefined
   extended: boolean
@@ -50,7 +50,7 @@ const tree = provideWidgetTree(
   toRef(props, 'conditionalPorts'),
   toRef(props, 'extended'),
   anyLayoutAnimationActive,
-  toRef(props, 'potentialSelfArgumentId'),
+  toRef(props, 'primaryApplication'),
 )
 watch(toRef(tree, 'currentEdit'), (edit) => emit('currentEditChanged', edit))
 </script>

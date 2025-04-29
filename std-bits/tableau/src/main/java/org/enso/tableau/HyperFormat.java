@@ -15,18 +15,33 @@ import java.nio.channels.Channels;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
+
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-/** Class responsible for reading from Tableau Hyper files. */
-public class HyperReader {
+/** Class responsible for reading/writing Tableau Hyper files. */
+public class HyperFormat {
   public static final Path HYPER_PATH = Path.of(getHyperPath());
   private static HyperProcess process;
 
@@ -117,7 +132,7 @@ public class HyperReader {
 
   private static final class TableauClassLoader extends ClassLoader {
     private TableauClassLoader() {
-      super(HyperReader.class.getClassLoader());
+      super(HyperFormat.class.getClassLoader());
     }
 
     @Override
@@ -199,7 +214,7 @@ public class HyperReader {
   }
 
   private static Connection getConnection(String path) throws IOException {
-    var process = getProcess();
+    getProcess();
     try {
       return new Connection(process.getEndpoint(), path, CreateMode.NONE);
     } catch (HyperException e) {
@@ -312,5 +327,70 @@ public class HyperReader {
         throw new HyperQueryError(e.getMessage(), query, e);
       }
     }
+  }
+
+  public static void writeTable(String path, String schemaName, String tableName, Table table) throws IOException {
+    getProcess();
+    try (var connection = new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS)) {
+      var tableDef = createTable(schemaName, tableName, table.getColumns(), connection);
+      insertData(table, tableDef, connection);
+    }
+  }
+
+  private static TableDefinition createTable(String schemaName, String tableName, Column[] columns, Connection connection) {
+      final var sn = new SchemaName(schemaName);
+      if (!connection.getCatalog().getSchemaNames().contains(sn)) {
+          connection.getCatalog().createSchema(sn);
+      }
+      
+      var tableDef = new TableDefinition(new TableName(schemaName, tableName));
+      for (var col : columns) {
+        String columnName = col.getName();
+        var storage = col.getStorage();
+        switch (storage.getType()) {
+          case TextType _ -> tableDef.addColumn(columnName, SqlType.text());
+          case IntegerType _ -> tableDef.addColumn(columnName, SqlType.bigInt());
+          case FloatType _ -> tableDef.addColumn(columnName, SqlType.doublePrecision());
+          case BooleanType _ -> tableDef.addColumn(columnName, SqlType.bool());
+          case DateType _ -> tableDef.addColumn(columnName, SqlType.date());
+          case TimeOfDayType _ -> tableDef.addColumn(columnName, SqlType.time());
+          case DateTimeType _ -> tableDef.addColumn(columnName, SqlType.timestampTz());
+          default -> throw new HyperUnsupportedTypeError(storage.getType().toString());
+        }
+      }
+      connection.executeCommand("DROP TABLE IF EXISTS \""+schemaName+"\".\""+tableName+"\"");
+      connection.getCatalog().createTable(tableDef);
+      return tableDef;
+  }
+
+  private static void insertData(Table table, TableDefinition tableDef, Connection connection){
+      int numberOfRows = table.rowCount();
+      int numberOfColumns = table.getColumns().length;
+      Inserter inserter = new Inserter(connection, tableDef);
+      for (int row = 0; row < numberOfRows; ++row) {
+        for (int col = 0; col < numberOfColumns; ++col) {
+          var storage = table.getColumns()[col].getStorage();
+          if (storage.isNothing(row)) {
+            inserter.addNull();
+          } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
+            inserter.add(doubleStorage.getItemAsDouble(row));
+          } else if (storage instanceof ColumnLongStorage longStorage) {
+            inserter.add(longStorage.getItemAsLong(row));
+          } else if (storage instanceof ColumnBooleanStorage boolStorage) {
+            inserter.add(boolStorage.getItemAsBoolean(row));
+          } else {
+            Object value = storage.getItemBoxed(row);
+            switch (value) {
+              case String s -> inserter.add(s);
+              case LocalDate ld -> inserter.add(ld);
+              case LocalTime lt -> inserter.add(lt);
+              case ZonedDateTime zdt -> inserter.add(zdt);
+              default -> throw new HyperUnsupportedTypeError(value.toString());
+            }
+          }
+        }
+        inserter.endRow();
+      }
+      inserter.execute();
   }
 }

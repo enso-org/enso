@@ -13,8 +13,6 @@ import {
   useDriveStore,
   useSetCurrentDirectoryId,
   useSetDragTargetAssetId,
-  useSetIsDraggingOverSelectedRow,
-  useSetLabelsDragPayload,
   useSetSelectedAssets,
 } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -79,19 +77,15 @@ export interface AssetRowProps {
   readonly grabKeyboardFocus: (item: backendModule.AnyAsset) => void
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
   readonly select: (item: backendModule.AnyAsset) => void
-  readonly onDragStart?: (
+  readonly onDragStart: (
     event: React.DragEvent<HTMLTableRowElement>,
     item: backendModule.AnyAsset,
   ) => void
-  readonly onDragLeave?: (
+  readonly onDragEnd: (
     event: React.DragEvent<HTMLTableRowElement>,
     item: backendModule.AnyAsset,
   ) => void
-  readonly onDragEnd?: (
-    event: React.DragEvent<HTMLTableRowElement>,
-    item: backendModule.AnyAsset,
-  ) => void
-  readonly onDrop?: (
+  readonly onDrop: (
     event: React.DragEvent<HTMLTableRowElement>,
     item: backendModule.AnyAsset,
   ) => void
@@ -247,14 +241,12 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const draggableProps = dragAndDropHooks.useDraggable({ isDisabled: !isSelected })
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
-  const setIsDraggingOverSelectedRow = useSetIsDraggingOverSelectedRow()
   const setDragTargetAssetId = useSetDragTargetAssetId()
   const rootRef = React.useRef<HTMLElement | null>(null)
   const grabKeyboardFocusRef = useSyncRef(grabKeyboardFocus)
   const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(
     assetRowUtils.INITIAL_ROW_STATE,
   )
-  const setLabelsDragPayload = useSetLabelsDragPayload()
 
   const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === item.id)
   const isEditingName = innerRowState.isEditingName || isNewlyCreated
@@ -302,11 +294,10 @@ export function RealAssetRow(props: RealAssetRowProps) {
         driveState.pasteData?.type === 'move' &&
           driveState.pasteData.data.assets.some((asset) => asset.id === item.id)
       ) ?
-        Visibility.faded
+        'opacity-50'
       : Visibility.visible
   })
-  const visibility =
-    isDeleting || isRestoring || isUpdating ? Visibility.faded : insertionVisibility
+  const visibility = isDeleting || isRestoring || isUpdating ? 'opacity-50' : insertionVisibility
 
   const setSelected = useEventCallback((newSelected: boolean) => {
     const { selectedAssets } = driveStore.getState()
@@ -318,10 +309,10 @@ export function RealAssetRow(props: RealAssetRowProps) {
   })
 
   React.useEffect(() => {
-    if (isSelected && insertionVisibility !== Visibility.visible) {
+    if (isSelected && (isDeleting || isRestoring)) {
       setSelected(false)
     }
-  }, [isSelected, insertionVisibility, setSelected])
+  }, [isSelected, setSelected, isDeleting, isRestoring])
 
   React.useEffect(() => {
     if (isKeyboardSelected) {
@@ -344,16 +335,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
   const onDragOver = (event: React.DragEvent<Element>) => {
     const directoryId = item.type === backendModule.AssetType.directory ? id : parentId
-    const { labelsDragPayload, isDraggingOverSelectedRow } = driveStore.getState()
-    if (labelsDragPayload) {
-      event.preventDefault()
-      event.stopPropagation()
-      setDragTargetAssetId(item.id)
-      if (isSelected !== isDraggingOverSelectedRow) {
-        setIsDraggingOverSelectedRow(isSelected)
-      }
-      return
-    }
     const payload = drag.ASSET_ROWS.lookup(event)
     const isPayloadMatch =
       payload != null && payload.items.every((innerItem) => innerItem.key !== directoryId)
@@ -489,7 +470,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
                 event.preventDefault()
               }
 
-              props.onDragStart?.(event, item)
+              props.onDragStart(event, item)
             }}
             onDragEnter={(event) => {
               // Required because `dragover` does not fire on `mouseenter`.
@@ -504,8 +485,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
             }}
             onDragEnd={(event) => {
               setIsDraggedOver(false)
-              setLabelsDragPayload(null)
-              props.onDragEnd?.(event, item)
+              props.onDragEnd(event, item)
             }}
             onDragLeave={(event) => {
               if (
@@ -515,7 +495,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
                 setIsDraggedOver(false)
                 setDragTargetAssetId(null)
               }
-              props.onDragLeave?.(event, item)
               dragDelayProps.onDragLeave(event)
             }}
             onDrop={(event) => {
@@ -523,7 +502,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
               event.stopPropagation()
 
               setIsDraggedOver(false)
-              props.onDrop?.(event, item)
+              props.onDrop(event, item)
             }}
           >
             {columns.map((column) => {

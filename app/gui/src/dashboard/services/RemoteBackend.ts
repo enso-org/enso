@@ -1519,6 +1519,7 @@ export default class RemoteBackend extends Backend {
     id: backend.AssetId,
     title: string,
     targetDirectoryId: backend.DirectoryId | null,
+    shouldUnpackProject = true,
   ) {
     const asset = backend.extractTypeFromId(id)
     const { id: targetPath } =
@@ -1528,27 +1529,42 @@ export default class RemoteBackend extends Backend {
       case backend.AssetType.project: {
         const details = await this.getProjectDetails(asset.id, true)
         invariant(details.url != null, 'The download URL of the project must be present.')
-        await download.download(details.url, `${title}.enso-project`, targetPath)
+        await download.download({
+          url: details.url,
+          name: `${title}.enso-project`,
+          electronOptions: {
+            shouldUnpackProject,
+            path: targetPath,
+          },
+        })
         break
       }
       case backend.AssetType.file: {
         const details = await this.getFileDetails(asset.id, title, true)
         invariant(details.url != null, 'The download URL of the file must be present.')
-        await download.download(details.url, details.file.fileName ?? '', targetPath)
+        await download.download({
+          url: details.url,
+          name: details.file.fileName ?? '',
+          electronOptions: {
+            path: targetPath,
+          },
+        })
         break
       }
       case backend.AssetType.datalink: {
         const value = await this.getDatalink(asset.id, title)
         const fileName = `${title}.datalink`
-        await download.download(
-          URL.createObjectURL(
+        await download.download({
+          url: URL.createObjectURL(
             new File([JSON.stringify(value)], fileName, {
               type: 'application/json+x-enso-data-link',
             }),
           ),
-          fileName,
-          targetPath,
-        )
+          name: fileName,
+          electronOptions: {
+            path: targetPath,
+          },
+        })
         break
       }
       case backend.AssetType.secret:
