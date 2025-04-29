@@ -27,9 +27,13 @@ public abstract class GetTypeMethodsNode extends Node {
 
   @Specialization
   @CompilerDirectives.TruffleBoundary
-  EnsoObject allMethods(Type type) {
+  final EnsoObject allMethods(Type type) {
     var methods = type.getMethods(true);
-    var methodNames = methods.keySet().stream().map(Text::create).toArray(Text[]::new);
+    var methodNames =
+        methods.entrySet().stream()
+            .filter(e -> !e.getValue().getSchema().isProjectPrivate())
+            .map(e -> Text.create(e.getKey()))
+            .toArray(Text[]::new);
     return ArrayLikeHelpers.asVectorEnsoObjects(methodNames);
   }
 

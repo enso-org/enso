@@ -2190,11 +2190,13 @@ class IrToTruffle(
               )
               .asInstanceOf[FramePointer]
             val slotIdx = fp.frameSlotIdx()
-            val readArgNoCheck =
+            val readArgNoCheck0 =
               ReadArgumentNode.build(
                 idx,
                 arg.getDefaultValue.orElse(null)
               )
+            val readArgNoCheck =
+              setLocation(readArgNoCheck0, unprocessedArg.name().location())
             val readArg   = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
             val assignArg = AssignmentNode.build(readArg, slotIdx)
 

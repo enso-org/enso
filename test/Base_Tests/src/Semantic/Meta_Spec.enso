@@ -1,7 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-from Standard.Base.Errors.Common import Uninitialized_State, Type_Error, Not_Found
+from Standard.Base.Errors.Common import Uninitialized_State, Type_Error, Not_Found, Private_Access
+from enso_dev.Helpers import Public_Type
 
 polyglot java import java.lang.Object as JObject
 polyglot java import java.lang.Long as JLong
@@ -65,6 +66,9 @@ type R
         r
     as_int self = self:Integer
 
+    private private_instance_method self = self.i
+    private private_static_method v = R.V "private" v
+
 Text.from (that:R) = that.a
 Integer.from (that:R) = that.i
 
@@ -89,6 +93,70 @@ add_specs suite_builder =
         group_builder.specify "should allow getting a value's constructor's fields" <|
             Meta.meta List.Nil . constructor . fields . should_equal []
             Meta.meta (List.Cons 1 List.Nil) . constructor . fields . should_equal ["x", "xs"]
+
+        group_builder.specify "prevent getting value from private constructor" <|
+            atom = Public_Type.new 6*7
+            meta = Meta.meta atom
+
+            # fields are invisible
+            meta.fields . should_equal []
+
+        group_builder.specify "prevent getting fields from private constructor" <|
+            atom = Public_Type.new 6*7
+            meta = Meta.meta atom
+
+            cons = meta.constructor
+
+            # constructor is inaccessible
+            cons . should_fail_with Private_Access
+
+            cons.catch.to_display_text . should_equal
+                "Private access error: The project-private method 'constructor' in unknown project cannot be accessed from unknown project."
+
+            # fields cannot be obtained as cons is already an error
+            cons.fields . should_fail_with Private_Access
+
+        group_builder.specify "prevent getting private constructors in the same project" <|
+            # type R has all constructors private
+            Meta.meta R . constructors . should_equal []
+
+        group_builder.specify "prevent getting private methods in the same project" <|
+            R.private_static_method 43 . private_instance_method . should_equal 43
+
+            arr = Meta.meta R . methods
+
+            # there are some methods
+            arr.length>10 . should_be_true
+
+            # neither private_instance_method nor private_static_method
+            # are in the list
+            arr.filter (\n->n.contains "_method") . should_equal []
+
+        group_builder.specify "prevent getting fields from private constructor in the same project" <|
+            # type R has all constructors private
+            atom = R.V "meaning" 6*7
+            meta = Meta.meta atom
+
+            # meta for atom can be obtained
+            meta.is_nothing . should_be_false
+
+            # constructor is inaccessible via Meta
+            meta.constructor . should_fail_with Private_Access
+
+            # possible to access private constructor in the same project
+            rv = R.V
+            rv . is_nothing . should_be_false
+
+            # impossible to create meta for it
+            cons = Meta.meta R.V
+            cons . should_fail_with Private_Access
+
+            # obtaining name inherently fails
+            cons . name . should_fail_with Private_Access
+
+            # obtaining fields inherently fails
+            cons.fields . should_fail_with Private_Access
+
         group_builder.specify "should allow creating atoms from atom constructors" <|
             atom_1 = Meta.meta My_Type.Value . new [1,"foo", Nothing]
             (Meta.meta atom_1).constructor.value . should_equal My_Type.Value

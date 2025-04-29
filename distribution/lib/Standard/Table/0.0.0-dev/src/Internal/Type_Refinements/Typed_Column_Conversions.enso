@@ -1,0 +1,33 @@
+## Conversions that are used for type refinements.
+   They should never be exported or used elsewhere.
+private
+
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Column.Column
+import project.Column.apply_unary_operation
+import project.Column.naming_helper
+import project.Internal.Type_Refinements.Typed_Column_Helpers
+import project.Refined_Types.Numeric_Column.Numeric_Column
+import project.Value_Type.Value_Type
+
+polyglot java import org.enso.table.data.column.operation.unary.AbsOperation
+polyglot java import org.enso.table.data.column.operation.unary.SignumOperation
+
+## This conversion is internal and should never be exported.
+Numeric_Column.from (that : Column) =
+    if that.value_type.is_numeric.not then
+        Error.throw (Illegal_Argument.Error "Cannot convert a "+that.value_type.to_display_text+" column to a numeric column.")
+    Typed_Column_Helpers.make_numeric_column that In_Memory_Numeric_Column_Implementation
+
+type In_Memory_Numeric_Column_Implementation
+    abs column =
+        Value_Type.expect_numeric column <|
+            new_name = naming_helper.concat ["abs", naming_helper.to_expression_text column]
+            apply_unary_operation column AbsOperation.INSTANCE new_name
+
+    signum column =
+        Value_Type.expect_numeric column <|
+            new_name = naming_helper.concat ["signum", naming_helper.to_expression_text column]
+            apply_unary_operation column SignumOperation.INSTANCE new_name

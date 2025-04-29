@@ -1,0 +1,205 @@
+from Standard.Base import all
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Runtime.Context
+import Standard.Base.Errors.Common.Dry_Run_Operation
+
+from Standard.Table import all
+from Standard.Tableau import Hyper_File
+import Standard.Tableau.Hyper_Errors.Hyper_Table_Not_Found
+import Standard.Tableau.Hyper_Errors.Unsupported_Type
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Test import all
+import enso_dev.Table_Tests.Util
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+
+add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
+    transient = enso_project.data / "transient"
+
+    get_temp_file -> File =
+        transient / (Random.uuid + ".hyper")
+    
+    group_builder.specify "default schema and table name is Extract" <|
+        written_file = get_temp_file
+        t = Table.input [['A', ['a']]]
+        t.write written_file
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.schema.should_equal "Extract"
+        written_table_in_hyper.table.should_equal "Extract"
+        written_file.delete
+
+    group_builder.specify "returns a readable File" <|
+        written_file = get_temp_file
+        t = Table.input [['A', ['a']]]
+        r = t.write written_file
+        r.read.tables.first.read.should_equal t
+        written_file.delete
+
+    group_builder.specify "Can set schema name" <|
+        written_file = get_temp_file
+        t = Table.input [['A', ['a']]]
+        t.write written_file (..Hyper_File "MySchemaName")
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.schema.should_equal "MySchemaName"
+        written_table_in_hyper.table.should_equal "Extract"
+        written_file.delete
+
+    group_builder.specify "Can set schema name and table name" <|
+        written_file = get_temp_file
+        t = Table.input [['A', ['a']]]
+        r = t.write written_file (..Hyper_Table "MySchemaName" "MyTableName")
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.schema.should_equal "MySchemaName"
+        written_table_in_hyper.table.should_equal "MyTableName"
+        written_table = written_table_in_hyper.read
+        written_table.should_equal t
+        (r.read.read "MyTableName" "MySchemaName").should_equal t
+        written_file.delete
+
+    can_round_trip table:Table =
+        written_file = get_temp_file
+        table.write written_file
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table = written_table_in_hyper.read
+        written_table.should_equal table
+        written_file.delete
+
+    group_builder.specify "should be able to write a text columns" <|
+        can_round_trip (Table.input [['A', ['a', 'b', 'c', Nothing]], ['B', [Nothing, 'd', 'e', 'f']]])
+
+    group_builder.specify "should be able to write a integer column" <|
+        can_round_trip (Table.input [['ints', [1, 2, Nothing]]])
+
+    group_builder.specify "should be able to write a float column" <|
+        can_round_trip (Table.input [['ints', [1.0, Nothing, 2.0]]])
+    
+    group_builder.specify "should be able to write a bool column" <|
+        can_round_trip (Table.input [['bools', [True, False, Nothing]]])
+
+    group_builder.specify "should be able to write a date column" <|
+        can_round_trip (Table.input [['dates', [Date.new 2025 1 1, Date.new 2025 2 28, Nothing]]])
+
+    group_builder.specify "should be able to write a time column" <|
+        ## hyper only supports down to microsecond precision
+        can_round_trip (Table.input [['times', [Time_Of_Day.new 12 1 2 3 4, Time_Of_Day.new 9 50, Nothing]]])
+
+    group_builder.specify "should be able to write a date time column" <|
+        ## hyper doesn't support time zone
+        can_round_trip (Table.input [['times', [Date_Time.new 2025 1 1 12 1 2 3 4 zone=(Time_Zone.parse 'UTC'), Date_Time.new 1989 12 18 zone=(Time_Zone.parse 'UTC'), Nothing]]])
+
+    group_builder.specify "trying to write a mixed column should error" <|
+        written_file = get_temp_file
+        t = Table.input [['Mixed', ['a', 1]]]
+        r = t.write written_file
+        r.should_fail_with Unsupported_Type
+        ## TODO
+           written_file.exists.should_equal False
+        written_file.delete
+
+    group_builder.specify "should be able to write all the types at once" <|
+        t1 = enso_project.data/'all_data_types.csv' . read
+        t2 = t1.remove_columns 'appointment_datetime_datetime_withtimezone'
+        can_round_trip t2
+
+    group_builder.specify "in dry run mode file should not be written and warns" <|
+        Context.Output.with_disabled <|
+            written_file = get_temp_file
+            t = Table.input [['A', ['a']]]
+            result = t.write written_file
+            written_file.exists.should_equal False
+            Problems.expect_only_warning Dry_Run_Operation result
+
+    group_builder.specify "in dry run mode with existing file should not be overwritten and warns" <|
+        written_file = get_temp_file
+        t1 = Table.input [['A', ['a']]]
+        t1.write written_file
+        
+        Context.Output.with_disabled <|
+            t2 = Table.input [['B', ['b']]]
+            t2.write written_file
+            result = t2.write written_file
+            written_table_in_hyper = Hyper_File.new written_file . tables . first
+            written_table_in_hyper.read.should_equal t1
+            Problems.expect_only_warning Dry_Run_Operation result
+        
+        written_file.delete
+
+    group_builder.specify "in dry run mode records are written to a temporary file" <|
+        Context.Output.with_disabled <|
+            written_file = get_temp_file
+            t = Table.input [['A', ['a']]]
+            result = t.write written_file
+            written_file.exists.should_equal False
+            Problems.expect_only_warning Dry_Run_Operation result
+            t2 = Hyper_File.new result . tables . first
+            t2.read.should_equal t
+
+    group_builder.specify "in dry run mode only first 1000 records are written to a temporary file" <|
+        Context.Output.with_disabled <|
+            written_file = get_temp_file
+            t = 0.up_to 2000 . to_table
+            result = t.write written_file
+            written_file.exists.should_equal False
+            Problems.expect_only_warning Dry_Run_Operation result
+            t2 = Hyper_File.new result . tables . first
+            t2.read.should_equal (t.take 1000)
+
+    group_builder.specify "not in dry run mode all records are written" <|
+        t = 0.up_to 2000 . to_table
+        can_round_trip t
+
+    group_builder.specify "by default backup file and overwrite table" <|
+        written_file = get_temp_file
+        t1 = Table.input [['A', ['a']]]
+        t1.write written_file
+        t2 = Table.input [['B', ['b']]]
+        t2.write written_file
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal t2
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file_written_table_in_hyper = Hyper_File.new backup_file . tables . first
+        backup_file_written_table_in_hyper.read.should_equal t1
+        written_file.delete
+        backup_file.delete
+
+    group_builder.specify "error on existing file if in on_existing_file=..Error mode" <|
+        written_file = get_temp_file
+        t1 = Table.input [['A', ['a']]]
+        t1.write written_file
+        t2 = Table.input [['B', ['b']]]
+        r = t2.write written_file on_existing_file=..Error
+        r.should_fail_with File_Error
+        r.catch.should_be_a File_Error.Already_Exists
+
+        ## Data is still t1 as we didn't overwrite
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal t1
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
+        written_file.delete
+
+    group_builder.specify "appends to existing file not yet supported" <|
+        written_file = get_temp_file
+        t1 = Table.input [['A', ['a']]]
+        t1.write written_file
+        t2 = Table.input [['B', ['b']]]
+        r = t2.write written_file on_existing_file=..Append
+        r.should_fail_with Illegal_Argument
+
+        ## Data is still t1 as we didn't append
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table_in_hyper.read.should_equal t1
+
+        ## backup file is not created
+        backup_file = File.new (written_file.path + ".bak")
+        backup_file.exists.should_equal False
+
+        written_file.delete
+

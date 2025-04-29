@@ -3848,34 +3848,55 @@ lazy val `engine-runner` = project
           langServer ++
           epbLang
       ).distinct
-      val stdLibsJars =
-        `base-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-        `image-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-        `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-        `database-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-        `google-api-polyglot-root`
-          .listFiles("*.jar")
-          .map(_.getAbsolutePath()) ++
-        `std-aws-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-        `std-microsoft-polyglot-root`
-          .listFiles("*.jar")
-          .map(_.getAbsolutePath()) ++
-        `std-snowflake-polyglot-root`
-          .listFiles("*.jar")
-          .map(_.getAbsolutePath()) ++
-        `std-tableau-polyglot-root`
-          .listFiles("*.jar")
-          .map(_.getAbsolutePath())
+      def stdLibsJars = {
+        val log = streams.value.log
+        val base =
+          `base-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath())
+        if (GraalVM.EnsoLauncher.fast) {
+          log.info(
+            s"Skipping support for non-Standard.Base libraries in the image build as ${GraalVM.EnsoLauncher.VAR_NAME} env variable is ${GraalVM.EnsoLauncher.toString}"
+          )
+          base
+        } else {
+          base ++
+          `image-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
+          `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
+          `database-polyglot-root`
+            .listFiles("*.jar")
+            .map(_.getAbsolutePath()) ++
+          `google-api-polyglot-root`
+            .listFiles("*.jar")
+            .map(_.getAbsolutePath()) ++
+          `std-aws-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
+          `std-microsoft-polyglot-root`
+            .listFiles("*.jar")
+            .map(_.getAbsolutePath()) ++
+          `std-snowflake-polyglot-root`
+            .listFiles("*.jar")
+            .map(_.getAbsolutePath()) ++
+          `std-tableau-polyglot-root`
+            .listFiles("*.jar")
+            .map(_.getAbsolutePath())
+        }
+      }
       core ++ stdLibsJars ++ extraNITestLibs.value
     },
     extraNITestLibs := Def.taskDyn {
       if (GraalVM.EnsoLauncher.test) Def.task {
-        Seq(
+        val baseHelpers =
           (`enso-test-java-helpers` / Compile / packageBin).value
-            .getAbsolutePath(),
+            .getAbsolutePath()
+        val snowHelpers =
           (`snowflake-test-java-helpers` / Compile / packageBin).value
             .getAbsolutePath()
-        )
+        if (GraalVM.EnsoLauncher.fast) {
+          Seq(baseHelpers)
+        } else {
+          Seq(
+            baseHelpers,
+            snowHelpers
+          )
+        }
       }
       else {
         Def.task {
