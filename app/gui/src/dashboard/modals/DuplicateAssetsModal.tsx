@@ -578,16 +578,16 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                   <Button.Group className="col-span-full row-span-2 mt-1">
                     <Form.Controller
                       control={form.control}
-                      name={`${asset.id}.conclusion`}
+                      name={asset.id}
                       render={({ field, fieldState }) => {
                         if (fieldState.isDirty) {
                           return (
                             <div className="flex items-center gap-2">
-                              {field.value === 'skip' && (
+                              {field.value.conclusion === 'skip' && (
                                 <Text>{getText('assetWillBeSkipped')}</Text>
                               )}
 
-                              {field.value === 'rename' && (
+                              {field.value.conclusion === 'rename' && (
                                 <Form.FieldValue name={`${asset.id}.newName`}>
                                   {(value: string) => (
                                     <Text>{getText('assetWillBeRenamed', value)}</Text>
@@ -595,14 +595,14 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                                 </Form.FieldValue>
                               )}
 
-                              {field.value === 'replace' && (
+                              {field.value.conclusion === 'replace' && (
                                 <Text>{getText('assetWillBeReplaced')}</Text>
                               )}
 
                               <Button
                                 variant="link"
                                 onPress={() => {
-                                  form.resetField(`${asset.id}.conclusion`)
+                                  form.resetField(asset.id, { defaultValue: field.value })
                                 }}
                               >
                                 {getText('change')}
@@ -617,7 +617,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                               variant="outline"
                               className="min-w-16"
                               onPress={() => {
-                                field.onChange('skip')
+                                field.onChange({ ...field.value, conclusion: 'skip' })
                               }}
                             >
                               {getText('skip')}
@@ -628,7 +628,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                                 variant="outline"
                                 className="min-w-16"
                                 onPress={() => {
-                                  field.onChange('replace')
+                                  field.onChange({ ...field.value, conclusion: 'replace' })
                                 }}
                               >
                                 {getText('replace')}
@@ -644,7 +644,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                                 <Form
                                   method="dialog"
                                   defaultValues={{
-                                    newName: getUniqueName(asset.title, siblingTitles),
+                                    newName: form.getValues(`${asset.id}.newName`),
                                   }}
                                   schema={(schema) =>
                                     schema.object({
@@ -655,8 +655,11 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                                     })
                                   }
                                   onSubmit={(value) => {
-                                    field.onChange('rename')
-                                    form.setValue(`${asset.id}.newName`, value.newName)
+                                    field.onChange({
+                                      ...field.value,
+                                      conclusion: 'rename',
+                                      newName: value.newName,
+                                    })
                                   }}
                                 >
                                   <Text>{getText('newNameDescription')}</Text>
