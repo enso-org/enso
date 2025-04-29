@@ -369,6 +369,7 @@ lazy val enso = (project in file("."))
     `runtime-compiler`,
     `runtime-compiler-dump`,
     `runtime-compiler-dump-igv`,
+    `runtime-compiler-tests`,
     `runtime-parser`,
     `runtime-parser-dsl`,
     `runtime-parser-processor`,
@@ -3392,7 +3393,6 @@ lazy val `runtime-parser-processor` =
 lazy val `runtime-compiler` =
   (project in file("engine/runtime-compiler"))
     .enablePlugins(JPMSPlugin)
-    .enablePlugins(PackageListPlugin)
     .settings(
       frgaalJavaCompilerSetting,
       scalaModuleDependencySetting,
@@ -3400,21 +3400,11 @@ lazy val `runtime-compiler` =
       annotationProcSetting,
       commands += WithDebugCommand.withDebug,
       javaModuleName := "org.enso.runtime.compiler",
-      (Test / fork) := true,
       libraryDependencies ++= Seq(
         "junit"                % "junit"                   % junitVersion              % Test,
         "com.github.sbt"       % "junit-interface"         % junitIfVersion            % Test,
-        "org.scalatest"       %% "scalatest"               % scalatestVersion          % Test,
         "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
-        "org.yaml"             % "snakeyaml"               % snakeyamlVersion          % Test,
-        "com.typesafe"         % "config"                  % typesafeConfigVersion     % Test,
-        "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % Test,
-        "org.hamcrest"         % "hamcrest-all"            % hamcrestVersion           % Test,
-        "com.google.jimfs"     % "jimfs"                   % jimFsVersion              % Test
       ),
-      libraryDependencies ++= {
-        logbackPkg.map(_ % Test) ++ ioSentry.map(_ % Test)
-      },
       Compile / moduleDependencies ++= Seq(
         "org.slf4j"        % "slf4j-api"               % slf4jVersion,
         "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
@@ -3429,6 +3419,38 @@ lazy val `runtime-compiler` =
         (`persistance` / Compile / exportedModule).value,
         (`editions` / Compile / exportedModule).value
       ),
+    )
+    .dependsOn(`runtime-parser`)
+    .dependsOn(`runtime-compiler-dump`)
+    .dependsOn(pkg)
+    .dependsOn(`engine-common`)
+    .dependsOn(editions)
+    .dependsOn(`persistance-dsl` % "provided")
+
+lazy val `runtime-compiler-tests` =
+  (project in file("engine/runtime-compiler-tests"))
+    .enablePlugins(JPMSPlugin)
+    .enablePlugins(PackageListPlugin)
+    .settings(
+      frgaalJavaCompilerSetting,
+      commands += WithDebugCommand.withDebug,
+      libraryDependencies ++= Seq(
+        "junit"                % "junit"                   % junitVersion              % Test,
+        "com.github.sbt"       % "junit-interface"         % junitIfVersion            % Test,
+        "org.scalatest"       %% "scalatest"               % scalatestVersion          % Test,
+        "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
+        "org.yaml"             % "snakeyaml"               % snakeyamlVersion          % Test,
+        "com.typesafe"         % "config"                  % typesafeConfigVersion     % Test,
+        "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % Test,
+        "org.hamcrest"         % "hamcrest-all"            % hamcrestVersion           % Test,
+        "com.google.jimfs"     % "jimfs"                   % jimFsVersion              % Test
+      ),
+      libraryDependencies ++= {
+        logbackPkg.map(_ % Test) ++ ioSentry.map(_ % Test)
+      },
+      Compile / moduleDependencies ++= {
+        (`runtime-compiler` / Compile / moduleDependencies).value
+      },
       Test / javaOptions ++= testLogProviderOptions,
       Test / moduleDependencies := {
         (Compile / moduleDependencies).value ++ scalaLibrary ++ scalaReflect ++ logbackPkg ++ ioSentry ++ Seq(
@@ -3439,9 +3461,9 @@ lazy val `runtime-compiler` =
         )
       },
       Test / internalModuleDependencies := {
-        val compileDeps = (Compile / internalModuleDependencies).value
+        val compileDeps = (`runtime-compiler` / Compile / internalModuleDependencies).value
         compileDeps ++ Seq(
-          (Compile / exportedModule).value,
+          (`runtime-compiler` / Compile /  exportedModule).value,
           (`scala-libs-wrapper` / Compile / exportedModule).value,
           (`version-output` / Compile / exportedModule).value,
           (`scala-yaml` / Compile / exportedModule).value,
@@ -3454,7 +3476,7 @@ lazy val `runtime-compiler` =
         )
       },
       Test / addModules := Seq(
-        javaModuleName.value
+        (`runtime-compiler` / javaModuleName).value
       ),
       Test / patchModules := {
         // Patch test-classes into the runtime module. This is standard way to deal with the
@@ -3463,31 +3485,27 @@ lazy val `runtime-compiler` =
         // Patching with sources is useful for compilation, patching with compiled classes for runtime.
         val javaSrcDir = (Test / javaSource).value
         Map(
-          javaModuleName.value -> Seq(
+          (`runtime-compiler` / javaModuleName).value -> Seq(
             javaSrcDir,
             testClassDir
           )
         )
       },
       Test / addExports := {
-        val modName  = javaModuleName.value
+        val modName  = (`runtime-compiler` / javaModuleName).value
         val testPkgs = (Test / packages).value
         val testPkgsExports = testPkgs.map { pkg =>
           modName + "/" + pkg -> Seq("ALL-UNNAMED")
         }.toMap
-
         testPkgsExports
       },
       Test / addReads := {
-        Map(javaModuleName.value -> Seq("ALL-UNNAMED"))
+        val modName  = (`runtime-compiler` / javaModuleName).value
+        Map(modName -> Seq("ALL-UNNAMED"))
       }
     )
-    .dependsOn(`runtime-parser`)
-    .dependsOn(`runtime-compiler-dump`)
-    .dependsOn(pkg)
-    .dependsOn(`engine-common`)
-    .dependsOn(editions)
-    .dependsOn(`persistance-dsl` % "provided")
+    .dependsOn(`runtime-compiler`)
+    .dependsOn(`runtime-compiler-dump-igv` % "test->compile")
     .dependsOn(`logging-service-logback` % "test->test")
     .dependsOn(`logging-service` % "test->compile")
 
