@@ -13,7 +13,6 @@ import {
   type AssetId,
   type default as Backend,
   type DirectoryId,
-  type LabelName,
 } from 'enso-common/src/services/Backend'
 
 /** Call "delete" mutations for a list of assets. */
@@ -372,83 +371,6 @@ export function downloadAssetsMutationOptions(backend: Backend) {
         [LocalBackend.type, 'listDirectory'],
       ],
       awaitInvalidates: true,
-    },
-  })
-}
-
-/** Call "add label" mutations for a list of assets. */
-export function addAssetsLabelsMutationOptions(backend: Backend) {
-  return mutationOptions({
-    mutationKey: [backend.type, 'addAssetsLabels'],
-    mutationFn: async ([infos, labelNames]: [
-      infos: readonly Pick<AnyAsset, 'id' | 'labels'>[],
-      labelNames: readonly LabelName[],
-    ]) => {
-      const results = await Promise.allSettled(
-        infos.map(async ({ id, labels }) => {
-          const newLabels = [
-            ...new Set([
-              ...(labels ?? []),
-              ...labelNames.filter((label) => labels?.includes(label) !== true),
-            ]),
-          ]
-          if (newLabels.length !== labels?.length) {
-            await backend.associateTag(id, newLabels, '(unknown)')
-          }
-        }),
-      )
-      const errors = results.flatMap((result): unknown =>
-        result.status === 'rejected' ? [result.reason] : [],
-      )
-      if (errors.length !== 0) {
-        throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
-          errors,
-          failed: errors.length,
-          total: infos.length,
-        })
-      }
-      return null
-    },
-    meta: {
-      invalidates: [[backend.type, 'listDirectory']],
-      awaitInvalidates: true,
-      refetchType: 'all',
-    },
-  })
-}
-
-/** Call "remove label" mutations for a list of assets. */
-export function removeAssetsLabelsMutationOptions(backend: Backend) {
-  return mutationOptions({
-    mutationFn: async ([infos, labelNames]: [
-      infos: readonly Pick<AnyAsset, 'id' | 'labels'>[],
-      labelNames: readonly LabelName[],
-    ]) => {
-      const results = await Promise.allSettled(
-        infos.map(async ({ id, labels }) => {
-          const labelNamesSet = new Set(labelNames)
-          const newLabels = (labels ?? []).filter((label) => !labelNamesSet.has(label))
-          if (labels && newLabels.length !== labels.length) {
-            await backend.associateTag(id, newLabels, '(unknown)')
-          }
-        }),
-      )
-      const errors = results.flatMap((result): unknown =>
-        result.status === 'rejected' ? [result.reason] : [],
-      )
-      if (errors.length !== 0) {
-        throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
-          errors,
-          failed: errors.length,
-          total: infos.length,
-        })
-      }
-      return null
-    },
-    meta: {
-      invalidates: [[backend.type, 'listDirectory']],
-      awaitInvalidates: true,
-      refetchType: 'all',
     },
   })
 }

@@ -73,6 +73,6 @@ public final class ReadArgumentNode extends ExpressionNode {
 
   @Override
   public boolean isInstrumentable() {
-    return false;
+    return true;
   }
 }

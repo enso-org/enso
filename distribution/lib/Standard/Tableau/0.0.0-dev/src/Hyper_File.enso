@@ -11,7 +11,7 @@ import project.Hyper_Errors.Hyper_Table_Not_Found
 import project.Hyper_Table.Hyper_Table
 import project.Internal.Telemetry
 
-polyglot java import org.enso.tableau.HyperReader
+polyglot java import org.enso.tableau.HyperFormat
 
 ## Represents a Tableau Hyper Extract file.
 type Hyper_File
@@ -34,7 +34,7 @@ type Hyper_File
        Returns the list of schemas for the connection within the current database (or catalog).
     schemas : Vector Text
     schemas self = File_Error.handle_java_exceptions self.file <|
-        array = HyperReader.readSchemas self.file.path
+        array = HyperFormat.readSchemas self.file.path
         Vector.from_polyglot_array array
 
     ## ICON metadata
@@ -63,8 +63,8 @@ type Hyper_File
     tables self schema:Text=self.schema = if schema == "" then self.tables self.schema else
         File_Error.handle_java_exceptions self.file <|
             array = case schema of
-                "*" -> HyperReader.listTablesAllSchemas self.file.path
-                _ -> HyperReader.listTables self.file.path schema
+                "*" -> HyperFormat.listTablesAllSchemas self.file.path
+                _ -> HyperFormat.listTables self.file.path schema
             array.map t-> Hyper_Table.Value self t.schema t.name
 
     ## ALIAS get, import, load, open, sheet
@@ -87,7 +87,7 @@ type Hyper_File
             if table_to_read.is_nothing then Error.throw (Hyper_Table_Not_Found.Error "*" table) else
                 table_to_read.read limit
         _ ->
-            result = Hyper_Table.Value self table schema . read limit
+            result = Hyper_Table.Value self schema table . read limit
             result.if_not_error <|
                 Telemetry.log "Hyper_File.read" "Read Hyper table: output={}, row_count={}, column_count={}" ["Table", result.row_count, result.column_count]
                 result

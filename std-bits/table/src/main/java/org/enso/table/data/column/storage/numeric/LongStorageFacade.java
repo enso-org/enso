@@ -6,7 +6,6 @@ import org.enso.table.data.column.storage.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.StorageType;
 
 /** A facade for a column storage that converts the stored type to a long. */
 public class LongStorageFacade<T> implements ColumnLongStorage {
@@ -33,7 +32,7 @@ public class LongStorageFacade<T> implements ColumnLongStorage {
   }
 
   @Override
-  public StorageType<Long> getType() {
+  public IntegerType getType() {
     return IntegerType.INT_64;
   }
 

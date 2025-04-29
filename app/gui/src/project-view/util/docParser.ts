@@ -21,6 +21,7 @@ export namespace Doc {
     | 'Unstable'
     | 'Upcoming'
     | 'Suggested'
+    | 'Macro'
   export type Mark = 'Important' | 'Info' | 'Example'
 
   export interface Argument {

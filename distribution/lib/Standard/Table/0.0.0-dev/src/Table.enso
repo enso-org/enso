@@ -226,7 +226,7 @@ type Table
         ? Consistent Row Count
         All columns must have the same number of rows. If a column has a
         different number of entries, an error is thrown.
-    input (columns : Vector (Vector | Column)) -> Table =
+    input (columns : Vector (Vector | Column) = [['Column 1', []]]) -> Table =
         throw_bad_column = Error.throw (Illegal_Argument.Error "Each column must be represented as a Vector of column name (Text), data (vector like elements) and optionally a type (Value_Type), or an existing column.")
         resolved_columns = columns.map c-> case c of
             _ : Column -> c
@@ -1070,7 +1070,10 @@ type Table
         problem_builder.attach_problems_before on_problems <|
             self.drop (..First 1) . rename_columns new_names_cleaned on_problems=on_problems
 
-    ## ALIAS average, count, count distinct, first, group by, last, longest, maximum, mean, median, minimum, mode, percentile, shortest, standard deviation, sum, summarize, variance
+    ## ALIAS average, first, group by, last, longest, maximum, mean, median, minimum, mode, percentile, shortest, standard deviation, summarize, variance
+       MACRO sum columns=[..Sum]
+       MACRO count columns=[..Count]
+       MACRO count_distinct columns=[..Count_Distinct]
        GROUP Standard.Base.Calculations
        ICON transform4
        SUGGESTED 7
@@ -2043,6 +2046,8 @@ type Table
         Expand_Objects_Helpers.expand_to_rows self column at_least_one_row sequences_only=False
 
     ## ALIAS filter rows, regex, where
+       MACRO equals filter=..Equal
+       MACRO less_than filter=..Less
        GROUP Standard.Base.Selections
        ICON preparation
        SUGGESTED 2
@@ -4054,6 +4059,11 @@ make_fill_nothing_default_widget table cache=Nothing =
 from_java_table java_table -> Table =
     Table_Refinements.refine_table <|
         Table.Value java_table
+
+## PRIVATE
+   Helper method for internal use to make a Java Table from a Table.
+to_java_table table =
+    table.java_table
 
 ## PRIVATE
 Many_Files_List.from (that : Table) =

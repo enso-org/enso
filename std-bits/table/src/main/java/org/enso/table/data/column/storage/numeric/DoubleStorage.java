@@ -29,6 +29,7 @@ import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorageIterator;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
+import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -98,7 +99,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public StorageType<Double> getType() {
+  public FloatType getType() {
     return FloatType.FLOAT_64;
   }
 
@@ -343,13 +344,31 @@ public final class DoubleStorage extends Storage<Double>
     return new DoubleStorage(newData, newSize, newIsNothing);
   }
 
-  private StorageType<?> inferredType = null;
-
   @Override
-  public StorageType<?> inferPreciseType() {
-    if (inferredType == null) {
-      boolean areAllIntegers = true;
+  public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
+    // If we do not request floats becoming integers, then we can return the answer straight away.
+    if (!options.wholeFloatsBecomeIntegers()) {
+      return getType();
+    }
+
+    if (areAllIntegers()) {
+      if (options.shrinkIntegers()) {
+        return findSmallestIntegerTypeThatFits();
+      } else {
+        return IntegerType.INT_64;
+      }
+    }
+
+    return getType();
+  }
+
+  private Boolean cachedAreAllIntegers = null;
+  private StorageType<?> smallestFittingIntegerType = null;
+
+  private boolean areAllIntegers() {
+    if (cachedAreAllIntegers == null) {
       int visitedNumbers = 0;
+      boolean areAllIntegers = true;
       for (int i = 0; i < size; i++) {
         if (isNothing.get(i)) {
           continue;
@@ -365,26 +384,20 @@ public final class DoubleStorage extends Storage<Double>
         }
       }
 
-      // We only switch to integers if there was at least one number.
-      inferredType = (areAllIntegers && visitedNumbers > 0) ? IntegerType.INT_64 : getType();
+      // We only say 'all are integers' if there was at least one number, because we don't want an
+      // empty Float column to change its type for no good reason.
+      cachedAreAllIntegers = visitedNumbers > 0 && areAllIntegers;
     }
 
-    return inferredType;
-  }
-
-  @Override
-  public StorageType<?> inferPreciseTypeShrunk() {
-    StorageType<?> inferred = inferPreciseType();
-    if (inferred instanceof IntegerType) {
-      return findSmallestIntegerTypeThatFits();
-    } else {
-      return inferred;
-    }
+    return cachedAreAllIntegers;
   }
 
   private StorageType<?> findSmallestIntegerTypeThatFits() {
-    assert inferredType instanceof IntegerType;
+    if (smallestFittingIntegerType != null) {
+      return smallestFittingIntegerType;
+    }
 
+    assert cachedAreAllIntegers;
     final DoubleStorage parent = this;
 
     // We create a Long storage that gets values by converting our storage.
@@ -404,7 +417,8 @@ public final class DoubleStorage extends Storage<Double>
         };
 
     // And rely on its shrinking logic.
-    return longAdapter.inferPreciseTypeShrunk();
+    smallestFittingIntegerType = longAdapter.inferPreciseType(PreciseTypeOptions.SHRINK);
+    return smallestFittingIntegerType;
   }
 
   /** Allow access to the underlying data array for copying. */

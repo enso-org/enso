@@ -15,7 +15,6 @@ import { AssetPanel } from '#/layouts/AssetPanel'
 import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
-import Labels from '#/layouts/Labels'
 import { DriveBar } from '#/pages/dashboard/Drive/DriveBar'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -167,15 +166,6 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
         <div className="grid flex-1 grid-cols-[180px_minmax(0,1fr)] gap-3 overflow-hidden">
           <div className="grid-col-1 flex flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden pt-1">
             <CategorySwitcher category={category} setCategoryId={setCategory} />
-
-            {isCloud && (
-              <Labels
-                backend={backend}
-                draggable={category.type !== 'trash'}
-                query={query}
-                setQuery={setQuery}
-              />
-            )}
 
             <AssetsTableAssetsUnselector />
           </div>

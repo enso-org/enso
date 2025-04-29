@@ -506,9 +506,12 @@ add_filter_specs suite_builder setup =
         group_builder.specify "should not attach a warning when Nothing is not used as a value in a comparison or `is_in` `Filter_Condition`" <|
             t = table_builder [["x", [1, 2, 3]], ["y", [1, Nothing, 2]]]
             Problems.assume_no_problems (t.filter "x" (Filter_Condition.Equal 12))
-            Problems.assume_no_problems (t.filter "x" (Filter_Condition.Equal [Nothing, Nothing]))
-            if setup.is_operation_supported "IS_IN" then
-                Problems.assume_no_problems (t.filter "x" (Filter_Condition.Is_In [[Nothing, Nothing]]))
+
+            # Using vectors as values is not often supported in DB backends
+            if setup.is_database.not then
+                Problems.assume_no_problems (t.filter "x" (Filter_Condition.Equal [Nothing, Nothing]))
+                if setup.is_operation_supported "IS_IN" then
+                    Problems.assume_no_problems (t.filter "x" (Filter_Condition.Is_In [[Nothing, Nothing]]))
 
     suite_builder.group prefix+"Table.filter by an expression" group_builder->
         group_builder.specify "by a boolean column" <|

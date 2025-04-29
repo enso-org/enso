@@ -143,6 +143,13 @@ export const widgetDefinition = defineWidget(
     score: (props, _db) => {
       const portInfo = injectPortInfo(true)
       const value = props.input.value
+      // This is a workaround to avoid automatic port around type annotated expressions
+      // in argument positions. A port needs to be created with portId override, and it
+      // will be handled by `WidgetTypeCastPort`. Without this check, the port will be
+      // created with invalid portId because of `ArgumentInfoKey` being set on the input.
+      if (value instanceof Ast.TypeAnnotated && value.id === props.input.portId) {
+        return Score.Mismatch
+      }
       if (portInfo != null && value instanceof Ast.Ast && portInfo.portId === value.id) {
         return Score.Mismatch
       }

@@ -2,5 +2,3 @@
 # `env ENSO_LAUNCHER=test sbt buildEngineDistribution`.
 # This module is not actually used - it is scanned by `EnsoLibraryFeature` when NI is built.
 private
-
-polyglot java import java.io.Console as Java_Console
