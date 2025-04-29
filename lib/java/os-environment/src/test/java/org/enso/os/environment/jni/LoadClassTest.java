@@ -4,8 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.util.Random;
 import org.enso.os.environment.jni.JNI.JValue;
@@ -15,24 +13,22 @@ import org.junit.Test;
 
 public class LoadClassTest {
   private static final String PATH = System.getProperty("java.home");
-  private static final URI JAR;
-
-  static {
-    try {
-      JAR = LoadClassTest.class.getProtectionDomain().getCodeSource().getLocation().toURI();
-    } catch (URISyntaxException ex) {
-      throw new IllegalStateException(ex);
-    }
-  }
+  // set from TestCollectorFeature
+  public static String MODULE_PATH;
 
   private static JVM jvm;
 
   private static JNI.JNIEnv env() {
     if (jvm == null) {
+      assert MODULE_PATH != null : "MODULE_PATH field must be set!";
       var path = new File(PATH);
       assert path.isDirectory() : "Java home exists: " + path;
-      var cp = new File(JAR);
-      jvm = JVM.create(path, "--module-path=.", "-Dsay=Ahoj", "-Djava.class.path=" + cp);
+      jvm =
+          JVM.create(
+              path,
+              "--module-path=" + MODULE_PATH,
+              "-Djdk.module.main=org.enso.os.environment",
+              "-Dsay=Ahoj");
     }
     return jvm.env();
   }
