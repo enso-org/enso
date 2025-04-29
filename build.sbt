@@ -3404,6 +3404,9 @@ lazy val `runtime-compiler` =
         "junit"                % "junit"                   % junitVersion              % Test,
         "com.github.sbt"       % "junit-interface"         % junitIfVersion            % Test,
         "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
+        "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % Test,
+        "com.typesafe"         % "config"                  % typesafeConfigVersion     % Test,
+        "org.yaml"             % "snakeyaml"               % snakeyamlVersion          % Test
       ),
       Compile / moduleDependencies ++= Seq(
         "org.slf4j"        % "slf4j-api"               % slf4jVersion,
@@ -3419,6 +3422,30 @@ lazy val `runtime-compiler` =
         (`persistance` / Compile / exportedModule).value,
         (`editions` / Compile / exportedModule).value
       ),
+      Test / fork := true,
+      Test / moduleDependencies ++= {
+        (Compile / moduleDependencies).value ++ scalaLibrary ++ scalaReflect ++ Seq(
+          "org.apache.commons"   % "commons-compress" % commonsCompressVersion,
+          "org.yaml"             % "snakeyaml"        % snakeyamlVersion,
+          "com.typesafe"         % "config"           % typesafeConfigVersion,
+          "org.graalvm.polyglot" % "polyglot"         % graalMavenPackagesVersion
+        )
+      },
+      Test / internalModuleDependencies := {
+        val compileDeps = (Compile / internalModuleDependencies).value
+        compileDeps ++ Seq(
+          (Compile / exportedModule).value,
+          (`scala-libs-wrapper` / Compile / exportedModule).value,
+          (`version-output` / Compile / exportedModule).value,
+          (`scala-yaml` / Compile / exportedModule).value,
+          (`logging-config` / Compile / exportedModule).value,
+          (`logging-utils` / Compile / exportedModule).value,
+          (`semver` / Compile / exportedModule).value
+        )
+      },
+      Test / addModules := Seq(
+        javaModuleName.value
+      )
     )
     .dependsOn(`runtime-parser`)
     .dependsOn(`runtime-compiler-dump`)
@@ -3461,9 +3488,10 @@ lazy val `runtime-compiler-tests` =
         )
       },
       Test / internalModuleDependencies := {
-        val compileDeps = (`runtime-compiler` / Compile / internalModuleDependencies).value
+        val compileDeps =
+          (`runtime-compiler` / Compile / internalModuleDependencies).value
         compileDeps ++ Seq(
-          (`runtime-compiler` / Compile /  exportedModule).value,
+          (`runtime-compiler` / Compile / exportedModule).value,
           (`scala-libs-wrapper` / Compile / exportedModule).value,
           (`version-output` / Compile / exportedModule).value,
           (`scala-yaml` / Compile / exportedModule).value,
@@ -3500,7 +3528,7 @@ lazy val `runtime-compiler-tests` =
         testPkgsExports
       },
       Test / addReads := {
-        val modName  = (`runtime-compiler` / javaModuleName).value
+        val modName = (`runtime-compiler` / javaModuleName).value
         Map(modName -> Seq("ALL-UNNAMED"))
       }
     )
