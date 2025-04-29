@@ -533,8 +533,6 @@ class App {
           throw new Error('Window is not available.')
         }
 
-        console.log('downloadURL', { url, path, name, shouldUnpackProject, showFileDialog })
-
         await download.download(this.window, url, {
           ...(path != null ? { directory: path } : {}),
           ...(name != null ? { filename: name } : {}),
