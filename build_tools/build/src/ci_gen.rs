@@ -632,7 +632,7 @@ pub fn add_backend_checks_customized(
     if target == PRIMARY_TARGET {
         workflow.add_dependent(
             PRIMARY_TARGET,
-            job::StandardLibraryApiCheck { engine_launcher },
+            job::StandardLibraryApiCheck { graal_edition, engine_launcher },
             &[&build_engine_distribution_id],
         );
     }
@@ -936,7 +936,7 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
     let engine_launcher = engine::EngineLauncher::TestNative;
     let build_engine_distribution_id =
         workflow.add(target, job::BuildEngineDistribution { graal_edition, engine_launcher });
-    workflow.add_dependent(target, job::SnowflakeTests { engine_launcher }, &[
+    workflow.add_dependent(target, job::SnowflakeTests { graal_edition, engine_launcher }, &[
         &build_engine_distribution_id,
     ]);
     workflow.add_dependent(

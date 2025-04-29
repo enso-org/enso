@@ -243,10 +243,7 @@ impl JobArchetype for JvmTests {
                 };
 
                 let download_engine_distribution =
-                    step::download_artifact("Download Engine Distribution").with_custom_argument(
-                        "name",
-                        format!("engine-distribution-{}-{}", target.0, engine_launcher),
-                    );
+                    step::download_engine_distribution(target, engine_launcher, graal_edition);
 
                 let unpack_engine_distribution = Step {
                     name: Some("Unpack Engine Distribution".into()),
@@ -352,10 +349,7 @@ impl JobArchetype for StandardLibraryTests {
             };
 
             let download_engine_distribution =
-                step::download_artifact("Download Engine Distribution").with_custom_argument(
-                    "name",
-                    format!("engine-distribution-{}-{}", target.0, engine_launcher),
-                );
+                step::download_engine_distribution(target, engine_launcher, graal_edition);
 
             let unpack_engine_distribution = Step {
                 name: Some("Unpack Engine Distribution".into()),
@@ -447,12 +441,14 @@ impl JobArchetype for EnsoCodeLintCheck {
 /// and comparing it to the API signature files that are already in the VCS.
 #[derive(Clone, Copy, Debug)]
 pub struct StandardLibraryApiCheck {
+    pub graal_edition:   graalvm::Edition,
     pub engine_launcher: engine::EngineLauncher,
 }
 
 impl JobArchetype for StandardLibraryApiCheck {
     fn job(&self, target: Target) -> Job {
         let job_name = "Standard Library API check";
+        let graal_edition = self.graal_edition;
         let engine_launcher = self.engine_launcher;
         let run_command = "backend stdlib-api-check";
         let job = RunStepsBuilder::new(run_command)
@@ -464,10 +460,7 @@ impl JobArchetype for StandardLibraryApiCheck {
                 };
 
                 let download_engine_distribution =
-                    step::download_artifact("Download Engine Distribution").with_custom_argument(
-                        "name",
-                        format!("engine-distribution-{}-{}", target.0, engine_launcher),
-                    );
+                    step::download_engine_distribution(target, engine_launcher, graal_edition);
 
                 let unpack_engine_distribution = Step {
                     name: Some("Unpack Engine Distribution".into()),
@@ -606,6 +599,7 @@ fn build_job_ensuring_cloud_tests_run_on_github(
 
 #[derive(Clone, Copy, Debug)]
 pub struct SnowflakeTests {
+    pub graal_edition: graalvm::Edition,
     pub engine_launcher: engine::EngineLauncher,
 }
 
@@ -617,6 +611,7 @@ impl JobArchetype for SnowflakeTests {
             panic!("Snowflake tests currently require GitHub hosted runner for Cloud auth, so they only run on Linux.");
         }
         let job_name = "Snowflake Tests";
+        let graal_edition = self.graal_edition;
         let engine_launcher = self.engine_launcher;
         let mut job = RunStepsBuilder::new("backend test std-snowflake")
             .customize(move |step| {
@@ -657,10 +652,7 @@ impl JobArchetype for SnowflakeTests {
                 };
 
                 let download_engine_distribution =
-                    step::download_artifact("Download Engine Distribution").with_custom_argument(
-                        "name",
-                        format!("engine-distribution-{}-{}", target.0, engine_launcher),
-                    );
+                    step::download_engine_distribution(target, engine_launcher, graal_edition);
 
                 let unpack_engine_distribution = Step {
                     name: Some("Unpack Engine Distribution".into()),
@@ -1054,6 +1046,7 @@ pub struct BuildEngineDistribution {
 impl JobArchetype for BuildEngineDistribution {
     fn job(&self, target: Target) -> Job {
         let engine_launcher = self.engine_launcher;
+        let graal_edition = self.graal_edition;
         let job_name =
             format!("Build Engine Distribution ({}) ({})", self.graal_edition, engine_launcher);
         let mut job = RunStepsBuilder::new("backend ci-build-engine-distribution")
@@ -1065,12 +1058,7 @@ impl JobArchetype for BuildEngineDistribution {
                 };
 
                 let upload_engine_distribution =
-                    step::upload_artifact("Upload Engine Distribution")
-                        .with_custom_argument(
-                            "name",
-                            format!("engine-distribution-{}-{}", target.0, engine_launcher),
-                        )
-                        .with_custom_argument("path", "built-distribution.tar");
+                    step::upload_engine_distribution(target, engine_launcher, graal_edition);
 
                 let cleanup_archive = Step {
                     name: Some("Cleanup Archive".into()),

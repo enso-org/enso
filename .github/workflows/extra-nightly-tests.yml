@@ -60,7 +60,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          name: engine-distribution-linux-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
           path: built-distribution.tar
       - name: Cleanup Archive
         run: rm built-distribution.tar
@@ -117,7 +117,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-linux-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
       - name: Unpack Engine Distribution
         run: "tar -xvf built-distribution.tar\n    rm built-distribution.tar\n    "
       - run: ./run backend test std-snowflake
@@ -198,7 +198,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-linux-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
       - name: Unpack Engine Distribution
         run: |
           tar -xvf built-distribution.tar

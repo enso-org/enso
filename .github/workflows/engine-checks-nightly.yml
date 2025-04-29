@@ -60,7 +60,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          name: engine-distribution-linux-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
           path: built-distribution.tar
       - name: Cleanup Archive
         run: rm built-distribution.tar
@@ -120,7 +120,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          name: engine-distribution-macos-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (macos, aarch64)
           path: built-distribution.tar
       - name: Cleanup Archive
         run: rm built-distribution.tar
@@ -178,7 +178,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          name: engine-distribution-macos-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (macos, amd64)
           path: built-distribution.tar
       - name: Cleanup Archive
         run: rm built-distribution.tar
@@ -237,7 +237,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          name: engine-distribution-windows-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (windows, amd64)
           path: built-distribution.tar
       - name: Cleanup Archive
         run: rm built-distribution.tar
@@ -296,7 +296,7 @@ jobs:
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
-          name: engine-distribution-linux-native,test
+          name: Engine Distribution (Oracle GraalVM) (native,test) (linux, amd64)
           path: built-distribution.tar
       - name: Cleanup Archive
         run: rm built-distribution.tar
@@ -354,7 +354,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-linux-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
       - name: Unpack Engine Distribution
         run: |
           tar -xvf built-distribution.tar
@@ -427,7 +427,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-macos-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (macos, aarch64)
       - name: Unpack Engine Distribution
         run: |
           tar -xvf built-distribution.tar
@@ -498,7 +498,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-macos-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (macos, amd64)
       - name: Unpack Engine Distribution
         run: |
           tar -xvf built-distribution.tar
@@ -570,7 +570,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-windows-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (windows, amd64)
       - name: Unpack Engine Distribution
         run: |
           tar -xvf built-distribution.tar
@@ -642,7 +642,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-linux-native,test
+          name: Engine Distribution (Oracle GraalVM) (native,test) (linux, amd64)
       - name: Unpack Engine Distribution
         run: |
           tar -xvf built-distribution.tar
@@ -714,7 +714,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-linux-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
       - name: Unpack Engine Distribution
         run: |
           tar -xvf built-distribution.tar
@@ -773,7 +773,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-linux-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
       - name: Unpack Engine Distribution
         run: |
           tar -xvf built-distribution.tar
@@ -849,7 +849,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-macos-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (macos, aarch64)
       - name: Unpack Engine Distribution
         run: |
           tar -xvf built-distribution.tar
@@ -923,7 +923,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-macos-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (macos, amd64)
       - name: Unpack Engine Distribution
         run: |
           tar -xvf built-distribution.tar
@@ -998,7 +998,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-windows-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (windows, amd64)
       - name: Unpack Engine Distribution
         run: |
           tar -xvf built-distribution.tar
@@ -1073,7 +1073,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-linux-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
       - name: Unpack Engine Distribution
         run: |
           tar -xvf built-distribution.tar
@@ -1149,7 +1149,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-macos-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (macos, aarch64)
       - name: Unpack Engine Distribution
         run: |
           tar -xvf built-distribution.tar
@@ -1223,7 +1223,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-macos-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (macos, amd64)
       - name: Unpack Engine Distribution
         run: |
           tar -xvf built-distribution.tar
@@ -1298,7 +1298,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-windows-native,test
+          name: Engine Distribution (GraalVM CE) (native,test) (windows, amd64)
       - name: Unpack Engine Distribution
         run: |
           tar -xvf built-distribution.tar
@@ -1373,7 +1373,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-linux-native,test
+          name: Engine Distribution (Oracle GraalVM) (native,test) (linux, amd64)
       - name: Unpack Engine Distribution
         run: |
           tar -xvf built-distribution.tar
@@ -1448,7 +1448,7 @@ jobs:
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
-          name: engine-distribution-linux-native,test
+          name: Engine Distribution (Oracle GraalVM) (native,test) (linux, amd64)
       - name: Unpack Engine Distribution
         run: |
           tar -xvf built-distribution.tar

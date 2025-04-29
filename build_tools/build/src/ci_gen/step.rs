@@ -1,3 +1,4 @@
+use crate::engine;
 use crate::prelude::*;
 
 use crate::ci_gen::not_a_fork;
@@ -48,6 +49,36 @@ pub fn extra_stdlib_test_reporter((os, arch): Target, graal_edition: graalvm::Ed
     let report_name = format!("Extra Library Tests Report ({graal_edition}, {os}, {arch})");
     let path = format!("{}/*/*.xml", env_expression(&paths::ENSO_TEST_JUNIT_DIR));
     test_reporter(step_name, report_name, path)
+}
+
+pub fn upload_engine_distribution(
+    target: Target,
+    engine_launcher: engine::EngineLauncher,
+    graal_edition: graalvm::Edition,
+) -> Step {
+    upload_artifact("Upload Engine Distribution")
+        .with_custom_argument(
+            "name",
+            format!(
+                "Engine Distribution ({}) ({}) ({}, {})",
+                graal_edition, engine_launcher, target.0, target.1
+            ),
+        )
+        .with_custom_argument("path", "built-distribution.tar")
+}
+
+pub fn download_engine_distribution(
+    target: Target,
+    engine_launcher: engine::EngineLauncher,
+    graal_edition: graalvm::Edition,
+) -> Step {
+    download_artifact("Download Engine Distribution").with_custom_argument(
+        "name",
+        format!(
+            "Engine Distribution ({}) ({}) ({}, {})",
+            graal_edition, engine_launcher, target.0, target.1
+        ),
+    )
 }
 
 pub fn upload_artifact(step_name: impl Into<String>) -> Step {
