@@ -12,6 +12,7 @@ import project.Expression.Expression
 import project.Internal.Table_Ref.Table_Ref
 import project.Internal.Widget_Helpers
 import project.Refined_Types.Numeric_Column.Numeric_Column
+import project.Value_Type.Value_Type
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 
 ## Defines a simple expression based off an input column and an operation to perform.
@@ -219,8 +220,10 @@ type Math_Operation
             Math_Operation.Ceil -> column.ceil
             Math_Operation.Floor -> column.floor
             Math_Operation.Truncate -> column.truncate
-            Math_Operation.Absolute -> (column:Numeric_Column).abs
-            Math_Operation.Signum -> (column:Numeric_Column).signum
+            Math_Operation.Absolute -> Value_Type.expect_numeric column <|
+                (column:Numeric_Column).abs
+            Math_Operation.Signum -> Value_Type.expect_numeric column <|
+                (column:Numeric_Column).signum
 
 ## Defines a set of Date based operations.
 type Date_Operation

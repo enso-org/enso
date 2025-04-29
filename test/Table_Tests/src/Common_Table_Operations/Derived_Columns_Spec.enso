@@ -69,9 +69,12 @@ add_derived_columns_specs suite_builder setup =
             t.set (Simple_Expression.Simple_Expr 42 (Simple_Calculation.Add "y")) . should_fail_with Illegal_Argument
 
         group_builder.specify "more math operations" <|
-            t = table_builder [["A", [15, -100]]]
+            t = table_builder [["A", [15, -100]], ["txt", ["a", "b"]]]
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (..Math ..Absolute)) "C" . at "C" . to_vector . should_equal [15, 100]
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (..Math ..Signum)) "C" . at "C" . to_vector . should_equal [1, -1]
+
+            # Expect a nice error if the column has wrong type
+            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "txt") (..Math ..Absolute)) "C" . should_fail_with Invalid_Value_Type
 
         group_builder.specify "rounding" <|
             t = table_builder [["A", [1.13333, 122.74463, 32.52424, -12.7]]]
