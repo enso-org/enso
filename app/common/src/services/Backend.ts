@@ -803,7 +803,7 @@ interface LibEventMetadata {
   readonly type: EventType.Lib
 }
 
-/** An event indicating that a file was uploaded. */
+/** An event indicating telemetry data sent from the IDE. */
 interface TelemetryEventMetadata {
   readonly type: EventType.Telemetry
 }
