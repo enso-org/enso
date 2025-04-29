@@ -5,11 +5,9 @@
  */
 import * as React from 'react'
 
-import invariant from 'tiny-invariant'
+import HttpClient from '#/utilities/HttpClient'
 
-import type HttpClient from '#/utilities/HttpClient'
-
-const HTTPClientContext = React.createContext<HttpClient | null>(null)
+const HTTPClientContext = React.createContext<HttpClient>(new HttpClient())
 
 /** Props for an {@link HttpClientProvider}. */
 export interface HttpClientProviderProps extends React.PropsWithChildren {
@@ -29,17 +27,4 @@ export function HttpClientProvider(props: HttpClientProviderProps) {
 // eslint-disable-next-line react-refresh/only-export-components
 export function useHttpClient() {
   return React.useContext(HTTPClientContext)
-}
-
-/**
- * Returns the HTTP client.
- * @throws If the HTTP client is not found in context.
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useHttpClientStrict() {
-  const httpClient = useHttpClient()
-
-  invariant(httpClient, 'HTTP client not found in context')
-
-  return httpClient
 }

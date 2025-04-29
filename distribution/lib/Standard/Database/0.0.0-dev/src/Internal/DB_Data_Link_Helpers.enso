@@ -8,7 +8,7 @@ from Standard.Table import Table
 import project.Connection.Connection_Options.Connection_Options
 import project.Dialect.Temp_Table_Style
 import project.Internal.Data_Link_Setup.DB_Data_Link_Type
-import project.Internal.IR.From_Spec.From_Spec
+import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 
 ## PRIVATE
 data_link_connection_parameters (source : Data_Link_Source_Metadata) -> Connection_Options =
@@ -49,7 +49,7 @@ save_table_as_data_link table destination on_existing_file:Existing_File_Behavio
 private _find_referred_temporary_tables connection context -> Nothing | Vector Text =
     encountered_table_names = Vector.build builder->
         context.from_spec.traverse x-> case x of
-            From_Spec.Table name _ _ ->
+            SQL_IR_From_Part.Table name _ _ ->
                 builder.append name
                 x
             _ -> x

@@ -11,7 +11,7 @@ import org.junit.Test;
 public class PrivateMethodAccessTest {
   @Test
   public void moduleDoesNotExposePrivateMethodsToPolyglot() {
-    try (var ctx = ContextUtils.createDefaultContext()) {
+    try (var ctx = ContextUtils.createDefault()) {
       var module =
           ctx.eval(
               LanguageInfo.ID,
@@ -29,7 +29,7 @@ public class PrivateMethodAccessTest {
 
   @Test
   public void typeDoesNotExposePrivateMethodsToPolyglot() {
-    try (var ctx = ContextUtils.createDefaultContext()) {
+    try (var ctx = ContextUtils.createDefault()) {
       var module =
           ctx.eval(
               LanguageInfo.ID,

@@ -24,6 +24,7 @@ import org.enso.pkg.NativeLibraryFinder;
 import org.enso.pkg.Package;
 import org.enso.test.utils.ContextUtils;
 import org.junit.After;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
@@ -32,6 +33,7 @@ import org.junit.runners.model.Statement;
 
 public class NativeLibraryFinderTest {
 
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   @Rule public final TestRule printContextRule = new PrintSystemInfoRule();
   private Package<TruffleFile> stdImgPkg;
   private Package<TruffleFile> stdTableauPkg;
@@ -44,93 +46,87 @@ public class NativeLibraryFinderTest {
 
   @Test
   public void standardImageShouldHaveNativeLib() {
-    try (var ctx = ContextUtils.createDefaultContext()) {
-      // Evaluate dummy sources to force loading Standard.Image
-      ContextUtils.evalModule(
-          ctx, """
-          from Standard.Image import all
-          main = 42
-          """);
-      var ensoCtx = ContextUtils.leakContext(ctx);
-      var stdImg =
-          ensoCtx
-              .getPackageRepository()
-              .getPackageForLibraryJava(LibraryName.apply("Standard", "Image"));
-      assertThat(stdImg.isPresent(), is(true));
-      this.stdImgPkg = stdImg.get();
-      var nativeLibs =
-          NativeLibraryFinder.listAllNativeLibraries(stdImg.get(), TruffleFileSystem.INSTANCE);
-      assertThat(
-          "There should be just single native lib in Standard.Image", nativeLibs.size(), is(1));
-    }
+    // Evaluate dummy sources to force loading Standard.Image
+    ctxRule.evalModule("""
+        from Standard.Image import all
+        main = 42
+        """);
+    var ensoCtx = ctxRule.ensoContext();
+    var stdImg =
+        ensoCtx
+            .getPackageRepository()
+            .getPackageForLibraryJava(LibraryName.apply("Standard", "Image"));
+    assertThat(stdImg.isPresent(), is(true));
+    this.stdImgPkg = stdImg.get();
+    var nativeLibs =
+        NativeLibraryFinder.listAllNativeLibraries(stdImg.get(), TruffleFileSystem.INSTANCE);
+    assertThat(
+        "There should be just single native lib in Standard.Image", nativeLibs.size(), is(1));
   }
 
   @Test
   public void standardTableauShouldHaveNativeLib() {
-    try (var ctx = ContextUtils.createDefaultContext()) {
-      // Evaluate dummy sources to force loading Standard.Tableau
-      ContextUtils.evalModule(
-          ctx, """
-          from Standard.Tableau import all
-          main = 42
-          """);
-      var ensoCtx = ContextUtils.leakContext(ctx);
-      var stdTableau =
-          ensoCtx
-              .getPackageRepository()
-              .getPackageForLibraryJava(LibraryName.apply("Standard", "Tableau"));
-      assertThat(stdTableau.isPresent(), is(true));
-      this.stdTableauPkg = stdTableau.get();
-      var nativeLibs =
-          NativeLibraryFinder.listAllNativeLibraries(stdTableau.get(), TruffleFileSystem.INSTANCE);
-      // Tableau has Tableau's native lib AND jni
-      assertThat("There should be two native libs for Standard.Tableau", nativeLibs.size(), is(2));
-    }
+    // Evaluate dummy sources to force loading Standard.Tableau
+    ctxRule.evalModule("""
+        from Standard.Tableau import all
+        main = 42
+        """);
+    var ensoCtx = ctxRule.ensoContext();
+    var stdTableau =
+        ensoCtx
+            .getPackageRepository()
+            .getPackageForLibraryJava(LibraryName.apply("Standard", "Tableau"));
+    assertThat(stdTableau.isPresent(), is(true));
+    this.stdTableauPkg = stdTableau.get();
+    var nativeLibs =
+        NativeLibraryFinder.listAllNativeLibraries(stdTableau.get(), TruffleFileSystem.INSTANCE);
+    // Tableau has Tableau's native lib AND jni
+    assertThat("There should be two native libs for Standard.Tableau", nativeLibs.size(), is(2));
   }
 
   @Test
   public void findTableauNativeLibrary() {
-    try (var ctx = ContextUtils.createDefaultContext()) {
-      // Evaluate dummy sources to force loading Standard.Tableau
-      ContextUtils.evalModule(
-          ctx,
-          """
-          from Standard.Base import all
-          from Standard.Tableau import all
-          main = 42
-          """);
-      var nativeLib =
-          ctx.getBindings(LanguageInfo.ID)
-              .invokeMember(MethodNames.TopScope.FIND_NATIVE_LIBRARY, "tableauhyperapi");
-      assertNotNull(nativeLib);
-      var expectedLibName = OS.isWindows() ? "tableauhyperapi" : "libtableauhyperapi";
-      assertThat(nativeLib.asString(), containsString(expectedLibName));
+    // Evaluate dummy sources to force loading Standard.Tableau
+    ctxRule.evalModule(
+        """
+        from Standard.Base import all
+        from Standard.Tableau import all
+        main = 42
+        """);
+    var nativeLib =
+        ctxRule
+            .context()
+            .getBindings(LanguageInfo.ID)
+            .invokeMember(MethodNames.TopScope.FIND_NATIVE_LIBRARY, "tableauhyperapi");
+    assertNotNull(nativeLib);
+    var expectedLibName = OS.isWindows() ? "tableauhyperapi" : "libtableauhyperapi";
+    assertThat(nativeLib.asString(), containsString(expectedLibName));
 
-      var nativeLibJni =
-          ctx.getBindings(LanguageInfo.ID)
-              .invokeMember(MethodNames.TopScope.FIND_NATIVE_LIBRARY, "jnidispatch");
-      assertNotNull(nativeLibJni);
-      var expectedJniLibName = OS.isWindows() ? "jnidispatch" : "libjnidispatch";
-      assertThat(nativeLibJni.asString(), containsString(expectedJniLibName));
-    }
+    var nativeLibJni =
+        ctxRule
+            .context()
+            .getBindings(LanguageInfo.ID)
+            .invokeMember(MethodNames.TopScope.FIND_NATIVE_LIBRARY, "jnidispatch");
+    assertNotNull(nativeLibJni);
+    var expectedJniLibName = OS.isWindows() ? "jnidispatch" : "libjnidispatch";
+    assertThat(nativeLibJni.asString(), containsString(expectedJniLibName));
   }
 
   @Test
   public void failToFindNativeLibrary() {
-    try (var ctx = ContextUtils.createDefaultContext()) {
-      // Evaluate dummy sources to force loading of some packages
-      ContextUtils.evalModule(
-          ctx,
-          """
-          from Standard.Base import all
-          from Standard.Table import all
-          main = 42
-          """);
-      var nativeLib =
-          ctx.getBindings(LanguageInfo.ID)
-              .invokeMember(MethodNames.TopScope.FIND_NATIVE_LIBRARY, "iDontExist");
-      assertTrue(nativeLib.isNull());
-    }
+    // Evaluate dummy sources to force loading of some packages
+    ctxRule.evalModule(
+        """
+        from Standard.Base import all
+        from Standard.Table import all
+        main = 42
+        """);
+    var nativeLib =
+        ctxRule
+            .context()
+            .getBindings(LanguageInfo.ID)
+            .invokeMember(MethodNames.TopScope.FIND_NATIVE_LIBRARY, "iDontExist");
+    assertTrue(nativeLib.isNull());
   }
 
   public final class PrintSystemInfoRule implements TestRule {

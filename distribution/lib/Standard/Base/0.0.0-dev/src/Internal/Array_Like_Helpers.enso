@@ -1,7 +1,6 @@
 private
 
 import project.Any.Any
-import project.Data.Vector.Report_Unmatched
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Dictionary.Dictionary
@@ -13,6 +12,7 @@ import project.Data.Pair.Pair
 import project.Data.Range.Range
 import project.Data.Vector.Map_Error
 import project.Data.Vector.No_Wrap
+import project.Data.Vector.Report_Unmatched
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Additional_Warnings

@@ -41,13 +41,6 @@ public final class LogJobsProcessor {
   private AuthenticationData authenticationData;
   private HttpClient httpClient;
 
-  /**
-   * Set to true once an error is encountered when sending a request. In such case, it is most
-   * probably that no further requests will be successful. This flag is used to terminate the
-   * background thread.
-   */
-  private boolean requestSendingFailure;
-
   public LogJobsProcessor(
       ThreadPoolExecutor executor,
       URI endpoint,
@@ -56,7 +49,7 @@ public final class LogJobsProcessor {
     this.backgroundThreadService = Objects.requireNonNull(executor);
     this.endpoint = Objects.requireNonNull(endpoint);
     this.authenticationData = Objects.requireNonNull(authenticationData);
-    this.tokenRefresher = tokenRefresher;
+    this.tokenRefresher = Objects.requireNonNull(tokenRefresher);
   }
 
   /*
@@ -76,9 +69,7 @@ public final class LogJobsProcessor {
       // It is possible that a job was already running, but adding a new one will not hurt - once
       // the queue is empty, the currently running job will finish and any additional jobs will also
       // terminate immediately.
-      if (!requestSendingFailure) {
-        backgroundThreadService.execute(this::logThreadEntryPoint);
-      }
+      backgroundThreadService.execute(this::logThreadEntryPoint);
     }
   }
 
@@ -93,13 +84,22 @@ public final class LogJobsProcessor {
         // `logQueue.enqueue` will return 1, thus ensuring that at least one new job is scheduled.
         return;
       }
-      try {
-        sendBatch(pendingMessages);
-      } catch (RequestFailureException e) {
-        LOGGER.warn("Stopping the Telemetry appender - requests cannot be send", e);
-        requestSendingFailure = true;
-        return;
+
+      if (accessTokenNeedsRefresh()) {
+        LOGGER.debug("Refreshing access token");
+        var refreshedAuthData = fetchNewAccessToken();
+        if (refreshedAuthData != null) {
+          authenticationData = refreshedAuthData;
+          LOGGER.trace(
+              "Token refreshed successfully. New expiration: {}", authenticationData.expireAt());
+        } else {
+          notifyJobsAboutFailure(
+              pendingMessages, new RequestFailureException("Failed to refresh token", null));
+          return;
+        }
       }
+      assert authenticationData != null;
+      sendBatch(pendingMessages);
     }
   }
 
@@ -108,22 +108,9 @@ public final class LogJobsProcessor {
    *
    * <p>The batch must not be empty and all messages must share the same request config.
    */
-  private void sendBatch(List<LogJob> batch) throws RequestFailureException {
+  private void sendBatch(List<LogJob> batch) {
     assert !batch.isEmpty() : "The batch must not be empty.";
-
-    if (accessTokenNeedsRefresh()) {
-      LOGGER.debug("Refreshing access token");
-      var refreshedAuthData = tokenRefresher.fetchNewAccessToken();
-      if (refreshedAuthData != null) {
-        authenticationData = refreshedAuthData;
-        LOGGER.trace(
-            "Token refreshed successfully. New expiration: {}", authenticationData.expireAt());
-      } else {
-        throw new RequestFailureException("Failed to refresh token", null);
-      }
-    }
     assert authenticationData != null;
-
     try {
       var request = buildRequest(batch);
       if (request == null) {
@@ -218,6 +205,18 @@ public final class LogJobsProcessor {
         sendLogRequest(request, retryCount - 1);
       }
     }
+  }
+
+  private AuthenticationData fetchNewAccessToken() {
+    for (int i = 0; i < MAX_RETRIES; i++) {
+      var refreshedAuthData = tokenRefresher.fetchNewAccessToken();
+      if (refreshedAuthData != null) {
+        return refreshedAuthData;
+      } else {
+        LOGGER.warn("Failed to refresh token. Retrying... (attempt {}/{})", i + 1, MAX_RETRIES);
+      }
+    }
+    return null;
   }
 
   private boolean accessTokenNeedsRefresh() {

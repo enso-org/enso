@@ -7,29 +7,29 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.hamcrest.Matchers;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class ManagedResourceTest {
-  private static Context ctx;
-  private static EnsoContext ensoCtx;
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
   private static Value newResource;
   private static Value createResource;
   private static Value getResource;
 
   @BeforeClass
-  public static void initCtx() throws Exception {
-    ctx = ContextUtils.createDefaultContext();
-    ensoCtx = ContextUtils.leakContext(ctx);
+  public static void initCtx() {
+    var ctx = ctxRule.context();
     var code =
         """
               import Standard.Base.Runtime.Managed_Resource.Managed_Resource
@@ -43,7 +43,12 @@ public class ManagedResourceTest {
               get_res ref = ref.with it->
                 it
               """;
-    var src = Source.newBuilder("enso", code, "gc.enso").build();
+    Source src;
+    try {
+      src = Source.newBuilder("enso", code, "gc.enso").build();
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    }
     var gcEnso = ctx.eval(src);
     newResource = gcEnso.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "make_new");
     createResource = gcEnso.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create_new");
@@ -52,10 +57,6 @@ public class ManagedResourceTest {
 
   @AfterClass
   public static void closeCtx() throws Exception {
-    ctx.close();
-    ensoCtx.shutdown();
-    ctx = null;
-    ensoCtx = null;
     newResource = null;
     createResource = null;
     getResource = null;
@@ -80,7 +81,7 @@ public class ManagedResourceTest {
     assertFalse("Value was not GCed", getResource.execute(ref).isNull());
     assertEquals("We get the object", weakRef.get(), getResource.execute(ref).asHostObject());
 
-    ensoCtx.getResourceManager().scheduleFinalizationOfSystemReferences();
+    ctxRule.ensoContext().getResourceManager().scheduleFinalizationOfSystemReferences();
     assertEquals(
         "scheduleFinalization has no effect on regular reference",
         weakRef.get(),
@@ -98,7 +99,7 @@ public class ManagedResourceTest {
         ref.getMetaObject().getMetaQualifiedName());
     assertEquals("We get the object", obj, getResource.execute(ref).asHostObject());
 
-    ensoCtx.getResourceManager().scheduleFinalizationOfSystemReferences();
+    ctxRule.ensoContext().getResourceManager().scheduleFinalizationOfSystemReferences();
 
     var none = getResource.execute(ref);
     assertTrue("Value was GCed", none.isException());

@@ -13,16 +13,15 @@ import { useUser } from '#/providers/AuthProvider'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
-import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import { pickBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { Path, type DirectoryId } from '#/services/Backend'
+import { BackendType, Path, type DirectoryId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 import { organizationIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
-import { useSuspenseQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
@@ -78,17 +77,9 @@ export type CloudCategoryResult = ReturnType<typeof useCloudCategoryList>
 /**
  * List of categories in the Cloud.
  */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useCloudCategoryList() {
+function useCloudCategoryList() {
   const user = useUser()
   const { getText } = useText()
-  const backend = useRemoteBackend()
-  const { data: organization } = useSuspenseQuery({
-    queryKey: [backend.type, 'getOrganization'],
-    queryFn: () => backend.getOrganization(),
-  })
-  const organizationRootDirectoryId =
-    organization != null ? organizationIdToDirectoryId(organization.id) : user.rootDirectoryId
 
   const cloudCategory: CloudCategory = {
     type: 'cloud',
@@ -97,6 +88,7 @@ export function useCloudCategoryList() {
     icon: 'cloud',
     homeDirectoryId: user.rootDirectoryId,
     canUploadHere: true,
+    backend: BackendType.remote,
   }
 
   const recentCategory: RecentCategory = {
@@ -106,6 +98,7 @@ export function useCloudCategoryList() {
     icon: RecentIcon,
     homeDirectoryId: null,
     canUploadHere: false,
+    backend: BackendType.remote,
   }
 
   const trashCategory: TrashCategory = {
@@ -113,8 +106,9 @@ export function useCloudCategoryList() {
     id: 'trash',
     label: getText('trashCategory'),
     icon: 'trash_small',
-    homeDirectoryId: organizationRootDirectoryId,
+    homeDirectoryId: organizationIdToDirectoryId(user.organizationId),
     canUploadHere: false,
+    backend: BackendType.remote,
   }
 
   const predefinedCloudCategories: AnyCloudCategory[] = [
@@ -132,6 +126,7 @@ export function useCloudCategoryList() {
     label: getText('teamCategory', group.name),
     icon: 'people',
     canUploadHere: true,
+    backend: BackendType.remote,
   }))
 
   const categories = [...predefinedCloudCategories, ...teamCategories] satisfies AnyCloudCategory[]
@@ -182,6 +177,7 @@ function createLocalDirectoryCategory(directory: string): LocalDirectoryCategory
     label: getFileName(directory),
     icon: 'folder_small',
     canUploadHere: true,
+    backend: BackendType.local,
   }
 }
 
@@ -189,8 +185,7 @@ function createLocalDirectoryCategory(directory: string): LocalDirectoryCategory
  * List of all categories in the LocalBackend.
  * Usually these are the root folder and the list of favorites
  */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useLocalCategoryList() {
+function useLocalCategoryList() {
   const { getText } = useText()
   const localBackend = useLocalBackend()
   const [localRootDirectory] = useLocalStorageState('localRootDirectory')
@@ -254,6 +249,7 @@ export function useLocalCategoryList() {
     homeDirectoryId: newDirectoryId(rootPath),
     rootPath,
     canUploadHere: true,
+    backend: BackendType.local,
   }
 
   const predefinedLocalCategories: AnyLocalCategory[] = [localCategory]
@@ -334,6 +330,7 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
 
   const { cloudCategories, localCategories, findCategoryById } = useCategories()
   const localBackend = useLocalBackend()
+  const remoteBackend = useRemoteBackend()
   const { isOffline } = useOffline()
 
   const [categoryId, privateSetCategoryId, privateResetCategoryId] =
@@ -378,16 +375,14 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
 
   const category = findCategoryById(categoryId)
 
-  // This is safe, because a category always specified
-  // eslint-disable-next-line no-restricted-syntax
-  const backend = useBackend(category as Category)
-
   // This usually doesn't happen but if so,
   // We reset the category to the default.
   if (category == null) {
     resetCategoryId(true)
     return <></>
   }
+
+  const backend = pickBackend(category, remoteBackend, localBackend)
 
   const contextValue = {
     cloudCategories,

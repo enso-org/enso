@@ -5,47 +5,29 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class JavaInteropTest {
 
-  private static Context ctx;
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-  @BeforeClass
-  public static void prepareCtx() {
-    ctx = ContextUtils.createDefaultContext(out);
-  }
-
-  @AfterClass
-  public static void disposeCtx() throws IOException {
-    ctx.close();
-    ctx = null;
-    out.close();
-  }
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @After
   public void resetOutput() {
-    out.reset();
+    ctxRule.resetOut();
   }
 
   private String[] getStdOutLines() {
-    return out.toString(StandardCharsets.UTF_8).trim().split(System.lineSeparator());
+    return ctxRule.getOut().trim().split(System.lineSeparator());
   }
 
   private void checkPrint(String code, List<String> expected) {
-    Value result = ContextUtils.evalModule(ctx, code);
+    Value result = ctxRule.evalModule(code);
     assertTrue("should return Nothing", result.isNull());
     assertArrayEquals(expected.toArray(), getStdOutLines());
   }
@@ -57,7 +39,7 @@ public class JavaInteropTest {
         polyglot java import org.enso.example.TestClass
         main = TestClass.add 1 2
         """;
-    var result = ContextUtils.evalModule(ctx, code);
+    var result = ctxRule.evalModule(code);
     assertEquals(3, result.asInt());
   }
 
@@ -71,7 +53,7 @@ public class JavaInteropTest {
             instance = TestClass.new (x -> x * 2)
             instance.callFunctionAndIncrement 10
         """;
-    var result = ContextUtils.evalModule(ctx, code);
+    var result = ctxRule.evalModule(code);
     assertEquals(21, result.asInt());
   }
 
@@ -85,7 +67,7 @@ public class JavaInteropTest {
             instance = StaticInnerClass.new "my_data"
             instance.add 1 2
         """;
-    var result = ContextUtils.evalModule(ctx, code);
+    var result = ctxRule.evalModule(code);
     assertEquals(3, result.asInt());
   }
 
@@ -180,7 +162,7 @@ public class JavaInteropTest {
             instance = TestClass.StaticInnerClass.new "my_data"
             instance.getData
         """;
-    var result = ContextUtils.evalModule(ctx, code);
+    var result = ctxRule.evalModule(code);
     assertEquals("my_data", result.asString());
   }
 
@@ -211,7 +193,7 @@ public class JavaInteropTest {
             inner_inner_value = StaticInnerInnerClass.new
             inner_inner_value.mul 3 5
         """;
-    var res = ContextUtils.evalModule(ctx, code);
+    var res = ctxRule.evalModule(code);
     assertEquals(15, res.asInt());
   }
 
@@ -222,7 +204,7 @@ public class JavaInteropTest {
         polyglot java import org.enso.example.TestClass.StaticInnerClass.Non_Existing_Class
         """;
     try {
-      ContextUtils.evalModule(ctx, code);
+      ctxRule.evalModule(code);
       fail("Should throw exception");
     } catch (Exception ignored) {
     }
@@ -235,7 +217,7 @@ public class JavaInteropTest {
         polyglot java import org.enso.example.TestClass.Non_Existing_Class.Another_Non_ExistingClass
         """;
     try {
-      ContextUtils.evalModule(ctx, code);
+      ctxRule.evalModule(code);
       fail("Should throw exception");
     } catch (Exception ignored) {
     }
@@ -251,7 +233,7 @@ public class JavaInteropTest {
             instance = TestClass.StaticInnerClass.StaticInnerInnerClass.new
             instance.mul 3 5
         """;
-    var res = ContextUtils.evalModule(ctx, code);
+    var res = ctxRule.evalModule(code);
     assertEquals(15, res.asInt());
   }
 
@@ -279,7 +261,7 @@ public class JavaInteropTest {
         [a, b, c, d, e]
     """;
 
-    var res = ContextUtils.evalModule(ctx, code);
+    var res = ctxRule.evalModule(code);
     assertTrue("It is an array", res.hasArrayElements());
     assertEquals("Array with five elements", 5, res.getArraySize());
     assertEquals(123, res.getArrayElement(0).asInt());
@@ -338,6 +320,6 @@ public class JavaInteropTest {
         b = Panic.catch No_Such_Method (Foo.callFoo Fooable_Unresolved.Value) (caught-> caught.payload.method_name)
         """;
 
-    return ContextUtils.evalModule(ctx, code + "\nmain = " + methodToEval);
+    return ctxRule.evalModule(code + "\nmain = " + methodToEval);
   }
 }

@@ -16,6 +16,7 @@ import { ProjectPath } from '@/util/projectPath'
 import { type QualifiedName } from '@/util/qualifiedName'
 import { markRaw, proxyRefs, readonly, ref } from 'vue'
 import { LanguageServer } from 'ydoc-shared/languageServer'
+import { SuggestionDatabaseUpdates } from 'ydoc-shared/languageServerTypes'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 import { exponentialBackoff } from 'ydoc-shared/util/net'
 
@@ -125,7 +126,7 @@ class Synchronizer {
       if (!capability.ok) {
         capability.error.log('Will not receive database updates')
       }
-      this.#setupUpdateHandler(lsRpc, await updateProcessor)
+      this.#setupUpdateHandler(lsRpc, updateProcessor) // Do not await
       return Synchronizer.loadDatabase(entries, lsRpc, await updateProcessor)
     })
 
@@ -156,8 +157,20 @@ class Synchronizer {
     return { currentVersion: initialDb.value.currentVersion }
   }
 
-  #setupUpdateHandler(lsRpc: LanguageServer, updateProcessor: SuggestionUpdateProcessor) {
-    lsRpc.on('search/suggestionsDatabaseUpdates', (param) => {
+  async #setupUpdateHandler(
+    lsRpc: LanguageServer,
+    updateProcessorPromise: Promise<SuggestionUpdateProcessor>,
+  ) {
+    // We can get DB updates received through RPC before processor update and loadDatabase call finishes. We have to receive
+    // an queue those updates until we are ready to apply them.
+    const earlyUpdates: SuggestionDatabaseUpdates[] = []
+    const queueEarlyUpdate = lsRpc.on('search/suggestionsDatabaseUpdates', (param) =>
+      earlyUpdates.push(param),
+    )
+    const updateProcessor = await updateProcessorPromise
+    lsRpc.off('search/suggestionsDatabaseUpdates', queueEarlyUpdate)
+
+    const processUpdate = lsRpc.on('search/suggestionsDatabaseUpdates', (param) => {
       this.queue.pushTask(async ({ currentVersion }) => {
         // There are rare cases where the database is updated twice in quick succession, with the
         // second update containing the same version as the first. In this case, we still need to
@@ -181,6 +194,10 @@ class Synchronizer {
         }
       })
     })
+
+    // Before an new update is received, apply all queued updates from before initialization.
+    earlyUpdates.forEach(processUpdate)
+    earlyUpdates.length = 0
   }
 }
 

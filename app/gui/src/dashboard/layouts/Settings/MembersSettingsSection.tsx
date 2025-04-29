@@ -52,7 +52,7 @@ export default function MembersSettingsSection() {
   return (
     <>
       {isAdmin && (
-        <ariaComponents.ButtonGroup>
+        <ariaComponents.ButtonGroup className="flex-initial" verticalAlign="center">
           <ariaComponents.DialogTrigger>
             <ariaComponents.Button variant="outline" rounded="full" size="medium">
               {getText('inviteMembers')}

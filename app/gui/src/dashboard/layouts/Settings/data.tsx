@@ -420,7 +420,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     sections: [
       {
         nameId: 'keyboardShortcutsSettingsSection',
-        columnClassName: 'h-full *:flex-1 *:min-h-0',
+        columnClassName: 'h-full *:flex-1 *:min-h-0 max-w-[unset]',
         entries: [
           {
             type: 'custom',
