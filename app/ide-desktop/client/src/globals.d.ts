@@ -92,7 +92,7 @@ interface MenuApi {
 // ==================
 
 /** Options for downloading a URL. */
-type DownloadUrlOptions = {
+export type DownloadUrlOptions = {
   url: string
   path?: string | null
   name?: string | null

@@ -40,6 +40,7 @@ import * as server from '@/server'
 import * as urlAssociations from '@/urlAssociations'
 
 import * as download from 'electron-dl'
+import type { DownloadUrlOptions } from './globals'
 const logger = contentConfig.logger
 
 /** Convert path to proper `file://` URL. */
