@@ -5180,8 +5180,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     val idVector1 = metadata.addItem(52, 12, "aa")
     val idVector2 = metadata.addItem(79, 12, "ab")
     val idVector3 = metadata.addItem(106, 25, "ac")
-    val idVector3Self = metadata.addItem(106, 7, "ad")
-    //val idResult = metadata.addItem(136, 7)
+    val idVector3Self = UUID.randomUUID()
 
     val code =
       """from Standard.Base import all
@@ -5222,7 +5221,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
     )
-    context.receiveNIgnoreStdLib(7) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -5253,11 +5252,6 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           ),
           Vector(1,2,3,4)
         )
-      ),
-      TestMessages.update(
-        contextId,
-        idVector3Self,
-        ConstantsGen.VECTOR
       ),
       TestMessages.update(
         contextId,
@@ -5321,6 +5315,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     new String(data, StandardCharsets.UTF_8) shouldEqual "[1]"
 
     val idVector4 = UUID.randomUUID()
+    val idVector4Self = UUID.randomUUID()
     // Modify the file
     context.send(
       Api.Request(
@@ -5338,7 +5333,11 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           ),
           execute = true,
           idMap   = Some(model.IdMap(
-            Vector((model.Span(146, 174), idVector4))
+            Vector(
+              (model.Span(106, 113), idVector3Self),
+              (model.Span(146, 174), idVector4),
+                (model.Span(146, 153), idVector4Self)
+            )
           ))
         )
       )
@@ -5350,23 +5349,33 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.executionComplete(contextId)
     )
 
-    // Modify the file
+    // Modify the file by providing the smallest possible edits.
+    // There are more efficient ways to do it but this mimics GUI requests and
+    // is the root of the problem for #12957
     context.send(
       Api.Request(
         Api.EditFileNotification(
           mainFile,
           Seq(
             model.TextEdit(
-              model.Range(model.Position(5, 0), model.Position(5, 0)),
-              "    vector4 = vector2.filter (..Greater 3)\n"
+              model.Range(model.Position(5, 10), model.Position(5, 11)),
+              "4"
+            ),
+            model.TextEdit(
+              model.Range(model.Position(5, 32), model.Position(5, 38)),
+              "Greater 0"
+            ),
+            model.TextEdit(
+              model.Range(model.Position(6, 10), model.Position(6, 11)),
+              "3"
             ),
             model.TextEdit(
               model.Range(model.Position(6, 20), model.Position(6, 21)),
               "4"
             ),
             model.TextEdit(
-              model.Range(model.Position(7, 0), model.Position(7,43)),
-              ""
+              model.Range(model.Position(6, 32), model.Position(6, 41)),
+              "Less 2"
             ),
             model.TextEdit(
               model.Range(model.Position(10, 22), model.Position(10, 25)),
@@ -5376,15 +5385,13 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
               model.Range(model.Position(10, 113), model.Position(10, 116)),
               "149"
             ),
-            model.TextEdit(
-              model.Range(model.Position(10, 203), model.Position(10, 206)),
-              "149"
-            )
           ),
           execute = true,
           idMap   = Some(model.IdMap(
             Vector(
-              (model.Span(106, 134), idVector4), (model.Span(149,174), idVector3),
+              (model.Span(106, 134), idVector4),
+              (model.Span(106, 113), idVector4Self),
+              (model.Span(149,174), idVector3),
               (model.Span(149, 156), idVector3Self)
             )
           ))
@@ -5425,6 +5432,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         data
     }
 
-    new String(data2, StandardCharsets.UTF_8) shouldEqual "[1]"
+    // will fail in #12957
+    new String(data2, StandardCharsets.UTF_8) shouldEqual "[]"
   }
 }
