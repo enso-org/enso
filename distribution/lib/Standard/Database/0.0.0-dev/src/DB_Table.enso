@@ -2787,7 +2787,7 @@ type DB_Table
        - internal: The internal column to use for creating a column.
     make_column : Internal_Column -> DB_Column
     make_column self internal =
-        DB_Column.Value internal.name self.connection internal.sql_type_reference internal.expression self.context
+        DB_Column.new internal.name self.connection internal.sql_type_reference internal.expression self.context
 
     ## PRIVATE
     columns_helper : Table_Column_Helper

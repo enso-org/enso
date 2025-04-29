@@ -31,6 +31,7 @@ import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Type_Refinements.DB_Column_Refinements
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
 from project.Errors import Integrity_Error, Unsupported_Database_Operation
@@ -54,6 +55,14 @@ type DB_Column
        they must both have the same filtering, grouping etc. rules applied to be
        able to be combined.
     private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_IR_Expression context:SQL_IR_Source
+
+    ## The internal constructor used to construct a DB_Column instance.
+
+       It can perform some additional operations, like refining the type,
+       so it should always be preferred over calling `DB_Column.Value` directly.
+    private new internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_IR_Expression context:SQL_IR_Source -> DB_Column =
+        DB_Column_Refinements.refine_column <|
+            DB_Column.Value internal_name connection sql_type_reference expression context
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -304,11 +313,11 @@ type DB_Column
             binder = self.connection.base_connection.table_naming_helper.generate_random_table_name
 
             ref_expression = SQL_IR_Expression.Let_Ref name binder self.expression
-            ref_column = DB_Column.Value binder self.connection self.sql_type_reference ref_expression self.context
+            ref_column = DB_Column.new binder self.connection self.sql_type_reference ref_expression self.context
             inner_value = callback ref_column
 
             let_expression = SQL_IR_Expression.Let name binder self.expression inner_value.expression
-            DB_Column.Value inner_value.internal_name inner_value.connection inner_value.sql_type_reference let_expression inner_value.context
+            DB_Column.new inner_value.internal_name inner_value.connection inner_value.sql_type_reference let_expression inner_value.context
 
     ## PRIVATE
        Sets up an operation of arbitrary arity.
@@ -340,7 +349,7 @@ type DB_Column
             infer_from_database_callback expression =
                 SQL_Type_Reference.new self.connection self.context expression
             new_type_ref = type_mapping.infer_return_type infer_from_database_callback op_kind [self]+operands new_expr
-            DB_Column.Value new_name self.connection new_type_ref new_expr self.context
+            DB_Column.new new_name self.connection new_type_ref new_expr self.context
 
     ## PRIVATE
 
@@ -1313,7 +1322,7 @@ type DB_Column
 
              example_rename = Examples.integer_column.rename "My Numbers"
     rename self name:Text -> DB_Column ! Illegal_Argument = self.naming_helper.ensure_name_is_valid name <|
-        DB_Column.Value name self.connection self.sql_type_reference self.expression self.context
+        DB_Column.new name self.connection self.sql_type_reference self.expression self.context
 
     ## ALIAS order_by
        GROUP Standard.Base.Selections
@@ -1847,7 +1856,7 @@ type DB_Column
                 sql_type = self.connection.dialect.get_type_mapping.value_type_to_sql Value_Type.Boolean Problem_Behavior.Report_Error
                 new_type_ref = SQL_Type_Reference.from_constant sql_type . catch Inexact_Type_Coercion _->
                     Error.throw (Illegal_State.Error "The dialect "+self.connection.dialect.name+" does not support a boolean type. The implementation of `is_in` should be revised to account for this. This is an internal issue with the Database library.")
-                DB_Column.Value new_name self.connection new_type_ref new_expr self.context
+                DB_Column.new new_name self.connection new_type_ref new_expr self.context
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -1982,7 +1991,7 @@ type DB_Column
             infer_from_database new_expression =
                 SQL_Type_Reference.new self.connection self.context new_expression
             new_column = dialect.make_cast self.as_internal target_sql_type infer_from_database
-            DB_Column.Value new_column.name self.connection new_column.sql_type_reference new_column.expression self.context
+            DB_Column.new new_column.name self.connection new_column.sql_type_reference new_column.expression self.context
 
     ## ALIAS transform column
        ICON column_add
@@ -2140,7 +2149,7 @@ adapt_unified_column column expected_type =
     infer_return_type expression =
         SQL_Type_Reference.new column.connection column.context expression
     adapted = dialect.adapt_unified_column column.as_internal expected_type infer_return_type
-    DB_Column.Value column.name column.connection adapted.sql_type_reference adapted.expression column.context
+    DB_Column.new column.name column.connection adapted.sql_type_reference adapted.expression column.context
 
 ## PRIVATE
 Column.from (that:DB_Column) =

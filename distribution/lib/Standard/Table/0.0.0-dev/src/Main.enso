@@ -52,6 +52,8 @@ export project.Position.Position
 
 export project.Prefix_Name.Prefix_Name
 
+export project.Refined_Types.Numeric_Column.Numeric_Column
+
 export project.Set_Mode.Set_Mode
 
 export project.Simple_Expression.Simple_Calculation
