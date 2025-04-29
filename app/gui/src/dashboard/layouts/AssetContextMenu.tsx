@@ -378,8 +378,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <ContextMenuEntry
             hidden={hidden}
             action="duplicate"
-            doAction={() => {
-              void copyAssetsMutation([[asset.id], asset.parentId])
+            doAction={async () => {
+              await copyAssetsMutation([[asset.id], asset.parentId])
             }}
           />
         )}
