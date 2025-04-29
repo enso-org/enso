@@ -68,6 +68,11 @@ add_derived_columns_specs suite_builder setup =
             Test.expect_panic Type_Error <| t.set (Simple_Expression.Simple_Expr "x" (Simple_Calculation.Subtract "y"))
             t.set (Simple_Expression.Simple_Expr 42 (Simple_Calculation.Add "y")) . should_fail_with Illegal_Argument
 
+        group_builder.specify "more math operations" <|
+            t = table_builder [["A", [15, -100]]]
+            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (..Math ..Absolute)) "C" . at "C" . to_vector . should_equal [15, 100]
+            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (..Math ..Signum)) "C" . at "C" . to_vector . should_equal [1, -1]
+
         group_builder.specify "rounding" <|
             t = table_builder [["A", [1.13333, 122.74463, 32.52424, -12.7]]]
             t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") Simple_Calculation.Round) "Z" . at "Z" . to_vector . should_equal [1, 123, 33, -13]
