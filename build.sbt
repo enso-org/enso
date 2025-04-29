@@ -2189,6 +2189,7 @@ lazy val `engine-common` = project
   .dependsOn(`logging-config`)
   .dependsOn(`logging-utils`)
   .dependsOn(testkit % Test)
+  .dependsOn(`edition-updater` % "test->compile")
 
 lazy val `polyglot-api` = project
   .in(file("engine/polyglot-api"))
