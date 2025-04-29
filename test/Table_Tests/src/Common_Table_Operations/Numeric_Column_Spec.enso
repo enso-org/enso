@@ -4,7 +4,6 @@ import Standard.Base.Errors.Common.Type_Error
 from Standard.Table import all
 from Standard.Table.Errors import all
 
-import Standard.Database.DB_Column.DB_Column
 import Standard.Database.Feature.Feature
 
 from Standard.Test import all
