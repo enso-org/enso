@@ -798,7 +798,7 @@ interface UploadFileEventMetadata {
   readonly type: EventType.UploadFile
 }
 
-/** An event indicating that a file was uploaded. */
+/** An event indicating that an action was performed by the Standard libraries. */
 interface LibEventMetadata {
   readonly type: EventType.Lib
 }
