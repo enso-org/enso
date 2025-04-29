@@ -13,6 +13,7 @@ import type {
   CellDoubleClickedEvent,
   ColDef,
   ColumnVisibleEvent,
+  GetContextMenuItems,
   GetContextMenuItemsParams,
   ICellRendererParams,
   IServerSideDatasource,
@@ -172,7 +173,7 @@ const grid = ref<
 const getSvgTemplate = (icon: string) =>
   `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
 
-const getContextMenuItems = (params: GetContextMenuItemsParams) => {
+const getContextMenuItems = (params: GetContextMenuItemsParams): GetContextMenuItems<TData> => {
   const { colId } = params.column ?? {}
   const { rowIndex } = params.node ?? {}
 

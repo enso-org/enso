@@ -78,6 +78,7 @@ import type {
   ColumnResizedEvent,
   ColumnVisibleEvent,
   FirstDataRenderedEvent,
+  GetContextMenuItems,
   GetContextMenuItemsParams,
   GetRowIdFunc,
   GridApi,
@@ -126,7 +127,7 @@ const props = defineProps<{
   rowCount?: number
   isServerSideModel?: boolean
   gridIdHash?: string | null
-  getContextMenuItems: (params: GetContextMenuItemsParams) => any
+  getContextMenuItems: (params: GetContextMenuItemsParams) => GetContextMenuItems<TData>
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
