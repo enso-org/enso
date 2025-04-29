@@ -14,6 +14,8 @@ type Base_64
        to base64.
     @encoding Encoding.default_widget
     encode_text (text : Text) (encoding : Encoding = Encoding.utf_8) -> Text =
+        a = 2
+        2 1
         Base64.getEncoder.encodeToString (text.bytes encoding)
 
     ## ICON convert
