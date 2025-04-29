@@ -160,6 +160,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      ENSO_LINT_ENABLE_GITHUB_ANNOTATIONS: "true"
   enso-build-ci-gen-job-jvm-tests-graal-vm-ce-linux-amd64:
     name: JVM Tests (GraalVM CE) (linux, amd64)
     runs-on:

@@ -364,7 +364,8 @@ impl JobArchetype for EnsoCodeLintCheck {
     fn job(&self, target: Target) -> Job {
         let job_name = "Enso Code Lint";
         let run_command = "libraries lint";
-        let job = RunStepsBuilder::new(run_command).build_job(job_name, target);
+        let mut job = RunStepsBuilder::new(run_command).build_job(job_name, target);
+        job.env(crate::libraries_tests::env::ENSO_LINT_ENABLE_GITHUB_ANNOTATIONS, "true");
         job
     }
 }

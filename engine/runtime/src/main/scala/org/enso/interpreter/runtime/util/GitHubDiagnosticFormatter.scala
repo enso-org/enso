@@ -153,5 +153,5 @@ private[util] class GitHubDiagnosticFormatter(
 
 object GitHubDiagnosticFormatter {
   def shouldIncludeGithubAnnotations: Boolean =
-    sys.env.get("GITHUB_ACTIONS").contains("true")
+    sys.env.get("ENSO_LINT_ENABLE_GITHUB_ANNOTATIONS").contains("true")
 }

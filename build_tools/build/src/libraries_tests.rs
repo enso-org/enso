@@ -3,6 +3,10 @@ pub mod env {
         /// Whether to display all test results in the CI output.
         /// (By default successful tests are hidden.)
         REPORT_ALL_TESTS, String;
+
+        /// Whether to print commands that add GitHub annotations.
+        /// This should be enabled on workflows that want to post compilation errors or warnings as annotations on PRs.
+        ENSO_LINT_ENABLE_GITHUB_ANNOTATIONS, String;
     }
 }
 
