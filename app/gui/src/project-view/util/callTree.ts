@@ -58,13 +58,13 @@ class ArgumentFactory {
   }
 }
 
-type ArgWidgetConfiguration = WidgetConfiguration & { display?: DisplayMode }
+export type DynamicConfig = WidgetConfiguration & { display?: DisplayMode }
 type WidgetInputValue = Ast.Expression | Ast.Token | string | undefined
 abstract class Argument {
   protected constructor(
     public callId: string,
     public kind: ApplicationKind,
-    public dynamicConfig: ArgWidgetConfiguration | undefined,
+    public dynamicConfig: DynamicConfig | undefined,
     public index: number | undefined,
     public argInfo: SuggestionEntryArgument | undefined,
   ) {}
@@ -102,7 +102,7 @@ export class ArgumentPlaceholder extends Argument {
   constructor(
     callId: string,
     kind: ApplicationKind,
-    dynamicConfig: ArgWidgetConfiguration | undefined,
+    dynamicConfig: DynamicConfig | undefined,
     index: number,
     argInfo: SuggestionEntryArgument,
     public insertAsNamed: boolean,
@@ -136,7 +136,7 @@ export class ArgumentAst extends Argument {
   constructor(
     callId: string,
     kind: ApplicationKind,
-    dynamicConfig: ArgWidgetConfiguration | undefined,
+    dynamicConfig: DynamicConfig | undefined,
     index: number | undefined,
     argInfo: SuggestionEntryArgument | undefined,
     public ast: Ast.Expression,

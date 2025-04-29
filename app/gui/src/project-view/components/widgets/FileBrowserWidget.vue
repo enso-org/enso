@@ -33,7 +33,7 @@ const props = withDefaults(
   defineProps<{
     writeMode?: boolean
     choosenPath?: string
-    type?: 'file' | 'secret'
+    type?: 'file' | 'secret' | 'directory'
   }>(),
   { writeMode: false, choosenPath: '', type: 'file' },
 )
@@ -112,10 +112,12 @@ function assetIsTargetType(asset: AnyAsset): asset is TargetType {
       return assetIsFile(asset) || assetIsDatalink(asset)
     case 'secret':
       return assetIsSecret(asset)
+    default:
+      return false
   }
 }
 const files = computed<TargetType[]>(
-  () => data.value?.filter(assetIsTargetType).sort(compareTitle) ?? [],
+  () => props.type === 'directory' ? [] : data.value?.filter(assetIsTargetType).sort(compareTitle) ?? [],
 )
 const isEmpty = computed(
   () => directories.value?.length === 0 && files.value?.length === 0 && editedAsset.value == null,
