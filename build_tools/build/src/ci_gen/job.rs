@@ -717,11 +717,13 @@ impl JobArchetype for WasmTest {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct BuildBackend;
+pub struct BuildBackend {
+    pub engine_launcher: engine::EngineLauncher,
+}
 
 impl JobArchetype for BuildBackend {
     fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new("backend get")
+        let mut job = RunStepsBuilder::new("backend get")
             .customize(move |step| {
                 let mut steps = vec![step];
 
@@ -758,7 +760,10 @@ impl JobArchetype for BuildBackend {
 
                 steps
             })
-            .build_job("Build Backend", target)
+            .build_job("Build Backend", target);
+        job.env(engine::env::ENSO_LAUNCHER, self.engine_launcher);
+
+        job
     }
 }
 

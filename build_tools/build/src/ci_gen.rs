@@ -782,8 +782,9 @@ pub fn ide_packaging() -> Result<Workflow> {
         ..default()
     };
 
+    let engine_launcher = engine::EngineLauncher::Native;
     for target in PR_REQUIRED_TARGETS {
-        let project_manager_job = workflow.add(target, job::BuildBackend);
+        let project_manager_job = workflow.add(target, job::BuildBackend { engine_launcher });
         workflow.add_customized(target, job::PackageIde, |job| {
             job.needs.insert(project_manager_job.clone());
         });
@@ -805,11 +806,13 @@ pub fn ide_packaging_optional() -> Result<Workflow> {
         ..default()
     };
 
+    let engine_launcher = engine::EngineLauncher::Native;
     for target in PR_OPTIONAL_TARGETS {
         let continue_on_error = Some(true);
-        let project_manager_job = workflow.add_customized(target, job::BuildBackend, |job| {
-            job.continue_on_error = continue_on_error;
-        });
+        let project_manager_job =
+            workflow.add_customized(target, job::BuildBackend { engine_launcher }, |job| {
+                job.continue_on_error = continue_on_error;
+            });
         workflow.add_customized(target, job::PackageIde, |job| {
             job.needs.insert(project_manager_job.clone());
             job.continue_on_error = continue_on_error;
