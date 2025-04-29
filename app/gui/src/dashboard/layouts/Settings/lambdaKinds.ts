@@ -1,5 +1,5 @@
 /** @file Kinds of lambda. */
-import type { IconPropSvgUse, SvgUseIcon } from '#/components/AriaComponents'
+import type { SvgUseIcon } from '#/components/AriaComponents'
 import { includesPredicate } from '#/utilities/array'
 import type { TextId } from 'enso-common/src/text'
 
@@ -118,7 +118,7 @@ export const SELECTABLE_LAMBDA_KINDS = LAMBDA_KINDS.filter(
   (kind) => IS_EVENT_HIDDEN_BY_DEFAULT[kind] !== true,
 )
 
-export const EVENT_TYPE_ICON: Record<LambdaKind, IconPropSvgUse<never>> = {
+export const EVENT_TYPE_ICON: Record<LambdaKind, SvgUseIcon> = {
   'POST /auth': 'icon/lock',
   'GET /organizations/me': 'home2',
   'PATCH /organizations/me': 'home2',

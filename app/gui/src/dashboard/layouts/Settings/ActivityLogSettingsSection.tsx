@@ -240,7 +240,6 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
         shadowStartClassName="mt-8"
         onScroll={(event) => {
           const element = event.currentTarget
-          console.log(element.scrollTop, element.scrollHeight, element.clientHeight)
           if (element.scrollTop + element.scrollHeight >= element.clientHeight) {
             void logsPages.fetchNextPage()
           }
