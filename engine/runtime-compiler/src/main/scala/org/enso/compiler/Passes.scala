@@ -13,8 +13,7 @@ import org.enso.compiler.pass.lint.{
   ModuleNameConflicts,
   NoSelfInStatic,
   ShadowedPatternFields,
-  UnusedBindings,
-  UnusedImports
+  UnusedBindings
 }
 import org.enso.compiler.pass.optimise.{
   LambdaConsolidate,
@@ -103,7 +102,7 @@ class Passes(config: CompilerConfig) {
     ) ++ (if (config.isLintingDisabled) {
             Nil
           } else {
-            List(UnusedBindings, NoSelfInStatic, UnusedImports.INSTANCE)
+            List(UnusedBindings, NoSelfInStatic)
           }) ++ (if (config.staticTypeInferenceEnabled) {
                    List(
                      TypeInferenceSignatures.INSTANCE,
