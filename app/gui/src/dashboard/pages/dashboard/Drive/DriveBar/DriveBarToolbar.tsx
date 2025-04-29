@@ -10,6 +10,7 @@ import AddFolderIcon from '#/assets/add_folder.svg'
 import AddKeyIcon from '#/assets/add_key.svg'
 import DataDownloadIcon from '#/assets/data_download.svg'
 import DataUploadIcon from '#/assets/data_upload.svg'
+import LockIcon from '#/assets/lock.svg'
 import Plus2Icon from '#/assets/plus2.svg'
 import {
   Button,
@@ -20,6 +21,7 @@ import {
   VisualTooltip,
 } from '#/components/AriaComponents'
 import { ErrorBoundary, InlineErrorDisplay } from '#/components/ErrorBoundary'
+import { PaywallDialog } from '#/components/Paywall'
 import {
   deleteAssetsMutationOptions,
   downloadAssetsMutationOptions,
@@ -31,9 +33,10 @@ import {
   useNewFolder,
   useNewProject,
 } from '#/hooks/backendHooks'
-import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
+import { useUploadFiles, useUploadFileToCloudMutation } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
+import { useStore } from '#/hooks/storeHooks'
 import { AssetPanelToggle } from '#/layouts/AssetPanel'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
@@ -42,23 +45,28 @@ import {
   isCloudCategory,
   type Category,
 } from '#/layouts/CategorySwitcher/Category'
+import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import { useUser } from '#/providers/AuthProvider'
+import { useLocalBackend } from '#/providers/BackendProvider'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
-import { useSetModal } from '#/providers/ModalProvider'
+import { setModal, useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import type { CredentialConfig } from '#/services/Backend'
+import { AssetType, Plan, type CredentialConfig } from '#/services/Backend'
+import { extractTypeAndId } from '#/services/LocalBackend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import type { PropsWithChildren } from 'react'
+import invariant from 'tiny-invariant'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarToolbarProps {
@@ -307,6 +315,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 aria-label={getText('uploadFiles')}
                 onPress={uploadFilesCallback}
               />
+              <UploadFilesToCloudButton category={category} />
               <Button
                 isDisabled={!canDownload}
                 variant="icon"
@@ -379,5 +388,61 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
 
       {children}
     </ButtonGroup>
+  )
+}
+
+/** Props for {@link UploadFilesToCloudButton}. */
+export interface UploadFilesToCloudButtonProps {
+  readonly category: Category
+}
+
+/** A button to upload assets to the cloud. */
+function UploadFilesToCloudButton(props: UploadFilesToCloudButtonProps) {
+  const { category } = props
+
+  const user = useUser()
+  const getAsset = useGetAsset()
+  const { getText } = useText()
+  const localBackend = useLocalBackend()
+  const uploadFileToCloudMutation = useUploadFileToCloudMutation()
+  const isCloud = isCloudCategory(category)
+  const driveStore = useDriveStore()
+  const isDisabled = useStore(
+    driveStore,
+    (state) =>
+      isCloud ||
+      [...state.selectedIds].some((id) => extractTypeAndId(id).type !== AssetType.project),
+  )
+  const canUploadToCloud = user.plan !== Plan.free
+  const isUnderPaywall = !canUploadToCloud
+
+  const uploadFilesToCloudCallback = useEventCallback(async () => {
+    invariant(localBackend != null, 'Cannot upload to cloud when not on Local backend')
+    const selectedIds = [...driveStore.getState().selectedIds]
+    const files = selectedIds.flatMap((id) => {
+      const asset = getAsset(id)
+      return asset ? [asset] : []
+    })
+    await uploadFileToCloudMutation(localBackend, {
+      assets: Array.from(files),
+      targetDirectoryId: user.rootDirectoryId,
+    })
+  })
+
+  return (
+    <Button
+      variant="icon"
+      size="medium"
+      icon={isUnderPaywall ? LockIcon : DataUploadIcon}
+      isDisabled={isDisabled}
+      aria-label={isCloud ? getText('uploadFilesToCloudLocalOnly') : getText('uploadFilesToCloud')}
+      onPress={async () => {
+        if (isUnderPaywall) {
+          setModal(<PaywallDialog modalProps={{ defaultOpen: true }} feature="uploadToCloud" />)
+        } else {
+          await uploadFilesToCloudCallback()
+        }
+      }}
+    />
   )
 }
