@@ -7,6 +7,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -165,6 +166,11 @@ final class VirtualFileSystem implements FileSystem<Path>, AutoCloseable {
     var printFileVisitor = new PrintFileVisitor(sb);
     Files.walkFileTree(inMemoryRoot, printFileVisitor);
     return sb.toString();
+  }
+
+  public URI getUri(String path) {
+    var p = inMemoryRoot.resolve(path);
+    return p.toUri();
   }
 
   private static final class PrintFileVisitor extends SimpleFileVisitor<Path> {

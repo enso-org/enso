@@ -111,7 +111,7 @@ final class MockPackageRepository implements PackageRepository {
       }
       VirtualFileSystem.write(srcFile, content);
       var modAbsPath = vfs.getAbsolutePath(srcFile);
-      var module = new MockModule(pkg, modName, modAbsPath, content);
+      var module = new MockModule(pkg, modName, modAbsPath, content, this);
       loadedModules.put(modName.toString(), module);
       return module;
     } catch (IOException e) {
@@ -200,7 +200,7 @@ final class MockPackageRepository implements PackageRepository {
       var modName = src.qualifiedName();
       var srcPath = vfs.getAbsolutePath(src.file());
       var srcContent = readFile(src.file());
-      var mod = new MockModule(virtualPkg, modName, srcPath, srcContent);
+      var mod = new MockModule(virtualPkg, modName, srcPath, srcContent, this);
       loadedModules.put(modName.toString(), mod);
     }
     mainProjectPkg = castObjectPkg(pkg);

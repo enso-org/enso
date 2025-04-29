@@ -20,17 +20,20 @@ final class MockModule extends CompilerContext.Module {
   private final String path;
   private final org.enso.pkg.Package<? extends Object> pkg;
   private final MockScopeBuilder scopeBuilder = new MockScopeBuilder();
+  private final MockPackageRepository repo;
 
   org.enso.compiler.core.ir.Module ir;
   BindingsMap bm;
   CompilationStage stage;
 
-  MockModule(org.enso.pkg.Package<?> pkg, QualifiedName qName, String path, String code) {
+  MockModule(
+      Package<?> pkg, QualifiedName qName, String path, String code, MockPackageRepository repo) {
     this.pkg = pkg;
     this.qName = qName;
     this.path = path;
     this.code = code;
     this.stage = CompilationStage.INITIAL;
+    this.repo = repo;
   }
 
   @Override
@@ -50,7 +53,7 @@ final class MockModule extends CompilerContext.Module {
 
   @Override
   public URI getUri() {
-    throw new UnsupportedOperationException();
+    return repo.getVfs().getUri(path);
   }
 
   @Override
