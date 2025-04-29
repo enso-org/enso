@@ -5180,6 +5180,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     val idVector1 = metadata.addItem(52, 12, "aa")
     val idVector2 = metadata.addItem(79, 12, "ab")
     val idVector3 = metadata.addItem(106, 25, "ac")
+    val idVector3Self = metadata.addItem(106, 7, "ad")
     //val idResult = metadata.addItem(136, 7)
 
     val code =
@@ -5221,7 +5222,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
     )
-    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -5252,6 +5253,11 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           ),
           Vector(1,2,3,4)
         )
+      ),
+      TestMessages.update(
+        contextId,
+        idVector3Self,
+        ConstantsGen.VECTOR
       ),
       TestMessages.update(
         contextId,
@@ -5369,12 +5375,17 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             model.TextEdit(
               model.Range(model.Position(10, 113), model.Position(10, 116)),
               "149"
+            ),
+            model.TextEdit(
+              model.Range(model.Position(10, 203), model.Position(10, 206)),
+              "149"
             )
           ),
           execute = true,
           idMap   = Some(model.IdMap(
             Vector(
-              (model.Span(106, 134), idVector4), (model.Span(149,174), idVector3)
+              (model.Span(106, 134), idVector4), (model.Span(149,174), idVector3),
+              (model.Span(149, 156), idVector3Self)
             )
           ))
         )
