@@ -12,7 +12,7 @@ class ImportsTest extends PackageTest {
     }
 
   private def shouldSkipLine(line: String): Boolean = {
-    line.contains(" | ") || line.startsWith("::")
+    line.contains(" | ")
   }
 
   "Atoms and methods" should "be available for import" in {

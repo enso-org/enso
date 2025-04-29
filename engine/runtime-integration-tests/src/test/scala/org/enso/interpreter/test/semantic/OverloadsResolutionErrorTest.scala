@@ -16,12 +16,7 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
 
   /** Denotes lines other than the main error message. */
   private def shouldSkipLine(line: String): Boolean = {
-    line.contains(" | ") || line.startsWith("::")
-  }
-
-  /** Denotes lines to ignore (e.g. GitHub commands), keeping the context lines. */
-  private def shouldIgnoreLine(line: String): Boolean = {
-    line.startsWith("::")
+    line.contains(" | ")
   }
 
   override def specify(implicit
@@ -97,7 +92,7 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
       val ex = the[InterpreterException] thrownBy eval(code)
       ex.getMessage should include("Ambiguous conversion:")
 
-      val diagnostics = consumeOut.filterNot(shouldIgnoreLine)
+      val diagnostics = consumeOut
       diagnostics should have length 3
       val line0 =
         "Test:7:1: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this module."
@@ -124,7 +119,7 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
       val ex = the[InterpreterException] thrownBy eval(code)
       ex.getMessage should include("Ambiguous conversion:")
 
-      val diagnostics = consumeOut.filterNot(shouldIgnoreLine)
+      val diagnostics = consumeOut
       diagnostics should have length 4
       val line0 =
         "Test:[9:1-11:16]: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this module."

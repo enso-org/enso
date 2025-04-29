@@ -9,7 +9,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.Arrays;
 import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
@@ -99,11 +98,7 @@ public class ExecStrictCompilerTest {
       var module = ctxRule.eval(src);
       fail("Unexpected result: " + module);
     } catch (PolyglotException ex) {
-      var firstLine =
-          Arrays.stream(ex.getMessage().split("\n"))
-              .filter(line -> !line.startsWith("::"))
-              .findFirst()
-              .get();
+      var firstLine = ex.getMessage().split("\n")[0];
       assertEquals("extension:1:1: error: The name `Unknown_Type` could not be found.", firstLine);
     }
   }

@@ -15,7 +15,7 @@ class StrictCompileDiagnosticsTest extends InterpreterTest {
     Some(_.option(RuntimeOptions.STRICT_ERRORS, "true"))
 
   private def shouldSkipLine(line: String): Boolean = {
-    line.contains(" | ") || line.startsWith("::")
+    line.contains(" | ")
   }
 
   override def specify(implicit
