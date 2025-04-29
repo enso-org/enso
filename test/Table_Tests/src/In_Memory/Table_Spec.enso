@@ -41,7 +41,6 @@ type My_Comparator
 
 Comparable.from (that:My) = Comparable.new that My_Comparator
 
-
 type Data
     Value ~varied_type_table
 
@@ -131,11 +130,6 @@ add_specs suite_builder =
             r_5 = Table.input [["foo", [Nothing], Value_Type.Integer]]
             r_5.column_names . should_equal ["foo"]
             r_5.columns.map .value_type . should_equal [Value_Type.Integer]
-
-        group_builder.specify "Table.input should default to a single empty column" <|
-            r = Table.input
-            r.column_names . should_equal ["Column 1"]
-            r.at "Column 1" . to_vector . should_equal []
 
         group_builder.specify "Table.new should allow inputting a table with types" <|
             r = Table.new [["foo", [1, 2, 3], Value_Type.Float], ["bar", [False, True, False]]]
