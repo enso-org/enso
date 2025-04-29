@@ -14,7 +14,7 @@ class StrictCompileDiagnosticsTest extends InterpreterTest {
   override def contextModifiers: Option[Context#Builder => Context#Builder] =
     Some(_.option(RuntimeOptions.STRICT_ERRORS, "true"))
 
-  private def isDiagnosticLine(line: String): Boolean = {
+  private def shouldSkipLine(line: String): Boolean = {
     line.contains(" | ")
   }
 
@@ -34,7 +34,7 @@ class StrictCompileDiagnosticsTest extends InterpreterTest {
 
       val errors = consumeOut
       errors
-        .filterNot(isDiagnosticLine)
+        .filterNot(shouldSkipLine)
         .toSet shouldEqual Set(
         "Test:2:9: error: Parentheses can't be empty.",
         "Test:3:5: error: Variable x is being redefined.",

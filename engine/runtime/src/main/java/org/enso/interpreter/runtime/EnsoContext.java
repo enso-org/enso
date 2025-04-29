@@ -157,6 +157,7 @@ public final class EnsoContext {
             .warningsEnabled(true)
             .privateCheckEnabled(!isPrivateCheckDisabled)
             .staticTypeInferenceEnabled(isStaticTypeAnalysisEnabled)
+            .treatWarningsAsErrors(getOption(RuntimeOptions.TREAT_WARNINGS_AS_ERRORS_KEY))
             .dumpModuleIR(scala.Option.apply(dumpModuleIR))
             .isStrictErrors(getOption(RuntimeOptions.STRICT_ERRORS_KEY))
             .isLintingDisabled(getOption(RuntimeOptions.DISABLE_LINTING_KEY))
