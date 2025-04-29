@@ -96,7 +96,7 @@ export default function KeyboardShortcutsSettingsSection() {
                                   className="rounded-lg border-0.5 border-primary/10 px-1"
                                 />
                                 <Button
-                                  variant="ghost"
+                                  variant="ghost-icon"
                                   size="medium"
                                   aria-label={getText('removeShortcut')}
                                   tooltipPlacement="top left"
@@ -113,7 +113,7 @@ export default function KeyboardShortcutsSettingsSection() {
                             <div className="flex shrink-0 items-center gap-1">
                               <DialogTrigger>
                                 <Button
-                                  variant="ghost"
+                                  variant="ghost-icon"
                                   size="medium"
                                   aria-label={getText('addShortcut')}
                                   tooltipPlacement="top left"
@@ -130,7 +130,7 @@ export default function KeyboardShortcutsSettingsSection() {
                                 />
                               </DialogTrigger>
                               <Button
-                                variant="ghost"
+                                variant="ghost-icon"
                                 size="medium"
                                 aria-label={getText('resetShortcut')}
                                 tooltipPlacement="top left"

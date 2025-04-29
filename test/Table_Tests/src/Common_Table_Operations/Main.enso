@@ -31,6 +31,7 @@ import project.Common_Table_Operations.Map_Spec
 import project.Common_Table_Operations.Map_To_Table_Spec
 import project.Common_Table_Operations.Missing_Values_Spec
 import project.Common_Table_Operations.Nothing_Spec
+import project.Common_Table_Operations.Numeric_Column_Spec
 import project.Common_Table_Operations.Offset_Spec
 import project.Common_Table_Operations.Order_By_Spec
 import project.Common_Table_Operations.Select_Columns_Spec
@@ -143,6 +144,7 @@ add_specs suite_builder setup =
     Map_To_Table_Spec.add_specs suite_builder setup
     Missing_Values_Spec.add_specs suite_builder setup
     Nothing_Spec.add_specs suite_builder setup
+    Numeric_Column_Spec.add_specs suite_builder setup
     Offset_Spec.add_specs suite_builder setup
     Order_By_Spec.add_specs suite_builder setup
     Replace_Spec.add_specs suite_builder setup

@@ -81,6 +81,7 @@ export type WidgetConfiguration =
   | TextInput
   | FolderBrowse
   | FileBrowse
+  | SecretBrowse
   | FunctionCall
   | OneOfFunctionCalls
   | SomeOfFunctionCalls
@@ -119,6 +120,10 @@ export interface FolderBrowse {
 export interface FileBrowse {
   kind: 'File_Browse'
   existing_only?: boolean | undefined
+}
+
+export interface SecretBrowse {
+  kind: 'Secret_Browse'
 }
 
 export interface SingleChoice {
@@ -198,6 +203,7 @@ export const widgetConfigurationSchema: z.ZodType<
     z
       .object({ kind: z.literal('File_Browse'), existing_only: z.boolean().optional() })
       .merge(withDisplay),
+    z.object({ kind: z.literal('Secret_Browse') }).merge(withDisplay),
     /* eslint-enable camelcase */
   ]),
 )
