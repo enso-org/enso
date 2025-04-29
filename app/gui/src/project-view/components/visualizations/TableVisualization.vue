@@ -303,6 +303,15 @@ const isCreateNodeButtonEnabled = computed(
     vizColumnOrder.value != null,
 )
 
+const roundWhenFormatting = computed(
+  () =>
+    config.nodeType === TABLE_NODE_TYPE ||
+    config.nodeType === DB_TABLE_NODE_TYPE ||
+    config.nodeType === VECTOR_NODE_TYPE ||
+    config.nodeType === COLUMN_NODE_TYPE ||
+    config.nodeType === ROW_NODE_TYPE,
+)
+
 // if there are upstream updates only to the row information the table version hash change indicates the grid needs to re get rows for any potetial changes
 watch(tableVersionHash, () => {
   refreshDataSource.value++
@@ -352,17 +361,33 @@ const isCreateNewNodeEnabled = computed(
   () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
 )
 
-const numberFormatGroupped = new Intl.NumberFormat(undefined, {
-  style: 'decimal',
-  maximumFractionDigits: 12,
-  useGrouping: true,
-})
+const numberFormatGroupped = computed(() =>
+  roundWhenFormatting.value ?
+    new Intl.NumberFormat(undefined, {
+      style: 'decimal',
+      maximumSignificantDigits: 12,
+      useGrouping: true,
+    })
+  : new Intl.NumberFormat(undefined, {
+      style: 'decimal',
+      maximumFractionDigits: 100,
+      useGrouping: true,
+    }),
+)
 
-const numberFormat = new Intl.NumberFormat(undefined, {
-  style: 'decimal',
-  maximumFractionDigits: 12,
-  useGrouping: false,
-})
+const numberFormat = computed(() =>
+  roundWhenFormatting.value ?
+    new Intl.NumberFormat(undefined, {
+      style: 'decimal',
+      maximumSignificantDigits: 12,
+      useGrouping: false,
+    })
+  : new Intl.NumberFormat(undefined, {
+      style: 'decimal',
+      maximumFractionDigits: 100,
+      useGrouping: false,
+    }),
+)
 
 function formatNumber(params: ICellRendererParams) {
   const valueType = params.value?.type
@@ -375,7 +400,7 @@ function formatNumber(params: ICellRendererParams) {
     value = params.value
   }
   const needsGrouping = dataGroupingMap.value?.get(params.colDef?.field || '')
-  return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
+  return needsGrouping ? numberFormatGroupped.value.format(value) : numberFormat.value.format(value)
 }
 
 const createRowsForTable = (data: unknown[][], shift: number, isSSrm: boolean) => {
