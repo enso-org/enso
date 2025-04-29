@@ -6,6 +6,7 @@ import * as z from 'zod'
 
 import { Button, DatePicker, Dropdown, Form, Text } from '#/components/AriaComponents'
 import { Icon } from '#/components/Icon'
+import { Scroller } from '#/components/Scroller'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import FocusArea from '#/components/styled/FocusArea'
 import { UserWithPopover } from '#/components/UserWithPopover'
@@ -15,7 +16,7 @@ import type Backend from '#/services/Backend'
 import { type AuditLogEvent } from '#/services/Backend'
 import { iconIdFor, nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import {
   DEFAULT_EVENT_ICON,
@@ -72,18 +73,24 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const pageSize = form.watch('pageSize')
   const maxDate = today(getLocalTimeZone())
 
-  const logsQuery = useQuery(
-    backendQueryOptions(backend, 'getLogEvents', [
-      {
-        startDate: startDate && toRfc3339(startDate.toDate()),
-        endDate: endDate && toRfc3339(endDate.toDate()),
-        pageSize,
-      },
-    ]),
-  )
-  const logs = logsQuery.data
+  const getLogEventsArgs = [
+    {
+      startDate: startDate && toRfc3339(startDate.toDate()),
+      endDate: endDate && toRfc3339(endDate.toDate()),
+      pageSize,
+    },
+  ] satisfies Parameters<typeof backend.getLogEvents>
+  const getLogEventsOptions = backendQueryOptions(backend, 'getLogEvents', getLogEventsArgs)
+  const logsPages = useInfiniteQuery({
+    queryKey: getLogEventsOptions.queryKey,
+    queryFn: ({ pageParam }) => backend.getLogEvents({ from: pageParam, ...getLogEventsArgs[0] }),
+    initialPageParam: 0,
+    getPreviousPageParam: (currentPage, allPages) => (allPages.indexOf(currentPage) - 1) * pageSize,
+    getNextPageParam: (currentPage, allPages) => (allPages.indexOf(currentPage) + 1) * pageSize,
+  })
+  const logs = logsPages.data?.pages.flat()
 
-  const filteredLogs = React.useMemo(() => {
+  const filteredLogs = (() => {
     const typesSet = new Set(types.length > 0 ? types : LAMBDA_KINDS)
     const emailsSet = new Set(emails.length > 0 ? emails : allEmails)
     return logs?.filter((log) => {
@@ -106,9 +113,9 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       }
       return (startDate == null || date >= startDate) && (endDate == null || date <= endDate)
     })
-  }, [logs, types, emails, startDate, endDate, allEmails])
+  })()
 
-  const sortedLogs = React.useMemo(() => {
+  const sortedLogs = (() => {
     if (sortInfo == null || filteredLogs == null) {
       return filteredLogs
     } else {
@@ -153,12 +160,12 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       }
       return [...filteredLogs].sort(compare)
     }
-  }, [filteredLogs, sortInfo])
+  })()
   const isDescending = sortInfo?.direction === SortDirection.descending
   const isLoading = sortedLogs == null
 
   return (
-    <div className="flex flex-col gap-4">
+    <>
       <FocusArea direction="horizontal">
         {(innerProps) => (
           <Form form={form} className="flex flex-row flex-wrap gap-3" {...innerProps}>
@@ -226,184 +233,198 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
           </Form>
         )}
       </FocusArea>
-      <table className="table-fixed self-start rounded-rows">
-        <thead>
-          <tr className="h-table-row">
-            <ActivityLogHeaderCell className="w-8" />
-            <ActivityLogHeaderCell className="w-60">
-              <Button
-                size="custom"
-                variant="custom"
-                aria-label={
-                  sortInfo?.field !== ActivityLogSortableColumn.type ? getText('sortByName')
-                  : isDescending ?
-                    getText('stopSortingByName')
-                  : getText('sortByNameDescending')
-                }
-                addonEnd={
-                  <Icon
-                    icon={iconIdFor(
-                      sortInfo?.direction,
-                      sortInfo?.field === ActivityLogSortableColumn.type,
-                    )}
-                    className={twMerge(
-                      'ml-1 transition-all duration-arrow',
-                      sortInfo?.field !== ActivityLogSortableColumn.type &&
-                        'opacity-0 group-hover:opacity-50',
-                    )}
-                  />
-                }
-                className="group flex h-table-row w-full items-center justify-start gap-2 border-0 px-name-column-x"
-                onPress={() => {
-                  const nextDirection =
-                    sortInfo?.field === ActivityLogSortableColumn.type ?
-                      nextSortDirection(sortInfo.direction)
-                    : SortDirection.ascending
-                  if (nextDirection == null) {
-                    setSortInfo(null)
-                  } else {
-                    setSortInfo({
-                      field: ActivityLogSortableColumn.type,
-                      direction: nextDirection,
-                    })
-                  }
-                }}
-              >
-                <Text weight="bold">{getText('type')}</Text>
-              </Button>
-            </ActivityLogHeaderCell>
-            <ActivityLogHeaderCell className="w-48">
-              <Button
-                size="custom"
-                variant="custom"
-                aria-label={
-                  sortInfo?.field !== ActivityLogSortableColumn.email ? getText('sortByEmail')
-                  : isDescending ?
-                    getText('stopSortingByEmail')
-                  : getText('sortByEmailDescending')
-                }
-                addonEnd={
-                  <Icon
-                    icon={iconIdFor(
-                      sortInfo?.direction,
-                      sortInfo?.field === ActivityLogSortableColumn.email,
-                    )}
-                    className={twMerge(
-                      'ml-1 transition-all duration-arrow',
-                      sortInfo?.field !== ActivityLogSortableColumn.email &&
-                        'opacity-0 group-hover:opacity-50',
-                    )}
-                  />
-                }
-                className="group flex h-table-row w-full items-center justify-start gap-2 border-0 px-name-column-x"
-                onPress={() => {
-                  const nextDirection =
-                    sortInfo?.field === ActivityLogSortableColumn.email ?
-                      nextSortDirection(sortInfo.direction)
-                    : SortDirection.ascending
-                  if (nextDirection == null) {
-                    setSortInfo(null)
-                  } else {
-                    setSortInfo({
-                      field: ActivityLogSortableColumn.email,
-                      direction: nextDirection,
-                    })
-                  }
-                }}
-              >
-                <Text weight="bold">{getText('user')}</Text>
-              </Button>
-            </ActivityLogHeaderCell>
-            <ActivityLogHeaderCell className="w-40">
-              <Button
-                size="custom"
-                variant="custom"
-                aria-label={
-                  sortInfo?.field !== ActivityLogSortableColumn.timestamp ?
-                    getText('sortByTimestamp')
-                  : isDescending ?
-                    getText('stopSortingByTimestamp')
-                  : getText('sortByTimestampDescending')
-                }
-                addonEnd={
-                  <Icon
-                    icon={iconIdFor(
-                      sortInfo?.direction,
-                      sortInfo?.field === ActivityLogSortableColumn.timestamp,
-                    )}
-                    className={twMerge(
-                      'ml-1 transition-all duration-arrow',
-                      sortInfo?.field !== ActivityLogSortableColumn.timestamp &&
-                        'opacity-0 group-hover:opacity-50',
-                    )}
-                  />
-                }
-                className="group flex h-table-row w-full items-center justify-start gap-2 border-0 px-name-column-x"
-                onPress={() => {
-                  const nextDirection =
-                    sortInfo?.field === ActivityLogSortableColumn.timestamp ?
-                      nextSortDirection(sortInfo.direction)
-                    : SortDirection.ascending
-                  if (nextDirection == null) {
-                    setSortInfo(null)
-                  } else {
-                    setSortInfo({
-                      field: ActivityLogSortableColumn.timestamp,
-                      direction: nextDirection,
-                    })
-                  }
-                }}
-              >
-                <Text weight="bold">{getText('timestamp')}</Text>
-              </Button>
-            </ActivityLogHeaderCell>
-          </tr>
-        </thead>
-        <tbody className="select-text">
-          {isLoading ?
-            <tr className="h-table-row">
-              <td colSpan={4} className="rounded-full bg-transparent">
-                <div className="flex justify-center">
-                  <StatelessSpinner size={32} state="loading-medium" />
-                </div>
-              </td>
-            </tr>
-          : sortedLogs.map((log, i) => {
-              const kind = log.lambdaKind == null ? null : normalizeLambdaKind(log.lambdaKind)
-              const user = usersByEmail.get(log.userEmail)
-              return (
-                <tr key={i} className="h-table-row">
-                  <ActivityLogTableCell>
-                    <div className="flex items-center">
-                      <Icon
-                        icon={
-                          kind?.valid === true ? EVENT_TYPE_ICON[kind.kind] : DEFAULT_EVENT_ICON
-                        }
-                      />
-                    </div>
-                  </ActivityLogTableCell>
-                  <ActivityLogTableCell>
-                    {kind?.valid === true ?
-                      getText(EVENT_TYPE_NAME_ID[kind.kind])
-                    : (kind?.invalidKind ?? '(unknown)')}
-                  </ActivityLogTableCell>
-                  <ActivityLogTableCell>
-                    {user ?
-                      <div className="flex w-48">
-                        <UserWithPopover user={user} />
-                      </div>
-                    : log.userEmail}
-                  </ActivityLogTableCell>
-                  <ActivityLogTableCell>
-                    {log.timestamp ? toReadableIsoString(new Date(log.timestamp)) : ''}
-                  </ActivityLogTableCell>
-                </tr>
-              )
-            })
+      <Scroller
+        scrollbar
+        orientation="vertical"
+        className="min-h-0 flex-1 overflow-auto"
+        shadowStartClassName="mt-8"
+        onScroll={(event) => {
+          const element = event.currentTarget
+          console.log(element.scrollTop, element.scrollHeight, element.clientHeight)
+          if (element.scrollTop + element.scrollHeight >= element.clientHeight) {
+            void logsPages.fetchNextPage()
           }
-        </tbody>
-      </table>
-    </div>
+        }}
+      >
+        <table className="table-fixed self-start rounded-rows">
+          <thead>
+            <tr className="sticky top-0 z-1 h-9 bg-dashboard">
+              <ActivityLogHeaderCell className="w-8" />
+              <ActivityLogHeaderCell className="w-60">
+                <Button
+                  size="custom"
+                  variant="custom"
+                  aria-label={
+                    sortInfo?.field !== ActivityLogSortableColumn.type ? getText('sortByName')
+                    : isDescending ?
+                      getText('stopSortingByName')
+                    : getText('sortByNameDescending')
+                  }
+                  addonEnd={
+                    <Icon
+                      icon={iconIdFor(
+                        sortInfo?.direction,
+                        sortInfo?.field === ActivityLogSortableColumn.type,
+                      )}
+                      className={twMerge(
+                        'ml-1 transition-all duration-arrow',
+                        sortInfo?.field !== ActivityLogSortableColumn.type &&
+                          'opacity-0 group-hover:opacity-50',
+                      )}
+                    />
+                  }
+                  className="group flex h-9 w-full items-center justify-start gap-2 border-0 px-name-column-x"
+                  onPress={() => {
+                    const nextDirection =
+                      sortInfo?.field === ActivityLogSortableColumn.type ?
+                        nextSortDirection(sortInfo.direction)
+                      : SortDirection.ascending
+                    if (nextDirection == null) {
+                      setSortInfo(null)
+                    } else {
+                      setSortInfo({
+                        field: ActivityLogSortableColumn.type,
+                        direction: nextDirection,
+                      })
+                    }
+                  }}
+                >
+                  <Text weight="bold">{getText('type')}</Text>
+                </Button>
+              </ActivityLogHeaderCell>
+              <ActivityLogHeaderCell className="w-48">
+                <Button
+                  size="custom"
+                  variant="custom"
+                  aria-label={
+                    sortInfo?.field !== ActivityLogSortableColumn.email ? getText('sortByEmail')
+                    : isDescending ?
+                      getText('stopSortingByEmail')
+                    : getText('sortByEmailDescending')
+                  }
+                  addonEnd={
+                    <Icon
+                      icon={iconIdFor(
+                        sortInfo?.direction,
+                        sortInfo?.field === ActivityLogSortableColumn.email,
+                      )}
+                      className={twMerge(
+                        'ml-1 transition-all duration-arrow',
+                        sortInfo?.field !== ActivityLogSortableColumn.email &&
+                          'opacity-0 group-hover:opacity-50',
+                      )}
+                    />
+                  }
+                  className="group flex h-9 w-full items-center justify-start gap-2 border-0 px-name-column-x"
+                  onPress={() => {
+                    const nextDirection =
+                      sortInfo?.field === ActivityLogSortableColumn.email ?
+                        nextSortDirection(sortInfo.direction)
+                      : SortDirection.ascending
+                    if (nextDirection == null) {
+                      setSortInfo(null)
+                    } else {
+                      setSortInfo({
+                        field: ActivityLogSortableColumn.email,
+                        direction: nextDirection,
+                      })
+                    }
+                  }}
+                >
+                  <Text weight="bold">{getText('user')}</Text>
+                </Button>
+              </ActivityLogHeaderCell>
+              <ActivityLogHeaderCell className="w-40">
+                <Button
+                  size="custom"
+                  variant="custom"
+                  aria-label={
+                    sortInfo?.field !== ActivityLogSortableColumn.timestamp ?
+                      getText('sortByTimestamp')
+                    : isDescending ?
+                      getText('stopSortingByTimestamp')
+                    : getText('sortByTimestampDescending')
+                  }
+                  addonEnd={
+                    <Icon
+                      icon={iconIdFor(
+                        sortInfo?.direction,
+                        sortInfo?.field === ActivityLogSortableColumn.timestamp,
+                      )}
+                      className={twMerge(
+                        'ml-1 transition-all duration-arrow',
+                        sortInfo?.field !== ActivityLogSortableColumn.timestamp &&
+                          'opacity-0 group-hover:opacity-50',
+                      )}
+                    />
+                  }
+                  className="group flex h-9 w-full items-center justify-start gap-2 border-0 px-name-column-x"
+                  onPress={() => {
+                    const nextDirection =
+                      sortInfo?.field === ActivityLogSortableColumn.timestamp ?
+                        nextSortDirection(sortInfo.direction)
+                      : SortDirection.ascending
+                    if (nextDirection == null) {
+                      setSortInfo(null)
+                    } else {
+                      setSortInfo({
+                        field: ActivityLogSortableColumn.timestamp,
+                        direction: nextDirection,
+                      })
+                    }
+                  }}
+                >
+                  <Text weight="bold">{getText('timestamp')}</Text>
+                </Button>
+              </ActivityLogHeaderCell>
+            </tr>
+          </thead>
+          <tbody className="select-text">
+            {isLoading ?
+              <tr className="h-9">
+                <td colSpan={4} className="rounded-full bg-transparent">
+                  <div className="flex justify-center">
+                    <StatelessSpinner size={32} state="loading-medium" />
+                  </div>
+                </td>
+              </tr>
+            : sortedLogs.map((log, i) => {
+                const kind = log.lambdaKind == null ? null : normalizeLambdaKind(log.lambdaKind)
+                const user = usersByEmail.get(log.userEmail)
+                return (
+                  <tr key={i} className="h-9">
+                    <ActivityLogTableCell>
+                      <div className="flex items-center">
+                        <Icon
+                          icon={
+                            kind?.valid === true ? EVENT_TYPE_ICON[kind.kind] : DEFAULT_EVENT_ICON
+                          }
+                        />
+                      </div>
+                    </ActivityLogTableCell>
+                    <ActivityLogTableCell>
+                      {kind?.valid === true ?
+                        getText(EVENT_TYPE_NAME_ID[kind.kind])
+                      : (kind?.invalidKind ?? '(unknown)')}
+                    </ActivityLogTableCell>
+                    <ActivityLogTableCell>
+                      {user ?
+                        <div className="flex w-48">
+                          <UserWithPopover user={user} />
+                        </div>
+                      : log.userEmail}
+                    </ActivityLogTableCell>
+                    <ActivityLogTableCell>
+                      {log.timestamp ? toReadableIsoString(new Date(log.timestamp)) : ''}
+                    </ActivityLogTableCell>
+                  </tr>
+                )
+              })
+            }
+          </tbody>
+        </table>
+      </Scroller>
+    </>
   )
 }
 

@@ -49,7 +49,7 @@ export default function Labels(props: LabelsProps) {
           {getText('labels')}
         </Text>
 
-        <Scroller testId="labels-list" className="max-h-48" orientation="vertical">
+        <Scroller testId="labels-list" orientation="vertical" className="max-h-48">
           <div className="flex flex-col items-start gap-1">
             {labels.map((label) => {
               const negated = currentNegativeLabels.some((term) =>
