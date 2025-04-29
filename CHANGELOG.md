@@ -9,6 +9,7 @@
 - [Type annotations are now visible in the graph editor][12751]
 - [Component Browser shows methods with respect to possible type casts][12751]
 - [Add option to browse cloud for secret values][12953]
+- [Add option to create a new secret in the graph editor's cloud browser][12985]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -16,6 +17,7 @@
 [12913]: https://github.com/enso-org/enso/pull/12913
 [12751]: https://github.com/enso-org/enso/pull/12751
 [12953]: https://github.com/enso-org/enso/pull/12953
+[12985]: https://github.com/enso-org/enso/pull/12985
 
 #### Enso Standard Library
 
