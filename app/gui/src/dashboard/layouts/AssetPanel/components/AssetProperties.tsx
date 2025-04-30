@@ -22,7 +22,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
 import { assetPanelStore, useSetAssetPanelProps } from '#/layouts/AssetPanel/'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import UpsertSecretMenu from '#/layouts/UpsertSecretMenu'
+import { UpsertSecretForm } from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
@@ -383,7 +383,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           >
             {getText('configuration')}
           </Heading>
-          <UpsertSecretMenu
+          <UpsertSecretForm
             key={item.id}
             doCancel="reset"
             secretId={item.id}

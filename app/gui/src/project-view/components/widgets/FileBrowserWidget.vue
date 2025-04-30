@@ -372,7 +372,7 @@ onMounted(() => {
     </div>
 
     <div v-if="anyError" class="centerContent browserContents">Error: {{ anyError }}</div>
-    <div v-else-if="creatingSecret" class="altContents browserContents">
+    <div v-else-if="creatingSecret" class="browserContents">
       <UpsertSecretPanel @accepted="commitSecret" @canceled="creatingSecret = false" />
     </div>
     <div v-else-if="isBusy" class="centerContent browserContents"><LoadingSpinner /></div>
