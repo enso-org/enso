@@ -49,3 +49,19 @@ The above picture shows what needs to be done in VSCode:
 - inspect stack and local variables
 - add breakpoints
 - step in, step over, step out, continue
+
+## Mixed Debugging
+
+[Mixed Debugging](./runtime-debugging.md) is usually performed in JVM mode.
+However with a bit of patience it is possible to do mixed debugging also in
+_Launch Native Image_ mode with some more manual steps:
+
+![Mixed debugging](https://github.com/user-attachments/assets/d80d604a-68c9-4a55-b2cc-a492107aab64)
+
+- modify `launch.json` to provide `polyglot.dap` property
+- _Launch Native Image_ normally while an `.enso` file is selected
+- wait for a request to attach DAP debugger being printed in terminal
+- then start 2nd debugging via _Debug Adapter Protocol_ configuration
+
+One can debug Java via NI debugger and Enso code via the DAP. One just needs to
+carefully switch between those two debugging sessions in VSCode.

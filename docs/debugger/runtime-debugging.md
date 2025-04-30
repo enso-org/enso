@@ -120,6 +120,8 @@ you to skip all the irrelevant code and get to the code you are interested in:
   corresponding to that unique expression, in this case that is
   `org.enso.interpreter.node.expression.builtin.debug.DebugEvalNode`.
 
+It also possible to [debug native image executable](./native-debugging.md).
+
 ## Debugging annotation processors
 
 The Engine uses annotation processors to generate some of the Java code, e.g.,
