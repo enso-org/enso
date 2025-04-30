@@ -3378,10 +3378,16 @@ lazy val `runtime-parser-processor-tests` =
 lazy val `runtime-parser-processor` =
   (project in file("engine/runtime-parser-processor"))
     .enablePlugins(JPMSPlugin)
+    .configs(Test)
     .settings(
       frgaalJavaCompilerSetting,
       javaMethodParametersSetting,
       publishLocalSetting,
+      libraryDependencies ++= Seq(
+        "junit"          % "junit"           % junitVersion    % Test,
+        "com.github.sbt" % "junit-interface" % junitIfVersion  % Test,
+        "org.hamcrest"   % "hamcrest-all"    % hamcrestVersion % Test
+      ),
       Compile / internalModuleDependencies := Seq(
         (`runtime-parser-dsl` / Compile / exportedModule).value
       )
