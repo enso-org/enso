@@ -18,6 +18,7 @@ use crate::sqlserver::SQLServer;
 use ide_ci::env::accessor::TypedVariable;
 use ide_ci::future::AsyncPolicy;
 use ide_ci::programs::docker::ContainerId;
+use ide_ci::programs::java::JAVA_HOME;
 
 
 
@@ -273,6 +274,9 @@ impl BuiltEnso {
             self.paths.repo_root.built_distribution.enso_engine_triple.engine_package.as_str();
         environment_overrides
             .push((ENSO_DATA_DIRECTORY.name().to_string(), engine_package.to_string()));
+        let graal_path = ide_ci::cache::goodie::graalvm::locate_graal()?;
+        environment_overrides
+            .push((JAVA_HOME.name().to_string(), graal_path.to_string_lossy().into_owned()));
 
         let futures = std_tests.into_iter().map(|test_path| {
             let command: std::result::Result<Command, anyhow::Error> = self.run_test(
