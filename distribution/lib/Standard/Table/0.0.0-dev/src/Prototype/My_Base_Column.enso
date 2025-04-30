@@ -1,0 +1,28 @@
+from Standard.Base import all
+
+import project.Prototype.My_In_Memory_Column.My_In_Memory_Column
+
+type My_Base_Column
+    private Value column implementation
+
+    ## Returns the name of this column.
+    name self -> Text = self.implementation.name self.column
+
+    ## Returns a vector containing all the elements in this column.
+    to_vector self -> Vector = self.implementation.to_vector self.column
+
+    ## Returns the number of elements in this column.
+    length self -> Integer = self.implementation.length self.column
+
+    ## Fills Nothing values in this column with values from the other column.
+    fill_nothing self other:My_Base_Column -> My_Base_Column =
+        self.implementation.fill_nothing self.column other.column
+
+    ## Creates in-memory column.
+       This is not part of the type-class, but for compatibility we will keep static methods like `Column.from_vector` on the base type instead of the in-memory specialized one.
+    from_vector name:Text vector:Vector -> My_Base_Column =
+        My_In_Memory_Column.Value name vector
+
+    to_text self -> Text =
+        # Delegate directly to underlying
+        self.column.to_text

@@ -1,0 +1,13 @@
+from Standard.Base import all
+
+import project.Prototype.My_Base_Column.My_Base_Column
+import project.Prototype.Impl.In_Memory_Column_Implementation.In_Memory_Column_Implementation
+
+type My_In_Memory_Column
+    private Value internal_name:Text data:Vector
+
+    to_text self -> Text =
+        "My_In_Memory_Column "+self.internal_name
+
+My_Base_Column.from (that:My_In_Memory_Column) =
+    My_Base_Column.Value that In_Memory_Column_Implementation

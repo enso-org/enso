@@ -1,0 +1,55 @@
+from Standard.Base import all
+
+import Standard.Table.Prototype.My_Base_Column.My_Base_Column
+import Standard.Table.Prototype.My_DB_Column.My_DB_Column
+
+main =
+    IO.println 'mem'
+    mem = My_Base_Column.from_vector "in-mem" [1,Nothing,3]
+    IO.println mem
+    IO.println mem.name
+    IO.println mem.to_vector
+    IO.println mem.length
+
+    IO.println '\n\nmem2'
+    mem2 = mem.fill_nothing (My_Base_Column.from_vector "in-mem2" [0,0,0])
+    IO.println mem2
+    IO.println mem2.name
+    IO.println mem2.to_vector
+    IO.println mem2.length
+
+    IO.println '\n\ndb'
+    db = My_DB_Column.create "db_col"
+    IO.println db
+    IO.println ("is My_DB_Column? "+(db.is_a My_DB_Column).to_text)
+    IO.println ("is My_Base_Column? "+(db.is_a My_Base_Column).to_text)
+    IO.println db.name
+    IO.println db.to_vector
+    IO.println db.length
+    # SQL specific
+    IO.println db.to_sql
+
+    IO.println '\n\ndownloaded'
+    downloaded = db.read
+    IO.println downloaded
+    IO.println downloaded.name
+    IO.println downloaded.to_vector
+    IO.println downloaded.length
+
+    IO.println '\n\n db column returned as base'
+    db2 = db.fill_nothing db
+    IO.println db2
+    IO.println ("is My_DB_Column? "+(db.is_a My_DB_Column).to_text)
+    IO.println ("is My_Base_Column? "+(db.is_a My_Base_Column).to_text)
+    # base operations work as-is
+    IO.println db2.name
+    IO.println db2.to_vector
+
+    # SQL-specific need cast
+    IO.println (Panic.recover Any db2.to_sql)
+    IO.println (db2:My_DB_Column).to_sql
+
+    # Mixing
+    IO.println '\n\nmixing'
+    IO.println (mem.fill_nothing db)
+    IO.println (db.fill_nothing mem)

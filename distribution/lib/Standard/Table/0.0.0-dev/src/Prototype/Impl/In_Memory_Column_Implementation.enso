@@ -1,0 +1,12 @@
+private
+
+import project.Prototype.My_Base_Column.My_Base_Column
+import project.Prototype.My_In_Memory_Column.My_In_Memory_Column
+
+type In_Memory_Column_Implementation
+    name column = column.internal_name
+    to_vector column = column.data
+    length column = column.data.length
+    fill_nothing column other:My_In_Memory_Column =
+        vec = column.data.zip other.data x-> y-> if x.is_nothing then y else x
+        My_Base_Column.from_vector ("fill_nothing(["+column.internal_name+"], "+other.internal_name+")") vec
