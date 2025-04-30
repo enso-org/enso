@@ -498,6 +498,47 @@ class ChangesetBuilderTest
       )
     }
 
+    "line swap should invalidate self argument" in {
+      val code =
+        """foo =
+          |    vector1 = [4, 2, 1, 3]
+          |    vector2 = vector1.sort
+          |    vector3 = vector2.filter (..Less 2)
+          |    vector4 = vector2.filter (..Greater 3)"
+          |""".stripMargin.linesIterator.mkString("\n")
+      val edits = Seq(
+        TextEdit(Range(Position(3, 10), Position(3, 11)), "4"),
+        TextEdit(Range(Position(3, 32), Position(3, 38)), "Greater 0"),
+        TextEdit(Range(Position(4, 10), Position(4, 11)), "3"),
+        TextEdit(Range(Position(4, 20), Position(4, 21)), "4"),
+        TextEdit(Range(Position(4, 32), Position(4, 41)), "Less 2")
+      )
+
+      val edits2 = Seq(
+        TextEdit(Range(Position(3, 0), Position(3, 0)), "    vector4 = vector2.filter (..Greater 3)\n"),
+        TextEdit(Range(Position(4, 20), Position(4, 21)), "4"),
+        TextEdit(Range(Position(5, 0), Position(5, 42)), "")
+      )
+
+      val ir = code
+        .preprocessExpression(freshInlineContext)
+        .get
+        .asInstanceOf[Expression.Binding]
+      val body       = ir.expression.asInstanceOf[Expression.Block]
+      val vector3Line = body.children()(2).asInstanceOf[Expression.Binding]
+      val vector3 = vector3Line.expression.asInstanceOf[Application.Prefix]
+      val vector3Self = vector3.arguments().head.asInstanceOf[CallArgument.Specified].value
+      val vector4line  = body.children()(3).asInstanceOf[Expression.Binding]
+      val vector4 = vector4line.expression.asInstanceOf[Application.Prefix]
+
+      val invalidated1 = invalidated(ir, code, edits: _*)
+      val invalidated2 = invalidated(ir, code, edits2: _*)
+      invalidated1 should contain (vector3Self.getId()) // #12957
+      // The two edits result in the same IR.
+      // We accept a minor difference in `vector4`'s ID
+      (invalidated2 diff invalidated1) should contain theSameElementsAs Seq(vector4.getId())
+    }
+
   }
 
   def findIR(ir: IR, uuid: String): IR = {
