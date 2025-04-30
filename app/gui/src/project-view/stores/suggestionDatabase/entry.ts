@@ -192,8 +192,10 @@ const DOCUMENTATION_ROOT = 'https://help.enso.org/docs/api'
 export function suggestionDocumentationUrl(entry: SuggestionEntry): string | undefined {
   if (entry.kind !== SuggestionKind.Method && entry.kind !== SuggestionKind.Function) return
   const { project, path } = entry.definitionPath
-  if (!project?.startsWith('Standard.') || !path) return
-  return [DOCUMENTATION_ROOT, project, ...qnSegments(path)].join('/')
+  const definedPath = entry.definedIn.path + '.'
+  const usedPath = definedPath ? path?.replace(definedPath, definedPath?.replaceAll('.', '/')) : path
+  const concatenatedPath = `${DOCUMENTATION_ROOT}/${project}/${usedPath}`
+  return concatenatedPath
 }
 
 /** `true` if calling the function without providing a value for this argument will result in an error. */
