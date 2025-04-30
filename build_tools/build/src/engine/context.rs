@@ -299,6 +299,9 @@ impl RunContext {
         if self.config.build_launcher_package() {
             tasks.push("buildLauncherDistribution");
         }
+        if self.config.run_enso_lint {
+            tasks.push("lintEnso");
+        }
 
         if !tasks.is_empty() {
             debug!("Building distributions and native images.");
@@ -355,9 +358,6 @@ impl RunContext {
             // No tests - no fail.
             Ok(())
         };
-
-        let enso_lint_result =
-            if self.config.run_enso_lint { sbt.call_arg("lintEnso").await } else { Ok(()) };
 
         match &self.config.test_standard_library {
             Some(selection) => {
@@ -482,7 +482,6 @@ impl RunContext {
         }
 
         scala_test_result?;
-        enso_lint_result?;
 
         Ok(ret)
     }
