@@ -14,6 +14,8 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import org.enso.runtime.parser.dsl.GenerateIR;
+import org.enso.runtime.parser.processor.GenerateIRAnnotationVisitor;
 import org.enso.runtime.parser.processor.IRProcessingException;
 
 public final class Utils {
@@ -227,6 +229,33 @@ public final class Utils {
   }
 
   /**
+   * Returns {@link GenerateIR#interfaces()} field as a list of {@link TypeElement}. Note that we
+   * cannot access that field directly.
+   *
+   * @param annotatedClazz
+   * @return
+   */
+  private static List<TypeElement> getGenerateIRInterfacesField(
+      TypeElement annotatedClazz, ProcessingEnvironment processingEnv) {
+    hardAssert(hasAnnotation(annotatedClazz, GenerateIR.class));
+    List<TypeElement> allInterfacesToImplement = List.of();
+    for (var annotMirror : annotatedClazz.getAnnotationMirrors()) {
+      if (annotMirror.getAnnotationType().toString().equals(GenerateIR.class.getName())) {
+        var annotMirrorElemValues =
+            processingEnv.getElementUtils().getElementValuesWithDefaults(annotMirror);
+        for (var entry : annotMirrorElemValues.entrySet()) {
+          if (entry.getKey().getSimpleName().toString().equals("interfaces")) {
+            var annotValueVisitor = new GenerateIRAnnotationVisitor(processingEnv, entry.getKey());
+            entry.getValue().accept(annotValueVisitor, null);
+            allInterfacesToImplement = annotValueVisitor.getAllInterfaces();
+          }
+        }
+      }
+    }
+    return allInterfacesToImplement;
+  }
+
+  /**
    * Finds a method in the interface hierarchy. The interface hierarchy processing starts from
    * {@code interfaceType} and iterates until {@code org.enso.compiler.core.IR} interface type is
    * encountered. Every method in the hierarchy is checked by {@code methodPredicate}.
@@ -240,21 +269,32 @@ public final class Utils {
       TypeElement interfaceType,
       ProcessingEnvironment procEnv,
       Predicate<ExecutableElement> methodPredicate) {
-    var foundMethod =
-        iterateSuperInterfaces(
-            interfaceType,
-            procEnv,
-            (TypeElement superInterface) -> {
-              for (var enclosedElem : superInterface.getEnclosedElements()) {
-                if (enclosedElem instanceof ExecutableElement execElem) {
-                  if (methodPredicate.test(execElem)) {
-                    return execElem;
+    if (isAnnotatedAndNotYetCompiled(interfaceType)) {
+      var ifaces = getGenerateIRInterfacesField(interfaceType, procEnv);
+      for (var iface : ifaces) {
+        var method = findMethod(iface, procEnv, methodPredicate);
+        if (method != null) {
+          return method;
+        }
+      }
+      return null;
+    } else {
+      var foundMethod =
+          iterateSuperInterfaces(
+              interfaceType,
+              procEnv,
+              (TypeElement superInterface) -> {
+                for (var enclosedElem : superInterface.getEnclosedElements()) {
+                  if (enclosedElem instanceof ExecutableElement execElem) {
+                    if (methodPredicate.test(execElem)) {
+                      return execElem;
+                    }
                   }
                 }
-              }
-              return null;
-            });
-    return foundMethod;
+                return null;
+              });
+      return foundMethod;
+    }
   }
 
   /**
