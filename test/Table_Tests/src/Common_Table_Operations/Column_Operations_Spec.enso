@@ -1458,7 +1458,7 @@ add_column_operation_specs suite_builder setup =
             c10.to_vector . should_equal [True, False, True]
             c10.value_type.should_equal Value_Type.Boolean
 
-        group_builder.specify "should ignore null values" <|
+        group_builder.specify "should ignore null values" pending=(if setup.prefix.contains "SQLite" then "SQLite does not support ignoring NULL values in inputs to functions, so if any input value is NULL then the result will also be NULL.") <|
             data.t.at "e" . min 5 . to_vector . should_equal [1, 5, 5]
             data.t.at "e" . max [3, Nothing, Nothing, 4] . to_vector . should_equal [4, 4, 10]
 
