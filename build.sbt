@@ -12,6 +12,7 @@ import src.main.scala.licenses.{
   DistributionDescription,
   SBTDistributionComponent
 }
+
 import scala.sys.process._
 
 // This import is unnecessary, but bit adds a proper code completion features
@@ -3848,34 +3849,55 @@ lazy val `engine-runner` = project
           langServer ++
           epbLang
       ).distinct
-      val stdLibsJars =
-        `base-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-        `image-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-        `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-        `database-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-        `google-api-polyglot-root`
-          .listFiles("*.jar")
-          .map(_.getAbsolutePath()) ++
-        `std-aws-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-        `std-microsoft-polyglot-root`
-          .listFiles("*.jar")
-          .map(_.getAbsolutePath()) ++
-        `std-snowflake-polyglot-root`
-          .listFiles("*.jar")
-          .map(_.getAbsolutePath()) ++
-        `std-tableau-polyglot-root`
-          .listFiles("*.jar")
-          .map(_.getAbsolutePath())
+      def stdLibsJars = {
+        val log = streams.value.log
+        val base =
+          `base-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath())
+        if (GraalVM.EnsoLauncher.fast) {
+          log.info(
+            s"Skipping support for non-Standard.Base libraries in the image build as ${GraalVM.EnsoLauncher.VAR_NAME} env variable is ${GraalVM.EnsoLauncher.toString}"
+          )
+          base
+        } else {
+          base ++
+          `image-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
+          `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
+          `database-polyglot-root`
+            .listFiles("*.jar")
+            .map(_.getAbsolutePath()) ++
+          `google-api-polyglot-root`
+            .listFiles("*.jar")
+            .map(_.getAbsolutePath()) ++
+          `std-aws-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
+          `std-microsoft-polyglot-root`
+            .listFiles("*.jar")
+            .map(_.getAbsolutePath()) ++
+          `std-snowflake-polyglot-root`
+            .listFiles("*.jar")
+            .map(_.getAbsolutePath()) ++
+          `std-tableau-polyglot-root`
+            .listFiles("*.jar")
+            .map(_.getAbsolutePath())
+        }
+      }
       core ++ stdLibsJars ++ extraNITestLibs.value
     },
     extraNITestLibs := Def.taskDyn {
       if (GraalVM.EnsoLauncher.test) Def.task {
-        Seq(
+        val baseHelpers =
           (`enso-test-java-helpers` / Compile / packageBin).value
-            .getAbsolutePath(),
+            .getAbsolutePath()
+        val snowHelpers =
           (`snowflake-test-java-helpers` / Compile / packageBin).value
             .getAbsolutePath()
-        )
+        if (GraalVM.EnsoLauncher.fast) {
+          Seq(baseHelpers)
+        } else {
+          Seq(
+            baseHelpers,
+            snowHelpers
+          )
+        }
       }
       else {
         Def.task {
@@ -5717,6 +5739,32 @@ runEngineDistribution := {
     args,
     streams.value.log
   )
+}
+
+lazy val lintEnso =
+  inputKey[Unit](
+    "Run Enso linter on one or many projects. If no arguments are specified, all projects are linted. Otherwise, the argument should be the full path or just the name of the project to lint."
+  )
+lintEnso := {
+  buildEngineDistributionNoIndex.value
+  val fileTree = fileTreeView.value
+
+  val args: Seq[String] = spaceDelimited("<arg>").parsed
+  val whatToLint = args match {
+    case Seq()     => EnsoLint.LintTarget.All
+    case Seq(name) => EnsoLint.LintTarget.FindByName(name)
+    case _ =>
+      throw new IllegalArgumentException(
+        "At most one argument to lintEnso expected."
+      )
+  }
+
+  val linter = new EnsoLint(
+    baseDirectory.value,
+    engineDistributionRoot.value,
+    streams.value.log
+  )
+  linter.check(whatToLint)
 }
 
 lazy val buildProjectManagerDistributionCond =

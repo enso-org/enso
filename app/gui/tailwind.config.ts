@@ -187,7 +187,6 @@ export default {
         'paragraph-input': 'var(--paragraph-input-height)',
         'manage-permissions-modal-permissions-list':
           'var(--manage-permissions-modal-permissions-list-height)',
-        'manage-labels-list': 'var(--manage-labels-list-height)',
         'search-suggestions-list': 'var(--search-suggestions-list-height)',
       },
       minHeight: ({ theme }) => ({ ...theme('height') }),
@@ -231,7 +230,6 @@ export default {
         'name-column-icon': 'var(--name-column-icon-gap)',
         'permission-type-button': 'var(--permission-type-button-gap)',
         'modal-tabs': 'var(--modal-tabs-gap)',
-        'context-menus': 'var(--context-menus-gap)',
         'asset-panel': 'var(--asset-panel-gap)',
         'search-suggestions': 'var(--search-suggestions-gap)',
         'chat-buttons': 'var(--chat-buttons-gap)',

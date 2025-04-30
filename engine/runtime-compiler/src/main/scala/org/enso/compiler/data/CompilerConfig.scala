@@ -19,6 +19,7 @@ case class CompilerConfig(
   warningsEnabled: Boolean            = true,
   privateCheckEnabled: Boolean        = true,
   staticTypeInferenceEnabled: Boolean = false,
+  treatWarningsAsErrors: Boolean      = false,
   dumpModuleIR: Option[String]        = None,
   isStrictErrors: Boolean             = false,
   isLintingDisabled: Boolean          = false,

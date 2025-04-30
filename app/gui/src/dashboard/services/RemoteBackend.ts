@@ -1470,13 +1470,24 @@ export default class RemoteBackend extends Backend {
   }
 
   /** List events in the organization's audit log. */
-  override async getLogEvents(): Promise<backend.Event[]> {
+  override async getLogEvents(
+    params: backend.GetLogEventsRequestParams,
+  ): Promise<readonly backend.AuditLogEvent[]> {
     /** The type of the response body of this endpoint. */
     interface ResponseBody {
-      readonly events: backend.Event[]
+      readonly events: backend.AuditLogEvent[]
     }
 
-    const path = remoteBackendPaths.GET_LOG_EVENTS_PATH
+    const paramsString = new URLSearchParams({
+      /* eslint-disable @typescript-eslint/naming-convention, camelcase */
+      ...(params.userEmail != null ? { user_email: params.userEmail } : {}),
+      ...(params.startDate != null ? { start_date: params.startDate } : {}),
+      ...(params.endDate != null ? { end_date: params.endDate } : {}),
+      ...(params.from != null ? { from: String(params.from) } : {}),
+      ...(params.pageSize != null ? { page_size: String(params.pageSize) } : {}),
+      /* eslint-enable @typescript-eslint/naming-convention, camelcase */
+    }).toString()
+    const path = `${remoteBackendPaths.GET_LOG_EVENTS_PATH}?${paramsString}`
     const response = await this.get<ResponseBody>(path)
     if (!responseIsSuccessful(response)) {
       return this.throw(response, 'getLogEventsBackendError')
@@ -1519,6 +1530,7 @@ export default class RemoteBackend extends Backend {
     id: backend.AssetId,
     title: string,
     targetDirectoryId: backend.DirectoryId | null,
+    shouldUnpackProject = true,
   ) {
     const asset = backend.extractTypeFromId(id)
     const { id: targetPath } =
@@ -1528,27 +1540,42 @@ export default class RemoteBackend extends Backend {
       case backend.AssetType.project: {
         const details = await this.getProjectDetails(asset.id, true)
         invariant(details.url != null, 'The download URL of the project must be present.')
-        await download.download(details.url, `${title}.enso-project`, targetPath)
+        await download.download({
+          url: details.url,
+          name: `${title}.enso-project`,
+          electronOptions: {
+            shouldUnpackProject,
+            path: targetPath,
+          },
+        })
         break
       }
       case backend.AssetType.file: {
         const details = await this.getFileDetails(asset.id, title, true)
         invariant(details.url != null, 'The download URL of the file must be present.')
-        await download.download(details.url, details.file.fileName ?? '', targetPath)
+        await download.download({
+          url: details.url,
+          name: details.file.fileName ?? '',
+          electronOptions: {
+            path: targetPath,
+          },
+        })
         break
       }
       case backend.AssetType.datalink: {
         const value = await this.getDatalink(asset.id, title)
         const fileName = `${title}.datalink`
-        await download.download(
-          URL.createObjectURL(
+        await download.download({
+          url: URL.createObjectURL(
             new File([JSON.stringify(value)], fileName, {
               type: 'application/json+x-enso-data-link',
             }),
           ),
-          fileName,
-          targetPath,
-        )
+          name: fileName,
+          electronOptions: {
+            path: targetPath,
+          },
+        })
         break
       }
       case backend.AssetType.secret:

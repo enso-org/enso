@@ -1,0 +1,63 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
+
+from Standard.Table import all
+from Standard.Table.Errors import all
+
+import Standard.Database.DB_Column.DB_Column
+import Standard.Database.Feature.Feature
+
+from Standard.Test import all
+
+import project.Common_Table_Operations.Util
+from project.Common_Table_Operations.Util import run_default_backend
+
+type Lazy_Ref
+    Value ~get
+
+main filter=Nothing = run_default_backend add_specs filter
+
+add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Column_Operations then (add_numeric_columns_specs suite_builder setup)
+
+add_numeric_columns_specs suite_builder setup =
+    prefix = setup.prefix
+    table_builder = setup.light_table_builder
+    build_sorted_table = Util.build_sorted_table setup
+    suite_builder.group prefix+"Numeric_Column" group_builder->
+        numeric_column = Lazy_Ref.Value <| build_sorted_table [["X", [-10, 0, 1, 12]]] . at "X"
+        group_builder.specify "a numeric column can be cast to Numeric_Column" <|
+            column = numeric_column.get
+            column.value_type.is_numeric . should_be_true
+            check_column column x->
+                (x:Numeric_Column)
+
+        group_builder.specify "a text column cannot be cast to Numeric_Column" <|
+            column = table_builder [["X", ["txt"]]] . at "X"
+            column.value_type.is_numeric . should_be_false
+            check_column column x->
+                Test.expect_panic Type_Error (x:Numeric_Column)
+
+        group_builder.specify "a numeric column supports abs operation" <|
+            column = numeric_column.get
+            abs_column = (column:Numeric_Column).abs
+            (abs_column : Column|DB_Column).to_vector . should_equal [10, 0, 1, 12]
+
+        group_builder.specify "a numeric column supports signum operation" <|
+            column = numeric_column.get
+            signum_column = (column:Numeric_Column).signum
+            (signum_column : Column|DB_Column).to_vector . should_equal [-1, 0, 1, 1]
+
+        group_builder.specify "floating-point columns support abs and signum" <|
+            column = build_sorted_table [["X", [-1.5, 0.0, -0.0, 1.0, 200.25]]] . at "X"
+            abs_column = (column:Numeric_Column).abs
+            (abs_column : Column|DB_Column).to_vector . should_equal [1.5, 0.0, 0.0, 1.0, 200.25]
+            signum_column = (column:Numeric_Column).signum
+            (signum_column : Column|DB_Column).to_vector . should_equal [-1, 0, 0, 1, 1]
+
+check_column column check =
+    Test.with_clue "(regular column) " <| check column
+    # Sort is needed in DB for take to work
+    Test.with_clue "(1-value column) " <| check (column.sort.take 1)
+    Test.with_clue "(1-column table as column) " <| check (column.to_table)
+    Test.with_clue "(1-value 1-column table as column) " <| check (column.sort.to_table.take 1)
