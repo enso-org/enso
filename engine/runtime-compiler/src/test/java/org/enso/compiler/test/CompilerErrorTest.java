@@ -15,9 +15,7 @@ import org.junit.Test;
 import scala.Option;
 
 public final class CompilerErrorTest {
-  @Rule public final WithMockCompilerContext compilerCtx =
-      WithMockCompilerContext.newBuilder().withModifiedCompilerConfig(bldr -> bldr.dumpModuleIR(
-          Option.apply("Check"))).build();
+  @Rule public final WithMockCompilerContext compilerCtx = WithMockCompilerContext.createDefault();
 
   @Test
   public void variablesIsRedefinedInIfBranch() {
