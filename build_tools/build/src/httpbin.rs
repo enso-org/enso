@@ -37,7 +37,7 @@ pub async fn get_and_spawn_httpbin(
     let url = Url::parse(&url_string)?;
     env::ENSO_HTTP_TEST_HTTPBIN_URL.set(&url)?;
 
-    wait_for(&format!("localhost:{port}"), 60)?;
+    wait_for(&format!("localhost:{port}"), 180)?;
 
     Ok(Spawned { url, process })
 }
