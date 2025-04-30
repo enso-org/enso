@@ -2,12 +2,14 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { CustomDropdownItemsKey } from '@/components/GraphEditor/widgets/WidgetSelection.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { FileType } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { ProjectPath, printAbsoluteProjectPath } from '@/util/projectPath'
+import type { FileFilter } from 'enso-common/src/fileFilter'
 import { computed } from 'vue'
 import { TextLiteral, type QualifiedName } from 'ydoc-shared/ast'
 import { CustomDropdownItem } from './WidgetSelection/tags'
@@ -88,13 +90,42 @@ function makeValue(
   }
 }
 
+const fileTypes = computed(() => {
+  if (props.input.dynamicConfig?.kind === 'File_Browse') {
+    return props.input.dynamicConfig?.file_types ?? []
+  } else {
+    return []
+  }
+})
+
+function flattenFileTypes(fileTypes: FileType[]): FileFilter[] {
+  return fileTypes.flatMap((fileType) => {
+    const name = fileType.label
+    if (fileType.extensions.length > 0) {
+      if (typeof fileType.extensions[0] === 'string') {
+        return [
+          {
+            name,
+            extensions: fileType.extensions as string[],
+          },
+        ]
+      } else {
+        return flattenFileTypes(fileType.extensions as FileType[])
+      }
+    }
+    return []
+  })
+}
+
 const onClick = async () => {
   if (!window.fileBrowserApi) {
     console.error('File browser not supported!')
   } else {
+    const filters = flattenFileTypes(fileTypes.value)
     const selected = await window.fileBrowserApi.openFileBrowser(
       dialogKind.value,
       currentPath.value,
+      filters,
     )
     if (selected != null && selected[0] != null) {
       const edit = graph.startEdit()

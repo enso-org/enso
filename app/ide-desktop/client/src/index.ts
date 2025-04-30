@@ -38,6 +38,7 @@ import * as projectManager from '@/projectManager'
 import * as security from '@/security'
 import * as server from '@/server'
 import * as urlAssociations from '@/urlAssociations'
+import { FileFilter, toElectronFileFilter } from './fileBrowser'
 
 import * as download from 'electron-dl'
 import type { DownloadUrlOptions } from './globals'
@@ -572,7 +573,12 @@ class App {
     })
     electron.ipcMain.handle(
       ipc.Channel.openFileBrowser,
-      async (_event, kind: 'default' | 'directory' | 'file' | 'filePath', defaultPath?: string) => {
+      async (
+        _event,
+        kind: 'default' | 'directory' | 'file' | 'filePath',
+        defaultPath?: string,
+        filters?: FileFilter[],
+      ) => {
         logger.log('Request for opening browser for ', kind, defaultPath)
         let retval = null
         if (kind === 'filePath') {
@@ -594,6 +600,7 @@ class App {
             : ['openFile']
           const { canceled, filePaths } = await electron.dialog.showOpenDialog({
             properties,
+            filters: filters?.map(toElectronFileFilter) ?? [],
             ...(defaultPath != null ? { defaultPath } : {}),
           })
           if (!canceled) {

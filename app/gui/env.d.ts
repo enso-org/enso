@@ -118,6 +118,7 @@ interface FileBrowserApi {
   readonly openFileBrowser: (
     kind: 'default' | 'directory' | 'file' | 'filePath',
     defaultPath?: string,
+    fileTypes?: FileFilter[],
   ) => Promise<string[] | undefined>
 }
 
