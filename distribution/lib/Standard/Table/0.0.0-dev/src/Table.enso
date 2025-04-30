@@ -226,7 +226,7 @@ type Table
         ? Consistent Row Count
         All columns must have the same number of rows. If a column has a
         different number of entries, an error is thrown.
-    input (columns : Vector (Vector | Column) = [['Column 1', []]]) -> Table =
+    input (columns : Vector (Vector | Column)) -> Table =
         throw_bad_column = Error.throw (Illegal_Argument.Error "Each column must be represented as a Vector of column name (Text), data (vector like elements) and optionally a type (Value_Type), or an existing column.")
         resolved_columns = columns.map c-> case c of
             _ : Column -> c
@@ -247,6 +247,7 @@ type Table
        Arguments:
        - internal_java_table: The internal java representation of the table.
     private Value internal_java_table
+
     ## PRIVATE
        A getter that is a workaround for bug https://github.com/enso-org/enso/issues/12180
     private java_table self = self.internal_java_table

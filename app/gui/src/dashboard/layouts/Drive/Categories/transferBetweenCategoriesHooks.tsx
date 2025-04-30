@@ -73,7 +73,7 @@ export function useTransferBetweenCategories(currentCategory: Category) {
 
   const { getText } = useText()
 
-  const uploadFileToCloudMutation = useUploadFileToCloudMutation(remoteBackend)
+  const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(remoteBackend))
   const deleteAssetsMutation = useMutationCallback(deleteAssetsMutationOptions(backend))
   const copyAssetsMutation = useMutationCallback(copyAssetsMutationOptions(backend))
@@ -139,10 +139,7 @@ export function useTransferBetweenCategories(currentCategory: Category) {
             }
 
             if (resolution === 'confirm') {
-              return downloadAssetsMutation({
-                ids: assetsArray,
-                targetDirectoryId,
-              })
+              return copyAssetsMutation([keysArray, targetDirectoryId])
             }
           }
 

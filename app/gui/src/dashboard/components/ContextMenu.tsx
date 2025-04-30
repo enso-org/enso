@@ -3,11 +3,9 @@ import * as React from 'react'
 
 import * as detect from 'enso-common/src/detect'
 
-import FocusArea from '#/components/styled/FocusArea'
-
-import { forwardRef } from '#/utilities/react'
+import { Popover } from '#/components/AriaComponents'
+import { unsetModal } from '#/providers/ModalProvider'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import Modal from './Modal'
 
 /** Props for a `ContextMenu`. */
 export interface ContextMenuProps extends Readonly<React.PropsWithChildren> {
@@ -18,49 +16,31 @@ export interface ContextMenuProps extends Readonly<React.PropsWithChildren> {
 }
 
 /** A context menu that opens at the current mouse position. */
-export default forwardRef(function ContextMenu(
-  props: ContextMenuProps,
-  ref: React.ForwardedRef<HTMLDivElement>,
-) {
+export default function ContextMenu(props: ContextMenuProps) {
   const { hidden = false, children, event } = props
 
-  return hidden ? children : (
-      <Modal
-        className="absolute size-full overflow-hidden bg-dim"
-        onContextMenu={(innerEvent) => {
-          innerEvent.preventDefault()
-        }}
+  if (hidden) {
+    return children
+  }
+
+  return (
+    <Popover
+      data-testid="context-menu"
+      defaultOpen
+      style={{ left: event.pageX, top: event.pageY }}
+      shouldCloseOnInteractOutside={() => true}
+      className="sticky flex w-min items-start"
+      onClose={unsetModal}
+    >
+      <div
+        aria-label={props['aria-label']}
+        className={tailwindMerge.twMerge(
+          'relative flex flex-col rounded-default',
+          detect.isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu',
+        )}
       >
-        <div
-          data-testid="context-menu"
-          ref={ref}
-          style={{ left: event.pageX, top: event.pageY }}
-          className={tailwindMerge.twMerge(
-            'pointer-events-none sticky flex w-min items-start gap-context-menus',
-          )}
-          onClick={(clickEvent) => {
-            clickEvent.stopPropagation()
-          }}
-        >
-          <FocusArea direction="vertical">
-            {(innerProps) => (
-              <div
-                className="pointer-events-auto relative rounded-default before:absolute before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
-                {...innerProps}
-              >
-                <div
-                  aria-label={props['aria-label']}
-                  className={tailwindMerge.twMerge(
-                    'relative flex flex-col rounded-default p-context-menu',
-                    detect.isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu',
-                  )}
-                >
-                  {children}
-                </div>
-              </div>
-            )}
-          </FocusArea>
-        </div>
-      </Modal>
-    )
-})
+        {children}
+      </div>
+    </Popover>
+  )
+}

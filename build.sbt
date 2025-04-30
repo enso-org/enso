@@ -12,6 +12,7 @@ import src.main.scala.licenses.{
   DistributionDescription,
   SBTDistributionComponent
 }
+
 import scala.sys.process._
 
 // This import is unnecessary, but bit adds a proper code completion features
@@ -5738,6 +5739,32 @@ runEngineDistribution := {
     args,
     streams.value.log
   )
+}
+
+lazy val lintEnso =
+  inputKey[Unit](
+    "Run Enso linter on one or many projects. If no arguments are specified, all projects are linted. Otherwise, the argument should be the full path or just the name of the project to lint."
+  )
+lintEnso := {
+  buildEngineDistributionNoIndex.value
+  val fileTree = fileTreeView.value
+
+  val args: Seq[String] = spaceDelimited("<arg>").parsed
+  val whatToLint = args match {
+    case Seq()     => EnsoLint.LintTarget.All
+    case Seq(name) => EnsoLint.LintTarget.FindByName(name)
+    case _ =>
+      throw new IllegalArgumentException(
+        "At most one argument to lintEnso expected."
+      )
+  }
+
+  val linter = new EnsoLint(
+    baseDirectory.value,
+    engineDistributionRoot.value,
+    streams.value.log
+  )
+  linter.check(whatToLint)
 }
 
 lazy val buildProjectManagerDistributionCond =

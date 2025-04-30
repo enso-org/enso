@@ -1143,7 +1143,7 @@ type DB_Table
                     Error.throw (Integrity_Error.Error "Column "+value.name)
             _ : Constant_Column -> self.make_constant_column value
             _ : Simple_Expression -> value.evaluate self (set_mode==Set_Mode.Update && as=="") on_problems
-            _ : Vector -> Error.throw (Unsupported_Database_Operation "`Vector` for `set`")
+            _ : Vector -> Error.throw (Unsupported_Database_Operation.Error "`Vector` for `set`")
             _ : Array -> Error.throw (Unsupported_Database_Operation.Error "`Array` for `set`")
             _ : Range -> Error.throw (Unsupported_Database_Operation.Error "`Range` for `set`")
             _ : Date_Range -> Error.throw (Unsupported_Database_Operation.Error "`Date_Range` for `set`")
