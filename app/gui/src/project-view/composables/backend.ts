@@ -1,4 +1,4 @@
-import { injectProjectBackend } from '@/providers/backend'
+import { injectProjectBackend } from '@/providers/projectBackend'
 import type { ToValue } from '@/util/reactivity'
 import type {
   UseMutationOptions,

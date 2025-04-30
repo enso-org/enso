@@ -14,7 +14,7 @@ import FileBrowserEntry from '@/components/widgets/FileBrowserWidget/FileBrowser
 import { Directory, useFileBrowserStack } from '@/components/widgets/FileBrowserWidget/paths'
 import { useBackend } from '@/composables/backend'
 import { Action } from '@/providers/action'
-import { injectProjectBackend } from '@/providers/backend'
+import { injectProjectBackend } from '@/providers/projectBackend'
 import { assert } from '@/util/assert'
 import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'

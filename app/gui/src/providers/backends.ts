@@ -13,11 +13,13 @@ import { ToValue } from '@/util/reactivity'
 import * as common from 'enso-common'
 import invariant from 'tiny-invariant'
 import { computed, markRaw, onScopeDispose, readonly, ref, toValue } from 'vue'
+import { GetText } from './text'
 
 function useBackends(
   httpClient: HttpClient,
   config: ToValue<GuiConfig>,
   rootDirPath: ToValue<string | undefined>,
+  getText: GetText,
 ) {
   const projectManager = computed(() => {
     const rootPath = toValue(rootDirPath)
@@ -32,8 +34,7 @@ function useBackends(
   const localBackend = computed(() =>
     projectManager.value ? markRaw(new LocalBackend(projectManager.value)) : null,
   )
-  // TODO getText
-  const remoteBackend = markRaw(new RemoteBackend(httpClient, console, () => ''))
+  const remoteBackend = markRaw(new RemoteBackend(httpClient, console, getText))
 
   const backendByCategory = (category: Category) =>
     pickBackend(category, remoteBackend, localBackend.value)

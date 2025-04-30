@@ -21,6 +21,7 @@ import { computed, onMounted } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
 import { provideBackends } from './providers/backends'
 import { provideHttpClient } from './providers/httpClient'
+import { provideText } from './providers/text'
 
 const { projectViewOnly, onAuthenticated, rootDirPath } = defineProps<{
   // Used in Project View integration tests. Once both test projects will be merged, this should be
@@ -50,6 +51,7 @@ const ReactRootWrapper = applyPureReactInVue(ReactRoot)
 const queryClient = useQueryClient()
 
 provideKeyboard()
+const { getText } = provideText()
 const config = provideGuiConfig(appConfigValue)
 const interaction = provideInteractionHandler()
 initializeActions()
@@ -68,7 +70,7 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
   capture: true,
 })
 const httpClient = provideHttpClient()
-provideBackends(httpClient, config, rootDirPath)
+provideBackends(httpClient, config, rootDirPath, getText)
 
 onMounted(() => {
   if (appConfigValue.value.window.vibrancy) {
