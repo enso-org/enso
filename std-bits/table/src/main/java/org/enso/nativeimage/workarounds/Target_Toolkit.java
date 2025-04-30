@@ -4,8 +4,8 @@ import com.oracle.svm.core.annotate.Alias;
 import com.oracle.svm.core.annotate.Substitute;
 import com.oracle.svm.core.annotate.TargetClass;
 
-@TargetClass(java.awt.Toolkit.class)
-final class ReplacementToolkit {
+@TargetClass(className = "java.awt.Toolkit", onlyWith = OnlyWithDesktop.class)
+final class Target_Toolkit {
 
   @Alias private static boolean loaded;
 
