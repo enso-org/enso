@@ -18,6 +18,7 @@ package org.apache.poi.hssf.util;
 
 
 
+
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -43,9 +44,9 @@ public class HSSFColor implements Color {
     private static Map<Integer,HSSFColor> indexHash;
     private static Map<HSSFColorPredefined,HSSFColor> enumList;
 
-    private final java.awt.Color color;
     private final int index;
     private final int index2;
+    private final int rgb;
 
     /**
      * Predefined HSSFColors with their given palette index (and an optional 2nd index)
@@ -111,7 +112,7 @@ public class HSSFColor implements Color {
         private final HSSFColor color;
 
         HSSFColorPredefined(int index, int index2, int rgb) {
-            this.color = new HSSFColor(index, index2, new java.awt.Color(rgb));
+            this.color = new HSSFColor(index, index2, rgb);
         }
 
         /**
@@ -146,7 +147,7 @@ public class HSSFColor implements Color {
          * @return (a copy of) the HSSFColor assigned to the enum
          */
         public HSSFColor getColor() {
-            return new HSSFColor(getIndex(), getIndex2(), color.color);
+            return new HSSFColor(getIndex(), getIndex2(), color.rgb);
         }
     }
 
@@ -154,13 +155,20 @@ public class HSSFColor implements Color {
     /** Creates a new instance of HSSFColor */
     public HSSFColor() {
         // automatic index
-        this(0x40, -1, java.awt.Color.BLACK);
+        this(0x40, -1, null);
     }
 
     public HSSFColor(int index, int index2, java.awt.Color color) {
         this.index = index;
         this.index2 = index2;
-        this.color = color;
+        if (color != null) throw new IllegalArgumentException("Unexpected color: " + color);
+        this.rgb = 0x000000;
+    }
+
+    HSSFColor(int index, int index2, int rgb) {
+        this.index = index;
+        this.index2 = index2;
+        this.rgb = 0xff000000 | rgb;
     }
 
     /**
@@ -310,13 +318,25 @@ public class HSSFColor implements Color {
         return (short)index2;
     }
 
+    private int getRed() {
+        return (rgb >> 16) & 0xFF;
+    }
+
+    private int getGreen() {
+        return (rgb >> 8) & 0xFF;
+    }
+
+    private int getBlue() {
+        return (rgb >> 0) & 0xFF;
+    }
+
     /**
      * returns  RGB triplet (0, 0, 0)
      * @return  triplet representation like that in Excel
      */
 
     public short [] getTriplet() {
-        return new short[] { (short)color.getRed(), (short)color.getGreen(), (short)color.getBlue() };
+        return new short[] { (short)getRed(), (short)getGreen(), (short)getBlue() };
     }
 
     /**
@@ -325,9 +345,9 @@ public class HSSFColor implements Color {
      */
 
     public String getHexString() {
-        return (Integer.toHexString(color.getRed()*0x101) + ":" +
-               Integer.toHexString(color.getGreen()*0x101) + ":" +
-               Integer.toHexString(color.getBlue()*0x101)).toUpperCase(Locale.ROOT);
+        return (Integer.toHexString(getRed()*0x101) + ":" +
+               Integer.toHexString(getGreen()*0x101) + ":" +
+               Integer.toHexString(getBlue()*0x101)).toUpperCase(Locale.ROOT);
     }
 
     @Override
@@ -339,12 +359,12 @@ public class HSSFColor implements Color {
 
         if (index != hssfColor.index) return false;
         if (index2 != hssfColor.index2) return false;
-        return Objects.equals(color, hssfColor.color);
+        return Objects.equals(rgb, hssfColor.rgb);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(color,index,index2);
+        return Objects.hash(rgb,index,index2);
     }
 
     /**

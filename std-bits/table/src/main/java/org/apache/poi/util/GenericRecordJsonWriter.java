@@ -1,3 +1,4 @@
+package org.apache.poi.util;
 /*
  *  ====================================================================
  *    Licensed to the Apache Software Foundation (ASF) under one or more
@@ -17,23 +18,10 @@
  * ====================================================================
  */
 
-package org.apache.poi.util;
+
 
 import static org.apache.commons.io.output.NullOutputStream.NULL_OUTPUT_STREAM;
 
-import java.awt.Color;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Dimension2D;
-import java.awt.geom.Path2D;
-import java.awt.geom.PathIterator;
-import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
-import java.awt.image.BufferedImage;
-import java.awt.image.ColorModel;
-import java.awt.image.ComponentColorModel;
-import java.awt.image.DirectColorModel;
-import java.awt.image.IndexColorModel;
-import java.awt.image.PackedColorModel;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -95,13 +83,13 @@ public class GenericRecordJsonWriter implements Closeable {
         handler(GenericRecord.class, GenericRecordJsonWriter::printGenericRecord);
         handler(AnnotatedFlag.class, GenericRecordJsonWriter::printAnnotatedFlag);
         handler(byte[].class, GenericRecordJsonWriter::printBytes);
-        handler(Point2D.class, GenericRecordJsonWriter::printPoint);
-        handler(Dimension2D.class, GenericRecordJsonWriter::printDimension);
-        handler(Rectangle2D.class, GenericRecordJsonWriter::printRectangle);
-        handler(Path2D.class, GenericRecordJsonWriter::printPath);
-        handler(AffineTransform.class, GenericRecordJsonWriter::printAffineTransform);
-        handler(Color.class, GenericRecordJsonWriter::printColor);
-        handler(BufferedImage.class, GenericRecordJsonWriter::printImage);
+        //handler(Point2D.class, GenericRecordJsonWriter::printPoint);
+        //handler(Dimension2D.class, GenericRecordJsonWriter::printDimension);
+        //handler(Rectangle2D.class, GenericRecordJsonWriter::printRectangle);
+        //handler(Path2D.class, GenericRecordJsonWriter::printPath);
+        //handler(AffineTransform.class, GenericRecordJsonWriter::printAffineTransform);
+        // handler(Color.class, GenericRecordJsonWriter::printColor);
+        //handler(BufferedImage.class, GenericRecordJsonWriter::printImage);
         handler(Array.class, GenericRecordJsonWriter::printArray);
         handler(Object.class, GenericRecordJsonWriter::printObject);
     }
@@ -348,66 +336,19 @@ public class GenericRecordJsonWriter implements Closeable {
     }
 
     protected boolean printPoint(String name, Object o) {
-        printName(name);
-        Point2D p = (Point2D)o;
-        fw.write("{ \"x\": "+p.getX()+", \"y\": "+p.getY()+" }");
-        return true;
+        throw new NoClassDefFoundError("Point2D");
     }
 
     protected boolean printDimension(String name, Object o) {
-        printName(name);
-        Dimension2D p = (Dimension2D)o;
-        fw.write("{ \"width\": "+p.getWidth()+", \"height\": "+p.getHeight()+" }");
-        return true;
+        throw new NoClassDefFoundError("Dimension2D");
     }
 
     protected boolean printRectangle(String name, Object o) {
-        printName(name);
-        Rectangle2D p = (Rectangle2D)o;
-        fw.write("{ \"x\": "+p.getX()+", \"y\": "+p.getY()+", \"width\": "+p.getWidth()+", \"height\": "+p.getHeight()+" }");
-        return true;
+        throw new NoClassDefFoundError("Rectangle2D");
     }
 
     protected boolean printPath(String name, Object o) {
-        printName(name);
-        final PathIterator iter = ((Path2D)o).getPathIterator(null);
-        final double[] pnts = new double[6];
-        fw.write("[");
-
-        indent += 2;
-        String t = tabs();
-        indent -= 2;
-
-        boolean isNext = false;
-        while (!iter.isDone()) {
-            fw.println(isNext ? ", " : "");
-            fw.print(t);
-            isNext = true;
-            final int segType = iter.currentSegment(pnts);
-            fw.append("{ \"type\": ");
-            switch (segType) {
-                case PathIterator.SEG_MOVETO:
-                    fw.write("\"move\", \"x\": "+pnts[0]+", \"y\": "+pnts[1]);
-                    break;
-                case PathIterator.SEG_LINETO:
-                    fw.write("\"lineto\", \"x\": "+pnts[0]+", \"y\": "+pnts[1]);
-                    break;
-                case PathIterator.SEG_QUADTO:
-                    fw.write("\"quad\", \"x1\": "+pnts[0]+", \"y1\": "+pnts[1]+", \"x2\": "+pnts[2]+", \"y2\": "+pnts[3]);
-                    break;
-                case PathIterator.SEG_CUBICTO:
-                    fw.write("\"cubic\", \"x1\": "+pnts[0]+", \"y1\": "+pnts[1]+", \"x2\": "+pnts[2]+", \"y2\": "+pnts[3]+", \"x3\": "+pnts[4]+", \"y3\": "+pnts[5]);
-                    break;
-                case PathIterator.SEG_CLOSE:
-                    fw.write("\"close\"");
-                    break;
-            }
-            fw.append(" }");
-            iter.next();
-        }
-
-        fw.write("]");
-        return true;
+        throw new NoClassDefFoundError("Path2D");
     }
 
     protected boolean printObject(String name, Object o) {
@@ -455,30 +396,11 @@ public class GenericRecordJsonWriter implements Closeable {
     }
 
     protected boolean printAffineTransform(String name, Object o) {
-        printName(name);
-        AffineTransform xForm = (AffineTransform)o;
-        fw.write(
-            "{ \"scaleX\": "+xForm.getScaleX()+
-            ", \"shearX\": "+xForm.getShearX()+
-            ", \"transX\": "+xForm.getTranslateX()+
-            ", \"scaleY\": "+xForm.getScaleY()+
-            ", \"shearY\": "+xForm.getShearY()+
-            ", \"transY\": "+xForm.getTranslateY()+" }");
-        return true;
+        throw new NoClassDefFoundError("AffineTransform");
     }
 
     protected boolean printColor(String name, Object o) {
-        printName(name);
-
-        final int rgb = ((Color)o).getRGB();
-        fw.print(rgb);
-
-        if (withComments) {
-            fw.write(" /* 0x");
-            fw.write(trimHex(rgb, 8));
-            fw.write(" */");
-        }
-        return true;
+        throw new NoClassDefFoundError("Color");
     }
 
     protected boolean printArray(String name, Object o) {
@@ -495,37 +417,7 @@ public class GenericRecordJsonWriter implements Closeable {
     }
 
     protected boolean printImage(String name, Object o) {
-        BufferedImage img = (BufferedImage)o;
-
-        final String[] COLOR_SPACES = {
-            "XYZ","Lab","Luv","YCbCr","Yxy","RGB","GRAY","HSV","HLS","CMYK","Unknown","CMY","Unknown"
-        };
-
-        final String[] IMAGE_TYPES = {
-                "CUSTOM","INT_RGB","INT_ARGB","INT_ARGB_PRE","INT_BGR","3BYTE_BGR","4BYTE_ABGR","4BYTE_ABGR_PRE",
-                "USHORT_565_RGB","USHORT_555_RGB","BYTE_GRAY","USHORT_GRAY","BYTE_BINARY","BYTE_INDEXED"
-        };
-
-        printName(name);
-        ColorModel cm = img.getColorModel();
-        String colorType =
-            (cm instanceof IndexColorModel) ? "indexed" :
-            (cm instanceof ComponentColorModel) ? "component" :
-            (cm instanceof DirectColorModel) ? "direct" :
-            (cm instanceof PackedColorModel) ? "packed" : "unknown";
-        fw.write(
-            "{ \"width\": "+img.getWidth()+
-            ", \"height\": "+img.getHeight()+
-            ", \"type\": \""+IMAGE_TYPES[img.getType()]+"\""+
-            ", \"colormodel\": \""+colorType+"\""+
-            ", \"pixelBits\": "+cm.getPixelSize()+
-            ", \"numComponents\": "+cm.getNumComponents()+
-            ", \"colorSpace\": \""+COLOR_SPACES[Math.min(cm.getColorSpace().getType(),12)]+"\""+
-            ", \"transparency\": "+cm.getTransparency()+
-            ", \"alpha\": "+cm.hasAlpha()+
-            "}"
-        );
-        return true;
+        throw new NoClassDefFoundError("BufferedImage");
     }
 
     static String trimHex(final long l, final int size) {
