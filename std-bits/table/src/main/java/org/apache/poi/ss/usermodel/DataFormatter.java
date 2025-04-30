@@ -21,7 +21,14 @@ package org.apache.poi.ss.usermodel;
 ==================================================================== */
 
 
-import java.beans.PropertyChangeSupport;
+//
+// Modified version of org.apache.poi:poi-ooxml:5.2.3 that avoids
+// dependency on java.beans package from java.desktop module
+//
+// Remove once POI bug is fixed
+//
+
+// import java.beans.PropertyChangeSupport;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DateFormat;
@@ -223,7 +230,7 @@ public class DataFormatter {
     private boolean localeIsAdapting;
 
     // contain a support object instead of extending the support class
-    private final PropertyChangeSupport pcs;
+    // private final PropertyChangeSupport pcs;
 
     /** For logging any problems we find */
     private static final Logger LOG = LogManager.getLogger(DataFormatter.class);
@@ -266,10 +273,10 @@ public class DataFormatter {
      * @param  emulateCSV whether to emulate CSV output.
      */
     public DataFormatter(Locale locale, boolean localeIsAdapting, boolean emulateCSV) {
-        this.localeIsAdapting = true;
-        pcs = new PropertyChangeSupport(this);
+        this.localeIsAdapting = false;
+        // pcs = new PropertyChangeSupport(this);
         // localeIsAdapting must be true prior to this first checkForLocaleChange call.
-        checkForLocaleChange(locale);
+        // checkForLocaleChange(locale);
         // set localeIsAdapting so subsequent checks perform correctly
         // (whether a specific locale was provided to this DataFormatter or DataFormatter should
         // adapt to the current user locale as the locale changes)
@@ -1224,19 +1231,12 @@ public class DataFormatter {
      *
      * @return the listener object, where callers can register themselves
      */
-    public PropertyChangeSupport getLocaleChangedObservable() {
-        return pcs;
-    }
+//    public PropertyChangeSupport getLocaleChangedObservable() {
+//        return pcs;
+//    }
 
     private void checkForLocaleChange() {
-        checkForLocaleChange(LocaleUtil.getUserLocale());
-    }
-
-    private void checkForLocaleChange(Locale newLocale) {
-        if (!localeIsAdapting) return;
-        if (newLocale.equals(locale)) return;
-        updateLocale(newLocale);
-        pcs.firePropertyChange("locale", locale, newLocale);
+//        checkForLocaleChange(LocaleUtil.getUserLocale());
     }
 
     /**
