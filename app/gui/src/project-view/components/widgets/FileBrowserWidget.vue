@@ -280,11 +280,16 @@ async function commitSecret(value: string, name: string) {
   creatingSecret.value = false
   filenameInputContents.value = name
   commitSecretPending.value = true
-  await createSecret.mutateAsync([
-    { name, value, parentDirectoryId: currentDirectory.value?.id ?? null },
-  ])
-  commitSecretPending.value = false
-  acceptCurrentFile()
+  try {
+    await createSecret.mutateAsync([
+      { name, value, parentDirectoryId: currentDirectory.value?.id ?? null },
+    ])
+    acceptCurrentFile()
+  } catch (error) {
+    errorToast.show(`Failed to create secret: ${error instanceof Error ? error.message : error}`)
+  } finally {
+    commitSecretPending.value = false
+  }
 }
 
 const enableTopBarButtons = computed(() => !creatingSecret.value)
