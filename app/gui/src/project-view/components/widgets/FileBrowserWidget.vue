@@ -37,6 +37,7 @@ import Backend, {
   assetIsSecret,
   AssetType,
 } from 'enso-common/src/services/Backend'
+import { AnimatePresence, Motion } from 'motion-v'
 import { computed, onMounted, reactive, ref, toRef, toValue, useTemplateRef, watch } from 'vue'
 import { SubmenuEntry } from '../GraphEditor/widgets/WidgetSelection/submenuEntry'
 
@@ -489,6 +490,15 @@ const fileExtensionDisplayedContents = computed({
 interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
   extensions: 'all' | string[]
 }
+
+const fileEntriesAnimationConfig = {
+  asChild: true,
+  layout: true,
+  transition: { duration: 1.0 },
+  initial: { opacity: 0, y: 30 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: 30 },
+}
 </script>
 
 <template>
@@ -550,34 +560,49 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
       <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
       <div v-else :key="currentDirectory?.id ?? 'root'" class="listing contents">
         <ContextMenuTrigger :actions="[renameAction]" @hidden="focusedDirectory = undefined">
-          <TransitionGroup>
-            <FileBrowserEntry
+          <AnimatePresence as="div" :multiple="true" mode="popLayout">
+            <Motion
               v-if="editedAsset && editedAsset.asset == null"
               :key="keyOverride.get(newDirPlaceholder) ?? newDirPlaceholder"
-              icon="folder"
-              :title="editedAsset.name"
-              :editingState="editedAsset.state"
-              @nameAccepted="acceptName($event)"
-            />
-            <FileBrowserEntry
+              v-bind="fileEntriesAnimationConfig"
+              asChild
+            >
+              <FileBrowserEntry
+                icon="folder"
+                :title="editedAsset.name"
+                :editingState="editedAsset.state"
+                @nameAccepted="acceptName($event)"
+              />
+            </Motion>
+            <Motion
               v-for="entry in directories"
               :key="keyOverride.get(entry.id) ?? entry.id"
-              icon="folder"
-              :title="editedAsset?.asset?.id === entry.id ? editedAsset.name : entry.title"
-              :editingState="editedAsset?.asset?.id === entry.id ? editedAsset.state : undefined"
-              @click="enterDir(entry)"
-              @nameAccepted="acceptName($event)"
-              @contextmenu="focusedDirectory = entry"
-            />
-            <FileBrowserEntry
+              v-bind="fileEntriesAnimationConfig"
+              asChild
+            >
+              <FileBrowserEntry
+                icon="folder"
+                :title="editedAsset?.asset?.id === entry.id ? editedAsset.name : entry.title"
+                :editingState="editedAsset?.asset?.id === entry.id ? editedAsset.state : undefined"
+                @click="enterDir(entry)"
+                @nameAccepted="acceptName($event)"
+                @contextmenu="focusedDirectory = entry"
+              />
+            </Motion>
+            <Motion
               v-for="entry in files"
               :key="entry.id"
-              icon="text2"
-              :title="entry.title"
-              :highlighted="entry.title === highlightedName"
-              @click="chooseFile(entry)"
-            />
-          </TransitionGroup>
+              v-bind="fileEntriesAnimationConfig"
+              asChild
+            >
+              <FileBrowserEntry
+                icon="text2"
+                :title="entry.title"
+                :highlighted="entry.title === highlightedName"
+                @click="chooseFile(entry)"
+              />
+            </Motion>
+          </AnimatePresence>
         </ContextMenuTrigger>
       </div>
       <div v-if="writeMode" class="fileNameBar">
@@ -719,7 +744,7 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
   pointer-events: none;
 }
 
-.v-move,
+/* .v-move,
 .v-enter-active,
 .v-leave-active {
   transition: all var(--transition-duration) ease;
@@ -731,7 +756,7 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
 }
 .list-leave-active {
   position: absolute;
-}
+} */
 
 .fileNameBar {
   width: 100%;
