@@ -42,8 +42,8 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
         max_size_mb = 450
         exec = File.new enso_bin
         exec.exists . should_be_true
-        Test.with_clue ("Size of the NI executable should be between [" + min_size_mb.to_text + "MB, " + max_size_mb.to_text + "MB]") <|
-            actual_size_mb = exec.size / (1024 * 1024)
+        actual_size_mb = exec.size / (1024 * 1024)
+        Test.with_clue ("Size of the NI executable should be between [" + min_size_mb.to_text + "MB, " + max_size_mb.to_text + "MB], but was: " + actual_size_mb.to_text + "MB.") <|
             (min_size_mb < actual_size_mb) . should_be_true
             (actual_size_mb < max_size_mb) . should_be_true
 
