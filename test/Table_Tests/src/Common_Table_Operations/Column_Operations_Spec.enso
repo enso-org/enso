@@ -1426,8 +1426,12 @@ add_column_operation_specs suite_builder setup =
             c2.to_vector . should_equal [2, 2, 3]
             setup.expect_integer_type c2
 
-            c3 = data.a.min [2.5, 2]
-            c3.to_vector . should_equal [1, 2, 2]
+            c3 = data.a.min [2.5, 1.2]
+            c3.to_vector . should_equal [1, 1.2, 1.2]
+            IO.println c3.to_vector
+            c3.print
+            c3.read.print
+            IO.println c3.read.value_type
             c3.value_type.should_be_a (Value_Type.Float ...)
 
             c4 = data.a.max [2.5, 2]
