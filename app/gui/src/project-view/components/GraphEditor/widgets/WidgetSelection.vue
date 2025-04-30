@@ -49,7 +49,7 @@ const activityElement = ref<HTMLElement>()
 const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned<Ast.MutableExpression> | string | undefined>()
 const isHovered = ref(false)
-/** See @{link Actions.setActivity} */
+/** See {@link Actions.setActivity} */
 const activity = shallowRef<ToValue<VNode>>()
 const keepActivityAlive = ref(false)
 
@@ -70,8 +70,9 @@ function makeExpressionFilter(pattern: Ast.Ast | string): ExpressionFilter | und
   const editedCode = pattern instanceof Ast.Ast ? pattern.code() : pattern
   if (editedAst instanceof Ast.TextLiteral) {
     return (tag: ExpressionTag) =>
-      tag.expressionAst instanceof Ast.TextLiteral &&
-      tag.expressionAst.rawTextContent.startsWith(editedAst.rawTextContent)
+      (tag.expressionAst instanceof Ast.TextLiteral &&
+        tag.expressionAst.rawTextContent.startsWith(editedAst.rawTextContent)) ||
+      (tag.explicitLabel != null && tag.explicitLabel.startsWith(editedAst.rawTextContent))
   }
   if (editedCode) {
     return (tag: ExpressionTag) => tag.expression.startsWith(editedCode)
@@ -201,7 +202,7 @@ function onClose() {
 }
 
 const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Choice')
-const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input, {
+const dropDownInteraction = WidgetEditHandler.New(props, {
   cancel: onClose,
   end: onClose,
   pointerdown: (e) => {

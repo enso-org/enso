@@ -659,7 +659,7 @@ const nodeName = computed(() => props.node.pattern?.code())
 }
 
 .ComponentMenu {
-  z-index: 25;
+  z-index: 20;
   &.partial {
     z-index: 1;
   }

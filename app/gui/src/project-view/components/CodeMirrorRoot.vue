@@ -11,11 +11,8 @@ defineExpose({ highlightClasses: useCssModule() })
 </template>
 
 <style scoped>
-.CodeMirrorRoot {
-  display: contents;
-  & :deep(.cm-content) {
-    cursor: text;
-  }
+.CodeMirrorRoot :deep(.cm-content) {
+  cursor: text;
 }
 </style>
 

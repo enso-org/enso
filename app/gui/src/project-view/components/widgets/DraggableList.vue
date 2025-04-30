@@ -137,7 +137,7 @@ const displayedChildren = computed(() => {
 
 const cssPropsToCopy = [
   '--color-node-primary',
-  '--color-node-port',
+  '--color-node-edge',
   '--node-border-radius',
   'font-family',
   'font-size',
@@ -420,11 +420,10 @@ const placeholderSizeProp = computed(() => `--placeholder-${props.axis}` as cons
               :class="{ hintDeletable: entry.hintDeletable.value }"
               data-testid="list-item-content"
             >
-              <slot :item="entry.item"></slot>
+              <slot :item="entry.item" :index="entry.index"></slot>
             </div>
             <SizeTransition width>
-              <!-- This wrapper is needed to animate an `SvgButton` because it ultimately contains a `TooltipTrigger`,
-                       which has a fragment root. -->
+              <!-- This wrapper is needed to animate an `SvgButton` because it ultimately contains a `TooltipTrigger`, which has a fragment root. -->
               <div v-if="props.showHandles" class="iconWrapper">
                 <SvgButton
                   class="item-button"

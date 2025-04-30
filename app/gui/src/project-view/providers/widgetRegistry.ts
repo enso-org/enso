@@ -168,10 +168,10 @@ export interface WidgetProps<T> {
  */
 export interface WidgetUpdate {
   edit?: Ast.MutableModule | undefined
-  portUpdate?: { origin: PortId } & (
-    | { value: Ast.Owned<Ast.MutableExpression> | string | undefined }
-    | { metadataKey: string; metadata: unknown }
-  )
+  portUpdate?:
+    | { origin: PortId; value: Ast.Owned<Ast.MutableExpression> | string | undefined }
+    | { origin: PortId; metadataKey: string; metadata: unknown }
+
   /**
    * Set to true if the updated is caused by direct interaction with the origin widget - a usual case.
    * An example if _nondirect_ interaction is an update of a port connected to a removed node).

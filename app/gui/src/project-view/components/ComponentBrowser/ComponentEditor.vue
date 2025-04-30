@@ -117,7 +117,7 @@ const rootStyle = computed(() => {
   margin: 0;
   isolation: isolate;
   &.port {
-    background-color: var(--color-node-port);
+    background-color: var(--color-node-edge);
     color: white;
   }
 }

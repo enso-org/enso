@@ -73,7 +73,7 @@ const { editedCell, gridEventHandlers, headerEventHandlers } = useTableEditHandl
   () => grid.value?.gridApi,
   columnDefs,
   (hooks) => {
-    const handler = WidgetEditHandler.New('WidgetTableEditor', props.input, {
+    const handler = WidgetEditHandler.New(props, {
       ...hooks,
       pointerdown: (event) => {
         if (

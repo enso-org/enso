@@ -177,7 +177,7 @@ export const widgetDefinition = defineWidget(
 <template>
   <div
     ref="portRoot"
-    class="WidgetPort"
+    class="WidgetPort widgetPill"
     :class="{
       enabled,
       connected,
@@ -206,7 +206,7 @@ export const widgetDefinition = defineWidget(
 }
 
 .WidgetPort.connected {
-  background-color: var(--color-node-port);
+  background: var(--color-widget);
   color: var(--color-node-text);
 }
 

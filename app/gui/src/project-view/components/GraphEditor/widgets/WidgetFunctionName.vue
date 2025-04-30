@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
+import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { usePersisted } from '@/stores/persisted'
 import { useProjectStore } from '@/stores/project'
 import { injectProjectNames } from '@/stores/projectNames'
 import { Ast } from '@/util/ast'
-import { useCodeMirror, useStringSync } from '@/util/codemirror'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { type MethodPointer } from '@/util/methodPointer'
 import { type IdentifierOrOperatorIdentifier } from '@/util/qualifiedName'
 import { useToast } from '@/util/toast'
-import { type ComponentInstance, computed, useTemplateRef, watch } from 'vue'
+import { computed, useTemplateRef } from 'vue'
 import { PropertyAccess } from 'ydoc-shared/ast'
 import { type ExpressionId } from 'ydoc-shared/languageServerTypes'
 import NodeWidget from '../NodeWidget.vue'
@@ -34,31 +33,18 @@ const name = computed(() =>
   props.input.value instanceof PropertyAccess ? props.input.value.rhs : props.input.value,
 )
 
-const nameCode = computed(() => name.value.code())
+const baseEditor = useTemplateRef('baseEditor')
 
-const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
-const { syncExt, connectSync } = useStringSync()
-const { editorView } = useCodeMirror(editorRoot, {
-  content: nameCode.value,
-  extensions: [syncExt],
-  readonly: false,
-  contentTestId: 'widget-function-name-content',
-  lineMode: 'single',
-})
-
-const { getText, setText } = connectSync(editorView)
-watch(nameCode, (text) => setText(text))
-
-async function newNameAccepted() {
-  const newName = getText()
-  if (newName !== nameCode.value) {
+const nameCode = computed({
+  get: () => name.value.code(),
+  set: async (newName) => {
     const result = await renameFunction(newName)
     if (!result.ok) {
       renameError.reportError(result.error)
-      setText(nameCode.value)
+      baseEditor.value?.setText(nameCode.value)
     }
-  }
-}
+  },
+})
 
 async function renameFunction(newName: string): Promise<Result> {
   if (!project.moduleProjectPath?.ok) return project.moduleProjectPath ?? Err('Unknown module Path')
@@ -112,12 +98,10 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetFunctionName widgetRounded">
+  <div class="WidgetFunctionName widgetRounded widgetPill">
     <NodeWidget v-if="thisArg" :input="WidgetInput.FromAst(thisArg)" />
     <NodeWidget v-if="operator" :input="WidgetInput.FromAst(operator)" />
-    <div class="widgetApplyPadding">
-      <CodeMirrorRoot ref="editorRoot" @focusout="newNameAccepted" @keydown.enter.stop />
-    </div>
+    <CodeMirrorWidgetBase ref="baseEditor" v-model="nameCode" :input="input" />
   </div>
 </template>
 
@@ -135,10 +119,6 @@ export const widgetDefinition = defineWidget(
     outline: none;
     background: var(--color-widget-focus);
     color: var(--color-node-text-selected);
-  }
-
-  &:deep(::selection) {
-    background: var(--color-widget-selection);
   }
 }
 

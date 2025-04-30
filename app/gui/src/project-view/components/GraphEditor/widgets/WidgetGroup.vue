@@ -34,9 +34,9 @@ export const widgetDefinition = defineWidget(
 
 <template>
   <div class="WidgetGroup">
-    <span v-if="displayParenthesis" class="token widgetApplyPadding">(</span>
+    <span v-if="displayParenthesis" class="token widgetApplyMargin">(</span>
     <NodeWidget v-if="child" :input="child" />
-    <span v-if="displayParenthesis" class="token widgetApplyPadding">)</span>
+    <span v-if="displayParenthesis" class="token widgetApplyMargin">)</span>
   </div>
 </template>
 

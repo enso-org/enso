@@ -97,7 +97,7 @@ export const ICON_WIDTH = 16
  *                           This allows the widget to implement its own padding that will be
  *                           kept constant no matter the situation (e.g. `TopLevelArgument`).
  *
- * - `.widgetApplyPadding`: Keep distance from rounded corners, apply padding as required by
+ * - `.widgetApplyMargin`: Keep distance from rounded corners, apply padding as required by
  *                          parent widget structure. This should be applied to *all* text-only
  *                          elements of a widget, anything that is or looks like a token.
  *
@@ -137,10 +137,38 @@ export const ICON_WIDTH = 16
     --widget-token-pad-right: 0px;
   }
 
-  :deep(.widgetApplyPadding.widgetApplyPadding) {
+  :deep(.widgetApplyMargin.widgetApplyMargin) {
     margin-left: var(--widget-token-pad-left, 0);
     margin-right: var(--widget-token-pad-right, 0);
     transition: margin 0.2s ease-out;
+  }
+
+  :deep(.widgetPill) {
+    background-color: var(--color-widget);
+    min-width: var(--node-port-height);
+    min-height: var(--node-port-height);
+    border-radius: var(--node-port-border-radius);
+    transition:
+      background-color,
+      color,
+      opacity 0.2s ease;
+
+    &:has(> :focus) {
+      outline: none;
+      background-color: var(--color-widget-focus);
+    }
+
+    ::selection {
+      background: var(--color-widget-selection);
+    }
+
+    &.selected {
+      background-color: var(--color-widget-unfocus);
+      &:has(> :focus) {
+        outline: none;
+        background-color: var(--color-widget-focus);
+      }
+    }
   }
 }
 </style>

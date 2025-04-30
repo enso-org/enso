@@ -39,7 +39,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <span class="WidgetToken widgetApplyPadding" :class="spanClass">{{ displayContent }}</span>
+  <span class="WidgetToken widgetApplyMargin" :class="spanClass">{{ displayContent }}</span>
 </template>
 
 <style scoped>

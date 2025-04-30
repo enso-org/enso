@@ -28,10 +28,16 @@ export const textEditorsCommonBindings = defineKeybinds('text-editors-common-bin
   deleteForward: ['Delete'],
 })
 
+export const textEditorsAllowedMultilineBindings = defineKeybinds(
+  'text-editors-auto-multiline-bindings',
+  {
+    newline: ['Alt+Enter'],
+  },
+)
+
 export const textEditorsMultilineBindings = defineKeybinds('text-editors-multiline-bindings', {
   moveUp: ['ArrowUp'],
   moveDown: ['ArrowDown'],
-  newline: ['Alt+Enter'],
 })
 
 export const listBindings = defineKeybinds('list', {

@@ -1,11 +1,20 @@
 import type { Interaction, InteractionHandler } from '@/providers/interactionHandler'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
-import type { WidgetInput } from '@/providers/widgetRegistry'
+import { WidgetInput } from '@/providers/widgetRegistry'
 import { injectWidgetTree, type CurrentEdit } from '@/providers/widgetTree'
 import type { Ast } from '@/util/ast'
-import { ArgumentInfoKey } from '@/util/callTree'
-import { computed, markRaw, onBeforeUnmount, shallowRef, type ShallowRef } from 'vue'
+import { ToValue } from '@/util/reactivity'
+import {
+  computed,
+  markRaw,
+  onBeforeUnmount,
+  shallowRef,
+  toRef,
+  toValue,
+  useId,
+  type ShallowRef,
+} from 'vue'
 import { assertDefined } from 'ydoc-shared/util/assert'
 
 declare const brandWidgetId: unique symbol
@@ -99,17 +108,15 @@ export abstract class WidgetEditHandlerParent {
     return this.isActive() ? this : this.parent?.activeAncestor()
   }
 
-  protected suspend(argumentId: string, widgetId: WidgetId) {
+  protected suspend(widgetInstance: WidgetInstanceId) {
     if (!this.isActive()) return
-    const widgetInstance: WidgetInstanceId = `${argumentId}||${widgetId}`
     if (!this.parent) return
     this.parent?.unsetActiveChild(this)
     this.parent.resumableDescendants ??= new Map()
     this.parent.resumableDescendants.set(widgetInstance, this.hooks.suspend?.()?.resume)
   }
 
-  protected tryResume(argumentId: string, widgetId: WidgetId, portId: PortId) {
-    const widgetInstance: WidgetInstanceId = `${argumentId}||${widgetId}`
+  protected tryResume(widgetInstance: WidgetInstanceId, portId: PortId) {
     const ancestor = this.activeAncestor() ?? this.root().tryResumeRoot(widgetInstance)
     if (!ancestor?.resumableDescendants?.has(widgetInstance)) return
     const resumeHook = ancestor.resumableDescendants.get(widgetInstance)
@@ -224,36 +231,49 @@ export class WidgetEditHandlerRoot extends WidgetEditHandlerParent implements In
  * the top-most widget, and a widget may choose to delegate to its child (if any) by returning false.
  */
 export class WidgetEditHandler extends WidgetEditHandlerParent {
-  /** TODO: Add docs */
-  constructor(
-    readonly portId: PortId,
+  private constructor(
+    readonly portIdGetter: () => PortId,
+    readonly parentGetter: () => WidgetEditHandlerParent | undefined,
     hooks: WidgetEditHooks,
-    parent: WidgetEditHandlerParent | undefined,
     widgetTree: CurrentEdit = injectWidgetTree(),
     interactionHandler = injectInteractionHandler(),
   ) {
-    super(parent ?? new WidgetEditHandlerRoot(widgetTree, interactionHandler), hooks)
+    super(toValue(parentGetter) ?? new WidgetEditHandlerRoot(widgetTree, interactionHandler), hooks)
   }
 
-  /** TODO: Add docs */
-  static New(
-    widgetId: string,
-    input: WidgetInput,
+  /** Create {@link WidgetEditHandler} from widget props. Convenience version of {@link NewFromPort}. */
+  static New(props: { input: WidgetInput }, myInteraction: WidgetEditHooks): WidgetEditHandler {
+    return WidgetEditHandler.NewFromInput(toRef(props, 'input'), myInteraction)
+  }
+
+  /** Create {@link WidgetEditHandler} from widget input. Convenience version of {@link NewFromPort}. */
+  static NewFromInput(
+    input: ToValue<WidgetInput>,
     myInteraction: WidgetEditHooks,
   ): WidgetEditHandler {
-    const wid = widgetId as WidgetId
-    const editHandler = new WidgetEditHandler(input.portId, myInteraction, input.editHandler)
-    const argumentId = input[ArgumentInfoKey]?.argId
-    if (argumentId) {
-      editHandler.tryResume(argumentId, wid, editHandler.portId)
-      onBeforeUnmount(() => editHandler.suspend(argumentId, wid))
-    }
+    return WidgetEditHandler.NewFromPort(
+      () => toValue(input).portId,
+      () => toValue(input).editHandler,
+      myInteraction,
+    )
+  }
+
+  /** Create {@link WidgetEditHandler} by manually providing ways to retreive PortId and parent edit handler. */
+  static NewFromPort(
+    portIdGetter: () => PortId,
+    parentGetter: () => WidgetEditHandlerParent | undefined,
+    myInteraction: WidgetEditHooks,
+  ): WidgetEditHandler {
+    const widgetInstance = useId() as WidgetInstanceId
+    const editHandler = new WidgetEditHandler(portIdGetter, parentGetter, myInteraction)
+    editHandler.tryResume(widgetInstance, editHandler.portIdGetter())
+    onBeforeUnmount(() => editHandler.suspend(widgetInstance))
     return editHandler
   }
 
   /** TODO: Add docs */
   end() {
-    this.onEnd(this.portId)
+    this.onEnd(this.portIdGetter())
   }
 
   /** TODO: Add docs */
@@ -263,12 +283,12 @@ export class WidgetEditHandler extends WidgetEditHandlerParent {
 
   /** TODO: Add docs */
   start() {
-    this.onStart(this.portId)
+    this.onStart(this.portIdGetter())
   }
 
   /** Emit an event updating the widget's value. */
   edit(value: Ast.Owned<Ast.MutableExpression> | string) {
-    this.onEdit(this.portId, value)
+    this.onEdit(this.portIdGetter(), value)
   }
 }
 

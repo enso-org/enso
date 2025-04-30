@@ -118,7 +118,7 @@ function useChildEditForwarding(input: WatchSource<Ast.Expression | unknown>) {
 }
 const { childEnded, edit } = useChildEditForwarding(toRef(props.input, 'value'))
 
-const editHandler = WidgetEditHandler.New('WidgetVector', props.input, {
+const editHandler = WidgetEditHandler.New(props, {
   cancel: () => {},
   end: () => {},
   childEnded,
@@ -155,7 +155,7 @@ const DEFAULT_ITEM = computed(() => Ast.Wildcard.new())
 
 <template>
   <div class="WidgetVector">
-    <span class="token widgetApplyPadding">[</span>
+    <span class="token widgetApplyMargin">[</span>
     <DraggableList
       :items="value"
       axis="x"
@@ -174,10 +174,10 @@ const DEFAULT_ITEM = computed(() => Ast.Wildcard.new())
         <NodeWidget :input="itemInput(item)" nest />
       </template>
       <template #separator>
-        <div class="token widgetApplyPadding">,&nbsp;</div>
+        <div class="token widgetApplyMargin">,&nbsp;</div>
       </template>
     </DraggableList>
-    <span class="token widgetApplyPadding">]</span>
+    <span class="token widgetApplyMargin">]</span>
   </div>
 </template>
 <style scoped>
