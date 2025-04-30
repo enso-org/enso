@@ -62,10 +62,17 @@ type Tableau_Format
     read : File -> Problem_Behavior -> Any
     read self file on_problems:Problem_Behavior =
         _ = [on_problems]
-        result = Hyper_File.new file self.schema
-        result.if_not_error <|
-            Telemetry.log "File_Format.read" "Read file: format={}, output={}, schema_count={}, table_count={}" ["Tableau_Format", "Hyper_File", result.schemas.length, result.tables.length]
-            result
+        case self of
+            Tableau_Format.Hyper_File _ ->         
+                result = Hyper_File.new file self.schema
+                result.if_not_error <|
+                    Telemetry.log "File_Format.read" "Read file: format={}, output={}, schema_count={}, table_count={}" ["Tableau_Format", "Hyper_File", result.schemas.length, result.tables.length]
+                    result
+            Tableau_Format.Hyper_Table _ _ ->
+                result = Hyper_File.new file . read self.table self.schema
+                result.if_not_error <|
+                    Telemetry.log "File_Format.read" "Read file: format={}, output={}, row_count={}, column_count={}" ["Tableau_Format.Hyper_Table", "Table", result.row_count, result.column_count]
+                    result
 
     ## PRIVATE
        Implements decoding the format from a stream.

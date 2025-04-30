@@ -58,6 +58,7 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         written_table = written_table_in_hyper.read
         written_table.should_equal t
         (r.read.read "MyTableName" "MySchemaName").should_equal t
+        Data.read r (..Hyper_Table "MySchemaName" "MyTableName") . should_equal t
         written_file.delete
 
     can_round_trip table:Table =
