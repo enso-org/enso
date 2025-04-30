@@ -112,10 +112,10 @@ case object FunctionBinding extends IRPass {
         )
 
       Expression.Binding(
-        name = functionBinding.name,
-        expression = lambda,
+        name               = functionBinding.name,
+        expression         = lambda,
         identifiedLocation = functionBinding.identifiedLocation,
-        passData = functionBinding.passData
+        passData           = functionBinding.passData
       )
     }
   }
