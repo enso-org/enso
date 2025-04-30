@@ -19,8 +19,8 @@ import java.util.stream.Stream;
 import org.enso.filesystem.FileSystem;
 
 /**
- * {@link FileSystem} implementation for Apache Commons VFS2. So far, only RAM file system is
- * supported.
+ * {@link FileSystem} implementation that keeps all the created files in memory. Does not access the
+ * real file system.
  */
 final class VirtualFileSystem implements FileSystem<Path>, AutoCloseable {
   private final java.nio.file.FileSystem fileSystem;
