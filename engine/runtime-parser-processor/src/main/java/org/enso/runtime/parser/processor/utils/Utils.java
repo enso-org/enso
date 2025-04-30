@@ -37,6 +37,9 @@ public final class Utils {
 
   /** Returns true if the given {@code type} is a subtype of {@code org.enso.compiler.core.IR}. */
   public static boolean isSubtypeOfIR(TypeElement type, ProcessingEnvironment processingEnv) {
+    if (isAnnotatedAndNotYetCompiled(type)) {
+      return true;
+    }
     var irIfaceFound =
         iterateSuperInterfaces(
             type,
@@ -53,6 +56,22 @@ public final class Utils {
               return null;
             });
     return irIfaceFound != null;
+  }
+
+  /**
+   * Returns true if the given type is annotated with {@link
+   * org.enso.runtime.parser.dsl.GenerateIR}, and has no super class compiled yet. This can happen
+   * if the currently processed compilation unit contains more than one class annotated with {@link
+   * GenerateIR}.
+   *
+   * @param type
+   * @return
+   */
+  private static boolean isAnnotatedAndNotYetCompiled(TypeElement type) {
+    var anot = type.getAnnotation(GenerateIR.class);
+    var superClass = type.getSuperclass();
+    var superClassDoesNotExist = superClass.getKind() == TypeKind.ERROR;
+    return anot != null && superClassDoesNotExist;
   }
 
   /** Returns true if the given {@code type} is an {@code org.enso.compiler.core.IR} interface. */
