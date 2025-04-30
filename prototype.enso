@@ -26,7 +26,7 @@ main =
     IO.println db.name
     IO.println db.to_vector
     IO.println db.length
-    # SQL specific
+    # SQL specific work without any casts
     IO.println db.to_sql
 
     IO.println '\n\ndownloaded'
@@ -45,7 +45,7 @@ main =
     IO.println db2.name
     IO.println db2.to_vector
 
-    # SQL-specific need cast
+    # SQL-specific need cast now because the My_DB_Column part of the type has been hidden by fill_nothing having just `My_Base_Column` as return type
     IO.println (Panic.recover Any db2.to_sql)
     IO.println (db2:My_DB_Column).to_sql
 
