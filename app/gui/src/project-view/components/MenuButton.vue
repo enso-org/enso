@@ -16,12 +16,15 @@ import type { ComponentExposed } from 'vue-component-type-helpers'
 const toggledOn = defineModel<boolean>({ default: undefined })
 const props = defineProps<{ disabled?: boolean | undefined; title?: string | undefined }>()
 const tooltipTrigger = ref<ComponentExposed<typeof TooltipTrigger>>()
+const emit = defineEmits<{ click: [] }>()
 
 function onClick() {
-  if (!props.disabled && toggledOn.value != null) toggledOn.value = !toggledOn.value
   if (tooltipTrigger.value) {
     tooltipTrigger.value.hideTooltip()
   }
+  if (props.disabled) return
+  if (toggledOn.value != null) toggledOn.value = !toggledOn.value
+  emit('click')
 }
 </script>
 
@@ -35,6 +38,7 @@ function onClick() {
         :disabled="disabled ?? false"
         v-bind="triggerProps"
         @click.stop="onClick"
+        @keydown.enter.stop
       >
         <slot />
       </button>

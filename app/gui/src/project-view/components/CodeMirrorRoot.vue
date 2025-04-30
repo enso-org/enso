@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { useCssModule } from 'vue'
 
-defineExpose({ highlightClasses: useCssModule() })
+const highlightClasses = useCssModule()
+defineExpose({ highlightClasses })
 </script>
 
 <template>

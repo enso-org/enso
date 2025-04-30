@@ -7,7 +7,7 @@ import { targetIsOutside } from '@/util/autoBlur'
 import { selectOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { Extension, SelectionRange } from '@codemirror/state'
-import { ComponentInstance, ref, useTemplateRef, watch, watchEffect } from 'vue'
+import { ComponentInstance, ref, useCssModule, useTemplateRef, watch, watchEffect } from 'vue'
 
 const props = defineProps<{
   input: WidgetInput
@@ -22,11 +22,8 @@ const props = defineProps<{
    */
   contentTestId?: string
   transformUserInput?: (value: string) => Ast.Owned<Ast.MutableTextLiteral> | string
-  /**
-   * Editor line mode.
-   * @default 'single'
-   */
-  lineMode?: 'single' | 'multi' | 'auto'
+  /** Editor line mode. Single-line mode will not allow entering newline characters. */
+  lineMode: 'single' | 'multi' | 'auto'
 }>()
 
 const model = defineModel<string>({ default: '' })
@@ -34,6 +31,8 @@ const emit = defineEmits<{
   textEdited: [text: string]
   userAction: [text: string, selection: SelectionRange]
 }>()
+
+const themeWidget = useCssModule('themeWidget')
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 
@@ -52,7 +51,7 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
 })
 watchEffect(() =>
   setExtraExtensions([
-    highlightStyle(editorRoot.value?.highlightClasses ?? {}),
+    highlightStyle(themeWidget),
     ...(props.lineMode !== 'multi' ? [selectOnMouseFocus] : []),
     ...(props.extensions ?? []),
   ]),
@@ -141,7 +140,7 @@ export const widgetDefinition = defineWidget(
 <template>
   <CodeMirrorRoot
     ref="editorRoot"
-    class="CodeMirrorRoot widgetApplyMargin"
+    class="CodeMirrorWidgetBase widgetApplyMargin"
     @focusin="editing.start()"
     @keydown.enter="onEnter"
     @keydown.tab.stop.capture="accepted"
@@ -151,9 +150,38 @@ export const widgetDefinition = defineWidget(
   />
 </template>
 <style scoped>
-.CodeMirrorRoot {
+.CodeMirrorWidgetBase {
+  :deep(.cm-content) {
+    caret-color: var(--color-node-text);
+  }
   &:deep(::selection) {
     background: var(--color-widget-selection);
   }
+}
+</style>
+
+<!--suppress CssUnusedSymbol -->
+<style module="themeWidget">
+.comment,
+.lineComment,
+.blockComment,
+.docComment,
+.name,
+.variableName,
+.definition-variableName,
+.literal,
+.string,
+.escape,
+.number,
+.keyword,
+.moduleKeyword,
+.modifier,
+.punctuation,
+.paren,
+.operator,
+.definitionOperator,
+.invalid {
+  color: var(--color-node-text);
+  transition: color 0.2s ease;
 }
 </style>

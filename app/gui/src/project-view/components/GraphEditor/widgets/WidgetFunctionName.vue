@@ -101,19 +101,15 @@ export const widgetDefinition = defineWidget(
   <div class="WidgetFunctionName widgetRounded widgetPill">
     <NodeWidget v-if="thisArg" :input="WidgetInput.FromAst(thisArg)" />
     <NodeWidget v-if="operator" :input="WidgetInput.FromAst(operator)" />
-    <CodeMirrorWidgetBase ref="baseEditor" v-model="nameCode" :input="input" />
+    <CodeMirrorWidgetBase ref="baseEditor" v-model="nameCode" :input="input" lineMode="single" />
   </div>
 </template>
 
 <style scoped>
 .WidgetFunctionName {
   display: inline-flex;
-  background: var(--color-widget);
-  border-radius: var(--radius-full);
   justify-content: center;
   align-items: center;
-  min-width: var(--node-port-height);
-  color: var(--color-node-text);
 
   &:has(> :focus) {
     outline: none;

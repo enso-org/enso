@@ -85,7 +85,8 @@ function handleRename(index: number, newName: Ast.Owned<Ast.MutableExpression>) 
     const oldName = ast.argumentDefinitions[index]?.pattern.node.code()
     if (!oldName) return
     ast.visitRecursive((child) => {
-      if (child instanceof Ast.Ident && child.code() === oldName) edit.replace(child.id, newName)
+      if (child instanceof Ast.Ident && child.code() === oldName)
+        edit.replaceValue(child.id, newName)
     })
   })
 }

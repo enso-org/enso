@@ -177,7 +177,7 @@ export const widgetDefinition = defineWidget(
 <template>
   <div
     ref="portRoot"
-    class="WidgetPort widgetPill"
+    class="WidgetPort"
     :class="{
       enabled,
       connected,

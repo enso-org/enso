@@ -50,6 +50,7 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
     ensoHoverTooltip(graphStore, suggestionDbStore, vueHost),
   ],
   vueHost: () => vueHost,
+  lineMode: 'multi',
 })
 ;(window as any).__codeEditorApi = testSupport(editorView)
 useAutoBlur(editorView.dom)

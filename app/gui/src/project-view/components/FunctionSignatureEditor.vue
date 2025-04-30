@@ -6,6 +6,7 @@ import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { documentationData } from '@/stores/suggestionDatabase/documentation'
 import { colorFromString } from '@/util/colors'
 import { type MethodPointer } from '@/util/methodPointer'
+import { useFocusWithin } from '@vueuse/core'
 import { computed, ref, watchEffect } from 'vue'
 import { FunctionDef } from 'ydoc-shared/ast'
 import type * as Y from 'yjs'
@@ -48,6 +49,7 @@ const treeRootInput = computed((): WidgetInput => {
 })
 
 const rootElement = ref<HTMLElement>()
+const { focused } = useFocusWithin(rootElement)
 
 const graph = useGraphStore()
 
@@ -80,7 +82,12 @@ const rootStyle = computed(() => {
 </script>
 
 <template>
-  <div ref="rootElement" :style="rootStyle" class="FunctionSignatureEditor define-node-colors">
+  <div
+    ref="rootElement"
+    :style="rootStyle"
+    class="FunctionSignatureEditor define-node-colors"
+    :class="{ selected: focused }"
+  >
     <WidgetTreeRoot
       :externalId="functionAst.externalId"
       :input="treeRootInput"

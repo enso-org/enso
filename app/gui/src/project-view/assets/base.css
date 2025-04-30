@@ -76,11 +76,6 @@
   );
   --color-node-background: var(--node-group-color);
   --color-node-primary: var(--node-group-color);
-  --color-node-edge: color-mix(
-    in oklab,
-    var(--node-group-color) 85%,
-    white 15%
-  );
   --color-node-error: color-mix(
     in oklab,
     var(--node-group-color) 30%,

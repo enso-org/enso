@@ -68,8 +68,6 @@ const layerStyle = computed(() => ({
       @dragging="nodeIsDragged(id, $event)"
       @draggingCommited="dragging.finishDrag()"
       @draggingCancelled="dragging.cancelDrag()"
-      @outputPortClick="(event, port) => graphStore.createEdgeFromOutput(port, event)"
-      @outputPortDoubleClick="(_event, port) => emit('nodeOutputPortDoubleClick', port)"
       @enterNode="emit('enterNode', id)"
       @createNodes="emit('createNodes', id, $event)"
       @toggleDocPanel="emit('toggleDocPanel')"

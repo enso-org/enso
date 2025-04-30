@@ -26,7 +26,7 @@ const astCode = computed({
 })
 
 function validateAst(ast: Ast.Expression | undefined): boolean {
-  return ast != null && (props.input[EnsoExpression].validateInput?.(ast) ?? true)
+  return ast != null && (props.input[EnsoExpression]?.validateInput?.(ast) ?? true)
 }
 
 const moduleRoot = ref(BodyBlock.new([], MutableModule.Transient()))
@@ -57,17 +57,19 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetEnsoExpression widgetRounded">
-    <CodeMirrorWidgetBase v-model="astCode" :input="input" :extensions="extensions" />
+  <div class="WidgetEnsoExpression widgetRounded widgetPill">
+    <CodeMirrorWidgetBase
+      v-model="astCode"
+      :input="input"
+      :extensions="extensions"
+      lineMode="single"
+    />
   </div>
 </template>
 
 <style scoped>
 .WidgetEnsoExpression {
   display: inline-flex;
-  background: var(--color-widget);
-  min-width: var(--node-port-height);
-  border-radius: var(--radius-default);
   justify-content: center;
   align-items: center;
 }

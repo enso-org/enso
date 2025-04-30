@@ -28,16 +28,8 @@ function shrinkFactor(index: number): number {
 <template>
   <div class="Breadcrumbs" :style="{ 'background-color': color }">
     <div class="breadcrumbs-controls">
-      <SvgButton
-        name="navigate_back"
-        :disabled="!props.canGoBackward"
-        @click.stop="emit('backward')"
-      />
-      <SvgButton
-        name="navigate_forward"
-        :disabled="!props.canGoForward"
-        @click.stop="emit('forward')"
-      />
+      <SvgButton name="navigate_back" :disabled="!props.canGoBackward" @click="emit('backward')" />
+      <SvgButton name="navigate_forward" :disabled="!props.canGoForward" @click="emit('forward')" />
     </div>
     <TransitionGroup name="breadcrumbs">
       <template v-for="(breadcrumb, index) in props.breadcrumbs" :key="[index, breadcrumb.label]">
