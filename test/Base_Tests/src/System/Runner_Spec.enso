@@ -36,6 +36,17 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
             Test.with_clue clue <|
                 retcode . should_equal 0
 
+    ni_size_pending = if runs_in_aot then Nothing else "Only runs in AOT"
+    group_builder.specify "Size of the Native Image executable should be kept reasonably small" pending=ni_size_pending <|
+        min_size_mb = 150
+        max_size_mb = 450
+        exec = File.new enso_bin
+        exec.exists . should_be_true
+        Test.with_clue ("Size of the NI executable should be between [" + min_size_mb.to_text + "MB, " + max_size_mb.to_text + "MB]") <|
+            actual_size_mb = exec.size / (1024 * 1024)
+            (min_size_mb < actual_size_mb) . should_be_true
+            (actual_size_mb < max_size_mb) . should_be_true
+
 
 runs_in_aot =
     prop = J_System.getProperty "org.graalvm.nativeimage.imagecode"
