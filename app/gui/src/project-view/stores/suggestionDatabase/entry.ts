@@ -199,6 +199,8 @@ export function suggestionDocumentationUrl(entry: SuggestionEntry): string | und
   if (!functionPath) return
   const postPath = functionPath.replace(`${path}.`, '')
 
+  // The path should be split into qualified name segments as the definition file.
+  // The function Path (e.g. Table.filter) is kept as a single part of the URL.
   return [DOCUMENTATION_ROOT, project, ...qnSegments(path), postPath].join('/')
 }
 
