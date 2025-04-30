@@ -1,9 +1,9 @@
 /** @file A modal for showing logs for a project. */
 import ReloadIcon from '#/assets/reload.svg'
 import { Button, Dialog } from '#/components/AriaComponents'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import type { ProjectSessionId } from '#/services/Backend'
+import { useTextInReact } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 /** Props for a {@link ProjectLogsModal}. */
@@ -15,7 +15,7 @@ export interface ProjectLogsModalProps {
 
 /** A modal for showing logs for a project. */
 export default function ProjectLogsModal(props: ProjectLogsModalProps) {
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   return (
     <Dialog title={getText('logs')} type="fullscreen">
@@ -27,7 +27,7 @@ export default function ProjectLogsModal(props: ProjectLogsModalProps) {
 /** A modal for showing logs for a project. */
 function ProjectLogsModalInternal(props: ProjectLogsModalProps) {
   const { backend, projectSessionId, projectTitle } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const logsQuery = useSuspenseQuery({
     queryKey: ['projectLogs', { projectSessionId, projectTitle }],

@@ -31,10 +31,10 @@ import ProjectLogsModal from '#/modals/ProjectLogsModal'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { setModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
+import { useTextInReact } from '$/providers/react'
 import {
   getLocalTimeZone,
   now,
@@ -77,7 +77,7 @@ export interface ProjectExecutionProps {
 /** Displays information describing a specific version of an asset. */
 export function ProjectExecution(props: ProjectExecutionProps) {
   const { compact = false, backend, item, projectExecution } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const getOrdinal = useGetOrdinal()
   const [timeZone = getLocalTimeZone()] = useLocalStorageState('preferredTimeZone')
   const date = props.date == null ? null : toZoned(props.date, timeZone)

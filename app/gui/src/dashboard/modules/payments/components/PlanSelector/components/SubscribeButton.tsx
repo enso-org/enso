@@ -1,7 +1,7 @@
 /** @file A button to subscribe to a plan. */
 import { getSalesEmail } from '#/appUtils'
 import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
-import { useText } from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 import { PLAN_TO_UPGRADE_LABEL_ID, TRIAL_DURATION_DAYS } from '../../../constants'
 import { PlanSelectorDialog, type PlanSelectorDialogProps } from './PlanSelectorDialog'
 
@@ -33,7 +33,7 @@ export function SubscribeButton(props: SubscribeButtonProps) {
     isOrganizationAdmin = false,
   } = props
 
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const buttonText = (() => {
     if (isDowngrade) {

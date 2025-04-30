@@ -8,8 +8,7 @@ import AboutModal from '#/modals/AboutModal'
 import { useAuth } from '#/providers/AuthProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { useText } from '#/providers/TextProvider'
-import { useRouterInReact } from '$/providers/react'
+import { useRouterInReact, useTextInReact } from '$/providers/react'
 import { PRODUCT_NAME } from 'enso-common'
 
 /** Props for an {@link InfoMenu}. */
@@ -25,7 +24,7 @@ export default function InfoMenu(props: InfoMenuProps) {
   const { signOut } = useSessionAPI()
   const { session } = useAuth()
   const { setModal } = useSetModal()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   return (
     <Popover {...(!hidden ? { 'data-testid': 'info-menu' } : {})} size="xxsmall">

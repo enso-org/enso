@@ -8,7 +8,7 @@ import type * as text from 'enso-common/src/text'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as textProvider from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
 
@@ -46,7 +46,7 @@ export interface PermissionProps {
 export default function Permission(props: PermissionProps) {
   const { backend, asset, self, isOnlyOwner, doDelete } = props
   const { permission: initialPermission, setPermission: outerSetPermission } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [permission, setPermission] = React.useState(initialPermission)
   const permissionId = backendModule.getAssetPermissionId(permission)

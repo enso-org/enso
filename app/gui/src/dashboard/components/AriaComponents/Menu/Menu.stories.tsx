@@ -8,7 +8,7 @@ import EyeClosed from '#/assets/eye_crossed.svg'
 import Folder from '#/assets/folder.svg'
 import type { Meta, StoryObj } from '@storybook/react'
 
-import { useText } from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 import { expect, userEvent, within } from '@storybook/test'
 import type { MenuProps } from '.'
 import { Menu } from '.'
@@ -273,7 +273,7 @@ export const DynamicContent: Story = {
 
 export const WithPopover: Story = {
   render: () => {
-    const { getText } = useText()
+    const { getText } = useTextInReact()
     return (
       <Menu.Trigger>
         <Button>Open Menu</Button>

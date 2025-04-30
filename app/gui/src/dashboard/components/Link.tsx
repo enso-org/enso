@@ -5,9 +5,9 @@ import * as toastify from 'react-toastify'
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
-import { useText } from '#/providers/TextProvider'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
+import { useTextInReact } from '$/providers/react'
 
 /** Props for a {@link Link}. */
 export interface LinkProps {
@@ -23,7 +23,7 @@ export default forwardRef(Link)
 /** A styled colored link with an icon. */
 function Link(props: LinkProps, ref: React.ForwardedRef<HTMLAnchorElement>) {
   const { openInBrowser = false, to, icon, text, onPress } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const linkRef = React.useRef<HTMLAnchorElement>(null)
 
   return (

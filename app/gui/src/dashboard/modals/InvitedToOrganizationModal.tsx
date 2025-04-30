@@ -7,13 +7,12 @@ import { SUPPORT_EMAIL, SUPPORT_EMAIL_URL } from '#/appUtils'
 import { Alert, Button, ButtonGroup, Dialog, Form, Text } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useText } from '#/providers/TextProvider'
-import { useBackendsInReact } from '$/providers/react'
+import { useBackendsInReact, useTextInReact } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
 
 /** Modal for accepting the terms of service. */
 export function InvitedToOrganizationModal({ children }: React.PropsWithChildren) {
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const { remoteBackend: backend } = useBackendsInReact()
   const { user } = useFullUserSession()
   const shouldDisplay = user.newOrganizationName != null && user.newOrganizationInvite != null

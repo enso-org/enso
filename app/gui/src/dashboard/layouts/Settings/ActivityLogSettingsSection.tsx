@@ -10,11 +10,11 @@ import { Scroller } from '#/components/Scroller'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { UserWithPopover } from '#/components/UserWithPopover'
 import { backendQueryOptions } from '#/hooks/backendHooks'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { type AuditLogEvent } from '#/services/Backend'
 import { iconIdFor, nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useTextInReact } from '$/providers/react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import {
@@ -53,7 +53,7 @@ export interface ActivityLogSettingsSectionProps {
 /** Settings tab for viewing and editing organization members. */
 export default function ActivityLogSettingsSection(props: ActivityLogSettingsSectionProps) {
   const { backend } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const [types, setTypes] = React.useState<readonly LambdaKind[]>([])
   const [typeIndices, setTypeIndices] = React.useState<readonly number[]>([])
   const [emails, setEmails] = React.useState<readonly string[]>([])

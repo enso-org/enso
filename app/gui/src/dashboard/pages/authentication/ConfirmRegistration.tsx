@@ -10,10 +10,9 @@ import { Button } from '#/components/AriaComponents'
 import { useMounted } from '#/hooks/mountHooks'
 import { useTimeoutAPI } from '#/hooks/timeoutHooks'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { useText } from '#/providers/TextProvider'
 import { noop } from '#/utilities/functions'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useRouterInReact } from '$/providers/react'
+import { useRouterInReact, useTextInReact } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
 import AuthenticationPage from './AuthenticationPage'
 
@@ -22,7 +21,7 @@ const REDIRECT_TIMEOUT = 5_000
 /** An empty component redirecting users based on the backend response to user registration. */
 export default function ConfirmRegistration() {
   const { confirmSignUp } = useSessionAPI()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const { router, searchParams } = useRouterInReact()
 
   const email = searchParams.get('email')

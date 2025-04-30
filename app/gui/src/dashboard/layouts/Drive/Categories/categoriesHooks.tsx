@@ -14,7 +14,6 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { BackendType, Path, type DirectoryId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
@@ -22,7 +21,7 @@ import { organizationIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
 import { pickBackend } from '$/providers/backends'
-import { useBackendsInReact } from '$/providers/react'
+import { useBackendsInReact, useTextInReact } from '$/providers/react'
 import type { ReactNode } from 'react'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
@@ -80,7 +79,7 @@ export type CloudCategoryResult = ReturnType<typeof useCloudCategoryList>
  */
 function useCloudCategoryList() {
   const user = useUser()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const cloudCategory: CloudCategory = {
     type: 'cloud',
@@ -182,7 +181,7 @@ function createLocalDirectoryCategory(directory: string): LocalDirectoryCategory
  * Usually these are the root folder and the list of favorites
  */
 function useLocalCategoryList() {
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const { localBackend } = useBackendsInReact()
   const [localRootDirectory] = useLocalStorageState('localRootDirectory')
   const rootPath = localRootDirectory != null ? Path(localRootDirectory) : localBackend?.rootPath()

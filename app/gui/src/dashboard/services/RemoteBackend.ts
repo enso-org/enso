@@ -9,7 +9,6 @@ import * as detect from 'enso-common/src/detect'
 import type * as text from 'enso-common/src/text'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
-import type * as textProvider from '#/providers/TextProvider'
 
 import Backend, * as backend from '#/services/Backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
@@ -18,6 +17,7 @@ import { DirectoryId, UserGroupId, UserId } from '#/services/Backend'
 import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
+import type { GetText } from '$/providers/text'
 import invariant from 'tiny-invariant'
 import { z } from 'zod'
 import { extractTypeAndId } from './LocalBackend'
@@ -202,12 +202,6 @@ export interface ListTagsResponseBody {
   readonly tags: readonly backend.Label[]
 }
 
-/**
- * A function that turns a text ID (and a list of replacements, if required) to
- * human-readable text.
- */
-type GetText = ReturnType<typeof textProvider.useText>['getText']
-
 /** Options for {@link RemoteBackend.post} private method. */
 interface RemoteBackendPostOptions {
   readonly keepalive?: boolean
@@ -227,7 +221,7 @@ export default class RemoteBackend extends Backend {
   constructor(
     private readonly client: HttpClient,
     private readonly logger: loggerProvider.Logger,
-    private getText: ReturnType<typeof textProvider.useText>['getText'],
+    private getText: GetText,
   ) {
     super()
   }

@@ -19,9 +19,8 @@ import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
-import { useBackendsInReact, useRouterInReact } from '$/providers/react'
+import { useBackendsInReact, useRouterInReact, useTextInReact } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 declare module '#/utilities/LocalStorage' {
@@ -44,7 +43,7 @@ export default function Registration() {
 
   const { searchParams } = useRouterInReact()
   const { localStorage } = useLocalStorage()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const { localBackend } = useBackendsInReact()
   const supportsOffline = localBackend != null
 

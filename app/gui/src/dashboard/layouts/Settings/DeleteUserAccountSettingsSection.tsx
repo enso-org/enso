@@ -2,12 +2,12 @@
 import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
 import { ConfirmDeleteUserModal } from '#/modals/ConfirmDeleteUserModal'
 import { useAuth } from '#/providers/AuthProvider'
-import { useText } from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 
 /** Settings tab for deleting the current user. */
 export default function DeleteUserAccountSettingsSection() {
   const { deleteUser } = useAuth()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   return (
     <div className="flex flex-col items-start gap-2.5 rounded-2.5xl border-2 border-danger px-[1rem] pb-[0.9375rem] pt-[0.5625rem]">

@@ -33,7 +33,6 @@ import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPane
 import { ProjectExecution } from '#/layouts/AssetPanel/components/ProjectExecution'
 import { NewProjectExecutionModal } from '#/layouts/NewProjectExecutionModal'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import {
   AssetType,
@@ -42,6 +41,7 @@ import {
   type ProjectAsset,
 } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
+import { useTextInReact } from '$/providers/react'
 
 const PROJECT_EXECUTIONS_CALENDAR_STYLES = tv({
   base: '',
@@ -66,7 +66,7 @@ export interface ProjectExecutionsCalendarProps {
 /** A calendar showing executions of a project. */
 export function ProjectExecutionsCalendar(props: ProjectExecutionsCalendarProps) {
   const { backend } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const { item } = useStore(assetPanelStore, (state) => ({ item: state.assetPanelProps.item }), {
     unsafeEnableTransition: true,
   })
@@ -93,7 +93,7 @@ interface ProjectExecutionsCalendarInternalProps extends ProjectExecutionsCalend
 /** A calendar showing executions of a project. */
 function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInternalProps) {
   const { backend, item } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const [preferredTimeZone] = useLocalStorageState('preferredTimeZone')
 

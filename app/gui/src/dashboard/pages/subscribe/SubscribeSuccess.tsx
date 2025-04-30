@@ -2,7 +2,7 @@
 
 import * as appUtils from '#/appUtils'
 
-import * as textProvider from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
@@ -13,7 +13,7 @@ import { useRouterInReact } from '$/providers/react'
 
 /** A page to show when a user successfully subscribes to a plan. */
 export function SubscribeSuccess() {
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
   const { router, searchParams } = useRouterInReact()
   const plan = searchParams.get('plan') ?? Plan.solo
 

@@ -14,7 +14,7 @@ import {
 } from '#/components/AriaComponents'
 import Page from '#/components/Page'
 import { useOffline } from '#/hooks/offlineHooks'
-import { useText } from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 import invariant from 'tiny-invariant'
 
 /** Props for an {@link AuthenticationPage}. */
@@ -45,7 +45,7 @@ export default function AuthenticationPage<Schema extends TSchema>(
   const { form, schema } = formProps
   const isForm = schema != null || form != null
 
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const { isOffline } = useOffline()
 
   const heading =

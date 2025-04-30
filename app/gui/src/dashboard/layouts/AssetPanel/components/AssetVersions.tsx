@@ -9,12 +9,12 @@ import { copyAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import type { AnyAsset, DatalinkAsset, FileAsset, ProjectAsset } from '#/services/Backend'
 import { AssetType, BackendType, S3ObjectVersionId } from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
 import { useStore } from '#/utilities/zustand'
+import { useTextInReact } from '$/providers/react'
 import { includes } from 'enso-common/src/utilities/data/array'
 import { assetPanelStore } from '../AssetPanelState'
 import { AssetVersion, type DuplicateOptions, type Version } from './AssetVersion'
@@ -34,7 +34,7 @@ export interface AssetVersionsProps {
 /** Display a list of previous versions of an asset. */
 export function AssetVersions(props: AssetVersionsProps) {
   const { backend } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const { item } = useStore(assetPanelStore, (state) => ({ item: state.assetPanelProps.item }), {
     unsafeEnableTransition: true,
   })
@@ -72,7 +72,7 @@ interface AssetVersionsInternalProps extends AssetVersionsProps {
 function AssetVersionsInternal(props: AssetVersionsInternalProps) {
   const { backend, item } = props
 
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const toastAndLog = useToastAndLog()
 
   const queryOptions = assetVersionsQueryOptions({ assetId: item.id, backend })

@@ -8,7 +8,7 @@ import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 
 import { AssetPanel } from '#/layouts/AssetPanel'
 import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
@@ -44,7 +44,7 @@ function Drive(props: DriveProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useFullUserSession()
   const { localBackend } = useBackendsInReact()
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
   const categoriesAPI = useCategoriesAPI()
   const { category, resetCategory, setCategory } = categoriesAPI
 
@@ -208,7 +208,7 @@ interface OfflineMessageProps {
  */
 function OfflineMessage(props: OfflineMessageProps) {
   const { supportLocalBackend, setCategory } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
 
   return (
     <result.Result

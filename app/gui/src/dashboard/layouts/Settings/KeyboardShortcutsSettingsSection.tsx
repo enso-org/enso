@@ -14,14 +14,14 @@ import { useRefresh } from '#/hooks/refreshHooks'
 import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
-import { useText } from '#/providers/TextProvider'
 import { unsafeEntries } from '#/utilities/object'
+import { useTextInReact } from '$/providers/react'
 
 /** Settings tab for viewing and editing keyboard shortcuts. */
 export default function KeyboardShortcutsSettingsSection() {
   const [refresh, doRefresh] = useRefresh()
   const inputBindings = useInputBindings()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const allShortcuts = React.useMemo(() => {
     // This is REQUIRED, in order to avoid disabling the `react-hooks/exhaustive-deps` lint.
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions

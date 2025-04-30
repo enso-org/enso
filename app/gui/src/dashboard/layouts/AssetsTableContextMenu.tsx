@@ -35,9 +35,8 @@ import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useUser } from '#/providers/AuthProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
 import { extractTypeAndId } from '#/services/LocalBackend'
-import { useBackendsInReact } from '$/providers/react'
+import { useBackendsInReact, useTextInReact } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 import { twJoin } from '../utilities/tailwindMerge'
@@ -77,7 +76,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   } = props
 
   const { setModal, unsetModal } = useSetModal()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const { localBackend } = useBackendsInReact()
   const user = useUser()

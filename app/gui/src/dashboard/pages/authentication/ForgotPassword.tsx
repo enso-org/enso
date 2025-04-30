@@ -12,14 +12,13 @@ import { Form, Input } from '#/components/AriaComponents'
 import Link from '#/components/Link'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { useText } from '#/providers/TextProvider'
-import { useBackendsInReact, useRouterInReact } from '$/providers/react'
+import { useBackendsInReact, useRouterInReact, useTextInReact } from '$/providers/react'
 import { toast } from 'react-toastify'
 
 /** A form for users to request for their password to be reset. */
 export default function ForgotPassword() {
   const { forgotPassword } = useSessionAPI()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const { router, searchParams } = useRouterInReact()
 

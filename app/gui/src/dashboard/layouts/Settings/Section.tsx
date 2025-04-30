@@ -1,6 +1,6 @@
 /** @file Rendering for a settings section. */
 import { Text } from '#/components/AriaComponents'
-import { useText } from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 import { memo } from 'react'
 import type { SettingsContext, SettingsSectionData } from './data'
 import SettingsEntry from './Entry'
@@ -15,7 +15,7 @@ export interface SettingsSectionProps {
 function SettingsSection(props: SettingsSectionProps) {
   const { context, data } = props
   const { nameId, heading = true, entries } = data
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const isVisible = entries.some((entry) =>
     'getVisible' in entry ? entry.getVisible(context) : true,
   )

@@ -10,10 +10,10 @@ import {
   ListBoxItem,
   type ComboBoxProps as AriaComboBoxProps,
 } from '#/components/aria'
-import { useText } from '#/providers/TextProvider'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { useTextInReact } from '$/providers/react'
 import {
   BasicInput,
   Button,
@@ -216,7 +216,7 @@ interface ComboBoxResetButtonProps {
 function ComboBoxResetButton(props: ComboBoxResetButtonProps) {
   const { className } = props
   const state = useContext(ComboBoxStateContext)
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   return (
     <Button

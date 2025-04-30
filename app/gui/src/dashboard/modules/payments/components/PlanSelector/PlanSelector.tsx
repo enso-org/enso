@@ -4,11 +4,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { DIALOG_BACKGROUND } from '#/components/AriaComponents'
 import { usePaywall } from '#/hooks/billing'
 import { useAuth } from '#/providers/AuthProvider'
-import { useText } from '#/providers/TextProvider'
 import { Plan, PLANS } from '#/services/Backend'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import { useBackendsInReact } from '$/providers/react'
+import { useBackendsInReact, useTextInReact } from '$/providers/react'
 import { Card } from './components'
 import { getComponentPerPlan } from './getComponentForPlan'
 
@@ -70,7 +69,7 @@ export function PlanSelector(props: PlanSelectorProps) {
     variants = PLAN_SELECTOR_STYLES,
   } = props
 
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const { remoteBackend: backend } = useBackendsInReact()
   const { refetchSession } = useAuth()
   const { getPaywallLevel } = usePaywall({ plan: userPlan })

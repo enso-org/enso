@@ -55,14 +55,13 @@ import { useUser } from '#/providers/AuthProvider'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { setModal, useSetModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { AssetType, Plan, type CredentialConfig } from '#/services/Backend'
 import { extractTypeAndId } from '#/services/LocalBackend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useBackendsInReact } from '$/providers/react'
+import { useBackendsInReact, useTextInReact } from '$/providers/react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import type { PropsWithChildren } from 'react'
@@ -84,7 +83,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const { backend, query, setQuery, category } = props
 
   const { unsetModal } = useSetModal()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const driveStore = useDriveStore()
   const inputBindings = useInputBindings()
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
@@ -349,7 +348,7 @@ interface TrashFolderToolbarProps extends PropsWithChildren {
  */
 function TrashFolderToolbar(props: TrashFolderToolbarProps) {
   const { shouldBeDisabled, backend, category, children } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const rootDirectoryQueryOptions = listDirectoryQueryOptions({
     backend,
@@ -402,7 +401,7 @@ function UploadFilesToCloudButton(props: UploadFilesToCloudButtonProps) {
 
   const user = useUser()
   const getAsset = useGetAsset()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const { localBackend } = useBackendsInReact()
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const isCloud = isCloudCategory(category)

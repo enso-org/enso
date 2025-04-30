@@ -6,8 +6,8 @@ import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import type { GetText } from '#/providers/TextProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
+import type { GetText } from '$/providers/text'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
@@ -65,7 +65,7 @@ function SetupOrganizationAfterSubscribeInternal(
 ) {
   const { backend, children } = props
 
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
 
   const { organizationName, userGroupsCount } = useSuspenseQueries({
     queries: [
@@ -187,7 +187,7 @@ export const SET_ORGANIZATION_NAME_FORM_SCHEMA = (getText: GetText) =>
 /** Form for setting the organization name. */
 export function SetOrganizationNameForm(props: SetOrganizationNameFormProps) {
   const { onSubmit } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
 
   return (
     <ariaComponents.Form
@@ -224,7 +224,7 @@ export interface CreateUserGroupFormProps {
 /** Form for creating a user group. */
 export function CreateUserGroupForm(props: CreateUserGroupFormProps) {
   const { onSubmit } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
 
   const defaultUserGroupMaxLength = 64
 

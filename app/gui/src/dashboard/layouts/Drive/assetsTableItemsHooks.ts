@@ -6,13 +6,13 @@ import { PermissionAction } from 'enso-common/src/utilities/permissions'
 import type { SortableColumn } from '#/components/dashboard/column/columnUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { assetCompareFunction } from '#/layouts/Drive/compareAssets'
-import { useText } from '#/providers/TextProvider'
 import type { DirectoryId } from '#/services/ProjectManager'
 import type AssetQuery from '#/utilities/AssetQuery'
 import { fileExtension } from '#/utilities/fileInfo'
 import type { SortInfo } from '#/utilities/sorting'
 import { regexEscape } from '#/utilities/string'
 import { createStore, useStore } from '#/utilities/zustand.ts'
+import { useTextInReact } from '$/providers/react'
 import { startTransition, useEffect } from 'react'
 
 /** Options for {@link useAssetsTableItems}. */
@@ -61,7 +61,7 @@ export function useGetAssetChildren() {
 export function useAssetsTableItems(options: UseAssetsTableOptions) {
   const { parentId, assets: items, sortInfo, query } = options
 
-  const { locale } = useText()
+  const { locale } = useTextInReact()
 
   const setAssetItems = useStore(ASSET_ITEMS_STORE, (store) => store.setItems, {
     unsafeEnableTransition: true,

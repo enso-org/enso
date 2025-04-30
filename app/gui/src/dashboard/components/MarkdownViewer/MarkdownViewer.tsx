@@ -2,7 +2,7 @@
 import * as React from 'react'
 
 import { useLogger } from '#/providers/LoggerProvider'
-import { useText } from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 import { resolveDocImageUrl } from '@/components/DocumentationEditor/images'
 import { type UrlTransformer } from '@/components/MarkdownEditor/imageUrlTransformer'
 import { Err, Ok } from '@/util/data/result'
@@ -30,7 +30,7 @@ export function MarkdownViewer(props: MarkdownViewerProps) {
   const { text, imgUrlResolver, testId } = props
 
   const logger = useLogger()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const transformImageUrl: UrlTransformer = (path: string) => {
     // In Enso Documentation, the relative paths are from module's directory

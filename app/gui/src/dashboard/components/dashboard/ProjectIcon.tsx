@@ -6,7 +6,7 @@ import StopIcon from '#/assets/stop.svg'
 import * as projectHooks from '#/hooks/projectHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import { Spinner } from '#/components/Spinner'
@@ -82,7 +82,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const isDisabled = isDisabledRaw || isUnconditionallyDisabled
 
   const { user } = authProvider.useFullUserSession()
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const projectState = item.projectState ?? CLOSED_PROJECT_STATE

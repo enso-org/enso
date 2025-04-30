@@ -5,7 +5,7 @@ import { useCopy } from '#/hooks/copyHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
@@ -72,7 +72,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const canOpenProjects = projectHooks.useCanOpenProjects()
   const { user } = authProvider.useFullUserSession()
   const { localBackend } = useBackendsInReact()
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const setAssetPanelProps = useSetAssetPanelProps()
   const openProjectNatively = projectHooks.useOpenProjectNatively()

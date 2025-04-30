@@ -6,11 +6,10 @@ import { Button, Checkbox, Dropdown, Text } from '#/components/AriaComponents'
 import Autocomplete from '#/components/Autocomplete'
 import FocusRing from '#/components/styled/FocusRing'
 import { backendQueryOptions } from '#/hooks/backendHooks'
-import { useText } from '#/providers/TextProvider'
 import { constantValueOfSchema, getSchemaName, lookupDef } from '#/utilities/jsonSchema'
 import { asObject, singletonObjectOrNull } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { useBackendsInReact } from '$/providers/react'
+import { useBackendsInReact, useTextInReact } from '$/providers/react'
 import { useQuery } from '@tanstack/react-query'
 import { twJoin } from 'tailwind-merge'
 
@@ -35,7 +34,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   // The functionality for inputting `enso-secret`s SHOULD be injected using a plugin,
   // but it is more convenient to avoid having plugin infrastructure.
   const { remoteBackend } = useBackendsInReact()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const [autocompleteText, setAutocompleteText] = useState(() =>
     typeof value === 'string' ? value : null,
   )

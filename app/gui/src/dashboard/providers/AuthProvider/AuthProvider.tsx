@@ -21,7 +21,7 @@ import * as gtagHooks from '#/hooks/gtagHooks'
 
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 
 import * as backendModule from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
@@ -85,7 +85,7 @@ export function AuthProvider(props: AuthProviderProps) {
   const setFeatureFlags = useSetFeatureFlags()
 
   const { session, organizationId, signOut } = sessionProvider.useSession()
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
   const toastId = React.useId()
 
   const queryClient = reactQuery.useQueryClient()
@@ -430,7 +430,7 @@ export function CloudBrowserDisabledLayout(
   props: React.PropsWithChildren<CloudBrowserDisabledLayoutProps>,
 ) {
   const { children, redirectDelayMs = DEFAULT_REDIRECT_DELAY_MS, redirectPath = '' } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
   const isCloudExecutionEnabled = useFeatureFlag('enableCloudExecution')
   const [isRedirecting, setIsRedirecting] = React.useState(true)
 

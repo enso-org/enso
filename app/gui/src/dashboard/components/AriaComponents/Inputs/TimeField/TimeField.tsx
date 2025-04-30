@@ -25,10 +25,10 @@ import {
   type FieldValues,
   type TSchema,
 } from '#/components/AriaComponents'
-import { useText } from '#/providers/TextProvider'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { useTextInReact } from '$/providers/react'
 
 const DATE_PICKER_STYLES = tv({
   base: '',
@@ -175,7 +175,7 @@ interface TimeFieldResetButtonProps {
 function TimeFieldResetButton(props: TimeFieldResetButtonProps) {
   const { className } = props
   const state = useContext(TimeFieldStateContext)
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   return (
     <Button

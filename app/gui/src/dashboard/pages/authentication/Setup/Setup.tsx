@@ -16,7 +16,7 @@ import { DASHBOARD_PATH, LOGIN_PATH, ORGANIZATION_NAME_MAX_LENGTH } from '#/appU
 import { useIsFirstRender } from '#/hooks/mountHooks'
 
 import { useAuth, UserSessionType, useUserSession } from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import Page from '#/components/Page'
@@ -57,7 +57,7 @@ const BASE_STEPS: Step[] = [
     component: function SetUsernameStep({ session, goToNextStep }) {
       const { setUsername } = useAuth()
       const userSession = useUserSession()
-      const { getText } = textProvider.useText()
+      const { getText } = useTextInReact()
 
       const isUserCreated = userSession?.type === UserSessionType.full
       const defaultName =
@@ -138,7 +138,7 @@ const BASE_STEPS: Step[] = [
     hidePrevious: true,
     /** Setup step for setting organization name. */
     component: function SetOrganizationNameStep({ goToNextStep, goToPreviousStep, session }) {
-      const { getText } = textProvider.useText()
+      const { getText } = useTextInReact()
       const { remoteBackend } = useBackendsInReact()
       const userId = session && 'user' in session ? session.user.userId : null
 
@@ -209,7 +209,7 @@ const BASE_STEPS: Step[] = [
     hidePrevious: true,
     /** Setup step for inviting users to the organization. */
     component: function InviteUsersStep({ goToNextStep, goToPreviousStep }) {
-      const { getText } = textProvider.useText()
+      const { getText } = useTextInReact()
 
       return (
         <div className="max-w-96">
@@ -243,7 +243,7 @@ const BASE_STEPS: Step[] = [
     hidePrevious: true,
     /** Setup step for creating the first user group. */
     component: function CreateUserGroupStep({ goToNextStep, goToPreviousStep }) {
-      const { getText } = textProvider.useText()
+      const { getText } = useTextInReact()
       const { remoteBackend } = useBackendsInReact()
 
       const defaultUserGroupMaxLength = 64
@@ -310,7 +310,7 @@ const BASE_STEPS: Step[] = [
     hidePrevious: true,
     /** Final setup step. */
     component: function AllSetStep({ goToPreviousStep }) {
-      const { getText } = textProvider.useText()
+      const { getText } = useTextInReact()
       const { router } = useRouterInReact()
       const queryClient = useQueryClient()
 
@@ -337,7 +337,7 @@ const BASE_STEPS: Step[] = [
 
 /** Setup page */
 export function Setup() {
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
   const { session } = useAuth()
   const isFirstRender = useIsFirstRender()
   const { router, route } = useRouterInReact()

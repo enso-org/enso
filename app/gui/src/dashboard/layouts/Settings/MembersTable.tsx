@@ -15,10 +15,10 @@ import { backendQueryOptions } from '#/hooks/backendHooks'
 import { useStickyTableHeaderOnScroll } from '#/hooks/scrollHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { UserId, type User } from '#/services/Backend'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useTextInReact } from '$/providers/react'
 import { useQuery } from '@tanstack/react-query'
 import UserRow from './UserRow'
 
@@ -35,7 +35,7 @@ export interface MembersTableProps {
 export default function MembersTable(props: MembersTableProps) {
   const { backend, populateWithSelf = false, draggable = false, allowDelete = false } = props
   const { user } = useFullUserSession()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const toastAndLog = useToastAndLog()
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set())
   const rootRef = useRef<HTMLTableElement>(null)

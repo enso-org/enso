@@ -4,7 +4,7 @@
  * Alert dialogs are used to confirm or cancel an action.
  */
 
-import { useText } from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 import type { ZodEnum, ZodObject } from 'zod'
 import { Button } from '../Button'
 import { Dialog, type DialogProps } from '../Dialog'
@@ -54,7 +54,7 @@ export interface AlertDialogProps extends Omit<DialogProps, 'children'>, Confirm
  * A dialog that is used to confirm or cancel an action.
  */
 export function AlertDialog(props: AlertDialogProps) {
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const { confirm = getText('confirm'), cancel = getText('cancel') } = props
 

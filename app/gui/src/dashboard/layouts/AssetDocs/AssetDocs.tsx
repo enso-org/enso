@@ -1,10 +1,10 @@
 /** @file Documentation display for an asset. */
 import { Result } from '#/components/Result'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import type { Asset } from '#/services/Backend'
 import { AssetType } from '#/services/Backend'
 import { useStore } from '#/utilities/zustand'
+import { useTextInReact } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { lazy, useCallback } from 'react'
 import * as ast from 'ydoc-shared/ast'
@@ -24,7 +24,7 @@ const LazyMarkdownViewer = lazy(() =>
 /** Documentation display for an asset. */
 export function AssetDocs(props: AssetDocsProps) {
   const { backend } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const { item } = useStore(assetPanelStore, (state) => ({ item: state.assetPanelProps.item }), {
     unsafeEnableTransition: true,
@@ -46,7 +46,7 @@ interface AssetDocsContentProps {
 /** Documentation display for an asset. */
 export function AssetDocsContent(props: AssetDocsContentProps) {
   const { backend, item } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const { data: docs } = useSuspenseQuery({
     ...versionContentQueryOptions({ backend, projectId: item.id, metadata: false }),

@@ -25,7 +25,6 @@ import type { Category } from '#/layouts/CategorySwitcher/Category'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import {
   AssetType,
@@ -40,6 +39,7 @@ import {
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
+import { useTextInReact } from '$/providers/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 
@@ -72,7 +72,7 @@ export function AssetProperties(props: AssetPropertiesProps) {
 
   const currentItem = item ?? defaultItem
 
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   if (backend.type === BackendType.local) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
@@ -113,7 +113,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   })
   const { user } = useFullUserSession()
   const isEnterprise = user.plan === Plan.enterprise
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const [isEditingDescriptionRaw, setIsEditingDescriptionRaw] = React.useState(false)
   const isEditingDescription = isEditingDescriptionRaw || spotlightOn === 'description'
   const setIsEditingDescription = useEventCallback(

@@ -88,7 +88,6 @@ import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useLaunchedProjects } from '#/providers/ProjectsProvider'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import type { AssetId, DirectoryId, ProjectId } from '#/services/Backend'
 import {
@@ -114,7 +113,7 @@ import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useBackendsInReact } from '$/providers/react'
+import { useBackendsInReact, useTextInReact } from '$/providers/react'
 import invariant from 'tiny-invariant'
 import type { AssetsDataTransferPayload } from './Drive/Categories/transferBetweenCategoriesHooks'
 import {
@@ -200,7 +199,7 @@ function AssetsTable(props: AssetsTableProps) {
   const { data: labels } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const { setModal, unsetModal } = useSetModal()
   const { localStorage } = useLocalStorage()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const inputBindings = useInputBindings()
   const toastAndLog = useToastAndLog()
   const [enabledColumns, setEnabledColumns] = useState(DEFAULT_ENABLED_COLUMNS)
@@ -1487,7 +1486,7 @@ interface HiddenColumnProps {
 const HiddenColumn = memo(function HiddenColumn(props: HiddenColumnProps) {
   const { column, enabledColumns, onColumnClick } = props
 
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const onPress = useEventCallback(() => {
     const newExtraColumns = new Set(enabledColumns)

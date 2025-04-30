@@ -2,9 +2,9 @@
 import LogsIcon from '#/assets/logs.svg'
 import { Button, DialogTrigger } from '#/components/AriaComponents'
 import ProjectLogsModal from '#/modals/ProjectLogsModal'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import type { ProjectSession as BackendProjectSession, ProjectAsset } from '#/services/Backend'
+import { useTextInReact } from '$/providers/react'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 
 /** Props for a {@link ProjectSession}. */
@@ -19,7 +19,7 @@ export interface ProjectSessionProps {
 export function ProjectSession(props: ProjectSessionProps) {
   const { backend, project, projectSession, index } = props
 
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   return (
     <div className="flex flex-row gap-4 rounded-2xl p-2">

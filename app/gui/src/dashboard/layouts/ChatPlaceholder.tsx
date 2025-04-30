@@ -8,7 +8,7 @@ import CloseLargeIcon from '#/assets/close_large.svg'
 import * as appUtils from '#/appUtils'
 
 import * as loggerProvider from '#/providers/LoggerProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
@@ -27,7 +27,7 @@ export interface ChatPlaceholderProps {
 /** A placeholder component replacing `Chat` when a user is not logged in. */
 function ChatPlaceholder(props: ChatPlaceholderProps) {
   const { hideLoginButtons = false, isOpen, doClose } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
   const logger = loggerProvider.useLogger()
   const { router } = useRouterInReact()
 

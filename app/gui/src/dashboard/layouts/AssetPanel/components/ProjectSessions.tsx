@@ -1,10 +1,10 @@
 /** @file A list of previous versions of an asset. */
 import { Result } from '#/components/Result'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
 import { useStore } from '#/utilities/zustand'
+import { useTextInReact } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { assetPanelStore } from '../AssetPanelState'
 import { ProjectSession } from './ProjectSession'
@@ -17,7 +17,7 @@ export interface ProjectSessionsProps {
 /** A list of previous versions of an asset. */
 export function ProjectSessions(props: ProjectSessionsProps) {
   const { backend } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const { item } = useStore(assetPanelStore, (state) => ({ item: state.assetPanelProps.item }), {
     unsafeEnableTransition: true,
   })
@@ -42,7 +42,7 @@ interface AssetProjectSessionsInternalProps extends ProjectSessionsProps {
 /** A list of previous versions of an asset. */
 function AssetProjectSessionsInternal(props: AssetProjectSessionsInternalProps) {
   const { backend, item } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const projectSessionsQuery = useSuspenseQuery({
     queryKey: ['getProjectSessions', item.id, item.title],

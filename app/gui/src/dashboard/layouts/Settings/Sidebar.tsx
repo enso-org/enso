@@ -4,8 +4,8 @@ import { memo, type Dispatch, type SetStateAction } from 'react'
 import { Header } from '#/components/aria'
 import { ButtonGroup } from '#/components/AriaComponents'
 import SidebarTabButton from '#/components/styled/SidebarTabButton'
-import { useText } from '#/providers/TextProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useTextInReact } from '$/providers/react'
 import { SETTINGS_DATA, type SettingsContext } from './data'
 import type SettingsTabType from './TabType'
 
@@ -23,7 +23,7 @@ export interface SettingsSidebarProps {
 function SettingsSidebar(props: SettingsSidebarProps) {
   const { context, tabsToShow, isMenu = false, tab, setTab } = props
   const { onClickCapture } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   return (
     <div

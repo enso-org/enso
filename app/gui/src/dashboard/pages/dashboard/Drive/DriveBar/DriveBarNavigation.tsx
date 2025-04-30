@@ -12,10 +12,10 @@ import { AssetPanelToggle, useSetAssetPanelDefaultItem } from '#/layouts/AssetPa
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import { useDriveStore } from '#/providers/DriveProvider'
-import { useText } from '#/providers/TextProvider'
 import { isDirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useTextInReact } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useTransition } from 'react'
 import { toast } from 'react-toastify'
@@ -25,7 +25,7 @@ import { toast } from 'react-toastify'
  * and a column display mode switcher.
  */
 export function DriveBarNavigation() {
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const { getCategoryByDirectoryId } = useCategories()
   const { associatedBackend, category } = useCategoriesAPI()
 
@@ -244,7 +244,7 @@ interface UpButtonProps {
 /** A button for navigating to the parent directory. */
 function UpButton(props: UpButtonProps) {
   const { navigateToParent, isDisabled } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const [isLoading, startTransition] = useTransition()
 

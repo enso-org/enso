@@ -19,7 +19,6 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import NewUserGroupModal from '#/modals/NewUserGroupModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useSetModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import {
   isPlaceholderUserGroupId,
@@ -28,6 +27,7 @@ import {
   type UserGroupInfo,
 } from '#/services/Backend'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useTextInReact } from '$/providers/react'
 import UserGroupRow from './UserGroupRow'
 import UserGroupUserRow from './UserGroupUserRow'
 
@@ -40,7 +40,7 @@ export interface UserGroupsSettingsSectionProps {
 export default function UserGroupsSettingsSection(props: UserGroupsSettingsSectionProps) {
   const { backend } = props
   const { setModal } = useSetModal()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const { user } = useFullUserSession()
   const toastAndLog = useToastAndLog()
   const { data: users } = useQuery(backendQueryOptions(backend, 'listUsers', []))

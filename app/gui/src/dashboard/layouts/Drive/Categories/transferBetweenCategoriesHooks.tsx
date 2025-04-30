@@ -13,11 +13,11 @@ import {
 import { useUploadFileToCloudMutation } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useUser } from '#/providers/AuthProvider'
-import { useText, type GetText } from '#/providers/TextProvider'
 import { AssetType, type AssetId, type DirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useBackendsInReact } from '$/providers/react'
+import { useBackendsInReact, useTextInReact } from '$/providers/react'
+import { type GetText } from '$/providers/text'
 import type { DropOperation } from '@react-types/shared'
 import { z } from 'zod'
 import {
@@ -70,7 +70,7 @@ export function useTransferBetweenCategories(currentCategory: Category) {
 
   const { getCategoryByDirectoryId } = useCategories()
 
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(remoteBackend))

@@ -1,7 +1,7 @@
 /** @file A button for closing a modal. */
 import DismissIcon from '#/assets/dismiss.svg'
-import { useText } from '#/providers/TextProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useTextInReact } from '$/providers/react'
 import { isOnMacOS } from 'enso-common/src/detect'
 import { memo } from 'react'
 import { Button } from './Button'
@@ -17,7 +17,7 @@ export type CloseButtonProps<IconType extends string> = Omit<
 export const CloseButton = memo(function CloseButton<IconType extends string>(
   props: CloseButtonProps<IconType>,
 ) {
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const {
     className,

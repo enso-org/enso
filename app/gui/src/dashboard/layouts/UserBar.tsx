@@ -12,9 +12,9 @@ import { useOffline } from '#/hooks/offlineHooks'
 import UserMenu from '#/layouts/UserMenu'
 import InviteUsersModal from '#/modals/InviteUsersModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useText } from '#/providers/TextProvider'
 import { Plan } from '#/services/Backend'
 import { isAbsoluteUrl } from '#/utilities/url'
+import { useTextInReact } from '$/providers/react'
 import type { TextId } from 'enso-common/src/text'
 import { AnimatePresence, motion } from 'framer-motion'
 import { z } from 'zod'
@@ -74,7 +74,7 @@ export default function UserBar(props: UserBarProps) {
   const { setIsHelpChatOpen, goToSettingsPage, onSignOut } = props
 
   const { user } = useFullUserSession()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
   const { isOffline } = useOffline()
 
@@ -179,7 +179,7 @@ export interface UserBarHelpSectionProps {
  */
 export function UserBarHelpSection(props: UserBarHelpSectionProps) {
   const { items } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const getSafetyProps = (url: string) =>
     isAbsoluteUrl(url) ? { rel: 'opener', target: '_blank' } : {}

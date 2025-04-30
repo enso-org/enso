@@ -13,7 +13,6 @@ import { Text } from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 import type { DashboardBindingKey } from '#/configurations/inputBindings'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
-import { useText } from '#/providers/TextProvider'
 import {
   compareModifiers,
   decomposeKeybindString,
@@ -22,6 +21,8 @@ import {
   type ModifierKey,
 } from '#/utilities/inputBindings'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useTextInReact } from '$/providers/react'
+import type { GetText } from '$/providers/text'
 
 /** The size (both width and height) of key icons. */
 const ICON_SIZE_PX = '1.5cap'
@@ -30,7 +31,7 @@ const ICON_STYLE = { width: ICON_SIZE_PX, height: ICON_SIZE_PX, marginTop: '0.1c
 
 /** Props for values of {@link MODIFIER_JSX}. */
 interface InternalModifierProps {
-  readonly getText: ReturnType<typeof useText>['getText']
+  readonly getText: GetText
 }
 
 /** Icons for modifier keys (if they exist). */
@@ -111,7 +112,7 @@ export type KeyboardShortcutProps = KeyboardShortcutActionProps | KeyboardShortc
 /** A visual representation of a keyboard shortcut. */
 export default function KeyboardShortcut(props: KeyboardShortcutProps) {
   const { className } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const inputBindings = useInputBindings()
   const shortcutString =
     'shortcut' in props ? props.shortcut : inputBindings.metadata[props.action].bindings[0]

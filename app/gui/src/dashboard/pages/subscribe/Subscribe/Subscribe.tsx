@@ -5,9 +5,8 @@ import Back from '#/assets/arrow_left.svg'
 import { Button, Text } from '#/components/AriaComponents'
 import { PlanSelector } from '#/modules/payments'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useText } from '#/providers/TextProvider'
 import { isPlan } from '#/services/Backend'
-import { useRouterInReact } from '$/providers/react'
+import { useRouterInReact, useTextInReact } from '$/providers/react'
 
 /**
  * A page in which the currently active payment plan can be changed.
@@ -24,7 +23,7 @@ import { useRouterInReact } from '$/providers/react'
  * paymentStatus: 'no_payment_required' || 'paid' || 'unpaid' }`).
  */
 export function Subscribe() {
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const { router, searchParams } = useRouterInReact()
   const { user } = useFullUserSession()
 

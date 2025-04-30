@@ -3,7 +3,7 @@
 import UntrashIcon from '#/assets/untrash.svg'
 
 import { useAuth } from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 
 import { LOGIN_PATH } from '#/appUtils'
 import * as aria from '#/components/aria'
@@ -14,7 +14,7 @@ import { useRouterInReact } from '$/providers/react'
 
 /** Restore an account that has been deleted. */
 export default function RestoreAccount() {
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
   const { restoreUser } = useAuth()
   const { signOut } = useSessionAPI()
   const { router } = useRouterInReact()

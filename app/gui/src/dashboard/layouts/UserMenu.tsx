@@ -9,10 +9,9 @@ import AboutModal from '#/modals/AboutModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { useText } from '#/providers/TextProvider'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
-import { useBackendsInReact, useRouterInReact } from '$/providers/react'
+import { useBackendsInReact, useRouterInReact, useTextInReact } from '$/providers/react'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 
 /** Props for a {@link UserMenu}. */
@@ -32,7 +31,7 @@ export default function UserMenu(props: UserMenuProps) {
   const { signOut } = useSessionAPI()
   const { user } = useFullUserSession()
   const { setModal, unsetModal } = useSetModal()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const toastAndLog = useToastAndLog()
   const toggleEnsoDevtools = useToggleEnsoDevtools()
 

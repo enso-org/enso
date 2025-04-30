@@ -8,11 +8,10 @@ import * as gtagHooks from '#/hooks/gtagHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { useTimeoutCallback } from '#/hooks/timeoutHooks'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
-import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/Backend'
 import * as twMerge from '#/utilities/tailwindMerge'
 import { vueComponent } from '#/utilities/vue'
-import { useBackendsInReact, useConfigInReact } from '$/providers/react'
+import { useBackendsInReact, useConfigInReact, useTextInReact } from '$/providers/react'
 import * as reactQuery from '@tanstack/react-query'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
@@ -36,7 +35,7 @@ export interface EditorProps {
 export default function Editor(props: EditorProps) {
   const { project, hidden = false, onReadyUpdate, onNameUpdate } = props
   const { preventAutoReopen = false } = project
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
   const startProject = projectHooks.useReopenProject(openProjectMutation)
@@ -216,7 +215,7 @@ interface EditorInternalProps extends Omit<EditorProps, 'project'> {
 function EditorInternal(props: EditorInternalProps) {
   const { hidden = false, renameProject, openedProject, backendType, projectName } = props
 
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
   const gtagEvent = gtagHooks.useGtagEvent()
   const config = useConfigInReact()
 

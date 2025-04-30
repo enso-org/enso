@@ -19,9 +19,8 @@ import {
 } from '#/layouts/Drive/Categories'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import * as authProvider from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
 import { tv } from '#/utilities/tailwindVariants'
-import { useBackendsInReact, useRouterInReact } from '$/providers/react'
+import { useBackendsInReact, useRouterInReact, useTextInReact } from '$/providers/react'
 import { twJoin } from 'tailwind-merge'
 
 import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
@@ -66,7 +65,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const [isTransitioning, startTransition] = React.useTransition()
 
   const { user } = authProvider.useFullUserSession()
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
   const { localBackend } = useBackendsInReact()
   const { isOffline } = offlineHooks.useOffline()
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
@@ -236,7 +235,7 @@ export interface CategorySwitcherProps {
 function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategoryId } = props
   const { router } = useRouterInReact()
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
 
   const { isOffline } = offlineHooks.useOffline()
 

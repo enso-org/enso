@@ -6,7 +6,7 @@
 
 import { Button, Form, Input } from '#/components/AriaComponents'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import { useText } from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 import { CredentialsFormFooter } from './CredentialsFormFooter'
 import * as snowflake from './snowflake'
 import type { CredentialFormProps } from './types'
@@ -14,7 +14,7 @@ import type { CredentialFormProps } from './types'
 /** Dialog for a Snowflake credential. */
 export function SnowflakeCredentialsForm(props: CredentialFormProps) {
   const { createCredentials } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const toastAndLog = useToastAndLog()
 
   return (

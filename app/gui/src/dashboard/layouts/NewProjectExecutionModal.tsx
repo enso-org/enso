@@ -38,7 +38,7 @@ import { useGetOrdinal } from '#/hooks/ordinalHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import { useText } from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 import {
   firstProjectExecutionOnOrAfter,
   nextProjectExecutionDate,
@@ -182,7 +182,7 @@ export interface NewProjectExecutionModalProps {
 /** A modal for confirming the deletion of an asset. */
 export function NewProjectExecutionModal(props: NewProjectExecutionModalProps) {
   const { defaultOpen } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   return (
     <Dialog title={getText('newProjectExecution')} {...(defaultOpen != null && { defaultOpen })}>
@@ -200,7 +200,7 @@ export interface NewProjectExecutionFormProps extends NewProjectExecutionModalPr
 /** A modal for confirming the deletion of an asset. */
 export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   const { backend, item, defaultDate, onChange, onCancel } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const [preferredTimeZone] = useLocalStorageState('preferredTimeZone')
   const getOrdinal = useGetOrdinal()
   const timeZone = IanaTimeZone(preferredTimeZone ?? getLocalTimeZone())

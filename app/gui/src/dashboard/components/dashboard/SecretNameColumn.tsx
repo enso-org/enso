@@ -8,11 +8,11 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { setModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
 import { isAssetCredential, titleSchema, type SecretAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useTextInReact } from '$/providers/react'
 import { toast } from 'react-toastify'
 
 /** Props for a {@link SecretNameColumn}. */
@@ -26,7 +26,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
   const { backend } = state
 
   const toastAndLog = useToastAndLog()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const getAssetChildren = useGetAssetChildren()
 
   const updateSecretMutation = useMutationCallback(backendMutationOptions(backend, 'updateSecret'))

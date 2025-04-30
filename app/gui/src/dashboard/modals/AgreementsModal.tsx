@@ -5,8 +5,8 @@ import * as z from 'zod'
 
 import { Button, Checkbox, Dialog, Form, Text } from '#/components/AriaComponents'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
-import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
+import { useTextInReact } from '$/providers/react'
 import { memo } from 'react'
 
 const TEN_MINUTES_MS = 600_000
@@ -62,7 +62,7 @@ LocalStorage.registerKey('privacyPolicy', { schema: PRIVACY_POLICY_SCHEMA })
 export const AgreementsModal = memo(function AgreementsModal({
   children,
 }: React.PropsWithChildren) {
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const [cachedTosHash, setCachedTosHash] = useLocalStorageState('termsOfService')
   const [cachedPrivacyPolicyHash, setCachedPrivacyPolicyHash] =

@@ -1,6 +1,6 @@
 /** @file Rendering for an {@link SettingsFormEntryData}. */
 import { ButtonGroup, Form } from '#/components/AriaComponents'
-import { useText } from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import SettingsInput from './Input'
@@ -19,7 +19,7 @@ export function SettingsFormEntry<T extends Record<keyof T, string>>(
   const { context, data } = props
   const { schema: schemaRaw, getValue, inputs, onSubmit, getVisible } = data
 
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const visible = getVisible?.(context) ?? true
   const value = getValue(context)

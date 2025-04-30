@@ -24,10 +24,10 @@ import {
   type DatePickerProps as AriaDatePickerProps,
   type DateValue,
 } from '#/components/aria'
-import { useText } from '#/providers/TextProvider'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { useTextInReact } from '$/providers/react'
 import {
   Button,
   Form,
@@ -269,7 +269,7 @@ interface DatePickerResetButtonProps {
 function DatePickerResetButton(props: DatePickerResetButtonProps) {
   const { className } = props
   const state = useContext(DatePickerStateContext)
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   return (
     <Button

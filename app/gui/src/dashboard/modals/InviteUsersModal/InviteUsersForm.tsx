@@ -9,7 +9,7 @@ import * as billingHooks from '#/hooks/billing'
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import * as paywallComponents from '#/components/Paywall'
@@ -27,7 +27,7 @@ export interface InviteUsersFormProps {
 /** A modal with inputs for user email and permission level. */
 export function InviteUsersForm(props: InviteUsersFormProps) {
   const { onSubmitted } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
   const { remoteBackend: backend } = useBackendsInReact()
   const inputRef = React.useRef<HTMLDivElement>(null)
 

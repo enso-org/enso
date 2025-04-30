@@ -18,9 +18,8 @@ import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { AssetDocs } from '#/layouts/AssetDocs'
 import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Category'
-import { useText } from '#/providers/TextProvider'
 import { useStore } from '#/utilities/zustand'
-import { useBackendsInReact } from '$/providers/react'
+import { useBackendsInReact, useTextInReact } from '$/providers/react'
 import { useFeatureFlag } from '../../providers/FeatureFlagsProvider'
 import {
   assetPanelStore,
@@ -121,7 +120,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
   const isReadonly = category.type === 'trash'
   const isLocal = isLocalCategory(category)
 
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const isExpanded = useIsAssetPanelExpanded()
   const setIsExpanded = useSetIsAssetPanelExpanded()

@@ -16,8 +16,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordSchema } from '#/pages/authentication/schemas'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { useText } from '#/providers/TextProvider'
-import { useRouterInReact } from '$/providers/react'
+import { useRouterInReact, useTextInReact } from '$/providers/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 
@@ -31,7 +30,7 @@ export default function Login() {
   const { router, searchParams } = useRouterInReact()
   const queryClient = useQueryClient()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } = useSessionAPI()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const initialEmail = searchParams.get('email') ?? ''
 

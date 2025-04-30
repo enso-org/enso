@@ -12,11 +12,10 @@ import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import DuplicateAssetsModal, { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
 import { useSetModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
 import type LocalBackend from '#/services/LocalBackend'
 import { extractTypeAndId } from '#/services/LocalBackend'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
-import { useBackendsInReact, useHttpClientInReact } from '$/providers/react'
+import { useBackendsInReact, useHttpClientInReact, useTextInReact } from '$/providers/react'
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
 import {
   assetIsFile,
@@ -281,7 +280,7 @@ export function useUploadFileWithToastMutation(
   options: UploadFileMutationOptions = {},
 ): UploadFileMutationResult {
   const toastId = useId()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const toastAndLog = useToastAndLogWithId()
   const { onBegin, onChunkSuccess, onSuccess, onError } = options
 
@@ -405,7 +404,7 @@ function useGetSiblings() {
  * Does not work in environments that do not have a local backend.
  */
 export function useUploadFileToCloudMutation() {
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const httpClient = useHttpClientInReact()
   const toastAndLog = useToastAndLog()
   const { remoteBackend } = useBackendsInReact()

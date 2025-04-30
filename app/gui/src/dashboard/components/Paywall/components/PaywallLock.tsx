@@ -5,7 +5,7 @@ import LockIcon from '#/assets/lock.svg'
 
 import * as billingHooks from '#/hooks/billing'
 
-import * as textProvider from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
@@ -19,7 +19,7 @@ export interface PaywallLockProps {
 /** A lock icon with a label indicating the paywall level required to access a feature. */
 export function PaywallLock(props: PaywallLockProps) {
   const { feature, className } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
 
   const { getFeature } = billingHooks.usePaywallFeatures()
 

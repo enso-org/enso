@@ -7,7 +7,7 @@ import FindIcon from '#/assets/find.svg'
 import { unsafeWriteValue } from '#/utilities/write'
 
 import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -402,7 +402,7 @@ const AssetSearchBarInput = React.memo(function AssetSearchBarInput(
     searchFieldOnChange,
     searchInputOnKeyDown,
   } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
   return (
     <>
       <FocusRing placement="before">

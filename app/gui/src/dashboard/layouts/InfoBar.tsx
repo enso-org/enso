@@ -4,7 +4,7 @@ import LogoIcon from '#/assets/enso_logo.svg'
 import { Button, DialogTrigger } from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 import InfoMenu from '#/layouts/InfoMenu'
-import { useText } from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 import { memo } from 'react'
 
 /** Props for a {@link InfoBar}. */
@@ -16,7 +16,7 @@ export interface InfoBarProps {
 /** A toolbar containing chat and the user menu. */
 function InfoBar(props: InfoBarProps) {
   const { isHelpChatOpen, setIsHelpChatOpen } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   return (
     <div className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame backdrop-blur-default">

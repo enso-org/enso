@@ -15,11 +15,10 @@ import SearchBar from '#/layouts/SearchBar'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { useText } from '#/providers/TextProvider'
 import { Path } from '#/services/ProjectManager'
 import { includesPredicate } from '#/utilities/array'
 import { regexEscape } from '#/utilities/string'
-import { useBackendsInReact } from '$/providers/react'
+import { useBackendsInReact, useTextInReact } from '$/providers/react'
 import {
   ALL_SETTINGS_TABS,
   SETTINGS_DATA,
@@ -44,7 +43,7 @@ export default function Settings() {
   )
   const { user, accessToken } = useFullUserSession()
   const { changePassword } = useSessionAPI()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const toastAndLog = useToastAndLog()
   const [query, setQuery] = React.useState('')
   const root = useStrictPortalContext()

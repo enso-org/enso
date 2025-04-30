@@ -1,7 +1,7 @@
 /** @file A button to close a dialog without submitting it. */
 import type { JSX } from 'react'
 
-import { useText } from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 import { Button, type ButtonProps } from '../Button'
 import { useDialogContext } from './DialogProvider'
 
@@ -21,7 +21,7 @@ export type DialogDismissProps<IconType extends string> = DialogDismissBaseProps
 export function DialogDismiss<IconType extends string>(
   props: DialogDismissProps<IconType>,
 ): JSX.Element {
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   const { size = 'medium', ...buttonProps } = props
 

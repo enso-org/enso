@@ -5,7 +5,7 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
+import { useTextInReact } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import * as paywall from '#/components/Paywall'
@@ -20,7 +20,7 @@ const LIST_USERS_STALE_TIME_MS = 60_000
 
 /** Settings tab for viewing and editing organization members. */
 export default function MembersSettingsSection() {
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
   const { remoteBackend: backend } = useBackendsInReact()
   const { user } = authProvider.useFullUserSession()
 
@@ -160,7 +160,7 @@ interface ResendInvitationButtonProps {
 function ResendInvitationButton(props: ResendInvitationButtonProps) {
   const { invitation, backend } = props
 
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
   const resendMutation = useMutation(
     backendMutationOptions(backend, 'resendInvitation', {
       mutationKey: [invitation.userEmail],
@@ -190,7 +190,7 @@ interface RemoveMemberButtonProps {
 /** Action button for removing a member. */
 function RemoveMemberButton(props: RemoveMemberButtonProps) {
   const { backend, userId } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
 
   const removeMutation = useMutation(
     backendMutationOptions(backend, 'removeUser', {
@@ -220,7 +220,7 @@ interface RemoveInvitationButtonProps {
 function RemoveInvitationButton(props: RemoveInvitationButtonProps) {
   const { backend, email } = props
 
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
 
   const removeMutation = useMutation(
     backendMutationOptions(backend, 'deleteInvitation', {

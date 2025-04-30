@@ -2,8 +2,8 @@
 import { Dialog, Dropdown, Text } from '#/components/AriaComponents'
 import { CREDENTIAL_INFOS } from '#/data/serviceCredentials'
 import { makeCredentialCreationHandler } from '#/data/serviceCredentials/logic'
-import { useText } from '#/providers/TextProvider'
 import type { CredentialConfig, SecretId } from '#/services/Backend'
+import { useTextInReact } from '$/providers/react'
 import { useState } from 'react'
 
 /** Props for a {@link CreateCredentialForm}. */
@@ -14,7 +14,7 @@ export interface CreateCredentialFormProps {
 /** A modal for creating a credential. */
 export function CreateCredentialForm(props: CreateCredentialFormProps) {
   const { doCreate } = props
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const [selectedChildIndex, setSelectedChildIndex] = useState<number>(0)
   const createCredentialsHandler = makeCredentialCreationHandler(doCreate)
 
@@ -43,7 +43,7 @@ export interface CreateCredentialModalProps extends CreateCredentialFormProps {}
 
 /** A modal for creating a credential. */
 export function CreateCredentialModal(props: CreateCredentialModalProps) {
-  const { getText } = useText()
+  const { getText } = useTextInReact()
 
   return (
     <Dialog title={getText('newCredential')} isDismissable={false}>

@@ -4,15 +4,15 @@ import { Icon } from '#/components/Icon'
 import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
 import { Column } from '#/components/dashboard/column/columnUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useText } from '#/providers/TextProvider'
 import { SortDirection, iconIdFor, nextSortDirection } from '#/utilities/sorting'
 import { twJoin } from '#/utilities/tailwindMerge'
+import { useTextInReact } from '$/providers/react'
 
 /** A heading for the "Name" column. */
 export default function NameColumnHeading(props: AssetColumnHeadingProps) {
   const { sortInfo, setSortInfo } = props
 
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const isSortActive = sortInfo?.field === Column.name
   const isDescending = sortInfo?.direction === SortDirection.descending
 

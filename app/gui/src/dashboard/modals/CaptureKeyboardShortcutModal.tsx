@@ -6,13 +6,13 @@ import { isOnMacOS } from 'enso-common/src/detect'
 import { ButtonGroup, Dialog, DialogDismiss, Form, Text } from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import { useSetModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
 import {
   modifierFlagsForEvent,
   modifiersForModifierFlags,
   normalizedKeyboardSegmentLookup,
 } from '#/utilities/inputBindings'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useTextInReact } from '$/providers/react'
 
 const DISALLOWED_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta'])
 const DELETE_KEY = isOnMacOS() ? 'Backspace' : 'Delete'
@@ -44,7 +44,7 @@ export interface CaptureKeyboardShortcutModalProps {
 export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShortcutModalProps) {
   const { description, existingShortcuts, onSubmit } = props
   const { unsetModal } = useSetModal()
-  const { getText } = useText()
+  const { getText } = useTextInReact()
   const [key, setKey] = useState<string | null>(null)
   const [modifiers, setModifiers] = useState<string>('')
   const shortcut =
