@@ -1119,7 +1119,7 @@ class Compiler(
         val formattedDiag =
           context.formatDiagnostic(compilerModule, diag, isOutputRedirected)
         printDiagnostic(formattedDiag.getMessage)
-        if (diag.isInstanceOf[Error]) {
+        if (diag.isInstanceOf[Error] || config.treatWarningsAsErrors) {
           Some(formattedDiag)
         } else {
           None
