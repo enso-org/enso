@@ -12,9 +12,12 @@ import org.enso.compiler.test.mock.WithMockCompilerContext;
 import org.enso.pkg.QualifiedName;
 import org.junit.Rule;
 import org.junit.Test;
+import scala.Option;
 
 public final class CompilerErrorTest {
-  @Rule public final WithMockCompilerContext compilerCtx = WithMockCompilerContext.createDefault();
+  @Rule public final WithMockCompilerContext compilerCtx =
+      WithMockCompilerContext.newBuilder().withModifiedCompilerConfig(bldr -> bldr.dumpModuleIR(
+          Option.apply("Check"))).build();
 
   @Test
   public void variablesIsRedefinedInIfBranch() {
