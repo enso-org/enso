@@ -22,6 +22,7 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
+import { z } from 'zod'
 import { useEnsureQueryData, useMutationCallback } from '../utilities/tanstackQuery'
 import { useUploadFileWithToastMutation } from './backendUploadFilesHooks'
 
@@ -207,6 +208,8 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
 }
 createGetProjectDetailsQuery.getQueryKey = (id: LaunchedProjectId) => ['project', id] as const
 
+const OPEN_PROJECT_MUTATION_KEY = ['openProject'] as const
+
 /** A mutation to open a project. */
 export function useOpenProjectMutation() {
   const client = reactQuery.useQueryClient()
@@ -216,7 +219,7 @@ export function useOpenProjectMutation() {
   const setProjectAsset = useSetProjectAsset()
 
   return reactQuery.useMutation({
-    mutationKey: ['openProject'],
+    mutationKey: OPEN_PROJECT_MUTATION_KEY,
     networkMode: 'always',
     mutationFn: async ({
       title,
@@ -268,6 +271,7 @@ export function useOpenProjectMutation() {
       await client.invalidateQueries({ queryKey: ['project'] })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
+    onSettled: () => {},
     meta: { invalidates: [['listDirectory', 'project']], awaitInvalidates: true },
   })
 }
@@ -319,7 +323,7 @@ export function useCloseProjectMutation() {
           .mutateAsync([
             {
               fileId: hybrid.cloudProjectId,
-              fileName: fileName,
+              fileName,
               parentDirectoryId: hybrid.cloudParentId,
             },
             file,
@@ -343,7 +347,7 @@ export function useCloseProjectMutation() {
           .mutateAsync([
             {
               fileId: hybrid.cloudProjectId,
-              fileName: fileName,
+              fileName,
               parentDirectoryId: hybrid.cloudParentId,
             },
             file,
@@ -396,12 +400,17 @@ export function useRenameProjectMutation() {
   })
 }
 
+const OPEN_IN_PROGRESS_PROJECT_STATE_SCHEMA = z.object({
+  state: z.object({ type: z.literal(backendModule.ProjectState.openInProgress) }),
+})
+
 /** A callback to open a project. */
 function useOpenProject() {
   const client = reactQuery.useQueryClient()
   const canOpenProjects = useCanOpenProjects()
   const projectsStore = useProjectsStore()
   const addLaunchedProject = useAddLaunchedProject()
+  const removeLaunchedProject = useRemoveLaunchedProject()
   const closeAllProjects = useCloseAllProjects()
   const openProjectMutation = useOpenProjectMutation()
 
@@ -412,12 +421,10 @@ function useOpenProject() {
       return
     }
 
-    if (!enableMultitabs) {
-      // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
-      if (projectsStore.getState().launchedProjects.length > 0) {
-        await closeAllProjects()
-      }
-    }
+    const queryKey = createGetProjectDetailsQuery.getQueryKey(project.id)
+
+    const data = client.getQueryData(queryKey)
+    client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
 
     const existingMutation = client.getMutationCache().find({
       mutationKey: ['openProject'],
@@ -426,8 +433,25 @@ function useOpenProject() {
     const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
 
     if (!isOpeningTheSameProject) {
-      void openProjectMutation.mutateAsync(project).then(() => {
-        addLaunchedProject(project)
+      addLaunchedProject(project)
+
+      if (!enableMultitabs) {
+        // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
+        if (projectsStore.getState().launchedProjects.length > 0) {
+          await closeAllProjects()
+        }
+      }
+
+      void openProjectMutation.mutateAsync(project).catch(() => {
+        removeLaunchedProject(project.id)
+        const newData = client.getQueryData(queryKey)
+        // If state has not changed from optimistic state, then:
+        if (OPEN_IN_PROGRESS_PROJECT_STATE_SCHEMA.safeParse(newData).success) {
+          // Remove optimistic state.
+          client.setQueryData(queryKey, data)
+          // Also invalidate queries to force fetching of fresh state.
+          void client.invalidateQueries({ queryKey: ['project'] })
+        }
       })
 
       const openingProjectMutation = client.getMutationCache().find({
