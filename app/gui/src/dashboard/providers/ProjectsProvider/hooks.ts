@@ -21,16 +21,6 @@ export const projectsStore = createStore<{
   },
 }))
 
-/** The set of all projects that are currently being opened. */
-export function useOpeningProjects() {
-  return useStore(projectsStore, ({ openingProjects }) => openingProjects)
-}
-
-/** Whether any projects are opening. */
-export function useAreProjectsOpening() {
-  return useStore(projectsStore, ({ openingProjects }) => openingProjects.size !== 0)
-}
-
 /** Return a function to add a project to the 'opening' list. */
 export function useAddOpeningProject() {
   return useStore(projectsStore, ({ addOpeningProject }) => addOpeningProject)

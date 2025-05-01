@@ -491,7 +491,6 @@ export function useOpenHybridProject() {
   const closeProject = useCloseProject()
   const addOpeningProject = useAddOpeningProject()
   const removeOpeningProject = useRemoveOpeningProject()
-  const removeLaunchedProject = useRemoveLaunchedProject()
 
   return eventCallbacks.useEventCallback(
     async (asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>) => {
@@ -517,6 +516,7 @@ export function useOpenHybridProject() {
           }
         }
 
+        removeOpeningProject(asset.id)
         invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
         await openProject({
           id: project.id,

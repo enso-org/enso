@@ -18,8 +18,9 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 import { Spinner } from '#/components/Spinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useStore } from '#/hooks/storeHooks'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
-import { useAreProjectsOpening } from '#/providers/ProjectsProvider/hooks'
+import { projectsStore } from '#/providers/ProjectsProvider/hooks'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const CLOSED_PROJECT_STATE = { type: backendModule.ProjectState.closed } as const
@@ -92,7 +93,17 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const isOtherUserUsingProject =
     projectState.openedBy != null && projectState.openedBy !== user.email
 
+  const isProjectOpening = useStore(
+    projectsStore,
+    ({ openingProjects }) => openingProjects.has(item.id),
+    { unsafeEnableTransition: true },
+  )
+
   const state = (() => {
+    if (isProjectOpening) {
+      return backendModule.ProjectState.openInProgress
+    }
+
     if (!isOpened && !isPlaceholder) {
       return backendModule.ProjectState.closed
     }
@@ -108,8 +119,13 @@ export default function ProjectIcon(props: ProjectIconProps) {
     return status
   })()
 
-  const areProjectsOpening = useAreProjectsOpening()
-  const isAnotherProjectOpening = areProjectsOpening && !backendModule.IS_OPENING_OR_OPENED[state]
+  const areOtherProjectsOpening = useStore(
+    projectsStore,
+    ({ openingProjects }) => openingProjects.size !== 0 && !openingProjects.has(item.id),
+    { unsafeEnableTransition: true },
+  )
+  const isAnotherProjectOpening =
+    areOtherProjectsOpening && !backendModule.IS_OPENING_OR_OPENED[state]
   const isDisabled = isDisabledRaw || isUnconditionallyDisabled || isAnotherProjectOpening
 
   const userOpeningProjectTooltip =
