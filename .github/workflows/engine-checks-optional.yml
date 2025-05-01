@@ -186,11 +186,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: rm -rf built-distribution
-        shell: bash
+      - run: ./run git-clean
       - run: ./run backend ci-build-engine-distribution
-      - run: rm -rf built-distribution
-        shell: bash
+      - run: ./run git-clean
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
@@ -264,11 +262,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: rm -rf built-distribution
-        shell: bash
+      - run: ./run git-clean
       - run: ./run backend ci-build-engine-distribution
-      - run: rm -rf built-distribution
-        shell: bash
+      - run: ./run git-clean
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:

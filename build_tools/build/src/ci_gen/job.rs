@@ -347,11 +347,8 @@ impl JobArchetype for StandardLibraryTests {
                 ..Default::default()
             };
 
-            let cleanup_engine_distribution = Step {
-                run: Some("rm -rf built-distribution".into()),
-                shell: Some(Shell::Bash),
-                ..Default::default()
-            };
+            let cleanup_engine_distribution =
+                Step { run: Some("./run git-clean".into()), ..Default::default() };
 
             let download_engine_distribution =
                 step::download_engine_distribution(target, engine_launcher, graal_edition);
