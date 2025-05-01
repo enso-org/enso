@@ -8,7 +8,7 @@ import org.enso.compiler.core.ir.{
   Module,
   Pattern
 }
-import org.enso.compiler.core.ir.expression.{errors, Case}
+import org.enso.compiler.core.ir.expression.{errors, Case, Case}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.IRProcessingPass
@@ -313,20 +313,19 @@ case object NestedPatternMatch extends IRPass {
   ): Expression = {
     val patternDuplicate = pattern.duplicate()
     val finalTest        = containsNestedPatterns(patternDuplicate)
-    val patternBranch =
-      Case.Branch(
-        patternDuplicate,
-        currentBranchExpr.duplicate(),
-        terminalBranch     = !finalTest,
-        identifiedLocation = null
-      )
+    val patternBranch = Case.Branch
+      .builder()
+      .pattern(patternDuplicate)
+      .expression(currentBranchExpr.duplicate())
+      .terminalBranch(!finalTest)
+      .build()
 
-    Case.Expr(
-      nestedScrutinee.duplicate(),
-      List(patternBranch),
-      isNested           = true,
-      identifiedLocation = null
-    )
+    Case.Expr
+      .builder()
+      .scrutinee(nestedScrutinee.duplicate())
+      .branches(List(patternBranch))
+      .isNested(true)
+      .build()
   }
 
   /** Tests if a pattern contains nested patterns.
