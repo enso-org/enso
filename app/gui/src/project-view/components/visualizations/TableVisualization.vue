@@ -12,6 +12,7 @@ import type {
   CellClassParams,
   CellDoubleClickedEvent,
   ColDef,
+  ColumnVisibleEvent,
   ICellRendererParams,
   IServerSideDatasource,
   IServerSideGetRowsRequest,
@@ -143,11 +144,13 @@ const rowLimit = ref(0)
 const page = ref(0)
 const pageLimit = ref(0)
 const rowCount = ref(0)
+const filteredRowCount = ref(null)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
-const isCreateNodeEnabled = ref(false)
 const filterModel = ref<GridFilterModel[]>([])
 const sortModel = ref<SortModel[]>([])
+const hiddenColumns = ref<string[]>([])
+const vizColumnOrder = ref<string[] | null>(null)
 const defaultColDef: Ref<ColDef> = ref({
   editable: false,
   sortable: true,
@@ -162,7 +165,6 @@ const defaultColDef: Ref<ColDef> = ref({
     'separator',
     'export',
   ],
-  autoHeight: true,
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
@@ -207,12 +209,21 @@ const statusBar = computed(() =>
               statusPanel: TableVizStatusBar,
               statusPanelParams: {
                 total: allRowCount.value,
+                filtered: isSSRM.value ? filteredRowCount.value : null,
               },
             },
           ]
         : [],
     }
   : null,
+)
+
+const isCreateNodeButtonEnabled = computed(
+  () =>
+    sortModel.value.length > 0 ||
+    filterModel.value.length > 0 ||
+    hiddenColumns.value.length > 0 ||
+    vizColumnOrder.value != null,
 )
 
 // if there are upstream updates only to the row information the table version hash change indicates the grid needs to re get rows for any potetial changes
@@ -260,7 +271,7 @@ watchEffect(() =>
   ),
 )
 
-const isFilterSortNodeEnabled = computed(
+const isCreateNewNodeEnabled = computed(
   () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
 )
 
@@ -366,8 +377,8 @@ function createServer() {
       )
 
       const response = await config.executeExpression(expressionFunction)
-
       if (response.ok) {
+        filteredRowCount.value = response.value.row_count
         return {
           success: true,
           data: response.value.rows,
@@ -609,6 +620,7 @@ function toField(
       showDataQuality,
     },
     cellDataType: cellValueType,
+    autoHeight: cellValueType === 'text' && isSSRM.value,
   }
 }
 
@@ -960,7 +972,6 @@ function checkSortAndFilter(e: SortChangedEvent) {
   const gridApi = e.api
   if (gridApi == null) {
     console.warn('AG Grid column API does not exist.')
-    isCreateNodeEnabled.value = false
     return
   }
   const colState = gridApi.getColumnState()
@@ -978,13 +989,28 @@ function checkSortAndFilter(e: SortChangedEvent) {
     .filter((sort) => sort)
   const filter = makeFilterModelList(gridFilterModel)
   if (sort.length || filter.length) {
-    isCreateNodeEnabled.value = true
     sortModel.value = sort as SortModel[]
     filterModel.value = filter
   } else {
-    isCreateNodeEnabled.value = false
     sortModel.value = []
     filterModel.value = []
+  }
+}
+
+const onColumnStateChange = (e: ColumnVisibleEvent) => {
+  const colState = e.api.getColumnState()
+  hiddenColumns.value = colState.filter((col) => col.hide).map((col) => col.colId)
+  const gridColOrder = colState
+    .filter((col) => col.colId != INDEX_FIELD_NAME)
+    .map((col) => col.colId)
+  const defaultColOrder =
+    typeof props.data === 'object' && 'header' in props.data && props.data.header ?
+      props.data.header
+    : []
+  if (gridColOrder.every((val, index) => val === defaultColOrder[index])) {
+    vizColumnOrder.value = null
+  } else {
+    vizColumnOrder.value = gridColOrder
   }
 }
 
@@ -1009,10 +1035,12 @@ config.setToolbar(
     textFormatterSelected,
     filterModel,
     sortModel,
-    isDisabled: () => !isCreateNodeEnabled.value,
-    isFilterSortNodeEnabled,
+    isButtonDisabled: () => !isCreateNodeButtonEnabled.value,
+    isCreateNewNodeEnabled,
     createNodes: config.createNodes,
     getColumnValueToEnso,
+    hiddenColumns,
+    vizColumnOrder,
     refreshGrid,
   }),
 )
@@ -1059,7 +1087,8 @@ config.setToolbar(
         :isServerSideModel="isSSRM"
         :statusBar="statusBar"
         :gridIdHash="tableVersionHash"
-        @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
+        @sortOrFilterUpdated="checkSortAndFilter"
+        @columnStateChanged="onColumnStateChange"
       />
     </Suspense>
   </div>

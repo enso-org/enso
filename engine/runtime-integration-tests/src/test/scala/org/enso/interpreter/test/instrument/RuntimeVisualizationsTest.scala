@@ -5171,4 +5171,161 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       new String(data) shouldEqual "85"
   }
 
+  it should "emit visualization update when attached to a function parameter" in withContext() {
+    context =>
+      val contextId       = UUID.randomUUID()
+      val requestId       = UUID.randomUUID()
+      val visualizationId = UUID.randomUUID()
+      val moduleName      = "Enso_Test.Test.Main"
+      val metadata        = new Metadata
+
+      val code =
+        """
+          |from Standard.Base.Data.Numbers import Number
+          |
+          |collapsed a =
+          |    x = a + 20
+          |    x
+          |
+          |main =
+          |    v = collapsed 22
+          |    v
+          |""".stripMargin.linesIterator.mkString("\n")
+      val idMainCollapsed = metadata.addItem(99, 12)
+      val idCollapsedA    = metadata.addItem(58, 1)
+      val idCollapsedX    = metadata.addItem(70, 6)
+
+      val contents = metadata.appendToCode(code)
+      val mainFile = context.writeMain(contents)
+      val visualizationFile =
+        context.writeInSrcDir("Visualization", context.Visualization.code)
+
+      // create context
+      context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+      context.receive shouldEqual Some(
+        Api.Response(requestId, Api.CreateContextResponse(contextId))
+      )
+
+      // open files
+      context.send(
+        Api.Request(
+          requestId,
+          Api.OpenFileRequest(
+            visualizationFile,
+            context.Visualization.code
+          )
+        )
+      )
+      context.receive shouldEqual Some(
+        Api.Response(Some(requestId), Api.OpenFileResponse)
+      )
+
+      // Open the new file
+      context.send(
+        Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+      )
+      context.receive shouldEqual Some(
+        Api.Response(Some(requestId), Api.OpenFileResponse)
+      )
+
+      // push main
+      val item1 = Api.StackItem.ExplicitCall(
+        Api.MethodPointer(moduleName, moduleName, "main"),
+        None,
+        Vector()
+      )
+      context.send(
+        Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+      )
+      context.receiveNIgnorePendingExpressionUpdates(
+        3
+      ) should contain theSameElementsAs Seq(
+        Api.Response(requestId, Api.PushContextResponse(contextId)),
+        TestMessages.update(
+          contextId,
+          idMainCollapsed,
+          ConstantsGen.INTEGER,
+          methodCall = Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main",
+              "collapsed"
+            )
+          )
+        ),
+        context.executionComplete(contextId)
+      )
+
+      // push `collapsed` call
+      val item2 = Api.StackItem.LocalCall(idMainCollapsed)
+      context.send(
+        Api.Request(requestId, Api.PushContextRequest(contextId, item2))
+      )
+      context.receiveNIgnorePendingExpressionUpdates(
+        4,
+        timeoutSeconds = 20
+      ) should contain theSameElementsAs Seq(
+        Api.Response(requestId, Api.PushContextResponse(contextId)),
+        TestMessages.update(
+          contextId,
+          idCollapsedA,
+          ConstantsGen.INTEGER
+        ),
+        TestMessages.update(
+          contextId,
+          idCollapsedX,
+          ConstantsGen.INTEGER,
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Numbers",
+              ConstantsGen.INTEGER,
+              "+"
+            )
+          ),
+          false,
+          true
+        ),
+        context.executionComplete(contextId)
+      )
+
+      // attach visualization
+      context.send(
+        Api.Request(
+          requestId,
+          Api.AttachVisualization(
+            visualizationId,
+            idCollapsedA,
+            Api.VisualizationConfiguration(
+              contextId,
+              Api.VisualizationExpression.Text(
+                "Enso_Test.Test.Visualization",
+                "encode",
+                Vector()
+              ),
+              "Enso_Test.Test.Visualization"
+            )
+          )
+        )
+      )
+      val attachVisualizationResponses2 = context.receiveN(3)
+      attachVisualizationResponses2 should contain(
+        Api.Response(requestId, Api.VisualizationAttached())
+      )
+      val Some(data2) = attachVisualizationResponses2.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
+                  `contextId`,
+                  `idCollapsedA`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+      new String(data2) shouldEqual "22"
+  }
+
 }

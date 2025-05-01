@@ -354,6 +354,9 @@ impl RunContext {
             Ok(())
         };
 
+        let enso_lint_result =
+            if self.config.run_enso_lint { sbt.call_arg("lintEnso").await } else { Ok(()) };
+
         match &self.config.test_standard_library {
             Some(selection) => {
                 enso.run_tests(
@@ -371,8 +374,8 @@ impl RunContext {
         perhaps_test_java_generated_from_rust_job.await.transpose()?;
 
         // === Stdlib API check ===
-        debug!("Running standard libraries API check.");
         if self.config.stdlib_api_check {
+            debug!("Running standard libraries API check.");
             self.stdlib_api_check(&enso).await?;
         }
 
@@ -483,6 +486,7 @@ impl RunContext {
         }
 
         scala_test_result?;
+        enso_lint_result?;
 
         Ok(ret)
     }

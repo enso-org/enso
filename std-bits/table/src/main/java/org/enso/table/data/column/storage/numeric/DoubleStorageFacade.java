@@ -5,7 +5,6 @@ import java.math.BigInteger;
 import java.util.function.ToDoubleFunction;
 import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.column.storage.type.StorageType;
 
 /** A facade for a column storage that converts the stored type to a double. */
 public final class DoubleStorageFacade<T> implements ColumnDoubleStorage {
@@ -40,7 +39,7 @@ public final class DoubleStorageFacade<T> implements ColumnDoubleStorage {
   }
 
   @Override
-  public StorageType<Double> getType() {
+  public FloatType getType() {
     return FloatType.FLOAT_64;
   }
 

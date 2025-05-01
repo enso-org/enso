@@ -64,7 +64,15 @@ public final class CompilerErrorTest {
     var ctx = new MockCompilerContext(repo, ps);
     var cfg =
         new CompilerConfig(
-            true, true, true, true, scala.Option.empty(), true, true, scala.Option.apply(ps));
+            true,
+            true,
+            true,
+            true,
+            false,
+            scala.Option.empty(),
+            true,
+            true,
+            scala.Option.apply(ps));
     var c = new Compiler(ctx, repo, cfg);
     var optPkg = c.getPackageRepository().getMainProjectPackage();
     var m = new MockModule(optPkg.get(), qName, path, code);

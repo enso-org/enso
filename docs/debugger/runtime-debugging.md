@@ -3,13 +3,13 @@
 This document describes how to debug **everything** - e.g. how to debug the
 _Java code_ that powers the Enso _engine & interpreter_ as well as Enso standard
 _libraries Java code_ (used to interact with the operating system via Java
-APIs). At the same thetime the document describes how to _map that information_
+APIs). At the same time the document describes how to _map that information_
 onto the execution of the actual _Enso source code_ being interpreted.
 
 ## Debugging Single Source File
 
 To analyze what is happening in the interpreter, we often want to debug
-excecution of a _single Enso file_.
+execution of a _single Enso file_.
 
 Get started by building the _Engine distribution_ built with
 `sbt buildEngineDistribution` command. Then configure your IDE to understand the
@@ -119,6 +119,8 @@ you to skip all the irrelevant code and get to the code you are interested in:
   `Debug.eval "1+1"`, in front of it and put a breakpoint in a Truffle node
   corresponding to that unique expression, in this case that is
   `org.enso.interpreter.node.expression.builtin.debug.DebugEvalNode`.
+
+It also possible to [debug native image executable](./native-debugging.md).
 
 ## Debugging annotation processors
 

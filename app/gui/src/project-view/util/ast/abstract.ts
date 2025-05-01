@@ -288,9 +288,12 @@ export function dropMutability<T extends Ast>(value: Owned<Mutable<T>>): T {
   return value as unknown as T
 }
 
-function unwrapGroups(ast: Ast) {
-  while (ast instanceof Group && ast.expression) ast = ast.expression
-  return ast
+/**
+ * If the input is a parenthesized expression, returns the inner expression; otherwise, returns the
+ * input.
+ */
+export function unwrapGroups<T extends Ast | undefined>(ast: T): T | Expression {
+  return ast instanceof Group && ast.expression ? unwrapGroups(ast.expression) : ast
 }
 
 /**

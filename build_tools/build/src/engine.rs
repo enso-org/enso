@@ -170,6 +170,7 @@ pub struct BuildConfigurationFlags {
     /// Verify License Packages in Distributions.
     pub verify_packages: bool,
     pub stdlib_api_check: bool,
+    pub run_enso_lint: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -286,6 +287,7 @@ impl Default for BuildConfigurationFlags {
             test_java_generated_from_rust: false,
             verify_packages: false,
             stdlib_api_check: false,
+            run_enso_lint: false,
         }
     }
 }

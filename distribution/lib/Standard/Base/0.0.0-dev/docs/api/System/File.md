@@ -9,7 +9,7 @@
     - create_temporary_file prefix:Standard.Base.Any.Any= suffix:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - creation_time self -> Standard.Base.Any.Any
     - current_directory -> Standard.Base.Any.Any
-    - delete self recursive:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - delete self recursive:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Nothing.Nothing!Standard.Base.Errors.File_Error.File_Error
     - delete_if_exists self recursive:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - exists self -> Standard.Base.Any.Any
     - extension self -> Standard.Base.Any.Any

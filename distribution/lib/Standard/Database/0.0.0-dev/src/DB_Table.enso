@@ -661,7 +661,20 @@ type DB_Table
                     if Helpers.check_integrity self column then column else
                         Panic.throw (Integrity_Error.Error "DB_Column "+column.name)
 
-    ## ALIAS filter rows, where
+    ## ALIAS where
+       MACRO equals filter=..Equal
+       MACRO not_equals filter=..Not_Equal
+       MACRO not_nothing filter=..Not_Nothing
+       MACRO is_nothing filter=..Is_Nothing
+       MACRO is_in filter=..Is_In
+       MACRO less_than filter=..Less
+       MACRO greater_than filter=..Greater
+       MACRO between filter=..Between
+       MACRO contains filter=..Contains
+       MACRO starts_with filter=..Starts_With
+       MACRO ends_with filter=..Ends_With
+       MACRO like filter=..Like
+       MACRO regex_match filter=..Regex_Match
        GROUP Standard.Base.Selections
        ICON preparation
 
@@ -1141,7 +1154,7 @@ type DB_Table
                     Error.throw (Integrity_Error.Error "Column "+value.name)
             _ : Constant_Column -> self.make_constant_column value
             _ : Simple_Expression -> value.evaluate self (set_mode==Set_Mode.Update && as=="") on_problems
-            _ : Vector -> Error.throw (Unsupported_Database_Operation "`Vector` for `set`")
+            _ : Vector -> Error.throw (Unsupported_Database_Operation.Error "`Vector` for `set`")
             _ : Array -> Error.throw (Unsupported_Database_Operation.Error "`Array` for `set`")
             _ : Range -> Error.throw (Unsupported_Database_Operation.Error "`Range` for `set`")
             _ : Date_Range -> Error.throw (Unsupported_Database_Operation.Error "`Date_Range` for `set`")
@@ -2081,7 +2094,10 @@ type DB_Table
 
                         DB_Table.new union_alias self.connection new_columns new_ctx
 
-    ## ALIAS average, count, count distinct, first, group by, last, longest, maximum, mean, median, minimum, mode, percentile, shortest, standard deviation, sum, summarize, variance
+    ## ALIAS average, first, group by, last, longest, maximum, mean, median, minimum, mode, percentile, shortest, standard deviation, summarize, variance
+       MACRO sum columns=[..Sum]
+       MACRO count columns=[..Count]
+       MACRO count_distinct columns=[..Count_Distinct]
        GROUP Standard.Base.Calculations
        ICON transform4
 
@@ -2782,7 +2798,7 @@ type DB_Table
        - internal: The internal column to use for creating a column.
     make_column : Internal_Column -> DB_Column
     make_column self internal =
-        DB_Column.Value internal.name self.connection internal.sql_type_reference internal.expression self.context
+        DB_Column.new internal.name self.connection internal.sql_type_reference internal.expression self.context
 
     ## PRIVATE
     columns_helper : Table_Column_Helper
@@ -2939,11 +2955,11 @@ type DB_Table
                  table.write (enso_project.data / "example_csv_output.csv")
     @path (Widget.Text_Input display=Display.Always)
     @format Widget_Helpers.write_table_selector
-    write self path:Writable_File format=Auto_Detect on_existing_file:Existing_File_Behavior=..Backup match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> Nothing ! Column_Count_Mismatch | Illegal_Argument | File_Error =
+    write self path:Writable_File format=Auto_Detect on_existing_file:Existing_File_Behavior=..Backup match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning -> File | Any ! Column_Count_Mismatch | Illegal_Argument | File_Error =
         row_limit = 100000
 
         ## Read one extra row to check if the table is too large.
-        materialized = self.read ..First (row_limit+1)
+        materialized = self.read (..First row_limit+1)
         if materialized.row_count <= row_limit then materialized.write path format on_existing_file match_columns on_problems else
             Error.throw (Illegal_Argument.Error "DB_Table contains more than 100,000 rows. Use `read` to materialize first.")
 
