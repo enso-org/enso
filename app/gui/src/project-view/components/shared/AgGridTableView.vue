@@ -130,7 +130,7 @@ const props = defineProps<{
   rowCount?: number
   isServerSideModel?: boolean
   gridIdHash?: string | null
-  getContextMenuItems: (
+  getContextMenuItems?: (
     params: GetContextMenuItemsParams,
   ) => (MenuItemDef | string)[] | GetContextMenuItems
 }>()
