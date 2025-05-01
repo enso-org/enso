@@ -240,8 +240,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
         shadowStartClassName="top-8"
         onScroll={(event) => {
           const element = event.currentTarget
-          console.log(element.scrollTop, element.scrollHeight, element.clientHeight)
-          if (element.scrollTop + element.scrollHeight >= element.clientHeight) {
+          if (element.scrollTop + element.clientHeight >= element.scrollHeight) {
             void logsPages.fetchNextPage()
           }
         }}
@@ -421,6 +420,13 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 )
               })
             }
+            <tr className="h-9">
+              <td colSpan={4} className="rounded-full bg-transparent">
+                <div className="flex justify-center">
+                  <StatelessSpinner size={32} state="loading-medium" />
+                </div>
+              </td>
+            </tr>
           </tbody>
         </table>
       </Scroller>
