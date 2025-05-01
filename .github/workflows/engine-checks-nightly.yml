@@ -770,6 +770,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: rm -rf built-distribution
         shell: bash
+      - run: ./run backend ci-build-engine-distribution
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
@@ -846,6 +849,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: rm -rf built-distribution
         shell: bash
+      - run: ./run backend ci-build-engine-distribution
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
@@ -918,6 +924,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
+      - run: ./run backend ci-build-engine-distribution
       - run: rm -rf built-distribution
         shell: bash
       - name: Download Engine Distribution
@@ -995,6 +1004,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: rm -rf built-distribution
         shell: bash
+      - run: ./run backend ci-build-engine-distribution
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
@@ -1068,6 +1080,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
+      - run: ./run backend ci-build-engine-distribution
       - run: rm -rf built-distribution
         shell: bash
       - name: Download Engine Distribution
@@ -1146,6 +1161,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: rm -rf built-distribution
         shell: bash
+      - run: ./run backend ci-build-engine-distribution
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
@@ -1218,6 +1236,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
+      - run: ./run backend ci-build-engine-distribution
       - run: rm -rf built-distribution
         shell: bash
       - name: Download Engine Distribution
@@ -1295,6 +1316,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: rm -rf built-distribution
         shell: bash
+      - run: ./run backend ci-build-engine-distribution
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
@@ -1370,6 +1394,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: rm -rf built-distribution
         shell: bash
+      - run: ./run backend ci-build-engine-distribution
+      - run: rm -rf built-distribution
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
@@ -1443,6 +1470,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: rm -rf built-distribution
+        shell: bash
+      - run: ./run backend ci-build-engine-distribution
       - run: rm -rf built-distribution
         shell: bash
       - name: Download Engine Distribution

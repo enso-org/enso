@@ -342,6 +342,11 @@ impl JobArchetype for StandardLibraryTests {
         let job_name = format!("Standard Library Tests ({graal_edition}) ({job_mode_name})");
         let run_command = format!("backend test {test_scope}");
         let run_steps_builder = RunStepsBuilder::new(run_command).customize(move |step| {
+            let build_engine_distribution = Step {
+                run: Some("./run backend ci-build-engine-distribution".into()),
+                ..Default::default()
+            };
+
             let cleanup_engine_distribution = Step {
                 run: Some("rm -rf built-distribution".into()),
                 shell: Some(Shell::Bash),
@@ -380,6 +385,8 @@ rm built-distribution.tar
                 if should_enable_cloud_tests { enable_cloud_tests(main_step) } else { main_step };
 
             vec![
+                cleanup_engine_distribution.clone(),
+                build_engine_distribution,
                 cleanup_engine_distribution,
                 download_engine_distribution,
                 unpack_engine_distribution,
@@ -599,7 +606,7 @@ fn build_job_ensuring_cloud_tests_run_on_github(
 
 #[derive(Clone, Copy, Debug)]
 pub struct SnowflakeTests {
-    pub graal_edition: graalvm::Edition,
+    pub graal_edition:   graalvm::Edition,
     pub engine_launcher: engine::EngineLauncher,
 }
 
