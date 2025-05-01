@@ -3,7 +3,7 @@ import ResizeHandles from '@/components/ResizeHandles.vue'
 import { useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
-import { WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
+import { UpdateHandler, WidgetInput } from '@/providers/widgetRegistry'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { computed, ref, watch } from 'vue'
@@ -12,7 +12,7 @@ const props = defineProps<{
   input: WidgetInput
   metadataKey: string
   config: { size: { x: number; y: number } }
-  onUpdate: (update: WidgetUpdate) => void
+  onUpdate: UpdateHandler
 }>()
 
 const size = computed(() => Vec2.FromXY(props.config.size))

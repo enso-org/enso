@@ -105,7 +105,11 @@ function handleRename(index: number, newName: Ast.Owned<Ast.MutableExpression>) 
       @reorder="handleReorder"
     >
       <template #default="{ item, index }">
-        <ArgumentRow :definition="item" @rename="handleRename(index, $event)" />
+        <ArgumentRow
+          :definition="item"
+          :onUpdate="onUpdate"
+          @rename="handleRename(index, $event)"
+        />
       </template>
     </DraggableList>
   </div>

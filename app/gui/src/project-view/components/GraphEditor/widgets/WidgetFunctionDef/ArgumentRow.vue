@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
+import { UpdateHandler, WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
+import { isSome, mapOrUndefined } from '@/util/data/opt'
+import { Err, Ok } from '@/util/data/result'
 import { computed } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
 import { ArgumentDefinition, ConcreteRefs } from 'ydoc-shared/ast'
-import { isSome, mapOrUndefined } from 'ydoc-shared/util/data/opt'
 import { EnsoExpression } from '../WidgetEnsoExpression.vue'
 
-const { definition } = defineProps<{
+const { definition, onUpdate } = defineProps<{
   definition: ArgumentDefinition<ConcreteRefs>
+  onUpdate: UpdateHandler
 }>()
 const emit = defineEmits<{
   rename: [value: Ast.Owned<Ast.MutableExpression>]
@@ -26,21 +28,19 @@ function patternWidget(pattern: Ast.Expression): WidgetProps {
     input: {
       portId: pattern.id,
       value: pattern,
-      [EnsoExpression]: {
-        validateInput: (ast: Ast.Expression) => ast instanceof Ast.Ident,
-      },
+      [EnsoExpression]: {},
     },
     onUpdate(update: WidgetUpdate) {
-      if (
-        !update.edit &&
-        update.portUpdate != null &&
-        'value' in update.portUpdate &&
-        update.portUpdate.value instanceof Ast.Ast
-      ) {
-        emit('rename', update.portUpdate.value)
-        return true
+      if (!update.edit && update.portUpdate != null && 'value' in update.portUpdate) {
+        const value = update.portUpdate.value
+        if (value instanceof Ast.Ast && value instanceof Ast.Ident) {
+          emit('rename', value)
+          return Ok()
+        } else {
+          return Err('Argument name must be a valid identifier.')
+        }
       }
-      return false
+      return onUpdate(update)
     },
   }
 }

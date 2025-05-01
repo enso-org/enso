@@ -6,7 +6,7 @@ import {
   provideWidgetUsageInfo,
   usageKeyForInput,
 } from '@/providers/widgetUsageInfo'
-import { computed, proxyRefs } from 'vue'
+import { computed, getCurrentInstance, proxyRefs, shallowRef, watchEffect, withCtx } from 'vue'
 import { bail } from 'ydoc-shared/util/assert'
 
 const props = defineProps<{
@@ -36,27 +36,17 @@ const sameInputParentWidgets = computed(() =>
 )
 const nesting = computed(() => (parentUsageInfo?.nesting ?? 0) + (props.nest === true ? 1 : 0))
 
-// const selectedWidget = shallowRef<WidgetModule<WidgetInput> | undefined>()
-// const updateSelection = withCtx(() => {
-//   selectedWidget.value = registry.select(
-//     {
-//       input: props.input,
-//       nesting: nesting.value,
-//     },
-//     sameInputParentWidgets.value,
-//   )
-// }, getCurrentInstance())
-// watchEffect(() => updateSelection())
-
-const selectedWidget = computed<WidgetModule<WidgetInput> | undefined>(() =>
-  registry.select(
+const selectedWidget = shallowRef<WidgetModule<WidgetInput> | undefined>()
+const updateSelection = withCtx(() => {
+  selectedWidget.value = registry.select(
     {
       input: props.input,
       nesting: nesting.value,
     },
     sameInputParentWidgets.value,
-  ),
-)
+  )
+}, getCurrentInstance())
+watchEffect(() => updateSelection())
 
 const updateHandler = computed(
   () =>

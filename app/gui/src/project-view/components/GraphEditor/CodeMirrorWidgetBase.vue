@@ -7,6 +7,7 @@ import { targetIsOutside } from '@/util/autoBlur'
 import { selectOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { Ok } from '@/util/data/result'
+import { useToast } from '@/util/toast'
 import { Extension, SelectionRange } from '@codemirror/state'
 import { ComponentInstance, ref, useCssModule, useTemplateRef, watch, watchEffect } from 'vue'
 
@@ -92,16 +93,19 @@ function focusEditor() {
   editorView.focus()
 }
 
+const inputError = useToast.error()
+
 async function accepted() {
   const text = getText()
   if (previousValue.value === text) {
     editing.cancel()
+    return
   }
   const result = await handleAccept(text)
   if (result.ok) {
     editing.end()
   } else {
-    // TODO: instead of canceling, we should probably display an error here.
+    inputError.reportError(result.error)
     editing.cancel()
   }
 }

@@ -9,39 +9,22 @@ import {
   widgetProps,
 } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
-import { Err } from '@/util/data/result'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { computed, ref } from 'vue'
 import { BodyBlock, MutableModule } from 'ydoc-shared/ast'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
-const astCode = computed({
-  get: () => WidgetInput.valueRepr(props.input) ?? '',
-  set: async (value) => {
-    const result = await tryUpdateWithValue(value)
-    if (!result.ok) {
-    }
-  },
-})
+const astCode = computed(() => WidgetInput.valueRepr(props.input) ?? '')
 
-function tryUpdateWithValue(value: string): HandledUpdate {
-  const newAst = Ast.parseExpression(value)
-  if (validateAst(newAst)) {
-    return props.onUpdate({
-      portUpdate: {
-        value: newAst,
-        origin: props.input.portId,
-      },
-      directInteraction: true,
-    })
-  } else {
-    return Err('Expression invalid in this context.')
-  }
-}
-
-function validateAst(ast: Ast.Expression | undefined): boolean {
-  return ast != null && (props.input[EnsoExpression]?.validateInput?.(ast) ?? true)
+function acceptValue(value: string): HandledUpdate {
+  return props.onUpdate({
+    portUpdate: {
+      value: Ast.parseExpression(value),
+      origin: props.input.portId,
+    },
+    directInteraction: true,
+  })
 }
 
 const moduleRoot = ref(BodyBlock.new([], MutableModule.Transient()))
@@ -55,9 +38,7 @@ const extensions = [
 export const EnsoExpression: unique symbol = Symbol.for('WidgetInput:EnsoExpression')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
-    [EnsoExpression]?: {
-      validateInput?: (ast: Ast.Expression) => boolean
-    }
+    [EnsoExpression]?: object
   }
 }
 
@@ -78,6 +59,7 @@ export const widgetDefinition = defineWidget(
       :input="input"
       :extensions="extensions"
       lineMode="single"
+      :onAccepted="acceptValue"
     />
   </div>
 </template>

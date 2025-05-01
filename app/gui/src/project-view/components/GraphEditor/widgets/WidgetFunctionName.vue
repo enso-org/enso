@@ -1,16 +1,21 @@
 <script setup lang="ts">
 import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
-import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
+import {
+  defineWidget,
+  Score,
+  UpdateResult,
+  WidgetInput,
+  widgetProps,
+} from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { usePersisted } from '@/stores/persisted'
 import { useProjectStore } from '@/stores/project'
 import { injectProjectNames } from '@/stores/projectNames'
 import { Ast } from '@/util/ast'
-import { Err, Ok, type Result } from '@/util/data/result'
+import { Err, Ok } from '@/util/data/result'
 import { type MethodPointer } from '@/util/methodPointer'
 import { type IdentifierOrOperatorIdentifier } from '@/util/qualifiedName'
-import { useToast } from '@/util/toast'
-import { computed, useTemplateRef } from 'vue'
+import { computed } from 'vue'
 import { PropertyAccess } from 'ydoc-shared/ast'
 import { type ExpressionId } from 'ydoc-shared/languageServerTypes'
 import NodeWidget from '../NodeWidget.vue'
@@ -21,7 +26,6 @@ const persisted = usePersisted(true)
 const projectNames = injectProjectNames()
 
 const project = useProjectStore()
-const renameError = useToast.error()
 
 const thisArg = computed(() =>
   props.input.value instanceof PropertyAccess ? props.input.value.lhs : undefined,
@@ -33,26 +37,16 @@ const name = computed(() =>
   props.input.value instanceof PropertyAccess ? props.input.value.rhs : props.input.value,
 )
 
-const baseEditor = useTemplateRef('baseEditor')
-
-const nameCode = computed({
-  get: () => name.value.code(),
-  set: async (newName) => {
-    const result = await renameFunction(newName)
-    if (!result.ok) {
-      renameError.reportError(result.error)
-      baseEditor.value?.setText(nameCode.value)
-    }
-  },
-})
-
-async function renameFunction(newName: string): Promise<Result> {
-  if (!project.moduleProjectPath?.ok) return project.moduleProjectPath ?? Err('Unknown module Path')
+const nameCode = computed(() => name.value.code())
+async function renameFunction(newName: string): Promise<UpdateResult> {
+  if (!project.moduleProjectPath?.ok) return Err('Unknown module Path')
   const modPath = projectNames.serializeProjectPathForBackend(project.moduleProjectPath.value)
   const editedName = props.input[FunctionName].editableNameExpression
   const oldMethodPointer = props.input[FunctionName].methodPointer
   const refactorResult = await project.lsRpcConnection.renameSymbol(modPath, editedName, newName)
-  if (!refactorResult.ok) return refactorResult
+  if (!refactorResult.ok) {
+    return Err(refactorResult.error.message('Failed to rename function'))
+  }
   if (oldMethodPointer) {
     const newMethodPointer = {
       ...oldMethodPointer,
@@ -101,7 +95,12 @@ export const widgetDefinition = defineWidget(
   <div class="WidgetFunctionName widgetRounded widgetPill">
     <NodeWidget v-if="thisArg" :input="WidgetInput.FromAst(thisArg)" />
     <NodeWidget v-if="operator" :input="WidgetInput.FromAst(operator)" />
-    <CodeMirrorWidgetBase ref="baseEditor" v-model="nameCode" :input="input" lineMode="single" />
+    <CodeMirrorWidgetBase
+      v-model="nameCode"
+      :onAccepted="renameFunction"
+      :input="input"
+      lineMode="single"
+    />
   </div>
 </template>
 

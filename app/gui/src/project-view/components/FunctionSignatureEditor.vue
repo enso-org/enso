@@ -5,6 +5,7 @@ import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { documentationData } from '@/stores/suggestionDatabase/documentation'
 import { colorFromString } from '@/util/colors'
+import { Ok } from '@/util/data/result'
 import { type MethodPointer } from '@/util/methodPointer'
 import { useFocusWithin } from '@vueuse/core'
 import { computed, ref, watchEffect } from 'vue'
@@ -54,8 +55,8 @@ const { focused } = useFocusWithin(rootElement)
 const graph = useGraphStore()
 
 function handleWidgetUpdates(update: WidgetUpdate) {
-  return applyWidgetUpdates(update, graph)
-  // This handler is guaranteed to be the last handler in the chain.
+  applyWidgetUpdates(update, graph)
+  return Ok()
 }
 
 const groupBasedColor = computed(() => {

@@ -178,7 +178,7 @@ export const widgetDefinition = defineWidget(
       :input="input"
       metadataKey="WidgetTableEditor"
       :config="config"
-      @update="onUpdate"
+      :onUpdate="onUpdate"
     >
       <Suspense>
         <AgGridTableView
