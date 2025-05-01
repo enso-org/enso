@@ -2154,7 +2154,7 @@ type Table
             case filter_condition of
                 _ : Filter_Condition ->
                     resolved = (self:Table_Ref).resolve_condition filter_condition
-                    _hint_errors_as "filter" <| mask (make_filter_column column resolved on_problems)
+                    link_errors_to_argument "filter" <| mask (make_filter_column column resolved on_problems)
                 _ : Function -> mask (column.map filter_condition)
         _ : Expression -> self.filter (self.evaluate_expression column on_problems) filter on_problems
         _ ->
@@ -4070,6 +4070,6 @@ to_java_table table =
 Many_Files_List.from (that : Table) =
     Read_Many_Helpers.find_files_list_in_table that
 
-_hint_errors_as arg_name action =
+link_errors_to_argument arg_name action =
     x = action
-    x.catch Any err->(Error.throw ((Argument_Hinted_Error.Error err arg_name) : (Argument_Hinted_Error & Invalid_Value_Type)))
+    x.catch Any err->(Error.throw ((Argument_Linked_Error.Error err arg_name) : (Argument_Linked_Error & Invalid_Value_Type)))

@@ -454,16 +454,16 @@ type No_Index_Set_Error
     to_display_text : Text
     to_display_text self = "The table does not have an index set."
 
-type Argument_Hinted_Error
-   Error error related_argument:Text
+type Argument_Linked_Error
+   Error error linked_argument:Text
 
    to_display_text self -> Text =
        self.error.to_display_text
 
    to_json self -> Text =
-       ((Json.parse self.error.to_json).set_value "argument_hint" self.related_argument).to_json
+       ((Json.parse self.error.to_json).set_value "argument_hint" self.linked_argument).to_json
 
-Invalid_Value_Type.from (that : Argument_Hinted_Error) -> Invalid_Value_Type =
+Invalid_Value_Type.from (that : Argument_Linked_Error) -> Invalid_Value_Type =
     that.error
 
 type Invalid_Value_Type
