@@ -72,22 +72,6 @@ object Function {
       )
     }
 
-    def this(
-      ir: expression.Case.Expr,
-      arguments: List[DefinitionArgument],
-      body: Expression,
-      identifiedLocation: IdentifiedLocation
-    ) = {
-      this(
-        arguments,
-        Persistance.Reference.of(body, true),
-        identifiedLocation,
-        true,
-        ir.passData.duplicate()
-      )
-      diagnostics = ir.diagnostics
-    }
-
     override lazy val body: Expression = bodyReference.get(classOf[Expression])
 
     override val isPrivate: Boolean = false
