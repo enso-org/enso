@@ -59,6 +59,6 @@ public abstract class MiniPassTester {
 
   private static CompilerConfig defaultCompilerConfig() {
     return CompilerConfig.apply(
-        false, true, true, false, Option.empty(), false, false, Option.empty());
+        false, true, true, false, false, Option.empty(), false, false, Option.empty());
   }
 }

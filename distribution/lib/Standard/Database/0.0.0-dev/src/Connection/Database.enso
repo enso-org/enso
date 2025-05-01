@@ -14,7 +14,7 @@ polyglot java import org.enso.database.DatabaseConnectionDetailsSPI
 
 ## GROUP Standard.Base.Database
    MACRO postgres details=Postgres.Server
-   MACRO sqlite details=SQLite.File
+   MACRO sqlite details=SQLite.From_File
    MACRO sql_server details=..SQLServer
    MACRO snowflake details=..Snowflake
    ICON drive

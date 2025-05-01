@@ -1,13 +1,22 @@
 /** @file Hooks for uploading files. */
 
-import { backendMutationOptions, useEnsureListDirectory } from '#/hooks/backendHooks'
+import {
+  backendMutationOptions,
+  listDirectoryQueryOptions,
+  useEnsureListDirectory,
+} from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories'
+import DuplicateAssetsModal, { resolveDuplications } from '#/modals/DuplicateAssetsModal'
+import { useRemoteBackend } from '#/providers/BackendProvider'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
-import { useSetModal } from '#/providers/ModalProvider'
+import { useHttpClient } from '#/providers/HttpClientProvider'
+import { setModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
+import type LocalBackend from '#/services/LocalBackend'
+import { extractTypeAndId } from '#/services/LocalBackend'
 import { noop } from '#/utilities/functions'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
 import {
@@ -44,9 +53,7 @@ import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/ob
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { useState } from 'react'
 import { toast } from 'react-toastify'
-import { useHttpClient } from '../providers/HttpClientProvider'
-import type LocalBackend from '../services/LocalBackend'
-import { extractTypeAndId } from '../services/LocalBackend'
+import invariant from 'tiny-invariant'
 
 /** The number of bytes in 1 megabyte. */
 export const MB_BYTES = 1_000_000
@@ -61,7 +68,6 @@ const UPLOADING_FILES_QUERY_KEY = ['uploadingFiles'] satisfies QueryKey
 export function useUploadFiles(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
   const toastAndLog = useToastAndLog()
-  const { setModal } = useSetModal()
   const uploadFileMutation = useUploadFileMutation(backend)
   const setSelectedAssets = useSetSelectedAssets()
 
@@ -329,7 +335,7 @@ function clearUploadingFileProgressIfDone(queryClient: QueryClient) {
  */
 export interface UploadFileToCloudMutationOptions {
   /** The assets to upload. */
-  readonly assets: UploadToCloudAsset<AnyAsset['type']>[]
+  readonly assets: readonly UploadToCloudAsset<AnyAsset['type']>[]
   /** The directory to upload the assets to. */
   readonly targetDirectoryId: DirectoryId
 }
@@ -351,6 +357,11 @@ export type UploadToCloudAsset<Type extends AssetType> = Pick<
   'id' | 'parentId' | 'title'
 > & {
   readonly type: Type
+  readonly newName?: string
+  /** The id of an existing cloud asset to replace. */
+  readonly cloudId?: AssetId
+  /** A list of siblings, if it has been fetched already. */
+  readonly siblings?: readonly AnyAsset<AssetType>[]
 }
 
 const UPLOADABLE_ASSETS_SET = new Set([AssetType.file, AssetType.project])
@@ -358,49 +369,161 @@ const UPLOADABLE_ASSETS_SET = new Set([AssetType.file, AssetType.project])
 /**
  * Whether the asset is uploadable.
  */
-function isUploadableAsset(asset: UploadToCloudAsset<AssetType>): asset is UploadableAsset {
+export function isUploadableAsset(asset: UploadToCloudAsset<AssetType>): asset is UploadableAsset {
   return UPLOADABLE_ASSETS_SET.has(asset.type)
+}
+
+/** Get both deleted and non-deleted siblings. */
+function useGetSiblings() {
+  const queryClient = useQueryClient()
+  const { cloudCategories } = useCategoriesAPI()
+  const cloudHomeCategory = cloudCategories.categories.find((category) => category.type === 'cloud')
+  const cloudTrashCategory = cloudCategories.categories.find(
+    (category) => category.type === 'trash',
+  )
+
+  return useEventCallback(async (backend: Backend, parentId: DirectoryId) => {
+    const nonDeletedAssets =
+      cloudHomeCategory ?
+        await queryClient.fetchQuery(
+          listDirectoryQueryOptions({
+            backend,
+            parentId,
+            category: cloudHomeCategory,
+            refetchInterval: null,
+          }),
+        )
+      : []
+    const deletedAssets =
+      cloudTrashCategory ?
+        await queryClient.fetchQuery(
+          listDirectoryQueryOptions({
+            backend,
+            parentId,
+            category: cloudTrashCategory,
+            refetchInterval: null,
+          }),
+        )
+      : []
+    return [...nonDeletedAssets, ...deletedAssets] as const
+  })
 }
 
 /**
  * Packs a project into a file and uploads it to the cloud.
  * Does not work in environments that do not have a local backend.
  */
-export function useUploadFileToCloudMutation(backend: Backend) {
-  const uploadFileMutation = useUploadFileMutation(backend)
-
+export function useUploadFileToCloudMutation() {
   const { getText } = useText()
   const httpClient = useHttpClient()
   const toastAndLog = useToastAndLog()
+  const remoteBackend = useRemoteBackend()
+  const uploadFileMutation = useUploadFileMutation(remoteBackend)
+  const getSiblings = useGetSiblings()
+  const { cloudCategories } = useCategoriesAPI()
+  const cloudHomeCategory = cloudCategories.categories.find((category) => category.type === 'cloud')
 
-  /**
-   * @param _backend - ignored, only used to double-check that the environment has a local backend
-   */
-  return useEventCallback(
-    async (_backend: LocalBackend, options: UploadFileToCloudMutationOptions) => {
+  const upload = useEventCallback(
+    /**
+     * Upload a file from the Local backend to the Cloud backend.
+     * @param localBackend - ignored, only used to double-check that the environment has a local backend
+     */
+    async (localBackend: LocalBackend, options: UploadFileToCloudMutationOptions) => {
       const { assets, targetDirectoryId } = options
+      const siblings = await getSiblings(remoteBackend, targetDirectoryId)
+      const assetsMap = new Map(assets.map((asset) => [asset.id, asset]))
+      const siblingsMap = new Map(siblings.map((sibling) => [sibling.title, sibling]))
 
-      const { uploadableAssets } = assets.reduce(
-        (acc, asset) => {
+      const { uploadableAssets, conflictingAssets } = await assets.reduce(
+        async (accPromise, asset) => {
+          const acc = await accPromise
           const isUploadable = isUploadableAsset(asset)
 
           if (isUploadable) {
-            acc.uploadableAssets.push(asset)
+            const newName = asset.newName ?? asset.title
+            const sibling = asset.cloudId == null ? siblingsMap.get(newName) : null
+            if (sibling) {
+              acc.conflictingAssets.push({ ...asset, cloudId: sibling.id })
+            } else {
+              acc.uploadableAssets.push(asset)
+            }
           } else {
             acc.nonUploadableAssets.push(asset)
           }
 
           return acc
         },
-        {
+        Promise.resolve({
           uploadableAssets: new Array<UploadableAsset>(),
+          conflictingAssets: new Array<UploadableAsset>(),
           nonUploadableAssets: new Array<UploadToCloudAsset<AnyAsset['type']>>(),
-        },
+        }),
       )
 
-      return Promise.all(
-        uploadableAssets.map(async (asset) => {
+      return Promise.all([
+        (async () => {
+          if (conflictingAssets.length === 0) {
+            return
+          }
+
+          invariant(
+            cloudHomeCategory != null,
+            'Cloud home category must exist to upload Local project to Cloud',
+          )
+          const resolutions = await resolveDuplications({
+            canReplace: true,
+            targetId: targetDirectoryId,
+            conflictingIds: conflictingAssets.map((asset) => asset.id),
+            category: cloudHomeCategory,
+            backend: remoteBackend,
+          })
+
+          const renames = resolutions.flatMap((resolution) => {
+            if (resolution.conclusion !== 'rename') {
+              return []
+            }
+            const asset = assetsMap.get(resolution.assetId)
+            if (!asset) {
+              return []
+            }
+            return [{ ...resolution, asset }]
+          })
+          const replaces = resolutions.flatMap((resolution) => {
+            if (resolution.conclusion !== 'replace') {
+              return []
+            }
+            const asset = assetsMap.get(resolution.assetId)
+            if (!asset) {
+              return []
+            }
+            const sibling = siblingsMap.get(asset.title)
+            if (!sibling) {
+              return []
+            }
+            return [{ ...resolution, asset, cloudId: sibling.id }]
+          })
+
+          await upload(localBackend, {
+            assets: [
+              ...renames.map(
+                (resolution): UploadToCloudAsset<AssetType> => ({
+                  ...resolution.asset,
+                  newName: resolution.newName,
+                }),
+              ),
+              ...replaces.map(
+                (resolution): UploadToCloudAsset<AssetType> => ({
+                  ...resolution.asset,
+                  cloudId: resolution.cloudId,
+                }),
+              ),
+            ],
+            targetDirectoryId,
+          })
+        })(),
+        ...uploadableAssets.map(async (asset) => {
           try {
+            const newName = asset.newName ?? asset.title
             const fileData = await (async () => {
               switch (asset.type) {
                 case AssetType.project: {
@@ -415,7 +538,7 @@ export function useUploadFileToCloudMutation(backend: Backend) {
                     throw new Error('Something went wrong, please try again')
                   }
 
-                  const fileName = `${asset.title}.enso-project`
+                  const fileName = `${newName}.enso-project`
 
                   return {
                     fileName,
@@ -432,7 +555,11 @@ export function useUploadFileToCloudMutation(backend: Backend) {
             })()
 
             await uploadFileMutation.mutateAsync([
-              { fileName: fileData.fileName, fileId: null, parentDirectoryId: targetDirectoryId },
+              {
+                fileName: fileData.fileName,
+                fileId: asset.cloudId ?? null,
+                parentDirectoryId: targetDirectoryId,
+              },
               fileData.file,
             ])
 
@@ -441,9 +568,11 @@ export function useUploadFileToCloudMutation(backend: Backend) {
             toastAndLog('uploadProjectToCloudError', error)
           }
         }),
-      )
+      ])
     },
   )
+
+  return upload
 }
 
 /**

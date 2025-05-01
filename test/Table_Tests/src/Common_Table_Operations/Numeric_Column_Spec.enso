@@ -4,7 +4,6 @@ import Standard.Base.Errors.Common.Type_Error
 from Standard.Table import all
 from Standard.Table.Errors import all
 
-import Standard.Database.DB_Column.DB_Column
 import Standard.Database.Feature.Feature
 
 from Standard.Test import all
@@ -41,19 +40,19 @@ add_numeric_columns_specs suite_builder setup =
         group_builder.specify "a numeric column supports abs operation" <|
             column = numeric_column.get
             abs_column = (column:Numeric_Column).abs
-            (abs_column : Column|DB_Column).to_vector . should_equal [10, 0, 1, 12]
+            abs_column.to_vector . should_equal [10, 0, 1, 12]
 
         group_builder.specify "a numeric column supports signum operation" <|
             column = numeric_column.get
             signum_column = (column:Numeric_Column).signum
-            (signum_column : Column|DB_Column).to_vector . should_equal [-1, 0, 1, 1]
+            signum_column.to_vector . should_equal [-1, 0, 1, 1]
 
         group_builder.specify "floating-point columns support abs and signum" <|
             column = build_sorted_table [["X", [-1.5, 0.0, -0.0, 1.0, 200.25]]] . at "X"
             abs_column = (column:Numeric_Column).abs
-            (abs_column : Column|DB_Column).to_vector . should_equal [1.5, 0.0, 0.0, 1.0, 200.25]
+            abs_column.to_vector . should_equal [1.5, 0.0, 0.0, 1.0, 200.25]
             signum_column = (column:Numeric_Column).signum
-            (signum_column : Column|DB_Column).to_vector . should_equal [-1, 0, 0, 1, 1]
+            signum_column.to_vector . should_equal [-1, 0, 0, 1, 1]
 
 check_column column check =
     Test.with_clue "(regular column) " <| check column

@@ -6,8 +6,6 @@ import * as detect from 'enso-common/src/detect'
 import FindIcon from '#/assets/find.svg'
 import { unsafeWriteValue } from '#/utilities/write'
 
-import * as backendHooks from '#/hooks/backendHooks'
-
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -18,6 +16,7 @@ import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
+import { backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import type Backend from '#/services/Backend'
@@ -28,6 +27,7 @@ import * as eventModule from '#/utilities/event'
 import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { createStore, useStore } from '#/utilities/zustand'
+import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
 
 /** The reason behind a new query. */
@@ -629,7 +629,7 @@ interface LabelsProps {
 const Labels = React.memo(function Labels(props: LabelsProps) {
   const { isCloud, query, setQuery, backend, querySource, baseQuery } = props
 
-  const labels = backendHooks.useBackendQuery(backend, 'listTags', []).data ?? []
+  const { data: labels = [] } = useQuery(backendQueryOptions(backend, 'listTags', []))
 
   const labelOnPress = useEventCallback(
     (event: aria.PressEvent | React.MouseEvent<HTMLButtonElement>, label?: BackendLabel) => {

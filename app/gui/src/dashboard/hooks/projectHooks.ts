@@ -603,12 +603,7 @@ export function useCloseAllProjects() {
   const projectsStore = useProjectsStore()
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
-  const ensureQueryData = useEnsureQueryData<
-    backendModule.Project,
-    Error,
-    backendModule.Project,
-    readonly ['project', backendModule.ProjectId]
-  >()
+  const ensureQueryData = useEnsureQueryData()
 
   return eventCallbacks.useEventCallback(async () => {
     const launchedProjects = projectsStore.getState().launchedProjects

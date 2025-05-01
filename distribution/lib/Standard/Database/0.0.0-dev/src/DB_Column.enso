@@ -1128,6 +1128,10 @@ type DB_Column
              import Standard.Examples
 
              example_min = Examples.decimal_column.min Examples.integer_column
+
+       ? SQLite NULL handling
+         In SQLite, if any of the values is NULL, the result is NULL.
+         In all other backends the NULL values are ignored.
     min self (values : Any | Vector Any) -> DB_Column =
         Value_Type_Helpers.check_multi_argument_comparable_op self values <|
             args = Vector.unify_vector_or_element values
@@ -1148,6 +1152,10 @@ type DB_Column
              import Standard.Examples
 
              example_max = Examples.decimal_column.max Examples.integer_column
+
+       ? SQLite NULL handling
+         In SQLite, if any of the values is NULL, the result is NULL.
+         In all other backends the NULL values are ignored.
     max self (values : Any | Vector Any) -> DB_Column =
         Value_Type_Helpers.check_multi_argument_comparable_op self values <|
             args = Vector.unify_vector_or_element values
