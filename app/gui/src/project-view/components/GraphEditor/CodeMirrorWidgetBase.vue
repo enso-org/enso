@@ -74,7 +74,7 @@ const editing = WidgetEditHandler.New(props, {
     blurEditor()
   },
   pointerdown(event) {
-    if (targetIsOutside(event, editorRoot.value?.$el.value)) {
+    if (targetIsOutside(event, editorRoot.value?.$el)) {
       accepted()
     }
     return false
