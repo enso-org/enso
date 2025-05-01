@@ -712,7 +712,7 @@ pub async fn runner_sanity_test(
             .with_executable_extension();
 
         let test_base = Command::new(&enso)
-            .args(["--run", repo_root.test.join("Base_Tests").as_str()])
+            .args(["--no-ir-caches", "--run", repo_root.test.join("Base_Tests").as_str()])
             .set_env(ENSO_DATA_DIRECTORY, engine_package)?
             .run_ok()
             .await;
@@ -720,6 +720,7 @@ pub async fn runner_sanity_test(
         let test_internal_base = Command::new(&enso)
             .args([
                 "--disable-private-check",
+                "--no-ir-caches",
                 "--run",
                 repo_root.test.join("Base_Internal_Tests").as_str(),
             ])
@@ -728,43 +729,43 @@ pub async fn runner_sanity_test(
             .await;
 
         let test_table = Command::new(&enso)
-            .args(["--run", repo_root.test.join("Table_Tests").as_str()])
+            .args(["--no-ir-caches", "--run", repo_root.test.join("Table_Tests").as_str()])
             .set_env(ENSO_DATA_DIRECTORY, engine_package)?
             .run_ok()
             .await;
 
         let test_aws = Command::new(&enso)
-            .args(["--run", repo_root.test.join("AWS_Tests").as_str()])
+            .args(["--no-ir-caches", "--run", repo_root.test.join("AWS_Tests").as_str()])
             .set_env(ENSO_DATA_DIRECTORY, engine_package)?
             .run_ok()
             .await;
 
         let test_microsoft = Command::new(&enso)
-            .args(["--run", repo_root.test.join("Microsoft_Tests").as_str()])
+            .args(["--no-ir-caches", "--run", repo_root.test.join("Microsoft_Tests").as_str()])
             .set_env(ENSO_DATA_DIRECTORY, engine_package)?
             .run_ok()
             .await;
 
         let test_snowflake = Command::new(&enso)
-            .args(["--run", repo_root.test.join("Snowflake_Tests").as_str()])
+            .args(["--no-ir-caches", "--run", repo_root.test.join("Snowflake_Tests").as_str()])
             .set_env(ENSO_DATA_DIRECTORY, engine_package)?
             .run_ok()
             .await;
 
         let test_tableau = Command::new(&enso)
-            .args(["--run", repo_root.test.join("Tableau_Tests").as_str()])
+            .args(["--no-ir-caches", "--run", repo_root.test.join("Tableau_Tests").as_str()])
             .set_env(ENSO_DATA_DIRECTORY, engine_package)?
             .run_ok()
             .await;
 
         let test_geo = Command::new(&enso)
-            .args(["--run", repo_root.test.join("Geo_Tests").as_str()])
+            .args(["--no-ir-caches", "--run", repo_root.test.join("Geo_Tests").as_str()])
             .set_env(ENSO_DATA_DIRECTORY, engine_package)?
             .run_ok()
             .await;
 
         let test_image = Command::new(&enso)
-            .args(["--run", repo_root.test.join("Image_Tests").as_str()])
+            .args(["--no-ir-caches", "--run", repo_root.test.join("Image_Tests").as_str()])
             .set_env(ENSO_DATA_DIRECTORY, engine_package)?
             .run_ok()
             .await;
@@ -772,7 +773,7 @@ pub async fn runner_sanity_test(
         let graal_path = cache::goodie::graalvm::locate_graal()?;
 
         let test_generic_jdbc = Command::new(&enso)
-            .args(["--run", repo_root.test.join("Generic_JDBC_Tests").as_str()])
+            .args(["--no-ir-caches", "--run", repo_root.test.join("Generic_JDBC_Tests").as_str()])
             .set_env(ENSO_DATA_DIRECTORY, engine_package)?
             .set_env(JAVA_HOME, &graal_path)?
             .run_ok()
