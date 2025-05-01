@@ -122,8 +122,7 @@ public class IRProcessor extends AbstractProcessor {
               .filter(elem -> Utils.hasAnnotation(elem, GenerateFields.class))
               .toList();
       if (annotatedCtors.size() != 1) {
-        throw new IRProcessingException(
-            "No constructor annotated with GenerateFields found", clazz);
+        throw singleAnnotatedCtorError(clazz);
       }
       var annotatedCtor = annotatedCtors.get(0);
       if (annotatedCtor.getKind() != ElementKind.CONSTRUCTOR) {
@@ -296,11 +295,15 @@ public class IRProcessor extends AbstractProcessor {
             .filter(ctor -> ctor.getAnnotation(GenerateFields.class) != null)
             .count();
     if (annotatedCtorsCnt != 1) {
-      throw new IRProcessingException(
-          "Class annotated with @GenerateIR must have exactly one constructor annotated with"
-              + " @GenerateFields",
-          clazz);
+      throw singleAnnotatedCtorError(clazz);
     }
+  }
+
+  private static IRProcessingException singleAnnotatedCtorError(TypeElement clazz) {
+    return new IRProcessingException(
+        "Class annotated with @GenerateIR must have exactly one constructor annotated with"
+            + " @GenerateFields",
+        clazz);
   }
 
   private void ensureExtendsGeneratedSuperclass(TypeElement clazz) {
