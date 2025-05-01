@@ -461,7 +461,7 @@ type Argument_Linked_Error
        self.error.to_display_text
 
    to_json self -> Text =
-       ((Json.parse self.error.to_json).set_value "argument_hint" self.linked_argument).to_json
+       ((Json.parse self.error.to_json).set_value "linked_argument" self.linked_argument).to_json
 
 Invalid_Value_Type.from (that : Argument_Linked_Error) -> Invalid_Value_Type =
     that.error
