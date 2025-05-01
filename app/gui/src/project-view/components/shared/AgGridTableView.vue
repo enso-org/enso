@@ -130,7 +130,9 @@ const props = defineProps<{
   rowCount?: number
   isServerSideModel?: boolean
   gridIdHash?: string | null
-  getContextMenuItems: (params: GetContextMenuItemsParams) => (MenuItemDef | string)[] | GetContextMenuItems
+  getContextMenuItems: (
+    params: GetContextMenuItemsParams,
+  ) => (MenuItemDef | string)[] | GetContextMenuItems
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]

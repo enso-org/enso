@@ -7,6 +7,7 @@ import {
 } from '@/components/visualizations/TableVisualization/tableVizToolbar'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import { Icon } from '@/util/iconMetadata/iconName'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type {
   CellClassParams,
@@ -44,7 +45,6 @@ import {
 import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
 import { formatText, getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
-import { Icon } from '@/util/iconMetadata/iconName'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -174,8 +174,10 @@ const grid = ref<
 const getSvgTemplate = (icon: Icon) =>
   `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
 
-const getContextMenuItems = (params: GetContextMenuItemsParams): (MenuItemDef | string)[] | GetContextMenuItems => {
-  const colId  = params.column ? params.column.getColId() : null
+const getContextMenuItems = (
+  params: GetContextMenuItemsParams,
+): (MenuItemDef | string)[] | GetContextMenuItems => {
+  const colId = params.column ? params.column.getColId() : null
   const { rowIndex } = params.node ?? {}
 
   const actions = [
@@ -212,11 +214,7 @@ function getAstValuePattern(value?: string | number, action?: string) {
   }
 }
 
-function getAstGetValuePattern(
-  columnId?: string,
-  rowIndex?:  number,
-  action?: string,
-) {
+function getAstGetValuePattern(columnId?: string, rowIndex?: number, action?: string) {
   if (action && columnId && rowIndex != undefined) {
     const pattern = Pattern.parseExpression('__ __')
     return Pattern.new<Ast.Expression>((ast) =>
