@@ -32,13 +32,8 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
-  public StorageType<?> inferPreciseType() {
-    return underlyingStorage.inferPreciseType();
-  }
-
-  @Override
-  public StorageType<?> inferPreciseTypeShrunk() {
-    return underlyingStorage.inferPreciseTypeShrunk();
+  public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
+    return underlyingStorage.inferPreciseType(options);
   }
 
   @Override

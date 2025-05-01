@@ -117,7 +117,7 @@ type Atom
        doesn't have a public constructor, then `Private_Access` error
        is returned.
 
-    constructor self -> Constructor =
+    constructor self -> Constructor ! Private_Access =
         c = Meta_Helpers.get_atom_constructor_builtin self.impl ...
         Meta.Constructor.Value c...
 
@@ -290,7 +290,7 @@ atom_with_hole factory = @Tail_Call Meta_Helpers.atom_with_hole_builtin factory
 
    Arguments:
    - value: The runtime entity to get the meta representation of.
-meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error | Type =
+meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error | Type ! Private_Access =
     ac = Meta_Helpers.find_atom_constructor_builtin value...
     kind = if ac.is_nothing.not then 1 else
         Meta_Helpers.get_kind_builtin value

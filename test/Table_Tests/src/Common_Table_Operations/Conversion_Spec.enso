@@ -788,7 +788,7 @@ add_conversion_specs suite_builder setup =
             c2.to_vector . should_equal [1, 2, (2^100)+1]
 
         group_builder.specify "will try to find the smallest integer type to fit the value (if shrink_types=True)" <|
-            [False, True].each is_mixed->
+            [False, True].each is_mixed-> Test.with_clue "(is_mixed="+is_mixed.to_text+") " <|
                 prefix = if is_mixed then "mixed" else 0
                 t0 = table_builder [["X", [prefix, 1, 2, 3]], ["Y", [prefix, 2^20, 2, 3]], ["Z", [prefix, 2^50, 2, 3]], ["F", [prefix, 1.0, 2.0, 3.0]]]
                 t1 = t0.drop 1
@@ -805,6 +805,7 @@ add_conversion_specs suite_builder setup =
                 t2.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
                 t2.at "Y" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
                 t2.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+                # Even with shrink_types=False, a auto_cast will convert a Float column of whole numbers to Integer
                 t2.at "F" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
                 t3 = t1.auto_cast shrink_types=True

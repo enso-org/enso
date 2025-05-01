@@ -213,8 +213,8 @@ following:
 - There are additional variants of `native` useful for _development_. They are
   specified as comma separated attributes following `native`:
   - using `native,fast` turns on _native image_ build, but disables
-    optimizations - e.g. produces build similar to _release mode_, but more
-    quickly
+    optimizations and support for libraries other than `Standard.Base` - e.g.
+    produces build similar to _release mode_, but more quickly
   - using `native,test` _enables assertions_ - e.g. it instructs
     `buildEngineDistribution` command to build native image with assertions
     enabled (`-ea`). Useful for running Enso tests in the _native mode_. Also

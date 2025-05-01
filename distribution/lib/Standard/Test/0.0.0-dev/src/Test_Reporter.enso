@@ -102,7 +102,7 @@ report_github_error_message (~title : Text) (~message : Text) =
 ## PRIVATE
    Generates a GitHub Actions annotation for a failing test.
 generate_github_error_annotation (title : Text) (message : Text) =
-    sanitize_message txt = txt.replace '\n' '%0A' . replace '::' '%3A%3A'
+    sanitize_message txt = txt.replace '%' '%25' . replace '\n' '%0A' . replace '::' '%3A%3A'
     sanitize_parameter txt = sanitize_message txt . replace ',' '%2C'
 
     location_match = Regex.compile "\(at ((?:[A-Za-z]:)?[^:]+):([0-9\-]+):([0-9\-]+)\)" . match message

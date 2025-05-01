@@ -226,7 +226,7 @@ type Table
         ? Consistent Row Count
         All columns must have the same number of rows. If a column has a
         different number of entries, an error is thrown.
-    input (columns : Vector (Vector | Column) = [['Column 1', []]]) -> Table =
+    input (columns : Vector (Vector | Column)) -> Table =
         throw_bad_column = Error.throw (Illegal_Argument.Error "Each column must be represented as a Vector of column name (Text), data (vector like elements) and optionally a type (Value_Type), or an existing column.")
         resolved_columns = columns.map c-> case c of
             _ : Column -> c
@@ -247,6 +247,7 @@ type Table
        Arguments:
        - internal_java_table: The internal java representation of the table.
     private Value internal_java_table
+
     ## PRIVATE
        A getter that is a workaround for bug https://github.com/enso-org/enso/issues/12180
     private java_table self = self.internal_java_table
@@ -2045,9 +2046,20 @@ type Table
     expand_to_rows self (column : Text | Integer) at_least_one_row:Boolean=False -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
         Expand_Objects_Helpers.expand_to_rows self column at_least_one_row sequences_only=False
 
-    ## ALIAS filter rows, regex, where
+    ## ALIAS filter rows, where
        MACRO equals filter=..Equal
+       MACRO not_equals filter=..Not_Equal
+       MACRO not_nothing filter=..Not_Nothing
+       MACRO is_nothing filter=..Is_Nothing
+       MACRO is_in filter=..Is_In
        MACRO less_than filter=..Less
+       MACRO greater_than filter=..Greater
+       MACRO between filter=..Between
+       MACRO contains filter=..Contains
+       MACRO starts_with filter=..Starts_With
+       MACRO ends_with filter=..Ends_With
+       MACRO like filter=..Like
+       MACRO regex_match filter=..Regex_Match
        GROUP Standard.Base.Selections
        ICON preparation
        SUGGESTED 2
@@ -4059,6 +4071,11 @@ make_fill_nothing_default_widget table cache=Nothing =
 from_java_table java_table -> Table =
     Table_Refinements.refine_table <|
         Table.Value java_table
+
+## PRIVATE
+   Helper method for internal use to make a Java Table from a Table.
+to_java_table table =
+    table.java_table
 
 ## PRIVATE
 Many_Files_List.from (that : Table) =

@@ -37,8 +37,9 @@ import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackend
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useUploadFileToCloudMutation } from '../hooks/backendUploadFilesHooks'
+import { isUploadableAsset, useUploadFileToCloudMutation } from '../hooks/backendUploadFilesHooks'
 import { useSetAssetPanelProps, useSetIsAssetPanelTemporarilyVisible } from './AssetPanel'
+import { useCategoriesAPI } from './Drive/Categories'
 
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps {
@@ -65,6 +66,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
 
   const isCloud = categoryModule.isCloudCategory(category)
 
+  const { localCategories } = useCategoriesAPI()
+
   const getAsset = useGetAsset()
   const canOpenProjects = projectHooks.useCanOpenProjects()
   const { user } = authProvider.useFullUserSession()
@@ -82,7 +85,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const path = asset.ensoPathValue
   const copyMutation = useCopy()
-  const uploadFileToCloudMutation = useUploadFileToCloudMutation(backend)
+  const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined
   const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
 
@@ -267,7 +270,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               }}
             />
           )}
-        {asset.type === backendModule.AssetType.project && !isCloud && localBackend != null && (
+        {isUploadableAsset(asset) && !isCloud && localBackend != null && (
           <PaywallContextMenuEntry
             hidden={hidden}
             isUnderPaywall={!canUploadToCloud}
@@ -276,7 +279,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={async () => {
               await uploadFileToCloudMutation(localBackend, {
                 assets: [asset],
-                targetDirectoryId: currentDirectoryId,
+                targetDirectoryId: user.rootDirectoryId,
               })
             }}
           />
@@ -378,8 +381,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <ContextMenuEntry
             hidden={hidden}
             action="duplicate"
-            doAction={() => {
-              void copyAssetsMutation([[asset.id], asset.parentId])
+            doAction={async () => {
+              await copyAssetsMutation([[asset.id], asset.parentId])
             }}
           />
         )}
@@ -404,7 +407,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={() => {
               void downloadAssetsMutation({
                 ids: [{ id: asset.id, title: asset.title }],
-                targetDirectoryId: null,
+                targetDirectoryId:
+                  !isCloud ? (localCategories.localCategory?.homeDirectoryId ?? null) : null,
+                shouldUnpackProject: false,
               })
             }}
           />

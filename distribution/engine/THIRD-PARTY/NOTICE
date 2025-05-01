@@ -471,6 +471,21 @@ The license file can be found at `licenses/GNU_General_Public_License__version_2
 Copyright notices related to this dependency can be found in the directory `org.graalvm.tools.chromeinspector-tool-24.2.0`.
 
 
+'dap-tool', licensed under the GNU General Public License, version 2, with the Classpath Exception, is distributed with the engine.
+The license file can be found at `licenses/GNU_General_Public_License__version_2__with_the_Classpath_Exception`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.tools.dap-tool-24.2.0`.
+
+
+'insight-heap-tool', licensed under the GNU General Public License, version 2, with the Classpath Exception, is distributed with the engine.
+The license file can be found at `licenses/GNU_General_Public_License__version_2__with_the_Classpath_Exception`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.tools.insight-heap-tool-24.2.0`.
+
+
+'insight-tool', licensed under the GNU General Public License, version 2, with the Classpath Exception, is distributed with the engine.
+The license file can be found at `licenses/GNU_General_Public_License__version_2__with_the_Classpath_Exception`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.tools.insight-tool-24.2.0`.
+
+
 'profiler-tool', licensed under the GNU General Public License, version 2, with the Classpath Exception, is distributed with the engine.
 The license file can be found at `licenses/GNU_General_Public_License__version_2__with_the_Classpath_Exception`.
 Copyright notices related to this dependency can be found in the directory `org.graalvm.tools.profiler-tool-24.2.0`.
