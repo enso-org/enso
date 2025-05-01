@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Stream;
 import org.enso.shttp.auth.BasicAuthTestHandler;
 import org.enso.shttp.auth.TokenAuthTestHandler;
@@ -40,16 +41,21 @@ public class HTTPTestHelperServer {
       System.exit(1);
     }
 
+    Semaphore semaphore = new Semaphore(0);
+    Runtime.getRuntime()
+        .addShutdownHook(
+            new Thread() {
+              public void run() {
+                semaphore.release();
+              }
+            });
     server.start();
-    System.out.println("Server started. Press any key to stop...");
+    System.out.println("Server started.");
     try {
-      System.in.read();
-      System.out.println("Shutting down server, as requested by user.");
-    } catch (IOException e) {
-      System.err.println(
-          "Encountered an error while the server was running: "
-              + e.getMessage()
-              + ". Shutting down...");
+      semaphore.acquire();
+      System.out.println("Shutting down...");
+    } catch (InterruptedException e) {
+      System.err.println("Shutting down abruptly...");
     } finally {
       server.stop();
     }
