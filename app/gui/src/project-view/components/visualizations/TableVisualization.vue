@@ -19,6 +19,7 @@ import type {
   IServerSideDatasource,
   IServerSideGetRowsRequest,
   ITooltipParams,
+  MenuItemDef,
   SetFilterValuesFuncParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
@@ -43,6 +44,7 @@ import {
 import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
 import { formatText, getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
+import { Icon } from '@/util/iconMetadata/iconName'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -169,11 +171,11 @@ const grid = ref<
   ComponentInstance<typeof AgGridTableView> & ComponentExposed<typeof AgGridTableView>
 >()
 
-const getSvgTemplate = (icon: string) =>
+const getSvgTemplate = (icon: Icon) =>
   `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
 
-const getContextMenuItems = (params: GetContextMenuItemsParams): GetContextMenuItems<TData> => {
-  const { colId } = params.column ?? {}
+const getContextMenuItems = (params: GetContextMenuItemsParams): (MenuItemDef | string)[] | GetContextMenuItems => {
+  const colId  = params.column ? params.column.getColId() : null
   const { rowIndex } = params.node ?? {}
 
   const actions = [
@@ -185,7 +187,7 @@ const getContextMenuItems = (params: GetContextMenuItemsParams): GetContextMenuI
   const createMenuItem = ({ name, action, colId, rowIndex, icon }: (typeof actions)[number]) => ({
     name,
     action: () => createValueNode(colId, rowIndex, action),
-    icon: getSvgTemplate(icon),
+    icon: getSvgTemplate(icon as Icon),
   })
 
   return [
@@ -211,11 +213,11 @@ function getAstValuePattern(value?: string | number, action?: string) {
 }
 
 function getAstGetValuePattern(
-  columnId?: string | number,
-  rowIndex?: string | number,
+  columnId?: string,
+  rowIndex?:  number,
   action?: string,
 ) {
-  if (action && columnId && rowIndex != null) {
+  if (action && columnId && rowIndex != undefined) {
     const pattern = Pattern.parseExpression('__ __')
     return Pattern.new<Ast.Expression>((ast) =>
       Ast.App.positional(
