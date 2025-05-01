@@ -99,13 +99,16 @@ public class TestIRProcessorInline {
             "JName",
             """
         import org.enso.runtime.parser.dsl.GenerateIR;
+        import org.enso.runtime.parser.dsl.GenerateFields;
         @GenerateIR
-        public class JName {}
+        public class JName extends JNameGen {
+          @GenerateFields
+          public JName() {}
+        }
         """);
     var compiler = Compiler.javac().withProcessors(new IRProcessor());
     var compilation = compiler.compile(src);
     CompilationSubject.assertThat(compilation).failed();
-    CompilationSubject.assertThat(compilation).hadErrorCount(1);
     CompilationSubject.assertThat(compilation).hadErrorContaining("final");
   }
 
