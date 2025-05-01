@@ -78,7 +78,7 @@ public final class SectionsToBinOp implements MiniPassFactory {
           var passData = sectionLeft.passData();
           var rightArgName = freshNameSupply.newName(false, Option.empty());
           var rightCallArg =
-              new CallArgument.Specified(Option.empty(), rightArgName, true, null, meta());
+              new CallArgument.Specified(Option.empty(), rightArgName, true, null, meta(), null);
           var rightDefArg =
               new DefinitionArgument.Specified(
                   rightArgName.duplicate(true, true, true, false),
@@ -91,7 +91,7 @@ public final class SectionsToBinOp implements MiniPassFactory {
           if (arg.value() instanceof Name.Blank) {
             var leftArgName = freshNameSupply.newName(false, Option.empty());
             var leftCallArg =
-                new CallArgument.Specified(Option.empty(), leftArgName, true, null, meta());
+                new CallArgument.Specified(Option.empty(), leftArgName, true, null, meta(), null);
             var leftDefArg =
                 new DefinitionArgument.Specified(
                     leftArgName.duplicate(true, true, true, false),
@@ -125,7 +125,7 @@ public final class SectionsToBinOp implements MiniPassFactory {
           var passData = sectionSides.passData();
           var leftArgName = freshNameSupply.newName(false, Option.empty());
           var leftCallArg =
-              new CallArgument.Specified(Option.empty(), leftArgName, true, null, meta());
+              new CallArgument.Specified(Option.empty(), leftArgName, true, null, meta(), null);
           var leftDefArg =
               new DefinitionArgument.Specified(
                   leftArgName.duplicate(true, true, true, false),
@@ -137,7 +137,7 @@ public final class SectionsToBinOp implements MiniPassFactory {
 
           var rightArgName = freshNameSupply.newName(false, Option.empty());
           var rightCallArg =
-              new CallArgument.Specified(Option.empty(), rightArgName, true, null, meta());
+              new CallArgument.Specified(Option.empty(), rightArgName, true, null, meta(), null);
           var rightDefArg =
               new DefinitionArgument.Specified(
                   rightArgName.duplicate(true, true, true, false),
@@ -188,7 +188,7 @@ public final class SectionsToBinOp implements MiniPassFactory {
           var passData = sectionRight.passData();
           var leftArgName = freshNameSupply.newName(false, Option.empty());
           var leftCallArg =
-              new CallArgument.Specified(Option.empty(), leftArgName, true, null, meta());
+              new CallArgument.Specified(Option.empty(), leftArgName, true, null, meta(), null);
           var leftDefArg =
               new DefinitionArgument.Specified(
                   leftArgName.duplicate(true, true, true, false),
@@ -202,7 +202,7 @@ public final class SectionsToBinOp implements MiniPassFactory {
             // Note [Blanks in Sections]
             var rightArgName = freshNameSupply.newName(false, Option.empty());
             var rightCallArg =
-                new CallArgument.Specified(Option.empty(), rightArgName, true, null, meta());
+                new CallArgument.Specified(Option.empty(), rightArgName, true, null, meta(), null);
             var rightDefArg =
                 new DefinitionArgument.Specified(
                     rightArgName.duplicate(true, true, true, false),

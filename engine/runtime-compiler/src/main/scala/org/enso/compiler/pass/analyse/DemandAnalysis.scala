@@ -193,7 +193,8 @@ case object DemandAnalysis extends IRPass {
           new Application.Force(
             newName,
             name.identifiedLocation(),
-            new MetadataStorage()
+            new MetadataStorage(),
+            null
           )
         case _ => name
       }

@@ -91,13 +91,15 @@ public interface Application extends Expression {
      * @param target The expression being forced
      * @param identifiedLocation
      * @param passData
+     * @param diagnostics
      */
     @GenerateFields
     public Force(
         @IRChild Expression target,
         IdentifiedLocation identifiedLocation,
-        MetadataStorage passData) {
-      super(target, identifiedLocation, passData);
+        MetadataStorage passData,
+        DiagnosticStorage diagnostics) {
+      super(target, identifiedLocation, passData, diagnostics);
     }
 
     @Override
@@ -136,13 +138,15 @@ public interface Application extends Expression {
 
     /**
      * @param expression The expression of the typeset body.
+     * @param diagnostics
      */
     @GenerateFields
     public Typeset(
         @IRChild Option<Expression> expression,
         IdentifiedLocation identifiedLocation,
-        MetadataStorage passData) {
-      super(expression, identifiedLocation, passData);
+        MetadataStorage passData,
+        DiagnosticStorage diagnostics) {
+      super(expression, identifiedLocation, passData, diagnostics);
     }
 
     @Override
@@ -167,13 +171,15 @@ public interface Application extends Expression {
 
     /**
      * @param items The items being put in the vector.
+     * @param diagnostics
      */
     @GenerateFields
     public Sequence(
         @IRChild List<Expression> items,
         IdentifiedLocation identifiedLocation,
-        MetadataStorage passData) {
-      super(items, identifiedLocation, passData);
+        MetadataStorage passData,
+        DiagnosticStorage diagnostics) {
+      super(items, identifiedLocation, passData, diagnostics);
     }
 
     @Override
