@@ -551,26 +551,19 @@ class ChangesetBuilderTest
 
       val invalidated1 = invalidated(ir, code, edits: _*)
       val invalidated2 = invalidated(ir, code, edits2: _*)
-      invalidated1 should contain(vector3Self.getId()) // #12957
+      invalidated1 should contain(vector3Self.getId) // #12957
       // The two edits result in the same IR.
       // We accept a minor difference in `vector4`'s RHS
       val diff = invalidated2 diff invalidated1
-      diff should contain theSameElementsAs Seq(vector4.function().getId())
+      diff should contain theSameElementsAs Seq(vector4.function().getId)
     }
 
   }
 
   def findIR(ir: IR, uuid: String): IR = {
-    val list = ir.preorder.filter(
-      _.location
-        .map(_.id.map(_.toString() == uuid).getOrElse(false))
-        .getOrElse(false)
-    )
-    if (list.isEmpty) {
-      null
-    } else {
-      list.head
-    }
+    ir.preorder
+      .find(_.location.exists(_.id.exists(_.toString == uuid)))
+      .orNull
   }
 
   def findCode(code: String, at: IR): String = {
@@ -579,7 +572,7 @@ class ChangesetBuilderTest
   }
 
   def findCode(code: String, ir: IR, uuid: UUID): String = {
-    val at = findIR(ir, uuid.toString())
+    val at = findIR(ir, uuid.toString)
     if (at == null) {
       uuid.toString
     } else {
