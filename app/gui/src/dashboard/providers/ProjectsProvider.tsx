@@ -38,8 +38,6 @@ const PROJECT_SCHEMA = z
     title: z.string(),
     type: z.nativeEnum(backendModule.BackendType),
     preventAutoReopen: z.boolean().optional(),
-    /** Should only be present for placeholder hybrid projects that are never opened. */
-    isPlaceholder: z.boolean().optional(),
     hybrid: z.optional(
       z.object({
         cloudProjectId: PROJECT_ID_SCHEMA,

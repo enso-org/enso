@@ -33,9 +33,6 @@ export function DashboardTabBar(props: DashboardTabBarProps) {
   })
 
   const onClose = useEventCallback((project: LaunchedProject) => {
-    if (project.isPlaceholder === true) {
-      return
-    }
     onCloseProject(project)
   })
 
