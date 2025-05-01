@@ -1,4 +1,4 @@
-import { textEditorsAllowedMultilineBindings, textEditorsBindings } from '@/bindings'
+import { textEditorsBindings, textEditorsMultilineBindings } from '@/bindings'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { type VueHost } from '@/components/VueHostRender.vue'
 import { injectKeyboard } from '@/providers/keyboard'
@@ -319,18 +319,18 @@ const stopEvent = (event: Event) => {
   return false
 }
 function bindStandardBindings(): Record<LineMode, KeyBinding[]> {
-  const autoHandlers = handlerToKeyBinding(
-    textEditorsAllowedMultilineBindings.handler({
+  const autoOrMultiHandlers = handlerToKeyBinding(
+    textEditorsMultilineBindings.handler({
       newline: (e) => {
         e.stopImmediatePropagation()
-        return insertNewlineKeepIndent(e._codemirrorEditorView)
+        return insertNewlineKeepIndent(e.codemirrorView)
       },
     }),
   )
   return {
     single: [],
-    multi: [autoHandlers, ...verticalMovementKeymap()],
-    auto: [autoHandlers],
+    multi: [autoOrMultiHandlers, ...verticalMovementKeymap()],
+    auto: [autoOrMultiHandlers],
   }
 }
 

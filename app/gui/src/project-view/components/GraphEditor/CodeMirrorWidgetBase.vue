@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
-import { defineWidget, Score, WidgetInput } from '@/providers/widgetRegistry'
+import { defineWidget, HandledUpdate, Score, WidgetInput } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
 import { selectOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
+import { Ok } from '@/util/data/result'
 import { Extension, SelectionRange } from '@codemirror/state'
 import { ComponentInstance, ref, useCssModule, useTemplateRef, watch, watchEffect } from 'vue'
 
@@ -24,6 +25,7 @@ const props = defineProps<{
   transformUserInput?: (value: string) => Ast.Owned<Ast.MutableTextLiteral> | string
   /** Editor line mode. Single-line mode will not allow entering newline characters. */
   lineMode: 'single' | 'multi' | 'auto'
+  onAccepted?: (value: string) => HandledUpdate
 }>()
 
 const model = defineModel<string>({ default: '' })
@@ -35,10 +37,6 @@ const emit = defineEmits<{
 const themeWidget = useCssModule('themeWidget')
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
-
-function onAccepted(newValue: string) {
-  model.value = newValue
-}
 
 const { syncExt, connectSync } = useStringSync()
 const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
@@ -94,13 +92,27 @@ function focusEditor() {
   editorView.focus()
 }
 
-function accepted() {
+async function accepted() {
   const text = getText()
   if (previousValue.value === text) {
     editing.cancel()
   }
-  editing.end()
-  onAccepted(text)
+  const result = await handleAccept(text)
+  if (result.ok) {
+    editing.end()
+  } else {
+    // TODO: instead of canceling, we should probably display an error here.
+    editing.cancel()
+  }
+}
+
+function handleAccept(newValue: string) {
+  if (props.onAccepted) {
+    return props.onAccepted(newValue)
+  } else {
+    model.value = newValue
+    return Ok()
+  }
 }
 
 function onEnter(event: KeyboardEvent) {
@@ -140,7 +152,7 @@ export const widgetDefinition = defineWidget(
 <template>
   <CodeMirrorRoot
     ref="editorRoot"
-    class="CodeMirrorWidgetBase widgetApplyMargin"
+    class="CodeMirrorWidgetBase widgetApplyPadding"
     @focusin="editing.start()"
     @keydown.enter="onEnter"
     @keydown.tab.stop.capture="accepted"

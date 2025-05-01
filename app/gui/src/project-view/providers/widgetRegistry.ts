@@ -5,6 +5,7 @@ import { GraphStore } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
+import { Result } from '@/util/data/result'
 import type { ViteHotContext } from 'vite/types/hot.js'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 import type { WidgetEditHandlerParent } from './widgetRegistry/editHandler'
@@ -225,6 +226,10 @@ export function applyWidgetUpdates(update: WidgetUpdate, graph: GraphStore) {
   }
 }
 
+export type UpdateResult = Result<void, string>
+export type HandledUpdate = UpdateResult | Promise<UpdateResult>
+export type UpdateHandler = (update: WidgetUpdate) => UpdateResult | Promise<UpdateResult>
+
 /**
  * Create Vue props definition for a widget component. This cannot be done automatically by using
  * typed `defineProps`, because vue compiler is not able to resolve conditional types. As a
@@ -239,7 +244,7 @@ export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
     },
     nesting: { type: Number, required: true },
     onUpdate: {
-      type: Function as PropType<(update: WidgetUpdate) => void>,
+      type: Function as PropType<UpdateHandler>,
       required: true,
     },
   } as const

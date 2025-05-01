@@ -54,9 +54,8 @@ const { focused } = useFocusWithin(rootElement)
 const graph = useGraphStore()
 
 function handleWidgetUpdates(update: WidgetUpdate) {
-  applyWidgetUpdates(update, graph)
+  return applyWidgetUpdates(update, graph)
   // This handler is guaranteed to be the last handler in the chain.
-  return true
 }
 
 const groupBasedColor = computed(() => {

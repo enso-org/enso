@@ -109,7 +109,7 @@ export const widgetDefinition = defineWidget(
 
 <template>
   <div class="WidgetCheckbox" :class="{ primary }">
-    <span v-if="argumentName" class="name widgetApplyMargin" v-text="argumentName" />
+    <span v-if="argumentName" class="name widgetApplyPadding" v-text="argumentName" />
     <CheckboxWidget v-model="value" class="widgetRounded" contenteditable="false" />
   </div>
 </template>

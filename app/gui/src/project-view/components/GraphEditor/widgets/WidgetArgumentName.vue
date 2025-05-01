@@ -59,7 +59,7 @@ export const ArgumentNameShownKey: unique symbol = Symbol.for('WidgetInput:Argum
 <template>
   <div class="WidgetArgumentName" :class="{ primary, missing }">
     <span class="name">
-      <span class="widgetApplyMargin" :class="{ widgetRounded: missing }">{{
+      <span class="widgetApplyPadding" :class="{ widgetRounded: missing }">{{
         props.input[ArgumentInfoKey].info.name
       }}</span>
     </span>

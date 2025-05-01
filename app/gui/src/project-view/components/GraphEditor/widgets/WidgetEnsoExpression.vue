@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { ensoSyntax } from '@/components/CodeEditor/ensoSyntax'
 import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
-import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
+import {
+  defineWidget,
+  HandledUpdate,
+  Score,
+  WidgetInput,
+  widgetProps,
+} from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
+import { Err } from '@/util/data/result'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { computed, ref } from 'vue'
 import { BodyBlock, MutableModule } from 'ydoc-shared/ast'
@@ -11,19 +18,27 @@ const props = defineProps(widgetProps(widgetDefinition))
 
 const astCode = computed({
   get: () => WidgetInput.valueRepr(props.input) ?? '',
-  set: (value) => {
-    const newAst = Ast.parseExpression(value)
-    if (validateAst(newAst)) {
-      props.onUpdate({
-        portUpdate: {
-          value: newAst,
-          origin: props.input.portId,
-        },
-        directInteraction: true,
-      })
+  set: async (value) => {
+    const result = await tryUpdateWithValue(value)
+    if (!result.ok) {
     }
   },
 })
+
+function tryUpdateWithValue(value: string): HandledUpdate {
+  const newAst = Ast.parseExpression(value)
+  if (validateAst(newAst)) {
+    return props.onUpdate({
+      portUpdate: {
+        value: newAst,
+        origin: props.input.portId,
+      },
+      directInteraction: true,
+    })
+  } else {
+    return Err('Expression invalid in this context.')
+  }
+}
 
 function validateAst(ast: Ast.Expression | undefined): boolean {
   return ast != null && (props.input[EnsoExpression]?.validateInput?.(ast) ?? true)

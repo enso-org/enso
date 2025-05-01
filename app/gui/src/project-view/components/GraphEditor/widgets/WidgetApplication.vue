@@ -7,14 +7,13 @@ import { useGraphStore } from '@/stores/graph'
 import { entryMethodPointer } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { ArgumentApplication, ArgumentApplicationKey } from '@/util/callTree'
-import { toRef } from '@vueuse/core'
 import { computed } from 'vue'
 import { mapOrUndefined } from 'ydoc-shared/util/data/opt'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const tree = injectWidgetTree()
 
-const application = toRef(() => props.input[ArgumentApplicationKey])
+const application = computed(() => props.input[ArgumentApplicationKey])
 const graph = useGraphStore()
 
 const targetMaybePort = computed(() => {

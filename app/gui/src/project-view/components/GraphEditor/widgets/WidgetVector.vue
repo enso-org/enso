@@ -155,7 +155,7 @@ const DEFAULT_ITEM = computed(() => Ast.Wildcard.new())
 
 <template>
   <div class="WidgetVector">
-    <span class="token widgetApplyMargin">[</span>
+    <span class="token widgetApplyPadding">[</span>
     <DraggableList
       :items="value"
       axis="x"
@@ -174,10 +174,10 @@ const DEFAULT_ITEM = computed(() => Ast.Wildcard.new())
         <NodeWidget :input="itemInput(item)" nest />
       </template>
       <template #separator>
-        <div class="token widgetApplyMargin">,&nbsp;</div>
+        <div class="token widgetApplyPadding">,&nbsp;</div>
       </template>
     </DraggableList>
-    <span class="token widgetApplyMargin">]</span>
+    <span class="token widgetApplyPadding">]</span>
   </div>
 </template>
 <style scoped>

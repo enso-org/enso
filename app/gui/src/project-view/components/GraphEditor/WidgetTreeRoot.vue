@@ -2,7 +2,7 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useTransitioning } from '@/composables/animation'
 import { useLayoutAnimationsState } from '@/providers/animationCounter'
-import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
+import { UpdateHandler, WidgetInput } from '@/providers/widgetRegistry'
 import { WidgetEditHandlerParent } from '@/providers/widgetRegistry/editHandler'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
@@ -18,7 +18,7 @@ const props = defineProps<{
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts?: Set<Ast.AstId> | undefined
   extended: boolean
-  onUpdate: (update: WidgetUpdate) => boolean
+  onUpdate: UpdateHandler
 }>()
 const emit = defineEmits<{
   currentEditChanged: [WidgetEditHandlerParent | undefined]
@@ -97,7 +97,7 @@ export const ICON_WIDTH = 16
  *                           This allows the widget to implement its own padding that will be
  *                           kept constant no matter the situation (e.g. `TopLevelArgument`).
  *
- * - `.widgetApplyMargin`: Keep distance from rounded corners, apply padding as required by
+ * - `.widgetApplyPadding`: Keep distance from rounded corners, apply padding as required by
  *                          parent widget structure. This should be applied to *all* text-only
  *                          elements of a widget, anything that is or looks like a token.
  *
@@ -137,7 +137,7 @@ export const ICON_WIDTH = 16
     --widget-token-pad-right: 0px;
   }
 
-  :deep(.widgetApplyMargin.widgetApplyMargin) {
+  :deep(.widgetApplyPadding.widgetApplyPadding) {
     margin-left: var(--widget-token-pad-left, 0);
     margin-right: var(--widget-token-pad-right, 0);
     transition: margin 0.2s ease-out;

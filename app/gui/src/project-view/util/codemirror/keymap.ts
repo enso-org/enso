@@ -4,12 +4,12 @@ import { EditorView, type Command, type KeyBinding } from '@codemirror/view'
 import * as objects from 'enso-common/src/utilities/data/object'
 
 export interface CmKeyboardEvent extends KeyboardEvent {
-  _codemirrorEditorView: EditorView
+  codemirrorView: EditorView
 }
 
 function extendCmKeyboardEvent(view: EditorView, event: KeyboardEvent): CmKeyboardEvent {
   const ext = event as CmKeyboardEvent
-  ext._codemirrorEditorView = view
+  ext.codemirrorView = view
   return ext
 }
 
@@ -32,7 +32,7 @@ function bindCommands<T extends string>(
 ): Record<T, (event: CmKeyboardEvent) => boolean> {
   return objects.mapEntries(
     bindings,
-    (_binding, command) => (event: CmKeyboardEvent) => command(event._codemirrorEditorView),
+    (_binding, command) => (event: CmKeyboardEvent) => command(event.codemirrorView),
   )
 }
 
