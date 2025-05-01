@@ -188,9 +188,7 @@ public interface Application extends Expression {
     }
 
     public Sequence(
-        List<Expression> items,
-        IdentifiedLocation identifiedLocation,
-        MetadataStorage passData) {
+        List<Expression> items, IdentifiedLocation identifiedLocation, MetadataStorage passData) {
       this(items, identifiedLocation, passData, null);
     }
 
