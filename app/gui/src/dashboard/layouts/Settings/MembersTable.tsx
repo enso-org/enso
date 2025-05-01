@@ -10,15 +10,14 @@ import {
   useDragAndDrop,
   type Selection,
 } from '#/components/aria'
+import { Scroller } from '#/components/Scroller'
 import { USER_MIME_TYPE } from '#/data/mimeTypes'
 import { backendQueryOptions } from '#/hooks/backendHooks'
-import { useStickyTableHeaderOnScroll } from '#/hooks/scrollHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { UserId, type User } from '#/services/Backend'
-import { twMerge } from '#/utilities/tailwindMerge'
 import { useQuery } from '@tanstack/react-query'
 import UserRow from './UserRow'
 
@@ -39,8 +38,6 @@ export default function MembersTable(props: MembersTableProps) {
   const toastAndLog = useToastAndLog()
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set())
   const rootRef = useRef<HTMLTableElement>(null)
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const bodyRef = useRef<HTMLTableSectionElement>(null)
   const userWithPlaceholder = useMemo(() => ({ isPlaceholder: false, ...user }), [user])
 
   const { data: allUsers } = useQuery(backendQueryOptions(backend, 'listUsers', []))
@@ -53,10 +50,6 @@ export default function MembersTable(props: MembersTableProps) {
     () => new Map((users ?? []).map((member) => [member.userId, member])),
     [users],
   )
-
-  const { onScroll, shadowClassName } = useStickyTableHeaderOnScroll(scrollContainerRef, bodyRef, {
-    trackShadowClass: true,
-  })
 
   const { dragAndDropHooks } = useDragAndDrop({
     getItems: (keys) =>
@@ -111,11 +104,7 @@ export default function MembersTable(props: MembersTableProps) {
   }
 
   return (
-    <div
-      ref={scrollContainerRef}
-      className={twMerge('overflow-auto overflow-x-hidden', shadowClassName)}
-      onScroll={onScroll}
-    >
+    <Scroller scrollbar orientation="vertical" shadowStartClassName="top-8">
       <Table
         ref={rootRef}
         aria-label={getText('users')}
@@ -139,7 +128,7 @@ export default function MembersTable(props: MembersTableProps) {
           {/* Delete button. */}
           {allowDelete && <Column className="w-0 border-0" />}
         </TableHeader>
-        <TableBody ref={bodyRef} items={users ?? []} dependencies={[users]} className="select-text">
+        <TableBody items={users ?? []} dependencies={[users]} className="select-text">
           {(member) => (
             <UserRow
               id={member.userId}
@@ -150,6 +139,6 @@ export default function MembersTable(props: MembersTableProps) {
           )}
         </TableBody>
       </Table>
-    </div>
+    </Scroller>
   )
 }

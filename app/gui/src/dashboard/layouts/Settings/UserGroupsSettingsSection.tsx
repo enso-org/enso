@@ -1,11 +1,11 @@
 /** @file Settings tab for viewing and editing roles for all users in the organization. */
-import { useRef } from 'react'
 
 import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { Cell, Column, Row, Table, TableBody, TableHeader, useDragAndDrop } from '#/components/aria'
 import { Button, ButtonGroup } from '#/components/AriaComponents'
 import { PaywallDialogButton } from '#/components/Paywall'
+import { Scroller } from '#/components/Scroller'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { USER_MIME_TYPE } from '#/data/mimeTypes'
 import {
@@ -14,7 +14,6 @@ import {
   useListUserGroupsWithUsers,
 } from '#/hooks/backendHooks'
 import { usePaywall } from '#/hooks/billing'
-import { useStickyTableHeaderOnScroll } from '#/hooks/scrollHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import NewUserGroupModal from '#/modals/NewUserGroupModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
@@ -27,7 +26,6 @@ import {
   type User,
   type UserGroupInfo,
 } from '#/services/Backend'
-import { twMerge } from '#/utilities/tailwindMerge'
 import UserGroupRow from './UserGroupRow'
 import UserGroupUserRow from './UserGroupUserRow'
 
@@ -45,8 +43,6 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   const toastAndLog = useToastAndLog()
   const { data: users } = useQuery(backendQueryOptions(backend, 'listUsers', []))
   const { data: userGroups } = useListUserGroupsWithUsers(backend)
-  const rootRef = useRef<HTMLDivElement>(null)
-  const bodyRef = useRef<HTMLTableSectionElement>(null)
   const changeUserGroup = useMutation(
     backendMutationOptions(backend, 'changeUserGroup'),
   ).mutateAsync
@@ -62,12 +58,6 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   const isUnderPaywall = isFeatureUnderPaywall('userGroupsFull')
   const userGroupsLeft = isUnderPaywall ? 1 - (userGroups?.length ?? 0) : Infinity
   const shouldDisplayPaywall = isUnderPaywall ? userGroupsLeft <= 0 : false
-
-  const { onScroll: onUserGroupsTableScroll, shadowClassName } = useStickyTableHeaderOnScroll(
-    rootRef,
-    bodyRef,
-    { trackShadowClass: true },
-  )
 
   const { dragAndDropHooks } = useDragAndDrop({
     isDisabled: !isAdmin,
@@ -168,17 +158,15 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
           )}
         </ButtonGroup>
       )}
-      <div
-        ref={rootRef}
-        className={twMerge(
-          'min-h-0 flex-initial overflow-y-auto overflow-x-hidden transition-all lg:mb-2',
-          shadowClassName,
-        )}
-        onScroll={onUserGroupsTableScroll}
+      <Scroller
+        scrollbar
+        orientation="vertical"
+        className="min-h-0 flex-initial transition-all lg:mb-2"
+        shadowStartClassName="top-8"
       >
         <Table
           aria-label={getText('userGroups')}
-          className="w-full max-w-3xl table-fixed self-start rounded-rows"
+          className="max-w-3xl table-fixed self-start rounded-rows"
           dragAndDropHooks={dragAndDropHooks}
         >
           <TableHeader className="sticky top-0 z-1 h-row bg-dashboard">
@@ -192,7 +180,6 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
             <Column className="relative border-0" />
           </TableHeader>
           <TableBody
-            ref={bodyRef}
             items={userGroups ?? []}
             dependencies={[isLoading, userGroups]}
             className="select-text"
@@ -235,7 +222,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
             }
           </TableBody>
         </Table>
-      </div>
+      </Scroller>
     </>
   )
 }

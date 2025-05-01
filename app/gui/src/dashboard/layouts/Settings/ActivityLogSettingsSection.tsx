@@ -236,7 +236,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       <Scroller
         scrollbar
         orientation="vertical"
-        className="min-h-0 flex-1 overflow-auto"
+        className="min-h-0 flex-1"
         shadowStartClassName="top-8"
         onScroll={(event) => {
           const element = event.currentTarget

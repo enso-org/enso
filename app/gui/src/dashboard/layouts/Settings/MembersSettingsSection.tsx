@@ -13,6 +13,7 @@ import * as paywall from '#/components/Paywall'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
 
+import { Scroller } from '#/components/Scroller'
 import type * as backendModule from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
@@ -79,7 +80,12 @@ export default function MembersSettingsSection() {
         </ariaComponents.ButtonGroup>
       )}
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <Scroller
+        scrollbar
+        orientation="vertical"
+        className="min-h-0 flex-1"
+        shadowStartClassName="top-8"
+      >
         <table className="table-fixed self-start rounded-rows">
           <thead className="sticky top-0 z-1 bg-dashboard">
             <tr className="h-row">
@@ -145,7 +151,7 @@ export default function MembersSettingsSection() {
             ))}
           </tbody>
         </table>
-      </div>
+      </Scroller>
     </>
   )
 }
