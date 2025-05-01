@@ -681,7 +681,7 @@ function formatXPoint(x: Date | number | DateObj) {
       case 'Time':
         return x.toTimeString()
       case 'Date':
-        return x.toDateString()
+        return x.toISOString()
       default:
         return x.toString()
     }
