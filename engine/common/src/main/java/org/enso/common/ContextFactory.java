@@ -46,7 +46,8 @@ public final class ContextFactory {
   private Handler logHandler = JulHandler.get();
   private boolean enableIrCaches;
   private boolean disablePrivateCheck;
-  private boolean enableStaticAnalysis;
+  private boolean enableStaticAnalysis = false;
+  private boolean treatWarningsAsErrors = false;
   private boolean strictErrors;
   private boolean disableLinting;
   private boolean useGlobalIrCacheLocation = true;
@@ -117,6 +118,11 @@ public final class ContextFactory {
 
   public ContextFactory enableStaticAnalysis(boolean enableStaticAnalysis) {
     this.enableStaticAnalysis = enableStaticAnalysis;
+    return this;
+  }
+
+  public ContextFactory treatWarningsAsErrors(boolean treatWarningsAsErrors) {
+    this.treatWarningsAsErrors = treatWarningsAsErrors;
     return this;
   }
 
@@ -200,6 +206,8 @@ public final class ContextFactory {
             .option(RuntimeOptions.DISABLE_IR_CACHES, Boolean.toString(!enableIrCaches))
             .option(RuntimeOptions.DISABLE_PRIVATE_CHECK, Boolean.toString(disablePrivateCheck))
             .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, Boolean.toString(enableStaticAnalysis))
+            .option(
+                RuntimeOptions.TREAT_WARNINGS_AS_ERRORS, Boolean.toString(treatWarningsAsErrors))
             .option(RuntimeOptions.LOG_MASKING, Boolean.toString(logMasking))
             .options(options)
             .option(RuntimeOptions.ENABLE_AUTO_PARALLELISM, Boolean.toString(enableAutoParallelism))

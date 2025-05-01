@@ -336,6 +336,7 @@ export async function getAllTrashedItems(
 export interface DownloadAssetsMutationOptions {
   readonly ids: readonly Pick<AnyAsset, 'id' | 'title'>[]
   readonly targetDirectoryId: DirectoryId | null
+  readonly shouldUnpackProject?: boolean
 }
 
 /** Call "download" mutations for a list of assets. */
@@ -343,14 +344,14 @@ export function downloadAssetsMutationOptions(backend: Backend) {
   return mutationOptions({
     mutationKey: [backend.type, 'downloadAssets'],
     mutationFn: async (options: DownloadAssetsMutationOptions) => {
-      const { ids, targetDirectoryId } = options
+      const { ids, targetDirectoryId, shouldUnpackProject = true } = options
 
       // Downloading assets should be done in order, because we want to avoid potential
       // race conditions.
       const rejects = []
       for (const { id, title } of ids) {
         try {
-          await backend.download(id, title, targetDirectoryId)
+          await backend.download(id, title, targetDirectoryId, shouldUnpackProject)
         } catch (error) {
           rejects.push(error)
         }
@@ -363,6 +364,7 @@ export function downloadAssetsMutationOptions(backend: Backend) {
           total: ids.length,
         })
       }
+
       return null
     },
     meta: {

@@ -21,6 +21,7 @@ import java.util.Set;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Diagnostic;
+import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.core.ir.Warning;
@@ -1282,6 +1283,61 @@ public class TypeInferenceTest extends StaticAnalysisTest {
   }
 
   @Test
+  public void defaultArgumentWithWrongType() throws Exception {
+    final URI uri = new URI("memory://defaultArgumentWithWrongType.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+            type My_Type
+                Value v
+
+            type Other_Type
+                Constructor v
+
+            foo (arg : My_Type = Other_Type.Constructor 1) = arg
+            """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = ModuleUtils.findStaticMethod(module, "foo");
+    var fooBody = foo.body();
+    if (!(fooBody instanceof Function.Lambda fooLambda)) {
+      fail("Expected the body of the function to be a lambda, but got " + fooBody);
+    } else {
+      var arg = fooLambda.arguments().find((a) -> a.name().name().equals("arg")).get();
+      assertTypeMismatch(arg.defaultValue().get(), "My_Type", "Other_Type");
+    }
+  }
+
+  @Ignore("TODO")
+  @Test
+  public void returnWrongType() throws Exception {
+    final URI uri = new URI("memory://returnWrongType.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+            type My_Type
+                Value v
+
+            type Other_Type
+                Constructor v
+
+            foo -> My_Type = Other_Type.Constructor 1
+            """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = ModuleUtils.findStaticMethod(module, "foo");
+    assertTypeMismatch(foo, "My_Type", "Other_Type");
+  }
+
+  @Test
   public void callingFieldGetters() throws Exception {
     final URI uri = new URI("memory://callingFieldGetters.enso");
     final Source src =
@@ -1389,6 +1445,46 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                 x5.expression().identifiedLocation(),
                 "member method `static_method` on type My_Type")),
         ModuleUtils.getImmediateDiagnostics(x5.expression()));
+  }
+
+  @Test
+  public void noSuchMethodInsideMethodWithDefaultArgs() throws Exception {
+    final URI uri = new URI("memory://noSuchMethodInsideMethodWithArgs.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    import Standard.Base.Any.Any
+
+                    type My_Type
+                        Value v
+                        method_one self = 42
+
+                    foo arg1 arg2="default" =
+                        inst = My_Type.Value 23
+                        x1 = inst.method_one
+                        x2 = inst.nonexistent
+                        [x1, x2]
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = ModuleUtils.findStaticMethod(module, "foo");
+    var x1 = ModuleUtils.findAssignment(foo, "x1");
+    var x2 = ModuleUtils.findAssignment(foo, "x2");
+
+    // member method is defined
+    assertEquals(List.of(), ModuleUtils.getDescendantsDiagnostics(x1.expression()));
+
+    // this method is not found
+    assertEquals(
+        List.of(
+            new Warning.NoSuchMethod(
+                x2.expression().identifiedLocation(),
+                "member method `nonexistent` on type My_Type")),
+        ModuleUtils.getImmediateDiagnostics(x2.expression()));
   }
 
   @Test

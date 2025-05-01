@@ -139,10 +139,7 @@ export function useTransferBetweenCategories(currentCategory: Category) {
             }
 
             if (resolution === 'confirm') {
-              return downloadAssetsMutation({
-                ids: assetsArray,
-                targetDirectoryId,
-              })
+              return copyAssetsMutation([keysArray, targetDirectoryId])
             }
           }
 

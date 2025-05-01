@@ -1,3 +1,5 @@
+from Standard.Base import all
+
 ## A column that contains numeric values.
 type Numeric_Column
     private Value column operations_implementation
@@ -12,7 +14,7 @@ type Numeric_Column
              import Standard.Examples
 
              example_abs = Examples.decimal_column.abs
-    abs self -> Numeric_Column =
+    abs self -> Any =
         self.operations_implementation.abs self.column
 
     ## GROUP Standard.Base.Operators
@@ -27,5 +29,5 @@ type Numeric_Column
              import Standard.Examples
 
              example_signum = Examples.decimal_column.signum
-    signum self -> Numeric_Column =
+    signum self -> Any =
         self.operations_implementation.signum self.column
