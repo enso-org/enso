@@ -228,7 +228,7 @@ export function ProjectTab(props: ProjectTabProps) {
     >
       <Await
         promise={promise}
-        fallback={<></>}
+        fallback={project.title}
         FallbackComponent={() => getText('projectTabBarErrorTitle')}
       >
         {({ title }) => title}

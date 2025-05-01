@@ -18,7 +18,8 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 import { Spinner } from '#/components/Spinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import type { LaunchedProject } from '../../providers/ProjectsProvider'
+import type { LaunchedProject } from '#/providers/ProjectsProvider'
+import { useAreProjectsOpening } from '#/providers/ProjectsProvider/hooks'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const CLOSED_PROJECT_STATE = { type: backendModule.ProjectState.closed } as const
@@ -78,7 +79,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
   } = props
 
   const isUnconditionallyDisabled = !projectHooks.useCanOpenProjects()
-  const isDisabled = isDisabledRaw || isUnconditionallyDisabled
 
   const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
@@ -111,6 +111,12 @@ export default function ProjectIcon(props: ProjectIconProps) {
     }
     return status
   })()
+
+  const areProjectsOpening = useAreProjectsOpening()
+  const isDisabled =
+    isDisabledRaw ||
+    isUnconditionallyDisabled ||
+    (areProjectsOpening && !backendModule.IS_OPENING_OR_OPENED[state])
 
   const spinnerState = ((): SpinnerState => {
     if (!isOpened) {

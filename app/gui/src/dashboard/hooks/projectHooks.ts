@@ -20,6 +20,7 @@ import {
 
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
+import { useAddOpeningProject, useRemoveOpeningProject } from '#/providers/ProjectsProvider/hooks'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import { z } from 'zod'
@@ -217,6 +218,8 @@ export function useOpenProjectMutation() {
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const setProjectAsset = useSetProjectAsset()
+  const addOpeningProject = useAddOpeningProject()
+  const removeOpeningProject = useRemoveOpeningProject()
 
   return reactQuery.useMutation({
     mutationKey: OPEN_PROJECT_MUTATION_KEY,
@@ -230,27 +233,32 @@ export function useOpenProjectMutation() {
       inBackground = false,
       suppressHybridProjectOpen: _ = false,
     }: LaunchedProject & { inBackground?: boolean; suppressHybridProjectOpen?: boolean }) => {
+      addOpeningProject(hybrid?.cloudProjectId ?? id)
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
       const cloudProjectDirectoryPath = hybrid ? hybrid.cloudProjectDirectoryPath : null
 
-      await backend.openProject(
-        id,
-        {
-          executeAsync: inBackground,
-          cognitoCredentials: {
-            accessToken: session.accessToken,
-            refreshToken: session.refreshToken,
-            clientId: session.clientId,
-            expireAt: session.expireAt,
-            refreshUrl: session.refreshUrl,
+      await backend
+        .openProject(
+          id,
+          {
+            executeAsync: inBackground,
+            cognitoCredentials: {
+              accessToken: session.accessToken,
+              refreshToken: session.refreshToken,
+              clientId: session.clientId,
+              expireAt: session.expireAt,
+              refreshUrl: session.refreshUrl,
+            },
+            cloudProjectDirectoryPath,
+            parentId,
           },
-          cloudProjectDirectoryPath,
-          parentId,
-        },
-        title,
-      )
+          title,
+        )
+        .finally(() => {
+          removeOpeningProject(hybrid?.cloudProjectId ?? id)
+        })
     },
     onMutate: ({ type, id, parentId }) => {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
@@ -409,6 +417,8 @@ function useOpenProject() {
   const client = reactQuery.useQueryClient()
   const canOpenProjects = useCanOpenProjects()
   const projectsStore = useProjectsStore()
+  const addOpeningProject = useAddOpeningProject()
+  const removeOpeningProject = useRemoveOpeningProject()
   const addLaunchedProject = useAddLaunchedProject()
   const removeLaunchedProject = useRemoveLaunchedProject()
   const closeAllProjects = useCloseAllProjects()
@@ -421,11 +431,6 @@ function useOpenProject() {
       return
     }
 
-    const queryKey = createGetProjectDetailsQuery.getQueryKey(project.id)
-
-    const data = client.getQueryData(queryKey)
-    client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
-
     const existingMutation = client.getMutationCache().find({
       mutationKey: ['openProject'],
       predicate: (mutation) => mutation.options.scope?.id === project.id,
@@ -433,23 +438,27 @@ function useOpenProject() {
     const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
 
     if (!isOpeningTheSameProject) {
+      const queryKey = createGetProjectDetailsQuery.getQueryKey(project.id)
+      client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
+
       addLaunchedProject(project)
+      addOpeningProject(project.hybrid?.cloudProjectId ?? project.id)
 
       if (!enableMultitabs) {
         // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
-        if (projectsStore.getState().launchedProjects.length > 0) {
+        // The current project is opened as launched above.
+        if (projectsStore.getState().launchedProjects.length > 1) {
           await closeAllProjects()
         }
       }
 
       void openProjectMutation.mutateAsync(project).catch(() => {
         removeLaunchedProject(project.id)
+        removeOpeningProject(project.hybrid?.cloudProjectId ?? project.id)
         const newData = client.getQueryData(queryKey)
         // If state has not changed from optimistic state, then:
         if (OPEN_IN_PROGRESS_PROJECT_STATE_SCHEMA.safeParse(newData).success) {
-          // Remove optimistic state.
-          client.setQueryData(queryKey, data)
-          // Also invalidate queries to force fetching of fresh state.
+          client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.closed } })
           void client.invalidateQueries({ queryKey: ['project'] })
         }
       })
@@ -475,11 +484,23 @@ export function useOpenHybridProject() {
   const toastAndLog = useToastAndLog()
   const openProject = useOpenProject()
   const closeProject = useCloseProject()
+  const addOpeningProject = useAddOpeningProject()
+  const addLaunchedProject = useAddLaunchedProject()
+  const removeLaunchedProject = useRemoveLaunchedProject()
 
   return eventCallbacks.useEventCallback(
     async (asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>) => {
       try {
         invariant(localBackend != null, 'Local Backend is null')
+        const placeholderProject: LaunchedProject = {
+          id: asset.id,
+          title: asset.title,
+          parentId: asset.parentId,
+          type: backendModule.BackendType.local,
+          preventAutoReopen: true,
+        }
+        addLaunchedProject(placeholderProject)
+        addOpeningProject(asset.id)
         await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
         const localProject = await remoteBackend.downloadProject(asset.id)
         invariant(asset.ensoPath, 'Enso path is not defined')
@@ -499,6 +520,7 @@ export function useOpenHybridProject() {
           }
         }
 
+        removeLaunchedProject(placeholderProject.id)
         invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
         await openProject({
           id: project.id,
