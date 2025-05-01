@@ -19,6 +19,7 @@ import org.enso.text.editing.model.{IdMap, TextEdit}
 import org.enso.text.editing.{IndexedSource, TextEditor}
 
 import java.util.UUID
+import scala.collection.immutable.HashSet
 import scala.collection.mutable
 
 /** The changeset of a module containing the computed list of invalidated
@@ -196,7 +197,13 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     ): Set[ChangesetBuilder.NodeId] = {
       if (edits.isEmpty) {
         val allExpressionBindings =
-          findBindings(ids.filter(_.needsRhsInvalidation).toList, ir)
+          findBindings(
+            new HashSet() concat ids
+              .filter(_.needsRhsInvalidation)
+              .map(_.internalId)
+              .toSet,
+            ir
+          )
         ids.toSet ++ allExpressionBindings.flatMap(
           invalidateRhsExpressionAndSelfArgs
         )
@@ -253,12 +260,11 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
   }
 
   private def findBindings(
-    ids: List[ChangesetBuilder.NodeId],
+    ids: HashSet[UUID],
     currentIR: IR
   ): List[Expression.Binding] = {
     currentIR match {
-      case binding: Expression.Binding
-          if ids.exists(i => i.internalId == binding.name.getId) =>
+      case binding: Expression.Binding if ids.contains(binding.name.getId) =>
         List(binding)
       case _ =>
         val bindings = currentIR.children().flatMap(i => findBindings(ids, i))

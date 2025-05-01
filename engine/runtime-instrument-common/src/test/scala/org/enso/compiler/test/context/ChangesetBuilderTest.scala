@@ -556,7 +556,6 @@ class ChangesetBuilderTest
       // We accept a minor difference in `vector4`'s RHS
       val diff = invalidated2 diff invalidated1
       diff should contain theSameElementsAs Seq(vector4.function().getId())
-
     }
 
   }
