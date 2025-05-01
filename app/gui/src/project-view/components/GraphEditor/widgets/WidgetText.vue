@@ -141,6 +141,7 @@ export const widgetDefinition = defineWidget(
 .WidgetText {
   display: inline-flex;
   background: var(--color-widget);
+  transition: background-color 0.2s ease;
   user-select: none;
   justify-content: center;
   align-items: center;
@@ -182,7 +183,7 @@ export const widgetDefinition = defineWidget(
   }
 }
 
-.GraphNode:not(.selected) .WidgetText :deep(.cm-content) * {
+.GraphNode:not(.selected) .WidgetText :deep(.cm-content *:not(.cm-placeholder)) {
   color: inherit;
 }
 </style>

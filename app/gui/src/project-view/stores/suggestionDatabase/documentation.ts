@@ -9,7 +9,8 @@ import { type DeepReadonly } from 'vue'
 export interface DocumentationData {
   documentation: Doc.Section[]
   docSummaryHtml: string | undefined
-  aliases: string[]
+  aliasesAndMacros: string[]
+  macros: Record<string, string>
   /** A name of a custom icon to use when displaying the entry. */
   iconName: Icon | undefined
   /** An index of a group from group list in suggestionDb store this entry belongs to. */
@@ -80,15 +81,35 @@ export function documentationData(
   const groupIndex = groupName && project ? getGroupIndex(groupName, project, groups) : undefined
   const iconName = tagValue(parsed, 'Icon')
 
+  const macroFilter = isTagNamed('Macro')
+  const macros = parsed.filter(macroFilter).reduce(
+    (acc, section) => {
+      const body = section.Tag.body
+      const match = body.match(/^(\S+) (.+)$/)
+      if (match) {
+        const name = match[1]
+        const description = match[2]
+        if (name && description) {
+          acc[name] = description
+        }
+      }
+      return acc
+    },
+    {} as Record<string, string>,
+  )
+
+  const aliases =
+    tagValue(parsed, 'Alias')
+      ?.trim()
+      .split(/\s*,\s*/g) ?? []
+
   return {
     documentation: parsed,
     docSummaryHtml: getDocumentationSummary(parsed),
     iconName: iconName != null ? (iconName as Icon) : undefined,
     groupIndex,
-    aliases:
-      tagValue(parsed, 'Alias')
-        ?.trim()
-        .split(/\s*,\s*/g) ?? [],
+    aliasesAndMacros: [...aliases, ...Object.keys(macros)].sort(),
+    macros,
     isPrivate: isSome(tagValue(parsed, 'Private')),
     isUnstable: isSome(tagValue(parsed, 'Unstable')) || isSome(tagValue(parsed, 'Advanced')),
     suggestedRank: getSuggestedRank(parsed),

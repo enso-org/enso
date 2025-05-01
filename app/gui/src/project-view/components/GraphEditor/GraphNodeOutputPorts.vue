@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CreateNodeFromPortButton from '@/components/GraphEditor/CreateNodeFromPortButton.vue'
 import { useApproach } from '@/composables/animation'
 import { useComponentColors } from '@/composables/componentColors'
 import { useDoubleClick } from '@/composables/doubleClick'
@@ -17,7 +18,6 @@ import {
   type EffectScope,
 } from 'vue'
 import type { AstId } from 'ydoc-shared/ast'
-import CreateNodeFromPortButton from './CreateNodeFromPortButton.vue'
 
 const props = defineProps<{ nodeId: NodeId; forceVisible: boolean }>()
 
@@ -133,18 +133,21 @@ watchEffect(() => {
 // Clean up dynamically created detached scopes.
 onScopeDispose(() => hoverAnimations.forEach(([_, scope]) => scope.stop()))
 
+const nodeStyle = computed(() => ({
+  '--hover-animation': portsHoverAnimation.value,
+  '--node-size-x': `${nodeRect.value?.size.x ?? 0}px`,
+  '--node-size-y': `${nodeRect.value?.size.y ?? 0}px`,
+  '--node-group-color': baseColor.value,
+  transform: `translate(${nodeRect.value?.pos.x ?? 0}px, ${nodeRect.value?.pos.y ?? 0}px)`,
+}))
+
 function portGroupStyle(port: PortData) {
   const [start, end] = port.clipRange
   return {
-    '--hover-animation': portsHoverAnimation.value,
     '--direct-hover-animation': hoverAnimations.get(port.portId)?.[0].value ?? 0,
     '--port-clip-start': start,
     '--port-clip-end': end,
     '--port-label-transform-x': `${((end - start) / 2 + start) * 100}%`,
-    '--node-size-x': `${nodeRect.value?.size.x ?? 0}px`,
-    '--node-size-y': `${nodeRect.value?.size.y ?? 0}px`,
-    '--node-group-color': baseColor.value,
-    transform: `translate(${nodeRect.value?.pos.x ?? 0}px, ${nodeRect.value?.pos.y ?? 0}px)`,
   }
 }
 
@@ -152,9 +155,14 @@ graph.suggestEdgeFromOutput(outputHovered)
 </script>
 
 <template>
-  <g class="GraphNodeOutputPorts" :data-output-ports-node-id="props.nodeId">
+  <g
+    class="GraphNodeOutputPorts define-node-colors"
+    :style="nodeStyle"
+    :class="{ selected, pending }"
+    :data-output-ports-node-id="props.nodeId"
+  >
     <template v-for="port of outputPorts" :key="port.portId">
-      <g :style="portGroupStyle(port)" class="define-node-colors" :class="{ selected, pending }">
+      <g :style="portGroupStyle(port)">
         <g
           class="portClip"
           @pointerenter="mouseOverOutput = port.portId"

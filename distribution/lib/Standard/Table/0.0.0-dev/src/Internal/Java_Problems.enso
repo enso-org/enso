@@ -24,8 +24,10 @@ polyglot java import org.enso.table.data.table.problems.InvalidAggregation
 polyglot java import org.enso.table.data.table.problems.UnquotedCharactersInOutput
 polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
 polyglot java import org.enso.table.parsing.problems.AdditionalInvalidRows
+polyglot java import org.enso.table.parsing.problems.InconsistentFixedWidthLengths
 polyglot java import org.enso.table.parsing.problems.InvalidFormat
 polyglot java import org.enso.table.parsing.problems.InvalidRow
+polyglot java import org.enso.table.parsing.problems.InvalidFixedWidthRow
 polyglot java import org.enso.table.problems.ProblemAggregator
 polyglot java import org.enso.table.problems.ProblemAggregator.ProblemSummary
 polyglot java import org.enso.table.util.problems.DuplicateNames
@@ -72,6 +74,10 @@ translate_problem p = case p of
         Unquoted_Delimiter.Error p.getLocationName (Vector.from_polyglot_array p.getRows)
     _ : InvalidRow ->
         Invalid_Row.Error p.source_row p.table_index (Vector.from_polyglot_array p.row) p.expected_length
+    _ : InvalidFixedWidthRow ->
+        Invalid_Fixed_Width_Row.Error p.source_line_number p.table_row_number p.line_length p.minimum_line_length
+    _ : InconsistentFixedWidthLengths ->
+        Inconsistent_Fixed_Width_Lengths.Error
     _ : AdditionalInvalidRows ->
         Additional_Invalid_Rows.Error p.count
     _ : DuplicateNames ->

@@ -276,7 +276,7 @@ public final class WithWarnings extends EnsoObject {
   }
 
   @ExportMessage
-  RuntimeException throwException(@Bind("$node") Node node) {
+  RuntimeException throwException(@Bind Node node) {
     throw asException(node);
   }
 

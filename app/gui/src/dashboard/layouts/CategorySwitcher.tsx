@@ -27,10 +27,7 @@ import { tv } from '#/utilities/tailwindVariants'
 import { twJoin } from 'tailwind-merge'
 
 import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
-import {
-  useCloudCategoryList,
-  useLocalCategoryList,
-} from '#/layouts/Drive/Categories/categoriesHooks'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { unsetModal } from '#/providers/ModalProvider'
 
@@ -182,7 +179,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     >
       <AnimatedBackground.Item
         isSelected={isCurrent}
-        className="w-auto max-w-[calc(100%-24px)]"
+        className="w-auto max-w-full"
         animationClassName="bg-invert rounded-full"
       >
         <ariaComponents.Button
@@ -246,8 +243,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
 
   const { isOffline } = offlineHooks.useOffline()
 
-  const cloudCategories = useCloudCategoryList()
-  const localCategories = useLocalCategoryList()
+  const { cloudCategories, localCategories } = useCategoriesAPI()
 
   const itemProps = { currentCategory: category, setCategoryId }
 
@@ -365,7 +361,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                     extraClickZone={false}
                     icon="minus"
                     aria-label={getText('removeDirectoryFromFavorites')}
-                    className="hidden group-hover:block"
+                    showIconOnHover
                   />
 
                   <ConfirmDeleteModal

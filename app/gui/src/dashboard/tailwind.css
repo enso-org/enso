@@ -101,8 +101,6 @@
   --spinner-slow-transition-duration: 90s;
   --cell-padding-x: 0.5rem;
   --plus-icon-size: 1.125rem;
-  /* The horizontal gap between adjacent context menus. */
-  --context-menus-gap: 0.125rem;
   --context-menu-padding: 0.5rem;
   --context-menu-width: 16rem;
   --context-menu-macos-width: 14.375rem;
@@ -281,7 +279,6 @@
   --manage-permissions-modal-input-padding: 0.25rem;
   --modal-invite-button-text-padding-y: 0.125rem;
   --manage-permissions-modal-permissions-list-height: 20rem;
-  --manage-labels-list-height: 20rem;
 
   /********\
   |* Chat *|
