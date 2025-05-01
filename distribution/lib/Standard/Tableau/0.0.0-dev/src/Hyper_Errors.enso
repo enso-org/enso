@@ -18,6 +18,10 @@ type Unsupported_Type
     ## PRIVATE
     Error type_name:Text
 
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = "Tableau Hyper file do not support columns of type " + self.type_name
+
 ## PRIVATE
 private handle_java_exceptions ~action =
     Panic.catch HyperTableNotFound handler=(c-> Error.throw (Hyper_Table_Not_Found.Error c.payload.getSchema c.payload.getName)) <|
