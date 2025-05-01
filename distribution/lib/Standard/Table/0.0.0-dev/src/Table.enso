@@ -1876,8 +1876,9 @@ type Table
     @column Widget_Helpers.make_column_name_selector
     @delimiter make_delimiter_selector
     @column_count Columns_To_Add.default_widget
-    split_to_columns self (column : Text | Integer = Missing_Argument.throw "column") delimiter:Text|Vector="," column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table =
-        Split_Tokenize.split_to_columns self column delimiter column_count=column_count on_problems
+    split_to_columns self (column : Text | Integer = Missing_Argument.throw "column") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table =
+        column.if_not_error <| delimiter.if_not_error <|
+            Split_Tokenize.split_to_columns self column delimiter column_count=column_count on_problems
 
     ## ALIAS parse, tokenize
        GROUP Standard.Base.Conversions
@@ -1895,8 +1896,9 @@ type Table
        - Returns a Table with the newly generated rows.
     @column Widget_Helpers.make_column_name_selector
     @delimiter make_delimiter_selector
-    split_to_rows self (column : Text | Integer = Missing_Argument.throw "column") delimiter:Text|Vector="," -> Table =
-        Split_Tokenize.split_to_rows self column delimiter
+    split_to_rows self (column : Text | Integer = Missing_Argument.throw "column") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") -> Table =
+        column.if_not_error <| delimiter.if_not_error <|
+            Split_Tokenize.split_to_rows self column delimiter
 
     ## ALIAS parse, regex, split
        GROUP Standard.Base.Conversions
@@ -1928,7 +1930,8 @@ type Table
          be reported according to the `on_problems` behavior.
     @column Widget_Helpers.make_column_name_selector
     tokenize_to_columns self (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table =
-        Split_Tokenize.tokenize_to_columns self column pattern case_sensitivity column_count on_problems
+        column.if_not_error <| pattern.if_not_error <|
+            Split_Tokenize.tokenize_to_columns self column pattern case_sensitivity column_count on_problems
 
     ## ALIAS parse, regex, split
        GROUP Standard.Base.Conversions
@@ -1956,7 +1959,8 @@ type Table
        - Returns a Table with the newly split rows.
     @column Widget_Helpers.make_column_name_selector
     tokenize_to_rows self (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive at_least_one_row:Boolean=False -> Table =
-        Split_Tokenize.tokenize_to_rows self column pattern case_sensitivity at_least_one_row
+        column.if_not_error <| pattern.if_not_error <|
+            Split_Tokenize.tokenize_to_rows self column pattern case_sensitivity at_least_one_row
 
     ## ALIAS regex, split, tokenize
        GROUP Standard.Base.Conversions
@@ -1988,7 +1992,8 @@ type Table
     @column Widget_Helpers.make_column_name_selector
     @pattern Widget.Text_Input
     parse_to_columns self (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text | Regex = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive parse_values:Boolean=True on_problems:Problem_Behavior=..Report_Error -> Table =
-        Split_Tokenize.parse_to_columns self column pattern case_sensitivity parse_values on_problems
+        column.if_not_error <| pattern.if_not_error <|
+            Split_Tokenize.parse_to_columns self column pattern case_sensitivity parse_values on_problems
 
     ## GROUP Standard.Base.Calculations
        ICON split
@@ -2044,7 +2049,8 @@ type Table
          # => Table.new [["aaa", [1, 1, 2, 2]], ["bbb", [30, 31, 40, 41]]]
     @column Widget_Helpers.make_column_name_selector
     expand_to_rows self (column : Text | Integer = Missing_Argument.throw "column") at_least_one_row:Boolean=False -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
-        Expand_Objects_Helpers.expand_to_rows self column at_least_one_row sequences_only=False
+        column.if_not_error <|
+            Expand_Objects_Helpers.expand_to_rows self column at_least_one_row sequences_only=False
 
     ## ALIAS filter rows, where
        MACRO equals filter=..Equal
