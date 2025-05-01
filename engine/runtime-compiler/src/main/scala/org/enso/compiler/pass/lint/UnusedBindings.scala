@@ -222,8 +222,8 @@ case object UnusedBindings extends IRPass {
     cse match {
       case expr: Case.Expr =>
         expr.copy(
-          scrutinee = runExpression(expr.scrutinee, context),
-          branches  = expr.branches.map(lintCaseBranch(_, context))
+          runExpression(expr.scrutinee, context),
+          expr.branches.map(lintCaseBranch(_, context))
         )
       case _: Case.Branch => throw new CompilerError("Unexpected case branch.")
     }
@@ -240,8 +240,9 @@ case object UnusedBindings extends IRPass {
     context: InlineContext
   ): Case.Branch = {
     branch.copy(
-      pattern    = lintPattern(branch.pattern),
-      expression = runExpression(branch.expression, context)
+      lintPattern(branch.pattern),
+      runExpression(branch.expression, context),
+      branch.terminalBranch()
     )
   }
 

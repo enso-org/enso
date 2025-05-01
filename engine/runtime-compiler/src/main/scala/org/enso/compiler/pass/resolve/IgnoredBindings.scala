@@ -302,8 +302,9 @@ case object IgnoredBindings extends IRPass {
     supply: FreshNameSupply
   ): Case.Branch = {
     branch.copy(
-      pattern    = resolvePattern(branch.pattern, supply),
-      expression = resolveExpression(branch.expression, supply)
+      resolvePattern(branch.pattern, supply),
+      resolveExpression(branch.expression, supply),
+      branch.terminalBranch()
     )
   }
 

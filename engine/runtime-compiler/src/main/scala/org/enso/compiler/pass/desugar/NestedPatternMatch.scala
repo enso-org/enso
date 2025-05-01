@@ -8,7 +8,7 @@ import org.enso.compiler.core.ir.{
   Module,
   Pattern
 }
-import org.enso.compiler.core.ir.expression.{errors, Case, Case}
+import org.enso.compiler.core.ir.expression.{errors, Case}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.IRProcessingPass
@@ -184,8 +184,8 @@ case object NestedPatternMatch extends IRPass {
         }
 
         val desugaredCaseExpr = expr.copy(
-          scrutinee = caseExprScrutinee,
-          branches  = processedBranches
+          caseExprScrutinee,
+          processedBranches
         )
 
         Expression.Block(
@@ -242,12 +242,11 @@ case object NestedPatternMatch extends IRPass {
           )
 
           val newPattern1 = newPattern.duplicate()
-          val partDesugaredBranch = Case.Branch(
-            pattern            = newPattern1,
-            expression         = newExpression.duplicate(),
-            terminalBranch     = false,
-            identifiedLocation = null
-          )
+          val partDesugaredBranch = Case.Branch
+            .builder()
+            .pattern(newPattern1)
+            .expression(newExpression.duplicate())
+            .build()
 
           desugarCaseBranch(
             partDesugaredBranch,
@@ -277,8 +276,8 @@ case object NestedPatternMatch extends IRPass {
       }
     } else {
       branch.copy(
-        expression = desugarExpression(branch.expression, freshNameSupply),
-        location   = topBranchLocation
+        desugarExpression(branch.expression, freshNameSupply),
+        topBranchLocation.orNull
       )
     }
   }

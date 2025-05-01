@@ -1,5 +1,6 @@
 package org.enso.compiler.core.ir.expression;
 
+import java.util.UUID;
 import java.util.function.Function;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
@@ -45,6 +46,21 @@ public interface Case extends Expression {
       super(scrutinee, branches, isNested, identifiedLocation, passData);
     }
 
+    public Expr copy(Expression scrutinee, List<Branch> branches, boolean isNested) {
+      return copy(
+          diagnostics(), passData(), identifiedLocation(), id, scrutinee, branches, isNested);
+    }
+
+    public Expr copy(Expression scrutinee, List<Branch> branches) {
+      return copy(
+          diagnostics(), passData(), identifiedLocation(), id, scrutinee, branches, isNested());
+    }
+
+    public Expr copy(List<Branch> branches) {
+      return copy(
+          diagnostics(), passData(), identifiedLocation(), id, scrutinee(), branches, isNested());
+    }
+
     @Override
     public String showCode(int indent) {
       var newIndent = indent + indentLevel;
@@ -69,6 +85,26 @@ public interface Case extends Expression {
         IdentifiedLocation identifiedLocation,
         MetadataStorage passData) {
       super(pattern, expression, terminalBranch, identifiedLocation, passData);
+    }
+
+    public Branch copy(Pattern pattern, Expression expression, boolean terminalBranch) {
+      return copy(
+          diagnostics(), passData(), identifiedLocation(), id, pattern, expression, terminalBranch);
+    }
+
+    public Branch copy(Expression expression, IdentifiedLocation identifiedLocation) {
+      return copy(
+          diagnostics(),
+          passData(),
+          identifiedLocation,
+          id,
+          pattern(),
+          expression,
+          terminalBranch());
+    }
+
+    public UUID id() {
+      return id;
     }
 
     @Override
