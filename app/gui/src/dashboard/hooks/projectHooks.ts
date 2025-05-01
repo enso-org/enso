@@ -441,15 +441,17 @@ function useOpenProject() {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(project.id)
       client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
 
-      addLaunchedProject(project)
       addOpeningProject(project.hybrid?.cloudProjectId ?? project.id)
 
       if (!enableMultitabs) {
         // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
         // The current project is opened as launched above.
-        if (projectsStore.getState().launchedProjects.length > 1) {
+        if (projectsStore.getState().launchedProjects.length > 0) {
+          addLaunchedProject(project)
           await closeAllProjects()
         }
+      } else {
+        addLaunchedProject(project)
       }
 
       void openProjectMutation.mutateAsync(project).catch(() => {
@@ -485,20 +487,23 @@ export function useOpenHybridProject() {
   const openProject = useOpenProject()
   const closeProject = useCloseProject()
   const addOpeningProject = useAddOpeningProject()
+  const removeOpeningProject = useRemoveOpeningProject()
   const addLaunchedProject = useAddLaunchedProject()
   const removeLaunchedProject = useRemoveLaunchedProject()
 
   return eventCallbacks.useEventCallback(
     async (asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>) => {
+      const placeholderProject: LaunchedProject = {
+        id: asset.id,
+        title: asset.title,
+        parentId: asset.parentId,
+        type: backendModule.BackendType.remote,
+        // As this is a placeholder, it should not be opened automatically.
+        preventAutoReopen: true,
+        isPlaceholder: true,
+      }
       try {
         invariant(localBackend != null, 'Local Backend is null')
-        const placeholderProject: LaunchedProject = {
-          id: asset.id,
-          title: asset.title,
-          parentId: asset.parentId,
-          type: backendModule.BackendType.local,
-          preventAutoReopen: true,
-        }
         addLaunchedProject(placeholderProject)
         addOpeningProject(asset.id)
         await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
@@ -535,6 +540,8 @@ export function useOpenHybridProject() {
           },
         })
       } catch (error) {
+        removeLaunchedProject(placeholderProject.id)
+        removeOpeningProject(placeholderProject.id)
         toastAndLog('openProjectError', error, asset.title)
         await closeProject({ ...asset, type: backendModule.BackendType.local })
       }
@@ -662,6 +669,9 @@ export function useCloseAllProjects() {
 
     await Promise.all(
       launchedProjects.map(async (project) => {
+        if (project.isPlaceholder === true) {
+          return
+        }
         const isHybrid = project.hybrid != null
         const backend =
           project.type === backendModule.BackendType.remote || isHybrid ?

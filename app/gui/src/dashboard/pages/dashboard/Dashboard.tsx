@@ -154,7 +154,7 @@ function DashboardInner(props: DashboardProps) {
     return () => {
       window.projectManagementApi?.setOpenProjectHandler(() => {})
     }
-  }, [openEditor, openProjectLocally, categoriesAPI])
+  }, [openProjectLocally, categoriesAPI])
 
   React.useEffect(() => {
     if (detect.isOnElectron()) {

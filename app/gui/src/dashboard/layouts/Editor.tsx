@@ -1,6 +1,7 @@
 /** @file The container that launches the IDE. */
 import { Button } from '#/components/AriaComponents'
 import * as errorBoundary from '#/components/ErrorBoundary'
+import { Loader } from '#/components/Loader'
 import { Result } from '#/components/Result'
 import * as suspense from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -104,6 +105,10 @@ export default function Editor(props: EditorProps) {
     deps: [],
     isDisabled: !isProjectOpening || projectQuery.isError,
   })
+
+  if (project.isPlaceholder === true) {
+    return <Loader />
+  }
 
   if (isProjectClosed && preventAutoReopen) {
     return (
