@@ -415,32 +415,7 @@ impl Processor {
             }
             arg::backend::Command::CiCheck {} => {
                 let config = enso_build::engine::BuildConfigurationFlags {
-                    build_benchmarks: true,
                     build_native_runner: true,
-                    // Espresso+NI needs to be checked only on a single platform.
-                    build_espresso_runner: TARGET_OS == OS::Linux,
-                    build_native_ydoc: TARGET_OS == OS::Linux,
-                    execute_benchmarks: {
-                        // Run benchmarks only on Linux.
-                        if TARGET_OS == OS::Linux {
-                            Some(Benchmarks {
-                                bench_name: None,
-                                bench_type: BenchmarkType::Runtime,
-                            })
-                        } else {
-                            None
-                        }
-                    },
-                    execute_benchmarks_once: true,
-                    // Benchmarks are only checked on Linux because:
-                    // * they are then run only on Linux;
-                    // * checking takes time;
-                    // * this rather verifies the Enso code correctness which should not be platform
-                    //   specific.
-                    // Checking benchmarks on Windows has caused some CI issues, see
-                    // https://github.com/enso-org/enso/issues/8777#issuecomment-1895749820 for the
-                    // possible explanation.
-                    check_enso_benchmarks: TARGET_OS == OS::Linux,
                     verify_packages: true,
                     ..default()
                 };
