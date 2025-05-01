@@ -93,6 +93,7 @@ const primaryApplication = emptyPrimaryApplication()
     :class="{ selected: focused }"
   >
     <WidgetTreeRoot
+      :selected="focused"
       :externalId="functionAst.externalId"
       :input="treeRootInput"
       :primaryApplication="primaryApplication"

@@ -140,20 +140,8 @@ export const widgetDefinition = defineWidget(
 <style scoped>
 .WidgetText {
   display: inline-flex;
-  background: var(--color-widget);
-  transition: background-color 0.2s ease;
-  user-select: none;
   justify-content: center;
   align-items: center;
-  min-width: var(--node-port-height);
-}
-
-.selected .WidgetText {
-  background: var(--color-widget-unfocus);
-  &:has(> :focus) {
-    outline: none;
-    background: var(--color-widget-focus);
-  }
 }
 
 .singleLine :deep(.cm-scroller) {
@@ -181,9 +169,5 @@ export const widgetDefinition = defineWidget(
       align-self: flex-end;
     }
   }
-}
-
-.GraphNode:not(.selected) .WidgetText :deep(.cm-content *:not(.cm-placeholder)) {
-  color: inherit;
 }
 </style>

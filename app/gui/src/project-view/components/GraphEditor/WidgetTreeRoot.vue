@@ -153,21 +153,14 @@ export const ICON_WIDTH = 16
       color,
       opacity 0.2s ease;
 
-    &:has(> :focus) {
+    &:focus,
+    &:has(:focus):not(:has(.widgetPill :focus)) {
       outline: none;
       background-color: var(--color-widget-focus);
     }
 
     ::selection {
       background: var(--color-widget-selection);
-    }
-
-    &.selected {
-      background-color: var(--color-widget-unfocus);
-      &:has(> :focus) {
-        outline: none;
-        background-color: var(--color-widget-focus);
-      }
     }
   }
 }

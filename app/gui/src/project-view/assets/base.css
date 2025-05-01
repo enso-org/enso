@@ -20,10 +20,8 @@
   --color-dim: rgb(0 0 0 / 0.25);
   --color-frame-bg: rgb(255 255 255 / 0.3);
   --color-frame-selected-bg: rgb(255 255 255 / 0.7);
-  --color-widget-slight: rgb(255 255 255 / 0.06);
   --color-widget: rgb(255 255 255 / 0.12);
   --color-widget-focus: rgb(255 255 255 / 1);
-  --color-widget-unfocus: rgb(255 255 255 / 0.6);
   --color-widget-selected: rgb(255 255 255 / 0.58);
   --color-widget-selection: rgba(0 0 0 / 0.2);
   --color-port-connected: rgb(255 255 255 / 0.15);
@@ -112,6 +110,7 @@
   }
 
   &.selected {
+    --color-widget: var(--color-widget-selected);
     --color-node-background: color-mix(
       in oklab,
       var(--color-node-primary),

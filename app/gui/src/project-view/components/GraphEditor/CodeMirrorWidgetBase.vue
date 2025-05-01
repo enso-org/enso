@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
-import { defineWidget, HandledUpdate, Score, WidgetInput } from '@/providers/widgetRegistry'
+import { HandledUpdate, WidgetInput } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
@@ -131,26 +131,6 @@ defineExpose({
   blurEditor,
   setText,
 })
-</script>
-
-<script lang="ts">
-export const EnsoExpression: unique symbol = Symbol.for('WidgetInput:EnsoExpression')
-declare module '@/providers/widgetRegistry' {
-  export interface WidgetInput {
-    [EnsoExpression]?: {
-      validateInput?: (ast: Ast.Expression) => boolean
-    }
-  }
-}
-
-export const widgetDefinition = defineWidget(
-  EnsoExpression,
-  {
-    priority: 1002,
-    score: Score.Good,
-  },
-  import.meta.hot,
-)
 </script>
 
 <template>

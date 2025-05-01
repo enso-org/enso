@@ -109,12 +109,6 @@ export const widgetDefinition = defineWidget(
   display: inline-flex;
   justify-content: center;
   align-items: center;
-
-  &:has(> :focus) {
-    outline: none;
-    background: var(--color-widget-focus);
-    color: var(--color-node-text-selected);
-  }
 }
 
 /*noinspection CssUnusedSymbol*/
