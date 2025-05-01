@@ -76,9 +76,6 @@ public class IRProcessor extends AbstractProcessor {
         processingEnv.getMessager().printMessage(Kind.ERROR, e.getMessage(), element);
         return false;
       }
-      processingEnv
-          .getMessager()
-          .printMessage(Kind.NOTE, "Generated superclass for " + elemToProcess.getQualifiedName());
     }
     return true;
   }
