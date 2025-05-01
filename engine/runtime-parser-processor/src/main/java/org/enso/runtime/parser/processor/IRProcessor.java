@@ -91,6 +91,9 @@ public class IRProcessor extends AbstractProcessor {
    *
    * <p>If a cyclic dependency is detected, {@link IRProcessingException} is thrown.
    *
+   * <p>If there are no dependencies between the annotated classes inside this compilation unit,
+   * they are returned in an arbitrary order.
+   *
    * <h2>Example</h2>
    *
    * An example of a problematic case is:
@@ -145,6 +148,11 @@ public class IRProcessor extends AbstractProcessor {
           deps.add(childTypeName);
         }
       }
+    }
+    if (dependencies.isEmpty()) {
+      // If dependencies are empty, it means there are no internal dependencies,
+      // in that case, just return the classes in any order.
+      return classesToProcess.stream().toList();
     }
     try {
       DependencySorter.ensureNoCycles(dependencies);
