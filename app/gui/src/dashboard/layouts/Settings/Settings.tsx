@@ -208,7 +208,7 @@ export function Settings() {
       <Heading level={1} className="flex items-center px-heading-x">
         <MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
           <Button size="custom" variant="custom" icon={BurgerMenuIcon} className="mr-3 sm:hidden" />
-          <Popover UNSTABLE_portalContainer={root}>
+          <Popover size="auto" UNSTABLE_portalContainer={root}>
             <SettingsSidebar
               isMenu
               context={context}
