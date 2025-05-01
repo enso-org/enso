@@ -3,6 +3,7 @@ package org.enso.compiler.core.ir.expression;
 import java.util.UUID;
 import java.util.function.Function;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IRKind;
 import org.enso.compiler.core.ir.IdentifiedLocation;
@@ -42,8 +43,9 @@ public interface Case extends Expression {
         @IRChild List<Branch> branches,
         @IRField boolean isNested,
         IdentifiedLocation identifiedLocation,
-        MetadataStorage passData) {
-      super(scrutinee, branches, isNested, identifiedLocation, passData);
+        MetadataStorage passData,
+        DiagnosticStorage diagnostics) {
+      super(scrutinee, branches, isNested, identifiedLocation, passData, diagnostics);
     }
 
     public Expr copy(Expression scrutinee, List<Branch> branches, boolean isNested) {
@@ -83,8 +85,9 @@ public interface Case extends Expression {
         @IRChild Expression expression,
         @IRField boolean terminalBranch,
         IdentifiedLocation identifiedLocation,
-        MetadataStorage passData) {
-      super(pattern, expression, terminalBranch, identifiedLocation, passData);
+        MetadataStorage passData,
+        DiagnosticStorage diagnostics) {
+      super(pattern, expression, terminalBranch, identifiedLocation, passData, diagnostics);
     }
 
     public Branch copy(Pattern pattern, Expression expression, boolean terminalBranch) {
