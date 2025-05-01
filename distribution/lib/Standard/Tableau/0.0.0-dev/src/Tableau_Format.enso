@@ -112,7 +112,6 @@ private _check_supported_types table:Table =
     f = table.columns.filter c->c.value_type.is_mixed
     if f.length > 0 then Error.throw (Hyper_Unsupported_Type.Error (f.at 0).value_type.to_text)
 
-
 private _find_bak_file base_file:File -> File =
     parent = base_file.absolute.normalize.parent
     parent / (base_file.name + ".bak")
