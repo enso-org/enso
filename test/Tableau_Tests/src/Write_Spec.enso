@@ -93,7 +93,7 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         can_round_trip (Table.input [['times', [Date_Time.new 2025 1 1 12 1 2 3 4 zone=(Time_Zone.parse 'UTC'), Date_Time.new 1989 12 18 zone=(Time_Zone.parse 'UTC'), Nothing]]])
 
     group_builder.specify "should be able to write a decimal column" <|
-        can_round_trip (Table.input [['decimals', [3.14, -10.66, Nothing], Value_Type.Decimal Nothing Nothing]])
+        can_round_trip (Table.input [['decimals', [3.14, -10.66, Nothing, 123456789.123456789], Value_Type.Decimal Nothing Nothing]])
 
     group_builder.specify "trying to write a mixed column should error" <|
         written_file = get_temp_file

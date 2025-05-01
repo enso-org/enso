@@ -358,7 +358,11 @@ public class HyperFormat {
           case DateType _ -> tableDef.addColumn(columnName, SqlType.date());
           case TimeOfDayType _ -> tableDef.addColumn(columnName, SqlType.time());
           case DateTimeType _ -> tableDef.addColumn(columnName, SqlType.timestampTz());
-          case BigDecimalType _ -> tableDef.addColumn(columnName, SqlType.numeric(18, 16));
+          // https://tableau.github.io/hyper-db/docs/sql/datatype/numeric
+          // Precisions over 18 require 128-bit for internal storage. Processing 128-bit numeric values is 
+          // often slower than processing 64-bit values, so it is advisable to use a sensible precision for 
+          // the use case at hand instead of always using the maximum precision by default.
+          case BigDecimalType _ -> tableDef.addColumn(columnName, SqlType.numeric(18, 9));
           default -> throw new HyperUnsupportedTypeError(storage.getType().toString());
         }
       }
