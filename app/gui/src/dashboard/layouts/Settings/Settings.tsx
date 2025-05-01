@@ -40,7 +40,7 @@ export interface SettingsProps {
 }
 
 /** Settings screen. */
-export default function Settings() {
+export function Settings() {
   const queryClient = useQueryClient()
   const backend = useRemoteBackend()
   const localBackend = useLocalBackend()
