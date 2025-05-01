@@ -52,7 +52,7 @@
   "deleteUserGroupError": "Could not delete user group '$0'",
   "removeUserFromUserGroupError": "Could not remove user '$0' from user group '$1'",
   "deleteUserError": "Could not delete user '$0'",
-  "otherUserIsUsingProjectError": "Someone else is using this project",
+  "anotherProjectIsBeingOpenedError": "Another project is currently being opened",
   "localBackendNotDetectedError": "Could not detect the local backend",
   "invalidInput": "Invalid input",
   "nameShouldBeUnique": "Name must be unique",

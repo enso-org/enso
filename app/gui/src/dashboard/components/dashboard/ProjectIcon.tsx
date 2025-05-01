@@ -92,10 +92,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const isOtherUserUsingProject =
     projectState.openedBy != null && projectState.openedBy !== user.email
 
-  const userOpeningProjectTooltip =
-    isOtherUserUsingProject ? getText('xIsUsingTheProject', projectState.openedBy) : null
-  const disabledTooltip = isUnconditionallyDisabled ? getText('downloadToOpenWorkflow') : null
-
   const state = (() => {
     if (!isOpened && !isPlaceholder) {
       return backendModule.ProjectState.closed
@@ -113,10 +109,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
   })()
 
   const areProjectsOpening = useAreProjectsOpening()
-  const isDisabled =
-    isDisabledRaw ||
-    isUnconditionallyDisabled ||
-    (areProjectsOpening && !backendModule.IS_OPENING_OR_OPENED[state])
+  const isAnotherProjectOpening = areProjectsOpening && !backendModule.IS_OPENING_OR_OPENED[state]
+  const isDisabled = isDisabledRaw || isUnconditionallyDisabled || isAnotherProjectOpening
+
+  const userOpeningProjectTooltip =
+    isOtherUserUsingProject ? getText('xIsUsingTheProject', projectState.openedBy) : null
+  const disabledTooltip = isUnconditionallyDisabled ? getText('downloadToOpenWorkflow') : null
+  const anotherProjectOpeningTooltip =
+    isAnotherProjectOpening ? getText('anotherProjectIsBeingOpenedError') : null
 
   const spinnerState = ((): SpinnerState => {
     if (!isOpened) {
@@ -138,7 +138,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   })
 
   const getTooltip = (defaultTooltip: string) =>
-    disabledTooltip ?? userOpeningProjectTooltip ?? defaultTooltip
+    disabledTooltip ?? userOpeningProjectTooltip ?? anotherProjectOpeningTooltip ?? defaultTooltip
 
   // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (true) {
@@ -154,7 +154,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
             aria-label={getTooltip(getText('stopExecution'))}
             tooltipPlacement="left"
             className={tailwindMerge.twJoin(isRunningInBackground && 'text-green')}
-            {...(isOtherUserUsingProject ? { title: getText('otherUserIsUsingProjectError') } : {})}
             onPress={doCloseProject}
             testId="stop-project"
           />
