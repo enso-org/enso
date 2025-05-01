@@ -57,6 +57,27 @@ public interface Import extends Scope {
           diagnostics);
     }
 
+    public Module(
+        Qualified name,
+        Option<Literal> rename,
+        boolean isAll,
+        Option<List<Literal>> onlyNames,
+        Option<List<Literal>> hiddenNames,
+        boolean isSynthetic,
+        IdentifiedLocation identifiedLocation,
+        MetadataStorage passData) {
+      this(
+          name,
+          rename,
+          isAll,
+          onlyNames,
+          hiddenNames,
+          isSynthetic,
+          identifiedLocation,
+          passData,
+          null);
+    }
+
     public static Module createSynthetic(Name.Qualified name) {
       return new Module(
           name,

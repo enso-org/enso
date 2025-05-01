@@ -58,6 +58,15 @@ public interface CallArgument extends IR {
         Option<Name> name,
         Expression value,
         boolean isSynthetic,
+        IdentifiedLocation identifiedLocation,
+        MetadataStorage passData) {
+      this(name, value, isSynthetic, identifiedLocation, passData, null);
+    }
+
+    public Specified(
+        Option<Name> name,
+        Expression value,
+        boolean isSynthetic,
         IdentifiedLocation identifiedLocation) {
       this(name, value, isSynthetic, identifiedLocation, new MetadataStorage(), null);
     }

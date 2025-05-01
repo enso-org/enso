@@ -102,6 +102,11 @@ public interface Application extends Expression {
       super(target, identifiedLocation, passData, diagnostics);
     }
 
+    public Force(
+        Expression target, IdentifiedLocation identifiedLocation, MetadataStorage passData) {
+      this(target, identifiedLocation, passData, null);
+    }
+
     @Override
     public String showCode(int indent) {
       return "(FORCE " + target().showCode(indent) + ")";
@@ -180,6 +185,13 @@ public interface Application extends Expression {
         MetadataStorage passData,
         DiagnosticStorage diagnostics) {
       super(items, identifiedLocation, passData, diagnostics);
+    }
+
+    public Sequence(
+        List<Expression> items,
+        IdentifiedLocation identifiedLocation,
+        MetadataStorage passData) {
+      this(items, identifiedLocation, passData, null);
     }
 
     @Override

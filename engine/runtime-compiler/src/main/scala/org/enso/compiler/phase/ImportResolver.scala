@@ -207,8 +207,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
             None,
             true,
             null,
-            new MetadataStorage(),
-            null
+            new MetadataStorage()
           )
           tryResolveImport(module.getIr, syntheticImport) match {
             case (_, Some(resolvedImp)) =>
