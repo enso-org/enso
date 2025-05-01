@@ -270,10 +270,12 @@ impl BuiltEnso {
                 "1".to_string(),
             ));
         };
-        let engine_package =
-            self.paths.repo_root.built_distribution.enso_engine_triple.engine_package.as_str();
-        environment_overrides
-            .push((ENSO_DATA_DIRECTORY.name().to_string(), engine_package.to_string()));
+        if extra_runner_args.is_none() {
+            let engine_package =
+                self.paths.repo_root.built_distribution.enso_engine_triple.engine_package.as_str();
+            environment_overrides
+                .push((ENSO_DATA_DIRECTORY.name().to_string(), engine_package.to_string()));
+        }
         let graal_path = ide_ci::cache::goodie::graalvm::locate_graal()?;
         environment_overrides
             .push((JAVA_HOME.name().to_string(), graal_path.to_string_lossy().into_owned()));
