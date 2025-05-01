@@ -116,6 +116,7 @@ final class IRNodeClassGenerator {
   Set<String> imports() {
     var importsForFields =
         generatedClassContext.getUserFields().stream()
+            .filter(field -> !field.isPrimitive())
             .filter(field -> !isInSameCompilationUnit(field))
             .flatMap(field -> field.getImportedTypes().stream())
             .collect(Collectors.toUnmodifiableSet());
