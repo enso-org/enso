@@ -508,6 +508,7 @@ const brush = computed(() => {
     ])
     .on('start brush', (event: d3.D3BrushEvent<unknown>) => {
       brushExtent.value = event.selection ?? undefined
+      createNewFilterNodeEnabled.value = true
     })
 })
 
@@ -884,15 +885,15 @@ function useScatterplotVizToolbar() {
       toggle: selectionEnabled,
     },
     {
-      icon: 'show_all',
-      title: 'Fit All',
-      onClick: () => zoomToSelected(false),
-    },
-    {
       icon: 'zoom',
       title: 'Zoom to Selected',
       disabled: () => brushExtent.value == null,
       onClick: zoomToSelected,
+    },
+    {
+      icon: 'refresh',
+      title: 'Reset scatterplot view',
+      onClick: () => zoomToSelected(false),
     },
     {
       icon: 'add_to_graph_editor',
