@@ -4,12 +4,12 @@ import {
   useSetPath,
   type BrowserTypeInfo,
 } from '@/components/GraphEditor/widgets/WidgetFileBrowser/browsableTypes'
-import { type DynamicConfig } from '@/util/callTree'
-import { expect, test, vi, describe } from 'vitest'
-import { Ast } from '@/util/ast'
 import { assertDefined } from '@/util/assert'
-import { type Identifier } from '@/util/qualifiedName'
+import { Ast } from '@/util/ast'
+import { type DynamicConfig } from '@/util/callTree'
 import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
+import { type Identifier } from '@/util/qualifiedName'
+import { describe, expect, test, vi } from 'vitest'
 import { unwrap } from 'ydoc-shared/util/data/result'
 
 const FILE_TYPE_QN = 'Standard.Base.System.File.File'
@@ -255,19 +255,28 @@ test.each([
       const ast = argumentAst.module.get(id)
       if (!(ast instanceof Ast.App)) return undefined
       const code = ast.function.code()
-      if (code.endsWith('Enso_Secret.get')) return {
-        module: unwrap(parseAbsoluteProjectPathRaw('Standard.Base.Enso_Cloud.Enso_Secret')),
-        definedOnType: unwrap(parseAbsoluteProjectPathRaw('Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret')),
-        name: 'get' as Identifier,
-      }
-      if (code.endsWith('File.new')) return {
-        module: unwrap(parseAbsoluteProjectPathRaw('Standard.Base.System.File')),
-        definedOnType: unwrap(parseAbsoluteProjectPathRaw('Standard.Base.System.File.File')),
-        name: 'new' as Identifier,
-      }
-    }
+      if (code.endsWith('Enso_Secret.get'))
+        return {
+          module: unwrap(parseAbsoluteProjectPathRaw('Standard.Base.Enso_Cloud.Enso_Secret')),
+          definedOnType: unwrap(
+            parseAbsoluteProjectPathRaw('Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret'),
+          ),
+          name: 'get' as Identifier,
+        }
+      if (code.endsWith('File.new'))
+        return {
+          module: unwrap(parseAbsoluteProjectPathRaw('Standard.Base.System.File')),
+          definedOnType: unwrap(parseAbsoluteProjectPathRaw('Standard.Base.System.File.File')),
+          name: 'new' as Identifier,
+        }
+    },
   })
-  expect(currentPathAst.value && { type: currentPathAst.value.type, path: currentPathAst.value.path.rawTextContent }).toEqual(expected)
+  expect(
+    currentPathAst.value && {
+      type: currentPathAst.value.type,
+      path: currentPathAst.value.path.rawTextContent,
+    },
+  ).toEqual(expected)
 })
 
 describe('Set path', () => {

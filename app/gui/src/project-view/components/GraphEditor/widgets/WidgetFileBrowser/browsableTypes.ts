@@ -1,17 +1,14 @@
 import { ExpressionTag } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import { type PortId } from '@/providers/portInfo'
 import { type WidgetUpdate } from '@/providers/widgetRegistry'
-import { type GraphStore } from '@/stores/graph'
-import { type SuggestionDb } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { type DynamicConfig } from '@/util/callTree'
 import { methodPointerEquals, type MethodPointer } from '@/util/methodPointer'
-import { ProjectPath, printAbsoluteProjectPath } from '@/util/projectPath'
+import { ProjectPath, printAbsoluteProjectPath, type AbsoluteProjectPath } from '@/util/projectPath'
 import { qnJoin, type Identifier, type QualifiedName } from '@/util/qualifiedName'
 import { type ToValue } from '@/util/reactivity'
 import { computed, toValue, type ComputedRef } from 'vue'
-import { type AbsoluteProjectPath } from '@/util/projectPath'
 
 export type BrowserItem = 'file' | 'directory' | 'secret'
 
@@ -154,7 +151,7 @@ export function useCurrentPath({
 }: {
   typeInfo: ToValue<Omit<BrowserTypeInfo, 'write'>>
   input: ToValue<Ast.Expression | string | undefined>
-  getMethodPointer: (id: Ast.AstId) => MethodPointer | undefined,
+  getMethodPointer: (id: Ast.AstId) => MethodPointer | undefined
 }): ComputedRef<CurrentPath | undefined> {
   const inputAst = computed(() => {
     const inputValue = toValue(input)
@@ -193,13 +190,19 @@ export function useCurrentPath({
 
   return computed((): CurrentPath | undefined => {
     const { file, directory, secret } = toValue(typeInfo).types
-    return secret && inputSecretValue.value ? {
-      type: 'secret',
-      path: inputSecretValue.value
-    } : (file || directory) && inputFileValue.value ? {
-      type: 'file',
-      path: inputFileValue.value
-    } : undefined
+    return (
+      secret && inputSecretValue.value ?
+        {
+          type: 'secret',
+          path: inputSecretValue.value,
+        }
+      : (file || directory) && inputFileValue.value ?
+        {
+          type: 'file',
+          path: inputFileValue.value,
+        }
+      : undefined
+    )
   })
 }
 
@@ -215,7 +218,7 @@ export function useSetPath({
   preferRawPath: ToValue<boolean>
   portId: ToValue<PortId>
   edit: ToValue<Ast.MutableModule>
-  addMissingConstructorImports: (module: Ast.MutableModule, type: ProjectPath) => boolean,
+  addMissingConstructorImports: (module: Ast.MutableModule, type: ProjectPath) => boolean
 }) {
   const FILE_CONSTRUCTOR_PATTERN = {
     default: Pattern.parseExpression(`(${FILE_TYPE_UNQUALIFIED}.new __)`),
@@ -250,11 +253,18 @@ export function useSetPath({
   function widgetUpdate(
     currentPath: Ast.TextLiteral | undefined,
     path: string,
-    { type, makeValue, preferRawPath }: { type: AbsoluteProjectPath; makeValue: MakeValue; preferRawPath: boolean },
+    {
+      type,
+      makeValue,
+      preferRawPath,
+    }: { type: AbsoluteProjectPath; makeValue: MakeValue; preferRawPath: boolean },
   ): WidgetUpdate {
     if (currentPath || preferRawPath) {
       return {
-        portUpdate: { value: Ast.TextLiteral.new(path), origin: currentPath?.id ?? toValue(portId) },
+        portUpdate: {
+          value: Ast.TextLiteral.new(path),
+          origin: currentPath?.id ?? toValue(portId),
+        },
         directInteraction: true,
       }
     } else {
@@ -278,19 +288,19 @@ export function useSetPath({
     const oldPath = oldPathInfo?.type === type ? oldPathInfo.path : undefined
     return widgetUpdate(
       oldPath,
-        path,
-        type === 'secret' ?
-          {
-            type: ENSO_SECRET_TYPE,
-            makeValue: makeSecret,
-            preferRawPath: false,
-          }
-        : {
-            type: FILE_TYPE,
-            makeValue: makeFile,
-            preferRawPath: toValue(preferRawPath),
-          },
-      )
+      path,
+      type === 'secret' ?
+        {
+          type: ENSO_SECRET_TYPE,
+          makeValue: makeSecret,
+          preferRawPath: false,
+        }
+      : {
+          type: FILE_TYPE,
+          makeValue: makeFile,
+          preferRawPath: toValue(preferRawPath),
+        },
+    )
   }
 
   return setPath

@@ -116,8 +116,10 @@ function assetIsTargetType(asset: AnyAsset): asset is TargetType {
       return false
   }
 }
-const files = computed<TargetType[]>(
-  () => props.type === 'directory' ? [] : data.value?.filter(assetIsTargetType).sort(compareTitle) ?? [],
+const files = computed<TargetType[]>(() =>
+  props.type === 'directory' ?
+    []
+  : (data.value?.filter(assetIsTargetType).sort(compareTitle) ?? []),
 )
 const isEmpty = computed(
   () => directories.value?.length === 0 && files.value?.length === 0 && editedAsset.value == null,
