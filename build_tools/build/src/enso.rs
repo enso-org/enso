@@ -117,6 +117,8 @@ impl BuiltEnso {
         }
         command
             .arg(ir_caches)
+            .arg("--no-read-ir-caches")
+            .arg("--no-global-cache")
             .arg("--run")
             .arg(test_path.as_ref())
             // This flag enables assertions in the JVM. Some of our stdlib tests had in the past
