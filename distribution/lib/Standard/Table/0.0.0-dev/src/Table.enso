@@ -2147,7 +2147,7 @@ type Table
        `Is_Not_Nothing` condition (or `Is_Nothing` to filter out non-`Nothing`).
     @column (Widget_Helpers.make_column_name_selector add_expression=True)
     @filter Widget_Helpers.make_filter_condition_selector
-    filter self (column : Column | Expression | Text | Integer = Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type = case column of        
+    filter self (column : Column | Expression | Text | Integer = Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type = case column of
         _ : Column ->
             mask filter_column = from_java_table (self.java_table.filter filter_column.java_column)
             filter_condition = Filter_Condition.resolve_auto_scoped filter
