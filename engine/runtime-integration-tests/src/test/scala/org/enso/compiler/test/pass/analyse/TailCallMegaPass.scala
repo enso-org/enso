@@ -399,11 +399,12 @@ case object TailCallMegaPass extends IRPass {
       isInTailPosition,
       branch
         .copy(
-          pattern = analysePattern(branch.pattern),
-          expression = analyseExpression(
+          analysePattern(branch.pattern),
+          analyseExpression(
             branch.expression,
             isInTailPosition
-          )
+          ),
+          branch.terminalBranch()
         )
     )
   }
