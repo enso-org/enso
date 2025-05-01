@@ -1,0 +1,86 @@
+package org.enso.compiler.core.ir.expression;
+
+import java.util.function.Function;
+import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.core.ir.IRKind;
+import org.enso.compiler.core.ir.IdentifiedLocation;
+import org.enso.compiler.core.ir.MetadataStorage;
+import org.enso.compiler.core.ir.Pattern;
+import org.enso.runtime.parser.dsl.GenerateFields;
+import org.enso.runtime.parser.dsl.GenerateIR;
+import org.enso.runtime.parser.dsl.IRChild;
+import org.enso.runtime.parser.dsl.IRField;
+import scala.Option;
+import scala.collection.immutable.List;
+
+public interface Case extends Expression {
+
+  @Override
+  Case mapExpressions(Function<Expression, Expression> fn);
+
+  @Override
+  Case setLocation(Option<IdentifiedLocation> location);
+
+  @Override
+  Case duplicate(
+      boolean keepLocations,
+      boolean keepMetadata,
+      boolean keepDiagnostics,
+      boolean keepIdentifiers);
+
+  @GenerateIR(interfaces = {Case.class, IRKind.Primitive.class})
+  final class Expr extends CaseExprGen {
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    @GenerateFields
+    public Expr(
+        @IRChild Expression scrutinee,
+        @IRChild List<Branch> branches,
+        @IRField boolean isNested,
+        IdentifiedLocation identifiedLocation,
+        MetadataStorage passData) {
+      super(scrutinee, branches, isNested, identifiedLocation, passData);
+    }
+
+    @Override
+    public String showCode(int indent) {
+      var newIndent = indent + indentLevel;
+      var headerStr = "case " + scrutinee().showCode(indent) + " of";
+      var branchesStr =
+          branches().map(br -> IR.mkIndent(newIndent) + br.showCode(newIndent)).mkString("\n");
+      return headerStr + "\n" + branchesStr;
+    }
+  }
+
+  @GenerateIR(interfaces = {Case.class, IRKind.Primitive.class})
+  final class Branch extends CaseBranchGen {
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    @GenerateFields
+    public Branch(
+        @IRChild Pattern pattern,
+        @IRChild Expression expression,
+        @IRField boolean terminalBranch,
+        IdentifiedLocation identifiedLocation,
+        MetadataStorage passData) {
+      super(pattern, expression, terminalBranch, identifiedLocation, passData);
+    }
+
+    @Override
+    public String showCode(int indent) {
+      var newIndent = indent + indentLevel;
+      String bodyStr;
+      if (expression() instanceof Expression.Block block) {
+        bodyStr = "\n" + IR.mkIndent(newIndent) + block.showCode(newIndent);
+      } else {
+        bodyStr = expression().showCode(indent);
+      }
+      return pattern().showCode(indent) + "->" + bodyStr;
+    }
+  }
+}
