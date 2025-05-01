@@ -5430,9 +5430,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         ),
         context.executionComplete(contextId)
       )
-      context.consumeOut.map(
-        _.replaceAll("\u001B\\[[;\\d]*m", "")
-      ) shouldEqual List(
+      context.consumeOut shouldEqual List(
         "Enso_Test.Test.Main:6:5: warning: Unused variable vector3.",
         "    6 |     vector3 = vector2.filter (..Less 2)",
         "      |     ^~~~~~~"
