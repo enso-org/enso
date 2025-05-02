@@ -158,8 +158,16 @@ public final class UnusedImports implements MiniPassFactory {
     }
 
     private static List<QualifiedName> importedSymbols(BindingsMap.ResolvedImport resolvedImport) {
-      var names = resolvedImport.targets().map(ResolvedName::qualifiedName);
-      return CollectionConverters.asJava(names);
+      if (resolvedImport.importDef().onlyNames().isDefined()) {
+        var entityName = resolvedImport.importDef().name().name();
+        var names = resolvedImport.importDef().onlyNames().get().map(Literal::name);
+        var qualifiedNames =
+            names.map(nm -> QualifiedName.fromString(entityName + QualifiedName.separator() + nm));
+        return CollectionConverters.asJava(qualifiedNames);
+      } else {
+        var names = resolvedImport.targets().map(ResolvedName::qualifiedName);
+        return CollectionConverters.asJava(names);
+      }
     }
 
     /**
