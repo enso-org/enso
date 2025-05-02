@@ -15,15 +15,10 @@ import org.enso.compiler.test.mock.WithCompilerContext;
 import org.enso.pkg.QualifiedName;
 import org.junit.Rule;
 import org.junit.Test;
-import scala.Option;
 import scala.jdk.javaapi.CollectionConverters;
 
 public class UnusedImportsTest {
-  @Rule
-  public final WithCompilerContext compilerCtx =
-      WithCompilerContext.newBuilder()
-          .withModifiedCompilerConfig(bldr -> bldr.dumpModuleIR(Option.apply("Main")))
-          .build();
+  @Rule public final WithCompilerContext compilerCtx = WithCompilerContext.createDefault();
 
   @Test
   public void canResolveSimpleImport() {
