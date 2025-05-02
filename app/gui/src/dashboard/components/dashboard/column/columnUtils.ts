@@ -55,7 +55,7 @@ export const COLUMN_SHOW_TEXT_ID: Readonly<Record<Column, text.TextId>> = {
 } satisfies { [C in Column]: `${C}ColumnShow` }
 
 const COLUMN_CSS_CLASSES =
-  'max-w-96 text-left bg-clip-padding last:border-r-0 last:rounded-r-full last:w-full'
+  'max-w-96 text-left bg-clip-padding last:border-r-0 last:rounded-r-full last:w-full [contain-intrinsic-size:44px] [content-visibility:auto]'
 const NORMAL_COLUMN_CSS_CLASSES = `px-cell-x py ${COLUMN_CSS_CLASSES}`
 
 /** CSS classes for every column. */
