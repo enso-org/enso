@@ -140,6 +140,7 @@ public class UnusedImportsTest {
     expectWarning(imp, List.of("local.Proj.Module.My_Type_2"));
   }
 
+  /** If there is no used symbol from {@code from ... import all} import, a warning is generated. */
   @Test
   public void noSymbolIsUsedForImportAll() {
     compilerCtx.createModule(
@@ -160,6 +161,10 @@ public class UnusedImportsTest {
     expectWarning(imp);
   }
 
+  /**
+   * If there is at least one symbol used in {@code from ... import all} import, no warning is
+   * generated.
+   */
   @Test
   public void oneSymbolIsUsedForImportAll() {
     compilerCtx.createModule(
