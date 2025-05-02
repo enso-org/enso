@@ -161,7 +161,7 @@ abstract class InstrumentTestContext(packageName: String) {
       } catch {
         case e: IllegalStateException =>
           val msg = ThreadUtils.dumpAllStacktraces(
-            "Threadump on failure to close test Instrument Context:"
+            "Thread dump on failure to close test Instrument Context:"
           )
           println(msg)
           throw e

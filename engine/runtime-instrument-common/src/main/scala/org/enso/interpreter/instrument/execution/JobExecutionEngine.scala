@@ -115,7 +115,7 @@ final class JobExecutionEngine(
           } catch {
             case _: TimeoutException =>
               val msg = ThreadUtils.dumpAllStacktraces(
-                "Threaddump when timeout is reached while waiting for the job " + runningJob.id + " running in thread " + runningJob.job
+                "Thread dump when timeout is reached while waiting for the job " + runningJob.id + " running in thread " + runningJob.job
                   .threadNameExecutingJob() + " to cancel:"
               )
               logger.warn(msg)

@@ -122,7 +122,7 @@ final class EpbContext {
   private boolean dumpStack(int ms) {
     var msg =
         ThreadUtils.dumpAllStacktraces(
-            "Polyglot access failed. Waiting " + ms + " ms. Threaddump:");
+            "Polyglot access failed. Waiting " + ms + " ms. Thread dump:");
     log(Level.WARNING, msg);
     return true;
   }
