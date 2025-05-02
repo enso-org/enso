@@ -1402,6 +1402,15 @@ lazy val `jna-wrapper` = project
     }
   )
 
+lazy val `runtime-utils` = project
+  .in(file("lib/java/runtime-utils"))
+  .enablePlugins(JPMSPlugin)
+  .settings(
+    frgaalJavaCompilerSetting,
+    scalaModuleDependencySetting,
+    javaModuleName := "org.enso.runtime.utils"
+  )
+
 lazy val `directory-watcher-wrapper` = project
   .in(file("lib/java/directory-watcher-wrapper"))
   .enablePlugins(JPMSPlugin)
@@ -1885,6 +1894,7 @@ lazy val `json-rpc-server` = project
       (`akka-wrapper` / Compile / exportedModule).value
     )
   )
+  .dependsOn(`runtime-utils` % "test->compile")
 
 // An automatic JPMS module
 lazy val testkit = project
@@ -2725,7 +2735,8 @@ lazy val `runtime-language-epb` =
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion
       ),
       Compile / internalModuleDependencies := Seq(
-        (`ydoc-polyfill` / Compile / exportedModule).value
+        (`ydoc-polyfill` / Compile / exportedModule).value,
+        (`runtime-utils` / Compile / exportedModule).value
       )
     )
 
@@ -3003,6 +3014,7 @@ lazy val `runtime-integration-tests` =
         (`runtime-compiler` / Compile / exportedModule).value,
         (`runtime-compiler-dump` / Compile / exportedModule).value,
         (`runtime-compiler-dump-igv` / Compile / exportedModule).value,
+        (`runtime-utils` / Compile / exportedModule).value,
         (`polyglot-api` / Compile / exportedModule).value,
         (`polyglot-api-macros` / Compile / exportedModule).value,
         (`pkg` / Compile / exportedModule).value,
@@ -3054,6 +3066,7 @@ lazy val `runtime-integration-tests` =
         (`runtime-test-instruments` / javaModuleName).value,
         (`ydoc-polyfill` / javaModuleName).value,
         (`runtime-instrument-common` / javaModuleName).value,
+        (`runtime-utils` / javaModuleName).value,
         (`text-buffer` / javaModuleName).value,
         (`logging-service-logback` / Test / javaModuleName).value,
         (`logging-service-telemetry` / Compile / javaModuleName).value,
@@ -3114,6 +3127,7 @@ lazy val `runtime-integration-tests` =
     )
     .dependsOn(`runtime`)
     .dependsOn(`runtime-test-instruments`)
+    .dependsOn(`runtime-utils` % "test->compile")
     .dependsOn(`logging-service-logback` % "test->test")
     .dependsOn(`logging-service-telemetry` % "test->compile")
     .dependsOn(`logging-utils` % Test)
@@ -3616,6 +3630,7 @@ lazy val `runtime-instrument-common` =
         (`runtime-compiler-dump` / Compile / exportedModule).value,
         (`runtime-parser` / Compile / exportedModule).value,
         (`runtime-suggestions` / Compile / exportedModule).value,
+        (`runtime-utils` / Compile / exportedModule).value,
         (`text-buffer` / Compile / exportedModule).value,
         (`pkg` / Compile / exportedModule).value,
         (`polyglot-api` / Compile / exportedModule).value,
@@ -3623,6 +3638,7 @@ lazy val `runtime-instrument-common` =
       )
     )
     .dependsOn(`refactoring-utils`)
+    .dependsOn(`runtime-utils`)
     .dependsOn(`runtime` % "compile->compile;runtime->runtime")
 
 lazy val `runtime-instrument-id-execution` =
@@ -4826,6 +4842,7 @@ lazy val `process-utils` = project
     scalaModuleDependencySetting,
     compileOrder := CompileOrder.ScalaThenJava
   )
+  .dependsOn(`runtime-utils`)
 
 lazy val `locking-test-helper` = project
   .in(file("lib/scala/locking-test-helper"))
