@@ -80,7 +80,7 @@ const { editedCell, gridEventHandlers, headerEventHandlers } = useTableEditHandl
           !(event.target instanceof HTMLInputElement) ||
           targetIsOutside(event, grid.value?.$el)
         ) {
-          handler.end()
+          handler.value.end()
         } else {
           return false
         }

@@ -2,7 +2,7 @@ import { NEW_COLUMN_ID } from '@/components/GraphEditor/widgets/WidgetTableEdito
 import { WidgetEditHandler, WidgetEditHooks } from '@/providers/widgetRegistry/editHandler'
 import { type ToValue } from '@/util/reactivity'
 import { CellPosition, StartEditingCellParams } from 'ag-grid-enterprise'
-import { computed, ref, toValue, watch } from 'vue'
+import { computed, ref, ShallowRef, toValue, watch } from 'vue'
 
 export interface EditedCell {
   rowIndex: number | 'header'
@@ -25,7 +25,7 @@ export function useTableEditHandler(
     | undefined
   >,
   colDefs: ToValue<{ colId: string }[]>,
-  widgetHandlerConstructor: (hooks: WidgetEditHooks) => WidgetEditHandler,
+  widgetHandlerConstructor: (hooks: WidgetEditHooks) => ShallowRef<WidgetEditHandler>,
 ) {
   const columnIndexById = computed(
     () => new Map(toValue(colDefs).map((col, index) => [col.colId, index])),
@@ -49,11 +49,9 @@ export function useTableEditHandler(
   }
   watch(editedCell, (cell) => {
     syncGridWithEditedCell(cell)
-    if (cell != null && !handler.isActive()) {
-      handler.start()
-    } else if (cell == null && handler.isActive()) {
-      handler.end()
-    }
+    const active = handler.value.isActive()
+    if (cell != null && !active) handler.value.start()
+    else if (cell == null && active) handler.value.end()
   })
 
   const handler = widgetHandlerConstructor({
@@ -73,8 +71,8 @@ export function useTableEditHandler(
         event.rowIndex != null ?
           { rowIndex: event.rowIndex, colKey: event.column.getColId() }
         : undefined
-      if (!handler.isActive()) {
-        handler.start()
+      if (!handler.value.isActive()) {
+        handler.value.start()
       }
     },
     cellEditingStopped(event: { rowIndex: number | undefined; column: { getColId(): string } }) {
@@ -83,9 +81,9 @@ export function useTableEditHandler(
         event.rowIndex === editedCell.value?.rowIndex &&
         event.column.getColId() === editedCell.value?.colKey &&
         !api?.getEditingCells().length &&
-        handler.isActive()
+        handler.value.isActive()
       ) {
-        handler.end()
+        handler.value.end()
       }
     },
     rowDataUpdated() {
@@ -108,8 +106,8 @@ export function useTableEditHandler(
     headerEditingStarted(colKey: string, revertChanges: () => void) {
       if (editedCell.value?.rowIndex != 'header' || editedCell.value?.colKey !== colKey) {
         editedCell.value = { rowIndex: 'header', colKey }
-        if (!handler.isActive()) {
-          handler.start()
+        if (!handler.value.isActive()) {
+          handler.value.start()
         }
       }
       revertChangesCb = revertChanges
@@ -118,8 +116,8 @@ export function useTableEditHandler(
     headerEditingStopped(colId: string) {
       if (editedCell.value?.rowIndex === 'header' && editedCell.value.colKey === colId) {
         editedCell.value = undefined
-        if (!toValue(gridApi)?.getEditingCells().length && handler.isActive()) {
-          handler.end()
+        if (!toValue(gridApi)?.getEditingCells().length && handler.value.isActive()) {
+          handler.value.end()
         }
       }
     },

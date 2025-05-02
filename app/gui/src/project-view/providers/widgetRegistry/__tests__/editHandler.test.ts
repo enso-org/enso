@@ -4,7 +4,7 @@ import { useCurrentEdit, type CurrentEdit } from '@/providers/widgetTree'
 import { expect, test, vi, type Mock } from 'vitest'
 import { proxyRefs } from 'vue'
 import { assert } from 'ydoc-shared/util/assert'
-import { WidgetEditHandler, type WidgetEditHooks } from '../editHandler'
+import { newWidgetInstanceId, WidgetEditHandler, type WidgetEditHooks } from '../editHandler'
 
 // If widget's name is a prefix of another widget's name, then it is its ancestor.
 // The ancestor with longest name is a direct parent.
@@ -25,10 +25,11 @@ function editHandlerTree(
     }
     const portId = id as PortId
     const interaction = createInteraction(portId)
-    const handler = new WidgetEditHandler(
-      portId,
+    const handler = WidgetEditHandler.NewRaw(
+      newWidgetInstanceId(),
+      () => portId,
+      () => (parent ? handlers.get(parent)?.handler : undefined),
       interaction,
-      parent ? handlers.get(parent)?.handler : undefined,
       widgetTree,
       interactionHandler,
     )

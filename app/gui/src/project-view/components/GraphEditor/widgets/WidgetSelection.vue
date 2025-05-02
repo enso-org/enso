@@ -158,7 +158,7 @@ const innerWidgetInput = computed<WidgetInput>(() => {
     : props.input.dynamicConfig
   return {
     ...props.input,
-    editHandler: dropDownInteraction,
+    editHandler: dropDownInteraction.value,
     dynamicConfig,
   }
 })
@@ -222,7 +222,7 @@ const dropDownInteraction = WidgetEditHandler.New(props, {
       targetIsOutside(e, unrefElement(widgetRoot)) &&
       targetIsOutside(e, document.getElementById('floatingLayer'))
     ) {
-      dropDownInteraction.end()
+      dropDownInteraction.value.end()
       if (editedWidget.value)
         props.onUpdate({
           portUpdate: { origin: props.input.portId, value: editedValue.value },
@@ -245,17 +245,17 @@ const dropDownInteraction = WidgetEditHandler.New(props, {
     editedValue.value = value
   },
   addItem: () => {
-    dropDownInteraction.start()
+    dropDownInteraction.value.start()
     return true
   },
   childEnded: () => {
-    if (!isMulti.value) dropDownInteraction.end()
+    if (!isMulti.value) dropDownInteraction.value.end()
   },
 })
 
 function toggleDropdownWidget() {
-  if (!dropDownInteraction.isActive()) dropDownInteraction.start()
-  else dropDownInteraction.cancel()
+  if (!dropDownInteraction.value.isActive()) dropDownInteraction.value.start()
+  else dropDownInteraction.value.cancel()
 }
 
 const dropdownActions: Actions = {
@@ -263,7 +263,7 @@ const dropdownActions: Actions = {
     activity.value = newActivity
     keepActivityAlive.value = keepAlive
   },
-  close: dropDownInteraction.end.bind(dropDownInteraction),
+  close: () => dropDownInteraction.value.end(),
 }
 
 function onClick(clickedEntry: Entry, keepOpen: boolean) {
@@ -274,7 +274,7 @@ function onClick(clickedEntry: Entry, keepOpen: boolean) {
     // We cancel interaction instead of ending it to restore the old value in the inner widget;
     // if we clicked already selected entry, there would be no AST change, thus the inner
     // widget's content would not be updated.
-    dropDownInteraction.cancel()
+    dropDownInteraction.value.cancel()
   }
 }
 

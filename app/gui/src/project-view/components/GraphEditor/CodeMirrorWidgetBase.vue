@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
-import { HandledUpdate, WidgetInput } from '@/providers/widgetRegistry'
+import { HandledUpdate, WidgetInput, WidgetTypeId } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
@@ -12,6 +12,7 @@ import { Extension, SelectionRange } from '@codemirror/state'
 import { ComponentInstance, ref, useCssModule, useTemplateRef, watch, watchEffect } from 'vue'
 
 const props = defineProps<{
+  widgetTypeId: WidgetTypeId
   input: WidgetInput
   placeholder?: string | undefined
   /**
@@ -35,7 +36,7 @@ const emit = defineEmits<{
   userAction: [text: string, selection: SelectionRange]
 }>()
 
-const themeWidget = useCssModule('themeWidget')
+const themeWidget = highlightStyle(useCssModule('themeWidget'))
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 
@@ -43,14 +44,14 @@ const { syncExt, connectSync } = useStringSync()
 const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   content: model.value,
   placeholder: () => props.placeholder ?? ' ',
-  extensions: [syncExt],
+  extensions: [syncExt, themeWidget],
   readonly: false,
   contentTestId: props.contentTestId,
   lineMode: () => props.lineMode ?? 'single',
 })
 watchEffect(() =>
   setExtraExtensions([
-    highlightStyle(themeWidget),
+    highlightStyle(editorRoot.value?.highlightClasses ?? {}),
     ...(props.lineMode !== 'multi' ? [selectOnMouseFocus] : []),
     ...(props.extensions ?? []),
   ]),
@@ -59,7 +60,7 @@ watchEffect(() =>
 const { getText, setText, onTextEdited, onUserAction } = connectSync(editorView)
 watch(model, (text) => setText(text))
 onTextEdited((text) => {
-  editing.edit(props.transformUserInput?.(text) ?? text)
+  editing.value.edit(props.transformUserInput?.(text) ?? text)
   emit('textEdited', text)
 })
 onUserAction((text, selection) => emit('userAction', text, selection))
@@ -98,15 +99,15 @@ const inputError = useToast.error()
 async function accepted() {
   const text = getText()
   if (previousValue.value === text) {
-    editing.cancel()
+    editing.value.cancel()
     return
   }
   const result = await handleAccept(text)
   if (result.ok) {
-    editing.end()
+    editing.value.end()
   } else {
     inputError.reportError(result.error)
-    editing.cancel()
+    editing.value.cancel()
   }
 }
 

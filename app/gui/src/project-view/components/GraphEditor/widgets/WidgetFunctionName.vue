@@ -98,6 +98,7 @@ export const widgetDefinition = defineWidget(
     <CodeMirrorWidgetBase
       v-model="nameCode"
       :onAccepted="renameFunction"
+      :widgetTypeId="widgetTypeId"
       :input="input"
       lineMode="single"
     />

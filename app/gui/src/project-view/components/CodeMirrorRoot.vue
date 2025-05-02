@@ -64,4 +64,29 @@ defineExpose({ highlightClasses })
 .invalid {
   color: #f00;
 }
+
+:global(.define-node-colors:not(.selected)) {
+  .comment,
+  .lineComment,
+  .blockComment,
+  .docComment,
+  .name,
+  .variableName,
+  .definition-variableName,
+  .literal,
+  .string,
+  .escape,
+  .number,
+  .keyword,
+  .moduleKeyword,
+  .modifier,
+  .punctuation,
+  .paren,
+  .operator,
+  .definitionOperator,
+  .invalid {
+    color: var(--color-node-text);
+    transition: color 0.2s ease;
+  }
+}
 </style>

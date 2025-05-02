@@ -130,6 +130,7 @@ export const widgetDefinition = defineWidget(
       :placeholder="placeholder"
       :lineMode="isMultiline ? 'multi' : 'auto'"
       :extensions="extensions"
+      :widgetTypeId="widgetTypeId"
       :input="input"
       :transformUserInput="makeLiteralFromUserInput"
       :onAccepted="acceptValue"

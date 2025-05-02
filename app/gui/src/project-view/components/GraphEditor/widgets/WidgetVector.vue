@@ -102,7 +102,7 @@ function useChildEditForwarding(input: WatchSource<Ast.Expression | unknown>) {
         )
       }
     }
-    editHandler.edit(editedAst)
+    editHandler.value.edit(editedAst)
     editStarted = true
   })
 
@@ -130,7 +130,7 @@ function itemInput(ast: Ast.Expression): WidgetInput {
     ...WidgetInput.FromAst(ast),
     dynamicConfig: itemConfig.value,
     forcePort: true,
-    editHandler,
+    editHandler: editHandler.value,
   }
 }
 </script>

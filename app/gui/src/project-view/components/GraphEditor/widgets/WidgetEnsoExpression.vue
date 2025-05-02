@@ -56,6 +56,7 @@ export const widgetDefinition = defineWidget(
   <div class="WidgetEnsoExpression widgetRounded widgetPill">
     <CodeMirrorWidgetBase
       v-model="astCode"
+      :widgetTypeId="widgetTypeId"
       :input="input"
       :extensions="extensions"
       lineMode="single"
