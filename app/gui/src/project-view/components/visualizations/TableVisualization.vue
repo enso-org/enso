@@ -117,6 +117,8 @@ interface UnknownTable {
   visualization_header: string
   data_quality_metrics?: DataQualityMetric[]
   is_using_server_sort_and_filter: boolean
+  show_status_bar: boolean
+  enable_create_node: boolean
   requires_number_format: boolean[]
   table_version_hash?: string
 }
@@ -134,16 +136,12 @@ const props = defineProps<{ data: Data }>()
 const config = useVisualizationConfig()
 
 const INDEX_FIELD_NAME = '#'
-const TABLE_NODE_TYPE = 'Standard.Table.Table.Table'
-const DB_TABLE_NODE_TYPE = 'Standard.Database.DB_Table.DB_Table'
-const COLUMN_NODE_TYPE = 'Standard.Table.Column.Column'
 
 const rowLimit = ref(0)
 const page = ref(0)
 const pageLimit = ref(0)
 const rowCount = ref(0)
 const filteredRowCount = ref(null)
-const showRowCount = ref(true)
 const isTruncated = ref(false)
 const filterModel = ref<GridFilterModel[]>([])
 const sortModel = ref<SortModel[]>([])
@@ -187,6 +185,20 @@ const isSSRM = computed(
     props.data.is_using_server_sort_and_filter,
 )
 
+const showStatusBar = computed(
+  () =>
+    typeof props.data === 'object' &&
+    'show_status_bar' in props.data &&
+    props.data.show_status_bar,
+)
+
+const isCreateNewNodeEnabled = computed(
+  () =>
+    typeof props.data === 'object' &&
+    'enable_create_node' in props.data &&
+    props.data.enable_create_node,
+)
+
 const ssrmServer = computed(() => {
   return isSSRM.value && createServer()
 })
@@ -201,7 +213,7 @@ const statusBar = computed(() =>
   allRowCount.value ?
     {
       statusPanels:
-        config.nodeType === TABLE_NODE_TYPE || config.nodeType === COLUMN_NODE_TYPE ?
+      showStatusBar.value ?
           [
             {
               statusPanel: TableVizStatusBar,
@@ -239,7 +251,7 @@ watchEffect(() => {
 
 const textFormatterSelected = ref<TextFormatOptions>('partial')
 
-const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
+const isRowCountSelectorVisible = computed(() => rowCount.value > 1000)
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 
 const selectableRowLimits = computed(() => {
@@ -267,10 +279,6 @@ watchEffect(() =>
     'prepare_visualization',
     rowLimit.value.toString(),
   ),
-)
-
-const isCreateNewNodeEnabled = computed(
-  () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
 )
 
 const numberFormatGroupped = new Intl.NumberFormat(undefined, {
@@ -874,7 +882,6 @@ watchEffect(() => {
 
   // Update paging
   const newRowCount = data_.all_rows_count == null ? 1 : data_.all_rows_count
-  showRowCount.value = !(data_.all_rows_count == null) && config.nodeType != TABLE_NODE_TYPE
   rowCount.value = newRowCount
   const newPageLimit = Math.ceil(newRowCount / rowLimit.value)
   pageLimit.value = newPageLimit
@@ -1036,7 +1043,7 @@ config.setToolbar(
 
 <template>
   <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
-    <template v-if="!isSSRM">
+    <template v-if="!isSSRM && isRowCountSelectorVisible">
       <div class="table-visualization-status-bar">
         <select
           v-if="isRowCountSelectorVisible"
@@ -1049,7 +1056,7 @@ config.setToolbar(
             v-text="limit"
           ></option>
         </select>
-        <template v-if="showRowCount">
+
           <span
             v-if="isRowCountSelectorVisible && isTruncated"
             v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
@@ -1057,7 +1064,7 @@ config.setToolbar(
           <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
           <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
           <span v-else v-text="`${rowCount} rows.`"></span>
-        </template>
+
       </div>
     </template>
     <!-- TODO[ao]: Suspence in theory is not needed here (the entire visualization is inside
