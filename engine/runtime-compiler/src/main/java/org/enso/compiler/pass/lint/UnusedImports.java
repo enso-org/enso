@@ -14,6 +14,7 @@ import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.Name.Literal;
 import org.enso.compiler.core.ir.Warning.UnusedImport;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.data.BindingsMap;
@@ -216,9 +217,7 @@ public final class UnusedImports implements MiniPassFactory {
     }
 
     private Set<QualifiedName> getUsedSymbolsForImport(Import importIr) {
-      var usedSymbols = symbols.get(importIr);
-      assert usedSymbols != null;
-      return usedSymbols;
+      return symbols.getOrDefault(importIr, Set.of());
     }
 
     private static final class Builder {
