@@ -11,7 +11,7 @@ import { computed, type ComputedRef, h, toValue } from 'vue'
 const TYPES = new Map<BrowserItem, { label: string; icon?: Icon }>([
   ['directory', { label: 'Choose directory in cloud…' }],
   ['file', { label: 'Choose file in cloud…' }],
-  ['secret', { label: 'Choose secret from cloud…', icon: 'key' }],
+  ['secret', { label: 'Choose secret in cloud…', icon: 'key' }],
 ])
 
 /** @returns Dropdown items for opening a cloud file browser. */

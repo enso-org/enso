@@ -63,13 +63,19 @@ export interface BrowserTypeInfo {
   }
   /** If true, selection of non-existent paths will be enabled. */
   write: boolean
-  /** How a plain text-literal is interpreted. */
-  rawPath: null | {
-    /**
-     * Determines whether a selected value is inserted as a plain path (instead of a constructor).
-     */
-    prefer: boolean
-  }
+  /**
+   * If `null`, a plain text literal is not a valid path representation for this type; if non-null,
+   * contains additional properties affecting the usage of plain text literals.
+   */
+  rawPath: null | RawPathAllowedProperties
+}
+
+/** When raw paths are allowed for a browser type, these properties are applicable to them. */
+export interface RawPathAllowedProperties {
+  /**
+   * If `true`, a selected value is inserted as a plain path by default (instead of a constructor).
+   */
+  prefer: boolean
 }
 
 /**
