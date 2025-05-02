@@ -2046,9 +2046,20 @@ type Table
     expand_to_rows self (column : Text | Integer) at_least_one_row:Boolean=False -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
         Expand_Objects_Helpers.expand_to_rows self column at_least_one_row sequences_only=False
 
-    ## ALIAS filter rows, regex, where
+    ## ALIAS filter rows, where
        MACRO equals filter=..Equal
+       MACRO not_equals filter=..Not_Equal
+       MACRO not_nothing filter=..Not_Nothing
+       MACRO is_nothing filter=..Is_Nothing
+       MACRO is_in filter=..Is_In
        MACRO less_than filter=..Less
+       MACRO greater_than filter=..Greater
+       MACRO between filter=..Between
+       MACRO contains filter=..Contains
+       MACRO starts_with filter=..Starts_With
+       MACRO ends_with filter=..Ends_With
+       MACRO like filter=..Like
+       MACRO regex_match filter=..Regex_Match
        GROUP Standard.Base.Selections
        ICON preparation
        SUGGESTED 2

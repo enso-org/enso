@@ -3763,7 +3763,7 @@ lazy val `engine-runner` = project
     Compile / run / mainClass := Some("org.enso.runner.Main"),
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
-    libraryDependencies ++= GraalVM.modules ++ jline ++ Seq(
+    libraryDependencies ++= GraalVM.modules ++ GraalVM.toolsPkgs ++ jline ++ Seq(
       "org.graalvm.polyglot"    % "polyglot"                % graalMavenPackagesVersion,
       "org.graalvm.sdk"         % "polyglot-tck"            % graalMavenPackagesVersion % Provided,
       "commons-cli"             % "commons-cli"             % commonsCliVersion,
@@ -3996,20 +3996,26 @@ lazy val `engine-runner` = project
               // Workaround a problem with build-/runtime-initialization conflict
               // by disabling this service provider
               "-H:ServiceLoaderFeatureExcludeServiceProviders=net.snowflake.client.core.FileTypeDetector",
-              // useful perf & debug switches:
-              // "-g",
-              // "-H:+SourceLevelDebug",
-              // "-H:-DeleteLocalSymbols",
-              // you may need to set smallJdk := None to use following flags:
-              // "--trace-class-initialization=org.enso.syntax2.Parser",
-              // "--diagnostics-mode",
-              // "--verbose",
-              "-Dnic=nic",
               "-Dorg.enso.feature.native.lib.output=" + (engineDistributionRoot.value / "bin"),
               "-Dorg.sqlite.lib.exportPath=" + (engineDistributionRoot.value / "bin"),
               // Snowflake uses Apache Arrow (equivalent of #9664 in native-image setup)
               "--add-opens=java.base/java.nio=ALL-UNNAMED"
-            ),
+            ) ++ (if (GraalVM.EnsoLauncher.debug) {
+                    // useful perf & debug switches:
+                    Seq(
+                      "-g",
+                      "-O0",
+                      "-H:+SourceLevelDebug",
+                      "-H:-DeleteLocalSymbols",
+                      // you may need to set smallJdk := None to use following flags:
+                      // "--trace-class-initialization=org.enso.syntax2.Parser",
+                      // "--diagnostics-mode",
+                      // "--verbose",
+                      "-Dnic=nic"
+                    )
+                  } else {
+                    Seq()
+                  }),
             mainClass = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(
               "org.apache",
