@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
@@ -16,6 +17,7 @@ import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name.Literal;
 import org.enso.compiler.core.ir.Warning.UnusedImport;
+import org.enso.compiler.core.ir.Warning.UnusedSymbolsFromImport;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
@@ -28,14 +30,20 @@ import org.enso.compiler.pass.analyse.ImportSymbolAnalysis;
 import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.pkg.QualifiedName;
 import org.enso.scala.wrapper.ScalaConversions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.collection.immutable.Seq;
 import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * Attaches warnings to those {@link Import import IRs} that export symbols that are not used in any
- * expression in the current module. TODO: Ignore duplicated imports?
+ * expression in the current module.
+ *
+ * <p>Works with the {@link BindingsMap.Resolution} metadata from {@link
+ * org.enso.compiler.pass.resolve.GlobalNames} pass.
  */
 public final class UnusedImports implements MiniPassFactory {
+  private static final Logger LOGGER = LoggerFactory.getLogger(UnusedImports.class);
   public static final UnusedImports INSTANCE = new UnusedImports();
 
   private UnusedImports() {}
@@ -80,30 +88,105 @@ public final class UnusedImports implements MiniPassFactory {
       var resolutionMeta =
           MetadataInteropHelpers.getMetadataOrNull(
               child, GlobalNames$.MODULE$, BindingsMap.Resolution.class);
+      LOGGER.trace(
+          "[{}] Preparing for parent={}, child={}, resolutionMeta={}",
+          bindingsMap.currentModule().getName(),
+          parent.getClass().getName(),
+          child.getClass().getName(),
+          resolutionMeta);
       if (resolutionMeta != null) {
         var targetMod = resolutionMeta.target().module();
         var targetModName = targetMod.getName();
         var targetSymbolName = resolutionMeta.target().qualifiedName();
-        var modImports = findImportsOfModule(targetModName);
-        for (var imp : modImports) {
+        var imports = findImportIRs(targetModName, targetSymbolName);
+        for (var imp : imports) {
+          LOGGER.trace(
+              "[{}] Adding used symbol '{}' for import '{}'",
+              bindingsMap.currentModule().getName(),
+              targetSymbolName,
+              imp.showCode());
           usedSymbolsBldr.addUsedSymbol(imp, targetSymbolName);
         }
       }
       return this;
     }
 
+    /**
+     * Finds import IRs that import the given symbol from the given module. Note that a symbol may
+     * be imported by multiple import IRs.
+     *
+     * @param targetModName Name of the module that should exports the symbol
+     * @param targetSymbolName
+     * @return
+     */
+    private List<Import.Module> findImportIRs(
+        QualifiedName targetModName, QualifiedName targetSymbolName) {
+      var importDefs = new ArrayList<Import.Module>();
+      for (var resolvedImp : CollectionConverters.asJava(bindingsMap.resolvedImports())) {
+        var impIR = resolvedImp.importDef();
+        if (impIR.onlyNames().isDefined() || impIR.isAll()) {
+          // `onlyNames`, or `isAll` import usually has a single resolved import, with target of the
+          // ResolvedModule
+          var resolvedMod =
+              resolvedImp.targets().find(target -> target.module().getName().equals(targetModName));
+          assert resolvedMod.isDefined();
+          var resolvedNames = resolvedMod.get().findExportedSymbolsFor(targetSymbolName.item());
+          var exportsSymbol = !resolvedNames.isEmpty();
+          if (exportsSymbol) {
+            importDefs.add(impIR);
+          }
+        } else {
+          var hasSymbolInTargets =
+              resolvedImp
+                  .targets()
+                  .exists(target -> target.qualifiedName().equals(targetSymbolName));
+          if (hasSymbolInTargets) {
+            importDefs.add(impIR);
+          }
+        }
+      }
+      LOGGER.trace(
+          "[{}] Found import IRs for module '{}' and symbol '{}': {}",
+          bindingsMap.currentModule().getName(),
+          targetModName,
+          targetSymbolName,
+          importDefsToString(importDefs));
+      return importDefs;
+    }
+
     @Override
     public Module transformModule(Module moduleIr) {
       var usedSymbols = usedSymbolsBldr.build();
+      LOGGER.trace(
+          "[{}] Transforming module. Used symbols: {}",
+          bindingsMap.currentModule().getName(),
+          usedSymbols);
       var newImports = new ArrayList<Import>();
       for (var impIr : CollectionConverters.asJava(moduleIr.imports())) {
-        var importedSymbols = importedSymbols(impIr);
-        var usedSymbolsForImp = usedSymbols.getUsedSymbolsForImport(impIr);
-        var diff = new HashSet<>(importedSymbols);
-        diff.removeAll(usedSymbolsForImp);
-        if (!diff.isEmpty()) {
-          var warn = createWarning(impIr, diff);
-          impIr.getDiagnostics().add(warn);
+        if (impIr instanceof Import.Module impMod && impMod.onlyNames().isDefined()) {
+          var importedSymbols = importedSymbols(impIr);
+          var usedSymbolsForImp = usedSymbols.getUsedSymbolsForImport(impIr);
+          var diff = new HashSet<>(importedSymbols);
+          diff.removeAll(usedSymbolsForImp);
+          if (!diff.isEmpty()) {
+            var warn = createWarning(impIr, diff);
+            LOGGER.trace(
+                "[{}] Adding warning for unused symbols: {} to import '{}'",
+                bindingsMap.currentModule().getName(),
+                diff,
+                impIr.showCode());
+            impIr.getDiagnostics().add(warn);
+          }
+        } else {
+          var usedSymbolsForImp = usedSymbols.getUsedSymbolsForImport(impIr);
+          if (usedSymbolsForImp.isEmpty()) {
+            var warn = createWarning(impIr);
+            LOGGER.trace(
+                "[{}] Adding warning for unused import to '{}'",
+                bindingsMap.currentModule().getName(),
+                impIr.showCode());
+            impIr.getDiagnostics().add(warn);
+          }
         }
         newImports.add(impIr);
       }
@@ -118,65 +201,12 @@ public final class UnusedImports implements MiniPassFactory {
           moduleIr.id());
     }
 
-    private static UnusedImport createWarning(Import impIr, Set<QualifiedName> unusedSymbols) {
-      var list = unusedSymbols.stream().map(QualifiedName::toString).sorted().toList();
-      return new UnusedImport(
-          impIr.identifiedLocation(), CollectionConverters.asScala(list).toList());
-    }
-
     @Override
     public Expression transformExpression(Expression expr) {
       return expr;
     }
 
-    /**
-     * Finds all Import IR definitions for the module of given name. Note that a module may be
-     * imported by multiple import statements.
-     *
-     * @param modName
-     * @return Non empty list. Not null.
-     */
-    private List<Import.Module> findImportsOfModule(QualifiedName modName) {
-      var importDefs = new ArrayList<Import.Module>();
-      for (var resolvedImp : CollectionConverters.asJava(bindingsMap.resolvedImports())) {
-        var modNames = importedModules(resolvedImp);
-        if (modNames.contains(modName)) {
-          importDefs.add(resolvedImp.importDef());
-        }
-      }
-      return importDefs;
-    }
-
-    /**
-     * Returns list of module names that are imported by the given resolved import.
-     *
-     * @param resolvedImport
-     * @return non-empty list of module names.
-     */
-    private static List<QualifiedName> importedModules(BindingsMap.ResolvedImport resolvedImport) {
-      var names = resolvedImport.targets().map(target -> target.module().getName());
-      return CollectionConverters.asJava(names);
-    }
-
-    private static List<QualifiedName> importedSymbols(BindingsMap.ResolvedImport resolvedImport) {
-      if (resolvedImport.importDef().onlyNames().isDefined()) {
-        var entityName = resolvedImport.importDef().name().name();
-        var names = resolvedImport.importDef().onlyNames().get().map(Literal::name);
-        var qualifiedNames =
-            names.map(nm -> QualifiedName.fromString(entityName + QualifiedName.separator() + nm));
-        return CollectionConverters.asJava(qualifiedNames);
-      } else {
-        var names = resolvedImport.targets().map(ResolvedName::qualifiedName);
-        return CollectionConverters.asJava(names);
-      }
-    }
-
-    /**
-     * Returns set of all imported symbol by the given import statement.
-     *
-     * @param impIr
-     * @return
-     */
+    /** Returns set of all imported symbol by the given import statement. */
     private Set<QualifiedName> importedSymbols(Import impIr) {
       var resolvedImp = findResolvedImport(impIr);
       if (resolvedImp == null) {
@@ -198,6 +228,19 @@ public final class UnusedImports implements MiniPassFactory {
       return new HashSet<>(symbols);
     }
 
+    private static List<QualifiedName> importedSymbols(BindingsMap.ResolvedImport resolvedImport) {
+      if (resolvedImport.importDef().onlyNames().isDefined()) {
+        var entityName = resolvedImport.importDef().name().name();
+        var names = resolvedImport.importDef().onlyNames().get().map(Literal::name);
+        var qualifiedNames =
+            names.map(nm -> QualifiedName.fromString(entityName + QualifiedName.separator() + nm));
+        return CollectionConverters.asJava(qualifiedNames);
+      } else {
+        var names = resolvedImport.targets().map(ResolvedName::qualifiedName);
+        return CollectionConverters.asJava(names);
+      }
+    }
+
     private BindingsMap.ResolvedImport findResolvedImport(Import impIr) {
       for (var resolvedImp : CollectionConverters.asJava(bindingsMap.resolvedImports())) {
         if (resolvedImp.importDef() == impIr) {
@@ -205,6 +248,24 @@ public final class UnusedImports implements MiniPassFactory {
         }
       }
       return null;
+    }
+
+    private static UnusedSymbolsFromImport createWarning(
+        Import impIr, Set<QualifiedName> unusedSymbols) {
+      var list = unusedSymbols.stream().map(QualifiedName::toString).sorted().toList();
+      return new UnusedSymbolsFromImport(
+          impIr.identifiedLocation(), CollectionConverters.asScala(list).toList());
+    }
+
+    private static UnusedImport createWarning(Import impIr) {
+      var loc = impIr.identifiedLocation();
+      return new UnusedImport(loc);
+    }
+
+    private static String importDefsToString(List<Import.Module> imps) {
+      var str =
+          imps.stream().map(imp -> "'" + imp.showCode() + "'").collect(Collectors.joining(", "));
+      return "[" + str + "]";
     }
   }
 
@@ -218,6 +279,18 @@ public final class UnusedImports implements MiniPassFactory {
 
     private Set<QualifiedName> getUsedSymbolsForImport(Import importIr) {
       return symbols.getOrDefault(importIr, Set.of());
+    }
+
+    @Override
+    public String toString() {
+      var sb = new StringBuilder();
+      sb.append("UsedSymbols{");
+      for (var entry : symbols.entrySet()) {
+        var impCode = entry.getKey().showCode();
+        sb.append("'").append(impCode).append("': ").append(entry.getValue()).append(", ");
+      }
+      sb.append("}");
+      return sb.toString();
     }
 
     private static final class Builder {

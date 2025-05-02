@@ -7,7 +7,9 @@ import static org.hamcrest.Matchers.notNullValue;
 import java.util.List;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.Warning;
 import org.enso.compiler.core.ir.Warning.UnusedImport;
+import org.enso.compiler.core.ir.Warning.UnusedSymbolsFromImport;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
@@ -57,7 +59,7 @@ public class UnusedImportsTest {
   }
 
   @Test
-  public void unusedSymbol() {
+  public void unusedImport() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
@@ -75,11 +77,11 @@ public class UnusedImportsTest {
             """);
     compilerCtx.getCompiler().run(mainMod);
     var imp = mainMod.getIr().imports().apply(1);
-    expectWarning(imp, List.of("local.Proj.Module.My_Type_2"));
+    expectWarning(imp);
   }
 
   @Test
-  public void unusedSymbols() {
+  public void unusedSymbols_1() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
@@ -98,13 +100,107 @@ public class UnusedImportsTest {
     expectWarning(imp, List.of("local.Proj.Module.My_Type_1", "local.Proj.Module.My_Type_2"));
   }
 
+  @Test
+  public void unusedSymbols_2() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type My_Type_1
+            type My_Type_2
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import My_Type_1, My_Type_2
+            main = My_Type_2
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    var imp = mainMod.getIr().imports().apply(0);
+    expectWarning(imp, List.of("local.Proj.Module.My_Type_1"));
+  }
+
+  @Test
+  public void unusedSymbols_InTypeAscription() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type My_Type_1
+            type My_Type_2
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import My_Type_1, My_Type_2
+            foo (x:My_Type_1) = x
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    var imp = mainMod.getIr().imports().apply(0);
+    expectWarning(imp, List.of("local.Proj.Module.My_Type_2"));
+  }
+
+  @Test
+  public void noSymbolIsUsedForImportAll() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type My_Type_1
+            type My_Type_2
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import all
+            main = 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    var imp = mainMod.getIr().imports().apply(0);
+    expectWarning(imp);
+  }
+
+  @Test
+  public void oneSymbolIsUsedForImportAll() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type My_Type_1
+            type My_Type_2
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import all
+            main = My_Type_1
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    var imp = mainMod.getIr().imports().apply(0);
+    expectNoWarnings(imp);
+  }
+
   private static void expectWarning(Import importIr, List<String> expectedUnusedSymbols) {
-    var warn = getSingleWarning(importIr);
+    var warn = getSingleWarning(importIr, UnusedSymbolsFromImport.class);
     var actualUnusedSymbols = CollectionConverters.asJava(warn.unusedSymbols());
     assertThat("Unused symbols do not match", actualUnusedSymbols, is(expectedUnusedSymbols));
   }
 
-  private static UnusedImport getSingleWarning(Import importIr) {
+  private static void expectWarning(Import importIr) {
+    var warn = getSingleWarning(importIr, UnusedImport.class);
+    assertThat("UnusedImport warning is present", warn, is(notNullValue()));
+  }
+
+  private static void expectNoWarnings(Import importIr) {
+    var warn =
+        importIr
+            .getDiagnostics()
+            .toList()
+            .find(diag -> diag instanceof UnusedImport || diag instanceof UnusedSymbolsFromImport);
+    assertThat("No warnings expected, but got: " + warn, warn.isEmpty(), is(true));
+  }
+
+  private static <W extends Warning> W getSingleWarning(Import importIr, Class<W> warningClass) {
     assertThat(
         "Must have at least one warning in diagnostics: " + importIr,
         importIr.diagnostics(),
@@ -113,8 +209,8 @@ public class UnusedImportsTest {
         importIr
             .diagnostics()
             .toList()
-            .find(diag -> diag instanceof UnusedImport)
-            .map(diag -> (UnusedImport) diag);
+            .find(diag -> warningClass.isAssignableFrom(diag.getClass()))
+            .map(warningClass::cast);
     assertThat("Single UnusedImport warning expected on " + importIr, found.isDefined(), is(true));
     return found.get();
   }
