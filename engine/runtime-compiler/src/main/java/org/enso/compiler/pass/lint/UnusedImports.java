@@ -102,7 +102,7 @@ public final class UnusedImports implements MiniPassFactory {
         diff.removeAll(usedSymbolsForImp);
         if (!diff.isEmpty()) {
           var warn = createWarning(impIr, diff);
-          impIr.diagnostics().add(warn);
+          impIr.getDiagnostics().add(warn);
         }
         newImports.add(impIr);
       }
