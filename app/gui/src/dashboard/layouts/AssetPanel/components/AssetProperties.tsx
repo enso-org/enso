@@ -17,7 +17,7 @@ import Label from '#/components/dashboard/Label'
 import { Result } from '#/components/Result'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { validateDatalink } from '#/data/datalinkValidator'
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
 import { assetPanelStore, useSetAssetPanelProps } from '#/layouts/AssetPanel/'
@@ -40,7 +40,7 @@ import {
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
@@ -130,17 +130,19 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     },
   )
   const featureFlags = useFeatureFlags()
-  const datalinkQuery = useBackendQuery(
-    backend,
-    'getDatalink',
-    // eslint-disable-next-line no-restricted-syntax
-    [item.id as DatalinkId, item.title],
-    {
-      enabled: item.type === AssetType.datalink,
-      ...(featureFlags.enableAssetsTableBackgroundRefresh ?
-        { refetchInterval: featureFlags.assetsTableBackgroundRefreshInterval }
-      : {}),
-    },
+  const datalinkQuery = useQuery(
+    backendQueryOptions(
+      backend,
+      'getDatalink',
+      // eslint-disable-next-line no-restricted-syntax
+      [item.id as DatalinkId, item.title],
+      {
+        enabled: item.type === AssetType.datalink,
+        ...(featureFlags.enableAssetsTableBackgroundRefresh ?
+          { refetchInterval: featureFlags.assetsTableBackgroundRefreshInterval }
+        : {}),
+      },
+    ),
   )
   const descriptionSpotlight = useSpotlight({
     enabled: spotlightOn === 'description',
@@ -155,7 +157,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     close: closeSpotlight,
   })
 
-  const { data: labels = [] } = useBackendQuery(backend, 'listTags', [])
+  const { data: labels = [] } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const self = permissions.tryFindSelfPermission(user, item.permissions)
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =

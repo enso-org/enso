@@ -1,17 +1,34 @@
 /** @file Functions to initiate a download. */
 
-import type { SystemApi } from '../../../env'
-import type { Path } from './path'
+import type { DownloadUrlOptions, SystemApi } from '../../../env'
+
+/**
+ * Options for `download` function.
+ */
+export interface DownloadOptions {
+  readonly url: string
+  readonly name?: string | null | undefined
+  readonly electronOptions?: Omit<DownloadUrlOptions, 'name' | 'url'>
+}
 
 /** Initiate a download for the specified url. */
-export async function download(url: string, name?: string | null, path?: Path | null) {
+export async function download(options: DownloadOptions) {
+  let { url } = options
+  const { name, electronOptions } = options
+
+  url = new URL(url, location.toString()).toString()
   const systemApi = window.systemApi
 
   if (systemApi != null) {
-    return downloadUsingElectron({ url, path, filename: name, downloadURL: systemApi.downloadURL })
+    await downloadUsingElectron({
+      url,
+      name,
+      downloadURL: systemApi.downloadURL,
+      ...electronOptions,
+    })
+    return
   }
 
-  url = new URL(url, location.toString()).toString()
   const link = document.createElement('a')
   link.href = url
   link.download = name ?? url.match(/[^/]+$/)?.[0] ?? ''
@@ -31,20 +48,14 @@ export async function downloadWithHeaders(
   const body = await response.blob()
   const objectUrl = URL.createObjectURL(body)
 
-  return download(objectUrl, name)
+  return download({ url: objectUrl, name })
 }
 
 /**
  * Options for `downloadUsingElectron`.
  */
-export interface DownloadUsingElectronOptions {
+export type DownloadUsingElectronOptions = DownloadUrlOptions & {
   readonly downloadURL: SystemApi['downloadURL']
-  /** The URL to download. */
-  readonly url: string
-  /** The path to save the file to. */
-  readonly path?: Path | null | undefined
-  /** The name of the file to save. */
-  readonly filename?: string | null | undefined
 }
 
 /**
@@ -52,5 +63,6 @@ export interface DownloadUsingElectronOptions {
  * @throws invariant if you try to use this function in a non-Electron environment.
  */
 export async function downloadUsingElectron(options: DownloadUsingElectronOptions) {
-  await options.downloadURL(options.url, options.path, options.filename)
+  const { downloadURL, ...rest } = options
+  await downloadURL(rest)
 }

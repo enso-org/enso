@@ -898,8 +898,7 @@ final class TreeToIr {
         yield new Application.Sequence(
             items.reverse(),
             getIdentifiedLocation(arr),
-            meta()
-        );
+            meta());
       }
       case Tree.Number n -> translateNumber(n);
       case Tree.Ident id -> translateIdent(id, isMethod);

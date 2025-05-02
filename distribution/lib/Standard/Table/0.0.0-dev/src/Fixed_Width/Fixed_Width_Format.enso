@@ -184,10 +184,16 @@ Fixed_Width_Layout.from (that:Table) =
     names = if has_names then that.columns.at 0 . to_vector else Nothing
     starts = if has_names then that.columns.at 1 . to_vector else that.columns.at 0 . to_vector
     widths = if has_names then that.columns.at 2 . to_vector else that.columns.at 1 . to_vector
-    descs = 0.up_to that.row_count . map i->
+    descriptions = 0.up_to that.row_count . map i->
         name = if names.is_nothing then Nothing else names.at i
         start = starts.at i
         width = widths.at i
         if start.is_nothing then Fixed_Width_Column_Description.Width width name else
             Fixed_Width_Column_Description.Start_And_Width start width name
-    Fixed_Width_Layout.from_descriptions descs
+    Fixed_Width_Layout.from_descriptions descriptions
+
+Fixed_Width_Layout.from (that : Function) =
+    is_unapplied_table_input = (that.to_text.starts_with "Table.type.new") || (that.to_text.starts_with "Table.type.input")
+    if is_unapplied_table_input then
+        Error.throw (Illegal_Argument.Error "Table has not been populated. A fixed-width column specification must have two or three columns (optional column name; start; width).")
+    Panic.throw (Type_Error.Error Fixed_Width_Layout that "Expected to get a Fixed_Width_Layout or a Table describing it.")

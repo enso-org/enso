@@ -91,9 +91,18 @@ interface MenuApi {
 // === System API ===
 // ==================
 
+/** Options for downloading a URL. */
+export type DownloadUrlOptions = {
+  url: string
+  path?: string | null
+  name?: string | null
+  shouldUnpackProject?: boolean
+  showFileDialog?: boolean
+}
+
 /** `window.systemApi` exposes functionality related to the operating system. */
 interface SystemApi {
-  readonly downloadURL: (url: string, path?: string, filename?: string) => Promise<void>
+  readonly downloadURL: (options: DownloadUrlOptions) => Promise<void>
   readonly showItemInFolder: (fullPath: string) => void
 }
 

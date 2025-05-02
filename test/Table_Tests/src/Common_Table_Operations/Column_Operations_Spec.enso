@@ -47,7 +47,7 @@ type Min_Max_Data
     t self = self.data.at 3
 
     setup table_builder = Min_Max_Data.Value <|
-        t = table_builder [["a", [1, 2, 3]], ["b", [4.5, 5.5, 6.5]], ["c", ['a', 'b', 'c']], ["d", [True, False, True]]] . sort "a"
+        t = table_builder [["a", [1, 2, 3]], ["b", [4.5, 5.5, 6.5]], ["c", ['a', 'b', 'c']], ["d", [True, False, True]], ["e", [1, Nothing, 10]]] . sort "a"
         a = t.at "a"
         b = t.at "b"
         c = t.at "c"
@@ -1457,6 +1457,13 @@ add_column_operation_specs suite_builder setup =
             c10 = (data.t.at "d").max False
             c10.to_vector . should_equal [True, False, True]
             c10.value_type.should_equal Value_Type.Boolean
+
+        group_builder.specify "should ignore null values" pending=(if setup.prefix.contains "SQLite" then "SQLite does not support ignoring NULL values in inputs to functions, so if any input value is NULL then the result will also be NULL.") <|
+            data.t.at "e" . min 5 . to_vector . should_equal [1, 5, 5]
+            data.t.at "e" . max [3, Nothing, Nothing, 4] . to_vector . should_equal [4, 4, 10]
+
+            # Will still return Nothing if all were Nothing
+            data.t.at "e" . max Nothing . to_vector . should_equal [1, Nothing, 10]
 
         group_builder.specify "should allow Date/Time columns" pending=pending_datetime <|
             dt_data = Min_Max_Datetime_Data.setup setup.table_builder

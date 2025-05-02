@@ -32,8 +32,15 @@
       "type": "nativeimage",
       "request": "launch",
       "name": "Launch Native Image",
-      "nativeImagePath": "${workspaceFolder}/runner",
+      "nativeImagePath": "${workspaceFolder}/enso",
+      "windows": {
+        "nativeImagePath": "${workspaceFolder}/built-distribution/enso-engine-0.0.0-dev-windows-amd64/enso-0.0.0-dev/bin/enso.exe"
+      },
       "args": "--run ${file}"
+      // - Specify `polyglot.dap` property
+      // - Launch Native Image normally and then
+      // - Connect via Debug Adapter Protocol
+      // "args": "--vm.D=polyglot.dap=4711 --run ${file}"
     }
   ]
 }

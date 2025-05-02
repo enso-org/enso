@@ -351,22 +351,20 @@ object DistributionPackage {
   def runEnginePackage(
     distributionRoot: File,
     args: Seq[String],
-    log: Logger
+    log: Logger,
+    workingDirectory: Option[File] = None
   ): Boolean = {
     import scala.collection.JavaConverters._
 
-    val enso             = distributionRoot / "bin" / batOrExeName("enso")
-    val pb               = new java.lang.ProcessBuilder()
-    val all              = new java.util.ArrayList[String]()
-    val runArgumentIndex = locateRunArgument(args)
-    val runArgument      = runArgumentIndex.map(args)
-    val disablePrivateCheck = runArgument match {
+    val enso        = distributionRoot / "bin" / batOrExeName("enso")
+    val pb          = new java.lang.ProcessBuilder()
+    val all         = new java.util.ArrayList[String]()
+    val projectPath = findProjectPath(args)
+    val disablePrivateCheck = projectPath match {
       case Some(whatToRun) =>
-        if (whatToRun.startsWith("test/") && whatToRun.endsWith("_Tests")) {
-          whatToRun.contains("_Internal_")
-        } else {
-          false
-        }
+        val pathToRun   = file(whatToRun).toPath
+        val projectName = pathToRun.getFileName.toString
+        EnsoProjects.Project(None, projectName, pathToRun).usesPrivateAccess
       case None => false
     }
 
@@ -377,6 +375,9 @@ object DistributionPackage {
       all.add("--disable-private-check")
     }
     pb.command(all)
+    workingDirectory
+      .orElse(projectPath.map(new File(_).getParentFile))
+      .foreach(pb.directory)
     pb.inheritIO()
     log.info(s"Executing ${all.asScala.mkString(" ")}")
     val p        = pb.start()
@@ -419,14 +420,23 @@ object DistributionPackage {
     }
   }
 
-  /** Returns the index of the next argument after `--run`, if it exists. */
-  private def locateRunArgument(args: Seq[String]): Option[Int] = {
-    val findRun = args.indexOf("--run")
-    if (findRun >= 0 && findRun + 1 < args.size) {
-      Some(findRun + 1)
-    } else {
-      None
+  /** Returns the argument specifying the path of the project to run.
+    *
+    * It will be the argument following `--in-project`, `--run` or `--compile`.
+    */
+  private def findProjectPath(args: Seq[String]): Option[String] = {
+    def findArg(name: String): Option[String] = {
+      val location = args.indexOf(name)
+      if (location >= 0 && location + 1 < args.size) {
+        Some(args(location + 1))
+      } else {
+        None
+      }
     }
+
+    findArg("--in-project")
+      .orElse(findArg("--run"))
+      .orElse(findArg("--compile"))
   }
 
   def runProjectManagerPackage(

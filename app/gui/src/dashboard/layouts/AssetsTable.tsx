@@ -18,7 +18,7 @@ import {
   type SetStateAction,
 } from 'react'
 
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import * as z from 'zod'
 
@@ -48,8 +48,8 @@ import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
   backendMutationOptions,
+  backendQueryOptions,
   listDirectoryQueryOptions,
-  useBackendQuery,
   useListDirectoryRefetchInterval,
 } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
@@ -199,7 +199,7 @@ function AssetsTable(props: AssetsTableProps) {
 
   const { user } = useFullUserSession()
   const backend = useBackend(category)
-  const { data: labels } = useBackendQuery(backend, 'listTags', [])
+  const { data: labels } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const { setModal, unsetModal } = useSetModal()
   const { localStorage } = useLocalStorage()
   const { getText } = useText()
