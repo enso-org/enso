@@ -35,7 +35,7 @@ public record CompilerConfig(
     return new Builder().build();
   }
 
-  public static class Builder {
+  public static final class Builder {
     private boolean autoParallelismEnabled = false;
     private boolean warningsEnabled = true;
     private boolean privateCheckEnabled = true;
