@@ -33,8 +33,7 @@ public class ThrowableCatchTest {
       List.of(
           () -> new Error("First error"),
           () -> new AssertionError("Assertion error"),
-          CustomError::new,
-          ThreadDeath::new);
+          CustomError::new);
 
   private static class CustomError extends Error {}
 
