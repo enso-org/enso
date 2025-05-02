@@ -136,7 +136,6 @@ const config = useVisualizationConfig()
 const INDEX_FIELD_NAME = '#'
 const TABLE_NODE_TYPE = 'Standard.Table.Table.Table'
 const DB_TABLE_NODE_TYPE = 'Standard.Database.DB_Table.DB_Table'
-const VECTOR_NODE_TYPE = 'Standard.Base.Data.Vector.Vector'
 const COLUMN_NODE_TYPE = 'Standard.Table.Column.Column'
 const ROW_NODE_TYPE = 'Standard.Table.Row.Row'
 
@@ -654,7 +653,7 @@ function createNode(
   const castSelector =
     castValueTypes === 'number' && !isNaN(Number(selectorKey)) ? Number(selectorKey) : selectorKey
   const identifierAction =
-    config.nodeType === (COLUMN_NODE_TYPE || VECTOR_NODE_TYPE) ? 'at' : action
+    config.nodeType === (COLUMN_NODE_TYPE) ? 'at' : action
   const pattern = getAstPattern(castSelector, identifierAction)
   if (pattern) {
     config.createNodes({
