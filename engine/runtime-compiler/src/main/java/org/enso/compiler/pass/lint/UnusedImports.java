@@ -78,7 +78,7 @@ public final class UnusedImports implements MiniPassFactory {
     public MiniIRPass prepare(IR parent, Expression child) {
       var resolutionMeta =
           MetadataInteropHelpers.getMetadataOrNull(
-              parent, GlobalNames$.MODULE$, BindingsMap.Resolution.class);
+              child, GlobalNames$.MODULE$, BindingsMap.Resolution.class);
       if (resolutionMeta != null) {
         var targetMod = resolutionMeta.target().module();
         var targetModName = targetMod.getName();
