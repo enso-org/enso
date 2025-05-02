@@ -129,11 +129,12 @@ public final class UnusedImports implements MiniPassFactory {
           // ResolvedModule
           var resolvedMod =
               resolvedImp.targets().find(target -> target.module().getName().equals(targetModName));
-          assert resolvedMod.isDefined();
-          var resolvedNames = resolvedMod.get().findExportedSymbolsFor(targetSymbolName.item());
-          var exportsSymbol = !resolvedNames.isEmpty();
-          if (exportsSymbol) {
-            importDefs.add(impIR);
+          if (resolvedMod.isDefined()) {
+            var resolvedNames = resolvedMod.get().findExportedSymbolsFor(targetSymbolName.item());
+            var exportsSymbol = !resolvedNames.isEmpty();
+            if (exportsSymbol) {
+              importDefs.add(impIR);
+            }
           }
         } else {
           var hasSymbolInTargets =
