@@ -199,16 +199,16 @@ private _make_json_for_db_table t max_rows is_column =
 make_json_for_table : Table -> Integer -> Integer -> Boolean -> Boolean -> JS_Object
 make_json_for_table dataframe max_rows all_rows_count is_db_table is_column =
     act_max = if max_rows < all_rows_count then max_rows else all_rows_count
-    get_vector c         = Warning.set (Vector.new act_max i-> make_json_for_value (c.get i)) []
-    columns              = dataframe.columns
-    header               = ["header", columns.map .name]
-    value_type           = ["value_type", columns.map .value_type]
-    all_rows             = ["all_rows_count", all_rows_count]
-    has_index_col        = ["has_index_col", True]
-    links                = ["get_child_node_action", if is_column then "at" else "get_row"]
-    show_status_bar      = ["show_status_bar", if is_db_table then False else True]
-    enable_create_node   = ["enable_create_node", if is_column then False else True]
-    child_label          = ["child_label", "row"]
+    get_vector c          = Warning.set (Vector.new act_max i-> make_json_for_value (c.get i)) []
+    columns               = dataframe.columns
+    header                = ["header", columns.map .name]
+    value_type            = ["value_type", columns.map .value_type]
+    all_rows              = ["all_rows_count", all_rows_count]
+    has_index_col         = ["has_index_col", True]
+    links                 = ["get_child_node_action", if is_column then "at" else "get_row"]
+    use_bottom_status_bar = ["use_bottom_status_bar", if is_db_table then False else True]
+    enable_create_node    = ["enable_create_node", if is_column then False else True]
+    child_label           = ["child_label", "row"]
     is_using_server_model = if is_db_table then False else all_rows_count > 1000
     data                 = if is_using_server_model.not then columns.map get_vector else Nothing
     requires_number_formatting = ["requires_number_format", columns.map .requires_numeric_formatter_check]
@@ -221,7 +221,7 @@ make_json_for_table dataframe max_rows all_rows_count is_db_table is_column =
         number_non_triv = JS_Object.from_pairs [["name", "Count non trivial whitespace" + sampled_label], ["percentage_value", columns.map .count_non_trivial_whitespace]]
         JS_Object.from_pairs
         [number_nothing, number_untrimmed, number_non_triv]
-    pairs                = [header, value_type, ["data", data], all_rows, has_index_col, links, show_status_bar, enable_create_node, ["data_quality_metrics", data_quality_metrics] ,["type", "EnsoTableOrColumn"], child_label, ["is_using_server_sort_and_filter", is_using_server_model], requires_number_formatting, table_version_hash]
+    pairs                = [header, value_type, ["data", data], all_rows, has_index_col, links, use_bottom_status_bar, enable_create_node, ["data_quality_metrics", data_quality_metrics] ,["type", "EnsoTableOrColumn"], child_label, ["is_using_server_sort_and_filter", is_using_server_model], requires_number_formatting, table_version_hash]
     JS_Object.from_pairs pairs
 
 ## PRIVATE

@@ -114,7 +114,7 @@ interface EnsoTableOrColumn {
   visualization_header: string
   data_quality_metrics?: DataQualityMetric[]
   is_using_server_sort_and_filter: boolean
-  show_status_bar: boolean
+  use_bottom_status_bar: boolean
   enable_create_node: boolean
   requires_number_format: boolean[]
   table_version_hash?: string
@@ -183,11 +183,11 @@ const isSSRM = computed(
     props.data.is_using_server_sort_and_filter,
 )
 
-const showStatusBar = computed(
+const useBottomStatusBar = computed(
   () =>
     typeof props.data === 'object' &&
-    'show_status_bar' in props.data &&
-    props.data.show_status_bar,
+    'use_bottom_status_bar' in props.data &&
+    props.data.use_bottom_status_bar,
 )
 
 const isCreateNewNodeEnabled = computed(
@@ -207,24 +207,19 @@ const ssrmDatasource = computed(() => {
   return isSSRM.value && createServerSideDatasource()
 })
 
-const statusBar = computed(() =>
-  allRowCount.value ?
-    {
-      statusPanels:
-      showStatusBar.value ?
-          [
-            {
-              statusPanel: TableVizStatusBar,
-              statusPanelParams: {
-                total: allRowCount.value,
-                filtered: isSSRM.value ? filteredRowCount.value : null,
-              },
-            },
-          ]
-        : [],
-    }
-  : null,
-)
+const statusBar = computed(() => ({
+  statusPanels: useBottomStatusBar.value
+    ? [
+        {
+          statusPanel: TableVizStatusBar,
+          statusPanelParams: {
+            total: allRowCount.value,
+            filtered: isSSRM.value ? filteredRowCount.value : null,
+          },
+        },
+      ]
+    : [],
+}));
 
 const isCreateNodeButtonEnabled = computed(
   () =>
@@ -1043,7 +1038,7 @@ config.setToolbar(
 
 <template>
   <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
-    <template v-if="!showStatusBar">
+    <template v-if="!useBottomStatusBar">
       <div class="table-visualization-status-bar">
         <select
           v-if="isRowCountSelectorVisible"
