@@ -429,7 +429,7 @@ const placeholderSizeProp = computed(() => `--placeholder-${props.axis}` as cons
                   class="item-button"
                   name="close"
                   title="Remove item"
-                  @click="deleteItem(entry.index)"
+                  @activate="deleteItem(entry.index)"
                   @pointerenter="entry.hintDeletable.value = true"
                   @pointerleave="entry.hintDeletable.value = false"
                 />
@@ -456,7 +456,7 @@ const placeholderSizeProp = computed(() => `--placeholder-${props.axis}` as cons
           class="item-button after-last-item"
           name="vector_add"
           title="Add a new item"
-          @click="addItem"
+          @activate="addItem"
         />
       </div>
     </SizeTransition>

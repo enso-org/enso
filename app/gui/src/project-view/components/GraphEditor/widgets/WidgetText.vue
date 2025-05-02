@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
+import {
+  defineWidget,
+  HandledUpdate,
+  Score,
+  WidgetInput,
+  widgetProps,
+} from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { languageExtension } from '@/util/codemirror/language'
 import { computed, ref, useTemplateRef } from 'vue'
+import { Ok } from 'ydoc-shared/util/data/result'
 import CodeMirrorWidgetBase from '../CodeMirrorWidgetBase.vue'
 
 const baseEditor = useTemplateRef('baseEditor')
@@ -15,35 +22,33 @@ function focusEditor() {
   baseEditor.value?.focusEditor()
 }
 
-const textContents = computed({
-  get() {
-    return props.input.value instanceof Ast.TextLiteral ? props.input.value.rawTextContent : ''
-  },
-  set(text) {
-    if (props.input.value instanceof Ast.TextLiteral) {
-      const edit = graph.startEdit()
-      const value = edit.getVersion(props.input.value)
-      if (value.rawTextContent === text) return
+const textContents = computed(() =>
+  props.input.value instanceof Ast.TextLiteral ? props.input.value.rawTextContent : '',
+)
+function acceptValue(text: string): HandledUpdate {
+  if (props.input.value instanceof Ast.TextLiteral) {
+    const edit = graph.startEdit()
+    const value = edit.getVersion(props.input.value)
+    if (value.rawTextContent === text) return Ok()
+    value.setRawTextContent(text)
+    return props.onUpdate({ edit, directInteraction: true })
+  } else {
+    let value: Ast.Owned<Ast.MutableTextLiteral>
+    if (inputTextLiteral.value) {
+      value = Ast.copyIntoNewModule(inputTextLiteral.value)
       value.setRawTextContent(text)
-      props.onUpdate({ edit, directInteraction: true })
     } else {
-      let value: Ast.Owned<Ast.MutableTextLiteral>
-      if (inputTextLiteral.value) {
-        value = Ast.copyIntoNewModule(inputTextLiteral.value)
-        value.setRawTextContent(text)
-      } else {
-        value = Ast.TextLiteral.new(text)
-      }
-      props.onUpdate({
-        portUpdate: {
-          value,
-          origin: props.input.portId,
-        },
-        directInteraction: true,
-      })
+      value = Ast.TextLiteral.new(text)
     }
-  },
-})
+    return props.onUpdate({
+      portUpdate: {
+        value,
+        origin: props.input.portId,
+      },
+      directInteraction: true,
+    })
+  }
+}
 
 const syntaxLanguage = computed(() =>
   props.input.dynamicConfig?.kind === 'Text_Input' ? props.input.dynamicConfig.syntax : undefined,
@@ -127,6 +132,7 @@ export const widgetDefinition = defineWidget(
       :extensions="extensions"
       :input="input"
       :transformUserInput="makeLiteralFromUserInput"
+      :onAccepted="acceptValue"
       @textEdited="onTextEdited"
     />
     <NodeWidget

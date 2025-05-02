@@ -76,14 +76,14 @@ export const colorForMessageType: Record<MessageType, string> = {
         name="edit"
         class="fixImportButton"
         title="Fix Import"
-        @click="fixImport"
+        @activate="fixImport"
       />
       <SvgButton
         v-if="!containsLibraryName()"
         name="copy2"
         class="copyButton"
         title="Copy message text"
-        @click="copyText"
+        @activate="copyText"
       />
     </div>
   </div>

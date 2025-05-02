@@ -95,13 +95,13 @@ defineExpose({
           name="connector_add"
           :disabled="insertLink == null"
           title="Insert link"
-          @click="insertLink?.()"
+          @activate="insertLink?.()"
         />
         <SvgButton
           name="code"
           :disabled="insertCodeBlock == null"
           title="Insert code block"
-          @click="insertCodeBlock?.()"
+          @activate="insertCodeBlock?.()"
         />
       </template>
       <slot name="toolbarRight" />

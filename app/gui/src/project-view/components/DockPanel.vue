@@ -69,7 +69,7 @@ const tabStyle = {
               :class="{ activeTab: currentTab === tab }"
               :style="tabStyle"
             >
-              <SvgButton :title="title" :name="icon" @click="currentTab = tab" />
+              <SvgButton :title="title" :name="icon" @activate="currentTab = tab" />
             </div>
           </div>
           <ResizeHandles

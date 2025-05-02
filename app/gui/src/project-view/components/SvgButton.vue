@@ -10,11 +10,11 @@ const _props = defineProps<{
   disabled?: boolean | undefined
   title?: string | undefined
 }>()
-const emit = defineEmits<{ click: [] }>()
+const emit = defineEmits<{ activate: [] }>()
 </script>
 
 <template>
-  <MenuButton :disabled="disabled" class="SvgButton" :title="title" @click="emit('click')">
+  <MenuButton :disabled="disabled" class="SvgButton" :title="title" @activate="emit('activate')">
     <SvgIcon v-if="name" :name="name" />
     <div v-if="label">{{ label }}</div>
   </MenuButton>
