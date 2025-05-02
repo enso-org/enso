@@ -208,8 +208,9 @@ const ssrmDatasource = computed(() => {
 })
 
 const statusBar = computed(() => ({
-  statusPanels: useBottomStatusBar.value
-    ? [
+  statusPanels:
+    useBottomStatusBar.value ?
+      [
         {
           statusPanel: TableVizStatusBar,
           statusPanelParams: {
@@ -219,7 +220,7 @@ const statusBar = computed(() => ({
         },
       ]
     : [],
-}));
+}))
 
 const isCreateNodeButtonEnabled = computed(
   () =>
@@ -824,10 +825,7 @@ watchEffect(() => {
 
     if (!data_.is_using_server_sort_and_filter) {
       const shift = data_.type === 'EnsoTableOrColumn' ? 1 : 0
-      rowData.value =
-        data_.data ?
-          createRowsForTable(data_.data, shift, false)
-        : []
+      rowData.value = data_.data ? createRowsForTable(data_.data, shift, false) : []
     }
   }
   const headerGroupingMap = new Map()
