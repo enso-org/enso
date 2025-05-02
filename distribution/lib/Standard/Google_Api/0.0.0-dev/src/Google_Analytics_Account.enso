@@ -73,10 +73,15 @@ type Google_Analytics_Account_Filter
     ## PRIVATE
     default_widget self_arg cache display:Display=..Always -> Widget =
         _ = self_arg
+
         default = [Option "<All>" "..All_Accounts", Option "<Account>" "..Account", Option "<Multiple Accounts>" "..Accounts"]
-        Panic.catch Any handler=_->(make_single_choice default) <|
-            credentials = cache.if_not_nothing <| cache "credentials"
-            options = Google_Analytics.list_accounts credentials=(credentials.if_nothing Google_Credential.Default) limit=(..First 10) . map p->(Option (p.name + " (" + p.id + ")") "..Account "+p.id.pretty)
+
+        credentials = cache.if_not_nothing <| cache "credentials"
+        used_credentials = if credentials != Nothing then credentials else Google_Credential.default
+
+        accounts = Google_Analytics.list_accounts credentials=used_credentials limit=(..First 10)
+        if accounts.is_error then make_single_choice default else
+            options = accounts . map p->(Option (p.name + " (" + p.id + ")") "..Account "+p.id.pretty)
             make_single_choice default+options display=display
 
     ## PRIVATE
