@@ -56,7 +56,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Archive Engine Distribution
-        run: tar -cvf built-distribution.tar built-distribution
+        run: tar -cvf built-distribution.tar built-distribution test
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
@@ -116,7 +116,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Archive Engine Distribution
-        run: tar -cvf built-distribution.tar built-distribution
+        run: tar -cvf built-distribution.tar built-distribution test
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
@@ -174,7 +174,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Archive Engine Distribution
-        run: tar -cvf built-distribution.tar built-distribution
+        run: tar -cvf built-distribution.tar built-distribution test
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
@@ -233,7 +233,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Archive Engine Distribution
-        run: tar -cvf built-distribution.tar built-distribution
+        run: tar -cvf built-distribution.tar built-distribution test
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
@@ -292,7 +292,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Archive Engine Distribution
-        run: tar -cvf built-distribution.tar built-distribution
+        run: tar -cvf built-distribution.tar built-distribution test
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
@@ -349,7 +349,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: rm -rf built-distribution
+      - run: rm -rf built-distribution test
         shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
@@ -422,7 +422,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: rm -rf built-distribution
+      - run: rm -rf built-distribution test
         shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
@@ -493,7 +493,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: rm -rf built-distribution
+      - run: rm -rf built-distribution test
         shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
@@ -565,7 +565,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: rm -rf built-distribution
+      - run: rm -rf built-distribution test
         shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
@@ -637,7 +637,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: rm -rf built-distribution
+      - run: rm -rf built-distribution test
         shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
@@ -709,7 +709,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: rm -rf built-distribution
+      - run: rm -rf built-distribution test
         shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
@@ -768,9 +768,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-      - run: ./run backend ci-build-engine-distribution
-      - run: ./run git-clean
+      - run: rm -rf built-distribution test
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
@@ -845,9 +844,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-      - run: ./run backend ci-build-engine-distribution
-      - run: ./run git-clean
+      - run: rm -rf built-distribution test
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
@@ -920,9 +918,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-      - run: ./run backend ci-build-engine-distribution
-      - run: ./run git-clean
+      - run: rm -rf built-distribution test
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
@@ -996,9 +993,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-      - run: ./run backend ci-build-engine-distribution
-      - run: ./run git-clean
+      - run: rm -rf built-distribution test
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
@@ -1072,9 +1068,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-      - run: ./run backend ci-build-engine-distribution
-      - run: ./run git-clean
+      - run: rm -rf built-distribution test
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
@@ -1149,9 +1144,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-      - run: ./run backend ci-build-engine-distribution
-      - run: ./run git-clean
+      - run: rm -rf built-distribution test
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
@@ -1224,9 +1218,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-      - run: ./run backend ci-build-engine-distribution
-      - run: ./run git-clean
+      - run: rm -rf built-distribution test
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
@@ -1300,9 +1293,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-      - run: ./run backend ci-build-engine-distribution
-      - run: ./run git-clean
+      - run: rm -rf built-distribution test
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
@@ -1376,9 +1368,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-      - run: ./run backend ci-build-engine-distribution
-      - run: ./run git-clean
+      - run: rm -rf built-distribution test
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
@@ -1452,9 +1443,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run git-clean
-      - run: ./run backend ci-build-engine-distribution
-      - run: ./run git-clean
+      - run: rm -rf built-distribution test
+        shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:

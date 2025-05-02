@@ -237,7 +237,10 @@ impl JobArchetype for JvmTests {
         let mut job = RunStepsBuilder::new("backend test jvm")
             .customize(move |step| {
                 let cleanup_engine_distribution = Step {
-                    run: Some("rm -rf built-distribution".into()),
+                    run: Some(format!(
+                        "rm -rf {}",
+                        built_distribution_directories(engine_launcher)
+                    )),
                     shell: Some(Shell::Bash),
                     ..Default::default()
                 };
@@ -342,13 +345,11 @@ impl JobArchetype for StandardLibraryTests {
         let job_name = format!("Standard Library Tests ({graal_edition}) ({job_mode_name})");
         let run_command = format!("backend test {test_scope}");
         let run_steps_builder = RunStepsBuilder::new(run_command).customize(move |step| {
-            let build_engine_distribution = Step {
-                run: Some("./run backend ci-build-engine-distribution".into()),
+            let cleanup_engine_distribution = Step {
+                run: Some(format!("rm -rf {}", built_distribution_directories(engine_launcher))),
+                shell: Some(Shell::Bash),
                 ..Default::default()
             };
-
-            let cleanup_engine_distribution =
-                Step { run: Some("./run git-clean".into()), ..Default::default() };
 
             let download_engine_distribution =
                 step::download_engine_distribution(target, engine_launcher, graal_edition);
@@ -382,8 +383,6 @@ rm built-distribution.tar
                 if should_enable_cloud_tests { enable_cloud_tests(main_step) } else { main_step };
 
             vec![
-                cleanup_engine_distribution.clone(),
-                build_engine_distribution,
                 cleanup_engine_distribution,
                 download_engine_distribution,
                 unpack_engine_distribution,
@@ -458,7 +457,10 @@ impl JobArchetype for StandardLibraryApiCheck {
         let job = RunStepsBuilder::new(run_command)
             .customize(move |step| {
                 let cleanup_engine_distribution = Step {
-                    run: Some("rm -rf built-distribution".into()),
+                    run: Some(format!(
+                        "rm -rf {}",
+                        built_distribution_directories(engine_launcher)
+                    )),
                     shell: Some(Shell::Bash),
                     ..Default::default()
                 };
@@ -650,7 +652,10 @@ impl JobArchetype for SnowflakeTests {
                 let updated_main_step = enable_cloud_tests(main_step);
 
                 let cleanup_engine_distribution = Step {
-                    run: Some("rm -rf built-distribution".into()),
+                    run: Some(format!(
+                        "rm -rf {}",
+                        built_distribution_directories(engine_launcher)
+                    )),
                     shell: Some(Shell::Bash),
                     ..Default::default()
                 };
@@ -1047,6 +1052,14 @@ pub struct BuildEngineDistribution {
     pub engine_launcher: engine::EngineLauncher,
 }
 
+fn built_distribution_directories(engine_launcher: engine::EngineLauncher) -> String {
+    format!("built-distribution{}", match engine_launcher {
+        engine::EngineLauncher::TestNative => " test",
+        engine::EngineLauncher::TestDebugNative => " test",
+        _ => "",
+    })
+}
+
 impl JobArchetype for BuildEngineDistribution {
     fn job(&self, target: Target) -> Job {
         let engine_launcher = self.engine_launcher;
@@ -1057,7 +1070,10 @@ impl JobArchetype for BuildEngineDistribution {
             .customize(move |step| {
                 let archive_engine_distribution = Step {
                     name: Some("Archive Engine Distribution".into()),
-                    run: Some("tar -cvf built-distribution.tar built-distribution".into()),
+                    run: Some(format!(
+                        "tar -cvf built-distribution.tar {}",
+                        built_distribution_directories(engine_launcher)
+                    )),
                     ..Default::default()
                 };
 
