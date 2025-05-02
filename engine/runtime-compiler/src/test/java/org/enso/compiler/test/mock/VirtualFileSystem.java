@@ -19,8 +19,8 @@ import java.util.stream.Stream;
 import org.enso.filesystem.FileSystem;
 
 /**
- * {@link FileSystem} implementation that keeps all the created files in memory. Does not access the
- * real file system.
+ * {@link FileSystem} implementation that works on a generic {@link Path}. More specifically, it
+ * respects different {@link java.nio.file.spi.FileSystemProvider file system providers}.
  */
 final class VirtualFileSystem implements FileSystem<Path>, AutoCloseable {
   private static final String ROOT_FILE_NAME = "root";
@@ -63,6 +63,10 @@ final class VirtualFileSystem implements FileSystem<Path>, AutoCloseable {
         });
   }
 
+  /**
+   * Creates a VFS implementation that keeps all the created files in memory and does not access the
+   * real file system.
+   */
   public static VirtualFileSystem create() {
     var fs = Jimfs.newFileSystem(Configuration.unix());
     var inMemoryRoot = fs.getPath("/");

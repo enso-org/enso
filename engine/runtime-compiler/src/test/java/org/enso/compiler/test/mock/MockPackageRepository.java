@@ -30,8 +30,8 @@ import scala.util.Left;
 import scala.util.Right;
 
 /**
- * {@link PackageRepository} emulating {@link org.apache.commons.vfs2.FileObject} as its
- * type member ({@code PackageRepository#TFile}).
+ * {@link PackageRepository} emulating {@link org.apache.commons.vfs2.FileObject} as its type member
+ * ({@code PackageRepository#TFile}).
  */
 final class MockPackageRepository implements PackageRepository {
   private static final Logger LOGGER = LoggerFactory.getLogger(MockPackageRepository.class);
