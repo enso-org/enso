@@ -78,6 +78,26 @@ public class UnusedImportsTest {
     expectWarning(imp, List.of("local.Proj.Module.My_Type_2"));
   }
 
+  @Test
+  public void unusedSymbols() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type My_Type_1
+            type My_Type_2
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import My_Type_1, My_Type_2
+            main = 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    var imp = mainMod.getIr().imports().apply(0);
+    expectWarning(imp, List.of("local.Proj.Module.My_Type_1", "local.Proj.Module.My_Type_2"));
+  }
+
   private static void expectWarning(Import importIr, List<String> expectedUnusedSymbols) {
     var warn = getSingleWarning(importIr);
     var actualUnusedSymbols = CollectionConverters.asJava(warn.unusedSymbols());
