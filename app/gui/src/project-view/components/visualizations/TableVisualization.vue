@@ -137,7 +137,6 @@ const INDEX_FIELD_NAME = '#'
 const TABLE_NODE_TYPE = 'Standard.Table.Table.Table'
 const DB_TABLE_NODE_TYPE = 'Standard.Database.DB_Table.DB_Table'
 const COLUMN_NODE_TYPE = 'Standard.Table.Column.Column'
-const ROW_NODE_TYPE = 'Standard.Table.Row.Row'
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -652,9 +651,7 @@ function createNode(
   const selectorKey = params.data[selector]
   const castSelector =
     castValueTypes === 'number' && !isNaN(Number(selectorKey)) ? Number(selectorKey) : selectorKey
-  const identifierAction =
-    config.nodeType === (COLUMN_NODE_TYPE) ? 'at' : action
-  const pattern = getAstPattern(castSelector, identifierAction)
+  const pattern = getAstPattern(castSelector, action)
   if (pattern) {
     config.createNodes({
       content: pattern,
@@ -816,9 +813,6 @@ watchEffect(() => {
             castValueTypes: data_.link_value_type,
           })
         }
-        if (config.nodeType === ROW_NODE_TYPE) {
-          return toRowField(v, i, valueType)
-        }
         return toField(v, { index: i, valueType })
       }) ?? []
 
@@ -835,14 +829,9 @@ watchEffect(() => {
       : dataHeader
 
     if (!data_.is_using_server_sort_and_filter) {
-      const hasIndexRow =
-        config.nodeType === TABLE_NODE_TYPE ||
-        config.nodeType === COLUMN_NODE_TYPE ||
-        config.nodeType === DB_TABLE_NODE_TYPE
-      const shift = hasIndexRow ? 1 : 0
       rowData.value =
         data_.data ?
-          createRowsForTable(data_.data, shift, data_.is_using_server_sort_and_filter)
+          createRowsForTable(data_.data, 1, false)
         : []
     }
   }

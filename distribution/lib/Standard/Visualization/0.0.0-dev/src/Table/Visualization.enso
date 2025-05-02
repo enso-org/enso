@@ -31,7 +31,7 @@ prepare_visualization y max_rows=1000 = if y.is_error then (make_json_for_error 
         t : Table ->
             all_rows_count = t.row_count
             make_json_for_table t max_rows all_rows_count False
-        c : Column -> prepare_visualization c.to_table max_rows
+        c : Column -> make_json_for_table c.to_table max_rows c.length False child_node_action="at"
         t : DB_Table ->
             dataframe = t.read (..First max_rows)
             case dataframe.is_error of
@@ -193,8 +193,8 @@ make_json_for_xml_element xml_element max_items type:Text="XML_Element" =
      to display.
    - all_rows_count: the number of all rows in the underlying data, useful if
      only a fragment is displayed.
-make_json_for_table : Table -> Integer -> Integer -> Boolean -> JS_Object
-make_json_for_table dataframe max_rows all_rows_count is_db_table =
+make_json_for_table : Table -> Integer -> Integer -> Boolean -> Text -> JS_Object
+make_json_for_table dataframe max_rows all_rows_count is_db_table child_node_action="get_row" =
     act_max = if max_rows < all_rows_count then max_rows else all_rows_count
     get_vector c         = Warning.set (Vector.new act_max i-> make_json_for_value (c.get i)) []
     columns              = dataframe.columns
@@ -202,7 +202,7 @@ make_json_for_table dataframe max_rows all_rows_count is_db_table =
     value_type           = ["value_type", columns.map .value_type]
     all_rows             = ["all_rows_count", all_rows_count]
     has_index_col        = ["has_index_col", True]
-    links                = ["get_child_node_action", "get_row"]
+    links                = ["get_child_node_action", child_node_action]
     child_label          = ["child_label", "row"]
     is_using_server_model = if is_db_table then False else all_rows_count > 1000
     data                 = if is_using_server_model.not then columns.map get_vector else Nothing
