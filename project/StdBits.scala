@@ -310,7 +310,7 @@ object StdBits {
     )
     val outputJnaJarPath =
       (tableauPolyglotRoot / s"jna-${validOsName}-wrappercopy.jar").toPath
-    val outputJnaJar  = outputJnaJarPath.toFile
+    val outputJnaJar = outputJnaJarPath.toFile
     IO.copyFile(jnaJar, outputJnaJar)
     AnalysisOfExtractedNativeLibs(extractedTableau :: Nil)
   }
