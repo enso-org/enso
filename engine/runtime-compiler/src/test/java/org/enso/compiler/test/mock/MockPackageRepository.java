@@ -57,7 +57,7 @@ final class MockPackageRepository implements PackageRepository {
       return vfs.listAllFiles();
     } catch (IOException e) {
       LOGGER.error("Failed to list files in VFS", e);
-      return null;
+      return "Failed to list files in VFS";
     }
   }
 
