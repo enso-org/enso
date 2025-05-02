@@ -427,13 +427,48 @@ rm built-distribution.tar
 /// Job that runs Enso lint checks (type checker, later formatting) on the Enso
 /// standard libraries and tests.
 #[derive(Clone, Copy, Debug)]
-pub struct EnsoCodeLintCheck;
+pub struct EnsoCodeLintCheck {
+    pub graal_edition:   graalvm::Edition,
+    pub engine_launcher: engine::EngineLauncher,
+}
 
 impl JobArchetype for EnsoCodeLintCheck {
     fn job(&self, target: Target) -> Job {
-        let job_name = "Enso Code Lint";
-        let run_command = "libraries lint";
-        let mut job = RunStepsBuilder::new(run_command).build_job(job_name, target);
+        let graal_edition = self.graal_edition;
+        let engine_launcher = self.engine_launcher;
+        let mut job = RunStepsBuilder::new("libraries lint")
+            .customize(move |step| {
+                let cleanup_engine_distribution = Step {
+                    run: Some(format!(
+                        "rm -rf {}",
+                        built_distribution_directories(engine_launcher)
+                    )),
+                    shell: Some(Shell::Bash),
+                    ..Default::default()
+                };
+
+                let download_engine_distribution =
+                    step::download_engine_distribution(target, engine_launcher, graal_edition);
+
+                let unpack_engine_distribution = Step {
+                    name: Some("Unpack Engine Distribution".into()),
+                    run: Some(
+                        "tar -xvf built-distribution.tar
+rm built-distribution.tar
+"
+                        .into(),
+                    ),
+                    ..Default::default()
+                };
+
+                vec![
+                    cleanup_engine_distribution,
+                    download_engine_distribution,
+                    unpack_engine_distribution,
+                    step,
+                ]
+            })
+            .build_job("Enso Code Lint", target);
         job.env(crate::libraries_tests::env::ENSO_LINT_ENABLE_GITHUB_ANNOTATIONS, "true");
         job
     }

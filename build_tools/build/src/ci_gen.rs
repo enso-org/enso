@@ -635,6 +635,11 @@ pub fn add_backend_checks_customized(
             job::StandardLibraryApiCheck { graal_edition, engine_launcher },
             &[&build_engine_distribution_id],
         );
+        workflow.add_dependent(
+            PRIMARY_TARGET,
+            job::EnsoCodeLintCheck { graal_edition, engine_launcher },
+            &[&build_engine_distribution_id],
+        );
     }
 
     // Engine distribution is required to run project manager tests.
@@ -856,7 +861,6 @@ pub fn engine_checks() -> Result<Workflow> {
     };
     let engine_launcher = engine::EngineLauncher::TestNative;
     workflow.add(PRIMARY_TARGET, job::VerifyLicensePackages);
-    workflow.add(PRIMARY_TARGET, job::EnsoCodeLintCheck);
     for target in PR_REQUIRED_TARGETS {
         add_backend_checks(&mut workflow, target, graalvm::Edition::Community, engine_launcher);
     }
