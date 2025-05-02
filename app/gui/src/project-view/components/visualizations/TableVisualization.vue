@@ -142,6 +142,7 @@ const page = ref(0)
 const pageLimit = ref(0)
 const rowCount = ref(0)
 const filteredRowCount = ref(null)
+const showRowCount = ref(true)
 const isTruncated = ref(false)
 const filterModel = ref<GridFilterModel[]>([])
 const sortModel = ref<SortModel[]>([])
@@ -882,6 +883,7 @@ watchEffect(() => {
 
   // Update paging
   const newRowCount = data_.all_rows_count == null ? 1 : data_.all_rows_count
+  showRowCount.value = !(data_.all_rows_count == null)
   rowCount.value = newRowCount
   const newPageLimit = Math.ceil(newRowCount / rowLimit.value)
   pageLimit.value = newPageLimit
@@ -1043,7 +1045,7 @@ config.setToolbar(
 
 <template>
   <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
-    <template v-if="!isSSRM && isRowCountSelectorVisible">
+    <template v-if="!showStatusBar">
       <div class="table-visualization-status-bar">
         <select
           v-if="isRowCountSelectorVisible"
@@ -1056,7 +1058,7 @@ config.setToolbar(
             v-text="limit"
           ></option>
         </select>
-
+        <template v-if="showRowCount">
           <span
             v-if="isRowCountSelectorVisible && isTruncated"
             v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
@@ -1064,7 +1066,7 @@ config.setToolbar(
           <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
           <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
           <span v-else v-text="`${rowCount} rows.`"></span>
-
+        </template>
       </div>
     </template>
     <!-- TODO[ao]: Suspence in theory is not needed here (the entire visualization is inside
