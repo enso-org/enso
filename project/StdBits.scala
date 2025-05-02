@@ -45,7 +45,7 @@ object StdBits {
     ignoreUnmanagedDependency: Option[File => Boolean] = None,
     previousRun: Option[AnalysisOfExtractedNativeLibs] = None
   ): Unit = {
-
+    System.gc()
     val baseFilter: NameFilter = new ExactFilter(Configurations.Runtime.name)
     val validConfig =
       if (ignoreScalaLibrary)
@@ -246,7 +246,7 @@ object StdBits {
     tableauPolyglotRoot: File,
     tableauNativeLibs: File,
     tableauVersion: String,
-    jnaVersion: String,
+    jnaJar: File,
     logger: ManagedLogger,
     updateReport: UpdateReport,
     unmanagedClasspath: Classpath,
@@ -256,7 +256,7 @@ object StdBits {
     previousRun: Option[AnalysisOfExtractedNativeLibs]
   ): AnalysisOfExtractedNativeLibs = {
     if (previousRun.exists(!_.isOutdated)) {
-      return previousRun.get
+      // return previousRun.get
     }
     val validOsName = osName(unixName = true)
     val validOsExt  = osExt()
@@ -308,38 +308,11 @@ object StdBits {
       extractedTableauLibs.getOrElse(Nil),
       None
     )
-
-    // Extract native library from jna's jar
-    val jnaJar = JPMSUtils
-      .filterModulesFromUpdate(
-        updateReport,
-        Seq("net.java.dev.jna" % "jna" % jnaVersion),
-        logger,
-        moduleName,
-        scalaBinaryVersion,
-        shouldContainAll = true
-      )
-      .head
     val outputJnaJarPath =
-      (tableauPolyglotRoot / s"jna-${validOsName}-$jnaVersion.jar").toPath
+      (tableauPolyglotRoot / s"jna-${validOsName}-wrappercopy.jar").toPath
     val outputJnaJar  = outputJnaJarPath.toFile
-    val extractPrefix = "com/sun/jna"
-    val extractedJnaLibs = JARUtils.extractFilesFromJar(
-      jnaJar.toPath,
-      Some(extractPrefix),
-      Some(outputJnaJarPath),
-      extractedFilesDir,
-      renameFunc(extractPrefix),
-      logger,
-      cacheStoreFactory,
-      previousRun.flatMap(_.forJar(jnaJar))
-    )
-    val extractedJna = ExtractedNativeLibSummary(
-      jnaJar,
-      extractedJnaLibs.getOrElse(Nil),
-      Some(outputJnaJar)
-    )
-    AnalysisOfExtractedNativeLibs(extractedTableau :: extractedJna :: Nil)
+    IO.copyFile(jnaJar, outputJnaJar)
+    AnalysisOfExtractedNativeLibs(extractedTableau :: Nil)
   }
 
   /** Extract native libraries from `grpc-netty-shaded-<version>.jar` and put them under

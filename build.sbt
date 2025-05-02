@@ -1274,7 +1274,6 @@ lazy val `scala-libs-wrapper` = project
       "org.slf4j"                              % "slf4j-api"             % slf4jVersion,
       "org.typelevel"                         %% "cats-core"             % catsVersion,
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
-      "net.java.dev.jna"                       % "jna"                   % jnaVersion
     ),
     Compile / moduleDependencies ++= scalaLibrary ++ scalaReflect ++ Seq(
       "org.slf4j" % "slf4j-api" % slf4jVersion
@@ -1286,7 +1285,6 @@ lazy val `scala-libs-wrapper` = project
         scalaReflect ++
         Seq(
           "org.slf4j"        % "slf4j-api" % slf4jVersion,
-          "net.java.dev.jna" % "jna"       % jnaVersion
         ),
         streams.value.log,
         moduleName.value,
@@ -1399,6 +1397,9 @@ lazy val `jna-wrapper` = project
       Map(
         javaModuleName.value -> jna
       )
+    },
+    assemblyMergeStrategy := {
+      case _ => MergeStrategy.preferProject
     }
   )
 
@@ -1409,9 +1410,8 @@ lazy val `directory-watcher-wrapper` = project
     modularFatJarWrapperSettings,
     scalaModuleDependencySetting,
     libraryDependencies ++= Seq(
-      "io.methvin"       % "directory-watcher" % directoryWatcherVersion,
-      "org.slf4j"        % "slf4j-api"         % "1.7.36",
-      "net.java.dev.jna" % "jna"               % jnaVersion
+      "io.methvin"       % "directory-watcher" % directoryWatcherVersion exclude("net.java.dev.jna", "jna"),
+      "org.slf4j"        % "slf4j-api"         % "1.7.36"
     ),
     javaModuleName := "org.enso.directory.watcher.wrapper",
     assembly / assemblyExcludedJars := {
@@ -1420,7 +1420,6 @@ lazy val `directory-watcher-wrapper` = project
         scalaLibrary ++
         Seq(
           "org.slf4j"        % "slf4j-api" % "1.7.36",
-          "net.java.dev.jna" % "jna"       % jnaVersion
         ),
         streams.value.log,
         moduleName.value,
@@ -5520,7 +5519,6 @@ lazy val `std-tableau` = project
       `std-tableau-polyglot-root` / "std-tableau.jar",
     libraryDependencies ++= Seq(
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "net.java.dev.jna" % "jna-platform"            % jnaVersion
     ),
     // Extract native libraries from tableau's jar, and put them under
     // Standard/Tableau/polyglot/lib directory.
@@ -5555,7 +5553,7 @@ lazy val `std-tableau` = project
           `std-tableau-polyglot-root`,
           `std-tableau-native-libs`,
           tableauVersion,
-          jnaVersion,
+          (`jna-wrapper` / Compile / exportedModule).value,
           updateReport       = libraryUpdates,
           unmanagedClasspath = unmanagedClasspath,
           logger             = logger,
@@ -5591,6 +5589,7 @@ lazy val `std-tableau` = project
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
+  .dependsOn(`jna-wrapper` % "provided")
 
 lazy val fetchZipToUnmanaged =
   taskKey[Seq[Attributed[File]]](
