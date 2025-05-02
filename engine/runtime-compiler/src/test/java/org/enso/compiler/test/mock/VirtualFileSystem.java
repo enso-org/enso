@@ -23,6 +23,7 @@ import org.enso.filesystem.FileSystem;
  * real file system.
  */
 final class VirtualFileSystem implements FileSystem<Path>, AutoCloseable {
+  private static final String ROOT_FILE_NAME = "root";
   private final java.nio.file.FileSystem fileSystem;
   private final Path inMemoryRoot;
 
@@ -206,7 +207,7 @@ final class VirtualFileSystem implements FileSystem<Path>, AutoCloseable {
     }
 
     private static String fileName(Path path) {
-      return path.getFileName() == null ? "root" : path.getFileName().toString();
+      return path.getFileName() == null ? ROOT_FILE_NAME : path.getFileName().toString();
     }
   }
 }
