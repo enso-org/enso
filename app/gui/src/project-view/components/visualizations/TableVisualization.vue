@@ -623,13 +623,6 @@ function toField(
   }
 }
 
-function toRowField(name: string, index: number, valueType?: ValueType | null | undefined) {
-  return {
-    ...toField(name, { index, valueType }),
-    cellDataType: false,
-  }
-}
-
 function getAstPattern(selector?: string | number, action?: string) {
   if (action && selector != null) {
     return Pattern.new<Ast.Expression>((ast) =>
