@@ -277,7 +277,6 @@ impl RunContext {
             ide_ci::future::perhaps(self.config.test_java_generated_from_rust, || {
                 crate::rust::parser::run_self_tests(&self.paths.repo_root)
             });
-        perhaps_test_java_generated_from_rust_job.await.transpose()?;
 
         // If we have much memory, we can try building everything in a single batch. Reducing number
         // of SBT invocations significantly helps build time. However, it is more memory heavy, so
@@ -369,6 +368,8 @@ impl RunContext {
             }
             None => {}
         }
+
+        perhaps_test_java_generated_from_rust_job.await.transpose()?;
 
         // === Stdlib API check ===
         if self.config.stdlib_api_check {
