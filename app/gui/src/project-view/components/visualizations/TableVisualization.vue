@@ -52,7 +52,7 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = number | string | Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
+type Data = number | string | Error | Matrix | ObjectMatrix | EnsoTableOrColumn | Excel_Workbook
 
 interface Error {
   type: undefined
@@ -98,11 +98,8 @@ interface ObjectMatrix {
   visualization_header: string
 }
 
-interface UnknownTable {
-  // This is INCORRECT. It is actually a string, however we do not need to access this.
-  // Setting it to `string` breaks the discriminated union detection that is being used to
-  // distinguish `Matrix` and `ObjectMatrix`.
-  type: undefined
+interface EnsoTableOrColumn {
+  type: 'EnsoTableOrColumn'
   json: unknown
   all_rows_count?: number
   header: string[] | undefined
@@ -838,9 +835,10 @@ watchEffect(() => {
       : dataHeader
 
     if (!data_.is_using_server_sort_and_filter) {
+      const shift = data_.type === 'EnsoTableOrColumn' ? 1 : 0
       rowData.value =
         data_.data ?
-          createRowsForTable(data_.data, 1, false)
+          createRowsForTable(data_.data, shift, false)
         : []
     }
   }
