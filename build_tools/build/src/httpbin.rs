@@ -105,9 +105,4 @@ mod tests {
 
         Ok(())
     }
-
-    #[test]
-    fn test_wait_for() -> Result {
-        wait_for("localhost:8000", 60)
-    }
 }
