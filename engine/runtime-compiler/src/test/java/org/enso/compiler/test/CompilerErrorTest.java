@@ -8,13 +8,13 @@ import static org.junit.Assert.fail;
 
 import org.enso.compiler.core.ir.expression.errors.Redefined;
 import org.enso.compiler.test.mock.DiagnosticException;
-import org.enso.compiler.test.mock.WithMockCompilerContext;
+import org.enso.compiler.test.mock.WithCompilerContext;
 import org.enso.pkg.QualifiedName;
 import org.junit.Rule;
 import org.junit.Test;
 
 public final class CompilerErrorTest {
-  @Rule public final WithMockCompilerContext compilerCtx = WithMockCompilerContext.createDefault();
+  @Rule public final WithCompilerContext compilerCtx = WithCompilerContext.createDefault();
 
   @Test
   public void variablesIsRedefinedInIfBranch() {

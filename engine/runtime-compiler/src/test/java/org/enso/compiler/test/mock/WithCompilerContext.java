@@ -40,20 +40,20 @@ import scala.jdk.javaapi.CollectionConverters;
  * <p>After modules are created, the {@link #getCompiler() compiler} can be used to compile them.
  * The {@link CompilerResult#compiledModules() compiled IRs} can be inspected afterwards.
  */
-public final class WithMockCompilerContext implements TestRule {
+public final class WithCompilerContext implements TestRule {
   private final MockPackageRepository repo;
   private final ByteArrayOutputStream out;
   private final MockCompilerContext compilerContext;
   private final Compiler compiler;
 
-  private WithMockCompilerContext(ByteArrayOutputStream out, CompilerConfig compilerCfg) {
+  private WithCompilerContext(ByteArrayOutputStream out, CompilerConfig compilerCfg) {
     this.repo = MockPackageRepository.create();
     this.out = out;
     this.compilerContext = new MockCompilerContext(repo, new PrintStream(out));
     this.compiler = new Compiler(compilerContext, repo, compilerCfg);
   }
 
-  public static WithMockCompilerContext createDefault() {
+  public static WithCompilerContext createDefault() {
     return new Builder().build();
   }
 
@@ -145,7 +145,7 @@ public final class WithMockCompilerContext implements TestRule {
       return this;
     }
 
-    public WithMockCompilerContext build() {
+    public WithCompilerContext build() {
       var out = new ByteArrayOutputStream();
       var compilerCfg =
           compilerConfigBldr
@@ -156,7 +156,7 @@ public final class WithMockCompilerContext implements TestRule {
               .isLintingDisabled(false)
               .outputRedirect(scala.Some.apply(new PrintStream(out)))
               .build();
-      return new WithMockCompilerContext(out, compilerCfg);
+      return new WithCompilerContext(out, compilerCfg);
     }
   }
 }
