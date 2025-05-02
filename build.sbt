@@ -613,7 +613,7 @@ val bouncyCastle = Seq(
 val jlineVersion = "3.26.3"
 val jline = Seq(
   "org.jline" % "jline-terminal"     % jlineVersion,
-  "org.jline" % "jline-terminal-jna" % jlineVersion,
+  "org.jline" % "jline-terminal-jni" % jlineVersion,
   "org.jline" % "jline-reader"       % jlineVersion,
   "org.jline" % "jline-native"       % jlineVersion
 )
@@ -1250,8 +1250,7 @@ lazy val `scala-libs-wrapper` = project
     libraryDependencies ++= circe ++ scalaReflect ++ slf4jApi ++ Seq(
       "com.typesafe.scala-logging"            %% "scala-logging"         % scalaLoggingVersion,
       "org.typelevel"                         %% "cats-core"             % catsVersion,
-      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
-      "net.java.dev.jna"                       % "jna"                   % jnaVersion
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion
     ),
     Compile / moduleDependencies ++= scalaLibrary ++ scalaReflect ++ Seq(
       "org.slf4j" % "slf4j-api" % slf4jVersion
@@ -1376,6 +1375,9 @@ lazy val `jna-wrapper` = project
       Map(
         javaModuleName.value -> jna
       )
+    },
+    assemblyMergeStrategy := { case _ =>
+      MergeStrategy.preferProject
     }
   )
 
@@ -1386,7 +1388,7 @@ lazy val `directory-watcher-wrapper` = project
     modularFatJarWrapperSettings,
     scalaModuleDependencySetting,
     libraryDependencies ++= slf4jApi ++ Seq(
-      "io.methvin"       % "directory-watcher" % directoryWatcherVersion,
+      "io.methvin"       % "directory-watcher" % directoryWatcherVersion exclude ("net.java.dev.jna", "jna"),
       "net.java.dev.jna" % "jna"               % jnaVersion
     ),
     javaModuleName := "org.enso.directory.watcher.wrapper",
@@ -5455,8 +5457,7 @@ lazy val `std-tableau` = project
     Compile / packageBin / artifactPath :=
       `std-tableau-polyglot-root` / "std-tableau.jar",
     libraryDependencies ++= Seq(
-      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "net.java.dev.jna" % "jna-platform"            % jnaVersion
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     // Extract native libraries from tableau's jar, and put them under
     // Standard/Tableau/polyglot/lib directory.
@@ -5485,13 +5486,12 @@ lazy val `std-tableau` = project
           unmanagedClasspath = unmanagedClasspath,
           previousRun        = prev
         )
-
       StdBits
         .extractNativeLibsFromTableau(
           `std-tableau-polyglot-root`,
           `std-tableau-native-libs`,
           tableauVersion,
-          jnaVersion,
+          (`jna-wrapper` / Compile / exportedModule).value,
           updateReport       = libraryUpdates,
           unmanagedClasspath = unmanagedClasspath,
           logger             = logger,
@@ -5527,6 +5527,7 @@ lazy val `std-tableau` = project
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
+  .dependsOn(`jna-wrapper` % "provided")
 
 lazy val fetchZipToUnmanaged =
   taskKey[Seq[Attributed[File]]](
