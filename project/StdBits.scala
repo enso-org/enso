@@ -246,6 +246,7 @@ object StdBits {
     tableauPolyglotRoot: File,
     tableauNativeLibs: File,
     tableauVersion: String,
+    jnaVersion: String,
     jnaJar: File,
     logger: ManagedLogger,
     updateReport: UpdateReport,
@@ -309,7 +310,7 @@ object StdBits {
       None
     )
     val outputJnaJarPath =
-      (tableauPolyglotRoot / s"jna-${validOsName}-5.14.0.jar").toPath
+      (tableauPolyglotRoot / s"jna-${validOsName}-${jnaVersion}.jar").toPath
     val outputJnaJar = outputJnaJarPath.toFile
     IO.copyFile(jnaJar, outputJnaJar)
     AnalysisOfExtractedNativeLibs(extractedTableau :: Nil)

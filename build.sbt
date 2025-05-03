@@ -1261,9 +1261,7 @@ lazy val `scala-libs-wrapper` = project
         scalaLibrary ++
         scalaReflect ++
         slf4jApi ++
-        Seq(
-          "net.java.dev.jna" % "jna" % jnaVersion
-        ),
+        Seq(),
         streams.value.log,
         moduleName.value,
         scalaBinaryVersion.value,
@@ -1388,8 +1386,7 @@ lazy val `directory-watcher-wrapper` = project
     modularFatJarWrapperSettings,
     scalaModuleDependencySetting,
     libraryDependencies ++= slf4jApi ++ Seq(
-      "io.methvin"       % "directory-watcher" % directoryWatcherVersion exclude ("net.java.dev.jna", "jna"),
-      "net.java.dev.jna" % "jna"               % jnaVersion
+      "io.methvin" % "directory-watcher" % directoryWatcherVersion exclude ("net.java.dev.jna", "jna")
     ),
     javaModuleName := "org.enso.directory.watcher.wrapper",
     assembly / assemblyExcludedJars := {
@@ -1397,9 +1394,7 @@ lazy val `directory-watcher-wrapper` = project
         (Compile / dependencyClasspath).value,
         scalaLibrary ++
         slf4jApi ++
-        Seq(
-          "net.java.dev.jna" % "jna" % jnaVersion
-        ),
+        Seq(),
         streams.value.log,
         moduleName.value,
         scalaBinaryVersion.value,
@@ -5491,6 +5486,7 @@ lazy val `std-tableau` = project
           `std-tableau-polyglot-root`,
           `std-tableau-native-libs`,
           tableauVersion,
+          jnaVersion,
           (`jna-wrapper` / Compile / exportedModule).value,
           updateReport       = libraryUpdates,
           unmanagedClasspath = unmanagedClasspath,
