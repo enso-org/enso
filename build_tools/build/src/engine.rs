@@ -251,17 +251,6 @@ impl BuildConfigurationResolved {
             config.build_engine_package = true;
         }
 
-        /* TODO: #12845
-        // Check for components that require Enso Engine runner. Basically everything that needs to
-        // run pure Enso code.
-        if config.test_standard_library.is_some()
-            || Self::should_run_enso_benchmarks(&config)
-            || config.check_enso_benchmarks
-        {
-            config.build_engine_package = true;
-        }
-        */
-
         // If we are about to run pure Enso benchmarks, there is no reason to try them in dry run.
         if Self::should_run_enso_benchmarks(&config) {
             config.check_enso_benchmarks = false;
@@ -271,11 +260,6 @@ impl BuildConfigurationResolved {
             config.generate_java_from_rust = true;
         }
 
-        /* TODO: #12845
-        if config.stdlib_api_check {
-            config.build_engine_package = true;
-        }
-        */
         Self(config)
     }
 
