@@ -1202,9 +1202,8 @@ lazy val filewatcher = project
     compileOrder := CompileOrder.ScalaThenJava,
     version := "0.1",
     libraryDependencies ++= slf4jApi ++ Seq(
-      "io.methvin"     % "directory-watcher" % directoryWatcherVersion,
-      "commons-io"     % "commons-io"        % commonsIoVersion,
-      "org.scalatest" %% "scalatest"         % scalatestVersion % Test
+      "commons-io"     % "commons-io" % commonsIoVersion,
+      "org.scalatest" %% "scalatest"  % scalatestVersion % Test
     ),
     Compile / moduleDependencies ++= slf4jApi,
     Compile / internalModuleDependencies := Seq(
