@@ -9,6 +9,7 @@
 - [Type annotations are now visible in the graph editor][12751]
 - [Component Browser shows methods with respect to possible type casts][12751]
 - [Add option to browse cloud for secret values][12953]
+- [Allow editing grouped component argument names.][13014]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -16,6 +17,7 @@
 [12913]: https://github.com/enso-org/enso/pull/12913
 [12751]: https://github.com/enso-org/enso/pull/12751
 [12953]: https://github.com/enso-org/enso/pull/12953
+[13014]: https://github.com/enso-org/enso/pull/13014
 
 #### Enso Standard Library
 
