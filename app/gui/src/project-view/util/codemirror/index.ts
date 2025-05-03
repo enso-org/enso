@@ -318,29 +318,27 @@ const stopEvent = (event: Event) => {
   event.stopImmediatePropagation()
   return false
 }
-function bindStandardBindings(): Record<LineMode, KeyBinding[]> {
-  const autoOrMultiHandlers = handlerToKeyBinding(
-    textEditorsMultilineBindings.handler({
-      newline: (e) => {
-        e.stopImmediatePropagation()
-        return insertNewlineKeepIndent(e.codemirrorView)
-      },
-    }),
-  )
-  return {
-    single: [],
-    multi: [autoOrMultiHandlers, ...verticalMovementKeymap()],
-    auto: [autoOrMultiHandlers],
-  }
+
+const autoOrMultiHandlers = handlerToKeyBinding(
+  textEditorsMultilineBindings.handler({
+    newline: (e) => {
+      e.stopImmediatePropagation()
+      return insertNewlineKeepIndent(e.codemirrorView)
+    },
+  }),
+)
+
+const standardBindings: Record<LineMode, KeyBinding[]> = {
+  single: [],
+  multi: [autoOrMultiHandlers, ...verticalMovementKeymap()],
+  auto: [autoOrMultiHandlers],
 }
 
-function keyBindings(lineMode: LineMode | undefined): Extension {
-  const mode = lineMode ?? 'multi'
-  const standardBindings = bindStandardBindings()
+function keyBindings(lineMode: LineMode): Extension {
   return [
     Prec.lowest(keymap.of(baseKeymap())),
-    Prec.low(keymap.of(standardBindings[mode])),
-    ...(mode === 'multi' ? [EditorView.domEventHandlers({ wheel: stopEvent })] : []),
+    Prec.low(keymap.of(standardBindings[lineMode])),
+    ...(lineMode === 'multi' ? [EditorView.domEventHandlers({ wheel: stopEvent })] : []),
   ]
 }
 
