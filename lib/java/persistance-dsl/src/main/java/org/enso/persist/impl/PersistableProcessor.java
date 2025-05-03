@@ -81,16 +81,7 @@ public class PersistableProcessor extends AbstractProcessor {
               }
             }
           } catch (IOException notReallyImportant) {
-            processingEnv
-                .getMessager()
-                .printMessage(
-                    Kind.OTHER,
-                    "Cannot read "
-                        + propsPkg
-                        + "."
-                        + propsName
-                        + ": "
-                        + notReallyImportant.getMessage());
+            // Not actionable
           }
           var src = processingEnv.getFiler().createSourceFile(cn);
           try (var w = src.openWriter()) {
