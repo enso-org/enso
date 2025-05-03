@@ -448,7 +448,7 @@ const placeholderSizeProp = computed(() => `--placeholder-${props.axis}` as cons
         ></li>
       </template>
     </template>
-    <SizeTransition :width="axis === 'x'" :height="axis === 'y'" key="add-icon">
+    <SizeTransition key="add-icon" :width="axis === 'x'" :height="axis === 'y'">
       <!-- This wrapper is a workaround: If the `v-if` is applied to the `SvgIcon`, once the button is shown it will
              never go back to hidden. This might be a Vue bug? -->
       <div v-if="props.showHandles" class="iconWrapper axisAligned">

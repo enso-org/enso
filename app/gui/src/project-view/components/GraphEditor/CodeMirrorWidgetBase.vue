@@ -99,7 +99,7 @@ const inputError = useToast.error()
 async function accepted() {
   const text = getText()
   if (previousValue.value === text) {
-    editing.value.cancel()
+    editing.value.end()
     return
   }
   const result = await handleAccept(text)
