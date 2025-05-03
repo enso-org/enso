@@ -404,7 +404,9 @@ function UploadFilesToCloudButton(props: UploadFilesToCloudButtonProps) {
   const isDisabled = useStore(
     driveStore,
     (state) =>
-      isCloud || [...state.selectedIds].some((id) => getAssetTypeFromId(id) !== AssetType.project),
+      isCloud ||
+      state.selectedIds.size === 0 ||
+      [...state.selectedIds].some((id) => getAssetTypeFromId(id) !== AssetType.project),
   )
   const canUploadToCloud = user.plan !== Plan.free
   const isUnderPaywall = !canUploadToCloud
@@ -463,7 +465,9 @@ function DownloadFilesToLocalButton(props: DownloadFilesToLocalButtonProps) {
   const isDisabled = useStore(
     driveStore,
     (state) =>
-      !isCloud || [...state.selectedIds].some((id) => getAssetTypeFromId(id) !== AssetType.project),
+      !isCloud ||
+      state.selectedIds.size === 0 ||
+      [...state.selectedIds].some((id) => getAssetTypeFromId(id) !== AssetType.project),
   )
 
   const downloadFilesToLocal = useEventCallback(async () => {
