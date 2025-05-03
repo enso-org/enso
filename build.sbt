@@ -1202,9 +1202,8 @@ lazy val filewatcher = project
     compileOrder := CompileOrder.ScalaThenJava,
     version := "0.1",
     libraryDependencies ++= slf4jApi ++ Seq(
-      "io.methvin"     % "directory-watcher" % directoryWatcherVersion,
-      "commons-io"     % "commons-io"        % commonsIoVersion,
-      "org.scalatest" %% "scalatest"         % scalatestVersion % Test
+      "commons-io"     % "commons-io" % commonsIoVersion,
+      "org.scalatest" %% "scalatest"  % scalatestVersion % Test
     ),
     Compile / moduleDependencies ++= slf4jApi,
     Compile / internalModuleDependencies := Seq(
@@ -1422,6 +1421,7 @@ lazy val `directory-watcher-wrapper` = project
       )
     }
   )
+  .dependsOn(`jna-wrapper` % "provided")
 
 lazy val `fansi-wrapper` = project
   .in(file("lib/java/fansi-wrapper"))
@@ -1482,13 +1482,15 @@ lazy val `akka-wrapper` = project
       "com.google.protobuf"       % "protobuf-java"            % googleProtobufVersion,
       "io.github.java-diff-utils" % "java-diff-utils"          % javaDiffVersion,
       "org.reactivestreams"       % "reactive-streams"         % reactiveStreamsVersion,
-      "net.java.dev.jna"          % "jna"                      % jnaVersion,
       "io.spray"                 %% "spray-json"               % sprayJsonVersion
     ),
     javaModuleName := "org.enso.akka.wrapper",
     Compile / moduleDependencies ++= slf4jApi ++ Seq(
       "com.google.protobuf" % "protobuf-java"    % googleProtobufVersion,
       "org.reactivestreams" % "reactive-streams" % reactiveStreamsVersion
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`jna-wrapper` / Compile / exportedModule).value
     ),
     assembly / assemblyExcludedJars := {
       val excludedJars = JPMSUtils.filterModulesFromUpdate(
@@ -1498,8 +1500,7 @@ lazy val `akka-wrapper` = project
           "com.typesafe"              % "config"             % typesafeConfigVersion,
           "io.github.java-diff-utils" % "java-diff-utils"    % javaDiffVersion,
           "com.google.protobuf"       % "protobuf-java"      % googleProtobufVersion,
-          "org.reactivestreams"       % "reactive-streams"   % reactiveStreamsVersion,
-          "net.java.dev.jna"          % "jna"                % jnaVersion
+          "org.reactivestreams"       % "reactive-streams"   % reactiveStreamsVersion
         ),
         streams.value.log,
         moduleName.value,
@@ -1536,6 +1537,7 @@ lazy val `akka-wrapper` = project
       )
     }
   )
+  .dependsOn(`jna-wrapper` % "provided")
 
 lazy val `zio-wrapper` = project
   .in(file("lib/java/zio-wrapper"))
@@ -2492,6 +2494,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`library-manager` % "test->test")
   .dependsOn(`runtime-version-manager` % "test->test")
   .dependsOn(`ydoc-polyfill`)
+  .dependsOn(`jna-wrapper` % "provided")
 
 lazy val cleanInstruments = taskKey[Unit](
   "Cleans fragile class files to force a full recompilation and preserve" +
