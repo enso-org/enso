@@ -32,6 +32,7 @@ import { useUploadFileToCloudMutation } from '#/hooks/backendUploadFilesHooks'
 import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useCategories, useTransferBetweenCategories } from '#/layouts/Drive/Categories'
 import { useUser } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
@@ -91,6 +92,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const showDeveloperIds = useFeatureFlag('showDeveloperIds')
   const copyMutation = useCopy()
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
+  const transferBetweenCategories = useTransferBetweenCategories(category)
 
   const canUploadToCloud = user.plan !== backendModule.Plan.free
 
@@ -98,6 +100,16 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     driveStore,
     (state) =>
       !isCloud &&
+      localBackend != null &&
+      [...state.selectedIds].every(
+        (id) => extractTypeAndId(id).type === backendModule.AssetType.project,
+      ),
+  )
+  const canDownloadAllProjectsToLocal = useStore(
+    driveStore,
+    (state) =>
+      isCloud &&
+      localBackend != null &&
       [...state.selectedIds].every(
         (id) => extractTypeAndId(id).type === backendModule.AssetType.project,
       ),
@@ -114,6 +126,21 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       assets: [...files],
       targetDirectoryId: user.rootDirectoryId,
     })
+  })
+
+  const { localCategories } = useCategories()
+  const downloadFilesToLocalCallback = useEventCallback(async () => {
+    const localHomeCategory = localCategories.categories.find(
+      (otherCategory) => otherCategory.type === 'local',
+    )
+    invariant(localHomeCategory, 'Local home category must exist to download to local')
+
+    const selectedIds = [...driveStore.getState().selectedIds]
+    const files = selectedIds.flatMap((id) => {
+      const asset = getAsset(id)
+      return asset ? [asset] : []
+    })
+    await transferBetweenCategories(category, localHomeCategory, files)
   })
 
   const hasPasteData = useStore(driveStore, ({ pasteData }) => {
@@ -272,6 +299,13 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             feature="uploadToCloud"
             label={getText('uploadAllToCloudShortcut')}
             doAction={uploadFilesToCloudCallback}
+          />
+        )}
+        {selectedAssets.length !== 0 && canDownloadAllProjectsToLocal && (
+          <ContextMenuEntry
+            action="downloadToLocal"
+            label={getText('downloadAllToLocalShortcut')}
+            doAction={downloadFilesToLocalCallback}
           />
         )}
         {selectedAssets.length !== 0 && isCloud && (

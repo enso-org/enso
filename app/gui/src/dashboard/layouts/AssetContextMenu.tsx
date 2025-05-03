@@ -37,9 +37,10 @@ import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackend
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import invariant from 'tiny-invariant'
 import { isUploadableAsset, useUploadFileToCloudMutation } from '../hooks/backendUploadFilesHooks'
 import { useSetAssetPanelProps, useSetIsAssetPanelTemporarilyVisible } from './AssetPanel'
-import { useCategoriesAPI } from './Drive/Categories'
+import { useCategoriesAPI, useTransferBetweenCategories } from './Drive/Categories'
 
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps {
@@ -67,6 +68,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const isCloud = categoryModule.isCloudCategory(category)
 
   const { localCategories } = useCategoriesAPI()
+  const transferBetweenCategories = useTransferBetweenCategories(category)
 
   const getAsset = useGetAsset()
   const canOpenProjects = projectHooks.useCanOpenProjects()
@@ -281,6 +283,19 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 assets: [asset],
                 targetDirectoryId: user.rootDirectoryId,
               })
+            }}
+          />
+        )}
+        {isUploadableAsset(asset) && isCloud && localBackend != null && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="downloadToLocal"
+            doAction={async () => {
+              const localHomeCategory = localCategories.categories.find(
+                (otherCategory) => otherCategory.type === 'local',
+              )
+              invariant(localHomeCategory, 'Local home category must exist to download to local')
+              await transferBetweenCategories(category, localHomeCategory, [asset])
             }}
           />
         )}

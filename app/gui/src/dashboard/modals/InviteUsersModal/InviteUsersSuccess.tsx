@@ -3,8 +3,6 @@ import * as React from 'react'
 
 import * as reactRouterDom from 'react-router-dom'
 
-import ArrowRightIcon from '#/assets/arrow_right.svg'
-
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -65,7 +63,7 @@ export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
           {!isUserOnMembersPage && (
             <ariaComponents.Button
               variant="outline"
-              icon={ArrowRightIcon}
+              icon="arrow_right"
               size="medium"
               iconPosition="end"
               onPressStart={onClose}

@@ -1,11 +1,9 @@
 /** @file A search bar containing a text input, and a list of suggestions. */
 import * as React from 'react'
 
-import FindIcon from '#/assets/find.svg'
-
 import * as aria from '#/components/aria'
+import { Icon } from '#/components/Icon'
 import FocusArea from '#/components/styled/FocusArea'
-import SvgMask from '#/components/SvgMask'
 
 /** Props for a {@link SearchBar}. */
 export interface SearchBarProps {
@@ -30,7 +28,7 @@ export default function SearchBar(props: SearchBarProps) {
               'group relative flex w-full sm:w-[512px] h-row items-center gap-asset-search-bar rounded-full px-input-x text-primary border-0.5 border-primary/20 transition-colors focus-within:outline focus-within:outline-2 outline-primary -outline-offset-1',
           })}
         >
-          <SvgMask src={FindIcon} className="text-primary/30" />
+          <Icon icon="find" className="text-primary/30" />
           <aria.SearchField
             aria-label={label}
             className="relative grow"

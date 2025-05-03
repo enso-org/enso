@@ -1,11 +1,10 @@
 /** @file A menu containing info about the app. */
 import { PRODUCT_NAME } from 'enso-common'
 
-import LogoIcon from '#/assets/enso_logo.svg'
 import { Popover, Text } from '#/components/AriaComponents'
+import { Icon } from '#/components/Icon'
 import MenuEntry from '#/components/MenuEntry'
 import FocusArea from '#/components/styled/FocusArea'
-import SvgMask from '#/components/SvgMask'
 import AboutModal from '#/modals/AboutModal'
 import { useAuth } from '#/providers/AuthProvider'
 import { useSetModal } from '#/providers/ModalProvider'
@@ -32,7 +31,7 @@ export default function InfoMenu(props: InfoMenuProps) {
   return (
     <Popover {...(!hidden ? { 'data-testid': 'info-menu' } : {})} size="xxsmall">
       <div className="mb-2 flex items-center gap-icons overflow-hidden px-menu-entry transition-all duration-user-menu">
-        <SvgMask src={LogoIcon} className="pointer-events-none h-7 w-7 text-primary" />
+        <Icon icon="enso_logo" className="pointer-events-none h-7 w-7 text-primary" />
         <Text>{PRODUCT_NAME}</Text>
       </div>
       <FocusArea direction="vertical">

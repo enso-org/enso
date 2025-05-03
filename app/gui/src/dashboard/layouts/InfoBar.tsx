@@ -1,9 +1,8 @@
 /** @file A toolbar containing chat and the user menu. */
 import ChatIcon from '#/assets/chat.svg'
-import LogoIcon from '#/assets/enso_logo.svg'
 import { Button, DialogTrigger } from '#/components/AriaComponents'
+import { Icon } from '#/components/Icon'
 import FocusArea from '#/components/styled/FocusArea'
-import SvgMask from '#/components/SvgMask'
 import InfoMenu from '#/layouts/InfoMenu'
 import { useText } from '#/providers/TextProvider'
 import { memo } from 'react'
@@ -23,7 +22,7 @@ function InfoBar(props: InfoBarProps) {
     <FocusArea direction="horizontal">
       {(innerProps) => (
         <div
-          className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame backdrop-blur-default"
+          className="pointer-events-auto flex shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame backdrop-blur-default"
           {...innerProps}
         >
           {/* FIXME [sb]: https://github.com/enso-org/cloud-v2/issues/1227
@@ -46,8 +45,8 @@ function InfoBar(props: InfoBarProps) {
               variant="icon"
               className="flex size-row-h select-none items-center overflow-clip rounded-full"
             >
-              <SvgMask
-                src={LogoIcon}
+              <Icon
+                icon="enso_logo"
                 alt={getText('openInfoMenu')}
                 className="pointer-events-none size-7"
               />

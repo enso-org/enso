@@ -10,8 +10,6 @@ import invariant from 'tiny-invariant'
 
 import type * as text from 'enso-common/src/text'
 
-import ArrowRight from '#/assets/arrow_right.svg'
-
 import { DASHBOARD_PATH, LOGIN_PATH, ORGANIZATION_NAME_MAX_LENGTH } from '#/appUtils'
 
 import { useIsFirstRender } from '#/hooks/mountHooks'
@@ -325,7 +323,7 @@ const BASE_STEPS: Step[] = [
           <ariaComponents.Button
             variant="primary"
             size="medium"
-            icon={ArrowRight}
+            icon="arrow_right"
             iconPosition="end"
             onPress={() =>
               queryClient.invalidateQueries().then(() => {
