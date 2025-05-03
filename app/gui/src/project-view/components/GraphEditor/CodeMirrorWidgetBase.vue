@@ -9,7 +9,7 @@ import { highlightStyle } from '@/util/codemirror/highlight'
 import { Ok } from '@/util/data/result'
 import { useToast } from '@/util/toast'
 import { Extension, SelectionRange } from '@codemirror/state'
-import { ComponentInstance, ref, useCssModule, useTemplateRef, watch, watchEffect } from 'vue'
+import { ComponentInstance, ref, useTemplateRef, watch, watchEffect } from 'vue'
 
 const props = defineProps<{
   widgetTypeId: WidgetTypeId
@@ -36,15 +36,13 @@ const emit = defineEmits<{
   userAction: [text: string, selection: SelectionRange]
 }>()
 
-const themeWidget = highlightStyle(useCssModule('themeWidget'))
-
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 
 const { syncExt, connectSync } = useStringSync()
 const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   content: model.value,
   placeholder: () => props.placeholder ?? ' ',
-  extensions: [syncExt, themeWidget],
+  extensions: [syncExt],
   readonly: false,
   contentTestId: props.contentTestId,
   lineMode: () => props.lineMode ?? 'single',
@@ -154,31 +152,5 @@ defineExpose({
   &:deep(::selection) {
     background: var(--color-widget-selection);
   }
-}
-</style>
-
-<!--suppress CssUnusedSymbol -->
-<style module="themeWidget">
-.comment,
-.lineComment,
-.blockComment,
-.docComment,
-.name,
-.variableName,
-.definition-variableName,
-.literal,
-.string,
-.escape,
-.number,
-.keyword,
-.moduleKeyword,
-.modifier,
-.punctuation,
-.paren,
-.operator,
-.definitionOperator,
-.invalid {
-  color: var(--color-node-text);
-  transition: color 0.2s ease;
 }
 </style>
