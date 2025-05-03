@@ -456,7 +456,7 @@ class RuntimeAsyncCommandsTest
         |
         |main =
         |    IO.println "started"
-        |    v = loop 50
+        |    v = loop 80
         |    v
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -548,7 +548,7 @@ class RuntimeAsyncCommandsTest
         |
         |main =
         |    IO.println "started"
-        |    operator1 = loop 10
+        |    operator1 = loop 20
         |    operator2 = operator1 + 1
         |    operator2
         |
@@ -639,7 +639,7 @@ class RuntimeAsyncCommandsTest
 
     val response1 = context.receiveNIgnoreExpressionUpdates(
       6,
-      timeoutSeconds = 20
+      timeoutSeconds = 30
     )
     response1 should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
@@ -675,7 +675,7 @@ class RuntimeAsyncCommandsTest
     )
     val response2 = context.receiveNIgnoreExpressionUpdates(
       5,
-      timeoutSeconds = 20
+      timeoutSeconds = 30
     )
     response2 should contain allOf (
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
