@@ -80,9 +80,8 @@ public class NativeLibraryFinderTest {
     this.stdTableauPkg = stdTableau.get();
     var nativeLibs =
         NativeLibraryFinder.listAllNativeLibraries(stdTableau.get(), TruffleFileSystem.INSTANCE);
-    // Tableau has Tableau's native lib
-    assertThat(
-        "There should be only one native library for Standard.Tableau", nativeLibs.size(), is(1));
+    // Tableau has Tableau's native lib AND jni
+    assertThat("There should be two native libs for Standard.Tableau", nativeLibs.size(), is(2));
   }
 
   @Test
@@ -109,7 +108,8 @@ public class NativeLibraryFinderTest {
             .getBindings(LanguageInfo.ID)
             .invokeMember(MethodNames.TopScope.FIND_NATIVE_LIBRARY, "jnidispatch");
     assertNotNull(nativeLibJni);
-    assertTrue("There is no JNA library right now", nativeLibJni.isNull());
+    var expectedJniLibName = OS.isWindows() ? "jnidispatch" : "libjnidispatch";
+    assertThat(nativeLibJni.asString(), containsString(expectedJniLibName));
   }
 
   @Test
