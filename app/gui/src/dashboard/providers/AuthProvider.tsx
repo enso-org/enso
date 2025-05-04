@@ -545,7 +545,7 @@ export function CloudBrowserDisabledLayout(props: CloudBrowserDisabledLayoutProp
               const downloadUrl = await getDownloadUrl()
 
               if (downloadUrl != null) {
-                void download(downloadUrl)
+                void download({ url: downloadUrl })
               }
             }}
           >

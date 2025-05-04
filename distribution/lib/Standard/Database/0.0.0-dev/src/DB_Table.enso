@@ -661,9 +661,20 @@ type DB_Table
                     if Helpers.check_integrity self column then column else
                         Panic.throw (Integrity_Error.Error "DB_Column "+column.name)
 
-    ## ALIAS filter rows, where
+    ## ALIAS where
        MACRO equals filter=..Equal
+       MACRO not_equals filter=..Not_Equal
+       MACRO not_nothing filter=..Not_Nothing
+       MACRO is_nothing filter=..Is_Nothing
+       MACRO is_in filter=..Is_In
        MACRO less_than filter=..Less
+       MACRO greater_than filter=..Greater
+       MACRO between filter=..Between
+       MACRO contains filter=..Contains
+       MACRO starts_with filter=..Starts_With
+       MACRO ends_with filter=..Ends_With
+       MACRO like filter=..Like
+       MACRO regex_match filter=..Regex_Match
        GROUP Standard.Base.Selections
        ICON preparation
 
@@ -1143,7 +1154,7 @@ type DB_Table
                     Error.throw (Integrity_Error.Error "Column "+value.name)
             _ : Constant_Column -> self.make_constant_column value
             _ : Simple_Expression -> value.evaluate self (set_mode==Set_Mode.Update && as=="") on_problems
-            _ : Vector -> Error.throw (Unsupported_Database_Operation "`Vector` for `set`")
+            _ : Vector -> Error.throw (Unsupported_Database_Operation.Error "`Vector` for `set`")
             _ : Array -> Error.throw (Unsupported_Database_Operation.Error "`Array` for `set`")
             _ : Range -> Error.throw (Unsupported_Database_Operation.Error "`Range` for `set`")
             _ : Date_Range -> Error.throw (Unsupported_Database_Operation.Error "`Date_Range` for `set`")
@@ -2787,7 +2798,7 @@ type DB_Table
        - internal: The internal column to use for creating a column.
     make_column : Internal_Column -> DB_Column
     make_column self internal =
-        DB_Column.Value internal.name self.connection internal.sql_type_reference internal.expression self.context
+        DB_Column.new internal.name self.connection internal.sql_type_reference internal.expression self.context
 
     ## PRIVATE
     columns_helper : Table_Column_Helper

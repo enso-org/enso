@@ -38,7 +38,7 @@
     - get self selector:(Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Text.Text)= ~if_missing:Standard.Base.Any.Any= -> (Standard.Table.Column.Column|Standard.Base.Any.Any)
     - get_row self index:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> (Standard.Table.Row.Row|Standard.Base.Any.Any)
     - get_value self selector:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= index:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-    - input columns:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)= -> Standard.Table.Table.Table
+    - input columns:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any) -> Standard.Table.Table.Table
     - join self right:Standard.Table.Table.Table= join_kind:Standard.Table.Join_Kind.Join_Kind= on:(Standard.Base.Any.Any|Standard.Base.Data.Text.Text|Standard.Table.Join_Condition.Join_Condition)= right_prefix:Standard.Base.Data.Text.Text= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
     - last_column self -> Standard.Table.Column.Column!Standard.Base.Errors.Common.Index_Out_Of_Bounds
     - last_row self -> Standard.Table.Row.Row!Standard.Base.Errors.Common.Index_Out_Of_Bounds
@@ -95,6 +95,7 @@
 - make_fill_nothing_default_widget table:Standard.Base.Any.Any cache:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - make_join_helpers left_table:Standard.Base.Any.Any right_table:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - slice_ranges table:Standard.Base.Any.Any ranges:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- to_java_table table:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Table.Table.Table.from that:Standard.Table.Column.Column -> Standard.Table.Table.Table
 - Standard.Table.Table.Table.from that:Standard.Base.Data.Text.Text format:Standard.Base.Any.Any= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
 - Standard.Table.Table.Table.from that:Standard.Base.Data.Vector.Vector fields:(Standard.Base.Data.Vector.Vector|Standard.Base.Nothing.Nothing)= -> Standard.Table.Table.Table

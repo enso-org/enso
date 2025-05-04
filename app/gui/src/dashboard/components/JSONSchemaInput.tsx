@@ -5,12 +5,13 @@ import { Input } from '#/components/aria'
 import { Button, Checkbox, Dropdown, Text } from '#/components/AriaComponents'
 import Autocomplete from '#/components/Autocomplete'
 import FocusRing from '#/components/styled/FocusRing'
-import { useBackendQuery } from '#/hooks/backendHooks'
+import { backendQueryOptions } from '#/hooks/backendHooks'
 import { useRemoteBackend } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
 import { constantValueOfSchema, getSchemaName, lookupDef } from '#/utilities/jsonSchema'
 import { asObject, singletonObjectOrNull } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useQuery } from '@tanstack/react-query'
 import { twJoin } from 'tailwind-merge'
 
 /** Props for a {@link JSONSchemaInput}. */
@@ -45,7 +46,9 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     schema.type === 'string' &&
     'format' in schema &&
     schema.format === 'enso-secret'
-  const { data: secrets } = useBackendQuery(remoteBackend, 'listSecrets', [], { enabled: isSecret })
+  const { data: secrets } = useQuery(
+    backendQueryOptions(remoteBackend, 'listSecrets', [], { enabled: isSecret }),
+  )
   const autocompleteItems = isSecret ? (secrets?.map((secret) => secret.path) ?? null) : null
   const isInvalid = !isAbsent && !getValidator(path)(value)
   const validationErrorClassName =
