@@ -755,6 +755,7 @@ lazy val componentModulesPaths =
     (`runtime-instrument-runtime-server` / Compile / exportedModuleBin).value,
     (`runtime-language-arrow` / Compile / exportedModuleBin).value,
     (`runtime-language-epb` / Compile / exportedModuleBin).value,
+    (`runtime-utils` / Compile / exportedModuleBin).value,
     (`runtime-version-manager` / Compile / exportedModuleBin).value,
     (`persistance` / Compile / exportedModuleBin).value,
     (`cli` / Compile / exportedModuleBin).value,
