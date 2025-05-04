@@ -646,11 +646,11 @@ impl JobArchetype for SnowflakeTests {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Lint;
+pub struct WasmLint;
 
-impl JobArchetype for Lint {
+impl JobArchetype for WasmLint {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "Lint", "lint")
+        plain_job(target, "Lint", "wasm lint")
     }
 }
 

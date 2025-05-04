@@ -844,7 +844,7 @@ pub fn wasm_checks() -> Result<Workflow> {
         on,
         ..default()
     };
-    workflow.add(PRIMARY_TARGET, job::Lint);
+    workflow.add(PRIMARY_TARGET, job::WasmLint);
     workflow.add(PRIMARY_TARGET, job::WasmTest);
     workflow.add(PRIMARY_TARGET, job::NativeTest);
     Ok(workflow)

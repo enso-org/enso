@@ -127,8 +127,6 @@ pub enum Target {
     /// Clean the repository. Keeps the IntelliJ's .idea directory intact. WARNING: This removes
     /// files that are not under version control in the repository subtree.
     GitClean(git_clean::Options),
-    /// Lint non-TypeScript codebase. TypeScript Linting is part of the GUI Check target.
-    Lint,
     /// Apply automatic formatters on the repository.
     #[clap(alias = "format")]
     Fmt,
