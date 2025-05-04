@@ -5487,6 +5487,7 @@ lazy val `std-tableau` = project
           `std-tableau-polyglot-root`,
           `std-tableau-native-libs`,
           tableauVersion,
+          jnaVersion,
           (`jna-wrapper` / Compile / exportedModule).value,
           updateReport       = libraryUpdates,
           unmanagedClasspath = unmanagedClasspath,
