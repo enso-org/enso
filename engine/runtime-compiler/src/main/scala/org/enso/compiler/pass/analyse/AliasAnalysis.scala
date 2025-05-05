@@ -178,14 +178,14 @@ case object AliasAnalysis extends IRPass {
             case Some(meta) =>
               val newMeta = meta match {
                 case root: alias.AliasMetadata.RootScope =>
-                  root.copy(graph = copyRootScopeGraph)
+                  root.copy(copyRootScopeGraph)
                 case child: alias.AliasMetadata.ChildScope =>
                   child.copy(
-                    graph = copyRootScopeGraph,
-                    scope = child.scope.deepCopy(scopeMapping)
+                    copyRootScopeGraph,
+                    child.scope.deepCopy(scopeMapping)
                   )
                 case occ: alias.AliasMetadata.Occurrence =>
-                  occ.copy(graph = copyRootScopeGraph)
+                  occ.copy(copyRootScopeGraph)
               }
               alias.AliasMetadata.updateMetadata(copyNode, newMeta)
             case None =>
@@ -602,8 +602,8 @@ case object AliasAnalysis extends IRPass {
     application match {
       case app: Application.Prefix =>
         app.copy(
-          function  = analyseExpression(app.function, builder),
-          arguments = analyseCallArguments(app.arguments, builder)
+          analyseExpression(app.function, builder),
+          analyseCallArguments(app.arguments, builder)
         )
       case app: Application.Force =>
         app.copyWithTarget(analyseExpression(app.target, builder))
