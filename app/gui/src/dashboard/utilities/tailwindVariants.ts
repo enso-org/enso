@@ -14,7 +14,9 @@ const tvConstructor = createTV({ twMergeConfig: TAILWIND_MERGE_CONFIG })
 
 // This is a function, even though it does not contain function syntax.
 // eslint-disable-next-line no-restricted-syntax
-export const tv = function tvWithLRU(construct: Parameters<typeof tvConstructor>[0]) {
+export const tv: typeof tvConstructor = function tvWithLRU(
+  construct: Parameters<typeof tvConstructor>[0],
+) {
   const cache = new LRUCache<string, unknown>(MAX_CACHE_SIZE)
   /**
    * Get a cache key for a given set of arguments.
@@ -25,58 +27,61 @@ export const tv = function tvWithLRU(construct: Parameters<typeof tvConstructor>
 
   const baseVariants = tvConstructor(construct)
 
-  // We use proxy here because `tailwind-variants` returns a function with extra properties.
-  // and we want to preserve these properties.
-  const withLRU = new Proxy(baseVariants, {
-    apply: (target, _thisArg, argArray: unknown[]) => {
-      const cacheKey = getCacheKey(argArray)
-      const cached = cache.get(cacheKey)
+  /**
+   * Variants constructor with LRU cache.
+   */
+  function variantsWithLRU(args: Parameters<typeof baseVariants>[0]) {
+    const cacheKey = getCacheKey(args)
+    const cached = cache.get(cacheKey)
 
-      if (cached != null) {
-        return cached
-      }
+    if (cached != null) {
+      return cached
+    }
 
-      const result: unknown = target(...argArray)
+    const result: unknown = baseVariants(args)
 
-      if (typeof result === 'object' && result != null) {
-        for (const slot in result) {
-          // eslint-disable-next-line no-restricted-syntax
-          const value = result[slot as keyof typeof result]
+    if (typeof result === 'object' && result != null) {
+      for (const slot in result) {
+        // eslint-disable-next-line no-restricted-syntax
+        const value = result[slot as keyof typeof result]
 
-          if (typeof value === 'function') {
-            const slotCachePrefix = slot + cacheKey
-            /**
-             * Wrap a slot function with a cache.
-             */
-            // @ts-expect-error - This is a valid assignment.
-            result[slot] = function withSlotCache(props: Parameters<typeof value>[0]) {
-              const slotCacheKey = slotCachePrefix + getCacheKey(props)
-              const slotCache = cache.get(slotCacheKey)
+        if (typeof value === 'function') {
+          const slotCachePrefix = slot + cacheKey
+          /**
+           * Wrap a slot function with a cache.
+           */
+          // @ts-expect-error - This is a valid assignment.
+          result[slot] = function withSlotCache(props: Parameters<typeof value>[0]) {
+            const slotCacheKey = slotCachePrefix + getCacheKey(props)
+            const slotCache = cache.get(slotCacheKey)
 
-              if (slotCache != null) {
-                return slotCache
-              }
-
-              // @ts-expect-error - This is a valid assignment.
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              const classes = value(props)
-
-              cache.set(slotCacheKey, classes)
-
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-              return classes
+            if (slotCache != null) {
+              return slotCache
             }
+
+            // @ts-expect-error - This is a valid assignment.
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            const classes = value(props)
+
+            cache.set(slotCacheKey, classes)
+
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+            return classes
           }
         }
       }
+    }
 
-      cache.set(cacheKey, result)
-      return result
-    },
-  })
+    cache.set(cacheKey, result)
+    return result
+  }
+  // Extend the prototype of the `variantsWithLRU` function with the `baseVariants` function.
+  // This is done to preserve the extra properties of the `baseVariants` function.
+  variantsWithLRU.__proto__ = baseVariants
 
-  return withLRU
-} as typeof tvConstructor
+  // eslint-disable-next-line no-restricted-syntax
+  return variantsWithLRU as unknown as typeof tvConstructor
+} as unknown as typeof tvConstructor
 
 /** Extract function signatures from a type. */
 export type ExtractFunction<T> =
