@@ -27,7 +27,7 @@ public class EngineMainTest {
     try {
       var file = tempDir.newFile("some.enso");
       var line = m.preprocessArguments("--repl --inspect", "--run", file.getAbsolutePath());
-      m.mainEntry(line, Level.INFO, false);
+      m.mainEntry(null, line, Level.INFO, false);
       fail("Expecting exception");
     } catch (ExitCode ex) {
       assertEquals("Execution fails", 1, ex.exitCode);
@@ -57,7 +57,7 @@ public class EngineMainTest {
     var file = new File(dir, "non_existing.enso");
     try {
       var line = m.preprocessArguments("--run", file.getAbsolutePath());
-      m.mainEntry(line, Level.INFO, false);
+      m.mainEntry(null, line, Level.INFO, false);
       fail("Expecting exception");
     } catch (ExitCode ex) {
       assertEquals("Execution fails", 1, ex.exitCode);
@@ -75,7 +75,7 @@ public class EngineMainTest {
       var m = new MainMock();
       var file = tempDir.newFile("some.enso");
       var line = m.preprocessArguments("--repl", "--inspect", "--run", file.getAbsolutePath());
-      m.mainEntry(line, Level.INFO, false);
+      m.mainEntry(null, line, Level.INFO, false);
       fail("Expecting exception");
     } catch (ExitCode ex) {
       assertEquals("Execution fails", 1, ex.exitCode);
@@ -136,12 +136,12 @@ public class EngineMainTest {
       // Using --docs api on purpose - as `--run` is able to detect project dir itself.
       var line =
           m.preprocessArguments("--in-project", "NON_EXISTING_DIR/foo/bar/xxx/zz", "--docs", "api");
-      m.mainEntry(line, Level.INFO, false);
+      m.mainEntry(null, line, Level.INFO, false);
       fail("Expecting exception");
     } catch (ExitCode ex) {
       assertEquals("Execution fails", 1, ex.exitCode);
-      assertEquals("One line printed", 1, linesOut.size());
-      assertThat(linesOut.get(0), containsString("does not exist"));
+      assertEquals("No line printed", 0, linesOut.size());
+      assertThat(ex.getMessage(), containsString("does not exist"));
     }
   }
 
