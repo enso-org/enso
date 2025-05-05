@@ -104,24 +104,13 @@ public class BuilderMethodGenerator {
     }
     // Most user fields are accessed via getters
     for (var userField : generatedClassContext.getUserFields()) {
-      if (userField.isPersistanceReference()) {
-        var line =
-            """
-            this.${fieldName} = Reference.of(
-              obj.${fieldName}()
-            );
-            """
-                .replace("${fieldName}", userField.getName());
-        sb.append(line).append(System.lineSeparator());
-      } else {
-        sb.append("  ")
-            .append("this.")
-            .append(userField.getName())
-            .append(" = obj.")
-            .append(userField.getName())
-            .append("();")
-            .append(System.lineSeparator());
-      }
+      sb.append("  ")
+          .append("this.")
+          .append(userField.getName())
+          .append(" = obj.")
+          .append(userField.getName())
+          .append("();")
+          .append(System.lineSeparator());
     }
     sb.append("}");
     return sb.toString();
