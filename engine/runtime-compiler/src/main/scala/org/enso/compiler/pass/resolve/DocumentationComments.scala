@@ -89,7 +89,7 @@ case object DocumentationComments extends IRPass {
       case caseExpr: Case.Expr =>
         val newScrutinee = resolveExpression(caseExpr.scrutinee)
         val newBranches  = resolveBranches(caseExpr.branches)
-        caseExpr.copy(scrutinee = newScrutinee, branches = newBranches)
+        caseExpr.copy(newScrutinee, newBranches.toList)
     })
 
   /** Resolves documentation comments in an arbitrary list of IRs.
@@ -126,14 +126,18 @@ case object DocumentationComments extends IRPass {
   private def resolveBranches(items: Seq[Case.Branch]): Seq[Case.Branch] = {
     var lastDoc: Option[String] = None
     items.flatMap {
-      case Case.Branch(Pattern.Documentation(doc, _, _), _, _, _, _) =>
-        lastDoc = Some(doc)
+      case br: Case.Branch
+          if br.pattern().isInstanceOf[Pattern.Documentation] =>
+        lastDoc = Some(
+          br.pattern().asInstanceOf[Pattern.Documentation].doc
+        )
         None
-      case branch @ Case.Branch(pattern, expression, _, _, _) =>
+      case branch: Case.Branch =>
         val resolved =
           branch.copy(
-            pattern    = pattern.mapExpressions(resolveExpression),
-            expression = resolveExpression(expression)
+            branch.pattern.mapExpressions(resolveExpression),
+            resolveExpression(branch.expression),
+            branch.terminalBranch()
           )
         val res = lastDoc match {
           case Some(doc) =>
