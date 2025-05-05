@@ -15,6 +15,7 @@ from Standard.Table.Match_Columns import Match_Columns
 import project.Hyper_Errors
 import project.Hyper_File.Hyper_File
 import project.Internal.Telemetry
+from project.Hyper_Errors import Hyper_Unsupported_Type
 
 polyglot java import org.enso.tableau.HyperFormat
 
@@ -62,10 +63,17 @@ type Tableau_Format
     read : File -> Problem_Behavior -> Any
     read self file on_problems:Problem_Behavior =
         _ = [on_problems]
-        result = Hyper_File.new file self.schema
-        result.if_not_error <|
-            Telemetry.log "File_Format.read" "Read file: format={}, output={}, schema_count={}, table_count={}" ["Tableau_Format", "Hyper_File", result.schemas.length, result.tables.length]
-            result
+        case self of
+            Tableau_Format.Hyper_File _ ->         
+                result = Hyper_File.new file self.schema
+                result.if_not_error <|
+                    Telemetry.log "File_Format.read" "Read file: format={}, output={}, schema_count={}, table_count={}" ["Tableau_Format", "Hyper_File", result.schemas.length, result.tables.length]
+                    result
+            Tableau_Format.Hyper_Table _ _ ->
+                result = Hyper_File.new file . read self.table self.schema
+                result.if_not_error <|
+                    Telemetry.log "File_Format.read" "Read file: format={}, output={}, row_count={}, column_count={}" ["Tableau_Format.Hyper_Table", "Table", result.row_count, result.column_count]
+                    result
 
     ## PRIVATE
        Implements decoding the format from a stream.
@@ -79,6 +87,7 @@ type Tableau_Format
        Implements the `Table.write` for this `File_Format`.
     write_table self file:Writable_File table:Table on_existing_file match_columns:Match_Columns on_problems:Problem_Behavior =
         _ = [match_columns, on_problems]
+        _check_supported_types table
         if (on_existing_file == Existing_File_Behavior.Append) then Error.throw (Illegal_Argument.Error "Appending to hyper files is not yet supported.") else
             if (on_existing_file == Existing_File_Behavior.Error) && file.exists then Error.throw (File_Error.Already_Exists file) else
                 is_dry_run = Context.Output.is_enabled.not
@@ -98,6 +107,10 @@ type Tableau_Format
                 Hyper_Errors.handle_java_exceptions <|
                     HyperFormat.writeTable resolved_file resolved_schema resolved_table (to_java_table table)
                 File.new resolved_file
+
+private _check_supported_types table:Table =
+    f = table.columns.filter c->c.value_type.is_mixed
+    if f.length > 0 then Error.throw (Hyper_Unsupported_Type.Error (f.at 0).value_type.to_text)
 
 private _find_bak_file base_file:File -> File =
     parent = base_file.absolute.normalize.parent
