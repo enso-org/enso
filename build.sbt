@@ -2447,6 +2447,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`runtime-instrument-repl-debugger` / Compile / exportedModule).value,
       (`runtime-instrument-id-execution` / Compile / exportedModule).value,
       (`runtime-language-epb` / Compile / exportedModule).value,
+      (`runtime-utils` / Compile / exportedModule).value,
       (`ydoc-polyfill` / Compile / exportedModule).value,
       (`syntax-rust-definition` / Compile / exportedModule).value,
       (`profiling-utils` / Compile / exportedModule).value,
