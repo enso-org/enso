@@ -184,7 +184,10 @@ GatherLicenses.distributions := Seq(
     "Microsoft",
     Distribution.sbtProjects(`std-microsoft`)
   ),
-  makeStdLibDistribution("Tableau", Distribution.sbtProjects(`std-tableau`))
+  makeStdLibDistribution(
+    "Tableau",
+    Distribution.sbtProjects(`std-tableau`, `jna-wrapper`)
+  )
 )
 
 GatherLicenses.licenseConfigurations := Set("compile")
