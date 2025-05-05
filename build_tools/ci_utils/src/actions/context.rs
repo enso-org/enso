@@ -42,6 +42,7 @@ impl Context {
     pub fn from_env() -> Result<Self> {
         let payload: WebhookPayload =
             if let Ok(event_path) = crate::actions::env::GITHUB_EVENT_PATH.get() {
+                info!("reading from {event_path:?}");
                 event_path.read_to_json()?
             } else {
                 default()
