@@ -3189,6 +3189,7 @@ lazy val `runtime-benchmarks` =
       },
       Compile / internalModuleDependencies := Seq(
         (`runtime` / Compile / exportedModule).value,
+        (`runtime-utils` / Compile / exportedModule).value,
         (`runtime-instrument-common` / Compile / exportedModule).value,
         (`runtime-instrument-runtime-server` / Compile / exportedModule).value,
         (`runtime-instrument-repl-debugger` / Compile / exportedModule).value,
