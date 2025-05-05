@@ -296,6 +296,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         )}
         {selectedAssets.length !== 0 && canDownloadAllProjectsToLocal && (
           <ContextMenuEntry
+            hidden={hidden}
             action="downloadToLocal"
             label={getText('downloadAllToLocalShortcut')}
             doAction={downloadFilesToLocalCallback}
