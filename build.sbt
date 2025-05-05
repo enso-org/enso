@@ -305,6 +305,8 @@ lazy val Benchmark = config("bench") extend sbt.Test
 lazy val rebuildNativeImage = taskKey[Unit]("Force to rebuild native image")
 lazy val buildNativeImage =
   taskKey[Unit]("Ensure that the Native Image is built.")
+lazy val checkNativeImageSize =
+  taskKey[Unit]("Ensures the generated Native Image has reasonable size")
 
 // ============================================================================
 // === Global Project =========================================================
@@ -4064,7 +4066,16 @@ lazy val `engine-runner` = project
           "enso",
           targetDir = engineDistributionRoot.value / "bin"
         )
-    }.value
+    }.value,
+    checkNativeImageSize := Def
+      .taskDyn {
+        NativeImage.checkNativeImageSize(
+          name      = "enso",
+          targetDir = engineDistributionRoot.value / "bin"
+        )
+      }
+      .dependsOn(buildNativeImage)
+      .value
   )
   .dependsOn(`version-output`)
   .dependsOn(pkg)
@@ -5671,6 +5682,7 @@ buildEngineDistributionNoIndex := Def.taskIf {
   createEnginePackageNoIndex.value
   if (shouldBuildNativeImage.value) {
     (`engine-runner` / buildNativeImage).value
+    (`engine-runner` / checkNativeImageSize).value
   }
 }.value
 
