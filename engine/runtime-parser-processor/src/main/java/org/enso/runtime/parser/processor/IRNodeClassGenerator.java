@@ -48,7 +48,6 @@ final class IRNodeClassGenerator {
       Set.of(
           "java.util.UUID",
           "java.util.ArrayList",
-          "java.util.function.Function",
           "java.util.Objects",
           "java.util.stream.Collectors",
           "org.enso.compiler.core.Identifier",

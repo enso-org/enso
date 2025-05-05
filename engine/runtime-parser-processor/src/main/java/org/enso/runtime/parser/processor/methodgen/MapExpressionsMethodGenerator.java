@@ -50,7 +50,7 @@ public final class MapExpressionsMethodGenerator {
         .append(" ")
         .append(METHOD_NAME)
         .append("(")
-        .append("Function<Expression, Expression> fn")
+        .append("java.util.function.Function<Expression, Expression> fn")
         .append(") {")
         .append(System.lineSeparator());
 
