@@ -542,16 +542,19 @@ fn concurrency(group: impl AsRef<str>) -> Concurrency {
 /// Generate a workflow that checks if the changelog has been updated (if needed).
 pub fn changelog() -> Result<Workflow> {
     use PullRequestActivityType::*;
-    let mut ret = Workflow::new("Changelog");
-    ret.on.pull_request(PullRequest::default().with_types([
+    let mut workflow = Workflow::new("Changelog");
+    workflow.on.pull_request(PullRequest::default().with_types([
         Labeled,
         Unlabeled,
         Synchronize,
         Opened,
         Reopened,
     ]));
-    ret.add_job(RunStepsBuilder::new("changelog-check").build_job("Changelog", RunnerLabel::X64));
-    Ok(ret)
+    let mut changelog_check =
+        RunStepsBuilder::new("changelog-check").build_job("Changelog", RunnerLabel::X64);
+    changelog_check.runs_on = vec![RunnerLabel::Linux, RunnerLabel::SelfHosted];
+    workflow.add_job(changelog_check);
+    Ok(workflow)
 }
 
 pub fn nightly() -> Result<Workflow> {

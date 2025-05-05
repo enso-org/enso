@@ -440,7 +440,22 @@ type Array
     flat_map self function on_problems:(Problem_Behavior | No_Wrap)=..Report_Error =
         Array_Like_Helpers.flat_map self function on_problems
 
-    ## GROUP Selections
+    ## ALIAS where
+       MACRO equals filter=..Equal
+       MACRO not_equals filter=..Not_Equal
+       MACRO not_nothing filter=..Not_Nothing
+       MACRO is_nothing filter=..Is_Nothing
+       MACRO is_in filter=..Is_In
+       MACRO less_than filter=..Less
+       MACRO greater_than filter=..Greater
+       MACRO between filter=..Between
+       MACRO contains filter=..Contains
+       MACRO starts_with filter=..Starts_With
+       MACRO ends_with filter=..Ends_With
+       MACRO like filter=..Like
+       MACRO regex_match filter=..Regex_Match
+       MACRO predicate filter=v->v==Nothing
+       GROUP Selections
        ICON preparation
        Selects all elements of this array which satisfy a condition.
 

@@ -1470,13 +1470,24 @@ export default class RemoteBackend extends Backend {
   }
 
   /** List events in the organization's audit log. */
-  override async getLogEvents(): Promise<backend.Event[]> {
+  override async getLogEvents(
+    params: backend.GetLogEventsRequestParams,
+  ): Promise<readonly backend.AuditLogEvent[]> {
     /** The type of the response body of this endpoint. */
     interface ResponseBody {
-      readonly events: backend.Event[]
+      readonly events: backend.AuditLogEvent[]
     }
 
-    const path = remoteBackendPaths.GET_LOG_EVENTS_PATH
+    const paramsString = new URLSearchParams({
+      /* eslint-disable @typescript-eslint/naming-convention, camelcase */
+      ...(params.userEmail != null ? { user_email: params.userEmail } : {}),
+      ...(params.startDate != null ? { start_date: params.startDate } : {}),
+      ...(params.endDate != null ? { end_date: params.endDate } : {}),
+      ...(params.from != null ? { from: String(params.from) } : {}),
+      ...(params.pageSize != null ? { page_size: String(params.pageSize) } : {}),
+      /* eslint-enable @typescript-eslint/naming-convention, camelcase */
+    }).toString()
+    const path = `${remoteBackendPaths.GET_LOG_EVENTS_PATH}?${paramsString}`
     const response = await this.get<ResponseBody>(path)
     if (!responseIsSuccessful(response)) {
       return this.throw(response, 'getLogEventsBackendError')

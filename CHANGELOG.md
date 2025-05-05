@@ -9,6 +9,8 @@
 - [Type annotations are now visible in the graph editor][12751]
 - [Component Browser shows methods with respect to possible type casts][12751]
 - [Add option to browse cloud for secret values][12953]
+- [Add ability to inspect column, row and value from right click on table
+  viz][12986]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -16,6 +18,7 @@
 [12913]: https://github.com/enso-org/enso/pull/12913
 [12751]: https://github.com/enso-org/enso/pull/12751
 [12953]: https://github.com/enso-org/enso/pull/12953
+[12986]: https://github.com/enso-org/enso/pull/12986
 
 #### Enso Standard Library
 

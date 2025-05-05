@@ -1363,10 +1363,11 @@ class IrToTruffle(
       subjectToInstrumentation: Boolean
     ): RuntimeExpression =
       caseExpr match {
-        case caseExpr @ Case.Expr(scrutinee, branches, isNested, location, _) =>
-          val scrutineeNode = this.run(scrutinee, subjectToInstrumentation)
+        case caseExpr: Case.Expr =>
+          val scrutineeNode =
+            this.run(caseExpr.scrutinee, subjectToInstrumentation)
 
-          val maybeCases    = branches.map(processCaseBranch)
+          val maybeCases    = caseExpr.branches.map(processCaseBranch)
           val allCasesValid = maybeCases.forall(_.isRight)
 
           if (allCasesValid) {
@@ -1380,9 +1381,9 @@ class IrToTruffle(
             val matchExpr = CaseNode.build(
               scrutineeNode,
               cases,
-              isNested
+              caseExpr.isNested
             )
-            setLocation(matchExpr, location)
+            setLocation(matchExpr, caseExpr.location())
           } else {
             val invalidBranches = maybeCases.collect { case Left(x) =>
               x

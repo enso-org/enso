@@ -1,13 +1,13 @@
 /** @file Settings screen. */
 import * as React from 'react'
 
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import BurgerMenuIcon from '#/assets/burger_menu.svg'
 import { Heading, MenuTrigger } from '#/components/aria'
 import { Button, Popover, Text } from '#/components/AriaComponents'
 import { useStrictPortalContext } from '#/components/Portal'
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -17,7 +17,6 @@ import { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
-import type Backend from '#/services/Backend'
 import { Path } from '#/services/ProjectManager'
 import { includesPredicate } from '#/utilities/array'
 import { regexEscape } from '#/utilities/string'
@@ -33,11 +32,6 @@ import {
 import SettingsSidebar from './Sidebar'
 import SettingsTab from './Tab'
 import SettingsTabType from './TabType'
-
-/** Props for a {@link Settings}. */
-export interface SettingsProps {
-  readonly backend: Backend | null
-}
 
 /** Settings screen. */
 export default function Settings() {
@@ -56,7 +50,9 @@ export default function Settings() {
   const [query, setQuery] = React.useState('')
   const root = useStrictPortalContext()
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
-  const { data: organization = null } = useBackendQuery(backend, 'getOrganization', [])
+  const { data: organization = null } = useQuery(
+    backendQueryOptions(backend, 'getOrganization', []),
+  )
   const isQueryBlank = !/\S/.test(query)
   const [preferredTimeZone, setPreferredTimeZone] = useLocalStorageState('preferredTimeZone')
 

@@ -1,6 +1,8 @@
 /** @file A modal to select labels for an asset. */
 import { useState } from 'react'
 
+import { useQuery } from '@tanstack/react-query'
+
 import {
   Button,
   ButtonGroup,
@@ -15,7 +17,7 @@ import ColorPicker from '#/components/ColorPicker'
 import Label from '#/components/dashboard/Label'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
@@ -63,9 +65,9 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
   const [id, setId] = useState(0)
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
-  const { data: allLabels } = useBackendQuery(backend, 'listTags', [])
+  const { data: allLabels = [] } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const [color, setColor] = useState<LChColor | null>(null)
-  const leastUsedColor = findLeastUsedColor(allLabels ?? [])
+  const leastUsedColor = findLeastUsedColor(allLabels)
 
   const createTag = useMutationCallback(backendMutationOptions(backend, 'createTag'))
   const associateTag = useMutationCallback(backendMutationOptions(backend, 'associateTag'))
@@ -97,8 +99,7 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
 
   const regex = new RegExp(regexEscape(query), 'i')
   const canSelectColor =
-    query !== '' &&
-    (allLabels ?? []).every((label) => label.value.toLowerCase() !== query.toLowerCase())
+    query !== '' && allLabels.every((label) => label.value.toLowerCase() !== query.toLowerCase())
   const canCreateNewLabel = canSelectColor
 
   return (
@@ -135,7 +136,7 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
             {...innerProps}
           >
             {allLabels
-              ?.filter((label) => regex.test(label.value))
+              .filter((label) => regex.test(label.value))
               .map((label) => {
                 const isActive = labels.includes(label.value)
                 return (
