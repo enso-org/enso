@@ -128,7 +128,7 @@ public final class UnusedImports implements MiniPassFactory {
           // `onlyNames`, or `isAll` import usually has a single resolved import, with target of the
           // ResolvedModule
           var resolvedMod =
-              resolvedImp.targets().find(target -> target.module().getName().equals(targetModName));
+              resolvedImp.targets().find(target -> target instanceof BindingsMap.ResolvedModule);
           if (resolvedMod.isDefined()) {
             var resolvedNames = resolvedMod.get().findExportedSymbolsFor(targetSymbolName.item());
             var exportsSymbol = !resolvedNames.isEmpty();
@@ -230,12 +230,32 @@ public final class UnusedImports implements MiniPassFactory {
     }
 
     private static List<QualifiedName> importedSymbols(BindingsMap.ResolvedImport resolvedImport) {
-      if (resolvedImport.importDef().onlyNames().isDefined()) {
-        var entityName = resolvedImport.importDef().name().name();
-        var names = resolvedImport.importDef().onlyNames().get().map(Literal::name);
-        var qualifiedNames =
-            names.map(nm -> QualifiedName.fromString(entityName + QualifiedName.separator() + nm));
-        return CollectionConverters.asJava(qualifiedNames);
+      var impDef = resolvedImport.importDef();
+      if (impDef.onlyNames().isDefined()) {
+        var resolvedModOpt =
+            resolvedImport.targets().find(target -> target instanceof BindingsMap.ResolvedModule);
+        if (resolvedModOpt.isEmpty()) {
+          throw new AssertionError(
+              "Resolved import for '"
+                  + impDef.showCode()
+                  + "' should have a single ResolvedModule target."
+                  + " Instead, targets are: "
+                  + resolvedImport.targets());
+        }
+        var resolvedMod = (BindingsMap.ResolvedModule) resolvedModOpt.get();
+        var names = impDef.onlyNames().get().map(Literal::name);
+        var resolvedNames = new ArrayList<QualifiedName>();
+        names.foreach(
+            name -> {
+              var expSymbols = resolvedMod.findExportedSymbolsFor(name);
+              expSymbols.foreach(
+                  expSymbol -> {
+                    resolvedNames.add(expSymbol.qualifiedName());
+                    return null;
+                  });
+              return null;
+            });
+        return resolvedNames;
       } else {
         var names = resolvedImport.targets().map(ResolvedName::qualifiedName);
         return CollectionConverters.asJava(names);

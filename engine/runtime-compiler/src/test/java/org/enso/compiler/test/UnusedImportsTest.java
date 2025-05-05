@@ -185,6 +185,30 @@ public class UnusedImportsTest {
     expectNoWarnings(imp);
   }
 
+  @Test
+  public void noWarning_WhenImportingSymbolFromReexport() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Other_Module"),
+        """
+            type My_Type
+            """);
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            export project.Other_Module.My_Type
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import My_Type
+            main = My_Type
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    var imp = mainMod.getIr().imports().apply(0);
+    expectNoWarnings(imp);
+  }
+
   private static void expectWarning(Import importIr, List<String> expectedUnusedSymbols) {
     var warn = getSingleWarning(importIr, UnusedSymbolsFromImport.class);
     var actualUnusedSymbols = CollectionConverters.asJava(warn.unusedSymbols());
