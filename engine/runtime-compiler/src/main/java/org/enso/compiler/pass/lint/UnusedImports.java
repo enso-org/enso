@@ -18,6 +18,7 @@ import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name.Literal;
 import org.enso.compiler.core.ir.Warning.UnusedImport;
 import org.enso.compiler.core.ir.Warning.UnusedSymbolsFromImport;
+import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
@@ -157,6 +158,7 @@ public final class UnusedImports implements MiniPassFactory {
 
     @Override
     public Module transformModule(Module moduleIr) {
+      gatherUsedSymbolsFromExports(moduleIr);
       var usedSymbols = usedSymbolsBldr.build();
       LOGGER.trace(
           "[{}] Transforming module. Used symbols: {}",
@@ -205,6 +207,86 @@ public final class UnusedImports implements MiniPassFactory {
     @Override
     public Expression transformExpression(Expression expr) {
       return expr;
+    }
+
+    /**
+     * Traverses export IRs and fills in {@link #usedSymbolsBldr} based on the exported symbols.
+     * Note that the export IRs is not traversed by {@link #prepare(IR, Expression)}.
+     */
+    private void gatherUsedSymbolsFromExports(Module modIr) {
+      LOGGER.trace(
+          "[{}] Gathering used symbols from exports", bindingsMap.currentModule().getName());
+      for (var export : exports(modIr)) {
+        if (export.onlyNames().isDefined()) {
+          var names = export.onlyNames().get().map(Literal::name);
+          var modName = QualifiedName.fromString(export.name().name());
+          for (var name : CollectionConverters.asJava(names)) {
+            var symName =
+                QualifiedName.fromString(modName.toString() + QualifiedName.separator() + name);
+            var impIrs = findImportIRs(modName, symName);
+            for (var impIr : impIrs) {
+              LOGGER.trace(
+                  "[{}] Adding used symbol '{}' for import '{}' from export '{}'",
+                  bindingsMap.currentModule().getName(),
+                  symName,
+                  impIr.showCode(),
+                  export.showCode());
+              usedSymbolsBldr.addUsedSymbol(impIr, symName);
+            }
+          }
+        } else {
+          var simpleName = export.getSimpleName().name();
+          var resolvedNames = resolveExportedName(simpleName);
+          addToUsedSymbols(resolvedNames);
+        }
+      }
+    }
+
+    private List<ResolvedName> resolveExportedName(String name) {
+      var resolution = bindingsMap.resolveExportedName(name);
+      if (resolution.isLeft()) {
+        throw new AssertionError(
+            "The name '"
+                + name
+                + "' should be in exported symbols in bindings map: "
+                + bindingsMap.exportedSymbols());
+      }
+      var resolvedNames = resolution.toOption().get();
+      return CollectionConverters.asJava(resolvedNames);
+    }
+
+    private void addToUsedSymbols(List<ResolvedName> resolvedNames) {
+      for (var resolvedName : resolvedNames) {
+        var impIRs = findImportIRs(resolvedName);
+        for (var impIR : impIRs) {
+          var symName = resolvedName.qualifiedName();
+          LOGGER.trace(
+              "[{}] Adding used symbol '{}' for import '{}'",
+              bindingsMap.currentModule().getName(),
+              symName,
+              impIR.showCode());
+          usedSymbolsBldr.addUsedSymbol(impIR, symName);
+        }
+      }
+    }
+
+    private List<Import.Module> findImportIRs(ResolvedName resolvedName) {
+      var modName = resolvedName.module().getName();
+      var symName = resolvedName.qualifiedName();
+      return findImportIRs(modName, symName);
+    }
+
+    private static List<Export.Module> exports(Module modIr) {
+      var exps =
+          modIr
+              .exports()
+              .map(
+                  exp -> {
+                    assert exp instanceof Export.Module
+                        : "Only single subtype of Import is implemented";
+                    return (Export.Module) exp;
+                  });
+      return CollectionConverters.asJava(exps);
     }
 
     /** Returns set of all imported symbol by the given import statement. */
