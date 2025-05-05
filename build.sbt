@@ -1260,8 +1260,7 @@ lazy val `scala-libs-wrapper` = project
         (Compile / fullClasspath).value,
         scalaLibrary ++
         scalaReflect ++
-        slf4jApi ++
-        Seq(),
+        slf4jApi,
         streams.value.log,
         moduleName.value,
         scalaBinaryVersion.value,
@@ -1393,8 +1392,7 @@ lazy val `directory-watcher-wrapper` = project
       JPMSUtils.filterModulesFromClasspath(
         (Compile / dependencyClasspath).value,
         scalaLibrary ++
-        slf4jApi ++
-        Seq(),
+        slf4jApi,
         streams.value.log,
         moduleName.value,
         scalaBinaryVersion.value,
