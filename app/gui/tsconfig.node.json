@@ -17,6 +17,6 @@
     "module": "ESNext",
     "verbatimModuleSyntax": true,
     "types": ["node", "vitest/importMeta"],
-    "paths": { "@/*": ["./src/project-view/*"], "#/*": ["./src/dashboard/*"] }
+    "paths": { "@/*": ["./src/project-view/*"], "#/*": ["./src/dashboard/*"], "$/*": ["./src/*"] }
   }
 }

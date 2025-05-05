@@ -6,6 +6,7 @@ import org.enso.pkg.{Package, PackageManager}
 import org.enso.common.LanguageInfo
 import org.enso.polyglot.PolyglotContext
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.runtime.utils.ThreadUtils
 import org.graalvm.polyglot.Context
 
 import java.io.File
@@ -155,7 +156,16 @@ abstract class InstrumentTestContext(packageName: String) {
 
   def close(): Unit = {
     if (context() != null) {
-      context().close()
+      try {
+        context().close()
+      } catch {
+        case e: IllegalStateException =>
+          val msg = ThreadUtils.dumpAllStacktraces(
+            "Thread dump on failure to close test Instrument Context:"
+          )
+          println(msg)
+          throw e
+      }
     }
     Await.ready(runtimeServerEmulator.terminate(), 5.seconds)
     lockManager.reset()

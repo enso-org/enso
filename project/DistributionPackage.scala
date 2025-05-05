@@ -375,9 +375,6 @@ object DistributionPackage {
       all.add("--disable-private-check")
     }
     pb.command(all)
-    workingDirectory
-      .orElse(projectPath.map(new File(_).getParentFile))
-      .foreach(pb.directory)
     pb.inheritIO()
     log.info(s"Executing ${all.asScala.mkString(" ")}")
     val p        = pb.start()
