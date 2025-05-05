@@ -14,7 +14,6 @@ import {
   VisualTooltip,
 } from '#/components/AriaComponents'
 import { ErrorBoundary, InlineErrorDisplay } from '#/components/ErrorBoundary'
-import { PaywallDialog } from '#/components/Paywall'
 import {
   deleteAssetsMutationOptions,
   downloadAssetsMutationOptions,
@@ -26,10 +25,9 @@ import {
   useNewFolder,
   useNewProject,
 } from '#/hooks/backendHooks'
-import { useUploadFiles, useUploadFileToCloudMutation } from '#/hooks/backendUploadFilesHooks'
+import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
-import { useStore } from '#/hooks/storeHooks'
 import { AssetPanelToggle } from '#/layouts/AssetPanel'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
@@ -38,28 +36,23 @@ import {
   isCloudCategory,
   type Category,
 } from '#/layouts/CategorySwitcher/Category'
-import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useCategories, useTransferBetweenCategories } from '#/layouts/Drive/Categories'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
-import { useUser } from '#/providers/AuthProvider'
-import { useLocalBackend } from '#/providers/BackendProvider'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
-import { setModal, useSetModal } from '#/providers/ModalProvider'
+import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { AssetType, getAssetTypeFromId, Plan, type CredentialConfig } from '#/services/Backend'
+import { type CredentialConfig } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import type { PropsWithChildren } from 'react'
-import invariant from 'tiny-invariant'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarToolbarProps {
@@ -308,8 +301,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 aria-label={getText('uploadFiles')}
                 onPress={uploadFilesCallback}
               />
-              <UploadFilesToCloudButton category={category} />
-              <DownloadFilesToLocalButton category={category} />
               <Button
                 isDisabled={!canDownload}
                 variant="icon"
@@ -382,122 +373,5 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
 
       {children}
     </ButtonGroup>
-  )
-}
-
-/** Props for {@link UploadFilesToCloudButton}. */
-export interface UploadFilesToCloudButtonProps {
-  readonly category: Category
-}
-
-/** A button to upload assets to the cloud. */
-function UploadFilesToCloudButton(props: UploadFilesToCloudButtonProps) {
-  const { category } = props
-
-  const user = useUser()
-  const getAsset = useGetAsset()
-  const { getText } = useText()
-  const localBackend = useLocalBackend()
-  const uploadFileToCloudMutation = useUploadFileToCloudMutation()
-  const isCloud = isCloudCategory(category)
-  const driveStore = useDriveStore()
-  const isDisabled = useStore(
-    driveStore,
-    (state) =>
-      isCloud ||
-      state.selectedIds.size === 0 ||
-      [...state.selectedIds].some((id) => getAssetTypeFromId(id) !== AssetType.project),
-  )
-  const canUploadToCloud = user.plan !== Plan.free
-  const isUnderPaywall = !canUploadToCloud
-
-  const uploadFilesToCloud = useEventCallback(async () => {
-    invariant(localBackend != null, 'Cannot upload to cloud without Local backend')
-    const selectedIds = [...driveStore.getState().selectedIds]
-    const files = selectedIds.flatMap((id) => {
-      const asset = getAsset(id)
-      return asset ? [asset] : []
-    })
-    await uploadFileToCloudMutation(localBackend, {
-      assets: Array.from(files),
-      targetDirectoryId: user.rootDirectoryId,
-    })
-  })
-
-  if (isCloud) {
-    return
-  }
-
-  return (
-    <Button
-      variant="icon"
-      size="medium"
-      icon={isUnderPaywall ? 'icon/lock' : 'cloud_to'}
-      isDisabled={isDisabled}
-      aria-label={getText('uploadFilesToCloud')}
-      onPress={async () => {
-        if (isUnderPaywall) {
-          setModal(<PaywallDialog modalProps={{ defaultOpen: true }} feature="uploadToCloud" />)
-        } else {
-          await uploadFilesToCloud()
-        }
-      }}
-    />
-  )
-}
-
-/** Props for {@link DownloadFilesToLocalButton}. */
-export interface DownloadFilesToLocalButtonProps {
-  readonly category: Category
-}
-
-/** A button to upload assets to the cloud. */
-function DownloadFilesToLocalButton(props: DownloadFilesToLocalButtonProps) {
-  const { category } = props
-
-  const getAsset = useGetAsset()
-  const { getText } = useText()
-  const { localCategories } = useCategories()
-  const localBackend = useLocalBackend()
-  const transferBetweenCategories = useTransferBetweenCategories(category)
-  const isCloud = isCloudCategory(category)
-  const driveStore = useDriveStore()
-  const isDisabled = useStore(
-    driveStore,
-    (state) =>
-      !isCloud ||
-      state.selectedIds.size === 0 ||
-      [...state.selectedIds].some((id) => getAssetTypeFromId(id) !== AssetType.project),
-  )
-
-  const downloadFilesToLocal = useEventCallback(async () => {
-    invariant(localBackend != null, 'Cannot download to local without Local backend')
-    const localHomeCategory = localCategories.categories.find(
-      (otherCategory) => otherCategory.type === 'local',
-    )
-    invariant(localHomeCategory, 'Local home category must exist to download to local')
-
-    const selectedIds = [...driveStore.getState().selectedIds]
-    const files = selectedIds.flatMap((id) => {
-      const asset = getAsset(id)
-      return asset ? [asset] : []
-    })
-
-    await transferBetweenCategories(category, localHomeCategory, files)
-  })
-
-  if (!isCloud) {
-    return
-  }
-
-  return (
-    <Button
-      variant="icon"
-      size="medium"
-      icon="cloud_from"
-      isDisabled={isDisabled}
-      aria-label={getText('downloadFilesToLocal')}
-      onPress={downloadFilesToLocal}
-    />
   )
 }
