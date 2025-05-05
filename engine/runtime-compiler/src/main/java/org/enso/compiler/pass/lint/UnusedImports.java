@@ -16,6 +16,7 @@ import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name.Literal;
+import org.enso.compiler.core.ir.Warning;
 import org.enso.compiler.core.ir.Warning.UnusedImport;
 import org.enso.compiler.core.ir.Warning.UnusedSymbolsFromImport;
 import org.enso.compiler.core.ir.module.scope.Export;
@@ -166,7 +167,9 @@ public final class UnusedImports implements MiniPassFactory {
           usedSymbols);
       var newImports = new ArrayList<Import>();
       for (var impIr : CollectionConverters.asJava(moduleIr.imports())) {
-        if (impIr instanceof Import.Module impMod && impMod.onlyNames().isDefined()) {
+        if (isImportDuplicated(impIr)) {
+          // nop
+        } else if (impIr instanceof Import.Module impMod && impMod.onlyNames().isDefined()) {
           var importedSymbols = importedSymbols(impIr);
           var usedSymbolsForImp = usedSymbols.getUsedSymbolsForImport(impIr);
           var diff = new HashSet<>(importedSymbols);
@@ -351,6 +354,16 @@ public final class UnusedImports implements MiniPassFactory {
         }
       }
       return null;
+    }
+
+    private static boolean isImportDuplicated(Import imp) {
+      if (imp.diagnostics() != null) {
+        var duplImport =
+            imp.diagnostics().toList().find(diag -> diag instanceof Warning.DuplicatedImport);
+        return duplImport.isDefined();
+      } else {
+        return false;
+      }
     }
 
     private static UnusedSymbolsFromImport createWarning(

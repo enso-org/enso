@@ -16,7 +16,11 @@ public final class DiagnosticException extends RuntimeException {
   }
 
   private static String createMessage(MockModule module, Diagnostic diagnostic) {
-    String sb = "Failure in module '" + module.getName() + "' : " + diagnostic.message(null);
+    String sb =
+        "Failure in module '"
+            + module.getName()
+            + "' : "
+            + diagnostic.message(module::getSourceSection);
     return sb;
   }
 }

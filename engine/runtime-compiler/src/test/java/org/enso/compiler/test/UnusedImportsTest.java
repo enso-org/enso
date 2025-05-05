@@ -266,6 +266,51 @@ public class UnusedImportsTest {
     expectNoWarnings(imp);
   }
 
+  @Test
+  public void ignoresDuplicatedImports() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type My_Type
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            import project.Module.My_Type
+            import project.Module.My_Type
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    var firstImp = mainMod.getIr().imports().apply(0);
+    expectWarning(firstImp);
+    var secondImp = mainMod.getIr().imports().apply(1);
+    expectNoWarnings(secondImp);
+  }
+
+  @Test
+  public void importConstructors() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Boolean"),
+        """
+            export project.Boolean.Boolean.False
+            export project.Boolean.Boolean.True
+
+            type Boolean
+                False
+                True
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Boolean import Boolean, False, True
+            main = [Boolean, False, True]
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    var imp = mainMod.getIr().imports().apply(0);
+    expectNoWarnings(imp);
+  }
+
   private static void expectWarning(Import importIr, List<String> expectedUnusedSymbols) {
     var warn = getSingleWarning(importIr, UnusedSymbolsFromImport.class);
     var actualUnusedSymbols = CollectionConverters.asJava(warn.unusedSymbols());
