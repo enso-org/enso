@@ -38,6 +38,7 @@ pub struct Context {
 impl Context {
     /// Creates a new context from the environment.
     #[context("Failed to create a new GitHub context from the environment.")]
+    #[instrument("Building GitHub Context from environment", err)]
     pub fn from_env() -> Result<Self> {
         let payload: WebhookPayload =
             if let Ok(event_path) = crate::actions::env::GITHUB_EVENT_PATH.get() {
