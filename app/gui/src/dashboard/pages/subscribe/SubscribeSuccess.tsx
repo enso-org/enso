@@ -1,6 +1,4 @@
 /** @file A page to show when a user successfully subscribes to a plan. */
-import * as router from 'react-router'
-import * as routerDom from 'react-router-dom'
 
 import * as appUtils from '#/appUtils'
 
@@ -11,16 +9,17 @@ import * as result from '#/components/Result'
 
 import { PLAN_TO_TEXT_ID } from '#/modules/payments'
 import { Plan, isPlan } from '#/services/Backend'
+import { useRouterInReact } from '$/providers/react'
 
 /** A page to show when a user successfully subscribes to a plan. */
 export function SubscribeSuccess() {
   const { getText } = textProvider.useText()
-  const [searchParams] = routerDom.useSearchParams()
-  const navigate = routerDom.useNavigate()
+  const { router, searchParams } = useRouterInReact()
   const plan = searchParams.get('plan') ?? Plan.solo
 
   if (!isPlan(plan)) {
-    return <router.Navigate to={appUtils.DASHBOARD_PATH} replace />
+    void router.replace(appUtils.DASHBOARD_PATH)
+    return
   } else {
     return (
       <result.Result
@@ -34,7 +33,7 @@ export function SubscribeSuccess() {
             variant="submit"
             size="large"
             onPress={() => {
-              navigate(appUtils.DASHBOARD_PATH)
+              void router.push(appUtils.DASHBOARD_PATH)
             }}
           >
             {getText('subscribeSuccessSubmit')}
