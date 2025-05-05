@@ -14,7 +14,8 @@ jobs:
   changelog:
     name: Changelog
     runs-on:
-      - X64
+      - Linux
+      - self-hosted
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
