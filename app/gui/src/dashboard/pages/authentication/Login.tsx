@@ -1,5 +1,4 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
-import * as router from 'react-router-dom'
 
 import { isOnElectron } from 'enso-common/src/detect'
 
@@ -18,6 +17,7 @@ import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordSchema } from '#/pages/authentication/schemas'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
+import { useRouterInReact } from '$/providers/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 
@@ -28,14 +28,12 @@ const GITHUB_ICON = <img src={GithubIcon} alt="" />
 
 /** A form for users to log in. */
 export default function Login() {
-  const location = router.useLocation()
-  const navigate = router.useNavigate()
+  const { router, searchParams } = useRouterInReact()
   const queryClient = useQueryClient()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } = useSessionAPI()
   const { getText } = useText()
 
-  const query = new URLSearchParams(location.search)
-  const initialEmail = query.get('email') ?? ''
+  const initialEmail = searchParams.get('email') ?? ''
 
   useEffect(() => {
     void queryClient.clearWithPersister()
@@ -66,7 +64,7 @@ export default function Login() {
         case 'NEW_PASSWORD_REQUIRED':
         case 'SELECT_MFA_TYPE':
         default:
-          navigate(DASHBOARD_PATH)
+          void router.push(DASHBOARD_PATH)
       }
     },
   })
@@ -176,7 +174,7 @@ export default function Login() {
                   const res = await confirmSignIn(user, otp)
 
                   if (res.ok) {
-                    navigate(DASHBOARD_PATH)
+                    void router.push(DASHBOARD_PATH)
                   } else {
                     switch (res.val.code) {
                       case 'NotAuthorizedException':

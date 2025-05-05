@@ -145,11 +145,11 @@ class NestedPatternMatchTest extends CompilerTest {
         .returnValue
         .asInstanceOf[Case.Expr]
 
-    val consConsNilBranch        = ir.branches(0)
-    val consConsOneNilBranch     = ir.branches(1)
-    val consConsIntegerNilBranch = ir.branches(2)
-    val consANilBranch           = ir.branches(3)
-    val catchAllBranch           = ir.branches(4)
+    val consConsNilBranch        = ir.branches.apply(0)
+    val consConsOneNilBranch     = ir.branches.apply(1)
+    val consConsIntegerNilBranch = ir.branches.apply(2)
+    val consANilBranch           = ir.branches.apply(3)
+    val catchAllBranch           = ir.branches.apply(4)
 
     "desugar nested constructors to simple patterns" in {
       ir.isNested shouldBe false
@@ -169,7 +169,7 @@ class NestedPatternMatchTest extends CompilerTest {
       nestedCase.branches.length shouldEqual 1
       nestedCase.isNested shouldBe true
 
-      val nilBranch = nestedCase.branches(0)
+      val nilBranch = nestedCase.branches.apply(0)
 
       nilBranch.pattern shouldBe a[Pattern.Constructor]
       nilBranch.pattern
@@ -197,7 +197,7 @@ class NestedPatternMatchTest extends CompilerTest {
       nestedCase.branches.length shouldEqual 1
       nestedCase.isNested shouldBe true
 
-      val consBranch = nestedCase.branches(0)
+      val consBranch = nestedCase.branches.apply(0)
 
       consBranch.expression shouldBe an[Expression.Block]
 
@@ -233,7 +233,7 @@ class NestedPatternMatchTest extends CompilerTest {
       nestedCase.branches.length shouldEqual 1
       nestedCase.isNested shouldBe true
 
-      val consBranch = nestedCase.branches(0)
+      val consBranch = nestedCase.branches.apply(0)
 
       consBranch.expression shouldBe an[Expression.Block]
       consBranch.terminalBranch shouldBe false
@@ -275,7 +275,7 @@ class NestedPatternMatchTest extends CompilerTest {
       nestedCase.branches.length shouldEqual 1
       nestedCase.isNested shouldBe true
 
-      val consBranch = nestedCase.branches(0)
+      val consBranch = nestedCase.branches.apply(0)
 
       consBranch.expression shouldBe an[Expression.Block]
       consBranch.terminalBranch shouldBe false

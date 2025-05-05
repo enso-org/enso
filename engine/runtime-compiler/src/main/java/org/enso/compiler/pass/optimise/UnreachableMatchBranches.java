@@ -144,7 +144,7 @@ public final class UnreachableMatchBranches implements MiniPassFactory {
           }
 
           var diagnostic = new Unreachable.Branches(unreachableLocation);
-          var copiedExpr = expr.copyWithBranches(reachableBranches);
+          var copiedExpr = expr.copy(reachableBranches);
           copiedExpr.getDiagnostics().add(diagnostic);
           return copiedExpr;
         }

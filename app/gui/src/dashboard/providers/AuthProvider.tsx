@@ -7,9 +7,8 @@
  */
 import * as React from 'react'
 
-import * as sentry from '@sentry/react'
+import * as sentry from '@sentry/vue'
 import * as reactQuery from '@tanstack/react-query'
-import * as router from 'react-router-dom'
 import * as toast from 'react-toastify'
 import invariant from 'tiny-invariant'
 
@@ -29,18 +28,19 @@ import * as backendModule from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
 import type * as cognitoModule from '#/authentication/cognito'
+import { Button, Text } from '#/components/AriaComponents'
+import { EnsoDevtools } from '#/components/Devtools'
 import Page from '#/components/Page'
+import { Result } from '#/components/Result'
+import { useTimeoutCallback } from '#/hooks/timeoutHooks'
 import { isOrganizationId } from '#/services/RemoteBackend'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
+import { useRouterInReact } from '$/providers/react'
 import { Suspense } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
-import { Button, Text } from '../components/AriaComponents'
-import { EnsoDevtools } from '../components/Devtools'
-import { Result } from '../components/Result'
-import { useTimeoutCallback } from '../hooks/timeoutHooks'
 import {
   featureFlagsForInternalTesting,
   useFeatureFlag,
@@ -363,26 +363,31 @@ export function useAuth() {
 /**
  * A React Router layout route containing routes only accessible by users that are logged in.
  */
-export function AnyLoggedInUserLayout() {
+export function AnyLoggedInUserLayout({ children }: React.PropsWithChildren) {
   const { session } = useAuth()
+  const { router } = useRouterInReact()
 
   if (session == null) {
-    return <router.Navigate to={appUtils.LOGIN_PATH} />
+    void router.push(appUtils.LOGIN_PATH)
+    return
   }
 
-  return <router.Outlet context={session} />
+  return <>{children}</>
 }
 
 /** A React Router layout route containing routes only accessible by users that are logged in. */
-export function ProtectedLayout() {
+export function ProtectedLayout({ children }: React.PropsWithChildren<object>) {
   const { session } = useAuth()
+  const { router } = useRouterInReact()
 
   if (session == null) {
-    return <router.Navigate to={appUtils.LOGIN_PATH} />
+    void router.push(appUtils.LOGIN_PATH)
+    return
   }
 
   if (session.type === UserSessionType.partial) {
-    return <router.Navigate to={appUtils.SETUP_PATH} />
+    void router.push(appUtils.SETUP_PATH)
+    return
   }
 
   return (
@@ -391,7 +396,7 @@ export function ProtectedLayout() {
       {/* also it guarantees that the top-level suspense boundary is already resolved */}
       <div data-testid="after-auth-layout" aria-hidden />
 
-      <router.Outlet context={session} />
+      {children}
 
       <Suspense fallback={null}>
         <ErrorBoundary fallbackRender={() => null}>
@@ -406,47 +411,48 @@ export function ProtectedLayout() {
  * A React Router layout route containing routes only accessible by users that are
  * in the process of registering.
  */
-export function SemiProtectedLayout() {
+export function SemiProtectedLayout({ children }: React.PropsWithChildren) {
   const { session } = useAuth()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { router } = useRouterInReact()
 
   // The user is not logged in - redirect to the login page.
   if (session == null) {
-    return <router.Navigate to={appUtils.LOGIN_PATH} replace />
+    void router.replace(appUtils.LOGIN_PATH)
+    return
   }
 
   // User is registered, redirect to dashboard or to the redirect path specified during the registration / login.
   if (session.type === UserSessionType.full) {
-    return (
-      <router.Navigate
-        to={localStorage.consume('loginRedirect') ?? appUtils.DASHBOARD_PATH}
-        replace
-      />
-    )
+    void router.replace(localStorage.consume('loginRedirect') ?? appUtils.DASHBOARD_PATH)
+    return
   }
 
   // User is in the process of registration, allow them to complete the registration.
-  return <router.Outlet context={session} />
+  return <>{children}</>
 }
 
 /**
  * A React Router layout route containing routes only accessible by users that are
  * not logged in.
  */
-export function GuestLayout() {
+export function GuestLayout({ children }: React.PropsWithChildren) {
   const { session } = useAuth()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { router } = useRouterInReact()
 
   if (session?.type === UserSessionType.partial) {
-    return <router.Navigate to={appUtils.SETUP_PATH} />
+    void router.push(appUtils.SETUP_PATH)
+    return
   } else if (session?.type === UserSessionType.full) {
     const redirectTo = localStorage.get('loginRedirect')
     if (redirectTo != null) {
       localStorage.delete('loginRedirect')
-      location.href = redirectTo
+      void router.push(redirectTo)
       return
     } else {
-      return <router.Navigate to={appUtils.DASHBOARD_PATH} />
+      void router.push(appUtils.DASHBOARD_PATH)
+      return
     }
   } else {
     return (
@@ -454,36 +460,40 @@ export function GuestLayout() {
         {/* This div is used as a flag to indicate that the user is not logged in. */}
         {/* also it guarantees that the top-level suspense boundary is already resolved */}
         <div data-testid="before-auth-layout" aria-hidden />
-        <router.Outlet />
+        {children}
       </>
     )
   }
 }
 
 /** A React Router layout route containing routes only accessible by users that are not deleted. */
-export function NotDeletedUserLayout() {
-  const { session, isUserMarkedForDeletion } = useAuth()
+export function NotDeletedUserLayout({ children }: React.PropsWithChildren) {
+  const { isUserMarkedForDeletion } = useAuth()
+  const { router } = useRouterInReact()
 
   if (isUserMarkedForDeletion()) {
-    return <router.Navigate to={appUtils.RESTORE_USER_PATH} />
+    void router.push(appUtils.RESTORE_USER_PATH)
   } else {
-    return <router.Outlet context={session} />
+    return <>{children}</>
   }
 }
 
 /** A React Router layout route containing routes only accessible by users that are deleted softly. */
-export function SoftDeletedUserLayout() {
-  const { session, isUserMarkedForDeletion, isUserDeleted, isUserSoftDeleted } = useAuth()
+export function SoftDeletedUserLayout({ children }: React.PropsWithChildren) {
+  const { isUserMarkedForDeletion, isUserDeleted, isUserSoftDeleted } = useAuth()
+  const { router } = useRouterInReact()
 
   if (isUserMarkedForDeletion()) {
     const isSoftDeleted = isUserSoftDeleted()
     const isDeleted = isUserDeleted()
     if (isSoftDeleted) {
-      return <router.Outlet context={session} />
+      return <>{children}</>
     } else if (isDeleted) {
-      return <router.Navigate to={appUtils.LOGIN_PATH} />
+      void router.push(appUtils.LOGIN_PATH)
+      return
     } else {
-      return <router.Navigate to={appUtils.DASHBOARD_PATH} />
+      void router.push(appUtils.DASHBOARD_PATH)
+      return
     }
   }
 }
@@ -501,9 +511,10 @@ export interface CloudBrowserDisabledLayoutProps {
 /**
  * Layout that disables the dashboard if the cloud is disabled.
  */
-export function CloudBrowserDisabledLayout(props: CloudBrowserDisabledLayoutProps) {
-  const { redirectDelayMs = DEFAULT_REDIRECT_DELAY_MS, redirectPath = '' } = props
-  const { session } = useAuth()
+export function CloudBrowserDisabledLayout(
+  props: React.PropsWithChildren<CloudBrowserDisabledLayoutProps>,
+) {
+  const { children, redirectDelayMs = DEFAULT_REDIRECT_DELAY_MS, redirectPath = '' } = props
   const { getText } = textProvider.useText()
   const isCloudExecutionEnabled = useFeatureFlag('enableCloudExecution')
   const [isRedirecting, setIsRedirecting] = React.useState(true)
@@ -522,7 +533,7 @@ export function CloudBrowserDisabledLayout(props: CloudBrowserDisabledLayoutProp
   })
 
   if (isCloudExecutionEnabled) {
-    return <router.Outlet context={session} />
+    return <>{children}</>
   }
 
   return (

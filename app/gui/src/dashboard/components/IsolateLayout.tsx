@@ -5,10 +5,10 @@
  * Improves Layout recalculation performance.
  */
 import { useMeasureCallback } from '#/hooks/measureHooks'
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { tv } from '#/utilities/tailwindVariants'
 import type { ForwardedRef } from 'react'
 import { forwardRef, useRef, type ReactNode } from 'react'
-import { mergeRefs } from '../utilities/mergeRefs'
-import { tv } from '../utilities/tailwindVariants'
 
 /**
  * Props for the {@link IsolateLayout} component.
