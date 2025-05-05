@@ -11,11 +11,11 @@ on:
       - opened
       - reopened
 jobs:
-  changelog-linux,-amd-64:
-    name: Changelog (linux, amd64)
+  changelog:
+    name: Changelog
     runs-on:
-      - self-hosted
       - Linux
+      - self-hosted
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
