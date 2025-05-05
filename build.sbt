@@ -5522,7 +5522,6 @@ lazy val `std-tableau` = project
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
-  .dependsOn(`jna-wrapper` % "provided")
 
 lazy val fetchZipToUnmanaged =
   taskKey[Seq[Attributed[File]]](
