@@ -57,5 +57,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      RUST_BACKTRACE: "1"
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

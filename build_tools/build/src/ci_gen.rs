@@ -550,7 +550,10 @@ pub fn changelog() -> Result<Workflow> {
         Opened,
         Reopened,
     ]));
-    ret.add_job(RunStepsBuilder::new("changelog-check").build_job("Changelog", RunnerLabel::X64));
+    let mut changelog_check =
+        RunStepsBuilder::new("changelog-check").build_job("Changelog", RunnerLabel::X64);
+    changelog_check.env("RUST_BACKTRACE", "1");
+    ret.add_job(changelog_check);
     Ok(ret)
 }
 
