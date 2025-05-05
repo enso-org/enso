@@ -56,6 +56,7 @@ pub trait PathExt: AsRef<Path> {
     #[instrument("read_to_json", skip(self), err)]
     fn read_to_json<T: DeserializeOwned>(&self) -> Result<T> {
         let content = crate::fs::read_to_string(self)?;
+        info!("Content length: {}", content.len());
         serde_json::from_str(&content).with_context(|| format!("File content was: {content}"))
     }
 
