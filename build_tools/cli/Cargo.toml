@@ -16,3 +16,4 @@ ide-ci = { path = "../ci_utils" }
 octocrab = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+backtrace-on-stack-overflow = "0.3.0"
