@@ -17,7 +17,7 @@ import { type AuditLogEvent } from '#/services/Backend'
 import { iconIdFor, nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { toReadableIsoString, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import { MINUTE_MS, toReadableIsoString, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import {
   DEFAULT_EVENT_ICON,
   EVENT_TYPE_ICON,
@@ -87,6 +87,8 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
     initialPageParam: 0,
     getPreviousPageParam: (currentPage, allPages) => (allPages.indexOf(currentPage) - 1) * pageSize,
     getNextPageParam: (currentPage, allPages) => (allPages.indexOf(currentPage) + 1) * pageSize,
+    staleTime: MINUTE_MS,
+    meta: { persist: false },
   })
   const logs = logsPages.data?.pages.flat()
 
@@ -420,13 +422,15 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 )
               })
             }
-            <tr className="h-9">
-              <td colSpan={4} className="rounded-full bg-transparent">
-                <div className="flex justify-center">
-                  <StatelessSpinner size={32} state="loading-medium" />
-                </div>
-              </td>
-            </tr>
+            {(logsPages.data?.pages.length ?? 0) > 0 && (
+              <tr className="h-9">
+                <td colSpan={4} className="rounded-full bg-transparent">
+                  <div className="flex justify-center">
+                    <StatelessSpinner size={32} state="loading-medium" />
+                  </div>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </Scroller>
