@@ -25,7 +25,6 @@ use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
 use ide_ci::actions::workflow::definition::Permission;
 use ide_ci::actions::workflow::definition::RunnerLabel;
-use ide_ci::actions::workflow::definition::Shell;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
@@ -236,33 +235,16 @@ impl JobArchetype for JvmTests {
         let job_name = format!("JVM Tests ({graal_edition})");
         let mut job = RunStepsBuilder::new("backend test jvm")
             .customize(move |step| {
-                let cleanup_engine_distribution = Step {
-                    run: Some(format!(
-                        "rm -rf {}",
-                        built_distribution_directories(engine_launcher)
-                    )),
-                    shell: Some(Shell::Bash),
-                    ..Default::default()
-                };
+                let cleanup_engine_distribution =
+                    step::cleanup_engine_distribution(engine_launcher);
 
                 let download_engine_distribution =
                     step::download_engine_distribution(target, engine_launcher, graal_edition);
 
-                let unpack_engine_distribution = Step {
-                    name: Some("Unpack Engine Distribution".into()),
-                    run: Some(
-                        "tar -xvf built-distribution.tar
-rm built-distribution.tar
-"
-                        .into(),
-                    ),
-                    ..Default::default()
-                };
-
                 vec![
                     cleanup_engine_distribution,
                     download_engine_distribution,
-                    unpack_engine_distribution,
+                    step::unpack_engine_distribution(),
                     step,
                     step::engine_test_reporter(target, graal_edition),
                 ]
@@ -345,25 +327,10 @@ impl JobArchetype for StandardLibraryTests {
         let job_name = format!("Standard Library Tests ({graal_edition}) ({job_mode_name})");
         let run_command = format!("backend test {test_scope}");
         let run_steps_builder = RunStepsBuilder::new(run_command).customize(move |step| {
-            let cleanup_engine_distribution = Step {
-                run: Some(format!("rm -rf {}", built_distribution_directories(engine_launcher))),
-                shell: Some(Shell::Bash),
-                ..Default::default()
-            };
+            let cleanup_engine_distribution = step::cleanup_engine_distribution(engine_launcher);
 
             let download_engine_distribution =
                 step::download_engine_distribution(target, engine_launcher, graal_edition);
-
-            let unpack_engine_distribution = Step {
-                name: Some("Unpack Engine Distribution".into()),
-                run: Some(
-                    "tar -xvf built-distribution.tar
-rm built-distribution.tar
-"
-                    .into(),
-                ),
-                ..Default::default()
-            };
 
             let main_step = step
                 .with_secret_exposed_as(
@@ -385,7 +352,7 @@ rm built-distribution.tar
             vec![
                 cleanup_engine_distribution,
                 download_engine_distribution,
-                unpack_engine_distribution,
+                step::unpack_engine_distribution(),
                 updated_main_step,
                 step::stdlib_test_reporter(target, graal_edition),
             ]
@@ -438,33 +405,16 @@ impl JobArchetype for EnsoCodeLintCheck {
         let engine_launcher = self.engine_launcher;
         let mut job = RunStepsBuilder::new("libraries lint")
             .customize(move |step| {
-                let cleanup_engine_distribution = Step {
-                    run: Some(format!(
-                        "rm -rf {}",
-                        built_distribution_directories(engine_launcher)
-                    )),
-                    shell: Some(Shell::Bash),
-                    ..Default::default()
-                };
+                let cleanup_engine_distribution =
+                    step::cleanup_engine_distribution(engine_launcher);
 
                 let download_engine_distribution =
                     step::download_engine_distribution(target, engine_launcher, graal_edition);
 
-                let unpack_engine_distribution = Step {
-                    name: Some("Unpack Engine Distribution".into()),
-                    run: Some(
-                        "tar -xvf built-distribution.tar
-rm built-distribution.tar
-"
-                        .into(),
-                    ),
-                    ..Default::default()
-                };
-
                 vec![
                     cleanup_engine_distribution,
                     download_engine_distribution,
-                    unpack_engine_distribution,
+                    step::unpack_engine_distribution(),
                     step,
                 ]
             })
@@ -491,33 +441,16 @@ impl JobArchetype for StandardLibraryApiCheck {
         let run_command = "backend stdlib-api-check";
         let job = RunStepsBuilder::new(run_command)
             .customize(move |step| {
-                let cleanup_engine_distribution = Step {
-                    run: Some(format!(
-                        "rm -rf {}",
-                        built_distribution_directories(engine_launcher)
-                    )),
-                    shell: Some(Shell::Bash),
-                    ..Default::default()
-                };
+                let cleanup_engine_distribution =
+                    step::cleanup_engine_distribution(engine_launcher);
 
                 let download_engine_distribution =
                     step::download_engine_distribution(target, engine_launcher, graal_edition);
 
-                let unpack_engine_distribution = Step {
-                    name: Some("Unpack Engine Distribution".into()),
-                    run: Some(
-                        "tar -xvf built-distribution.tar
-rm built-distribution.tar
-"
-                        .into(),
-                    ),
-                    ..Default::default()
-                };
-
                 vec![
                     cleanup_engine_distribution,
                     download_engine_distribution,
-                    unpack_engine_distribution,
+                    step::unpack_engine_distribution(),
                     step,
                 ]
             })
@@ -686,33 +619,16 @@ impl JobArchetype for SnowflakeTests {
                 // Enso Cloud as well. They need it to test data link integration.
                 let updated_main_step = enable_cloud_tests(main_step);
 
-                let cleanup_engine_distribution = Step {
-                    run: Some(format!(
-                        "rm -rf {}",
-                        built_distribution_directories(engine_launcher)
-                    )),
-                    shell: Some(Shell::Bash),
-                    ..Default::default()
-                };
+                let cleanup_engine_distribution =
+                    step::cleanup_engine_distribution(engine_launcher);
 
                 let download_engine_distribution =
                     step::download_engine_distribution(target, engine_launcher, graal_edition);
 
-                let unpack_engine_distribution = Step {
-                    name: Some("Unpack Engine Distribution".into()),
-                    run: Some(
-                        "tar -xvf built-distribution.tar
-    rm built-distribution.tar
-    "
-                        .into(),
-                    ),
-                    ..Default::default()
-                };
-
                 vec![
                     cleanup_engine_distribution,
                     download_engine_distribution,
-                    unpack_engine_distribution,
+                    step::unpack_engine_distribution(),
                     updated_main_step,
                     step::extra_stdlib_test_reporter(target, GRAAL_EDITION_FOR_EXTRA_TESTS),
                 ]
@@ -1087,14 +1003,6 @@ pub struct BuildEngineDistribution {
     pub engine_launcher: engine::EngineLauncher,
 }
 
-fn built_distribution_directories(engine_launcher: engine::EngineLauncher) -> String {
-    format!("built-distribution{}", match engine_launcher {
-        engine::EngineLauncher::TestNative => " test",
-        engine::EngineLauncher::TestDebugNative => " test",
-        _ => "",
-    })
-}
-
 impl JobArchetype for BuildEngineDistribution {
     fn job(&self, target: Target) -> Job {
         let engine_launcher = self.engine_launcher;
@@ -1103,14 +1011,8 @@ impl JobArchetype for BuildEngineDistribution {
             format!("Build Engine Distribution ({}) ({})", self.graal_edition, engine_launcher);
         let mut job = RunStepsBuilder::new("backend ci-build-engine-distribution")
             .customize(move |step| {
-                let archive_engine_distribution = Step {
-                    name: Some("Archive Engine Distribution".into()),
-                    run: Some(format!(
-                        "tar -cvf built-distribution.tar {}",
-                        built_distribution_directories(engine_launcher)
-                    )),
-                    ..Default::default()
-                };
+                let archive_engine_distribution =
+                    step::archive_engine_distribution(engine_launcher);
 
                 let upload_engine_distribution =
                     step::upload_engine_distribution(target, engine_launcher, graal_edition);

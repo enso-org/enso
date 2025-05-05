@@ -119,7 +119,9 @@ jobs:
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
       - name: Unpack Engine Distribution
-        run: "tar -xvf built-distribution.tar\n    rm built-distribution.tar\n    "
+        run: |
+          tar -xvf built-distribution.tar
+          rm built-distribution.tar
       - run: ./run backend test std-snowflake
         env:
           ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
