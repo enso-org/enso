@@ -551,7 +551,7 @@ pub fn changelog() -> Result<Workflow> {
         Reopened,
     ]));
     let mut changelog_check =
-        RunStepsBuilder::new("changelog-check").build_job("Changelog", RunnerLabel::Linux);
+        RunStepsBuilder::new("changelog-check").build_job("Changelog", RunnerLabel::X64);
     changelog_check.runs_on = vec![RunnerLabel::Linux, RunnerLabel::SelfHosted];
     workflow.add_job(changelog_check);
     Ok(workflow)

@@ -11,8 +11,8 @@ on:
       - opened
       - reopened
 jobs:
-  changelog-linux:
-    name: Changelog (Linux)
+  changelog:
+    name: Changelog
     runs-on:
       - Linux
       - self-hosted
