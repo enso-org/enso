@@ -47,6 +47,7 @@ impl Context {
             } else {
                 default()
             };
+        info!("webhook payload: {payload:#?}");
         let event_name = crate::actions::env::GITHUB_EVENT_NAME.get()?;
         let sha = crate::actions::env::GITHUB_SHA.get()?;
         let r#ref = crate::actions::env::GITHUB_REF.get()?;
