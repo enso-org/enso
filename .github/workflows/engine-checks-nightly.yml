@@ -349,6 +349,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check syntax
+        run: ./run libraries check-syntax
       - run: rm -rf built-distribution test
         shell: bash
       - name: Download Engine Distribution

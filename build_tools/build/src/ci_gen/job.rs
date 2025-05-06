@@ -405,6 +405,12 @@ impl JobArchetype for EnsoCodeLintCheck {
         let engine_launcher = self.engine_launcher;
         let mut job = RunStepsBuilder::new("libraries lint")
             .customize(move |step| {
+                let check_syntax = Step {
+                    name: Some("Check syntax".into()),
+                    run: Some("./run libraries check-syntax".into()),
+                    ..Default::default()
+                };
+
                 let cleanup_engine_distribution =
                     step::cleanup_engine_distribution(engine_launcher);
 
@@ -412,6 +418,7 @@ impl JobArchetype for EnsoCodeLintCheck {
                     step::download_engine_distribution(target, engine_launcher, graal_edition);
 
                 vec![
+                    check_syntax,
                     cleanup_engine_distribution,
                     download_engine_distribution,
                     step::unpack_engine_distribution(),
