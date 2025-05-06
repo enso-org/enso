@@ -89,10 +89,6 @@ export default function Registration() {
     },
   })
 
-  useEffect(() => {
-    signupForm.setValue('email', initialEmail)
-  }, [signupForm, initialEmail])
-
   const { stepperState } = useStepperState({ steps: 2, defaultStep: 0 })
 
   const cachedTosHash = localStorage.get('termsOfService')?.versionHash

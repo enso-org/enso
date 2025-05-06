@@ -40,7 +40,8 @@ export function useSearchParamsState<T = unknown>(
   defaultValue: T | (() => T),
   predicate: (unknown: unknown) => unknown is T = (unknown): unknown is T => true,
 ): SearchParamsStateReturnType<T> {
-  const { router, searchParams } = useRouterInReact()
+  const { router, searchParams: searchParamsRaw } = useRouterInReact()
+  const searchParams = React.useDeferredValue(searchParamsRaw)
 
   const setSearchParams = useCallback(
     (

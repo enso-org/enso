@@ -36,10 +36,8 @@ export const ContextsForReactProvider = applyPureReactInVue(
     router,
     config,
   }: react.PropsWithChildren<{ router: RouterForReact; config: GuiConfig }>) => {
-    // When navigating, let's make use of react's transitions magic.
-    const searchParams = react.useDeferredValue(router.searchParams)
     return (
-      <RouterContext.Provider value={{ ...router, searchParams }}>
+      <RouterContext.Provider value={router}>
         <ConfigContext.Provider value={config}>{children}</ConfigContext.Provider>
       </RouterContext.Provider>
     )
