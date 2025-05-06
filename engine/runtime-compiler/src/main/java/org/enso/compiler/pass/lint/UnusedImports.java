@@ -87,56 +87,6 @@ public final class UnusedImports implements MiniPassFactory {
       this.bindingsMap = bindingsMap;
     }
 
-    @Override
-    public MiniIRPass prepare(IR parent, Expression child) {
-      var resolutionMeta =
-          MetadataInteropHelpers.getMetadataOrNull(
-              child, GlobalNames$.MODULE$, BindingsMap.Resolution.class);
-      LOGGER.trace(
-          "[{}] Preparing for parent={}, child={}, child.resolutionMeta={}",
-          bindingsMap.currentModule().getName(),
-          parent.getClass().getName(),
-          child.getClass().getName(),
-          resolutionMeta);
-
-      QualifiedName targetModName = null;
-      QualifiedName targetSymbolName = null;
-      // Application.Prefix (method calls) are handled specifically. GlobalNames pass assigns
-      // resolution to the first synthetic self argument.
-      if (parent instanceof Application.Prefix app
-          && app.function() instanceof Name.Literal funcLiteral) {
-        if (!app.arguments().isEmpty()) {
-          var selfArg = app.arguments().head();
-          var selfArgResolution =
-              MetadataInteropHelpers.getMetadataOrNull(
-                  selfArg.value(), GlobalNames$.MODULE$, BindingsMap.Resolution.class);
-          if (selfArgResolution != null) {
-            targetModName = selfArgResolution.target().module().getName();
-            var funcName = funcLiteral.name();
-            targetSymbolName = targetModName.createChild(funcName);
-          }
-        }
-      } else if (resolutionMeta != null) {
-        var targetMod = resolutionMeta.target().module();
-        targetModName = targetMod.getName();
-        targetSymbolName = resolutionMeta.target().qualifiedName();
-      }
-
-      if (targetModName != null && targetSymbolName != null) {
-        var imports = findImportIRs(targetModName, targetSymbolName);
-        for (var imp : imports) {
-          LOGGER.trace(
-              "[{}] Adding used symbol '{}' for import '{}'",
-              bindingsMap.currentModule().getName(),
-              targetSymbolName,
-              imp.showCode());
-          usedSymbolsBldr.addUsedSymbol(imp, targetSymbolName);
-        }
-      }
-
-      return this;
-    }
-
     /**
      * Finds import IRs that import the given symbol from the given module. Note that a symbol may
      * be imported by multiple import IRs.
@@ -233,6 +183,49 @@ public final class UnusedImports implements MiniPassFactory {
 
     @Override
     public Expression transformExpression(Expression expr) {
+      var resolutionMeta =
+          MetadataInteropHelpers.getMetadataOrNull(
+              expr, GlobalNames$.MODULE$, BindingsMap.Resolution.class);
+      LOGGER.trace(
+          "[{}] Traversing over expression {},  resolutionMeta={}",
+          bindingsMap.currentModule().getName(),
+          expr.getClass().getName(),
+          resolutionMeta);
+
+      QualifiedName targetModName = null;
+      QualifiedName targetSymbolName = null;
+      // Application.Prefix (method calls) are handled specifically. GlobalNames pass assigns
+      // resolution to the first synthetic self argument.
+      if (expr instanceof Application.Prefix app
+          && app.function() instanceof Name.Literal funcLiteral) {
+        if (!app.arguments().isEmpty()) {
+          var selfArg = app.arguments().head();
+          var selfArgResolution =
+              MetadataInteropHelpers.getMetadataOrNull(
+                  selfArg.value(), GlobalNames$.MODULE$, BindingsMap.Resolution.class);
+          if (selfArgResolution != null) {
+            targetModName = selfArgResolution.target().module().getName();
+            var funcName = funcLiteral.name();
+            targetSymbolName = targetModName.createChild(funcName);
+          }
+        }
+      } else if (resolutionMeta != null) {
+        var targetMod = resolutionMeta.target().module();
+        targetModName = targetMod.getName();
+        targetSymbolName = resolutionMeta.target().qualifiedName();
+      }
+
+      if (targetModName != null && targetSymbolName != null) {
+        var imports = findImportIRs(targetModName, targetSymbolName);
+        for (var imp : imports) {
+          LOGGER.trace(
+              "[{}] Adding used symbol '{}' for import '{}'",
+              bindingsMap.currentModule().getName(),
+              targetSymbolName,
+              imp.showCode());
+          usedSymbolsBldr.addUsedSymbol(imp, targetSymbolName);
+        }
+      }
       return expr;
     }
 
