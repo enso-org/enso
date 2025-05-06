@@ -4,7 +4,7 @@
  */
 import * as React from 'react'
 
-import * as sentry from '@sentry/react'
+import * as sentry from '@sentry/vue'
 import * as reactQuery from '@tanstack/react-query'
 
 import * as httpClientProvider from '#/providers/HttpClientProvider'
@@ -20,9 +20,9 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as gtag from '#/hooks/gtagHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { unsetModal } from '#/providers/ModalProvider'
 import { unsafeWriteValue } from '#/utilities/write'
 import { toast } from 'react-toastify'
-import { useSetModal } from '../ModalProvider'
 import { useText } from '../TextProvider'
 import { SessionContext } from './hooks'
 import type { SessionContextType, SessionProviderProps } from './types'
@@ -39,7 +39,6 @@ function createSessionQuery(authService: ISessionProvider) {
 export function SessionProvider(props: SessionProviderProps) {
   const { mainPageUrl, children, registerAuthEventListener, authService, onLogout } = props
 
-  const { unsetModal } = useSetModal()
   const { getText } = useText()
 
   // stabilize the callback so that it doesn't change on every render

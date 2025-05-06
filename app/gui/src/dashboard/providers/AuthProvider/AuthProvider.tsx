@@ -7,7 +7,7 @@
  */
 import * as React from 'react'
 
-import * as sentry from '@sentry/react'
+import * as sentry from '@sentry/vue'
 import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router-dom'
 import * as toast from 'react-toastify'
