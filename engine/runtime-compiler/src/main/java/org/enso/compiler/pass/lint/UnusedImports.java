@@ -317,22 +317,21 @@ public final class UnusedImports implements MiniPassFactory {
     private static List<QualifiedName> importedSymbols(BindingsMap.ResolvedImport resolvedImport) {
       var impDef = resolvedImport.importDef();
       if (impDef.onlyNames().isDefined()) {
-        var resolvedModOpt =
-            resolvedImport.targets().find(target -> target instanceof BindingsMap.ResolvedModule);
-        if (resolvedModOpt.isEmpty()) {
+        var targets = resolvedImport.targets();
+        if (targets.size() != 1) {
           throw new AssertionError(
               "Resolved import for '"
                   + impDef.showCode()
-                  + "' should have a single ResolvedModule target."
+                  + "' should have a single target."
                   + " Instead, targets are: "
                   + resolvedImport.targets());
         }
-        var resolvedMod = (BindingsMap.ResolvedModule) resolvedModOpt.get();
+        var target = targets.head();
         var names = impDef.onlyNames().get().map(Literal::name);
         var resolvedNames = new ArrayList<QualifiedName>();
         names.foreach(
             name -> {
-              var expSymbols = resolvedMod.findExportedSymbolsFor(name);
+              var expSymbols = target.findExportedSymbolsFor(name);
               expSymbols.foreach(
                   expSymbol -> {
                     resolvedNames.add(expSymbol.qualifiedName());
