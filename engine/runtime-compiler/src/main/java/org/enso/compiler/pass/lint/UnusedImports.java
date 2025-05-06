@@ -101,17 +101,20 @@ public final class UnusedImports implements MiniPassFactory {
 
       QualifiedName targetModName = null;
       QualifiedName targetSymbolName = null;
+      // Application.Prefix (method calls) are handled specifically. GlobalNames pass assigns
+      // resolution to the first synthetic self argument.
       if (parent instanceof Application.Prefix app
           && app.function() instanceof Name.Literal funcLiteral) {
-        assert !app.arguments().isEmpty() : "Should have at least one self CallArgument";
-        var selfArg = app.arguments().head();
-        var selfArgResolution =
-            MetadataInteropHelpers.getMetadataOrNull(
-                selfArg.value(), GlobalNames$.MODULE$, BindingsMap.Resolution.class);
-        if (selfArgResolution != null) {
-          targetModName = selfArgResolution.target().module().getName();
-          var funcName = funcLiteral.name();
-          targetSymbolName = targetModName.createChild(funcName);
+        if (!app.arguments().isEmpty()) {
+          var selfArg = app.arguments().head();
+          var selfArgResolution =
+              MetadataInteropHelpers.getMetadataOrNull(
+                  selfArg.value(), GlobalNames$.MODULE$, BindingsMap.Resolution.class);
+          if (selfArgResolution != null) {
+            targetModName = selfArgResolution.target().module().getName();
+            var funcName = funcLiteral.name();
+            targetSymbolName = targetModName.createChild(funcName);
+          }
         }
       } else if (resolutionMeta != null) {
         var targetMod = resolutionMeta.target().module();
