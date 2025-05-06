@@ -34,6 +34,7 @@ import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.desugar.ComplexType$;
 import org.enso.compiler.pass.desugar.FunctionBinding$;
 import org.enso.compiler.pass.desugar.GenerateMethodBodies$;
+import org.enso.persist.Persistance;
 import scala.Option;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
@@ -212,15 +213,15 @@ public final class MethodDefinitions implements MiniPassFactory {
                 null,
                 new MetadataStorage());
         var newBody =
-            new Function.Lambda(
-                // This is the synthetic Self argument that gets the static module
-                list(syntheticModuleSelfArg),
+            Function.Lambda.builder()
+                .arguments(
+                    // This is the synthetic Self argument that gets the static module
+                    list(syntheticModuleSelfArg))
                 // Here we add the type ascription ensuring that the 'proper' self argument only
                 // accepts _instances_ of the type (or triggers conversions)
-                addTypeAscriptionToSelfArgument(dup.body()),
-                null,
-                true,
-                new MetadataStorage());
+                .bodyReference(Persistance.Reference.of(dup.body(), true))
+                .canBeTCO(true)
+                .build();
         // The actual `self` argument that is referenced inside of method body is the second one in
         // the lambda.
         // This is the argument that will hold the actual instance of the object we are calling on,

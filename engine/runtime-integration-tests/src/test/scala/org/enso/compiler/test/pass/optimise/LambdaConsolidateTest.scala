@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.{
   DefinitionArgument,
   Expression,
   Function,
+  Function,
   Module,
   Name
 }
@@ -18,6 +19,7 @@ import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.compiler.context.LocalScope
+import org.enso.persist.Persistance
 
 class LambdaConsolidateTest extends CompilerTest {
 
@@ -227,40 +229,55 @@ class LambdaConsolidateTest extends CompilerTest {
     "collapse lambdas with multiple parameters" in {
       implicit val inlineContext: InlineContext = mkContext
 
-      val ir: Function.Lambda = new Function.Lambda(
-        List(
-          new DefinitionArgument.Specified(
-            Name
-              .Literal("a", isMethod = false, identifiedLocation = null),
-            None,
-            None,
-            suspended          = false,
-            identifiedLocation = null
-          ),
-          new DefinitionArgument.Specified(
-            Name.Literal("b", isMethod = false, identifiedLocation = null),
-            None,
-            None,
-            suspended          = false,
-            identifiedLocation = null
-          )
-        ),
-        new Function.Lambda(
+      val ir: Function.Lambda = Function.Lambda
+        .builder()
+        .arguments(
           List(
             new DefinitionArgument.Specified(
               Name
-                .Literal("c", isMethod = false, identifiedLocation = null),
+                .Literal("a", isMethod = false, identifiedLocation = null),
+              None,
+              None,
+              suspended          = false,
+              identifiedLocation = null
+            ),
+            new DefinitionArgument.Specified(
+              Name.Literal("b", isMethod = false, identifiedLocation = null),
               None,
               None,
               suspended          = false,
               identifiedLocation = null
             )
-          ),
-          Name.Literal("c", isMethod = false, identifiedLocation = null),
-          identifiedLocation = null
-        ),
-        identifiedLocation = null
-      )
+          )
+        )
+        .bodyReference(
+          Persistance.Reference.of(
+            Function.Lambda
+              .builder()
+              .arguments(
+                List(
+                  new DefinitionArgument.Specified(
+                    Name
+                      .Literal(
+                        "c",
+                        isMethod           = false,
+                        identifiedLocation = null
+                      ),
+                    None,
+                    None,
+                    suspended          = false,
+                    identifiedLocation = null
+                  )
+                )
+              )
+              .bodyReference(
+                Persistance.Reference.of(
+                  Name.Literal("c", isMethod = false, identifiedLocation = null)
+                )
+              )
+          )
+        )
+        .build()
         .runPasses(passManager, inlineContext)
         .optimise
         .asInstanceOf[Function.Lambda]

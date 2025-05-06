@@ -34,6 +34,7 @@ import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
+import org.enso.persist.Persistance;
 import org.enso.syntax2.ArgumentDefinition;
 import org.enso.syntax2.Base;
 import org.enso.syntax2.DocComment;
@@ -380,8 +381,13 @@ final class TreeToIr {
         var name = buildName(fn.getName());
         var args = translateArgumentsDefinition(fn.getArgs());
         var def = translateForeignFunction(fn);
-        var binding =
-            new Function.Binding(name, args, def, false, getIdentifiedLocation(fn), true, meta());
+        var binding = Function.Binding.builder()
+            .name(name)
+            .arguments(args)
+            .body(def)
+            .isPrivate(false)
+            .canBeTCO(true)
+            .build();
         yield join(binding, appendTo);
       }
 
@@ -575,7 +581,13 @@ final class TreeToIr {
       }
       final var ascribedBody = addTypeAscription(name.name(), body, returnType, loc);
       final var isPrivate = fun.getPrivate() != null;
-      return new Function.Binding(name, args, ascribedBody, isPrivate, loc, true, meta());
+      return Function.Binding.builder()
+          .name(name)
+          .arguments(args)
+          .body(ascribedBody)
+          .isPrivate(isPrivate)
+          .canBeTCO(true)
+          .build();
     }
   }
 
@@ -791,7 +803,12 @@ final class TreeToIr {
         }
         var body = translateExpression(lambda.getBody(), false);
         var at = getIdentifiedLocation(lambda);
-        yield new Function.Lambda(args, body, at, true, meta());
+        yield Function.Lambda.builder()
+            .arguments(args)
+            .bodyReference(Persistance.Reference.of(body))
+            .location(at)
+            .canBeTCO(true)
+            .build();
       }
       case Tree.OprApp app -> {
         var op = app.getOpr().getRight();
@@ -853,7 +870,12 @@ final class TreeToIr {
               case Expression.Block __ -> getIdentifiedLocation(tree, 0, 1, null);
               default -> getIdentifiedLocation(tree);
             }, body.identifiedLocation());
-            yield new Function.Lambda(args, body, at, true, meta());
+            yield Function.Lambda.builder()
+                .arguments(args)
+                .bodyReference(Persistance.Reference.of(body))
+                .location(at)
+                .canBeTCO(true)
+                .build();
           }
           default -> {
             var lhs = unnamedCallArgument(app.getLhs());

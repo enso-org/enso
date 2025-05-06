@@ -20,6 +20,7 @@ import org.enso.compiler.pass.analyse.DataflowAnalysis$;
 import org.enso.compiler.pass.analyse.DemandAnalysis$;
 import org.enso.compiler.pass.analyse.TailCall;
 import org.enso.compiler.pass.lint.UnusedBindings$;
+import org.enso.persist.Persistance;
 import scala.Option;
 import scala.collection.immutable.Seq;
 import scala.jdk.javaapi.CollectionConverters;
@@ -110,9 +111,18 @@ public final class SectionsToBinOp implements MiniPassFactory {
                     sectionLeft.diagnostics());
 
             var rightLam =
-                new Function.Lambda(cons(rightDefArg, nil()), opCall, null, true, meta());
+                Function.Lambda.builder()
+                    .arguments(cons(rightDefArg, nil()))
+                    .bodyReference(Persistance.Reference.of(opCall))
+                    .canBeTCO(true)
+                    .build();
 
-            yield new Function.Lambda(cons(leftDefArg, nil()), rightLam, loc, true, meta());
+            yield Function.Lambda.builder()
+                .arguments(cons(leftDefArg, nil()))
+                .bodyReference(Persistance.Reference.of(rightLam))
+                .canBeTCO(true)
+                .location(loc)
+                .build();
           } else {
             yield new Application.Prefix(
                 op, cons(arg, nil()), false, loc, passData, sectionLeft.diagnostics());
@@ -157,9 +167,18 @@ public final class SectionsToBinOp implements MiniPassFactory {
                   sectionSides.diagnostics());
 
           var rightLambda =
-              new Function.Lambda(cons(rightDefArg, nil()), opCall, null, true, meta());
+              Function.Lambda.builder()
+                  .arguments(cons(rightDefArg, nil()))
+                  .bodyReference(Persistance.Reference.of(opCall))
+                  .canBeTCO(true)
+                  .build();
 
-          yield new Function.Lambda(cons(leftDefArg, nil()), rightLambda, loc, true, meta());
+          yield Function.Lambda.builder()
+              .arguments(cons(leftDefArg, nil()))
+              .bodyReference(Persistance.Reference.of(rightLambda))
+              .canBeTCO(true)
+              .location(loc)
+              .build();
         }
 
           /* Note [Blanks in Sections]
@@ -221,9 +240,19 @@ public final class SectionsToBinOp implements MiniPassFactory {
                     passData,
                     sectionRight.diagnostics());
 
-            var leftLam = new Function.Lambda(cons(leftDefArg, nil()), opCall, null, true, meta());
+            var leftLam =
+                Function.Lambda.builder()
+                    .arguments(cons(leftDefArg, nil()))
+                    .bodyReference(Persistance.Reference.of(opCall))
+                    .canBeTCO(true)
+                    .build();
 
-            yield new Function.Lambda(cons(rightDefArg, nil()), leftLam, loc, true, meta());
+            yield Function.Lambda.builder()
+                .arguments(cons(rightDefArg, nil()))
+                .bodyReference(Persistance.Reference.of(leftLam))
+                .canBeTCO(true)
+                .location(loc)
+                .build();
           } else {
             var opCall =
                 new Application.Prefix(
@@ -234,7 +263,12 @@ public final class SectionsToBinOp implements MiniPassFactory {
                     passData,
                     sectionRight.diagnostics());
 
-            yield new Function.Lambda(cons(leftDefArg, nil()), opCall, loc, true, meta());
+            yield Function.Lambda.builder()
+                .arguments(cons(leftDefArg, nil()))
+                .bodyReference(Persistance.Reference.of(opCall))
+                .canBeTCO(true)
+                .location(loc)
+                .build();
           }
         }
         default -> ir;

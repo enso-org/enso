@@ -1,7 +1,6 @@
 package org.enso.compiler.pass.optimise
 
 import scala.jdk.CollectionConverters._
-
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.{CompilerError, IR, Identifier}
@@ -31,6 +30,7 @@ import org.enso.compiler.pass.analyse.{
 import org.enso.compiler.pass.analyse.alias.{AliasMetadata => AliasInfo}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.IgnoredBindings
+import org.enso.persist.Persistance
 
 import java.util.UUID
 
@@ -177,22 +177,23 @@ case object LambdaConsolidate extends IRPass {
 
         val newLocation = chainedLambdas.head.location match {
           case Some(location) =>
-            Some(
-              new IdentifiedLocation(
-                location.start,
-                chainedLambdas.last.location.getOrElse(location).location.end,
-                location.uuid
-              )
+            new IdentifiedLocation(
+              location.start,
+              chainedLambdas.last.location.getOrElse(location).location.end,
+              location.uuid
             )
-          case None => None
+          case None => null
         }
 
-        lam.copy(
-          arguments = consolidatedArgs,
-          body      = runExpression(newBody, inlineContext),
-          location  = newLocation,
-          canBeTCO  = chainedLambdas.last.canBeTCO
-        )
+        Function.Lambda
+          .builder(lam)
+          .arguments(consolidatedArgs)
+          .bodyReference(
+            Persistance.Reference.of(runExpression(newBody, inlineContext))
+          )
+          .location(newLocation)
+          .canBeTCO(chainedLambdas.last.canBeTCO)
+          .build()
       case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during lambda consolidation."
