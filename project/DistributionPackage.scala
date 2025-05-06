@@ -351,8 +351,7 @@ object DistributionPackage {
   def runEnginePackage(
     distributionRoot: File,
     args: Seq[String],
-    log: Logger,
-    workingDirectory: Option[File] = None
+    log: Logger
   ): Boolean = {
     import scala.collection.JavaConverters._
 

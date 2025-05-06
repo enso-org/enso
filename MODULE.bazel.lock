@@ -616,7 +616,7 @@
     },
     "@@rules_rust+//crate_universe:extension.bzl%crate": {
       "general": {
-        "bzlTransitiveDigest": "t0LacG+6Y3sh8Y9kRThzg2d+viLv86e7ACVSHudAhlA=",
+        "bzlTransitiveDigest": "FBJ8rEFIAaJxNKbI8PBvdmePmLfLri38dvzRcNI+6RE=",
         "usagesDigest": "3QyfiyrJKYb+RnTA85xhz1ecQjw78S7PpkjVgmLoLxA=",
         "recordedFileInputs": {
           "@@//app/rust-ffi/Cargo.toml": "b17bf21f56720ffba5031fdf70296acb53ff018adcf17a8cdcec86b46103d1d8",

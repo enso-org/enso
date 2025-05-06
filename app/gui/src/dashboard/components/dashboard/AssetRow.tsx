@@ -408,7 +408,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
               }
             }}
             className={tailwindMerge.twMerge(
-              'h-table-row rounded-full transition-all ease-in-out rounded-rows-child [contain-intrinsic-size:44px] [content-visibility:auto]',
+              'h-table-row rounded-full transition-all ease-in-out rounded-rows-child',
               visibility,
               (isDraggedOver || isSelected) && 'selected',
             )}

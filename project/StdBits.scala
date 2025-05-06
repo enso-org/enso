@@ -247,6 +247,7 @@ object StdBits {
     tableauNativeLibs: File,
     tableauVersion: String,
     jnaVersion: String,
+    jnaJar: File,
     logger: ManagedLogger,
     updateReport: UpdateReport,
     unmanagedClasspath: Classpath,
@@ -310,16 +311,6 @@ object StdBits {
     )
 
     // Extract native library from jna's jar
-    val jnaJar = JPMSUtils
-      .filterModulesFromUpdate(
-        updateReport,
-        Seq("net.java.dev.jna" % "jna" % jnaVersion),
-        logger,
-        moduleName,
-        scalaBinaryVersion,
-        shouldContainAll = true
-      )
-      .head
     val outputJnaJarPath =
       (tableauPolyglotRoot / s"jna-${validOsName}-$jnaVersion.jar").toPath
     val outputJnaJar  = outputJnaJarPath.toFile
