@@ -1,14 +1,48 @@
-# Next Next Release
+# Next Release
+
+#### Enso IDE
+
+- [Add syntax highlighting for Table expressions][12778]
+- [Allow adding and reordering component group arguments][12850]
+- [Display component evaluation progress][12913]
+- [Editing multiline text literals is now supported][12774]
+- [Type annotations are now visible in the graph editor][12751]
+- [Component Browser shows methods with respect to possible type casts][12751]
+- [Add option to browse cloud for secret values][12953]
+- [Add ability to inspect column, row and value from right click on table
+  viz][12986]
+
+[12774]: https://github.com/enso-org/enso/pull/12774
+[12778]: https://github.com/enso-org/enso/pull/12778
+[12850]: https://github.com/enso-org/enso/pull/12850
+[12913]: https://github.com/enso-org/enso/pull/12913
+[12751]: https://github.com/enso-org/enso/pull/12751
+[12953]: https://github.com/enso-org/enso/pull/12953
+[12986]: https://github.com/enso-org/enso/pull/12986
+
+#### Enso Standard Library
+
+- [Support for reading fixed-width-column data files.][12726]
+- [Added `row_limit` parameter to the `Fixed_Width` format.][12950]
+- [Add Tableau Hyper write support][12900]
+
+[12726]: https://github.com/enso-org/enso/pull/12726
+[12950]: https://github.com/enso-org/enso/pull/12950
+[12900]: https://github.com/enso-org/enso/pull/12900
 
 #### Enso Language & Runtime
 
+- [Prevent `Meta` access to private constructors and private fields][12905]
 - [Upgrading Truffle][12500] (including its
   [JavaScript](https://www.graalvm.org/javascript/) and
   [Python](https://www.graalvm.org/python/)) to version `24.2.0`.
+- [Upgrade GraalVM from JDK 21 to JDK 24][12855]
 
 [12500]: https://github.com/enso-org/enso/pull/12500
+[12855]: https://github.com/enso-org/enso/pull/12855
+[12905]: https://github.com/enso-org/enso/pull/12905
 
-# Next Release
+# Enso 2025.1
 
 #### Enso IDE
 
@@ -67,7 +101,6 @@
   too][12643]
 - [File Browser Widget warns when trying to override an existing file][12644]
 - [Add right-click context menu to the graph editor background][12601]
-- [Editing multiline text literals is now supported][12774]
 - [Fixed appearance of Cloud Browser scrollbars][12831]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
@@ -107,7 +140,6 @@
 [12643]: https://github.com/enso-org/enso/pull/12643
 [12644]: https://github.com/enso-org/enso/pull/12644
 [12601]: https://github.com/enso-org/enso/pull/12603
-[12774]: https://github.com/enso-org/enso/pull/12774
 [12831]: https://github.com/enso-org/enso/pull/12831
 
 #### Enso Standard Library
@@ -142,6 +174,7 @@
 - [Changed in-memory `Column.zip` to match `Table.zip`, removing the `function`
   parameter][12626]
 - [Added Regex_match for Postgres][12663]
+- [Added Regex_match for Snowflake][12671]
 - [Replace `use_bankers` flag with `Rounding_Mode` in all `round`
   methods][12641]
 
@@ -167,6 +200,7 @@
 [12590]: https://github.com/enso-org/enso/pull/12590
 [12626]: https://github.com/enso-org/enso/pull/12626
 [12663]: https://github.com/enso-org/enso/pull/12663
+[12671]: https://github.com/enso-org/enso/pull/12671
 [12641]: https://github.com/enso-org/enso/pull/12641
 
 #### Enso Language & Runtime

@@ -1,5 +1,7 @@
 /** @file The container that launches the IDE. */
+import { Button } from '#/components/AriaComponents'
 import * as errorBoundary from '#/components/ErrorBoundary'
+import { Result } from '#/components/Result'
 import * as suspense from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as gtagHooks from '#/hooks/gtagHooks'
@@ -11,6 +13,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/Backend'
 import * as twMerge from '#/utilities/tailwindMerge'
 import { vueComponent } from '#/utilities/vue'
+import { useConfigInReact } from '$/providers/react'
 import * as reactQuery from '@tanstack/react-query'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
@@ -24,22 +27,24 @@ export type ProjectViewTabProps = React.ComponentProps<typeof ProjectViewTab>
 
 /** Props for an {@link Editor}. */
 export interface EditorProps {
-  readonly isOpeningFailed: boolean
-  readonly openingError: Error | null
-  readonly startProject: (project: LaunchedProject) => void
   readonly project: LaunchedProject
-  readonly hidden: boolean
-  readonly ydocUrl: string | null
-  readonly renameProject: (newName: string, projectId: backendModule.ProjectId) => void
-  readonly projectId: backendModule.ProjectId
+  readonly hidden?: boolean
+  readonly onReadyUpdate?: (value: boolean) => void
+  readonly onNameUpdate?: (value: string) => void
 }
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-  const { project, hidden, startProject, isOpeningFailed, openingError } = props
+  const { project, hidden = false, onReadyUpdate, onNameUpdate } = props
+  const { preventAutoReopen = false } = project
+  const { getText } = textProvider.useText()
+  const openProjectMutation = projectHooks.useOpenProjectMutation()
+  const renameProjectMutation = projectHooks.useRenameProjectMutation()
+  const startProject = projectHooks.useReopenProject(openProjectMutation)
 
   const backend = backendProvider.useBackendForProjectType(project.type)
   const remoteBackend = backendProvider.useRemoteBackend()
+  const localBackend = backendProvider.useLocalBackend()
 
   const projectStatusQuery = projectHooks.createGetProjectDetailsQuery({
     assetId: project.id,
@@ -47,8 +52,6 @@ export default function Editor(props: EditorProps) {
   })
 
   const queryClient = reactQuery.useQueryClient()
-
-  const isHybrid = project.hybrid != null
 
   const projectQuery = reactQuery.useSuspenseQuery({
     ...projectStatusQuery,
@@ -62,24 +65,58 @@ export default function Editor(props: EditorProps) {
     },
   })
 
+  const isHybrid = project.hybrid != null
   // If it's a hybrid project, we need to fetch the project details from the remote backend.
   const {
-    data: { name },
+    data: { name, isHybridOpened },
   } = reactQuery.useSuspenseQuery({
     ...projectHooks.createGetProjectDetailsQuery({
       assetId: isHybrid ? project.hybrid.cloudProjectId : project.id,
       backend: isHybrid ? remoteBackend : backend,
     }),
-    select: (projectDetails) => ({ name: projectDetails.name }),
+    select: (projectDetails) => ({
+      name: projectDetails.name,
+      isHybridOpened: isHybrid && projectHooks.OPENED_PROJECT_STATES.has(projectDetails.state.type),
+    }),
   })
 
   const { isProjectClosed, isProjectOpening, isProjectOpened, isProjectClosing } = projectQuery.data
 
+  const stableOnReadyUpdate = useEventCallback((value: boolean) => onReadyUpdate?.(value))
+  const stableOnNameUpdate = useEventCallback((value: string) => onNameUpdate?.(value))
+
+  const onRenameProject = useEventCallback(async (newName: string) => {
+    const backendType = isHybrid ? backendModule.BackendType.remote : project.type
+    const backendForRenaming =
+      backendType === backendModule.BackendType.remote ? remoteBackend : localBackend
+    const id = isHybrid ? project.hybrid.cloudProjectId : project.id
+    invariant(backendForRenaming != null, 'Backend is null')
+
+    await renameProjectMutation({
+      newName,
+      backend: backendForRenaming,
+      project: { ...project, id },
+    })
+  })
+
   React.useEffect(() => {
-    if (isProjectClosed) {
-      startProject(project)
+    if (
+      // Open project unless it is not supposed to be reopened.
+      (isProjectClosed && !preventAutoReopen) ||
+      // Open hybrid project if it is still marked as opened.
+      isHybridOpened
+    ) {
+      void startProject({ ...project, suppressHybridProjectOpen: isHybridOpened })
     }
-  }, [isProjectClosed, startProject, project])
+  }, [isProjectClosed, startProject, project, preventAutoReopen, isHybridOpened])
+
+  React.useEffect(() => {
+    stableOnNameUpdate(name)
+  }, [stableOnNameUpdate, name])
+
+  React.useEffect(() => {
+    stableOnReadyUpdate(isProjectOpened)
+  }, [stableOnReadyUpdate, isProjectOpened])
 
   useTimeoutCallback({
     callback: () => {
@@ -95,13 +132,33 @@ export default function Editor(props: EditorProps) {
     isDisabled: !isProjectOpening || projectQuery.isError,
   })
 
-  if (isOpeningFailed) {
+  if (isProjectClosed && preventAutoReopen) {
+    return (
+      <Result
+        status="info"
+        title={getText('projectStopped')}
+        subtitle={getText('projectStoppedDescription')}
+      >
+        <Button
+          isLoading={isProjectOpening}
+          className="mx-auto"
+          onPress={async () => {
+            await startProject(project)
+          }}
+        >
+          {getText('openProject')}
+        </Button>
+      </Result>
+    )
+  }
+
+  if (openProjectMutation.isError) {
     return (
       <errorBoundary.ErrorDisplay
-        error={openingError}
-        resetErrorBoundary={() => {
+        error={openProjectMutation.error}
+        resetErrorBoundary={async () => {
           if (isProjectClosed) {
-            startProject(project)
+            await startProject(project)
           }
         }}
       />
@@ -136,6 +193,7 @@ export default function Editor(props: EditorProps) {
                 {...props}
                 openedProject={projectQuery.data}
                 backendType={project.type}
+                renameProject={onRenameProject}
                 projectName={name}
               />
             )
@@ -152,15 +210,17 @@ export default function Editor(props: EditorProps) {
 interface EditorInternalProps extends Omit<EditorProps, 'project'> {
   readonly openedProject: backendModule.Project
   readonly backendType: backendModule.BackendType
+  readonly renameProject: (newName: string) => void
   readonly projectName: string
 }
 
 /** An internal editor. */
 function EditorInternal(props: EditorInternalProps) {
-  const { hidden, ydocUrl, renameProject, openedProject, backendType, projectName } = props
+  const { hidden = false, renameProject, openedProject, backendType, projectName } = props
 
   const { getText } = textProvider.useText()
   const gtagEvent = gtagHooks.useGtagEvent()
+  const config = useConfigInReact()
 
   const localBackend = backendProvider.useLocalBackend()
   const remoteBackend = backendProvider.useRemoteBackend()
@@ -172,12 +232,12 @@ function EditorInternal(props: EditorInternalProps) {
   }, [hidden, gtagEvent])
 
   const onRenameProject = useEventCallback((newName: string) => {
-    renameProject(newName, openedProject.projectId)
+    renameProject(newName)
   })
 
   const jsonAddress = openedProject.jsonAddress
   const binaryAddress = openedProject.binaryAddress
-  const ydocAddress = openedProject.ydocAddress ?? ydocUrl ?? ''
+  const ydocAddress = openedProject.ydocAddress ?? config.ydocUrl ?? ''
   const projectBackend =
     backendType === backendModule.BackendType.remote ? remoteBackend : localBackend
 

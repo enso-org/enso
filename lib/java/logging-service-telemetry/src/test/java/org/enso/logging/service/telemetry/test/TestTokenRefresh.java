@@ -21,7 +21,8 @@ import org.junit.Rule;
 import org.junit.Test;
 
 public class TestTokenRefresh {
-  @Rule public RetryTestRule retry = new RetryTestRule(3);
+  @Rule public final ConsumeLogs consumeLogs = new ConsumeLogs();
+  @Rule public final RetryTestRule retry = new RetryTestRule(3);
 
   private static final int port = 8085;
   private static final URI refreshUri =

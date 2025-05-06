@@ -3,13 +3,13 @@
 - type Dialect
     - adapt_unified_column self column:Standard.Base.Any.Any approximate_result_type:Standard.Base.Any.Any infer_result_type_from_database_callback:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - check_aggregate_support self aggregate:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - custom_build_aggregate self base_table:Standard.Database.DB_Table.DB_Table key_columns:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.Internal_Column.Internal_Column) resolved_aggregates:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any) problem_builder:Standard.Table.Internal.Problem_Builder.Problem_Builder -> (Standard.Base.Data.Pair.Pair Standard.Database.Internal.IR.Context.Context Standard.Base.Any.Any)
+    - custom_build_aggregate self base_table:Standard.Database.DB_Table.DB_Table key_columns:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.Internal_Column.Internal_Column) resolved_aggregates:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any) problem_builder:Standard.Table.Internal.Problem_Builder.Problem_Builder -> (Standard.Base.Data.Pair.Pair Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source Standard.Base.Any.Any)
     - default_table_types self -> Standard.Base.Any.Any
     - ensure_query_has_no_holes jdbc:Standard.Database.Internal.JDBC_Connection.JDBC_Connection raw_sql:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - fetch_primary_key self connection:Standard.Base.Any.Any table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - flagged self flag:Standard.Database.Dialect_Flag.Dialect_Flag -> Standard.Base.Data.Boolean.Boolean
     - generate_collate self collation_name:Standard.Base.Data.Text.Text -> Standard.Base.Data.Text.Text
-    - generate_expression self base_gen:Standard.Base.Any.Any expr:(Standard.Database.Internal.IR.SQL_Expression.SQL_Expression|Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor|Standard.Database.Internal.IR.Query.Query) for_select:Standard.Base.Data.Boolean.Boolean -> Standard.Database.SQL.SQL_Builder
+    - generate_expression self base_gen:Standard.Base.Any.Any expr:(Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression|Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor|Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement) for_select:Standard.Base.Data.Boolean.Boolean -> Standard.Database.SQL.SQL_Builder
     - generate_sql self query:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - generate_truncate_table_sql self table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - get_error_mapper self -> Standard.Base.Any.Any

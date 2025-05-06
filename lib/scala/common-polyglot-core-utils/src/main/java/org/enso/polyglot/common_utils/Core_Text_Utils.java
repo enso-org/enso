@@ -4,7 +4,7 @@ import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
 
-public class Core_Text_Utils {
+public final class Core_Text_Utils {
   private Core_Text_Utils() {}
 
   /** Computes the length of the string as the number of grapheme clusters it contains. */

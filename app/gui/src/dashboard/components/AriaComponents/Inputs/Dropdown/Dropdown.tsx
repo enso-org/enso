@@ -83,7 +83,7 @@ const DROPDOWN_STYLES = tv({
     optionsSpacing: 'padding relative h-full',
     optionsContainer:
       'relative grid max-h-60 w-full overflow-auto rounded-input transition-grid-template-rows',
-    optionsList: 'overflow-hidden',
+    optionsList: 'overflow-auto',
     optionsItem:
       'flex min-h-6 items-center gap-2 rounded-input transition-colors focus:cursor-default focus:bg-frame focus:font-bold focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
     input: 'group relative flex items-center gap-2',

@@ -351,7 +351,11 @@ export default function projectManagerShimMiddleware(
                                 created: new Date().toISOString(),
                                 lastOpened: null,
                               }
-                              fs.writeFile(projectMetadataPath, JSON.stringify(projectMetadataJson))
+                              await fs.mkdir(path.dirname(projectMetadataPath), { recursive: true })
+                              await fs.writeFile(
+                                projectMetadataPath,
+                                JSON.stringify(projectMetadataJson),
+                              )
                             } else {
                               throw e
                             }

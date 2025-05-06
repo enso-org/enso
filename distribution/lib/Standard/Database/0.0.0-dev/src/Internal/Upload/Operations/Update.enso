@@ -11,7 +11,7 @@ import project.Column_Description.Column_Description
 import project.DB_Table.DB_Table
 import project.Internal.DDL_Transaction
 import project.Internal.In_Transaction.In_Transaction
-import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Update_Action.Update_Action
 from project.Errors import Rows_Already_Present, SQL_Error, Unmatched_Rows
 from project.Internal.Upload.Helpers.Argument_Checks import all
@@ -90,7 +90,7 @@ type Append_Helper
        The update only affects matched rows, unmatched rows are ignored.
     update_common_rows self = self.if_not_dry_run <|
         update_statement = self.connection.dialect.generate_sql <|
-            Query.Update_From_Table self.target_table.name self.source_table.name self.source_table.column_names self.key_columns
+            SQL_IR_Statement.Update_From_Table self.target_table.name self.source_table.name self.source_table.column_names self.key_columns
         Panic.rethrow <| self.connection.execute_update update_statement
 
     ## PRIVATE
@@ -101,14 +101,14 @@ type Append_Helper
        before inserting.
     insert_rows self table_to_insert = self.if_not_dry_run <|
         insert_statement = self.connection.dialect.generate_sql <|
-            Query.Insert_From_Select self.target_table.name table_to_insert.column_names table_to_insert.to_select_query
+            SQL_IR_Statement.Insert_From_Select self.target_table.name table_to_insert.column_names table_to_insert.to_select_query
         Panic.rethrow <| self.connection.execute_update insert_statement
 
     ## PRIVATE
        Deletes rows from target table that were not present in the source.
     delete_unmatched_target_rows self = self.if_not_dry_run <|
         delete_statement = self.connection.dialect.generate_sql <|
-            Query.Delete_Unmatched_Rows self.target_table.name self.source_table.name self.key_columns
+            SQL_IR_Statement.Delete_Unmatched_Rows self.target_table.name self.source_table.name self.key_columns
         Panic.rethrow <| self.connection.execute_update delete_statement
 
     ## PRIVATE

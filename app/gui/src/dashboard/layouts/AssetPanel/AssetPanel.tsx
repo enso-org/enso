@@ -224,7 +224,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
           <AssetPanelTabs.Tab
             id="settings"
             icon={InspectIcon}
-            label={isLocal ? getText('assetProperties.localBackend') : getText('properties')}
+            label={isLocal ? getText('assetProperties.cloudOnly') : getText('properties')}
             isExpanded={isExpanded}
             onPress={expandTab}
             isDisabled={isLocal}
@@ -232,9 +232,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
           <AssetPanelTabs.Tab
             id="versions"
             icon={VersionsIcon}
-            label={
-              isLocal ? getText('assetVersions.localAssetsDoNotHaveVersions') : getText('versions')
-            }
+            label={isLocal ? getText('assetVersions.cloudOnly') : getText('versions')}
             isExpanded={isExpanded}
             onPress={expandTab}
             isDisabled={isLocal}
@@ -242,9 +240,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
           <AssetPanelTabs.Tab
             id="sessions"
             icon={SessionsIcon}
-            label={
-              isLocal ? getText('assetProjectSessions.localBackend') : getText('projectSessions')
-            }
+            label={isLocal ? getText('assetProjectSessions.cloudOnly') : getText('projectSessions')}
             isExpanded={isExpanded}
             onPress={expandTab}
             isDisabled={isLocal}
@@ -252,7 +248,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
           <AssetPanelTabs.Tab
             id="executions"
             icon={RepeatIcon}
-            label={isLocal ? getText('assetProjectExecutions.localBackend') : getText('executions')}
+            label={isLocal ? getText('assetProjectExecutions.cloudOnly') : getText('executions')}
             isExpanded={isExpanded}
             onPress={expandTab}
             isDisabled={isLocal}
@@ -263,7 +259,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
             icon={CalendarIcon}
             label={
               isLocal ?
-                getText('assetProjectExecutionsCalendar.localBackend')
+                getText('assetProjectExecutionsCalendar.cloudOnly')
               : getText('executionsCalendar')
             }
             isExpanded={isExpanded}

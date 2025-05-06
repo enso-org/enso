@@ -6,18 +6,17 @@ import java.nio.file.Paths;
 import java.util.logging.Level;
 import org.enso.common.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Source;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class SharedEngineTest {
   private static Engine sharedEngine;
-  private Context ctx;
+  @Rule public ContextUtils ctx;
 
   @BeforeClass
   public static void initializeSharedEngine() {
@@ -35,19 +34,14 @@ public class SharedEngineTest {
 
   @Before
   public void initializeContext() {
-    this.ctx = ContextUtils.defaultContextBuilder().engine(sharedEngine).build();
+    this.ctx =
+        ContextUtils.newBuilder().withModifiedContext(bldr -> bldr.engine(sharedEngine)).build();
   }
 
   @AfterClass
   public static void disposeEngine() {
     sharedEngine.close();
     sharedEngine = null;
-  }
-
-  @After
-  public void disposeCtx() {
-    this.ctx.close();
-    this.ctx = null;
   }
 
   private final Source typeCase =

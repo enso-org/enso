@@ -26,7 +26,7 @@ object NativeImage {
     * One wildcard could theoretically be used instead of the list, but to make things
     * more explicit, we use the list.
     */
-  private val defaultBuildTimeInitClasses = Seq(
+  val defaultBuildTimeInitClasses = Seq(
     "org",
     "org.enso",
     "scala",
@@ -193,7 +193,8 @@ object NativeImage {
       val cpStr  = fullCp.mkString(File.pathSeparator)
       log.debug("Class-path: " + cpStr)
 
-      val verboseOpt = if (verbose) Seq("--verbose") else Seq()
+      val isCi       = sys.env.contains("CI")
+      val verboseOpt = if (verbose || isCi) Seq("--verbose") else Seq()
       val excludeConfigsOpt =
         if (excludeConfigs.nonEmpty)
           excludeConfigs.flatMap(ex => Seq("--exclude-config") ++ ex.split(","))
@@ -267,7 +268,26 @@ object NativeImage {
         println(sb.toString())
         throw new RuntimeException("Native Image build failed")
       }
-      log.info(s"$targetLoc native image build successful.")
+      var msg = s"$targetLoc native image build successful."
+      if (targetDir != null) {
+        val symlinkTargetFile = artifactFile(null, name)
+        if (symlinkTargetFile.exists()) {
+          symlinkTargetFile.delete()
+        }
+        try {
+          val res = Files.createSymbolicLink(
+            symlinkTargetFile.toPath(),
+            targetLoc.toPath()
+          )
+          msg += s" Symlink from $res created."
+        } catch {
+          case io: java.io.IOException =>
+            log.error(
+              s"Failed to create $symlinkTargetFile symlink to $targetLoc because of ${io.getMessage}"
+            )
+        }
+        log.info(msg)
+      }
     }
     .tag(nativeImageBuildTag)
     .dependsOn(Compile / compile)

@@ -1,12 +1,7 @@
 /** @file Switcher to choose the currently visible assets table category. */
 import * as React from 'react'
 
-import { useSearchParams } from 'react-router-dom'
-
 import { SEARCH_PARAMS_PREFIX } from '#/appUtils'
-import FolderAddIcon from '#/assets/folder_add.svg'
-import Minus2Icon from '#/assets/minus2.svg'
-import SettingsIcon from '#/assets/settings.svg'
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -27,21 +22,19 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 import { tv } from '#/utilities/tailwindVariants'
+import { useRouterInReact } from '$/providers/react'
 import { twJoin } from 'tailwind-merge'
 
 import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
-import {
-  useCloudCategoryList,
-  useLocalCategoryList,
-} from '#/layouts/Drive/Categories/categoriesHooks'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { unsetModal } from '#/providers/ModalProvider'
 
-/** Metadata for a categoryModule.categoryType. */
+/** Metadata for a category. */
 interface CategoryMetadata {
   readonly isNested?: boolean
   readonly category: Category
-  readonly icon: string
+  readonly icon: ariaComponents.SvgUseIcon | (string & {})
   readonly label: string
   readonly buttonLabel: string
   readonly dropZoneLabel: string
@@ -185,7 +178,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     >
       <AnimatedBackground.Item
         isSelected={isCurrent}
-        className="w-auto max-w-[calc(100%-24px)]"
+        className="w-auto max-w-full"
         animationClassName="bg-invert rounded-full"
       >
         <ariaComponents.Button
@@ -243,14 +236,12 @@ export interface CategorySwitcherProps {
 /** A switcher to choose the currently visible assets table categoryModule.categoryType. */
 function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategoryId } = props
-
+  const { router } = useRouterInReact()
   const { getText } = textProvider.useText()
-  const [, setSearchParams] = useSearchParams()
 
   const { isOffline } = offlineHooks.useOffline()
 
-  const cloudCategories = useCloudCategoryList()
-  const localCategories = useLocalCategoryList()
+  const { cloudCategories, localCategories } = useCategoriesAPI()
 
   const itemProps = { currentCategory: category, setCategoryId }
 
@@ -335,13 +326,15 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                 size="medium"
                 variant="icon"
                 extraClickZone="small"
-                icon={SettingsIcon}
+                icon="settings"
                 aria-label={getText('changeLocalRootDirectoryInSettings')}
                 className="my-auto opacity-0 transition-opacity group-hover:opacity-100"
                 onPress={() => {
-                  setSearchParams({
-                    [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify('local'),
-                    [`${SEARCH_PARAMS_PREFIX}page`]: JSON.stringify('settings'),
+                  void router.push({
+                    query: {
+                      [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify('local'),
+                      [`${SEARCH_PARAMS_PREFIX}page`]: JSON.stringify('settings'),
+                    },
                   })
                 }}
               />
@@ -366,9 +359,9 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                     size="medium"
                     variant="icon"
                     extraClickZone={false}
-                    icon={Minus2Icon}
+                    icon="minus"
                     aria-label={getText('removeDirectoryFromFavorites')}
-                    className="hidden group-hover:block"
+                    showIconOnHover
                   />
 
                   <ConfirmDeleteModal
@@ -389,13 +382,19 @@ function CategorySwitcher(props: CategorySwitcherProps) {
               <ariaComponents.Button
                 size="medium"
                 variant="icon"
-                icon={FolderAddIcon}
+                icon="folder_add_small"
                 loaderPosition="icon"
                 onPress={async () => {
                   const [newDirectory] =
                     (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+
                   if (newDirectory != null) {
-                    addDirectory(newDirectory)
+                    const addedDirectory = directories.find(
+                      (directory) => directory.rootPath === newDirectory,
+                    )
+
+                    const newCategory = addedDirectory ?? addDirectory(newDirectory)
+                    setCategoryId(newCategory.id)
                   }
                 }}
               >

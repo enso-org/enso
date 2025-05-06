@@ -130,14 +130,14 @@ function panIntoView() {
   const margins = scaleValues(PAN_MARGINS, clientToSceneFactor.value)
   props.navigator.panToThenFollow([
     // Always include the top-left of the input area.
-    { x: area.left, y: area.top },
+    new Vec2(area.left, area.top),
     // Try to reach the bottom-right corner of the panels.
-    { x: area.right, y: area.bottom },
+    new Vec2(area.right, area.bottom),
     // Top (and left) margins are more important than bottom (and right) margins because the screen has controls across
     // the top and on the left.
-    { x: area.left - margins.left, y: area.top - margins.top },
+    new Vec2(area.left - margins.left, area.top - margins.top),
     // If the screen is very spacious, even the bottom right gets some breathing room.
-    { x: area.right + margins.right, y: area.bottom + margins.bottom },
+    new Vec2(area.right + margins.right, area.bottom + margins.bottom),
   ])
 }
 
@@ -291,7 +291,7 @@ function applyComponent(component: Opt<Component> = null) {
     return Ok()
   }
   if (component.suggestionId != null) {
-    return input.applySuggestion(component.suggestionId)
+    return input.applySuggestion(component.suggestionId, component.macroSuffix)
   } else {
     // Component without suggestion database entry, for example "literal" component.
     input.content = { text: component.label, selection: Range.emptyAt(component.label.length) }

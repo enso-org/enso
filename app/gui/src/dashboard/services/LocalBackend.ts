@@ -8,7 +8,6 @@
 import Backend, * as backend from '#/services/Backend'
 import type ProjectManager from '#/services/ProjectManager'
 import * as projectManager from '#/services/ProjectManager'
-import { APP_BASE_URL } from '#/utilities/appBaseUrl'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
 import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/utilities/fileInfo'
@@ -692,7 +691,7 @@ export default class LocalBackend extends Backend {
         ['file_name', body.fileName],
         ...(body.parentDirectoryId == null ? [] : [['directory', parentPath]]),
       ]).toString()
-      const path = `${APP_BASE_URL}/api/upload-file?${searchParams}`
+      const path = `/api/upload-file?${searchParams}`
       await fetch(path, { method: 'POST', body: file })
       this.uploadedFiles.set(uploadId, { id: newFileId(filePath), project: null })
     } else {
@@ -702,7 +701,8 @@ export default class LocalBackend extends Backend {
         'backendApi' in window &&
         // This non-standard property is defined in Electron.
         'path' in file &&
-        typeof file.path === 'string'
+        typeof file.path === 'string' &&
+        file.path !== ''
       ) {
         const projectInfo = await window.backendApi.importProjectFromPath(
           file.path,
@@ -715,7 +715,7 @@ export default class LocalBackend extends Backend {
           directory: parentPath,
           name: title,
         }).toString()
-        const path = `${APP_BASE_URL}/api/upload-project?${searchParams}`
+        const path = `/api/upload-project?${searchParams}`
         const response = await fetch(path, { method: 'POST', body: file })
         id = await response.text()
       }
@@ -781,17 +781,26 @@ export default class LocalBackend extends Backend {
   }
 
   /** Download an asset. */
-  override async download(id: backend.AssetId, title: string) {
+  override async download(
+    id: backend.AssetId,
+    title: string,
+    _targetDirectoryId: backend.DirectoryId | null,
+    shouldUnpackProject = true,
+  ) {
     const asset = backend.extractTypeFromId(id)
     if (asset.type === backend.AssetType.project) {
       const typeAndId = extractTypeAndId(asset.id)
       const queryString = new URLSearchParams({
         projectsDirectory: typeAndId.directory,
       }).toString()
-      download(
-        `./api/project-manager/projects/${typeAndId.id}/enso-project?${queryString}`,
-        `${title}.enso-project`,
-      )
+
+      await download({
+        url: `/api/project-manager/projects/${typeAndId.id}/enso-project?${queryString}`,
+        name: `${title}.enso-project`,
+        electronOptions: {
+          shouldUnpackProject,
+        },
+      })
     }
     await Promise.resolve()
   }

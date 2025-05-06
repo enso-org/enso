@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CreateNodeFromPortButton from '@/components/GraphEditor/CreateNodeFromPortButton.vue'
 import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { useGraphEditorState } from '@/providers/graphEditorState'
@@ -7,7 +8,6 @@ import { isDef } from '@vueuse/core'
 import { setIfUndefined } from 'lib0/map'
 import { computed, effectScope, onScopeDispose, ref, watchEffect, type EffectScope } from 'vue'
 import type { AstId } from 'ydoc-shared/ast'
-import CreateNodeFromPortButton from './CreateNodeFromPortButton.vue'
 
 const props = defineProps<{ nodeId: NodeId; forceVisible: boolean }>()
 
@@ -117,18 +117,21 @@ watchEffect(() => {
 // Clean up dynamically created detached scopes.
 onScopeDispose(() => hoverAnimations.forEach(([_, scope]) => scope.stop()))
 
+const nodeStyle = computed(() => ({
+  '--hover-animation': portsHoverAnimation.value,
+  '--node-size-x': `${nodeRect.value?.size.x ?? 0}px`,
+  '--node-size-y': `${nodeRect.value?.size.y ?? 0}px`,
+  '--node-group-color': nodeColor.value,
+  transform: `translate(${nodeRect.value?.pos.x ?? 0}px, ${nodeRect.value?.pos.y ?? 0}px)`,
+}))
+
 function portGroupStyle(port: PortData) {
   const [start, end] = port.clipRange
   return {
-    '--hover-animation': portsHoverAnimation.value,
     '--direct-hover-animation': hoverAnimations.get(port.portId)?.[0].value ?? 0,
     '--port-clip-start': start,
     '--port-clip-end': end,
     '--port-label-transform-x': `${((end - start) / 2 + start) * 100}%`,
-    '--node-size-x': `${nodeRect.value?.size.x ?? 0}px`,
-    '--node-size-y': `${nodeRect.value?.size.y ?? 0}px`,
-    '--node-group-color': nodeColor.value,
-    transform: `translate(${nodeRect.value?.pos.x ?? 0}px, ${nodeRect.value?.pos.y ?? 0}px)`,
   }
 }
 
@@ -136,9 +139,13 @@ graph.suggestEdgeFromOutput(outputHovered)
 </script>
 
 <template>
-  <g class="GraphNodeOutputPorts" :data-output-ports-node-id="props.nodeId">
+  <g
+    class="GraphNodeOutputPorts define-node-colors"
+    :style="nodeStyle"
+    :data-output-ports-node-id="props.nodeId"
+  >
     <template v-for="port of outputPorts" :key="port.portId">
-      <g :style="portGroupStyle(port)" class="define-node-colors">
+      <g :style="portGroupStyle(port)">
         <g
           class="portClip"
           @pointerenter="mouseOverOutput = port.portId"
@@ -174,7 +181,7 @@ graph.suggestEdgeFromOutput(outputHovered)
   rx: calc(var(--node-border-radius) + var(--output-port-width) / 2);
 
   fill: none;
-  stroke: var(--color-node-edge);
+  stroke: var(--color-node-output-port);
   stroke-width: calc(var(--output-port-width) + var(--output-port-overlap-anim));
   transition: stroke 0.2s ease;
   --horizontal-line: calc(var(--node-size-x) - var(--node-border-radius) * 2);

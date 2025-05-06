@@ -26,8 +26,7 @@ from project.Runtime.Context import Dataflow_Stack_Trace, Input, Output
 
    Returns the execution stack trace of its call site. The ordering of the
    resulting vector is such that the top stack frame is the first element.
-get_stack_trace : Vector Stack_Trace_Element
-get_stack_trace =
+get_stack_trace -> Vector Stack_Trace_Element =
     prim_stack = Runtime_Helpers.primitive_get_stack_trace
     stack_with_own_frame = Vector.from_polyglot_array prim_stack
     stack = stack_with_own_frame.drop (..First 1)
@@ -114,7 +113,7 @@ value_for_uuid id:Text -> Any = Meta_Helpers.instrumentor_builtin "uuid" id
 
 ## PRIVATE
    Converts a primitive stack trace element into the regular one.
-wrap_primitive_stack_trace_element el =
+private wrap_primitive_stack_trace_element el =
     loc = if Polyglot.has_source_location el then Source_Location.Value (Polyglot.get_source_location el) else Nothing
     name = Panic.catch Type_Error (Polyglot.get_executable_name el) _->
         # Workaround for a bug where some stack frames' root nodes do not have a name.

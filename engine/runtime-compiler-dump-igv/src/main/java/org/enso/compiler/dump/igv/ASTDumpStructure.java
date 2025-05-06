@@ -4,11 +4,11 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import jdk.graal.compiler.graphio.GraphBlocks;
+import jdk.graal.compiler.graphio.GraphElements;
+import jdk.graal.compiler.graphio.GraphLocations;
+import jdk.graal.compiler.graphio.GraphStructure;
 import org.enso.compiler.dump.igv.ASTEdge.EdgeType;
-import org.graalvm.graphio.GraphBlocks;
-import org.graalvm.graphio.GraphElements;
-import org.graalvm.graphio.GraphLocations;
-import org.graalvm.graphio.GraphStructure;
 
 final class ASTDumpStructure
     implements GraphStructure<EnsoModuleAST, ASTNode, ASTNodeClass, List<ASTEdge>>,

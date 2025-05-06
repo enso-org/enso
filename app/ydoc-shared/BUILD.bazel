@@ -82,9 +82,9 @@ js_run_binary(
 )
 
 # Convenience rule to output built artifacts to the filesystem, so JS tooling can see them.
-# Important! Make sure the output of this rule is NOT used during the build process.
-# In this case, this is ensured by an entry in .bazelignore:
-# app/ydoc-shared/parser-codegen/generated
+# Important! Make sure the output of this rule is NOT used during the build process, which
+# is currently ensured by IGNORED_GENERATED_FILES being used as an glob exclusion
+# in `SRC` definition.
 write_source_files(
     name = "write_ast_codegen",
     files = {

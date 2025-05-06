@@ -7,15 +7,20 @@ import {
 } from '@/components/visualizations/TableVisualization/tableVizToolbar'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import { Icon } from '@/util/iconMetadata/iconName'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type {
   CellClassParams,
   CellDoubleClickedEvent,
   ColDef,
+  ColumnVisibleEvent,
+  GetContextMenuItems,
+  GetContextMenuItemsParams,
   ICellRendererParams,
   IServerSideDatasource,
   IServerSideGetRowsRequest,
   ITooltipParams,
+  MenuItemDef,
   SetFilterValuesFuncParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
@@ -143,11 +148,13 @@ const rowLimit = ref(0)
 const page = ref(0)
 const pageLimit = ref(0)
 const rowCount = ref(0)
+const filteredRowCount = ref(null)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
-const isCreateNodeEnabled = ref(false)
 const filterModel = ref<GridFilterModel[]>([])
 const sortModel = ref<SortModel[]>([])
+const hiddenColumns = ref<string[]>([])
+const vizColumnOrder = ref<string[] | null>(null)
 const defaultColDef: Ref<ColDef> = ref({
   editable: false,
   sortable: true,
@@ -156,13 +163,6 @@ const defaultColDef: Ref<ColDef> = ref({
   cellRenderer: cellRenderer,
   cellClass: cellClass,
   cellStyle: { 'padding-left': 0, 'border-right': '1px solid #C0C0C0' },
-  contextMenuItems: [
-    commonContextMenuActions.copy,
-    commonContextMenuActions.copyWithHeaders,
-    'separator',
-    'export',
-  ],
-  autoHeight: true,
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
@@ -170,6 +170,85 @@ const nodeType = ref<string | undefined>(undefined)
 const grid = ref<
   ComponentInstance<typeof AgGridTableView> & ComponentExposed<typeof AgGridTableView>
 >()
+
+const getSvgTemplate = (icon: Icon) =>
+  `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
+
+const getContextMenuItems = (
+  params: GetContextMenuItemsParams,
+): (MenuItemDef | string)[] | GetContextMenuItems => {
+  const colId = params.column ? params.column.getColId() : null
+  const { rowIndex } = params.node ?? {}
+
+  const actions = [
+    { name: 'Get Column', action: 'at', colId, icon: 'select_column' },
+    { name: 'Get Row', action: 'get_row', rowIndex, icon: 'select_row' },
+    { name: 'Get Value', action: 'get_value', colId, rowIndex, icon: 'local_scope4' },
+  ]
+
+  const createMenuItem = ({ name, action, colId, rowIndex, icon }: (typeof actions)[number]) => ({
+    name,
+    action: () => createValueNode(colId, rowIndex, action),
+    icon: getSvgTemplate(icon as Icon),
+  })
+
+  return [
+    commonContextMenuActions.copy,
+    commonContextMenuActions.copyWithHeaders,
+    'separator',
+    'export',
+    ...actions.map(createMenuItem),
+  ]
+}
+
+function getAstValuePattern(value?: string | number, action?: string) {
+  if (action && value != null) {
+    return Pattern.new<Ast.Expression>((ast) =>
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
+        typeof value === 'number' ?
+          Ast.tryNumberToEnso(value, ast.module)!
+        : Ast.TextLiteral.new(value, ast.module),
+      ),
+    )
+  }
+}
+
+function getAstGetValuePattern(columnId?: string, rowIndex?: number, action?: string) {
+  if (action && columnId && rowIndex != undefined) {
+    const pattern = Pattern.parseExpression('__ __')
+    return Pattern.new<Ast.Expression>((ast) =>
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('get_value')!),
+        pattern.instantiateCopied([
+          Ast.TextLiteral.new(columnId as string, ast.module),
+          Ast.tryNumberToEnso(rowIndex as number, ast.module)!,
+        ]),
+      ),
+    )
+  }
+}
+
+function createValueNode(columnId?: string | null, rowIndex?: number | null, action?: string) {
+  let pattern
+  if (action === 'at' && columnId != null) {
+    pattern = getAstValuePattern(columnId, action)
+  }
+  if (action === 'get_row' && rowIndex != null) {
+    pattern = getAstValuePattern(rowIndex, action)
+  }
+  if (action === 'get_value' && columnId != null && rowIndex != null) {
+    pattern = getAstGetValuePattern(columnId, rowIndex, action)
+  }
+
+  if (pattern) {
+    config.createNodes({
+      content: pattern,
+      commit: true,
+    })
+  }
+}
+
 const allRowCount = computed(() =>
   typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
 )
@@ -207,12 +286,21 @@ const statusBar = computed(() =>
               statusPanel: TableVizStatusBar,
               statusPanelParams: {
                 total: allRowCount.value,
+                filtered: isSSRM.value ? filteredRowCount.value : null,
               },
             },
           ]
         : [],
     }
   : null,
+)
+
+const isCreateNodeButtonEnabled = computed(
+  () =>
+    sortModel.value.length > 0 ||
+    filterModel.value.length > 0 ||
+    hiddenColumns.value.length > 0 ||
+    vizColumnOrder.value != null,
 )
 
 // if there are upstream updates only to the row information the table version hash change indicates the grid needs to re get rows for any potetial changes
@@ -260,19 +348,19 @@ watchEffect(() =>
   ),
 )
 
-const isFilterSortNodeEnabled = computed(
+const isCreateNewNodeEnabled = computed(
   () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
 )
 
 const numberFormatGroupped = new Intl.NumberFormat(undefined, {
   style: 'decimal',
-  maximumFractionDigits: 12,
+  maximumSignificantDigits: 16,
   useGrouping: true,
 })
 
 const numberFormat = new Intl.NumberFormat(undefined, {
   style: 'decimal',
-  maximumFractionDigits: 12,
+  maximumSignificantDigits: 16,
   useGrouping: false,
 })
 
@@ -321,6 +409,8 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
   }
 }
 
+const attepmtedCalls = ref(0)
+
 function createServer() {
   return {
     getSetFilterValues: async (columnIndex?: number) => {
@@ -337,14 +427,9 @@ function createServer() {
     },
     getData: async (request: IServerSideGetRowsRequest) => {
       const columnHeaders =
-        typeof props.data === 'object' && 'header' in props.data ?
-          props.data.header ?
-            props.data.header
-          : []
-        : []
+        typeof props.data === 'object' && 'header' in props.data ? (props.data.header ?? []) : []
 
       const { sortColIndexes, sortDirections } = convertSortModel(request, columnHeaders)
-
       const { filterColumnIndexList, filterActions, valueList } = convertFilterModel(
         request,
         columnHeaders,
@@ -367,16 +452,26 @@ function createServer() {
         //values to filter on
         valueList as string[] | 'Nothing',
       )
+
       const response = await config.executeExpression(expressionFunction)
       if (response.ok) {
+        filteredRowCount.value = response.value.row_count
         return {
           success: true,
           data: response.value.rows,
+          rowCount: response.value.row_count,
         }
       } else {
+        if (attepmtedCalls.value < 3) {
+          grid.value?.gridApi?.refreshServerSide({ purge: true })
+          attepmtedCalls.value++
+          return
+        }
+        console.error('Error loading rows:', response.error)
         return {
           success: false,
           data: null,
+          rowCount: undefined,
         }
       }
     },
@@ -386,17 +481,19 @@ function createServer() {
 interface Response {
   data: unknown[][]
   success: boolean
+  rowCount: number
 }
 function createServerSideDatasource(): IServerSideDatasource {
   return {
     getRows: async (params) => {
       const server = ssrmServer.value
       if (server) {
-        const response: Response = await server.getData(params.request)
-        const rows = createRowsForTable(response.data, 0, true)
-
+        const serverResponse = await server.getData(params.request)
+        const response: Response =
+          serverResponse ? serverResponse : { data: [], success: false, rowCount: 0 }
         if (response.success) {
-          params.success({ rowData: rows })
+          const rows = createRowsForTable(response.data, 0, true)
+          params.success({ rowData: rows, rowCount: response.rowCount })
         } else {
           params.fail()
         }
@@ -504,6 +601,13 @@ function getFilterOptions(valueType: string) {
     return null
   }
 }
+function getFilterButtons(valueType: string) {
+  if (valueType === 'Date') {
+    return ['apply', 'clear']
+  } else {
+    return ['clear']
+  }
+}
 
 function getCellDataType(valueType: string) {
   if (valueType === 'Date') {
@@ -539,6 +643,7 @@ function toField(
   const icon = valueType ? getValueTypeIcon(valueType.constructor) : null
   const filterType = valueType ? getFilterType(valueType.constructor) : null
   const filterOptions = valueType ? getFilterOptions(valueType.constructor) : null
+  const filterButtons = valueType ? getFilterButtons(valueType.constructor) : null
   const cellValueType = valueType ? getCellDataType(valueType.constructor) : false
 
   const dataQualityMetrics =
@@ -551,8 +656,6 @@ function toField(
   const showDataQuality =
     dataQualityMetrics.filter((obj) => (Object.values(obj)[0] as number) > 0).length > 0
 
-  const getSvgTemplate = (icon: string) =>
-    `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
   const svgTemplateWarning = showDataQuality ? getSvgTemplate('warning') : ''
   const menu = `<span data-ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"> </span>`
   const filterButton = `<span data-ref="eFilterButton" class="ag-header-icon ag-header-cell-filter-button" aria-hidden="true"></span>`
@@ -578,7 +681,7 @@ function toField(
       maxNumConditions: 1,
       values: getFilterValues,
       filterOptions: filterOptions,
-      buttons: ['clear'],
+      buttons: filterButtons,
     },
     headerComponentParams: {
       template,
@@ -592,6 +695,7 @@ function toField(
       showDataQuality,
     },
     cellDataType: cellValueType,
+    autoHeight: cellValueType === 'text' && isSSRM.value,
   }
 }
 
@@ -805,6 +909,7 @@ watchEffect(() => {
           ...dataHeader,
         ]
       : dataHeader
+
     if (!data_.is_using_server_sort_and_filter) {
       const hasIndexRow =
         config.nodeType === TABLE_NODE_TYPE ||
@@ -942,7 +1047,6 @@ function checkSortAndFilter(e: SortChangedEvent) {
   const gridApi = e.api
   if (gridApi == null) {
     console.warn('AG Grid column API does not exist.')
-    isCreateNodeEnabled.value = false
     return
   }
   const colState = gridApi.getColumnState()
@@ -960,14 +1064,34 @@ function checkSortAndFilter(e: SortChangedEvent) {
     .filter((sort) => sort)
   const filter = makeFilterModelList(gridFilterModel)
   if (sort.length || filter.length) {
-    isCreateNodeEnabled.value = true
     sortModel.value = sort as SortModel[]
     filterModel.value = filter
   } else {
-    isCreateNodeEnabled.value = false
     sortModel.value = []
     filterModel.value = []
   }
+}
+
+const onColumnStateChange = (e: ColumnVisibleEvent) => {
+  const colState = e.api.getColumnState()
+  hiddenColumns.value = colState.filter((col) => col.hide).map((col) => col.colId)
+  const gridColOrder = colState
+    .filter((col) => col.colId != INDEX_FIELD_NAME)
+    .map((col) => col.colId)
+  const defaultColOrder =
+    typeof props.data === 'object' && 'header' in props.data && props.data.header ?
+      props.data.header
+    : []
+  if (gridColOrder.every((val, index) => val === defaultColOrder[index])) {
+    vizColumnOrder.value = null
+  } else {
+    vizColumnOrder.value = gridColOrder
+  }
+}
+
+const refreshGrid = () => {
+  grid.value?.gridApi?.setFilterModel(null)
+  grid.value?.gridApi?.resetColumnState()
 }
 
 // ===============
@@ -986,10 +1110,13 @@ config.setToolbar(
     textFormatterSelected,
     filterModel,
     sortModel,
-    isDisabled: () => !isCreateNodeEnabled.value,
-    isFilterSortNodeEnabled,
+    isButtonDisabled: () => !isCreateNodeButtonEnabled.value,
+    isCreateNewNodeEnabled,
     createNodes: config.createNodes,
     getColumnValueToEnso,
+    hiddenColumns,
+    vizColumnOrder,
+    refreshGrid,
   }),
 )
 </script>
@@ -1034,7 +1161,10 @@ config.setToolbar(
         :rowCount="allRowCount"
         :isServerSideModel="isSSRM"
         :statusBar="statusBar"
-        @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
+        :gridIdHash="tableVersionHash"
+        :getContextMenuItems="getContextMenuItems"
+        @sortOrFilterUpdated="checkSortAndFilter"
+        @columnStateChanged="onColumnStateChange"
       />
     </Suspense>
   </div>

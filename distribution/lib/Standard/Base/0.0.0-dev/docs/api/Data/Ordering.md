@@ -9,7 +9,7 @@
     - Greater
     - Less
     - and_then self ~other:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - compare x:Standard.Base.Any.Any y:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - compare x:Standard.Base.Any.Any y:Standard.Base.Any.Any -> Standard.Base.Data.Ordering.Ordering!Standard.Base.Errors.Common.Incomparable_Values
     - from_sign sign:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - hash x:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - to_sign self -> Standard.Base.Any.Any

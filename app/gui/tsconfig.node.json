@@ -9,10 +9,7 @@
     "eslint.config.js",
     "tailwind.config.ts",
     "integration-test/**/*",
-    "src/dashboard/hooks/eventCallbackHooks.ts",
     "src/dashboard/modules/payments/constants.ts",
-    "src/dashboard/services/Backend.ts",
-    "src/dashboard/utilities/**/*",
     "node.env.d.ts"
   ],
   "compilerOptions": {
@@ -20,6 +17,6 @@
     "module": "ESNext",
     "verbatimModuleSyntax": true,
     "types": ["node", "vitest/importMeta"],
-    "paths": { "@/*": ["./src/project-view/*"], "#/*": ["./src/dashboard/*"] }
+    "paths": { "@/*": ["./src/project-view/*"], "#/*": ["./src/dashboard/*"], "$/*": ["./src/*"] }
   }
 }

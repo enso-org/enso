@@ -85,7 +85,7 @@ export const BUTTON_STYLES = tv({
           weight: 'semibold',
           className: 'flex h-8 px-[7px]',
         }),
-        icon: 'h-4 w-4',
+        icon: 'h-4 w-4 -mb-0.5',
         content: 'gap-2',
         extraClickZone: 'after:inset-[-8px]',
       },
@@ -158,6 +158,13 @@ export const BUTTON_STYLES = tv({
       // eslint-disable-next-line @typescript-eslint/naming-convention
       'ghost-fading':
         'text-primary opacity-80 hover:opacity-100 hover:bg-white focus-visible:bg-white',
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      'ghost-icon': {
+        base: 'text-primary/40 hover:text-primary hover:bg-white focus-visible:text-primary focus-visible:bg-white',
+        wrapper: 'w-full h-full',
+        content: 'w-full h-full',
+        extraClickZone: 'w-full h-full',
+      },
       submit: 'bg-invite text-white opacity-80 hover:opacity-100',
       outline: 'border-primary/20 text-primary hover:border-primary hover:bg-primary/5',
     },

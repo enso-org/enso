@@ -24,7 +24,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const assetPermissions = item.permissions ?? []
 
   return (
-    <div className="group flex items-center gap-column-items [content-visibility:auto]">
+    <div className="group flex items-center gap-column-items">
       {(category.type === 'trash' ?
         assetPermissions.filter((permission) => permission.permission === PermissionAction.own)
       : assetPermissions

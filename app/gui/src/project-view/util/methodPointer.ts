@@ -29,8 +29,12 @@ export interface MethodPointer {
 }
 
 /** Whether one {@link MethodPointer} deeply equals another. */
-export function methodPointerEquals(left: MethodPointer, right: MethodPointer): boolean {
+export function methodPointerEquals(
+  left: MethodPointer | undefined,
+  right: MethodPointer,
+): boolean {
   return (
+    !!left &&
     left.module.equals(right.module) &&
     left.definedOnType.equals(right.definedOnType) &&
     left.name === right.name

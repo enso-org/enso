@@ -609,6 +609,14 @@ add_specs suite_builder =
     suite_builder.group "Rounding" group_builder->
         Round_Spec.add_specs False group_builder (Round_Spec.Batch_Runner.from_function .round) run_advanced=True
 
+        group_builder.specify "Float rounding should be an Integer if 0 decimal places" <|
+            1.23 . round . should_equal 1
+            1.23 . round . should_be_a Integer
+            1.23 . round 0 . should_equal 1
+            1.23 . round 0 . should_be_a Integer
+            1.23 . round 1 . should_equal 1.2
+            1.23 . round 1 . should_be_a Float
+
         group_builder.specify "Decimal places out of range" <|
             3.1 . round 16 . should_fail_with Illegal_Argument
             3.1 . round -16 . should_fail_with Illegal_Argument

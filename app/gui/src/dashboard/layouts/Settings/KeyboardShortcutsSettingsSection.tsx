@@ -7,10 +7,10 @@ import Plus2Icon from '#/assets/plus2.svg'
 import ReloadIcon from '#/assets/reload.svg'
 import { Button, ButtonGroup, DialogTrigger } from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
+import { Scroller } from '#/components/Scroller'
 import SvgMask from '#/components/SvgMask'
 import type { DashboardBindingKey } from '#/configurations/inputBindings'
 import { useRefresh } from '#/hooks/refreshHooks'
-import { useStickyTableHeaderOnScroll } from '#/hooks/scrollHooks'
 import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
@@ -22,8 +22,6 @@ export default function KeyboardShortcutsSettingsSection() {
   const [refresh, doRefresh] = useRefresh()
   const inputBindings = useInputBindings()
   const { getText } = useText()
-  const rootRef = React.useRef<HTMLDivElement>(null)
-  const bodyRef = React.useRef<HTMLTableSectionElement>(null)
   const allShortcuts = React.useMemo(() => {
     // This is REQUIRED, in order to avoid disabling the `react-hooks/exhaustive-deps` lint.
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -34,8 +32,6 @@ export default function KeyboardShortcutsSettingsSection() {
     () => unsafeEntries(inputBindings.metadata).filter((kv) => kv[1].rebindable !== false),
     [inputBindings.metadata],
   )
-
-  const { onScroll } = useStickyTableHeaderOnScroll(rootRef, bodyRef)
 
   return (
     <>
@@ -58,7 +54,12 @@ export default function KeyboardShortcutsSettingsSection() {
           />
         </DialogTrigger>
       </ButtonGroup>
-      <div ref={rootRef} className="min-h-0 flex-1 overflow-auto" onScroll={onScroll}>
+      <Scroller
+        scrollbar
+        orientation="vertical"
+        className="mb-[40px] min-h-0 flex-1 overflow-auto"
+        shadowStartClassName="mt-8"
+      >
         <table className="table-fixed border-collapse rounded-rows">
           <thead className="sticky top-0 z-1 bg-dashboard">
             <tr className="h-row text-left text-sm font-semibold">
@@ -68,7 +69,7 @@ export default function KeyboardShortcutsSettingsSection() {
               <th className="w-full min-w-64 px-cell-x">{getText('description')}</th>
             </tr>
           </thead>
-          <tbody ref={bodyRef}>
+          <tbody>
             {visibleBindings.map((kv) => {
               const [action, info] = kv
               return (
@@ -80,63 +81,59 @@ export default function KeyboardShortcutsSettingsSection() {
                     {info.name}
                   </td>
                   <td className="group min-w-max border-l-2 border-r-2 border-transparent bg-clip-padding px-cell-x">
-                    <div>
-                      {/* I don't know why this padding is needed to avoid a scrollbar,
-                       * given that this is a flex container. */}
-                      <div className="gap-buttons flex items-center pr-4">
-                        {info.bindings.map((binding, j) => (
-                          <div key={j} className="inline-flex shrink-0 items-center gap-1">
-                            <KeyboardShortcut
-                              shortcut={binding}
-                              className="rounded-lg border-0.5 border-primary/10 px-1"
-                            />
-                            <Button
-                              variant="ghost"
-                              size="medium"
-                              aria-label={getText('removeShortcut')}
-                              tooltipPlacement="top left"
-                              icon={CrossIcon}
-                              showIconOnHover
-                              onPress={() => {
-                                inputBindings.delete(action, binding)
-                                doRefresh()
-                              }}
-                            />
-                          </div>
-                        ))}
-                        <div className="grow" />
-                        <div className="flex shrink-0 items-center gap-1">
-                          <DialogTrigger>
-                            <Button
-                              variant="ghost"
-                              size="medium"
-                              aria-label={getText('addShortcut')}
-                              tooltipPlacement="top left"
-                              icon={Plus2Icon}
-                              showIconOnHover
-                            />
-                            <CaptureKeyboardShortcutModal
-                              description={`'${info.name}'`}
-                              existingShortcuts={allShortcuts}
-                              onSubmit={(shortcut) => {
-                                inputBindings.add(action, shortcut)
-                                doRefresh()
-                              }}
-                            />
-                          </DialogTrigger>
+                    <div className="gap-buttons flex items-center pr-4">
+                      {info.bindings.map((binding, j) => (
+                        <div key={j} className="inline-flex shrink-0 items-center gap-1">
+                          <KeyboardShortcut
+                            shortcut={binding}
+                            className="rounded-lg border-0.5 border-primary/10 px-1"
+                          />
                           <Button
-                            variant="ghost"
+                            variant="ghost-icon"
                             size="medium"
-                            aria-label={getText('resetShortcut')}
+                            aria-label={getText('removeShortcut')}
                             tooltipPlacement="top left"
-                            icon={ReloadIcon}
+                            icon={CrossIcon}
                             showIconOnHover
                             onPress={() => {
-                              inputBindings.reset(action)
+                              inputBindings.delete(action, binding)
                               doRefresh()
                             }}
                           />
                         </div>
+                      ))}
+                      <div className="grow" />
+                      <div className="flex shrink-0 items-center gap-1">
+                        <DialogTrigger>
+                          <Button
+                            variant="ghost-icon"
+                            size="medium"
+                            aria-label={getText('addShortcut')}
+                            tooltipPlacement="top left"
+                            icon={Plus2Icon}
+                            showIconOnHover
+                          />
+                          <CaptureKeyboardShortcutModal
+                            description={`'${info.name}'`}
+                            existingShortcuts={allShortcuts}
+                            onSubmit={(shortcut) => {
+                              inputBindings.add(action, shortcut)
+                              doRefresh()
+                            }}
+                          />
+                        </DialogTrigger>
+                        <Button
+                          variant="ghost-icon"
+                          size="medium"
+                          aria-label={getText('resetShortcut')}
+                          tooltipPlacement="top left"
+                          icon={ReloadIcon}
+                          showIconOnHover
+                          onPress={() => {
+                            inputBindings.reset(action)
+                            doRefresh()
+                          }}
+                        />
                       </div>
                     </div>
                   </td>
@@ -148,7 +145,7 @@ export default function KeyboardShortcutsSettingsSection() {
             })}
           </tbody>
         </table>
-      </div>
+      </Scroller>
     </>
   )
 }

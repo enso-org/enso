@@ -145,6 +145,7 @@ export const astTypes = [
   'AutoscopedIdentifier',
   'Vector',
   'Wildcard',
+  'TypeAnnotated',
 ] as const
 export type AstType = (typeof astTypes)[number]
 
@@ -1381,6 +1382,78 @@ export interface MutablePropertyAccess extends PropertyAccess, MutableExpression
 }
 applyMixins(MutablePropertyAccess, [MutableAst])
 
+interface TypeAnnotatedFields<T extends TreeRefs = RawRefs> {
+  /** The expression whose type is being annotated. */
+  expression: T['ast']
+  /** The `:` token. */
+  colon: T['token']
+  /** The expression's type. */
+  typeNode: T['ast']
+}
+
+/** An expression with explicit type information attached. */
+export class TypeAnnotated extends BaseExpression {
+  declare fields: FixedMapView<AstFields & TypeAnnotatedFields>
+  /** Internal constructor. */
+  constructor(module: Module, fields: FixedMapView<AstFields & TypeAnnotatedFields>) {
+    super(module, fields)
+  }
+
+  /** Main constructor. */
+  static concrete(
+    module: MutableModule,
+    expression: NodeChild<Owned<MutableExpression>>,
+    colon: NodeChild<Token>,
+    typeNode: NodeChild<Owned<MutableExpression>>,
+  ) {
+    const base = module.baseObject('TypeAnnotated')
+    const id_ = base.get('id')
+    const fields = composeFieldData(base, {
+      expression: concreteChild(module, expression, id_),
+      colon,
+      typeNode: concreteChild(module, typeNode, id_),
+    })
+    return asOwned(new MutableTypeAnnotated(module, fields))
+  }
+
+  /** The expression whose type is being annotated. */
+  get expression(): Expression {
+    return this.module.get(this.fields.get('expression').node) as Expression
+  }
+  /** The expression's type. */
+  get typeNode(): Expression {
+    return this.module.get(this.fields.get('typeNode').node) as Expression
+  }
+
+  /** Children AST nodes. */
+  *concreteChildren({ verbatim }: PrintContext): IterableIterator<RawConcreteChild> {
+    const { expression, colon, typeNode } = getAll(this.fields)
+    yield firstChild(expression)
+    const spaced = (colon.whitespace ?? typeNode.whitespace ?? '') !== ''
+    yield ensureSpacedOnlyIf(colon, spaced, verbatim)
+    yield ensureSpacedOnlyIf(typeNode, spaced, verbatim)
+  }
+}
+
+/** Mutable version of {@link TypeAnnotated}. */
+export class MutableTypeAnnotated extends TypeAnnotated implements MutableExpression {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & TypeAnnotatedFields>
+
+  setExpression<T extends MutableExpression>(value: Owned<T>) {
+    setNode(this.fields, 'expression', this.claimChild(value))
+  }
+  setTypeNode<T extends MutableExpression>(value: Owned<T>) {
+    setNode(this.fields, 'typeNode', this.claimChild(value))
+  }
+}
+
+export interface MutableTypeAnnotated extends TypeAnnotated, MutableExpression {
+  get expression(): MutableExpression
+  get typeNode(): MutableExpression
+}
+applyMixins(MutableTypeAnnotated, [MutableAst])
+
 interface GenericFields {
   children: RawNodeChild[]
 }
@@ -2307,6 +2380,20 @@ export interface ArgumentDefinition<T extends TreeRefs = RawRefs> {
   close?: T['token'] | undefined
 }
 
+/**
+ * Create a new function argument definition using provided "name" string as argument's pattern expression.
+ */
+export function newArgumentDefinition(
+  name: string,
+  module?: MutableModule,
+): OwnedArgumentDefinitions {
+  const expr = parseExpression(name, module)
+  assert(expr != null)
+  return {
+    pattern: autospaced(expr),
+  }
+}
+
 interface ArgumentDefault<T extends TreeRefs = RawRefs> {
   equals: T['token']
   expression: T['ast']
@@ -2558,6 +2645,9 @@ function* argumentDefinitionToConcrete(def: DeepReadonly<ArgumentDefinition>, ve
   if (close2) yield ensureSpacedOnlyIf(close2, spacedInsideParen2 ?? false, verbatim)
   if (close) yield ensureSpacedOnlyIf(close, spacedInsideParen1 ?? false, verbatim)
 }
+
+type OwnedArgumentDefinitions = ArgumentDefinition<OwnedRefs>
+
 /** TODO: Add docs */
 export class MutableFunctionDef extends FunctionDef implements MutableStatement {
   declare readonly module: MutableModule
@@ -2569,11 +2659,44 @@ export class MutableFunctionDef extends FunctionDef implements MutableStatement 
   setBody<T extends MutableExpression | MutableBodyBlock>(value: Owned<T> | undefined) {
     this.fields.set('body', unspaced(this.claimChild(value)))
   }
-  setArgumentDefinitions(defs: ArgumentDefinition<OwnedRefs>[]) {
+  setArgumentDefinitions(defs: OwnedArgumentDefinitions[]) {
     this.fields.set(
       'argumentDefinitions',
       defs.map((def) => mapRefs(def, ownedToRaw(this.module, this.id))),
     )
+  }
+
+  pushArgumentDefinitions(value: OwnedArgumentDefinitions) {
+    const defs = this.fields.get('argumentDefinitions')
+    const def = mapRefs(value, ownedToRaw(this.module, this.id))
+    this.fields.set('argumentDefinitions', [...defs, def])
+  }
+
+  /**
+   * Move an argument inside function definition.
+   * @param fromIndex index of moved argument.
+   * @param toIndex new index of moved argument.
+   *
+   * If any index is outside array index range, it's interpreted same as in {@link Array.prototype.splice|}.
+   */
+  moveArgumentDefinitions(fromIndex: number, toIndex: number) {
+    const defs = [...this.fields.get('argumentDefinitions')]
+    const [def] = defs.splice(fromIndex, 1)
+    if (def != null) {
+      defs.splice(toIndex, 0, def)
+      this.fields.set('argumentDefinitions', defs)
+    }
+  }
+
+  spliceArgumentDefinitions(
+    start: number,
+    deletedCount: number,
+    ...newValues: OwnedArgumentDefinitions[]
+  ) {
+    const defs = [...this.fields.get('argumentDefinitions')]
+    const newDefs = newValues.map((def) => mapRefs(def, ownedToRaw(this.module, this.id)))
+    defs.splice(start, deletedCount, ...newDefs)
+    this.fields.set('argumentDefinitions', defs)
   }
 
   /** Returns the body, after converting it to a block if it was empty or an inline expression. */
@@ -3296,6 +3419,8 @@ export function materializeMutable(module: MutableModule, fields: FixedMap<AstFi
       return new MutableVector(module, fieldsForType)
     case 'Wildcard':
       return new MutableWildcard(module, fieldsForType)
+    case 'TypeAnnotated':
+      return new MutableTypeAnnotated(module, fieldsForType)
   }
   bail(`Invalid type: ${type}`)
 }
@@ -3343,6 +3468,8 @@ export function materialize(module: Module, fields: FixedMapView<AstFields>): As
       return new Vector(module, fields_)
     case 'Wildcard':
       return new Wildcard(module, fields_)
+    case 'TypeAnnotated':
+      return new TypeAnnotated(module, fields_)
   }
   bail(`Invalid type: ${type}`)
 }
