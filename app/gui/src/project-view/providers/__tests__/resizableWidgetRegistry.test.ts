@@ -69,7 +69,6 @@ test.each([[[20]], [[-20]], [[10, 10]], [[-10, -10]]])(
         widgetSizeRef.value.width + step,
         widgetSizeRef.value.height,
       )
-      console.log('APPLYING STEP', step)
       visResizeHandleEventHandlers['update:modelValue'](Rect.XYWH(123, 456, newNodeWidth, 108))
       nodeWidthRef.value = newNodeWidth
       await nextTick()

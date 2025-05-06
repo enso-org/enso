@@ -23,6 +23,10 @@
  */
 package com.sun.jna;
 
+//
+// Copy of JNA's Native as of version 5.14.0 with commented out references
+// to java.awt.Window and other classes from the java.desktop module.
+//
 // import java.awt.Component;
 // import java.awt.GraphicsEnvironment;
 // import java.awt.HeadlessException;

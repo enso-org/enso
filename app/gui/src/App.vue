@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ContextsForReactProvider } from '$/providers/react'
+import ReactRoot from '$/ReactRoot'
 import '@/assets/base.css'
 import { interactionBindings } from '@/bindings'
 import TooltipDisplayer from '@/components/TooltipDisplayer.vue'
@@ -17,7 +19,6 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { applyPureReactInVue } from 'veaury'
 import { computed, onMounted } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
-import ReactRoot from './ReactRoot'
 
 const { projectViewOnly, onAuthenticated } = defineProps<{
   // Used in Project View integration tests. Once both test projects will be merged, this should be
@@ -75,12 +76,15 @@ onMounted(() => {
 <template>
   <div :class="['App', ...classSet.keys()]">
     <ProjectView v-if="projectViewOnly" v-bind="projectViewOnly.options" />
-    <ReactRootWrapper
-      v-else
-      :config="appConfigValue"
-      :queryClient="queryClient"
-      @authenticated="onAuthenticated ?? (() => {})"
-    />
+    <ContextsForReactProvider v-else>
+      <ReactRootWrapper
+        :config="appConfigValue"
+        :queryClient="queryClient"
+        @authenticated="onAuthenticated ?? (() => {})"
+      >
+        <RouterView />
+      </ReactRootWrapper>
+    </ContextsForReactProvider>
   </div>
   <div id="floatingLayer" />
   <TooltipDisplayer :registry="appTooltips" />
