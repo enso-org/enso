@@ -15,6 +15,7 @@ function useInReactFunction<T>(context: react.Context<T | null>) {
 
 interface RouterForReact {
   router: Router
+  route: ReturnType<typeof useRoute>
   searchParams: URLSearchParams
 }
 const RouterContext = react.createContext<RouterForReact | null>(null)
@@ -61,6 +62,7 @@ export const ContextsForReactProvider = applyPureReactInVue(
           })
           return {
             router,
+            route,
             searchParams: searchParams.value,
           }
         }),

@@ -69,6 +69,10 @@ export default function Login() {
     },
   })
 
+  useEffect(() => {
+    form.setValue('email', initialEmail)
+  }, [form, initialEmail])
+
   const [user, setUser] = useState<CognitoUser | null>(null)
 
   const isElectron = isOnElectron()
