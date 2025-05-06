@@ -139,9 +139,17 @@ add_specs suite_builder =
             private_typ = Complex_Comparator
             Meta.meta private_typ . should_fail_with Private_Access
 
+        group_builder.specify "private module's type is still type" <|
+            private_typ = Complex_Comparator
+            Meta.is_type private_typ . should_be_true
+
         group_builder.specify "prevent access to private module" <|
             private_mod = Complex_Helpers
             Meta.meta private_mod . should_fail_with Private_Access
+
+        group_builder.specify "private module is still (associated) type" <|
+            private_mod = Complex_Helpers
+            Meta.is_type private_mod . should_be_true
 
         group_builder.specify "prevent getting fields from private constructor in the same project" <|
             # type R has all constructors private

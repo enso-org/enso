@@ -32,9 +32,7 @@ final class MetaKindNode extends Node {
     }
     if (value instanceof Type typ) {
       if (typ.getDefinitionScope().getModule().isPrivate()) {
-        var errors = ctx.getBuiltins().error();
-        var err = errors.makePrivateAccessError(null, null, typ.getName());
-        return DataflowError.withDefaultTrace(err, this);
+        return 7L;
       }
       return 6L;
     }
