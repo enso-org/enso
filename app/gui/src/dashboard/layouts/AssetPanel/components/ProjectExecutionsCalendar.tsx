@@ -142,8 +142,8 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
     .flatMap((projectExecution) =>
       getProjectExecutionRepetitionsForDateRange(
         projectExecution,
-        toZoned(selectedDate, timeZone),
-        toZoned(selectedDate.add({ days: 1 }), timeZone),
+        toZoned(selectedDate, projectExecution.timeZone),
+        toZoned(selectedDate.add({ days: 1 }), projectExecution.timeZone),
       ).flatMap((date) => ({ date, projectExecution })),
     )
     .sort((a, b) => Number(a.date) - Number(b.date))
@@ -202,7 +202,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
                             )}
                             size="xxsmall"
                             variant="custom"
-                            className="disabled:opacity-100"
+                            className="disabled:cursor-unset disabled:opacity-100"
                             icon={CalendarIcon}
                           >
                             {todaysExecutions.length}

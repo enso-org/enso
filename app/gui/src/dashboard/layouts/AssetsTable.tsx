@@ -18,7 +18,7 @@ import {
   type SetStateAction,
 } from 'react'
 
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import * as z from 'zod'
 
@@ -47,13 +47,9 @@ import SvgMask from '#/components/SvgMask'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
-  addAssetsLabelsMutationOptions,
-  removeAssetsLabelsMutationOptions,
-} from '#/hooks/backendBatchedHooks'
-import {
   backendMutationOptions,
+  backendQueryOptions,
   listDirectoryQueryOptions,
-  useBackendQuery,
   useListDirectoryRefetchInterval,
 } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
@@ -73,8 +69,8 @@ import {
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
-import { canTransferBetweenCategories, type Category } from '#/layouts/CategorySwitcher/Category'
-import { useAssetsTableItems, useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import { type Category } from '#/layouts/CategorySwitcher/Category'
+import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import DragModal from '#/modals/DragModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
@@ -87,7 +83,6 @@ import {
 import {
   useDriveStore,
   useSetCanDownload,
-  useSetLabelsDragPayload,
   useSetNewestFolderId,
   useSetPasteData,
   useSetSelectedAssets,
@@ -201,11 +196,10 @@ function AssetsTable(props: AssetsTableProps) {
   const openProjectLocally = useOpenProjectLocally()
   const setCanDownload = useSetCanDownload()
   const setSuggestions = useSetSuggestions()
-  const getAsset = useGetAsset()
 
   const { user } = useFullUserSession()
   const backend = useBackend(category)
-  const { data: labels } = useBackendQuery(backend, 'listTags', [])
+  const { data: labels } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const { setModal, unsetModal } = useSetModal()
   const { localStorage } = useLocalStorage()
   const { getText } = useText()
@@ -217,7 +211,6 @@ function AssetsTable(props: AssetsTableProps) {
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
   const setAssetPanelProps = useSetAssetPanelProps()
   const resetAssetPanelProps = useResetAssetPanelProps()
-  const setLabelsDragPayload = useSetLabelsDragPayload()
 
   const columns = useMemo(
     () =>
@@ -240,8 +233,6 @@ function AssetsTable(props: AssetsTableProps) {
 
   const uploadFiles = useUploadFiles(backend, category)
   const updateSecretMutation = useMutationCallback(backendMutationOptions(backend, 'updateSecret'))
-  const addAssetsLabelsMutation = useMutationCallback(addAssetsLabelsMutationOptions(backend))
-  const removeAssetsLabelsMutation = useMutationCallback(removeAssetsLabelsMutationOptions(backend))
   const paste = usePaste(category)
 
   const isSingleSelectedDirectoryItem = useStore(
@@ -309,6 +300,22 @@ function AssetsTable(props: AssetsTableProps) {
   useEffect(() => {
     setNewestFolderId(null)
   }, [category, setNewestFolderId])
+
+  // temporary solution to update the asset panel when the selected asset changes
+  useEffect(() => {
+    const selectedIds = driveStore.getState().selectedIds
+
+    if (selectedIds.size === 1) {
+      const [soleId] = selectedIds
+      const asset = soleId == null ? null : assets.find((otherAsset) => otherAsset.id === soleId)
+
+      if (asset) {
+        setAssetPanelProps({ item: asset })
+      } else {
+        setAssetPanelProps({ item: null })
+      }
+    }
+  }, [assets, driveStore, setAssetPanelProps])
 
   useEffect(
     () =>
@@ -584,7 +591,7 @@ function AssetsTable(props: AssetsTableProps) {
     const projectToLoad = deps.items.filter(assetIsProject).find(isInitialProject)
     if (projectToLoad != null) {
       void deps.openProjectLocally(projectToLoad, BackendType.local)
-    } else if (initialProjectName != null) {
+    } else if (initialProjectName != null && initialProjectName !== '') {
       deps.toastAndLog('findProjectError', null, initialProjectName)
     }
   }, [initialProjectName, initialProjectNameDeps])
@@ -850,25 +857,24 @@ function AssetsTable(props: AssetsTableProps) {
 
     const { pasteData } = driveStore.getState()
 
-    if (
-      pasteData?.data.backendType === backend.type &&
-      canTransferBetweenCategories(pasteData.data.category, category, newParentId)
-    ) {
-      if (pasteData.data.assets.some((asset) => asset.id === newParentKey)) {
-        toast.error('Cannot paste a folder into itself.')
-        return
-      }
-
-      void paste({
-        fromCategory: pasteData.data.category,
-        toCategory: category,
-        newParentId,
-        pasteData: pasteData.data,
-        method: pasteData.type,
-      })
-
-      setPasteData(null)
+    if (pasteData == null) {
+      return
     }
+
+    if (pasteData.data.assets.some((asset) => asset.id === newParentKey)) {
+      toast.error('Cannot paste a folder into itself.')
+      return
+    }
+
+    void paste({
+      fromCategory: pasteData.data.category,
+      toCategory: category,
+      newParentId,
+      pasteData: pasteData.data,
+      method: pasteData.type,
+    })
+
+    setPasteData(null)
   })
 
   const hiddenContextMenu =
@@ -1189,7 +1195,6 @@ function AssetsTable(props: AssetsTableProps) {
   const onRowDragEnd = useEventCallback(() => {
     setIsDraggingFiles(false)
     endAutoScroll()
-    setLabelsDragPayload(null)
   })
 
   const onRowDrop = useEventCallback(
@@ -1197,39 +1202,7 @@ function AssetsTable(props: AssetsTableProps) {
       if (category.type === 'trash' || category.type === 'recent') {
         return
       }
-
       endAutoScroll()
-      if (item != null) {
-        const { selectedIds, labelsDragPayload } = driveStore.getState()
-        const { selectedItems, shouldAdd } =
-          selectedIds.has(item.id) ?
-            {
-              selectedItems: [...selectedIds].flatMap((id) => {
-                const otherAsset = getAsset(id)
-                return otherAsset ? [otherAsset] : []
-              }),
-              shouldAdd: labelsDragPayload?.typeWhenAppliedToSelection !== 'remove',
-            }
-          : {
-              selectedItems: [item],
-              shouldAdd:
-                labelsDragPayload?.labels.some(
-                  (label) => !(item.labels?.includes(label) ?? false),
-                ) ?? true,
-            }
-
-        if (labelsDragPayload != null) {
-          event.preventDefault()
-          event.stopPropagation()
-          if (shouldAdd) {
-            void addAssetsLabelsMutation([selectedItems, labelsDragPayload.labels])
-          } else {
-            void removeAssetsLabelsMutation([selectedItems, labelsDragPayload.labels])
-          }
-          setLabelsDragPayload(null)
-        }
-      }
-
       const directoryId = item?.type === AssetType.directory ? item.id : currentDirectoryId
       const payload = ASSET_ROWS.lookup(event)
       const items = payload?.items ?? []
@@ -1354,7 +1327,7 @@ function AssetsTable(props: AssetsTableProps) {
         <div
           data-testid="root-directory-dropzone"
           className={twMerge(
-            'sticky left-0 grid max-w-container grow place-items-center pb-40 pt-20',
+            'sticky left-1 grid max-w-[calc(100cqw_-_0.5rem)] grow place-items-center pb-40 pt-20',
             (category.type === 'recent' || category.type === 'trash') && 'hidden',
           )}
           onDragEnter={onDropzoneDragOver}
@@ -1405,26 +1378,28 @@ function AssetsTable(props: AssetsTableProps) {
     <div className="relative grow contain-strict">
       {hiddenContextMenu}
 
-      <div
-        data-testid="extra-columns"
-        className="absolute right-3 top-0.5 z-1 flex self-end bg-dashboard p-2"
-      >
+      {hiddenColumns.length !== 0 && (
         <div
-          className="inline-flex gap-icons"
-          onFocus={() => {
-            setKeyboardSelectedIndex(null)
-          }}
+          data-testid="extra-columns"
+          className="absolute right-3 top-0.5 z-1 flex self-end bg-dashboard p-2"
         >
-          {hiddenColumns.map((column) => (
-            <HiddenColumn
-              key={column}
-              column={column}
-              enabledColumns={enabledColumns}
-              onColumnClick={setEnabledColumns}
-            />
-          ))}
+          <div
+            className="inline-flex gap-icons"
+            onFocus={() => {
+              setKeyboardSelectedIndex(null)
+            }}
+          >
+            {hiddenColumns.map((column) => (
+              <HiddenColumn
+                key={column}
+                column={column}
+                enabledColumns={enabledColumns}
+                onColumnClick={setEnabledColumns}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <IsolateLayout className="isolate h-full w-full" useRAF>
         <div

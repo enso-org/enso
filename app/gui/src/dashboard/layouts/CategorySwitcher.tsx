@@ -1,8 +1,6 @@
 /** @file Switcher to choose the currently visible assets table category. */
 import * as React from 'react'
 
-import { useSearchParams } from 'react-router-dom'
-
 import { SEARCH_PARAMS_PREFIX } from '#/appUtils'
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import * as aria from '#/components/aria'
@@ -24,13 +22,11 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 import { tv } from '#/utilities/tailwindVariants'
+import { useRouterInReact } from '$/providers/react'
 import { twJoin } from 'tailwind-merge'
 
 import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
-import {
-  useCloudCategoryList,
-  useLocalCategoryList,
-} from '#/layouts/Drive/Categories/categoriesHooks'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { unsetModal } from '#/providers/ModalProvider'
 
@@ -182,7 +178,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     >
       <AnimatedBackground.Item
         isSelected={isCurrent}
-        className="w-auto max-w-[calc(100%-24px)]"
+        className="w-auto max-w-full"
         animationClassName="bg-invert rounded-full"
       >
         <ariaComponents.Button
@@ -240,14 +236,12 @@ export interface CategorySwitcherProps {
 /** A switcher to choose the currently visible assets table categoryModule.categoryType. */
 function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategoryId } = props
-
+  const { router } = useRouterInReact()
   const { getText } = textProvider.useText()
-  const [, setSearchParams] = useSearchParams()
 
   const { isOffline } = offlineHooks.useOffline()
 
-  const cloudCategories = useCloudCategoryList()
-  const localCategories = useLocalCategoryList()
+  const { cloudCategories, localCategories } = useCategoriesAPI()
 
   const itemProps = { currentCategory: category, setCategoryId }
 
@@ -336,9 +330,11 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                 aria-label={getText('changeLocalRootDirectoryInSettings')}
                 className="my-auto opacity-0 transition-opacity group-hover:opacity-100"
                 onPress={() => {
-                  setSearchParams({
-                    [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify('local'),
-                    [`${SEARCH_PARAMS_PREFIX}page`]: JSON.stringify('settings'),
+                  void router.push({
+                    query: {
+                      [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify('local'),
+                      [`${SEARCH_PARAMS_PREFIX}page`]: JSON.stringify('settings'),
+                    },
                   })
                 }}
               />
@@ -365,7 +361,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                     extraClickZone={false}
                     icon="minus"
                     aria-label={getText('removeDirectoryFromFavorites')}
-                    className="hidden group-hover:block"
+                    showIconOnHover
                   />
 
                   <ConfirmDeleteModal

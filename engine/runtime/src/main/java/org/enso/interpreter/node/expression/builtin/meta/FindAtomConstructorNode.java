@@ -10,8 +10,8 @@ import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.error.DataflowError;
 
 @BuiltinMethod(
     type = "Meta",
@@ -19,17 +19,45 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
     description = "Checks if the argument is a constructor.",
     autoRegister = false)
 final class FindAtomConstructorNode extends Node {
-  EnsoObject execute(VirtualFrame frame, @Suspend @AcceptsError Object value) {
-    var ac = findConstructor(value, frame);
+  Object execute(VirtualFrame frame, @Suspend @AcceptsError Object value) {
+    return findAtomConstructor(this, value, frame);
+  }
+
+  /**
+   * "Enso facing" method to turn a value into {@link AtomConstructor} for purposes of <em>meta
+   * programming API</em>. Executes "common logic" for finding the constructor for provided value
+   * (which is "identity" if the value already is an {@link AtomConstructor}). Then it performs
+   * <em>encapsulation related accessiblity checks</em> and returns an <em>interop value</em> that
+   * can flow via Enso interpreter freely.
+   *
+   * @param who the node performing the query
+   * @param value value to check
+   * @param frame the frame to further evaluate {@code value} at if necessary, the value can be
+   *     {@code null} especially when the {@code value} is known to be {@link AtomConstructor}
+   *     already
+   * @return either {@link AtomConstructor} on success, or {@code Nothing} when the {@code value}
+   *     doesn't represent a constructor, or a [@link DataflowError} with {@code Private_Access}
+   *     failure when the value is a constructor, but it is not accessible due to encapsulation
+   *     rules
+   */
+  static Object findAtomConstructor(Node who, Object value, VirtualFrame frame) {
+    var ctx = EnsoContext.get(who);
+    var ac = findConstructorOrNull(ctx, value, frame);
     if (ac != null) {
-      return ac;
+      if (ac.getType().hasAllConstructorsPrivate()) {
+        var errors = ctx.getBuiltins().error();
+        var err = errors.makePrivateAccessError(null, null, "constructor");
+        return DataflowError.withDefaultTrace(err, who);
+      } else {
+        return ac;
+      }
     } else {
-      var ctx = EnsoContext.get(this);
       return ctx.getNothing();
     }
   }
 
-  private AtomConstructor findConstructor(Object value, VirtualFrame frame) {
+  private static AtomConstructor findConstructorOrNull(
+      EnsoContext ctx, Object value, VirtualFrame frame) {
     for (; ; ) {
       if (value instanceof AtomConstructor atom) {
         return atom;
@@ -42,7 +70,6 @@ final class FindAtomConstructorNode extends Node {
           return atom;
         }
         if (fn.isThunk()) {
-          var ctx = EnsoContext.get(this);
           var state = ctx.currentState();
           var thunkSolver = ThunkExecutorNode.getUncached();
           value = thunkSolver.executeThunk(frame, value, state, BaseNode.TailStatus.NOT_TAIL);

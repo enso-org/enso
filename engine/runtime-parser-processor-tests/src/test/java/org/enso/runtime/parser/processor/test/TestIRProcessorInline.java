@@ -28,6 +28,17 @@ public class TestIRProcessorInline {
    * @return
    */
   private static String generatedClass(String name, String src) {
+    var compilation = expectCompilationSuccessful(name, src);
+    assertThat("Generated just one source", compilation.generatedSourceFiles().size(), is(1));
+    var generatedSrc = compilation.generatedSourceFiles().get(0);
+    try {
+      return generatedSrc.getCharContent(false).toString();
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  private static Compilation expectCompilationSuccessful(String name, String src) {
     var srcObject = JavaFileObjects.forSourceString(name, src);
     var compiler = Compiler.javac().withProcessors(new IRProcessor());
     var compilation = compiler.compile(srcObject);
@@ -39,13 +50,7 @@ public class TestIRProcessorInline {
       }
       fail(failureMsg.toString());
     }
-    assertThat("Generated just one source", compilation.generatedSourceFiles().size(), is(1));
-    var generatedSrc = compilation.generatedSourceFiles().get(0);
-    try {
-      return generatedSrc.getCharContent(false).toString();
-    } catch (IOException e) {
-      throw new AssertionError(e);
-    }
+    return compilation;
   }
 
   private static void expectCompilationFailure(String src) {
@@ -94,13 +99,16 @@ public class TestIRProcessorInline {
             "JName",
             """
         import org.enso.runtime.parser.dsl.GenerateIR;
+        import org.enso.runtime.parser.dsl.GenerateFields;
         @GenerateIR
-        public class JName {}
+        public class JName extends JNameGen {
+          @GenerateFields
+          public JName() {}
+        }
         """);
     var compiler = Compiler.javac().withProcessors(new IRProcessor());
     var compilation = compiler.compile(src);
     CompilationSubject.assertThat(compilation).failed();
-    CompilationSubject.assertThat(compilation).hadErrorCount(1);
     CompilationSubject.assertThat(compilation).hadErrorContaining("final");
   }
 
@@ -871,5 +879,50 @@ public class TestIRProcessorInline {
         "has getter method for expression with a different return type",
         src,
         containsString("IR expression()"));
+  }
+
+  /** JCase contains JExpr and JBranch, JExpr references JBranch as its IRChild. */
+  @Test
+  public void canReferenceSiblingInterfaceInIRChild() {
+    var compilation =
+        expectCompilationSuccessful(
+            "JCase",
+            """
+        import org.enso.runtime.parser.dsl.GenerateIR;
+        import org.enso.runtime.parser.dsl.GenerateFields;
+        import org.enso.runtime.parser.dsl.IRChild;
+        import org.enso.compiler.core.IR;
+
+        public interface JCase extends IR {
+
+          @GenerateIR(interfaces = {JCase.class})
+          final class JExpr extends JExprGen {
+            @GenerateFields
+            public JExpr(@IRChild JBranch branch) {
+              super(branch);
+            }
+
+            @Override
+            public String showCode(int indent) {
+              return "";
+            }
+          }
+
+          @GenerateIR(interfaces = {JCase.class})
+          final class JBranch extends JBranchGen {
+            @GenerateFields
+            public JBranch() {
+              super();
+            }
+
+            @Override
+            public String showCode(int indent) {
+              return "";
+            }
+          }
+        }
+        """);
+    var generatedSrcs = compilation.generatedSourceFiles();
+    assertThat(generatedSrcs.size(), is(2));
   }
 }

@@ -71,6 +71,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      ENSO_LAUNCHER: native
   enso-build-ci-gen-job-gui-build-macos-amd64:
     name: GUI build (macos, amd64)
     runs-on:

@@ -494,16 +494,17 @@ pub fn spawn_log_processor(
 }
 
 /// Checks if the line contains a GitHub command and extracts it from the line if it does.
-/// Currently only error and group commands are supported. All commands are documented at https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions
+/// Currently only error, warning and group commands are supported. All commands are documented at https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions
 fn extract_github_command(line: &str) -> Option<String> {
     // We remove a possible [info] prefix that is added by sbt.
     // We need to be careful as the [info] text can contain ANSI escape codes, so simple text
     // matching for it won't work. Instead we locate `::`. If the line starts with `::` and the
-    // following text is `error`, `group`, or `endgroup`, we return the line as a special command.
+    // following text is one of the expected commands, we return the line as a special command.
     let command_prefix = "::";
     if let Some(start_of_command) = line.find(command_prefix) {
         let command_part = &line[start_of_command + command_prefix.len()..];
         if command_part.starts_with("error")
+            || command_part.starts_with("warning")
             || command_part.starts_with("group")
             || command_part.starts_with("endgroup")
         {

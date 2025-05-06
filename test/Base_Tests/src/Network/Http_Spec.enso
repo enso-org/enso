@@ -28,7 +28,7 @@ type Bad_To_Json
 
 # Clear out fields that we want to ignore
 remove_fields json =
-    json.set_value  "headers" (json.at "headers" . set_value "User-Agent" "")
+    json.set_value  "headers" (json.at "headers" . set_value "User-Agent" "" . set_value "Http2-Settings" "")
 compare_responses a b = (remove_fields a).should_equal (remove_fields b)
 
 ## To run this test locally:
@@ -626,8 +626,9 @@ add_specs suite_builder =
 
         group_builder.specify "should be able to handle server crash that closes stream abruptly" pending=pending_has_url <|
             err = Data.fetch (base_url_with_slash+"crash?type=stream") cache_policy=..No_Cache
-            err.should_fail_with HTTP_Error
-            err.catch.message . should_equal "An IO error has occurred: java.io.IOException: closed"
+            err.should_fail_with Request_Error
+            err.catch.error_type . should_equal "java.io.IOException"
+            err.catch.message . should_equal "HTTP/1.1 header parser received no bytes"
 
         group_builder.specify "should be able to handle occasional abrupt stream closures and retry" pending=pending_has_url <|
             r1 = Data.fetch (base_url_with_slash+"crash?type=stream&success_every=2")

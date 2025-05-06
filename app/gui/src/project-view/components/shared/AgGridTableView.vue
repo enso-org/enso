@@ -76,7 +76,10 @@ import type {
   ColDef,
   ColGroupDef,
   ColumnResizedEvent,
+  ColumnVisibleEvent,
   FirstDataRenderedEvent,
+  GetContextMenuItems,
+  GetContextMenuItemsParams,
   GetRowIdFunc,
   GridApi,
   GridReadyEvent,
@@ -89,8 +92,11 @@ import type {
   RowDataUpdatedEvent,
   RowEditingStartedEvent,
   RowEditingStoppedEvent,
+  RowHeightParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
+import * as iter from 'enso-common/src/utilities/data/iter'
+import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
 import {
   Component,
   type ComponentInstance,
@@ -124,6 +130,9 @@ const props = defineProps<{
   rowCount?: number
   isServerSideModel?: boolean
   gridIdHash?: string | null
+  getContextMenuItems?: (
+    params: GetContextMenuItemsParams,
+  ) => (MenuItemDef | string)[] | GetContextMenuItems
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -132,6 +141,7 @@ const emit = defineEmits<{
   rowEditingStopped: [event: RowEditingStoppedEvent]
   rowDataUpdated: [event: RowDataUpdatedEvent]
   sortOrFilterUpdated: [event: SortChangedEvent]
+  columnStateChanged: [event: ColumnVisibleEvent]
 }>()
 
 const widths = reactive(new Map<string, number>())
@@ -320,6 +330,22 @@ const mappedComponents = computed(() => {
   }
   return retval
 })
+const DEFAULT_ROW_HEIGHT = 22
+function getRowHeight(params: RowHeightParams): number {
+  if (props.textFormatOption === 'off') {
+    return DEFAULT_ROW_HEIGHT
+  }
+  const rowData = Object.values(params.data)
+  const textValues = rowData.filter((r): r is string => typeof r === 'string')
+  if (!textValues.length) {
+    return DEFAULT_ROW_HEIGHT
+  }
+  const returnCharsCount = iter.map(textValues, (text) =>
+    iter.count(text.matchAll(LINE_BOUNDARIES)),
+  )
+  const maxReturnCharsCount = iter.reduce(returnCharsCount, Math.max, 0)
+  return (maxReturnCharsCount + 1) * DEFAULT_ROW_HEIGHT
+}
 
 const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
 </script>
@@ -352,6 +378,8 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       :processDataFromClipboard="processDataFromClipboard"
       :allowContextMenuWithControlKey="true"
       :cacheBlockSize="rowModelType === 'clientSide' ? undefined : 1000"
+      :getContextMenuItems="getContextMenuItems"
+      :getRowHeight="rowModelType === 'clientSide' ? getRowHeight : null"
       @gridReady="onGridReady"
       @firstDataRendered="updateColumnWidths"
       @rowDataUpdated="(updateColumnWidths($event), emit('rowDataUpdated', $event))"
@@ -362,6 +390,8 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       @rowEditingStopped="emit('rowEditingStopped', $event)"
       @sortChanged="emit('sortOrFilterUpdated', $event)"
       @filterChanged="emit('sortOrFilterUpdated', $event)"
+      @columnVisible="emit('columnStateChanged', $event)"
+      @columnMoved="emit('columnStateChanged', $event)"
       @contextmenu="stopIfPrevented"
     />
     <VueComponentHost :host="vueHost" />

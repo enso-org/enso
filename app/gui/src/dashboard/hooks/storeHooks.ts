@@ -48,6 +48,11 @@ export interface UseStoreOptions<Slice> {
 
 /**
  * A wrapper that allows to choose between tearing transition and standard Zustand store.
+ * @param store - The Zustand store to use.
+ * @param selector - The selector function to use.
+ * @param options - {@link UseStoreOptions} - The options for the `useStore` hook
+ * @param options.unsafeEnableTransition - Whether to enable tearing transitions.
+ * @param options.areEqual - The equality function to use. Defaults to `'Object.is'`.
  *
  * # `options.unsafeEnableTransition` must not be changed during the component lifecycle.
  */

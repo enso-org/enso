@@ -161,9 +161,10 @@ case object NestedPatternMatch extends IRPass {
     freshNameSupply: FreshNameSupply
   ): Expression = {
     expr match {
-      case expr @ Case.Expr(scrutinee, branches, _, _, _) =>
+      case expr: Case.Expr =>
         val scrutineeBindingName = freshNameSupply.newName()
-        val scrutineeExpression  = desugarExpression(scrutinee, freshNameSupply)
+        val scrutineeExpression =
+          desugarExpression(expr.scrutinee, freshNameSupply)
         val scrutineeBinding =
           Expression.Binding(
             scrutineeBindingName,
@@ -173,17 +174,18 @@ case object NestedPatternMatch extends IRPass {
 
         val caseExprScrutinee = scrutineeBindingName.duplicate()
 
-        val processedBranches = branches.zipWithIndex.map { case (branch, _) =>
-          desugarCaseBranch(
-            branch,
-            branch.location,
-            freshNameSupply
-          )
+        val processedBranches = expr.branches.zipWithIndex.map {
+          case (branch, _) =>
+            desugarCaseBranch(
+              branch,
+              branch.location,
+              freshNameSupply
+            )
         }
 
         val desugaredCaseExpr = expr.copy(
-          scrutinee = caseExprScrutinee,
-          branches  = processedBranches
+          caseExprScrutinee,
+          processedBranches
         )
 
         Expression.Block(
@@ -240,12 +242,11 @@ case object NestedPatternMatch extends IRPass {
           )
 
           val newPattern1 = newPattern.duplicate()
-          val partDesugaredBranch = Case.Branch(
-            pattern            = newPattern1,
-            expression         = newExpression.duplicate(),
-            terminalBranch     = false,
-            identifiedLocation = null
-          )
+          val partDesugaredBranch = Case.Branch
+            .builder()
+            .pattern(newPattern1)
+            .expression(newExpression.duplicate())
+            .build()
 
           desugarCaseBranch(
             partDesugaredBranch,
@@ -275,8 +276,8 @@ case object NestedPatternMatch extends IRPass {
       }
     } else {
       branch.copy(
-        expression = desugarExpression(branch.expression, freshNameSupply),
-        location   = topBranchLocation
+        desugarExpression(branch.expression, freshNameSupply),
+        topBranchLocation.orNull
       )
     }
   }
@@ -311,20 +312,19 @@ case object NestedPatternMatch extends IRPass {
   ): Expression = {
     val patternDuplicate = pattern.duplicate()
     val finalTest        = containsNestedPatterns(patternDuplicate)
-    val patternBranch =
-      Case.Branch(
-        patternDuplicate,
-        currentBranchExpr.duplicate(),
-        terminalBranch     = !finalTest,
-        identifiedLocation = null
-      )
+    val patternBranch = Case.Branch
+      .builder()
+      .pattern(patternDuplicate)
+      .expression(currentBranchExpr.duplicate())
+      .terminalBranch(!finalTest)
+      .build()
 
-    Case.Expr(
-      nestedScrutinee.duplicate(),
-      List(patternBranch),
-      isNested           = true,
-      identifiedLocation = null
-    )
+    Case.Expr
+      .builder()
+      .scrutinee(nestedScrutinee.duplicate())
+      .branches(List(patternBranch))
+      .isNested(true)
+      .build()
   }
 
   /** Tests if a pattern contains nested patterns.

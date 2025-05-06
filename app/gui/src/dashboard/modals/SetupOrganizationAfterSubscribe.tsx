@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
-import * as router from 'react-router'
 
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 
@@ -26,7 +25,7 @@ const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.e
  * Modal for setting the organization name.
  * Shows up when the user is on the team plan and the organization name is the default.
  */
-export function SetupOrganizationAfterSubscribe() {
+export function SetupOrganizationAfterSubscribe({ children }: React.PropsWithChildren) {
   const backend = backendProvider.useRemoteBackend()
 
   const session = authProvider.useFullUserSession()
@@ -36,10 +35,14 @@ export function SetupOrganizationAfterSubscribe() {
   const shouldShowModal = PLANS_TO_SPECIFY_ORG_NAME.includes(plan) && isOrganizationAdmin
 
   if (shouldShowModal) {
-    return <SetupOrganizationAfterSubscribeInternal userId={userId} backend={backend} />
+    return (
+      <SetupOrganizationAfterSubscribeInternal userId={userId} backend={backend}>
+        {children}
+      </SetupOrganizationAfterSubscribeInternal>
+    )
   }
 
-  return <router.Outlet context={session} />
+  return <>{children}</>
 }
 
 /**
@@ -58,12 +61,11 @@ interface SetupOrganizationAfterSubscribeInternalProps {
  * @returns The component.
  */
 function SetupOrganizationAfterSubscribeInternal(
-  props: SetupOrganizationAfterSubscribeInternalProps,
+  props: React.PropsWithChildren<SetupOrganizationAfterSubscribeInternalProps>,
 ) {
-  const { backend } = props
+  const { backend, children } = props
 
   const { getText } = textProvider.useText()
-  const session = authProvider.useFullUserSession()
 
   const { organizationName, userGroupsCount } = useSuspenseQueries({
     queries: [
@@ -163,7 +165,7 @@ function SetupOrganizationAfterSubscribeInternal(
         </Stepper>
       </ariaComponents.Dialog>
 
-      <router.Outlet context={session} />
+      {children}
     </>
   )
 }

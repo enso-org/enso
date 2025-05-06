@@ -78,10 +78,6 @@ interface DriveStore {
   readonly setSelectedAssets: (selectedAssets: readonly SelectedAssetInfo[]) => void
   readonly visuallySelectedKeys: ReadonlySet<AssetId> | null
   readonly setVisuallySelectedKeys: (visuallySelectedKeys: ReadonlySet<AssetId> | null) => void
-  readonly labelsDragPayload: LabelsDragPayload | null
-  readonly setLabelsDragPayload: (labelsDragPayload: LabelsDragPayload | null) => void
-  readonly isDraggingOverSelectedRow: boolean
-  readonly setIsDraggingOverSelectedRow: (isDraggingOverSelectedRow: boolean) => void
   readonly dragTargetAssetId: AssetId | null
   readonly setDragTargetAssetId: (dragTargetAssetId: AssetId | null) => void
 }
@@ -168,18 +164,6 @@ export default function DriveProvider(props: ProjectsProviderProps) {
       visuallySelectedKeys: null,
       setVisuallySelectedKeys: (visuallySelectedKeys) => {
         set({ visuallySelectedKeys })
-      },
-      labelsDragPayload: null,
-      setLabelsDragPayload: (labelsDragPayload) => {
-        if (get().labelsDragPayload !== labelsDragPayload) {
-          set({ labelsDragPayload })
-        }
-      },
-      isDraggingOverSelectedRow: false,
-      setIsDraggingOverSelectedRow: (isDraggingOverSelectedRow) => {
-        if (get().isDraggingOverSelectedRow !== isDraggingOverSelectedRow) {
-          set({ isDraggingOverSelectedRow })
-        }
       },
       dragTargetAssetId: null,
       setDragTargetAssetId: (dragTargetAssetId) => {
@@ -311,37 +295,6 @@ export function useVisuallySelectedKeys() {
 export function useSetVisuallySelectedKeys() {
   const store = useDriveStore()
   return useStore(store, (state) => state.setVisuallySelectedKeys, { unsafeEnableTransition: true })
-}
-
-/** The drag payload of labels. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useLabelsDragPayload() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.labelsDragPayload)
-}
-
-/** A function to set the drag payload of labels. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useSetLabelsDragPayload() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.setLabelsDragPayload)
-}
-
-/**
- * Whether dragging is currently active for a selected row.
- * This is true if and only if this row, or another selected row, is being dragged over.
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useIsDraggingOverSelectedRow(selected: boolean) {
-  const store = useDriveStore()
-  return useStore(store, (state) => selected && state.isDraggingOverSelectedRow)
-}
-
-/** A function to set whether dragging is currently over a selected row. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useSetIsDraggingOverSelectedRow() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.setIsDraggingOverSelectedRow)
 }
 
 /** Whether the given {@link AssetId} is the one currently being dragged over. */
