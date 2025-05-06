@@ -91,7 +91,6 @@ function DashboardInner() {
 
   const categoriesAPI = useCategoriesAPI()
 
-  const openEditor = projectHooks.useOpenEditor()
   const openProjectLocally = projectHooks.useOpenProjectLocally()
 
   usePrefetchQuery({
