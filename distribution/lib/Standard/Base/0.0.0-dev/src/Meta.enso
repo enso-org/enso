@@ -303,7 +303,7 @@ meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | E
         5 -> Error.Value value.catch
         6 -> Type.Value value
         7 -> Base_Error.throw <|
-            Private_Access.Error Nothing Nothing "meta"
+            Private_Access.Error Nothing Nothing "meta" "No Meta.meta for private objects"
         _ -> Primitive.Value value
 
 ## PRIVATE

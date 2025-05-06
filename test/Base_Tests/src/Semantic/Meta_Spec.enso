@@ -114,7 +114,7 @@ add_specs suite_builder =
             cons . should_fail_with Private_Access
 
             cons.catch.to_display_text . should_equal
-                "Private access error: The project-private method 'constructor' in unknown project cannot be accessed from unknown project."
+                "Cannot access private constructors."
 
             # fields cannot be obtained as cons is already an error
             cons.fields . should_fail_with Private_Access
