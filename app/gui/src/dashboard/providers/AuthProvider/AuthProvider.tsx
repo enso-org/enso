@@ -29,6 +29,7 @@ import type RemoteBackend from '#/services/RemoteBackend'
 
 import type * as cognitoModule from '#/authentication/cognito'
 import { Button, Text } from '#/components/AriaComponents'
+import { EnsoDevtools } from '#/components/Devtools/EnsoDevtools'
 import Page from '#/components/Page'
 import { Result } from '#/components/Result'
 import { useTimeoutCallback } from '#/hooks/timeoutHooks'
@@ -42,7 +43,9 @@ import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useRouterInReact } from '../../../providers/react'
+import { useRouterInReact } from '$/providers/react'
+import { Suspense } from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
 import { AuthContext, useAuth } from './hooks'
 import type { AuthContextType } from './types'
 import { UserSessionType, type FullUserSession, type PartialUserSession } from './types'
@@ -268,6 +271,53 @@ export function AuthProvider(props: AuthProviderProps) {
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+/**
+ * A React Router layout route containing routes only accessible by users that are logged in.
+ */
+export function AnyLoggedInUserLayout({ children }: React.PropsWithChildren) {
+  const { session } = useAuth()
+  const { router } = useRouterInReact()
+
+  if (session == null) {
+    void router.push(appUtils.LOGIN_PATH)
+    return
+  }
+
+  return <>{children}</>
+}
+
+/** A React Router layout route containing routes only accessible by users that are logged in. */
+export function ProtectedLayout({ children }: React.PropsWithChildren<object>) {
+  const { session } = useAuth()
+  const { router } = useRouterInReact()
+
+  if (session == null) {
+    void router.push(appUtils.LOGIN_PATH)
+    return
+  }
+
+  if (session.type === UserSessionType.partial) {
+    void router.push(appUtils.SETUP_PATH)
+    return
+  }
+
+  return (
+    <>
+      {/* This div is used as a flag to indicate that the dashboard has been loaded and the user is authenticated. */}
+      {/* also it guarantees that the top-level suspense boundary is already resolved */}
+      <div data-testid="after-auth-layout" aria-hidden />
+
+      {children}
+
+      <Suspense fallback={null}>
+        <ErrorBoundary fallbackRender={() => null}>
+          <EnsoDevtools />
+        </ErrorBoundary>
+      </Suspense>
+    </>
+  )
 }
 
 /**
