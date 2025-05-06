@@ -8,8 +8,6 @@ import BlankIcon from '#/assets/blank.svg'
 
 import type * as inputBindings from '#/configurations/inputBindings'
 
-import * as focusHooks from '#/hooks/focusHooks'
-
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -119,7 +117,6 @@ export default function MenuEntry(props: MenuEntryProps) {
   const { unsetModal } = modalProvider.useSetModal()
   const dialogContext = useDialogContext()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const focusChildProps = focusHooks.useFocusChild()
   const info = inputBindings.metadata[action]
   const buttonRef = React.useRef<HTMLButtonElement>(null)
   const isDisabledRef = useSyncRef(isDisabled)
@@ -168,19 +165,17 @@ export default function MenuEntry(props: MenuEntryProps) {
       <FocusRing>
         <aria.Button
           ref={buttonRef}
-          {...aria.mergeProps<aria.ButtonProps>()(focusChildProps, {
-            isDisabled,
-            className: 'group flex w-full rounded-menu-entry',
-            onPress: () => {
-              if (dialogContext) {
-                // Closing a dialog takes precedence over unsetting the modal.
-                dialogContext.close()
-              } else {
-                unsetModal()
-              }
-              doAction()
-            },
-          })}
+          isDisabled={isDisabled}
+          className="group flex w-full rounded-menu-entry"
+          onPress={() => {
+            if (dialogContext) {
+              // Closing a dialog takes precedence over unsetting the modal.
+              dialogContext.close()
+            } else {
+              unsetModal()
+            }
+            doAction()
+          }}
         >
           <div className={MENU_ENTRY_VARIANTS(variantProps)} {...targetProps}>
             <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">

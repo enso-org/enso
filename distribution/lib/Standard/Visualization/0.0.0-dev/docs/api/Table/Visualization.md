@@ -11,7 +11,7 @@
 - make_json_for_object_matrix current:Standard.Base.Any.Any vector:Standard.Base.Any.Any idx:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - make_json_for_other x:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - make_json_for_row row:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- make_json_for_table dataframe:Standard.Base.Any.Any max_rows:Standard.Base.Any.Any all_rows_count:Standard.Base.Any.Any is_db_table:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_json_for_table dataframe:Standard.Base.Any.Any max_rows:Standard.Base.Any.Any all_rows_count:Standard.Base.Any.Any is_db_table:Standard.Base.Any.Any is_column:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - make_json_for_value val:Standard.Base.Any.Any level:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - make_json_for_vector vector:Standard.Base.Any.Any max_rows:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - make_json_for_xml_element xml_element:Standard.Base.Any.Any max_items:Standard.Base.Any.Any type:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any

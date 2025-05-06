@@ -55,8 +55,8 @@ pub enum Command {
         #[clap(last = true)]
         args: Vec<String>,
     },
-    /// Perform the CI check routine for the backend.
-    CiCheck {},
+    /// Build Engine Distribution
+    CiBuildEngineDistribution {},
     /// Perform the stdlib API checks
     StdlibApiCheck {},
 
