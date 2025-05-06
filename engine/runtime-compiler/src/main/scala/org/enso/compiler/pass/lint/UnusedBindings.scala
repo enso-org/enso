@@ -156,9 +156,9 @@ case object UnusedBindings extends IRPass {
             }
           else body1
 
-        lam.copy(
-          arguments = lintedArgs,
-          body      = lintedBody
+        lam.copyWithArgumentsAndBody(
+          lintedArgs,
+          lintedBody
         )
       case _: Function.Binding =>
         throw new CompilerError(

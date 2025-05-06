@@ -306,9 +306,9 @@ case object DataflowAnalysis extends IRPass {
         info.dependencies.updateAt(lamDep, Set(bodyDep))
 
         lam
-          .copy(
-            arguments = arguments.map(analyseDefinitionArgument(_, info)),
-            body      = analyseExpression(body, info)
+          .copyWithArgumentsAndBody(
+            arguments.map(analyseDefinitionArgument(_, info)),
+            analyseExpression(body, info)
           )
           .updateMetadata(new MetadataPair(this, info))
       case _: Function.Binding =>

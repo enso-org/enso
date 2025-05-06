@@ -143,9 +143,9 @@ case object GenerateMethodBodies extends IRPass {
         )
         fun match {
           case functionBinding: Function.Binding =>
-            functionBinding.copy(body = errorBody)
+            functionBinding.copyWithBody(errorBody)
           case functionLambda: Function.Lambda =>
-            functionLambda.copy(body = errorBody)
+            functionLambda.copyWithBody(errorBody)
         }
       case (_, parameterPosition) :: Nil =>
         fun match {
@@ -226,8 +226,8 @@ case object GenerateMethodBodies extends IRPass {
         )
       case body: Function.Lambda =>
         if (replace) {
-          lam.copy(
-            body = insertOrReplaceSelfInJSFunction(
+          lam.copyWithBody(
+            insertOrReplaceSelfInJSFunction(
               body,
               funName,
               replace,

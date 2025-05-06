@@ -182,9 +182,9 @@ case object IgnoredBindings extends IRPass {
           genNewArg(arg, isIgnore, supply)
         }
 
-        lam.copy(
-          arguments = newArgs,
-          body      = resolveExpression(body, supply)
+        lam.copyWithArgumentsAndBody(
+          newArgs,
+          resolveExpression(lam.body(), supply)
         )
       case _: Function.Binding =>
         throw new CompilerError(
