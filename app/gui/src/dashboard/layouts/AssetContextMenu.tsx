@@ -21,7 +21,6 @@ import ManageLabelsModal from '#/modals/ManageLabelsModal'
 
 import * as backendModule from '#/services/Backend'
 
-import { ASSET_TYPE_TO_TEXT_ID } from '#/components/dashboard/Permission'
 import { ContextMenuEntry as PaywallContextMenuEntry } from '#/components/Paywall'
 import {
   copyAssetsMutationOptions,
@@ -338,12 +337,13 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             action="delete"
             label={isCloud ? getText('moveToTrashShortcut') : getText('deleteShortcut')}
             doAction={() => {
+              const textId = isCloud ? 'trashTheAssetTypeTitle' : 'deleteTheAssetTypeTitle'
               setModal(
                 <ConfirmDeleteModal
                   defaultOpen
                   actionText={getText(
-                    isCloud ? 'trashTheAssetTypeTitle' : 'deleteTheAssetTypeTitle',
-                    getText(ASSET_TYPE_TO_TEXT_ID[asset.type]),
+                    textId,
+                    getText(backendModule.ASSET_TYPE_TO_TEXT_ID[asset.type]),
                     asset.title,
                   )}
                   onConfirm={async () => {

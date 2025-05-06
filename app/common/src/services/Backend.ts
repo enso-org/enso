@@ -900,6 +900,18 @@ export enum AssetType {
   specialUp = 'specialUp',
 }
 
+export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<AssetType, TextId>> = {
+  [AssetType.directory]: 'directoryAssetType',
+  [AssetType.project]: 'projectAssetType',
+  [AssetType.file]: 'fileAssetType',
+  [AssetType.secret]: 'secretAssetType',
+  [AssetType.specialEmpty]: 'specialEmptyAssetType',
+  [AssetType.specialError]: 'specialErrorAssetType',
+  [AssetType.specialLoading]: 'specialLoadingAssetType',
+  [AssetType.specialUp]: 'specialUpAssetType',
+  [AssetType.datalink]: 'datalinkAssetType',
+} satisfies { [Type in AssetType]: `${Type}AssetType` }
+
 export enum ReplaceableAssetType {
   project = 'project',
   file = 'file',

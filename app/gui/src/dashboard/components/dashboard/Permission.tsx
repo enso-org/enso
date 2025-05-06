@@ -3,8 +3,6 @@ import * as React from 'react'
 
 import { useMutation } from '@tanstack/react-query'
 
-import type * as text from 'enso-common/src/text'
-
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -18,18 +16,6 @@ import * as backendModule from '#/services/Backend'
 
 import { Text } from '#/components/AriaComponents'
 import * as object from '#/utilities/object'
-
-export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<backendModule.AssetType, text.TextId>> = {
-  [backendModule.AssetType.directory]: 'directoryAssetType',
-  [backendModule.AssetType.project]: 'projectAssetType',
-  [backendModule.AssetType.file]: 'fileAssetType',
-  [backendModule.AssetType.secret]: 'secretAssetType',
-  [backendModule.AssetType.specialEmpty]: 'specialEmptyAssetType',
-  [backendModule.AssetType.specialError]: 'specialErrorAssetType',
-  [backendModule.AssetType.specialLoading]: 'specialLoadingAssetType',
-  [backendModule.AssetType.specialUp]: 'specialUpAssetType',
-  [backendModule.AssetType.datalink]: 'datalinkAssetType',
-} satisfies { [Type in backendModule.AssetType]: `${Type}AssetType` }
 
 /** Props for a {@link Permission}. */
 export interface PermissionProps {
@@ -52,7 +38,7 @@ export default function Permission(props: PermissionProps) {
   const [permission, setPermission] = React.useState(initialPermission)
   const permissionId = backendModule.getAssetPermissionId(permission)
   const isDisabled = isOnlyOwner && backendModule.getAssetPermissionId(self) === permissionId
-  const assetTypeName = getText(ASSET_TYPE_TO_TEXT_ID[asset.type])
+  const assetTypeName = getText(backendModule.ASSET_TYPE_TO_TEXT_ID[asset.type])
 
   const createPermission = useMutation(
     backendMutationOptions(backend, 'createPermission'),

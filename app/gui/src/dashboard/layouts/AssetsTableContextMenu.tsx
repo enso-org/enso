@@ -128,7 +128,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   })
 
   // This is not a React component even though it contains JSX.
-  const doDeleteAll = useEventCallback(async () => {
+  const doDeleteAll = useEventCallback(() => {
     const selectedIds = selectedAssets.map((asset) => asset.id)
     const deleteAll = async () => {
       unsetModal()
