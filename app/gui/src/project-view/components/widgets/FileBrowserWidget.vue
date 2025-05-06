@@ -11,11 +11,19 @@ import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import FileBrowserEntry from '@/components/widgets/FileBrowserWidget/FileBrowserEntry.vue'
-import { Directory, useFileBrowserStack } from '@/components/widgets/FileBrowserWidget/paths'
+import {
+  CannotEnterDir,
+  pathToSegments,
+  usePathBrowsing,
+  useUserFiles,
+  type Directory,
+} from '@/components/widgets/FileBrowserWidget/paths'
 import { useBackend } from '@/composables/backend'
 import { Action } from '@/providers/action'
 import { injectProjectBackend } from '@/providers/backend'
 import { assert } from '@/util/assert'
+import { findDifferenceIndex } from '@/util/data/array'
+import { Err, unwrapOr, unwrapOrWithLog } from '@/util/data/result'
 import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import type { AnyAsset, DirectoryAsset, DirectoryId } from 'enso-common/src/services/Backend'
@@ -26,7 +34,7 @@ import Backend, {
   assetIsSecret,
   AssetType,
 } from 'enso-common/src/services/Backend'
-import { computed, onMounted, reactive, ref, toRef, toValue, watch } from 'vue'
+import { computed, reactive, ref, toValue, watch, watchEffect } from 'vue'
 
 const props = withDefaults(
   defineProps<{
@@ -36,6 +44,17 @@ const props = withDefaults(
   }>(),
   { writeMode: false, choosenPath: '', type: 'file' },
 )
+
+const rootSegments = computed(() => pathToSegments(toValue(userFiles.value?.rootPath) ?? 'enso://'))
+function segmentsExcludingRoot(segments: string[]) {
+  const rootSegs = unwrapOrWithLog(rootSegments.value ?? Err('cannot load root directory'), [])
+  const afterRootIndex = findDifferenceIndex(segments, rootSegs)
+  if (afterRootIndex < rootSegs.length) {
+    return []
+  } else {
+    return segments.slice(afterRootIndex)
+  }
+}
 
 const emit = defineEmits<{
   pathAccepted: [path: string]
@@ -57,25 +76,44 @@ let nextKeyForNewDir = 0
  */
 const keyOverride: Map<DirectoryId | symbol, number> = reactive(new Map())
 
-const currentUser = query('usersMe', [])
-const currentOrganization = query('getOrganization', [])
+const { userFiles, userFilesError } = useUserFiles({
+  backend,
+  user: query('usersMe', []),
+  organization: query('getOrganization', []),
+})
+
+const rootDirectory = computed(() => {
+  const id = toValue(userFiles.value?.rootDirectoryId)
+  if (!id) return
+  return { id, title: 'Cloud' }
+})
+
+const listDirectory = (dir: Directory | undefined) => fetch('listDirectory', listDirectoryArgs(dir))
 
 const {
-  filenameInputContents,
-  directoryStack,
+  setBrowsingPath,
+  enteredPath,
+  unenteredPath,
   currentDirectory,
-  currentFilePath,
-  highlightedName,
-  initializeStack,
-  enterSubdirectories,
-  isDirectoryStackInitializing,
-  assetExists,
-} = useFileBrowserStack(
-  backend,
-  toRef(props, 'choosenPath'),
-  currentUser.data,
-  toRef(props, 'writeMode'),
-  (dir) => fetch('listDirectory', listDirectoryArgs(dir)),
+  isPending: isBrowsingPending,
+} = usePathBrowsing({
+  listDirectory,
+})
+
+const chosenPath = ref<string[]>([])
+watchEffect(() => {
+  const chosenPathSegments = pathToSegments(props.choosenPath)
+  const defaultPathSegments = toValue(userFiles.value?.home ?? [])
+  chosenPath.value = segmentsExcludingRoot(unwrapOr(chosenPathSegments, defaultPathSegments))
+})
+watchEffect(() => rootDirectory.value && setBrowsingPath(chosenPath.value, rootDirectory.value))
+
+const filenameInputContents = ref('')
+
+watch(unenteredPath, (unenteredPath) => (filenameInputContents.value = unenteredPath))
+
+const highlightedName = computed(() =>
+  props.writeMode ? filenameInputContents.value : unenteredPath.value,
 )
 
 // === Directory Contents ===
@@ -97,10 +135,7 @@ function listDirectoryArgs(params: ToValue<Directory | undefined>) {
   })
 }
 
-const { isPending, isError, data, error } = query(
-  'listDirectory',
-  listDirectoryArgs(currentDirectory),
-)
+const { isPending, data, error } = query('listDirectory', listDirectoryArgs(currentDirectory))
 const compareTitle = (a: { title: string }, b: { title: string }) => a.title.localeCompare(b.title)
 const directories = computed(
   () => data.value && data.value.filter((asset) => assetIsDirectory(asset)).sort(compareTitle),
@@ -133,20 +168,18 @@ watch(directories, (directories) => {
 // === Interactivity ===
 
 function enterDir(dir: DirectoryAsset) {
-  directoryStack.value.push(dir)
+  chosenPath.value = [...enteredPath.value.slice(1), dir.title]
 }
 
 function popTo(index: number) {
-  directoryStack.value.splice(index + 1)
+  chosenPath.value.splice(index)
 }
 
 function popDirectory() {
-  if (directoryStack.value.length > 1) {
-    directoryStack.value.pop()
-  }
+  chosenPath.value.pop()
 }
 
-const canPop = computed(() => directoryStack.value.length > 1)
+const canPop = computed(() => chosenPath.value.length > 0)
 
 type TargetType = AnyAsset & { [brandTargetType]: never }
 function chooseFile(file: TargetType) {
@@ -159,12 +192,29 @@ function chooseFile(file: TargetType) {
 const askForOverwrite = ref(false)
 const warningText = ref<string | null>(null)
 
+type AssetExists = { exists: true; type: AssetType } | { exists: false }
+
+async function assetExists(name: string): Promise<AssetExists> {
+  const currentDir = currentDirectory.value
+  if (currentDir == null) return { exists: false }
+  const content = await listDirectory(currentDir)
+  const asset = content.find((asset) => asset.title === name)
+  if (!asset) return { exists: false }
+  return { exists: true, type: asset.type }
+}
+
 async function tryAcceptCurrentFile() {
-  const enteringResult = await enterSubdirectories()
+  const path = [...enteredPath.value.slice(1), ...filenameInputContents.value.split('/')]
+  const enteringResult =
+    rootDirectory.value ?
+      await setBrowsingPath(path, rootDirectory.value)
+    : Err(new CannotEnterDir('emptyStack', path.join('/')))
+  chosenPath.value = path
   if (!enteringResult.ok) {
     warningText.value = `${enteringResult.error.payload.toString()}`
     return
   }
+  filenameInputContents.value = unenteredPath.value
   const assetInfo = await assetExists(filenameInputContents.value)
   if (assetInfo.exists && assetInfo.type === AssetType.file && props.writeMode) {
     askForOverwrite.value = true
@@ -172,13 +222,18 @@ async function tryAcceptCurrentFile() {
     warningText.value = `'${filenameInputContents.value}' is a directory, not a file`
   } else {
     acceptCurrentFile()
+    return
   }
 }
 
 function acceptCurrentFile() {
-  if (currentFilePath.value) {
-    emit('pathAccepted', currentFilePath.value)
-  }
+  const rootPath = toValue(userFiles.value?.rootPath ?? 'enso:/')
+  const currentFilePath = [
+    rootPath,
+    ...enteredPath.value.slice(1),
+    filenameInputContents.value,
+  ].join('/')
+  emit('pathAccepted', currentFilePath)
 }
 
 function overwriteConfirmed() {
@@ -194,14 +249,9 @@ function warningDismissed() {
   warningText.value = null
 }
 
-const isBusy = computed(() => isDirectoryStackInitializing.value || isPending.value)
+const isBusy = computed(() => isBrowsingPending.value || isPending.value)
 
-const anyError = computed(() =>
-  isError.value ? error
-  : currentUser.isError.value ? currentUser.error
-  : currentOrganization.isError.value ? currentOrganization.error
-  : undefined,
-)
+const anyError = computed<boolean>(() => !!error.value || !!userFilesError.value)
 
 // === Creating and Renaming Directories ===
 
@@ -288,16 +338,6 @@ const renameAction: Action = {
   disabled: computed(() => focusedDirectory.value == null || editedAsset.value != null),
   action: () => focusedDirectory.value && renameDirectory(focusedDirectory.value),
 }
-
-// === Initialization ===
-
-onMounted(() => {
-  Promise.all([currentUser.promise.value, currentOrganization.promise.value]).then(
-    ([user, organization]) => {
-      initializeStack(user, organization)
-    },
-  )
-})
 </script>
 
 <template>
@@ -320,13 +360,13 @@ onMounted(() => {
         <SvgButton name="navigate_up" title="Up" :disabled="!canPop" @click.stop="popDirectory" />
         <div class="breadcrumbs">
           <TransitionGroup>
-            <template v-for="(directory, index) in directoryStack" :key="directory.id ?? 'root'">
+            <template v-for="(directory, index) in enteredPath" :key="`${index}:${directory}`">
               <SvgIcon v-if="index > 0" name="navigate_breadcrumb" />
               <div
                 class="clickable"
-                :class="{ nonInteractive: index === directoryStack.length - 1 }"
+                :class="{ nonInteractive: index === enteredPath.length - 1 }"
                 @click.stop="popTo(index)"
-                v-text="directory.title"
+                v-text="directory"
               ></div>
             </template>
           </TransitionGroup>

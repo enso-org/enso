@@ -1,25 +1,23 @@
-import { findDifferenceIndex } from '@/util/data/array'
-import { Opt } from '@/util/data/opt'
-import { Err, Ok, Result, unwrapOr, unwrapOrWithLog, withContext } from '@/util/data/result'
-import { arrayEquals } from '@/util/equals'
+import { type Opt } from '@/util/data/opt'
+import { Err, Ok, Result } from '@/util/data/result'
 import { type ToValue } from '@/util/reactivity'
 import type {
   AnyAsset,
-  AssetType,
+  DirectoryAsset,
   DirectoryId,
   OrganizationInfo,
   User,
 } from 'enso-common/src/services/Backend'
 import { assetIsDirectory } from 'enso-common/src/services/Backend'
-import { computed, ref, toValue } from 'vue'
+import { computed, reactive, ref, toRaw, toValue, type ComputedRef, type Ref } from 'vue'
 
-function pathToSegments(path: string) {
+export function pathToSegments(path: string) {
   const withProtocol = path.split('/')
   if (withProtocol[0] !== 'enso:') return Err(`"${path}" is not an enso path`)
   return Ok(withProtocol.slice(1).filter((segment) => segment))
 }
 
-class CannotEnterDir {
+export class CannotEnterDir {
   constructor(
     public reason: 'emptyStack' | 'notFound' | 'notDir',
     public name: string,
@@ -43,168 +41,140 @@ export interface Directory {
   title: string
 }
 
-/**
- * A part of FileBrowserWidget: extracted logic for managing directory stack and current
- * highlight/selection.
- */
-export function useFileBrowserStack(
-  backend: ToValue<
-    Opt<{
-      rootPath(user: User): string
-      rootDirectoryId(
-        user: User,
-        organization: OrganizationInfo | null,
-        localRootDirectory: null,
-      ): DirectoryId | null
-    }>
-  >,
-  choosenPath: ToValue<string>,
-  currentUser: ToValue<Opt<User>>,
-  writeMode: ToValue<boolean>,
-  listDirectory: (dir: Directory) => Promise<readonly AnyAsset<AssetType>[]>,
-) {
-  const filenameInputContents = ref<string>('')
-  const directoryStack = ref<Directory[]>([])
-  const isDirectoryStackInitializing = computed(() => directoryStack.value.length === 0)
-  const currentDirectory = computed(() => directoryStack.value[directoryStack.value.length - 1])
-  const choosenPathSegments = computed(() => pathToSegments(toValue(choosenPath)))
-
-  const rootSegments = computed(() => {
-    const user = toValue(currentUser)
-    if (!user) return
-    const root = toValue(backend)?.rootPath(user) ?? 'enso://'
-    return pathToSegments(root)
-  })
-  const currentDirSegments = computed(() => {
-    if (!rootSegments.value?.ok) return
-    return [...rootSegments.value.value, ...directoryStack.value.slice(1).map((dir) => dir.title)]
-  })
-
-  const currentPath = computed(() => {
-    if (currentDirSegments.value == null) return
-    return `enso://${currentDirSegments.value.map((dir) => `${dir}/`).join('')}`
-  })
-
-  const highlightedName = computed(() => {
-    if (toValue(writeMode)) return filenameInputContents.value
-    else {
-      if (
-        currentDirSegments.value != null &&
-        choosenPathSegments.value?.ok &&
-        choosenPathSegments.value.value.length === currentDirSegments.value.length + 1 &&
-        arrayEquals(currentDirSegments.value, choosenPathSegments.value.value.slice(0, -1))
-      ) {
-        return choosenPathSegments.value.value[choosenPathSegments.value.value.length - 1]
-      } else {
-        return undefined
-      }
-    }
-  })
-
-  const currentFilePath = computed(
-    () =>
-      filenameInputContents.value &&
-      currentPath.value &&
-      `${currentPath.value}${filenameInputContents.value}`,
-  )
-
-  type AssetExists = { exists: true; type: AssetType } | { exists: false }
-
-  async function assetExists(name: string): Promise<AssetExists> {
-    const currentDir = directoryStack.value[directoryStack.value.length - 1]
-    if (currentDir == null) return { exists: false }
-    const content = await listDirectory(currentDir)
-    const asset = content.find((asset) => asset.title === name)
-    if (!asset) return { exists: false }
-    return { exists: true, type: asset.type }
-  }
-
-  async function enterDirByName(
-    name: string,
-    stack: Directory[],
-  ): Promise<Result<void, CannotEnterDir>> {
-    const currentDir = stack[stack.length - 1]
-    if (currentDir == null) return Err(new CannotEnterDir('emptyStack', name))
-    const content = await listDirectory(currentDir)
-    const nextAsset = content.find((asset) => asset.title === name)
-    if (!nextAsset) return Err(new CannotEnterDir('notFound', name))
-    if (!assetIsDirectory(nextAsset)) return Err(new CannotEnterDir('notDir', name))
-    stack.push(nextAsset)
-    return Ok()
-  }
-
-  /** Split `filenameInputContents` into subdirectories by `/` and enter them, up to last existing directory. */
-  async function enterSubdirectories(): Promise<Result<void, CannotEnterDir>> {
-    let nextSlash = filenameInputContents.value.indexOf('/')
-    while (nextSlash !== -1) {
-      const directoryName = filenameInputContents.value.slice(0, nextSlash)
-      const result = await enterDirByName(directoryName, directoryStack.value)
-      if (result.ok) {
-        filenameInputContents.value = filenameInputContents.value.slice(nextSlash + 1)
-        nextSlash = filenameInputContents.value.indexOf('/')
-      } else {
-        return result
-      }
-    }
-    return Ok()
-  }
-
-  function dirsToEnterOnInit(user: User) {
-    const initialSegments = unwrapOr(choosenPathSegments.value, ['Users', user.name])
-    const rootSegs = unwrapOrWithLog(rootSegments.value ?? Err('cannot load root directory'), [])
-    const afterRootIndex = findDifferenceIndex(initialSegments, rootSegs)
-    if (afterRootIndex < rootSegs.length) {
-      return []
-    } else {
-      return initialSegments.slice(afterRootIndex)
-    }
-  }
-
-  async function initializeStack(
-    user: User | null,
+interface UserFilesBackend {
+  rootPath: (user: User) => string
+  rootDirectoryId: (
+    user: User,
     organization: OrganizationInfo | null,
-  ): Promise<Result> {
-    return withContext(
-      () => 'Cannot enter initial directory',
-      async (): Promise<Result<undefined, unknown>> => {
-        if (!user) {
-          return Err('Cannot load file list: not logged in.')
-        }
-        const rootDirectoryId =
-          toValue(backend)?.rootDirectoryId(user, organization, null) ?? user.rootDirectoryId
+    localRootDirectory: null,
+  ) => DirectoryId | null
+}
 
-        const stack = [{ id: rootDirectoryId, title: 'Cloud' }]
-        const toEnter = dirsToEnterOnInit(user)
-        for (const [index, name] of toEnter.entries()) {
-          const result = await enterDirByName(name, stack)
-          if (result.ok) continue
-          const breakReason = result.error.payload.reason
-          if (
-            breakReason === 'notDir' ||
-            (breakReason === 'notFound' && index == toEnter.length - 1)
-          ) {
-            filenameInputContents.value = name
-          } else if (breakReason != 'notFound') {
-            return result
-          }
-          break
-        }
-        directoryStack.value = stack
-        return Ok()
-      },
-    )
+interface QueryResult<T> {
+  data: ToValue<T>
+  isFetched: ToValue<boolean>
+  error: ToValue<Error | null>
+}
+
+export type PathSegment = string
+
+export interface UserFiles {
+  rootPath: ToValue<string>
+  home: ToValue<PathSegment[]>
+  rootDirectoryId: ToValue<DirectoryId>
+}
+
+/** @returns An API for getting information about the logged-in user's files. */
+export function useUserFiles({
+  backend,
+  user,
+  organization,
+}: {
+  backend: ToValue<UserFilesBackend | null>
+  user: QueryResult<Opt<User>>
+  organization: QueryResult<Opt<OrganizationInfo>>
+}): { userFiles: ComputedRef<UserFiles | null>; userFilesError: ComputedRef<Error | null> } {
+  function userFiles(backend: UserFilesBackend, user: User): UserFiles {
+    return {
+      rootPath: computed<string>(() => backend.rootPath(user)),
+      rootDirectoryId: computed<DirectoryId>(() => {
+        const currentOrganization = toValue(organization.data)
+        return (
+          (currentOrganization && backend.rootDirectoryId(user, currentOrganization, null)) ??
+          user.rootDirectoryId
+        )
+      }),
+      /** The user's home directory. */
+      home: computed<PathSegment[]>(() => ['Users', user.name]),
+    }
   }
 
   return {
-    filenameInputContents,
-    directoryStack,
-    currentDirectory,
-    currentPath,
-    currentFilePath,
-    highlightedName,
-    assetExists,
-    initializeStack,
-    enterSubdirectories,
-    isDirectoryStackInitializing,
+    userFiles: computed<UserFiles | null>(() => {
+      if (!toValue(user.isFetched) || !toValue(organization.isFetched)) return null
+      const currentBackend = toValue(backend)
+      if (!currentBackend) return null
+      const currentUser = toValue(user.data)
+      if (!currentUser) return null
+      return userFiles(currentBackend, currentUser)
+    }),
+    userFilesError: computed<Error | null>(
+      () => toValue(user.error) ?? toValue(organization.error),
+    ),
+  }
+}
+
+export interface PathBrowsing {
+  setBrowsingPath: (path: PathSegment[], root: Directory) => Promise<Result<void, CannotEnterDir>>
+  /** The entered directories, from after the root through the current directory. */
+  enteredPath: Readonly<Ref<PathSegment[]>>
+  /**
+   * Any unentered trailing portion of the path; this starts with any referenced directories that
+   * were not found to exist, and ends with any non-directory element present.
+   */
+  unenteredPath: Readonly<Ref<string>>
+  currentDirectory: Readonly<Ref<Directory | undefined>>
+  isPending: Readonly<Ref<boolean>>
+}
+
+export function usePathBrowsing({
+  listDirectory,
+}: {
+  listDirectory: (dir: Directory) => Promise<readonly AnyAsset[]>
+}): PathBrowsing {
+  const enteredDirectories = reactive<Directory[]>([])
+  const unenteredPath = ref('')
+  const isPending = ref(true)
+
+  async function getChildDirectory(
+    name: string,
+    parent: Directory,
+  ): Promise<Result<DirectoryAsset, CannotEnterDir>> {
+    const content = await listDirectory(parent)
+    const nextAsset = content.find((asset) => asset.title === name)
+    if (!nextAsset) return Err(new CannotEnterDir('notFound', name))
+    if (!assetIsDirectory(nextAsset)) return Err(new CannotEnterDir('notDir', name))
+    return Ok(nextAsset)
+  }
+
+  async function setBrowsingPath(
+    path: PathSegment[],
+    root: Directory,
+  ): Promise<Result<void, CannotEnterDir>> {
+    const oldDirectories = toRaw(enteredDirectories)
+    if (root.id !== oldDirectories[0]?.id) enteredDirectories.length = 0
+    enteredDirectories[0] = root
+    let i = 1
+    isPending.value = true
+    let result: Result<void, CannotEnterDir> = Ok()
+    for (const title of path) {
+      if (oldDirectories[i]?.title !== title) {
+        enteredDirectories.length = i
+        const thisResult = await getChildDirectory(title, oldDirectories[i - 1]!)
+        if (!thisResult.ok) {
+          result = thisResult
+          const breakReason = thisResult.error.payload.reason
+          if (breakReason === 'notDir' || (breakReason === 'notFound' && i === path.length - 1))
+            unenteredPath.value = title
+          break
+        }
+        enteredDirectories.push({
+          id: thisResult.value.id,
+          title,
+        })
+      }
+      i += 1
+    }
+    enteredDirectories.length = i
+    isPending.value = false
+    return result
+  }
+
+  return {
+    setBrowsingPath,
+    enteredPath: computed(() => enteredDirectories.map(({ title }) => title)),
+    unenteredPath,
+    currentDirectory: computed(() => enteredDirectories[enteredDirectories.length - 1]),
+    isPending,
   }
 }
