@@ -6,6 +6,7 @@ import java.time.ZonedDateTime;
 import java.util.function.BiFunction;
 
 import org.enso.base.Text_Utils;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -19,6 +20,7 @@ import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
 import org.enso.table.error.UnexpectedTypeException;
 import org.enso.table.problems.BlackholeProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
   private static Column applyOperation(
@@ -40,6 +42,11 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
         }
         return operation.apply(left, rightColumn, name);
       } else {
+        // Null on left-hand side so just return the right-hand Column
+        if (leftStorage.getType() instanceof NullType) {
+          return new Column(name, rightColumn.getStorage());
+        }
+
         var result =
             leftStorage.vectorizedOrFallbackZip(
                 fallbackName,
@@ -58,6 +65,13 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
       }
       return operation.apply(left, right, name);
     } else {
+      // Null on left-hand side so just return the right-hand Column
+      if (leftStorage.getType() instanceof NullType) {
+        int checkedSize = Builder.checkSize(leftStorage.getSize());
+        var constantStorage = Storage.fromRepeatedItem(Value.asValue(right), checkedSize, problemBuilder);
+        return new Column(name, constantStorage);
+      }
+
       var result =
           leftStorage.vectorizedOrFallbackBinaryMap(
               fallbackName, problemBuilder, fallback, right, false, leftStorage.getType());
@@ -97,7 +111,7 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
           default -> null;
         };
     return applyOperation(
-        left, right, fallback, fallbackType, name, problemBuilder, operation, leftStorage, "min");
+        left, right, fallback, fallbackType, name, problemBuilder, operation, leftStorage, Storage.Maps.MIN);
   }
 
   private static final BinaryOperation<LocalDate> DATE_MAX =
@@ -132,7 +146,7 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
           default -> null;
         };
     return applyOperation(
-        left, right, fallback, fallbackType, name, problemBuilder, operation, leftStorage, "max");
+        left, right, fallback, fallbackType, name, problemBuilder, operation, leftStorage, Storage.Maps.MAX);
   }
 
   private final StorageType<T> validType;
