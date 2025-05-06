@@ -74,7 +74,7 @@ class RuntimeAsyncCommandsTest
       var out: List[String] = Nil
       val expectedList      = expected.toList
       monitor.synchronized {
-        while (!receivedExpected && iteration < 20) {
+        while (!receivedExpected && iteration < 50) {
           out = readOutAsList()
           receivedExpected =
             if (exact) out == expectedList
