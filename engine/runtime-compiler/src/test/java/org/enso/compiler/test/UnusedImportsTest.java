@@ -181,8 +181,7 @@ public class UnusedImportsTest {
             main = My_Type_1
             """);
     compilerCtx.getCompiler().run(mainMod);
-    var imp = mainMod.getIr().imports().apply(0);
-    expectNoWarnings(imp);
+    expectNoWarnings(mainMod.getIr());
   }
 
   @Test
@@ -205,8 +204,7 @@ public class UnusedImportsTest {
             main = My_Type
             """);
     compilerCtx.getCompiler().run(mainMod);
-    var imp = mainMod.getIr().imports().apply(0);
-    expectNoWarnings(imp);
+    expectNoWarnings(mainMod.getIr());
   }
 
   @Test
@@ -224,8 +222,7 @@ public class UnusedImportsTest {
             export project.Module.My_Type
             """);
     compilerCtx.getCompiler().run(mainMod);
-    var imp = mainMod.getIr().imports().apply(0);
-    expectNoWarnings(imp);
+    expectNoWarnings(mainMod.getIr());
   }
 
   @Test
@@ -243,8 +240,7 @@ public class UnusedImportsTest {
             export project.Module.My_Type as Your_Type
             """);
     compilerCtx.getCompiler().run(mainMod);
-    var imp = mainMod.getIr().imports().apply(0);
-    expectNoWarnings(imp);
+    expectNoWarnings(mainMod.getIr());
   }
 
   @Test
@@ -262,8 +258,7 @@ public class UnusedImportsTest {
             from project.Module export My_Type
             """);
     compilerCtx.getCompiler().run(mainMod);
-    var imp = mainMod.getIr().imports().apply(0);
-    expectNoWarnings(imp);
+    expectNoWarnings(mainMod.getIr());
   }
 
   @Test
@@ -307,8 +302,7 @@ public class UnusedImportsTest {
             main = [Boolean, False, True]
             """);
     compilerCtx.getCompiler().run(mainMod);
-    var imp = mainMod.getIr().imports().apply(0);
-    expectNoWarnings(imp);
+    expectNoWarnings(mainMod.getIr());
   }
 
   private static void expectWarning(Import importIr, List<String> expectedUnusedSymbols) {
@@ -320,6 +314,13 @@ public class UnusedImportsTest {
   private static void expectWarning(Import importIr) {
     var warn = getSingleWarning(importIr, UnusedImport.class);
     assertThat("UnusedImport warning is present", warn, is(notNullValue()));
+  }
+
+  private static void expectNoWarnings(Module modIr) {
+    modIr.imports().foreach(imp -> {
+        expectNoWarnings(imp);
+        return null;
+    });
   }
 
   private static void expectNoWarnings(Import importIr) {
