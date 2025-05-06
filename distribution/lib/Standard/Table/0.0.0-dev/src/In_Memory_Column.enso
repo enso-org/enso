@@ -1,0 +1,24 @@
+from Standard.Base import all
+
+import project.Column.Column
+
+## A column whose data is stored in memory.
+type In_Memory_Column
+    ## PRIVATE
+       Internal constructor that should not be used directly.
+       Please use `from_java_column` instead.
+
+       Arguments:
+       - internal_java_column: The internal representation of the column.
+    private Value internal_java_column
+
+    ## PRIVATE
+       A getter that is a workaround for bug https://github.com/enso-org/enso/issues/12180
+    private java_column self = self.internal_java_column
+
+    ## PRIVATE
+    pretty : Text
+    pretty self =
+        name = self.name.pretty
+        data = self.to_vector.pretty
+        "Column.from_vector " + name + " " + data
