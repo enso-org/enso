@@ -10,16 +10,9 @@ import * as common from 'enso-common'
 
 import { type Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { BackendType } from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
-import { ProjectManagerEvents } from '#/services/ProjectManager'
 import type RemoteBackend from '#/services/RemoteBackend'
-import { vueComponent } from '#/utilities/vue'
-import VueBackendProvider from '$/components/BackendProvider.vue'
-
-// eslint-disable-next-line no-restricted-syntax
-const BackendProviderForVue = vueComponent(VueBackendProvider).default
 
 /** State contained in a `BackendContext`. */
 export interface BackendContextType {
@@ -27,7 +20,7 @@ export interface BackendContextType {
   readonly localBackend: LocalBackend | null
 }
 
-const BackendContext = React.createContext<BackendContextType>({
+export const BackendContext = React.createContext<BackendContextType>({
   remoteBackend: null,
   localBackend: null,
 })
@@ -38,59 +31,15 @@ export interface ProjectManagerContextType {
   readonly reconnectToProjectManager: () => void
 }
 
-const ProjectManagerContext = React.createContext<ProjectManagerContextType>({
+export const ProjectManagerContext = React.createContext<ProjectManagerContextType>({
   didLoadingProjectManagerFail: false,
   reconnectToProjectManager: () => {},
 })
-
-/** Props for a {@link BackendProvider}. */
-export interface BackendProviderProps extends Readonly<React.PropsWithChildren> {
-  readonly remoteBackend: RemoteBackend | null
-  readonly localBackend: LocalBackend | null
-}
-
-/** A React Provider that lets components get and set the current backend. */
-export default function BackendProvider(props: BackendProviderProps) {
-  const { remoteBackend, localBackend, children } = props
-  const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
-
-  React.useEffect(() => {
-    const onProjectManagerLoadingFailed = () => {
-      setDidLoadingProjectManagerFail(true)
-    }
-
-    document.addEventListener(ProjectManagerEvents.loadingFailed, onProjectManagerLoadingFailed)
-    return () => {
-      document.removeEventListener(
-        ProjectManagerEvents.loadingFailed,
-        onProjectManagerLoadingFailed,
-      )
-    }
-  }, [])
-
-  const reconnectToProjectManager = useEventCallback(() => {
-    setDidLoadingProjectManagerFail(false)
-    void localBackend?.reconnectProjectManager()
-  })
-
-  return (
-    <BackendContext.Provider value={{ remoteBackend, localBackend }}>
-      <BackendProviderForVue localBackend={localBackend} remoteBackend={remoteBackend}>
-        <ProjectManagerContext.Provider
-          value={{ didLoadingProjectManagerFail, reconnectToProjectManager }}
-        >
-          {children}
-        </ProjectManagerContext.Provider>
-      </BackendProviderForVue>
-    </BackendContext.Provider>
-  )
-}
 
 /**
  * Get the Remote Backend.
  * @throws {Error} when no Remote Backend exists. This should never happen.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useRemoteBackend() {
   const remoteBackend = React.useContext(BackendContext).remoteBackend
 
@@ -102,7 +51,6 @@ export function useRemoteBackend() {
 }
 
 /** Get the Local Backend. */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useLocalBackend() {
   return React.useContext(BackendContext).localBackend
 }
@@ -110,7 +58,6 @@ export function useLocalBackend() {
 /**
  * Get the corresponding backend for the given category.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useBackend(category: Category) {
   const remoteBackend = useRemoteBackend()
   const localBackend = useLocalBackend()
@@ -122,7 +69,6 @@ export function useBackend(category: Category) {
  * Pick the backend for the given category.
  * @throws {Error} when a Local Backend is requested for a non-local project.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function pickBackend(
   category: Category,
   remoteBackend: RemoteBackend,
@@ -144,7 +90,6 @@ export function pickBackend(
  * Get the backend for the given project type.
  * @throws {Error} when a Local Backend is requested for a non-local project.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useBackendForProjectType(projectType: BackendType) {
   const remoteBackend = useRemoteBackend()
   const localBackend = useLocalBackend()
@@ -162,13 +107,11 @@ export function useBackendForProjectType(projectType: BackendType) {
 }
 
 /** Whether connecting to the Project Manager failed. */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useDidLoadingProjectManagerFail() {
   return React.useContext(ProjectManagerContext).didLoadingProjectManagerFail
 }
 
 /** Reconnect to the Project Manager. */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useReconnectToProjectManager() {
   return React.useContext(ProjectManagerContext).reconnectToProjectManager
 }

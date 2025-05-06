@@ -10,7 +10,7 @@ import SvgMask from '#/components/SvgMask'
 import AboutModal from '#/modals/AboutModal'
 import { useAuth } from '#/providers/AuthProvider'
 import { useSetModal } from '#/providers/ModalProvider'
-import { useSessionAPI } from '#/providers/SessionProvider.tsx'
+import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
 import { useRouterInReact } from '$/providers/react'
 
