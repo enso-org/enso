@@ -268,8 +268,8 @@ case object GenerateMethodBodies extends IRPass {
     new DefinitionArgument.Specified(
       Name.Self(identifiedLocation = null, synthetic = true),
       None,
-      defaultValue = None,
-      suspended    = false,
+      None,
+      false,
       null
     )
   }

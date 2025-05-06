@@ -229,8 +229,8 @@ case object DemandAnalysis extends IRPass {
           case e       => analyseExpression(e, isInsideCallArgument = false)
         }
         pref.copy(
-          function  = newFun,
-          arguments = pref.arguments.map(analyseCallArgument)
+          newFun,
+          pref.arguments.map(analyseCallArgument)
         )
       case force: Application.Force =>
         force.copyWithTarget(

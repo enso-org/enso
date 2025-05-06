@@ -140,8 +140,8 @@ class LambdaShorthandToLambdaMini(
         }
 
         val processedApp = p.copy(
-          function  = updatedFn,
-          arguments = updatedArgs
+          updatedFn,
+          updatedArgs
         )
 
         // Wrap the app in lambdas from right to left, 1 lambda per shorthand
@@ -248,7 +248,7 @@ class LambdaShorthandToLambdaMini(
               diagnostics = s.value.diagnostics
             )
 
-          s.copy(value = newName)
+          s.copy(newName)
         } else s
     }
   }
@@ -281,7 +281,7 @@ class LambdaShorthandToLambdaMini(
               defArgName,
               None,
               None,
-              suspended = false,
+              false,
               null,
               specified.passData.duplicate,
               specified.diagnosticsCopy
@@ -324,7 +324,7 @@ class LambdaShorthandToLambdaMini(
           scrutineeName.copy(id = null),
           None,
           None,
-          suspended = false,
+          false,
           null
         )
 
