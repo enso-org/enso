@@ -151,6 +151,19 @@ add_specs suite_builder =
             private_mod = Complex_Helpers
             Meta.is_type private_mod . should_be_true
 
+        group_builder.specify "restrictions on atom of private type" <|
+            atom = Public_Type.create 42
+            meta = Meta.meta atom
+
+            # fields are invisible
+            meta.fields . should_equal []
+
+            # constructor access is forbidden
+            meta.constructor . should_fail_with Private_Access
+
+            metyp = atom.to Meta.Type
+            metyp . should_fail_with Private_Access
+
         group_builder.specify "prevent getting fields from private constructor in the same project" <|
             # type R has all constructors private
             atom = R.V "meaning" 6*7
