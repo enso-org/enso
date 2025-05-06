@@ -15,7 +15,6 @@ function useInReactFunction<T>(context: react.Context<T | null>) {
 
 interface RouterForReact {
   router: Router
-  route: ReturnType<typeof useRoute>
   searchParams: URLSearchParams
 }
 const RouterContext = react.createContext<RouterForReact | null>(null)
@@ -36,8 +35,10 @@ export const ContextsForReactProvider = applyPureReactInVue(
     router,
     config,
   }: react.PropsWithChildren<{ router: RouterForReact; config: GuiConfig }>) => {
+    // When navigating, let's make use of react's transitions magic.
+    const searchParams = react.useDeferredValue(router.searchParams)
     return (
-      <RouterContext.Provider value={router}>
+      <RouterContext.Provider value={{ ...router, searchParams }}>
         <ConfigContext.Provider value={config}>{children}</ConfigContext.Provider>
       </RouterContext.Provider>
     )
@@ -60,7 +61,6 @@ export const ContextsForReactProvider = applyPureReactInVue(
           })
           return {
             router,
-            route,
             searchParams: searchParams.value,
           }
         }),

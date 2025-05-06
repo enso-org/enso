@@ -49,16 +49,28 @@ export function useSearchParamsState<T = unknown>(
         | ((currentSearchParams: URLSearchParams) => URLSearchParams),
       options: RouteLocationOptions,
     ) => {
-      const params = searchParams
+      // We get window.location.search, because we ensure it's up-to-date. See comment below.
+      const params = new URLSearchParams(window.location.search)
 
       if (nextSearchParams instanceof Function) {
         nextSearchParams = nextSearchParams(params)
       }
 
       const query = Object.fromEntries(nextSearchParams.entries())
-      void router.push({ query, ...options })
+      // TODO[ao]: router.push/router.replace are asynchronous, but we want window.location.href
+      // to be updated immediately, so any subsequent query changes won't override this one.
+      //
+      // This keeps the old way of doing (before #12803), but I think the more elegant solution
+      // would be keeping the "intermediate" state by ourselves and leave window.location.search
+      // management to router.
+      if (options.replace ?? false) {
+        window.history.replaceState(null, '', `?${nextSearchParams.toString()}`)
+      } else {
+        window.history.pushState(null, '', `?${nextSearchParams.toString()}`)
+      }
+      void router.replace({ query, ...options })
     },
-    [router, searchParams],
+    [router],
   )
 
   const prefixedKey = `${appUtils.SEARCH_PARAMS_PREFIX}${key}`
