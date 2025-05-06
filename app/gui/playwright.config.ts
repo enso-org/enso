@@ -89,9 +89,9 @@ export default defineConfig({
             '--headless=new',
             // Required for `backdrop-filter: blur` to work.
             '--use-angle=swiftshader',
-            // FIXME: `--disable-gpu` disables `backdrop-filter: blur`, which is not handled by
-            // the software (CPU) compositor. This SHOULD be fixed eventually, but this flag
-            // MUST stay as CI does not have a GPU.
+            // `--disable-gpu` disables `backdrop-filter: blur`, which is not handled by
+            // the software (CPU) compositor. This flag MUST stay if screenshot testing/
+            // visual regression testing is needed, as CI does not have a GPU.
             '--disable-gpu',
             // Fully disable GPU process.
             '--disable-software-rasterizer',

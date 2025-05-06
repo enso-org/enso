@@ -20,8 +20,7 @@ test('page switcher', ({ page }) =>
     page,
     setupAPI: (api) => api.setFeatureFlags({ enableCloudExecution: true }),
   })
-    // Create a new project so that the editor page can be switched to.
-    .newEmptyProjectTest()
+    .newEmptyProject()
     .do(async (thePage) => {
       await expect(locateDriveView(thePage)).not.toBeVisible()
       await expect(locateEditor(thePage)).toBeVisible()
