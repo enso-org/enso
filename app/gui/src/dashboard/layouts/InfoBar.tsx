@@ -2,7 +2,6 @@
 import ChatIcon from '#/assets/chat.svg'
 import { Button, DialogTrigger } from '#/components/AriaComponents'
 import { Icon } from '#/components/Icon'
-import FocusArea from '#/components/styled/FocusArea'
 import InfoMenu from '#/layouts/InfoMenu'
 import { useText } from '#/providers/TextProvider'
 import { memo } from 'react'
@@ -19,47 +18,40 @@ function InfoBar(props: InfoBarProps) {
   const { getText } = useText()
 
   return (
-    <FocusArea direction="horizontal">
-      {(innerProps) => (
-        <div
-          className="pointer-events-auto flex shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame backdrop-blur-default"
-          {...innerProps}
-        >
-          {/* FIXME [sb]: https://github.com/enso-org/cloud-v2/issues/1227
-           * Make help chat work even when signed out. */}
-          {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-binary-expression */}
-          {false && (
-            <Button
-              size="custom"
-              variant="custom"
-              isActive={isHelpChatOpen}
-              icon={ChatIcon}
-              onPress={() => {
-                setIsHelpChatOpen(!isHelpChatOpen)
-              }}
-            />
-          )}
-          <DialogTrigger>
-            <Button
-              size="custom"
-              variant="icon"
-              className="flex size-row-h select-none items-center overflow-clip rounded-full"
-            >
-              <Icon
-                icon="enso_logo"
-                alt={getText('openInfoMenu')}
-                className="pointer-events-none size-7"
-              />
-            </Button>
-            <InfoMenu />
-          </DialogTrigger>
-          {/* Required for shortcuts to work. */}
-          <div className="hidden">
-            <InfoMenu hidden />
-          </div>
-        </div>
+    <div className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame backdrop-blur-default">
+      {/* FIXME [sb]: https://github.com/enso-org/cloud-v2/issues/1227
+       * Make help chat work even when signed out. */}
+      {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-binary-expression */}
+      {false && (
+        <Button
+          size="custom"
+          variant="custom"
+          isActive={isHelpChatOpen}
+          icon={ChatIcon}
+          onPress={() => {
+            setIsHelpChatOpen(!isHelpChatOpen)
+          }}
+        />
       )}
-    </FocusArea>
+      <DialogTrigger>
+        <Button
+          size="custom"
+          variant="icon"
+          className="flex size-row-h select-none items-center overflow-clip rounded-full"
+        >
+          <Icon
+            icon="enso_logo"
+            alt={getText('openInfoMenu')}
+            className="pointer-events-none size-7"
+          />
+        </Button>
+        <InfoMenu />
+      </DialogTrigger>
+      {/* Required for shortcuts to work. */}
+      <div className="hidden">
+        <InfoMenu hidden />
+      </div>
+    </div>
   )
 }
 

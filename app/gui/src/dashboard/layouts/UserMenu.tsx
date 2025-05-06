@@ -4,7 +4,6 @@ import { Popover, Text } from '#/components/AriaComponents'
 import { useToggleEnsoDevtools } from '#/components/Devtools'
 import MenuEntry from '#/components/MenuEntry'
 import { ProfilePicture } from '#/components/ProfilePicture'
-import FocusArea from '#/components/styled/FocusArea'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AboutModal from '#/modals/AboutModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
@@ -94,13 +93,7 @@ export default function UserMenu(props: UserMenuProps) {
             <Text disableLineHeightCompensation>{getText(user.plan)}</Text>
           </div>
         </div>
-        <FocusArea direction="vertical">
-          {(innerProps) => (
-            <div className="flex flex-col overflow-hidden" {...innerProps}>
-              {entries}
-            </div>
-          )}
-        </FocusArea>
+        <div className="flex flex-col overflow-hidden">{entries}</div>
       </Popover>
     )
 }

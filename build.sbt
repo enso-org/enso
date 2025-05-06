@@ -184,7 +184,10 @@ GatherLicenses.distributions := Seq(
     "Microsoft",
     Distribution.sbtProjects(`std-microsoft`)
   ),
-  makeStdLibDistribution("Tableau", Distribution.sbtProjects(`std-tableau`))
+  makeStdLibDistribution(
+    "Tableau",
+    Distribution.sbtProjects(`std-tableau`, `jna-wrapper`)
+  )
 )
 
 GatherLicenses.licenseConfigurations := Set("compile")
@@ -1203,9 +1206,8 @@ lazy val filewatcher = project
     compileOrder := CompileOrder.ScalaThenJava,
     version := "0.1",
     libraryDependencies ++= slf4jApi ++ Seq(
-      "io.methvin"     % "directory-watcher" % directoryWatcherVersion,
-      "commons-io"     % "commons-io"        % commonsIoVersion,
-      "org.scalatest" %% "scalatest"         % scalatestVersion % Test
+      "commons-io"     % "commons-io" % commonsIoVersion,
+      "org.scalatest" %% "scalatest"  % scalatestVersion % Test
     ),
     Compile / moduleDependencies ++= slf4jApi,
     Compile / internalModuleDependencies := Seq(
@@ -1217,6 +1219,7 @@ lazy val filewatcher = project
   .dependsOn(testkit % Test)
   .dependsOn(`logging-service-logback` % "test->test")
   .dependsOn(`directory-watcher-wrapper`)
+  .dependsOn(`jna-wrapper` % Test)
 
 lazy val `logging-truffle-connector` = project
   .in(file("lib/scala/logging-truffle-connector"))
@@ -1251,8 +1254,7 @@ lazy val `scala-libs-wrapper` = project
     libraryDependencies ++= circe ++ scalaReflect ++ slf4jApi ++ Seq(
       "com.typesafe.scala-logging"            %% "scala-logging"         % scalaLoggingVersion,
       "org.typelevel"                         %% "cats-core"             % catsVersion,
-      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
-      "net.java.dev.jna"                       % "jna"                   % jnaVersion
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion
     ),
     Compile / moduleDependencies ++= scalaLibrary ++ scalaReflect ++ Seq(
       "org.slf4j" % "slf4j-api" % slf4jVersion
@@ -1262,10 +1264,7 @@ lazy val `scala-libs-wrapper` = project
         (Compile / fullClasspath).value,
         scalaLibrary ++
         scalaReflect ++
-        slf4jApi ++
-        Seq(
-          "net.java.dev.jna" % "jna" % jnaVersion
-        ),
+        slf4jApi,
         streams.value.log,
         moduleName.value,
         scalaBinaryVersion.value,
@@ -1377,6 +1376,9 @@ lazy val `jna-wrapper` = project
       Map(
         javaModuleName.value -> jna
       )
+    },
+    assemblyMergeStrategy := { case _ =>
+      MergeStrategy.preferProject
     }
   )
 
@@ -1396,18 +1398,14 @@ lazy val `directory-watcher-wrapper` = project
     modularFatJarWrapperSettings,
     scalaModuleDependencySetting,
     libraryDependencies ++= slf4jApi ++ Seq(
-      "io.methvin"       % "directory-watcher" % directoryWatcherVersion,
-      "net.java.dev.jna" % "jna"               % jnaVersion
+      "io.methvin" % "directory-watcher" % directoryWatcherVersion exclude ("net.java.dev.jna", "jna")
     ),
     javaModuleName := "org.enso.directory.watcher.wrapper",
     assembly / assemblyExcludedJars := {
       JPMSUtils.filterModulesFromClasspath(
         (Compile / dependencyClasspath).value,
         scalaLibrary ++
-        slf4jApi ++
-        Seq(
-          "net.java.dev.jna" % "jna" % jnaVersion
-        ),
+        slf4jApi,
         streams.value.log,
         moduleName.value,
         scalaBinaryVersion.value,
@@ -5476,8 +5474,7 @@ lazy val `std-tableau` = project
     Compile / packageBin / artifactPath :=
       `std-tableau-polyglot-root` / "std-tableau.jar",
     libraryDependencies ++= Seq(
-      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "net.java.dev.jna" % "jna-platform"            % jnaVersion
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     // Extract native libraries from tableau's jar, and put them under
     // Standard/Tableau/polyglot/lib directory.
@@ -5513,6 +5510,7 @@ lazy val `std-tableau` = project
           `std-tableau-native-libs`,
           tableauVersion,
           jnaVersion,
+          (`jna-wrapper` / Compile / exportedModule).value,
           updateReport       = libraryUpdates,
           unmanagedClasspath = unmanagedClasspath,
           logger             = logger,

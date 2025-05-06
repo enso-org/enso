@@ -3,11 +3,10 @@ import { LOGIN_PATH } from '#/appUtils'
 import { Popover, Text } from '#/components/AriaComponents'
 import { Icon } from '#/components/Icon'
 import MenuEntry from '#/components/MenuEntry'
-import FocusArea from '#/components/styled/FocusArea'
 import AboutModal from '#/modals/AboutModal'
 import { useAuth } from '#/providers/AuthProvider'
 import { useSetModal } from '#/providers/ModalProvider'
-import { useSessionAPI } from '#/providers/SessionProvider.tsx'
+import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
 import { useRouterInReact } from '$/providers/react'
 import { PRODUCT_NAME } from 'enso-common'
@@ -33,28 +32,20 @@ export default function InfoMenu(props: InfoMenuProps) {
         <Icon icon="enso_logo" className="pointer-events-none h-7 w-7 text-primary" />
         <Text>{PRODUCT_NAME}</Text>
       </div>
-      <FocusArea direction="vertical">
-        {(innerProps) => (
-          <div
-            aria-label={getText('infoMenuLabel')}
-            className="flex flex-col overflow-hidden"
-            {...innerProps}
-          >
-            <MenuEntry
-              action="aboutThisApp"
-              doAction={() => {
-                setModal(<AboutModal />)
-              }}
-            />
-            {session && (
-              <MenuEntry
-                action="signOut"
-                doAction={() => signOut().then(() => router.push(LOGIN_PATH))}
-              />
-            )}
-          </div>
+      <div aria-label={getText('infoMenuLabel')} className="flex flex-col overflow-hidden">
+        <MenuEntry
+          action="aboutThisApp"
+          doAction={() => {
+            setModal(<AboutModal />)
+          }}
+        />
+        {session && (
+          <MenuEntry
+            action="signOut"
+            doAction={() => signOut().then(() => router.push(LOGIN_PATH))}
+          />
         )}
-      </FocusArea>
+      </div>
     </Popover>
   )
 }

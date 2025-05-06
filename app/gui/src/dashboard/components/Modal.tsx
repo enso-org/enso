@@ -3,8 +3,6 @@ import * as React from 'react'
 
 import * as modalProvider from '#/providers/ModalProvider'
 
-import FocusRoot from '#/components/styled/FocusRoot'
-
 import { ClearPressResponder } from '#/components/aria'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
 
@@ -41,34 +39,28 @@ export default function Modal(props: ModalProps) {
     // Required so that `Button`s and `Checkbox`es contained inside do not trigger any
     // ancestor `DialogTrigger`s.
     <ClearPressResponder>
-      <FocusRoot active={!hidden}>
-        {(innerProps) => (
-          <div
-            {...(!hidden ? { 'data-testid': 'modal-background' } : {})}
-            style={style}
-            className={MODAL_VARIANTS(variantProps)}
-            onClick={
-              onClick ??
-              ((event) => {
-                if (event.currentTarget === event.target && getSelection()?.type !== 'Range') {
-                  event.stopPropagation()
-                  unsetModal()
-                }
-              })
+      <div
+        {...(!hidden ? { 'data-testid': 'modal-background' } : {})}
+        style={style}
+        className={MODAL_VARIANTS(variantProps)}
+        onClick={
+          onClick ??
+          ((event) => {
+            if (event.currentTarget === event.target && getSelection()?.type !== 'Range') {
+              event.stopPropagation()
+              unsetModal()
             }
-            onContextMenu={onContextMenu}
-            {...innerProps}
-            onKeyDown={(event) => {
-              innerProps.onKeyDown?.(event)
-              if (event.key !== 'Escape') {
-                event.stopPropagation()
-              }
-            }}
-          >
-            {children}
-          </div>
-        )}
-      </FocusRoot>
+          })
+        }
+        onContextMenu={onContextMenu}
+        onKeyDown={(event) => {
+          if (event.key !== 'Escape') {
+            event.stopPropagation()
+          }
+        }}
+      >
+        {children}
+      </div>
     </ClearPressResponder>
   )
 }
