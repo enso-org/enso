@@ -10,22 +10,16 @@ import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import { HttpClientProvider } from '#/providers/HttpClientProvider'
 import LoggerProvider from '#/providers/LoggerProvider'
 import HttpClient from '#/utilities/HttpClient'
-import { ApplicationConfigValue } from '@/util/config'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { QueryClient } from '@tanstack/vue-query'
 import { IS_DEV_MODE, isOnElectron, isOnLinux } from 'enso-common/src/detect'
-import { StrictMode } from 'react'
+import { PropsWithChildren, StrictMode } from 'react'
 import invariant from 'tiny-invariant'
 
 interface ReactRootProps {
-  config: ApplicationConfigValue
   queryClient: QueryClient
   classSet: Map<string, number>
   onAuthenticated: (accessToken: string | null) => void
-}
-
-function resolveEnvUrl(url: string | undefined) {
-  return url?.replace('__HOSTNAME__', window.location.hostname)
 }
 
 function generateSessionID() {
@@ -42,8 +36,8 @@ function generateSessionID() {
 /**
  * A component gathering all views written currently in React with necessary contexts.
  */
-export default function ReactRoot(props: ReactRootProps) {
-  const { config, queryClient, onAuthenticated } = props
+export default function ReactRoot(props: PropsWithChildren<ReactRootProps>) {
+  const { queryClient, onAuthenticated, children } = props
 
   const sessionID = generateSessionID()
 
@@ -60,11 +54,6 @@ export default function ReactRoot(props: ReactRootProps) {
   const portalRoot = document.querySelector('#enso-portal-root')
   invariant(portalRoot instanceof HTMLElement, 'PortalRoot element not found')
 
-  const shouldUseAuthentication = config.authentication.enabled
-  const projectManagerUrl =
-    (config.engine.projectManagerUrl || resolveEnvUrl($config.PROJECT_MANAGER_URL)) ?? null
-  const ydocUrl = (config.engine.ydocUrl || resolveEnvUrl($config.YDOC_SERVER_URL)) ?? null
-  const initialProjectName = config.startup.project || null
   const isCloudBuild = $config.CLOUD_BUILD === 'true'
 
   return (
@@ -79,12 +68,10 @@ export default function ReactRoot(props: ReactRootProps) {
                     <App
                       supportsDeepLinks={supportsDeepLinks}
                       supportsLocalBackend={!isCloudBuild}
-                      isAuthenticationDisabled={!shouldUseAuthentication}
-                      projectManagerUrl={projectManagerUrl}
-                      ydocUrl={ydocUrl}
-                      initialProjectName={initialProjectName}
                       onAuthenticated={onAuthenticated}
-                    />
+                    >
+                      {children}
+                    </App>
                   </HttpClientProvider>
                 </LoggerProvider>
               </OfflineNotificationManager>

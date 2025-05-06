@@ -6,7 +6,6 @@
 import * as React from 'react'
 
 import * as amplify from '@aws-amplify/auth'
-import { useNavigate } from 'react-router'
 
 import * as common from 'enso-common'
 import * as detect from 'enso-common/src/detect'
@@ -19,6 +18,7 @@ import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 
 import * as cognitoModule from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'
+import { useRouterInReact } from '$/providers/react'
 
 /**
  * Configuration for the AWS Amplify library.
@@ -119,14 +119,18 @@ export function useInitAuthService(authConfig: AuthConfig): AuthService {
   const { supportsDeepLinks } = authConfig
 
   const logger = useLogger()
-  const navigate = useNavigate()
+  const { router } = useRouterInReact()
 
   return React.useMemo(() => {
-    const amplifyConfig = loadAmplifyConfig(logger, supportsDeepLinks, navigate)
+    const amplifyConfig = loadAmplifyConfig(
+      logger,
+      supportsDeepLinks,
+      (url) => void router.push(url),
+    )
     const cognito = new cognitoModule.Cognito(logger, supportsDeepLinks, amplifyConfig)
 
     return { cognito, registerAuthEventListener: listen.registerAuthEventListener }
-  }, [logger, navigate, supportsDeepLinks])
+  }, [logger, router, supportsDeepLinks])
 }
 
 /** Return the appropriate Amplify configuration for the current platform. */

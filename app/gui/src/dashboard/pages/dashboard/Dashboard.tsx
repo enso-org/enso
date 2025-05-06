@@ -6,9 +6,6 @@ import * as React from 'react'
 
 import * as detect from 'enso-common/src/detect'
 
-import { DashboardTabBar } from './DashboardTabBar'
-
-import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { CategoriesProvider } from '#/layouts/Drive/Categories/categoriesHooks'
 import DriveProvider from '#/providers/DriveProvider'
@@ -18,14 +15,13 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import ProjectsProvider, {
   useClearLaunchedProjects,
+  useLaunchedProjects,
   usePage,
   useSetPage,
-  type TabType,
 } from '#/providers/ProjectsProvider'
 
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
-import UserBar from '#/layouts/UserBar'
 
 import Page from '#/components/Page'
 
@@ -33,24 +29,20 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
-import { Tabs } from '#/components/aria'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import { vueComponent } from '#/utilities/vue'
+import { useConfigInReact } from '$/providers/react'
 import { usePrefetchQuery } from '@tanstack/react-query'
-import { DashboardTabPanels } from './DashboardTabPanels'
 
-/** Props for {@link Dashboard}s that are common to all platforms. */
-export interface DashboardProps {
-  /** Whether the application may have the local backend running. */
-  readonly supportsLocalBackend: boolean
-  readonly initialProjectName: string | null
-  readonly ydocUrl: string | null
-}
+const TabView = React.lazy(() =>
+  import('$/components/TabView.vue').then(({ default: vue }) => vueComponent(vue)),
+)
 
 /** The component that contains the entire UI. */
-export default function Dashboard(props: DashboardProps) {
+export default function Dashboard() {
   return (
     /* Ideally this would be in `Drive.tsx`, but it currently must be all the way out here
      * due to modals being in `TheModal`. */
@@ -58,7 +50,7 @@ export default function Dashboard(props: DashboardProps) {
       {({ resetAssetTableState }) => (
         <CategoriesProvider onCategoryChange={resetAssetTableState}>
           <ProjectsProvider>
-            <DashboardInner {...props} />
+            <DashboardInner />
           </ProjectsProvider>
         </CategoriesProvider>
       )}
@@ -86,25 +78,21 @@ function fileURLToPath(url: string): string | null {
 }
 
 /** The component that contains the entire UI. */
-function DashboardInner(props: DashboardProps) {
-  const { initialProjectName: initialProjectNameRaw, ydocUrl } = props
+function DashboardInner() {
   const localBackend = backendProvider.useLocalBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
+  const config = useConfigInReact()
 
-  const initialLocalProjectPath =
-    initialProjectNameRaw != null ? fileURLToPath(initialProjectNameRaw) : null
+  const initialProjectNameRaw = config.params.startup.project
+  const initialLocalProjectPath = fileURLToPath(initialProjectNameRaw)
   const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
 
+  const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
+
   const categoriesAPI = useCategoriesAPI()
-  const page = usePage()
-  const setPage = useSetPage()
 
   const openEditor = projectHooks.useOpenEditor()
   const openProjectLocally = projectHooks.useOpenProjectLocally()
-  const closeProject = projectHooks.useCloseProject()
-  const closeAllProjects = projectHooks.useCloseAllProjects()
-  const clearLaunchedProjects = useClearLaunchedProjects()
 
   usePrefetchQuery({
     queryKey: ['loadInitialLocalProject'],
@@ -178,23 +166,12 @@ function DashboardInner(props: DashboardProps) {
     [inputBindings],
   )
 
-  const onSignOut = eventCallbacks.useEventCallback(() => {
-    setPage('drive')
-    void closeAllProjects()
-    clearLaunchedProjects()
-  })
-
-  const goToSettings = eventCallbacks.useEventCallback(() => {
-    setPage('settings')
-  })
-
-  const onSelectionChange = eventCallbacks.useEventCallback((newPage: React.Key) => {
-    // This is safe as we render only valid pages.
-    // eslint-disable-next-line no-restricted-syntax
-    setPage(newPage as TabType)
-  })
-
-  const selectedTab = React.useDeferredValue(page)
+  const page = usePage()
+  const setPage = useSetPage()
+  const launchedProjects = useLaunchedProjects()
+  const closeProject = projectHooks.useCloseProject()
+  const closeAllProjects = projectHooks.useCloseAllProjects()
+  const clearLaunchedProjects = useClearLaunchedProjects()
 
   return (
     <Page hideInfoBar hideChat>
@@ -205,23 +182,16 @@ function DashboardInner(props: DashboardProps) {
           modalProvider.unsetModal()
         }}
       >
-        <Tabs
-          className="relative flex min-h-full grow select-none flex-col container-size"
-          selectedKey={selectedTab}
-          onSelectionChange={onSelectionChange}
-        >
-          <div className="flex">
-            <DashboardTabBar onCloseProject={closeProject} onOpenEditor={openEditor} />
-
-            <UserBar
-              setIsHelpChatOpen={setIsHelpChatOpen}
-              goToSettingsPage={goToSettings}
-              onSignOut={onSignOut}
-            />
-          </div>
-
-          <DashboardTabPanels initialProjectName={initialProjectName} ydocUrl={ydocUrl} />
-        </Tabs>
+        <TabView
+          initialProjectName={initialProjectName}
+          setIsChatOpen={setIsHelpChatOpen}
+          page={page}
+          setPage={setPage}
+          launchedProjects={launchedProjects}
+          closeProject={closeProject}
+          closeAllProjects={closeAllProjects}
+          clearLaunchedProjects={clearLaunchedProjects}
+        />
         {$config.CHAT_URL != null ?
           <Chat
             isOpen={isHelpChatOpen}

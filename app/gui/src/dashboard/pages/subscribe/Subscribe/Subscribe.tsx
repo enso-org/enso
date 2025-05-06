@@ -1,5 +1,4 @@
 /** @file A page in which the currently active payment plan can be changed. */
-import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { DASHBOARD_PATH, SUBSCRIBE_SUCCESS_PATH } from '#/appUtils'
 import Back from '#/assets/arrow_left.svg'
@@ -8,6 +7,7 @@ import { PlanSelector } from '#/modules/payments'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
 import { isPlan } from '#/services/Backend'
+import { useRouterInReact } from '$/providers/react'
 
 /**
  * A page in which the currently active payment plan can be changed.
@@ -25,10 +25,8 @@ import { isPlan } from '#/services/Backend'
  */
 export function Subscribe() {
   const { getText } = useText()
-  const navigate = useNavigate()
+  const { router, searchParams } = useRouterInReact()
   const { user } = useFullUserSession()
-
-  const [searchParams] = useSearchParams()
 
   const maybePlan = searchParams.get('plan')
 
@@ -53,9 +51,9 @@ export function Subscribe() {
           userPlan={user.plan}
           isOrganizationAdmin={user.isOrganizationAdmin}
           onSubscribeSuccess={(plan) => {
-            navigate({
-              pathname: SUBSCRIBE_SUCCESS_PATH,
-              search: new URLSearchParams({ plan }).toString(),
+            void router.push({
+              path: SUBSCRIBE_SUCCESS_PATH,
+              query: { plan },
             })
           }}
         />

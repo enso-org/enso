@@ -14,7 +14,7 @@ import FileBrowserEntry from '@/components/widgets/FileBrowserWidget/FileBrowser
 import { Directory, useFileBrowserStack } from '@/components/widgets/FileBrowserWidget/paths'
 import { useBackend } from '@/composables/backend'
 import { Action } from '@/providers/action'
-import { injectBackend } from '@/providers/backend'
+import { injectProjectBackend } from '@/providers/backend'
 import { assert } from '@/util/assert'
 import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
@@ -42,7 +42,7 @@ const emit = defineEmits<{
 }>()
 
 const { query, fetch, ensureQueryData, mutation } = useBackend('remote')
-const { remote: backend } = injectBackend()
+const { remote: backend } = injectProjectBackend()
 
 const errorToast = useToast.error()
 const newDirPlaceholder = Symbol()
