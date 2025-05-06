@@ -43,7 +43,7 @@ test('Column size can be set and is retained', async ({ page }) => {
   await page.waitForTimeout(1000)
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
-  await expect(tableVisualization).toContainText('Total Row Count: 10')
+  await expect(tableVisualization).toContainText('10 rows.')
 
   const col = tableVisualization.getByRole('columnheader', { name: /^0/ })
   const colManualSize = await resizeCol(col)
