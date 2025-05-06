@@ -19,7 +19,7 @@ import * as backendModule from '#/services/Backend'
 import { Text } from '#/components/AriaComponents'
 import * as object from '#/utilities/object'
 
-const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<backendModule.AssetType, text.TextId>> = {
+export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<backendModule.AssetType, text.TextId>> = {
   [backendModule.AssetType.directory]: 'directoryAssetType',
   [backendModule.AssetType.project]: 'projectAssetType',
   [backendModule.AssetType.file]: 'fileAssetType',
