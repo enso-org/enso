@@ -299,12 +299,15 @@ public final class UnusedImports implements MiniPassFactory {
           .bindings()
           .foreach(
               binding -> {
+                scala.Option<Name> typePointer = scala.Option.empty();
                 if (binding instanceof Method.Explicit method) {
-                  var typePointer = method.methodReference().typePointer();
-                  if (typePointer.isDefined()) {
-                    var resolution = getMethodDefinitionsMeta(typePointer.get());
-                    addUsedSymbolForResolution(resolution);
-                  }
+                  typePointer = method.methodReference().typePointer();
+                } else if (binding instanceof Method.Conversion conversion) {
+                  typePointer = conversion.methodReference().typePointer();
+                }
+                if (typePointer.isDefined()) {
+                  var resolution = getMethodDefinitionsMeta(typePointer.get());
+                  addUsedSymbolForResolution(resolution);
                 }
                 return null;
               });
