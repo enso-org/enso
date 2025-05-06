@@ -38,7 +38,6 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
-import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 import * as z from 'zod'
 
@@ -46,7 +45,7 @@ import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
 
-import AuthProvider, * as authProvider from '#/providers/AuthProvider'
+import AuthProvider from '#/providers/AuthProvider'
 import BackendProvider, { useLocalBackend } from '#/providers/BackendProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
@@ -56,27 +55,10 @@ import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import SessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
-import ForgotPassword from '#/pages/authentication/ForgotPassword'
-import Login from '#/pages/authentication/Login'
-import Registration from '#/pages/authentication/Registration'
-import ResetPassword from '#/pages/authentication/ResetPassword'
-import RestoreAccount from '#/pages/authentication/RestoreAccount'
-import * as setup from '#/pages/authentication/Setup'
-import Dashboard from '#/pages/dashboard/Dashboard'
-import * as subscribe from '#/pages/subscribe/Subscribe'
-import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
-
-import * as openAppWatcher from '#/layouts/OpenAppWatcher'
 import VersionChecker from '#/layouts/VersionChecker'
-
-import * as errorBoundary from '#/components/ErrorBoundary'
-import * as suspense from '#/components/Suspense'
 import { RouterProvider } from 'react-aria-components'
 
 import AboutModal from '#/modals/AboutModal'
-import { AgreementsModal } from '#/modals/AgreementsModal'
-import { SetupOrganizationAfterSubscribe } from '#/modals/SetupOrganizationAfterSubscribe'
 
 import LocalBackend from '#/services/LocalBackend'
 import ProjectManager, * as projectManager from '#/services/ProjectManager'
@@ -89,11 +71,10 @@ import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 
 import { useInitAuthService } from '#/authentication/service'
 import { useOffline } from '#/hooks/offlineHooks'
-import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
-import { CloudBrowserDisabledLayout } from '#/providers/AuthProvider'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { unsafeWriteValue } from '#/utilities/write'
+import { useConfigInReact, useRouterInReact } from '$/providers/react'
 import { useHttpClient } from './providers/HttpClientProvider'
-import { useMutationCallback } from './utilities/tanstackQuery'
-import { unsafeWriteValue } from './utilities/write'
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -116,18 +97,12 @@ function getMainPageUrl() {
 export interface AppProps {
   /** Whether the application may have the local backend running. */
   readonly supportsLocalBackend: boolean
-  /** If true, the app can only be used in offline mode. */
-  readonly isAuthenticationDisabled: boolean
   /**
    * Whether the application supports deep links. This is only true when using
    * the installed app on macOS and Windows.
    */
   readonly supportsDeepLinks: boolean
-  /** The name of the project to open on startup, if any. */
-  readonly initialProjectName: string | null
   readonly onAuthenticated: (accessToken: string | null) => void
-  readonly projectManagerUrl: string | null
-  readonly ydocUrl: string | null
 }
 
 /**
@@ -137,7 +112,8 @@ export interface AppProps {
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app.
  */
-export default function App(props: AppProps) {
+export default function App(props: React.PropsWithChildren<AppProps>) {
+  const config = useConfigInReact()
   const {
     data: { projectManagerRootDirectory, projectManagerInstance },
   } = reactQuery.useSuspenseQuery<{
@@ -147,7 +123,7 @@ export default function App(props: AppProps) {
     queryKey: [
       'root-directory',
       {
-        projectManagerUrl: props.projectManagerUrl,
+        projectManagerUrl: config.projectManagerUrl,
         supportsLocalBackend: props.supportsLocalBackend,
       },
     ] as const,
@@ -163,13 +139,13 @@ export default function App(props: AppProps) {
       },
     },
     queryFn: async () => {
-      if (props.supportsLocalBackend && props.projectManagerUrl != null) {
+      if (props.supportsLocalBackend && config.projectManagerUrl != null) {
         const response = await fetch(`/api/root-directory`)
         const text = await response.text()
         const rootDirectory = projectManager.Path(text)
 
         return {
-          projectManagerInstance: new ProjectManager(props.projectManagerUrl, rootDirectory),
+          projectManagerInstance: new ProjectManager(config.projectManagerUrl, rootDirectory),
           projectManagerRootDirectory: rootDirectory,
         }
       } else {
@@ -217,21 +193,15 @@ export default function App(props: AppProps) {
         transition={toastify.Slide}
         limit={3}
       />
-      <router.BrowserRouter
-        basename={getMainPageUrl().pathname}
-        // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
-        <LocalStorageProvider>
-          <ModalProvider>
-            <AppRouter
-              {...props}
-              projectManagerInstance={projectManagerInstance}
-              projectManagerRootDirectory={projectManagerRootDirectory}
-            />
-          </ModalProvider>
-        </LocalStorageProvider>
-      </router.BrowserRouter>
+      <LocalStorageProvider>
+        <ModalProvider>
+          <AppRouter
+            {...props}
+            projectManagerInstance={projectManagerInstance}
+            projectManagerRootDirectory={projectManagerRootDirectory}
+          />
+        </ModalProvider>
+      </LocalStorageProvider>
     </>
   )
 }
@@ -249,11 +219,12 @@ export interface AppRouterProps extends AppProps {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider.
  */
-function AppRouter(props: AppRouterProps) {
-  const { onAuthenticated, projectManagerInstance } = props
+function AppRouter(props: React.PropsWithChildren<AppRouterProps>) {
+  const { onAuthenticated, projectManagerInstance, children } = props
   const httpClient = useHttpClient()
   const logger = useLogger()
-  const navigate = router.useNavigate()
+  const { router } = useRouterInReact()
+  const navigate = router.push.bind(router)
 
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -333,87 +304,6 @@ function AppRouter(props: AppRouterProps) {
     }
   }, [])
 
-  const routes = (
-    <router.Routes>
-      {/* Login & registration pages are visible to unauthenticated users. */}
-      <router.Route element={<authProvider.GuestLayout />}>
-        <router.Route path={appUtils.REGISTRATION_PATH} element={<Registration />} />
-        <router.Route path={appUtils.LOGIN_PATH} element={<Login />} />
-      </router.Route>
-
-      {/* Protected pages are visible to authenticated users. */}
-      <router.Route element={<authProvider.NotDeletedUserLayout />}>
-        <router.Route element={<authProvider.ProtectedLayout />}>
-          <router.Route element={<AgreementsModal />}>
-            <router.Route
-              element={<CloudBrowserDisabledLayout redirectPath={appUtils.SETUP_PATH} />}
-            >
-              <router.Route element={<SetupOrganizationAfterSubscribe />}>
-                <router.Route element={<InvitedToOrganizationModal />}>
-                  <router.Route element={<openAppWatcher.OpenAppWatcher />}>
-                    <router.Route
-                      path={appUtils.DASHBOARD_PATH}
-                      element={<Dashboard {...props} />}
-                    />
-
-                    <router.Route
-                      path={appUtils.SUBSCRIBE_PATH}
-                      element={
-                        <errorBoundary.ErrorBoundary>
-                          <suspense.Suspense>
-                            <subscribe.Subscribe />
-                          </suspense.Suspense>
-                        </errorBoundary.ErrorBoundary>
-                      }
-                    />
-                  </router.Route>
-                </router.Route>
-              </router.Route>
-            </router.Route>
-          </router.Route>
-
-          <router.Route
-            path={appUtils.SUBSCRIBE_SUCCESS_PATH}
-            element={
-              <errorBoundary.ErrorBoundary>
-                <suspense.Suspense>
-                  <subscribeSuccess.SubscribeSuccess />
-                </suspense.Suspense>
-              </errorBoundary.ErrorBoundary>
-            }
-          />
-        </router.Route>
-      </router.Route>
-
-      <router.Route element={<AgreementsModal />}>
-        <router.Route element={<authProvider.AnyLoggedInUserLayout />}>
-          <router.Route element={<authProvider.NotDeletedUserLayout />}>
-            <router.Route
-              element={<CloudBrowserDisabledLayout redirectPath={appUtils.SETUP_PATH} />}
-            >
-              <router.Route path={appUtils.SETUP_PATH} element={<setup.Setup />} />
-            </router.Route>
-          </router.Route>
-        </router.Route>
-      </router.Route>
-
-      {/* Other pages are visible to unauthenticated and authenticated users. */}
-      <router.Route path={appUtils.CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
-      <router.Route path={appUtils.FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
-      <router.Route path={appUtils.RESET_PASSWORD_PATH} element={<ResetPassword />} />
-
-      {/* Soft-deleted user pages are visible to users who have been soft-deleted. */}
-      <router.Route element={<authProvider.ProtectedLayout />}>
-        <router.Route element={<authProvider.SoftDeletedUserLayout />}>
-          <router.Route path={appUtils.RESTORE_USER_PATH} element={<RestoreAccount />} />
-        </router.Route>
-      </router.Route>
-
-      {/* 404 page */}
-      <router.Route path="*" element={<router.Navigate to="/" replace />} />
-    </router.Routes>
-  )
-
   return (
     <RouterProvider navigate={navigate}>
       <SessionProvider
@@ -429,7 +319,7 @@ function AppRouter(props: AppRouterProps) {
             <InputBindingsProvider>
               <LocalBackendPathSynchronizer />
               <VersionChecker />
-              {routes}
+              {children}
             </InputBindingsProvider>
           </AuthProvider>
         </BackendProvider>

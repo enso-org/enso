@@ -5,6 +5,7 @@ import java.math.BigInteger;
 import java.util.function.DoubleToLongFunction;
 import java.util.function.Function;
 import org.enso.base.numeric.Decimal_Utils;
+import org.enso.polyglot.common_utils.Core_Math_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredIntegerBuilder;
 import org.enso.table.data.column.operation.StorageIterators;
@@ -17,13 +18,6 @@ import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
 
 public class UnaryRoundOperation implements UnaryOperation {
-  // Used to determine whether we should use Double or BigDecimal operations.
-  // Values outside this range are promoted to BigDecimal operation, because
-  // representing their rounded value as a Long might overflow the Long dynamic
-  // range.
-  public static final double USE_DOUBLE_LIMIT_POSITIVE = 9223372036854775000.0;
-  public static final double USE_DOUBLE_LIMIT_NEGATIVE = -9223372036854775000.0;
-
   public static final String CEIL = "ceil";
   public static final UnaryOperation CEIL_INSTANCE =
       new UnaryRoundOperation(CEIL, d -> (long) Math.ceil(d), Decimal_Utils::ceil);
@@ -90,7 +84,7 @@ public class UnaryRoundOperation implements UnaryOperation {
       String msg = "Value is " + d;
       problemAggregator.reportArithmeticError(msg, builder.getCurrentSize());
       builder.appendNulls(1);
-    } else if (d > USE_DOUBLE_LIMIT_POSITIVE || d < USE_DOUBLE_LIMIT_NEGATIVE) {
+    } else if (!Core_Math_Utils.fitsInLongSafeRange(d)) {
       builder.append(bigDecimalFunction.apply(BigDecimal.valueOf(d)));
     } else {
       builder.append(doubleFunction.applyAsLong(d));

@@ -4,7 +4,7 @@
  */
 import * as React from 'react'
 
-import * as sentry from '@sentry/react'
+import * as sentry from '@sentry/vue'
 import * as reactQuery from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 
@@ -116,7 +116,7 @@ export default function SessionProvider(props: SessionProviderProps) {
     mutationFn: async () => authService.refreshUserSession(),
     onSuccess: (data) => {
       if (data) {
-        httpClient?.setSessionToken(data.accessToken)
+        httpClient.setSessionToken(data.accessToken)
       }
       return queryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
     },
@@ -261,7 +261,7 @@ export default function SessionProvider(props: SessionProviderProps) {
   })
 
   if (session.data) {
-    httpClient?.setSessionToken(session.data.accessToken)
+    httpClient.setSessionToken(session.data.accessToken)
   }
 
   // Register an effect that will listen for authentication events. When the event occurs, we

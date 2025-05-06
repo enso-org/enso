@@ -53,7 +53,7 @@ export function IconDisplay<IconType extends string>(props: IconDisplayProps<Ico
   return (
     <div className={styles.base({ className })}>
       <VisualTooltip className="flex" tooltip={tooltip} tooltipPlacement="left">
-        <Icon className={styles.icon()} size="medium" icon={icon} />
+        <Icon color={textProps.color} className={styles.icon()} size="medium" icon={icon} />
       </VisualTooltip>
       <div className={styles.container()}>
         <Text className={styles.text()} truncate="1" {...textProps} tooltip={children}>

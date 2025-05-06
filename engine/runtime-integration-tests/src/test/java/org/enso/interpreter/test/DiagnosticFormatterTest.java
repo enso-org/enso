@@ -13,8 +13,11 @@ import org.enso.common.MethodNames.Module;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.interpreter.runtime.util.DiagnosticFormatter;
+import org.enso.interpreter.runtime.util.GitHubDiagnosticFormatter;
 import org.enso.test.utils.ContextUtils;
+import org.graalvm.collections.Pair;
 import org.graalvm.polyglot.PolyglotException;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -32,22 +35,24 @@ public class DiagnosticFormatterTest {
     ctxRule.resetOut();
   }
 
-  @Test
-  public void testOneLineDiagnostics() throws IOException {
+  private final String exampleExpectedDiagnostics =
+      """
+      tmp_test:1:8: error: The name `foo` could not be found.
+          1 | main = foo
+            |        ^~~""";
+
+  private Pair<Diagnostic, Source> compileExample() throws IOException {
     var code = "main = foo";
     var polyglotSrc =
         org.graalvm.polyglot.Source.newBuilder(LanguageInfo.ID, code, "tmp_test.enso").build();
-    var expectedDiagnostics =
-        """
-tmp_test:1:8: error: The name `foo` could not be found.
-    1 | main = foo
-      |        ^~~""";
     try {
       var module = ctxRule.eval(polyglotSrc);
       module.invokeMember(Module.EVAL_EXPRESSION, "main");
+      Assert.fail("Expected error.");
     } catch (PolyglotException e) {
-      assertThat(ctxRule.getOut(), containsString(expectedDiagnostics));
+      assertThat(ctxRule.getOut(), containsString(exampleExpectedDiagnostics));
     }
+
     var moduleOpt = ctxRule.ensoContext().getTopScope().getModule("tmp_test");
     assertThat(moduleOpt.isPresent(), is(true));
     var moduleIr = moduleOpt.get().getIr();
@@ -55,10 +60,31 @@ tmp_test:1:8: error: The name `foo` could not be found.
     assertThat("There should be just one Diagnostic in main method", diags.size(), is(1));
 
     var src = Source.newBuilder(LanguageInfo.ID, code, "tmp_test").build();
-    var diag = diags.get(0);
+    return Pair.create(diags.get(0), src);
+  }
+
+  @Test
+  public void testOneLineDiagnostics() throws IOException {
+    var pair = compileExample();
+    var diag = pair.getLeft();
+    var src = pair.getRight();
     var diagFormatter = new DiagnosticFormatter(diag, src, true, false);
     var formattedDiag = diagFormatter.format();
-    assertThat(formattedDiag, containsString(expectedDiagnostics));
+    assertThat(formattedDiag, containsString(exampleExpectedDiagnostics));
+  }
+
+  @Test
+  public void testGithubDiagnostics() throws IOException {
+    var expectedGithubCommand =
+        "::error line=1,col=8,file=tmp_test,title=Enso Compiler Error @ tmp_test,endCol=10::The"
+            + " name `foo` could not be found.";
+    var pair = compileExample();
+    var diag = pair.getLeft();
+    var src = pair.getRight();
+    var diagFormatter = new GitHubDiagnosticFormatter(diag, src, true, false);
+    var formattedDiag = diagFormatter.format();
+    assertThat(formattedDiag, containsString(exampleExpectedDiagnostics));
+    assertThat(formattedDiag, containsString(expectedGithubCommand));
   }
 
   private static List<Diagnostic> gatherDiagnostics(org.enso.compiler.core.ir.Module moduleIr) {

@@ -198,8 +198,13 @@ type SQLServer_Dialect
     ## PRIVATE
     needs_execute_query_for_type_inference : Text | SQL_Statement -> Boolean
     needs_execute_query_for_type_inference self statement =
-        _ = statement
-        False
+        query_text = case statement of
+            text : Text -> text
+            _ : SQL_Statement -> statement.prepare.first
+        ## If not executed, getMetaData on a query containing dateadd was failing with:
+           Argument data type NULL is invalid for argument 2 of dateadd function.
+        needs_execute = query_text.contains "dateadd" case_sensitivity=..Insensitive
+        needs_execute
 
     ## PRIVATE
        Specifies how the database creates temp tables.

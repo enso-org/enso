@@ -72,7 +72,7 @@ public class UtilsTest {
     var src = new File(dir, "Main.enso");
     Files.writeString(src.toPath(), "main = 42");
 
-    var found = Utils.findFileAndProject(src.getPath(), null);
+    var found = Utils.findFileAndProject(null, src.getPath(), null);
     assertNotNull("Project found", found);
     assertFalse("No project mode for a source file", found._1());
     assertEquals("Source detected", src, found._2());
@@ -89,7 +89,7 @@ public class UtilsTest {
     var src = new File(dir, "Main.enso");
     Files.writeString(src.toPath(), "main = 42");
 
-    var found = Utils.findFileAndProject(prj.getPath(), null);
+    var found = Utils.findFileAndProject(null, prj.getPath(), null);
     assertNotNull("Project found", found);
     assertTrue("prj directory means project mode", found._1());
     assertEquals("Source is the project", prj, found._2());
@@ -106,7 +106,7 @@ public class UtilsTest {
     var src = folder.newFile("Standalone.enso").getCanonicalFile();
     Files.writeString(src.toPath(), "main = 42");
 
-    var found = Utils.findFileAndProject(src.getPath(), prj.getPath());
+    var found = Utils.findFileAndProject(null, src.getPath(), prj.getPath());
     assertNotNull("Project found", found);
     assertFalse("source and project implies non-project mode", found._1());
     assertEquals("Source is kept", src, found._2());
@@ -123,7 +123,7 @@ public class UtilsTest {
     var src = new File(dir, "Main.enso");
     Files.writeString(src.toPath(), "main = 42");
 
-    var found = Utils.findFileAndProject(src.getPath(), null);
+    var found = Utils.findFileAndProject(null, src.getPath(), null);
     assertNotNull("Project found", found);
     assertFalse("No project mode for a source file", found._1());
     assertEquals("Source detected", src, found._2());
@@ -140,7 +140,7 @@ public class UtilsTest {
     var src = new File(dir, "Main.enso");
     Files.writeString(src.toPath(), "main = 42");
 
-    var found = Utils.findFileAndProject(src.getPath(), null);
+    var found = Utils.findFileAndProject(null, src.getPath(), null);
     assertNotNull("Project found", found);
     assertFalse("No project mode for a source file", found._1());
     assertEquals("Source detected", src, found._2());

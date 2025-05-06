@@ -40,7 +40,7 @@ object BuiltinsIrBuilder {
     val moduleContext = ModuleContext(
       module          = module,
       freshNameSupply = Some(freshNameSupply),
-      compilerConfig  = CompilerConfig(warningsEnabled = false)
+      compilerConfig  = CompilerConfig.builder().warningsEnabled(false).build()
     )
     val initialIr = EnsoParser.compile(module.getCharacters)
     val irAfterModDiscovery = passManager.runPassesOnModule(

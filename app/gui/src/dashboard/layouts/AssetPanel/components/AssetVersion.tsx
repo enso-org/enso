@@ -3,11 +3,11 @@
 import type Backend from '#/services/Backend'
 import * as backendService from '#/services/Backend'
 
-import { Button, CopyButton, Dialog, Menu, Popover, Text } from '#/components/AriaComponents'
+import { Button, Dialog, Menu, Text } from '#/components/AriaComponents'
 import { Badge } from '#/components/Badge'
 import { Icon } from '#/components/Icon'
 import { TEXT_WITH_ICON } from '#/components/patterns'
-import { ProfilePicture } from '#/components/ProfilePicture'
+import { UserWithPopover } from '#/components/UserWithPopover'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { setModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
@@ -84,66 +84,7 @@ export function AssetVersion(props: AssetVersionProps) {
             </Text>
           </div>
 
-          {version.user && (
-            <Popover.Trigger>
-              <Button
-                variant="ghost"
-                size="xxsmall"
-                icon={
-                  <ProfilePicture
-                    picture={version.user.profilePicture}
-                    name={version.user.name}
-                    size="xxsmall"
-                    className="-mt-0.5"
-                  />
-                }
-                className="min-w-0"
-              >
-                <Text variant="body-sm" truncate="1" nowrap>
-                  {version.user.name}
-                </Text>
-              </Button>
-
-              <Popover>
-                <div className={TEXT_WITH_ICON().base({ verticalAlign: 'top' })}>
-                  <ProfilePicture
-                    picture={version.user.profilePicture}
-                    name={version.user.name}
-                    className={TEXT_WITH_ICON().icon()}
-                  />
-
-                  <div
-                    className={TEXT_WITH_ICON().text({ className: 'flex flex-col items-start' })}
-                  >
-                    <Text.Group>
-                      <Text variant="body" className="leading-[1.2]" truncate="3">
-                        {version.user.name}
-                      </Text>
-
-                      <Button.Group verticalAlign="center">
-                        <Button
-                          variant="link"
-                          size="small"
-                          icon="email"
-                          className="min-w-0"
-                          tooltip={getText('sendEmail')}
-                          href={`mailto:${version.user.email}`}
-                        >
-                          {version.user.email}
-                        </Button>
-
-                        <CopyButton
-                          size="xsmall"
-                          className="min-w-0"
-                          copyText={version.user.email}
-                        />
-                      </Button.Group>
-                    </Text.Group>
-                  </div>
-                </div>
-              </Popover>
-            </Popover.Trigger>
-          )}
+          {version.user && <UserWithPopover user={version.user} />}
         </div>
       </div>
 

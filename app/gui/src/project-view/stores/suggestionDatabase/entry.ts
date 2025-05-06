@@ -191,9 +191,17 @@ const DOCUMENTATION_ROOT = 'https://help.enso.org/docs/api'
 /** TODO: Add docs */
 export function suggestionDocumentationUrl(entry: SuggestionEntry): string | undefined {
   if (entry.kind !== SuggestionKind.Method && entry.kind !== SuggestionKind.Function) return
-  const { project, path } = entry.definitionPath
+
+  const { project, path } = entry.definedIn
   if (!project?.startsWith('Standard.') || !path) return
-  return [DOCUMENTATION_ROOT, project, ...qnSegments(path)].join('/')
+
+  const functionPath = entry.definitionPath.path
+  if (!functionPath) return
+  const postPath = functionPath.replace(`${path}.`, '')
+
+  // The path should be split into qualified name segments as the definition file.
+  // The function Path (e.g. Table.filter) is kept as a single part of the URL.
+  return [DOCUMENTATION_ROOT, project, ...qnSegments(path), postPath].join('/')
 }
 
 /** `true` if calling the function without providing a value for this argument will result in an error. */
