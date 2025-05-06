@@ -19,6 +19,7 @@ import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.Name.Literal;
+import org.enso.compiler.core.ir.Type;
 import org.enso.compiler.core.ir.Warning;
 import org.enso.compiler.core.ir.Warning.UnusedImport;
 import org.enso.compiler.core.ir.Warning.UnusedSymbolsFromImport;
@@ -26,6 +27,7 @@ import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.data.BindingsMap;
+import org.enso.compiler.data.BindingsMap.Resolution;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
 import org.enso.compiler.pass.IRProcessingPass;
 import org.enso.compiler.pass.MiniIRPass;
@@ -37,6 +39,7 @@ import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.TypeNames$;
 import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
+import org.enso.compiler.pass.resolve.TypeSignatures.Signature;
 import org.enso.pkg.QualifiedName;
 import org.enso.scala.wrapper.ScalaConversions;
 import org.slf4j.Logger;
@@ -273,17 +276,35 @@ public final class UnusedImports implements MiniPassFactory {
     }
 
     private void gatherUsedSymbolsFromMethodSignatures(Module modIr) {
+      LOGGER.trace(
+          "[{}] Gathering used symbols from method signatures",
+          bindingsMap.currentModule().getName());
       var signatures = modIr.bindings().map(Mini::getTypeSignatureMeta).filter(Objects::nonNull);
       signatures.foreach(
           signatureMeta -> {
-            var resolution = getTypeNameMeta(signatureMeta.signature());
-            if (resolution != null) {
-              var targetModName = resolution.target().module().getName();
-              var targetSymbolName = resolution.target().qualifiedName();
-              addUsedSymbol(targetModName, targetSymbolName);
-            }
+            addUsedSymbolsFromSignature(signatureMeta);
             return null;
           });
+    }
+
+    private void addUsedSymbolsFromSignature(Signature signature) {
+      if (signature.signature() instanceof Type.Error sigWithError) {
+        var errRes = getTypeNameMeta(sigWithError.error());
+        var typeRes = getTypeNameMeta(sigWithError.typed());
+        addUsedSymbolForResolution(errRes);
+        addUsedSymbolForResolution(typeRes);
+      } else {
+        var res = getTypeNameMeta(signature.signature());
+        addUsedSymbolForResolution(res);
+      }
+    }
+
+    private void addUsedSymbolForResolution(Resolution resolution) {
+      if (resolution != null) {
+        var modName = resolution.target().module().getName();
+        var symName = resolution.target().qualifiedName();
+        addUsedSymbol(modName, symName);
+      }
     }
 
     private void addUsedSymbol(QualifiedName modName, QualifiedName symName) {
