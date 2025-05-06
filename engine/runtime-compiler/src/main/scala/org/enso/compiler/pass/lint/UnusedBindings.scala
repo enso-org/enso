@@ -136,9 +136,12 @@ case object UnusedBindings extends IRPass {
     context: InlineContext
   ): Function = {
     function match {
-      case Function.Lambda(_, _: Foreign.Definition, _, _, _, _) =>
+      case lam: Function.Lambda
+          if lam.body().isInstanceOf[Foreign.Definition] =>
         function
-      case lam @ Function.Lambda(args, body, _, _, _, _) =>
+      case lam: Function.Lambda =>
+        val args      = lam.arguments()
+        val body      = lam.body()
         val isBuiltin = isBuiltinMethod(body)
         val lintedArgs =
           if (isBuiltin) args

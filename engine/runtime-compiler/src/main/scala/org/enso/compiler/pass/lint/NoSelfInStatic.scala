@@ -82,15 +82,8 @@ object NoSelfInStatic extends IRPass {
     method.typeName match {
       case Some(_) =>
         method.body match {
-          case Function.Lambda(
-                arguments,
-                _,
-                _,
-                _,
-                _,
-                _
-              ) =>
-            findSelfArgument(arguments).isEmpty
+          case lam: Function.Lambda =>
+            findSelfArgument(lam.arguments()).isEmpty
           case body =>
             throw new CompilerError(
               s"Method body is not a lambda: $body - should have been transformed to lambda by GenerateMethodBodies pass"

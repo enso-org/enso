@@ -140,8 +140,8 @@ case object LambdaConsolidate extends IRPass {
     freshNameSupply: FreshNameSupply
   ): Function = {
     function match {
-      case lam @ Function.Lambda(_, body, _, _, _, _) =>
-        val chainedLambdas = lam :: gatherChainedLambdas(body)
+      case lam: Function.Lambda =>
+        val chainedLambdas = lam :: gatherChainedLambdas(lam.body())
         val chainedArgList =
           chainedLambdas.foldLeft(List[DefinitionArgument]())(
             _ ::: _.arguments
@@ -256,8 +256,8 @@ case object LambdaConsolidate extends IRPass {
       case Expression.Block(expressions, lam: Function.Lambda, _, _, _)
           if expressions.isEmpty =>
         lam :: gatherChainedLambdas(lam.body)
-      case l @ Function.Lambda(_, body, _, _, _, _) =>
-        l :: gatherChainedLambdas(body)
+      case l: Function.Lambda =>
+        l :: gatherChainedLambdas(l.body())
       case _ => List()
     }
   }

@@ -149,10 +149,10 @@ case object GenerateMethodBodies extends IRPass {
         }
       case (_, parameterPosition) :: Nil =>
         fun match {
-          case lam @ Function.Lambda(_ :: _, _, _, _, _, _)
-              if parameterPosition == 0 =>
+          case lam: Function.Lambda
+              if lam.arguments().size > 1 && parameterPosition == 0 =>
             lam
-          case lam @ Function.Lambda(_, _, _, _, _, _) =>
+          case lam: Function.Lambda =>
             fun.addDiagnostic(
               Warning.WrongSelfParameterPos(funName, fun, parameterPosition)
             )
@@ -165,9 +165,9 @@ case object GenerateMethodBodies extends IRPass {
         }
       case Nil =>
         fun match {
-          case lam @ Function.Lambda(_, body, _, _, _, _)
+          case lam: Function.Lambda
               if findForeignDefinition(
-                body,
+                lam.body(),
                 lang = Some("js")
               ).isDefined =>
             val thisArgs = chainedFunctionArgs.collect {

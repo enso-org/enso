@@ -146,9 +146,9 @@ case object FramePointerAnalysis extends IRPass {
           processExpression(blockExpr, graph)
         }
         processExpression(block.returnValue, graph)
-      case Function.Lambda(args, body, _, _, _, _) =>
-        processArgumentDefs(args, graph)
-        processExpression(body, graph)
+      case lam: Function.Lambda =>
+        processArgumentDefs(lam.arguments(), graph)
+        processExpression(lam.body(), graph)
       case binding @ Expression.Binding(name, expr, _, _) =>
         maybeAttachFramePointer(name, graph)
         processExpression(expr, graph)
