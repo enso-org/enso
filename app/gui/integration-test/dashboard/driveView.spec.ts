@@ -36,7 +36,7 @@ test('drive view', ({ page }) =>
       await locateStopProjectButton(rows.nth(0)).click()
     })
     .driveTable.rightClickRow(0)
-    .contextMenu.moveNonFolderToTrash()
+    .contextMenu.moveToTrash()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(1)
     }))

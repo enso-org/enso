@@ -10,8 +10,7 @@ export interface ContextMenuActions<T extends BaseActions<Context>, Context> {
   readonly uploadToCloud: () => T
   readonly rename: () => T
   readonly snapshot: () => T
-  readonly moveNonFolderToTrash: () => T
-  readonly moveFolderToTrash: () => T
+  readonly moveToTrash: () => T
   readonly moveAllToTrash: (confirm?: boolean) => T
   readonly restoreFromTrash: () => T
   readonly restoreAllFromTrash: () => T
@@ -60,14 +59,7 @@ export function contextMenuActions<T extends BaseActions<Context>, Context>(
           .getByText(TEXT.snapshotShortcut)
           .click(),
       ),
-    moveNonFolderToTrash: () =>
-      step('Move to trash (context menu)', async (page) => {
-        await page
-          .getByRole('button', { name: TEXT.moveToTrashShortcut })
-          .getByText(TEXT.moveToTrashShortcut)
-          .click()
-      }),
-    moveFolderToTrash: () =>
+    moveToTrash: () =>
       step('Move folder to trash (context menu)', async (page) => {
         await page
           .getByRole('button', { name: TEXT.moveToTrashShortcut })
