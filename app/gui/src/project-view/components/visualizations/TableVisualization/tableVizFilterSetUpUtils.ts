@@ -11,30 +11,32 @@ export const getFilterParams = (
   const filterOptions = valueType ? getFilterOptions(valueType.constructor) : null
   const filterButtons = valueType ? getFilterButtons(valueType.constructor) : null
 
-  return filterType != 'agMultiColumnFilter' ?
+  const defaultFilter = {
+    maxNumConditions: 1,
+    values: isSSRM ? getFilterValues : null,
+    filterOptions: filterOptions,
+    buttons: filterButtons,
+  }
+
+  return filterType != 'agMultiColumnFilter' ? defaultFilter : (
       {
-        maxNumConditions: 1,
-        values: isSSRM ? getFilterValues : null,
-        filterOptions: filterOptions,
-        buttons: filterButtons,
-      }
-    : {
         filters: [
           {
             filter: 'agTextColumnFilter',
             filterParams: {
-              buttons: filterButtons,
+              ...defaultFilter,
+              values: null,
             },
           },
           {
             filter: 'agSetColumnFilter',
             filterParams: {
-              values: isSSRM ? getFilterValues : null,
-              buttons: filterButtons,
+              ...defaultFilter,
             },
           },
         ],
       }
+    )
 }
 
 export const getFilterType = (valueType: string, usingMultiFilter: boolean) => {

@@ -68,15 +68,32 @@ export const getFilterValue = (filterModel: GridFilterModel) => {
 }
 
 export const makeFilterModelList = (gridFilterModel: FilterModel) =>
-  Object.entries(gridFilterModel).map(([key, value]) => {
-    return {
-      columnName: key,
-      filterType: value.filterType,
-      filterAction: value.type,
-      filter: value.filter,
-      filterTo: value.filterTo,
-      dateFrom: value.dateFrom,
-      dateTo: value.dateTo,
-      values: value.values,
-    }
-  })
+  Object.entries(gridFilterModel)
+    .map(([key, value]) => {
+      if (value.filterType === 'multi') {
+        return value.filterModels
+          .filter((filter) => filter != null)
+          .map((val) => {
+            return {
+              columnName: key,
+              filterType: val.filterType,
+              filterAction: val.type,
+              filter: val.filter,
+              filterTo: val.filterTo,
+              dateFrom: val.dateFrom,
+              dateTo: val.dateTo,
+              values: val.values,
+            }
+          })
+      }
+      return {
+        columnName: key,
+        filterType: value.filterType,
+        filterAction: value.type,
+        filter: value.filter,
+        filterTo: value.filterTo,
+        dateFrom: value.dateFrom,
+        dateTo: value.dateTo,
+        values: value.values,
+      }
+    }).flatMap(x => x)
