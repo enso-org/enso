@@ -3,8 +3,10 @@ package org.enso.table.data.column.operation;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
-import java.time.temporal.Temporal;
 import java.util.function.BiFunction;
+
+import org.enso.base.Text_Utils;
+import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -12,6 +14,7 @@ import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
 import org.enso.table.error.UnexpectedTypeException;
@@ -25,7 +28,7 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
       StorageType<?> fallbackType,
       String name,
       MapOperationProblemAggregator problemBuilder,
-      BinaryOperation<? extends Temporal> operation,
+      BinaryOperation<?> operation,
       Storage<?> leftStorage,
       String fallbackName) {
     if (right instanceof Column rightColumn) {
@@ -68,6 +71,14 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
       new BinaryCoalescingOperation<>(DateTimeType.INSTANCE, (a, b) -> a.isBefore(b) ? a : b);
   private static final BinaryOperation<LocalTime> TIME_MIN =
       new BinaryCoalescingOperation<>(TimeOfDayType.INSTANCE, (a, b) -> a.isBefore(b) ? a : b);
+  private static final BinaryOperation<String> TEXT_MIN =
+      new BinaryCoalescingOperation<>(TextType.VARIABLE_LENGTH, (a, b) -> Text_Utils.compare_normalized(a, b) < 0 ? a : b) {
+        @Override
+        protected BuilderForType<String> makeStorageBuilder(
+            long size, StorageType<?> leftType, StorageType<?> rightType) {
+          return TextType.maxType(leftType, rightType).makeBuilder(size, BlackholeProblemAggregator.INSTANCE);
+        }
+      };
 
   public static Column min(
       Column left,
@@ -82,6 +93,7 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
           case DateType d -> DATE_MIN;
           case DateTimeType dt -> DATE_TIME_MIN;
           case TimeOfDayType t -> TIME_MIN;
+          case TextType t -> TEXT_MIN;
           default -> null;
         };
     return applyOperation(
@@ -94,6 +106,14 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
       new BinaryCoalescingOperation<>(DateTimeType.INSTANCE, (a, b) -> a.isAfter(b) ? a : b);
   private static final BinaryOperation<LocalTime> TIME_MAX =
       new BinaryCoalescingOperation<>(TimeOfDayType.INSTANCE, (a, b) -> a.isAfter(b) ? a : b);
+  private static final BinaryOperation<String> TEXT_MAX =
+      new BinaryCoalescingOperation<>(TextType.VARIABLE_LENGTH, (a, b) -> Text_Utils.compare_normalized(a, b) > 0 ? a : b) {
+        @Override
+        protected BuilderForType<String> makeStorageBuilder(
+            long size, StorageType<?> leftType, StorageType<?> rightType) {
+          return TextType.maxType(leftType, rightType).makeBuilder(size, BlackholeProblemAggregator.INSTANCE);
+        }
+      };
 
   public static Column max(
       Column left,
@@ -108,6 +128,7 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
           case DateType d -> DATE_MAX;
           case DateTimeType dt -> DATE_TIME_MAX;
           case TimeOfDayType t -> TIME_MAX;
+          case TextType t -> TEXT_MAX;
           default -> null;
         };
     return applyOperation(
@@ -148,7 +169,7 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
     return StorageIterators.mapOverStorage(
         validType.asTypedStorage(left),
         false,
-        validType.makeBuilder(left.getSize(), BlackholeProblemAggregator.INSTANCE),
+        makeStorageBuilder(left.getSize(), left.getType(), null),
         (idx, value) -> zipOperation.apply(value, rightValueTyped));
   }
 
@@ -161,8 +182,12 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
     return StorageIterators.zipOverStorages(
         validType.asTypedStorage(left),
         validType.asTypedStorage(right),
-        size -> validType.makeBuilder(size, BlackholeProblemAggregator.INSTANCE),
+        size -> makeStorageBuilder(size, left.getType(), right.getType()),
         false,
         (index, l, r) -> l == null ? r : (r == null ? l : zipOperation.apply(l, r)));
+  }
+
+  protected BuilderForType<T> makeStorageBuilder(long size, StorageType<?> leftType, StorageType<?> rightType) {
+    return validType.makeBuilder(size, BlackholeProblemAggregator.INSTANCE);
   }
 }

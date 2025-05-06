@@ -93,38 +93,6 @@ public final class StringStorage extends SpecializedStorage<String> {
             return TextType.concatTypes(a, b);
           }
         });
-    t.add(
-        new CoalescingStringStringOp(Maps.MIN) {
-          @Override
-          protected String doString(String a, String b) {
-            if (Text_Utils.compare_normalized(a, b) < 0) {
-              return a;
-            } else {
-              return b;
-            }
-          }
-
-          @Override
-          protected TextType computeResultType(TextType a, TextType b) {
-            return TextType.maxType(a, b);
-          }
-        });
-    t.add(
-        new CoalescingStringStringOp(Maps.MAX) {
-          @Override
-          protected String doString(String a, String b) {
-            if (Text_Utils.compare_normalized(a, b) > 0) {
-              return a;
-            } else {
-              return b;
-            }
-          }
-
-          @Override
-          protected TextType computeResultType(TextType a, TextType b) {
-            return TextType.maxType(a, b);
-          }
-        });
     return t;
   }
 
