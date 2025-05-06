@@ -121,7 +121,7 @@ public class UnusedImportsTest {
   }
 
   @Test
-  public void unusedSymbols_InTypeAscription() {
+  public void unusedSymbols_InlineSignature_Parameter() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
         """
@@ -138,6 +138,23 @@ public class UnusedImportsTest {
     compilerCtx.getCompiler().run(mainMod);
     var imp = mainMod.getIr().imports().apply(0);
     expectWarning(imp, List.of("local.Proj.Module.My_Type_2"));
+  }
+
+  @Test
+  public void unusedSymbols_InlineSignature_ReturnType() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"), """
+            type A
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            import project.Module.A
+            foo -> A = 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectNoWarnings(mainMod.getIr());
   }
 
   /** If there is no used symbol from {@code from ... import all} import, a warning is generated. */

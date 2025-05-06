@@ -14,6 +14,7 @@ import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.Name.Literal;
@@ -32,6 +33,9 @@ import org.enso.compiler.pass.analyse.AmbiguousImportsAnalysis;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.analyse.ImportSymbolAnalysis;
 import org.enso.compiler.pass.resolve.GlobalNames$;
+import org.enso.compiler.pass.resolve.TypeNames$;
+import org.enso.compiler.pass.resolve.TypeSignatures;
+import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.pkg.QualifiedName;
 import org.enso.scala.wrapper.ScalaConversions;
 import org.slf4j.Logger;
@@ -70,6 +74,8 @@ public final class UnusedImports implements MiniPassFactory {
             BindingAnalysis$.MODULE$,
             ImportSymbolAnalysis.INSTANCE,
             AmbiguousImportsAnalysis.INSTANCE,
+            TypeNames$.MODULE$,
+            TypeSignatures$.MODULE$,
             GlobalNames$.MODULE$);
     return ScalaConversions.seq(passes);
   }
@@ -207,6 +213,20 @@ public final class UnusedImports implements MiniPassFactory {
             targetModName = selfArgResolution.target().module().getName();
             var funcName = funcLiteral.name();
             targetSymbolName = targetModName.createChild(funcName);
+          }
+        }
+      } else if (expr instanceof Function.Lambda lambda) {
+        // Type Signatures are attached to the body of the lambda
+        var typeSignature =
+            MetadataInteropHelpers.getMetadataOrNull(
+                lambda.body(), TypeSignatures$.MODULE$, TypeSignatures.Signature.class);
+        if (typeSignature != null) {
+          var resolutionOnSignature =
+              MetadataInteropHelpers.getMetadataOrNull(
+                  typeSignature.signature(), TypeNames$.MODULE$, BindingsMap.Resolution.class);
+          if (resolutionOnSignature != null) {
+            targetModName = resolutionOnSignature.target().module().getName();
+            targetSymbolName = resolutionOnSignature.target().qualifiedName();
           }
         }
       } else if (resolutionMeta != null) {
