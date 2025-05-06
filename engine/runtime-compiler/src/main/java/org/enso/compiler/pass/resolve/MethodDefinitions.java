@@ -86,7 +86,7 @@ public final class MethodDefinitions implements MiniPassFactory {
   }
 
   private static boolean computeIsStatic(IR body) {
-    return Method.Explicit$.MODULE$.computeIsStatic(body);
+    return Function.computeIsStatic(body);
   }
 
   private static final class Mini extends MiniIRPass {
