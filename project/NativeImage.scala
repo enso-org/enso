@@ -332,27 +332,21 @@ object NativeImage {
         "Ensure that the dependency on `buildNativeImage` is properly set."
       )
     }
-    val bytes              = generatedBin.attributes.size()
-    val productionNIBounds = (150, 450)
-    val testNIBounds       = (110, 550)
-    val mb                 = bytes / (1024 * 1024)
-    val bounds = if (GraalVM.EnsoLauncher.release) {
-      productionNIBounds
-    } else {
-      testNIBounds
-    }
+    val bytes        = generatedBin.attributes.size()
+    val mb           = bytes / (1024 * 1024)
+    val expectedSize = GraalVM.NativeImageSize.expectedSizeForCurrentPlatform()
     val isInBounds =
-      bounds._1 <= mb && mb <= bounds._2
+      expectedSize.minMb <= mb && mb <= expectedSize.maxMb
     if (!isInBounds) {
       logger.error(
         s"Generated binary $generatedBin has unexpected size: $mb MB. " +
-        s"Expected size is between ${bounds._1} and ${bounds._2} MB."
+        s"Expected size is between ${expectedSize.minMb} and ${expectedSize.maxMb} MB."
       )
       throw new RuntimeException(s"Generated binary $generatedBin is too large")
     } else {
       logger.info(
         s"Generated binary $generatedBin size ($mb MB) " +
-        s"is within the expected size: [${bounds._1}, ${bounds._2}] MB."
+        s"is within the expected size: [${expectedSize.minMb}, ${expectedSize.maxMb}] MB."
       )
     }
   }
