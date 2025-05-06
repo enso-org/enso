@@ -349,11 +349,20 @@ public final class UnusedImports implements MiniPassFactory {
 
     private BindingsMap.ResolvedImport findResolvedImport(Import impIr) {
       for (var resolvedImp : CollectionConverters.asJava(bindingsMap.resolvedImports())) {
-        if (resolvedImp.importDef() == impIr) {
+        if (resolvedImp.importDef() == impIr || haveSameLocations(resolvedImp.importDef(), impIr)) {
           return resolvedImp;
         }
       }
       return null;
+    }
+
+    private static boolean haveSameLocations(Import imp1, Import imp2) {
+      var loc1 = imp1.identifiedLocation();
+      var loc2 = imp2.identifiedLocation();
+      if (loc1 != null && loc2 != null) {
+        return loc1.start() == loc2.start() && loc1.end() == loc2.end();
+      }
+      return false;
     }
 
     private static boolean isImportDuplicated(Import imp) {
