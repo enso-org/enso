@@ -111,7 +111,12 @@ case object FunctionBinding extends IRPass {
           location = functionBinding.location()
         )
 
-      new Expression.Binding(functionBinding, lambda)
+      Expression.Binding(
+        name               = functionBinding.name,
+        expression         = lambda,
+        identifiedLocation = functionBinding.identifiedLocation,
+        passData           = functionBinding.passData
+      )
     }
   }
 

@@ -12,6 +12,7 @@ import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
 import java.util.logging.Level;
+import org.enso.runtime.utils.ThreadUtils;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Value;
 
@@ -119,30 +120,10 @@ final class EpbContext {
   }
 
   private boolean dumpStack(int ms) {
-    var sb = new StringBuilder("Polyglot access failed. Waiting " + ms + " ms. Threaddump:\n");
-    var traces = Thread.getAllStackTraces();
-    for (var entry : traces.entrySet()) {
-      var thread = new StringBuilder();
-      thread.append(entry.getKey().getName()).append("\n");
-      var keep = false;
-      for (var e : entry.getValue()) {
-        keep |= e.getClassName().contains("com.oracle.truffle");
-        thread
-            .append("    ")
-            .append(e.getClassName())
-            .append(".")
-            .append(e.getMethodName())
-            .append("(")
-            .append(e.getFileName())
-            .append(":")
-            .append(e.getLineNumber())
-            .append(")\n");
-      }
-      if (keep) {
-        sb.append(thread.toString());
-      }
-    }
-    log(Level.WARNING, sb.toString());
+    var msg =
+        ThreadUtils.dumpAllStacktraces(
+            "Polyglot access failed. Waiting " + ms + " ms. Thread dump:");
+    log(Level.WARNING, msg);
     return true;
   }
 }

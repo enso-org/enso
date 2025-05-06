@@ -358,12 +358,14 @@ case object TailCallMegaPass extends IRPass {
     */
   def analyseCase(caseExpr: Case, isInTailPosition: Boolean): Case = {
     val newCaseExpr = caseExpr match {
-      case caseExpr @ Case.Expr(scrutinee, branches, _, _, _) =>
+      case caseExpr: Case.Expr =>
         caseExpr
           .copy(
-            scrutinee = analyseExpression(scrutinee, isInTailPosition = false),
+            scrutinee =
+              analyseExpression(caseExpr.scrutinee, isInTailPosition = false),
             // Note [Analysing Branches in Case Expressions]
-            branches = branches.map(analyseCaseBranch(_, isInTailPosition))
+            branches =
+              caseExpr.branches.map(analyseCaseBranch(_, isInTailPosition))
           )
       case _: Case.Branch =>
         throw new CompilerError("Unexpected case branch.")
@@ -397,11 +399,12 @@ case object TailCallMegaPass extends IRPass {
       isInTailPosition,
       branch
         .copy(
-          pattern = analysePattern(branch.pattern),
-          expression = analyseExpression(
+          analysePattern(branch.pattern),
+          analyseExpression(
             branch.expression,
             isInTailPosition
-          )
+          ),
+          branch.terminalBranch()
         )
     )
   }

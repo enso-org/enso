@@ -73,7 +73,7 @@ object Function {
     }
 
     def this(
-      ir: expression.Case.Expr,
+      ir: Expression,
       arguments: List[DefinitionArgument],
       body: Expression,
       identifiedLocation: IdentifiedLocation

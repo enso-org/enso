@@ -10,7 +10,8 @@ import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
 import scala.util.{Failure, Try, Using}
 
-case class CouldNotCreateDirectory(cause: Throwable) extends RuntimeException {
+case class CouldNotCreateDirectory(cause: Throwable)
+    extends RuntimeException(cause) {
   override def getMessage: String =
     s"Could not create directory: ${cause.getMessage}. Perhaps there is a permission issue."
   override def toString: String = getMessage

@@ -86,7 +86,7 @@ export default function UserBar(props: UserBarProps) {
   const topbarLinks = TOPBAR_LINKS_SCHEMA.parse(TOPBAR_LINKS)
 
   return (
-    <div className="mr-1 mt-2">
+    <div className="pt-0.5">
       <div className="flex h-full shrink-0 cursor-default items-center gap-user-bar pl-icons-x pr-2">
         <AnimatePresence initial={false}>
           {isOffline && (
