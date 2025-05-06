@@ -3,7 +3,7 @@
  *
  * A hook that returns a form instance.
  */
-import * as sentry from '@sentry/react'
+import * as sentry from '@sentry/vue'
 import * as React from 'react'
 
 import * as zodResolver from '@hookform/resolvers/zod'

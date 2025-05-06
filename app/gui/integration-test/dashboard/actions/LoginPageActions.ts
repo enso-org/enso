@@ -16,7 +16,7 @@ export default class LoginPageActions<Context> extends BaseActions<Context> {
       register: (): RegisterPageActions<Context> =>
         this.step("Go to 'register' page", async (page) => {
           await page.getByRole('link', { name: TEXT.dontHaveAnAccount, exact: true }).click()
-          await expect(page.getByText(TEXT.register)).toBeVisible()
+          await expect(page.getByRole('button', { name: TEXT.register })).toBeVisible()
         }).into(RegisterPageActions<Context>),
       forgotPassword: (): ForgotPasswordPageActions<Context> =>
         this.step("Go to 'forgot password' page", async (page) => {

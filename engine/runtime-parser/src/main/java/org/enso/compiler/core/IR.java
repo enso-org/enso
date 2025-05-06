@@ -121,7 +121,7 @@ public interface IR {
   }
 
   /**
-   * Gets the node's identifier.
+   * Gets the node's identifier. If there is none, a random {@link UUID} is generated.
    *
    * @return the node's identifier
    */

@@ -47,7 +47,8 @@ class LambdaShorthandToLambdaMini(
           case _             => false
         }
         hasBlankItem
-      case Case.Expr(_: Name.Blank, _, _, _, _) =>
+      case caseExpr: Case.Expr
+          if caseExpr.scrutinee().isInstanceOf[Name.Blank] =>
         true
       case _ => false
     }
@@ -328,7 +329,9 @@ class LambdaShorthandToLambdaMini(
         )
 
         val newCaseExpr = caseExpr.copy(
-          scrutinee = scrutineeName
+          scrutineeName,
+          caseExpr.branches(),
+          caseExpr.isNested
         )
 
         new Function.Lambda(

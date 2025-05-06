@@ -1,21 +1,21 @@
 /** @file A dropdown menu of user actions and settings. */
+import { LOGIN_PATH } from '#/appUtils'
 import { Popover, Text } from '#/components/AriaComponents'
+import { useToggleEnsoDevtools } from '#/components/Devtools'
 import MenuEntry from '#/components/MenuEntry'
+import { ProfilePicture } from '#/components/ProfilePicture'
 import FocusArea from '#/components/styled/FocusArea'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AboutModal from '#/modals/AboutModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useSetModal } from '#/providers/ModalProvider'
+import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
+import { useRouterInReact } from '$/providers/react'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
-import { useNavigate } from 'react-router-dom'
-import { LOGIN_PATH } from '../appUtils'
-import { useToggleEnsoDevtools } from '../components/Devtools'
-import { ProfilePicture } from '../components/ProfilePicture'
-import { useSessionAPI } from '../providers/SessionProvider'
 
 /** Props for a {@link UserMenu}. */
 export interface UserMenuProps {
@@ -29,7 +29,7 @@ export interface UserMenuProps {
 export default function UserMenu(props: UserMenuProps) {
   const { hidden = false, goToSettingsPage, onSignOut } = props
 
-  const navigate = useNavigate()
+  const { router } = useRouterInReact()
   const localBackend = useLocalBackend()
   const { signOut } = useSessionAPI()
   const { user } = useFullUserSession()
@@ -75,9 +75,7 @@ export default function UserMenu(props: UserMenuProps) {
         action="signOut"
         doAction={() => {
           onSignOut()
-          void signOut().then(() => {
-            navigate(LOGIN_PATH)
-          })
+          void signOut().then(() => router.push(LOGIN_PATH))
         }}
       />
     </>
