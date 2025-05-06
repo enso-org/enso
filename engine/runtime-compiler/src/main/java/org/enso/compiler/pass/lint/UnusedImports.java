@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.enso.compiler.MetadataInteropHelpers;
@@ -140,6 +141,7 @@ public final class UnusedImports implements MiniPassFactory {
     @Override
     public Module transformModule(Module moduleIr) {
       gatherUsedSymbolsFromExports(moduleIr);
+      gatherUsedSymbolsFromMethodSignatures(moduleIr);
       var usedSymbols = usedSymbolsBldr.build();
       LOGGER.trace(
           "[{}] Transforming module. Used symbols: {}",
@@ -217,13 +219,9 @@ public final class UnusedImports implements MiniPassFactory {
         }
       } else if (expr instanceof Function.Lambda lambda) {
         // Type Signatures are attached to the body of the lambda
-        var typeSignature =
-            MetadataInteropHelpers.getMetadataOrNull(
-                lambda.body(), TypeSignatures$.MODULE$, TypeSignatures.Signature.class);
+        var typeSignature = getTypeSignatureMeta(lambda.body());
         if (typeSignature != null) {
-          var resolutionOnSignature =
-              MetadataInteropHelpers.getMetadataOrNull(
-                  typeSignature.signature(), TypeNames$.MODULE$, BindingsMap.Resolution.class);
+          var resolutionOnSignature = getTypeNameMeta(typeSignature.signature());
           if (resolutionOnSignature != null) {
             targetModName = resolutionOnSignature.target().module().getName();
             targetSymbolName = resolutionOnSignature.target().qualifiedName();
@@ -236,15 +234,7 @@ public final class UnusedImports implements MiniPassFactory {
       }
 
       if (targetModName != null && targetSymbolName != null) {
-        var imports = findImportIRs(targetModName, targetSymbolName);
-        for (var imp : imports) {
-          LOGGER.trace(
-              "[{}] Adding used symbol '{}' for import '{}'",
-              bindingsMap.currentModule().getName(),
-              targetSymbolName,
-              imp.showCode());
-          usedSymbolsBldr.addUsedSymbol(imp, targetSymbolName);
-        }
+        addUsedSymbol(targetModName, targetSymbolName);
       }
       return expr;
     }
@@ -280,6 +270,42 @@ public final class UnusedImports implements MiniPassFactory {
           addToUsedSymbols(resolvedNames);
         }
       }
+    }
+
+    private void gatherUsedSymbolsFromMethodSignatures(Module modIr) {
+      var signatures = modIr.bindings().map(Mini::getTypeSignatureMeta).filter(Objects::nonNull);
+      signatures.foreach(
+          signatureMeta -> {
+            var resolution = getTypeNameMeta(signatureMeta.signature());
+            if (resolution != null) {
+              var targetModName = resolution.target().module().getName();
+              var targetSymbolName = resolution.target().qualifiedName();
+              addUsedSymbol(targetModName, targetSymbolName);
+            }
+            return null;
+          });
+    }
+
+    private void addUsedSymbol(QualifiedName modName, QualifiedName symName) {
+      var imports = findImportIRs(modName, symName);
+      for (var imp : imports) {
+        LOGGER.trace(
+            "[{}] Adding used symbol '{}' for import '{}'",
+            bindingsMap.currentModule().getName(),
+            symName,
+            imp.showCode());
+        usedSymbolsBldr.addUsedSymbol(imp, symName);
+      }
+    }
+
+    private static TypeSignatures.Signature getTypeSignatureMeta(IR ir) {
+      return MetadataInteropHelpers.getMetadataOrNull(
+          ir, TypeSignatures$.MODULE$, TypeSignatures.Signature.class);
+    }
+
+    private static BindingsMap.Resolution getTypeNameMeta(IR ir) {
+      return MetadataInteropHelpers.getMetadataOrNull(
+          ir, TypeNames$.MODULE$, BindingsMap.Resolution.class);
     }
 
     private List<ResolvedName> resolveExportedName(String name) {

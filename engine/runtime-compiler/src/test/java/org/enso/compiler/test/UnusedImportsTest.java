@@ -157,6 +157,24 @@ public class UnusedImportsTest {
     expectNoWarnings(mainMod.getIr());
   }
 
+  @Test
+  public void unusedSymbols_InTypeAscription_ReturnType() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"), """
+            type T
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            import project.Module.T
+            foo : T
+            foo t = 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectNoWarnings(mainMod.getIr());
+  }
+
   /** If there is no used symbol from {@code from ... import all} import, a warning is generated. */
   @Test
   public void noSymbolIsUsedForImportAll() {
