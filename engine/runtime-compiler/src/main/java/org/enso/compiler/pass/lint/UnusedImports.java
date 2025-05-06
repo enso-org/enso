@@ -15,10 +15,12 @@ import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.Name.Literal;
 import org.enso.compiler.core.ir.Warning;
 import org.enso.compiler.core.ir.Warning.UnusedImport;
 import org.enso.compiler.core.ir.Warning.UnusedSymbolsFromImport;
+import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.data.BindingsMap;
@@ -91,15 +93,33 @@ public final class UnusedImports implements MiniPassFactory {
           MetadataInteropHelpers.getMetadataOrNull(
               child, GlobalNames$.MODULE$, BindingsMap.Resolution.class);
       LOGGER.trace(
-          "[{}] Preparing for parent={}, child={}, resolutionMeta={}",
+          "[{}] Preparing for parent={}, child={}, child.resolutionMeta={}",
           bindingsMap.currentModule().getName(),
           parent.getClass().getName(),
           child.getClass().getName(),
           resolutionMeta);
-      if (resolutionMeta != null) {
+
+      QualifiedName targetModName = null;
+      QualifiedName targetSymbolName = null;
+      if (parent instanceof Application.Prefix app
+          && app.function() instanceof Name.Literal funcLiteral) {
+        assert !app.arguments().isEmpty() : "Should have at least one self CallArgument";
+        var selfArg = app.arguments().head();
+        var selfArgResolution =
+            MetadataInteropHelpers.getMetadataOrNull(
+                selfArg.value(), GlobalNames$.MODULE$, BindingsMap.Resolution.class);
+        if (selfArgResolution != null) {
+          targetModName = selfArgResolution.target().module().getName();
+          var funcName = funcLiteral.name();
+          targetSymbolName = targetModName.createChild(funcName);
+        }
+      } else if (resolutionMeta != null) {
         var targetMod = resolutionMeta.target().module();
-        var targetModName = targetMod.getName();
-        var targetSymbolName = resolutionMeta.target().qualifiedName();
+        targetModName = targetMod.getName();
+        targetSymbolName = resolutionMeta.target().qualifiedName();
+      }
+
+      if (targetModName != null && targetSymbolName != null) {
         var imports = findImportIRs(targetModName, targetSymbolName);
         for (var imp : imports) {
           LOGGER.trace(
@@ -110,6 +130,7 @@ public final class UnusedImports implements MiniPassFactory {
           usedSymbolsBldr.addUsedSymbol(imp, targetSymbolName);
         }
       }
+
       return this;
     }
 

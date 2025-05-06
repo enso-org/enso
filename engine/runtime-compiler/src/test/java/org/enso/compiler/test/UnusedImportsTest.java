@@ -305,6 +305,24 @@ public class UnusedImportsTest {
     expectNoWarnings(mainMod.getIr());
   }
 
+  @Test
+  public void canDetectUnusedMethods() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            method x = x + 1
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import method
+            main = method 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectNoWarnings(mainMod.getIr());
+  }
+
   private static void expectWarning(Import importIr, List<String> expectedUnusedSymbols) {
     var warn = getSingleWarning(importIr, UnusedSymbolsFromImport.class);
     var actualUnusedSymbols = CollectionConverters.asJava(warn.unusedSymbols());
@@ -317,10 +335,13 @@ public class UnusedImportsTest {
   }
 
   private static void expectNoWarnings(Module modIr) {
-    modIr.imports().foreach(imp -> {
-        expectNoWarnings(imp);
-        return null;
-    });
+    modIr
+        .imports()
+        .foreach(
+            imp -> {
+              expectNoWarnings(imp);
+              return null;
+            });
   }
 
   private static void expectNoWarnings(Import importIr) {
