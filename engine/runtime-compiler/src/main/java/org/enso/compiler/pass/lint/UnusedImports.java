@@ -26,6 +26,7 @@ import org.enso.compiler.core.ir.Warning.UnusedSymbolsFromImport;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
+import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.Resolution;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
@@ -36,6 +37,7 @@ import org.enso.compiler.pass.analyse.AmbiguousImportsAnalysis;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.analyse.ImportSymbolAnalysis;
 import org.enso.compiler.pass.resolve.GlobalNames$;
+import org.enso.compiler.pass.resolve.MethodDefinitions;
 import org.enso.compiler.pass.resolve.TypeNames$;
 import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
@@ -80,6 +82,7 @@ public final class UnusedImports implements MiniPassFactory {
             AmbiguousImportsAnalysis.INSTANCE,
             TypeNames$.MODULE$,
             TypeSignatures$.MODULE$,
+            MethodDefinitions.INSTANCE,
             GlobalNames$.MODULE$);
     return ScalaConversions.seq(passes);
   }
@@ -145,6 +148,7 @@ public final class UnusedImports implements MiniPassFactory {
     public Module transformModule(Module moduleIr) {
       gatherUsedSymbolsFromExports(moduleIr);
       gatherUsedSymbolsFromMethodSignatures(moduleIr);
+      gatherUsedSymbolsFromExtensionMethods(moduleIr);
       var usedSymbols = usedSymbolsBldr.build();
       LOGGER.trace(
           "[{}] Transforming module. Used symbols: {}",
@@ -287,6 +291,25 @@ public final class UnusedImports implements MiniPassFactory {
           });
     }
 
+    private void gatherUsedSymbolsFromExtensionMethods(Module modIr) {
+      LOGGER.trace(
+          "[{}] Gathering used symbols from extension methods",
+          bindingsMap.currentModule().getName());
+      modIr
+          .bindings()
+          .foreach(
+              binding -> {
+                if (binding instanceof Method.Explicit method) {
+                  var typePointer = method.methodReference().typePointer();
+                  if (typePointer.isDefined()) {
+                    var resolution = getMethodDefinitionsMeta(typePointer.get());
+                    addUsedSymbolForResolution(resolution);
+                  }
+                }
+                return null;
+              });
+    }
+
     private void addUsedSymbolsFromSignature(Signature signature) {
       if (signature.signature() instanceof Type.Error sigWithError) {
         var errRes = getTypeNameMeta(sigWithError.error());
@@ -327,6 +350,11 @@ public final class UnusedImports implements MiniPassFactory {
     private static BindingsMap.Resolution getTypeNameMeta(IR ir) {
       return MetadataInteropHelpers.getMetadataOrNull(
           ir, TypeNames$.MODULE$, BindingsMap.Resolution.class);
+    }
+
+    private static BindingsMap.Resolution getMethodDefinitionsMeta(IR ir) {
+      return MetadataInteropHelpers.getMetadataOrNull(
+          ir, MethodDefinitions.INSTANCE, BindingsMap.Resolution.class);
     }
 
     private List<ResolvedName> resolveExportedName(String name) {
