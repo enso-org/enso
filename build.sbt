@@ -2508,7 +2508,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`library-manager` % "test->test")
   .dependsOn(`runtime-version-manager` % "test->test")
   .dependsOn(`ydoc-polyfill`)
-  .dependsOn(`jna-wrapper` % "provided")
 
 lazy val cleanInstruments = taskKey[Unit](
   "Cleans fragile class files to force a full recompilation and preserve" +
