@@ -209,7 +209,7 @@ export interface Actions {
 }
 
 /** A helper type for all possible dropdown entries. */
-export interface Entry extends DropdownEntry {
+export interface Entry extends DropdownEntry, SubmenuEntry<Entry> {
   tag: ExpressionTag | NestedChoiceTag | ActionTag
 }
 
@@ -221,4 +221,15 @@ export function isEntry(entry: DropdownEntry): entry is Entry {
       entry.tag instanceof NestedChoiceTag ||
       entry.tag instanceof ActionTag)
   )
+}
+
+// TODO: move to other module
+export interface SubmenuEntry<T> extends DropdownEntry {
+  isNested(): boolean
+  get values(): T[]
+}
+
+/** Check if a {@link DropdownEntry} is a {@link SubmenuEntry}. */
+export function isSubmenuEntry(entry: DropdownEntry): entry is SubmenuEntry<unknown> {
+  return 'isNested' in entry && 'values' in entry
 }

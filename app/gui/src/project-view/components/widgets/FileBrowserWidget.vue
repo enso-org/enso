@@ -32,7 +32,7 @@ import Backend, {
   AssetType,
 } from 'enso-common/src/services/Backend'
 import { computed, onMounted, reactive, ref, toRef, toValue, useTemplateRef, watch } from 'vue'
-import { Entry, ExpressionTag } from '../GraphEditor/widgets/WidgetSelection/tags'
+import { SubmenuEntry } from '../GraphEditor/widgets/WidgetSelection/tags'
 
 const props = withDefaults(
   defineProps<{
@@ -318,7 +318,7 @@ const suggestions = useSuggestionDbStore()
 const projectNames = injectProjectNames()
 
 const root = useTemplateRef('root')
-const fileExtensionInput = useTemplateRef('fileExtensionInput')
+const fileExtensionInput = useTemplateRef('fileExtensionInputRoot')
 
 const rootElement = computed(() => (root.value == null ? undefined : root.value))
 const fileExtensionInputElement = computed(() =>
@@ -327,31 +327,56 @@ const fileExtensionInputElement = computed(() =>
 const fileExtensionEntries = computed(() => {
   return [
     {
-      tag: ExpressionTag.FromExpression(suggestions, projectNames, 'something'),
-      value: '*',
+      value: 'All',
+      extensions: 'all',
       selected: false,
+      isNested: () => false,
+      values: [],
     },
     {
-      tag: ExpressionTag.FromExpression(suggestions, projectNames, 'something'),
-      value: 'json',
+      value: 'Tables',
+      extensions: [],
       selected: false,
+      isNested: () => true,
+      values: [
+        {
+          value: 'Excel',
+          extensions: ['xlsx', 'xls'],
+          selected: false,
+          isNested: () => false,
+          values: [],
+        },
+        {
+          value: 'CSV',
+          extensions: ['csv'],
+          selected: false,
+          isNested: () => false,
+          values: [],
+        },
+      ],
     },
     {
-      tag: ExpressionTag.FromExpression(suggestions, projectNames, 'something'),
       value: 'xml',
+      extensions: ['xml'],
       selected: false,
+      isNested: () => false,
+      values: [],
     },
     {
-      tag: ExpressionTag.FromExpression(suggestions, projectNames, 'something'),
       value: 'csv',
+      extensions: ['csv'],
       selected: false,
+      isNested: () => false,
+      values: [],
     },
     {
-      tag: ExpressionTag.FromExpression(suggestions, projectNames, 'something'),
       value: 'txt',
+      extensions: ['txt'],
       selected: false,
+      isNested: () => false,
+      values: [],
     },
-  ]
+  ] satisfies FileExtensionEntry[]
 })
 
 const interaction = injectInteractionHandler()
@@ -382,13 +407,17 @@ function openDropdown() {
   fileExtensionInputRef.value?.select()
 }
 
-function extensionSelected(entry: Entry) {
+function extensionSelected(entry: FileExtensionEntry) {
   console.log('extension selected', entry)
   interaction.end(fileExtensionDropdownInteraction)
   if (fileExtensionInputContents.value !== entry.value) {
     filenameInputContents.value = ''
   }
-  fileExtensionInputContents.value = entry.value
+  fileExtensionInputContents.value = entry.extensions === 'all' ? '*' : entry.extensions.join(',')
+}
+
+interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
+  extensions: 'all' | string[]
 }
 </script>
 
@@ -400,7 +429,7 @@ function extensionSelected(entry: Entry) {
       :floatReference="fileExtensionInputElement"
       :show="fileExtensionDropdownOpened"
       :entries="fileExtensionEntries"
-      :selectedExpressions="new Set()"
+      :isSelected="() => false"
       :topLevel="true"
       :color="'white'"
       :backgroundColor="'var(--background-color)'"
@@ -495,7 +524,7 @@ function extensionSelected(entry: Entry) {
           @keydown.enter.stop="tryAcceptCurrentFile"
         />
         <div class="fileExtensionSeparator"></div>
-        <div ref="fileExtensionInput" class="fileExtensionInputContainer">
+        <div ref="fileExtensionInputRoot" class="fileExtensionInputContainer">
           <SvgIcon
             name="arrow_right_head_only"
             class="arrow widgetOutOfLayout"

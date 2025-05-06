@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends SubmenuEntry<T>">
 import ConditionalTeleport from '@/components/ConditionalTeleport.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import DropdownWidget, { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
@@ -6,25 +6,25 @@ import { unrefElement } from '@/composables/events'
 import { targetIsOutside } from '@/util/autoBlur'
 import { computed, ComputedRef, ref, useTemplateRef, watch } from 'vue'
 import { submenuDropdownStyles } from './styles'
-import { Entry, ExpressionTag, isEntry, NestedChoiceTag } from './tags'
+import { isSubmenuEntry, type SubmenuEntry } from './tags'
 
 const props = defineProps<{
   rootElement: HTMLElement | undefined
   floatReference: HTMLElement | undefined
   show: boolean
-  entries: Entry[]
-  selectedExpressions: Set<string>
+  entries: T[]
+  isSelected: (value: T) => boolean
   topLevel?: boolean
   color?: string | undefined
   backgroundColor?: string | undefined
 }>()
 
 const emit = defineEmits<{
-  clickedEntry: [Entry, boolean]
+  clickedEntry: [T, boolean]
 }>()
 
-export interface Submenu {
-  entries: ComputedRef<Entry[]>
+interface Submenu {
+  entries: ComputedRef<SubmenuEntry<T>[]>
   relativeTo: HTMLElement
 }
 
@@ -56,37 +56,26 @@ const { floatingStyles } = submenuDropdownStyles(
   rootElement,
 )
 
-const nestedEntriesPresent = computed(() =>
-  props.entries.some((entry) => isEntry(entry) && entry.tag instanceof NestedChoiceTag),
-)
+const nestedEntriesPresent = computed(() => props.entries.some((entry) => entry.isNested()))
 
 function resetSubmenu() {
   submenu.value = null
 }
 watch([() => props.show, () => props.entries], resetSubmenu)
 
-function nestedChoiceTagToSubmenu(tag: NestedChoiceTag, target: HTMLElement): Submenu {
-  const isSelected = (tag: ExpressionTag | NestedChoiceTag) =>
-    tag instanceof ExpressionTag && props.selectedExpressions.has(tag.expression)
-  const choiceToEntry = (choice: ExpressionTag | NestedChoiceTag): Entry => ({
-    value: choice.label,
-    selected: isSelected(choice),
-    tag: choice,
-  })
-
+function nestedEntryToSubmenu(entry: SubmenuEntry<T>, target: HTMLElement): Submenu {
   return {
-    entries: computed(() => tag.choices.map(choiceToEntry) satisfies Entry[]),
+    entries: computed(() => entry.values satisfies SubmenuEntry<T>[]),
     relativeTo: target,
   }
 }
 
 function onClick(entry: DropdownEntry, keepOpen: boolean, htmlElement: HTMLElement) {
-  if (!isEntry(entry)) return
-  const tag = entry.tag
-  if (tag instanceof NestedChoiceTag) {
-    submenu.value = nestedChoiceTagToSubmenu(tag, htmlElement)
+  if (!isSubmenuEntry(entry)) return
+  if (entry.isNested()) {
+    submenu.value = nestedEntryToSubmenu(entry as SubmenuEntry<T>, htmlElement)
   } else {
-    emit('clickedEntry', entry, keepOpen)
+    emit('clickedEntry', entry as T, keepOpen)
   }
 }
 
@@ -134,8 +123,8 @@ defineExpose({
     :rootElement="props.rootElement"
     :floatReference="submenu?.relativeTo"
     :show="props.show && submenu != null"
-    :entries="submenuEntries"
-    :selectedExpressions="props.selectedExpressions"
+    :entries="submenuEntries as T[]"
+    :isSelected="props.isSelected"
     @clickedEntry="(entry, keepOpen) => emit('clickedEntry', entry, keepOpen)"
   />
 </template>
