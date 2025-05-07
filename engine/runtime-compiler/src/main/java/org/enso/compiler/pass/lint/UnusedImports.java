@@ -505,7 +505,27 @@ public final class UnusedImports implements MiniPassFactory {
     }
 
     private Set<QualifiedName> getUsedSymbolsForImport(Import importIr) {
+      if (!symbols.containsKey(importIr)) {
+        // Try to find the import based on location.
+        // It is possible that the import was replaced by a different instance
+        // with same location.
+        return symbols.entrySet().stream()
+            .filter(entry -> haveSameLocation(entry.getKey(), importIr))
+            .map(Entry::getValue)
+            .findFirst()
+            .orElse(Set.of());
+      }
       return symbols.getOrDefault(importIr, Set.of());
+    }
+
+    private static boolean haveSameLocation(Import imp1, Import imp2) {
+      if (imp1.identifiedLocation() != null && imp2.identifiedLocation() != null) {
+        var loc1 = imp1.identifiedLocation().location();
+        var loc2 = imp2.identifiedLocation().location();
+        return loc1.equals(loc2);
+      } else {
+        return false;
+      }
     }
 
     @Override
