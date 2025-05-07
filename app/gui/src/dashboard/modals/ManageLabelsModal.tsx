@@ -143,11 +143,12 @@ function ManageLabelsForm(props: ManageLabelsModalProps) {
                   <DialogTrigger>
                     <Button
                       variant="icon"
-                      icon="trash2"
+                      icon="trash"
                       extraClickZone={false}
                       aria-label={getText('delete')}
                       tooltipPlacement="right"
-                      className="relative mr-1 flex size-4 text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
+                      showIconOnHover
+                      className="relative mr-1 flex size-4 text-delete transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
                     />
                     <ConfirmDeleteModal
                       cannotUndo
