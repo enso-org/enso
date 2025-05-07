@@ -495,7 +495,7 @@ type In_Memory_Column_Implementation
                     run_binary_op this_column fn end new_name
 
 
-    date_add this_column (amount : Column | Integer) (period : Date_Period | Time_Period = default_date_period this_column) -> Column ! Invalid_Value_Type | Illegal_Argument =
+    date_add this_column (amount : Column | Integer) (period : Date_Period | Time_Period) -> Column ! Invalid_Value_Type | Illegal_Argument =
         Value_Type.expect_type this_column .is_date_or_time "date/time" <|
             my_type = this_column.inferred_precise_value_type
             Value_Type.expect_integer amount <|
@@ -685,7 +685,7 @@ type In_Memory_Column_Implementation
     ## PRIVATE
        This is a shortcut for API compatibility.
     naming_helper : Column_Naming_Helper
-    naming_helper this_column = naming_helper
+    naming_helper _ = naming_helper
 
     compute this_column statistic:Statistic=..Count -> Any =
         Statistic.compute_bulk this_column.to_vector [statistic] . first
@@ -699,7 +699,7 @@ type In_Memory_Column_Implementation
         data = Statistic.running this_column.to_vector statistic
         Column.from_vector name data
 
-        offset this_column n=-1:Integer fill_with:Fill_With=..Nothing -> Column =
+    offset this_column n=-1:Integer fill_with:Fill_With=..Nothing -> Column =
         Offset_Helper.column_offset_impl this_column n fill_with
 
 
