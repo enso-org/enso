@@ -4,8 +4,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import java.util.List;
+import org.enso.compiler.core.ir.Empty;
+import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.core.ir.MetadataStorage;
+import org.enso.compiler.core.ir.Name;
+import org.enso.compiler.core.ir.Pattern;
+import org.enso.compiler.core.ir.expression.Case;
 import org.enso.compiler.pass.MiniIRPass;
+import org.enso.scala.wrapper.ScalaConversions;
 import org.junit.Test;
+import scala.Option;
 
 public class MiniPassTraverserTest {
   @Test
@@ -124,5 +132,33 @@ public class MiniPassTraverserTest {
     assertThat("e2 should not be transformed by any pass", e2.isTransformedByAny(), is(false));
     assertThat("e1 should be processed by both passes", e1.isTransformedBy(miniPass1), is(true));
     assertThat("e1 should be processed by both passes", e1.isTransformedBy(miniPass2), is(true));
+  }
+
+  /** MiniPassTraverser ignores Case.Branch.pattern */
+  @Test
+  public void traverseOver_CaseExpression_IgnoresPattern() {
+    var litX = literal("x");
+    var litT = literal("T");
+    var pattern = new Pattern.Type(litX, litT, null, new MetadataStorage());
+    var empty1 = emptyIr();
+    var empty2 = emptyIr();
+    var branch = Case.Branch.builder().pattern(pattern).expression(empty1).build();
+    var caseExpr =
+        Case.Expr.builder()
+            .branches(ScalaConversions.asScala(List.of(branch)))
+            .scrutinee(empty2)
+            .build();
+    var miniPass = MockMiniPass.builder().build();
+    MiniIRPass.compile(Expression.class, caseExpr, miniPass);
+    var visitedExprs = miniPass.getTransformedExpressions();
+    assertThat(visitedExprs, is(List.of(empty2, empty1, caseExpr)));
+  }
+
+  private static Name.Literal literal(String lit) {
+    return new Name.Literal(lit, false, null, Option.empty(), new MetadataStorage());
+  }
+
+  private static Empty emptyIr() {
+    return Empty.builder().build();
   }
 }
