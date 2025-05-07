@@ -83,14 +83,15 @@ pub fn download_engine_distribution(
 }
 
 pub fn unpack_engine_distribution() -> Step {
+    let extract_archive = retry_shell_command("tar -xvf built-distribution.tar");
     Step {
         name: Some("Unpack Engine Distribution".into()),
-        run: Some(
-            "tar -xvf built-distribution.tar
+        run: Some(format!(
+            "{extract_archive};
 rm built-distribution.tar
 "
-            .into(),
-        ),
+        )),
+        shell: Some(Shell::Bash),
         ..Default::default()
     }
 }
@@ -102,8 +103,7 @@ pub fn archive_engine_distribution(engine_launcher: engine::EngineLauncher) -> S
     );
     Step {
         name: Some("Archive Engine Distribution".into()),
-        run: Some(retry_shell_command(command)),
-        shell: Some(Shell::Bash),
+        run: Some(command),
         ..Default::default()
     }
 }
