@@ -1,7 +1,5 @@
 /** @file A column listing the labels on this asset. */
 
-import Plus2Icon from '#/assets/plus2.svg'
-
 import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -76,7 +74,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             showIconOnHover
             tooltip={getText('manageLabels')}
             tooltipPlacement="left"
-            icon={Plus2Icon}
+            icon="edit"
           />
           <ManageLabelsModal backend={backend} item={item} />
         </DialogTrigger>
