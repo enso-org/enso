@@ -213,6 +213,23 @@ public class UnusedImportsTest {
   }
 
   @Test
+  public void unusedSymbols_ExtensionMethod_OnModule() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"), """
+            type T
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            import project.Module
+            Module.T.extension_method = 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectNoWarnings(mainMod.getIr());
+  }
+
+  @Test
   public void unusedSymbols_ConversionMethod() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
