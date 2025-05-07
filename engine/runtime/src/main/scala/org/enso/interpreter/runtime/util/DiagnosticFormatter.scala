@@ -5,6 +5,8 @@ import fansi.Str
 import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.ir.{Diagnostic, IdentifiedLocation, Warning}
 
+import java.nio.file.Path
+
 /** Formatter of IR diagnostics. Heavily inspired by GCC. Can format one-line as well as multiline
   * diagnostics. The output is colorized if the output stream supports ANSI colors.
   * Also prints the offending lines from the source along with line number - the same way as
@@ -130,7 +132,18 @@ class DiagnosticFormatter(
   sealed trait FileLocation
   protected object FileLocation {
     case class SourcePath(path: String) extends FileLocation {
-      override def toString: String = path
+      override def toString: String =
+        try {
+          val parsedPath = Path.of(path)
+          RepositoryFinder
+            .rewritePath(parsedPath)
+            .toAbsolutePath
+            .normalize()
+            .toString
+        } catch {
+          case _: IllegalArgumentException =>
+            path
+        }
     }
     case class SourceName(name: String) extends FileLocation {
       override def toString: String = name
