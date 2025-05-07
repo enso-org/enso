@@ -7,6 +7,7 @@ from Standard.Base.Data.Statistics import check_running_support
 
 import project.Column.Column
 import project.Internal.Add_Row_Number
+import project.Internal.In_Memory_Column_Constructors
 import project.Internal.Java_Problems
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
@@ -47,5 +48,5 @@ add_running table (statistic:Statistic=Statistic.Count) (of:Text|Integer=0) (as:
                 Value_Type.expect_numeric of_col <|
                     new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                         AddRunning.create_running statistic.to_java source_java_column grouping_java_columns ordering_java_columns directions java_problem_aggregator
-                    Column.from_storage new_name new_storage
+                    In_Memory_Column_Constructors.from_storage new_name new_storage
         table.set new_column new_name set_mode

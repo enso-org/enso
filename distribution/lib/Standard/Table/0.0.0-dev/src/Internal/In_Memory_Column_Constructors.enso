@@ -1,8 +1,21 @@
 private
 
 from Standard.Base import all
+import Standard.Base.Internal.Polyglot_Helpers
 
+import project.Column.Column
 import project.In_Memory_Column.In_Memory_Column
+import project.Internal.Java_Problems
+import project.Internal.Storage
+import project.Internal.Type_Refinements.Column_Refinements
+import project.Internal.Value_Type_Helpers
+import project.Value_Type.Auto
+import project.Value_Type.Value_Type
+from project.Errors import Conversion_Failure, Invalid_Column_Names, Invalid_Value_Type
+from project.Internal.Storage import enso_to_java, java_to_enso
+
+polyglot java import org.enso.table.data.table.Column as Java_Column
+polyglot java import org.enso.table.error.ValueTypeMismatchException
 
 ## PRIVATE
    Creates a new column given a name and an internal Java storage.
@@ -53,7 +66,7 @@ from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) -> Co
             case needs_polyglot_conversion of
                 True -> Java_Column.fromItems name (enso_to_java_maybe items) expected_storage_type java_problem_aggregator
                 False -> Java_Column.fromItemsNoDateConversion name items expected_storage_type java_problem_aggregator
-        multi_result = Column.from_java_column java_column
+        multi_result = In_Memory_Column_Constructors.from_java_column java_column
         result = Warning.throw_on_warning multi_result Conversion_Failure
         if Meta.is_error result . not then result else
             result.catch Conversion_Failure error->

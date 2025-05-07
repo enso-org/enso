@@ -49,6 +49,7 @@ import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Writer
 import project.Internal.Display_Helpers
 import project.Internal.Expand_Objects_Helpers
+import project.Internal.In_Memory_Column_Constructors
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
 import project.Internal.Lookup_Helpers
@@ -347,7 +348,7 @@ type Table
     @selector Widget_Helpers.make_column_name_selector
     at self (selector : Integer | Text = 0) -> Column ! No_Such_Column | Index_Out_Of_Bounds = case selector of
         _ : Integer ->
-            Column.from_java_column (self.java_table.getColumns.at selector)
+            In_Memory_Column_Constructors.from_java_column (self.java_table.getColumns.at selector)
         _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
 
     ## ICON select_column
@@ -2597,7 +2598,7 @@ type Table
              example_columns = Examples.inventory_table.columns
     columns self -> Vector = Vector.from_polyglot_array <|
         Array_Proxy.new self.java_table.getColumns.length i->
-            Column.from_java_column (self.java_table.getColumns.at i)
+            In_Memory_Column_Constructors.from_java_column (self.java_table.getColumns.at i)
 
     ## GROUP Standard.Base.Metadata
        ICON metadata

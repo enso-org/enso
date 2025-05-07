@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Read.Many_Files_List.Many_Files_List
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Arithmetic_Error
@@ -7,12 +6,9 @@ import Standard.Base.Errors.Common.Floating_Point_Equality
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Missing_Argument
-import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
-import Standard.Base.Internal.Polyglot_Helpers
-import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
 from Standard.Base.Metadata import Display, make_single_choice
 from Standard.Base.Metadata.Widget import Numeric_Input, Text_Input
@@ -21,18 +17,15 @@ from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make
 import project.Constants.Previous_Value
 import project.Data_Formatter.Data_Formatter
 import project.Fill_With.Fill_With
-import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Date_Time_Helpers
-import project.Internal.Storage
 import project.Internal.Type_Refinements.Column_Refinements
-import project.Internal.Value_Type_Helpers
+import project.Internal.In_Memory_Column_Constructors
 import project.Internal.Widget_Helpers
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 import project.Value_Type.Auto
 import project.Value_Type.Value_Type
 from project.Errors import Conversion_Failure, Inexact_Type_Coercion, Invalid_Column_Names, Invalid_Value_Type, No_Index_Set_Error
-from project.Internal.Storage import enso_to_java, java_to_enso
 
 type Column
     private Value underlying implementation
@@ -653,7 +646,7 @@ type Column
 
              example_if = Examples.bool_column_1.iif 1 0
     iif self (when_true : Column | Any) (when_false : Column | Any) -> Column =
-        self.implementation.if self.underlying when_true when_false
+        self.implementation.iif self.underlying when_true when_false
 
     ## PRIVATE
 
@@ -1804,39 +1797,6 @@ type Column
     count_nothing self -> Integer =
         self.implementation.count_nothing self.underlying
 
-    ## PRIVATE
-       Counts the number of text values with leading or trailing whitespace.
-       Used for data quality indicator in Table Viz.
-    count_untrimmed : Integer -> Integer | Nothing
-    count_untrimmed self sample_size:Integer=Column.default_sample_size =
-        if (Column.can_contain_text self.value_type).not then Nothing else
-            CountUntrimmed.apply self.java_column sample_size
-
-    ## PRIVATE
-       Indicates if a numeric column requires formatting in table viz
-    requires_numeric_formatter_check : Boolean
-    requires_numeric_formatter_check self =
-        if (self.value_type.is_numeric).not then False else
-            RequiresNumberFormatting.apply self.java_column
-
-    ## PRIVATE
-       Counts the number of text values with non trivial whitespace.
-       Used for data quality indicator in Table Viz.
-    count_non_trivial_whitespace : Integer -> Integer | Nothing
-    count_non_trivial_whitespace self sample_size:Integer=Column.default_sample_size =
-        if (Column.can_contain_text self.value_type).not then Nothing else
-            CountNonTrivialWhitespace.apply self.java_column sample_size
-
-    ## PRIVATE
-       Determines if a value type is eligable for a text data quality count
-    private can_contain_text value_type:Value_Type -> Boolean =
-        value_type == Value_Type.Mixed || value_type.is_text
-
-    ## PRIVATE
-       Default size for sampling data quality indicators.
-    default_sample_size -> Integer =
-        SampleOperation.DEFAULT_SAMPLE_SIZE
-
     ## GROUP Standard.Base.Metadata
        ICON metadata
        Returns the number of non-null items in this column.
@@ -1929,8 +1889,8 @@ type Column
        values.
     inferred_precise_value_type : Value_Type
     inferred_precise_value_type self =
-        storage_type = self.java_column.getStorage.inferPreciseType PreciseTypeOptions.DEFAULT
-        Storage.to_value_type storage_type
+        # TODO move to some internal API
+        self.implementation.inferred_precise_value_type self.underlying
 
     ## PRIVATE
        Internal hook that says if a given column should be selected by a
@@ -2132,16 +2092,6 @@ type Column
     to_text self -> Text =
         self.implementation.to_text self.underlying
 
-    ## PRIVATE
-       Helper for the expression to tell it which functions needs a Vector.
-    var_args_functions : Vector
-    var_args_functions = ['is_in', 'coalesce', 'min', 'max']
-
-    ## PRIVATE
-       This is a shortcut for API compatibility.
-    naming_helper : Column_Naming_Helper
-    naming_helper self = naming_helper
-
     ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
        GROUP Standard.Base.Statistics
        ICON transform4
@@ -2189,14 +2139,17 @@ type Column
     offset self n=-1:Integer fill_with:Fill_With=..Nothing -> Column =
         self.implementation.offset self.underlying n fill_with
 
-
+## PRIVATE
+   Constructor to be used by implementations of the Column type to be able to provide a conversion.
+column_from_implementation value implementation =
+    Column.Value value implementation
 
 ## PRIVATE
    Conversion method to a Column from a Vector.
 Column.from (that:Vector) (name:Text="Vector") = Column.from_vector name that
 
 ## PRIVATE
-   Conversion method to a Column to a Vector.
+   Conversion method from a Column to a Vector.
 Vector.from (that:Column) = that.to_vector
 
 ## PRIVATE
@@ -2214,3 +2167,7 @@ Column.from (that:Date_Range) (name:Text=that.default_column_name) = Column.from
 
 ## PRIVATE
 Cleansable_Text.from (that:Column) = Cleansable_Text.Value (pattern->replace_with-> (that.text_replace (regex pattern) replace_with).rename that.name)
+
+## PRIVATE
+   Resolves the default date period for `date_add` depending on the source column value type.
+default_date_period column = if column.value_type.has_date then Date_Period.Day else Time_Period.Hour

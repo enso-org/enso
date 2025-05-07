@@ -1,6 +1,8 @@
 from Standard.Base import all
 
 import project.Column.Column
+import project.Internal.In_Memory_Column_Implementation.In_Memory_Column_Implementation
+from project.Column import column_from_implementation
 
 ## A column whose data is stored in memory.
 type In_Memory_Column
@@ -22,3 +24,13 @@ type In_Memory_Column
         name = self.name.pretty
         data = self.to_vector.pretty
         "Column.from_vector " + name + " " + data
+
+Column.from (that : In_Memory_Column) =
+    column_from_implementation that In_Memory_Column_Implementation
+
+In_Memory_Column.from (that : Column) =
+    if that.underlying.is_a In_Memory_Column then that.underlying else
+        Error.throw (Illegal_Argument.Error "Expected an in-memory column but got " + that.to_text)
+
+Visualization_Helpers.from (that : In_Memory_Column) =
+    Visualization_Helpers.Value that In_Memory_Visualization_Helpers
