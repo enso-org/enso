@@ -3,19 +3,7 @@ import * as text from 'enso-common/src/text'
 import { createContextStore } from '@/providers'
 import { computed, ref } from 'vue'
 
-/**
- * A function that gets localized text for a given key, with optional replacements.
- * @param key - The key of the text to get.
- * @param replacements - The replacements to insert into the text.
- * If the text contains placeholders like `$0`, `$1`, etc.,
- * they will be replaced with the corresponding replacement.
- */
-export type GetText = <K extends text.TextId>(
-  key: K,
-  ...replacements: text.Replacements[K]
-) => string
-
-export const [provideText, injectText] = createContextStore('text', () => {
+export function useText() {
   const language = ref(text.resolveUserLanguage())
   const locale = computed(() => text.LANGUAGE_TO_LOCALE[language.value])
   const localizedText = computed(() => text.getDictionary(language.value))
@@ -28,4 +16,18 @@ export const [provideText, injectText] = createContextStore('text', () => {
   }
 
   return { language, locale, getText, setLanguage }
-})
+}
+
+/**
+ * A function that gets localized text for a given key, with optional replacements.
+ * @param key - The key of the text to get.
+ * @param replacements - The replacements to insert into the text.
+ * If the text contains placeholders like `$0`, `$1`, etc.,
+ * they will be replaced with the corresponding replacement.
+ */
+export type GetText = <K extends text.TextId>(
+  key: K,
+  ...replacements: text.Replacements[K]
+) => string
+
+export const [provideText, injectText] = createContextStore('text', useText)

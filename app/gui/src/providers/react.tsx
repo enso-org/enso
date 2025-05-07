@@ -29,7 +29,7 @@ const ConfigContext = react.createContext<GuiConfig | null>(null)
 export const useConfigInReact = useInReactFunction(ConfigContext)
 
 type TextForReact = ShallowUnwrapRef<ReturnType<typeof injectText>>
-const TextContext = react.createContext<TextForReact | null>(null)
+export const TextContext = react.createContext<TextForReact | null>(null)
 export const useTextInReact = useInReactFunction(TextContext)
 
 export const HTTPClientContext = react.createContext<HttpClient | null>(null)

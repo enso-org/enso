@@ -25,6 +25,7 @@ test('drive view', ({ page }) =>
       await expect(assetsTable).toBeVisible()
     })
     .newEmptyProject()
+    .waitForEditorToLoad()
     .goToPage.drive()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(2)

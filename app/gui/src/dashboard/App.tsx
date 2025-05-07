@@ -50,7 +50,6 @@ import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
-import * as textProvider from '#/providers/TextProvider'
 
 import VersionChecker from '#/layouts/VersionChecker'
 import { RouterProvider } from 'react-aria-components'
@@ -67,7 +66,7 @@ import { useInitAuthService } from '#/authentication/service'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useBackendsInReact, useRouterInReact } from '$/providers/react'
+import { useBackendsInReact, useRouterInReact, useTextInReact } from '$/providers/react'
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -105,7 +104,7 @@ export interface AppProps {
  */
 export default function App(props: React.PropsWithChildren<AppProps>) {
   const { isOffline } = useOffline()
-  const { getText } = textProvider.useText()
+  const { getText } = useTextInReact()
   const queryClient = reactQuery.useQueryClient()
 
   const executeBackgroundUpdate = useMutationCallback({
@@ -126,7 +125,7 @@ export default function App(props: React.PropsWithChildren<AppProps>) {
     }
   }, [executeBackgroundUpdate, isOffline])
 
-  // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
+  // `InputBindingsProvider` depends on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
   return (
