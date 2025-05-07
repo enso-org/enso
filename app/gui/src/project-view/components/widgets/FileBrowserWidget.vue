@@ -17,6 +17,7 @@ import { useBackend } from '@/composables/backend'
 import { Action } from '@/providers/action'
 import { injectProjectBackend } from '@/providers/backend'
 import { injectInteractionHandler, Interaction } from '@/providers/interactionHandler'
+import { FileType } from '@/providers/widgetRegistry/configuration'
 import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert } from '@/util/assert'
@@ -39,8 +40,14 @@ const props = withDefaults(
     writeMode?: boolean
     choosenPath?: string
     type?: 'file' | 'secret'
+    fileTypes?: FileType[]
   }>(),
-  { writeMode: false, choosenPath: '', type: 'file' },
+  {
+    writeMode: false,
+    choosenPath: '',
+    type: 'file',
+    fileTypes: () => [{ label: 'All files', extensions: ['*'] }],
+  },
 )
 
 const emit = defineEmits<{
@@ -324,7 +331,24 @@ const rootElement = computed(() => (root.value == null ? undefined : root.value)
 const fileExtensionInputElement = computed(() =>
   fileExtensionInput.value == null ? undefined : fileExtensionInput.value,
 )
-const fileExtensionEntries = computed(() => {
+
+const fileExtensionEntries = computed(() =>
+  props.fileTypes.map((fileType) => {
+    const extensions =
+      fileType.extensions.length == 1 && fileType.extensions[0] === '*' ?
+        'all'
+      : (fileType.extensions as string[])
+    return {
+      value: fileType.label,
+      extensions,
+      selected: false,
+      isNested: () => false,
+      values: [],
+    } satisfies FileExtensionEntry
+  }),
+)
+
+const mockFileExtensionEntries = computed(() => {
   return [
     {
       value: 'All',

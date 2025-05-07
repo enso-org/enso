@@ -5,7 +5,7 @@ import FileBrowserWidget from '@/components/widgets/FileBrowserWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
-import { computed, h } from 'vue'
+import { Component, computed, h } from 'vue'
 import type { CustomDropdownItem } from './WidgetSelection/tags'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -24,12 +24,18 @@ const path = computed(() => {
   }
 })
 
+const fileTypes = computed(() =>
+  props.input.dynamicConfig?.kind === 'File_Browse' ?
+    props.input.dynamicConfig?.file_types
+  : undefined,
+)
+
 const item: CustomDropdownItem = {
   label: 'Choose file from cloud...',
   onClick: ({ setActivity, close }) => {
     setActivity(
       computed(() =>
-        h(FileBrowserWidget, {
+        h(FileBrowserWidget as Component, {
           writeMode: writeMode.value,
           choosenPath: path.value,
           onPathAccepted: (path: string) => {
@@ -39,6 +45,7 @@ const item: CustomDropdownItem = {
             })
             close()
           },
+          fileTypes: fileTypes.value,
         }),
       ),
       true,
