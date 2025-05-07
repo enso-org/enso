@@ -395,7 +395,10 @@ const fileExtensionDropdownInteraction: Interaction = endOnClickOutside(rootElem
 
 interaction.setWhenWithParent(
   () => fileExtensionDropdownOpened.value,
-  (parentInteraction) => ({ ...fileExtensionDropdownInteraction, parentInteraction }),
+  (parentInteraction) => {
+    fileExtensionDropdownInteraction.parentInteraction = parentInteraction
+    return fileExtensionDropdownInteraction
+  },
 )
 
 const fileExtensionInputRef = useTemplateRef('fileExtensionInput')
