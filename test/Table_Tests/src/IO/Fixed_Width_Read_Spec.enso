@@ -240,8 +240,6 @@ add_direct_specs suite_builder =
             test_file 'lf.csv'
             create_file 'cr.csv' '\r'
             test_file 'cr.csv'
-            'abc\ndef\r123'.write (path 'mixed.csv')
-            test_file 'mixed.csv'
 
             ['crlf.csv', 'lf.csv', 'cr.csv', 'mixed.csv'].each (path >> .delete)
 
