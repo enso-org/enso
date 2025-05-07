@@ -155,10 +155,9 @@ public final class UnusedImports implements MiniPassFactory {
           "[{}] Transforming module. Used symbols: {}",
           bindingsMap.currentModule().getName(),
           usedSymbols);
-      var newImports = new ArrayList<Import>();
       for (var impIr : CollectionConverters.asJava(moduleIr.imports())) {
         if (shouldImportBeSkipped(impIr)) {
-          // nop
+          continue;
         } else if (impIr instanceof Import.Module impMod && impMod.onlyNames().isDefined()) {
           var importedSymbols = importedSymbols(impIr);
           var usedSymbolsForImp = usedSymbols.getUsedSymbolsForImport(impIr);
@@ -184,17 +183,9 @@ public final class UnusedImports implements MiniPassFactory {
             impIr.getDiagnostics().add(warn);
           }
         }
-        newImports.add(impIr);
       }
-      return moduleIr.copy(
-          CollectionConverters.asScala(newImports).toList(),
-          moduleIr.exports(),
-          moduleIr.bindings(),
-          moduleIr.isPrivate(),
-          moduleIr.location(),
-          moduleIr.passData(),
-          moduleIr.diagnostics(),
-          moduleIr.id());
+      // Only warnings are potentially attached to DiagnosticStorage, nothing is replaced.
+      return moduleIr;
     }
 
     @Override
