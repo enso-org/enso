@@ -47,7 +47,7 @@ public final class BoolStorage extends Storage<Boolean>
     return new BoolStorage(new BitSet(), isNothing, checkedSize, false);
   }
 
-  private static BoolStorage makeConstant(int size, boolean r) {
+  public static BoolStorage makeConstant(int size, boolean r) {
     return new BoolStorage(new BitSet(), new BitSet(), size, r);
   }
 
@@ -124,7 +124,7 @@ public final class BoolStorage extends Storage<Boolean>
    * accordingly. If `arg` is true, new values are `values || isMissing` and if `arg` is false, new
    * values are `values && (~isMissing)`.
    */
-  private BoolStorage fillMissingBoolean(boolean arg) {
+  public BoolStorage fillMissingBoolean(boolean arg) {
     final var newValues = (BitSet) values.clone();
     if (arg != negated) {
       newValues.or(isNothing);
@@ -252,9 +252,7 @@ public final class BoolStorage extends Storage<Boolean>
         .add(new BoolLess())
         .add(new BoolLessOrEqual())
         .add(new BoolGreaterOrEqual())
-        .add(new BoolGreater())
-        .add(new BoolMin())
-        .add(new BoolMax());
+        .add(new BoolGreater());
     return ops;
   }
 
@@ -740,108 +738,6 @@ public final class BoolStorage extends Storage<Boolean>
     @Override
     protected boolean doCompare(boolean a, boolean b) {
       return a || !b;
-    }
-  }
-
-  private abstract static class BoolCoalescingOp extends BinaryMapOperation<Boolean, BoolStorage> {
-    public BoolCoalescingOp(String name) {
-      super(name);
-    }
-
-    protected abstract boolean doOperation(boolean a, boolean b);
-
-    @Override
-    public Storage<?> runZip(
-        BoolStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
-      if (arg instanceof BoolStorage argBoolStorage) {
-        long n = storage.getSize();
-        long m = Math.min(n, argBoolStorage.getSize());
-        var builder = Builder.getForBoolean(n);
-        Context context = Context.getCurrent();
-        for (long i = 0; i < n; i++) {
-          boolean isNothingA = storage.isNothing(i);
-          boolean isNothingB = i >= m || argBoolStorage.isNothing(i);
-          if (isNothingA && isNothingB) {
-            builder.appendNulls(1);
-          } else {
-            if (isNothingA) {
-              builder.appendBoolean(argBoolStorage.getItemAsBoolean(i));
-            } else if (isNothingB) {
-              builder.appendBoolean(storage.getItemAsBoolean(i));
-            } else {
-              builder.appendBoolean(
-                  doOperation(storage.getItemAsBoolean(i), argBoolStorage.getItemAsBoolean(i)));
-            }
-          }
-          context.safepoint();
-        }
-        return builder.seal();
-      } else {
-        throw new UnexpectedColumnTypeException("Boolean");
-      }
-    }
-  }
-
-  private static class BoolMin extends BoolCoalescingOp {
-    public BoolMin() {
-      super(Maps.MIN);
-    }
-
-    @Override
-    public BoolStorage runBinaryMap(
-        BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
-      if (arg == null) {
-        return storage;
-      }
-
-      if (arg instanceof Boolean b) {
-        if (b) {
-          // true is larger than false, so we want to keep values as is, and fill missing ones with
-          // true
-          return storage.fillMissingBoolean(true);
-        } else {
-          // false is smaller than everything:
-          return BoolStorage.makeConstant(storage.size, false);
-        }
-      } else {
-        throw new UnexpectedTypeException("a Boolean", arg.toString());
-      }
-    }
-
-    @Override
-    protected boolean doOperation(boolean a, boolean b) {
-      return a && b;
-    }
-  }
-
-  private static class BoolMax extends BoolCoalescingOp {
-    public BoolMax() {
-      super(Maps.MAX);
-    }
-
-    @Override
-    public BoolStorage runBinaryMap(
-        BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
-      if (arg == null) {
-        return storage;
-      }
-
-      if (arg instanceof Boolean b) {
-        if (b) {
-          // true is larger than everything:
-          return BoolStorage.makeConstant(storage.size, true);
-        } else {
-          // false is smaller than true, so we only fill null gaps with it
-          return storage.fillMissingBoolean(false);
-        }
-      } else {
-        throw new UnexpectedTypeException("a Boolean", arg.toString());
-      }
-    }
-
-    @Override
-    protected boolean doOperation(boolean a, boolean b) {
-      return a || b;
     }
   }
 }

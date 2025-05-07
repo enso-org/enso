@@ -152,7 +152,7 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
   private final StorageType<T> validType;
   private final BiFunction<T, T, T> zipOperation;
 
-  private BinaryCoalescingOperation(StorageType<T> validType, BiFunction<T, T, T> zipOperation) {
+  protected BinaryCoalescingOperation(StorageType<T> validType, BiFunction<T, T, T> zipOperation) {
     this.validType = validType;
     this.zipOperation = zipOperation;
   }
