@@ -56,7 +56,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Archive Engine Distribution
-        run: tar -cvf built-distribution.tar built-distribution test
+        run: tar -cvf built-distribution.tar built-distribution test || tar -cvf built-distribution.tar built-distribution test
+        shell: bash
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
@@ -116,7 +117,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Archive Engine Distribution
-        run: tar -cvf built-distribution.tar built-distribution test
+        run: tar -cvf built-distribution.tar built-distribution test || tar -cvf built-distribution.tar built-distribution test
+        shell: bash
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
@@ -174,7 +176,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Archive Engine Distribution
-        run: tar -cvf built-distribution.tar built-distribution test
+        run: tar -cvf built-distribution.tar built-distribution test || tar -cvf built-distribution.tar built-distribution test
+        shell: bash
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
@@ -233,7 +236,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Archive Engine Distribution
-        run: tar -cvf built-distribution.tar built-distribution test
+        run: tar -cvf built-distribution.tar built-distribution test || tar -cvf built-distribution.tar built-distribution test
+        shell: bash
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
@@ -292,7 +296,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Archive Engine Distribution
-        run: tar -cvf built-distribution.tar built-distribution test
+        run: tar -cvf built-distribution.tar built-distribution test || tar -cvf built-distribution.tar built-distribution test
+        shell: bash
       - name: Upload Engine Distribution
         uses: actions/upload-artifact@v4
         with:
