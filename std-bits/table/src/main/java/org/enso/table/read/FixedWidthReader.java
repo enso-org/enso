@@ -1,12 +1,13 @@
 package org.enso.table.read;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.base.encoding.DecodingProblemAggregator;
+import org.enso.base.encoding.ReportingStreamDecoder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.Storage;
@@ -26,6 +27,7 @@ public class FixedWidthReader {
   private final long rowLimit;
   private InvalidFixedWidthRowsBehavior invalidRowsBehavior;
   private DatatypeParser valueParser;
+  private final DecodingProblemAggregator decodingProblemAggregator;
   private FixedWidthReaderProblemAggregator problemAggregator;
 
   private List<BuilderForType<String>> builders = null;
@@ -43,6 +45,7 @@ public class FixedWidthReader {
       InvalidFixedWidthRowsBehavior invalidRowsBehavior,
       DatatypeParser valueParser,
       boolean warningsAsErrors,
+      DecodingProblemAggregator decodingProblemAggregator,
       ProblemAggregator problemAggregator) {
 
     if (layoutEntries.isEmpty()) {
@@ -54,6 +57,7 @@ public class FixedWidthReader {
     this.rowLimit = rowLimit;
     this.invalidRowsBehavior = invalidRowsBehavior;
     this.valueParser = valueParser;
+    this.decodingProblemAggregator = decodingProblemAggregator;
     this.problemAggregator =
         new FixedWidthReaderProblemAggregator(
             problemAggregator, invalidRowsBehavior, warningsAsErrors);
@@ -80,7 +84,7 @@ public class FixedWidthReader {
   
   // lineLength is the length of the actual line from the input stream, which
   // might be larger than minimumLineLength and the buffer capacity.
-  private void addRow(byte[] line, int lineLength) {
+  private void addRow(byte[] line, int lineLength) throws IOException {
     if (firstLine) {
       firstLine = false;
       firstLineLength = lineLength;
@@ -109,9 +113,9 @@ public class FixedWidthReader {
       var startPosition = Math.min(lineLength, entry.start());
       var endPosition = Math.min(lineLength, entry.end());
       var actualWidth = endPosition - startPosition;
-      ByteBuffer bb = ByteBuffer.wrap(line, startPosition, actualWidth);
-      CharBuffer cb = charset.decode(bb);
-      String value = cb.toString();
+      var baos = new ByteArrayInputStream(line, startPosition, actualWidth);
+      var reportingStreamDecoder = new ReportingStreamDecoder(baos, charset, decodingProblemAggregator, false);
+      String value = reportingStreamDecoder.readAllIntoMemory();
 
       if (entry.end() > lineLength) {
         assert invalidRowsBehavior == InvalidFixedWidthRowsBehavior.KEEP;
