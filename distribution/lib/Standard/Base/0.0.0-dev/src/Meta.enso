@@ -415,7 +415,7 @@ Type.from (that:Any) =
        # found a type
        t: Type -> t
        # Java or co. type isn't an Enso type, use Any
-       p: Polyglot -> Type.Value Any
+       _: Polyglot -> Type.Value Any
        # everything else is an error
        _ -> Base_Error.throw
            Private_Access.Error Nothing Nothing "meta" "Doesn't represent a Type"
