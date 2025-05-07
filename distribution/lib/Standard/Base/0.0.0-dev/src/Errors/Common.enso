@@ -357,7 +357,7 @@ type Private_Access
        Convert the Private_Access error to a human-readable format.
     to_display_text : Text
     to_display_text self =
-        if self.msg.is_nothing then self.default_to_text else self.msg
+        self.msg.if_nothing self.default_to_text
 
     private default_to_text self =
         this_proj = if self.this_project_name.is_nothing then "unknown project" else "project '"+self.this_project_name+"'"
