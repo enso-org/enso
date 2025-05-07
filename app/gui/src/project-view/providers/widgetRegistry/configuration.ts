@@ -69,7 +69,7 @@ const fileTypeSchema: z.ZodType<FileType> = z.object({
 })
 
 export type FileType = {
-  label: string | null
+  label: string
   extensions: string[] | FileType[]
   icon?: string | null | undefined
 }
