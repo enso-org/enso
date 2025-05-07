@@ -14,8 +14,8 @@ import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Suspense } from 'react'
 import { Result } from 'ts-results'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { SessionProvider } from '.'
 import { HttpClientProvider } from '../HttpClientProvider'
-import SessionProvider from '../SessionProvider'
 
 class MockAuthService implements ISessionProvider {
   saveAccessToken = vi.fn()

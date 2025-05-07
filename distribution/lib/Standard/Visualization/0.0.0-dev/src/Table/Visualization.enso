@@ -30,17 +30,10 @@ prepare_visualization y max_rows=1000 = if y.is_error then (make_json_for_error 
         v : Row -> make_json_for_row v
         t : Table ->
             all_rows_count = t.row_count
-            make_json_for_table t max_rows all_rows_count False
-        c : Column -> prepare_visualization c.to_table max_rows
-        t : DB_Table ->
-            dataframe = t.read (..First max_rows)
-            case dataframe.is_error of
-                False ->
-                    all_rows_count = t.row_count
-                    make_json_for_table dataframe max_rows all_rows_count True
-                True ->
-                    JS_Object.from_pairs [["error", 'Error querying the database:\n' + dataframe.catch.to_display_text]] . to_text
-        c : DB_Column -> prepare_visualization c.to_table max_rows
+            make_json_for_table t max_rows all_rows_count False False
+        c : Column -> make_json_for_table c.to_table max_rows c.length False True
+        t : DB_Table -> _make_json_for_db_table t max_rows is_column=False
+        c : DB_Column -> _make_json_for_db_table c.to_table max_rows is_column=True
         f : Function ->
             pairs = [['_display_text_', '[Function '+f.to_text+']']]
             value = JS_Object.from_pairs pairs
@@ -185,6 +178,16 @@ make_json_for_xml_element xml_element max_items type:Text="XML_Element" =
     get_child_node_fields = if type == "XML_Element" then [["get_child_node_action", "get"], ["get_child_node_link_name", "key"], ["link_value_type", "number"]] else [["get_child_node_action", "get_child_element"], ["get_child_node_link_name", "key"], ["link_value_type", "number"]]
     JS_Object.from_pairs <| [header, data, all_rows, ["type", type]] + get_child_node_fields
 
+
+private _make_json_for_db_table t max_rows is_column =
+    dataframe = t.read (..First max_rows)
+    case dataframe.is_error of
+        False ->
+            all_rows_count = t.row_count
+            make_json_for_table dataframe max_rows all_rows_count True is_column
+        True ->
+            JS_Object.from_pairs [["error", 'Error querying the database:\n' + dataframe.catch.to_display_text]] . to_text
+
 ## PRIVATE
    Creates a JSON representation for the visualizations.
 
@@ -193,17 +196,19 @@ make_json_for_xml_element xml_element max_items type:Text="XML_Element" =
      to display.
    - all_rows_count: the number of all rows in the underlying data, useful if
      only a fragment is displayed.
-make_json_for_table : Table -> Integer -> Integer -> Boolean -> JS_Object
-make_json_for_table dataframe max_rows all_rows_count is_db_table =
+make_json_for_table : Table -> Integer -> Integer -> Boolean -> Boolean -> JS_Object
+make_json_for_table dataframe max_rows all_rows_count is_db_table is_column =
     act_max = if max_rows < all_rows_count then max_rows else all_rows_count
-    get_vector c         = Warning.set (Vector.new act_max i-> make_json_for_value (c.get i)) []
-    columns              = dataframe.columns
-    header               = ["header", columns.map .name]
-    value_type           = ["value_type", columns.map .value_type]
-    all_rows             = ["all_rows_count", all_rows_count]
-    has_index_col        = ["has_index_col", True]
-    links                = ["get_child_node_action", "get_row"]
-    child_label          = ["child_label", "row"]
+    get_vector c          = Warning.set (Vector.new act_max i-> make_json_for_value (c.get i)) []
+    columns               = dataframe.columns
+    header                = ["header", columns.map .name]
+    value_type            = ["value_type", columns.map .value_type]
+    all_rows              = ["all_rows_count", all_rows_count]
+    has_index_col         = ["has_index_col", True]
+    links                 = ["get_child_node_action", if is_column then "at" else "get_row"]
+    use_bottom_status_bar = ["use_bottom_status_bar", if is_db_table then False else True]
+    enable_create_node    = ["enable_create_node", if is_column then False else True]
+    child_label           = ["child_label", "row"]
     is_using_server_model = if is_db_table then False else all_rows_count > 1000
     data                 = if is_using_server_model.not then columns.map get_vector else Nothing
     requires_number_formatting = ["requires_number_format", columns.map .requires_numeric_formatter_check]
@@ -216,7 +221,7 @@ make_json_for_table dataframe max_rows all_rows_count is_db_table =
         number_non_triv = JS_Object.from_pairs [["name", "Count non trivial whitespace" + sampled_label], ["percentage_value", columns.map .count_non_trivial_whitespace]]
         JS_Object.from_pairs
         [number_nothing, number_untrimmed, number_non_triv]
-    pairs                = [header, value_type, ["data", data], all_rows, has_index_col, links, ["data_quality_metrics", data_quality_metrics] ,["type", "Table"], child_label, ["is_using_server_sort_and_filter", is_using_server_model], requires_number_formatting, table_version_hash]
+    pairs                = [header, value_type, ["data", data], all_rows, has_index_col, links, use_bottom_status_bar, enable_create_node, ["data_quality_metrics", data_quality_metrics] ,["type", "EnsoTableOrColumn"], child_label, ["is_using_server_sort_and_filter", is_using_server_model], requires_number_formatting, table_version_hash]
     JS_Object.from_pairs pairs
 
 ## PRIVATE
