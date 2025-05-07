@@ -6,7 +6,8 @@ import com.github.plokhotnyuk.jsoniter_scala.macros._
 import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsScala}
 
 object ApiMessage {
-  private val KIND = "Telemetry"
+  private val TELEMETRY_KIND = "Telemetry"
+  private val ENGINE_KIND = "Engine"
 
   implicit val payloadCodec: JsonValueCodec[Payload] =
     JsonCodecMaker.make[Payload](CodecMakerConfig.withAllowRecursiveTypes(true))
@@ -74,11 +75,18 @@ object ApiMessage {
     metadata: Map[String, Any]
   )
 
-  def createLog(
+  def createTelemetryLog(
     message: String,
     metadata: java.util.Map[String, Object]
   ): Log = {
-    Log(message, KIND, metadata.asScala.toMap)
+    Log(message, TELEMETRY_KIND, metadata.asScala.toMap)
+  }
+
+  def createEngineLog(
+                     message: String,
+                     args: java.util.Map[String, Object]
+                     ): Log = {
+    Log(message, ENGINE_KIND, args.asScala.toMap)
   }
 
   def createPayload(

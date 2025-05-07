@@ -9,16 +9,13 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ThreadPoolExecutor;
-import org.enso.logging.service.telemetry.ApiMessage.Log;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** Responsible for sending {@link LogMessage} to the endpoint asynchronously. */
-public final class LogJobsProcessor {
+public abstract class LogJobsProcessor {
   /**
    * We still want to limit the batch size to some reasonable number - sending too many logs in one
    * request could also be problematic.
@@ -26,7 +23,7 @@ public final class LogJobsProcessor {
   private static final int MAX_BATCH_SIZE = 100;
 
   private static final int MAX_RETRIES = 5;
-  private static final Logger LOGGER = LoggerFactory.getLogger(LogJobsProcessor.class);
+  protected final Logger logger;
 
   /**
    * The amount of time before the token expiration. Determines whether the token should be
@@ -40,16 +37,21 @@ public final class LogJobsProcessor {
   private final TokenRefresher tokenRefresher;
   private AuthenticationData authenticationData;
   private HttpClient httpClient;
+  private final boolean logConnectionFailures;
 
   public LogJobsProcessor(
       ThreadPoolExecutor executor,
       URI endpoint,
       AuthenticationData authenticationData,
-      TokenRefresher tokenRefresher) {
+      TokenRefresher tokenRefresher,
+      boolean logConnectionFailures,
+      Logger logger) {
     this.backgroundThreadService = Objects.requireNonNull(executor);
     this.endpoint = Objects.requireNonNull(endpoint);
     this.authenticationData = Objects.requireNonNull(authenticationData);
     this.tokenRefresher = Objects.requireNonNull(tokenRefresher);
+    this.logConnectionFailures = logConnectionFailures;
+    this.logger = logger;
   }
 
   /*
@@ -86,11 +88,11 @@ public final class LogJobsProcessor {
       }
 
       if (accessTokenNeedsRefresh()) {
-        LOGGER.debug("Refreshing access token");
+        logger.trace("Refreshing access token");
         var refreshedAuthData = fetchNewAccessToken();
         if (refreshedAuthData != null) {
           authenticationData = refreshedAuthData;
-          LOGGER.trace(
+          logger.trace(
               "Token refreshed successfully. New expiration: {}", authenticationData.expireAt());
         } else {
           notifyJobsAboutFailure(
@@ -114,7 +116,7 @@ public final class LogJobsProcessor {
     try {
       var request = buildRequest(batch);
       if (request == null) {
-        LOGGER.warn("Failed to build request for log messages. Skipping {} messages", batch.size());
+        logger.warn("Failed to build request for log messages. Skipping {} messages", batch.size());
         throw new RequestFailureException("Cannot build request", null);
       }
       sendLogRequest(request, MAX_RETRIES);
@@ -125,7 +127,9 @@ public final class LogJobsProcessor {
   }
 
   private void notifyJobsAboutFailure(List<LogJob> logJobs, RequestFailureException exception) {
-    LOGGER.warn("Failed to send {} log messages", logJobs.size(), exception);
+    if (logConnectionFailures) {
+      logger.warn("Failed to send {} log messages", logJobs.size(), exception);
+    }
     for (var job : logJobs) {
       if (job.completionNofitication() != null) {
         job.completionNofitication().completeExceptionally(exception);
@@ -134,7 +138,7 @@ public final class LogJobsProcessor {
   }
 
   private void notifyJobsAboutSuccess(List<LogJob> logJobs) {
-    LOGGER.trace("Successfully sent {} log messages", logJobs.size());
+    logger.trace("Successfully sent {} log messages", logJobs.size());
     for (var logJob : logJobs) {
       if (logJob.completionNofitication() != null) {
         logJob.completionNofitication().complete(null);
@@ -155,31 +159,10 @@ public final class LogJobsProcessor {
     }
   }
 
-  /**
-   * Transforms the given log events into JSON payloads.
-   *
-   * @return null if none of the log events could be transformed into a payload.
-   */
-  private String buildPayload(List<LogJob> logJobs) {
-    var logs = new ArrayList<Log>();
-    for (var logJob : logJobs) {
-      var payloadForLogEvent = LogFormatter.transform(logJob.message());
-      if (payloadForLogEvent != null) {
-        logs.add(payloadForLogEvent);
-      }
-    }
-    if (logs.size() != logJobs.size()) {
-      LOGGER.warn("Failed to build payload for some log events");
-    }
-    if (logs.isEmpty()) {
-      return null;
-    } else {
-      var payload = ApiMessage.createPayload(logs);
-      return ApiMessage.serializePayload(payload);
-    }
-  }
+  protected abstract String buildPayload(List<LogJob> logJobs);
 
-  private void sendLogRequest(HttpRequest request, int retryCount) throws RequestFailureException {
+  protected void sendLogRequest(HttpRequest request, int retryCount)
+      throws RequestFailureException {
     assert request != null;
     try {
       try {
@@ -198,10 +181,14 @@ public final class LogJobsProcessor {
       }
     } catch (RequestFailureException e) {
       if (retryCount < 0) {
-        LOGGER.debug("Failed to send log messages after retrying", e);
+        if (logConnectionFailures) {
+          logger.debug("Failed to send log messages after retrying", e);
+        }
         throw e;
       } else {
-        LOGGER.debug("Exception when sending log messages. Retrying...", e);
+        if (logConnectionFailures) {
+          logger.trace("Exception when sending log messages. Retrying...", e);
+        }
         sendLogRequest(request, retryCount - 1);
       }
     }
@@ -213,7 +200,7 @@ public final class LogJobsProcessor {
       if (refreshedAuthData != null) {
         return refreshedAuthData;
       } else {
-        LOGGER.warn("Failed to refresh token. Retrying... (attempt {}/{})", i + 1, MAX_RETRIES);
+        logger.warn("Failed to refresh token. Retrying... (attempt {}/{})", i + 1, MAX_RETRIES);
       }
     }
     return null;
@@ -224,7 +211,7 @@ public final class LogJobsProcessor {
     var inEarlyFuture = now.plus(TOKEN_EARLY_REFRESH_PERIOD);
     var expiration = authenticationData.expireAt();
     var res = inEarlyFuture.compareTo(expiration) > 0;
-    LOGGER.trace(
+    logger.trace(
         "Token needs refresh: {}. Current time (plus early refresh period): {}, expiration: {}",
         res,
         inEarlyFuture,

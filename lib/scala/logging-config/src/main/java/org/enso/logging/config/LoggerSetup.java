@@ -1,5 +1,6 @@
 package org.enso.logging.config;
 
+import java.net.URI;
 import java.nio.file.Path;
 import java.util.ServiceLoader;
 import org.slf4j.event.Level;
@@ -75,7 +76,10 @@ public abstract class LoggerSetup {
    */
   public abstract boolean setupSentryAppender(Level logLevel, Path logRoot);
 
-  public abstract boolean setupTelemetryAppender();
+  public abstract boolean setupTelemetryAppender(boolean logConnectionFailures);
+
+  public abstract boolean setupOpenSearchAppender(
+      Level logLevel, URI logsEndpoint, boolean logConnectionFailures);
 
   /**
    * Sets up loggers so that all events are being discarded.

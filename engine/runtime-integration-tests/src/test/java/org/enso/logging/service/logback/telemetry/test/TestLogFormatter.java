@@ -13,8 +13,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import org.enso.logging.service.telemetry.ApiMessage;
-import org.enso.logging.service.telemetry.LogFormatter;
 import org.enso.logging.service.telemetry.LogMessage;
+import org.enso.logging.service.telemetry.TelemetryLogFormatter;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -22,35 +22,35 @@ public class TestLogFormatter {
   @Test
   public void shouldNotTransformLog_WithIncorrectMessage() {
     var logMessage = createLogMessage("Message - arg={}", 1);
-    var json = LogFormatter.transform(logMessage);
+    var json = TelemetryLogFormatter.transform(logMessage);
     assertThat("was not transformed", json, is(nullValue()));
   }
 
   @Test
   public void shouldNotTransformLog_WithoutArguments() {
     var logMessage = createLogMessage("Message: arg={}");
-    var json = LogFormatter.transform(logMessage);
+    var json = TelemetryLogFormatter.transform(logMessage);
     assertThat("was not transformed", json, is(nullValue()));
   }
 
   @Test
   public void shouldNotTransformLog_WithRestrictedMetadata() {
     var logMessage = createLogMessage("Message: type={}", 1);
-    var json = LogFormatter.transform(logMessage);
+    var json = TelemetryLogFormatter.transform(logMessage);
     assertThat("was not transformed", json, is(nullValue()));
   }
 
   @Test
   public void shouldNotTransformLog_WithoutArguments_InMessage() {
     var logMessage = createLogMessage("Message", 1);
-    var json = LogFormatter.transform(logMessage);
+    var json = TelemetryLogFormatter.transform(logMessage);
     assertThat("was not transformed", json, is(nullValue()));
   }
 
   @Test
   public void shouldNotTransformLog_WithIncorrectArgumentDelimiter() {
     var logMessage = createLogMessage("Message: arg1={}; arg2={}", 2);
-    var json = LogFormatter.transform(logMessage);
+    var json = TelemetryLogFormatter.transform(logMessage);
     assertThat("was not transformed", json, is(nullValue()));
   }
 
@@ -132,7 +132,7 @@ public class TestLogFormatter {
   }
 
   private static String serialize(LogMessage logMessage) {
-    var log = LogFormatter.transform(logMessage);
+    var log = TelemetryLogFormatter.transform(logMessage);
     var payload = ApiMessage.createPayload(List.of(log));
     return ApiMessage.serializePayload(payload);
   }

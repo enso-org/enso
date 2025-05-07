@@ -25,10 +25,10 @@ import org.slf4j.LoggerFactory;
  * <p>Note that it is important that all the {@link ILoggingEvent#getArgumentArray() arguments}
  * passed to the log event are {@link java.io.Serializable serializable}.
  */
-public final class LogFormatter {
-  private LogFormatter() {}
+public final class TelemetryLogFormatter {
+  private TelemetryLogFormatter() {}
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(LogFormatter.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TelemetryLogFormatter.class);
   private static final Set<String> RESTRICTED_METADATA = Set.of("type", "loggerName");
   private static final String MESSAGE_DELIMITER = ":";
   private static final String ARGS_DELIMITER = ",";
@@ -62,8 +62,7 @@ public final class LogFormatter {
       return null;
     }
     var metadata = constructMetadata(logMessage.arguments(), arguments, logMessage);
-    var payload = ApiMessage.createLog(msg, metadata);
-    return payload;
+    return ApiMessage.createTelemetryLog(msg, metadata);
   }
 
   private static List<Argument> parseArguments(String argsStr) {
@@ -84,7 +83,9 @@ public final class LogFormatter {
   private static String logEventToString(LogMessage msg) {
     return String.format(
         "{loggerName='%s', message='%s', arguments=%s}",
-        msg.loggerName(), msg.message(), Arrays.toString(msg.arguments()));
+        msg.loggerName(),
+        msg.message(),
+        msg.arguments() == null ? "[]" : Arrays.toString(msg.arguments()));
   }
 
   private static Map<String, Object> constructMetadata(

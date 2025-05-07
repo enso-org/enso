@@ -12,6 +12,7 @@ import ch.qos.logback.core.filter.Filter;
 import ch.qos.logback.core.helpers.NOPAppender;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
+import ch.qos.logback.core.spi.FilterReply;
 import ch.qos.logback.core.util.Duration;
 import ch.qos.logback.core.util.FileSize;
 import io.sentry.SentryLevel;
@@ -26,12 +27,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.enso.logging.config.Appender;
-import org.enso.logging.config.BaseConfig;
-import org.enso.logging.config.LoggerSetup;
-import org.enso.logging.config.LoggersLevels;
-import org.enso.logging.config.LoggingServiceConfig;
-import org.enso.logging.config.MissingConfigurationField;
+import org.enso.logging.config.*;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
@@ -311,9 +307,9 @@ public final class LogbackSetup extends LoggerSetup {
   }
 
   @Override
-  public boolean setupTelemetryAppender() {
+  public boolean setupTelemetryAppender(boolean logConnectionFailures) {
     LoggerAndContext env = contextInit(Level.DEBUG, config, false);
-    TelemetryAppender telemetryAppender;
+    RemoteAppender telemetryAppender;
     try {
       telemetryAppender = TelemetryAppender.load();
     } catch (Exception e) {
@@ -334,6 +330,7 @@ public final class LogbackSetup extends LoggerSetup {
     // If the thread is idle for 60 seconds, it will be shut down.
     var executor = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
     telemetryAppender.setExecutor(executor);
+    telemetryAppender.setLogConnectionFailures(logConnectionFailures);
 
     var telemetryLogger = env.ctx.getLogger("org.enso.telemetry");
     telemetryLogger.addAppender(telemetryAppender);
@@ -341,6 +338,41 @@ public final class LogbackSetup extends LoggerSetup {
 
     telemetryAppender.setContext(env.ctx);
     telemetryAppender.start();
+    return true;
+  }
+
+  @Override
+  public boolean setupOpenSearchAppender(
+      Level logLevel, URI logsEndpoint, boolean logConnectionFailures) {
+    LoggerAndContext env = contextInit(logLevel, config, false);
+    RemoteAppender openSearchAppender;
+    try {
+      openSearchAppender = OpenSearchAppender.load();
+    } catch (Exception e) {
+      return false;
+    }
+    openSearchAppender.setName("engine-remote");
+    openSearchAppender.setEndpoint(logsEndpoint);
+    openSearchAppender.setLogConnectionFailures(logConnectionFailures);
+
+    // We set-up a thread 'pool' that will contain at most one thread.
+    // If the thread is idle for 60 seconds, it will be shut down.
+    var executor = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+    openSearchAppender.setExecutor(executor);
+    var filter =
+        new Filter<ILoggingEvent>() {
+          @Override
+          public FilterReply decide(ILoggingEvent event) {
+            var exclude =
+                event.getLoggerName().startsWith("org.enso.telemetry")
+                    || event.getLoggerName().startsWith("org.enso.logging.service");
+            return exclude ? FilterReply.DENY : FilterReply.NEUTRAL;
+          }
+        };
+    filter.setContext(env.ctx);
+    filter.start();
+    openSearchAppender.addFilter(filter);
+    env.finalizeAppender(openSearchAppender);
     return true;
   }
 
@@ -367,10 +399,7 @@ public final class LogbackSetup extends LoggerSetup {
   public void teardown() {
     context().stop();
     var logLevelOnShutdown =
-        config
-            .getLogLevel()
-            .map(name -> Level.valueOf(name.toUpperCase()))
-            .orElseGet(() -> Level.ERROR);
+        config.getLogLevel().map(name -> Level.valueOf(name.toUpperCase())).orElse(Level.ERROR);
     setupConsoleAppender(logLevelOnShutdown);
   }
 

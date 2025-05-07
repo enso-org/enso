@@ -20,6 +20,7 @@ import org.enso.logging.service.telemetry.Credentials;
 import org.enso.logging.service.telemetry.LogJob;
 import org.enso.logging.service.telemetry.LogJobsProcessor;
 import org.enso.logging.service.telemetry.LogMessage;
+import org.enso.logging.service.telemetry.TelemetryLogJobsProcessor;
 import org.enso.logging.service.telemetry.TokenRefresher;
 import org.enso.shttp.HybridHTTPServer;
 import org.enso.testkit.RetryTestRule;
@@ -52,7 +53,8 @@ public class TestTelemetry {
     tokenRefresher =
         new TokenRefresher(refreshUri, credentials.clientId(), credentials.refreshToken());
     var authData = AuthenticationData.fromCredentials(credentials);
-    logJobsProcessor = new LogJobsProcessor(logProcessorExecutor, logUri, authData, tokenRefresher);
+    logJobsProcessor =
+        new TelemetryLogJobsProcessor(logProcessorExecutor, logUri, authData, tokenRefresher, true);
     server.start();
   }
 
@@ -128,11 +130,12 @@ public class TestTelemetry {
         new TokenRefresher(
             refreshUri, invalidCredentials.clientId(), invalidCredentials.refreshToken());
     logJobsProcessor =
-        new LogJobsProcessor(
+        new TelemetryLogJobsProcessor(
             logProcessorExecutor,
             logUri,
             AuthenticationData.fromCredentials(invalidCredentials),
-            tokenRefresher);
+            tokenRefresher,
+            false);
     var message = new LogMessage("TestLogger", "msg: name={}", new Object[] {"Pavel"});
     var notification = new CompletableFuture<Void>();
     var job = new LogJob(message, notification);
@@ -154,11 +157,12 @@ public class TestTelemetry {
         new TokenRefresher(
             refreshUri, expiredCredentials.clientId(), expiredCredentials.refreshToken());
     logJobsProcessor =
-        new LogJobsProcessor(
+        new TelemetryLogJobsProcessor(
             logProcessorExecutor,
             logUri,
             AuthenticationData.fromCredentials(expiredCredentials),
-            tokenRefresher);
+            tokenRefresher,
+            true);
 
     // Ensure that the two messages are not sent in the batch - the two messages must be sent
     // in different requests so that we really check that the token was not refreshed twice.

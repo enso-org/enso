@@ -18,6 +18,7 @@ import org.enso.logging.service.telemetry.AuthenticationData;
 import org.enso.logging.service.telemetry.LogJob;
 import org.enso.logging.service.telemetry.LogJobsProcessor;
 import org.enso.logging.service.telemetry.LogMessage;
+import org.enso.logging.service.telemetry.TelemetryLogJobsProcessor;
 import org.enso.logging.service.telemetry.TokenRefresher;
 import org.enso.testkit.RetryTestRule;
 import org.junit.After;
@@ -46,7 +47,8 @@ public class TestTelemetryBrokenServer {
             Utils.refreshUri(port), credentials.clientId(), credentials.refreshToken());
     var authData = AuthenticationData.fromCredentials(credentials);
     logJobsProcessor =
-        new LogJobsProcessor(logProcessorExecutor, Utils.logUri(port), authData, tokenRefresher);
+        new TelemetryLogJobsProcessor(
+            logProcessorExecutor, Utils.logUri(port), authData, tokenRefresher, true);
   }
 
   @After
