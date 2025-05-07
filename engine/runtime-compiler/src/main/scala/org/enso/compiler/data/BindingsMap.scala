@@ -734,13 +734,18 @@ object BindingsMap {
     override val name: String,
     params: Seq[String],
     members: Seq[Cons],
-    builtinType: Boolean
+    builtinType: Boolean,
+    isPrivate: Boolean
   ) extends DefinedEntity {
     override def canExport: Boolean = true
   }
 
   object Type {
-    def fromIr(ir: Definition.Type, isBuiltinType: Boolean): Type =
+    def fromIr(
+      ir: Definition.Type,
+      isBuiltinType: Boolean,
+      isPrivate: Boolean
+    ): Type =
       BindingsMap.Type(
         ir.name.name,
         ir.params.map(_.name.name),
@@ -756,7 +761,8 @@ object BindingsMap {
             m.isPrivate
           )
         ),
-        isBuiltinType
+        isBuiltinType,
+        isPrivate
       )
   }
 

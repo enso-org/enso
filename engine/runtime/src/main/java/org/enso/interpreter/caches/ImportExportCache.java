@@ -196,7 +196,6 @@ public final class ImportExportCache
   @Persistable(
       clazz = org.enso.compiler.data.BindingsMap$ModuleReference$Abstract.class,
       id = 33007)
-  @Persistable(clazz = BindingsMap.Type.class, id = 33009)
   @Persistable(clazz = BindingsMap.ResolvedImport.class, id = 33010)
   @Persistable(clazz = BindingsMap.Cons.class, id = 33011)
   @Persistable(clazz = BindingsMap.ResolvedModule.class, id = 33012)
@@ -213,10 +212,11 @@ public final class ImportExportCache
   @Persistable(clazz = BindingsMap.ExtensionMethod.class, id = 33023)
   @Persistable(clazz = BindingsMap.ConversionMethod.class, id = 33024)
   @Persistable(clazz = BindingsMap.Argument.class, id = 33025)
+  @Persistable(clazz = BindingsMap.Type.class, id = 33026)
   @Persistable(id = 33055)
   public static final class PersistBindingsMap extends Persistance<BindingsMap> {
     public PersistBindingsMap() {
-      super(BindingsMap.class, false, 33005);
+      super(BindingsMap.class, false, 33055);
     }
 
     @Override

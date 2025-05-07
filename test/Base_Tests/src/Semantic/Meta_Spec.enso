@@ -98,6 +98,28 @@ add_specs suite_builder =
             Meta.meta (List.Cons 1 List.Nil) . constructor . fields . should_equal ["x", "xs"]
 
         group_builder.specify "prevent getting value from private constructor" <|
+            # constructor of a type defined in
+            cons = Public_Type.cons
+
+            # obtaining meta for constructor fails
+            meta = Meta.meta cons
+            meta . should_fail_with Private_Access
+
+            # the constructor call fails too
+            Panic.recover Any (cons 42) . should_fail_with Private_Access
+
+        group_builder.specify "prevent getting value from constructor in private module" <|
+            # constructor of a type defined in
+            cons = Public_Type.implicit_cons
+
+            # obtaining meta for constructor fails
+            meta = Meta.meta cons
+            meta . should_fail_with Private_Access
+
+            # the constructor call fails too
+            Panic.recover Any (cons 42) . should_fail_with Private_Access
+
+        group_builder.specify "prevent getting value from private constructor" <|
             atom = Public_Type.new 6*7
             meta = Meta.meta atom
 
