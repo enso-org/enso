@@ -410,4 +410,12 @@ is_polyglot value -> Boolean = 3 == Meta_Helpers.get_kind_builtin value
    - value: the value to get the type of
 Type.from (that:Any) =
    typ = Meta_Helpers.type_of_value_or_type that
-   Meta.meta typ
+   meta = Meta.meta typ
+   case meta of
+       # found a type
+       t: Type -> t
+       # Java or co. type isn't an Enso type, use Any
+       p: Polyglot -> Type.Value Any
+       # everything else is an error
+       _ -> Base_Error.throw
+           Private_Access.Error Nothing Nothing "meta" "Doesn't represent a Type"
