@@ -15,6 +15,7 @@ import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.test.mock.WithCompilerContext;
 import org.enso.pkg.QualifiedName;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import scala.jdk.javaapi.CollectionConverters;
@@ -502,6 +503,121 @@ public class UnusedImportsTest {
             polyglot java import java.lang.StringBuilder
             polyglot java import java.lang.Double
             main = 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectNoWarnings(mainMod.getIr());
+  }
+
+  // TODO
+  @Ignore
+  @Test
+  public void usedSymbol_InCaseBranch_TypePattern() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"), """
+            type T
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            import project.Module.T
+            foo x =
+                case x of
+                    t: T -> t
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectNoWarnings(mainMod.getIr());
+  }
+
+  // TODO
+  @Ignore
+  @Test
+  public void usedSymbol_InCaseBranch_Constructor() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type T
+                Cons
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module.T import Cons
+            foo x =
+                case x of
+                    Cons -> 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectNoWarnings(mainMod.getIr());
+  }
+
+  // TODO
+  @Ignore
+  @Test
+  public void usedSymbol_ExtensionMethod_ViaImportAll() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"), """
+            type T
+            """);
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Extensions"),
+        """
+            import project.Module.T
+            T.extension_method = 42
+            """);
+
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Extensions import all
+            foo x = x.extension_method
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectNoWarnings(mainMod.getIr());
+  }
+
+  // TODO
+  @Ignore
+  @Test
+  public void usedSymbol_InAnnotation_MethodCall() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"), """
+            type T
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            import project.Module.T
+            @annotation T.method
+            foo = 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectNoWarnings(mainMod.getIr());
+  }
+
+  // TODO
+  @Ignore
+  @Test
+  public void usedSymbol_InAnnotation_Expression() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type T
+                Cons
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            import project.Module.T
+
+            method x = x
+
+            @annotation (method x=T.Cons)
+            foo = 42
             """);
     compilerCtx.getCompiler().run(mainMod);
     expectNoWarnings(mainMod.getIr());
