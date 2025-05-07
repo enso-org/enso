@@ -62,6 +62,18 @@ export type FlattenedChoice = {
   icon?: string | null | undefined
 }
 
+const fileTypeSchema: z.ZodType<FileType> = z.object({
+  label: z.string(),
+  extensions: z.lazy(() => z.union([z.array(z.string()), z.array(fileTypeSchema)])),
+  icon: z.string().nullable().optional(),
+})
+
+export type FileType = {
+  label: string | null
+  extensions: string[] | FileType[]
+  icon?: string | null | undefined
+}
+
 /**
  * An external configuration for a widget retreived from the language server.
  *
@@ -120,6 +132,7 @@ export interface FolderBrowse {
 export interface FileBrowse {
   kind: 'File_Browse'
   existing_only?: boolean | undefined
+  file_types?: FileType[] | undefined
 }
 
 export interface SecretBrowse {
@@ -201,7 +214,11 @@ export const widgetConfigurationSchema: z.ZodType<
     z.object({ kind: z.literal('Text_Input'), syntax: z.string().optional() }).merge(withDisplay),
     z.object({ kind: z.literal('Folder_Browse') }).merge(withDisplay),
     z
-      .object({ kind: z.literal('File_Browse'), existing_only: z.boolean().optional() })
+      .object({
+        kind: z.literal('File_Browse'),
+        existing_only: z.boolean().optional(),
+        file_types: z.array(fileTypeSchema),
+      })
       .merge(withDisplay),
     z.object({ kind: z.literal('Secret_Browse') }).merge(withDisplay),
     /* eslint-enable camelcase */
