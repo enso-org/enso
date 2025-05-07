@@ -433,6 +433,20 @@ public class UnusedImportsTest {
     expectNoWarnings(mainMod.getIr());
   }
 
+  @Test
+  public void polyglotImports_AreIgnored() {
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            polyglot java import java.lang.StringBuilder
+            polyglot java import java.lang.Double
+            main = 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectNoWarnings(mainMod.getIr());
+  }
+
   private static void expectWarning(Import importIr, List<String> expectedUnusedSymbols) {
     var warn = getSingleWarning(importIr, UnusedSymbolsFromImport.class);
     var actualUnusedSymbols = CollectionConverters.asJava(warn.unusedSymbols());

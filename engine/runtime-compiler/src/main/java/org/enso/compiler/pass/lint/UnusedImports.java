@@ -27,6 +27,7 @@ import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
+import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.Resolution;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
@@ -156,7 +157,7 @@ public final class UnusedImports implements MiniPassFactory {
           usedSymbols);
       var newImports = new ArrayList<Import>();
       for (var impIr : CollectionConverters.asJava(moduleIr.imports())) {
-        if (isImportDuplicated(impIr)) {
+        if (shouldImportBeSkipped(impIr)) {
           // nop
         } else if (impIr instanceof Import.Module impMod && impMod.onlyNames().isDefined()) {
           var importedSymbols = importedSymbols(impIr);
@@ -477,6 +478,10 @@ public final class UnusedImports implements MiniPassFactory {
         return loc1.start() == loc2.start() && loc1.end() == loc2.end();
       }
       return false;
+    }
+
+    private static boolean shouldImportBeSkipped(Import imp) {
+      return isImportDuplicated(imp) || imp instanceof Polyglot;
     }
 
     private static boolean isImportDuplicated(Import imp) {
