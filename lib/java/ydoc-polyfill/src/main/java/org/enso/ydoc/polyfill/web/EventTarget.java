@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import org.enso.ydoc.polyfill.Arguments;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.proxy.ProxyArray;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,8 +87,24 @@ final class EventTarget implements ProxyExecutable {
       this.listeners = listeners;
     }
 
-    public Value[] getEventListeners(String type) {
-      return listeners.getOrDefault(type, Set.of()).toArray(new Value[0]);
+    public ProxyArray getEventListeners(String type) {
+      var arr = listeners.getOrDefault(type, Set.of()).toArray(new Value[0]);
+      return new ProxyArray() {
+        @Override
+        public Object get(long index) {
+          return arr[(int) index];
+        }
+
+        @Override
+        public void set(long index, Value value) {
+          throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public long getSize() {
+          return arr.length;
+        }
+      };
     }
 
     public void addEventListener(String type, Value listener) {
