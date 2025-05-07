@@ -74,6 +74,16 @@ export default defineConfig({
     holdUntilCrawlEnd: true,
   },
   server: {
+    warmup: {
+      // Warming server up ***significantly*** speeds up execution of the first batch of tests in dev mode.
+      clientFiles: [
+        './src/**/*.vue',
+        './src/**/*.tsx',
+        './src/dashboard/hooks/**/*.ts',
+        './src/dashboard/tailwind.css',
+        './node_modules/@tanstack/**/*.js',
+      ],
+    },
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Resource-Policy': 'same-origin',
@@ -87,6 +97,7 @@ export default defineConfig({
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src/project-view', import.meta.url)),
       '#': fileURLToPath(new URL('./src/dashboard', import.meta.url)),
+      $: fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   envPrefix: 'ENSO_IDE_',

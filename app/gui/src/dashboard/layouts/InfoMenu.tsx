@@ -1,18 +1,16 @@
 /** @file A menu containing info about the app. */
-import { PRODUCT_NAME } from 'enso-common'
-
+import { LOGIN_PATH } from '#/appUtils'
 import LogoIcon from '#/assets/enso_logo.svg'
 import { Popover, Text } from '#/components/AriaComponents'
 import MenuEntry from '#/components/MenuEntry'
-import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 import AboutModal from '#/modals/AboutModal'
 import { useAuth } from '#/providers/AuthProvider'
 import { useSetModal } from '#/providers/ModalProvider'
-import { useSessionAPI } from '#/providers/SessionProvider.tsx'
+import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
-import { useNavigate } from 'react-router-dom'
-import { LOGIN_PATH } from '../appUtils'
+import { useRouterInReact } from '$/providers/react'
+import { PRODUCT_NAME } from 'enso-common'
 
 /** Props for an {@link InfoMenu}. */
 export interface InfoMenuProps {
@@ -23,7 +21,7 @@ export interface InfoMenuProps {
 export default function InfoMenu(props: InfoMenuProps) {
   const { hidden = false } = props
 
-  const navigate = useNavigate()
+  const { router } = useRouterInReact()
   const { signOut } = useSessionAPI()
   const { session } = useAuth()
   const { setModal } = useSetModal()
@@ -35,32 +33,20 @@ export default function InfoMenu(props: InfoMenuProps) {
         <SvgMask src={LogoIcon} className="pointer-events-none h-7 w-7 text-primary" />
         <Text>{PRODUCT_NAME}</Text>
       </div>
-      <FocusArea direction="vertical">
-        {(innerProps) => (
-          <div
-            aria-label={getText('infoMenuLabel')}
-            className="flex flex-col overflow-hidden"
-            {...innerProps}
-          >
-            <MenuEntry
-              action="aboutThisApp"
-              doAction={() => {
-                setModal(<AboutModal />)
-              }}
-            />
-            {session && (
-              <MenuEntry
-                action="signOut"
-                doAction={() =>
-                  signOut().then(() => {
-                    navigate(LOGIN_PATH)
-                  })
-                }
-              />
-            )}
-          </div>
+      <div aria-label={getText('infoMenuLabel')} className="flex flex-col overflow-hidden">
+        <MenuEntry
+          action="aboutThisApp"
+          doAction={() => {
+            setModal(<AboutModal />)
+          }}
+        />
+        {session && (
+          <MenuEntry
+            action="signOut"
+            doAction={() => signOut().then(() => router.push(LOGIN_PATH))}
+          />
         )}
-      </FocusArea>
+      </div>
     </Popover>
   )
 }

@@ -20,6 +20,7 @@ import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import invariant from 'tiny-invariant'
 import { z } from 'zod'
+import { extractTypeAndId } from './LocalBackend'
 
 /** HTTP status indicating that the request was successful. */
 const STATUS_SUCCESS_FIRST = 200
@@ -468,15 +469,18 @@ export default class RemoteBackend extends Backend {
   override async getOrganization(): Promise<backend.OrganizationInfo | null> {
     const path = remoteBackendPaths.GET_ORGANIZATION_PATH
     const response = await this.get<backend.OrganizationInfo>(path)
+
     if ([STATUS_NOT_ALLOWED, STATUS_NOT_FOUND].includes(response.status)) {
       // Organization info has not yet been created.
       // or the user is not eligible to create an organization.
       return null
-    } else if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'getOrganizationBackendError')
-    } else {
-      return await response.json()
     }
+
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'getOrganizationBackendError')
+    }
+
+    return await response.json()
   }
 
   /** Update details for the current organization. */
@@ -750,11 +754,15 @@ export default class RemoteBackend extends Backend {
    * Restore an arbitrary asset from the trash.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  override async undoDeleteAsset(assetId: backend.AssetId, title: string): Promise<void> {
+  override async undoDeleteAsset(
+    assetId: backend.AssetId,
+    parentDirectoryId: backend.DirectoryId | null,
+  ): Promise<void> {
     const path = remoteBackendPaths.UNDO_DELETE_ASSET_PATH
-    const response = await this.patch(path, { assetId })
+    const response = await this.patch(path, { assetId, parentDirectoryId })
+
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'undoDeleteAssetBackendError', title)
+      return await this.throw(response, 'undoDeleteAssetBackendError')
     } else {
       return
     }
@@ -1462,13 +1470,24 @@ export default class RemoteBackend extends Backend {
   }
 
   /** List events in the organization's audit log. */
-  override async getLogEvents(): Promise<backend.Event[]> {
+  override async getLogEvents(
+    params: backend.GetLogEventsRequestParams,
+  ): Promise<readonly backend.AuditLogEvent[]> {
     /** The type of the response body of this endpoint. */
     interface ResponseBody {
-      readonly events: backend.Event[]
+      readonly events: backend.AuditLogEvent[]
     }
 
-    const path = remoteBackendPaths.GET_LOG_EVENTS_PATH
+    const paramsString = new URLSearchParams({
+      /* eslint-disable @typescript-eslint/naming-convention, camelcase */
+      ...(params.userEmail != null ? { user_email: params.userEmail } : {}),
+      ...(params.startDate != null ? { start_date: params.startDate } : {}),
+      ...(params.endDate != null ? { end_date: params.endDate } : {}),
+      ...(params.from != null ? { from: String(params.from) } : {}),
+      ...(params.pageSize != null ? { page_size: String(params.pageSize) } : {}),
+      /* eslint-enable @typescript-eslint/naming-convention, camelcase */
+    }).toString()
+    const path = `${remoteBackendPaths.GET_LOG_EVENTS_PATH}?${paramsString}`
     const response = await this.get<ResponseBody>(path)
     if (!responseIsSuccessful(response)) {
       return this.throw(response, 'getLogEventsBackendError')
@@ -1507,32 +1526,56 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Download an asset. */
-  override async download(id: backend.AssetId, title: string) {
+  override async download(
+    id: backend.AssetId,
+    title: string,
+    targetDirectoryId: backend.DirectoryId | null,
+    shouldUnpackProject = true,
+  ) {
     const asset = backend.extractTypeFromId(id)
+    const { id: targetPath } =
+      targetDirectoryId ? extractTypeAndId(targetDirectoryId) : { id: null }
+
     switch (asset.type) {
       case backend.AssetType.project: {
         const details = await this.getProjectDetails(asset.id, true)
         invariant(details.url != null, 'The download URL of the project must be present.')
-        download.download(details.url, `${title}.enso-project`)
+        await download.download({
+          url: details.url,
+          name: `${title}.enso-project`,
+          electronOptions: {
+            shouldUnpackProject,
+            path: targetPath,
+          },
+        })
         break
       }
       case backend.AssetType.file: {
         const details = await this.getFileDetails(asset.id, title, true)
         invariant(details.url != null, 'The download URL of the file must be present.')
-        download.download(details.url, details.file.fileName ?? '')
+        await download.download({
+          url: details.url,
+          name: details.file.fileName ?? '',
+          electronOptions: {
+            path: targetPath,
+          },
+        })
         break
       }
       case backend.AssetType.datalink: {
         const value = await this.getDatalink(asset.id, title)
         const fileName = `${title}.datalink`
-        download.download(
-          URL.createObjectURL(
+        await download.download({
+          url: URL.createObjectURL(
             new File([JSON.stringify(value)], fileName, {
               type: 'application/json+x-enso-data-link',
             }),
           ),
-          fileName,
-        )
+          name: fileName,
+          electronOptions: {
+            path: targetPath,
+          },
+        })
         break
       }
       case backend.AssetType.secret:

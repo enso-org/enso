@@ -746,12 +746,17 @@ export enum FilterBy {
 }
 
 /** An event in an audit log. */
-export interface Event {
+export interface AuditLogEvent {
   readonly organizationId: OrganizationId
   readonly userEmail: EmailAddress
   readonly timestamp: dateTime.Rfc3339DateTime | null
-  // Called `EventKind` in the backend.
-  readonly metadata: EventMetadata
+  /** The type is called `EventType` in the backend. */
+  readonly metadata: EventMetadata | null
+  readonly message: string | null
+  readonly projectId: ProjectId | null
+  readonly url: string | null
+  readonly method: string | null
+  readonly lambdaKind: string | null
 }
 
 /** Possible types of event in an audit log. */
@@ -761,6 +766,8 @@ export enum EventType {
   ListSecrets = 'listSecrets',
   OpenProject = 'openProject',
   UploadFile = 'uploadFile',
+  Lib = 'lib',
+  Telemetry = 'telemetry',
 }
 
 export const EVENT_TYPES = Object.freeze(Object.values(EventType))
@@ -791,6 +798,16 @@ interface UploadFileEventMetadata {
   readonly type: EventType.UploadFile
 }
 
+/** An event indicating that an action was performed by the Standard libraries. */
+interface LibEventMetadata {
+  readonly type: EventType.Lib
+}
+
+/** An event indicating telemetry data sent from the IDE. */
+interface TelemetryEventMetadata {
+  readonly type: EventType.Telemetry
+}
+
 /** All possible types of metadata for an event in the audit log. */
 export type EventMetadata =
   | DeleteAssetsEventMetadata
@@ -798,6 +815,8 @@ export type EventMetadata =
   | ListSecretsEventMetadata
   | OpenProjectEventMetadata
   | UploadFileEventMetadata
+  | LibEventMetadata
+  | TelemetryEventMetadata
 
 /** A color in the LCh colorspace. */
 export interface LChColor {
@@ -1038,6 +1057,7 @@ export function createPlaceholderFileAsset(title: string, parentId: DirectoryId)
     extension: fileExtension(title),
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1054,6 +1074,7 @@ export function createPlaceholderProjectAsset(title: string, parentId: Directory
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1073,6 +1094,7 @@ export function createPlaceholderDirectoryAsset(
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1089,6 +1111,7 @@ export function createPlaceholderSecretAsset(title: string, parentId: DirectoryI
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1108,6 +1131,7 @@ export function createPlaceholderDatalinkAsset(
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1127,6 +1151,7 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1151,6 +1176,7 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1175,6 +1201,7 @@ export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorA
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
+    ensoPath: EnsoPath(''),
   }
 }
 
@@ -1294,7 +1321,7 @@ export interface S3ObjectVersion {
 export interface OtherUser {
   readonly name: string
   readonly email: EmailAddress
-  readonly profilePicture: HttpsUrl | null
+  readonly profilePicture?: HttpsUrl | null
 }
 
 /** A list of asset versions. */
@@ -1413,7 +1440,7 @@ export interface CreateProjectRequestBody {
   readonly projectName: string
   readonly projectTemplateName?: string
   readonly parentDirectoryId?: DirectoryId
-  readonly datalinkId?: DatalinkId
+  readonly ensoPath?: string
 }
 
 /**
@@ -1517,6 +1544,16 @@ export interface CreateCheckoutSessionRequestBody {
   readonly paymentMethodId: string
   readonly quantity: number
   readonly interval: number
+}
+
+/** URL query string parameters for the "get log events" endpoint. */
+export interface GetLogEventsRequestParams {
+  readonly userEmail?: EmailAddress | null | undefined
+  readonly startDate?: dateTime.Rfc3339DateTime | null | undefined
+  readonly endDate?: dateTime.Rfc3339DateTime | null | undefined
+  /** Pagination offset */
+  readonly from?: number | null | undefined
+  readonly pageSize?: number | null | undefined
 }
 
 /** URL query string parameters for the "list directory" endpoint. */
@@ -1707,22 +1744,40 @@ export function doesTitleContainInvalidCharacters(name: string) {
   return name.includes('/') || name.includes('\\') || name.includes('..')
 }
 
+/** A regex for matching hybrid project directories. */
+export const HYBRID_PROJECT_DIRECTORY_MASK = /^cloud-project-\w+$/
+
+/** A list of regexes for matching invalid names. */
+const INVALID_NAME_MASKS = [HYBRID_PROJECT_DIRECTORY_MASK]
+
+/**
+ * Check if the title contains invalid names.
+ */
+export function doesContainInvalidNames(title: string) {
+  return INVALID_NAME_MASKS.some((mask) => mask.test(title))
+}
+
 /**
  * A Zod schema for validating a title.
  */
 export function titleSchema(options: TitleSchemaOptions) {
   const { asset, siblings } = options
 
+  const dictionary = resolveDictionary()
+
   return z
     .string()
     .trim()
     .min(1)
     .max(512)
-    .refine((value) => isNewTitleUnique(asset, value, siblings), {
-      message: getText(resolveDictionary(), 'nameShouldBeUnique'),
+    .refine((value) => !doesContainInvalidNames(value), {
+      message: getText(dictionary, 'nameShouldNotContainInvalidCharacters'),
     })
     .refine((value) => !doesTitleContainInvalidCharacters(value), {
-      message: getText(resolveDictionary(), 'nameShouldNotContainInvalidCharacters'),
+      message: getText(dictionary, 'nameShouldNotContainInvalidCharacters'),
+    })
+    .refine((value) => isNewTitleUnique(asset, value, siblings), {
+      message: getText(dictionary, 'nameShouldBeUnique'),
     })
 }
 
@@ -1843,7 +1898,7 @@ export default abstract class Backend {
   /** Delete an arbitrary asset. */
   abstract deleteAsset(assetId: AssetId, body: DeleteAssetRequestBody, title: string): Promise<void>
   /** Restore an arbitrary asset from the trash. */
-  abstract undoDeleteAsset(assetId: AssetId, title: string): Promise<void>
+  abstract undoDeleteAsset(assetId: AssetId, parentDirectoryId: DirectoryId | null): Promise<void>
   /** Copy an arbitrary asset to another directory. */
   abstract copyAsset(assetId: AssetId, parentDirectoryId: DirectoryId): Promise<CopyAssetResponse>
   /** Return a list of projects belonging to the current user. */
@@ -1978,7 +2033,7 @@ export default abstract class Backend {
   /** Get the status of a payment checkout session. */
   abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
   /** List events in the organization's audit log. */
-  abstract getLogEvents(): Promise<readonly Event[]>
+  abstract getLogEvents(options: GetLogEventsRequestParams): Promise<readonly AuditLogEvent[]>
   /** Log an event that will be visible in the organization audit log. */
   abstract logEvent(
     message: string,
@@ -1986,7 +2041,12 @@ export default abstract class Backend {
     metadata?: object | null,
   ): Promise<void>
   /** Download an asset. */
-  abstract download(assetId: AssetId, title: string): Promise<void>
+  abstract download(
+    assetId: AssetId,
+    title: string,
+    targetDirectoryId: DirectoryId | null,
+    shouldUnpackProject?: boolean,
+  ): Promise<void>
 
   /**
    * Get the URL for the customer portal.

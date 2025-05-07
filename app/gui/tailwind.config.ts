@@ -9,7 +9,7 @@ const HERE_PATH = fileURLToPath(new URL('.', import.meta.url))
 
 // The names come from a third-party API and cannot be changed.
 export default {
-  content: [`${HERE_PATH}/src/**/*.tsx`, `${HERE_PATH}/src/**/*.ts`],
+  content: [`${HERE_PATH}/src/**/*.tsx`, `${HERE_PATH}/src/**/*.ts`, `${HERE_PATH}/src/**/*.vue`],
   theme: {
     extend: {
       cursor: {
@@ -187,7 +187,6 @@ export default {
         'paragraph-input': 'var(--paragraph-input-height)',
         'manage-permissions-modal-permissions-list':
           'var(--manage-permissions-modal-permissions-list-height)',
-        'manage-labels-list': 'var(--manage-labels-list-height)',
         'search-suggestions-list': 'var(--search-suggestions-list-height)',
       },
       minHeight: ({ theme }) => ({ ...theme('height') }),
@@ -231,7 +230,6 @@ export default {
         'name-column-icon': 'var(--name-column-icon-gap)',
         'permission-type-button': 'var(--permission-type-button-gap)',
         'modal-tabs': 'var(--modal-tabs-gap)',
-        'context-menus': 'var(--context-menus-gap)',
         'asset-panel': 'var(--asset-panel-gap)',
         'search-suggestions': 'var(--search-suggestions-gap)',
         'chat-buttons': 'var(--chat-buttons-gap)',
@@ -472,7 +470,7 @@ inset 0 -36px 51px -51px #00000014`,
             '@apply outline-offset-0': '',
           },
           '.drop-target-after': {
-            '@apply relative after:pointer-events-none after:absolute after:inset after:rounded-inherit [&[data-drop-target=true]]:after:bg-primary/10':
+            '@apply relative after:pointer-events-none before:pointer-events-none before:outline before:outline-transparent before:outline-offset-2 before:transition-all before:absolute before:inset before:rounded-inherit [&[data-drop-target=true]]:before:bg-primary/5 [&[data-drop-target=true]]:before:outline-primary/40 [&[data-drop-target=true]]:before:-outline-offset-1':
               '',
           },
 

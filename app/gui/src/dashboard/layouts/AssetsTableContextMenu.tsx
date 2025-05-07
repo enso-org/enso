@@ -13,7 +13,6 @@ import {
   type Category,
   isCloudCategory,
 } from '#/layouts/CategorySwitcher/Category'
-import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
@@ -24,18 +23,25 @@ import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
 import { Separator } from '#/components/AriaComponents'
+import { ContextMenuEntry as PaywallContextMenuEntry } from '#/components/Paywall'
 import {
   deleteAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
+import { useUploadFileToCloudMutation } from '#/hooks/backendUploadFilesHooks'
 import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useUser } from '#/providers/AuthProvider'
+import { useLocalBackend } from '#/providers/BackendProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
+import { extractTypeAndId } from '#/services/LocalBackend'
 import { useMutation } from '@tanstack/react-query'
+import invariant from 'tiny-invariant'
 import { twJoin } from '../utilities/tailwindMerge'
+import { GlobalContextMenu } from './GlobalContextMenu'
 
 /** Props for an {@link AssetsTableContextMenu}. */
 export interface AssetsTableContextMenuProps {
@@ -73,6 +79,8 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { setModal, unsetModal } = useSetModal()
   const { getText } = useText()
 
+  const localBackend = useLocalBackend()
+  const user = useUser()
   const isCloud = isCloudCategory(category)
   const getAsset = useGetAsset()
   const selectedAssets = useSelectedAssets()
@@ -82,6 +90,31 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const restoreAssetsMutation = useMutation(restoreAssetsMutationOptions(backend))
   const showDeveloperIds = useFeatureFlag('showDeveloperIds')
   const copyMutation = useCopy()
+  const uploadFileToCloudMutation = useUploadFileToCloudMutation()
+
+  const canUploadToCloud = user.plan !== backendModule.Plan.free
+
+  const canUploadAllProjectsToCloud = useStore(
+    driveStore,
+    (state) =>
+      !isCloud &&
+      [...state.selectedIds].every(
+        (id) => extractTypeAndId(id).type === backendModule.AssetType.project,
+      ),
+  )
+
+  const uploadFilesToCloudCallback = useEventCallback(async () => {
+    invariant(localBackend != null, 'Cannot upload to cloud when not on Local backend')
+    const selectedIds = [...driveStore.getState().selectedIds]
+    const files = selectedIds.flatMap((id) => {
+      const asset = getAsset(id)
+      return asset ? [asset] : []
+    })
+    await uploadFileToCloudMutation(localBackend, {
+      assets: [...files],
+      targetDirectoryId: user.rootDirectoryId,
+    })
+  })
 
   const hasPasteData = useStore(driveStore, ({ pasteData }) => {
     const effectivePasteData =
@@ -91,7 +124,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       ) ?
         pasteData
       : null
-    return (effectivePasteData?.data.ids.size ?? 0) > 0
+    return (effectivePasteData?.data.assets.length ?? 0) > 0
   })
 
   // This is not a React component even though it contains JSX.
@@ -120,7 +153,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
               getText('deleteSelectedAssetActionText', soleAssetName)
             : getText('deleteSelectedAssetsActionText', selectedIds.length)
           }
-          doDelete={deleteAll}
+          onConfirm={deleteAll}
         />,
       )
     }
@@ -167,7 +200,10 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             label={getText('restoreAllFromTrashShortcut')}
             doAction={() => {
               unsetModal()
-              restoreAssetsMutation.mutate(selectedAssets.map((asset) => asset.id))
+              restoreAssetsMutation.mutate({
+                ids: selectedAssets.map((asset) => asset.id),
+                parentId: null,
+              })
             }}
           />
           <ContextMenuEntry
@@ -185,7 +221,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                       getText('deleteSelectedAssetForeverActionText', soleAssetName)
                     : getText('deleteSelectedAssetsForeverActionText', selectedAssets.length)
                   }
-                  doDelete={async () => {
+                  onConfirm={async () => {
                     setSelectedAssets([])
                     await deleteAssetsMutation.mutateAsync([
                       selectedAssets.map((otherAsset) => otherAsset.id),
@@ -226,6 +262,16 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             action="delete"
             label={isCloud ? getText('moveAllToTrashShortcut') : getText('deleteAllShortcut')}
             doAction={doDeleteAll}
+          />
+        )}
+        {selectedAssets.length !== 0 && canUploadAllProjectsToCloud && (
+          <PaywallContextMenuEntry
+            hidden={hidden}
+            isUnderPaywall={!canUploadToCloud}
+            action="uploadToCloud"
+            feature="uploadToCloud"
+            label={getText('uploadAllToCloudShortcut')}
+            doAction={uploadFilesToCloudCallback}
           />
         )}
         {selectedAssets.length !== 0 && isCloud && (

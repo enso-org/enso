@@ -1,7 +1,7 @@
 ## Enso Signatures 1.0
 ## module Standard.Base.Meta
 - type Atom
-    - constructor self -> Standard.Base.Meta.Constructor
+    - constructor self -> Standard.Base.Meta.Constructor!Standard.Base.Errors.Common.Private_Access
     - fields self -> (Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)
     - value self -> Standard.Base.Any.Any
 - type Constructor
@@ -22,7 +22,7 @@
     - value self -> Standard.Base.Any.Any
 - type Type
     - constructors self -> (Standard.Base.Data.Vector.Vector Standard.Base.Meta.Constructor)
-    - find qualified_name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - find qualified_name:Standard.Base.Data.Text.Text -> Standard.Base.Meta.Type!Standard.Base.Errors.Common.Not_Found
     - methods self -> Standard.Base.Data.Vector.Vector
     - name self -> Standard.Base.Data.Text.Text
     - qualified_name self -> Standard.Base.Data.Text.Text
@@ -39,7 +39,7 @@
 - is_polyglot value:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
 - is_same_object value_1:Standard.Base.Any.Any value_2:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
 - is_type value:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
-- meta ~value:Standard.Base.Any.Any -> (Standard.Base.Meta.Atom|Standard.Base.Meta.Constructor|Standard.Base.Meta.Primitive|Standard.Base.Meta.Polyglot|Standard.Base.Meta.Unresolved_Symbol|Standard.Base.Meta.Error|Standard.Base.Meta.Type)
+- meta ~value:Standard.Base.Any.Any -> (Standard.Base.Meta.Atom|Standard.Base.Meta.Constructor|Standard.Base.Meta.Primitive|Standard.Base.Meta.Polyglot|Standard.Base.Meta.Unresolved_Symbol|Standard.Base.Meta.Error|Standard.Base.Meta.Type)!Standard.Base.Errors.Common.Private_Access
 - type_of value:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Any.Any.is_a self typ:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean
 - Standard.Base.Any.Any.is_same_object_as self value:Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean

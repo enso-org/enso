@@ -69,20 +69,17 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           settingsFormEntryData({
             type: 'form',
             schema: z.object({
-              name: z.string().regex(/.*\S.*/),
-              email: z.string().email(),
+              name: z.string().min(1),
+              email: z.string().email().or(z.literal('')),
               timeZone: z.string().or(z.undefined()),
             }),
             getValue: (context) => ({
               ...pick(context.user, 'name', 'email'),
-              timeZone: context.preferredTimeZone,
+              timeZone: context.preferredTimeZone ?? '',
             }),
             onSubmit: async (context, { name, timeZone }) => {
-              const oldName = context.user.name
-              if (name !== oldName) {
-                await context.updateUser([{ username: name }])
-              }
               context.setPreferredTimeZone(timeZone)
+              await context.updateUser([{ username: name }])
             },
             inputs: [
               { nameId: 'userNameSettingsInput', name: 'name' },
@@ -423,7 +420,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     sections: [
       {
         nameId: 'keyboardShortcutsSettingsSection',
-        columnClassName: 'h-full *:flex-1 *:min-h-0',
+        columnClassName: 'h-full *:flex-1 *:min-h-0 max-w-[unset]',
         entries: [
           {
             type: 'custom',
@@ -454,6 +451,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     sections: [
       {
         nameId: 'activityLogSettingsSection',
+        columnClassName: 'h-full *:flex-1 *:min-h-0 max-w-[unset]',
         entries: [
           {
             type: 'custom',

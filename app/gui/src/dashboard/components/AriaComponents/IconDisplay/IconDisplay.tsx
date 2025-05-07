@@ -6,7 +6,7 @@ import { Text, VisualTooltip, type IconProp, type TextProps, type TooltipElement
 const ICON_DISPLAY_STYLES = tv({
   base: 'flex items-center gap-2 max-w-[14.5rem] min-w-4 px-[7px] border-0.5 border-transparent',
   slots: {
-    icon: '',
+    icon: '-mb-0.5',
     // For some reason `min-w-0` is required for the ellipsis to appear.
     container: 'flex mx-auto min-w-0',
     text: 'block truncate',
@@ -53,9 +53,7 @@ export function IconDisplay<IconType extends string>(props: IconDisplayProps<Ico
   return (
     <div className={styles.base({ className })}>
       <VisualTooltip className="flex" tooltip={tooltip} tooltipPlacement="left">
-        <Icon className={styles.icon()} size="medium">
-          {icon}
-        </Icon>
+        <Icon color={textProps.color} className={styles.icon()} size="medium" icon={icon} />
       </VisualTooltip>
       <div className={styles.container()}>
         <Text className={styles.text()} truncate="1" {...textProps} tooltip={children}>

@@ -93,7 +93,6 @@
     - to_display_text self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
 - type Private_Access
-    - Error this_project_name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) target_project_name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) target_method_name:Standard.Base.Data.Text.Text
     - to_display_text self -> Standard.Base.Any.Any
 - type Response_Too_Large
     - Error actual_size:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing) limit:Standard.Base.Data.Numbers.Integer

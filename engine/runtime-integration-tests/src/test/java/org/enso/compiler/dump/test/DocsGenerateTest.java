@@ -13,7 +13,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import org.enso.compiler.Compiler;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.Definition;
@@ -21,40 +20,19 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.docs.DocsGenerate;
 import org.enso.compiler.docs.DocsVisit;
 import org.enso.editions.LibraryName;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.QualifiedName;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
-import org.graalvm.polyglot.Context;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class DocsGenerateTest {
   @ClassRule public static final TemporaryFolder TEMP = new TemporaryFolder();
-
-  private static Context ctx;
-  private static EnsoContext leak;
-  private static Compiler compiler;
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   public DocsGenerateTest() {}
-
-  @BeforeClass
-  public static void initCtx() {
-    ctx = ContextUtils.defaultContextBuilder().build();
-    leak = ContextUtils.leakContext(ctx);
-  }
-
-  @AfterClass
-  public static void closeCtx() {
-    ctx.close();
-    ctx = null;
-    leak.shutdown();
-    leak = null;
-  }
 
   @Test
   public void simpleType() throws Exception {
@@ -236,7 +214,7 @@ public class DocsGenerateTest {
   public void noSignatureIsGenerated_ForEmptyModule() throws IOException {
     var emptyCode = "";
     var modName = "local.Empty.Main";
-    var sig = DumpTestUtils.generateSignatures(ctx, emptyCode, modName);
+    var sig = DumpTestUtils.generateSignatures(ctxRule, emptyCode, modName);
     assertTrue("Empty signature for empty module", sig.isEmpty());
   }
 
@@ -248,7 +226,7 @@ public class DocsGenerateTest {
         import Standard.Base.Data.Vector.Vector
         """;
     var modName = "local.Empty.Main";
-    var sig = DumpTestUtils.generateSignatures(ctx, codeWithImports, modName);
+    var sig = DumpTestUtils.generateSignatures(ctxRule, codeWithImports, modName);
     assertTrue("Empty signature for module with only imports", sig.isEmpty());
   }
 
@@ -269,7 +247,7 @@ public class DocsGenerateTest {
         My_Type.from (that: Integer) = My_Type.Cons that
         """;
     var modName = "local.Proj.Main";
-    var sig = DumpTestUtils.generateSignatures(ctx, code, modName);
+    var sig = DumpTestUtils.generateSignatures(ctxRule, code, modName);
     sig.lines()
         .forEach(
             line -> {
@@ -292,10 +270,10 @@ public class DocsGenerateTest {
     ProjectUtils.createProject(projName, modules, projDir.toPath());
     ProjectUtils.generateProjectDocs(
         "api",
-        ContextUtils.defaultContextBuilder(),
+        ContextUtils.newBuilder(),
         projDir.toPath(),
         ctx -> {
-          var ensoCtx = ContextUtils.leakContext(ctx);
+          var ensoCtx = ctx.ensoContext();
           var pkg =
               ensoCtx
                   .getPackageRepository()
@@ -393,6 +371,35 @@ public class DocsGenerateTest {
     assertEquals(
         "Generates vector with argument type as return type",
         "one a:local.Inter.Main.A -> (local.Inter.Main.A&local.Inter.Main.B&local.Inter.Main.C)",
+        sig);
+  }
+
+  @Test
+  public void typesWithError() throws Exception {
+    var code =
+        """
+        type A
+        type B
+        type C
+
+        one a:A -> A & B ! C = a
+        """;
+
+    var v = new MockVisitor();
+    generateDocumentation("Error", code, v);
+
+    assertEquals("One methods", 1, v.visitMethod.size());
+    assertEquals("No constructors", 0, v.visitConstructor.size());
+
+    var p = v.visitMethod.get(0);
+    assertNull("It is a module method", p.t());
+
+    var m = p.ir();
+    var sig = DocsVisit.toSignature(m);
+    assertEquals("one", m.methodName().name());
+    assertEquals(
+        "Generates thrown dataflow errors in the signature",
+        "one a:local.Error.Main.A -> (local.Error.Main.A&local.Error.Main.B)!local.Error.Main.C",
         sig);
   }
 

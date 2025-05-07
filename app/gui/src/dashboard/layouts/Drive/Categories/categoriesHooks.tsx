@@ -5,29 +5,23 @@
  * Categories are shortcuts to specific directories in the Cloud, e.g. team spaces, recent and trash
  * It's not the same as the categories like LocalBackend
  */
-
-import CloudIcon from '#/assets/cloud.svg'
 import ComputerIcon from '#/assets/computer.svg'
-import FolderFilledIcon from '#/assets/folder_filled.svg'
-import PeopleIcon from '#/assets/people.svg'
 import RecentIcon from '#/assets/recent.svg'
-import Trash2Icon from '#/assets/trash2.svg'
 
 import { useUser } from '#/providers/AuthProvider'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
-import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import { pickBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { Path, type DirectoryId } from '#/services/Backend'
+import { BackendType, Path, type DirectoryId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 import { organizationIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
-import { useSuspenseQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
@@ -83,24 +77,17 @@ export type CloudCategoryResult = ReturnType<typeof useCloudCategoryList>
 /**
  * List of categories in the Cloud.
  */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useCloudCategoryList() {
+function useCloudCategoryList() {
   const user = useUser()
   const { getText } = useText()
-  const backend = useRemoteBackend()
-  const { data: organization } = useSuspenseQuery({
-    queryKey: [backend.type, 'getOrganization'],
-    queryFn: () => backend.getOrganization(),
-  })
-  const organizationRootDirectoryId =
-    organization != null ? organizationIdToDirectoryId(organization.id) : user.rootDirectoryId
 
   const cloudCategory: CloudCategory = {
     type: 'cloud',
     id: 'cloud',
     label: getText('cloudCategory'),
-    icon: CloudIcon,
+    icon: 'cloud',
     homeDirectoryId: user.rootDirectoryId,
+    backend: BackendType.remote,
   }
 
   const recentCategory: RecentCategory = {
@@ -109,14 +96,16 @@ export function useCloudCategoryList() {
     label: getText('recentCategory'),
     icon: RecentIcon,
     homeDirectoryId: null,
+    backend: BackendType.remote,
   }
 
   const trashCategory: TrashCategory = {
     type: 'trash',
     id: 'trash',
     label: getText('trashCategory'),
-    icon: Trash2Icon,
-    homeDirectoryId: organizationRootDirectoryId,
+    icon: 'trash_small',
+    homeDirectoryId: organizationIdToDirectoryId(user.organizationId),
+    backend: BackendType.remote,
   }
 
   const predefinedCloudCategories: AnyCloudCategory[] = [
@@ -132,7 +121,8 @@ export function useCloudCategoryList() {
     rootPath: Path(`enso://Teams/${group.name}`),
     homeDirectoryId: group.homeDirectoryId,
     label: getText('teamCategory', group.name),
-    icon: PeopleIcon,
+    icon: 'people',
+    backend: BackendType.remote,
   }))
 
   const categories = [...predefinedCloudCategories, ...teamCategories] satisfies AnyCloudCategory[]
@@ -150,13 +140,7 @@ export function useCloudCategoryList() {
 
   const getCategoryByDirectoryId = useEventCallback(
     (directoryId: DirectoryId): AnyCloudCategory | null =>
-      categories.find((category) => {
-        if ('homeDirectoryId' in category) {
-          return category.homeDirectoryId === directoryId
-        }
-
-        return false
-      }) ?? null,
+      categories.find((category) => category.homeDirectoryId === directoryId) ?? null,
   )
 
   return {
@@ -178,11 +162,25 @@ export function useCloudCategoryList() {
 export type LocalCategoryResult = ReturnType<typeof useLocalCategoryList>
 
 /**
+ * Create a local directory category.
+ */
+function createLocalDirectoryCategory(directory: string): LocalDirectoryCategory {
+  return {
+    type: 'local-directory',
+    id: newDirectoryId(Path(directory)),
+    rootPath: Path(directory),
+    homeDirectoryId: newDirectoryId(Path(directory)),
+    label: getFileName(directory),
+    icon: 'folder_small',
+    backend: BackendType.local,
+  }
+}
+
+/**
  * List of all categories in the LocalBackend.
  * Usually these are the root folder and the list of favorites
  */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useLocalCategoryList() {
+function useLocalCategoryList() {
   const { getText } = useText()
   const localBackend = useLocalBackend()
   const [localRootDirectory] = useLocalStorageState('localRootDirectory')
@@ -194,6 +192,8 @@ export function useLocalCategoryList() {
 
   const addDirectory = useEventCallback((directory: string) => {
     setLocalRootDirectories([...localRootDirectories, directory])
+
+    return createLocalDirectoryCategory(directory)
   })
 
   const removeDirectory = useEventCallback((directory: DirectoryId) => {
@@ -209,15 +209,7 @@ export function useLocalCategoryList() {
   )
 
   const getCategoryByDirectoryId = useEventCallback((id: DirectoryId): AnyLocalCategory | null => {
-    return (
-      categories.find((category) => {
-        if ('homeDirectoryId' in category) {
-          return category.homeDirectoryId === id
-        }
-
-        return false
-      }) ?? null
-    )
+    return categories.find((category) => category.homeDirectoryId === id) ?? null
   })
 
   const getCategoriesByType = useEventCallback(
@@ -251,26 +243,22 @@ export function useLocalCategoryList() {
     icon: ComputerIcon,
     homeDirectoryId: newDirectoryId(rootPath),
     rootPath,
+    backend: BackendType.local,
   }
 
   const predefinedLocalCategories: AnyLocalCategory[] = [localCategory]
 
-  const localCategories = localRootDirectories.map<LocalDirectoryCategory>((directory) => ({
-    type: 'local-directory',
-    id: newDirectoryId(Path(directory)),
-    rootPath: Path(directory),
-    homeDirectoryId: newDirectoryId(Path(directory)),
-    label: getFileName(directory),
-    icon: FolderFilledIcon,
-  }))
+  const localDirectories = localRootDirectories.map<LocalDirectoryCategory>(
+    createLocalDirectoryCategory,
+  )
 
   const categories =
-    localBackend == null ? [] : ([...predefinedLocalCategories, ...localCategories] as const)
+    localBackend == null ? [] : ([...predefinedLocalCategories, ...localDirectories] as const)
 
   return {
     categories,
     localCategory,
-    directories: localCategories,
+    directories: localDirectories,
     addDirectory,
     removeDirectory,
     getCategoryById,
@@ -336,6 +324,7 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
 
   const { cloudCategories, localCategories, findCategoryById } = useCategories()
   const localBackend = useLocalBackend()
+  const remoteBackend = useRemoteBackend()
   const { isOffline } = useOffline()
 
   const [categoryId, privateSetCategoryId, privateResetCategoryId] =
@@ -380,16 +369,14 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
 
   const category = findCategoryById(categoryId)
 
-  // This is safe, because a category always specified
-  // eslint-disable-next-line no-restricted-syntax
-  const backend = useBackend(category as Category)
-
   // This usually doesn't happen but if so,
   // We reset the category to the default.
   if (category == null) {
     resetCategoryId(true)
     return <></>
   }
+
+  const backend = pickBackend(category, remoteBackend, localBackend)
 
   const contextValue = {
     cloudCategories,

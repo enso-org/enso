@@ -25,15 +25,19 @@ public abstract class GetTypeConstructorsNode extends Node {
     return GetTypeConstructorsNodeGen.create();
   }
 
-  abstract EnsoObject execute(Object type, Object factory);
+  abstract Object execute(Object type, Object factory);
 
   @Specialization
   @CompilerDirectives.TruffleBoundary
-  EnsoObject allConstructors(Type type, AtomConstructor factory) {
+  Object allConstructors(Type type, AtomConstructor factory) {
     var rawConstructors = type.getConstructors().values();
     var rawResult = new EnsoObject[rawConstructors.size()];
     int at = 0;
     for (var cons : rawConstructors) {
+      var withCheck = FindAtomConstructorNode.findAtomConstructor(this, cons, null);
+      if (withCheck != cons) {
+        return ArrayLikeHelpers.asVectorEmpty();
+      }
       var metaCons = AtomNewInstanceNode.getUncached().newInstance(factory, cons);
       rawResult[at++] = metaCons;
     }

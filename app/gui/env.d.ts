@@ -70,9 +70,18 @@ interface MenuApi {
   readonly setShowAboutModalHandler: (callback: () => void) => void
 }
 
+/** Options for downloading a URL. */
+interface DownloadUrlOptions {
+  readonly url: string
+  readonly path?: Path | null | undefined
+  readonly name?: string | null | undefined
+  readonly shouldUnpackProject?: boolean
+  readonly showFileDialog?: boolean
+}
+
 /** `window.systemApi` exposes functionality related to the operating system. */
 interface SystemApi {
-  readonly downloadURL: (url: string, headers?: Record<string, string>) => void
+  readonly downloadURL: (options: DownloadUrlOptions) => Promise<void>
   readonly showItemInFolder: (fullPath: string) => void
 }
 

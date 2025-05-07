@@ -3,9 +3,8 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 
 import project.Connection.Connection.Connection
-import project.Internal.IR.Context.Context
-import project.Internal.IR.Query.Query
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.SQL_Type.SQL_Type
 
 ## PRIVATE
@@ -53,7 +52,7 @@ type SQL_Type_Reference
        Creates a new `SQL_Type_Reference` from a given SQL expression evaluated in a
        provided context. The connection is used to ask the database engine what the
        expected type will be.
-    new : Connection -> Context -> SQL_Expression -> SQL_Type_Reference
+    new : Connection -> SQL_IR_Source -> SQL_IR_Expression -> SQL_Type_Reference
     new connection context expression =
         SQL_Type_Reference.Computed_By_Database (Ref.new (SQL_Type_Recipe.Value connection context expression))
 
@@ -97,7 +96,7 @@ type SQL_Type_Reference
 type SQL_Type_Recipe
     ## PRIVATE
        A recipe for computing the SQL type.
-    Value connection:Connection context:Context expression:SQL_Expression
+    Value connection:Connection context:SQL_IR_Source expression:SQL_IR_Expression
 
 ## PRIVATE
    Returns the SQL type represented by the given reference, computing it if

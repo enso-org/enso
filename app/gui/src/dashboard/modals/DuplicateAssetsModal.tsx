@@ -8,6 +8,7 @@ import * as ariaComponents from '#/components/AriaComponents'
 import AssetSummary from '#/components/dashboard/AssetSummary'
 import Modal from '#/components/Modal'
 
+import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
 import {
@@ -23,11 +24,13 @@ import {
 import { Icon } from '#/components/Icon'
 import { listDirectoryQueryOptions, unsafe_assetFromCacheQueryOptions } from '#/hooks/backendHooks'
 import { useMount } from '#/hooks/mountHooks'
-import { useCategory } from '#/layouts/Drive/Categories/categoriesHooks'
+import type { Category } from '#/layouts/CategorySwitcher/Category'
+import { useCategory } from '#/layouts/Drive/Categories'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { FilterBy } from '#/services/Backend'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
+import { regexEscape } from '#/utilities/string'
 import { useMutation, useQueryClient, useSuspenseQueries } from '@tanstack/react-query'
 import { Fragment } from 'react'
 import invariant from 'tiny-invariant'
@@ -328,6 +331,33 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   )
 }
 
+/** Get a unique name based on sibling names. */
+function getUniqueName(title: string, siblingTitles: readonly string[]) {
+  const regex = new RegExp(`^${regexEscape(title)}( \\(copy(?: (\\d+))?\\))?$`)
+  let maximum: number | null = null
+  for (const siblingTitle of siblingTitles) {
+    const [match, isCopy, number] = siblingTitle.match(regex) ?? []
+    let newMaximum: number
+    if (match == null) {
+      continue
+    } else if (isCopy == null) {
+      newMaximum = 0
+    } else if (number == null) {
+      newMaximum = 1
+    } else {
+      newMaximum = parseInt(number, 10)
+    }
+    maximum = Math.max(maximum ?? 0, newMaximum)
+  }
+  if (maximum == null) {
+    return title
+  }
+  if (maximum === 0) {
+    return `${title} (copy)`
+  }
+  return `${title} (copy ${maximum + 1})`
+}
+
 /**
  * The conclusion of a resolved duplication.
  */
@@ -372,6 +402,10 @@ export interface ReplaceDuplication {
 export interface ResolveDuplicationsProps {
   readonly targetId: backendModule.DirectoryId
   readonly conflictingIds: readonly backendModule.AssetId[]
+  readonly category?: Category
+  readonly backend?: Backend
+  /** Whether to show the 'replace'/'update' option. */
+  readonly canReplace?: boolean
   readonly onSubmit: (assets: readonly ResolvedDuplication[]) => Promise<void> | void
   readonly onCancel: () => void
 }
@@ -398,15 +432,18 @@ export function ResolveDuplicationsModal(props: ResolveDuplicationsProps) {
   )
 }
 
-const NEW_TITLE_SUFFIX = ' (copy)'
-
 /**
  * The inner component of a {@link ResolveDuplicationsModal}.
  */
 function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
-  const { targetId, conflictingIds } = props
-
-  const { category, associatedBackend } = useCategory()
+  const categoryInfo = useCategory()
+  const {
+    targetId,
+    conflictingIds,
+    category = categoryInfo.category,
+    backend = categoryInfo.associatedBackend,
+    canReplace = false,
+  } = props
 
   const { getText } = textProvider.useText()
 
@@ -416,13 +453,13 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
     queries: [
       listDirectoryQueryOptions({
         category,
-        backend: associatedBackend,
+        backend,
         parentId: targetId,
         refetchInterval: null,
       }),
       listDirectoryQueryOptions({
         category,
-        backend: associatedBackend,
+        backend,
         parentId: targetId,
         filterBy: FilterBy.trashed,
         refetchInterval: null,
@@ -437,13 +474,14 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
           siblings.push(asset)
         }
       }
-      return { map, siblings: queries[0].data }
+      return { map, siblings }
     },
   })
+  const siblingTitles = siblingFiles.siblings.map((sibling) => sibling.title)
 
   const conflictingAssets = useSuspenseQueries({
     queries: conflictingIds.map((id) =>
-      unsafe_assetFromCacheQueryOptions({ backend: associatedBackend, assetId: id, queryClient }),
+      unsafe_assetFromCacheQueryOptions({ backend: backend, assetId: id, queryClient }),
     ),
     combine: (queries) => queries.map((query) => query.data).filter((asset) => asset != null),
   })
@@ -466,7 +504,15 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
   return (
     <Form
       defaultValues={Object.fromEntries(
-        conflictingAssets.map((asset) => [asset.id, { assetId: asset.id, type: asset.type }]),
+        conflictingAssets.map((asset) => [
+          asset.id,
+          {
+            assetId: asset.id,
+            type: asset.type,
+            conclusion: 'rename' as const,
+            newName: getUniqueName(asset.title, siblingTitles),
+          },
+        ]),
       )}
       method="dialog"
       className="pb-20"
@@ -532,16 +578,16 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                   <Button.Group className="col-span-full row-span-2 mt-1">
                     <Form.Controller
                       control={form.control}
-                      name={`${asset.id}.conclusion`}
+                      name={asset.id}
                       render={({ field, fieldState }) => {
                         if (fieldState.isDirty) {
                           return (
                             <div className="flex items-center gap-2">
-                              {field.value === 'skip' && (
+                              {field.value.conclusion === 'skip' && (
                                 <Text>{getText('assetWillBeSkipped')}</Text>
                               )}
 
-                              {field.value === 'rename' && (
+                              {field.value.conclusion === 'rename' && (
                                 <Form.FieldValue name={`${asset.id}.newName`}>
                                   {(value: string) => (
                                     <Text>{getText('assetWillBeRenamed', value)}</Text>
@@ -549,14 +595,14 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                                 </Form.FieldValue>
                               )}
 
-                              {field.value === 'replace' && (
+                              {field.value.conclusion === 'replace' && (
                                 <Text>{getText('assetWillBeReplaced')}</Text>
                               )}
 
                               <Button
                                 variant="link"
                                 onPress={() => {
-                                  form.resetField(`${asset.id}.conclusion`)
+                                  form.resetField(asset.id, { defaultValue: field.value })
                                 }}
                               >
                                 {getText('change')}
@@ -571,11 +617,23 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                               variant="outline"
                               className="min-w-16"
                               onPress={() => {
-                                field.onChange('skip')
+                                field.onChange({ ...field.value, conclusion: 'skip' })
                               }}
                             >
                               {getText('skip')}
                             </Button>
+
+                            {canReplace && (
+                              <Button
+                                variant="outline"
+                                className="min-w-16"
+                                onPress={() => {
+                                  field.onChange({ ...field.value, conclusion: 'replace' })
+                                }}
+                              >
+                                {getText('replace')}
+                              </Button>
+                            )}
 
                             <Popover.Trigger>
                               <Button variant="primary" className="min-w-16">
@@ -585,7 +643,9 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                               <Popover placement="bottom start">
                                 <Form
                                   method="dialog"
-                                  defaultValues={{ newName: asset.title + NEW_TITLE_SUFFIX }}
+                                  defaultValues={{
+                                    newName: form.getValues(`${asset.id}.newName`),
+                                  }}
                                   schema={(schema) =>
                                     schema.object({
                                       newName: backendModule.titleSchema({
@@ -595,8 +655,11 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                                     })
                                   }
                                   onSubmit={(value) => {
-                                    field.onChange('rename')
-                                    form.setValue(`${asset.id}.newName`, value.newName)
+                                    field.onChange({
+                                      ...field.value,
+                                      conclusion: 'rename',
+                                      newName: value.newName,
+                                    })
                                   }}
                                 >
                                   <Text>{getText('newNameDescription')}</Text>
@@ -690,23 +753,14 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
  * Options for resolving duplicates.
  */
 export interface ResolveDuplicationsOptions
-  extends Pick<ResolveDuplicationsProps, 'conflictingIds' | 'targetId'> {}
+  extends Omit<ResolveDuplicationsProps, 'onCancel' | 'onSubmit'> {}
 
 /**
  * Function for resolving duplicates.
  */
 // eslint-disable-next-line react-refresh/only-export-components
-export async function resolveDuplications(props: ResolveDuplicationsOptions) {
-  const { targetId, conflictingIds } = props
-
+export async function resolveDuplications(options: ResolveDuplicationsOptions) {
   return new Promise<readonly ResolvedDuplication[]>((resolve, reject) => {
-    setModal(
-      <ResolveDuplicationsModal
-        targetId={targetId}
-        conflictingIds={conflictingIds}
-        onSubmit={resolve}
-        onCancel={reject}
-      />,
-    )
+    setModal(<ResolveDuplicationsModal {...options} onSubmit={resolve} onCancel={reject} />)
   }).finally(unsetModal)
 }
