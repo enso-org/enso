@@ -72,6 +72,40 @@ object GraalVM {
     def release               = native && !test && !debug && !fast && !disableLanguageServer
   }
 
+  case class NativeImageSize(
+    minMb: Int,
+    maxMb: Int
+  )
+
+  object NativeImageSize {
+    def expectedSizeForCurrentPlatform(): NativeImageSize = {
+      if (EnsoLauncher.release) {
+        if (Platform.isWindows) {
+          windowsX64Release
+        } else if (Platform.isLinux) {
+          linuxX64Release
+        } else if (Platform.isMacOS && Platform.isAmd64) {
+          macX64Release
+        } else if (Platform.isMacOS && Platform.isArm64) {
+          macARM64Release
+        } else {
+          throw new IllegalArgumentException("Unexpected platform")
+        }
+      } else {
+        testNISize
+      }
+    }
+
+    // Expected production NI sizes deduced from sizes on latest
+    // nightly builds: https://github.com/enso-org/enso/pull/12996#discussion_r2073742680
+    // With maximal size relaxed by 30 MB.
+    private val windowsX64Release = NativeImageSize(200, 420)
+    private val linuxX64Release   = NativeImageSize(200, 463)
+    private val macX64Release     = NativeImageSize(200, 408)
+    private val macARM64Release   = NativeImageSize(200, 423)
+    private val testNISize        = NativeImageSize(100, 550)
+  }
+
   /** Has the user requested to use Espresso for Java interop? */
   private def isEspressoMode(): Boolean =
     "espresso".equals(System.getenv("ENSO_JAVA"))

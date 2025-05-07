@@ -45,14 +45,13 @@ import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
 
-import AuthProvider from '#/providers/AuthProvider'
-import BackendProvider, { useLocalBackend } from '#/providers/BackendProvider'
+import * as authProvider from '#/providers/AuthProvider'
+import { BackendProvider, useLocalBackend } from '#/providers/BackendProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import { useLogger } from '#/providers/LoggerProvider'
 import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
-import * as navigator2DProvider from '#/providers/Navigator2DProvider'
-import SessionProvider from '#/providers/SessionProvider'
+import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import VersionChecker from '#/layouts/VersionChecker'
@@ -230,8 +229,6 @@ function AppRouter(props: React.PropsWithChildren<AppRouterProps>) {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { setModal } = modalProvider.useSetModal()
 
-  const navigator2D = navigator2DProvider.useNavigator2D()
-
   const localBackend =
     projectManagerInstance != null ? new LocalBackend(projectManagerInstance) : null
 
@@ -255,14 +252,6 @@ function AppRouter(props: React.PropsWithChildren<AppRouterProps>) {
       })
     }
   }, [setModal])
-
-  React.useEffect(() => {
-    const onKeyDown = navigator2D.onKeyDown.bind(navigator2D)
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [navigator2D])
 
   React.useEffect(() => {
     let isClick = false
@@ -306,7 +295,7 @@ function AppRouter(props: React.PropsWithChildren<AppRouterProps>) {
 
   return (
     <RouterProvider navigate={navigate}>
-      <SessionProvider
+      <sessionProvider.SessionProvider
         onLogout={() => {
           localStorage.clearUserSpecificEntries()
         }}
@@ -315,15 +304,15 @@ function AppRouter(props: React.PropsWithChildren<AppRouterProps>) {
         registerAuthEventListener={registerAuthEventListener}
       >
         <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
-          <AuthProvider onAuthenticated={onAuthenticated}>
+          <authProvider.AuthProvider onAuthenticated={onAuthenticated}>
             <InputBindingsProvider>
               <LocalBackendPathSynchronizer />
               <VersionChecker />
               {children}
             </InputBindingsProvider>
-          </AuthProvider>
+          </authProvider.AuthProvider>
         </BackendProvider>
-      </SessionProvider>
+      </sessionProvider.SessionProvider>
     </RouterProvider>
   )
 }

@@ -8,7 +8,6 @@ import { Button, DatePicker, Dropdown, Form, Text } from '#/components/AriaCompo
 import { Icon } from '#/components/Icon'
 import { Scroller } from '#/components/Scroller'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
-import FocusArea from '#/components/styled/FocusArea'
 import { UserWithPopover } from '#/components/UserWithPopover'
 import { backendQueryOptions } from '#/hooks/backendHooks'
 import { useText } from '#/providers/TextProvider'
@@ -166,73 +165,63 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
 
   return (
     <>
-      <FocusArea direction="horizontal">
-        {(innerProps) => (
-          <Form form={form} className="flex flex-row flex-wrap gap-3" {...innerProps}>
-            <div className="flex items-center gap-2">
-              <Text className="whitespace-nowrap">{getText('startDate')}</Text>
-              <DatePicker
-                form={form}
-                name="startDate"
-                size="small"
-                maxValue={maxDate}
-                className="w-36"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Text className="whitespace-nowrap">{getText('endDate')}</Text>
-              <DatePicker
-                form={form}
-                name="endDate"
-                size="small"
-                maxValue={maxDate}
-                className="w-36"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Text className="whitespace-nowrap">{getText('types')}</Text>
-              <Dropdown
-                aria-label={getText('types')}
-                multiple
-                items={SELECTABLE_LAMBDA_KINDS}
-                selectedIndices={typeIndices}
-                renderMultiple={({ items }) =>
-                  items.length === 0 || items.length === SELECTABLE_LAMBDA_KINDS.length ?
-                    'All'
-                  : (items[0] != null ? getText(EVENT_TYPE_NAME_ID[items[0]]) : '') +
-                    (items.length <= 1 ? '' : ` (+${items.length - 1})`)
-                }
-                onChange={(items, indices) => {
-                  setTypes(items)
-                  setTypeIndices(indices)
-                }}
-              >
-                {({ item }) => getText(EVENT_TYPE_NAME_ID[item])}
-              </Dropdown>
-            </div>
-            <div className="flex items-center gap-2">
-              <Text className="whitespace-nowrap">{getText('users')}</Text>
-              <Dropdown
-                aria-label={getText('users')}
-                multiple
-                items={allEmails}
-                selectedIndices={emailIndices}
-                renderMultiple={({ items }) =>
-                  items.length === 0 || items.length === allEmails.length ?
-                    'All'
-                  : (items[0] ?? '') + (items.length <= 1 ? '' : `(+${items.length - 1})`)
-                }
-                onChange={(items, indices) => {
-                  setEmails(items)
-                  setEmailIndices(indices)
-                }}
-              >
-                {({ item }) => item}
-              </Dropdown>
-            </div>
-          </Form>
-        )}
-      </FocusArea>
+      <Form form={form} className="flex flex-row flex-wrap gap-3">
+        <div className="flex items-center gap-2">
+          <Text className="whitespace-nowrap">{getText('startDate')}</Text>
+          <DatePicker
+            form={form}
+            name="startDate"
+            size="small"
+            maxValue={maxDate}
+            className="w-36"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Text className="whitespace-nowrap">{getText('endDate')}</Text>
+          <DatePicker form={form} name="endDate" size="small" maxValue={maxDate} className="w-36" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Text className="whitespace-nowrap">{getText('types')}</Text>
+          <Dropdown
+            aria-label={getText('types')}
+            multiple
+            items={SELECTABLE_LAMBDA_KINDS}
+            selectedIndices={typeIndices}
+            renderMultiple={({ items }) =>
+              items.length === 0 || items.length === SELECTABLE_LAMBDA_KINDS.length ?
+                'All'
+              : (items[0] != null ? getText(EVENT_TYPE_NAME_ID[items[0]]) : '') +
+                (items.length <= 1 ? '' : ` (+${items.length - 1})`)
+            }
+            onChange={(items, indices) => {
+              setTypes(items)
+              setTypeIndices(indices)
+            }}
+          >
+            {({ item }) => getText(EVENT_TYPE_NAME_ID[item])}
+          </Dropdown>
+        </div>
+        <div className="flex items-center gap-2">
+          <Text className="whitespace-nowrap">{getText('users')}</Text>
+          <Dropdown
+            aria-label={getText('users')}
+            multiple
+            items={allEmails}
+            selectedIndices={emailIndices}
+            renderMultiple={({ items }) =>
+              items.length === 0 || items.length === allEmails.length ?
+                'All'
+              : (items[0] ?? '') + (items.length <= 1 ? '' : `(+${items.length - 1})`)
+            }
+            onChange={(items, indices) => {
+              setEmails(items)
+              setEmailIndices(indices)
+            }}
+          >
+            {({ item }) => item}
+          </Dropdown>
+        </div>
+      </Form>
       <Scroller
         scrollbar
         orientation="vertical"

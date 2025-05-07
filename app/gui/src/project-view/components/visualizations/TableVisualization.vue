@@ -56,7 +56,7 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = number | string | Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
+type Data = number | string | Error | Matrix | ObjectMatrix | EnsoTableOrColumn | Excel_Workbook
 
 interface Error {
   type: undefined
@@ -102,11 +102,8 @@ interface ObjectMatrix {
   visualization_header: string
 }
 
-interface UnknownTable {
-  // This is INCORRECT. It is actually a string, however we do not need to access this.
-  // Setting it to `string` breaks the discriminated union detection that is being used to
-  // distinguish `Matrix` and `ObjectMatrix`.
-  type: undefined
+interface EnsoTableOrColumn {
+  type: 'EnsoTableOrColumn'
   json: unknown
   all_rows_count?: number
   header: string[] | undefined
@@ -121,6 +118,8 @@ interface UnknownTable {
   visualization_header: string
   data_quality_metrics?: DataQualityMetric[]
   is_using_server_sort_and_filter: boolean
+  use_bottom_status_bar: boolean
+  enable_create_node: boolean
   requires_number_format: boolean[]
   table_version_hash?: string
 }
@@ -138,11 +137,6 @@ const props = defineProps<{ data: Data }>()
 const config = useVisualizationConfig()
 
 const INDEX_FIELD_NAME = '#'
-const TABLE_NODE_TYPE = 'Standard.Table.Table.Table'
-const DB_TABLE_NODE_TYPE = 'Standard.Database.DB_Table.DB_Table'
-const VECTOR_NODE_TYPE = 'Standard.Base.Data.Vector.Vector'
-const COLUMN_NODE_TYPE = 'Standard.Table.Column.Column'
-const ROW_NODE_TYPE = 'Standard.Table.Row.Row'
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -266,6 +260,20 @@ const isSSRM = computed(
     props.data.is_using_server_sort_and_filter,
 )
 
+const useBottomStatusBar = computed(
+  () =>
+    typeof props.data === 'object' &&
+    'use_bottom_status_bar' in props.data &&
+    props.data.use_bottom_status_bar,
+)
+
+const isCreateNewNodeEnabled = computed(
+  () =>
+    typeof props.data === 'object' &&
+    'enable_create_node' in props.data &&
+    props.data.enable_create_node,
+)
+
 const ssrmServer = computed(() => {
   return isSSRM.value && createServer()
 })
@@ -276,24 +284,20 @@ const ssrmDatasource = computed(() => {
   return isSSRM.value && createServerSideDatasource()
 })
 
-const statusBar = computed(() =>
-  allRowCount.value ?
-    {
-      statusPanels:
-        config.nodeType === TABLE_NODE_TYPE || config.nodeType === COLUMN_NODE_TYPE ?
-          [
-            {
-              statusPanel: TableVizStatusBar,
-              statusPanelParams: {
-                total: allRowCount.value,
-                filtered: isSSRM.value ? filteredRowCount.value : null,
-              },
-            },
-          ]
-        : [],
-    }
-  : null,
-)
+const statusBar = computed(() => ({
+  statusPanels:
+    useBottomStatusBar.value ?
+      [
+        {
+          statusPanel: TableVizStatusBar,
+          statusPanelParams: {
+            total: allRowCount.value,
+            filtered: isSSRM.value ? filteredRowCount.value : null,
+          },
+        },
+      ]
+    : [],
+}))
 
 const isCreateNodeButtonEnabled = computed(
   () =>
@@ -318,7 +322,7 @@ watchEffect(() => {
 
 const textFormatterSelected = ref<TextFormatOptions>('partial')
 
-const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
+const isRowCountSelectorVisible = computed(() => rowCount.value > 1000)
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 
 const selectableRowLimits = computed(() => {
@@ -346,10 +350,6 @@ watchEffect(() =>
     'prepare_visualization',
     rowLimit.value.toString(),
   ),
-)
-
-const isCreateNewNodeEnabled = computed(
-  () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
 )
 
 const numberFormatGroupped = new Intl.NumberFormat(undefined, {
@@ -699,13 +699,6 @@ function toField(
   }
 }
 
-function toRowField(name: string, index: number, valueType?: ValueType | null | undefined) {
-  return {
-    ...toField(name, { index, valueType }),
-    cellDataType: false,
-  }
-}
-
 function getAstPattern(selector?: string | number, action?: string) {
   if (action && selector != null) {
     return Pattern.new<Ast.Expression>((ast) =>
@@ -728,9 +721,7 @@ function createNode(
   const selectorKey = params.data[selector]
   const castSelector =
     castValueTypes === 'number' && !isNaN(Number(selectorKey)) ? Number(selectorKey) : selectorKey
-  const identifierAction =
-    config.nodeType === (COLUMN_NODE_TYPE || VECTOR_NODE_TYPE) ? 'at' : action
-  const pattern = getAstPattern(castSelector, identifierAction)
+  const pattern = getAstPattern(castSelector, action)
   if (pattern) {
     config.createNodes({
       content: pattern,
@@ -892,9 +883,6 @@ watchEffect(() => {
             castValueTypes: data_.link_value_type,
           })
         }
-        if (config.nodeType === ROW_NODE_TYPE) {
-          return toRowField(v, i, valueType)
-        }
         return toField(v, { index: i, valueType })
       }) ?? []
 
@@ -911,15 +899,8 @@ watchEffect(() => {
       : dataHeader
 
     if (!data_.is_using_server_sort_and_filter) {
-      const hasIndexRow =
-        config.nodeType === TABLE_NODE_TYPE ||
-        config.nodeType === COLUMN_NODE_TYPE ||
-        config.nodeType === DB_TABLE_NODE_TYPE
-      const shift = hasIndexRow ? 1 : 0
-      rowData.value =
-        data_.data ?
-          createRowsForTable(data_.data, shift, data_.is_using_server_sort_and_filter)
-        : []
+      const shift = data_.type === 'EnsoTableOrColumn' ? 1 : 0
+      rowData.value = data_.data ? createRowsForTable(data_.data, shift, false) : []
     }
   }
   const headerGroupingMap = new Map()
@@ -961,7 +942,7 @@ watchEffect(() => {
 
   // Update paging
   const newRowCount = data_.all_rows_count == null ? 1 : data_.all_rows_count
-  showRowCount.value = !(data_.all_rows_count == null) && config.nodeType != TABLE_NODE_TYPE
+  showRowCount.value = !(data_.all_rows_count == null)
   rowCount.value = newRowCount
   const newPageLimit = Math.ceil(newRowCount / rowLimit.value)
   pageLimit.value = newPageLimit
@@ -1123,7 +1104,7 @@ config.setToolbar(
 
 <template>
   <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
-    <template v-if="!isSSRM">
+    <template v-if="!useBottomStatusBar">
       <div class="table-visualization-status-bar">
         <select
           v-if="isRowCountSelectorVisible"
