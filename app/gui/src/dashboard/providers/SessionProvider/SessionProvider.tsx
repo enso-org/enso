@@ -6,20 +6,13 @@ import * as React from 'react'
 
 import * as sentry from '@sentry/vue'
 import * as reactQuery from '@tanstack/react-query'
-import invariant from 'tiny-invariant'
 
 import * as httpClientProvider from '#/providers/HttpClientProvider'
 
 import * as errorModule from '#/utilities/error'
 
 import type * as cognito from '#/authentication/cognito'
-import {
-  CognitoErrorType,
-  type CognitoUser,
-  type ConfirmSignInReturn,
-  type ISessionProvider,
-  type UserSessionChallenge,
-} from '#/authentication/cognito'
+import { CognitoErrorType, type CognitoUser, type ISessionProvider } from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'
 import { Dialog } from '#/components/AriaComponents'
 import { Result } from '#/components/Result'
@@ -27,61 +20,12 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as gtag from '#/hooks/gtagHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { unsetModal } from '#/providers/ModalProvider'
 import { unsafeWriteValue } from '#/utilities/write'
 import { toast } from 'react-toastify'
-import { useSetModal } from './ModalProvider'
-import { useText } from './TextProvider'
-
-/** State contained in a {@link SessionContext}. */
-interface SessionContextType {
-  readonly session: cognito.UserSession | null
-  readonly signUp: (email: string, password: string, organizationId: string | null) => Promise<void>
-  readonly confirmSignUp: (email: string, code: string) => Promise<void>
-  readonly signInWithGoogle: () => Promise<boolean>
-  readonly signInWithGitHub: () => Promise<boolean>
-  readonly signInWithPassword: (
-    email: string,
-    password: string,
-  ) => Promise<{
-    readonly challenge: UserSessionChallenge
-    readonly user: CognitoUser
-  }>
-  readonly confirmSignIn: (user: CognitoUser, otp: string) => ConfirmSignInReturn
-  readonly forgotPassword: (email: string) => Promise<null>
-  readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
-  readonly resetPassword: (email: string, code: string, password: string) => Promise<null>
-  readonly signOut: () => Promise<void>
-  readonly organizationId: () => Promise<string | null>
-  readonly getMFAPreference: () => Promise<cognito.MfaType>
-  readonly updateMFAPreference: (mfaType: cognito.MfaType) => Promise<void>
-  readonly verifyTotpToken: (otp: string) => Promise<boolean>
-  readonly setupTOTP: () => Promise<cognito.SetupTOTPReturn>
-}
-
-const SessionContext = React.createContext<SessionContextType | null>(null)
-
-/** Props for a {@link SessionProvider}. */
-export interface SessionProviderProps {
-  /**
-   * The URL that the content of the app is served at, by Electron.
-   *
-   * This **must** be the actual page that the content is served at, otherwise the OAuth flow will
-   * not work and will redirect the user to a blank page. If this is the correct URL, no redirect
-   * will occur (which is the desired behaviour).
-   *
-   * The URL includes a scheme, hostname, and port (e.g., `http://localhost:8080`). The port is not
-   * known ahead of time, since the content may be served on any free port. Thus, the URL is
-   * obtained by reading the window location at the time that authentication is instantiated. This
-   * is guaranteed to be the correct location, since authentication is instantiated when the content
-   * is initially served.
-   */
-  readonly mainPageUrl: URL
-  readonly registerAuthEventListener: listen.ListenFunction | null
-  readonly authService: ISessionProvider
-  readonly onLogout?: () => Promise<void> | void
-
-  readonly children: React.ReactNode | ((props: SessionContextType) => React.ReactNode)
-}
+import { useText } from '../TextProvider'
+import { SessionContext } from './hooks'
+import type { SessionContextType, SessionProviderProps } from './types'
 
 /** Create a query for the user session. */
 function createSessionQuery(authService: ISessionProvider) {
@@ -92,10 +36,9 @@ function createSessionQuery(authService: ISessionProvider) {
 }
 
 /** A React provider for the session of the authenticated user. */
-export default function SessionProvider(props: SessionProviderProps) {
+export function SessionProvider(props: SessionProviderProps) {
   const { mainPageUrl, children, registerAuthEventListener, authService, onLogout } = props
 
-  const { unsetModal } = useSetModal()
   const { getText } = useText()
 
   // stabilize the callback so that it doesn't change on every render
@@ -427,41 +370,4 @@ function SessionRefresher(props: SessionRefresherProps) {
   })
 
   return null
-}
-
-/**
- * React context hook returning the session of the authenticated user.
- * @throws {Error} when used outside a {@link SessionProvider}.
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useSession() {
-  const context = React.useContext(SessionContext)
-
-  invariant(context != null, '`useSession` can only be used inside an `<SessionProvider />`.')
-
-  return context
-}
-
-/**
- * Returns API to work with a session.
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useSessionAPI(): Omit<SessionContextType, 'session'> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { session, ...api } = useSession()
-
-  return api
-}
-
-/**
- * React context hook returning the session of the authenticated user.
- * @throws {Error} if the session is not defined.
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useSessionStrict() {
-  const { session } = useSession()
-
-  invariant(session != null, 'Session must be defined')
-
-  return { session } as const
 }

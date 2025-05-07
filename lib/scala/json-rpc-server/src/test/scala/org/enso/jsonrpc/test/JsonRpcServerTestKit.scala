@@ -14,6 +14,7 @@ import org.enso.jsonrpc.{
   JsonRpcServer,
   ProtocolFactory
 }
+import org.enso.runtime.utils.ThreadUtils
 import org.scalactic.source.Position
 import org.scalatest.matchers.{MatchResult, Matcher}
 import org.scalatest.matchers.should.Matchers
@@ -131,24 +132,10 @@ abstract class JsonRpcServerTestKit
               if e.getMessage.contains(
                 "timeout"
               ) && printStackTracesOnFailure =>
-            val sb = new StringBuilder(
-              "Thread dump when timeout is reached while waiting for the message:\n"
-            )
-            Thread.getAllStackTraces.entrySet.forEach { entry =>
-              sb.append(entry.getKey.getName).append("\n")
-              entry.getValue.foreach { e =>
-                sb.append("    ")
-                  .append(e.getClassName)
-                  .append(".")
-                  .append(e.getMethodName)
-                  .append("(")
-                  .append(e.getFileName)
-                  .append(":")
-                  .append(e.getLineNumber)
-                  .append(")\n")
-              }
-            }
-            println(sb.toString())
+            val msg = ThreadUtils.dumpAllStacktraces(
+              "Thread dump when timeout is reached while waiting for the message:"
+            );
+            println(msg)
             throw e
         }
       if (debugMessages) println(message)

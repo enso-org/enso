@@ -29,10 +29,15 @@ import type RemoteBackend from '#/services/RemoteBackend'
 
 import type * as cognitoModule from '#/authentication/cognito'
 import { Button, Text } from '#/components/AriaComponents'
-import { EnsoDevtools } from '#/components/Devtools'
+import { EnsoDevtools } from '#/components/Devtools/EnsoDevtools'
 import Page from '#/components/Page'
 import { Result } from '#/components/Result'
 import { useTimeoutCallback } from '#/hooks/timeoutHooks'
+import {
+  featureFlagsForInternalTesting,
+  useFeatureFlag,
+  useSetFeatureFlags,
+} from '#/providers/FeatureFlagsProvider'
 import { isOrganizationId } from '#/services/RemoteBackend'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
@@ -41,85 +46,9 @@ import { unsafeWriteValue } from '#/utilities/write'
 import { useRouterInReact } from '$/providers/react'
 import { Suspense } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
-import {
-  featureFlagsForInternalTesting,
-  useFeatureFlag,
-  useSetFeatureFlags,
-} from './FeatureFlagsProvider'
-
-/** Possible types of {@link BaseUserSession}. */
-// eslint-disable-next-line react-refresh/only-export-components
-export enum UserSessionType {
-  offline = 'offline',
-  partial = 'partial',
-  full = 'full',
-}
-
-/** Properties common to all {@link UserSession}s. */
-interface BaseUserSession extends cognitoModule.UserSession {
-  /** A discriminator for TypeScript to be able to disambiguate between `UserSession` variants. */
-  readonly type: UserSessionType
-}
-
-/**
- * Object containing the currently signed-in user's session data, if the user has not yet set their
- * username.
- *
- * If a user has not yet set their username, they do not yet have an organization associated with
- * their account. Otherwise, this type is identical to the `Session` type. This type should ONLY be
- * used by the `SetUsername` component.
- */
-export interface PartialUserSession extends BaseUserSession {
-  readonly type: UserSessionType.partial
-}
-
-/** Object containing the currently signed-in user's session data. */
-export interface FullUserSession extends BaseUserSession {
-  /** User's organization information. */
-  readonly type: UserSessionType.full
-  readonly user: backendModule.User
-}
-
-/**
- * A user session for a user that may be either fully registered,
- * or in the process of registering.
- */
-export type UserSession = FullUserSession | PartialUserSession
-
-/**
- * Interface returned by the `useAuth` hook.
- *
- * Contains the currently authenticated user's session data, as well as methods for signing in,
- * signing out, etc. All interactions with the authentication API should be done through this
- * interface.
- *
- * See `Cognito` for details on each of the authentication functions.
- */
-interface AuthContextType {
-  readonly authQueryKey: reactQuery.QueryKey
-  readonly setUsername: (username: string) => Promise<boolean>
-  /** @deprecated Never use this function. Prefer particular functions like `setUsername` or `deleteUser`. */
-  readonly setUser: (user: Partial<backendModule.User>) => void
-  readonly deleteUser: () => Promise<boolean>
-  readonly restoreUser: () => Promise<boolean>
-  readonly refetchSession: (
-    options?: reactQuery.RefetchOptions,
-  ) => Promise<reactQuery.QueryObserverResult<UserSession | null>>
-  /**
-   * Session containing the currently authenticated user's authentication information.
-   *
-   * If the user has not signed in, the session will be `null`.
-   */
-  readonly session: UserSession | null
-  /** Return `true` if the user is marked for deletion. */
-  readonly isUserMarkedForDeletion: () => boolean
-  /** Return `true` if the user is deleted completely. */
-  readonly isUserDeleted: () => boolean
-  /** Return `true` if the user is soft deleted. */
-  readonly isUserSoftDeleted: () => boolean
-}
-
-const AuthContext = React.createContext<AuthContextType | null>(null)
+import { AuthContext, useAuth } from './hooks'
+import type { AuthContextType } from './types'
+import { UserSessionType, type FullUserSession, type PartialUserSession } from './types'
 
 /** Query to fetch the user's session data from the backend. */
 function createUsersMeQuery(
@@ -150,7 +79,7 @@ export interface AuthProviderProps {
 }
 
 /** A React provider for the Cognito API. */
-export default function AuthProvider(props: AuthProviderProps) {
+export function AuthProvider(props: AuthProviderProps) {
   const { onAuthenticated, children } = props
 
   const remoteBackend = backendProvider.useRemoteBackend()
@@ -345,22 +274,6 @@ export default function AuthProvider(props: AuthProviderProps) {
 }
 
 /**
- * A React hook that provides access to the authentication context.
- *
- * Only the hook is exported, and not the context, because we only want to use the hook directly and
- * never the context component.
- * @throws {Error} when used outside a {@link AuthProvider}.
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useAuth() {
-  const context = React.useContext(AuthContext)
-
-  invariant(context != null, '`useAuth` must be used within an `<AuthProvider />`.')
-
-  return context
-}
-
-/**
  * A React Router layout route containing routes only accessible by users that are logged in.
  */
 export function AnyLoggedInUserLayout({ children }: React.PropsWithChildren) {
@@ -407,6 +320,9 @@ export function ProtectedLayout({ children }: React.PropsWithChildren<object>) {
   )
 }
 
+/**
+ * A React Router layout route containing routes only accessible by users that are logged in.
+ */
 /**
  * A React Router layout route containing routes only accessible by users that are
  * in the process of registering.
@@ -566,41 +482,4 @@ export function CloudBrowserDisabledLayout(
       </Result>
     </Page>
   )
-}
-
-/**
- * A React context hook returning the user session
- * for a user that has not yet completed registration.
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export function usePartialUserSession() {
-  const { session } = useAuth()
-
-  invariant(session?.type === UserSessionType.partial, 'Expected a partial user session.')
-
-  return session
-}
-
-/** A React context hook returning the user session for a user that may or may not be logged in. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useUserSession() {
-  return useAuth().session
-}
-
-/** A React context hook returning the user session for a user that is fully logged in. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useFullUserSession(): FullUserSession {
-  const { session } = useAuth()
-
-  invariant(session?.type === UserSessionType.full, 'Expected a full user session.')
-
-  return session
-}
-
-/** A React context hook returning the user session for a user that is fully logged in. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useUser() {
-  const { user } = useFullUserSession()
-
-  return user
 }

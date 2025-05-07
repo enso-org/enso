@@ -9,8 +9,8 @@ use crate::ci_gen::variables;
 use crate::ci_gen::RunStepsBuilder;
 use crate::ci_gen::RunnerType;
 use crate::ci_gen::RELEASE_CLEANING_POLICY;
-use crate::engine::env as engine_env;
-use crate::ide::web::env as ide_env;
+use crate::engine;
+use crate::ide;
 use crate::paths;
 
 use core::panic;
@@ -132,47 +132,50 @@ pub fn sbt_command(command: impl AsRef<str>) -> String {
 
 /// Expose variables for the GUI build.
 pub fn expose_gui_vars(step: Step) -> Step {
-    step.with_variable_exposed_as(variables::ENSO_CLOUD_ENVIRONMENT, ide_env::ENSO_IDE_ENVIRONMENT)
-        .with_variable_exposed_as(variables::ENSO_CLOUD_API_URL, ide_env::ENSO_IDE_API_URL)
-        .with_variable_exposed_as(variables::ENSO_CLOUD_CHAT_URL, ide_env::ENSO_IDE_CHAT_URL)
-        .with_variable_exposed_as(variables::ENSO_CLOUD_SENTRY_DSN, ide_env::ENSO_IDE_SENTRY_DSN)
-        .with_variable_exposed_as(variables::ENSO_CLOUD_STRIPE_KEY, ide_env::ENSO_IDE_STRIPE_KEY)
-        .with_variable_exposed_as(
-            variables::ENSO_CLOUD_AUTH_ENDPOINT,
-            ide_env::ENSO_IDE_AUTH_ENDPOINT,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_CLOUD_COGNITO_USER_POOL_ID,
-            ide_env::ENSO_IDE_COGNITO_USER_POOL_ID,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
-            ide_env::ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_CLOUD_COGNITO_DOMAIN,
-            ide_env::ENSO_IDE_COGNITO_DOMAIN,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_CLOUD_COGNITO_REGION,
-            ide_env::ENSO_IDE_COGNITO_REGION,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_CLOUD_GOOGLE_ANALYTICS_TAG,
-            ide_env::ENSO_IDE_GOOGLE_ANALYTICS_TAG,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_AG_GRID_LICENSE_KEY,
-            ide_env::ENSO_IDE_AG_GRID_LICENSE_KEY,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_MAPBOX_API_TOKEN,
-            ide_env::ENSO_IDE_MAPBOX_API_TOKEN,
-        )
-        .with_secret_exposed_as(
-            secret::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
-            ide_env::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
-        )
+    step.with_variable_exposed_as(
+        variables::ENSO_CLOUD_ENVIRONMENT,
+        ide::web::env::ENSO_IDE_ENVIRONMENT,
+    )
+    .with_variable_exposed_as(variables::ENSO_CLOUD_API_URL, ide::web::env::ENSO_IDE_API_URL)
+    .with_variable_exposed_as(variables::ENSO_CLOUD_CHAT_URL, ide::web::env::ENSO_IDE_CHAT_URL)
+    .with_variable_exposed_as(variables::ENSO_CLOUD_SENTRY_DSN, ide::web::env::ENSO_IDE_SENTRY_DSN)
+    .with_variable_exposed_as(variables::ENSO_CLOUD_STRIPE_KEY, ide::web::env::ENSO_IDE_STRIPE_KEY)
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_AUTH_ENDPOINT,
+        ide::web::env::ENSO_IDE_AUTH_ENDPOINT,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_COGNITO_USER_POOL_ID,
+        ide::web::env::ENSO_IDE_COGNITO_USER_POOL_ID,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
+        ide::web::env::ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_COGNITO_DOMAIN,
+        ide::web::env::ENSO_IDE_COGNITO_DOMAIN,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_COGNITO_REGION,
+        ide::web::env::ENSO_IDE_COGNITO_REGION,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_GOOGLE_ANALYTICS_TAG,
+        ide::web::env::ENSO_IDE_GOOGLE_ANALYTICS_TAG,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_AG_GRID_LICENSE_KEY,
+        ide::web::env::ENSO_IDE_AG_GRID_LICENSE_KEY,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_MAPBOX_API_TOKEN,
+        ide::web::env::ENSO_IDE_MAPBOX_API_TOKEN,
+    )
+    .with_secret_exposed_as(
+        secret::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
+        ide::web::env::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
+    )
 }
 
 /// Expose variables for debugging purposes.
@@ -180,11 +183,11 @@ pub fn expose_debugging_vars(step: Step) -> Step {
     step.with_secret_exposed(secret::SENTRY_AUTH_TOKEN)
         .with_variable_exposed_as(
             variables::ENSO_CLOUD_SENTRY_ORGANIZATION,
-            ide_env::ENSO_IDE_SENTRY_ORGANIZATION,
+            ide::web::env::ENSO_IDE_SENTRY_ORGANIZATION,
         )
         .with_variable_exposed_as(
             variables::ENSO_CLOUD_SENTRY_PROJECT,
-            ide_env::ENSO_IDE_SENTRY_PROJECT,
+            ide::web::env::ENSO_IDE_SENTRY_PROJECT,
         )
 }
 
@@ -221,30 +224,38 @@ impl JobArchetype for VerifyLicensePackages {
 
 #[derive(Clone, Copy, Debug)]
 pub struct JvmTests {
-    pub graal_edition: graalvm::Edition,
+    pub graal_edition:   graalvm::Edition,
+    pub engine_launcher: engine::EngineLauncher,
 }
 
 impl JobArchetype for JvmTests {
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
+        let engine_launcher = self.engine_launcher;
         let job_name = format!("JVM Tests ({graal_edition})");
-        let test_results_dir = paths::ENSO_TEST_JUNIT_DIR
-            .get()
-            .ok()
-            .and_then(|buf| buf.to_str().map(|s| s.to_owned()))
-            .unwrap_or_else(|| "target/test-results/".to_owned());
-        let _upload_artifact_job = step::upload_artifact("Upload test results")
-            .with_custom_argument("name", format!("Test_Results_{}", target.0))
-            .with_custom_argument("path", test_results_dir);
         let mut job = RunStepsBuilder::new("backend test jvm")
-            .customize(move |step| vec![step, step::engine_test_reporter(target, graal_edition)])
+            .customize(move |step| {
+                let cleanup_engine_distribution =
+                    step::cleanup_engine_distribution(engine_launcher);
+
+                let download_engine_distribution =
+                    step::download_engine_distribution(target, engine_launcher, graal_edition);
+
+                vec![
+                    cleanup_engine_distribution,
+                    download_engine_distribution,
+                    step::unpack_engine_distribution(),
+                    step,
+                    step::engine_test_reporter(target, graal_edition),
+                ]
+            })
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
             graalvm::Edition::Community =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Community),
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise),
         }
         job
     }
@@ -284,13 +295,25 @@ fn enable_cloud_tests(step: Step) -> Step {
 #[derive(Clone, Copy, Debug)]
 pub struct StandardLibraryTests {
     pub graal_edition:       graalvm::Edition,
+    pub engine_launcher:     engine::EngineLauncher,
     pub cloud_tests_enabled: bool,
     pub native_image_mode:   bool,
+}
+
+impl StandardLibraryTests {
+    fn mode_name(&self) -> String {
+        if self.native_image_mode {
+            "native".into()
+        } else {
+            "jvm".into()
+        }
+    }
 }
 
 impl JobArchetype for StandardLibraryTests {
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
+        let engine_launcher = self.engine_launcher;
         let should_enable_cloud_tests = self.cloud_tests_enabled;
         // If cloud tests are enabled, we run only cloud related tests.
         let test_scope = if should_enable_cloud_tests {
@@ -300,9 +323,15 @@ impl JobArchetype for StandardLibraryTests {
         } else {
             "standard-library"
         };
-        let job_name = format!("Standard Library Tests ({graal_edition})");
+        let job_mode_name = self.mode_name();
+        let job_name = format!("Standard Library Tests ({graal_edition}) ({job_mode_name})");
         let run_command = format!("backend test {test_scope}");
         let run_steps_builder = RunStepsBuilder::new(run_command).customize(move |step| {
+            let cleanup_engine_distribution = step::cleanup_engine_distribution(engine_launcher);
+
+            let download_engine_distribution =
+                step::download_engine_distribution(target, engine_launcher, graal_edition);
+
             let main_step = step
                 .with_secret_exposed_as(
                     secret::ENSO_LIB_S3_AWS_REGION,
@@ -320,7 +349,13 @@ impl JobArchetype for StandardLibraryTests {
             let updated_main_step =
                 if should_enable_cloud_tests { enable_cloud_tests(main_step) } else { main_step };
 
-            vec![updated_main_step, step::stdlib_test_reporter(target, graal_edition)]
+            vec![
+                cleanup_engine_distribution,
+                download_engine_distribution,
+                step::unpack_engine_distribution(),
+                updated_main_step,
+                step::stdlib_test_reporter(target, graal_edition),
+            ]
         });
         let mut job = build_job_ensuring_cloud_tests_run_on_github(
             run_steps_builder,
@@ -331,9 +366,9 @@ impl JobArchetype for StandardLibraryTests {
         .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
             graalvm::Edition::Community =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Community),
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise),
         }
 
         // If running extra cloud tests, enable reporting all tests. These tests run on a nightly
@@ -348,9 +383,10 @@ impl JobArchetype for StandardLibraryTests {
 
     fn key(&self, (os, arch): Target) -> String {
         format!(
-            "{}-{}-{os}-{arch}",
+            "{}-{}-{}-{os}-{arch}",
             self.id_key_base(),
-            self.graal_edition.to_string().to_kebab_case()
+            self.graal_edition.to_string().to_kebab_case(),
+            self.mode_name(),
         )
     }
 }
@@ -358,13 +394,31 @@ impl JobArchetype for StandardLibraryTests {
 /// Job that runs Enso lint checks (type checker, later formatting) on the Enso
 /// standard libraries and tests.
 #[derive(Clone, Copy, Debug)]
-pub struct EnsoCodeLintCheck;
+pub struct EnsoCodeLintCheck {
+    pub graal_edition:   graalvm::Edition,
+    pub engine_launcher: engine::EngineLauncher,
+}
 
 impl JobArchetype for EnsoCodeLintCheck {
     fn job(&self, target: Target) -> Job {
-        let job_name = "Enso Code Lint";
-        let run_command = "libraries lint";
-        let mut job = RunStepsBuilder::new(run_command).build_job(job_name, target);
+        let graal_edition = self.graal_edition;
+        let engine_launcher = self.engine_launcher;
+        let mut job = RunStepsBuilder::new("libraries lint")
+            .customize(move |step| {
+                let cleanup_engine_distribution =
+                    step::cleanup_engine_distribution(engine_launcher);
+
+                let download_engine_distribution =
+                    step::download_engine_distribution(target, engine_launcher, graal_edition);
+
+                vec![
+                    cleanup_engine_distribution,
+                    download_engine_distribution,
+                    step::unpack_engine_distribution(),
+                    step,
+                ]
+            })
+            .build_job("Enso Code Lint", target);
         job.env(crate::libraries_tests::env::ENSO_LINT_ENABLE_GITHUB_ANNOTATIONS, "true");
         job
     }
@@ -374,13 +428,33 @@ impl JobArchetype for EnsoCodeLintCheck {
 /// engine distribution, and running `enso --docs api --in-project <std-lib>`,
 /// and comparing it to the API signature files that are already in the VCS.
 #[derive(Clone, Copy, Debug)]
-pub struct StandardLibraryApiCheck;
+pub struct StandardLibraryApiCheck {
+    pub graal_edition:   graalvm::Edition,
+    pub engine_launcher: engine::EngineLauncher,
+}
 
 impl JobArchetype for StandardLibraryApiCheck {
     fn job(&self, target: Target) -> Job {
         let job_name = "Standard Library API check";
+        let graal_edition = self.graal_edition;
+        let engine_launcher = self.engine_launcher;
         let run_command = "backend stdlib-api-check";
-        let job = RunStepsBuilder::new(run_command).build_job(job_name, target);
+        let job = RunStepsBuilder::new(run_command)
+            .customize(move |step| {
+                let cleanup_engine_distribution =
+                    step::cleanup_engine_distribution(engine_launcher);
+
+                let download_engine_distribution =
+                    step::download_engine_distribution(target, engine_launcher, graal_edition);
+
+                vec![
+                    cleanup_engine_distribution,
+                    download_engine_distribution,
+                    step::unpack_engine_distribution(),
+                    step,
+                ]
+            })
+            .build_job(job_name, target);
         job
     }
 }
@@ -498,7 +572,10 @@ fn build_job_ensuring_cloud_tests_run_on_github(
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct SnowflakeTests {}
+pub struct SnowflakeTests {
+    pub graal_edition:   graalvm::Edition,
+    pub engine_launcher: engine::EngineLauncher,
+}
 
 const GRAAL_EDITION_FOR_EXTRA_TESTS: graalvm::Edition = graalvm::Edition::Community;
 
@@ -508,6 +585,8 @@ impl JobArchetype for SnowflakeTests {
             panic!("Snowflake tests currently require GitHub hosted runner for Cloud auth, so they only run on Linux.");
         }
         let job_name = "Snowflake Tests";
+        let graal_edition = self.graal_edition;
+        let engine_launcher = self.engine_launcher;
         let mut job = RunStepsBuilder::new("backend test std-snowflake")
             .customize(move |step| {
                 let main_step = step
@@ -540,14 +619,23 @@ impl JobArchetype for SnowflakeTests {
                 // Enso Cloud as well. They need it to test data link integration.
                 let updated_main_step = enable_cloud_tests(main_step);
 
+                let cleanup_engine_distribution =
+                    step::cleanup_engine_distribution(engine_launcher);
+
+                let download_engine_distribution =
+                    step::download_engine_distribution(target, engine_launcher, graal_edition);
+
                 vec![
+                    cleanup_engine_distribution,
+                    download_engine_distribution,
+                    step::unpack_engine_distribution(),
                     updated_main_step,
                     step::extra_stdlib_test_reporter(target, GRAAL_EDITION_FOR_EXTRA_TESTS),
                 ]
             })
             .build_job(job_name, RunnerLabel::LinuxLatest)
             .with_permission(Permission::Checks, Access::Write);
-        job.env(engine_env::GRAAL_EDITION, GRAAL_EDITION_FOR_EXTRA_TESTS);
+        job.env(engine::env::GRAAL_EDITION, GRAAL_EDITION_FOR_EXTRA_TESTS);
         job.env(crate::libraries_tests::env::REPORT_ALL_TESTS, "1");
         job
     }
@@ -610,11 +698,13 @@ impl JobArchetype for WasmTest {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct BuildBackend;
+pub struct BuildBackend {
+    pub engine_launcher: engine::EngineLauncher,
+}
 
 impl JobArchetype for BuildBackend {
     fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new("backend get")
+        let mut job = RunStepsBuilder::new("backend get")
             .customize(move |step| {
                 let mut steps = vec![step];
 
@@ -651,7 +741,10 @@ impl JobArchetype for BuildBackend {
 
                 steps
             })
-            .build_job("Build Backend", target)
+            .build_job("Build Backend", target);
+        job.env(engine::env::ENSO_LAUNCHER, self.engine_launcher);
+
+        job
     }
 }
 
@@ -746,23 +839,29 @@ impl JobArchetype for DispatchBuildImage {
 pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
     match os {
         OS::Windows => step
-            .with_secret_exposed_as(secret::WINDOWS_CERT_PATH, &ide_env::WIN_CSC_LINK)
-            .with_secret_exposed_as(secret::WINDOWS_CERT_PASSWORD, &ide_env::WIN_CSC_KEY_PASSWORD),
+            .with_secret_exposed_as(secret::WINDOWS_CERT_PATH, &ide::web::env::WIN_CSC_LINK)
+            .with_secret_exposed_as(
+                secret::WINDOWS_CERT_PASSWORD,
+                &ide::web::env::WIN_CSC_KEY_PASSWORD,
+            ),
         OS::MacOS => step
-            .with_secret_exposed_as(secret::APPLE_CODE_SIGNING_CERT, &ide_env::CSC_LINK)
+            .with_secret_exposed_as(secret::APPLE_CODE_SIGNING_CERT, &ide::web::env::CSC_LINK)
             .with_secret_exposed_as(
                 secret::APPLE_CODE_SIGNING_CERT_PASSWORD,
-                &ide_env::CSC_KEY_PASSWORD,
+                &ide::web::env::CSC_KEY_PASSWORD,
             )
-            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_USERNAME, &ide_env::APPLEID)
-            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_PASSWORD, &ide_env::APPLEIDPASS)
-            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_TEAM_ID, &ide_env::APPLETEAMID)
-            .with_env(ide_env::CSC_IDENTITY_AUTO_DISCOVERY, "true")
+            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_USERNAME, &ide::web::env::APPLEID)
+            .with_secret_exposed_as(
+                secret::APPLE_NOTARIZATION_PASSWORD,
+                &ide::web::env::APPLEIDPASS,
+            )
+            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_TEAM_ID, &ide::web::env::APPLETEAMID)
+            .with_env(ide::web::env::CSC_IDENTITY_AUTO_DISCOVERY, "true")
             // `CSC_FOR_PULL_REQUEST` can potentially expose sensitive information to third-party,
             // see the comment in the definition of `CSC_FOR_PULL_REQUEST` for more information.
             //
             // In our case, we are safe here, as any PRs from forks do not get the secrets exposed.
-            .with_env(ide_env::CSC_FOR_PULL_REQUEST, "true"),
+            .with_env(ide::web::env::CSC_FOR_PULL_REQUEST, "true"),
         _ => step,
     }
 }
@@ -899,19 +998,40 @@ rm dist/backend/project-manager.tar"
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct CiCheckBackend {
-    pub graal_edition: graalvm::Edition,
+pub struct BuildEngineDistribution {
+    pub graal_edition:   graalvm::Edition,
+    pub engine_launcher: engine::EngineLauncher,
 }
 
-impl JobArchetype for CiCheckBackend {
+impl JobArchetype for BuildEngineDistribution {
     fn job(&self, target: Target) -> Job {
-        let job_name = format!("Engine ({})", self.graal_edition);
-        let mut job = RunStepsBuilder::new("backend ci-check").build_job(job_name, target);
+        let engine_launcher = self.engine_launcher;
+        let graal_edition = self.graal_edition;
+        let job_name =
+            format!("Build Engine Distribution ({}) ({})", self.graal_edition, engine_launcher);
+        let mut job = RunStepsBuilder::new("backend ci-build-engine-distribution")
+            .customize(move |step| {
+                let archive_engine_distribution =
+                    step::archive_engine_distribution(engine_launcher);
+
+                let upload_engine_distribution =
+                    step::upload_engine_distribution(target, engine_launcher, graal_edition);
+
+                let cleanup_archive = Step {
+                    name: Some("Cleanup Archive".into()),
+                    run: Some("rm built-distribution.tar".into()),
+                    ..Default::default()
+                };
+
+                vec![step, archive_engine_distribution, upload_engine_distribution, cleanup_archive]
+            })
+            .build_job(job_name, target);
+        job.env(engine::env::ENSO_LAUNCHER, self.engine_launcher);
         match self.graal_edition {
             graalvm::Edition::Community =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Community),
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise),
         }
         job
     }
