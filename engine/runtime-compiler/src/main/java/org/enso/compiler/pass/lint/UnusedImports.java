@@ -20,7 +20,6 @@ import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.Name.Literal;
-import org.enso.compiler.core.ir.Type;
 import org.enso.compiler.core.ir.Warning;
 import org.enso.compiler.core.ir.Warning.UnusedImport;
 import org.enso.compiler.core.ir.Warning.UnusedSymbolsFromImport;
@@ -299,15 +298,19 @@ public final class UnusedImports implements MiniPassFactory {
     }
 
     private void addUsedSymbolsFromSignature(Signature signature) {
-      if (signature.signature() instanceof Type.Error sigWithError) {
-        var errRes = getTypeNameMeta(sigWithError.error());
-        var typeRes = getTypeNameMeta(sigWithError.typed());
-        addUsedSymbolForResolution(errRes);
-        addUsedSymbolForResolution(typeRes);
-      } else {
-        var res = getTypeNameMeta(signature.signature());
-        addUsedSymbolForResolution(res);
-      }
+      var collectedResolutions = new ArrayList<Resolution>();
+      signature
+          .signature()
+          .preorder()
+          .foreach(
+              ir -> {
+                var resolution = getTypeNameMeta(ir);
+                if (resolution != null) {
+                  collectedResolutions.add(resolution);
+                }
+                return null;
+              });
+      collectedResolutions.forEach(this::addUsedSymbolForResolution);
     }
 
     private void addUsedSymbolForResolution(Resolution resolution) {

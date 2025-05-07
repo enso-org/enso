@@ -196,6 +196,49 @@ public class UnusedImportsTest {
   }
 
   @Test
+  public void unusedSymbols_InTypeAscription_MultipleThrownErrors() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type T
+            type Error_1
+            type Error_2
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import T, Error_1, Error_2
+            foo : T ! Error_1 | Error_2
+            foo t = 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectNoWarnings(mainMod.getIr());
+  }
+
+  @Test
+  public void unusedSymbols_InTypeAscription_Complicated() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type A
+            type B
+            type C
+            type D
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import A, B, C, D
+            foo : A -> B -> C -> D
+            foo a b c d = a + b + c + d
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectNoWarnings(mainMod.getIr());
+  }
+
+  @Test
   public void unusedSymbols_ExtensionMethod() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"), """
