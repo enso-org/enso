@@ -7,7 +7,7 @@ import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsScala}
 
 object ApiMessage {
   private val TELEMETRY_KIND = "Telemetry"
-  private val ENGINE_KIND = "Engine"
+  private val ENGINE_KIND    = "Engine"
 
   implicit val payloadCodec: JsonValueCodec[Payload] =
     JsonCodecMaker.make[Payload](CodecMakerConfig.withAllowRecursiveTypes(true))
@@ -83,9 +83,9 @@ object ApiMessage {
   }
 
   def createEngineLog(
-                     message: String,
-                     args: java.util.Map[String, Object]
-                     ): Log = {
+    message: String,
+    args: java.util.Map[String, Object]
+  ): Log = {
     Log(message, ENGINE_KIND, args.asScala.toMap)
   }
 

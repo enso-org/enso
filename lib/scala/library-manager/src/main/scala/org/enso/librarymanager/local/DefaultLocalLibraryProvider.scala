@@ -39,7 +39,9 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path], checkAot: Boolean)
       val candidates = findCandidates(libraryName, potentialPath)
       if (candidates.isEmpty) {
         logger.trace(
-          "Local library {} not found at [{}].", libraryName, MaskedPath(potentialPath).applyMasking()
+          "Local library {} not found at [{}].",
+          libraryName,
+          MaskedPath(potentialPath).applyMasking()
         )
         findLibraryHelper(libraryName, tail)
       } else {
@@ -47,13 +49,16 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path], checkAot: Boolean)
           val firstCandidate = candidates.minBy(_.getFileName.toString)
           logger.warn(
             s"Found multiple libraries with the same name and namespace in a single directory: {}. Choosing the first one ({})",
-            candidates.map(_.getFileName.toString).mkString(", "), firstCandidate.getFileName
+            candidates.map(_.getFileName.toString).mkString(", "),
+            firstCandidate.getFileName
           )
           Some(firstCandidate)
         } else {
           val found = candidates.head
           logger.trace(
-            "Resolved library [{}] at [{}].", libraryName, MaskedPath(found).applyMasking()
+            "Resolved library [{}] at [{}].",
+            libraryName,
+            MaskedPath(found).applyMasking()
           )
           Some(found)
         }
@@ -78,14 +83,16 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path], checkAot: Boolean)
             case Failure(exception) =>
               logger.trace(
                 "Failed to load the candidate library package description at [{}]: {}",
-                MaskedPath(potentialPath).applyMasking(), exception.getMessage
+                MaskedPath(potentialPath).applyMasking(),
+                exception.getMessage
               )
               false
             case Success(pkg) => {
               if (checkAot && !pkg.isAotReady()) {
                 logger.warn(
                   "Candidate library {} at [{}] may not be AOT ready! Use --jvm option when encoutering problems.",
-                 pkg.libraryName, MaskedPath(potentialPath).applyMasking()
+                  pkg.libraryName,
+                  MaskedPath(potentialPath).applyMasking()
                 )
                 // avoid repeated warnings
                 pkg.markAotReady()
@@ -97,7 +104,9 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path], checkAot: Boolean)
           }
         if (isGood) {
           logger.trace(
-            s"Found candidate library [{}] at [{}].", libraryName, MaskedPath(potentialPath).applyMasking()
+            s"Found candidate library [{}] at [{}].",
+            libraryName,
+            MaskedPath(potentialPath).applyMasking()
           )
         }
         isGood
@@ -108,7 +117,9 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path], checkAot: Boolean)
   } catch {
     case ex @ (_: IOException | _: RuntimeException) =>
       logger.warn(
-        s"Exception occurred when scanning library path [{}]: {}", MaskedPath(librariesPath).applyMasking(), ex.getMessage
+        s"Exception occurred when scanning library path [{}]: {}",
+        MaskedPath(librariesPath).applyMasking(),
+        ex.getMessage
       )
       Nil
   }
@@ -135,7 +146,9 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path], checkAot: Boolean)
       } catch {
         case ex @ (_: IOException | _: RuntimeException) =>
           logger.warn(
-            s"Exception occurred when scanning library path [{}]: {}", MaskedPath(path).applyMasking(), ex.getMessage
+            s"Exception occurred when scanning library path [{}]: {}",
+            MaskedPath(path).applyMasking(),
+            ex.getMessage
           )
           Nil
       }
@@ -149,9 +162,17 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path], checkAot: Boolean)
     if (alreadyWarned.get(path).contains(suffix)) {
       // If we already warned about this path, further warnings get degraded to trace level.
       // Only one warning at warning level is emitted.
-      logger.trace("Local library search path [{}] {}.", MaskedPath(path).applyMasking(), suffix)
+      logger.trace(
+        "Local library search path [{}] {}.",
+        MaskedPath(path).applyMasking(),
+        suffix
+      )
     } else {
-      logger.debug("Local library search path [{}] {}.", MaskedPath(path).applyMasking(), suffix)
+      logger.debug(
+        "Local library search path [{}] {}.",
+        MaskedPath(path).applyMasking(),
+        suffix
+      )
       alreadyWarned.put(path, suffix)
     }
   }

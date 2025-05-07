@@ -225,7 +225,7 @@ final class JobExecutionEngine(
   ): Future[A] = {
     val jobId   = UUID.randomUUID()
     val promise = Promise[A]()
-    logger.debug(
+    logger.trace(
       s"Submitting job: {} with {} id...",
       job,
       jobId
