@@ -114,26 +114,18 @@ public final class UnusedImports implements MiniPassFactory {
       var importDefs = new ArrayList<Import.Module>();
       for (var resolvedImp : CollectionConverters.asJava(bindingsMap.resolvedImports())) {
         var impIR = resolvedImp.importDef();
-        if (impIR.onlyNames().isDefined() || impIR.isAll()) {
-          // `onlyNames`, or `isAll` import usually has a single resolved import, with target of the
-          // ResolvedModule
-          var resolvedMod =
-              resolvedImp.targets().find(target -> target instanceof BindingsMap.ResolvedModule);
-          if (resolvedMod.isDefined()) {
-            var resolvedNames = resolvedMod.get().findExportedSymbolsFor(targetSymbolName.item());
-            var exportsSymbol = !resolvedNames.isEmpty();
-            if (exportsSymbol) {
-              importDefs.add(impIR);
-            }
-          }
-        } else {
-          var hasSymbolInTargets =
-              resolvedImp
-                  .targets()
-                  .exists(target -> target.qualifiedName().equals(targetSymbolName));
-          if (hasSymbolInTargets) {
-            importDefs.add(impIR);
-          }
+        var validTargets =
+            resolvedImp
+                .targets()
+                .find(
+                    target -> {
+                      var resolvedNames = target.findExportedSymbolsFor(targetSymbolName.item());
+                      var targetNameMatches = target.qualifiedName().equals(targetSymbolName);
+                      var exportsSymbol = !resolvedNames.isEmpty();
+                      return targetNameMatches || exportsSymbol;
+                    });
+        if (validTargets.isDefined()) {
+          importDefs.add(impIR);
         }
       }
       LOGGER.trace(
