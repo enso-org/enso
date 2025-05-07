@@ -7,7 +7,6 @@ import org.enso.table.data.column.operation.CountNonTrivialWhitespace;
 import org.enso.table.data.column.operation.CountUntrimmed;
 import org.enso.table.data.column.operation.SampleOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.text.CoalescingStringStringOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
 import org.enso.table.data.column.storage.type.StorageType;

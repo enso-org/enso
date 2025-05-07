@@ -8,33 +8,35 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.error.UnexpectedTypeException;
 
 public abstract class BinaryCoalescingOperationBool extends BinaryCoalescingOperation<Boolean> {
-  public static final BinaryCoalescingOperationBool MIN_INSTANCE = new BinaryCoalescingOperationBool() {
-    @Override
-    protected boolean applySingle(boolean left, boolean right) {
-      return left && right;
-    }
+  public static final BinaryCoalescingOperationBool MIN_INSTANCE =
+      new BinaryCoalescingOperationBool() {
+        @Override
+        protected boolean applySingle(boolean left, boolean right) {
+          return left && right;
+        }
 
-    @Override
-    protected ColumnStorage<Boolean> applyMapBoolStorage(BoolStorage left, boolean rightValue) {
-      return rightValue
-          ? left.fillMissingBoolean(true)
-          : BoolStorage.makeConstant(Builder.checkSize(left.getSize()), false);
-    }
-  };
+        @Override
+        protected ColumnStorage<Boolean> applyMapBoolStorage(BoolStorage left, boolean rightValue) {
+          return rightValue
+              ? left.fillMissingBoolean(true)
+              : BoolStorage.makeConstant(Builder.checkSize(left.getSize()), false);
+        }
+      };
 
-  public static final BinaryCoalescingOperationBool MAX_INSTANCE = new BinaryCoalescingOperationBool() {
-    @Override
-    protected boolean applySingle(boolean left, boolean right) {
-      return left || right;
-    }
+  public static final BinaryCoalescingOperationBool MAX_INSTANCE =
+      new BinaryCoalescingOperationBool() {
+        @Override
+        protected boolean applySingle(boolean left, boolean right) {
+          return left || right;
+        }
 
-    @Override
-    protected ColumnStorage<Boolean> applyMapBoolStorage(BoolStorage left, boolean rightValue) {
-      return rightValue
-          ? BoolStorage.makeConstant(Builder.checkSize(left.getSize()), true)
-          : left.fillMissingBoolean(false);
-    }
-  };
+        @Override
+        protected ColumnStorage<Boolean> applyMapBoolStorage(BoolStorage left, boolean rightValue) {
+          return rightValue
+              ? BoolStorage.makeConstant(Builder.checkSize(left.getSize()), true)
+              : left.fillMissingBoolean(false);
+        }
+      };
 
   private BinaryCoalescingOperationBool() {
     super(BooleanType.INSTANCE, null);
@@ -56,7 +58,8 @@ public abstract class BinaryCoalescingOperationBool extends BinaryCoalescingOper
         return StorageIterators.buildOverBooleanStorage(
             typedStorage,
             Builder.getForBoolean(typedStorage.getSize()),
-            (builder, index, value, isNothing) -> builder.appendBoolean(applySingle(value, boolValue)));
+            (builder, index, value, isNothing) ->
+                builder.appendBoolean(applySingle(value, boolValue)));
       }
     }
 
@@ -90,5 +93,6 @@ public abstract class BinaryCoalescingOperationBool extends BinaryCoalescingOper
 
   protected abstract boolean applySingle(boolean left, boolean right);
 
-  protected abstract ColumnStorage<Boolean> applyMapBoolStorage(BoolStorage left, boolean rightValue);
+  protected abstract ColumnStorage<Boolean> applyMapBoolStorage(
+      BoolStorage left, boolean rightValue);
 }

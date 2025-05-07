@@ -4,7 +4,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.function.BiFunction;
-
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
@@ -68,7 +67,8 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
       // Null on left-hand side so just return the right-hand Column
       if (leftStorage.getType() instanceof NullType) {
         int checkedSize = Builder.checkSize(leftStorage.getSize());
-        var constantStorage = Storage.fromRepeatedItem(Value.asValue(right), checkedSize, problemBuilder);
+        var constantStorage =
+            Storage.fromRepeatedItem(Value.asValue(right), checkedSize, problemBuilder);
         return new Column(name, constantStorage);
       }
 
@@ -86,11 +86,13 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
   private static final BinaryOperation<LocalTime> TIME_MIN =
       new BinaryCoalescingOperation<>(TimeOfDayType.INSTANCE, (a, b) -> a.isBefore(b) ? a : b);
   private static final BinaryOperation<String> TEXT_MIN =
-      new BinaryCoalescingOperation<>(TextType.VARIABLE_LENGTH, (a, b) -> Text_Utils.compare_normalized(a, b) < 0 ? a : b) {
+      new BinaryCoalescingOperation<>(
+          TextType.VARIABLE_LENGTH, (a, b) -> Text_Utils.compare_normalized(a, b) < 0 ? a : b) {
         @Override
         protected BuilderForType<String> makeStorageBuilder(
             long size, StorageType<?> leftType, StorageType<?> rightType) {
-          return TextType.maxType(leftType, rightType).makeBuilder(size, BlackholeProblemAggregator.INSTANCE);
+          return TextType.maxType(leftType, rightType)
+              .makeBuilder(size, BlackholeProblemAggregator.INSTANCE);
         }
       };
 
@@ -111,7 +113,15 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
           default -> null;
         };
     return applyOperation(
-        left, right, fallback, fallbackType, name, problemBuilder, operation, leftStorage, Storage.Maps.MIN);
+        left,
+        right,
+        fallback,
+        fallbackType,
+        name,
+        problemBuilder,
+        operation,
+        leftStorage,
+        Storage.Maps.MIN);
   }
 
   private static final BinaryOperation<LocalDate> DATE_MAX =
@@ -121,11 +131,13 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
   private static final BinaryOperation<LocalTime> TIME_MAX =
       new BinaryCoalescingOperation<>(TimeOfDayType.INSTANCE, (a, b) -> a.isAfter(b) ? a : b);
   private static final BinaryOperation<String> TEXT_MAX =
-      new BinaryCoalescingOperation<>(TextType.VARIABLE_LENGTH, (a, b) -> Text_Utils.compare_normalized(a, b) > 0 ? a : b) {
+      new BinaryCoalescingOperation<>(
+          TextType.VARIABLE_LENGTH, (a, b) -> Text_Utils.compare_normalized(a, b) > 0 ? a : b) {
         @Override
         protected BuilderForType<String> makeStorageBuilder(
             long size, StorageType<?> leftType, StorageType<?> rightType) {
-          return TextType.maxType(leftType, rightType).makeBuilder(size, BlackholeProblemAggregator.INSTANCE);
+          return TextType.maxType(leftType, rightType)
+              .makeBuilder(size, BlackholeProblemAggregator.INSTANCE);
         }
       };
 
@@ -146,7 +158,15 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
           default -> null;
         };
     return applyOperation(
-        left, right, fallback, fallbackType, name, problemBuilder, operation, leftStorage, Storage.Maps.MAX);
+        left,
+        right,
+        fallback,
+        fallbackType,
+        name,
+        problemBuilder,
+        operation,
+        leftStorage,
+        Storage.Maps.MAX);
   }
 
   private final StorageType<T> validType;
@@ -201,7 +221,8 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
         (index, l, r) -> l == null ? r : (r == null ? l : zipOperation.apply(l, r)));
   }
 
-  protected BuilderForType<T> makeStorageBuilder(long size, StorageType<?> leftType, StorageType<?> rightType) {
+  protected BuilderForType<T> makeStorageBuilder(
+      long size, StorageType<?> leftType, StorageType<?> rightType) {
     return validType.makeBuilder(size, BlackholeProblemAggregator.INSTANCE);
   }
 }

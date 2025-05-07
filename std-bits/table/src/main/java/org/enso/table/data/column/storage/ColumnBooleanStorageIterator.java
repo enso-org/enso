@@ -12,7 +12,8 @@ public interface ColumnBooleanStorageIterator extends ColumnStorageIterator<Bool
   }
 
   /** Zips this iterator with another iterator. */
-  default void zip(ColumnBooleanStorage otherStorage, ColumnBooleanStorageIterator.BooleanBooleanZipper zipper) {
+  default void zip(
+      ColumnBooleanStorage otherStorage, ColumnBooleanStorageIterator.BooleanBooleanZipper zipper) {
     var other = otherStorage.iterator();
     Context context = Context.getCurrent();
 

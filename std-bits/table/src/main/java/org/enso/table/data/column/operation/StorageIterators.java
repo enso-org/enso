@@ -55,7 +55,8 @@ public class StorageIterators {
       DoubleBuildObjectOperation operation) {
     Context context = Context.getCurrent();
 
-    try (var progressHandle = ProgressHandler.init("buildObjectOverDoubleStorage", source.getSize())) {
+    try (var progressHandle =
+        ProgressHandler.init("buildObjectOverDoubleStorage", source.getSize())) {
       var iterator = source.iterator();
       while (iterator.moveNext()) {
         if (iterator.isNothing()) {
