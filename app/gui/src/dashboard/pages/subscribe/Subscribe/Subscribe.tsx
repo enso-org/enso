@@ -38,7 +38,7 @@ export function Subscribe() {
           <Button
             variant="icon"
             size="medium"
-            icon="arrow_left"
+            icon="arrow_circle_left"
             href={DASHBOARD_PATH}
             className="-ml-2"
           >
