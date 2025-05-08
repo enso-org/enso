@@ -18,20 +18,20 @@ export const INPUT_STYLES = tv({
     },
     invalid: {
       // Specified in compoundVariants. Real classes depend on Variants
-      true: { base: '' },
+      true: '',
     },
     readOnly: {
-      true: { base: 'cursor-default' },
-      false: { base: 'cursor-text' },
+      true: 'cursor-default',
+      false: 'cursor-text',
     },
     size: {
-      medium: { base: 'px-[11px] pb-[6.5px] pt-[8.5px]', icon: 'size-4' },
+      custom: '',
       small: { base: 'px-[11px] pb-0.5 pt-1', icon: 'size-3' },
-      custom: {},
+      medium: { base: 'px-[11px] pb-[6.5px] pt-[8.5px]', icon: 'size-4' },
     },
     rounded: makeRoundedStyles('base'),
     variant: {
-      custom: {},
+      custom: '',
       outline: {
         base: 'border-[0.5px] border-primary/20 outline-offset-2 focus-within:border-primary/50 focus-within:outline focus-within:outline-2 focus-within:outline-offset-0 focus-within:outline-primary',
         textArea: 'border-transparent focus-within:border-transparent',
@@ -60,11 +60,11 @@ export const INPUT_STYLES = tv({
     {
       invalid: true,
       variant: 'outline',
-      class: { base: 'border-danger focus-within:border-danger focus-within:outline-danger' },
+      class: 'border-danger focus-within:border-danger focus-within:outline-danger',
     },
     {
       readOnly: true,
-      class: { base: 'focus-within:outline-transparent' },
+      class: 'focus-within:outline-transparent',
     },
   ],
   defaultVariants: {

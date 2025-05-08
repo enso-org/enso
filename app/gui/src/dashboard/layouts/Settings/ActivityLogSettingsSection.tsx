@@ -1,10 +1,10 @@
 /** @file Settings tab for viewing and editing account information. */
 import * as React from 'react'
 
-import { fromDate, getLocalTimeZone, today, ZonedDateTime } from '@internationalized/date'
+import { getLocalTimeZone, today, ZonedDateTime } from '@internationalized/date'
 import * as z from 'zod'
 
-import { Button, DatePicker, Dropdown, Form, Text } from '#/components/AriaComponents'
+import { Button, ComboBox, DatePicker, Form, Text } from '#/components/AriaComponents'
 import { Icon } from '#/components/Icon'
 import { Scroller } from '#/components/Scroller'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
@@ -12,6 +12,7 @@ import { UserWithPopover } from '#/components/UserWithPopover'
 import { backendQueryOptions } from '#/hooks/backendHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
+import type { EmailAddress } from '#/services/Backend'
 import { type AuditLogEvent } from '#/services/Backend'
 import { iconIdFor, nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
@@ -24,7 +25,6 @@ import {
   LAMBDA_KINDS,
   normalizeLambdaKind,
   SELECTABLE_LAMBDA_KINDS,
-  type LambdaKind,
 } from './lambdaKinds'
 
 const GET_LOG_EVENTS_DEFAULT_PAGE_SIZE = 100
@@ -32,6 +32,8 @@ const GET_LOG_EVENTS_DEFAULT_PAGE_SIZE = 100
 /** Create the schema for this form. */
 function createActivityLogSchema() {
   return z.object({
+    userEmail: z.custom<EmailAddress>((s) => typeof s === 'string').optional(),
+    type: z.string().optional(),
     startDate: z.instanceof(ZonedDateTime).optional(),
     endDate: z.instanceof(ZonedDateTime).optional(),
     pageSize: z.number().int(),
@@ -54,20 +56,24 @@ export interface ActivityLogSettingsSectionProps {
 export default function ActivityLogSettingsSection(props: ActivityLogSettingsSectionProps) {
   const { backend } = props
   const { getText } = useText()
-  const [types, setTypes] = React.useState<readonly LambdaKind[]>([])
-  const [typeIndices, setTypeIndices] = React.useState<readonly number[]>([])
-  const [emails, setEmails] = React.useState<readonly string[]>([])
-  const [emailIndices, setEmailIndices] = React.useState<readonly number[]>([])
   const [sortInfo, setSortInfo] = React.useState<SortInfo<ActivityLogSortableColumn> | null>(null)
   const { data: users = [] } = useQuery(backendQueryOptions(backend, 'listUsers', []))
   const allEmails = users.map((user) => user.email)
   const usersByEmail = new Map(users.map((user) => [user.email, user]))
   const isDescending = sortInfo?.direction === SortDirection.descending
 
+  const lambdaKindsByName = new Map(
+    SELECTABLE_LAMBDA_KINDS.map((kind) => [getText(EVENT_TYPE_NAME_ID[kind]), kind]),
+  )
+  const endpointNames = [...lambdaKindsByName.keys()]
+
   const form = Form.useForm({
     schema: createActivityLogSchema(),
     defaultValues: { pageSize: GET_LOG_EVENTS_DEFAULT_PAGE_SIZE },
   })
+  const typeRaw = form.watch('type')
+  const type = typeRaw != null ? lambdaKindsByName.get(typeRaw) : null
+  const userEmail = form.watch('userEmail')
   const startDate = form.watch('startDate')
   const endDate = form.watch('endDate')
   const pageSize = form.watch('pageSize')
@@ -75,6 +81,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
 
   const getLogEventsArgs = [
     {
+      userEmail,
       startDate: startDate && toRfc3339(startDate.toDate()),
       endDate: endDate && toRfc3339(endDate.toDate()),
       pageSize,
@@ -93,32 +100,15 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const logs = logsPages.data?.pages.flat()
   const isLoading = logsPages.isLoading
 
-  const filteredLogs = (() => {
-    const typesSet = new Set(types.length > 0 ? types : LAMBDA_KINDS)
-    const emailsSet = new Set(emails.length > 0 ? emails : allEmails)
-    return logs?.filter((log) => {
-      const date = log.timestamp == null ? null : fromDate(new Date(log.timestamp), 'UTC')
+  const sortedLogs = (() => {
+    const filteredLogs = logs?.filter((log) => {
       if (log.lambdaKind == null) {
         return false
       }
       const kind = normalizeLambdaKind(log.lambdaKind)
-      if (!kind.valid) {
-        return false
-      }
-      if (!typesSet.has(kind.kind)) {
-        return false
-      }
-      if (!emailsSet.has(log.userEmail)) {
-        return false
-      }
-      if (date == null) {
-        return true
-      }
-      return (startDate == null || date >= startDate) && (endDate == null || date <= endDate)
+      return type == null || !kind.valid || kind.kind === type
     })
-  })()
 
-  const sortedLogs = (() => {
     if (sortInfo == null || filteredLogs == null) {
       return filteredLogs
     } else {
@@ -170,58 +160,23 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       <Form form={form} className="flex flex-row flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <Text className="whitespace-nowrap">{getText('startDate')}</Text>
-          <DatePicker
-            form={form}
-            name="startDate"
-            size="small"
-            maxValue={maxDate}
-            className="w-36"
-          />
+          <DatePicker form={form} name="startDate" maxValue={maxDate} className="w-36" />
         </div>
         <div className="flex items-center gap-2">
           <Text className="whitespace-nowrap">{getText('endDate')}</Text>
-          <DatePicker form={form} name="endDate" size="small" maxValue={maxDate} className="w-36" />
+          <DatePicker form={form} name="endDate" maxValue={maxDate} className="w-36" />
         </div>
         <div className="flex items-center gap-2">
           <Text className="whitespace-nowrap">{getText('types')}</Text>
-          <Dropdown
-            aria-label={getText('types')}
-            multiple
-            items={SELECTABLE_LAMBDA_KINDS}
-            selectedIndices={typeIndices}
-            renderMultiple={({ items }) =>
-              items.length === 0 || items.length === SELECTABLE_LAMBDA_KINDS.length ?
-                'All'
-              : (items[0] != null ? getText(EVENT_TYPE_NAME_ID[items[0]]) : '') +
-                (items.length <= 1 ? '' : ` (+${items.length - 1})`)
-            }
-            onChange={(items, indices) => {
-              setTypes(items)
-              setTypeIndices(indices)
-            }}
-          >
-            {({ item }) => getText(EVENT_TYPE_NAME_ID[item])}
-          </Dropdown>
+          <ComboBox form={form} name="type" aria-label={getText('types')} items={endpointNames}>
+            {(otherType) => otherType ?? ''}
+          </ComboBox>
         </div>
         <div className="flex items-center gap-2">
           <Text className="whitespace-nowrap">{getText('users')}</Text>
-          <Dropdown
-            aria-label={getText('users')}
-            multiple
-            items={allEmails}
-            selectedIndices={emailIndices}
-            renderMultiple={({ items }) =>
-              items.length === 0 || items.length === allEmails.length ?
-                'All'
-              : (items[0] ?? '') + (items.length <= 1 ? '' : `(+${items.length - 1})`)
-            }
-            onChange={(items, indices) => {
-              setEmails(items)
-              setEmailIndices(indices)
-            }}
-          >
-            {({ item }) => item}
-          </Dropdown>
+          <ComboBox form={form} name="userEmail" aria-label={getText('users')} items={allEmails}>
+            {(email) => email ?? ''}
+          </ComboBox>
         </div>
       </Form>
       <Scroller

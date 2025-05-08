@@ -36,12 +36,9 @@ const COMBO_BOX_STYLES = tv({
   variants: {
     rounded: makeRoundedStyles('inputContainer'),
     size: {
-      small: {
-        inputContainer: 'h-6 px-2',
-      },
-      medium: {
-        inputContainer: 'h-8 px-4',
-      },
+      custom: '',
+      small: { inputContainer: 'px-[11px] pb-0.5 pt-1' },
+      medium: { inputContainer: 'px-[11px] pb-[6.5px] pt-[8.5px]' },
     },
   },
   slots: {
@@ -174,7 +171,7 @@ export const ComboBox = forwardRef(function ComboBox<
               />
               {!noResetButton && <ComboBoxResetButton className={styles.resetButton()} />}
             </div>
-            <Popover triggerRef={popoverTriggerRef} className={styles.popover()}>
+            <Popover triggerRef={popoverTriggerRef} size="xxsmall" className={styles.popover()}>
               <ListBox aria-label={props['aria-label'] ?? 'Combo box'} className={styles.listBox()}>
                 {(item) => {
                   // eslint-disable-next-line no-restricted-syntax
