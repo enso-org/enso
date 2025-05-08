@@ -62,6 +62,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const { data: users = [] } = useQuery(backendQueryOptions(backend, 'listUsers', []))
   const allEmails = users.map((user) => user.email)
   const usersByEmail = new Map(users.map((user) => [user.email, user]))
+  const isDescending = sortInfo?.direction === SortDirection.descending
 
   const form = Form.useForm({
     schema: createActivityLogSchema(),
@@ -90,6 +91,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
     meta: { persist: false },
   })
   const logs = logsPages.data?.pages.flat()
+  const isLoading = logsPages.isLoading
 
   const filteredLogs = (() => {
     const typesSet = new Set(types.length > 0 ? types : LAMBDA_KINDS)
@@ -162,8 +164,6 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       return [...filteredLogs].sort(compare)
     }
   })()
-  const isDescending = sortInfo?.direction === SortDirection.descending
-  const isLoading = sortedLogs == null
 
   return (
     <>
@@ -370,48 +370,39 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
             </tr>
           </thead>
           <tbody className="select-text">
-            {isLoading ?
-              <tr className="h-9">
-                <td colSpan={4} className="rounded-full bg-transparent">
-                  <div className="flex justify-center">
-                    <StatelessSpinner size={32} state="loading-medium" />
-                  </div>
-                </td>
-              </tr>
-            : sortedLogs.map((log, i) => {
-                const kind = log.lambdaKind == null ? null : normalizeLambdaKind(log.lambdaKind)
-                const user = usersByEmail.get(log.userEmail)
-                return (
-                  <tr key={i} className="h-9">
-                    <ActivityLogTableCell>
-                      <div className="flex items-center">
-                        <Icon
-                          icon={
-                            kind?.valid === true ? EVENT_TYPE_ICON[kind.kind] : DEFAULT_EVENT_ICON
-                          }
-                        />
+            {sortedLogs?.map((log, i) => {
+              const kind = log.lambdaKind == null ? null : normalizeLambdaKind(log.lambdaKind)
+              const user = usersByEmail.get(log.userEmail)
+              return (
+                <tr key={i} className="h-9">
+                  <ActivityLogTableCell>
+                    <div className="flex items-center">
+                      <Icon
+                        icon={
+                          kind?.valid === true ? EVENT_TYPE_ICON[kind.kind] : DEFAULT_EVENT_ICON
+                        }
+                      />
+                    </div>
+                  </ActivityLogTableCell>
+                  <ActivityLogTableCell>
+                    {kind?.valid === true ?
+                      getText(EVENT_TYPE_NAME_ID[kind.kind])
+                    : (kind?.invalidKind ?? '(unknown)')}
+                  </ActivityLogTableCell>
+                  <ActivityLogTableCell>
+                    {user ?
+                      <div className="flex w-48">
+                        <UserWithPopover user={user} />
                       </div>
-                    </ActivityLogTableCell>
-                    <ActivityLogTableCell>
-                      {kind?.valid === true ?
-                        getText(EVENT_TYPE_NAME_ID[kind.kind])
-                      : (kind?.invalidKind ?? '(unknown)')}
-                    </ActivityLogTableCell>
-                    <ActivityLogTableCell>
-                      {user ?
-                        <div className="flex w-48">
-                          <UserWithPopover user={user} />
-                        </div>
-                      : log.userEmail}
-                    </ActivityLogTableCell>
-                    <ActivityLogTableCell>
-                      {log.timestamp ? toReadableIsoString(new Date(log.timestamp)) : ''}
-                    </ActivityLogTableCell>
-                  </tr>
-                )
-              })
-            }
-            {(logsPages.data?.pages.length ?? 0) > 0 && (
+                    : log.userEmail}
+                  </ActivityLogTableCell>
+                  <ActivityLogTableCell>
+                    {log.timestamp ? toReadableIsoString(new Date(log.timestamp)) : ''}
+                  </ActivityLogTableCell>
+                </tr>
+              )
+            })}
+            {isLoading && (
               <tr className="h-9">
                 <td colSpan={4} className="rounded-full bg-transparent">
                   <div className="flex justify-center">
