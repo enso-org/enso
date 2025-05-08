@@ -68,40 +68,33 @@ final class UsedSymbolsCollector {
    */
   private static List<Resolution> recursivelyCollectResolutions(IR root) {
     var resolutions = new ArrayList<Resolution>();
-    root.preorder()
-        .foreach(
-            ir -> {
-              var resolution = getGlobalNamesMeta(ir);
-              if (resolution != null) {
-                resolutions.add(resolution);
-              }
-              resolution = getMethodDefinitionsMeta(ir);
-              if (resolution != null) {
-                resolutions.add(resolution);
-              }
-              resolution = getTypeNameMeta(ir);
-              if (resolution != null) {
-                resolutions.add(resolution);
-              }
-              var typeSig = getTypeSignatureMeta(ir);
-              if (typeSig != null) {
-                var sig = typeSig.signature();
-                var sigResolutions = recursivelyCollectResolutions(sig);
-                resolutions.addAll(sigResolutions);
-              }
-              var anotMeta = getGenericAnnotationMeta(ir);
-              if (anotMeta != null) {
-                anotMeta
-                    .annotations()
-                    .foreach(
-                        anot -> {
-                          var anotResolutions = recursivelyCollectResolutions(anot);
-                          resolutions.addAll(anotResolutions);
-                          return null;
-                        });
-              }
-              return null;
-            });
+    for (var ir : CollectionConverters.asJava(root.preorder())) {
+      var resolution = getGlobalNamesMeta(ir);
+      if (resolution != null) {
+        resolutions.add(resolution);
+      }
+      resolution = getMethodDefinitionsMeta(ir);
+      if (resolution != null) {
+        resolutions.add(resolution);
+      }
+      resolution = getTypeNameMeta(ir);
+      if (resolution != null) {
+        resolutions.add(resolution);
+      }
+      var typeSig = getTypeSignatureMeta(ir);
+      if (typeSig != null) {
+        var sig = typeSig.signature();
+        var sigResolutions = recursivelyCollectResolutions(sig);
+        resolutions.addAll(sigResolutions);
+      }
+      var anotMeta = getGenericAnnotationMeta(ir);
+      if (anotMeta != null) {
+        for (var anot : CollectionConverters.asJava(anotMeta.annotations())) {
+          var anotResolutions = recursivelyCollectResolutions(anot);
+          resolutions.addAll(anotResolutions);
+        }
+      }
+    }
     return resolutions;
   }
 
