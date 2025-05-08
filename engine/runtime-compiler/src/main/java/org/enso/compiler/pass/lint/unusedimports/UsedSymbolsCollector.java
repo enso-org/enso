@@ -72,8 +72,7 @@ final class UsedSymbolsCollector {
     irsToProcess.add(root);
     while (!irsToProcess.isEmpty()) {
       var ir = irsToProcess.removeFirst();
-      LOGGER.trace("[{}] Processing IR {}",
-          bindingsMap.currentModule().getName(), irToStr(ir));
+      LOGGER.trace("[{}] Processing IR {}", bindingsMap.currentModule().getName(), irToStr(ir));
       // Application.Prefix (method calls) are handled specifically. GlobalNames pass assigns
       // resolution to the first synthetic self argument.
       if (ir instanceof Application.Prefix app
