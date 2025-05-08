@@ -6,13 +6,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.concurrent.ThreadPoolExecutor;
-import org.enso.logging.service.logback.TelemetryAppender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Background job processing inspired by {@code org.enso.base.enso_cloud.logging.LogApiAccess}.
- * Singleton.
  *
  * <p>This appender is supposed to be started by the project manager, within {@link
  * org.enso.logging.service.logback.LoggingServer}. The logging events that are received in this
@@ -20,7 +18,7 @@ import org.slf4j.LoggerFactory;
  * by the logback framework. Thus, the {@link ILoggingEvent#getArgumentArray() log event arguments}
  * are most likely strings.
  */
-public abstract class RemoteAppender extends TelemetryAppender {
+public abstract class RemoteAppender extends org.enso.logging.service.logback.RemoteAppender {
   private static final String CREDENTIALS_FILE_ENV = "ENSO_CLOUD_CREDENTIALS_FILE";
   private static final Logger LOGGER =
       LoggerFactory.getLogger(TelemetryAppenderImpl.class.getName());
@@ -121,6 +119,7 @@ public abstract class RemoteAppender extends TelemetryAppender {
         logEvent.getLoggerName(),
         logEvent.getMessage(),
         logEvent.getArgumentArray(),
-        logEvent.getLevel().levelStr);
+        logEvent.getLevel().levelStr,
+        logEvent.getMDCPropertyMap());
   }
 }

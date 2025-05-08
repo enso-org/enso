@@ -9,6 +9,6 @@ module org.enso.logging.service.telemetry {
   requires org.slf4j;
   requires static org.openide.util.lookup.RELEASE180;
 
-  provides org.enso.logging.service.logback.TelemetryAppender with
+  provides org.enso.logging.service.logback.RemoteAppender with
     org.enso.logging.service.telemetry.TelemetryAppenderImpl;
 }
