@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage.type;
 
+import java.math.BigDecimal;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
@@ -38,7 +39,7 @@ public record FloatType(Bits bits) implements StorageType<Double> {
 
   @Override
   public Double valueAsType(Object value) {
-    if (NumericConverter.isCoercibleToDouble(value)) {
+    if (NumericConverter.isCoercibleToDouble(value) || value instanceof BigDecimal) {
       return NumericConverter.coerceToDouble(value);
     }
     return null;

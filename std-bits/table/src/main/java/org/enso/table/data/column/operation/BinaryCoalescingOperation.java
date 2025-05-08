@@ -113,15 +113,7 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
           default -> null;
         };
     return applyOperation(
-        left,
-        right,
-        fallback,
-        fallbackType,
-        name,
-        problemBuilder,
-        operation,
-        leftStorage,
-        Storage.Maps.MIN);
+        left, right, fallback, fallbackType, name, problemBuilder, operation, leftStorage, "min");
   }
 
   private static final BinaryOperation<LocalDate> DATE_MAX =
@@ -158,15 +150,7 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
           default -> null;
         };
     return applyOperation(
-        left,
-        right,
-        fallback,
-        fallbackType,
-        name,
-        problemBuilder,
-        operation,
-        leftStorage,
-        Storage.Maps.MAX);
+        left, right, fallback, fallbackType, name, problemBuilder, operation, leftStorage, "max");
   }
 
   private final StorageType<T> validType;
