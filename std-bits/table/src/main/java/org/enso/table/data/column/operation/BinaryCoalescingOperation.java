@@ -30,8 +30,7 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
       String name,
       MapOperationProblemAggregator problemBuilder,
       BinaryOperation<?> operation,
-      Storage<?> leftStorage,
-      String fallbackName) {
+      Storage<?> leftStorage) {
     if (right instanceof Column rightColumn) {
       if (operation != null) {
         var rightStorage = rightColumn.getStorage();
@@ -46,14 +45,7 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
           return new Column(name, rightColumn.getStorage());
         }
 
-        var result =
-            leftStorage.vectorizedOrFallbackZip(
-                fallbackName,
-                problemBuilder,
-                fallback,
-                rightColumn.getStorage(),
-                false,
-                fallbackType);
+        var result = leftStorage.zip(fallback, rightColumn.getStorage(), false, fallbackType, problemBuilder);
         return new Column(name, result);
       }
     }
@@ -72,9 +64,7 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
         return new Column(name, constantStorage);
       }
 
-      var result =
-          leftStorage.vectorizedOrFallbackBinaryMap(
-              fallbackName, problemBuilder, fallback, right, false, leftStorage.getType());
+      var result = leftStorage.binaryMap(fallback, right, false, fallbackType, problemBuilder);
       return new Column(name, result);
     }
   }
@@ -113,7 +103,7 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
           default -> null;
         };
     return applyOperation(
-        left, right, fallback, fallbackType, name, problemBuilder, operation, leftStorage, "min");
+        left, right, fallback, fallbackType, name, problemBuilder, operation, leftStorage);
   }
 
   private static final BinaryOperation<LocalDate> DATE_MAX =
@@ -150,7 +140,7 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
           default -> null;
         };
     return applyOperation(
-        left, right, fallback, fallbackType, name, problemBuilder, operation, leftStorage, "max");
+        left, right, fallback, fallbackType, name, problemBuilder, operation, leftStorage);
   }
 
   private final StorageType<T> validType;
