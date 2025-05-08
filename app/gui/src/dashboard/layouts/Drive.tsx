@@ -8,7 +8,7 @@ import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 import { AssetPanel } from '#/layouts/AssetPanel'
 import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
@@ -27,7 +27,7 @@ import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import { OfflineError } from '#/utilities/HttpClient'
-import { useBackendsInReact } from '$/providers/react'
+import { useBackends } from '$/providers/react'
 import { useDeferredValue } from 'react'
 import { toast } from 'react-toastify'
 import { Suspense } from '../components/Suspense'
@@ -43,8 +43,8 @@ function Drive(props: DriveProps) {
   const { isOffline } = offlineHooks.useOffline()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useFullUserSession()
-  const { localBackend } = useBackendsInReact()
-  const { getText } = useTextInReact()
+  const { localBackend } = useBackends()
+  const { getText } = useText()
   const categoriesAPI = useCategoriesAPI()
   const { category, resetCategory, setCategory } = categoriesAPI
 
@@ -144,7 +144,7 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
 
   const { isOffline } = offlineHooks.useOffline()
   const { user } = authProvider.useFullUserSession()
-  const { localBackend, backendByCategory } = useBackendsInReact()
+  const { localBackend, backendByCategory } = useBackends()
   const backend = backendByCategory(category)
 
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
@@ -208,7 +208,7 @@ interface OfflineMessageProps {
  */
 function OfflineMessage(props: OfflineMessageProps) {
   const { supportLocalBackend, setCategory } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   return (
     <result.Result

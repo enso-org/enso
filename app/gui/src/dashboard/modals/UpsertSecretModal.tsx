@@ -1,7 +1,7 @@
 /** @file A modal for creating and editing a secret. */
 import { ButtonGroup, Dialog, DialogDismiss, Form, Input } from '#/components/AriaComponents'
 import type { SecretId } from '#/services/Backend'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 /** Props for a {@link UpsertSecretModal}. */
 export interface UpsertSecretModalProps {
@@ -20,7 +20,7 @@ export interface UpsertSecretModalProps {
 export default function UpsertSecretModal(props: UpsertSecretModalProps) {
   const { noDialog = false, id, name: nameRaw, defaultOpen, doCreate } = props
   const { canCancel = true, canReset = false } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const isCreatingSecret = id == null
 

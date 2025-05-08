@@ -5,7 +5,7 @@ import ArrowRightIcon from '#/assets/arrow_right.svg'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
-import { useRouterInReact, useTextInReact } from '$/providers/react'
+import { useRouter, useText } from '$/providers/react'
 
 /**
  * The number of emails to display in the success message.
@@ -24,13 +24,13 @@ export interface InviteUsersSuccessProps {
 /** Success screen for the invite users modal. */
 export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
   const { onClose, emails, invitationLink } = props
-  const { getText, locale } = useTextInReact()
+  const { getText, locale } = useText()
   const membersSearchParams = [
     ['cloud-ide_page', '"settings"'],
     ['cloud-ide_SettingsTab', '"members"'],
   ] as const
 
-  const { route, router } = useRouterInReact()
+  const { route, router } = useRouter()
 
   const emailListFormatter = React.useMemo(
     () => new Intl.ListFormat(locale, { type: 'conjunction', style: 'long' }),

@@ -11,7 +11,7 @@ import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as backendModule from '#/services/Backend'
 import * as twMerge from '#/utilities/tailwindMerge'
 import { vueComponent } from '#/utilities/vue'
-import { useBackendsInReact, useConfigInReact, useTextInReact } from '$/providers/react'
+import { useBackends, useConfig, useText } from '$/providers/react'
 import * as reactQuery from '@tanstack/react-query'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
@@ -35,12 +35,12 @@ export interface EditorProps {
 export default function Editor(props: EditorProps) {
   const { project, hidden = false, onReadyUpdate, onNameUpdate } = props
   const { preventAutoReopen = false } = project
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
   const startProject = projectHooks.useReopenProject(openProjectMutation)
 
-  const { localBackend, remoteBackend, backendForProjectType } = useBackendsInReact()
+  const { localBackend, remoteBackend, backendForProjectType } = useBackends()
   const backend = backendForProjectType(project.type)
 
   const projectStatusQuery = projectHooks.createGetProjectDetailsQuery({
@@ -215,11 +215,11 @@ interface EditorInternalProps extends Omit<EditorProps, 'project'> {
 function EditorInternal(props: EditorInternalProps) {
   const { hidden = false, renameProject, openedProject, backendType, projectName } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const gtagEvent = gtagHooks.useGtagEvent()
-  const config = useConfigInReact()
+  const config = useConfig()
 
-  const { localBackend, remoteBackend } = useBackendsInReact()
+  const { localBackend, remoteBackend } = useBackends()
 
   React.useEffect(() => {
     if (!hidden) {

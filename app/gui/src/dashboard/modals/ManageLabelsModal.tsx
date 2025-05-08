@@ -24,7 +24,7 @@ import type Backend from '#/services/Backend'
 import { findLeastUsedColor, LabelName, type AnyAsset, type LChColor } from '#/services/Backend'
 import { regexEscape } from '#/utilities/string'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 /** Props for a {@link ManageLabelsModal}. */
 export interface ManageLabelsModalProps<Asset extends AnyAsset = AnyAsset> {
@@ -62,7 +62,7 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
   const item = useAsset(itemRaw.id) ?? itemRaw
 
   const [id, setId] = useState(0)
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const { data: allLabels = [] } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const [color, setColor] = useState<LChColor | null>(null)

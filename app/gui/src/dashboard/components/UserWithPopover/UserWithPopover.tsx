@@ -3,7 +3,7 @@ import { Button, CopyButton, Popover, Text } from '#/components/AriaComponents'
 import { TEXT_WITH_ICON } from '#/components/patterns'
 import { ProfilePicture } from '#/components/ProfilePicture'
 import type { OtherUser } from '#/services/Backend'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 /** Props for a {@link UserWithPopover}. */
 export interface UserWithPopoverProps {
@@ -14,7 +14,7 @@ export interface UserWithPopoverProps {
 export function UserWithPopover(props: UserWithPopoverProps) {
   const { user } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   return (
     <Popover.Trigger>

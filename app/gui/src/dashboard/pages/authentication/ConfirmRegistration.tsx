@@ -12,7 +12,7 @@ import { useTimeoutAPI } from '#/hooks/timeoutHooks'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { noop } from '#/utilities/functions'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useRouterInReact, useTextInReact } from '$/providers/react'
+import { useRouter, useText } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
 import AuthenticationPage from './AuthenticationPage'
 
@@ -21,8 +21,8 @@ const REDIRECT_TIMEOUT = 5_000
 /** An empty component redirecting users based on the backend response to user registration. */
 export default function ConfirmRegistration() {
   const { confirmSignUp } = useSessionAPI()
-  const { getText } = useTextInReact()
-  const { router, searchParams } = useRouterInReact()
+  const { getText } = useText()
+  const { router, searchParams } = useRouter()
 
   const email = searchParams.get('email')
   const verificationCode = searchParams.get('verification_code')

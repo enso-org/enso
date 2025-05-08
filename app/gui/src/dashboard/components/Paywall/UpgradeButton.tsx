@@ -9,7 +9,7 @@ import * as appUtils from '#/appUtils'
 
 import * as billingHooks from '#/hooks/billing'
 
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
@@ -35,7 +35,7 @@ export function UpgradeButton<IconType extends string>(
     children,
     ...buttonProps
   } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const { getFeature } = billingHooks.usePaywallFeatures()
 

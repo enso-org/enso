@@ -8,7 +8,7 @@ import * as errorBoundary from 'react-error-boundary'
 
 import * as detect from 'enso-common/src/detect'
 
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
@@ -115,7 +115,7 @@ export interface ErrorDisplayProps extends errorBoundary.FallbackProps {
 
 /** Default fallback component to show when there is an error. */
 export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const {
     error,
@@ -206,7 +206,7 @@ export interface InlineErrorDisplayProps extends Omit<ErrorDisplayProps, 'status
 export function InlineErrorDisplay(props: InlineErrorDisplayProps) {
   const { error, resetErrorBoundary, onBeforeFallbackShown, title, resetQueries = () => {} } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const render = onBeforeFallbackShown?.({ error, resetErrorBoundary, resetQueries })
 

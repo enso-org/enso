@@ -2,7 +2,7 @@
 import { Text } from '#/components/AriaComponents'
 import { usePaywallFeatures, type PaywallFeatureName } from '#/hooks/billing'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { PaywallBulletPoints, PaywallLock } from './components'
 import { UpgradeButton } from './UpgradeButton'
 
@@ -15,7 +15,7 @@ export interface PaywallScreenProps {
 /** A screen that shows a paywall. */
 export function PaywallScreen(props: PaywallScreenProps) {
   const { feature, className } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const { getFeature } = usePaywallFeatures()
 

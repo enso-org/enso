@@ -18,7 +18,7 @@ import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 
 import * as cognitoModule from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'
-import { useRouterInReact } from '$/providers/react'
+import { useRouter } from '$/providers/react'
 
 /**
  * Configuration for the AWS Amplify library.
@@ -119,7 +119,7 @@ export function useInitAuthService(authConfig: AuthConfig): AuthService {
   const { supportsDeepLinks } = authConfig
 
   const logger = useLogger()
-  const { router } = useRouterInReact()
+  const { router } = useRouter()
 
   return React.useMemo(() => {
     const amplifyConfig = loadAmplifyConfig(

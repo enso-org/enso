@@ -1,10 +1,10 @@
 /** @file A hook returning a function to get the ordinal string of a number. */
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { useLocale } from 'react-aria'
 
 /** A hook returning a function to get the ordinal string of a number. */
 export function useGetOrdinal() {
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const { locale } = useLocale()
 
   const pluralRules = new Intl.PluralRules(locale, { type: 'ordinal' })

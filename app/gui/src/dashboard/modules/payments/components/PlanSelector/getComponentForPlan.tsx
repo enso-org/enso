@@ -15,7 +15,7 @@ import * as ariaComponents from '#/components/AriaComponents'
 
 import * as backendModule from '#/services/Backend'
 
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import type { GetText } from '$/providers/text'
 import * as constants from '../../constants'
 import { SubscribeButton, type SubscribeButtonProps } from './components'
@@ -61,7 +61,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
     learnMore: () => {
       // False positive
       // eslint-disable-next-line react-hooks/rules-of-hooks
-      const { getText } = useTextInReact()
+      const { getText } = useText()
 
       return (
         <ariaComponents.Button
@@ -86,7 +86,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
     learnMore: () => {
       // False positive
       // eslint-disable-next-line react-hooks/rules-of-hooks
-      const { getText } = useTextInReact()
+      const { getText } = useText()
 
       return (
         <ariaComponents.Button
@@ -112,7 +112,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
     learnMore: () => {
       // False positive
       // eslint-disable-next-line react-hooks/rules-of-hooks
-      const { getText } = useTextInReact()
+      const { getText } = useText()
 
       return (
         <ariaComponents.Button
@@ -134,7 +134,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
     submitButton: () => {
       // False positive
       // eslint-disable-next-line react-hooks/rules-of-hooks
-      const { getText } = useTextInReact()
+      const { getText } = useText()
 
       return (
         <ariaComponents.Button fullWidth isDisabled variant="outline" size="medium" rounded="full">

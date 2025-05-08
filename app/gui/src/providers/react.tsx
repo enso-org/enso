@@ -4,7 +4,7 @@ import { assert } from '@/util/assert'
 import * as react from 'react'
 import { applyPureReactInVue } from 'veaury'
 import { computed, proxyRefs, ShallowUnwrapRef } from 'vue'
-import { Router, useRoute, useRouter } from 'vue-router'
+import { Router, useRoute, useRouter as useRouterVue } from 'vue-router'
 import { injectBackends } from './backends'
 import { injectHttpClient } from './httpClient'
 import { injectText } from './text'
@@ -23,21 +23,21 @@ interface RouterForReact {
   searchParams: URLSearchParams
 }
 const RouterContext = react.createContext<RouterForReact | null>(null)
-export const useRouterInReact = useInReactFunction(RouterContext)
+export const useRouter = useInReactFunction(RouterContext)
 
 const ConfigContext = react.createContext<GuiConfig | null>(null)
-export const useConfigInReact = useInReactFunction(ConfigContext)
+export const useConfig = useInReactFunction(ConfigContext)
 
 type TextForReact = ShallowUnwrapRef<ReturnType<typeof injectText>>
 export const TextContext = react.createContext<TextForReact | null>(null)
-export const useTextInReact = useInReactFunction(TextContext)
+export const useText = useInReactFunction(TextContext)
 
 export const HTTPClientContext = react.createContext<HttpClient | null>(null)
-export const useHttpClientInReact = useInReactFunction(HTTPClientContext)
+export const useHttpClient = useInReactFunction(HTTPClientContext)
 
 type BackendForReact = ShallowUnwrapRef<ReturnType<typeof injectBackends>>
 const BackendsContext = react.createContext<BackendForReact | null>(null)
-export const useBackendsInReact = useInReactFunction(BackendsContext)
+export const useBackends = useInReactFunction(BackendsContext)
 
 /**
  * A provider for all contexts set in vue and read by react.
@@ -71,7 +71,7 @@ export const ContextsForReactProvider = applyPureReactInVue(
   {
     useInjectPropsFromWrapper: () => {
       const route = useRoute()
-      const router = useRouter()
+      const router = useRouterVue()
       return {
         router: computed(() => {
           const searchParams = computed(() => {

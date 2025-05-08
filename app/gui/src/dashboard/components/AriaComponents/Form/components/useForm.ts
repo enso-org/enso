@@ -14,7 +14,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline, useOfflineChange } from '#/hooks/offlineHooks'
 import * as errorUtils from '#/utilities/error'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 import * as schemaModule from './schema'
 import type * as types from './types'
@@ -46,7 +46,7 @@ function mapValueOnEvent(value: unknown) {
 export function useForm<Schema extends types.TSchema, SubmitResult = void>(
   optionsOrFormInstance: types.UseFormOptions<Schema, SubmitResult> | types.UseFormReturn<Schema>,
 ): types.UseFormReturn<Schema> {
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const [initialTypePassed] = React.useState(() => getArgsType(optionsOrFormInstance))
   const closeRef = React.useRef(() => {})
 

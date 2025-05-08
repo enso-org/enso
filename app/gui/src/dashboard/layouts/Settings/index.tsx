@@ -18,7 +18,7 @@ import { useSessionAPI } from '#/providers/SessionProvider'
 import { Path } from '#/services/ProjectManager'
 import { includesPredicate } from '#/utilities/array'
 import { regexEscape } from '#/utilities/string'
-import { useBackendsInReact, useTextInReact } from '$/providers/react'
+import { useBackends, useText } from '$/providers/react'
 import {
   ALL_SETTINGS_TABS,
   SETTINGS_DATA,
@@ -35,7 +35,7 @@ import SettingsTabType from './TabType'
 /** Settings screen. */
 export default function Settings() {
   const queryClient = useQueryClient()
-  const { remoteBackend: backend, localBackend } = useBackendsInReact()
+  const { remoteBackend: backend, localBackend } = useBackends()
   const [tab, setTab] = useSearchParamsState(
     'SettingsTab',
     SettingsTabType.account,
@@ -43,7 +43,7 @@ export default function Settings() {
   )
   const { user, accessToken } = useFullUserSession()
   const { changePassword } = useSessionAPI()
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const [query, setQuery] = React.useState('')
   const root = useStrictPortalContext()

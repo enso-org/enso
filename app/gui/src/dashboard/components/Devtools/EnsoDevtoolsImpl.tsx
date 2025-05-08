@@ -17,7 +17,7 @@ import * as billing from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
 import { UserSessionType } from '#/providers/AuthProvider'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import {
   useAnimationsDisabled,
   useEnableVersionChecker,
@@ -56,7 +56,7 @@ import { Icon } from '../Icon'
 
 /** A component that provides a UI for toggling paywall features. */
 export function EnsoDevtools() {
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const { authQueryKey, session } = authProvider.useAuth()
   const queryClient = reactQuery.useQueryClient()

@@ -14,7 +14,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -362,7 +362,7 @@ export interface ChatProps {
 export default function Chat(props: ChatProps) {
   const { isOpen, doClose, endpoint } = props
   const { accessToken: rawAccessToken } = authProvider.useFullUserSession()
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const logger = loggerProvider.useLogger()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { isFocusVisible } = aria.useFocusVisible()

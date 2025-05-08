@@ -16,7 +16,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordSchema } from '#/pages/authentication/schemas'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { useRouterInReact, useTextInReact } from '$/providers/react'
+import { useRouter, useText } from '$/providers/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 
@@ -27,10 +27,10 @@ const GITHUB_ICON = <img src={GithubIcon} alt="" />
 
 /** A form for users to log in. */
 export default function Login() {
-  const { router, searchParams } = useRouterInReact()
+  const { router, searchParams } = useRouter()
   const queryClient = useQueryClient()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } = useSessionAPI()
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const initialEmail = searchParams.get('email') ?? ''
 

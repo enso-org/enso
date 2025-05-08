@@ -7,7 +7,7 @@ import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 /** Props for a {@link Link}. */
 export interface LinkProps {
@@ -23,7 +23,7 @@ export default forwardRef(Link)
 /** A styled colored link with an icon. */
 function Link(props: LinkProps, ref: React.ForwardedRef<HTMLAnchorElement>) {
   const { openInBrowser = false, to, icon, text, onPress } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const linkRef = React.useRef<HTMLAnchorElement>(null)
 
   return (

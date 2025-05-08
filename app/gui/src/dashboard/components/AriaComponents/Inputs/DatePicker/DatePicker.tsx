@@ -27,7 +27,7 @@ import {
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import {
   Button,
   Form,
@@ -269,7 +269,7 @@ interface DatePickerResetButtonProps {
 function DatePickerResetButton(props: DatePickerResetButtonProps) {
   const { className } = props
   const state = useContext(DatePickerStateContext)
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   return (
     <Button

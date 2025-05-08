@@ -1,7 +1,7 @@
 /** @file A selector for all possible permissions. */
 import * as React from 'react'
 
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import PermissionTypeSelector from '#/components/dashboard/PermissionTypeSelector'
@@ -50,7 +50,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
   const { showDelete = false, isDisabled = false, isInput = false, typeSelectorYOffsetPx } = props
   const { error, selfPermission, action: actionRaw, assetType, className } = props
   const { onChange, doDelete } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const [action, setActionRaw] = React.useState(actionRaw)
   const [TheChild, setTheChild] = React.useState<(() => React.JSX.Element) | null>()
   const permissionSelectorButtonRef = React.useRef<HTMLButtonElement>(null)

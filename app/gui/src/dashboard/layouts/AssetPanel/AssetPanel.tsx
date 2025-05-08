@@ -19,7 +19,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { AssetDocs } from '#/layouts/AssetDocs'
 import { isLocalCategory, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useStore } from '#/utilities/zustand'
-import { useBackendsInReact, useTextInReact } from '$/providers/react'
+import { useBackends, useText } from '$/providers/react'
 import { useFeatureFlag } from '../../providers/FeatureFlagsProvider'
 import {
   assetPanelStore,
@@ -99,7 +99,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
   props: AssetPanelProps & { panelWidth: number },
 ) {
   const { category, panelWidth } = props
-  const { backendByCategory } = useBackendsInReact()
+  const { backendByCategory } = useBackends()
 
   const itemId = useStore(
     assetPanelStore,
@@ -120,7 +120,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
   const isReadonly = category.type === 'trash'
   const isLocal = isLocalCategory(category)
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const isExpanded = useIsAssetPanelExpanded()
   const setIsExpanded = useSetIsAssetPanelExpanded()

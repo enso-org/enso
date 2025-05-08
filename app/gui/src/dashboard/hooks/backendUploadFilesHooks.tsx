@@ -15,7 +15,7 @@ import { useSetModal } from '#/providers/ModalProvider'
 import type LocalBackend from '#/services/LocalBackend'
 import { extractTypeAndId } from '#/services/LocalBackend'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
-import { useBackendsInReact, useHttpClientInReact, useTextInReact } from '$/providers/react'
+import { useBackends, useHttpClient, useText } from '$/providers/react'
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
 import {
   assetIsFile,
@@ -280,7 +280,7 @@ export function useUploadFileWithToastMutation(
   options: UploadFileMutationOptions = {},
 ): UploadFileMutationResult {
   const toastId = useId()
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const toastAndLog = useToastAndLogWithId()
   const { onBegin, onChunkSuccess, onSuccess, onError } = options
 
@@ -404,10 +404,10 @@ function useGetSiblings() {
  * Does not work in environments that do not have a local backend.
  */
 export function useUploadFileToCloudMutation() {
-  const { getText } = useTextInReact()
-  const httpClient = useHttpClientInReact()
+  const { getText } = useText()
+  const httpClient = useHttpClient()
   const toastAndLog = useToastAndLog()
-  const { remoteBackend } = useBackendsInReact()
+  const { remoteBackend } = useBackends()
   const uploadFileMutation = useUploadFileWithToastMutation(remoteBackend)
   const getSiblings = useGetSiblings()
   const { cloudCategories } = useCategoriesAPI()

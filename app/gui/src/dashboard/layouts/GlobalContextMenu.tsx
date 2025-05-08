@@ -17,7 +17,7 @@ import { useSetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
 import { BackendType, type DirectoryId } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 
 /** Props for a {@link GlobalContextMenu}. */
@@ -50,7 +50,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
     doPaste,
   } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const { setModal, unsetModal } = useSetModal()
   const isCloud = backend.type === BackendType.remote
 

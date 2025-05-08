@@ -15,7 +15,7 @@ import { useDriveStore } from '#/providers/DriveProvider'
 import { isDirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useTransition } from 'react'
 import { toast } from 'react-toastify'
@@ -25,7 +25,7 @@ import { toast } from 'react-toastify'
  * and a column display mode switcher.
  */
 export function DriveBarNavigation() {
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const { getCategoryByDirectoryId } = useCategories()
   const { associatedBackend, category } = useCategoriesAPI()
 
@@ -244,7 +244,7 @@ interface UpButtonProps {
 /** A button for navigating to the parent directory. */
 function UpButton(props: UpButtonProps) {
   const { navigateToParent, isDisabled } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const [isLoading, startTransition] = useTransition()
 

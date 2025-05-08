@@ -8,7 +8,7 @@ import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvid
 import { titleSchema, type DirectoryAsset } from '#/services/Backend'
 import { merger } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { useTransition } from 'react'
 
 /** Props for a {@link DirectoryNameColumn}. */
@@ -25,7 +25,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, rowState, setRowState, isEditable, isNavigating, renameAsset } = props
   const [isLoading, startNavigation] = useTransition()
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const driveStore = useDriveStore()
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const getAssetChildren = useGetAssetChildren()

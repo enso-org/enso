@@ -12,7 +12,7 @@ import { fileExtension } from '#/utilities/fileInfo'
 import type { SortInfo } from '#/utilities/sorting'
 import { regexEscape } from '#/utilities/string'
 import { createStore, useStore } from '#/utilities/zustand.ts'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { startTransition, useEffect } from 'react'
 
 /** Options for {@link useAssetsTableItems}. */
@@ -61,7 +61,7 @@ export function useGetAssetChildren() {
 export function useAssetsTableItems(options: UseAssetsTableOptions) {
   const { parentId, assets: items, sortInfo, query } = options
 
-  const { locale } = useTextInReact()
+  const { locale } = useText()
 
   const setAssetItems = useStore(ASSET_ITEMS_STORE, (store) => store.setItems, {
     unsafeEnableTransition: true,

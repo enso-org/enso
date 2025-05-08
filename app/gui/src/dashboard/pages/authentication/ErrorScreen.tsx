@@ -1,7 +1,7 @@
 /** @file A screen displaying an error. */
 import { Text } from '#/components/aria'
 import { getMessageOrToString } from '#/utilities/error'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 /** Props for an {@link ErrorScreen}. */
 export interface ErrorScreenProps {
@@ -11,7 +11,7 @@ export interface ErrorScreenProps {
 /** A screen displaying an error. */
 export default function ErrorScreen(props: ErrorScreenProps) {
   const { error } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   return (
     <div className="grid h-screen w-screen place-items-center text-primary">
       <div className="flex flex-col items-center gap-status-page text-center text-base">

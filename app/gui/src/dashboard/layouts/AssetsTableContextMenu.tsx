@@ -36,7 +36,7 @@ import { useUser } from '#/providers/AuthProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { extractTypeAndId } from '#/services/LocalBackend'
-import { useBackendsInReact, useTextInReact } from '$/providers/react'
+import { useBackends, useText } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 import { twJoin } from '../utilities/tailwindMerge'
@@ -76,9 +76,9 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   } = props
 
   const { setModal, unsetModal } = useSetModal()
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
-  const { localBackend } = useBackendsInReact()
+  const { localBackend } = useBackends()
   const user = useUser()
   const isCloud = isCloudCategory(category)
   const getAsset = useGetAsset()

@@ -11,7 +11,7 @@ import { useSetModal } from '#/providers/ModalProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
-import { useBackendsInReact, useRouterInReact, useTextInReact } from '$/providers/react'
+import { useBackends, useRouter, useText } from '$/providers/react'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 
 /** Props for a {@link UserMenu}. */
@@ -26,12 +26,12 @@ export interface UserMenuProps {
 export default function UserMenu(props: UserMenuProps) {
   const { hidden = false, goToSettingsPage, onSignOut } = props
 
-  const { router } = useRouterInReact()
-  const { localBackend } = useBackendsInReact()
+  const { router } = useRouter()
+  const { localBackend } = useBackends()
   const { signOut } = useSessionAPI()
   const { user } = useFullUserSession()
   const { setModal, unsetModal } = useSetModal()
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const toggleEnsoDevtools = useToggleEnsoDevtools()
 

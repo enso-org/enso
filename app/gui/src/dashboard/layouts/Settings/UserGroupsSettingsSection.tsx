@@ -27,7 +27,7 @@ import {
   type UserGroupInfo,
 } from '#/services/Backend'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import UserGroupRow from './UserGroupRow'
 import UserGroupUserRow from './UserGroupUserRow'
 
@@ -40,7 +40,7 @@ export interface UserGroupsSettingsSectionProps {
 export default function UserGroupsSettingsSection(props: UserGroupsSettingsSectionProps) {
   const { backend } = props
   const { setModal } = useSetModal()
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const { user } = useFullUserSession()
   const toastAndLog = useToastAndLog()
   const { data: users } = useQuery(backendQueryOptions(backend, 'listUsers', []))

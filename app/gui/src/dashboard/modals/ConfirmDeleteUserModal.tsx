@@ -1,6 +1,6 @@
 /** @file Modal for confirming delete of any type of asset. */
 import { ButtonGroup, Dialog, Form, Text } from '#/components/AriaComponents'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import * as z from 'zod'
 
 /** Props for a {@link ConfirmDeleteUserModal}. */
@@ -11,7 +11,7 @@ export interface ConfirmDeleteUserModalProps {
 /** A modal for confirming the deletion of a user. */
 export function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProps) {
   const { doDelete } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   return (
     <Dialog title={getText('areYouSure')} role="alertdialog" className="items-center">

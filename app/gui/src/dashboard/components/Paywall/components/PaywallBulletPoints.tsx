@@ -3,7 +3,7 @@ import Check from '#/assets/check_mark.svg'
 import { Text } from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import type { TextId } from 'enso-common/src/text'
 
 /** Props for a {@link PaywallBulletPoints}. */
@@ -16,7 +16,7 @@ export interface PaywallBulletPointsProps {
 export function PaywallBulletPoints(props: PaywallBulletPointsProps) {
   const { bulletPointsTextId, className } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const bulletPoints = getText(bulletPointsTextId)
     .split(';')
     .map((bulletPoint) => bulletPoint.trim())

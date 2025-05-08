@@ -1,7 +1,7 @@
 /** @file A dialog that prompts the user to upgrade to a paid plan. */
 import { Dialog, Text, type DialogProps } from '#/components/AriaComponents'
 import { usePaywallFeatures, type PaywallFeatureName } from '#/hooks/billing'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { PaywallBulletPoints, PaywallLock } from './components'
 import { UpgradeButton } from './UpgradeButton'
 
@@ -14,7 +14,7 @@ export interface PaywallDialogProps extends DialogProps {
 export function PaywallDialog(props: PaywallDialogProps) {
   const { feature, type = 'modal', title, ...dialogProps } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const { getFeature } = usePaywallFeatures()
 
   const { bulletPointsTextId, label, descriptionTextId } = getFeature(feature)

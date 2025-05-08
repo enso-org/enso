@@ -15,13 +15,13 @@ import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { unsafeEntries } from '#/utilities/object'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 /** Settings tab for viewing and editing keyboard shortcuts. */
 export default function KeyboardShortcutsSettingsSection() {
   const [refresh, doRefresh] = useRefresh()
   const inputBindings = useInputBindings()
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const allShortcuts = React.useMemo(() => {
     // This is REQUIRED, in order to avoid disabling the `react-hooks/exhaustive-deps` lint.
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions

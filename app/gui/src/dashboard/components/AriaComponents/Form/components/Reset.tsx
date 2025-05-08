@@ -1,7 +1,7 @@
 /** @file Reset button for forms. */
 import * as React from 'react'
 
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { Button, type ButtonProps } from '../../Button'
 import * as formContext from './FormProvider'
 import type * as types from './types'
@@ -22,7 +22,7 @@ export interface ResetProps<IconType extends string>
 
 /** Reset button for forms. */
 export function Reset<IconType extends string>(props: ResetProps<IconType>): React.JSX.Element {
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const {
     variant = 'outline',
     size = 'medium',

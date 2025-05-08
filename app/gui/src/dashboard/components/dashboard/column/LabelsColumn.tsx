@@ -3,7 +3,7 @@
 import Plus2Icon from '#/assets/plus2.svg'
 
 import * as authProvider from '#/providers/AuthProvider'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 import { Button, DialogTrigger } from '#/components/AriaComponents'
 import ContextMenu from '#/components/ContextMenu'
@@ -23,7 +23,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { item, state, labels } = props
   const { backend, category, setQuery } = state
   const { user } = authProvider.useFullUserSession()
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const labelsByName = new Map(labels.map((label) => [label.value, label]))
   const self = permissions.tryFindSelfPermission(user, item.permissions)
   const managesThisAsset =

@@ -4,12 +4,12 @@ import { Button, Text } from '#/components/AriaComponents'
 import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
 import { Column } from '#/components/dashboard/column/columnUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 /** A heading for the "Accessed data" column. */
 export default function AccessedDataColumnHeading(props: AssetColumnHeadingProps) {
   const { hideColumn } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const hideThisColumn = useEventCallback(() => {
     hideColumn(Column.accessedData)

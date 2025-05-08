@@ -24,7 +24,7 @@ import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
 import { useSessionAPI } from '#/providers/SessionProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { lazy } from 'react'
 
@@ -39,7 +39,7 @@ const LazyQRCode = lazy(() =>
  * Allows users to setup, disable, and change their 2FA method.
  */
 export function SetupTwoFaForm() {
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const { getMFAPreference, updateMFAPreference, verifyTotpToken } = useSessionAPI()
 
   const { data } = useSuspenseQuery({
@@ -158,7 +158,7 @@ export function SetupTwoFaForm() {
 /** Two Factor Authentication Setup Form. */
 function TwoFa() {
   const { setupTOTP } = useSessionAPI()
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const { data } = useSuspenseQuery({
     queryKey: ['setupTOTP'],

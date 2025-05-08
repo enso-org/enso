@@ -9,7 +9,7 @@ import { backendQueryOptions } from '#/hooks/backendHooks'
 import { constantValueOfSchema, getSchemaName, lookupDef } from '#/utilities/jsonSchema'
 import { asObject, singletonObjectOrNull } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { useBackendsInReact, useTextInReact } from '$/providers/react'
+import { useBackends, useText } from '$/providers/react'
 import { useQuery } from '@tanstack/react-query'
 import { twJoin } from 'tailwind-merge'
 
@@ -33,8 +33,8 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const { noBorder = false, isAbsent = false, value, onChange } = props
   // The functionality for inputting `enso-secret`s SHOULD be injected using a plugin,
   // but it is more convenient to avoid having plugin infrastructure.
-  const { remoteBackend } = useBackendsInReact()
-  const { getText } = useTextInReact()
+  const { remoteBackend } = useBackends()
+  const { getText } = useText()
   const [autocompleteText, setAutocompleteText] = useState(() =>
     typeof value === 'string' ? value : null,
   )

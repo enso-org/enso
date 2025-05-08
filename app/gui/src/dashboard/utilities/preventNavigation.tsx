@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { Button, ButtonGroup, Dialog, Text } from '#/components/AriaComponents'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useSetModal } from '#/providers/ModalProvider'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { isOnElectron } from 'enso-common/src/detect'
 
 let shouldClose = false
@@ -52,7 +52,7 @@ interface ConfirmCloseModalProps {
 // eslint-disable-next-line react-refresh/only-export-components
 function ConfirmCloseModal(props: ConfirmCloseModalProps) {
   const { message } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const { unsetModal } = useSetModal()
 
   return (

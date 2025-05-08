@@ -28,7 +28,7 @@ import {
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 const DATE_PICKER_STYLES = tv({
   base: '',
@@ -175,7 +175,7 @@ interface TimeFieldResetButtonProps {
 function TimeFieldResetButton(props: TimeFieldResetButtonProps) {
   const { className } = props
   const state = useContext(TimeFieldStateContext)
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   return (
     <Button

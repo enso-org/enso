@@ -9,7 +9,7 @@ import * as billingHooks from '#/hooks/billing'
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import * as paywallComponents from '#/components/Paywall'
@@ -17,7 +17,7 @@ import * as paywallComponents from '#/components/Paywall'
 import type * as backendModule from '#/services/Backend'
 
 import * as parserUserEmails from '#/utilities/parseUserEmails'
-import { useBackendsInReact } from '$/providers/react'
+import { useBackends } from '$/providers/react'
 
 /** Props for an {@link InviteUsersForm}. */
 export interface InviteUsersFormProps {
@@ -27,8 +27,8 @@ export interface InviteUsersFormProps {
 /** A modal with inputs for user email and permission level. */
 export function InviteUsersForm(props: InviteUsersFormProps) {
   const { onSubmitted } = props
-  const { getText } = useTextInReact()
-  const { remoteBackend: backend } = useBackendsInReact()
+  const { getText } = useText()
+  const { remoteBackend: backend } = useBackends()
   const inputRef = React.useRef<HTMLDivElement>(null)
 
   const { user } = authProvider.useFullUserSession()

@@ -66,7 +66,7 @@ import { useInitAuthService } from '#/authentication/service'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useBackendsInReact, useRouterInReact, useTextInReact } from '$/providers/react'
+import { useBackends, useRouter, useText } from '$/providers/react'
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -104,7 +104,7 @@ export interface AppProps {
  */
 export default function App(props: React.PropsWithChildren<AppProps>) {
   const { isOffline } = useOffline()
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const queryClient = reactQuery.useQueryClient()
 
   const executeBackgroundUpdate = useMutationCallback({
@@ -157,7 +157,7 @@ export default function App(props: React.PropsWithChildren<AppProps>) {
  */
 function AppRouter(props: React.PropsWithChildren<AppProps>) {
   const { onAuthenticated, children } = props
-  const { router } = useRouterInReact()
+  const { router } = useRouter()
   const navigate = router.push.bind(router)
 
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -247,7 +247,7 @@ function AppRouter(props: React.PropsWithChildren<AppProps>) {
 /** Keep `localBackend.rootPath` in sync with the saved root path state. */
 function LocalBackendPathSynchronizer() {
   const [localRootDirectory] = localStorageProvider.useLocalStorageState('localRootDirectory')
-  const { localBackend } = useBackendsInReact()
+  const { localBackend } = useBackends()
 
   if (localRootDirectory != null) {
     localBackend?.setRootPath(Path(localRootDirectory))

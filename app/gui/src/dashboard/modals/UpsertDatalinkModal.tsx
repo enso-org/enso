@@ -4,7 +4,7 @@ import { DatalinkFormInput } from '#/components/dashboard/DatalinkInput'
 import SCHEMA from '#/data/datalinkSchema.json' with { type: 'json' }
 import { validateDatalink } from '#/data/datalinkValidator'
 import { constantValueOfSchema } from '#/utilities/jsonSchema'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 const DEFS: Record<string, object> = SCHEMA.$defs
 const INITIAL_DATALINK_VALUE = constantValueOfSchema(DEFS, SCHEMA.$defs.DataLink, true)[0] ?? null
@@ -18,7 +18,7 @@ export interface UpsertDatalinkModalProps {
 export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
   const { doCreate } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   return (
     <Dialog title={getText('createDatalink')} isDismissable={false}>

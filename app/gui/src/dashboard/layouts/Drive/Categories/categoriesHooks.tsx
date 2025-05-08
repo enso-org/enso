@@ -21,7 +21,7 @@ import { organizationIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
 import { pickBackend } from '$/providers/backends'
-import { useBackendsInReact, useTextInReact } from '$/providers/react'
+import { useBackends, useText } from '$/providers/react'
 import type { ReactNode } from 'react'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
@@ -79,7 +79,7 @@ export type CloudCategoryResult = ReturnType<typeof useCloudCategoryList>
  */
 function useCloudCategoryList() {
   const user = useUser()
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const cloudCategory: CloudCategory = {
     type: 'cloud',
@@ -181,8 +181,8 @@ function createLocalDirectoryCategory(directory: string): LocalDirectoryCategory
  * Usually these are the root folder and the list of favorites
  */
 function useLocalCategoryList() {
-  const { getText } = useTextInReact()
-  const { localBackend } = useBackendsInReact()
+  const { getText } = useText()
+  const { localBackend } = useBackends()
   const [localRootDirectory] = useLocalStorageState('localRootDirectory')
   const rootPath = localRootDirectory != null ? Path(localRootDirectory) : localBackend?.rootPath()
   const [localRootDirectories, setLocalRootDirectories] = useLocalStorageState(
@@ -323,7 +323,7 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
   const { children, onCategoryChange = () => {} } = props
 
   const { cloudCategories, localCategories, findCategoryById } = useCategories()
-  const { localBackend, remoteBackend } = useBackendsInReact()
+  const { localBackend, remoteBackend } = useBackends()
   const { isOffline } = useOffline()
 
   const [categoryId, privateSetCategoryId, privateResetCategoryId] =

@@ -2,7 +2,7 @@
 import DirectoryIcon from '#/assets/folder.svg'
 import { Button, Text } from '#/components/AriaComponents'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import type { AssetColumnHeadingProps } from '../column'
 import { Column } from '../column/columnUtils'
 
@@ -10,7 +10,7 @@ import { Column } from '../column/columnUtils'
 export default function PathColumnHeading(props: AssetColumnHeadingProps) {
   const { hideColumn } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const hideThisColumn = useEventCallback(() => {
     hideColumn(Column.path)

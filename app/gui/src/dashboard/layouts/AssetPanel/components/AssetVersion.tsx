@@ -10,7 +10,7 @@ import { TEXT_WITH_ICON } from '#/components/patterns'
 import { UserWithPopover } from '#/components/UserWithPopover'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { setModal } from '#/providers/ModalProvider'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { AssetDiffView } from '../../AssetDiffView'
 
@@ -52,7 +52,7 @@ export function AssetVersion(props: AssetVersionProps) {
     doDuplicate,
   } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const isProject = item.type === backendService.AssetType.project
   const comparableVersions = otherVersions
@@ -175,7 +175,7 @@ interface VersionDialogProps {
 /** Displays a dialog that allows the user to compare two versions of an asset. */
 function VersionDialog(props: VersionDialogProps) {
   const { version, compareVersion, backend, item, doRestore, doDuplicate } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   return (
     <Dialog

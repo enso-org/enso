@@ -3,7 +3,7 @@
  *
  * Hook to get the error message from the form.
  */
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { useFormContext } from './FormProvider'
 import type { FormInstance } from './types'
 
@@ -34,7 +34,7 @@ export function useFormError(props: UseFormErrorProps) {
 
   const { formState } = form
   const { errors } = formState
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   /** Get the error message. */
   const getSubmitError = (): string | null => {

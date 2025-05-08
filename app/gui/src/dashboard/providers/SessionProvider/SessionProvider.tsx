@@ -20,7 +20,7 @@ import { useOffline } from '#/hooks/offlineHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { unsetModal } from '#/providers/ModalProvider'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useHttpClientInReact, useTextInReact } from '$/providers/react'
+import { useHttpClient, useText } from '$/providers/react'
 import { toast } from 'react-toastify'
 import { SessionContext } from './hooks'
 import type { SessionContextType, SessionProviderProps } from './types'
@@ -37,14 +37,14 @@ function createSessionQuery(authService: ISessionProvider) {
 export function SessionProvider(props: SessionProviderProps) {
   const { mainPageUrl, children, registerAuthEventListener, authService, onLogout } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   // stabilize the callback so that it doesn't change on every render
   const saveAccessTokenEventCallback = useEventCallback((accessToken: cognito.UserSession) => {
     authService.saveAccessToken(accessToken)
   })
 
-  const httpClient = useHttpClientInReact()
+  const httpClient = useHttpClient()
   const queryClient = reactQuery.useQueryClient()
   const toastAndLog = useToastAndLog()
 

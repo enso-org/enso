@@ -5,7 +5,7 @@
 import RightPanelIcon from '#/assets/right_panel.svg'
 import { Button } from '#/components/AriaComponents'
 
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { memo } from 'react'
 import { useIsAssetPanelHidden, useSetIsAssetPanelHidden } from '../AssetPanelState'
@@ -33,7 +33,7 @@ export const AssetPanelToggle = memo(function AssetPanelToggle(props: AssetPanel
     getTranslation = () => COLLAPSED_X_TRANSLATION,
   } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const isAssetPanelHidden = useIsAssetPanelHidden()
   const setIsAssetPanelHidden = useSetIsAssetPanelHidden()
 

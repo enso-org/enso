@@ -5,7 +5,7 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import * as paywall from '#/components/Paywall'
@@ -14,14 +14,14 @@ import InviteUsersModal from '#/modals/InviteUsersModal'
 
 import type * as backendModule from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
-import { useBackendsInReact } from '$/providers/react'
+import { useBackends } from '$/providers/react'
 
 const LIST_USERS_STALE_TIME_MS = 60_000
 
 /** Settings tab for viewing and editing organization members. */
 export default function MembersSettingsSection() {
-  const { getText } = useTextInReact()
-  const { remoteBackend: backend } = useBackendsInReact()
+  const { getText } = useText()
+  const { remoteBackend: backend } = useBackends()
   const { user } = authProvider.useFullUserSession()
 
   const { isFeatureUnderPaywall, getFeature } = billingHooks.usePaywall({ plan: user.plan })
@@ -160,7 +160,7 @@ interface ResendInvitationButtonProps {
 function ResendInvitationButton(props: ResendInvitationButtonProps) {
   const { invitation, backend } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const resendMutation = useMutation(
     backendMutationOptions(backend, 'resendInvitation', {
       mutationKey: [invitation.userEmail],
@@ -190,7 +190,7 @@ interface RemoveMemberButtonProps {
 /** Action button for removing a member. */
 function RemoveMemberButton(props: RemoveMemberButtonProps) {
   const { backend, userId } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const removeMutation = useMutation(
     backendMutationOptions(backend, 'removeUser', {
@@ -220,7 +220,7 @@ interface RemoveInvitationButtonProps {
 function RemoveInvitationButton(props: RemoveInvitationButtonProps) {
   const { backend, email } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const removeMutation = useMutation(
     backendMutationOptions(backend, 'deleteInvitation', {

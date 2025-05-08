@@ -16,7 +16,7 @@ import { Stepper } from '#/components/Stepper'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { download } from '#/utilities/download'
 import { getDownloadUrl, getLatestRelease } from '#/utilities/github'
-import { useBackendsInReact, useTextInReact } from '$/providers/react'
+import { useBackends, useText } from '$/providers/react'
 import { startTransition, useState } from 'react'
 
 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
@@ -33,9 +33,9 @@ export default function VersionChecker() {
 
   const [isOpen, setIsOpen] = useState(false)
 
-  const { getText, locale } = useTextInReact()
+  const { getText, locale } = useText()
   const toastAndLog = useToastAndLog()
-  const { localBackend } = useBackendsInReact()
+  const { localBackend } = useBackends()
 
   const supportsLocalBackend = localBackend != null
   const overrideValue = useEnableVersionChecker()

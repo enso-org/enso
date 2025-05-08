@@ -1,7 +1,7 @@
 /** @file Displays a few details of an asset. */
 import BreadcrumbArrowIcon from '#/assets/breadcrumb_arrow.svg'
 
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 import { Text } from '#/components/AriaComponents'
 import AssetIcon from '#/components/dashboard/AssetIcon'
@@ -25,7 +25,7 @@ export interface AssetSummaryProps {
 export default function AssetSummary(props: AssetSummaryProps) {
   const { asset, new: isNew = false, newName, className } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   return (
     <div

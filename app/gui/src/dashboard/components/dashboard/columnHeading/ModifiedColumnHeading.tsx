@@ -7,13 +7,13 @@ import { Column } from '#/components/dashboard/column/columnUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { SortDirection, iconIdFor, nextSortDirection } from '#/utilities/sorting'
 import { twJoin } from '#/utilities/tailwindMerge'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 /** A heading for the "Modified" column. */
 export default function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
   const { hideColumn, sortInfo, setSortInfo } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const isSortActive = sortInfo?.field === Column.modified
   const isDescending = sortInfo?.direction === SortDirection.descending

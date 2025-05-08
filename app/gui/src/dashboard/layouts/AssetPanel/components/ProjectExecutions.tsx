@@ -9,7 +9,7 @@ import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPane
 import { NewProjectExecutionModal } from '#/layouts/NewProjectExecutionModal'
 import type Backend from '#/services/Backend'
 import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { ProjectExecution } from './ProjectExecution'
 
 /** Props for a {@link ProjectExecutions}. */
@@ -20,7 +20,7 @@ export interface ProjectExecutionsProps {
 /** A list of exeuctions of a project. */
 export function ProjectExecutions(props: ProjectExecutionsProps) {
   const { backend } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const { item } = useStore(assetPanelStore, (state) => ({ item: state.assetPanelProps.item }), {
     unsafeEnableTransition: true,
   })
@@ -45,7 +45,7 @@ interface ProjectExecutionsInternalProps extends ProjectExecutionsProps {
 /** A list of exeuctions of a project. */
 function ProjectExecutionsInternal(props: ProjectExecutionsInternalProps) {
   const { backend, item } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const projectExecutionsQuery = useSuspenseQuery(
     listProjectExecutionsQueryOptions(backend, item.id, item.title),

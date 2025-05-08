@@ -113,7 +113,7 @@ import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useBackendsInReact, useTextInReact } from '$/providers/react'
+import { useBackends, useText } from '$/providers/react'
 import invariant from 'tiny-invariant'
 import type { AssetsDataTransferPayload } from './Drive/Categories/transferBetweenCategoriesHooks'
 import {
@@ -194,12 +194,12 @@ function AssetsTable(props: AssetsTableProps) {
 
   const { user } = useFullUserSession()
   const { backendByCategory, didLoadingProjectManagerFail, reconnectToProjectManager } =
-    useBackendsInReact()
+    useBackends()
   const backend = backendByCategory(category)
   const { data: labels } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const { setModal, unsetModal } = useSetModal()
   const { localStorage } = useLocalStorage()
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const inputBindings = useInputBindings()
   const toastAndLog = useToastAndLog()
   const [enabledColumns, setEnabledColumns] = useState(DEFAULT_ENABLED_COLUMNS)
@@ -1486,7 +1486,7 @@ interface HiddenColumnProps {
 const HiddenColumn = memo(function HiddenColumn(props: HiddenColumnProps) {
   const { column, enabledColumns, onColumnClick } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const onPress = useEventCallback(() => {
     const newExtraColumns = new Set(enabledColumns)

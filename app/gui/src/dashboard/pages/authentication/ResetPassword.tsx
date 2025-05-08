@@ -20,7 +20,7 @@ import { useSessionAPI } from '#/providers/SessionProvider'
 import { noop } from '#/utilities/functions'
 import { PASSWORD_REGEX } from '#/utilities/validation'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useBackendsInReact, useRouterInReact, useTextInReact } from '$/providers/react'
+import { useBackends, useRouter, useText } from '$/providers/react'
 import { type GetText } from '$/providers/text'
 import { toast } from 'react-toastify'
 
@@ -52,11 +52,11 @@ const REDIRECT_TIMEOUT = 3000
 /** A form for users to reset their password. */
 export default function ResetPassword() {
   const { resetPassword } = useSessionAPI()
-  const { getText } = useTextInReact()
-  const { router, searchParams } = useRouterInReact()
+  const { getText } = useText()
+  const { router, searchParams } = useRouter()
 
   const toastAndLog = useToastAndLog()
-  const { localBackend } = useBackendsInReact()
+  const { localBackend } = useBackends()
   const supportsOffline = localBackend != null
 
   const defaultEmail = searchParams.get('email')

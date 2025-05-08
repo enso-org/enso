@@ -4,13 +4,13 @@ import { Button, Text } from '#/components/AriaComponents'
 import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
 import { Column } from '#/components/dashboard/column/columnUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 /** A heading for the "Shared with" column. */
 export default function SharedWithColumnHeading(props: AssetColumnHeadingProps) {
   const { hideColumn } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const hideThisColumn = useEventCallback(() => {
     hideColumn(Column.sharedWith)

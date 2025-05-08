@@ -1,7 +1,7 @@
 /** @file A block of text with a copy button. */
 import { useCopy } from '#/hooks/copyHooks'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import type { ReactNode } from 'react'
 import { Button } from '../Button'
 import { TEXT_STYLE } from '../Text'
@@ -41,7 +41,7 @@ export interface CopyBlockProps extends VariantProps<typeof COPY_BLOCK_STYLES> {
 export function CopyBlock(props: CopyBlockProps) {
   const { copyText, className, onCopy = () => {}, variants = COPY_BLOCK_STYLES } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const { mutateAsync, isSuccess } = useCopy({ onCopy })
 
   const styles = variants()

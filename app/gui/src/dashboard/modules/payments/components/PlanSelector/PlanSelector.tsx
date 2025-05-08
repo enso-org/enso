@@ -7,7 +7,7 @@ import { useAuth } from '#/providers/AuthProvider'
 import { Plan, PLANS } from '#/services/Backend'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import { useBackendsInReact, useTextInReact } from '$/providers/react'
+import { useBackends, useText } from '$/providers/react'
 import { Card } from './components'
 import { getComponentPerPlan } from './getComponentForPlan'
 
@@ -69,8 +69,8 @@ export function PlanSelector(props: PlanSelectorProps) {
     variants = PLAN_SELECTOR_STYLES,
   } = props
 
-  const { getText } = useTextInReact()
-  const { remoteBackend: backend } = useBackendsInReact()
+  const { getText } = useText()
+  const { remoteBackend: backend } = useBackends()
   const { refetchSession } = useAuth()
   const { getPaywallLevel } = usePaywall({ plan: userPlan })
 

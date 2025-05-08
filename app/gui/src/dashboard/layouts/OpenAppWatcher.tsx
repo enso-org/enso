@@ -10,7 +10,7 @@
 
 import * as React from 'react'
 
-import { useBackendsInReact } from '$/providers/react'
+import { useBackends } from '$/providers/react'
 import { useMutationCallback } from '../utilities/tanstackQuery'
 
 /**
@@ -18,7 +18,7 @@ import { useMutationCallback } from '../utilities/tanstackQuery'
  * It uses the remote backend to log the events.
  */
 export function OpenAppWatcher({ children }: React.PropsWithChildren) {
-  const { remoteBackend } = useBackendsInReact()
+  const { remoteBackend } = useBackends()
 
   const logUserOpenAppMutate = useMutationCallback({
     mutationFn: () => remoteBackend.logEvent('open_app'),

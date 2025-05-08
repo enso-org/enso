@@ -4,7 +4,7 @@ import type { ContextMenuEntryProps as ContextMenuEntryBaseProps } from '#/compo
 import ContextMenuEntryBase from '#/components/ContextMenuEntry'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import { useSetModal } from '#/providers/ModalProvider'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { PaywallDialog } from './PaywallDialog'
 
 /** Props for {@link ContextMenuEntry}. */
@@ -17,7 +17,7 @@ export interface ContextMenuEntryProps extends Omit<ContextMenuEntryBaseProps, '
 export function ContextMenuEntry(props: ContextMenuEntryProps) {
   const { feature, isUnderPaywall, doAction, icon, ...rest } = props
   const { setModal } = useSetModal()
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   return (
     <ContextMenuEntryBase

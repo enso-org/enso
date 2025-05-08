@@ -41,7 +41,7 @@ import {
   type ProjectAsset,
 } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 const PROJECT_EXECUTIONS_CALENDAR_STYLES = tv({
   base: '',
@@ -66,7 +66,7 @@ export interface ProjectExecutionsCalendarProps {
 /** A calendar showing executions of a project. */
 export function ProjectExecutionsCalendar(props: ProjectExecutionsCalendarProps) {
   const { backend } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const { item } = useStore(assetPanelStore, (state) => ({ item: state.assetPanelProps.item }), {
     unsafeEnableTransition: true,
   })
@@ -93,7 +93,7 @@ interface ProjectExecutionsCalendarInternalProps extends ProjectExecutionsCalend
 /** A calendar showing executions of a project. */
 function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInternalProps) {
   const { backend, item } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const [preferredTimeZone] = useLocalStorageState('preferredTimeZone')
 

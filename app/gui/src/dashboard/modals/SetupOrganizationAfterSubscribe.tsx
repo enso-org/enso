@@ -6,7 +6,7 @@ import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import type { GetText } from '$/providers/text'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -16,7 +16,7 @@ import { Button } from '#/components/AriaComponents'
 import { Result } from '#/components/Result'
 import { Stepper } from '#/components/Stepper'
 import * as backendModule from '#/services/Backend'
-import { useBackendsInReact } from '$/providers/react'
+import { useBackends } from '$/providers/react'
 import type RemoteBackend from '../services/RemoteBackend'
 
 const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.enterprise]
@@ -26,7 +26,7 @@ const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.e
  * Shows up when the user is on the team plan and the organization name is the default.
  */
 export function SetupOrganizationAfterSubscribe({ children }: React.PropsWithChildren) {
-  const { remoteBackend: backend } = useBackendsInReact()
+  const { remoteBackend: backend } = useBackends()
 
   const session = authProvider.useFullUserSession()
   const { user } = session
@@ -65,7 +65,7 @@ function SetupOrganizationAfterSubscribeInternal(
 ) {
   const { backend, children } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const { organizationName, userGroupsCount } = useSuspenseQueries({
     queries: [
@@ -187,7 +187,7 @@ export const SET_ORGANIZATION_NAME_FORM_SCHEMA = (getText: GetText) =>
 /** Form for setting the organization name. */
 export function SetOrganizationNameForm(props: SetOrganizationNameFormProps) {
   const { onSubmit } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   return (
     <ariaComponents.Form
@@ -224,7 +224,7 @@ export interface CreateUserGroupFormProps {
 /** Form for creating a user group. */
 export function CreateUserGroupForm(props: CreateUserGroupFormProps) {
   const { onSubmit } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const defaultUserGroupMaxLength = 64
 

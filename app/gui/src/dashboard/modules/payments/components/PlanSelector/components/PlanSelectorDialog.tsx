@@ -4,7 +4,7 @@
  * Dialog that shows the plan details, price, and the payment form.
  */
 
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { type GetText } from '$/providers/text'
 import type { PaymentMethod } from '@stripe/stripe-js'
 import { useQuery } from '@tanstack/react-query'
@@ -65,7 +65,7 @@ function billingPeriodToString(getText: GetText, item: number) {
 /** Dialog that shows the plan details, price, and the payment form. */
 export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
   const { title, planName, features, plan, isTrialing = false, onSubmit } = props
-  const { getText, locale } = useTextInReact()
+  const { getText, locale } = useText()
 
   const price = PRICE_BY_PLAN[plan]
   const maxSeats = MAX_SEATS_BY_PLAN[plan]
@@ -233,7 +233,7 @@ interface SummaryProps {
 /** Displays a summary of the plan details and the total price. */
 function Summary(props: SummaryProps) {
   const { plan, seats, period, formatter, isInvalid = false } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const { data, isLoading, isError, refetch, error } = useQuery({
     ...createSubscriptionPriceQuery({ plan, seats, period }),

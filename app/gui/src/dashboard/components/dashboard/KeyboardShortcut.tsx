@@ -21,7 +21,7 @@ import {
   type ModifierKey,
 } from '#/utilities/inputBindings'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import type { GetText } from '$/providers/text'
 
 /** The size (both width and height) of key icons. */
@@ -112,7 +112,7 @@ export type KeyboardShortcutProps = KeyboardShortcutActionProps | KeyboardShortc
 /** A visual representation of a keyboard shortcut. */
 export default function KeyboardShortcut(props: KeyboardShortcutProps) {
   const { className } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const inputBindings = useInputBindings()
   const shortcutString =
     'shortcut' in props ? props.shortcut : inputBindings.metadata[props.action].bindings[0]

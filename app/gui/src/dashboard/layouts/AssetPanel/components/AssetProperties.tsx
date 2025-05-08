@@ -39,7 +39,7 @@ import {
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 
@@ -72,7 +72,7 @@ export function AssetProperties(props: AssetPropertiesProps) {
 
   const currentItem = item ?? defaultItem
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   if (backend.type === BackendType.local) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
@@ -113,7 +113,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   })
   const { user } = useFullUserSession()
   const isEnterprise = user.plan === Plan.enterprise
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const [isEditingDescriptionRaw, setIsEditingDescriptionRaw] = React.useState(false)
   const isEditingDescription = isEditingDescriptionRaw || spotlightOn === 'description'
   const setIsEditingDescription = useEventCallback(

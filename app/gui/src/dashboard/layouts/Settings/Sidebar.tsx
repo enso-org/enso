@@ -5,7 +5,7 @@ import { Header } from '#/components/aria'
 import { ButtonGroup } from '#/components/AriaComponents'
 import SidebarTabButton from '#/components/styled/SidebarTabButton'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { SETTINGS_DATA, type SettingsContext } from './data'
 import type SettingsTabType from './TabType'
 
@@ -23,7 +23,7 @@ export interface SettingsSidebarProps {
 function SettingsSidebar(props: SettingsSidebarProps) {
   const { context, tabsToShow, isMenu = false, tab, setTab } = props
   const { onClickCapture } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   return (
     <div

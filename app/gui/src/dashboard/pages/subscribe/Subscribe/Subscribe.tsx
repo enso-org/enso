@@ -6,7 +6,7 @@ import { Button, Text } from '#/components/AriaComponents'
 import { PlanSelector } from '#/modules/payments'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { isPlan } from '#/services/Backend'
-import { useRouterInReact, useTextInReact } from '$/providers/react'
+import { useRouter, useText } from '$/providers/react'
 
 /**
  * A page in which the currently active payment plan can be changed.
@@ -23,8 +23,8 @@ import { useRouterInReact, useTextInReact } from '$/providers/react'
  * paymentStatus: 'no_payment_required' || 'paid' || 'unpaid' }`).
  */
 export function Subscribe() {
-  const { getText } = useTextInReact()
-  const { router, searchParams } = useRouterInReact()
+  const { getText } = useText()
+  const { router, searchParams } = useRouter()
   const { user } = useFullUserSession()
 
   const maybePlan = searchParams.get('plan')

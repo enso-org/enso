@@ -1,6 +1,6 @@
 /** @file Submit and cancel buttons, and form error for the credentials form. */
 import { ButtonGroup, DialogDismiss, Form } from '#/components/AriaComponents'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 /** Props for a {@link CredentialsFormFooter}. */
 export interface CredentialsFormFooterProps {
@@ -13,7 +13,7 @@ export interface CredentialsFormFooterProps {
 export function CredentialsFormFooter(props: CredentialsFormFooterProps) {
   const { isCreating, canCancel, canReset } = props
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   return (
     <>

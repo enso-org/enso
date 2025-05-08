@@ -5,16 +5,16 @@ import type * as text from 'enso-common/src/text'
 
 import LogoIcon from '#/assets/enso_logo.svg'
 
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
-import { useBackendsInReact } from '$/providers/react'
+import { useBackends } from '$/providers/react'
 
 /** A modal for confirming the deletion of an asset. */
 export default function AboutModal() {
-  const { localBackend } = useBackendsInReact()
-  const { getText } = useTextInReact()
+  const { localBackend } = useBackends()
+  const { getText } = useText()
 
   const versionsEntries = [
     ...(window.versionInfo != null ?

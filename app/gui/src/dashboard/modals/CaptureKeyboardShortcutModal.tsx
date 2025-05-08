@@ -12,7 +12,7 @@ import {
   normalizedKeyboardSegmentLookup,
 } from '#/utilities/inputBindings'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 const DISALLOWED_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta'])
 const DELETE_KEY = isOnMacOS() ? 'Backspace' : 'Delete'
@@ -44,7 +44,7 @@ export interface CaptureKeyboardShortcutModalProps {
 export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShortcutModalProps) {
   const { description, existingShortcuts, onSubmit } = props
   const { unsetModal } = useSetModal()
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const [key, setKey] = useState<string | null>(null)
   const [modifiers, setModifiers] = useState<string>('')
   const shortcut =

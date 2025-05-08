@@ -8,12 +8,12 @@ import CloseLargeIcon from '#/assets/close_large.svg'
 import * as appUtils from '#/appUtils'
 
 import * as loggerProvider from '#/providers/LoggerProvider'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import { useRouterInReact } from '$/providers/react'
+import { useRouter } from '$/providers/react'
 
 /** Props for a {@link ChatPlaceholder}. */
 export interface ChatPlaceholderProps {
@@ -27,9 +27,9 @@ export interface ChatPlaceholderProps {
 /** A placeholder component replacing `Chat` when a user is not logged in. */
 function ChatPlaceholder(props: ChatPlaceholderProps) {
   const { hideLoginButtons = false, isOpen, doClose } = props
-  const { getText } = useTextInReact()
+  const { getText } = useText()
   const logger = loggerProvider.useLogger()
-  const { router } = useRouterInReact()
+  const { router } = useRouter()
 
   const container = document.getElementById('enso-chat')
 

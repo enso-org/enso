@@ -7,7 +7,7 @@
 import type { JSX } from 'react'
 
 import { Button, type ButtonProps } from '#/components/AriaComponents'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import { useFormContext } from './FormProvider'
 import type { FieldPath, FieldValues, FormInstance, TSchema } from './types'
 
@@ -52,7 +52,7 @@ export function Submit<
   TFieldName extends FieldPath<Schema, Constraint>,
   Constraint,
 >(props: SubmitProps<IconType, Schema, TFieldName, Constraint>): JSX.Element {
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const {
     size = 'medium',

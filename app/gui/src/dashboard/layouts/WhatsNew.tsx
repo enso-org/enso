@@ -5,11 +5,11 @@ import IntegrationsImage from '#/assets/integrations.png'
 import YoutubeIcon from '#/assets/youtube.svg'
 import { Button, Text } from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 /** Community updates for the app. */
 export function WhatsNew() {
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   return (
     <div className="flex w-full flex-col">

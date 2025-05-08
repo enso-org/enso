@@ -13,7 +13,7 @@ import {
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 import {
   BasicInput,
   Button,
@@ -216,7 +216,7 @@ interface ComboBoxResetButtonProps {
 function ComboBoxResetButton(props: ComboBoxResetButtonProps) {
   const { className } = props
   const state = useContext(ComboBoxStateContext)
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   return (
     <Button

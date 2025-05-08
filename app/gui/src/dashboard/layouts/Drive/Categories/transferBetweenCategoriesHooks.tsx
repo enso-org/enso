@@ -16,7 +16,7 @@ import { useUser } from '#/providers/AuthProvider'
 import { AssetType, type AssetId, type DirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useBackendsInReact, useTextInReact } from '$/providers/react'
+import { useBackends, useText } from '$/providers/react'
 import { type GetText } from '$/providers/text'
 import type { DropOperation } from '@react-types/shared'
 import { z } from 'zod'
@@ -63,14 +63,14 @@ export type TransferrableAsset = z.infer<typeof TRANSFERRABLE_ASSET_SCHEMA>
 
 /** A function to transfer a list of assets between categories. */
 export function useTransferBetweenCategories(currentCategory: Category) {
-  const { localBackend, remoteBackend, backendByCategory } = useBackendsInReact()
+  const { localBackend, remoteBackend, backendByCategory } = useBackends()
   const backend = backendByCategory(currentCategory)
 
   const { rootDirectoryId } = useUser()
 
   const { getCategoryByDirectoryId } = useCategories()
 
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
   const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(remoteBackend))

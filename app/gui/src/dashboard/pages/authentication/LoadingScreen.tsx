@@ -1,14 +1,14 @@
 /** @file A loading screen, displayed while the user is logging in. */
 import { Text } from '#/components/AriaComponents'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
-import { useTextInReact } from '$/providers/react'
+import { useText } from '$/providers/react'
 
 /** The diameter of the spinner. */
 const SPINNER_SIZE_PX = 64
 
 /** A loading screen. */
 export default function LoadingScreen() {
-  const { getText } = useTextInReact()
+  const { getText } = useText()
 
   return (
     <div
