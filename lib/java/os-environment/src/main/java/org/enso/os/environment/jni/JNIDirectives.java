@@ -19,11 +19,6 @@ final class JNIDirectives implements CContext.Directives {
   }
 
   @Override
-  public List<String> getLibraries() {
-    return List.of("jvm");
-  }
-
-  @Override
   public List<String> getOptions() {
     var javaHome = new File(System.getProperty("java.home"));
     var include = new File(javaHome, "include");
