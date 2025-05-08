@@ -6,6 +6,7 @@ from Standard.Table import Column, Excel_Workbook, Sort_Column, Table, Value_Typ
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
+import Standard.Tableau.Hyper_File.Hyper_File
 
 import project.Helpers
 
@@ -42,7 +43,10 @@ prepare_visualization y max_rows=1000 = if y.is_error then (make_json_for_error 
             JS_Object.from_pairs [["json", make_json_for_value v]]
         v : Excel_Workbook ->
             js_value = v.to_js_object
-            JS_Object.from_pairs [["json", js_value], ["sheet_names", v.sheet_names], ["get_child_node_action", "read"], ["type", "Excel_Workbook"]]
+            JS_Object.from_pairs [["json", js_value], ["data", v.sheet_names], ["visualization_header", "worksheet"], ["child_label", "worksheet"], ["get_child_node_action", "read"], ["type", "Single_Column_Of_Actions"]]
+        v : Hyper_File ->
+            js_value = v.to_js_object
+            JS_Object.from_pairs [["json", js_value], ["data", v.viz_data], ["visualization_header", "table"], ["child_label", "table"], ["get_child_node_action", "read"], ["type", "Single_Column_Of_Actions"]]
         v : XML_Document -> make_json_for_xml_element v.root_element max_rows "XML_Document"
         v : XML_Element -> make_json_for_xml_element v max_rows
         _ -> make_json_for_other x

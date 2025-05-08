@@ -28,7 +28,7 @@ type Hyper_File
 
     ## PRIVATE
        A representation of a Tableau Hyper Extract file.
-    private Value file:File internal_schema:Text
+    Value file:File internal_schema:Text
 
     ## ICON metadata
        Returns the list of schemas for the connection within the current database (or catalog).
@@ -67,6 +67,10 @@ type Hyper_File
                 _ -> HyperFormat.listTables self.file.path schema
             array.map t-> Hyper_Table.Value self t.schema t.name
 
+    ## PRIVATE
+    viz_data self =
+        self.tables.map t->t.table.to_text
+            
     ## ALIAS get, import, load, open, sheet
        GROUP Standard.Base.Input
        ICON data_input

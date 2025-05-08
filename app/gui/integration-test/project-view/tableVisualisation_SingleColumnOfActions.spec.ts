@@ -13,7 +13,7 @@ async function initGraph(page: Page) {
   await mockExpressionUpdate(page, 'aggregated', { type: ['Standard.Table.Table.Table'] })
 }
 
-test.only('ExcelWorkbook Visualisation Test', async ({ page }) => {
+test('Single_Column_Of_Actions Table Visualisation Test', async ({ page }) => {
   
   await initGraph(page)
 
@@ -30,12 +30,15 @@ test.only('ExcelWorkbook Visualisation Test', async ({ page }) => {
     page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     {
-      sheet_names: ["Sheet1", "Sheet2", "Sheet3"],
+      type: "Single_Column_Of_Actions",
+      visualization_header: "table",
+      child_label: "table",
+      data: ["Sheet1", "Sheet2", "Sheet3"],
       get_child_node_action: "read",
-      type: "Excel_Workbook"
+      
     },
   )
-  await expect(tableVisualization).toContainText('Value')
+  await expect(tableVisualization).toContainText('table')
   await expect(tableVisualization).toContainText('Sheet1')
   await expect(tableVisualization).toContainText('Sheet2')
   await expect(tableVisualization).toContainText('Sheet3')
