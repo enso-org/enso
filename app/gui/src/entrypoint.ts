@@ -2,6 +2,7 @@ import './beforeMain' // Keep newline below to ensure that this import is always
 
 import '#/styles.css'
 import '#/tailwind.css'
+import App from '$/App.vue'
 import router from '$/router.tsx'
 import * as sentry from '@sentry/vue'
 import { VueQueryPlugin } from '@tanstack/vue-query'
@@ -9,7 +10,7 @@ import * as detect from 'enso-common/src/detect'
 import { createQueryClient } from 'enso-common/src/queryClient'
 import { MotionGlobalConfig } from 'framer-motion'
 import * as idbKeyval from 'idb-keyval'
-import { createApp, defineAsyncComponent } from 'vue'
+import { createApp } from 'vue'
 
 const HTTP_STATUS_BAD_REQUEST = 400
 const API_HOST = $config.API_URL != null ? new URL($config.API_URL).host : null
@@ -26,10 +27,7 @@ async function main() {
   const queryClient = createQueryClientOfPersistCache()
   const rootDirPath = await getRootDirPath($config.CLOUD_BUILD !== 'true')
 
-  const app = createApp(
-    defineAsyncComponent(() => import('$/App.vue')),
-    { onAuthenticated, rootDirPath },
-  )
+  const app = createApp(App, { onAuthenticated, rootDirPath })
   app.use(VueQueryPlugin, { queryClient })
   app.use(router)
   app.mount('#enso-app')
