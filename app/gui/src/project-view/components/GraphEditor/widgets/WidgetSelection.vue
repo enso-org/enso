@@ -132,8 +132,8 @@ function tagToEntry(tag: ExpressionTag | NestedChoiceTag | ActionTag): Entry {
     selected: tag instanceof ExpressionTag && selectedExpressions.value.has(tag.expression),
     icon: tag instanceof ExpressionTag || tag instanceof ActionTag ? tag.icon : undefined,
     tag,
-    isNested: () => tag instanceof NestedChoiceTag,
-    values: tag instanceof NestedChoiceTag ? tag.choices.map(tagToEntry) : [],
+    isNested: tag instanceof NestedChoiceTag,
+    nestedValues: tag instanceof NestedChoiceTag ? tag.choices.map(tagToEntry) : [],
   }
 }
 

@@ -56,7 +56,7 @@ const { floatingStyles } = submenuDropdownStyles(
   rootElement,
 )
 
-const nestedEntriesPresent = computed(() => props.entries.some((entry) => entry.isNested()))
+const nestedEntriesPresent = computed(() => props.entries.some((entry) => entry.isNested))
 
 function resetSubmenu() {
   submenu.value = null
@@ -65,14 +65,14 @@ watch([() => props.show, () => props.entries], resetSubmenu)
 
 function nestedEntryToSubmenu(entry: SubmenuEntry<T>, target: HTMLElement): Submenu {
   return {
-    entries: computed(() => entry.values satisfies SubmenuEntry<T>[]),
+    entries: computed(() => entry.nestedValues satisfies SubmenuEntry<T>[]),
     relativeTo: target,
   }
 }
 
 function onClick(entry: DropdownEntry, keepOpen: boolean, htmlElement: HTMLElement) {
   if (!isSubmenuEntry(entry)) return
-  if (entry.isNested()) {
+  if (entry.isNested) {
     submenu.value = nestedEntryToSubmenu(entry as SubmenuEntry<T>, htmlElement)
   } else {
     emit('clickedEntry', entry as T, keepOpen)

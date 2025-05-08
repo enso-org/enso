@@ -225,11 +225,11 @@ export function isEntry(entry: DropdownEntry): entry is Entry {
 
 // TODO: move to other module
 export interface SubmenuEntry<T> extends DropdownEntry {
-  isNested(): boolean
-  get values(): T[]
+  isNested: boolean
+  get nestedValues(): T[]
 }
 
 /** Check if a {@link DropdownEntry} is a {@link SubmenuEntry}. */
 export function isSubmenuEntry(entry: DropdownEntry): entry is SubmenuEntry<unknown> {
-  return 'isNested' in entry && 'values' in entry
+  return 'isNested' in entry && 'nestedValues' in entry
 }
