@@ -333,37 +333,6 @@ public final class UnusedImports implements MiniPassFactory {
       }
     }
 
-    /**
-     * Traverses the whole subtree of the given {@code ir} and collects all the {@link Resolution}
-     * metadata. Note that this is an expensive method.
-     *
-     * @return non-null, possibly empty list of found metadata.
-     */
-    private static List<Resolution> recursivelyCollectResolutions(IR root) {
-      var resolutions = new ArrayList<Resolution>();
-      root.preorder()
-          .foreach(
-              ir -> {
-                var resolution = getGlobalNamesMeta(ir);
-                if (resolution != null) {
-                  resolutions.add(resolution);
-                  return null;
-                }
-                resolution = getMethodDefinitionsMeta(ir);
-                if (resolution != null) {
-                  resolutions.add(resolution);
-                  return null;
-                }
-                resolution = getTypeNameMeta(ir);
-                if (resolution != null) {
-                  resolutions.add(resolution);
-                  return null;
-                }
-                return null;
-              });
-      return resolutions;
-    }
-
     private static TypeSignatures.Signature getTypeSignatureMeta(IR ir) {
       return MetadataInteropHelpers.getMetadataOrNull(
           ir, TypeSignatures$.MODULE$, TypeSignatures.Signature.class);
@@ -377,11 +346,6 @@ public final class UnusedImports implements MiniPassFactory {
     private static BindingsMap.Resolution getMethodDefinitionsMeta(IR ir) {
       return MetadataInteropHelpers.getMetadataOrNull(
           ir, MethodDefinitions.INSTANCE, BindingsMap.Resolution.class);
-    }
-
-    private static BindingsMap.Resolution getGlobalNamesMeta(IR ir) {
-      return MetadataInteropHelpers.getMetadataOrNull(
-          ir, GlobalNames$.MODULE$, BindingsMap.Resolution.class);
     }
 
     private List<ResolvedName> resolveExportedName(String name) {

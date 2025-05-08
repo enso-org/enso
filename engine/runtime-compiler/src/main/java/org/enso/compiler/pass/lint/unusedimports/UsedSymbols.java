@@ -1,0 +1,70 @@
+package org.enso.compiler.pass.lint.unusedimports;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import org.enso.compiler.core.ir.module.scope.Import;
+import org.enso.pkg.QualifiedName;
+
+/** All the used symbols inside one module. */
+final class UsedSymbols {
+
+  private final Map<Import, Set<QualifiedName>> symbols;
+
+  private UsedSymbols(Map<Import, Set<QualifiedName>> symbols) {
+    this.symbols = symbols;
+  }
+
+  Set<QualifiedName> getUsedSymbolsForImport(Import importIr) {
+    if (!symbols.containsKey(importIr)) {
+      // Try to find the import based on location.
+      // It is possible that the import was replaced by a different instance
+      // with same location.
+      return symbols.entrySet().stream()
+          .filter(entry -> haveSameLocation(entry.getKey(), importIr))
+          .map(Entry::getValue)
+          .findFirst()
+          .orElse(Set.of());
+    }
+    return symbols.getOrDefault(importIr, Set.of());
+  }
+
+  private static boolean haveSameLocation(Import imp1, Import imp2) {
+    if (imp1.identifiedLocation() != null && imp2.identifiedLocation() != null) {
+      var loc1 = imp1.identifiedLocation().location();
+      var loc2 = imp2.identifiedLocation().location();
+      return loc1.equals(loc2);
+    } else {
+      return false;
+    }
+  }
+
+  @Override
+  public String toString() {
+    var sb = new StringBuilder();
+    sb.append("UsedSymbols{");
+    for (var entry : symbols.entrySet()) {
+      var impCode = entry.getKey().showCode();
+      sb.append("'").append(impCode).append("': ").append(entry.getValue()).append(", ");
+    }
+    sb.append("}");
+    return sb.toString();
+  }
+
+  static final class Builder {
+
+    private final Map<Import, Set<QualifiedName>> symbols = new HashMap<>();
+
+    void addUsedSymbol(Import importIr, QualifiedName symbol) {
+      var usedSymbols = symbols.computeIfAbsent(importIr, k -> new HashSet<>());
+      usedSymbols.add(symbol);
+    }
+
+    UsedSymbols build() {
+      return new UsedSymbols(Collections.unmodifiableMap(symbols));
+    }
+  }
+}
