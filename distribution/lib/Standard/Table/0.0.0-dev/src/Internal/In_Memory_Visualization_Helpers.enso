@@ -2,6 +2,9 @@ private
 
 from Standard.Base import all
 
+import project.Column.Column
+import project.Value_Type.Value_Type
+
 polyglot java import org.enso.table.data.column.operation.SampleOperation
 polyglot java import org.enso.table.data.column.operation.CountNonTrivialWhitespace
 polyglot java import org.enso.table.data.column.operation.CountNothing
@@ -13,7 +16,7 @@ type In_Memory_Visualization_Helpers
        Counts the number of text values with leading or trailing whitespace.
        Used for data quality indicator in Table Viz.
     count_untrimmed : Integer -> Integer | Nothing
-    count_untrimmed this_column sample_size:Integer=Column.default_sample_size =
+    count_untrimmed this_column sample_size:Integer =
         if (_can_contain_text this_column.value_type).not then Nothing else
             CountUntrimmed.apply this_column.java_column sample_size
 
@@ -28,7 +31,7 @@ type In_Memory_Visualization_Helpers
        Counts the number of text values with non trivial whitespace.
        Used for data quality indicator in Table Viz.
     count_non_trivial_whitespace : Integer -> Integer | Nothing
-    count_non_trivial_whitespace this_column sample_size:Integer=Column.default_sample_size =
+    count_non_trivial_whitespace this_column sample_size:Integer =
         if (_can_contain_text this_column.value_type).not then Nothing else
             CountNonTrivialWhitespace.apply this_column.java_column sample_size
 

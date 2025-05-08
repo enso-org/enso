@@ -1,6 +1,7 @@
 private
 
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Internal.Polyglot_Helpers
 
 import project.Column.Column
@@ -14,6 +15,7 @@ import project.Value_Type.Value_Type
 from project.Errors import Conversion_Failure, Invalid_Column_Names, Invalid_Value_Type
 from project.Internal.Storage import enso_to_java, java_to_enso
 
+polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.error.ValueTypeMismatchException
 
@@ -23,7 +25,7 @@ from_storage : Text -> Java_Storage -> Column
 from_storage name storage =
     Invalid_Column_Names.handle_java_exception <|
         java_column = Java_Column.new name storage
-        In_Memory_Column.from_java_column java_column
+        from_java_column java_column
 
 ## PRIVATE
    Creates a new column given a Java Column object.
@@ -72,3 +74,10 @@ from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) -> Co
             result.catch Conversion_Failure error->
                 if error.example_values.is_empty then result else
                     raise_invalid_value_type_error error.example_values.first
+
+## PRIVATE
+from_repeated_item name:Text item:Any repeats:Integer =
+    Invalid_Column_Names.handle_java_exception <| Illegal_Argument.handle_java_exception <|
+        java_column = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+            Java_Column.fromRepeatedItem name item repeats java_problem_aggregator
+        Column.from_java_column java_column

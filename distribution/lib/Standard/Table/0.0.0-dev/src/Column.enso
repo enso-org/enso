@@ -63,8 +63,7 @@ type Column
        - name: The name of the column to create.
        - item: The element to repeat in the column.
        - repeats: The number of times to repeat the element.
-    from_repeated_item : Text -> Any -> Integer -> Column
-    from_repeated_item name item repeats =
+    from_repeated_item name:Text item:Any repeats:Integer -> Column =
         In_Memory_Column_Constructors.from_repeated_item name item repeats
 
     ## PRIVATE

@@ -1,7 +1,10 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Column.Column
 import project.Internal.In_Memory_Column_Implementation.In_Memory_Column_Implementation
+import project.Internal.Visualization_Helpers.Visualization_Helpers
+import project.Internal.In_Memory_Visualization_Helpers.In_Memory_Visualization_Helpers
 from project.Column import column_from_implementation
 
 ## A column whose data is stored in memory.

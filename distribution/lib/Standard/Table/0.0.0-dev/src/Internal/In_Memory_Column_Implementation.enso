@@ -21,6 +21,7 @@ from Standard.Base.Metadata.Widget import Numeric_Input, Text_Input
 from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make_format_chooser, make_regex_text_widget
 
 import project.Column.Column
+import project.In_Memory_Column.In_Memory_Column
 import project.Constants.Previous_Value
 import project.Data_Formatter.Data_Formatter
 import project.Fill_With.Fill_With
@@ -409,7 +410,7 @@ type In_Memory_Column_Implementation
             mapped = this_column_vec.map_with_index i->t-> trim_fn t (trim_get i)
             Column.from_vector new_name mapped
 
-            text_replace this_column (term : Text | Regex | Column = "") (new_text : Text | Column = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column =
+    text_replace this_column (term : Text | Regex | Column = "") (new_text : Text | Column = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column =
         Value_Type.expect_text this_column <|
             term_fn = wrap_text_or_regex_argument_as_value_provider term
             new_text_fn = wrap_text_argument_as_value_provider new_text
@@ -755,13 +756,13 @@ run_vectorized_binary_op column name operand new_name=Nothing fallback_fn=Nothin
         storage_type = resolve_storage_type expected_result_type
         case operand of
             operand_column : Column ->
-                s1 = column.java_column.getStorage
-                s2 = operand_column.java_column.getStorage
+                s1 = (column:In_Memory_Column).java_column.getStorage
+                s2 = (operand_column:In_Memory_Column).java_column.getStorage
                 rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s1.vectorizedOrFallbackZip name problem_builder fallback_fn s2 skip_nulls storage_type
                 In_Memory_Column_Constructors.from_storage effective_new_name rs
             _ ->
-                s1 = column.java_column.getStorage
+                s1 = (column:In_Memory_Column).java_column.getStorage
                 rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s1.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn (enso_to_java operand) skip_nulls storage_type
                 In_Memory_Column_Constructors.from_storage effective_new_name rs
@@ -848,13 +849,13 @@ run_vectorized_binary_op_with_fallback_problem_handling column name operand fall
         storage_type = resolve_storage_type expected_result_type
         case operand of
             operand_column : Column ->
-                s1 = column.java_column.getStorage
-                s2 = operand_column.java_column.getStorage
+                s1 = (column:In_Memory_Column).java_column.getStorage
+                s2 = (operand_column:In_Memory_Column).java_column.getStorage
                 rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s1.vectorizedOrFallbackZip name problem_builder applied_fn s2 skip_nulls storage_type
                 In_Memory_Column_Constructors.from_storage new_name rs
             _ ->
-                s1 = column.java_column.getStorage
+                s1 = (column:In_Memory_Column).java_column.getStorage
                 rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s1.vectorizedOrFallbackBinaryMap name problem_builder applied_fn (enso_to_java operand) skip_nulls storage_type
                 In_Memory_Column_Constructors.from_storage new_name rs
@@ -903,7 +904,7 @@ wrap_text_argument_as_value_provider val =
     Value_Type.expect_text val <| case val of
         text : Text -> (_-> text)
         col : Column ->
-            storage = col.java_column.getStorage
+            storage = (col:In_Memory_Column).java_column.getStorage
             i-> storage.getItemBoxed i
 
 ## PRIVATE

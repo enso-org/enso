@@ -4,6 +4,7 @@ from Standard.Base import all
 
 import project.Column.Column
 import project.Columns_To_Keep.Columns_To_Keep
+import project.Internal.In_Memory_Column_Constructors
 import project.Internal.Java_Problems
 import project.Internal.Match_Columns_Helpers
 import project.Internal.Problem_Builder.Problem_Builder
@@ -50,7 +51,7 @@ private _concat_columns column_set tables result_type result_row_count needs_cas
                     storage = converted.java_column.getStorage
                     storage_builder.appendBulkStorage storage
         sealed_storage = storage_builder.seal
-        Column.from_storage column_set.name sealed_storage
+        In_Memory_Column_Constructors.from_storage column_set.name sealed_storage
 
 ## Creates a storage builder suitable for building a column for the provided
    column type.
