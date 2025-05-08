@@ -9,6 +9,7 @@ import java.util.Random;
 import org.enso.os.environment.jni.JNI.JValue;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
+import org.junit.Assume;
 import org.junit.Test;
 
 public class LoadClassTest {
@@ -16,21 +17,26 @@ public class LoadClassTest {
   // set from TestCollectorFeature
   public static String MODULE_PATH;
 
-  private static JVM jvm;
+  private static JVM impl;
 
-  private static JNI.JNIEnv env() {
-    if (jvm == null) {
+  private static JVM jvm() {
+    Assume.assumeTrue("JNI dynamic loading must be supported", JVM.isSupported());
+    if (impl == null) {
       assert MODULE_PATH != null : "MODULE_PATH field must be set!";
       var path = new File(PATH);
       assert path.isDirectory() : "Java home exists: " + path;
-      jvm =
+      impl =
           JVM.create(
               path,
               "--module-path=" + MODULE_PATH,
               "-Djdk.module.main=org.enso.os.environment",
               "-Dsay=Ahoj");
     }
-    return jvm.env();
+    return impl;
+  }
+
+  private static JNI.JNIEnv env() {
+    return jvm().env();
   }
 
   @Test
@@ -108,7 +114,7 @@ public class LoadClassTest {
     var gen = new Random();
     for (var i = 0; i < 5; i++) {
       var n = gen.nextInt(10000, 20000);
-      jvm.executeMain("org/enso/os/environment/jni/TestMain", out.getPath(), "" + n);
+      jvm().executeMain("org/enso/os/environment/jni/TestMain", out.getPath(), "" + n);
       var content = Files.readString(out.toPath());
       assertEquals("Factorial of " + n + " is the same", TestMain.factorial(n).toString(), content);
       out.delete();

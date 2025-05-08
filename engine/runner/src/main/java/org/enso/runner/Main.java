@@ -1440,7 +1440,20 @@ public class Main {
   private void launchJvm(
       CommandLine line, Map<String, String> props, File component, File javaExecutable)
       throws IOException, InterruptedException {
+    var useJNI = JVM.isSupported();
     var commandAndArgs = new ArrayList<String>();
+    if (!useJNI) {
+      commandAndArgs.add(javaExecutable.getPath());
+      var jvmOptions = System.getenv("JAVA_OPTS");
+      if (jvmOptions != null) {
+        for (var op : jvmOptions.split(" ")) {
+          if (op.isEmpty()) {
+            continue;
+          }
+          commandAndArgs.add(op);
+        }
+      }
+    }
     var assertsOn = false;
     assert assertsOn = true;
     if (assertsOn) {
@@ -1457,11 +1470,20 @@ public class Main {
     if (!component.isDirectory()) {
       throw new IOException("Cannot find " + component + " directory");
     }
-    commandAndArgs.add("--module-path=" + component.getPath());
-    commandAndArgs.add("-Djdk.module.main=org.enso.runner");
-    var javaHome = javaExecutable.getParentFile().getParentFile();
-    var jvm = JVM.create(javaHome, commandAndArgs.toArray(new String[0]));
-    commandAndArgs.clear();
+    JVM jvm;
+    if (useJNI) {
+      commandAndArgs.add("--module-path=" + component.getPath());
+      commandAndArgs.add("-Djdk.module.main=org.enso.runner");
+      var javaHome = javaExecutable.getParentFile().getParentFile();
+      jvm = JVM.create(javaHome, commandAndArgs.toArray(new String[0]));
+      commandAndArgs.clear();
+    } else {
+      commandAndArgs.add("--module-path");
+      commandAndArgs.add(component.getPath());
+      commandAndArgs.add("-m");
+      commandAndArgs.add("org.enso.runner/org.enso.runner.Main");
+      jvm = null;
+    }
     var it = line.iterator();
     while (it.hasNext()) {
       var op = it.next();
@@ -1483,11 +1505,23 @@ public class Main {
       }
     }
     commandAndArgs.addAll(line.getArgList());
-
-    jvm.executeMain("org/enso/runner/Main", commandAndArgs.toArray(new String[0]));
-
-    // the above call should never return
-    throw doExit(1);
+    int exitCode;
+    if (useJNI) {
+      jvm.executeMain("org/enso/runner/Main", commandAndArgs.toArray(new String[0]));
+      // the above call should never return
+      exitCode = 1;
+    } else {
+      var pb = new ProcessBuilder();
+      pb.inheritIO();
+      pb.command(commandAndArgs);
+      var p = pb.start();
+      exitCode = p.waitFor();
+    }
+    if (exitCode == 0) {
+      throw exitSuccess();
+    } else {
+      throw doExit(exitCode);
+    }
   }
 
   private void launch(String[] args) throws IOException, InterruptedException, URISyntaxException {

@@ -22,6 +22,16 @@ public final class JVM {
   }
 
   /**
+   * Currently support on Windows isn't working. Reported as
+   * https://github.com/oracle/graal/issues/11152
+   *
+   * @return {@code true} if one can call {@link #create} method and expect a result
+   */
+  public static boolean isSupported() {
+    return Platform.getOperatingSystem() != Platform.WINDOWS;
+  }
+
+  /**
    * Create new JVM.Use {@link #env()} to obtain reference to JNI interface and make calls into the
    * JVM.
    *
@@ -32,7 +42,11 @@ public final class JVM {
   public static JVM create(File javaHome, String... options) {
     var createJvmFn =
         switch (Platform.getOperatingSystem()) {
-          case WINDOWS -> WindowsJVM.createImpl(javaHome);
+          case WINDOWS -> {
+            // yield WindowsJVM.createImpl(javaHome);
+            throw new IllegalStateException(
+                "Not supported now. See https://github.com/oracle/graal/issues/11152");
+          }
           case LINUX, MACOS -> PosixJVM.createImpl(javaHome);
         };
 
