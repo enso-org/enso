@@ -37,7 +37,6 @@ import { useLocalBackend } from '#/providers/BackendProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
-import { extractTypeAndId } from '#/services/LocalBackend'
 import { useMutation } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 import { twJoin } from '../utilities/tailwindMerge'
@@ -101,7 +100,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       !isCloud &&
       localBackend != null &&
       [...state.selectedIds].every(
-        (id) => extractTypeAndId(id).type === backendModule.AssetType.project,
+        (id) => backendModule.getAssetTypeFromId(id) === backendModule.AssetType.project,
       ),
   )
   const canDownloadAllProjectsToLocal = useStore(
@@ -110,7 +109,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       isCloud &&
       localBackend != null &&
       [...state.selectedIds].every(
-        (id) => extractTypeAndId(id).type === backendModule.AssetType.project,
+        (id) => backendModule.getAssetTypeFromId(id) === backendModule.AssetType.project,
       ),
   )
 

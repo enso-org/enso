@@ -17,7 +17,7 @@ export default function AssetIcon(props: AssetIconProps) {
       return <Icon icon="folder" className={className} />
     }
     case backend.AssetType.project: {
-      return <Icon icon="graph" className={className} />
+      return <Icon icon="graph_editor" className={className} />
     }
     case backend.AssetType.file: {
       return <Icon icon={fileIcon.fileIcon()} className={className} />
