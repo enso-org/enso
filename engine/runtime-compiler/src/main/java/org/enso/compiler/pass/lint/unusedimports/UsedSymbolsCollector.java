@@ -1,12 +1,17 @@
 package org.enso.compiler.pass.lint.unusedimports;
 
+import static scala.jdk.javaapi.CollectionConverters.asJava;
+
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.Name.Literal;
+import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.data.BindingsMap;
@@ -52,10 +57,7 @@ final class UsedSymbolsCollector {
 
   private UsedSymbols collect() {
     gatherUsedSymbolsFromExports(moduleIr);
-    var allResolutions = recursivelyCollectResolutions(moduleIr);
-    for (var res : allResolutions) {
-      addUsedSymbolForResolution(res);
-    }
+    collectFromRoot(moduleIr);
     var usedSymbols = usedSymbolsBldr.build();
     return usedSymbols;
   }
@@ -63,39 +65,49 @@ final class UsedSymbolsCollector {
   /**
    * Traverses the whole subtree of the given {@code ir} and collects all the {@link Resolution}
    * metadata. Note that this is an expensive method.
-   *
-   * @return non-null, possibly empty list of found metadata.
    */
-  private static List<Resolution> recursivelyCollectResolutions(IR root) {
-    var resolutions = new ArrayList<Resolution>();
-    for (var ir : CollectionConverters.asJava(root.preorder())) {
-      var resolution = getGlobalNamesMeta(ir);
-      if (resolution != null) {
-        resolutions.add(resolution);
-      }
-      resolution = getMethodDefinitionsMeta(ir);
-      if (resolution != null) {
-        resolutions.add(resolution);
-      }
-      resolution = getTypeNameMeta(ir);
-      if (resolution != null) {
-        resolutions.add(resolution);
-      }
-      var typeSig = getTypeSignatureMeta(ir);
-      if (typeSig != null) {
-        var sig = typeSig.signature();
-        var sigResolutions = recursivelyCollectResolutions(sig);
-        resolutions.addAll(sigResolutions);
-      }
-      var anotMeta = getGenericAnnotationMeta(ir);
-      if (anotMeta != null) {
-        for (var anot : CollectionConverters.asJava(anotMeta.annotations())) {
-          var anotResolutions = recursivelyCollectResolutions(anot);
-          resolutions.addAll(anotResolutions);
+  private void collectFromRoot(IR root) {
+    var irsToProcess = new ArrayDeque<IR>();
+    irsToProcess.add(root);
+    while (!irsToProcess.isEmpty()) {
+      var ir = irsToProcess.removeFirst();
+      // Application.Prefix (method calls) are handled specifically. GlobalNames pass assigns
+      // resolution to the first synthetic self argument.
+      if (ir instanceof Application.Prefix app
+          && app.function() instanceof Name.Literal funcLiteral) {
+        if (!app.arguments().isEmpty()) {
+          var selfArg = app.arguments().head();
+          var selfArgResolution =
+              MetadataInteropHelpers.getMetadataOrNull(
+                  selfArg.value(), GlobalNames$.MODULE$, BindingsMap.Resolution.class);
+          if (selfArgResolution != null) {
+            var targetModName = selfArgResolution.target().module().getName();
+            var funcName = funcLiteral.name();
+            var targetSymbolName = targetModName.createChild(funcName);
+            addUsedSymbol(targetModName, targetSymbolName);
+            // Add all the children except for the first argument
+            asJava(app.arguments()).stream().skip(1).forEach(irsToProcess::addLast);
+            irsToProcess.addLast(app.function());
+          }
         }
+      } else {
+        addUsedSymbolForResolution(getGlobalNamesMeta(ir));
+        addUsedSymbolForResolution(getMethodDefinitionsMeta(ir));
+        addUsedSymbolForResolution(getTypeNameMeta(ir));
+        var typeSig = getTypeSignatureMeta(ir);
+        if (typeSig != null) {
+          var sig = typeSig.signature();
+          irsToProcess.addLast(sig);
+        }
+        var anotMeta = getGenericAnnotationMeta(ir);
+        if (anotMeta != null) {
+          var annotations = asJava(anotMeta.annotations());
+          irsToProcess.addAll(annotations);
+        }
+        var children = asJava(ir.children());
+        irsToProcess.addAll(children);
       }
     }
-    return resolutions;
   }
 
   /** Traverses export IRs and fills in {@link #usedSymbolsBldr} based on the exported symbols. */
