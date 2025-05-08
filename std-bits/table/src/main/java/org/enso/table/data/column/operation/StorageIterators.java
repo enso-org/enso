@@ -8,7 +8,6 @@ import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.util.ProgressHandler;
-import org.graalvm.polyglot.Context;
 
 /** Set of typed storage iterators for operations. * */
 public class StorageIterators {
@@ -28,8 +27,6 @@ public class StorageIterators {
       boolean preserveNothing,
       Builder builder,
       BuildObjectOperation<S> operation) {
-    Context context = Context.getCurrent();
-
     try (var progressHandle = ProgressHandler.init("buildObjectOverStorage", source.getSize())) {
       long idx = 0;
       for (S item : source) {
@@ -38,12 +35,10 @@ public class StorageIterators {
         } else {
           operation.apply(builder, idx, item);
         }
-        context.safepoint();
         progressHandle.advance();
         idx++;
       }
     }
-
     return builder.seal();
   }
 
@@ -53,8 +48,6 @@ public class StorageIterators {
       boolean preserveNothing,
       Builder builder,
       DoubleBuildObjectOperation operation) {
-    Context context = Context.getCurrent();
-
     try (var progressHandle =
         ProgressHandler.init("buildObjectOverDoubleStorage", source.getSize())) {
       var iterator = source.iterator();
@@ -68,7 +61,6 @@ public class StorageIterators {
         } else {
           operation.apply(builder, iterator.getIndex(), iterator.getItemAsDouble(), false);
         }
-        context.safepoint();
         progressHandle.advance();
       }
     }
@@ -132,8 +124,6 @@ public class StorageIterators {
    */
   public static <B extends BuilderForType<T>, S, T> ColumnStorage<T> buildOverStorage(
       ColumnStorage<S> source, boolean preserveNothing, B builder, BuildOperation<B, S> operation) {
-    Context context = Context.getCurrent();
-
     try (var progressHandle = ProgressHandler.init("buildOverStorage", source.getSize())) {
       long idx = 0;
       for (S item : source) {
@@ -142,7 +132,6 @@ public class StorageIterators {
         } else {
           operation.apply(builder, idx, item);
         }
-        context.safepoint();
         progressHandle.advance();
         idx++;
       }
@@ -187,8 +176,6 @@ public class StorageIterators {
       boolean preserveNothing,
       B builder,
       LongBuildOperation<B> operation) {
-    Context context = Context.getCurrent();
-
     try (var progressHandle = ProgressHandler.init("buildOverStorage", source.getSize())) {
       var iterator = source.iterator();
       while (iterator.moveNext()) {
@@ -201,7 +188,6 @@ public class StorageIterators {
         } else {
           operation.apply(builder, iterator.getIndex(), iterator.getItemAsLong(), false);
         }
-        context.safepoint();
         progressHandle.advance();
       }
     }
@@ -246,8 +232,6 @@ public class StorageIterators {
       boolean preserveNothing,
       B builder,
       DoubleBuildOperation<B> operation) {
-    Context context = Context.getCurrent();
-
     try (var progressHandle = ProgressHandler.init("buildOverDoubleStorage", source.getSize())) {
       var iterator = source.iterator();
       while (iterator.moveNext()) {
@@ -260,7 +244,6 @@ public class StorageIterators {
         } else {
           operation.apply(builder, iterator.getIndex(), iterator.getItemAsDouble(), false);
         }
-        context.safepoint();
         progressHandle.advance();
       }
     }
@@ -305,8 +288,6 @@ public class StorageIterators {
       boolean preserveNothing,
       B builder,
       BooleanBuildOperation<B> operation) {
-    Context context = Context.getCurrent();
-
     try (var progressHandle = ProgressHandler.init("buildOverBooleanStorage", source.getSize())) {
       var iterator = source.iterator();
       while (iterator.moveNext()) {
@@ -319,7 +300,6 @@ public class StorageIterators {
         } else {
           operation.apply(builder, iterator.getIndex(), iterator.getItemAsBoolean(), false);
         }
-        context.safepoint();
         progressHandle.advance();
       }
     }
@@ -382,8 +362,6 @@ public class StorageIterators {
       boolean preserveNothing,
       BuilderForType<T> builder,
       MapOperation<S, T> operation) {
-    Context context = Context.getCurrent();
-
     try (var progressHandle = ProgressHandler.init("mapOverStorage", source.getSize())) {
       long idx = 0;
       for (S item : source) {
@@ -394,9 +372,8 @@ public class StorageIterators {
           builder.append(result);
         }
 
-        idx++;
-        context.safepoint();
         progressHandle.advance();
+        idx++;
       }
     }
 
@@ -436,8 +413,6 @@ public class StorageIterators {
       boolean preserveNothing,
       BuilderForType<T> builder,
       LongMapOperation<T> operation) {
-    Context context = Context.getCurrent();
-
     try (var progressHandle = ProgressHandler.init("mapOverLongStorage", source.getSize())) {
       var iterator = source.iterator();
       while (iterator.moveNext()) {
@@ -452,7 +427,6 @@ public class StorageIterators {
           var result = operation.apply(iterator.getIndex(), iterator.getItemAsLong(), false);
           builder.append(result);
         }
-        context.safepoint();
         progressHandle.advance();
       }
     }
@@ -493,8 +467,6 @@ public class StorageIterators {
       boolean preserveNothing,
       BuilderForType<T> builder,
       DoubleMapOperation<T> operation) {
-    Context context = Context.getCurrent();
-
     try (var progressHandle = ProgressHandler.init("mapOverDoubleStorage", source.getSize())) {
       var iterator = source.iterator();
       while (iterator.moveNext()) {
@@ -509,7 +481,6 @@ public class StorageIterators {
           var result = operation.apply(iterator.getIndex(), iterator.getItemAsDouble(), false);
           builder.append(result);
         }
-        context.safepoint();
         progressHandle.advance();
       }
     }
@@ -550,8 +521,6 @@ public class StorageIterators {
       boolean preserveNothing,
       BuilderForType<T> builder,
       BooleanMapOperation<T> operation) {
-    Context context = Context.getCurrent();
-
     try (var progressHandle = ProgressHandler.init("mapOverBooleanStorage", source.getSize())) {
       var iterator = source.iterator();
       while (iterator.moveNext()) {
@@ -566,7 +535,6 @@ public class StorageIterators {
           var result = operation.apply(iterator.getIndex(), iterator.getItemAsBoolean(), false);
           builder.append(result);
         }
-        context.safepoint();
         progressHandle.advance();
       }
     }
@@ -637,7 +605,6 @@ public class StorageIterators {
     long size = Math.max(source1.getSize(), source2.getSize());
     var builder = builderConstructor.apply(size);
 
-    Context context = Context.getCurrent();
     try (var progressHandle = ProgressHandler.init("zipOverStorages", size)) {
       for (long idx = 0; idx < size; idx++) {
         R value1 = iterator1.hasNext() ? iterator1.next() : null;
@@ -648,7 +615,6 @@ public class StorageIterators {
           var result = operation.apply(idx, value1, value2);
           builder.append(result);
         }
-        context.safepoint();
         progressHandle.advance();
       }
     }

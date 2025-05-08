@@ -1,7 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import org.graalvm.polyglot.Context;
-
 public interface ColumnBooleanStorageIterator extends ColumnStorageIterator<Boolean> {
   /** Gets the current item as a boolean. Note if the item isNothing value is undefined. */
   boolean getItemAsBoolean();
@@ -15,7 +13,6 @@ public interface ColumnBooleanStorageIterator extends ColumnStorageIterator<Bool
   default void zip(
       ColumnBooleanStorage otherStorage, ColumnBooleanStorageIterator.BooleanBooleanZipper zipper) {
     var other = otherStorage.iterator();
-    Context context = Context.getCurrent();
 
     boolean hasValue1 = moveNext();
     boolean hasValue2 = other.moveNext();
@@ -26,7 +23,6 @@ public interface ColumnBooleanStorageIterator extends ColumnStorageIterator<Bool
       boolean isNothing2 = !hasValue2 || other.isNothing();
       boolean value2 = isNothing2 && other.getItemAsBoolean();
       zipper.accept(idx++, value1, isNothing1, value2, isNothing2);
-      context.safepoint();
       hasValue1 = hasValue1 && moveNext();
       hasValue2 = hasValue2 && other.moveNext();
     }
