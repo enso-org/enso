@@ -41,12 +41,8 @@ prepare_visualization y max_rows=1000 = if y.is_error then (make_json_for_error 
             JS_Object.from_pairs [["json", value]]
         v : Number ->
             JS_Object.from_pairs [["json", make_json_for_value v]]
-        v : Excel_Workbook ->
-            js_value = v.to_js_object
-            JS_Object.from_pairs [["json", js_value], ["data", v.sheet_names], ["visualization_header", "worksheet"], ["child_label", "worksheet"], ["get_child_node_action", "read"], ["type", "Single_Column_Of_Actions"]]
-        v : Hyper_File ->
-            js_value = v.to_js_object
-            JS_Object.from_pairs [["json", js_value], ["data", v.viz_data], ["visualization_header", "table"], ["child_label", "table"], ["get_child_node_action", "read"], ["type", "Single_Column_Of_Actions"]]
+        v : Excel_Workbook -> _make_json_for_single_column_of_actions v.to_js_object v.sheet_names "worksheets" "worksheet" "read"
+        v : Hyper_File -> _make_json_for_single_column_of_actions v.to_js_object v.viz_data "tables" "table" "read"
         v : XML_Document -> make_json_for_xml_element v.root_element max_rows "XML_Document"
         v : XML_Element -> make_json_for_xml_element v max_rows
         _ -> make_json_for_other x
@@ -182,6 +178,8 @@ make_json_for_xml_element xml_element max_items type:Text="XML_Element" =
     get_child_node_fields = if type == "XML_Element" then [["get_child_node_action", "get"], ["get_child_node_link_name", "key"], ["link_value_type", "number"]] else [["get_child_node_action", "get_child_element"], ["get_child_node_link_name", "key"], ["link_value_type", "number"]]
     JS_Object.from_pairs <| [header, data, all_rows, ["type", type]] + get_child_node_fields
 
+private _make_json_for_single_column_of_actions js_value data:Vector title tooltip child_node_action =
+    JS_Object.from_pairs [["json", js_value], ["data", data], ["visualization_header", title], ["child_label", tooltip], ["get_child_node_action", child_node_action], ["type", "Single_Column_Of_Actions"]]
 
 private _make_json_for_db_table t max_rows is_column =
     dataframe = t.read (..First max_rows)
