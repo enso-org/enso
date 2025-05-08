@@ -14,6 +14,7 @@ async function initGraph(page: Page) {
 }
 
 test.only('ExcelWorkbook Visualisation Test', async ({ page }) => {
+  
   await initGraph(page)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
@@ -25,7 +26,6 @@ test.only('ExcelWorkbook Visualisation Test', async ({ page }) => {
 
   const col = tableVisualization.getByRole('columnheader', { name: /^0/ })
 
-  // A data update causes column autosizing to run
   await mockVisualizationDataUpdate(
     page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
@@ -39,4 +39,9 @@ test.only('ExcelWorkbook Visualisation Test', async ({ page }) => {
   await expect(tableVisualization).toContainText('Sheet1')
   await expect(tableVisualization).toContainText('Sheet2')
   await expect(tableVisualization).toContainText('Sheet3')
+  const sheet2 = tableVisualization.getByText('Sheet2')
+  await sheet2.dblclick()
+  const newNode = graphNodeByBinding(page, 'node1')
+  await expect(newNode).toContainText("read")
+  await expect(newNode).toContainText("Sheet2")
 })
