@@ -4,7 +4,7 @@ import * as React from 'react'
 import { getLocalTimeZone, today, ZonedDateTime } from '@internationalized/date'
 import * as z from 'zod'
 
-import { Button, ComboBox, DatePicker, Form, Text } from '#/components/AriaComponents'
+import { Button, ComboBox, DatePicker, Form, IconDisplay, Text } from '#/components/AriaComponents'
 import { Icon } from '#/components/Icon'
 import { Scroller } from '#/components/Scroller'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
@@ -168,14 +168,52 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
         </div>
         <div className="flex items-center gap-2">
           <Text className="whitespace-nowrap">{getText('types')}</Text>
-          <ComboBox form={form} name="type" aria-label={getText('types')} items={endpointNames}>
-            {(otherType) => otherType ?? ''}
+          <ComboBox
+            form={form}
+            name="type"
+            aria-label={getText('types')}
+            items={endpointNames}
+            toTextValue={(otherType) => otherType ?? ''}
+            className="w-60"
+          >
+            {(otherType) => {
+              if (otherType == null) {
+                return null
+              }
+              const lambdaKind = lambdaKindsByName.get(otherType)
+              if (lambdaKind == null) {
+                return otherType
+              }
+              return (
+                <div className="flex w-full">
+                  <IconDisplay align="left" icon={EVENT_TYPE_ICON[lambdaKind]}>
+                    {otherType}
+                  </IconDisplay>
+                </div>
+              )
+            }}
           </ComboBox>
         </div>
         <div className="flex items-center gap-2">
           <Text className="whitespace-nowrap">{getText('users')}</Text>
-          <ComboBox form={form} name="userEmail" aria-label={getText('users')} items={allEmails}>
-            {(email) => email ?? ''}
+          <ComboBox
+            form={form}
+            name="userEmail"
+            aria-label={getText('users')}
+            items={allEmails}
+            className="w-60"
+          >
+            {(email) => {
+              if (email == null) {
+                return null
+              }
+              const user = usersByEmail.get(email)
+              if (!user) {
+                return null
+              }
+
+              return <UserWithPopover user={user} className="pointer-events-none" />
+            }}
           </ComboBox>
         </div>
       </Form>

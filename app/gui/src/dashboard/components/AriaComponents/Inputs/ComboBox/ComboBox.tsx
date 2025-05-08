@@ -1,5 +1,5 @@
 /** @file A combo box with a list of items that can be filtered. */
-import { useContext, useRef, type ForwardedRef } from 'react'
+import { useContext, useRef, type ForwardedRef, type ReactNode } from 'react'
 
 import CrossIcon from '#/assets/cross.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
@@ -29,6 +29,7 @@ import {
   type TSchema,
 } from '../..'
 // This cannot be added to the import above or else it is `undefined` due to a circular import.
+import invariant from 'tiny-invariant'
 import { makeRoundedStyles } from '../../utilities'
 
 const COMBO_BOX_STYLES = tv({
@@ -45,9 +46,9 @@ const COMBO_BOX_STYLES = tv({
     inputContainer: 'flex items-center gap-2 px-1.5 rounded-full border-0.5 border-primary/20',
     input: 'grow',
     resetButton: '',
-    popover: 'py-2',
+    popover: 'py-2 w-[calc(var(--trigger-width)_+_48px)]',
     listBox: 'text-primary text-xs',
-    listBoxItem: 'min-w-min cursor-pointer rounded-full hover:bg-hover-bg px-2',
+    listBoxItem: 'cursor-pointer rounded-full hover:bg-hover-bg px-2',
   },
   defaultVariants: {
     size: 'medium',
@@ -72,8 +73,8 @@ export interface ComboBoxProps<Schema extends TSchema, TFieldName extends FieldP
     Pick<InputProps<Schema, TFieldName, string>, 'addonEnd' | 'addonStart' | 'placeholder'> {
   /** This may change as the user types in the input. */
   readonly items: readonly FieldValues<Schema>[TFieldName][]
-  /** A text representation of the item to be shown on each option. */
-  readonly children: (item: FieldValues<Schema>[TFieldName]) => string
+  /** A text-like representation of the item to be shown on each option. */
+  readonly children: (item: FieldValues<Schema>[TFieldName]) => ReactNode
   /**
    * Convert an item to a unique text id, if the default text format returned by
    * `children` is not guaranteed (or not supposed) to be unique.
@@ -171,7 +172,11 @@ export const ComboBox = forwardRef(function ComboBox<
               />
               {!noResetButton && <ComboBoxResetButton className={styles.resetButton()} />}
             </div>
-            <Popover triggerRef={popoverTriggerRef} size="xxsmall" className={styles.popover()}>
+            <Popover
+              triggerRef={popoverTriggerRef}
+              size="auto-xxsmall"
+              className={styles.popover()}
+            >
               <ListBox aria-label={props['aria-label'] ?? 'Combo box'} className={styles.listBox()}>
                 {(item) => {
                   // eslint-disable-next-line no-restricted-syntax
@@ -181,8 +186,14 @@ export const ComboBox = forwardRef(function ComboBox<
                       // `{ id: item }`.
                       item.id
                     : item) as FieldValues<Schema>[TFieldName]
-                  const text = children(fieldValue)
-                  const textValue = toTextValue?.(fieldValue) ?? text
+                  const childrenEl = children(fieldValue)
+                  const textValue =
+                    toTextValue?.(fieldValue) ??
+                    (typeof childrenEl === 'string' ? childrenEl
+                    : typeof fieldValue === 'string' ? fieldValue
+                    : null)
+                  invariant(textValue != null, '`children` returns the wrong type')
+
                   return (
                     <ListBoxItem
                       id={textValue}
@@ -190,7 +201,7 @@ export const ComboBox = forwardRef(function ComboBox<
                       className={styles.listBoxItem()}
                     >
                       <Text truncate="1" className="w-full" tooltipPlacement="left">
-                        {text}
+                        {childrenEl}
                       </Text>
                     </ListBoxItem>
                   )
