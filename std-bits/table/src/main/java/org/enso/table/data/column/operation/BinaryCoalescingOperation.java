@@ -13,6 +13,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.NumericType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
@@ -45,7 +46,9 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
           return new Column(name, rightColumn.getStorage());
         }
 
-        var result = leftStorage.zip(fallback, rightColumn.getStorage(), false, fallbackType, problemBuilder);
+        var result =
+            leftStorage.zip(
+                fallback, rightColumn.getStorage(), false, leftStorage.getType(), problemBuilder);
         return new Column(name, result);
       }
     }
@@ -100,6 +103,8 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
           case DateTimeType dt -> DATE_TIME_MIN;
           case TimeOfDayType t -> TIME_MIN;
           case TextType t -> TEXT_MIN;
+          case NumericType n -> BinaryCoalescingOperationNumeric.create(
+              leftStorage.getType(), right, BinaryCoalescingOperationNumeric.MIN_OPERATION);
           default -> null;
         };
     return applyOperation(
@@ -137,6 +142,8 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
           case DateTimeType dt -> DATE_TIME_MAX;
           case TimeOfDayType t -> TIME_MAX;
           case TextType t -> TEXT_MAX;
+          case NumericType n -> BinaryCoalescingOperationNumeric.create(
+              leftStorage.getType(), right, BinaryCoalescingOperationNumeric.MAX_OPERATION);
           default -> null;
         };
     return applyOperation(

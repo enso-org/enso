@@ -208,8 +208,10 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
       double rightAsDouble = right;
       return StorageIterators.buildOverDoubleStorage(
           (ColumnDoubleStorage) left,
-          validType.makeBuilder(left.getSize(), BlackholeProblemAggregator.INSTANCE),
-          (builder, index, value, isNothing) -> operation.doDouble(value, right, index));
+          false,
+          FloatType.FLOAT_64.makeBuilder(left.getSize(), BlackholeProblemAggregator.INSTANCE),
+          (builder, index, value, isNothing) ->
+              builder.appendDouble(isNothing ? right : operation.doDouble(value, right, index)));
     }
 
     @Override
@@ -219,9 +221,18 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
           (ColumnDoubleStorage) left,
           (ColumnDoubleStorage) right,
           s -> FloatType.FLOAT_64.makeBuilder(s, BlackholeProblemAggregator.INSTANCE),
-          true,
-          (index, value1, isNothing1, value2, isNothing2) ->
-              operation.doDouble(value1, value2, index));
+          false,
+          (index, value1, isNothing1, value2, isNothing2) -> {
+            if (isNothing1 && isNothing2) {
+              return null;
+            } else if (isNothing1) {
+              return value2;
+            } else if (isNothing2) {
+              return value1;
+            } else {
+              return operation.doDouble(value1, value2, index);
+            }
+          });
     }
   }
 
@@ -236,8 +247,9 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
     protected ColumnStorage<T> innerApplyMap(ColumnStorage<T> left, T right) {
       return StorageIterators.mapOverStorage(
           left,
+          false,
           validType.makeBuilder(left.getSize(), BlackholeProblemAggregator.INSTANCE),
-          (index, value) -> doSingle(value, right, index));
+          (index, value) -> value == null ? right : doSingle(value, right, index));
     }
 
     @Override
@@ -246,8 +258,14 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
           left,
           right,
           size -> validType.makeBuilder(size, BlackholeProblemAggregator.INSTANCE),
-          true,
-          (index, x, y) -> doSingle(x, y, index));
+          false,
+          (index, x, y) -> {
+            if (x == null) {
+              return y;
+            } else {
+              return y == null ? x : doSingle(x, y, index);
+            }
+          });
     }
 
     protected abstract T doSingle(T left, T right, long index);
@@ -320,8 +338,10 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
       long rightAsLong = right;
       return StorageIterators.buildOverLongStorage(
           (ColumnLongStorage) left,
-          validType.makeBuilder(left.getSize(), BlackholeProblemAggregator.INSTANCE),
-          (builder, index, value, isNothing) -> operation.doLong(value, right, index));
+          false,
+          IntegerType.INT_64.makeBuilder(left.getSize(), BlackholeProblemAggregator.INSTANCE),
+          (builder, index, value, isNothing) ->
+              builder.appendLong(isNothing ? right : operation.doLong(value, right, index)));
     }
 
     @Override
@@ -332,8 +352,17 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
           (ColumnLongStorage) right,
           s -> validType.makeBuilder(s, BlackholeProblemAggregator.INSTANCE),
           true,
-          (index, value1, isNothing1, value2, isNothing2) ->
-              operation.doLong(value1, value2, index));
+          (index, value1, isNothing1, value2, isNothing2) -> {
+            if (isNothing1 && isNothing2) {
+              return null;
+            } else if (isNothing1) {
+              return value2;
+            } else if (isNothing2) {
+              return value1;
+            } else {
+              return operation.doLong(value1, value2, index);
+            }
+          });
     }
   }
 }

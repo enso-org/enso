@@ -7,7 +7,7 @@ import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record BigDecimalType() implements StorageType<BigDecimal> {
+public record BigDecimalType() implements StorageType<BigDecimal>, NumericType {
   public static final BigDecimalType INSTANCE = new BigDecimalType();
 
   @Override
