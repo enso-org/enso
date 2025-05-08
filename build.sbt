@@ -592,14 +592,6 @@ val zio = Seq(
   "dev.zio" %% "zio-interop-cats" % zioInteropCatsVersion
 )
 
-// === Sentry =================================================================
-
-val ioSentryVersion = "6.28.0"
-val ioSentry = Seq(
-  "io.sentry" % "sentry-logback" % ioSentryVersion,
-  "io.sentry" % "sentry"         % ioSentryVersion
-)
-
 // === Bouncy Castle ==========================================================
 
 val bouncyCastleVersion = "1.78.1"
@@ -709,7 +701,6 @@ lazy val componentModulesPaths =
     scalaReflect ++
     helidon ++
     scalaLibrary ++
-    ioSentry ++
     logbackPkg ++
     jline ++
     slf4jApi ++
@@ -1119,8 +1110,8 @@ lazy val `logging-service-logback` = project
     libraryDependencies ++= slf4jApi ++ Seq(
       "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
-    ) ++ logbackPkg ++ ioSentry,
-    Compile / moduleDependencies ++= logbackPkg ++ ioSentry ++ slf4jApi ++ Seq(
+    ) ++ logbackPkg,
+    Compile / moduleDependencies ++= logbackPkg ++ slf4jApi ++ Seq(
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     Compile / javaModuleName := "org.enso.logging.service.logback",
@@ -2363,8 +2354,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       necessaryModules
     },
     // More dependencies needed for modules for testing
-    libraryDependencies ++= ioSentry.map(_ % Test) ++
-    logbackTest ++ Seq(
+    libraryDependencies ++= logbackTest ++ Seq(
       "com.google.protobuf"    % "protobuf-java"                % googleProtobufVersion  % Test,
       "org.reactivestreams"    % "reactive-streams"             % reactiveStreamsVersion % Test,
       "org.apache.tika"        % "tika-core"                    % tikaVersion            % Test,
@@ -2376,7 +2366,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "com.ibm.icu"            % "icu4j"                        % icuVersion             % Test
     ),
     Test / moduleDependencies := {
-      GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ ioSentry ++ bouncyCastle ++ scalaLibrary ++ scalaReflect ++ slf4jApi ++ Seq(
+      GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ bouncyCastle ++ scalaLibrary ++ scalaReflect ++ slf4jApi ++ Seq(
         "org.netbeans.api"       % "org-netbeans-modules-sampler" % netbeansApiVersion,
         "com.google.flatbuffers" % "flatbuffers-java"             % flatbuffersVersion,
         "org.yaml"               % "snakeyaml"                    % snakeyamlVersion,
@@ -2928,7 +2918,7 @@ lazy val `runtime-integration-tests` =
       ),
       Test / javaOptions ++= testLogProviderOptions,
       Test / moduleDependencies := {
-        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ ioSentry ++ scalaLibrary ++ scalaReflect ++ slf4jApi ++ Seq(
+        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ scalaLibrary ++ scalaReflect ++ slf4jApi ++ Seq(
           "org.apache.commons"     % "commons-lang3"                % commonsLangVersion,
           "org.apache.commons"     % "commons-compress"             % commonsCompressVersion,
           "commons-io"             % "commons-io"                   % commonsIoVersion,
@@ -3100,7 +3090,7 @@ lazy val `runtime-benchmarks` =
       annotationProcSetting,
       // Note that withDebug command only makes sense if you use `@Fork(0)` in your benchmarks.
       commands += WithDebugCommand.withDebug,
-      libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ helidon ++ ioSentry ++ logbackPkg ++ slf4jApi ++ Seq(
+      libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ helidon ++ logbackPkg ++ slf4jApi ++ Seq(
         "org.openjdk.jmh"     % "jmh-core"                     % jmhVersion,
         "org.openjdk.jmh"     % "jmh-generator-annprocess"     % jmhVersion,
         "jakarta.xml.bind"    % "jakarta.xml.bind-api"         % jaxbVersion,
@@ -3119,7 +3109,7 @@ lazy val `runtime-benchmarks` =
       ),
       parallelExecution := false,
       Compile / moduleDependencies ++= {
-        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ ioSentry ++ scalaReflect ++ slf4jApi ++ Seq(
+        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ scalaReflect ++ slf4jApi ++ Seq(
           "org.apache.commons"     % "commons-lang3"                % commonsLangVersion,
           "org.apache.commons"     % "commons-compress"             % commonsCompressVersion,
           "commons-io"             % "commons-io"                   % commonsIoVersion,
@@ -3385,9 +3375,7 @@ lazy val `runtime-compiler` =
         "org.hamcrest"         % "hamcrest-all"            % hamcrestVersion           % Test,
         "com.google.jimfs"     % "jimfs"                   % jimFsVersion              % Test
       ),
-      libraryDependencies ++= {
-        logbackPkg.map(_ % Test) ++ ioSentry.map(_ % Test)
-      },
+      libraryDependencies ++= logbackPkg.map(_ % Test),
       Compile / moduleDependencies ++= slf4jApi ++ Seq(
         "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
       ),
@@ -3404,7 +3392,7 @@ lazy val `runtime-compiler` =
       Test / fork := true,
       Test / javaOptions ++= testLogProviderOptions,
       Test / moduleDependencies ++= {
-        (Compile / moduleDependencies).value ++ scalaLibrary ++ scalaReflect ++ logbackPkg ++ ioSentry ++ Seq(
+        (Compile / moduleDependencies).value ++ scalaLibrary ++ scalaReflect ++ logbackPkg ++ Seq(
           "org.apache.commons"   % "commons-compress" % commonsCompressVersion,
           "org.yaml"             % "snakeyaml"        % snakeyamlVersion,
           "com.typesafe"         % "config"           % typesafeConfigVersion,

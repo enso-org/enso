@@ -15,10 +15,6 @@ import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
 import ch.qos.logback.core.spi.FilterReply;
 import ch.qos.logback.core.util.Duration;
 import ch.qos.logback.core.util.FileSize;
-import io.sentry.SentryLevel;
-import io.sentry.SentryOptions;
-import io.sentry.SystemOutLogger;
-import io.sentry.logback.SentryAppender;
 import java.io.File;
 import java.net.URI;
 import java.nio.file.Path;
@@ -265,44 +261,6 @@ public final class LogbackSetup extends LoggerSetup {
     }
     var memoryAppender = new MemoryAppender(target);
     env.finalizeAppender(memoryAppender);
-    return true;
-  }
-
-  @Override
-  public boolean setupSentryAppender(Level logLevel, Path logRoot) {
-    // TODO: handle proxy
-    // TODO: shutdown timeout configuration
-    try {
-      LoggerAndContext env = contextInit(logLevel, config, !logToFileEnabled());
-
-      org.enso.logging.config.SentryAppender appenderConfig = config.getSentryAppender();
-      if (appenderConfig == null) {
-        throw new MissingConfigurationField(org.enso.logging.config.SentryAppender.appenderName);
-      }
-      SentryAppender appender = new SentryAppender();
-      SentryOptions opts = new SentryOptions();
-      if (appenderConfig.isDebugEnabled()) {
-        opts.setDebug(true);
-        opts.setLogger(new SystemOutLogger());
-        opts.setDiagnosticLevel(SentryLevel.ERROR);
-      }
-      if (logRoot == null) {
-        opts.setCacheDirPath("sentry");
-      } else {
-        opts.setCacheDirPath(logRoot.resolve(".sentry").toAbsolutePath().toString());
-      }
-      if (appenderConfig.getFlushTimeoutMs() != null) {
-        opts.setFlushTimeoutMillis(appenderConfig.getFlushTimeoutMs());
-      }
-      appender.setMinimumEventLevel(ch.qos.logback.classic.Level.convertAnSLF4JLevel(logLevel));
-      opts.setDsn(appenderConfig.getDsn());
-      appender.setOptions(opts);
-
-      env.finalizeAppender(appender);
-    } catch (Throwable e) {
-      e.printStackTrace();
-      return false;
-    }
     return true;
   }
 

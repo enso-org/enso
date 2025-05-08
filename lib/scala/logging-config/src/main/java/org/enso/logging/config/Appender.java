@@ -13,7 +13,6 @@ public abstract sealed class Appender
         FileAppender,
         MemoryAppender,
         OpenSearchAppender,
-        SentryAppender,
         SocketAppender,
         TelemetryAppender {
 
@@ -36,7 +35,6 @@ public abstract sealed class Appender
       return switch (config.getString(nameKey)) {
         case FileAppender.appenderName -> FileAppender.parse(config);
         case SocketAppender.appenderName -> SocketAppender.parse(config);
-        case SentryAppender.appenderName -> SentryAppender.parse(config);
         case TelemetryAppender.appenderName -> TelemetryAppender.parse(config);
         case OpenSearchAppender.appenderName -> OpenSearchAppender.parse(config);
         case ConsoleAppender.appenderName -> ConsoleAppender.parse(config);

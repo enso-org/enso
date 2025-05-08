@@ -57,7 +57,7 @@ public class TestLogFormatter {
   @Test
   public void shouldFillLoggerName() {
     var loggerName = "org.enso.telemetry.MyLogger";
-    var logMessage = new LogMessage(loggerName, "msg: arg={}", new Object[] {1});
+    var logMessage = new LogMessage(loggerName, "msg: arg={}", new Object[] {1}, "TRACE");
     var json = serialize(logMessage);
     assertThat(json, containsString("loggerName"));
     assertThat(json, containsString(loggerName));
@@ -128,7 +128,7 @@ public class TestLogFormatter {
   }
 
   private static LogMessage createLogMessage(String message, Object... args) {
-    return new LogMessage("org.enso.telemetry.MyLogger", message, args);
+    return new LogMessage("org.enso.telemetry.MyLogger", message, args, "TRACE");
   }
 
   private static String serialize(LogMessage logMessage) {

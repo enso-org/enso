@@ -63,7 +63,7 @@ public class TestTelemetryBrokenServer {
     var brokenServer = new BrokenServer();
     brokenServer.start();
 
-    var message1 = new LogMessage("TestLogger", "msg: name={}", new Object[] {"Pavel"});
+    var message1 = new LogMessage("TestLogger", "msg: name={}", new Object[] {"Pavel"}, "TRACE");
     var notification1 = new CompletableFuture<Void>();
     logJobsProcessor.enqueueMessage(new LogJob(message1, notification1));
     try {
@@ -83,7 +83,7 @@ public class TestTelemetryBrokenServer {
     var server = Utils.createMockServer(port);
     server.start();
 
-    var message2 = new LogMessage("TestLogger", "msg2: name={}", new Object[] {"Pavel"});
+    var message2 = new LogMessage("TestLogger", "msg2: name={}", new Object[] {"Pavel"}, "TRACE");
     var job2 = new LogJob(message2, new CompletableFuture<>());
     logJobsProcessor.enqueueMessage(job2);
     Utils.assertCompletedSuccessfully(job2);
