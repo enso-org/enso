@@ -3,7 +3,7 @@
  *
  * Search params state hook store a value in the URL search params.
  */
-import * as React from 'react'
+import type * as React from 'react'
 
 import * as appUtils from '#/appUtils'
 
@@ -12,9 +12,8 @@ import * as lazyMemo from '#/hooks/useLazyMemoHooks'
 
 import * as safeJsonParse from '#/utilities/safeJsonParse'
 import { useRouter } from '$/providers/react'
-import { useCallback } from 'react'
 import { type RouteLocationOptions } from 'vue-router'
-
+import { type z } from 'zod'
 /** The return type of the `useSearchParamsState` hook. */
 type SearchParamsStateReturnType<T> = Readonly<
   [
@@ -33,16 +32,18 @@ export interface SearchParamsSetOptions {
  * Hook to synchronize a state in the URL search params. It returns the value, a setter and a clear function.
  * @param key - The key to store the value in the URL search params.
  * @param defaultValue - The default value to use if the key is not present in the URL search params.
- * @param predicate - A function to check if the value is of the right type.
+ * @param predicateOrSchema - A function to check if the value is of the right type or a Zod schema.
  */
 export function useSearchParamsState<T = unknown>(
   key: string,
   defaultValue: T | (() => T),
-  predicate: (unknown: unknown) => unknown is T = (unknown): unknown is T => true,
+  predicateOrSchema: z.ZodSchema<T> | ((unknown: unknown) => unknown is T) = (
+    unknown,
+  ): unknown is T => true,
 ): SearchParamsStateReturnType<T> {
   const { router, searchParams } = useRouter()
 
-  const setSearchParams = useCallback(
+  const setSearchParams = eventCallback.useEventCallback(
     (
       nextSearchParams:
         | URLSearchParams
@@ -58,7 +59,6 @@ export function useSearchParamsState<T = unknown>(
       const query = Object.fromEntries(nextSearchParams.entries())
       void router.push({ query, ...options })
     },
-    [router, searchParams],
   )
 
   const prefixedKey = `${appUtils.SEARCH_PARAMS_PREFIX}${key}`
@@ -75,24 +75,15 @@ export function useSearchParamsState<T = unknown>(
     )
   })
 
-  const rawValue = (() => {
+  const value = (() => {
     const maybeValue = searchParams.get(prefixedKey)
     const defaultValueFrom = lazyDefaultValueInitializer()
 
     return maybeValue != null ?
-        safeJsonParse.safeJsonParse(maybeValue, defaultValueFrom, (unknown): unknown is T => true)
+        safeJsonParse.safeJsonParse(maybeValue, defaultValueFrom, predicateOrSchema)
       : defaultValueFrom
   })()
 
-  const isValueValid = predicate(rawValue)
-
-  const value = isValueValid ? rawValue : lazyDefaultValueInitializer()
-
-  React.useEffect(() => {
-    if (!isValueValid) {
-      clear(true)
-    }
-  }, [isValueValid, clear])
   /**
    * Set the value in the URL search params. If the next value is the same as the default value, it will remove the key from the URL search params.
    * Function reference is always the same.

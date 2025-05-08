@@ -2,6 +2,7 @@ import {
   CONFIRM_REGISTRATION_PATH,
   DASHBOARD_PATH,
   FORGOT_PASSWORD_PATH,
+  OAUTH_CALLBACK_PATH,
   RESET_PASSWORD_PATH,
   RESTORE_USER_PATH,
   SETUP_PATH,
@@ -37,6 +38,7 @@ import { PropsWithChildren, ReactNode } from 'react'
 import { applyPureReactInVue } from 'veaury'
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import ReactLayoutWrapper from './components/ReactLayoutWrapper.vue'
+import { OAuthCallback } from './dashboard/pages/OAuthCallback'
 
 /**
  * Wrap react component in ErrorBoundary and Suspense.
@@ -153,6 +155,10 @@ const routes = [
   {
     path: RESET_PASSWORD_PATH,
     component: reactForRouter(ResetPassword),
+  },
+  {
+    path: OAUTH_CALLBACK_PATH,
+    component: reactForRouter(OAuthCallback),
   },
   applyLayouts(
     [ProtectedLayout, SoftDeletedUserLayout],

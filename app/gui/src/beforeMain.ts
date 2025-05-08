@@ -2,7 +2,6 @@
  * @file This module is guaranteed to be imported first, and thus to execute before any
  * other script (including our dependencies).
  */
-
 import * as detect from 'enso-common/src/detect'
 
 if (detect.IS_DEV_MODE) {

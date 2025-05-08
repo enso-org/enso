@@ -1133,6 +1133,7 @@
   "cloudBrowserDisabledTitle": "Desktop App Required.",
   "cloudBrowserDisabledSubtitle": "For the best experience and full functionality, please use our desktop app. You will be redirected to the desktop app shortly. Alternatively, you can download the desktop app below.",
   "openInDesktop": "Open in Desktop",
+  "openDashboard": "Open Dashboard",
   "downloadIDE": "Download Enso Desktop Edition",
   "sendEmail": "Send email",
   "actionUnavailable": "Action is unavailable",
@@ -1238,5 +1239,12 @@
   "manageLabelsModal.nextColor": "Next color",
   "manageLabelsModal.chooseColor": "Choose a color",
   "manageLabelsModal.labelAlreadyExists": "Label already exists",
-  "manageLabelsModal.selectedLabels": "Selected labels"
+  "manageLabelsModal.selectedLabels": "Selected labels",
+  "oauthCallbackSuccessTitle": "Success",
+  "oauthCallbackSuccessDescription": "You have successfully authenticated using $0.",
+  "oauthCallbackErrorTitle": "Authentication Failed",
+  "oauthCallbackErrorDescription": "There was an error while authenticating using $0.",
+  "oauthCallbackStartOver": "Start over",
+  "oauthCallbackTitle": "OAuth Connection",
+  "redirectingToDashboard": "You will be redirected to the dashboard shortly. If you are not redirected, please click the button below."
 }

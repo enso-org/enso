@@ -5,7 +5,7 @@ import { IS_DEV_MODE } from 'enso-common/src/detect'
 
 import CrossIcon from '#/assets/cross.svg'
 
-import { SETUP_PATH } from '#/appUtils'
+import { OAUTH_CALLBACK_PATH, SETUP_PATH } from '#/appUtils'
 
 import * as billing from '#/hooks/billing'
 
@@ -313,12 +313,7 @@ export function EnsoDevtools() {
               {getText('ensoDevtoolsPopoverHeading')}
             </Text.Heading>
 
-            <Button
-              variant="icon"
-              onPress={() => {
-                toggleEnsoDevtools()
-              }}
-            >
+            <Button variant="icon" onPress={toggleEnsoDevtools}>
               {getText('hideDevtools')}
             </Button>
           </div>
@@ -375,6 +370,42 @@ export function EnsoDevtools() {
               <Button variant="link" href={SETUP_PATH + '?__qd-debg__=true'}>
                 Open setup page
               </Button>
+
+              <Button.GroupJoin>
+                <Button
+                  variant="link"
+                  href={OAUTH_CALLBACK_PATH + '?status=error&service=google&error=test'}
+                >
+                  Open OAuth callback page
+                </Button>
+
+                <ariaComponents.Menu.Trigger>
+                  <Button variant="icon" icon="folder_opened" size="xsmall" />
+
+                  <ariaComponents.Menu>
+                    <ariaComponents.Menu.Item
+                      href={OAUTH_CALLBACK_PATH + '?status=error&service=google&error=test'}
+                    >
+                      Oauth Google Error
+                    </ariaComponents.Menu.Item>
+                    <ariaComponents.Menu.Item
+                      href={OAUTH_CALLBACK_PATH + '?status=success&service=google'}
+                    >
+                      Oauth Google Success
+                    </ariaComponents.Menu.Item>
+                    <ariaComponents.Menu.Item
+                      href={OAUTH_CALLBACK_PATH + '?status=error&service=snowflake&error=test'}
+                    >
+                      Oauth Snowflake Error
+                    </ariaComponents.Menu.Item>
+                    <ariaComponents.Menu.Item
+                      href={OAUTH_CALLBACK_PATH + '?status=success&service=snowflake'}
+                    >
+                      Oauth Snowflake Success
+                    </ariaComponents.Menu.Item>
+                  </ariaComponents.Menu>
+                </ariaComponents.Menu.Trigger>
+              </Button.GroupJoin>
 
               <Separator orientation="horizontal" className="my-3" />
             </>

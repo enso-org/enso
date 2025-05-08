@@ -4,6 +4,8 @@ export const ORGANIZATION_NAME_MAX_LENGTH = 64
 
 export const OPEN_IDE_DEEPLINK = 'enso://'
 
+export const API_URL = $config.API_URL
+
 /** Path to the root of the app (i.e., the Cloud dashboard). */
 export const DASHBOARD_PATH = '/'
 /** Path to the login page. */
@@ -14,6 +16,10 @@ export const REGISTRATION_PATH = '/registration'
 export const CONFIRM_REGISTRATION_PATH = '/confirmation'
 
 export const SETUP_PATH = '/setup'
+
+/** Path to the OAuth callback page. */
+export const OAUTH_CALLBACK_PATH = '/oauth-callback'
+
 /**
  * Path to the page in which a user can restore their account after it has been
  * marked for deletion.
@@ -32,12 +38,12 @@ export const SUBSCRIBE_SUCCESS_PATH = '/subscribe/success'
 export const ALL_PATHS_REGEX = new RegExp(
   `(?:${DASHBOARD_PATH}|${LOGIN_PATH}|${REGISTRATION_PATH}|${CONFIRM_REGISTRATION_PATH}|` +
     `${FORGOT_PASSWORD_PATH}|${RESET_PASSWORD_PATH}|${RESTORE_USER_PATH}|` +
-    `${SUBSCRIBE_PATH}|${SUBSCRIBE_SUCCESS_PATH}|${SETUP_PATH})$`,
+    `${SUBSCRIBE_PATH}|${SUBSCRIBE_SUCCESS_PATH}|${SETUP_PATH}|${OAUTH_CALLBACK_PATH})$`,
 )
 
 // === Constants related to URLs ===
 
-export const SEARCH_PARAMS_PREFIX = 'cloud-ide_'
+export const SEARCH_PARAMS_PREFIX = ''
 /** Return the email address for contacting support. */
 export const SUPPORT_EMAIL = 'cloud@enso.org'
 /** Return the `mailto:` URL for contacting support. */

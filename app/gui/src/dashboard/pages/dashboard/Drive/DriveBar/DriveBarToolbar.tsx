@@ -53,6 +53,8 @@ import { useText } from '$/providers/react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import type { PropsWithChildren } from 'react'
+import { z } from 'zod'
+import { useSearchParamsState } from '../../../../hooks/searchParamsStateHooks'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarToolbarProps {
@@ -77,6 +79,16 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const isCloud = isCloudCategory(category)
   const { isOffline } = useOffline()
   const canDownload = useCanDownload()
+
+  const [credentialsModalOpen, setCredentialsModalOpen] = useSearchParamsState(
+    'credentialsModal_open',
+    false,
+    z.boolean(),
+  )
+
+  const toggleCredentialsModal = useEventCallback((nextOpen: boolean) => {
+    setCredentialsModalOpen(nextOpen, { replace: true })
+  })
 
   const { currentDirectoryId } = useDirectoryIds({ category })
 
@@ -269,7 +281,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 />
                 <UpsertSecretModal doCreate={newSecretCallback} />
               </DialogTrigger>
-              <DialogTrigger>
+              <DialogTrigger isOpen={credentialsModalOpen} onOpenChange={toggleCredentialsModal}>
                 <Button
                   isDisabled={!isCloud}
                   variant="icon"

@@ -2,7 +2,6 @@
  * @file Timeout related hooks.
  */
 import { useCallback, useEffect, useRef, useState, type DependencyList } from 'react'
-import { noop } from '../utilities/functions'
 import { useEventCallback } from './eventCallbackHooks'
 import { useUnmount } from './unmountHooks'
 
@@ -44,47 +43,6 @@ export class AbortError extends Error {
 }
 
 /**
- * Hook that provides imperative API for timeouts
- * Keeps only one timeout active at a time, cancelling the previous, and cleaning up on unmount
- */
-export function useTimeoutApi(
-  options: Pick<UseTimeoutCallbackOptions, 'callback' | 'ms'>,
-): [start: () => void, stop: () => void, restart: () => void] {
-  const { callback, ms } = options
-
-  const stableCallback = useEventCallback(callback)
-
-  const timeoutAPI = useTimeoutAPI({ ms })
-
-  /**
-   * Restarts the timer.
-   */
-  const restartTimer = useEventCallback(() => {
-    void timeoutAPI.restartTimer().then(stableCallback).catch(noop)
-  })
-
-  /**
-   * Starts the timer.
-   */
-  const startTimer = useEventCallback(() => {
-    void timeoutAPI.startTimer().then(stableCallback).catch(noop)
-  })
-
-  /**
-   * Stops the timer.
-   */
-  const stopTimer = useEventCallback(() => {
-    timeoutAPI.stopTimer()
-  })
-
-  useUnmount(() => {
-    stopTimer()
-  })
-
-  return [startTimer, stopTimer, restartTimer]
-}
-
-/**
  * Hook that executes a callback after a timeout.
  */
 export function useTimeoutCallback(
@@ -92,14 +50,14 @@ export function useTimeoutCallback(
 ): [restart: () => void, stop: () => void, start: () => void] {
   const { callback, ms, deps = STABLE_DEPS_ARRAY, isDisabled = false } = options
 
-  const [startTimer, stopTimer, restartTimer] = useTimeoutApi({ callback, ms })
+  const { startTimer, stopTimer, restartTimer } = useTimeoutAPI({ ms })
 
   useEffect(() => {
     if (isDisabled) {
       return
     }
 
-    startTimer()
+    void startTimer().then(callback)
 
     return () => {
       stopTimer()

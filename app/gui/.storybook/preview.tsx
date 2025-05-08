@@ -5,6 +5,7 @@ import type { Preview as ReactPreview } from '@storybook/react'
 import type { Preview as VuePreview } from '@storybook/vue3'
 import isChromatic from 'chromatic/isChromatic'
 import { StrictMode, useLayoutEffect, useState } from 'react'
+import '../src/config.ts'
 
 import UIProviders from '#/components/UIProviders'
 import invariant from 'tiny-invariant'
