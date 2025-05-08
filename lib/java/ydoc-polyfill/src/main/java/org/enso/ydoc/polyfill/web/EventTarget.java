@@ -89,22 +89,7 @@ final class EventTarget implements ProxyExecutable {
 
     public ProxyArray getEventListeners(String type) {
       var arr = listeners.getOrDefault(type, Set.of()).toArray(new Value[0]);
-      return new ProxyArray() {
-        @Override
-        public Object get(long index) {
-          return arr[(int) index];
-        }
-
-        @Override
-        public void set(long index, Value value) {
-          throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public long getSize() {
-          return arr.length;
-        }
-      };
+      return ProxyArray.fromArray((Object[]) arr);
     }
 
     public void addEventListener(String type, Value listener) {
