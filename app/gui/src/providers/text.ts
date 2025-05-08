@@ -3,6 +3,12 @@ import * as text from 'enso-common/src/text'
 import { createContextStore } from '@/providers'
 import { computed, ref } from 'vue'
 
+/**
+ * A composable for getting localized text and setting the language.
+ *
+ * The composable is used in tests only; the application should use
+ * `injectText` instead.
+ */
 export function useText() {
   const language = ref(text.resolveUserLanguage())
   const locale = computed(() => text.LANGUAGE_TO_LOCALE[language.value])
