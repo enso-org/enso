@@ -18,8 +18,6 @@ import { Action } from '@/providers/action'
 import { injectProjectBackend } from '@/providers/backend'
 import { injectInteractionHandler, Interaction } from '@/providers/interactionHandler'
 import { FileType } from '@/providers/widgetRegistry/configuration'
-import { injectProjectNames } from '@/stores/projectNames'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert } from '@/util/assert'
 import { endOnClickOutside } from '@/util/autoBlur'
 import type { ToValue } from '@/util/reactivity'
@@ -321,9 +319,6 @@ onMounted(() => {
   )
 })
 
-const suggestions = useSuggestionDbStore()
-const projectNames = injectProjectNames()
-
 const root = useTemplateRef('root')
 const fileExtensionInput = useTemplateRef('fileExtensionInputRoot')
 
@@ -332,21 +327,35 @@ const fileExtensionInputElement = computed(() =>
   fileExtensionInput.value == null ? undefined : fileExtensionInput.value,
 )
 
-const fileExtensionEntries = computed(() =>
-  props.fileTypes.map((fileType) => {
-    const extensions =
-      fileType.extensions.length == 1 && fileType.extensions[0] === '*' ?
-        'all'
-      : (fileType.extensions as string[])
-    return {
-      value: fileType.label,
-      extensions,
-      selected: false,
-      isNested: () => false,
-      values: [],
-    } satisfies FileExtensionEntry
-  }),
-)
+const fileExtensionEntries = computed(() => props.fileTypes.map(fileTypeToFileExtensionEntry))
+
+function isFileTypes(array: (FileType | string)[]): array is FileType[] {
+  return array.length == 0 || typeof array[0]! === 'object'
+}
+
+function isExtensions(array: (FileType | string)[]): array is string[] {
+  return array.length == 0 || typeof array[0]! === 'string'
+}
+
+function isGlobAll(array: (FileType | string)[]): boolean {
+  return array.length === 1 && array[0]! === '*'
+}
+
+function fileTypeToFileExtensionEntry(fileType: FileType): FileExtensionEntry {
+  const nestedValues =
+    isFileTypes(fileType.extensions) ? fileType.extensions.map(fileTypeToFileExtensionEntry) : []
+  const extensions =
+    isGlobAll(fileType.extensions) ? 'all'
+    : isExtensions(fileType.extensions) ? fileType.extensions
+    : []
+  return {
+    value: fileType.label,
+    extensions,
+    selected: false,
+    isNested: nestedValues.length > 0,
+    nestedValues: nestedValues,
+  }
+}
 
 const mockFileExtensionEntries = computed(() => {
   return [
@@ -354,28 +363,28 @@ const mockFileExtensionEntries = computed(() => {
       value: 'All',
       extensions: 'all',
       selected: false,
-      isNested: () => false,
-      values: [],
+      isNested: false,
+      nestedValues: [],
     },
     {
       value: 'Tables',
       extensions: [],
       selected: false,
-      isNested: () => true,
-      values: [
+      isNested: true,
+      nestedValues: [
         {
           value: 'Excel',
           extensions: ['xlsx', 'xls'],
           selected: false,
-          isNested: () => false,
-          values: [],
+          isNested: false,
+          nestedValues: [],
         },
         {
           value: 'CSV',
           extensions: ['csv'],
           selected: false,
-          isNested: () => false,
-          values: [],
+          isNested: false,
+          nestedValues: [],
         },
       ],
     },
@@ -383,22 +392,22 @@ const mockFileExtensionEntries = computed(() => {
       value: 'xml',
       extensions: ['xml'],
       selected: false,
-      isNested: () => false,
-      values: [],
+      isNested: false,
+      nestedValues: [],
     },
     {
       value: 'csv',
       extensions: ['csv'],
       selected: false,
-      isNested: () => false,
-      values: [],
+      isNested: false,
+      nestedValues: [],
     },
     {
       value: 'txt',
       extensions: ['txt'],
       selected: false,
-      isNested: () => false,
-      values: [],
+      isNested: false,
+      nestedValues: [],
     },
   ] satisfies FileExtensionEntry[]
 })
