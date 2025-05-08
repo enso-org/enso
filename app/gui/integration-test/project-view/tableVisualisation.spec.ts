@@ -177,11 +177,10 @@ test('Single_Column_Of_Actions Table Visualisation Test', async ({ page }) => {
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
 
-  const col = tableVisualization.getByRole('columnheader', { name: /^0/ })
-
   await mockVisualizationDataUpdate(
     page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
+    /* eslint-disable camelcase */
     {
       type: 'Single_Column_Of_Actions',
       visualization_header: 'table',
@@ -189,6 +188,7 @@ test('Single_Column_Of_Actions Table Visualisation Test', async ({ page }) => {
       data: ['Sheet1', 'Sheet2', 'Sheet3'],
       get_child_node_action: 'read',
     },
+    /* eslint-enable camelcase */
   )
   await expect(tableVisualization).toContainText('table')
   await expect(tableVisualization).toContainText('Sheet1')
