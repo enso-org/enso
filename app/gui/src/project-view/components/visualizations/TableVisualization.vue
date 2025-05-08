@@ -56,7 +56,14 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = number | string | Error | Matrix | ObjectMatrix | EnsoTableOrColumn | SingleColumnOfActions
+type Data =
+  | number
+  | string
+  | Error
+  | Matrix
+  | ObjectMatrix
+  | EnsoTableOrColumn
+  | SingleColumnOfActions
 
 interface Error {
   type: undefined
