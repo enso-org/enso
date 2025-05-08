@@ -74,7 +74,7 @@ polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 type In_Memory_Column_Implementation
     display this_column show_rows:Integer=10 format_terminal:Boolean=False -> Text =
-        this_column.to_table.display show_rows format_terminal
+        (this_column:Column).to_table.display show_rows format_terminal
 
     equals this_column (other : Column | Any) -> Column =
         new_name = naming_helper.binary_operation_name "==" this_column other
@@ -140,7 +140,7 @@ type In_Memory_Column_Implementation
             Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
                 run_vectorized_binary_op this_column Java_Storage.Maps.SUB other
             Value_Type_Helpers.Subtraction_Kind.Date_Time_Difference ->
-                case this_column.inferred_precise_value_type of
+                case (this_column:Column).inferred_precise_value_type of
                     Value_Type.Date ->
                         ## Special handling for `Period` since it is hard to
                            vectorize as there is no polyglot handling of it - we
@@ -152,7 +152,7 @@ type In_Memory_Column_Implementation
                         run_binary_op this_column fn other new_name
                     _ ->
                         run_vectorized_binary_op this_column Java_Storage.Maps.SUB other
-            Nothing -> this_column.const Nothing
+            Nothing -> (this_column:Column).const Nothing
 
     multiply this_column (other : Column | Any) -> Column =
         Value_Type_Helpers.check_binary_numeric_op this_column other <|
@@ -214,7 +214,7 @@ type In_Memory_Column_Implementation
                 In_Memory_Column_Constructors.from_storage new_name rs
 
     const : Any -> Column
-    const this_column value = this_column.to_table.make_constant_column value
+    const this_column value = (this_column:Column).to_table.make_constant_column value
 
     round this_column decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) -> Column ! Illegal_Argument | Invalid_Value_Type = Value_Type.expect_numeric this_column <|
         Illegal_Argument.handle_java_exception <| Rounding_Helpers.check_decimal_places decimal_places <|
@@ -223,38 +223,38 @@ type In_Memory_Column_Implementation
 
     truncate this_column -> Column ! Invalid_Value_Type =
         new_name = naming_helper.function_name "truncate" [this_column]
-        precise_value_type = this_column.inferred_precise_value_type
+        precise_value_type = (this_column:Column).inferred_precise_value_type
         case precise_value_type.is_numeric of
             True ->
                 case precise_value_type.is_integer of
                     True ->
-                        this_column.rename new_name
+                        (this_column:Column).rename new_name
                     False ->
                         apply_unary_operation this_column UnaryRoundOperation.TRUNCATE_INSTANCE
             False -> case precise_value_type == Value_Type.Date_Time of
                 True ->
                     apply_unary_operation this_column DateTruncateOperation.TRUNCATE_INSTANCE
-                False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" this_column.value_type this_column.name
+                False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" (this_column:Column).value_type (this_column:Column).name
 
     ceil this_column -> Column ! Invalid_Value_Type = Value_Type.expect_numeric this_column <|
-        case this_column.inferred_precise_value_type.is_integer of
+        case (this_column:Column).inferred_precise_value_type.is_integer of
             True ->
                 new_name = naming_helper.function_name "ceil" [this_column]
-                this_column.rename new_name
+                (this_column:Column).rename new_name
             False ->
                 apply_unary_operation this_column UnaryRoundOperation.CEIL_INSTANCE
 
     floor this_column -> Column ! Invalid_Value_Type = Value_Type.expect_numeric this_column <|
-        case this_column.inferred_precise_value_type.is_integer of
+        case (this_column:Column).inferred_precise_value_type.is_integer of
             True ->
                 new_name = naming_helper.function_name "floor" [this_column]
-                this_column.rename new_name
+                (this_column:Column).rename new_name
             False ->
                 apply_unary_operation this_column UnaryRoundOperation.FLOOR_INSTANCE
 
     coalesce this_column (values : Any | Vector Any) -> Column =
         vec = Vector.unify_vector_or_element values
-        new_name = this_column.naming_helper.function_name "coalesce" [this_column]+vec
+        new_name = naming_helper.function_name "coalesce" [this_column]+vec
         result = if vec.is_empty then this_column else
             vec.fold this_column acc-> v-> acc.fill_nothing v
         result.rename new_name
@@ -276,7 +276,7 @@ type In_Memory_Column_Implementation
         apply_unary_operation this_column IsNothingOperation.INSTANCE new_name
 
     is_nan this_column -> Column = Value_Type.expect_numeric this_column <|
-        this_column.internal_is_nan
+        In_Memory_Column_Implementation.internal_is_nan this_column
 
     ## TODO
     ## PRIVATE
@@ -303,7 +303,7 @@ type In_Memory_Column_Implementation
         apply_unary_operation this_column DoubleIsOperation.IS_FINITE new_name if_unsupported=(apply_unary_map this_column new_name fallback Value_Type.Boolean)
 
     is_empty this_column -> Column = Value_Type.expect_text this_column <|
-        this_column.internal_is_empty
+        In_Memory_Column_Implementation.internal_is_empty this_column
 
     ## TODO
     ## PRIVATE
@@ -318,17 +318,17 @@ type In_Memory_Column_Implementation
 
     is_present this_column -> Column =
         new_name = naming_helper.function_name "is_present" [this_column]
-        this_column.is_nothing.not.rename new_name
+        (this_column:Column).is_nothing.not.rename new_name
 
     is_blank this_column treat_nans_as_blank:Boolean=False -> Column =
         new_name = naming_helper.function_name "is_blank" [this_column]
-        result = case this_column.value_type of
-            Value_Type.Char _ _ -> this_column.is_empty
+        result = case (this_column:Column).value_type of
+            Value_Type.Char _ _ -> (this_column:Column).is_empty
             Value_Type.Float _ ->
-                if treat_nans_as_blank then this_column.is_nothing.iif True this_column.internal_is_nan else this_column.is_nothing
+                if treat_nans_as_blank then (this_column:Column).is_nothing.iif True (In_Memory_Column_Implementation.internal_is_nan this_column) else (this_column:Column).is_nothing
             Value_Type.Mixed ->
-                this_column.internal_is_empty || (if treat_nans_as_blank then this_column.is_nothing.iif True this_column.internal_is_nan else this_column.is_nothing)
-            _ -> this_column.is_nothing
+                (In_Memory_Column_Implementation.internal_is_empty this_column) || (if treat_nans_as_blank then (this_column:Column).is_nothing.iif True (In_Memory_Column_Implementation.internal_is_nan this_column) else (this_column:Column).is_nothing)
+            _ -> (this_column:Column).is_nothing
         result.rename new_name
 
     fill_nothing this_column (default : Column | Previous_Value | Any) -> Column =
@@ -344,14 +344,14 @@ type In_Memory_Column_Implementation
                             storage.fillMissingFrom other_storage storage_type java_problem_aggregator
                         _ ->
                             storage.fillMissing default storage_type java_problem_aggregator
-                In_Memory_Column_Constructors.from_storage this_column.name new_storage
+                In_Memory_Column_Constructors.from_storage (this_column:Column).name new_storage
 
     fill_empty this_column (default : Column | Previous_Value | Any) -> Column =
         Value_Type.expect_text this_column <|
-            if Previous_Value == default then fill_previous this_column this_column.is_empty else
+            if Previous_Value == default then fill_previous this_column (this_column:Column).is_empty else
                 Value_Type.expect_text default <|
-                    result = this_column.is_empty.iif default this_column
-                    result.rename this_column.name
+                    result = (this_column:Column).is_empty.iif default this_column
+                    result.rename (this_column:Column).name
 
     starts_with this_column (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column = Value_Type.expect_text this_column <| Value_Type.expect_text other <|
         new_name = naming_helper.function_name "starts_with" [this_column, other]
@@ -406,7 +406,7 @@ type In_Memory_Column_Implementation
             trim_fn t w = if w.is_empty then t.trim where else
                 t.trim where w
 
-            this_column_vec = this_column.to_vector
+            this_column_vec = (this_column:Column).to_vector
             mapped = this_column_vec.map_with_index i->t-> trim_fn t (trim_get i)
             Column.from_vector new_name mapped
 
@@ -424,7 +424,7 @@ type In_Memory_Column_Implementation
                         replace = new_text_fn index
                         input.replace term replace case_sensitivity only_first
 
-                length = this_column.length
+                length = (this_column:Column).length
                 storage = this_column.java_column.getStorage
 
                 builder = make_string_builder length
@@ -480,7 +480,7 @@ type In_Memory_Column_Implementation
 
     date_diff this_column (end : Column | Date | Date_Time | Time_Of_Day) (period : Date_Period | Time_Period = ..Day) -> Column ! Invalid_Value_Type | Illegal_Argument =
         Value_Type.expect_type this_column .is_date_or_time "date/time" <|
-            my_type = this_column.inferred_precise_value_type
+            my_type = (this_column:Column).inferred_precise_value_type
             Value_Type.expect_type end (== my_type) my_type.to_display_text <|
                 aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
                 aligned_period.if_not_error <|
@@ -498,7 +498,7 @@ type In_Memory_Column_Implementation
 
     date_add this_column (amount : Column | Integer) (period : Date_Period | Time_Period) -> Column ! Invalid_Value_Type | Illegal_Argument =
         Value_Type.expect_type this_column .is_date_or_time "date/time" <|
-            my_type = this_column.inferred_precise_value_type
+            my_type = (this_column:Column).inferred_precise_value_type
             Value_Type.expect_integer amount <|
                 aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
                 aligned_period.if_not_error <|
@@ -527,7 +527,7 @@ type In_Memory_Column_Implementation
                 apply_unary_map this_column result_name set.contains_relational Value_Type.Boolean nothing_unchanged=False
 
     parse this_column (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter = "") on_problems:Problem_Behavior=..Report_Warning -> Column =
-        if type != Auto && this_column.value_type.is_same_type type then this_column else
+        if type != Auto && (this_column:Column).value_type.is_same_type type then this_column else
             Value_Type.expect_text this_column <|
                 formatter = case format of
                     _ : Text -> if format == "" then Data_Formatter.Value else Data_Formatter.Value.with_format type format
@@ -536,22 +536,22 @@ type In_Memory_Column_Implementation
                 storage = this_column.java_column.getStorage
 
                 new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                    parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator this_column.name type
+                    parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator (this_column:Column).name type
                     parser.parseColumn storage parse_problem_aggregator
-                In_Memory_Column_Constructors.from_storage this_column.name new_storage
+                In_Memory_Column_Constructors.from_storage (this_column:Column).name new_storage
 
     format this_column (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default -> Column ! Illegal_Argument = case format of
         format_column : Column -> Value_Type.expect_text format_column <|
-            formatter = make_value_formatter_for_value_type this_column.value_type locale
+            formatter = make_value_formatter_for_value_type (this_column:Column).value_type locale
             formatter.if_not_error <|
                 formatter_flipped value format = formatter format value
                 Column_Ops.map_2_over_storage this_column format_column formatter_flipped make_string_builder
         _ ->
-            formatter = make_value_formatter_for_value_type this_column.value_type locale format
+            formatter = make_value_formatter_for_value_type (this_column:Column).value_type locale format
             Column_Ops.map_over_storage this_column formatter make_string_builder on_problems=Problem_Behavior.Report_Error
 
     cast this_column value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning -> Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
-        Cast_Helpers.check_cast_compatibility this_column.value_type value_type <|
+        Cast_Helpers.check_cast_compatibility (this_column:Column).value_type value_type <|
             target_storage_type = Storage.from_value_type value_type on_problems
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                 new_column = CastOperation.apply this_column.java_column target_storage_type java_problem_aggregator
@@ -562,23 +562,23 @@ type In_Memory_Column_Implementation
              this_column.java_column.getStorage.inferPreciseType (PreciseTypeOptions.forAutoCast shrink_types)
 
         # We run with Report_Error because we do not expect any problems.
-        this_column.cast new_value_type on_problems=Problem_Behavior.Report_Error
+        (this_column:Column).cast new_value_type on_problems=Problem_Behavior.Report_Error
 
     auto_value_type : Boolean -> Column
     auto_value_type this_column shrink_types=False =
         Warning.attach (Deprecated.Warning "Standard.Table.Column.Column" "auto_value_type" "Deprecated: `auto_value_type` has been replaced by `auto_cast`.") <|
-            this_column.auto_cast shrink_types
+            (this_column:Column).auto_cast shrink_types
 
     map this_column (function : Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> Column ! Invalid_Value_Type =
         new_fn = if skip_nothing then (x-> if x.is_nothing then Nothing else function x) else function
-        new_st = this_column.to_vector.map on_problems=No_Wrap.Value new_fn
-        Column.from_vector this_column.name new_st value_type=expected_value_type
+        new_st = (this_column:Column).to_vector.map on_problems=No_Wrap.Value new_fn
+        Column.from_vector (this_column:Column).name new_st value_type=expected_value_type
 
     zip this_column (right : Column | Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table =
         right_table = case right of
             _ : Table -> right
             _ : Column -> right.to_table
-        this_column.to_table.zip right_table keep_unmatched right_prefix on_problems
+        (this_column:Column).to_table.zip right_table keep_unmatched right_prefix on_problems
 
     rename this_column name:Text -> Column ! Illegal_Argument = naming_helper.ensure_name_is_valid name <|
         Illegal_Argument.handle_java_exception <|
@@ -590,21 +590,22 @@ type In_Memory_Column_Implementation
 
     count_nothing this_column -> Integer = CountNothing.apply this_column.java_column
 
-    count this_column -> Integer = this_column.length - this_column.count_nothing
+    count this_column -> Integer = (this_column:Column).length - (this_column:Column).count_nothing
 
     at this_column index:Integer=0 -> Any | Nothing ! Index_Out_Of_Bounds =
-        this_column.get index (Error.throw (Index_Out_Of_Bounds.Error index this_column.length))
+        (this_column:Column).get index (Error.throw (Index_Out_Of_Bounds.Error index (this_column:Column).length))
 
     get this_column index:Integer=0 ~default=Nothing -> Any | Nothing =
-        if index < 0 && index >= -this_column.length then this_column.get (this_column.length + index) default else
-            valid_index = (index >= 0) && (index < this_column.length)
+        length = (this_column:Column).length
+        if index < 0 && index >= -length then (this_column:Column).get (length + index) default else
+            valid_index = (index >= 0) && (index < length)
             if valid_index.not then default else
                 storage = this_column.java_column.getStorage
                 java_to_enso <| storage.getItemBoxed index
 
     read this_column (max_rows : Rows_To_Read = ..All_Rows) -> Column =
         if max_rows.is_nothing then this_column else
-            this_column.to_table.read max_rows . at 0
+            (this_column:Column).to_table.read max_rows . at 0
 
     to_vector this_column -> Vector =
         storage_list = StorageListView.new this_column.java_column.getStorage
@@ -620,7 +621,7 @@ type In_Memory_Column_Implementation
         Storage.to_value_type storage_type
 
     should_be_selected_by_type this_column (value_type : Value_Type) -> Boolean =
-        this_column.value_type.is_same_type value_type
+        (this_column:Column).value_type.is_same_type value_type
 
     to_js_object : JS_Object
     to_js_object this_column =
@@ -632,7 +633,7 @@ type In_Memory_Column_Implementation
 
     to_table this_column -> Table = from_java_table this_column.java_column.toTable
 
-    info this_column -> Table = this_column.to_table.column_info
+    info this_column -> Table = (this_column:Column).to_table.column_info
 
     sort this_column order:Sort_Direction=..Ascending missing_last:Boolean=True (by : (Any -> Any -> Ordering) | Nothing = Nothing) -> Column = case by of
         Nothing ->
@@ -649,34 +650,34 @@ type In_Memory_Column_Implementation
                 _ -> case b of
                     Nothing -> if missing_last then Ordering.Less else Ordering.Greater
                     _ -> by a b
-            sorted = this_column.to_vector.sort order by=wrapped
-            Column.from_vector this_column.name sorted
+            sorted = (this_column:Column).to_vector.sort order by=wrapped
+            Column.from_vector (this_column:Column).name sorted
 
     take this_column (range : Index_Sub_Range | Range | Integer = ..First) -> Column =
-        take_helper this_column.length (this_column.at _) this_column.slice (slice_ranges this_column) range
+        take_helper (this_column:Column).length ((this_column:Column).at _) (this_column:Column).slice (slice_ranges this_column) range
 
     drop this_column (range : Index_Sub_Range | Range | Integer = ..First) -> Column =
-        drop_helper this_column.length (this_column.at _) this_column.slice (slice_ranges this_column) range
+        drop_helper (this_column:Column).length ((this_column:Column).at _) (this_column:Column).slice (slice_ranges this_column) range
 
     slice : Integer -> Integer -> Column
     slice this_column start end =
-        length = this_column.length
+        length = (this_column:Column).length
         offset = (start.min length).max 0
         limit = ((end - offset).min (length - offset)).max 0
         In_Memory_Column_Constructors.from_java_column (this_column.java_column.slice offset limit)
 
-    first this_column -> Any ! Index_Out_Of_Bounds = this_column.at 0
+    first this_column -> Any ! Index_Out_Of_Bounds = (this_column:Column).at 0
 
-    last this_column -> Any ! Index_Out_Of_Bounds = this_column.at (this_column.length - 1)
+    last this_column -> Any ! Index_Out_Of_Bounds = (this_column:Column).at ((this_column:Column).length - 1)
 
     reverse this_column -> Column =
-        mask = OrderMask.reverse this_column.length
+        mask = OrderMask.reverse (this_column:Column).length
         In_Memory_Column_Constructors.from_java_column (this_column.java_column.applyMask mask)
 
     duplicate_count this_column -> Column =
         In_Memory_Column_Constructors.from_java_column this_column.java_column.duplicateCount
 
-    to_text this_column -> Text = "(In-Memory Column "+this_column.name.to_text+")"
+    to_text this_column -> Text = "(In-Memory Column "+(this_column:Column).name.to_text+")"
 
     ## PRIVATE
        Helper for the expression to tell it which functions needs a Vector.
@@ -689,15 +690,15 @@ type In_Memory_Column_Implementation
     naming_helper _ = naming_helper
 
     compute this_column statistic:Statistic=..Count -> Any =
-        Statistic.compute_bulk this_column.to_vector [statistic] . first
+        Statistic.compute_bulk (this_column:Column).to_vector [statistic] . first
 
     compute_bulk this_column (statistics : Vector Statistic = [Statistic.Count, Statistic.Sum]) -> Table =
-        values = Statistic.compute_bulk this_column.to_vector statistics
+        values = Statistic.compute_bulk (this_column:Column).to_vector statistics
         names = statistics.map _.to_text
         Table.from_rows names [values]
 
-    running this_column statistic:Statistic=..Count (name : Text = statistic.to_text+" "+this_column.name) -> Column =
-        data = Statistic.running this_column.to_vector statistic
+    running this_column statistic:Statistic=..Count (name : Text = statistic.to_text+" "+(this_column:Column).name) -> Column =
+        data = Statistic.running (this_column:Column).to_vector statistic
         Column.from_vector name data
 
     offset this_column n=-1:Integer fill_with:Fill_With=..Nothing -> Column =

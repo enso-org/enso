@@ -39,6 +39,7 @@ import project.Fill_With.Fill_With
 import project.Generate_Rows_Range.Generate_Rows_Range
 import project.Grouping_Method.Grouping_Method
 import project.Headers.Headers
+import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Add_Group_Number
 import project.Internal.Add_Row_Number
 import project.Internal.Add_Running
@@ -150,13 +151,14 @@ type Table
         invalid_input_shape =
             Error.throw (Illegal_Argument.Error "Each column must be represented by a vector whose first element is the column name, second element is a vector of elements that will constitute that column (or an existing column) and an optional third element that is the Value_Type for the column. Got: "+columns.to_text)
         cols = columns.map on_problems=No_Wrap.Value c->
-            case c of
+            column = case c of
                 v : Vector -> case v.length of
-                    2 -> Column.from_vector (v.at 0) (v.at 1) . java_column
-                    3 -> Column.from_vector (v.at 0) (v.at 1) (v.at 2) . java_column
+                    2 -> Column.from_vector (v.at 0) (v.at 1)
+                    3 -> Column.from_vector (v.at 0) (v.at 1) (v.at 2)
                     _ -> invalid_input_shape
-                col : Column -> col.java_column
+                col : Column -> col
                 _ -> invalid_input_shape
+            (column:In_Memory_Column).java_column
         Panic.recover Illegal_Argument <|
             if cols.is_empty then
                 Panic.throw (Illegal_Argument.Error "Cannot create a table with no columns.")
