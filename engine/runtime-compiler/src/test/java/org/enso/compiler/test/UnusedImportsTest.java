@@ -15,7 +15,6 @@ import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.test.mock.WithCompilerContext;
 import org.enso.pkg.QualifiedName;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import scala.jdk.javaapi.CollectionConverters;
@@ -508,8 +507,6 @@ public class UnusedImportsTest {
     expectNoWarnings(mainMod.getIr());
   }
 
-  // TODO
-  @Ignore
   @Test
   public void usedSymbol_InCaseBranch_TypePattern() {
     compilerCtx.createModule(
@@ -529,8 +526,6 @@ public class UnusedImportsTest {
     expectNoWarnings(mainMod.getIr());
   }
 
-  // TODO
-  @Ignore
   @Test
   public void usedSymbol_InCaseBranch_Constructor() {
     compilerCtx.createModule(
@@ -552,8 +547,6 @@ public class UnusedImportsTest {
     expectNoWarnings(mainMod.getIr());
   }
 
-  // TODO
-  @Ignore
   @Test
   public void usedSymbol_ExtensionMethod_ViaImportAll() {
     compilerCtx.createModule(
@@ -578,8 +571,6 @@ public class UnusedImportsTest {
     expectNoWarnings(mainMod.getIr());
   }
 
-  // TODO
-  @Ignore
   @Test
   public void usedSymbol_InAnnotation_MethodCall() {
     compilerCtx.createModule(
@@ -598,8 +589,6 @@ public class UnusedImportsTest {
     expectNoWarnings(mainMod.getIr());
   }
 
-  // TODO
-  @Ignore
   @Test
   public void usedSymbol_InAnnotation_Expression() {
     compilerCtx.createModule(
