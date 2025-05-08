@@ -9,7 +9,6 @@ import project.Errors.Common.Arithmetic_Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Unsupported_Argument_Types
 import project.Errors.Illegal_Argument.Illegal_Argument
-import project.Function.Function
 import project.Internal.Rounding_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic

@@ -5,7 +5,6 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Enso_File.Enso_File
 import project.Errors.Problem_Behavior.Problem_Behavior
-import project.Nothing.Nothing
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format.Auto_Detect
 import project.System.Input_Stream.Input_Stream

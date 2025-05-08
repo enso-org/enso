@@ -1,10 +1,8 @@
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.System
-import project.System.Process.Exit_Code.Exit_Code
 import project.System.Process.Process_Builder.Process_Builder
 import project.System.Process.Process_Builder.Process_Result
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import Boolean, False
 from project.Metadata.Widget import Text_Input, Vector_Editor
 
 ## ALIAS run a command

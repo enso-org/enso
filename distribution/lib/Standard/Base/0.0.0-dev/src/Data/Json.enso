@@ -23,8 +23,7 @@ import project.Metadata.Display
 import project.Metadata.Widget
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.Warning.Warning
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import Boolean, False
 from project.Data.Json.Extensions import all
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all

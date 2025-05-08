@@ -10,7 +10,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime
 import project.Runtime.Source_Location.Source_Location
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import False, True
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.ClassCastException
