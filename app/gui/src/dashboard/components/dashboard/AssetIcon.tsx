@@ -20,7 +20,7 @@ export default function AssetIcon(props: AssetIconProps) {
       return <Icon icon="graph_editor" className={className} />
     }
     case backend.AssetType.file: {
-      return <Icon icon={fileIcon.fileIcon()} className={className} />
+      return <Icon icon={fileIcon.fileIcon(asset.title)} className={className} />
     }
     case backend.AssetType.datalink: {
       return <Icon icon="connector" className={className} />
