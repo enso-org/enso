@@ -619,8 +619,7 @@ export default class RemoteBackend extends Backend {
       const ret = (await response.json()).assets
         .map((asset) =>
           object.merge(asset, {
-            // eslint-disable-next-line no-restricted-syntax
-            type: asset.id.match(/^(.+?)-/)?.[1] as backend.AssetType,
+            type: backend.getAssetTypeFromId(asset.id),
             // `Users` and `Teams` folders are virtual, so their children incorrectly have
             // the organization root id as their parent id.
             parentId: query.parentId ?? asset.parentId,

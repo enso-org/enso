@@ -388,6 +388,10 @@ main = Nothing
         assertEquals("Nothing", simpleName);
         return true;
       }
+      if (v.isHostObject()) {
+        assertEquals("Any", simpleName);
+        return true;
+      }
       sb.append("\n")
           .append("Simple names shall be the same for ")
           .append(v)

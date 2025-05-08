@@ -1,7 +1,7 @@
 /** @file The icon and name of a {@link SecretAsset}. */
-import DatalinkIcon from '#/assets/datalink.svg'
 import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
+import { Icon } from '#/components/Icon'
 import { useSetIsAssetPanelTemporarilyVisible } from '#/layouts/AssetPanel'
 import { titleSchema, type DatalinkAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
@@ -51,7 +51,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
         }
       }}
     >
-      <img src={DatalinkIcon} className="m-name-column-icon size-4" />
+      <Icon icon="connector" className="m-name-column-icon" />
       <EditableSpan
         editable={rowState.isEditingName}
         onSubmit={doRename}

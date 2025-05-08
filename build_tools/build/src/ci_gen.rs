@@ -3,6 +3,7 @@ use crate::prelude::*;
 use crate::ci::input;
 use crate::ci_gen::job::prepare_packaging_steps;
 use crate::ci_gen::job::RunsOn;
+use crate::engine;
 use crate::engine::env;
 use crate::version::promote::Designation;
 use crate::version::ENSO_EDITION;
@@ -625,18 +626,56 @@ pub fn add_backend_checks_customized(
     workflow: &mut Workflow,
     target: Target,
     graal_edition: graalvm::Edition,
-    native_image_mode: bool,
+    engine_launcher: engine::EngineLauncher,
     continue_on_error: impl Fn(&Target) -> Option<bool>,
 ) {
-    workflow.add_customized(target, job::CiCheckBackend { graal_edition }, |job| {
-        job.continue_on_error = continue_on_error(&target);
-    });
-    workflow.add_customized(target, job::JvmTests { graal_edition }, |job| {
-        job.continue_on_error = continue_on_error(&target);
-    });
-    workflow.add_customized(
+    let build_engine_distribution_id =
+        workflow.add(target, job::BuildEngineDistribution { graal_edition, engine_launcher });
+
+    if target == PRIMARY_TARGET {
+        workflow.add_dependent(
+            PRIMARY_TARGET,
+            job::StandardLibraryApiCheck { graal_edition, engine_launcher },
+            &[&build_engine_distribution_id],
+        );
+        workflow.add_dependent(
+            PRIMARY_TARGET,
+            job::EnsoCodeLintCheck { graal_edition, engine_launcher },
+            &[&build_engine_distribution_id],
+        );
+    }
+
+    // Engine distribution is required to run project manager tests.
+    workflow.add_dependent_customized(
         target,
-        job::StandardLibraryTests { graal_edition, cloud_tests_enabled: false, native_image_mode },
+        job::JvmTests { graal_edition, engine_launcher },
+        &[&build_engine_distribution_id],
+        |job| {
+            job.continue_on_error = continue_on_error(&target);
+        },
+    );
+    workflow.add_dependent_customized(
+        target,
+        job::StandardLibraryTests {
+            graal_edition,
+            engine_launcher,
+            cloud_tests_enabled: false,
+            native_image_mode: true,
+        },
+        &[&build_engine_distribution_id],
+        |job| {
+            job.continue_on_error = continue_on_error(&target);
+        },
+    );
+    workflow.add_dependent_customized(
+        target,
+        job::StandardLibraryTests {
+            graal_edition,
+            engine_launcher,
+            cloud_tests_enabled: false,
+            native_image_mode: false,
+        },
+        &[&build_engine_distribution_id],
         |job| {
             job.continue_on_error = continue_on_error(&target);
         },
@@ -648,9 +687,9 @@ pub fn add_backend_checks(
     workflow: &mut Workflow,
     target: Target,
     graal_edition: graalvm::Edition,
-    native_image_mode: bool,
+    engine_launcher: engine::EngineLauncher,
 ) {
-    add_backend_checks_customized(workflow, target, graal_edition, native_image_mode, |_| None);
+    add_backend_checks_customized(workflow, target, graal_edition, engine_launcher, |_| None);
 }
 
 pub fn workflow_call_job(name: impl Into<String>, path: impl Into<String>) -> Job {
@@ -751,8 +790,9 @@ pub fn ide_packaging() -> Result<Workflow> {
         ..default()
     };
 
+    let engine_launcher = engine::EngineLauncher::Native;
     for target in PR_REQUIRED_TARGETS {
-        let project_manager_job = workflow.add(target, job::BuildBackend);
+        let project_manager_job = workflow.add(target, job::BuildBackend { engine_launcher });
         workflow.add_customized(target, job::PackageIde, |job| {
             job.needs.insert(project_manager_job.clone());
         });
@@ -774,11 +814,13 @@ pub fn ide_packaging_optional() -> Result<Workflow> {
         ..default()
     };
 
+    let engine_launcher = engine::EngineLauncher::Native;
     for target in PR_OPTIONAL_TARGETS {
         let continue_on_error = Some(true);
-        let project_manager_job = workflow.add_customized(target, job::BuildBackend, |job| {
-            job.continue_on_error = continue_on_error;
-        });
+        let project_manager_job =
+            workflow.add_customized(target, job::BuildBackend { engine_launcher }, |job| {
+                job.continue_on_error = continue_on_error;
+            });
         workflow.add_customized(target, job::PackageIde, |job| {
             job.needs.insert(project_manager_job.clone());
             job.continue_on_error = continue_on_error;
@@ -820,11 +862,10 @@ pub fn engine_checks() -> Result<Workflow> {
         on,
         ..default()
     };
+    let engine_launcher = engine::EngineLauncher::TestNative;
     workflow.add(PRIMARY_TARGET, job::VerifyLicensePackages);
-    workflow.add(PRIMARY_TARGET, job::StandardLibraryApiCheck);
-    workflow.add(PRIMARY_TARGET, job::EnsoCodeLintCheck);
     for target in PR_REQUIRED_TARGETS {
-        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, false);
+        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, engine_launcher);
     }
     Ok(workflow)
 }
@@ -841,12 +882,13 @@ pub fn engine_checks_optional() -> Result<Workflow> {
         on,
         ..default()
     };
+    let engine_launcher = engine::EngineLauncher::TestNative;
     for target in PR_OPTIONAL_TARGETS {
         add_backend_checks_customized(
             &mut workflow,
             target,
             graalvm::Edition::Community,
-            false,
+            engine_launcher,
             |_| Some(true),
         );
     }
@@ -860,19 +902,25 @@ pub fn engine_checks_nightly() -> Result<Workflow> {
         ..default()
     };
     let mut workflow = Workflow { name: "Engine Nightly Checks".into(), on, ..default() };
+    let engine_launcher = engine::EngineLauncher::TestNative;
 
     // Oracle GraalVM jobs run only on Linux
-    add_backend_checks(&mut workflow, PRIMARY_TARGET, graalvm::Edition::Enterprise, false);
+    add_backend_checks(
+        &mut workflow,
+        PRIMARY_TARGET,
+        graalvm::Edition::Enterprise,
+        engine_launcher,
+    );
 
     // Run macOS AArch64 tests only once a day, as we have only one self-hosted runner for this.
     for target in PR_CHECKED_TARGETS {
-        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, false);
+        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, engine_launcher);
     }
     add_backend_checks(
         &mut workflow,
         (OS::MacOS, Arch::AArch64),
         graalvm::Edition::Community,
-        false,
+        engine_launcher,
     );
     Ok(workflow)
 }
@@ -890,12 +938,24 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
     // We run the extra tests only on Linux, as they should not contain any platform-specific
     // behavior.
     let target = PRIMARY_TARGET;
-    workflow.add(target, job::SnowflakeTests {});
-    workflow.add(target, job::StandardLibraryTests {
-        graal_edition:       graalvm::Edition::Community,
-        cloud_tests_enabled: true,
-        native_image_mode:   false,
-    });
+    let graal_edition = graalvm::Edition::Community;
+    let engine_launcher = engine::EngineLauncher::TestNative;
+    let build_engine_distribution_id =
+        workflow.add(target, job::BuildEngineDistribution { graal_edition, engine_launcher });
+    workflow.add_dependent(target, job::SnowflakeTests { graal_edition, engine_launcher }, &[
+        &build_engine_distribution_id,
+    ]);
+    workflow.add_dependent(
+        target,
+        job::StandardLibraryTests {
+            graal_edition,
+            engine_launcher,
+            cloud_tests_enabled: true,
+            native_image_mode: true,
+        },
+        &[&build_engine_distribution_id],
+    );
+
     Ok(workflow)
 }
 
