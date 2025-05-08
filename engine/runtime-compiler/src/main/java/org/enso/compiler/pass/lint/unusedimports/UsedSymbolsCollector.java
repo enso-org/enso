@@ -88,7 +88,11 @@ final class UsedSymbolsCollector {
             // Add all the children except for the first argument
             asJava(app.arguments()).stream().skip(1).forEach(irsToProcess::addLast);
             irsToProcess.addLast(app.function());
+          } else {
+            irsToProcess.addAll(asJava(ir.children()));
           }
+        } else {
+          irsToProcess.addAll(asJava(ir.children()));
         }
       } else {
         addUsedSymbolForResolution(getGlobalNamesMeta(ir));
