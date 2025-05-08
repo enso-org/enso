@@ -32,7 +32,6 @@ module org.enso.runtime.compiler {
   exports org.enso.compiler.phase.exports;
   exports org.enso.compiler.refactoring;
   exports org.enso.compiler.common;
-  exports org.enso.compiler.pass.lint.unusedimports;
 
   uses org.enso.compiler.dump.service.IRDumpFactoryService;
 }
