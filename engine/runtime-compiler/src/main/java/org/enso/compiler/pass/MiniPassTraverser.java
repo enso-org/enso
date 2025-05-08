@@ -5,16 +5,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** Implementation of {@link MiniIRPass#compile}. */
 final class MiniPassTraverser {
-  private static final Logger LOGGER = LoggerFactory.getLogger(MiniPassTraverser.class);
   private final MiniIRPass miniPass;
   private List<IR> in;
   private final List<IR> out;
@@ -47,13 +43,6 @@ final class MiniPassTraverser {
             case Expression e -> miniPass.transformExpression(e);
             default -> throw new IllegalArgumentException("" + oldIr);
           };
-      LOGGER.trace(
-          "[{}] convertExpression: outIndex={}, oldIr={}, newIr={}, transformedIr={}",
-          this,
-          outIndex,
-          irToStr(oldIr),
-          irToStr(newIr),
-          irToStr(transformedIr));
       if (oldIr != transformedIr) {
         out.set(outIndex, transformedIr);
       }
@@ -67,7 +56,6 @@ final class MiniPassTraverser {
     var stackOfPendingIrs = new LinkedList<MiniPassTraverser>();
     stackOfPendingIrs.add(rootTask);
     while (!stackOfPendingIrs.isEmpty()) {
-      LOGGER.trace("Compiling deep: stack: {}", stackOfPendingIrs);
       if (stackOfPendingIrs.peekLast().enqueue(stackOfPendingIrs)) {
         // continue descent
         continue;
@@ -87,8 +75,6 @@ final class MiniPassTraverser {
    */
   private static List<IR> enqueueSubExpressions(
       Collection<MiniPassTraverser> queue, IR ir, MiniIRPass miniPass) {
-    LOGGER.trace(
-        "enqueueSubExpressions: ir={}, miniPass={}, queue={}", irToStr(ir), miniPass, queue);
     var childExpressions = new ArrayList<IR>();
     var i = new int[1];
     ir.mapExpressions(
@@ -96,43 +82,10 @@ final class MiniPassTraverser {
           var preparedMiniPass = miniPass.prepare(ir, ch);
           childExpressions.add(ch);
           if (preparedMiniPass != null) {
-            var traverser = new MiniPassTraverser(preparedMiniPass, childExpressions, i[0]++);
-            LOGGER.trace("Enqueueing: traverser={}, expression={}", traverser, irToStr(ch));
-            queue.add(traverser);
+            queue.add(new MiniPassTraverser(preparedMiniPass, childExpressions, i[0]++));
           }
           return ch;
         });
     return childExpressions;
-  }
-
-  @Override
-  public String toString() {
-    return "MiniPassTraverser{"
-        + "miniPass="
-        + miniPass
-        + ", in="
-        + irListToStr(in)
-        + ", out="
-        + irListToStr(out)
-        + ", outIndex="
-        + outIndex
-        + '}';
-  }
-
-  private static String irListToStr(List<IR> irs) {
-    if (irs != null) {
-      var s = irs.stream().map(MiniPassTraverser::irToStr).collect(Collectors.joining(", "));
-      return "[" + s + "]";
-    } else {
-      return "null";
-    }
-  }
-
-  private static String irToStr(IR ir) {
-    return ir.getClass().getName() + "@" + identityHex(ir);
-  }
-
-  private static String identityHex(Object obj) {
-    return Integer.toHexString(System.identityHashCode(obj));
   }
 }
