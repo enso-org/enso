@@ -121,35 +121,35 @@ add_codec_specs from_bytes to_bytes suite_builder full_file zero_length =
                 bytes.length . should_equal 4*2
                 txt.length . should_equal 3
 
-          group_builder.specify "falls back to Windows-1252 if invalid Unicode is detected and no BOM" <|
-              # These are not valid bytes for UTF-8
-              bytes = [-30, -55, -1]
-              from_bytes bytes Encoding.utf_8 . should_fail_with Encoding_Error
+            group_builder.specify "falls back to Windows-1252 if invalid Unicode is detected and no BOM" <|
+                # These are not valid bytes for UTF-8
+                bytes = [-30, -55, -1]
+                from_bytes bytes Encoding.utf_8 . should_fail_with Encoding_Error
 
-              # But our default encoding will just fall back to Windows-1252 and return something:
-              from_bytes bytes Encoding.default . should_equal 'âÉÿ'
+                # But our default encoding will just fall back to Windows-1252 and return something:
+                from_bytes bytes Encoding.default . should_equal 'âÉÿ'
 
-          group_builder.specify "reports failed characters if invalid Unicode but a BOM was present" <|
-              ## Without a BOM this would fallback, but as we see the BOM it seems most likely this is a Unicode stream,
-                 but it contains some errors.
-                 This is based on assumption that it is very unlikely for a valid Windows-1252 encoded file to start with
-                 characters `ï»¿` or `ÿþ` (the Win-1252 representations of UTF-8 and UTF-16 BOMs).
-              bytes1 = [-17, -69, -65] + [-30, -55, -1]
-              r1 = from_bytes bytes1 Encoding.default ..Report_Warning
-              r1.should_equal "���"
-              # We've got 3 characters that failed to decode. The BOM is stripped, so it is not counted.
-              r1.length . should_equal 3
-              # TODO maybe some other type instead of Encoding_Error should be used for these?
-              w1 = Problems.expect_only_warning Encoding_Error r1
-              w1.to_display_text . should_contain "BOM"
+            group_builder.specify "reports failed characters if invalid Unicode but a BOM was present" <|
+                ## Without a BOM this would fallback, but as we see the BOM it seems most likely this is a Unicode stream,
+                   but it contains some errors.
+                   This is based on assumption that it is very unlikely for a valid Windows-1252 encoded file to start with
+                   characters `ï»¿` or `ÿþ` (the Win-1252 representations of UTF-8 and UTF-16 BOMs).
+                bytes1 = [-17, -69, -65] + [-30, -55, -1]
+                r1 = from_bytes bytes1 Encoding.default ..Report_Warning
+                r1.should_equal "���"
+                # We've got 3 characters that failed to decode. The BOM is stripped, so it is not counted.
+                r1.length . should_equal 3
+                # TODO maybe some other type instead of Encoding_Error should be used for these?
+                w1 = Problems.expect_only_warning Encoding_Error r1
+                w1.to_display_text . should_contain "BOM"
 
-              bytes2 = [-2, -1] + [0, 65, -1]
-              r2 = from_bytes bytes2 Encoding.default ..Report_Warning
-              r2.should_equal "A�"
-              # We have 1 correct character (A), one invalid character (odd number of bytes). The BOM is not counted.
-              r2.length . should_equal 2
-              w2 = Problems.expect_only_warning Encoding_Error r2
-              w2.to_display_text . should_contain "BOM"
+                bytes2 = [-2, -1] + [0, 65, -1]
+                r2 = from_bytes bytes2 Encoding.default ..Report_Warning
+                r2.should_equal "A�"
+                # We have 1 correct character (A), one invalid character (odd number of bytes). The BOM is not counted.
+                r2.length . should_equal 2
+                w2 = Problems.expect_only_warning Encoding_Error r2
+                w2.to_display_text . should_contain "BOM"
 
         if zero_length then
             group_builder.specify "should work on 0 byte input" <|
