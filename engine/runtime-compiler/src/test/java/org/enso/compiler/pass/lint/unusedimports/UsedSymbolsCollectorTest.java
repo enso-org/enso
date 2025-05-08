@@ -202,6 +202,25 @@ public class UsedSymbolsCollectorTest {
   }
 
   @Test
+  public void typeCast_NestedMethodBody() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"), """
+            type T
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import T
+            type My_Type
+                method self =
+                    func x = (x + 1) : T
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectUsedSymbol(mainMod, "local.Proj.Module.T");
+  }
+
+  @Test
   public void annotation_1() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"), """
@@ -275,6 +294,27 @@ public class UsedSymbolsCollectorTest {
             """);
     compilerCtx.getCompiler().run(mainMod);
     expectUsedSymbol(mainMod, "local.Proj.Module.T.Cons");
+  }
+
+  @Test
+  public void caseBranch_2() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type T
+                Cons
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import T
+            foo x =
+                case x of
+                    T.Cons -> 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectUsedSymbol(mainMod, "local.Proj.Module.T");
   }
 
   @Test
