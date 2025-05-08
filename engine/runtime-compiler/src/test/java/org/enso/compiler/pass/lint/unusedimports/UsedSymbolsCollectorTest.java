@@ -219,6 +219,24 @@ public class UsedSymbolsCollectorTest {
     expectUsedSymbol(mainMod, "local.Proj.Module.T");
   }
 
+  @Test
+  public void method_1() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            method x = x + 1
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import method
+            main = method 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectUsedSymbol(mainMod, "local.Proj.Module.method");
+  }
+
   private static UsedSymbols collect(org.enso.compiler.context.CompilerContext.Module mod) {
     var modIr = mod.getIr();
     return UsedSymbolsCollector.collect(modIr, getBindingsMap(modIr));
