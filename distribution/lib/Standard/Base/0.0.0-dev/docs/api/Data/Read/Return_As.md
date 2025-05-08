@@ -6,9 +6,6 @@
     - make_return self input:Standard.Base.Data.Read.Many_Files_List.Many_Files_List objects:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any) on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Data.Text.Text
     - to_text self -> Standard.Base.Data.Text.Text
-- Standard.Base.Data.Read.Return_As.Return_As_Base.get_dropdown_options -> Standard.Base.Any.Any
-- Standard.Base.Data.Read.Return_As.Return_As_Base.make_return self input:Standard.Base.Data.Read.Many_Files_List.Many_Files_List objects:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any) on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
-- Standard.Base.Data.Read.Return_As.Return_As_Base.resolve value:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - type Return_As_Base
     - As_Vector
     - get_dropdown_options -> Standard.Base.Any.Any

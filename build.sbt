@@ -1889,6 +1889,7 @@ lazy val testkit = project
     Compile / exportedModuleBin := (Compile / packageBin).value
   )
   .dependsOn(`logging-service-logback`)
+  .dependsOn(`runtime-utils`)
 
 lazy val searcher = project
   .in(file("lib/scala/searcher"))
