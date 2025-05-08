@@ -173,6 +173,52 @@ public class UsedSymbolsCollectorTest {
     expectUsedSymbols(mainMod, Set.of("local.Proj.Module.T", "local.Proj.Module.Error"));
   }
 
+  @Test
+  public void typeAscription_TypeSet() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type A
+            type B
+            type C
+            type D
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import A, B, C, D
+            foo : A -> B ! C | D
+            foo a b = 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectUsedSymbols(
+        mainMod,
+        Set.of(
+            "local.Proj.Module.A",
+            "local.Proj.Module.B",
+            "local.Proj.Module.C",
+            "local.Proj.Module.D"));
+  }
+
+  @Test
+  public void annotation_1() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"), """
+            type T
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import T
+            @annotation T.method
+            foo = 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectUsedSymbol(mainMod, "local.Proj.Module.T");
+  }
+
   private static UsedSymbols collect(org.enso.compiler.context.CompilerContext.Module mod) {
     var modIr = mod.getIr();
     return UsedSymbolsCollector.collect(modIr, getBindingsMap(modIr));
@@ -214,6 +260,7 @@ public class UsedSymbolsCollectorTest {
   private static void expectUsedSymbol(
       UsedSymbols usedSymbols, Import imp, QualifiedName expectedSymbol) {
     var actualSymbols = usedSymbols.getUsedSymbolsForImport(imp);
+    assertThat("Single symbol expected", actualSymbols.size(), is(1));
     assertThat(actualSymbols, contains(expectedSymbol));
   }
 

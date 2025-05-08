@@ -13,8 +13,11 @@ import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.Resolution;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
 import org.enso.compiler.pass.lint.unusedimports.UsedSymbols.Builder;
+import org.enso.compiler.pass.resolve.GenericAnnotations$;
 import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.MethodDefinitions;
+import org.enso.compiler.pass.resolve.ModuleAnnotations;
+import org.enso.compiler.pass.resolve.ModuleAnnotations.Annotations;
 import org.enso.compiler.pass.resolve.TypeNames$;
 import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
@@ -85,6 +88,17 @@ final class UsedSymbolsCollector {
                 var sig = typeSig.signature();
                 var sigResolutions = recursivelyCollectResolutions(sig);
                 resolutions.addAll(sigResolutions);
+              }
+              var anotMeta = getGenericAnnotationMeta(ir);
+              if (anotMeta != null) {
+                anotMeta
+                    .annotations()
+                    .foreach(
+                        anot -> {
+                          var anotResolutions = recursivelyCollectResolutions(anot);
+                          resolutions.addAll(anotResolutions);
+                          return null;
+                        });
               }
               return null;
             });
@@ -215,6 +229,11 @@ final class UsedSymbolsCollector {
   private static BindingsMap.Resolution getGlobalNamesMeta(IR ir) {
     return MetadataInteropHelpers.getMetadataOrNull(
         ir, GlobalNames$.MODULE$, BindingsMap.Resolution.class);
+  }
+
+  private static Annotations getGenericAnnotationMeta(IR ir) {
+    return MetadataInteropHelpers.getMetadataOrNull(
+        ir, GenericAnnotations$.MODULE$, ModuleAnnotations.Annotations.class);
   }
 
   private List<ResolvedName> resolveExportedName(String name) {
