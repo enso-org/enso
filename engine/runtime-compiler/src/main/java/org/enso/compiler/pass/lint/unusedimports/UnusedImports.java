@@ -26,6 +26,7 @@ import org.enso.compiler.pass.analyse.ImportSymbolAnalysis;
 import org.enso.compiler.pass.resolve.GenericAnnotations$;
 import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.MethodDefinitions;
+import org.enso.compiler.pass.resolve.Patterns$;
 import org.enso.compiler.pass.resolve.TypeNames$;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.pkg.QualifiedName;
@@ -62,6 +63,7 @@ public final class UnusedImports implements IRPass {
             TypeSignatures$.MODULE$,
             MethodDefinitions.INSTANCE,
             GlobalNames$.MODULE$,
+            Patterns$.MODULE$,
             GenericAnnotations$.MODULE$);
     return ScalaConversions.seq(passes);
   }

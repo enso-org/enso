@@ -256,6 +256,28 @@ public class UsedSymbolsCollectorTest {
     expectUsedSymbol(mainMod, "local.Proj.Module.T");
   }
 
+  @Test
+  public void caseBranch_1() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type T
+                Cons
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module.T import Cons
+            foo x =
+                case x of
+                    Cons -> 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectUsedSymbol(mainMod, "local.Proj.Module.T.Cons");
+  }
+
+  @Test
   private static UsedSymbols collect(org.enso.compiler.context.CompilerContext.Module mod) {
     var modIr = mod.getIr();
     return UsedSymbolsCollector.collect(modIr, getBindingsMap(modIr));

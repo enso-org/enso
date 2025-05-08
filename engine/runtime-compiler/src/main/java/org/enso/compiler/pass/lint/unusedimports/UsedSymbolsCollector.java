@@ -24,6 +24,7 @@ import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.MethodDefinitions;
 import org.enso.compiler.pass.resolve.ModuleAnnotations;
 import org.enso.compiler.pass.resolve.ModuleAnnotations.Annotations;
+import org.enso.compiler.pass.resolve.Patterns$;
 import org.enso.compiler.pass.resolve.TypeNames$;
 import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
@@ -114,6 +115,7 @@ final class UsedSymbolsCollector {
         addUsedSymbolForResolution(getGlobalNamesMeta(ir));
         addUsedSymbolForResolution(getMethodDefinitionsMeta(ir));
         addUsedSymbolForResolution(getTypeNameMeta(ir));
+        addUsedSymbolForResolution(getPatternsMeta(ir));
         var typeSig = getTypeSignatureMeta(ir);
         if (typeSig != null) {
           var sig = typeSig.signature();
@@ -254,6 +256,11 @@ final class UsedSymbolsCollector {
   private static BindingsMap.Resolution getGlobalNamesMeta(IR ir) {
     return MetadataInteropHelpers.getMetadataOrNull(
         ir, GlobalNames$.MODULE$, BindingsMap.Resolution.class);
+  }
+
+  private static BindingsMap.Resolution getPatternsMeta(IR ir) {
+    return MetadataInteropHelpers.getMetadataOrNull(
+        ir, Patterns$.MODULE$, BindingsMap.Resolution.class);
   }
 
   private static Annotations getGenericAnnotationMeta(IR ir) {
