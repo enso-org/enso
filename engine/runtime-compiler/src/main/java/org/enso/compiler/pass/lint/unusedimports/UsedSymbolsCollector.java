@@ -5,6 +5,7 @@ import static scala.jdk.javaapi.CollectionConverters.asJava;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.core.IR;
@@ -71,6 +72,8 @@ final class UsedSymbolsCollector {
     irsToProcess.add(root);
     while (!irsToProcess.isEmpty()) {
       var ir = irsToProcess.removeFirst();
+      LOGGER.trace("[{}] Processing IR {}",
+          bindingsMap.currentModule().getName(), irToStr(ir));
       // Application.Prefix (method calls) are handled specifically. GlobalNames pass assigns
       // resolution to the first synthetic self argument.
       if (ir instanceof Application.Prefix app
@@ -154,9 +157,9 @@ final class UsedSymbolsCollector {
   private List<Import.Module> findImportIRs(
       QualifiedName targetModName, QualifiedName targetSymbolName) {
     var importDefs = new ArrayList<Import.Module>();
-    for (var resolvedImp : CollectionConverters.asJava(bindingsMap.resolvedImports())) {
+    for (var resolvedImp : asJava(bindingsMap.resolvedImports())) {
       var impIR = resolvedImp.importDef();
-      var validTargets =
+      var validTarget =
           resolvedImp
               .targets()
               .find(
@@ -166,7 +169,7 @@ final class UsedSymbolsCollector {
                     var exportsSymbol = !resolvedNames.isEmpty();
                     return targetNameMatches || exportsSymbol;
                   });
-      if (validTargets.isDefined()) {
+      if (validTarget.isDefined()) {
         importDefs.add(impIR);
       }
     }
@@ -275,5 +278,13 @@ final class UsedSymbolsCollector {
     var str =
         imps.stream().map(imp -> "'" + imp.showCode() + "'").collect(Collectors.joining(", "));
     return "[" + str + "]";
+  }
+
+  private static String irToStr(IR ir) {
+    return ir.getClass().getName() + "@" + identityHex(ir);
+  }
+
+  private static String identityHex(Object obj) {
+    return Integer.toHexString(Objects.hashCode(obj));
   }
 }
