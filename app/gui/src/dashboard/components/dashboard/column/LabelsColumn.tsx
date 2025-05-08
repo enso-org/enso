@@ -70,7 +70,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
       {managesThisAsset && (
         <DialogTrigger>
           <Button
-            variant="ghost-icon"
+            variant="icon"
             showIconOnHover
             tooltip={getText('manageLabels')}
             tooltipPlacement="left"
