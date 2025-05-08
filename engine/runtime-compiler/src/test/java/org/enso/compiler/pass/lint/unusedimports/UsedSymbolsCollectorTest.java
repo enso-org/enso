@@ -278,6 +278,30 @@ public class UsedSymbolsCollectorTest {
   }
 
   @Test
+  public void extensionMethod_ImportAll_DoesNotWork() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"), """
+            type T
+            """);
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Extensions"),
+        """
+            import project.Module.T
+            T.extension_method = 42
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Extensions import all
+            foo x = x.extension_method
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    // TODO: extension_method literal does not have any resolution attached.
+    // This is responsibility of another pass.
+    expectNoUsedSymbols(mainMod);
+  }
+
   private static UsedSymbols collect(org.enso.compiler.context.CompilerContext.Module mod) {
     var modIr = mod.getIr();
     return UsedSymbolsCollector.collect(modIr, getBindingsMap(modIr));

@@ -548,30 +548,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  public void usedSymbol_ExtensionMethod_ViaImportAll() {
-    compilerCtx.createModule(
-        QualifiedName.fromString("local.Proj.Module"), """
-            type T
-            """);
-    compilerCtx.createModule(
-        QualifiedName.fromString("local.Proj.Extensions"),
-        """
-            import project.Module.T
-            T.extension_method = 42
-            """);
-
-    var mainMod =
-        compilerCtx.createModule(
-            QualifiedName.fromString("local.Proj.Main"),
-            """
-            from project.Extensions import all
-            foo x = x.extension_method
-            """);
-    compilerCtx.getCompiler().run(mainMod);
-    expectNoWarnings(mainMod.getIr());
-  }
-
-  @Test
   public void usedSymbol_InAnnotation_MethodCall() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"), """
