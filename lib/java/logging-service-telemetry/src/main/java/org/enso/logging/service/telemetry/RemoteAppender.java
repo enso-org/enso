@@ -118,6 +118,9 @@ public abstract class RemoteAppender extends TelemetryAppender {
 
   private static LogMessage logEventToMessage(ILoggingEvent logEvent) {
     return new LogMessage(
-        logEvent.getLoggerName(), logEvent.getMessage(), logEvent.getArgumentArray());
+        logEvent.getLoggerName(),
+        logEvent.getMessage(),
+        logEvent.getArgumentArray(),
+        logEvent.getLevel().levelStr);
   }
 }

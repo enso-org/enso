@@ -52,7 +52,7 @@ public final class OpenSearchLogJobsProcessor extends LogJobsProcessor {
     String transformedMsg = msg.message();
     Map<String, Object> metadata;
     if (msg.arguments() == null) {
-      metadata = constructMetadata(new Object[] {}, msg.loggerName());
+      metadata = constructMetadata(new Object[] {}, msg.loggerName(), msg.logLevel());
     } else {
       var args = msg.arguments();
       var i = 0;
@@ -70,14 +70,16 @@ public final class OpenSearchLogJobsProcessor extends LogJobsProcessor {
         }
       }
       var remainingArgs = i < args.length ? Arrays.copyOf(args, i) : new Object[] {};
-      metadata = constructMetadata(remainingArgs, msg.loggerName());
+      metadata = constructMetadata(remainingArgs, msg.loggerName(), msg.logLevel());
     }
     return ApiMessage.createEngineLog(transformedMsg, metadata);
   }
 
-  private Map<String, Object> constructMetadata(Object[] remainingArgs, String loggerName) {
+  private Map<String, Object> constructMetadata(
+      Object[] remainingArgs, String loggerName, String logLevel) {
     var meta = new HashMap<String, Object>();
     meta.put("loggerName", loggerName);
+    meta.put("logLevel", logLevel);
     for (int i = 0; i < remainingArgs.length; i++) {
       meta.put("extra-arg-" + i, remainingArgs[i]);
     }

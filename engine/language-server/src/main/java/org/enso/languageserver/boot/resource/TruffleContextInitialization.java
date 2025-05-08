@@ -43,9 +43,9 @@ public class TruffleContextInitialization extends LockedInitialization {
     var truffleContext = contextFactory.build();
     supervisor.registerService(truffleContext);
     logger.trace("Created Runtime context [{}]", truffleContext);
-    logger.debug("Initializing Runtime context [{}]", truffleContext);
+    logger.trace("Initializing Runtime context [{}]", truffleContext);
     truffleContext.initialize(LanguageInfo.ID);
     eventStream.publish(InitializedEvent.TruffleContextInitialized$.MODULE$);
-    logger.debug("Initialized Runtime context [{}]", truffleContext);
+    logger.trace("Initialized Runtime context [{}]", truffleContext);
   }
 }

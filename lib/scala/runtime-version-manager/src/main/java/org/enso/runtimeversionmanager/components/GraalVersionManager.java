@@ -69,7 +69,7 @@ public final class GraalVersionManager {
     if (explicitPathOpt.isDefined()) {
       var runtime = new GraalRuntime(version, explicitPathOpt.get());
       runtime.ensureValid();
-      logger.debug("Found GraalVM runtime [{}]", runtime);
+      logger.trace("Found GraalVM runtime [{}]", runtime);
       return runtime;
     }
     var pathOpt = findGraalRuntimeOnSearchPath(version);
@@ -93,7 +93,7 @@ public final class GraalVersionManager {
                 + "`",
             e);
       }
-      logger.debug("Found GraalVM runtime [{}]", runtime);
+      logger.trace("Found GraalVM runtime [{}]", runtime);
       return runtime;
     }
     logger.debug("GraalVM runtime [{}] not found", version);
@@ -101,7 +101,7 @@ public final class GraalVersionManager {
   }
 
   public GraalRuntime loadGraalRuntime(Path path) throws UnrecognizedComponentError {
-    logger.debug("Loading Graal runtime [{}]", path);
+    logger.trace("Loading Graal runtime [{}]", path);
     var name = path.getFileName().toString();
     var version = parseGraalRuntimeVersionString(name);
     if (version == null) {

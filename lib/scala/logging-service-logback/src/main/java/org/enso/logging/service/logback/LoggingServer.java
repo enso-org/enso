@@ -29,7 +29,7 @@ class LoggingServer extends LoggingService<URI> {
       setup.setup(level, path, prefix, setup.getConfig());
       config.getAppenders().get("telemetry").setup(level, setup);
       var openSearchEnabled = config.getAppenders().get("opensearch").setup(level, setup);
-      if (!openSearchEnabled) System.err.println("Remote logging: Disabled");
+      if (!openSearchEnabled) System.err.println("Remote Logs: Disabled");
       return new URI(null, null, "localhost", port, null, null, null);
     } catch (URISyntaxException e) {
       throw new RuntimeException(e);

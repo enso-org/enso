@@ -236,7 +236,7 @@ final class JobExecutionEngine(
       try {
         val result = job.run(runtimeContext)
         val took   = System.currentTimeMillis() - before
-        logger.debug(
+        logger.trace(
           "Job {} finished in {} ms.",
           job,
           took
@@ -263,7 +263,7 @@ final class JobExecutionEngine(
     val runningJob = RunningJob(jobId, job, future)
 
     val queue = runningJobsRef.updateAndGet(_ :+ runningJob)
-    logger.debug("Number of pending jobs: {}", queue.size)
+    logger.trace("Number of pending jobs: {}", queue.size)
 
     promise.future
   }
@@ -409,7 +409,7 @@ final class JobExecutionEngine(
       delayedBackgroundJobsQueue,
       BackgroundJob.BACKGROUND_JOBS_QUEUE_ORDER
     )
-    logger.debug(
+    logger.trace(
       "Submitting {} background jobs [{}]",
       delayedBackgroundJobsQueue.size(): Integer,
       delayedBackgroundJobsQueue

@@ -60,7 +60,7 @@ class HeartbeatSession(
   override def preStart(): Unit = {
     connection.attachListener(self)
     connection.connect()
-    logger.debug("Heartbeat connection initialized [{}].", socket)
+    logger.trace("Heartbeat connection initialized [{}].", socket)
   }
 
   override def postStop(): Unit = {

@@ -5,7 +5,6 @@ import java.util.ServiceLoader;
 public abstract class OpenSearchAppender extends RemoteAppender {
 
   static RemoteAppender load() {
-    System.out.println("OpenSearchAppender.load");
     var loader = ServiceLoader.load(RemoteAppender.class, RemoteAppender.class.getClassLoader());
     var appender =
         loader.stream()
