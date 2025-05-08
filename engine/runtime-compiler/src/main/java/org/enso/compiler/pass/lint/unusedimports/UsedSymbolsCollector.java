@@ -84,8 +84,22 @@ final class UsedSymbolsCollector {
                   selfArg.value(), GlobalNames$.MODULE$, BindingsMap.Resolution.class);
           if (selfArgResolution != null) {
             var targetModName = selfArgResolution.target().module().getName();
-            var funcName = funcLiteral.name();
-            var targetSymbolName = targetModName.createChild(funcName);
+            QualifiedName targetSymbolName;
+            switch (selfArgResolution.target()) {
+              case BindingsMap.ResolvedType tp -> {
+                targetSymbolName = targetModName.createChild(tp.tp().name());
+              }
+              case BindingsMap.ResolvedMethod method -> {
+                targetSymbolName = targetModName.createChild(method.methodName());
+              }
+              case BindingsMap.ResolvedModule module -> {
+                // This is most likely call of a module method
+                targetSymbolName = targetModName.createChild(funcLiteral.name());
+              }
+              default -> {
+                targetSymbolName = selfArgResolution.target().qualifiedName();
+              }
+            }
             addUsedSymbol(targetModName, targetSymbolName);
             // Add all the children except for the first argument
             asJava(app.arguments()).stream().skip(1).forEach(irsToProcess::addLast);
