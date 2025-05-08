@@ -46,10 +46,10 @@ import scala.jdk.javaapi.CollectionConverters;
  *
  * <p>This is an expensive pass and should be run only during linting.
  */
-public final class UnusedImportsMega implements IRPass {
-  public static final UnusedImportsMega INSTANCE = new UnusedImportsMega();
+public final class UnusedImports implements IRPass {
+  public static final UnusedImports INSTANCE = new UnusedImports();
 
-  private UnusedImportsMega() {}
+  private UnusedImports() {}
 
   @Override
   public Seq<IRProcessingPass> precursorPasses() {
