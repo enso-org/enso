@@ -250,19 +250,22 @@ fixed_width_spec_from_bytes bytes (encoding : Encoding = Encoding.default) (on_p
         spaces = (' ' * bytes.length).bytes
         newline = '\n'.bytes
 
-        row_a = 'abc'.bytes + spaces + 'qwer'.bytes + newline
-        row_b = 'def'.bytes + bytes  + 'asdf'.bytes + newline
-        row_c = 'ghi'.bytes + spaces + 'zxcv'.bytes + newline
+        row_a = 'abc'.bytes encoding + spaces + 'qwer'.bytes encoding + newline
+        row_b = 'def'.bytes encoding + bytes  + 'asdf'.bytes encoding + newline
+        row_c = 'ghi'.bytes encoding + spaces + 'zxcv'.bytes encoding + newline
         row_a + row_b + row_c
+
+    col_0_length = 'abc'.bytes encoding . length
+    col_2_length = 'qwer'.bytes encoding . length
 
     get_decoded_value table =
         table.at "b" . to_vector . at 1
 
     layout =
         descs = []
-            + [Fixed_Width_Column_Description.Width 3 "a"]
+            + [Fixed_Width_Column_Description.Width col_0_length "a"]
             + [Fixed_Width_Column_Description.Width bytes.length "b"]
-            + [Fixed_Width_Column_Description.Width 4 "c"]
+            + [Fixed_Width_Column_Description.Width col_2_length "c"]
         Fixed_Width_Layout.from_descriptions descs
 
     with_file ~action =
