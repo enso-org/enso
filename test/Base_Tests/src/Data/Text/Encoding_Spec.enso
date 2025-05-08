@@ -32,11 +32,12 @@ add_charset_specs suite_builder =
             encodings.contains Encoding.utf_8 . should_equal True
 
 ## Arguments:
-   - from_bytes: Text.from_bytes or an equivalent converter
-   - to_bytes: Text.bytes or an equivalent converter
+   - from_bytes: Text.from_bytes or an equivalent converter.
+   - to_bytes: Text.bytes or an equivalent converter.
    - full_file: true if the input is a file or stream, rather than a string.
      If true, BOM tests are enabled.
-add_codec_specs from_bytes to_bytes suite_builder full_file =
+   - zero_length: true if the input can be zero-length.
+add_codec_specs from_bytes to_bytes suite_builder full_file zero_length =
     suite_builder.group "ASCII" group_builder->
         test = 'Hello World!'
         test_ascii = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
@@ -150,15 +151,19 @@ add_codec_specs from_bytes to_bytes suite_builder full_file =
               w2 = Problems.expect_only_warning Encoding_Error r2
               w2.to_display_text . should_contain "BOM"
 
-        group_builder.specify "should work on 0 or 1 byte input" <|
-            empty = from_bytes [] Encoding.default
-            empty.should_equal ""
-            Problems.assume_no_problems empty
+        if zero_length then
+            group_builder.specify "should work on 0 byte input" <|
+                empty = from_bytes [] Encoding.default
+                empty.should_equal ""
+                Problems.assume_no_problems empty
 
-            txt = from_bytes [-1] Encoding.default ..Report_Warning
-            txt.should_equal 'ÿ'
-            # No problems, as falling back to Windows-1252.
-            Problems.assume_no_problems txt
+        if full_file then
+            # This case uses a Windows-1252 fallback when operating in full file mode.
+            group_builder.specify "should work on 1 byte input" <|
+                txt = from_bytes [-1] Encoding.default ..Report_Warning
+                txt.should_equal 'ÿ'
+                # No problems, as falling back to Windows-1252.
+                Problems.assume_no_problems txt
 
         if full_file then
             group_builder.specify "Default Encoding heuristics also work in File.read" <|
@@ -251,15 +256,19 @@ add_codec_specs from_bytes to_bytes suite_builder full_file =
                 warnings = Problems.get_attached_warnings as_utf . map .to_display_text
                 warnings.find (t-> t.contains "BOM") . should_succeed
 
-        group_builder.specify "should work on 0 or 1 byte input" <|
-            empty = from_bytes [] Encoding.utf_8
-            empty.should_equal ""
-            Problems.assume_no_problems empty
+        if zero_length then
+            group_builder.specify "should work on 0 byte input" <|
+                empty = from_bytes [] Encoding.utf_8
+                empty.should_equal ""
+                Problems.assume_no_problems empty
 
-            txt = from_bytes [-1] Encoding.utf_8 ..Report_Warning
-            txt.should_equal '\ufffd'
-            w = Problems.expect_only_warning Encoding_Error txt
-            w.to_display_text . should_contain "Failed to decode 1 code units (at positions: 0)."
+        if full_file then
+            # This case uses a Windows-1252 fallback when operating in full file mode.
+            group_builder.specify "should work on 1 byte input" <|
+                txt = from_bytes [-1] Encoding.utf_8 ..Report_Warning
+                txt.should_equal '\ufffd'
+                w = Problems.expect_only_warning Encoding_Error txt
+                w.to_display_text . should_contain "Failed to decode 1 code units (at positions: 0)."
 
         group_builder.specify "should report only a few example positions if many errors are encountered" <|
             bytes = Vector.fill 10000 -1
@@ -297,14 +306,18 @@ add_codec_specs from_bytes to_bytes suite_builder full_file =
                 w = Problems.expect_only_warning Encoding_Error txt
                 w.to_display_text . should_contain "BOM"
 
-        group_builder.specify "should work on 0 or 1 byte input" <|
-            empty = from_bytes [] Encoding.utf_16_be
-            empty.should_equal ""
-            Problems.assume_no_problems empty
+        if zero_length then
+            group_builder.specify "should work on 0 byte input" <|
+                empty = from_bytes [] Encoding.utf_16_be
+                empty.should_equal ""
+                Problems.assume_no_problems empty
 
-            txt = from_bytes [-1] Encoding.utf_16_be ..Report_Warning
-            w = Problems.expect_only_warning Encoding_Error txt
-            w.to_display_text . should_contain "Failed to decode 1 code units (at positions: 0)."
+        if full_file then
+            # This case uses a Windows-1252 fallback when operating in full file mode.
+            group_builder.specify "should work on 1 byte input" <|
+                txt = from_bytes [-1] Encoding.utf_16_be ..Report_Warning
+                w = Problems.expect_only_warning Encoding_Error txt
+                w.to_display_text . should_contain "Failed to decode 1 code units (at positions: 0)."
 
     suite_builder.group "UTF_16 LittleEndian" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'
@@ -334,14 +347,18 @@ add_codec_specs from_bytes to_bytes suite_builder full_file =
                 w = Problems.expect_only_warning Encoding_Error txt
                 w.to_display_text . should_contain "BOM"
 
-        group_builder.specify "should work on 0 or 1 byte input" <|
-            empty = from_bytes [] Encoding.utf_16_le
-            empty.should_equal ""
-            Problems.assume_no_problems empty
+        if zero_length then
+            group_builder.specify "should work on 0 byte input" <|
+                empty = from_bytes [] Encoding.utf_16_le
+                empty.should_equal ""
+                Problems.assume_no_problems empty
 
-            txt = from_bytes [-1] Encoding.utf_16_le ..Report_Warning
-            w = Problems.expect_only_warning Encoding_Error txt
-            w.to_display_text . should_contain "Failed to decode 1 code units (at positions: 0)."
+        if full_file then
+            # This case uses a Windows-1252 fallback when operating in full file mode.
+            group_builder.specify "should work on 1 byte input" <|
+                txt = from_bytes [-1] Encoding.utf_16_le ..Report_Warning
+                w = Problems.expect_only_warning Encoding_Error txt
+                w.to_display_text . should_contain "Failed to decode 1 code units (at positions: 0)."
 
     suite_builder.group "codepoints" group_builder->
         facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
@@ -393,7 +410,7 @@ add_codec_specs from_bytes to_bytes suite_builder full_file =
 
 add_specs suite_builder =
     add_charset_specs suite_builder
-    add_codec_specs Text.from_bytes .bytes
+    add_codec_specs Text.from_bytes .bytes suite_builder True True
 
 main filter=Nothing =
     suite = Test.build suite_builder->

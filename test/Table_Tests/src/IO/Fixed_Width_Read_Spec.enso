@@ -277,7 +277,7 @@ fixed_width_spec_from_bytes bytes (encoding : Encoding = Encoding.default) (on_p
         get_decoded_value t
 
 add_encoding_spec_specs suite_builder =
-    Encoding_Spec.add_codec_specs fixed_width_spec_from_bytes .bytes suite_builder False
+    Encoding_Spec.add_codec_specs fixed_width_spec_from_bytes .bytes suite_builder False False
 
 add_specs suite_builder =
     add_direct_specs suite_builder
