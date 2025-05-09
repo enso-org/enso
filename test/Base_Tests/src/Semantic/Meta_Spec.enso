@@ -3,6 +3,9 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Errors.Common import Uninitialized_State, Type_Error, Not_Found, Private_Access
 from enso_dev.Helpers import Public_Type
+import project.Data.Complex_Helpers
+import project.Data.Complex_Helpers.Complex_Comparator
+
 
 polyglot java import java.lang.Object as JObject
 polyglot java import java.lang.Long as JLong
@@ -111,7 +114,7 @@ add_specs suite_builder =
             cons . should_fail_with Private_Access
 
             cons.catch.to_display_text . should_equal
-                "Private access error: The project-private method 'constructor' in unknown project cannot be accessed from unknown project."
+                "Cannot access private constructors."
 
             # fields cannot be obtained as cons is already an error
             cons.fields . should_fail_with Private_Access
@@ -131,6 +134,35 @@ add_specs suite_builder =
             # neither private_instance_method nor private_static_method
             # are in the list
             arr.filter (\n->n.contains "_method") . should_equal []
+
+        group_builder.specify "prevent access to private module's type" <|
+            private_typ = Complex_Comparator
+            Meta.meta private_typ . should_fail_with Private_Access
+
+        group_builder.specify "private module's type is still type" <|
+            private_typ = Complex_Comparator
+            Meta.is_type private_typ . should_be_true
+
+        group_builder.specify "prevent access to private module" <|
+            private_mod = Complex_Helpers
+            Meta.meta private_mod . should_fail_with Private_Access
+
+        group_builder.specify "private module is still (associated) type" <|
+            private_mod = Complex_Helpers
+            Meta.is_type private_mod . should_be_true
+
+        group_builder.specify "restrictions on atom of private type" <|
+            atom = Public_Type.create 42
+            meta = Meta.meta atom
+
+            # fields are invisible
+            meta.fields . should_equal []
+
+            # constructor access is forbidden
+            meta.constructor . should_fail_with Private_Access
+
+            metyp = atom.to Meta.Type
+            metyp . should_fail_with Private_Access
 
         group_builder.specify "prevent getting fields from private constructor in the same project" <|
             # type R has all constructors private

@@ -1,4 +1,3 @@
-import Enso from '#/assets/enso_logo.svg'
 import ArrowDownIcon from '#/assets/expand_arrow_down.svg'
 import Plus from '#/assets/plus.svg'
 
@@ -63,7 +62,7 @@ export const Icons: Story = {
   render: () => (
     <StoryVariants
       render={Button}
-      toProps={(props) => ({ ...props, icon: Enso })}
+      toProps={(props) => ({ ...props, icon: 'enso_logo' })}
       toLabel={(props) => omit(props, 'children')}
       variants={[
         { children: 'Icon start' },
@@ -103,11 +102,11 @@ export const Tooltips: Story = {
       variants={[
         { tooltip: 'This is a tooltip', children: 'Tooltip' },
         {
-          icon: Enso,
+          icon: 'enso_logo',
           'aria-label': 'Tooltip uses aria-label for icon buttons',
           testId: 'icon-button',
         },
-        { icon: Enso, tooltip: false, testId: 'icon-button-no-tooltip' },
+        { icon: 'enso_logo', tooltip: false, testId: 'icon-button-no-tooltip' },
       ]}
     />
   ),

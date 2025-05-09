@@ -51,7 +51,6 @@ import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import { useLogger } from '#/providers/LoggerProvider'
 import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
-import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -230,8 +229,6 @@ function AppRouter(props: React.PropsWithChildren<AppRouterProps>) {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { setModal } = modalProvider.useSetModal()
 
-  const navigator2D = navigator2DProvider.useNavigator2D()
-
   const localBackend =
     projectManagerInstance != null ? new LocalBackend(projectManagerInstance) : null
 
@@ -255,14 +252,6 @@ function AppRouter(props: React.PropsWithChildren<AppRouterProps>) {
       })
     }
   }, [setModal])
-
-  React.useEffect(() => {
-    const onKeyDown = navigator2D.onKeyDown.bind(navigator2D)
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [navigator2D])
 
   React.useEffect(() => {
     let isClick = false

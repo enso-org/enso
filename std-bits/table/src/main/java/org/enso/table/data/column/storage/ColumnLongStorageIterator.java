@@ -1,7 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import org.graalvm.polyglot.Context;
-
 public interface ColumnLongStorageIterator extends ColumnStorageIterator<Long> {
   /** Gets the current item as a long. Note if the item isNothing value is undefined. */
   long getItemAsLong();
@@ -19,7 +17,6 @@ public interface ColumnLongStorageIterator extends ColumnStorageIterator<Long> {
   /** Zips this iterator with a Double storage. */
   default void zip(ColumnDoubleStorage otherStorage, LongDoubleZipper zipper) {
     var other = otherStorage.iterator();
-    Context context = Context.getCurrent();
 
     boolean hasValue1 = moveNext();
     boolean hasValue2 = other.moveNext();
@@ -30,7 +27,6 @@ public interface ColumnLongStorageIterator extends ColumnStorageIterator<Long> {
       boolean isNothing2 = !hasValue2 || other.isNothing();
       double value2 = isNothing2 ? 0 : other.getItemAsDouble();
       zipper.accept(idx++, value1, isNothing1, value2, isNothing2);
-      context.safepoint();
       hasValue1 = hasValue1 && moveNext();
       hasValue2 = hasValue2 && other.moveNext();
     }
@@ -39,7 +35,6 @@ public interface ColumnLongStorageIterator extends ColumnStorageIterator<Long> {
   /** Zips this iterator with another Long storage. */
   default void zip(ColumnLongStorage otherStorage, LongLongZipper zipper) {
     var other = otherStorage.iterator();
-    Context context = Context.getCurrent();
 
     boolean hasValue1 = moveNext();
     boolean hasValue2 = other.moveNext();
@@ -50,7 +45,6 @@ public interface ColumnLongStorageIterator extends ColumnStorageIterator<Long> {
       boolean isNothing2 = !hasValue2 || other.isNothing();
       long value2 = isNothing2 ? 0 : other.getItemAsLong();
       zipper.accept(idx++, value1, isNothing1, value2, isNothing2);
-      context.safepoint();
       hasValue1 = hasValue1 && moveNext();
       hasValue2 = hasValue2 && other.moveNext();
     }

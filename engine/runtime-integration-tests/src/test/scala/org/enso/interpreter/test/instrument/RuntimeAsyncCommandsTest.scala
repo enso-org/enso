@@ -11,6 +11,7 @@ import org.enso.polyglot.runtime.Runtime.Api.{
   MethodCall,
   MethodPointer
 }
+import org.enso.runtime.utils.ThreadUtils
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.enso.text.editing.model
 import org.enso.testkit.FlakySpec
@@ -74,7 +75,7 @@ class RuntimeAsyncCommandsTest
       var out: List[String] = Nil
       val expectedList      = expected.toList
       monitor.synchronized {
-        while (!receivedExpected && iteration < 20) {
+        while (!receivedExpected && iteration < 50) {
           out = readOutAsList()
           receivedExpected =
             if (exact) out == expectedList
@@ -159,7 +160,16 @@ class RuntimeAsyncCommandsTest
   }
   override protected def afterEach(): Unit = {
     if (context != null) {
-      context.close()
+      try {
+        context.close()
+      } catch {
+        case e: IllegalStateException =>
+          val msg = ThreadUtils.dumpAllStacktraces(
+            "Thread dump on failure to close test Instrument Context:"
+          )
+          println(msg)
+          throw e
+      }
       context.out.reset()
       context = null
     }

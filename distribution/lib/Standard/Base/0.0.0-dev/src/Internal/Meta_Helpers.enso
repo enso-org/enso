@@ -1,5 +1,16 @@
 private
 
+is_type value =
+   k = get_kind_builtin value
+   k == 6 || k == 7
+
+is_public_type value =
+   k = get_kind_builtin value
+   k == 6
+
+type_of_value_or_type that =
+    if is_type that then that else type_of_builtin that
+
 get_atom_constructor_builtin atom = @Builtin_Method "Meta.get_atom_constructor"
 get_atom_fields_builtin atom = @Builtin_Method "Meta.get_atom_fields"
 get_type_constructors_builtin typ factory = @Builtin_Method "Meta.get_type_constructors"

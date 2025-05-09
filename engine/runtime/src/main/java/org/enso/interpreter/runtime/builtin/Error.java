@@ -345,16 +345,18 @@ public final class Error {
    * @param thisProjectName Current project name. May be null.
    * @param targetProjectName Target method project name. May be null.
    * @param targetMethodName Name of the method that is project-private and cannot be accessed.
+   * @param msg special message or {@code null} to construct default message
    */
   public Atom makePrivateAccessError(
-      String thisProjectName, String targetProjectName, String targetMethodName) {
+      String thisProjectName, String targetProjectName, String targetMethodName, String msg) {
     assert targetMethodName != null;
     EnsoObject thisProjName =
         thisProjectName != null ? Text.create(thisProjectName) : context.getNothing();
     EnsoObject targetProjName =
         targetProjectName != null ? Text.create(targetProjectName) : context.getNothing();
+    EnsoObject msgOrNothing = msg != null ? Text.create(msg) : context.getNothing();
     return privateAccessError.newInstance(
-        thisProjName, targetProjName, Text.create(targetMethodName));
+        thisProjName, targetProjName, Text.create(targetMethodName), msgOrNothing);
   }
 
   public ForbiddenOperation getForbiddenOperation() {

@@ -46,7 +46,9 @@ final class FindAtomConstructorNode extends Node {
     if (ac != null) {
       if (ac.getType().hasAllConstructorsPrivate()) {
         var errors = ctx.getBuiltins().error();
-        var err = errors.makePrivateAccessError(null, null, "constructor");
+        var err =
+            errors.makePrivateAccessError(
+                null, null, "constructor", "Cannot access private constructors.");
         return DataflowError.withDefaultTrace(err, who);
       } else {
         return ac;
