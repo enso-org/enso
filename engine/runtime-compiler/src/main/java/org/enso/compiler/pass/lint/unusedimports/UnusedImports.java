@@ -188,7 +188,9 @@ public final class UnusedImports implements IRPass {
   }
 
   private static boolean isAllImport(Import imp) {
-    return imp instanceof Import.Module impMode && impMode.isAll();
+    return imp instanceof Import.Module impMode
+        && impMode.isAll()
+        && !impMode.onlyNames().isDefined();
   }
 
   private static boolean isImportDuplicated(Import imp) {
