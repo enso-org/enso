@@ -163,7 +163,7 @@ type Constructor
        ICON metadata
        Returns the type that this constructor is a part of.
     declaring_type self -> Type =
-        Type.Value (Meta_Helpers.get_constructor_declaring_type_builtin (self.value...))
+        Meta.meta (Meta_Helpers.get_constructor_declaring_type_builtin (self.value...))
 
 type Primitive
     private Value impl
@@ -302,6 +302,8 @@ meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | E
         4 -> Unresolved_Symbol.Value value
         5 -> Error.Value value.catch
         6 -> Type.Value value
+        7 -> Base_Error.throw <|
+            Private_Access.Error Nothing Nothing "meta" "No Meta.meta for private objects"
         _ -> Primitive.Value value
 
 ## PRIVATE
@@ -391,7 +393,8 @@ is_error value -> Boolean = 5 == Meta_Helpers.get_kind_builtin value
 
    Arguments:
    - value: The value to check.
-is_type value -> Boolean = 6 == Meta_Helpers.get_kind_builtin value
+is_type value -> Boolean = @Tail_Call Meta_Helpers.is_type value
+
 ## PRIVATE
 
    Checks if the provided value is a polyglot value.
@@ -406,5 +409,13 @@ is_polyglot value -> Boolean = 3 == Meta_Helpers.get_kind_builtin value
    Arguments:
    - value: the value to get the type of
 Type.from (that:Any) =
-   typ = if Meta.is_type that then that else Meta.type_of that
-   Type.Value typ
+   typ = Meta_Helpers.type_of_value_or_type that
+   meta = Meta.meta typ
+   case meta of
+       # found a type
+       t: Type -> t
+       # Java or co. type isn't an Enso type, use Any
+       _: Polyglot -> Type.Value Any
+       # everything else is an error
+       _ -> Base_Error.throw
+           Private_Access.Error Nothing Nothing "meta" "Doesn't represent a Type"

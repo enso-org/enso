@@ -309,9 +309,11 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                     <Text className="inline-block">{getText('owner')}</Text>
                   </td>
                   <td className="w-full p-0">
-                    <Text className="grow" truncate="1">
-                      {getAssetPermissionName(ownerPermission)}
-                    </Text>
+                    <div className="flex items-center gap-2">
+                      <Text className="w-0 grow" truncate="1">
+                        {getAssetPermissionName(ownerPermission)}
+                      </Text>
+                    </div>
                   </td>
                 </tr>
               )}

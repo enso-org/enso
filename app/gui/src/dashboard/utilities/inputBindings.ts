@@ -4,6 +4,7 @@
  */
 import * as detect from 'enso-common/src/detect'
 
+import type { SvgUseIcon } from '#/components/AriaComponents'
 import * as eventModule from '#/utilities/event'
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
@@ -340,7 +341,6 @@ type AutocompleteKeybinds<T extends readonly string[]> = {
 
 /** A list of keybinds, with metadata describing its purpose. */
 export interface KeybindsWithMetadata {
-  readonly name: string
   readonly bindings: readonly [] | readonly string[]
   readonly description?: string
   readonly icon?: string
@@ -357,10 +357,9 @@ export interface KeybindsWithMetadata {
  * errors.
  */
 export interface AutocompleteKeybindsWithMetadata<T extends KeybindsWithMetadata> {
-  readonly name: string
   readonly bindings: AutocompleteKeybinds<T['bindings']>
   readonly description?: string
-  readonly icon?: string
+  readonly icon?: SvgUseIcon
   readonly color?: string
   /** Defaults to `true`. */
   readonly rebindable?: boolean

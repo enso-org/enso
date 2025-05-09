@@ -1,4 +1,3 @@
-import Enso from '#/assets/enso_logo.svg'
 import ArrowDownIcon from '#/assets/expand_arrow_down.svg'
 import Plus from '#/assets/plus.svg'
 
@@ -58,11 +57,11 @@ export const Variants: Story = {
 
       <Text.Heading>Icons</Text.Heading>
       <div className="grid grid-cols-4 place-content-center place-items-start gap-3">
-        <Button icon={Enso}>Icon start</Button>
-        <Button icon={Enso} iconPosition="end">
+        <Button icon="enso_logo">Icon start</Button>
+        <Button icon="enso_logo" iconPosition="end">
           Icon end
         </Button>
-        <Button icon={Enso} aria-label="Only icon" />
+        <Button icon="enso_logo" aria-label="Only icon" />
       </div>
 
       <Text.Heading>States</Text.Heading>
@@ -86,10 +85,10 @@ export const Tooltips: Story = {
         <Button tooltip="This is a tooltip">Tooltip</Button>
         <Button
           aria-label="Tooltip uses aria-label for icon buttons"
-          icon={Enso}
+          icon="enso_logo"
           testId="icon-button"
         />
-        <Button icon={Enso} tooltip={false} testId="icon-button-no-tooltip" />
+        <Button icon="enso_logo" tooltip={false} testId="icon-button-no-tooltip" />
       </div>
     </div>
   ),

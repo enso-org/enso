@@ -4,6 +4,7 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Meta
 import project.Nothing.Nothing
+import project.Internal.Meta_Helpers
 
 polyglot java import org.slf4j.LoggerFactory
 
@@ -13,7 +14,8 @@ polyglot java import org.slf4j.LoggerFactory
    `from Standard.Base.Logging import all`.
 Any.log_message : Text -> Log_Level -> Any
 Any.log_message self ~message:Text level:Log_Level=Log_Level.Info =
-    type_name = self.to Meta.Type . qualified_name
+    typ = Meta_Helpers.type_of_value_or_type self
+    type_name = Meta_Helpers.get_qualified_type_name_builtin typ
     logger = LoggerFactory.getLogger type_name
     log_impl logger message level []
     self

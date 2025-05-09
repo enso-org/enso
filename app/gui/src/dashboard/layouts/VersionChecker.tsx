@@ -1,7 +1,6 @@
 /** @file Check the version. */
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
-import DownloadIcon from '#/assets/download.svg'
 import NewTabIcon from '#/assets/new_tab.svg'
 import SnoozeIcon from '#/assets/snooze.svg'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
@@ -214,7 +213,7 @@ export default function VersionChecker() {
                   fullWidth
                   variant="primary"
                   onPress={onDownload}
-                  icon={DownloadIcon}
+                  icon="data_download"
                   iconPosition="end"
                 >
                   {getText('download')}

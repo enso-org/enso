@@ -1640,6 +1640,11 @@ export function detectVersionLifecycle(version: string) {
   }
 }
 
+/** Get the {@link AssetType} of an asset by its id. */
+export function getAssetTypeFromId(id: AssetId) {
+  return id.match(/^(.+?)-/)?.[1] as AssetType
+}
+
 /** Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`. */
 export function compareAssets(a: AnyAsset, b: AnyAsset) {
   const relativeTypeOrder = ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type]

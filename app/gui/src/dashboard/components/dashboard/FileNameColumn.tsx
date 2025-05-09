@@ -1,7 +1,7 @@
 /** @file The icon and name of a {@link FileAsset}. */
 import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
-import SvgMask from '#/components/SvgMask'
+import { Icon } from '#/components/Icon'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { titleSchema, type FileAsset } from '#/services/Backend'
 import { fileIcon } from '#/utilities/fileIcon'
@@ -42,7 +42,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         }
       }}
     >
-      <SvgMask src={fileIcon()} className="m-name-column-icon size-4" />
+      <Icon icon={fileIcon(item.title)} className="m-name-column-icon" />
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
