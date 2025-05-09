@@ -1,4 +1,4 @@
-package org.enso.logging.service.telemetry;
+package org.enso.logging.service.remote;
 
 import java.util.concurrent.CompletableFuture;
 

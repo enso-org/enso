@@ -2,6 +2,10 @@ package org.enso.logging.service.telemetry;
 
 import java.net.URI;
 import java.util.concurrent.ThreadPoolExecutor;
+import org.enso.logging.service.remote.AuthenticationData;
+import org.enso.logging.service.remote.LogJobsProcessor;
+import org.enso.logging.service.remote.TokenRefresher;
+import org.slf4j.LoggerFactory;
 
 /**
  * Background job processing inspired by {@code org.enso.base.enso_cloud.logging.LogApiAccess}.
@@ -10,7 +14,12 @@ import java.util.concurrent.ThreadPoolExecutor;
  */
 @org.openide.util.lookup.ServiceProvider(
     service = org.enso.logging.service.logback.RemoteAppender.class)
-public final class TelemetryAppenderImpl extends RemoteAppender {
+public final class TelemetryAppenderImpl extends org.enso.logging.service.remote.RemoteAppender {
+
+  public TelemetryAppenderImpl() {
+    super(LoggerFactory.getLogger(TelemetryAppenderImpl.class));
+  }
+
   @Override
   protected String kind() {
     return "telemetry";

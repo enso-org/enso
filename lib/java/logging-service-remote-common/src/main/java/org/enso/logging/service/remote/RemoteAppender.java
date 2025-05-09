@@ -1,4 +1,4 @@
-package org.enso.logging.service.telemetry;
+package org.enso.logging.service.remote;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import java.io.IOException;
@@ -7,7 +7,6 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.concurrent.ThreadPoolExecutor;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Background job processing inspired by {@code org.enso.base.enso_cloud.logging.LogApiAccess}.
@@ -20,13 +19,16 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class RemoteAppender extends org.enso.logging.service.logback.RemoteAppender {
   private static final String CREDENTIALS_FILE_ENV = "ENSO_CLOUD_CREDENTIALS_FILE";
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(TelemetryAppenderImpl.class.getName());
+  private final Logger logger;
   private Credentials credentials;
   private boolean credentialsParseFailure;
   private LogJobsProcessor logJobsProcessor;
 
   protected abstract String kind();
+
+  public RemoteAppender(Logger logger) {
+    this.logger = logger;
+  }
 
   @Override
   protected void append(ILoggingEvent eventObject) {
@@ -43,18 +45,18 @@ public abstract class RemoteAppender extends org.enso.logging.service.logback.Re
   private Credentials readCredentials() {
     var credentialsFile = credentialsFile();
     if (!credentialsFile.toFile().exists()) {
-      LOGGER.warn("Credentials file not found at '{}'. Will not send " + kind(), credentialsFile);
+      logger.warn("Credentials file not found at '{}'. Will not send " + kind(), credentialsFile);
       return null;
     }
     Credentials credentials;
     try {
       credentials = parseCredentials(credentialsFile);
     } catch (IOException e) {
-      LOGGER.warn(
+      logger.warn(
           "Failed to parse credentials from '{}'. Will not send " + kind(), credentialsFile);
       return null;
     }
-    LOGGER.debug("Credentials read from '{}': {}", credentialsFile, credentials);
+    logger.debug("Credentials read from '{}': {}", credentialsFile, credentials);
     return credentials;
   }
 
@@ -81,7 +83,7 @@ public abstract class RemoteAppender extends org.enso.logging.service.logback.Re
       credentials = readCredentials();
       if (credentials == null) {
         // If credentials cannot be read, we cannot send anything - bailout.
-        LOGGER.error("Credentials cannot be read, stopping the " + kind() + " appender service");
+        logger.error("Credentials cannot be read, stopping the " + kind() + " appender service");
         credentialsParseFailure = true;
         return;
       }
@@ -92,7 +94,7 @@ public abstract class RemoteAppender extends org.enso.logging.service.logback.Re
       try {
         refreshUri = new URI(credentials.refreshUrl());
       } catch (URISyntaxException e) {
-        LOGGER.error(
+        logger.error(
             "Failed to parse refresh URL '{}'. Stopping the " + kind() + " appender service",
             credentials.refreshUrl());
         credentialsParseFailure = true;

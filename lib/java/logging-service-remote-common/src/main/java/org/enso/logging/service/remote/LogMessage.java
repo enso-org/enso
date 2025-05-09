@@ -1,4 +1,4 @@
-package org.enso.logging.service.telemetry;
+package org.enso.logging.service.remote;
 
 import java.util.Arrays;
 import java.util.Map;

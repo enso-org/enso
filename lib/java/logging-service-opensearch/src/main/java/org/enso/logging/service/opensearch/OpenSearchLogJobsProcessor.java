@@ -1,4 +1,4 @@
-package org.enso.logging.service.telemetry;
+package org.enso.logging.service.opensearch;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -8,6 +8,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.regex.Matcher;
+import org.enso.logging.service.remote.ApiMessage;
+import org.enso.logging.service.remote.AuthenticationData;
+import org.enso.logging.service.remote.LogJob;
+import org.enso.logging.service.remote.LogJobsProcessor;
+import org.enso.logging.service.remote.LogMessage;
+import org.enso.logging.service.remote.TokenRefresher;
 import org.slf4j.LoggerFactory;
 
 public final class OpenSearchLogJobsProcessor extends LogJobsProcessor {
@@ -29,7 +35,6 @@ public final class OpenSearchLogJobsProcessor extends LogJobsProcessor {
 
   @Override
   protected String buildPayload(List<LogJob> logJobs) {
-
     var logs = new ArrayList<ApiMessage.Log>();
     for (var logJob : logJobs) {
       var payloadForLogEvent = transformMessage(logJob.message());

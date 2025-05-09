@@ -350,6 +350,8 @@ lazy val enso = (project in file("."))
     `logging-config`,
     `logging-service`,
     `logging-service-logback`,
+    `logging-service-remote-common`,
+    `logging-service-opensearch`,
     `logging-service-telemetry`,
     `logging-truffle-connector`,
     `logging-utils`,
@@ -1159,12 +1161,72 @@ lazy val `logging-service-telemetry` = project
     ),
     Compile / internalModuleDependencies ++= Seq(
       (`scala-libs-wrapper` / Compile / exportedModule).value,
+      (`logging-service-logback` / Compile / exportedModule).value,
+      (`logging-service-remote-common` / Compile / exportedModule).value
+    )
+  )
+  .dependsOn(`logging-service-remote-common`)
+  .dependsOn(`http-test-helper` % "test->test")
+  .dependsOn(testkit % "test->test")
+
+lazy val `logging-service-opensearch` = project
+  .in(file("lib/java/logging-service-opensearch"))
+  .enablePlugins(JPMSPlugin)
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    scalaModuleDependencySetting,
+    mixedJavaScalaProjectSetting,
+    version := "0.1",
+    commands += WithDebugCommand.withDebug,
+    Test / fork := true,
+    libraryDependencies ++= slf4jApi ++ Seq(
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros"   % jsoniterVersion,
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"     % jsoniterVersion,
+      "org.netbeans.api"                       % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "org.hamcrest"                           % "hamcrest-all"            % hamcrestVersion    % Test,
+      "com.fasterxml.jackson.core"             % "jackson-core"            % jacksonVersion     % Test,
+      "com.fasterxml.jackson.core"             % "jackson-annotations"     % jacksonVersion     % Test,
+      "com.fasterxml.jackson.core"             % "jackson-databind"        % jacksonVersion     % Test
+    ),
+    Compile / javaModuleName := "org.enso.logging.service.opensearch",
+    Compile / moduleDependencies ++= logbackPkg ++ slf4jApi ++ Seq(
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
+    ),
+    Compile / internalModuleDependencies ++= Seq(
+      (`scala-libs-wrapper` / Compile / exportedModule).value,
+      (`logging-service-logback` / Compile / exportedModule).value,
+      (`logging-service-remote-common` / Compile / exportedModule).value
+    )
+  )
+  .dependsOn(`logging-service-remote-common`)
+
+lazy val `logging-service-remote-common` = project
+  .in(file("lib/java/logging-service-remote-common"))
+  .enablePlugins(JPMSPlugin)
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    scalaModuleDependencySetting,
+    mixedJavaScalaProjectSetting,
+    commands += WithDebugCommand.withDebug,
+    Test / fork := true,
+    libraryDependencies ++= slf4jApi ++ Seq(
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion,
+      "org.hamcrest"                           % "hamcrest-all"          % hamcrestVersion % Test,
+      "com.fasterxml.jackson.core"             % "jackson-core"          % jacksonVersion  % Test,
+      "com.fasterxml.jackson.core"             % "jackson-annotations"   % jacksonVersion  % Test,
+      "com.fasterxml.jackson.core"             % "jackson-databind"      % jacksonVersion  % Test
+    ),
+    Compile / moduleDependencies ++= logbackPkg ++ slf4jApi,
+    Compile / javaModuleName := "org.enso.logging.service.remote",
+    Compile / internalModuleDependencies ++= Seq(
+      (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`logging-service-logback` / Compile / exportedModule).value
     )
   )
   .dependsOn(`logging-service-logback`)
-  .dependsOn(`http-test-helper` % "test->test")
-  .dependsOn(testkit % "test->test")
 
 lazy val `logging-utils-akka` = project
   .in(file("lib/scala/logging-utils-akka"))
@@ -1818,6 +1880,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(pkg)
   .dependsOn(`logging-service-logback` % Runtime)
   .dependsOn(`logging-service-telemetry` % Runtime)
+  .dependsOn(`logging-service-opensearch` % Runtime)
   .dependsOn(`json-rpc-server` % "compile->compile;test->test")
   .dependsOn(testkit % Test)
   .dependsOn(`runtime-version-manager` % "compile->compile;test->test")
@@ -2978,7 +3041,8 @@ lazy val `runtime-integration-tests` =
         (`downloader` / Compile / exportedModule).value,
         (`logging-config` / Compile / exportedModule).value,
         (`logging-service` / Compile / exportedModule).value,
-        (`logging-service-telemetry` / Compile / exportedModule).value
+        (`logging-service-telemetry` / Compile / exportedModule).value,
+        (`logging-service-opensearch` / Compile / exportedModule).value
       ),
       Test / patchModules := {
         // Patch test-classes into the runtime module. This is standard way to deal with the

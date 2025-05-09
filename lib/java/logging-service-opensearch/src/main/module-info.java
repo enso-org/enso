@@ -1,4 +1,4 @@
-module org.enso.logging.service.telemetry {
+module org.enso.logging.service.opensearch {
   requires java.net.http;
   requires scala.library;
   requires ch.qos.logback.classic;
@@ -11,5 +11,5 @@ module org.enso.logging.service.telemetry {
   requires static org.openide.util.lookup.RELEASE180;
 
   provides org.enso.logging.service.logback.RemoteAppender with
-          org.enso.logging.service.telemetry.TelemetryAppenderImpl;
+          org.enso.logging.service.opensearch.OpenSearchAppender;
 }
