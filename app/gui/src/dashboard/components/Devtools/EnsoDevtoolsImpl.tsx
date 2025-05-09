@@ -42,7 +42,6 @@ import {
 import { usePlanOverride, useSetPlanOverride } from '#/providers/AuthProvider'
 import {
   FEATURE_FLAGS_SCHEMA,
-  useFeatureFlag,
   useFeatureFlags,
   useSetFeatureFlag,
 } from '#/providers/FeatureFlagsProvider'
@@ -55,12 +54,39 @@ import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
 import { Icon } from '../Icon'
 
+/** Props for a {@link DeveloperOverrideEntry}. */
+interface DeveloperOverrideEntryProps {
+  readonly reset: ariaComponents.ButtonProps['onPress']
+  readonly children: string
+}
+
+/** An entry in {@link EnsoDevStatus}. */
+function DeveloperOverrideEntry(props: DeveloperOverrideEntryProps) {
+  const { reset, children } = props
+
+  const { getText } = textProvider.useText()
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button
+        variant="icon"
+        icon={CrossIcon}
+        aria-label={getText('reset')}
+        tooltipPlacement="right"
+        onPress={reset}
+      />
+      <Text>{children}</Text>
+    </div>
+  )
+}
+
 /** A display of current developer overrides. */
 export function EnsoDevStatus() {
   const { getText } = textProvider.useText()
   const planOverride = usePlanOverride()
   const setPlanOverride = useSetPlanOverride()
-  const showingDeveloperIds = useFeatureFlag('showDeveloperIds')
+  const { showDeveloperIds, enableMultitabs, enableAdvancedProjectExecutionOptions } =
+    useFeatureFlags()
   const setFeatureFlag = useSetFeatureFlag()
 
   const planName = (() => {
@@ -82,7 +108,7 @@ export function EnsoDevStatus() {
       }
     }
   })()
-  const isOverridden = planName != null || showingDeveloperIds
+  const isOverridden = planName != null || showDeveloperIds
 
   const styles = ariaComponents.POPOVER_STYLES({ size: 'auto-xxsmall' })
 
@@ -99,32 +125,40 @@ export function EnsoDevStatus() {
       >
         <div className={styles.dialog()}>
           {planName != null && (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="icon"
-                icon={CrossIcon}
-                aria-label={getText('reset')}
-                tooltipPlacement="right"
-                onPress={() => {
-                  setPlanOverride(undefined)
-                }}
-              />
-              <Text>{getText('planOverriddenToX', planName)}</Text>
-            </div>
+            <DeveloperOverrideEntry
+              reset={() => {
+                setPlanOverride(undefined)
+              }}
+            >
+              {getText('planOverriddenToX', planName)}
+            </DeveloperOverrideEntry>
           )}
-          {showingDeveloperIds && (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="icon"
-                icon={CrossIcon}
-                aria-label={getText('reset')}
-                tooltipPlacement="right"
-                onPress={() => {
-                  setFeatureFlag('showDeveloperIds', false)
-                }}
-              />
-              <Text>{getText('showingDeveloperIds')}</Text>
-            </div>
+          {showDeveloperIds && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('showDeveloperIds', false)
+              }}
+            >
+              {getText('showingDeveloperIds')}
+            </DeveloperOverrideEntry>
+          )}
+          {enableMultitabs && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('enableMultitabs', false)
+              }}
+            >
+              {getText('multitabsEnabled')}
+            </DeveloperOverrideEntry>
+          )}
+          {enableAdvancedProjectExecutionOptions && (
+            <DeveloperOverrideEntry
+              reset={() => {
+                setFeatureFlag('enableAdvancedProjectExecutionOptions', false)
+              }}
+            >
+              {getText('advancedProjectExecutionOptionsEnabled')}
+            </DeveloperOverrideEntry>
           )}
         </div>
       </div>

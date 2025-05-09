@@ -1144,6 +1144,8 @@
   "copyInsteadOfRestoringDescription": "You can copy these assets to $1 while keeping the originals intact.",
   "planOverriddenToX": "Viewing as '$0' plan",
   "showingDeveloperIds": "Showing Developer Ids",
+  "multitabsEnabled": "Multiple Open Projects Allowed",
+  "advancedProjectExecutionOptionsEnabled": "Advanced Scheduler Options Enabled",
   "authLogEvent": "Authenticate",
   "getOrganizationLogEvent": "Get Organization",
   "updateOrganizationLogEvent": "Update Organization",
