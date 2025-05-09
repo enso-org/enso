@@ -32,55 +32,57 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
       self?.permission === permissions.PermissionAction.admin)
 
   return (
-    <div className="group flex items-center gap-column-items">
-      {(item.labels ?? [])
-        .filter((label) => labelsByName.has(label))
-        .map((label) => (
-          <Label
-            key={label}
-            data-testid="asset-label"
-            title={getText('rightClickToRemoveLabel')}
-            color={labelsByName.get(label)?.color ?? backendModule.COLORS[0]}
-            active
-            onContextMenu={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              const doDelete = () => {
-                unsetModal()
-                const newLabels = item.labels?.filter((oldLabel) => oldLabel !== label) ?? []
-                void backend.associateTag(item.id, newLabels, item.title)
-              }
-              setModal(
-                <ContextMenu aria-label={getText('labelContextMenuLabel')} event={event}>
-                  <ContextMenuEntry
-                    action="delete"
-                    label={getText('deleteLabelShortcut')}
-                    doAction={doDelete}
-                  />
-                </ContextMenu>,
-              )
-            }}
-            onPress={(event) => {
-              setQuery((oldQuery) =>
-                oldQuery.withToggled('labels', 'negativeLabels', label, event.shiftKey),
-              )
-            }}
-          >
-            {label}
-          </Label>
-        ))}
-      {managesThisAsset && (
-        <DialogTrigger>
-          <Button
-            variant="ghost-icon"
-            showIconOnHover
-            tooltip={getText('manageLabels')}
-            tooltipPlacement="left"
-            icon={Plus2Icon}
-          />
-          <ManageLabelsModal backend={backend} item={item} />
-        </DialogTrigger>
-      )}
+    <div className="relative h-6">
+      <div className="group absolute flex h-6 flex-wrap items-center gap-column-items overflow-hidden outline-1 outline-primary/20 hover:z-1 hover:-m-1 hover:h-[unset] hover:overflow-auto hover:rounded-2xl hover:bg-dashboard hover:p-1 hover:outline">
+        {(item.labels ?? [])
+          .filter((label) => labelsByName.has(label))
+          .map((label) => (
+            <Label
+              key={label}
+              data-testid="asset-label"
+              title={getText('rightClickToRemoveLabel')}
+              color={labelsByName.get(label)?.color ?? backendModule.COLORS[0]}
+              active
+              onContextMenu={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                const doDelete = () => {
+                  unsetModal()
+                  const newLabels = item.labels?.filter((oldLabel) => oldLabel !== label) ?? []
+                  void backend.associateTag(item.id, newLabels, item.title)
+                }
+                setModal(
+                  <ContextMenu aria-label={getText('labelContextMenuLabel')} event={event}>
+                    <ContextMenuEntry
+                      action="delete"
+                      label={getText('deleteLabelShortcut')}
+                      doAction={doDelete}
+                    />
+                  </ContextMenu>,
+                )
+              }}
+              onPress={(event) => {
+                setQuery((oldQuery) =>
+                  oldQuery.withToggled('labels', 'negativeLabels', label, event.shiftKey),
+                )
+              }}
+            >
+              {label}
+            </Label>
+          ))}
+        {managesThisAsset && (
+          <DialogTrigger>
+            <Button
+              variant="ghost-icon"
+              showIconOnHover
+              tooltip={getText('manageLabels')}
+              tooltipPlacement="left"
+              icon={Plus2Icon}
+            />
+            <ManageLabelsModal backend={backend} item={item} />
+          </DialogTrigger>
+        )}
+      </div>
     </div>
   )
 }
