@@ -165,7 +165,7 @@ fan_out_to_rows_and_columns_fixed input_storage function at_least_one_row:Boolea
         repeat_each output_values.length <| order_mask_positions.append i
 
     output_columns = column_names.map_with_index i->n->
-        Column.from_storage n (output_column_builders.at i . seal)
+        In_Memory_Column_Constructors.from_storage n (output_column_builders.at i . seal)
 
     [output_columns, order_mask_positions]
 
@@ -303,7 +303,7 @@ map_columns_to_multiple input_column function column_count column_builder=make_s
 
     # Build Columns.
     storages = builders.map .seal
-    new_column_names.zip storages Column.from_storage
+    new_column_names.zip storages In_Memory_Column_Constructors.from_storage
 
 ## PRIVATE
    Rename a vector of columns to be unique when added to a table.
