@@ -1,6 +1,8 @@
 package org.enso.table.data.column.operation;
 
 import java.util.function.LongFunction;
+import java.util.stream.LongStream;
+import org.graalvm.polyglot.Context;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
@@ -125,15 +127,13 @@ public class StorageIterators {
   public static <B extends BuilderForType<T>, S, T> ColumnStorage<T> buildOverStorage(
       ColumnStorage<S> source, boolean preserveNothing, B builder, BuildOperation<B, S> operation) {
     try (var progressHandle = ProgressHandler.init("buildOverStorage", source.getSize())) {
-      long idx = 0;
       for (S item : source) {
         if (preserveNothing && item == null) {
           builder.appendNulls(1);
         } else {
-          operation.apply(builder, idx, item);
+          operation.apply(builder, progressHandle.getIndex(), item);
         }
         progressHandle.advance();
-        idx++;
       }
     }
     return builder.seal();
@@ -154,7 +154,18 @@ public class StorageIterators {
    */
   public static <B extends BuilderForType<T>, T> ColumnStorage<T> buildOverLongStorage(
       ColumnLongStorage source, B builder, LongBuildOperation<B> operation) {
-    return buildOverLongStorage(source, true, builder, operation);
+    try (var progressHandle = ProgressHandler.init("buildOverStorage", source.getSize())) {
+      for (long index = 0; index < source.getSize(); index++) {
+        if (source.isNothing(index)) {
+          builder.appendNulls(1);
+        } else {
+          operation.apply(builder, index, source.getItemAsLong(index), false);
+        }
+        progressHandle.advance();
+      }
+    }
+    return builder.seal();
+
   }
 
   /**
@@ -176,22 +187,19 @@ public class StorageIterators {
       boolean preserveNothing,
       B builder,
       LongBuildOperation<B> operation) {
+    if (preserveNothing) {
+      return buildOverLongStorage(source, builder, operation);
+    }
     try (var progressHandle = ProgressHandler.init("buildOverStorage", source.getSize())) {
-      long idx = 0;
-      for (Long item : source) {
-        if (item == null) {
-          if (preserveNothing) {
-            builder.appendNulls(1);
-          } else {
-            operation.apply(builder, idx++, 0, true);
-          }
+      for (long index = 0; index < source.getSize(); index++) {
+        if (source.isNothing(index)) {
+          operation.apply(builder, index, 0, true);
         } else {
-          operation.apply(builder, idx++, item, false);
+          operation.apply(builder, index, source.getItemAsLong(index), false);
         }
         progressHandle.advance();
       }
     }
-
     return builder.seal();
   }
 
