@@ -177,16 +177,16 @@ public class StorageIterators {
       B builder,
       LongBuildOperation<B> operation) {
     try (var progressHandle = ProgressHandler.init("buildOverStorage", source.getSize())) {
-      var iterator = source.iterator();
-      while (iterator.moveNext()) {
-        if (iterator.isNothing()) {
+      long idx = 0;
+      for (Long item : source) {
+        if (item == null) {
           if (preserveNothing) {
             builder.appendNulls(1);
           } else {
-            operation.apply(builder, iterator.getIndex(), 0, true);
+            operation.apply(builder, idx++, 0, true);
           }
         } else {
-          operation.apply(builder, iterator.getIndex(), iterator.getItemAsLong(), false);
+          operation.apply(builder, idx++, item, false);
         }
         progressHandle.advance();
       }

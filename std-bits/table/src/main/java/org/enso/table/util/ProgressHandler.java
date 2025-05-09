@@ -10,14 +10,14 @@ public final class ProgressHandler implements AutoCloseable {
 
   private final String name;
   private final long count;
+  private final Context context;
   private int step;
-  private Context context;
 
   private ProgressHandler(String name, long count) {
     this.name = name;
     this.count = count;
-    this.step = PROGRESS_STEP;
     this.context = Context.getCurrent();
+    this.step = PROGRESS_STEP;
   }
 
   @Override
