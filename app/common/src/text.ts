@@ -176,6 +176,8 @@ interface PlaceholderOverrides {
     categoryName: string,
     destinationCategoryName: string,
   ]
+
+  readonly planOverriddenToX: [planName: string]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */
