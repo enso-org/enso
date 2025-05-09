@@ -2089,7 +2089,11 @@ type Column
     ## PRIVATE
        Provides a simplified text representation for display in the REPL and errors.
     to_text self -> Text =
-        self.implementation.to_text self
+        self.implementation.to_text_implementation self
+
+    ## PRIVATE
+    pretty self -> Text =
+        self.implementation.pretty_implementation self
 
     ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
        GROUP Standard.Base.Statistics

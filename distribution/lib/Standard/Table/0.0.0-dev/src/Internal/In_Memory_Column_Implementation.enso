@@ -677,7 +677,10 @@ type In_Memory_Column_Implementation
     duplicate_count this_column -> Column =
         In_Memory_Column_Constructors.from_java_column (this_column:In_Memory_Column).java_column.duplicateCount
 
-    to_text this_column -> Text = "(In-Memory Column "+this_column.name.to_text+")"
+    to_text_implementation this_column -> Text = "(In-Memory Column "+this_column.name.to_text+")"
+
+    pretty_implementation this_column -> Text =
+        (this_column:In_Memory_Column).pretty
 
     ## PRIVATE
        Helper for the expression to tell it which functions needs a Vector.
