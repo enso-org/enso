@@ -59,6 +59,11 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
 
   const setCategoryId = useEventCallback((nextCategoryId: CategoryId) => {
     const previousCategory = findCategoryById(categoryId)
+
+    if (categoryId === nextCategoryId) {
+      return
+    }
+
     privateSetCategoryId(nextCategoryId)
     categoryIdStore.setState({
       categoryId: nextCategoryId,
