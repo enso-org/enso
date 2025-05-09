@@ -18,9 +18,9 @@ const SPINNER_CSS_CLASSES = {
 export type SpinnerState = keyof typeof SPINNER_CSS_CLASSES
 
 export interface SpinnerProps {
-  size?: number
+  size?: number | undefined
   state: SpinnerState
-  thickness?: number
+  thickness?: number | undefined
 }
 
 const { size = 30, state, thickness = 3 } = defineProps<SpinnerProps>()
