@@ -70,6 +70,9 @@ type Hyper_File
     ## PRIVATE
     viz_data self =
         self.tables.map t->t.table.to_text
+
+    to_viz_js self =
+        _make_json_for_single_column_of_actions self.to_js_object self.viz_data "tables" "table" "read"
             
     ## ALIAS get, import, load, open, sheet
        GROUP Standard.Base.Input
@@ -108,3 +111,6 @@ make_table_selector hyper_file:Hyper_File cache=Nothing =
     used_schema = if schema == "" || schema == Nothing then hyper_file.schema else schema
     tables = hyper_file.tables used_schema . map t-> Option t.table t.table.pretty
     Single_Choice values=tables
+
+private _make_json_for_single_column_of_actions js_value data:Vector title tooltip child_node_action =
+    JS_Object.from_pairs [["json", js_value], ["data", data], ["visualization_header", title], ["child_label", tooltip], ["get_child_node_action", child_node_action], ["type", "Single_Column_Of_Actions"]]
