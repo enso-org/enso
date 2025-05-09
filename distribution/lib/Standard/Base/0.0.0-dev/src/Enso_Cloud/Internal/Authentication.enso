@@ -65,7 +65,12 @@ credentials_file = case Environment.get "ENSO_CLOUD_CREDENTIALS_FILE" of
 type Authentication_Service
     ## PRIVATE
        TODO: We cannot mark this constructor as `private` until we change token tests in `Enso_Cloud_Spec` to run with `--disable-private-check`.
-    Instance (auth_data : Ref Authentication_Data)
+    Instance (_auth_data : Ref Authentication_Data)
+
+    ## PRIVATE
+       The authentication data, which is a mutable reference to the current
+       authentication data.
+    auth_data self -> Ref Authentication_Data = self._auth_data
 
     ## PRIVATE
     get_access_token self -> Text =
