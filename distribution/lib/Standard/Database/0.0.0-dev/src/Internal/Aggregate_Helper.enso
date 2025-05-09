@@ -138,7 +138,7 @@ aggregate table:DB_Table group_by:(Vector | Text | Integer | Regex) columns:Vect
 
             new_columns = partitioned.second
             problem_builder.attach_problems_before on_problems <|
-                problems = partitioned.first.map .value
+                problems = partitioned.first.map \x->x.value
                 on_problems.attach_problems_before problems <|
                     handle_no_output_columns =
                         first_problem = if problems.is_empty then Nothing else problems.first
