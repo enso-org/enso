@@ -12,7 +12,6 @@ import project.Enso_Cloud.Errors.Not_Logged_In
 import project.Enso_Cloud.Internal.Authentication
 import project.Error.Error
 import project.Function.Function
-import project.Network.HTTP.Cache_Policy.Cache_Policy
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Error.HTTP_Error
@@ -24,7 +23,7 @@ import project.Network.HTTP.Request_Error
 import project.Network.HTTP.Response.Response
 import project.Network.URI.URI
 import project.Nothing.Nothing
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import False, True
 from project.Data.Text.Extensions import all
 
 polyglot java import org.enso.base.enso_cloud.CloudAPI

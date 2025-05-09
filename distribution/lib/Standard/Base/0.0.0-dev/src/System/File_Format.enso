@@ -1,7 +1,6 @@
 import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Json.Json
-import project.Data.Numbers.Integer
 import project.Data.Text.Case.Case
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
@@ -17,7 +16,6 @@ import project.Internal.Telemetry
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
-import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime

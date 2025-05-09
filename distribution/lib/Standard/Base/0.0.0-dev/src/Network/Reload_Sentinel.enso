@@ -1,9 +1,7 @@
-import Standard.Base.Error.Error
-import Standard.Base.Meta
 import Standard.Base.Nothing.Nothing
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
-from Standard.Base.Data.Boolean import Boolean, False, True
+from Standard.Base.Data.Boolean import True
 
 ## PRIVATE
    This is used by ReloadDetector.java to create a `Managed_Resource` that is

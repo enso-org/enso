@@ -2,13 +2,11 @@ import project.Any.Any
 import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Dictionary.Dictionary
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Comparable
 import project.Data.Ordering.Ordering
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
-import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 

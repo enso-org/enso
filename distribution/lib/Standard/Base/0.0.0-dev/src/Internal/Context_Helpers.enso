@@ -1,10 +1,8 @@
 private
 
 import project.Data.Numbers.Integer
-import project.Data.Text.Text
 import project.Error.Error
 import project.Runtime.Context
-from project.Data.Boolean import Boolean, False, True
 
 Integer.from (that:Context) = case that of
     Context.Input -> 1

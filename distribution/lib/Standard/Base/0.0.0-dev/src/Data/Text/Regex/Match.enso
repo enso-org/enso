@@ -12,8 +12,6 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Nothing.Nothing
-import project.Panic.Panic
-from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Metadata import Display, Widget
 

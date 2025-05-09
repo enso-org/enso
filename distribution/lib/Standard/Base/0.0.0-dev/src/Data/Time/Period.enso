@@ -1,7 +1,6 @@
 import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Comparable
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Duration.Duration
@@ -9,11 +8,8 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
-import project.Math
 import project.Meta
-import project.Nothing.Nothing
 import project.Panic.Panic
-from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 
 polyglot java import java.lang.ArithmeticException

@@ -1,6 +1,5 @@
 import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
-import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Error.Error
 import project.Errors.Common.Arithmetic_Error
@@ -10,7 +9,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime
 import project.Runtime.Source_Location.Source_Location
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import False, True
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.ClassCastException

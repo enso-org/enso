@@ -6,7 +6,7 @@ import project.Enso_Cloud.Internal.Utils
 import project.Error.Error
 import project.Meta
 import project.Nothing.Nothing
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import Boolean, True
 
 ## PRIVATE
    A helper that extracts a required field from a response and handles

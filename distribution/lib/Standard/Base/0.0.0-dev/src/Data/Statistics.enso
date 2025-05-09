@@ -1,9 +1,7 @@
 import project.Any.Any
-import project.Data.Array.Array
 import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
-import project.Data.Ordering.Comparable
 import project.Data.Ordering.Ordering
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
@@ -14,7 +12,6 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.Runtime.Ref.Ref
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Errors.Common import Unsupported_Argument_Types

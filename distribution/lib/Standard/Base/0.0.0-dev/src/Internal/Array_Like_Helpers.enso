@@ -6,7 +6,6 @@ import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Dictionary.Dictionary
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.List.List
-import project.Data.Maybe.Maybe
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Range.Range
@@ -23,9 +22,6 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Nothing.Nothing
 import project.Random.Random
-import project.Runtime
-import project.Runtime.Ref.Ref
-import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Data.Index_Sub_Range import drop_helper, take_helper

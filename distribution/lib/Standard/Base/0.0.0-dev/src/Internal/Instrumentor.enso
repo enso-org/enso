@@ -7,7 +7,6 @@ import project.Function.Function
 import project.Internal.Meta_Helpers
 import project.Meta
 import project.Nothing.Nothing
-import project.Runtime.Managed_Resource.Managed_Resource
 
 ## PRIVATE
    ADVANCED

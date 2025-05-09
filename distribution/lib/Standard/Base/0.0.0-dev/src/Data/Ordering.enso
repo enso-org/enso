@@ -1,14 +1,6 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
-import project.Data.Numbers.Number
-import project.Error.Error
 import project.Errors.Common.Incomparable_Values
-import project.Errors.Illegal_State.Illegal_State
-import project.Errors.Unimplemented.Unimplemented
-import project.Meta
-import project.Meta.Atom
-import project.Nothing.Nothing
-from project.Data.Boolean import Boolean, False, True
 from project.Internal.Ordering_Helpers import all
 
 ## Provides custom ordering, equality check and hash code for types that need it.

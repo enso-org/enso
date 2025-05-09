@@ -1,12 +1,10 @@
-import project.Any.Any
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Text.Normalization.Normalization
 import project.Errors.Common.Type_Error
-import project.Meta
 import project.Panic.Panic
-from project.Data.Boolean import Boolean, False, True
+from project.Data.Boolean import Boolean
 
 polyglot java import org.enso.base.Text_Utils
 
