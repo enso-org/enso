@@ -116,7 +116,8 @@ public class StorageIterators {
         idx++;
       }
     }
-    return builder.seal();  }
+    return builder.seal();
+  }
 
   /**
    * Iterates over every value of a source Storage, calling an operation for each step. The
@@ -141,8 +142,9 @@ public class StorageIterators {
     try (var progressHandle = ProgressHandler.init("buildOverStorage", source.getSize())) {
       long idx = 0;
       for (S item : source) {
-        operation.apply(builder, idx++, item);
+        operation.apply(builder, idx, item);
         progressHandle.advance();
+        idx++;
       }
     }
     return builder.seal();
@@ -377,7 +379,20 @@ public class StorageIterators {
    */
   public static <S, T> ColumnStorage<T> mapOverStorage(
       ColumnStorage<S> source, BuilderForType<T> builder, MapOperation<S, T> operation) {
-    return mapOverStorage(source, true, builder, operation);
+    try (var progressHandle = ProgressHandler.init("mapOverStorage", source.getSize())) {
+      long idx = 0;
+      for (S item : source) {
+        if (item == null) {
+          builder.appendNulls(1);
+        } else {
+          var result = operation.apply(idx, item);
+          builder.append(result);
+        }
+        progressHandle.advance();
+        idx++;
+      }
+    }
+    return builder.seal();
   }
 
   /**
@@ -398,21 +413,18 @@ public class StorageIterators {
       boolean preserveNothing,
       BuilderForType<T> builder,
       MapOperation<S, T> operation) {
+    if (preserveNothing) {
+      return mapOverStorage(source, builder, operation);
+    }
     try (var progressHandle = ProgressHandler.init("mapOverStorage", source.getSize())) {
       long idx = 0;
       for (S item : source) {
-        if (preserveNothing && item == null) {
-          builder.appendNulls(1);
-        } else {
-          var result = operation.apply(idx, item);
-          builder.append(result);
-        }
-
+        var result = operation.apply(idx, item);
+        builder.append(result);
         progressHandle.advance();
         idx++;
       }
     }
-
     return builder.seal();
   }
 
@@ -429,7 +441,19 @@ public class StorageIterators {
    */
   public static <T> ColumnStorage<T> mapOverLongStorage(
       ColumnLongStorage source, BuilderForType<T> builder, LongMapOperation<T> operation) {
-    return mapOverLongStorage(source, true, builder, operation);
+    try (var progressHandle = ProgressHandler.init("mapOverLongStorage", source.getSize())) {
+      var iterator = source.iteratorWithIndex();
+      while (iterator.moveNext()) {
+        if (iterator.isNothing()) {
+          builder.appendNulls(1);
+        } else {
+          var result = operation.apply(iterator.getIndex(), iterator.getItemAsLong(), false);
+          builder.append(result);
+        }
+        progressHandle.advance();
+      }
+    }
+    return builder.seal();
   }
 
   /**
@@ -449,24 +473,20 @@ public class StorageIterators {
       boolean preserveNothing,
       BuilderForType<T> builder,
       LongMapOperation<T> operation) {
+    if (preserveNothing) {
+      return mapOverLongStorage(source, builder, operation);
+    }
     try (var progressHandle = ProgressHandler.init("mapOverLongStorage", source.getSize())) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
-        if (iterator.isNothing()) {
-          if (preserveNothing) {
-            builder.appendNulls(1);
-          } else {
-            var result = operation.apply(iterator.getIndex(), 0, true);
-            builder.append(result);
-          }
-        } else {
-          var result = operation.apply(iterator.getIndex(), iterator.getItemAsLong(), false);
-          builder.append(result);
-        }
+        var result =
+            iterator.isNothing()
+                ? operation.apply(iterator.getIndex(), 0, true)
+                : operation.apply(iterator.getIndex(), iterator.getItemAsLong(), false);
+        builder.append(result);
         progressHandle.advance();
       }
     }
-
     return builder.seal();
   }
 
@@ -483,7 +503,19 @@ public class StorageIterators {
    */
   public static <T> ColumnStorage<T> mapOverDoubleStorage(
       ColumnDoubleStorage source, BuilderForType<T> builder, DoubleMapOperation<T> operation) {
-    return mapOverDoubleStorage(source, true, builder, operation);
+    try (var progressHandle = ProgressHandler.init("mapOverDoubleStorage", source.getSize())) {
+      var iterator = source.iteratorWithIndex();
+      while (iterator.moveNext()) {
+        if (iterator.isNothing()) {
+          builder.appendNulls(1);
+        } else {
+          var result = operation.apply(iterator.getIndex(), iterator.getItemAsDouble(), false);
+          builder.append(result);
+        }
+        progressHandle.advance();
+      }
+    }
+    return builder.seal();
   }
 
   /**
@@ -503,24 +535,20 @@ public class StorageIterators {
       boolean preserveNothing,
       BuilderForType<T> builder,
       DoubleMapOperation<T> operation) {
+    if (preserveNothing) {
+      return mapOverDoubleStorage(source, builder, operation);
+    }
     try (var progressHandle = ProgressHandler.init("mapOverDoubleStorage", source.getSize())) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
-        if (iterator.isNothing()) {
-          if (preserveNothing) {
-            builder.appendNulls(1);
-          } else {
-            var result = operation.apply(iterator.getIndex(), Double.NaN, true);
-            builder.append(result);
-          }
-        } else {
-          var result = operation.apply(iterator.getIndex(), iterator.getItemAsDouble(), false);
-          builder.append(result);
-        }
+        var result =
+            iterator.isNothing()
+                ? operation.apply(iterator.getIndex(), 0, true)
+                : operation.apply(iterator.getIndex(), iterator.getItemAsDouble(), false);
+        builder.append(result);
         progressHandle.advance();
       }
     }
-
     return builder.seal();
   }
 
@@ -537,7 +565,19 @@ public class StorageIterators {
    */
   public static <T> ColumnStorage<T> mapOverBooleanStorage(
       ColumnBooleanStorage source, BuilderForType<T> builder, BooleanMapOperation<T> operation) {
-    return mapOverBooleanStorage(source, true, builder, operation);
+    try (var progressHandle = ProgressHandler.init("mapOverBooleanStorage", source.getSize())) {
+      var iterator = source.iteratorWithIndex();
+      while (iterator.moveNext()) {
+        if (iterator.isNothing()) {
+          builder.appendNulls(1);
+        } else {
+          var result = operation.apply(iterator.getIndex(), iterator.getItemAsBoolean(), false);
+          builder.append(result);
+        }
+        progressHandle.advance();
+      }
+    }
+    return builder.seal();
   }
 
   /**
@@ -557,24 +597,20 @@ public class StorageIterators {
       boolean preserveNothing,
       BuilderForType<T> builder,
       BooleanMapOperation<T> operation) {
+    if (preserveNothing) {
+      return mapOverBooleanStorage(source, builder, operation);
+    }
     try (var progressHandle = ProgressHandler.init("mapOverBooleanStorage", source.getSize())) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
-        if (iterator.isNothing()) {
-          if (preserveNothing) {
-            builder.appendNulls(1);
-          } else {
-            var result = operation.apply(iterator.getIndex(), false, true);
-            builder.append(result);
-          }
-        } else {
-          var result = operation.apply(iterator.getIndex(), iterator.getItemAsBoolean(), false);
-          builder.append(result);
-        }
+        var result =
+            iterator.isNothing()
+                ? operation.apply(iterator.getIndex(), false, true)
+                : operation.apply(iterator.getIndex(), iterator.getItemAsBoolean(), false);
+        builder.append(result);
         progressHandle.advance();
       }
     }
-
     return builder.seal();
   }
 
@@ -687,12 +723,9 @@ public class StorageIterators {
         if (skipNothing && (isNothing1 || isNothing2)) {
           builder.appendNulls(1);
         } else {
-          var result = operation.apply(
-            idx, 
-            isNothing1 ? 0 : value1,
-            isNothing1,
-            isNothing2 ? 0 : value2,
-            isNothing2);
+          var result =
+              operation.apply(
+                  idx, isNothing1 ? 0 : value1, isNothing1, isNothing2 ? 0 : value2, isNothing2);
           builder.append(result);
         }
         progressHandle.advance();
@@ -734,12 +767,9 @@ public class StorageIterators {
         if (skipNothing && (isNothing1 || isNothing2)) {
           builder.appendNulls(1);
         } else {
-          var result = operation.apply(
-              idx,
-              isNothing1 ? 0 : value1,
-              isNothing1,
-              isNothing2 ? 0 : value2,
-              isNothing2);
+          var result =
+              operation.apply(
+                  idx, isNothing1 ? 0 : value1, isNothing1, isNothing2 ? 0 : value2, isNothing2);
           builder.append(result);
         }
         progressHandle.advance();
@@ -781,12 +811,9 @@ public class StorageIterators {
         if (skipNothing && (isNothing1 || isNothing2)) {
           builder.appendNulls(1);
         } else {
-          var result = operation.apply(
-              idx,
-              isNothing1 ? 0 : value1,
-              isNothing1,
-              isNothing2 ? 0 : value2,
-              isNothing2);
+          var result =
+              operation.apply(
+                  idx, isNothing1 ? 0 : value1, isNothing1, isNothing2 ? 0 : value2, isNothing2);
           builder.append(result);
         }
         progressHandle.advance();
@@ -828,12 +855,9 @@ public class StorageIterators {
         if (skipNothing && (isNothing1 || isNothing2)) {
           builder.appendNulls(1);
         } else {
-          var result = operation.apply(
-              idx,
-              isNothing1 ? 0 : value1,
-              isNothing1,
-              isNothing2 ? 0 : value2,
-              isNothing2);
+          var result =
+              operation.apply(
+                  idx, isNothing1 ? 0 : value1, isNothing1, isNothing2 ? 0 : value2, isNothing2);
           builder.append(result);
         }
         progressHandle.advance();
@@ -875,12 +899,9 @@ public class StorageIterators {
         if (skipNothing && (isNothing1 || isNothing2)) {
           builder.appendNulls(1);
         } else {
-          var result = operation.apply(
-              idx,
-              isNothing1 ? false : value1,
-              isNothing1,
-              isNothing2 ? false : value2,
-              isNothing2);
+          var result =
+              operation.apply(
+                  idx, !isNothing1 && value1, isNothing1, !isNothing2 && value2, isNothing2);
           builder.append(result);
         }
         progressHandle.advance();

@@ -1,10 +1,7 @@
 package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
-
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;

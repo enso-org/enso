@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import java.util.*;
-
 import org.enso.table.data.column.operation.CountNothing;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;

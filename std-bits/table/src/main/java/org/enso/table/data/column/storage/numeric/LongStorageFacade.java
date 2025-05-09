@@ -66,8 +66,6 @@ public class LongStorageFacade<T> implements ColumnLongStorage {
     };
   }
 
-
-
   @Override
   public ColumnLongStorageIterator iteratorWithIndex() {
     return new AbstractLongStorage.BaseLongStorageIterator(this);

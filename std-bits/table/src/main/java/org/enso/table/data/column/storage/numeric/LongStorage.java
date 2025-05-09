@@ -8,8 +8,6 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
-import org.enso.table.data.column.storage.ColumnDoubleStorage;
-import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.Storage;

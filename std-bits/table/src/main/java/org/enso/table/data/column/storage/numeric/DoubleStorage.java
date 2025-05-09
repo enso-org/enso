@@ -2,7 +2,6 @@ package org.enso.table.data.column.storage.numeric;
 
 import java.math.BigInteger;
 import java.util.BitSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.builder.Builder;
@@ -26,7 +25,6 @@ import org.enso.table.data.column.operation.map.numeric.isin.DoubleIsInOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorageIterator;
-import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.Storage;
