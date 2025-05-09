@@ -36,7 +36,6 @@ import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.editions.DefaultEdition;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
-import org.enso.os.environment.chdir.WorkingDirectory;
 import org.enso.pkg.Contact;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.PackageManager$;
@@ -51,11 +50,11 @@ import org.enso.runner.common.ProfilingConfig;
 import org.enso.runner.common.WrongOption;
 import org.enso.version.BuildVersion;
 import org.enso.version.VersionDescription;
-import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.PolyglotException.StackFrame;
 import org.graalvm.polyglot.SourceSection;
 import org.graalvm.polyglot.io.MessageTransport;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.slf4j.event.Level;
@@ -110,7 +109,7 @@ public class Main {
 
   private static final String DEFAULT_MAIN_METHOD_NAME = "main";
 
-  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(Main.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
   Main() {}
 
@@ -611,9 +610,9 @@ public class Main {
             : join(new Contact(authorName, authorEmail), nil());
 
     var edition = DefaultEdition.getDefaultEdition();
-    if (logger.isTraceEnabled()) {
+    if (LOGGER.isTraceEnabled()) {
       var baseEdition = edition.parent().getOrElse(() -> "<no-base>");
-      logger.trace("Creating a new project " + name + " based on edition [" + baseEdition + "].");
+      LOGGER.trace("Creating a new project " + name + " based on edition [" + baseEdition + "].");
     }
 
     var template =
@@ -659,6 +658,7 @@ public class Main {
    * @param logMasking whether or not log masking is enabled
    */
   private void compile(
+      String cwd,
       String path,
       boolean shouldCompileDependencies,
       boolean shouldUseGlobalCache,
@@ -669,10 +669,8 @@ public class Main {
       Level logLevel,
       boolean logMasking)
       throws IOException {
-    var fileAndProject = Utils.findFileAndProject(path, null);
-    if (fileAndProject == null) {
-      throw exitFail("No package exists at " + path + ".");
-    }
+    var fileAndProject = Utils.findFileAndProject(cwd, path, null);
+    assert fileAndProject != null;
 
     boolean isProjectMode = fileAndProject._1();
     String projectPath = fileAndProject._3();
@@ -708,7 +706,7 @@ public class Main {
         throw exitFail("Compilation failed due to " + reason + ".");
       } else {
         String message = "Unexpected internal error: " + t.getMessage();
-        logger.error(message, t);
+        LOGGER.error(message, t);
         throw exitFail(message);
       }
 
@@ -737,6 +735,7 @@ public class Main {
    *     null}
    */
   private void handleRun(
+      String cwd,
       String path,
       List<String> additionalArgs,
       String projectPath,
@@ -752,10 +751,8 @@ public class Main {
       String executionEnvironment,
       int warningsLimit)
       throws IOException {
-    var fileAndProject = Utils.findFileAndProject(path, projectPath);
-    if (fileAndProject == null) {
-      throw exitFail("Cannot find " + path + " and " + projectPath);
-    }
+    var fileAndProject = Utils.findFileAndProject(cwd, path, projectPath);
+    assert fileAndProject != null;
     var projectMode = fileAndProject._1();
     var file = fileAndProject._2();
     var mainFile = file;
@@ -820,7 +817,7 @@ public class Main {
     } catch (RuntimeException e) {
       // forces computation of the exception message sooner than context is closed
       // should work around issues seen at #11127
-      logger.debug("Execution failed with " + e.getMessage());
+      LOGGER.debug("Execution failed with " + e.getMessage());
       throw e;
     } finally {
       context.context().close();
@@ -840,22 +837,21 @@ public class Main {
    */
   private void genDocs(
       String docsFormat,
+      String cwd,
       String projectPath,
       Level logLevel,
       boolean logMasking,
-      boolean enableIrCaches) {
+      boolean enableIrCaches)
+      throws IOException {
     if (projectPath == null || projectPath.isEmpty()) {
       throw exitFail("Specify path to a project with --in-project option");
     }
-    if (!fileExists(projectPath)) {
+    var fileAndProject = Utils.findFileAndProject(cwd, projectPath, null);
+    if (fileAndProject == null) {
       throw exitFail("Project specified in --in-project option does not exist: " + projectPath);
     }
     generateDocsFrom(docsFormat, projectPath, logLevel, logMasking, enableIrCaches);
     throw exitSuccess();
-  }
-
-  private static boolean fileExists(String path) {
-    return new File(path).exists();
   }
 
   /**
@@ -901,7 +897,7 @@ public class Main {
       DependencyPreinstaller.preinstallDependencies(new File(projectPath), logLevel);
       throw exitSuccess();
     } catch (RuntimeException error) {
-      logger.error("Dependency installation failed: " + error.getMessage(), error);
+      LOGGER.error("Dependency installation failed: " + error.getMessage(), error);
       throw exitFail("Dependency installation failed: " + error.getMessage());
     }
   }
@@ -960,7 +956,7 @@ public class Main {
           listOfArgs = join(e, listOfArgs);
         }
         listOfArgs = listOfArgs.reverse();
-        logger.debug("Executing the main function with arguments {}", listOfArgs.mkString(", "));
+        LOGGER.debug("Executing the main function with arguments {}", listOfArgs.mkString(", "));
         var res = main.execute(listOfArgs);
         if (!res.isNull()) {
           var textRes = res.isString() ? res.asString() : res.toString();
@@ -1045,7 +1041,7 @@ public class Main {
               var repl = futureRepl.get();
               return new DebuggerSessionManagerEndpoint(repl, peer);
             } catch (InterruptedException | ExecutionException ex) {
-              logger.error("Cannot initialize REPL transport", ex);
+              LOGGER.error("Cannot initialize REPL transport", ex);
             }
           }
           return null;
@@ -1105,11 +1101,13 @@ public class Main {
   /**
    * Main entry point for the CLI program.
    *
+   * @param cwd current working directory to use
    * @param line the provided command line arguments
    * @param logLevel the provided log level
    * @param logMasking the flag indicating if the log masking is enabled
    */
-  final void mainEntry(CommandLine line, Level logLevel, boolean logMasking) throws IOException {
+  final void mainEntry(String cwd, CommandLine line, Level logLevel, boolean logMasking)
+      throws IOException {
     if (line.hasOption(HELP_OPTION)) {
       printHelp();
       throw exitSuccess();
@@ -1180,6 +1178,7 @@ public class Main {
       var shouldUseGlobalCache = !line.hasOption(NO_GLOBAL_CACHE_OPTION);
 
       compile(
+          cwd,
           packagePath,
           shouldCompileDependencies,
           shouldUseGlobalCache,
@@ -1191,8 +1190,10 @@ public class Main {
           logMasking);
     }
 
+    LOGGER.debug("Original working directory={}, cwd={}", cwd, System.getProperty("user.dir"));
     if (line.hasOption(RUN_OPTION)) {
       handleRun(
+          cwd,
           line.getOptionValue(RUN_OPTION),
           Arrays.asList(line.getArgs()),
           line.getOptionValue(IN_PROJECT_OPTION),
@@ -1222,6 +1223,7 @@ public class Main {
     if (line.hasOption(DOCS_OPTION)) {
       genDocs(
           line.getOptionValue(DOCS_OPTION),
+          cwd,
           line.getOptionValue(IN_PROJECT_OPTION),
           logLevel,
           logMasking,
@@ -1296,7 +1298,7 @@ public class Main {
           try {
             sampler.stop();
           } catch (IOException ex) {
-            logger.error("Error stopping sampler", ex);
+            LOGGER.error("Error stopping sampler", ex);
           }
           return BoxedUnit.UNIT;
         });
@@ -1504,8 +1506,11 @@ public class Main {
   private void launch(String[] args) throws IOException, InterruptedException, URISyntaxException {
     var line = preprocessArguments(args);
 
-    if (line.hasOption(RUN_OPTION)) {
-      maybeChangeWorkingDirToProjectRoot(line.getOptionValue(RUN_OPTION));
+    String originalCwdOrNull = null;
+    if (line.hasOption(IN_PROJECT_OPTION)) {
+      originalCwdOrNull = Utils.adjustCwdToProject(line.getOptionValue(IN_PROJECT_OPTION));
+    } else if (line.hasOption(RUN_OPTION)) {
+      originalCwdOrNull = Utils.adjustCwdToProject(line.getOptionValue(RUN_OPTION));
     }
 
     var logMasking = new boolean[1];
@@ -1556,7 +1561,7 @@ public class Main {
       }
     }
 
-    launch(line, logLevel, logMasking[0]);
+    handleLaunch(originalCwdOrNull, line, logLevel, logMasking[0]);
   }
 
   final CommandLine preprocessArguments(String... args) {
@@ -1564,48 +1569,13 @@ public class Main {
     try {
       var startParsing = System.currentTimeMillis();
       var line = parser.parse(CLI_OPTIONS, args);
-      logger.trace(
+      LOGGER.trace(
           "Parsing Language Server arguments took {0}ms",
           System.currentTimeMillis() - startParsing);
       return line;
     } catch (Exception e) {
       printHelp();
       throw exitFail(e.getMessage());
-    }
-  }
-
-  /**
-   * This method has to be called as early as possible. It attempts to find the project root
-   * directory of the given file, and if the project root is found, it uses native code to change
-   * the working directory to the project root. In order for the JVM's {@code java.io} to reflect
-   * the working directory change, this methods must be called before any class from {@code java.io}
-   * is accessed.
-   *
-   * <p>Note that invoking native code is the only reliable way to change the working directory in
-   * the current process.
-   *
-   * <p>For detailed explanation see this <a
-   * href="https://github.com/enso-org/enso/pull/12618#issuecomment-2778451448">GH comment</a>.
-   *
-   * @param fileToRun the file to run, value of the {@code --run} option.
-   */
-  private void maybeChangeWorkingDirToProjectRoot(String fileToRun) {
-    assert fileToRun != null;
-    if (!ImageInfo.inImageRuntimeCode()) {
-      return;
-    }
-    var nativeApi = WorkingDirectory.getInstance();
-    var projectRoot = nativeApi.findProjectRoot(fileToRun);
-    if (projectRoot != null) {
-      var parentDir = nativeApi.parentFile(projectRoot);
-      assert parentDir != null;
-      var curDir = nativeApi.currentWorkingDir();
-      if (!parentDir.equals(curDir)) {
-        var dirChanged = nativeApi.changeWorkingDir(parentDir);
-        if (!dirChanged) {
-          logger.error("Cannot change working directory to {}", parentDir);
-        }
-      }
     }
   }
 
@@ -1638,7 +1608,8 @@ public class Main {
     return logLevel;
   }
 
-  private void launch(CommandLine line, Level logLevel, boolean logMasking) {
+  private final void handleLaunch(
+      String cwd, CommandLine line, Level logLevel, boolean logMasking) {
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       try {
         var conf = parseProfilingConfig(line);
@@ -1663,12 +1634,14 @@ public class Main {
               conf,
               ExecutionContext.global(),
               () -> {
-                mainEntry(line, logLevel, logMasking);
+                mainEntry(cwd, line, logLevel, logMasking);
                 return BoxedUnit.UNIT;
               });
+        } catch (ExitCode ex) {
+          throw exitFail(ex.getMessage());
         } catch (IOException ex) {
-          if (logger.isDebugEnabled()) {
-            logger.error("Error during execution", ex);
+          if (LOGGER.isDebugEnabled()) {
+            LOGGER.error("Error during execution", ex);
           }
           throw exitFail("Command failed with an error: " + ex.getMessage());
         }

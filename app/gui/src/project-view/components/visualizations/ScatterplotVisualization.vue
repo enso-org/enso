@@ -148,7 +148,7 @@ const SHAPE_TO_SYMBOL: Record<string, d3.SymbolType> = {
 const createDateTime = (x: DateObj) => {
   const dateTime = new Date()
   if (x.day != null) dateTime.setDate(x.day)
-  if (x.month != null) dateTime.setMonth(x.month)
+  if (x.month != null) dateTime.setMonth(x.month - 1)
   if (x.year != null) dateTime.setFullYear(x.year)
   if (x.hour != null) dateTime.setHours(x.hour)
   if (x.minute != null) dateTime.setMinutes(x.minute)
@@ -508,6 +508,7 @@ const brush = computed(() => {
     ])
     .on('start brush', (event: d3.D3BrushEvent<unknown>) => {
       brushExtent.value = event.selection ?? undefined
+      createNewFilterNodeEnabled.value = true
     })
 })
 
@@ -681,7 +682,7 @@ function formatXPoint(x: Date | number | DateObj) {
       case 'Time':
         return x.toTimeString()
       case 'Date':
-        return x.toDateString()
+        return x.toISOString()
       default:
         return x.toString()
     }
@@ -884,15 +885,15 @@ function useScatterplotVizToolbar() {
       toggle: selectionEnabled,
     },
     {
-      icon: 'show_all',
-      title: 'Fit All',
-      onClick: () => zoomToSelected(false),
-    },
-    {
       icon: 'zoom',
       title: 'Zoom to Selected',
       disabled: () => brushExtent.value == null,
       onClick: zoomToSelected,
+    },
+    {
+      icon: 'refresh',
+      title: 'Reset scatterplot view',
+      onClick: () => zoomToSelected(false),
     },
     {
       icon: 'add_to_graph_editor',

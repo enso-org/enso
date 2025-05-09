@@ -1,14 +1,9 @@
 /** @file Success screen for the "invite users" modal. */
-import * as React from 'react'
-
-import * as reactRouterDom from 'react-router-dom'
-
-import ArrowRightIcon from '#/assets/arrow_right.svg'
-
-import * as textProvider from '#/providers/TextProvider'
-
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
+import * as textProvider from '#/providers/TextProvider'
+import { useRouterInReact } from '$/providers/react'
+import * as React from 'react'
 
 /**
  * The number of emails to display in the success message.
@@ -33,7 +28,7 @@ export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
     ['cloud-ide_SettingsTab', '"members"'],
   ] as const
 
-  const [searchParams, setSearchParams] = reactRouterDom.useSearchParams()
+  const { route, router } = useRouterInReact()
 
   const emailListFormatter = React.useMemo(
     () => new Intl.ListFormat(locale, { type: 'conjunction', style: 'long' }),
@@ -41,8 +36,8 @@ export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
   )
 
   const isUserOnMembersPage =
-    searchParams.has(membersSearchParams[0][0], membersSearchParams[0][1]) &&
-    searchParams.has(membersSearchParams[1][0], membersSearchParams[1][1])
+    route.query[membersSearchParams[0][0]] === membersSearchParams[0][1] &&
+    route.query[membersSearchParams[1][0]] === membersSearchParams[1][1]
 
   return (
     <result.Result
@@ -65,16 +60,14 @@ export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
           {!isUserOnMembersPage && (
             <ariaComponents.Button
               variant="outline"
-              icon={ArrowRightIcon}
+              icon="arrow_right"
               size="medium"
               iconPosition="end"
               onPressStart={onClose}
               onPress={() => {
                 onClose()
-                membersSearchParams.forEach(([key, value]) => {
-                  searchParams.set(key, value)
-                })
-                setSearchParams(searchParams)
+                const newQuery = { ...route.query, ...Object.fromEntries(membersSearchParams) }
+                void router.push({ query: newQuery })
               }}
             >
               {getText('goToMembersPage')}

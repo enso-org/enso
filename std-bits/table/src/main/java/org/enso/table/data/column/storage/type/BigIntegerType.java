@@ -7,7 +7,7 @@ import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record BigIntegerType() implements StorageType<BigInteger> {
+public record BigIntegerType() implements StorageType<BigInteger>, NumericType {
   public static final BigIntegerType INSTANCE = new BigIntegerType();
 
   @Override

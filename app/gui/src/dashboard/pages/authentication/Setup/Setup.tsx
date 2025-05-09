@@ -5,12 +5,9 @@
 import * as React from 'react'
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import invariant from 'tiny-invariant'
 
 import type * as text from 'enso-common/src/text'
-
-import ArrowRight from '#/assets/arrow_right.svg'
 
 import { DASHBOARD_PATH, LOGIN_PATH, ORGANIZATION_NAME_MAX_LENGTH } from '#/appUtils'
 
@@ -28,6 +25,7 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { InviteUsersForm } from '#/modals/InviteUsersModal'
 import { PlanSelector } from '#/modules/payments'
 import { Plan } from '#/services/Backend'
+import { useRouterInReact } from '$/providers/react'
 
 /** Step in the setup process */
 interface Step {
@@ -312,8 +310,7 @@ const BASE_STEPS: Step[] = [
     /** Final setup step. */
     component: function AllSetStep({ goToPreviousStep }) {
       const { getText } = textProvider.useText()
-
-      const navigate = useNavigate()
+      const { router } = useRouterInReact()
       const queryClient = useQueryClient()
 
       return (
@@ -325,13 +322,9 @@ const BASE_STEPS: Step[] = [
           <ariaComponents.Button
             variant="primary"
             size="medium"
-            icon={ArrowRight}
+            icon="arrow_right"
             iconPosition="end"
-            onPress={() =>
-              queryClient.invalidateQueries().then(() => {
-                navigate(DASHBOARD_PATH)
-              })
-            }
+            onPress={() => queryClient.invalidateQueries().then(() => router.push(DASHBOARD_PATH))}
           >
             {getText('goToDashboard')}
           </ariaComponents.Button>
@@ -346,13 +339,12 @@ export function Setup() {
   const { getText } = textProvider.useText()
   const { session } = useAuth()
   const isFirstRender = useIsFirstRender()
-
-  const [searchParams] = useSearchParams()
+  const { router, route } = useRouterInReact()
 
   const userPlan = session && 'user' in session ? session.user.plan : Plan.free
 
   const steps = BASE_STEPS
-  const isDebug = searchParams.get('__qd-debg__') === 'true'
+  const isDebug = route.query['__qd-debg__'] === 'true'
 
   const { stepperState, nextStep, previousStep, currentStep } = stepper.useStepperState({
     steps: steps.length,
@@ -396,7 +388,8 @@ export function Setup() {
   }
 
   if (session?.type !== UserSessionType.full && session?.type !== UserSessionType.partial) {
-    return <Navigate to={LOGIN_PATH} />
+    void router.push(LOGIN_PATH)
+    return
   }
 
   const hideNext =

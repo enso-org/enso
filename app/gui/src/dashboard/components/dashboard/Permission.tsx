@@ -11,7 +11,6 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as textProvider from '#/providers/TextProvider'
 
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
-import FocusArea from '#/components/styled/FocusArea'
 
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
@@ -81,26 +80,22 @@ export default function Permission(props: PermissionProps) {
   }
 
   return (
-    <FocusArea active={!isDisabled} direction="horizontal">
-      {(innerProps) => (
-        <div className="flex w-full items-center gap-user-permission" {...innerProps}>
-          <PermissionSelector
-            showDelete
-            isDisabled={isDisabled}
-            error={isOnlyOwner ? getText('needsOwnerError', assetTypeName) : null}
-            selfPermission={self.permission}
-            action={permission.permission}
-            assetType={asset.type}
-            onChange={async (permissions) => {
-              await doSetPermission(object.merge(permission, { permission: permissions }))
-            }}
-            doDelete={() => {
-              doDelete(backendModule.getAssetPermissionId(permission))
-            }}
-          />
-          <Text truncate="1">{backendModule.getAssetPermissionName(permission)}</Text>
-        </div>
-      )}
-    </FocusArea>
+    <div className="flex w-full items-center gap-user-permission">
+      <PermissionSelector
+        showDelete
+        isDisabled={isDisabled}
+        error={isOnlyOwner ? getText('needsOwnerError', assetTypeName) : null}
+        selfPermission={self.permission}
+        action={permission.permission}
+        assetType={asset.type}
+        onChange={async (permissions) => {
+          await doSetPermission(object.merge(permission, { permission: permissions }))
+        }}
+        doDelete={() => {
+          doDelete(backendModule.getAssetPermissionId(permission))
+        }}
+      />
+      <Text truncate="1">{backendModule.getAssetPermissionName(permission)}</Text>
+    </div>
   )
 }

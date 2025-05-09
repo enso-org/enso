@@ -8,7 +8,11 @@ import {
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog, useToastAndLogWithId } from '#/hooks/toastAndLogHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import { useCategoriesAPI } from '#/layouts/Drive/Categories'
+import {
+  useCategories,
+  useCategoriesAPI,
+  useTransferBetweenCategories,
+} from '#/layouts/Drive/Categories'
 import DuplicateAssetsModal, { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { useRemoteBackend } from '#/providers/BackendProvider'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
@@ -722,4 +726,23 @@ export function useUploadFileMutation(
   // This is UNSAFE. Care must be taken to ensire all state is merged properly.
   // eslint-disable-next-line no-restricted-syntax
   return result as UploadFileMutationResult
+}
+
+/**
+ * Download a file to local.
+ * Does not work in environments that do not have a local backend.
+ */
+export function useUploadFileToLocal(category: Category) {
+  const { getText } = useText()
+  const transferBetweenCategories = useTransferBetweenCategories(category)
+
+  const { localCategories } = useCategories()
+  const localHomeCategory = localCategories.categories.find(
+    (otherCategory) => otherCategory.type === 'local',
+  )
+  return useEventCallback(async (assets: readonly AnyAsset[]) => {
+    invariant(localHomeCategory, 'Local home category must exist to download to local')
+    await transferBetweenCategories(category, localHomeCategory, assets)
+    toast.success(getText('downloadProjectToLocalSuccess'))
+  })
 }
