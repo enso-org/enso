@@ -206,7 +206,7 @@ public final class LongStorage extends AbstractLongStorage
   }
 
   @Override
-  public ColumnLongStorageIterator iterator() {
+  public ColumnLongStorageIterator iteratorWithIndex() {
     return new LongStorageIterator(data, isNothing, (int) getSize());
   }
 

@@ -2,6 +2,7 @@ package org.enso.table.data.column.storage.numeric;
 
 import java.math.BigInteger;
 import java.util.BitSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.builder.Builder;
@@ -423,7 +424,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public ColumnDoubleStorageIterator iterator() {
+  public ColumnDoubleStorageIterator iteratorWithIndex() {
     return new DoubleStorageIterator(data, isNothing, (int) getSize());
   }
 

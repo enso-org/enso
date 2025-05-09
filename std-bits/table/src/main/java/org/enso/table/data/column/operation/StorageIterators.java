@@ -50,7 +50,7 @@ public class StorageIterators {
       DoubleBuildObjectOperation operation) {
     try (var progressHandle =
         ProgressHandler.init("buildObjectOverDoubleStorage", source.getSize())) {
-      var iterator = source.iterator();
+      var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (iterator.isNothing()) {
           if (preserveNothing) {
@@ -233,7 +233,7 @@ public class StorageIterators {
       B builder,
       DoubleBuildOperation<B> operation) {
     try (var progressHandle = ProgressHandler.init("buildOverDoubleStorage", source.getSize())) {
-      var iterator = source.iterator();
+      var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (iterator.isNothing()) {
           if (preserveNothing) {
@@ -289,7 +289,7 @@ public class StorageIterators {
       B builder,
       BooleanBuildOperation<B> operation) {
     try (var progressHandle = ProgressHandler.init("buildOverBooleanStorage", source.getSize())) {
-      var iterator = source.iterator();
+      var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (iterator.isNothing()) {
           if (preserveNothing) {
@@ -414,7 +414,7 @@ public class StorageIterators {
       BuilderForType<T> builder,
       LongMapOperation<T> operation) {
     try (var progressHandle = ProgressHandler.init("mapOverLongStorage", source.getSize())) {
-      var iterator = source.iterator();
+      var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (iterator.isNothing()) {
           if (preserveNothing) {
@@ -468,7 +468,7 @@ public class StorageIterators {
       BuilderForType<T> builder,
       DoubleMapOperation<T> operation) {
     try (var progressHandle = ProgressHandler.init("mapOverDoubleStorage", source.getSize())) {
-      var iterator = source.iterator();
+      var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (iterator.isNothing()) {
           if (preserveNothing) {
@@ -522,7 +522,7 @@ public class StorageIterators {
       BuilderForType<T> builder,
       BooleanMapOperation<T> operation) {
     try (var progressHandle = ProgressHandler.init("mapOverBooleanStorage", source.getSize())) {
-      var iterator = source.iterator();
+      var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (iterator.isNothing()) {
           if (preserveNothing) {
@@ -647,7 +647,7 @@ public class StorageIterators {
 
     try (var progressHandle = ProgressHandler.init("zipOverLongStorages", size)) {
       source1
-          .iterator()
+          .iteratorWithIndex()
           .zip(
               source2,
               (idx, value1, isNothing1, value2, isNothing2) -> {
@@ -689,7 +689,7 @@ public class StorageIterators {
 
     try (var progressHandle = ProgressHandler.init("zipOverLongDoubleStorages", size)) {
       source1
-          .iterator()
+          .iteratorWithIndex()
           .zip(
               source2,
               (idx, value1, isNothing1, value2, isNothing2) -> {
@@ -731,7 +731,7 @@ public class StorageIterators {
 
     try (var progressHandle = ProgressHandler.init("zipOverDoubleLongStorages", size)) {
       source1
-          .iterator()
+          .iteratorWithIndex()
           .zip(
               source2,
               (idx, value1, isNothing1, value2, isNothing2) -> {
@@ -773,7 +773,7 @@ public class StorageIterators {
 
     try (var progressHandle = ProgressHandler.init("zipOverDoubleStorages", size)) {
       source1
-          .iterator()
+          .iteratorWithIndex()
           .zip(
               source2,
               (idx, value1, isNothing1, value2, isNothing2) -> {
@@ -815,7 +815,7 @@ public class StorageIterators {
 
     try (var progressHandle = ProgressHandler.init("zipOverBooleanStorages", size)) {
       source1
-          .iterator()
+          .iteratorWithIndex()
           .zip(
               source2,
               (idx, value1, isNothing1, value2, isNothing2) -> {

@@ -1,6 +1,7 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.IntFunction;
@@ -323,7 +324,7 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public ColumnBooleanStorageIterator iterator() {
+  public ColumnBooleanStorageIterator iteratorWithIndex() {
     return new BoolStorageIterator(this);
   }
 

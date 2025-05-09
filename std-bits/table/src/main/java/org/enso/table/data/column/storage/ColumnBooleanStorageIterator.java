@@ -12,7 +12,7 @@ public interface ColumnBooleanStorageIterator extends ColumnStorageIterator<Bool
   /** Zips this iterator with another iterator. */
   default void zip(
       ColumnBooleanStorage otherStorage, ColumnBooleanStorageIterator.BooleanBooleanZipper zipper) {
-    var other = otherStorage.iterator();
+    var other = otherStorage.iteratorWithIndex();
 
     boolean hasValue1 = moveNext();
     boolean hasValue2 = other.moveNext();

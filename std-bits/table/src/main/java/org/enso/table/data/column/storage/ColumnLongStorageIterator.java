@@ -16,7 +16,7 @@ public interface ColumnLongStorageIterator extends ColumnStorageIterator<Long> {
 
   /** Zips this iterator with a Double storage. */
   default void zip(ColumnDoubleStorage otherStorage, LongDoubleZipper zipper) {
-    var other = otherStorage.iterator();
+    var other = otherStorage.iteratorWithIndex();
 
     boolean hasValue1 = moveNext();
     boolean hasValue2 = other.moveNext();
@@ -34,7 +34,7 @@ public interface ColumnLongStorageIterator extends ColumnStorageIterator<Long> {
 
   /** Zips this iterator with another Long storage. */
   default void zip(ColumnLongStorage otherStorage, LongLongZipper zipper) {
-    var other = otherStorage.iterator();
+    var other = otherStorage.iteratorWithIndex();
 
     boolean hasValue1 = moveNext();
     boolean hasValue2 = other.moveNext();
