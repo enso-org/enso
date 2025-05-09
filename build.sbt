@@ -363,6 +363,7 @@ lazy val enso = (project in file("."))
     `persistance`,
     `persistance-dsl`,
     pkg,
+    `poi-wrapper`,
     `polyglot-api`,
     `polyglot-api-macros`,
     `process-utils`,
@@ -1379,6 +1380,20 @@ lazy val `jna-wrapper` = project
         javaModuleName.value -> jna
       )
     },
+    assemblyMergeStrategy := { case _ =>
+      MergeStrategy.preferProject
+    }
+  )
+
+lazy val `poi-wrapper` = project
+  .in(file("lib/java/poi-wrapper"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := "0.1",
+    autoScalaLibrary := false,
+    libraryDependencies ++= Seq(
+      "org.apache.poi" % "poi-ooxml" % poiOoxmlVersion
+    ),
     assemblyMergeStrategy := { case _ =>
       MergeStrategy.preferProject
     }
@@ -5049,6 +5064,7 @@ lazy val `std-table` = project
       result
     }
   )
+  .dependsOn(`poi-wrapper`)
   .dependsOn(`std-base` % "provided")
 
 lazy val extractNativeLibs = taskKey[AnalysisOfExtractedNativeLibs](
