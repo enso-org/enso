@@ -127,11 +127,12 @@ public class StorageIterators {
   public static <B extends BuilderForType<T>, S, T> ColumnStorage<T> buildOverStorage(
       ColumnStorage<S> source, boolean preserveNothing, B builder, BuildOperation<B, S> operation) {
     try (var progressHandle = ProgressHandler.init("buildOverStorage", source.getSize())) {
+      long idx = 0;
       for (S item : source) {
         if (preserveNothing && item == null) {
           builder.appendNulls(1);
         } else {
-          operation.apply(builder, progressHandle.getIndex(), item);
+          operation.apply(builder, idx++, item);
         }
         progressHandle.advance();
       }
@@ -155,11 +156,12 @@ public class StorageIterators {
   public static <B extends BuilderForType<T>, T> ColumnStorage<T> buildOverLongStorage(
       ColumnLongStorage source, B builder, LongBuildOperation<B> operation) {
     try (var progressHandle = ProgressHandler.init("buildOverStorage", source.getSize())) {
-      for (long index = 0; index < source.getSize(); index++) {
-        if (source.isNothing(index)) {
+      var iterator = source.iteratorWithIndex();
+      while (iterator.moveNext()) {
+        if (iterator.isNothing()) {
           builder.appendNulls(1);
         } else {
-          operation.apply(builder, index, source.getItemAsLong(index), false);
+          operation.apply(builder, iterator.getIndex(), iterator.getItemAsLong(), false);
         }
         progressHandle.advance();
       }

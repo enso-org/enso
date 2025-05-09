@@ -11,19 +11,13 @@ public final class ProgressHandler implements AutoCloseable {
   private final String name;
   private final long count;
   private final Context context;
-  private long index;
   private long step;
 
   private ProgressHandler(String name, long count) {
     this.name = name;
     this.count = count;
     this.context = Context.getCurrent();
-    this.index = 0;
     this.step = PROGRESS_STEP;
-  }
-
-  public long getIndex() {
-    return index;
   }
 
   @Override
@@ -32,7 +26,6 @@ public final class ProgressHandler implements AutoCloseable {
   }
 
   public void advance() {
-    index++;
     step--;
     if (step == 0) {
       context.safepoint();
