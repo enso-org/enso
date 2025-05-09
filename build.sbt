@@ -5047,6 +5047,11 @@ lazy val `std-table` = project
       "org.mockito"              % "mockito-core"            % mockitoJavaVersion        % Test,
       "org.mockito"              % "mockito-junit-jupiter"   % mockitoJavaVersion        % Test
     ),
+    Compile / unmanagedJars := {
+      Seq(
+        Attributed.blank((`poi-wrapper` / assembly).value)
+      )
+    },
     Compile / packageBin := {
       val result            = (Compile / packageBin).value
       val cacheStoreFactory = streams.value.cacheStoreFactory
@@ -5057,9 +5062,16 @@ lazy val `std-table` = project
           ignoreScalaLibrary = true,
           libraryUpdates     = (Compile / update).value,
           unmanagedClasspath = (Compile / unmanagedJars).value,
-          logger             = streams.value.log,
-          cacheStoreFactory  = cacheStoreFactory,
-          previousRun        = None
+          ignoreDependencies = Some(
+            Seq(
+              "org.apache.poi" % "poi"            % poiOoxmlVersion,
+              "org.apache.poi" % "poi-ooxml"      % poiOoxmlVersion,
+              "org.apache.poi" % "poi-ooxml-lite" % poiOoxmlVersion
+            )
+          ),
+          logger            = streams.value.log,
+          cacheStoreFactory = cacheStoreFactory,
+          previousRun       = None
         )
       result
     }
@@ -5103,7 +5115,8 @@ lazy val `std-image` = project
           `image-polyglot-root`,
           Seq("std-image.jar", "opencv.jar"),
           ignoreScalaLibrary = true,
-          ignoreDependency   = Some("org.openpnp" % "opencv" % opencvVersion),
+          ignoreDependencies =
+            Some(Seq("org.openpnp" % "opencv" % opencvVersion)),
           libraryUpdates     = (Compile / update).value,
           logger             = logger,
           cacheStoreFactory  = cacheStoreFactory,
