@@ -5,7 +5,9 @@ import { BackendType, ProjectId } from '#/services/Backend'
 import { Drive, Editor, Settings } from '$/components/TabView/reactTabs'
 import SelectableTab from '$/components/TabView/SelectableTab.vue'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { isOnMacOS } from 'enso-common/src/detect'
 import { applyPureReactInVue } from 'veaury'
 import { reactive, watch } from 'vue'
 
@@ -91,7 +93,13 @@ const onSignOut = () => {
           <SvgIcon v-if="readyProjects.has(project.id)" name="graph_editor" />
           <GrowingSpinner v-else :state="loadingProjectSpinnerState(project)" :size="16" />
           <span>{{ projectNames.get(project.id) }}</span>
-          <SvgIcon name="close" @click="closeProject(project)" />
+          <SvgButton
+            class="closeButton"
+            :class="{ onMacOs: isOnMacOS() }"
+            name="tab_close"
+            :extendedHover="8"
+            @click="closeProject(project)"
+          />
         </SelectableTab>
         <SelectableTab v-if="page === 'settings'" :selected="true">
           <SvgIcon name="settings" /><span>Settings</span>
@@ -155,5 +163,31 @@ const onSignOut = () => {
   flex-grow: 1;
   min-height: 0;
   display: flex;
+}
+
+.closeButton {
+  --button-padding: 0px;
+  --icon-width: 12px;
+  --icon-height: 12px;
+
+  &:hover {
+    background-color: rgba(239, 68, 68, 0.8);
+  }
+
+  &.onMacOs {
+    transition: color 0.3s;
+    color: rgba(0, 0, 0, 0);
+    &:not(:hover) {
+      background-color: rgba(0, 0, 0, 0.3);
+    }
+    &:hover {
+      color: rgba(0, 0, 0, 0.9);
+    }
+  }
+}
+
+.SelectableTab span {
+  /* Trim the text box, so the span will align with icons properly*/
+  text-box: trim-both cap alphabetic;
 }
 </style>

@@ -14,7 +14,11 @@ import type { ComponentExposed } from 'vue-component-type-helpers'
  */
 
 const toggledOn = defineModel<boolean>({ default: undefined })
-const props = defineProps<{ disabled?: boolean | undefined; title?: string | undefined }>()
+const props = defineProps<{
+  disabled?: boolean | undefined
+  title?: string | undefined
+  extendedHover?: number | undefined
+}>()
 const tooltipTrigger = ref<ComponentExposed<typeof TooltipTrigger>>()
 
 function onClick() {
@@ -37,6 +41,11 @@ function onClick() {
         @click.stop="onClick"
       >
         <slot />
+        <div
+          v-if="extendedHover"
+          class="hoverArea"
+          :style="{ '--extendedHover': `${extendedHover}px` }"
+        />
       </button>
     </template>
     <template v-if="$slots.tooltip || props.title" #tooltip>
@@ -51,10 +60,11 @@ function onClick() {
   justify-content: center;
   align-items: center;
   min-width: max-content;
-  padding: 4px;
+  padding: var(--button-padding, 4px);
   border-radius: var(--radius-full);
   border: none;
   transition: background-color 0.3s;
+  position: relative;
 
   &.toggledOn {
     background-color: var(--color-menu-entry-selected-bg);
@@ -72,5 +82,11 @@ function onClick() {
       background-color: unset;
     }
   }
+}
+
+.hoverArea {
+  position: absolute;
+  inset: calc(var(--extendedHover) * -1);
+  cursor: pointer;
 }
 </style>

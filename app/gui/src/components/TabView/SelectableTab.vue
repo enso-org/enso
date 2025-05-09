@@ -28,9 +28,9 @@ const selected = defineModel<boolean>('selected')
   position: relative;
   display: flex;
   flex-direction: row;
-  align-items: center;
   height: 100%;
   padding: 8px;
+  text-wrap-mode: nowrap;
 }
 
 .underlying {

@@ -102,6 +102,7 @@ onMounted(() => {
   position: absolute;
   color: var(--color-text);
   font-family: var(--font-sans);
+  dominant-baseline: central;
   font-weight: 500;
   font-size: 11.5px;
   line-height: 20px;
