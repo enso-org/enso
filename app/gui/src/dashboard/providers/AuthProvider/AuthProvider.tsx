@@ -260,7 +260,9 @@ export function AuthProvider(props: AuthProviderProps) {
   }, [userData, setFeatureFlags])
 
   const effectiveUserData =
-    userData?.type === UserSessionType.full ? { ...userData, plan: planOverride } : userData
+    userData?.type === UserSessionType.full && planOverride != null ?
+      { ...userData, user: { ...userData.user, plan: planOverride } }
+    : userData
 
   const value: AuthContextType = {
     refetchSession,
