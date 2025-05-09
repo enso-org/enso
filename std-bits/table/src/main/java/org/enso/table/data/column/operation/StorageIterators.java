@@ -671,19 +671,24 @@ public class StorageIterators {
     var builder = builderConstructor.apply(size);
 
     try (var progressHandle = ProgressHandler.init("zipOverLongStorages", size)) {
-      source1
-          .iteratorWithIndex()
-          .zip(
-              source2,
-              (idx, value1, isNothing1, value2, isNothing2) -> {
-                if (skipNothing && (isNothing1 || isNothing2)) {
-                  builder.appendNulls(1);
-                } else {
-                  var result = operation.apply(idx, value1, isNothing1, value2, isNothing2);
-                  builder.append(result);
-                }
-                progressHandle.advance();
-              });
+      for (long idx = 0; idx < size; idx++) {
+        Long value1 = idx < source1.getSize() ? source1.getItemBoxed(idx) : null;
+        Long value2 = idx < source2.getSize() ? source2.getItemBoxed(idx) : null;
+        boolean isNothing1 = value1 == null;
+        boolean isNothing2 = value2 == null;
+        if (skipNothing && (isNothing1 || isNothing2)) {
+          builder.appendNulls(1);
+        } else {
+          var result = operation.apply(
+            idx, 
+            isNothing1 ? 0 : value1,
+            isNothing1,
+            isNothing2 ? 0 : value2,
+            isNothing2);
+          builder.append(result);
+        }
+        progressHandle.advance();
+      }
     }
 
     return builder.seal();
