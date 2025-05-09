@@ -161,6 +161,10 @@ pub mod secret {
     // === OAuth Integrations ===
     /// The client ID for the Google OAuth integration used for Google Credentials.
     pub const ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: &str = "ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID";
+
+    // === OAuth Integrations ===
+    /// The client ID for the Strava OAuth integration used for Strava Credentials.
+    pub const ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: &str = "ENSO_IDE_STRAVA_OAUTH_CLIENT_ID";
 }
 
 pub mod variables {
