@@ -98,7 +98,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
     meta: { persist: false },
   })
   const logs = logsPages.data?.pages.flat()
-  const isLoading = logsPages.isLoading
+  const isFetching = logsPages.isFetching
 
   const sortedLogs = (() => {
     const filteredLogs = logs?.filter((log) => {
@@ -396,7 +396,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 </tr>
               )
             })}
-            {isLoading && (
+            {isFetching && (
               <tr className="h-9">
                 <td colSpan={4} className="rounded-full bg-transparent">
                   <div className="flex justify-center">
