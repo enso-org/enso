@@ -20,6 +20,7 @@ import {
   Form,
   Popover,
   Text,
+  VisualTooltip,
   type FieldComponentProps,
   type FieldPath,
   type FieldProps,
@@ -80,6 +81,8 @@ export interface ComboBoxProps<Schema extends TSchema, TFieldName extends FieldP
    * `children` is not guaranteed (or not supposed) to be unique.
    */
   readonly toTextValue?: (item: FieldValues<Schema>[TFieldName]) => string
+  /** Convert an item to the tooltip to be shown, if different from the item itself. */
+  readonly toTooltip?: (item: FieldValues<Schema>[TFieldName]) => string
   /** Hide the `x` button to disable resetting the input. */
   readonly noResetButton?: boolean
 }
@@ -109,6 +112,7 @@ export const ComboBox = forwardRef(function ComboBox<
     rounded,
     children,
     toTextValue,
+    toTooltip,
     noResetButton = false,
     variants = COMBO_BOX_STYLES,
     addonStart,
@@ -193,6 +197,7 @@ export const ComboBox = forwardRef(function ComboBox<
                     : typeof fieldValue === 'string' ? fieldValue
                     : null)
                   invariant(textValue != null, '`children` returns the wrong type')
+                  const tooltip = toTooltip?.(fieldValue) ?? textValue
 
                   return (
                     <ListBoxItem
@@ -200,9 +205,19 @@ export const ComboBox = forwardRef(function ComboBox<
                       textValue={textValue}
                       className={styles.listBoxItem()}
                     >
-                      <Text truncate="1" className="w-full" tooltipPlacement="left">
-                        {childrenEl}
-                      </Text>
+                      {typeof childrenEl === 'string' ?
+                        <Text
+                          truncate="1"
+                          className="w-full"
+                          tooltip={toTooltip ? tooltip : childrenEl}
+                          tooltipPlacement="left"
+                        >
+                          {childrenEl}
+                        </Text>
+                      : <VisualTooltip tooltip={tooltip} className="flex w-full">
+                          {childrenEl}
+                        </VisualTooltip>
+                      }
                     </ListBoxItem>
                   )
                 }}
