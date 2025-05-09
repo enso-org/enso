@@ -4,6 +4,7 @@ import { useState } from 'react'
 import {
   CalendarDate,
   getLocalTimeZone,
+  now,
   startOfMonth,
   toCalendarDate,
   today,
@@ -222,7 +223,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
         <NewProjectExecutionModal
           backend={backend}
           item={item}
-          defaultDate={toZoned(selectedDate, timeZone)}
+          defaultDate={toZoned(selectedDate, timeZone).set({ hour: now(timeZone).hour })}
         />
       </DialogTrigger>
       <Text>{getText('projectSessionsOnX', selectedDate.toString())}</Text>
