@@ -624,16 +624,13 @@ public class StorageIterators {
       LongFunction<BuilderForType<T>> builderConstructor,
       boolean skipNothing,
       ZipOperation<R, S, T> operation) {
-    var iterator1 = source1.iterator();
-    var iterator2 = source2.iterator();
-
     long size = Math.max(source1.getSize(), source2.getSize());
     var builder = builderConstructor.apply(size);
 
     try (var progressHandle = ProgressHandler.init("zipOverStorages", size)) {
       for (long idx = 0; idx < size; idx++) {
-        R value1 = iterator1.hasNext() ? iterator1.next() : null;
-        S value2 = iterator2.hasNext() ? iterator2.next() : null;
+        R value1 = idx < source1.getSize() ? source1.getItemBoxed(idx) : null;
+        S value2 = idx < source2.getSize() ? source2.getItemBoxed(idx) : null;
         if (skipNothing && (value1 == null || value2 == null)) {
           builder.appendNulls(1);
         } else {
