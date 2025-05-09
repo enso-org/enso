@@ -201,6 +201,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
             name="userEmail"
             aria-label={getText('users')}
             items={allEmails}
+            toTextValue={(email) => email ?? ''}
             toTooltip={(email) => (email != null ? (usersByEmail.get(email)?.name ?? email) : '')}
             className="w-60"
           >

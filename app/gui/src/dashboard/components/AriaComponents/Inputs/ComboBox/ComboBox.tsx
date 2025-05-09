@@ -120,8 +120,21 @@ export const ComboBox = forwardRef(function ComboBox<
   } = props
   const itemsAreStrings = typeof items[0] === 'string'
   const effectiveItems = itemsAreStrings ? items.map((id) => ({ id })) : items
-  const toTextValueOrText = toTextValue ?? children
-  const reverseMapping = new Map(items.map((item) => [toTextValueOrText(item), item]))
+  const reverseMapping = new Map(
+    items.map((item) => {
+      const childrenEl = children(item)
+      const textValue =
+        toTextValue?.(item) ??
+        (typeof childrenEl === 'string' ? childrenEl
+        : typeof item === 'string' ? item
+        : null)
+      invariant(
+        textValue != null,
+        'Every element in a `ComboBox` must have a string representation',
+      )
+      return [textValue, item]
+    }),
+  )
   const popoverTriggerRef = useRef<HTMLDivElement>(null)
 
   const { fieldState, formInstance } = useStringField({
@@ -196,7 +209,10 @@ export const ComboBox = forwardRef(function ComboBox<
                     (typeof childrenEl === 'string' ? childrenEl
                     : typeof fieldValue === 'string' ? fieldValue
                     : null)
-                  invariant(textValue != null, '`children` returns the wrong type')
+                  invariant(
+                    textValue != null,
+                    'Every element in a `ComboBox` must have a string representation',
+                  )
                   const tooltip = toTooltip?.(fieldValue) ?? textValue
 
                   return (
