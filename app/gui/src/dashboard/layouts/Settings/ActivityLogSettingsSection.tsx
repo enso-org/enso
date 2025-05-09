@@ -201,9 +201,17 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
             name="userEmail"
             aria-label={getText('users')}
             items={allEmails}
-            toTextValue={(email) => email ?? ''}
-            toTooltip={(email) => (email != null ? (usersByEmail.get(email)?.name ?? email) : '')}
-            className="w-60"
+            toTextValue={(email) => {
+              if (email == null) {
+                return ''
+              }
+              const name = usersByEmail.get(email)?.name
+              if (name == null) {
+                return email
+              }
+              return `${name} (${email})`
+            }}
+            className="w-96"
           >
             {(email) => {
               if (email == null) {
@@ -214,7 +222,12 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 return null
               }
 
-              return <UserWithPopover user={user} className="pointer-events-none" />
+              return (
+                <UserWithPopover
+                  user={{ ...user, name: `${user.name} (${user.email})` }}
+                  className="pointer-events-none"
+                />
+              )
             }}
           </ComboBox>
         </div>
