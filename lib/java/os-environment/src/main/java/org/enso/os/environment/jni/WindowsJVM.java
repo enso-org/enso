@@ -14,7 +14,7 @@ import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.graalvm.word.PointerBase;
 
 // Temporarily disabled because of https://github.com/oracle/graal/issues/11152
-// @CContext(WindowsJVM.Direct.class)
+@CContext(WindowsJVM.Direct.class)
 final class WindowsJVM {
   static JNICreateJavaVMPointer createImpl(File javaHome) {
     var dllPath = findDynamicLibrary(javaHome).getPath();

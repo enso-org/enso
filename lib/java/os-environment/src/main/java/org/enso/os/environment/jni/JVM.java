@@ -28,7 +28,7 @@ public final class JVM {
    * @return {@code true} if one can call {@link #create} method and expect a result
    */
   public static boolean isSupported() {
-    return Platform.getOperatingSystem() != Platform.WINDOWS;
+    return true;
   }
 
   /**
@@ -43,9 +43,9 @@ public final class JVM {
     var createJvmFn =
         switch (Platform.getOperatingSystem()) {
           case WINDOWS -> {
-            // yield WindowsJVM.createImpl(javaHome);
-            throw new IllegalStateException(
-                "Not supported now. See https://github.com/oracle/graal/issues/11152");
+            yield WindowsJVM.createImpl(javaHome);
+            // throw new IllegalStateException(
+            //    "Not supported now. See https://github.com/oracle/graal/issues/11152");
           }
           case LINUX, MACOS -> PosixJVM.createImpl(javaHome);
         };
