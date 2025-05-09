@@ -85,7 +85,7 @@ const flagsStore = createStore<FeatureFlagsStore>()(
 
         const parsedPersistedState = FEATURE_FLAGS_STATE_SCHEMA.safeParse(persistedState)
 
-        if (parsedPersistedState?.success === true) {
+        if (parsedPersistedState.success === true) {
           unsafeMutateFeatureFlags(parsedPersistedState.data.featureFlags)
         }
 
