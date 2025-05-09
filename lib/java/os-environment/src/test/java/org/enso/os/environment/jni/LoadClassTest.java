@@ -9,7 +9,6 @@ import java.util.Random;
 import org.enso.os.environment.jni.JNI.JValue;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
-import org.junit.Assume;
 import org.junit.Test;
 
 public class LoadClassTest {
@@ -20,7 +19,6 @@ public class LoadClassTest {
   private static JVM impl;
 
   private static JVM jvm() {
-    Assume.assumeTrue("JNI dynamic loading must be supported", JVM.isSupported());
     if (impl == null) {
       assert MODULE_PATH != null : "MODULE_PATH field must be set!";
       var path = new File(PATH);

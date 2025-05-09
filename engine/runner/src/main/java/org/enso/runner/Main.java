@@ -1440,7 +1440,7 @@ public class Main {
   private void launchJvm(
       CommandLine line, Map<String, String> props, File component, File javaExecutable)
       throws IOException, InterruptedException {
-    var useJNI = JVM.isSupported();
+    var useJNI = true;
     var commandAndArgs = new ArrayList<String>();
     if (!useJNI) {
       commandAndArgs.add(javaExecutable.getPath());
@@ -1506,7 +1506,7 @@ public class Main {
     }
     commandAndArgs.addAll(line.getArgList());
     int exitCode;
-    if (useJNI) {
+    if (jvm != null) {
       jvm.executeMain("org/enso/runner/Main", commandAndArgs.toArray(new String[0]));
       // the above call should never return
       exitCode = 1;
