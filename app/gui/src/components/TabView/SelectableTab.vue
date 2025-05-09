@@ -30,7 +30,6 @@ const selected = defineModel<boolean>('selected')
   flex-direction: row;
   align-items: center;
   height: 100%;
-  z-index: 0;
   padding: 8px;
 }
 

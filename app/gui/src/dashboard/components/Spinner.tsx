@@ -63,7 +63,7 @@ export const Spinner = React.memo(function Spinner(props: SpinnerProps) {
         strokeLinecap="round"
         strokeWidth={thickness}
         className={twJoin(
-          'pointer-events-none origin-center !animate-spin-ease transition-stroke-dasharray [transition-duration:var(--spinner-slow-transition-duration)]',
+          'pointer-events-none origin-center !animate-spin-ease transition-stroke-dasharray',
           SPINNER_CSS_CLASSES[state],
         )}
       />

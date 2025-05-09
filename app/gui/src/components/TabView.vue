@@ -1,10 +1,10 @@
 <script lang="ts">
 import UserBarReact from '#/layouts/UserBar'
 import { LaunchedProject, LaunchedProjectId, TabType } from '#/providers/ProjectsProvider'
-import { ProjectId } from '#/services/Backend'
+import { BackendType, ProjectId } from '#/services/Backend'
 import { Drive, Editor, Settings } from '$/components/TabView/reactTabs'
 import SelectableTab from '$/components/TabView/SelectableTab.vue'
-import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
+import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { applyPureReactInVue } from 'veaury'
 import { reactive, watch } from 'vue'
@@ -45,6 +45,12 @@ function setProjectReady(project: ProjectId, ready: boolean) {
   }
 }
 
+function loadingProjectSpinnerState(project: LaunchedProject) {
+  return project.hybrid != null || project.type === BackendType.local ?
+      'loading-fast'
+    : 'loading-slow'
+}
+
 watch(
   () => launchedProjects,
   () => {
@@ -83,11 +89,13 @@ const onSignOut = () => {
           @update:selected="$event && setPage(project.id)"
         >
           <SvgIcon v-if="readyProjects.has(project.id)" name="graph_editor" />
-          <LoadingSpinner v-else :size="16" />
+          <GrowingSpinner v-else :state="loadingProjectSpinnerState(project)" :size="16" />
           <span>{{ projectNames.get(project.id) }}</span>
           <SvgIcon name="close" @click="closeProject(project)" />
         </SelectableTab>
-        <SelectableTab v-if="page === 'settings'" :selected="true">Settings</SelectableTab>
+        <SelectableTab v-if="page === 'settings'" :selected="true">
+          <SvgIcon name="settings" /><span>Settings</span>
+        </SelectableTab>
       </div>
       <div class="filler" />
       <UserBar
@@ -136,6 +144,7 @@ const onSignOut = () => {
 .tablist {
   display: flex;
   flex-direction: row;
+  z-index: 0;
 }
 
 .filler {
