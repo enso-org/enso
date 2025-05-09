@@ -22,16 +22,6 @@ public final class JVM {
   }
 
   /**
-   * Currently support on Windows isn't working. Reported as
-   * https://github.com/oracle/graal/issues/11152
-   *
-   * @return {@code true} if one can call {@link #create} method and expect a result
-   */
-  public static boolean isSupported() {
-    return true;
-  }
-
-  /**
    * Create new JVM.Use {@link #env()} to obtain reference to JNI interface and make calls into the
    * JVM.
    *
@@ -42,11 +32,7 @@ public final class JVM {
   public static JVM create(File javaHome, String... options) {
     var createJvmFn =
         switch (Platform.getOperatingSystem()) {
-          case WINDOWS -> {
-            yield WindowsJVM.createImpl(javaHome);
-            // throw new IllegalStateException(
-            //    "Not supported now. See https://github.com/oracle/graal/issues/11152");
-          }
+          case WINDOWS -> WindowsJVM.createImpl(javaHome);
           case LINUX, MACOS -> PosixJVM.createImpl(javaHome);
         };
 
@@ -65,14 +51,6 @@ public final class JVM {
       }
     }
     jvmArgs.addAll(Arrays.asList(options));
-
-    /*
-    var libPath = System.getProperty("java.library.path");
-    var libPathPlus = libPath + File.pathSeparator + new File(javaHome, "lib");
-    commandAndArgs.add("-Djava.library.path=" + libPathPlus);
-    System.err.println("cmds: " + commandAndArgs);
-    */
-
     return new JVM(createJvmFn, jvmArgs.toArray(new String[0]));
   }
 
