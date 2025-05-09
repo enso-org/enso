@@ -200,11 +200,12 @@ public class StorageIterators {
       return buildOverLongStorage(source, builder, operation);
     }
     try (var progressHandle = ProgressHandler.init("buildOverLongStorage", source.getSize())) {
-      for (long index = 0; index < source.getSize(); index++) {
-        if (source.isNothing(index)) {
-          operation.apply(builder, index, 0, true);
+      var iterator = source.iteratorWithIndex();
+      while (iterator.moveNext()) {
+        if (iterator.isNothing()) {
+          operation.apply(builder, iterator.getIndex(), 0, true);
         } else {
-          operation.apply(builder, index, source.getItemAsLong(index), false);
+          operation.apply(builder, iterator.getIndex(), iterator.getItemAsLong(), false);
         }
         progressHandle.advance();
       }
@@ -264,11 +265,12 @@ public class StorageIterators {
       return buildOverDoubleStorage(source, builder, operation);
     }
     try (var progressHandle = ProgressHandler.init("buildOverDoubleStorage", source.getSize())) {
-      for (long index = 0; index < source.getSize(); index++) {
-        if (source.isNothing(index)) {
-          operation.apply(builder, index, Double.NaN, true);
+      var iterator = source.iteratorWithIndex();
+      while (iterator.moveNext()) {
+        if (iterator.isNothing()) {
+          operation.apply(builder, iterator.getIndex(), Double.NaN, true);
         } else {
-          operation.apply(builder, index, source.getItemAsDouble(index), false);
+          operation.apply(builder, iterator.getIndex(), iterator.getItemAsDouble(), false);
         }
         progressHandle.advance();
       }
@@ -291,7 +293,18 @@ public class StorageIterators {
    */
   public static <B extends BuilderForType<T>, T> ColumnStorage<T> buildOverBooleanStorage(
       ColumnBooleanStorage source, B builder, BooleanBuildOperation<B> operation) {
-    return buildOverBooleanStorage(source, true, builder, operation);
+    try (var progressHandle = ProgressHandler.init("buildOverBooleanStorage", source.getSize())) {
+      var iterator = source.iteratorWithIndex();
+      while (iterator.moveNext()) {
+        if (iterator.isNothing()) {
+          builder.appendNulls(1);
+        } else {
+          operation.apply(builder, iterator.getIndex(), iterator.getItemAsBoolean(), false);
+        }
+        progressHandle.advance();
+      }
+    }
+    return builder.seal();
   }
 
   /**
@@ -313,22 +326,20 @@ public class StorageIterators {
       boolean preserveNothing,
       B builder,
       BooleanBuildOperation<B> operation) {
+    if (preserveNothing) {
+      return buildOverBooleanStorage(source, builder, operation);
+    }
     try (var progressHandle = ProgressHandler.init("buildOverBooleanStorage", source.getSize())) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (iterator.isNothing()) {
-          if (preserveNothing) {
-            builder.appendNulls(1);
-          } else {
-            operation.apply(builder, iterator.getIndex(), false, true);
-          }
+          operation.apply(builder, iterator.getIndex(), false, true);
         } else {
           operation.apply(builder, iterator.getIndex(), iterator.getItemAsBoolean(), false);
         }
         progressHandle.advance();
       }
     }
-
     return builder.seal();
   }
 
@@ -669,8 +680,8 @@ public class StorageIterators {
 
     try (var progressHandle = ProgressHandler.init("zipOverLongStorages", size)) {
       for (long idx = 0; idx < size; idx++) {
-        Long value1 = idx < source1.getSize() ? source1.getItemBoxed(idx) : null;
-        Long value2 = idx < source2.getSize() ? source2.getItemBoxed(idx) : null;
+        var value1 = idx < source1.getSize() ? source1.getItemBoxed(idx) : null;
+        var value2 = idx < source2.getSize() ? source2.getItemBoxed(idx) : null;
         boolean isNothing1 = value1 == null;
         boolean isNothing2 = value2 == null;
         if (skipNothing && (isNothing1 || isNothing2)) {
@@ -715,19 +726,24 @@ public class StorageIterators {
     var builder = builderConstructor.apply(size);
 
     try (var progressHandle = ProgressHandler.init("zipOverLongDoubleStorages", size)) {
-      source1
-          .iteratorWithIndex()
-          .zip(
-              source2,
-              (idx, value1, isNothing1, value2, isNothing2) -> {
-                if (skipNothing && (isNothing1 || isNothing2)) {
-                  builder.appendNulls(1);
-                } else {
-                  var result = operation.apply(idx, value1, isNothing1, value2, isNothing2);
-                  builder.append(result);
-                }
-                progressHandle.advance();
-              });
+      for (long idx = 0; idx < size; idx++) {
+        var value1 = idx < source1.getSize() ? source1.getItemBoxed(idx) : null;
+        var value2 = idx < source2.getSize() ? source2.getItemBoxed(idx) : null;
+        boolean isNothing1 = value1 == null;
+        boolean isNothing2 = value2 == null;
+        if (skipNothing && (isNothing1 || isNothing2)) {
+          builder.appendNulls(1);
+        } else {
+          var result = operation.apply(
+              idx,
+              isNothing1 ? 0 : value1,
+              isNothing1,
+              isNothing2 ? 0 : value2,
+              isNothing2);
+          builder.append(result);
+        }
+        progressHandle.advance();
+      }
     }
 
     return builder.seal();
@@ -756,20 +772,25 @@ public class StorageIterators {
     long size = Math.max(source1.getSize(), source2.getSize());
     var builder = builderConstructor.apply(size);
 
-    try (var progressHandle = ProgressHandler.init("zipOverDoubleLongStorages", size)) {
-      source1
-          .iteratorWithIndex()
-          .zip(
-              source2,
-              (idx, value1, isNothing1, value2, isNothing2) -> {
-                if (skipNothing && (isNothing1 || isNothing2)) {
-                  builder.appendNulls(1);
-                } else {
-                  var result = operation.apply(idx, value1, isNothing1, value2, isNothing2);
-                  builder.append(result);
-                }
-                progressHandle.advance();
-              });
+    try (var progressHandle = ProgressHandler.init("zipOverLongDoubleStorages", size)) {
+      for (long idx = 0; idx < size; idx++) {
+        var value1 = idx < source1.getSize() ? source1.getItemBoxed(idx) : null;
+        var value2 = idx < source2.getSize() ? source2.getItemBoxed(idx) : null;
+        boolean isNothing1 = value1 == null;
+        boolean isNothing2 = value2 == null;
+        if (skipNothing && (isNothing1 || isNothing2)) {
+          builder.appendNulls(1);
+        } else {
+          var result = operation.apply(
+              idx,
+              isNothing1 ? 0 : value1,
+              isNothing1,
+              isNothing2 ? 0 : value2,
+              isNothing2);
+          builder.append(result);
+        }
+        progressHandle.advance();
+      }
     }
 
     return builder.seal();
@@ -798,20 +819,25 @@ public class StorageIterators {
     long size = Math.max(source1.getSize(), source2.getSize());
     var builder = builderConstructor.apply(size);
 
-    try (var progressHandle = ProgressHandler.init("zipOverDoubleStorages", size)) {
-      source1
-          .iteratorWithIndex()
-          .zip(
-              source2,
-              (idx, value1, isNothing1, value2, isNothing2) -> {
-                if (skipNothing && (isNothing1 || isNothing2)) {
-                  builder.appendNulls(1);
-                } else {
-                  var result = operation.apply(idx, value1, isNothing1, value2, isNothing2);
-                  builder.append(result);
-                }
-                progressHandle.advance();
-              });
+    try (var progressHandle = ProgressHandler.init("zipOverLongDoubleStorages", size)) {
+      for (long idx = 0; idx < size; idx++) {
+        var value1 = idx < source1.getSize() ? source1.getItemBoxed(idx) : null;
+        var value2 = idx < source2.getSize() ? source2.getItemBoxed(idx) : null;
+        boolean isNothing1 = value1 == null;
+        boolean isNothing2 = value2 == null;
+        if (skipNothing && (isNothing1 || isNothing2)) {
+          builder.appendNulls(1);
+        } else {
+          var result = operation.apply(
+              idx,
+              isNothing1 ? 0 : value1,
+              isNothing1,
+              isNothing2 ? 0 : value2,
+              isNothing2);
+          builder.append(result);
+        }
+        progressHandle.advance();
+      }
     }
 
     return builder.seal();
@@ -840,20 +866,25 @@ public class StorageIterators {
     long size = Math.max(source1.getSize(), source2.getSize());
     var builder = builderConstructor.apply(size);
 
-    try (var progressHandle = ProgressHandler.init("zipOverBooleanStorages", size)) {
-      source1
-          .iteratorWithIndex()
-          .zip(
-              source2,
-              (idx, value1, isNothing1, value2, isNothing2) -> {
-                if (skipNothing && (isNothing1 || isNothing2)) {
-                  builder.appendNulls(1);
-                } else {
-                  var result = operation.apply(idx, value1, isNothing1, value2, isNothing2);
-                  builder.append(result);
-                }
-                progressHandle.advance();
-              });
+    try (var progressHandle = ProgressHandler.init("zipOverLongDoubleStorages", size)) {
+      for (long idx = 0; idx < size; idx++) {
+        var value1 = idx < source1.getSize() ? source1.getItemBoxed(idx) : null;
+        var value2 = idx < source2.getSize() ? source2.getItemBoxed(idx) : null;
+        boolean isNothing1 = value1 == null;
+        boolean isNothing2 = value2 == null;
+        if (skipNothing && (isNothing1 || isNothing2)) {
+          builder.appendNulls(1);
+        } else {
+          var result = operation.apply(
+              idx,
+              isNothing1 ? false : value1,
+              isNothing1,
+              isNothing2 ? false : value2,
+              isNothing2);
+          builder.append(result);
+        }
+        progressHandle.advance();
+      }
     }
 
     return builder.seal();
