@@ -5,6 +5,7 @@ import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Column.Column
+import project.In_Memory_Column.In_Memory_Column
 import project.Grouping_Method.Grouping_Method
 import project.Internal.Java_Problems
 import project.Internal.Problem_Builder.Problem_Builder
@@ -39,11 +40,11 @@ add_group_number (table:Table) (grouping_method:Grouping_Method) (name:Text) (fr
                 renamed_table.set new_column name set_mode=Set_Mode.Add
 
 _prepare_group_by table problem_builder group_by =
-    table.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder . map c->c.java_column
+    table.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder . map c->(c:In_Memory_Column).java_column
 
 _prepare_ordering table problem_builder order_by =
     ordering = Table_Helpers.resolve_order_by table.columns order_by problem_builder
-    ordering_columns = ordering.map c->c.column.java_column
+    ordering_columns = ordering.map c->(c.column:In_Memory_Column).java_column
     directions = ordering.map c->c.associated_selector.direction.to_sign
     [ordering_columns, directions]
 

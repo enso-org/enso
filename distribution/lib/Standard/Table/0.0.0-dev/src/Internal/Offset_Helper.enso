@@ -20,10 +20,10 @@ table_offset_impl table:Table (columns:(Vector | Text | Integer | Regex)=[]) n:I
     resolved_columns = table.columns_helper.select_columns_helper columns Case_Sensitivity.Default True problem_builder
     grouping_columns = table.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder 
     ordering = Table_Helpers.resolve_order_by table.columns order_by problem_builder
-    resolved_java_columns = resolved_columns.map c->c.java_column
+    resolved_java_columns = resolved_columns.map c->(c:In_Memory_Column).java_column
     fillWith_java = fillWith.to_java
-    grouping_java_columns = grouping_columns.map c->c.java_column
-    ordering_java_columns = ordering.map c->c.column.java_column
+    grouping_java_columns = grouping_columns.map c->(c:In_Memory_Column).java_column
+    ordering_java_columns = ordering.map c->(c.column:In_Memory_Column).java_column
     directions = ordering.map c->c.associated_selector.direction.to_sign
     problem_builder.attach_problems_before on_problems <|
         new_names = resolved_columns.map c-> 

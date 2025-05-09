@@ -4,6 +4,7 @@ from Standard.Base import all
 
 import project.Column.Column
 import project.Columns_To_Keep.Columns_To_Keep
+import project.In_Memory_Column.In_Memory_Column
 import project.Internal.In_Memory_Column_Constructors
 import project.Internal.Java_Problems
 import project.Internal.Match_Columns_Helpers
@@ -48,7 +49,7 @@ private _concat_columns column_set tables result_type result_row_count needs_cas
                 _ : Integer ->
                     column = parent_table.at i
                     converted = if needs_cast then column.cast result_type on_problems=..Report_Error else column
-                    storage = converted.java_column.getStorage
+                    storage = (converted:In_Memory_Column).java_column.getStorage
                     storage_builder.appendBulkStorage storage
         sealed_storage = storage_builder.seal
         In_Memory_Column_Constructors.from_storage column_set.name sealed_storage

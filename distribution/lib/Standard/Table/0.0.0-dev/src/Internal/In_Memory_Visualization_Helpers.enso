@@ -3,6 +3,7 @@ private
 from Standard.Base import all
 
 import project.Column.Column
+import project.In_Memory_Column.In_Memory_Column
 import project.Value_Type.Value_Type
 
 polyglot java import org.enso.table.data.column.operation.SampleOperation
@@ -18,14 +19,14 @@ type In_Memory_Visualization_Helpers
     count_untrimmed : Integer -> Integer | Nothing
     count_untrimmed this_column sample_size:Integer =
         if (_can_contain_text this_column.value_type).not then Nothing else
-            CountUntrimmed.apply this_column.java_column sample_size
+            CountUntrimmed.apply (this_column:In_Memory_Column).java_column sample_size
 
     ## PRIVATE
        Indicates if a numeric column requires formatting in table viz
     requires_numeric_formatter_check : Boolean
     requires_numeric_formatter_check this_column =
         if (this_column.value_type.is_numeric).not then False else
-            RequiresNumberFormatting.apply this_column.java_column
+            RequiresNumberFormatting.apply (this_column:In_Memory_Column).java_column
 
     ## PRIVATE
        Counts the number of text values with non trivial whitespace.
@@ -33,7 +34,7 @@ type In_Memory_Visualization_Helpers
     count_non_trivial_whitespace : Integer -> Integer | Nothing
     count_non_trivial_whitespace this_column sample_size:Integer =
         if (_can_contain_text this_column.value_type).not then Nothing else
-            CountNonTrivialWhitespace.apply this_column.java_column sample_size
+            CountNonTrivialWhitespace.apply (this_column:In_Memory_Column).java_column sample_size
 
     ## PRIVATE
        Default size for sampling data quality indicators.

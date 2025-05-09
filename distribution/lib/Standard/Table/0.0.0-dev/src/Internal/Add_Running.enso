@@ -6,6 +6,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Data.Statistics import check_running_support
 
 import project.Column.Column
+import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Add_Row_Number
 import project.Internal.In_Memory_Column_Constructors
 import project.Internal.Java_Problems
@@ -35,10 +36,10 @@ add_running table (statistic:Statistic=Statistic.Count) (of:Text|Integer=0) (as:
         problem_builder = Problem_Builder.new error_on_missing_columns=True
         grouping_columns = table.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder 
         ordering = Table_Helpers.resolve_order_by table.columns order_by problem_builder
-        source_java_column = of_col.java_column
-        grouping_java_columns = grouping_columns.map c->c.java_column
+        source_java_column = (of_col:In_Memory_Column).java_column
+        grouping_java_columns = grouping_columns.map c->(c:In_Memory_Column).java_column
         ordering_java_columns = ordering.map c->
-            c.column.java_column
+            (c.column:In_Memory_Column).java_column
         directions = ordering.map c->
             c.associated_selector.direction.to_sign
         new_column = case statistic of

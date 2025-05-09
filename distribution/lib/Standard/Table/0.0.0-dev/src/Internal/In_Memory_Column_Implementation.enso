@@ -82,7 +82,7 @@ type In_Memory_Column_Implementation
             if (a.is_a Float) || (b.is_a Float) then
                 problem_builder.reportFloatingPointEquality -1
             a == b
-        _call_comparator this_column other new_name (Comparators.eq this_column.java_column) <|
+        _call_comparator this_column other new_name (Comparators.eq (this_column:In_Memory_Column).java_column) <|
             run_vectorized_binary_op_with_fallback_problem_handling this_column Java_Storage.Maps.EQ other fallback_fn=fallback new_name=new_name expected_result_type=Value_Type.Boolean skip_nulls=True
 
     equals_ignore_case this_column (other : Column | Any) locale:Locale=Locale.default -> Column =
@@ -100,27 +100,27 @@ type In_Memory_Column_Implementation
 
     not_equals this_column (other : Column | Any) -> Column =
         new_name = naming_helper.binary_operation_name "!=" this_column other
-        _call_comparator this_column other new_name (Comparators.notEq this_column.java_column) <|
+        _call_comparator this_column other new_name (Comparators.notEq (this_column:In_Memory_Column).java_column) <|
             (this_column == other).not . rename new_name
 
     greater_than_eq this_column (other : Column | Any) -> Column = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name ">=" this_column other
-        _call_comparator this_column other new_name (Comparators.greaterThanEq this_column.java_column) <|
+        _call_comparator this_column other new_name (Comparators.greaterThanEq (this_column:In_Memory_Column).java_column) <|
             run_vectorized_binary_op this_column Java_Storage.Maps.GTE new_name=new_name fallback_fn=(>=) other expected_result_type=Value_Type.Boolean
 
     less_than_eq this_column (other : Column | Any) -> Column = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name "<=" this_column other
-        _call_comparator this_column other new_name (Comparators.lessThanEq this_column.java_column) <|
+        _call_comparator this_column other new_name (Comparators.lessThanEq (this_column:In_Memory_Column).java_column) <|
             run_vectorized_binary_op this_column Java_Storage.Maps.LTE new_name=new_name fallback_fn=(<=) other expected_result_type=Value_Type.Boolean
 
     greater_than this_column (other : Column | Any) -> Column = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name ">" this_column other
-        _call_comparator this_column other new_name (Comparators.greaterThan this_column.java_column) <|
+        _call_comparator this_column other new_name (Comparators.greaterThan (this_column:In_Memory_Column).java_column) <|
             run_vectorized_binary_op this_column Java_Storage.Maps.GT new_name=new_name fallback_fn=(>) other expected_result_type=Value_Type.Boolean
 
     less_than this_column (other : Column | Any) -> Column = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name "<" this_column other
-        _call_comparator this_column other new_name (Comparators.lessThan this_column.java_column) <|
+        _call_comparator this_column other new_name (Comparators.lessThan (this_column:In_Memory_Column).java_column) <|
             run_vectorized_binary_op this_column Java_Storage.Maps.LT new_name=new_name fallback_fn=(<) other expected_result_type=Value_Type.Boolean
 
     between this_column (lower : Column | Any) (upper : Column | Any) -> Column = Value_Type.expect_comparable this_column lower <| Value_Type.expect_comparable this_column upper <|
@@ -194,14 +194,14 @@ type In_Memory_Column_Implementation
                 new_name = naming_helper.concat <|
                     ["if", naming_helper.to_expression_text this_column, "then", naming_helper.to_expression_text when_true, "else", naming_helper.to_expression_text when_false]
                 # Even if we have a MixedStorage with inferred type Bool, we ensure that the effective storage is BoolStorage, only one that supports iif.
-                s = this_column.java_column.getStorage.tryGettingMoreSpecializedStorage
+                s = (this_column:In_Memory_Column).java_column.getStorage.tryGettingMoreSpecializedStorage
 
                 true_val = case when_true of
-                    _ : Column -> when_true.java_column.getStorage
+                    _ : Column -> (when_true:In_Memory_Column).java_column.getStorage
                     _ -> when_true
 
                 false_val = case when_false of
-                    _ : Column -> when_false.java_column.getStorage
+                    _ : Column -> (when_false:In_Memory_Column).java_column.getStorage
                     _ -> when_false
 
                 handle_no_iif caught_panic =
@@ -335,12 +335,12 @@ type In_Memory_Column_Implementation
         if Previous_Value == default then fill_previous this_column Nothing else
             common_type = Value_Type_Helpers.find_common_type_for_arguments [this_column, default]
             common_type.if_not_error <|
-                storage = this_column.java_column.getStorage
+                storage = (this_column:In_Memory_Column).java_column.getStorage
                 storage_type = Storage.from_value_type_strict common_type
                 new_storage = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                     case default of
                         col : Column ->
-                            other_storage = col.java_column.getStorage
+                            other_storage = (col:In_Memory_Column).java_column.getStorage
                             storage.fillMissingFrom other_storage storage_type java_problem_aggregator
                         _ ->
                             storage.fillMissing default storage_type java_problem_aggregator
@@ -425,7 +425,7 @@ type In_Memory_Column_Implementation
                         input.replace term replace case_sensitivity only_first
 
                 length = (this_column:Column).length
-                storage = this_column.java_column.getStorage
+                storage = (this_column:In_Memory_Column).java_column.getStorage
 
                 builder = make_string_builder length
                 0.up_to length . each i->
@@ -519,7 +519,7 @@ type In_Memory_Column_Implementation
             _ : Array -> Vector.from_polyglot_array vector
             column : Column -> column.to_vector
         op_name = Java_Storage.Maps.IS_IN
-        case this_column.java_column.getStorage.isBinaryOpVectorized op_name of
+        case (this_column:In_Memory_Column).java_column.getStorage.isBinaryOpVectorized op_name of
             True ->
                 run_vectorized_binary_op this_column op_name as_vector expected_result_type=Value_Type.Boolean skip_nulls=False new_name=result_name
             False ->
@@ -533,7 +533,7 @@ type In_Memory_Column_Implementation
                     _ : Text -> if format == "" then Data_Formatter.Value else Data_Formatter.Value.with_format type format
                     _ : Data_Formatter -> format
                 parser = formatter.make_value_type_parser type
-                storage = this_column.java_column.getStorage
+                storage = (this_column:In_Memory_Column).java_column.getStorage
 
                 new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                     parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator (this_column:Column).name type
@@ -554,12 +554,12 @@ type In_Memory_Column_Implementation
         Cast_Helpers.check_cast_compatibility (this_column:Column).value_type value_type <|
             target_storage_type = Storage.from_value_type value_type on_problems
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                new_column = CastOperation.apply this_column.java_column target_storage_type java_problem_aggregator
+                new_column = CastOperation.apply (this_column:In_Memory_Column).java_column target_storage_type java_problem_aggregator
                 In_Memory_Column_Constructors.from_java_column new_column
 
     auto_cast this_column shrink_types:Boolean=False -> Column =
         new_value_type = Storage.to_value_type <|
-             this_column.java_column.getStorage.inferPreciseType (PreciseTypeOptions.forAutoCast shrink_types)
+             (this_column:In_Memory_Column).java_column.getStorage.inferPreciseType (PreciseTypeOptions.forAutoCast shrink_types)
 
         # We run with Report_Error because we do not expect any problems.
         (this_column:Column).cast new_value_type on_problems=Problem_Behavior.Report_Error
@@ -582,13 +582,13 @@ type In_Memory_Column_Implementation
 
     rename this_column name:Text -> Column ! Illegal_Argument = naming_helper.ensure_name_is_valid name <|
         Illegal_Argument.handle_java_exception <|
-            In_Memory_Column_Constructors.from_java_column (this_column.java_column.rename name)
+            In_Memory_Column_Constructors.from_java_column ((this_column:In_Memory_Column).java_column.rename name)
 
-    name this_column -> Text = this_column.java_column.getName
+    name this_column -> Text = (this_column:In_Memory_Column).java_column.getName
 
-    length this_column -> Integer = this_column.java_column . getSize
+    length this_column -> Integer = (this_column:In_Memory_Column).java_column . getSize
 
-    count_nothing this_column -> Integer = CountNothing.apply this_column.java_column
+    count_nothing this_column -> Integer = CountNothing.apply (this_column:In_Memory_Column).java_column
 
     count this_column -> Integer = (this_column:Column).length - (this_column:Column).count_nothing
 
@@ -600,7 +600,7 @@ type In_Memory_Column_Implementation
         if index < 0 && index >= -length then (this_column:Column).get (length + index) default else
             valid_index = (index >= 0) && (index < length)
             if valid_index.not then default else
-                storage = this_column.java_column.getStorage
+                storage = (this_column:In_Memory_Column).java_column.getStorage
                 java_to_enso <| storage.getItemBoxed index
 
     read this_column (max_rows : Rows_To_Read = ..All_Rows) -> Column =
@@ -608,16 +608,16 @@ type In_Memory_Column_Implementation
             (this_column:Column).to_table.read max_rows . at 0
 
     to_vector this_column -> Vector =
-        storage_list = StorageListView.new this_column.java_column.getStorage
+        storage_list = StorageListView.new (this_column:In_Memory_Column).java_column.getStorage
         Vector.from_polyglot_array storage_list . map java_to_enso
 
     value_type this_column -> Value_Type =
-        storage_type = this_column.java_column.getStorage.getType
+        storage_type = (this_column:In_Memory_Column).java_column.getStorage.getType
         Storage.to_value_type storage_type
 
     inferred_precise_value_type : Value_Type
     inferred_precise_value_type this_column =
-        storage_type = this_column.java_column.getStorage.inferPreciseType PreciseTypeOptions.DEFAULT
+        storage_type = (this_column:In_Memory_Column).java_column.getStorage.inferPreciseType PreciseTypeOptions.DEFAULT
         Storage.to_value_type storage_type
 
     should_be_selected_by_type this_column (value_type : Value_Type) -> Boolean =
@@ -625,13 +625,13 @@ type In_Memory_Column_Implementation
 
     to_js_object : JS_Object
     to_js_object this_column =
-        name = this_column.java_column.getName
-        storage = this_column.java_column.getStorage
+        name = (this_column:In_Memory_Column).java_column.getName
+        storage = (this_column:In_Memory_Column).java_column.getStorage
         storage_proxy = Array_Proxy.new storage.getSize i-> storage.getItemBoxed i
         storage_json = Vector.from_polyglot_array storage_proxy
         JS_Object.from_pairs [["name", name], ["data", storage_json]]
 
-    to_table this_column -> Table = from_java_table this_column.java_column.toTable
+    to_table this_column -> Table = from_java_table (this_column:In_Memory_Column).java_column.toTable
 
     info this_column -> Table = (this_column:Column).to_table.column_info
 
@@ -640,9 +640,9 @@ type In_Memory_Column_Implementation
             order_bool = case order of
                 Sort_Direction.Ascending -> True
                 Sort_Direction.Descending -> False
-            rule = OrderBuilder.OrderRule.new this_column.java_column order_bool missing_last
+            rule = OrderBuilder.OrderRule.new (this_column:In_Memory_Column).java_column order_bool missing_last
             mask = OrderBuilder.buildOrderMask [rule]
-            new_col = this_column.java_column.applyMask mask
+            new_col = (this_column:In_Memory_Column).java_column.applyMask mask
             In_Memory_Column_Constructors.from_java_column new_col
         _ ->
             wrapped a b = case a of
@@ -664,7 +664,7 @@ type In_Memory_Column_Implementation
         length = (this_column:Column).length
         offset = (start.min length).max 0
         limit = ((end - offset).min (length - offset)).max 0
-        In_Memory_Column_Constructors.from_java_column (this_column.java_column.slice offset limit)
+        In_Memory_Column_Constructors.from_java_column ((this_column:In_Memory_Column).java_column.slice offset limit)
 
     first this_column -> Any ! Index_Out_Of_Bounds = (this_column:Column).at 0
 
@@ -672,10 +672,10 @@ type In_Memory_Column_Implementation
 
     reverse this_column -> Column =
         mask = OrderMask.reverse (this_column:Column).length
-        In_Memory_Column_Constructors.from_java_column (this_column.java_column.applyMask mask)
+        In_Memory_Column_Constructors.from_java_column ((this_column:In_Memory_Column).java_column.applyMask mask)
 
     duplicate_count this_column -> Column =
-        In_Memory_Column_Constructors.from_java_column this_column.java_column.duplicateCount
+        In_Memory_Column_Constructors.from_java_column (this_column:In_Memory_Column).java_column.duplicateCount
 
     to_text this_column -> Text = "(In-Memory Column "+(this_column:Column).name.to_text+")"
 
@@ -726,8 +726,8 @@ private _run_vectorized_many_op column:Column name:Text fallback_fn:(Any -> Any 
     common_type.if_not_error <|
         Java_Problems.with_map_operation_problem_aggregator effective_new_name Problem_Behavior.Report_Warning problem_builder->
             storage_type = resolve_storage_type common_type
-            folded = effective_operands.fold column.java_column current-> operand-> if Nothing == operand then current else
-                java_object = if operand.is_a Column then operand.java_column else operand
+            folded = effective_operands.fold (column:In_Memory_Column).java_column current-> operand-> if Nothing == operand then current else
+                java_object = if operand.is_a Column then (operand:In_Memory_Column).java_column else operand
                 Polyglot_Helpers.handle_polyglot_dataflow_errors <| case name of
                     "min" -> BinaryCoalescingOperation.min current java_object fallback_fn storage_type effective_new_name problem_builder
                     "max" -> BinaryCoalescingOperation.max current java_object fallback_fn storage_type effective_new_name problem_builder
@@ -789,7 +789,7 @@ run_vectorized_ternary_op column name operand0 operand1 new_name=Nothing expecte
         naming_helper.function_name name [column, operand0, operand1]
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
         storage_type = resolve_storage_type expected_result_type
-        s1 = column.java_column.getStorage
+        s1 = (column:In_Memory_Column).java_column.getStorage
         rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
             s1.vectorizedTernaryMap name problem_builder operand0 operand1 skip_nulls storage_type
         In_Memory_Column_Constructors.from_storage effective_new_name rs
@@ -810,13 +810,13 @@ run_vectorized_ternary_op column name operand0 operand1 new_name=Nothing expecte
    - expected_result_type: The expected result type of the operation. If set to
      `Nothing`, the result type is inferred from the values.
 run_binary_op column function operand new_name skip_nulls=True expected_result_type=Nothing =
-    s = column.java_column.getStorage
+    s = (column:In_Memory_Column).java_column.getStorage
     storage_type = resolve_storage_type expected_result_type
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
         new_storage = case operand of
             other_column : Column ->
                 Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    s.zip function other_column.java_column.getStorage skip_nulls storage_type problem_builder
+                    s.zip function (other_column:In_Memory_Column).java_column.getStorage skip_nulls storage_type problem_builder
             _ ->
                 Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s.binaryMap function operand skip_nulls storage_type problem_builder
@@ -865,7 +865,7 @@ run_vectorized_binary_op_with_fallback_problem_handling column name operand fall
    A helper to create a new table consisting of slices of the original table.
 slice_ranges column ranges =
     normalized = normalize_ranges ranges
-    In_Memory_Column_Constructors.from_java_column (column.java_column.slice normalized)
+    In_Memory_Column_Constructors.from_java_column ((column:In_Memory_Column).java_column.slice normalized)
 
 ## PRIVATE
    Helper for case case_sensitivity based text operations.
@@ -930,8 +930,8 @@ naming_helper = Column_Naming_Helper.in_memory
      If set to `Nothing`, this will rely on the default missing value semantics
      (`is_nothing`).
 fill_previous column is_missing =
-    missing_storage = if Nothing == is_missing then Nothing else is_missing.java_column.getStorage
-    new_storage = column.java_column.getStorage.fillMissingFromPrevious missing_storage
+    missing_storage = if Nothing == is_missing then Nothing else (is_missing:In_Memory_Column).java_column.getStorage
+    new_storage = (column:In_Memory_Column).java_column.getStorage.fillMissingFromPrevious missing_storage
     In_Memory_Column_Constructors.from_storage column.name new_storage
 
 
@@ -946,7 +946,7 @@ fill_previous column is_missing =
 apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothing=Nothing ~if_unsupported=(Panic.throw (Illegal_State.Error "Unsupported unary operation for column called "+column.name+". This is a bug in the Table library.")) =
     used_name = new_name.if_nothing (naming_helper.function_name operation.getName [column])
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
-        java_column = UnaryOperation.apply column.java_column operation used_name java_problem_aggregator
+        java_column = UnaryOperation.apply (column:In_Memory_Column).java_column operation used_name java_problem_aggregator
         if java_column.is_nothing then if_unsupported else In_Memory_Column_Constructors.from_java_column java_column
 
 ## PRIVATE
@@ -963,7 +963,7 @@ apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothi
 apply_unary_map column:Column new_name:Text function expected_result_type:Value_Type|Nothing=Nothing nothing_unchanged:Boolean=True =
     storage_type = resolve_storage_type expected_result_type
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
-        map_column = UnaryOperation.mapFunction column.java_column function nothing_unchanged storage_type new_name java_problem_aggregator
+        map_column = UnaryOperation.mapFunction (column:In_Memory_Column).java_column function nothing_unchanged storage_type new_name java_problem_aggregator
         In_Memory_Column_Constructors.from_java_column map_column
 
 ## PRIVATE
@@ -974,17 +974,17 @@ Many_Files_List.from (that : Column) =
 ## PRIVATE
    Temporary function to determine if to use the Comparators statics or embedded operations.
 private _call_comparator left other new_name ~comparator ~enso_action =
-    if Comparators.isSupported left.java_column then In_Memory_Column_Constructors.from_java_column (comparator.apply left.java_column (if other.is_a Column then other.java_column else other) new_name) else
+    if Comparators.isSupported (left:In_Memory_Column).java_column then In_Memory_Column_Constructors.from_java_column (comparator.apply (left:In_Memory_Column).java_column (if other.is_a Column then (other:In_Memory_Column).java_column else other) new_name) else
         enso_action
 
 ## PRIVATE
 private _apply_case_sensitive_text_operation left:Column (other : Column | Text | Any) case_sensitivity:Case_Sensitivity operation fallback_fn new_name:Text -> Column =
-    java_other = (if other.is_a Column then other.java_column else other)
+    java_other = (if other.is_a Column then (other:In_Memory_Column).java_column else other)
     use_fallback = case case_sensitivity of
         Case_Sensitivity.Insensitive _ -> True
-        _ -> operation.canApply left.java_column java_other . not
+        _ -> operation.canApply (left:In_Memory_Column).java_column java_other . not
     case use_fallback of
         True -> run_binary_op left fallback_fn other new_name=new_name skip_nulls=True expected_result_type=Value_Type.Boolean
         _ ->
-            java_column = operation.apply left.java_column java_other new_name
+            java_column = operation.apply (left:In_Memory_Column).java_column java_other new_name
             In_Memory_Column_Constructors.from_java_column java_column

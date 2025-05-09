@@ -81,7 +81,7 @@ type Column
 
              example_display = Examples.integer_column.display
     display self show_rows:Integer=10 format_terminal:Boolean=False -> Text =
-        self.implementation.display self.underlying show_rows format_terminal
+        self.implementation.display self show_rows format_terminal
 
     ## PRIVATE
        ADVANCED
@@ -135,7 +135,7 @@ type Column
 
              example_eq = Examples.integer_column == 1
     == self (other : Column | Any) -> Column =
-        self.implementation.equals self.underlying other
+        self.implementation.equals self other
 
     ## GROUP Standard.Base.Logical
        ICON operators
@@ -151,7 +151,7 @@ type Column
        `other`.
     @locale Locale.default_widget
     equals_ignore_case self (other : Column | Any) locale:Locale=Locale.default -> Column =
-        self.implementation.equals_ignore_case self.underlying other locale
+        self.implementation.equals_ignore_case self other locale
 
     ## ALIAS not equals
        GROUP Standard.Base.Operators
@@ -186,7 +186,7 @@ type Column
 
              example_neq = Examples.integer_column != 1
     != self (other : Column | Any) -> Column =
-        self.implementation.not_equals self.underlying other
+        self.implementation.not_equals self other
 
     ## ALIAS greater than or equal
        GROUP Standard.Base.Operators
@@ -215,7 +215,7 @@ type Column
 
              example_geq = Examples.integer_column >= 1
     >= self (other : Column | Any) -> Column =
-        self.implementation.greater_than_eq self.underlying other
+        self.implementation.greater_than_eq self other
 
     ## ALIAS less than or equal
        GROUP Standard.Base.Operators
@@ -244,7 +244,7 @@ type Column
 
              example_leq = Examples.integer_column <= 1
     <= self (other : Column | Any) -> Column =
-        self.implementation.less_than_eq self.underlying other
+        self.implementation.less_than_eq self other
 
     ## ALIAS greater than
        GROUP Standard.Base.Operators
@@ -273,7 +273,7 @@ type Column
 
              example_gt = Examples.integer_column > 1
     > self (other : Column | Any) -> Column =
-        self.implementation.greater_than self.underlying other
+        self.implementation.greater_than self other
 
     ## ALIAS less than
        GROUP Standard.Base.Operators
@@ -302,7 +302,7 @@ type Column
 
              example_lt = Examples.integer_column < 1
     < self (other : Column | Any) -> Column =
-        self.implementation.less_than self.underlying other
+        self.implementation.less_than self other
 
     ## GROUP Standard.Base.Logical
        ICON operators
@@ -319,7 +319,7 @@ type Column
        Returns a column with boolean values indicating whether values of this
        column fit between the lower and upper bounds (both ends inclusive).
     between self (lower : Column | Any) (upper : Column | Any) -> Column =
-        self.implementation.between self.underlying lower upper
+        self.implementation.between self lower upper
 
     ## ALIAS add, concatenate, plus
        GROUP Standard.Base.Operators
@@ -357,7 +357,7 @@ type Column
 
              example_plus = Examples.integer_column + 10
     + self (other : Column | Any) -> Column =
-        self.implementation.add self.underlying other
+        self.implementation.add self other
 
     ## ALIAS minus, subtract
        GROUP Standard.Base.Operators
@@ -396,7 +396,7 @@ type Column
 
              example_minus = Examples.integer_column - 10
     - self (other : Column | Any) -> Column =
-        self.implementation.minus self.underlying other
+        self.implementation.minus self other
 
     ## ALIAS multiply, product, times
        GROUP Standard.Base.Operators
@@ -434,7 +434,7 @@ type Column
 
              example_mul = Examples.integer_column * 10
     * self (other : Column | Any) -> Column =
-        self.implementation.multiply self.underlying other
+        self.implementation.multiply self other
 
     ## ALIAS divide
        GROUP Standard.Base.Operators
@@ -477,7 +477,7 @@ type Column
 
              example_div = Examples.integer_column / 10
     / self (other : Column | Any) -> Column =
-        self.implementation.divide self.underlying other
+        self.implementation.divide self other
 
     ## ALIAS modulo, modulus
        GROUP Standard.Base.Operators
@@ -511,7 +511,7 @@ type Column
 
              example_mod = Examples.integer_column % 3
     % self (other : Column | Any) -> Column =
-        self.implementation.modulus self.underlying other
+        self.implementation.modulus self other
 
     ## ALIAS power
        GROUP Standard.Base.Operators
@@ -549,7 +549,7 @@ type Column
 
              example_div = Examples.decimal_column ^ Examples.integer_column
     ^ self (other : Column | Any) -> Column =
-        self.implementation.power self.underlying other
+        self.implementation.power self other
 
     ## ALIAS and
        GROUP Standard.Base.Operators
@@ -579,7 +579,7 @@ type Column
 
              example_and = Examples.bool_column_1 && True
     && self (other : Column | Any) -> Column =
-        self.implementation.and self.underlying other
+        self.implementation.and self other
 
     ## ALIAS or
        GROUP Standard.Base.Operators
@@ -610,7 +610,7 @@ type Column
 
              example_or = Examples.bool_column_1 || True
     || self (other : Column | Any) -> Column =
-        self.implementation.or self.underlying other
+        self.implementation.or self other
 
     ## ALIAS not
        GROUP Standard.Base.Logical
@@ -625,7 +625,7 @@ type Column
 
              example_not = Examples.bool_column_1.not
     not self -> Column =
-        self.implementation.not self.underlying
+        self.implementation.not self
 
     ## ALIAS if
        GROUP Standard.Base.Logical
@@ -645,7 +645,7 @@ type Column
 
              example_if = Examples.bool_column_1.iif 1 0
     iif self (when_true : Column | Any) (when_false : Column | Any) -> Column =
-        self.implementation.iif self.underlying when_true when_false
+        self.implementation.iif self when_true when_false
 
     ## PRIVATE
 
@@ -721,7 +721,7 @@ type Column
 
              Column.from_vector "foo" [1.2, 2.3, 3.6] . round == (Column.from_vector "foo" [1, 2, 4])
     round self decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) -> Column ! Illegal_Argument | Invalid_Value_Type =
-        self.implementation.round self.underlying decimal_places rounding_mode
+        self.implementation.round self decimal_places rounding_mode
 
     ## ALIAS int
        GROUP Standard.Base.Rounding
@@ -743,7 +743,7 @@ type Column
             dates = Column.from_vector "foo" [Date.new 2020 10 24, Date.new 2020 10 24]
             col.truncate == dates
     truncate self -> Column ! Invalid_Value_Type =
-        self.implementation.truncate self.underlying
+        self.implementation.truncate self
 
     ## GROUP Standard.Base.Rounding
        ICON math
@@ -757,7 +757,7 @@ type Column
 
              Column.from_vector "foo" [1.25, 2.33, 3.57] . ceil == (Column.from_vector "foo" [2, 3, 4])
     ceil self -> Column ! Invalid_Value_Type =
-        self.implementation.ceil self.underlying
+        self.implementation.ceil self
 
     ## GROUP Standard.Base.Rounding
        ICON math
@@ -771,7 +771,7 @@ type Column
 
              Column.from_vector "foo" [1.25, 2.33, 3.57] . floor == (Column.from_vector "foo" [1, 2, 3])
     floor self -> Column ! Invalid_Value_Type =
-        self.implementation.floor self.underlying
+        self.implementation.floor self
 
     ## GROUP Standard.Base.Logical
        ICON operators
@@ -788,7 +788,7 @@ type Column
 
              example_coalesce = Examples.decimal_column.coalesce Examples.integer_column
     coalesce self (values : Any | Vector Any) -> Column =
-        self.implementation.coalesce self.underlying values
+        self.implementation.coalesce self values
 
     ## GROUP Standard.Base.Math
        ICON transform4
@@ -805,7 +805,7 @@ type Column
 
              example_min = Examples.decimal_column.min Examples.integer_column
     min self (values : Any | Vector Any) -> Column =
-        self.implementation.min self.underlying values
+        self.implementation.min self values
 
     ## GROUP Standard.Base.Math
        ICON transform4
@@ -822,7 +822,7 @@ type Column
 
              example_max = Examples.decimal_column.max Examples.integer_column
     max self (values : Any | Vector Any) -> Column =
-        self.implementation.max self.underlying values
+        self.implementation.max self values
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -836,14 +836,14 @@ type Column
 
              example_is_nothing = Examples.decimal_column.is_nothing
     is_nothing self -> Column =
-        self.implementation.is_nothing self.underlying
+        self.implementation.is_nothing self
 
     ## GROUP Standard.Base.Math
        ICON math
        Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan self -> Column =
-        self.implementation.is_nan self.underlying
+        self.implementation.is_nan self
 
     ## GROUP Standard.Base.Math
        ICON math
@@ -851,7 +851,7 @@ type Column
        this column contains a +Inf/-Inf. This is only applicable to double
        columns.
     is_infinite self -> Column =
-        self.implementation.is_infinite self.underlying
+        self.implementation.is_infinite self
 
     ## GROUP Standard.Base.Math
        ICON math
@@ -859,13 +859,13 @@ type Column
        this column contains a non-infinite, non-NaN floating point value. This
        is only applicable to double columns.
     is_finite self -> Column =
-        self.implementation.is_finite self.underlying
+        self.implementation.is_finite self
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
        this column contains an empty string or `Nothing`.
     is_empty self -> Column =
-        self.implementation.is_empty self.underlying
+        self.implementation.is_empty self
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -879,7 +879,7 @@ type Column
 
              example_is_present = Examples.decimal_column.is_present
     is_present self -> Column =
-        self.implementation.is_present self.underlying
+        self.implementation.is_present self
 
     ## PRIVATE
        Returns a column of booleans with `True` at the positions where this
@@ -892,7 +892,7 @@ type Column
        ? Blank values
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
     is_blank self treat_nans_as_blank:Boolean=False -> Column =
-        self.implementation.is_blank self.underlying treat_nans_as_blank
+        self.implementation.is_blank self treat_nans_as_blank
 
     ## ALIAS fill missing, if_nothing
        GROUP Standard.Base.Values
@@ -917,7 +917,7 @@ type Column
              example_fill_nothing = Examples.decimal_column.fill_nothing 20.5
     @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=self.value_type)
     fill_nothing self (default : Column | Previous_Value | Any) -> Column =
-        self.implementation.fill_nothing self.underlying default
+        self.implementation.fill_nothing self default
 
     ## ALIAS fill empty, if_empty
        GROUP Standard.Base.Values
@@ -941,7 +941,7 @@ type Column
              example_fill_empty = Examples.text_column_1.fill_empty "hello"
     @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=Value_Type.Char add_nothing=True)
     fill_empty self (default : Column | Previous_Value | Any) -> Column =
-        self.implementation.fill_empty self.underlying default
+        self.implementation.fill_empty self default
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -977,7 +977,7 @@ type Column
 
              example_starts_with = Examples.text_column_1.starts_with "hell" Case_Sensitivity.Insensitive
     starts_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column =
-        self.implementation.starts_with self.underlying other case_sensitivity
+        self.implementation.starts_with self other case_sensitivity
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -1006,7 +1006,7 @@ type Column
 
              example_ends_with = Examples.text_column_1.ends_with "hell"
     ends_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column =
-        self.implementation.ends_with self.underlying other case_sensitivity
+        self.implementation.ends_with self other case_sensitivity
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -1023,7 +1023,7 @@ type Column
              example_text_length =
                 Examples.text_column_1.text_length
     text_length self -> Column =
-        self.implementation.text_length self.underlying
+        self.implementation.text_length self
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -1040,7 +1040,7 @@ type Column
              example_text_length =
                 Examples.text_column_1.text_left 5
     text_left self (n : Column | Integer) -> Column =
-        self.implementation.text_left self.underlying n
+        self.implementation.text_left self n
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -1057,7 +1057,7 @@ type Column
              example_text_length =
                 Examples.text_column_1.text_right 5
     text_right self (n : Column | Integer) -> Column =
-        self.implementation.text_right self.underlying n
+        self.implementation.text_right self n
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -1086,7 +1086,7 @@ type Column
 
              example_contains = Examples.text_column_1.contains "hell"
     contains self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column =
-        self.implementation.contains self.underlying other case_sensitivity
+        self.implementation.contains self other case_sensitivity
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -1106,7 +1106,7 @@ type Column
 
              example_contains = Examples.text_column_1.like "F%."
     like self (pattern : Column | Text | Any) -> Column =
-        self.implementation.like self.underlying pattern
+        self.implementation.like self pattern
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -1124,7 +1124,7 @@ type Column
 
              example_contains = Examples.text_column_1.regex_match (regex "A.*M")
     regex_match self (pattern : Column | Text | Regex) -> Column =
-        self.implementation.regex_match self.underlying pattern
+        self.implementation.regex_match self pattern
 
     ## GROUP Standard.Base.Text
        ICON text
@@ -1137,7 +1137,7 @@ type Column
        - what: A `Text` (or text `Column`) containing characters that should be
          removed. By default, all whitespace is removed.
     trim self where:Location=..Both (what : Text | Column = '') -> Column =
-        self.implementation.trim self.underlying where what
+        self.implementation.trim self where what
 
     ## ALIAS regex, substitute
        GROUP Standard.Base.Text
@@ -1182,7 +1182,7 @@ type Column
     @term make_regex_text_widget
     @new_text (Text_Input display=..Always)
     text_replace self (term : Text | Regex | Column = "") (new_text : Text | Column = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column =
-        self.implementation.text_replace self.underlying term new_text case_sensitivity only_first
+        self.implementation.text_replace self term new_text case_sensitivity only_first
 
     ## GROUP Standard.Base.Text
        ICON column_add
@@ -1212,7 +1212,7 @@ type Column
              column.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
     @remove make_data_cleanse_vector_selector
     text_cleanse self (remove : Vector Named_Pattern) -> Column =
-        self.implementation.text_cleanse self.underlying remove
+        self.implementation.text_cleanse self remove
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1221,7 +1221,7 @@ type Column
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     year self -> Column ! Invalid_Value_Type =
-        self.implementation.year self.underlying
+        self.implementation.year self
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1230,7 +1230,7 @@ type Column
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     month self -> Column ! Invalid_Value_Type =
-        self.implementation.month self.underlying
+        self.implementation.month self
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1240,7 +1240,7 @@ type Column
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     day self -> Column ! Invalid_Value_Type =
-        self.implementation.day self.underlying
+        self.implementation.day self
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1250,7 +1250,7 @@ type Column
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     day_of_year self -> Column ! Invalid_Value_Type =
-        self.implementation.day_of_year self.underlying
+        self.implementation.day_of_year self
 
     ## ALIAS weekday
        GROUP Standard.Base.DateTime
@@ -1261,7 +1261,7 @@ type Column
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
     day_of_week self -> Column ! Invalid_Value_Type =
-        self.implementation.day_of_week self.underlying
+        self.implementation.day_of_week self
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1270,7 +1270,7 @@ type Column
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
     hour self -> Column ! Invalid_Value_Type =
-        self.implementation.hour self.underlying
+        self.implementation.hour self
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1279,7 +1279,7 @@ type Column
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
     minute self -> Column ! Invalid_Value_Type =
-        self.implementation.minute self.underlying
+        self.implementation.minute self
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1288,7 +1288,7 @@ type Column
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
     second self -> Column ! Invalid_Value_Type =
-        self.implementation.second self.underlying
+        self.implementation.second self
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1297,7 +1297,7 @@ type Column
        Returns a column of `Integer` type.
     @period Date_Time_Helpers.make_period_selector_for_column
     date_part self (period : Date_Period | Time_Period = ..Day) -> Column ! Invalid_Value_Type | Illegal_Argument =
-        self.implementation.date_part self.underlying period
+        self.implementation.date_part self period
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1325,7 +1325,7 @@ type Column
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
     date_diff self (end : Column | Date | Date_Time | Time_Of_Day) (period : Date_Period | Time_Period = ..Day) -> Column ! Invalid_Value_Type | Illegal_Argument =
-        self.implementation.date_diff self.underlying end period
+        self.implementation.date_diff self end period
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1348,7 +1348,7 @@ type Column
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
     date_add self (amount : Column | Integer) (period : Date_Period | Time_Period = default_date_period self) -> Column ! Invalid_Value_Type | Illegal_Argument =
-        self.implementation.date_add self.underlying amount period
+        self.implementation.date_add self amount period
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -1367,7 +1367,7 @@ type Column
 
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
     is_in self (vector : Vector | Column | Array) -> Column =
-        self.implementation.is_in self.underlying vector
+        self.implementation.is_in self vector
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -1450,7 +1450,7 @@ type Column
     @type Widget_Helpers.parse_type_selector
     @format (make_format_chooser include_number=False)
     parse self (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter = "") on_problems:Problem_Behavior=..Report_Warning -> Column =
-        self.implementation.parse self.underlying type format on_problems
+        self.implementation.parse self type format on_problems
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -1533,7 +1533,7 @@ type Column
     @locale Locale.default_widget
     @format (self-> Widget_Helpers.make_format_chooser_for_type self.value_type)
     format self (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default -> Column ! Illegal_Argument =
-        self.implementation.format self.underlying format locale
+        self.implementation.format self format locale
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -1584,7 +1584,7 @@ type Column
          types. Due to this, a Mixed column containing values `[2, "3"]` will
          actually be converted into `[2, Nothing]` when casting to Integer type.
     cast self value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning -> Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
-        self.implementation.cast self.underlying value_type on_problems
+        self.implementation.cast self value_type on_problems
 
     ## ALIAS auto_value_type
        GROUP Standard.Base.Conversions
@@ -1618,7 +1618,7 @@ type Column
              max length of 255. Otherwise, the column size limit will stay
              unchanged.
     auto_cast self shrink_types:Boolean=False -> Column =
-        self.implementation.auto_cast self.underlying shrink_types
+        self.implementation.auto_cast self shrink_types
 
     ## PRIVATE
        GROUP Standard.Base.Conversions
@@ -1689,7 +1689,7 @@ type Column
 
              example_map = Examples.integer_column.map (x -> x * x)
     map self (function : Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> Column ! Invalid_Value_Type =
-        self.implementation.map self.underlying function skip_nothing expected_value_type
+        self.implementation.map self function skip_nothing expected_value_type
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
@@ -1738,7 +1738,7 @@ type Column
          `Undefined_Column_Order` problem and returning an empty table.
     @keep_unmatched Widget_Helpers.make_keep_unmatched_selector
     zip self (right : Column | Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table =
-        self.implementation.zip self.underlying right keep_unmatched right_prefix on_problems
+        self.implementation.zip self right keep_unmatched right_prefix on_problems
 
     ## GROUP Standard.Base.Metadata
        ICON text_input
@@ -1755,7 +1755,7 @@ type Column
 
              example_rename = Examples.integer_column.rename "My Numbers"
     rename self name:Text -> Column ! Illegal_Argument =
-        self.implementation.rename self.underlying name
+        self.implementation.rename self name
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -1768,7 +1768,7 @@ type Column
 
              example_name = Examples.text_column_2.name
     name self -> Text =
-        self.implementation.name self.underlying
+        self.implementation.name self
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -1781,7 +1781,7 @@ type Column
 
              example_length = Examples.text_column_2.length
     length self -> Integer =
-        self.implementation.length self.underlying
+        self.implementation.length self
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -1794,7 +1794,7 @@ type Column
 
              example_count_nothing = Examples.text_column_2.count_nothing
     count_nothing self -> Integer =
-        self.implementation.count_nothing self.underlying
+        self.implementation.count_nothing self
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -1807,7 +1807,7 @@ type Column
 
              example_count = Examples.text_column_2.count
     count self -> Integer =
-        self.implementation.count self.underlying
+        self.implementation.count self
 
     ## GROUP Standard.Base.Selections
        ICON parse3
@@ -1827,7 +1827,7 @@ type Column
              example_at = Examples.integer_column.at 0
     @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
     at self index:Integer=0 -> Any | Nothing ! Index_Out_Of_Bounds =
-        self.implementation.at self.underlying index
+        self.implementation.at self index
 
     ## GROUP Standard.Base.Selections
        ICON parse3
@@ -1845,7 +1845,7 @@ type Column
              example_at = Examples.integer_column.get 0 -1
     @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
     get self index:Integer=0 ~default=Nothing -> Any | Nothing =
-        self.implementation.get self.underlying index default
+        self.implementation.get self index default
 
     ## PRIVATE
        ICON data_input
@@ -1855,7 +1855,7 @@ type Column
        - max_rows: specifies the maximum number of rows to read.
     @max_rows Rows_To_Read.default_widget
     read self (max_rows : Rows_To_Read = ..All_Rows) -> Column =
-        self.implementation.read self.underlying max_rows
+        self.implementation.read self max_rows
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -1868,7 +1868,7 @@ type Column
 
              example_to_vector = Examples.integer_column.to_vector
     to_vector self -> Vector =
-        self.implementation.to_vector self.underlying
+        self.implementation.to_vector self
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -1877,7 +1877,7 @@ type Column
        The value type determines what type of values the column is storing and
        what operations are permitted.
     value_type self -> Value_Type =
-        self.implementation.value_type self.underlying
+        self.implementation.value_type self
 
     ## PRIVATE
        Returns a possibly more precise `Value_Type` based on the data in the
@@ -1889,13 +1889,13 @@ type Column
     inferred_precise_value_type : Value_Type
     inferred_precise_value_type self =
         # TODO move to some internal API
-        self.implementation.inferred_precise_value_type self.underlying
+        self.implementation.inferred_precise_value_type self
 
     ## PRIVATE
        Internal hook that says if a given column should be selected by a
        specific type in a `By_Type` selection.
     should_be_selected_by_type self (value_type : Value_Type) -> Boolean =
-        self.implementation.should_be_selected_by_type self.underlying value_type
+        self.implementation.should_be_selected_by_type self value_type
 
     ## PRIVATE
        Converts this column to JS_Object representation.
@@ -1908,7 +1908,7 @@ type Column
              example_to_json = Examples.integer_column.to_js_object
     to_js_object : JS_Object
     to_js_object self =
-        self.implementation.to_js_object self.underlying
+        self.implementation.to_js_object self
 
     ## ICON data_input
        Converts this column into a single-column table.
@@ -1920,7 +1920,7 @@ type Column
 
              example_to_table = Examples.integer_column.to_table
     to_table self -> Table =
-        self.implementation.to_table self.underlying
+        self.implementation.to_table self
 
     ## ALIAS column type, field info, metadata
        GROUP Standard.Base.Metadata
@@ -1929,7 +1929,7 @@ type Column
 
        The table behaves like `Table.column_info.
     info self -> Table =
-        self.implementation.info self.underlying
+        self.implementation.info self
 
     ## ALIAS order_by
        GROUP Standard.Base.Selections
@@ -1972,7 +1972,7 @@ type Column
                  my_compare a b = Ordering.compare a.abs b.abs
                  Examples.decimal_column.sort by=my_compare
     sort self order:Sort_Direction=..Ascending missing_last:Boolean=True (by : (Any -> Any -> Ordering) | Nothing = Nothing) -> Column =
-        self.implementation.sort self.underlying order missing_last by
+        self.implementation.sort self order missing_last by
 
     ## ALIAS first, head, keep, last, limit, sample, slice, tail, top
        GROUP Standard.Base.Selections
@@ -2006,7 +2006,7 @@ type Column
              last_row = column.take (..Last 1)
     @range (self-> Index_Sub_Range.default_widget self.length)
     take self (range : Index_Sub_Range | Range | Integer = ..First) -> Column =
-        self.implementation.take self.underlying range
+        self.implementation.take self range
 
     ## ALIAS remove, skip
        GROUP Standard.Base.Selections
@@ -2018,13 +2018,13 @@ type Column
        - range: The selection of rows from the table to remove.
     @range (self-> Index_Sub_Range.default_widget self.length)
     drop self (range : Index_Sub_Range | Range | Integer = ..First) -> Column =
-        self.implementation.drop self.underlying range
+        self.implementation.drop self range
 
     ## PRIVATE
        Returns a column with a continuous sub-range of rows taken.
     slice : Integer -> Integer -> Column
     slice self start end =
-        self.implementation.slice self.underlying start end
+        self.implementation.slice self start end
 
     ## GROUP Standard.Base.Selections
        ICON parse3
@@ -2040,7 +2040,7 @@ type Column
 
              example_first = Examples.integer_column.first
     first self -> Any ! Index_Out_Of_Bounds =
-        self.implementation.first self.underlying
+        self.implementation.first self
 
     ## GROUP Standard.Base.Selections
        ICON select_row
@@ -2056,7 +2056,7 @@ type Column
 
              example_last = Examples.integer_column.last
     last self -> Any ! Index_Out_Of_Bounds =
-        self.implementation.last self.underlying
+        self.implementation.last self
 
     ## GROUP Standard.Base.Selections
        ICON order
@@ -2070,7 +2070,7 @@ type Column
 
              example_reverse = Examples.integer_column.reverse
     reverse self -> Column =
-        self.implementation.reverse self.underlying
+        self.implementation.reverse self
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2084,12 +2084,12 @@ type Column
 
              example_duplicate_count = Examples.integer_column.duplicate_count
     duplicate_count self -> Column =
-        self.implementation.duplicate_count self.underlying
+        self.implementation.duplicate_count self
 
     ## PRIVATE
        Provides a simplified text representation for display in the REPL and errors.
     to_text self -> Text =
-        self.implementation.to_text self.underlying
+        self.implementation.to_text self
 
     ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
        GROUP Standard.Base.Statistics
@@ -2099,7 +2099,7 @@ type Column
        Arguments:
        - statistic: Statistic to calculate.
     compute self statistic:Statistic=..Count -> Any =
-        self.implementation.compute self.underlying statistic
+        self.implementation.compute self statistic
 
     ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
        ICON transform4
@@ -2108,7 +2108,7 @@ type Column
        Arguments:
        - statistics: Set of statistics to calculate.
     compute_bulk self (statistics : Vector Statistic = [Statistic.Count, Statistic.Sum]) -> Table =
-        self.implementation.compute_bulk self.underlying statistics
+        self.implementation.compute_bulk self statistics
 
     ## ALIAS count, cumulative, maximum, mean, minimum, product, standard deviation, sum, sum, total, variance
        GROUP Standard.Base.Statistics
@@ -2119,7 +2119,7 @@ type Column
        - statistic: Statistic to calculate.
        - name: Name of the new column.
     running self statistic:Statistic=..Count (name : Text = statistic.to_text+" "+self.name) -> Column =
-        self.implementation.running self.underlying statistic name
+        self.implementation.running self statistic name
 
     ## ALIAS displace, lag, lead, shift, slide
        GROUP Standard.Base.Values
@@ -2136,7 +2136,7 @@ type Column
        - - ..Wrap_Around - In this mode values that slide off the top or bottom reappear at the other end. So no values get lost they are just rotated.
     @n (self-> Numeric_Input minimum=0-self.length maximum=self.length)
     offset self n=-1:Integer fill_with:Fill_With=..Nothing -> Column =
-        self.implementation.offset self.underlying n fill_with
+        self.implementation.offset self n fill_with
 
 ## PRIVATE
    Constructor to be used by implementations of the Column type to be able to provide a conversion.
