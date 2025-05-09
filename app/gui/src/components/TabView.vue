@@ -152,6 +152,7 @@ const onSignOut = () => {
 .tablist {
   display: flex;
   flex-direction: row;
+  /* Create a stacking context for tab highlight, so it's under all tabs' contents. */
   z-index: 0;
 }
 
@@ -173,16 +174,16 @@ const onSignOut = () => {
   &:hover {
     background-color: rgba(239, 68, 68, 0.8);
   }
+}
 
-  &.onMacOs {
-    transition: color 0.3s;
-    color: rgba(0, 0, 0, 0);
-    &:not(:hover) {
-      background-color: rgba(0, 0, 0, 0.3);
-    }
-    &:hover {
-      color: rgba(0, 0, 0, 0.9);
-    }
+.App.onMacOs .closeButton {
+  transition: color 0.1s;
+  color: rgba(0, 0, 0, 0);
+  &:not(:hover) {
+    background-color: rgba(0, 0, 0, 0.3);
+  }
+  &:hover {
+    color: rgba(0, 0, 0, 0.9);
   }
 }
 
