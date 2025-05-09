@@ -48,15 +48,15 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
       {...(triggerRef ? { triggerRef } : {})}
       shouldCloseOnInteractOutside={() => true}
     >
-      <ManageLabelsModalInternal {...props} />
+      <ManageLabelsForm {...props} />
     </Popover>
   )
 }
 
 /**
- * Internal implementation of a {@link ManageLabelsModal}.
+ * Form for {@link ManageLabelsModal}.
  */
-function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
+function ManageLabelsForm(props: ManageLabelsModalProps) {
   const { backend, item: itemRaw } = props
 
   const item = useAsset(itemRaw.id) ?? itemRaw
@@ -102,7 +102,7 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
   const canCreateNewLabel = canSelectColor
 
   return (
-    <Form key={id} form={form} className="relative flex flex-col gap-modal rounded-default p-modal">
+    <Form key={id} form={form}>
       <Text.Heading slot="title" level={2} variant="subtitle">
         {getText('labels')}
       </Text.Heading>
@@ -143,11 +143,12 @@ function ManageLabelsModalInternal(props: ManageLabelsModalProps) {
                   <DialogTrigger>
                     <Button
                       variant="icon"
-                      icon="trash2"
+                      icon="trash"
                       extraClickZone={false}
                       aria-label={getText('delete')}
                       tooltipPlacement="right"
-                      className="relative mr-1 flex size-4 text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
+                      showIconOnHover
+                      className="relative mr-1 flex size-4 text-delete transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
                     />
                     <ConfirmDeleteModal
                       cannotUndo

@@ -1,8 +1,6 @@
 /** @file A component wrapping {@link Input} with the ability to show and hide password. */
 import { useState } from 'react'
 
-import EyeIcon from '#/assets/eye.svg'
-import EyeCrossedIcon from '#/assets/eye_crossed.svg'
 import {
   Button,
   Form,
@@ -50,7 +48,7 @@ export function Password<Schema extends TSchema, TFieldName extends FieldPath<Sc
                       size="medium"
                       variant="icon"
                       extraClickZone
-                      icon={showPassword ? EyeIcon : EyeCrossedIcon}
+                      icon={showPassword ? 'eye' : 'eye_crossed'}
                       onPress={() => {
                         setShowPassword(!showPassword)
                       }}

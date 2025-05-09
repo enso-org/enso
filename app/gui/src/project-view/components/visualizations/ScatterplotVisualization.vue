@@ -148,7 +148,7 @@ const SHAPE_TO_SYMBOL: Record<string, d3.SymbolType> = {
 const createDateTime = (x: DateObj) => {
   const dateTime = new Date()
   if (x.day != null) dateTime.setDate(x.day)
-  if (x.month != null) dateTime.setMonth(x.month)
+  if (x.month != null) dateTime.setMonth(x.month - 1)
   if (x.year != null) dateTime.setFullYear(x.year)
   if (x.hour != null) dateTime.setHours(x.hour)
   if (x.minute != null) dateTime.setMinutes(x.minute)

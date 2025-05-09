@@ -16,6 +16,10 @@ public final class DoubleStorageFacade<T> implements ColumnDoubleStorage {
     this.converter = converter;
   }
 
+  public static ColumnDoubleStorage forLong(ColumnLongStorage parent) {
+    return new DoubleStorageFacade<>(parent, Long::doubleValue);
+  }
+
   public static ColumnDoubleStorage forBigInteger(ColumnStorage<BigInteger> parent) {
     return new DoubleStorageFacade<>(parent, BigInteger::doubleValue);
   }

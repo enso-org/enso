@@ -28,14 +28,13 @@ import {
   deleteAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useUploadFileToCloudMutation } from '#/hooks/backendUploadFilesHooks'
+import { useUploadFileToCloudMutation, useUploadFileToLocal } from '#/hooks/backendUploadFilesHooks'
 import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useUser } from '#/providers/AuthProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
-import { extractTypeAndId } from '#/services/LocalBackend'
 import { useBackends, useText } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
@@ -90,6 +89,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const showDeveloperIds = useFeatureFlag('showDeveloperIds')
   const copyMutation = useCopy()
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
+  const uploadFileToLocal = useUploadFileToLocal(category)
 
   const canUploadToCloud = user.plan !== backendModule.Plan.free
 
@@ -97,8 +97,18 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     driveStore,
     (state) =>
       !isCloud &&
+      localBackend != null &&
       [...state.selectedIds].every(
-        (id) => extractTypeAndId(id).type === backendModule.AssetType.project,
+        (id) => backendModule.getAssetTypeFromId(id) === backendModule.AssetType.project,
+      ),
+  )
+  const canDownloadAllProjectsToLocal = useStore(
+    driveStore,
+    (state) =>
+      isCloud &&
+      localBackend != null &&
+      [...state.selectedIds].every(
+        (id) => backendModule.getAssetTypeFromId(id) === backendModule.AssetType.project,
       ),
   )
 
@@ -113,6 +123,15 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       assets: [...files],
       targetDirectoryId: user.rootDirectoryId,
     })
+  })
+
+  const downloadFilesToLocalCallback = useEventCallback(async () => {
+    const selectedIds = [...driveStore.getState().selectedIds]
+    const files = selectedIds.flatMap((id) => {
+      const asset = getAsset(id)
+      return asset ? [asset] : []
+    })
+    await uploadFileToLocal(files)
   })
 
   const hasPasteData = useStore(driveStore, ({ pasteData }) => {
@@ -271,6 +290,14 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             feature="uploadToCloud"
             label={getText('uploadAllToCloudShortcut')}
             doAction={uploadFilesToCloudCallback}
+          />
+        )}
+        {selectedAssets.length !== 0 && canDownloadAllProjectsToLocal && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="downloadToLocal"
+            label={getText('downloadAllToLocalShortcut')}
+            doAction={downloadFilesToLocalCallback}
           />
         )}
         {selectedAssets.length !== 0 && isCloud && (

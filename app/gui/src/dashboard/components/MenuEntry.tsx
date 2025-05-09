@@ -17,8 +17,8 @@ import type { TextProps } from '#/components/AriaComponents'
 import { Text, useDialogContext, useVisualTooltip } from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import FocusRing from '#/components/styled/FocusRing'
-import SvgMask from '#/components/SvgMask'
 
+import { Icon } from '#/components/Icon'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -47,6 +47,7 @@ export const ACTION_TO_TEXT_ID: Readonly<
   run: 'runShortcut',
   close: 'closeShortcut',
   uploadToCloud: 'uploadToCloudShortcut',
+  downloadToLocal: 'downloadToLocalShortcut',
   rename: 'renameShortcut',
   edit: 'editShortcut',
   snapshot: 'snapshotShortcut',
@@ -69,7 +70,6 @@ export const ACTION_TO_TEXT_ID: Readonly<
   useInNewProject: 'useInNewProjectShortcut',
   closeModal: 'closeModalShortcut',
   cancelEditName: 'cancelEditNameShortcut',
-  signIn: 'signInShortcut',
   signOut: 'signOutShortcut',
   downloadApp: 'downloadAppShortcut',
   cancelCut: 'cancelCutShortcut',
@@ -178,11 +178,14 @@ export default function MenuEntry(props: MenuEntryProps) {
           }}
         >
           <div className={MENU_ENTRY_VARIANTS(variantProps)} {...targetProps}>
-            <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
-              <SvgMask
-                src={icon ?? info.icon ?? BlankIcon}
-                color={info.color}
-                className="size-4 text-primary"
+            <div
+              title={title}
+              className="flex items-center gap-menu-entry whitespace-nowrap"
+              style={{ color: info.color }}
+            >
+              <Icon
+                icon={icon ?? info.icon ?? BlankIcon}
+                className={info.color != null ? undefined : 'text-primary'}
               />
               <Text color={color} slot="label">
                 {label ?? getText(labelTextId)}

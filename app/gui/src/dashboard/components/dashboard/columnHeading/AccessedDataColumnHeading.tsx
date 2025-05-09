@@ -1,5 +1,4 @@
 /** @file A heading for the "Accessed data" column. */
-import AccessedDataIcon from '#/assets/accessed_data.svg'
 import { Button, Text } from '#/components/AriaComponents'
 import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
 import { Column } from '#/components/dashboard/column/columnUtils'
@@ -19,7 +18,7 @@ export default function AccessedDataColumnHeading(props: AssetColumnHeadingProps
     <div className="flex h-table-row w-full items-center gap-2">
       <Button
         variant="icon"
-        icon={AccessedDataIcon}
+        icon="accessed_data"
         aria-label={getText('accessedDataColumnHide')}
         tooltip={false}
         onPress={hideThisColumn}

@@ -1,11 +1,8 @@
 /** @file Success screen for the "invite users" modal. */
-import * as React from 'react'
-
-import ArrowRightIcon from '#/assets/arrow_right.svg'
-
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 import { useRouter, useText } from '$/providers/react'
+import * as React from 'react'
 
 /**
  * The number of emails to display in the success message.
@@ -62,7 +59,7 @@ export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
           {!isUserOnMembersPage && (
             <ariaComponents.Button
               variant="outline"
-              icon={ArrowRightIcon}
+              icon="arrow_right"
               size="medium"
               iconPosition="end"
               onPressStart={onClose}
