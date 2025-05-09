@@ -291,50 +291,6 @@ public class UnusedImportsTest {
     expectNoWarnings(mainMod.getIr());
   }
 
-  /** If there is no used symbol from {@code from ... import all} import, a warning is generated. */
-  @Test
-  public void noSymbolIsUsedForImportAll() {
-    compilerCtx.createModule(
-        QualifiedName.fromString("local.Proj.Module"),
-        """
-            type My_Type_1
-            type My_Type_2
-            """);
-    var mainMod =
-        compilerCtx.createModule(
-            QualifiedName.fromString("local.Proj.Main"),
-            """
-            from project.Module import all
-            main = 42
-            """);
-    compilerCtx.getCompiler().run(mainMod);
-    var imp = mainMod.getIr().imports().apply(0);
-    expectWarning(imp);
-  }
-
-  /**
-   * If there is at least one symbol used in {@code from ... import all} import, no warning is
-   * generated.
-   */
-  @Test
-  public void oneSymbolIsUsedForImportAll() {
-    compilerCtx.createModule(
-        QualifiedName.fromString("local.Proj.Module"),
-        """
-            type My_Type_1
-            type My_Type_2
-            """);
-    var mainMod =
-        compilerCtx.createModule(
-            QualifiedName.fromString("local.Proj.Main"),
-            """
-            from project.Module import all
-            main = My_Type_1
-            """);
-    compilerCtx.getCompiler().run(mainMod);
-    expectNoWarnings(mainMod.getIr());
-  }
-
   @Test
   public void noWarning_WhenImportingSymbolFromReexport() {
     compilerCtx.createModule(
@@ -502,6 +458,26 @@ public class UnusedImportsTest {
             polyglot java import java.lang.StringBuilder
             polyglot java import java.lang.Double
             main = 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectNoWarnings(mainMod.getIr());
+  }
+
+  @Test
+  public void importAll_IsIgnored() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type A
+            type B
+            A.extension_method self = 42
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import all
+            main = A
             """);
     compilerCtx.getCompiler().run(mainMod);
     expectNoWarnings(mainMod.getIr());

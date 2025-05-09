@@ -184,7 +184,11 @@ public final class UnusedImports implements IRPass {
   }
 
   private static boolean shouldImportBeSkipped(Import imp) {
-    return isImportDuplicated(imp) || imp instanceof Polyglot;
+    return isImportDuplicated(imp) || imp instanceof Polyglot || isAllImport(imp);
+  }
+
+  private static boolean isAllImport(Import imp) {
+    return imp instanceof Import.Module impMode && impMode.isAll();
   }
 
   private static boolean isImportDuplicated(Import imp) {
