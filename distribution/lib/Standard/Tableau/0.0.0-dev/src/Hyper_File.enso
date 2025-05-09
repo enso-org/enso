@@ -3,6 +3,7 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
+import Standard.Base.Internal.Table_Viz_Data.Table_Viz_Data
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
@@ -111,6 +112,9 @@ make_table_selector hyper_file:Hyper_File cache=Nothing =
     used_schema = if schema == "" || schema == Nothing then hyper_file.schema else schema
     tables = hyper_file.tables used_schema . map t-> Option t.table t.table.pretty
     Single_Choice values=tables
+
+## PRIVATE
+Table_Viz_Data.from (that:Hyper_File) = Table_Viz_Data.new (_make_json_for_single_column_of_actions that.to_js_object that.viz_data "tables" "table" "read")
 
 private _make_json_for_single_column_of_actions js_value data:Vector title tooltip child_node_action =
     JS_Object.from_pairs [["json", js_value], ["data", data], ["visualization_header", title], ["child_label", tooltip], ["get_child_node_action", child_node_action], ["type", "Single_Column_Of_Actions"]]
