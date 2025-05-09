@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.Warning.UnusedImport;
@@ -14,7 +15,6 @@ import org.enso.compiler.core.ir.Warning.UnusedSymbolsFromImport;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.Option;
 
 /**
  * Removes unused imports from a module - rewrites the file. Either removes the line with the import
@@ -33,15 +33,17 @@ public final class UnusedImportsRemover {
   public static void removeUnusedImports(Path modulePath, CompilerContext.Module moduleCtx) {
     LOGGER.debug("About to remove unused imports from module {}", moduleCtx.getName());
     assert modulePath.toFile().exists();
-    var replacements = collectReplacements(moduleCtx);
+    var lazyFile = new LazyFile(modulePath);
+    var replacements = collectReplacements(lazyFile, moduleCtx);
     var replacementsSorted = reverseSort(replacements);
     if (!replacementsSorted.isEmpty()) {
       LOGGER.trace("Replacements: {}", replacementsSorted);
-      replaceLines(modulePath, replacementsSorted);
+      replaceLines(lazyFile, replacementsSorted);
     }
   }
 
-  private static List<LineReplacement> collectReplacements(CompilerContext.Module moduleCtx) {
+  private static List<LineReplacement> collectReplacements(
+      LazyFile lazyFile, CompilerContext.Module moduleCtx) {
     var modIr = moduleCtx.getIr();
     var replacements = new ArrayList<LineReplacement>();
     for (var imp : asJava(modIr.imports())) {
@@ -56,27 +58,16 @@ public final class UnusedImportsRemover {
               replacements.add(new LineReplacement(lineIdx, null));
             }
             case UnusedSymbolsFromImport unusedSymsImp -> {
-              // Replace the line with a more specific import
-              var unusedSyms = unqualified(asJava(unusedSymsImp.unusedSymbols()));
-              assert imp instanceof Import.Module;
-              var impMod = (Import.Module) imp;
-              assert impMod.onlyNames().isDefined();
-              var onlyNames = impMod.onlyNames().get();
-              assert unusedSyms.size() <= onlyNames.size();
-              var onlyNamesToRetain =
-                  onlyNames.filterNot(onlyName -> unusedSyms.contains(onlyName.name()));
-              Option<scala.collection.immutable.List<Name.Literal>> onlyNamesToRetainOpt =
-                  onlyNamesToRetain.isEmpty() ? Option.empty() : Option.apply(onlyNamesToRetain);
-              var newImp = Import.Module.builder(impMod).onlyNames(onlyNamesToRetainOpt).build();
-              var loc = impMod.identifiedLocation();
+              var loc = imp.identifiedLocation();
               assert loc != null;
               var lineIdx = moduleCtx.findLine(loc);
-              var replacement = new LineReplacement(lineIdx, newImp.showCode());
+              var line = lazyFile.lines().get(lineIdx - 1);
+              var replacement =
+                  replacementForUnusedSymbols(unusedSymsImp, (Import.Module) imp, lineIdx, line);
               replacements.add(replacement);
             }
             default -> {}
           }
-          ;
         }
       }
     }
@@ -84,27 +75,62 @@ public final class UnusedImportsRemover {
   }
 
   /**
-   * @param path
+   * @param unusedSymsImp Warning attached to the IR
+   * @param impIr The original Import IR
+   * @param lineIdx Index of the line in the file
+   * @param importStatement String representation of the import ir. This is important because if the
+   *     import statement is {@code from project... import ...}, then the {@code project} keyword
+   *     would otherwise be lost. Note that if the statement was {@code from project.A.B import C,
+   *     D, E}, we want to replace it with something like {@code from project.A.B import C, D} and
+   *     not with {@code from Standard.Base.A.B import C, D}
+   * @return
+   */
+  private static LineReplacement replacementForUnusedSymbols(
+      UnusedSymbolsFromImport unusedSymsImp,
+      Import.Module impIr,
+      int lineIdx,
+      String importStatement) {
+    assert impIr.onlyNames().isDefined();
+    var onlyNames = impIr.onlyNames().get();
+    var unusedSyms = unqualified(asJava(unusedSymsImp.unusedSymbols()));
+    assert unusedSyms.size() <= onlyNames.size();
+    var usedSyms = onlyNames.filterNot(onlyName -> unusedSyms.contains(onlyName.name()));
+    if (usedSyms.isEmpty()) {
+      // Remove the line - no used symbols
+      return new LineReplacement(lineIdx, null);
+    } else {
+      var pat = Pattern.compile("from\\s+(.+)\\s+import(.+)$");
+      var matcher = pat.matcher(importStatement);
+      var found = matcher.find();
+      assert found;
+      var module = matcher.group(1);
+      var usedSymsStr = usedSyms.map(Name.Literal::name).mkString(", ");
+      var repl = "from " + module + " import " + usedSymsStr;
+      return new LineReplacement(lineIdx, repl);
+    }
+  }
+
+  /**
    * @param replacements Locations sorted in reverse order, so they can be removed in one pass
    */
-  private static void replaceLines(Path path, List<LineReplacement> replacements) {
+  private static void replaceLines(LazyFile lazyFile, List<LineReplacement> replacements) {
     assert !replacements.isEmpty();
-    try {
-      var oldLines = Files.readAllLines(path);
-      var newLines = new ArrayList<>(oldLines);
-      for (var replacement : replacements) {
-        var oldLinesIdx = replacement.lineIdx - 1;
-        var oldLine = oldLines.get(oldLinesIdx);
-        if (replacement.replacement != null) {
-          LOGGER.trace(
-              "Replacing line [{}] '{}' with '{}'", oldLinesIdx, oldLine, replacement.replacement);
-          newLines.set(oldLinesIdx, replacement.replacement);
-        } else {
-          LOGGER.trace("Removing line [{}] '{}'", oldLinesIdx, oldLine);
-          newLines.remove(oldLinesIdx);
-        }
+    var oldLines = lazyFile.lines();
+    var newLines = new ArrayList<>(oldLines);
+    for (var replacement : replacements) {
+      var oldLinesIdx = replacement.lineIdx - 1;
+      var oldLine = oldLines.get(oldLinesIdx);
+      if (replacement.replacement != null) {
+        LOGGER.trace(
+            "Replacing line [{}] '{}' with '{}'", oldLinesIdx, oldLine, replacement.replacement);
+        newLines.set(oldLinesIdx, replacement.replacement);
+      } else {
+        LOGGER.trace("Removing line [{}] '{}'", oldLinesIdx, oldLine);
+        newLines.remove(oldLinesIdx);
       }
-      Files.write(path, newLines);
+    }
+    try {
+      Files.write(lazyFile.path, newLines);
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
@@ -125,4 +151,24 @@ public final class UnusedImportsRemover {
    * @param replacement If null, the line should be removed completely
    */
   private record LineReplacement(int lineIdx, String replacement) {}
+
+  private static final class LazyFile {
+    private final Path path;
+    private List<String> lines;
+
+    private LazyFile(Path path) {
+      this.path = path;
+    }
+
+    List<String> lines() {
+      if (lines == null) {
+        try {
+          lines = Files.readAllLines(path);
+        } catch (IOException e) {
+          throw new IllegalStateException(e);
+        }
+      }
+      return lines;
+    }
+  }
 }
