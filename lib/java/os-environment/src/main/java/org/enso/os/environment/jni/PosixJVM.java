@@ -31,10 +31,13 @@ final class PosixJVM {
   }
 
   private static File findDynamicLibrary(File javaHome) {
-    var libName = "libjvm.so";
-    if (System.getProperty("os.name").contains("Mac")) {
-      libName = "libjvm.dylib";
-    }
+    var libName =
+        switch (org.enso.common.Platform.getOperatingSystem()) {
+          case LINUX -> "libjvm.so";
+          case MACOS -> "libjvm.dylib";
+          case org.enso.common.Platform other -> throw new IllegalStateException(
+              "Unknown OS: " + other);
+        };
     var lib = new File(new File(new File(javaHome, "lib"), "server"), libName);
     if (!lib.exists()) {
       throw new IllegalStateException("Cannot find " + lib);
