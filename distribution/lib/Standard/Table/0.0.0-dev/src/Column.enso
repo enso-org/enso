@@ -361,7 +361,7 @@ type Column
     + self (other : Column | Any) -> Column =
         self.implementation.add self other
 
-    ## ALIAS minus, subtract
+    ## ALIAS minus, subtract, time difference
        GROUP Standard.Base.Operators
        ICON operators
        Element-wise subtraction. Allows to subtract numeric types or compute a
@@ -718,6 +718,14 @@ type Column
          multiple of 10^(-n)". For negative decimal counts, this results in
          rounding to the nearest positive integer power of 10.
 
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `round`, it immediately returns
+         the same value.
+
+       ? Return type in Database
+         In databases, the return type of this operation depends on the
+         particular database backend.
+
        > Example
          Round a column of `Float` values`.
 
@@ -733,6 +741,10 @@ type Column
        integer by dropping the fractional part. This is equivalent to
        "round-toward-zero". If the column is of type `Date_Time`, truncates the
        values to `Date`.
+
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `truncate`, it immediately returns
+         the same value.
 
        > Example
          Truncate a column of `Float` values.
@@ -754,6 +766,10 @@ type Column
 
        Returns a column of `Integer`.
 
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `ceil`, it immediately returns
+         the same value.
+
        > Example
          Take the ceiling of a column of `Float` values.
 
@@ -767,6 +783,10 @@ type Column
        column.
 
        Returns a column of `Integer`.
+
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `floor`, it immediately returns
+         the same value.
 
        > Example
          Take the floor of a column of `Float` values.
@@ -800,6 +820,10 @@ type Column
        - values: list of columns or values to minimum with `self`, or a single
          column or value.
 
+       ? SQLite NULL handling
+         In SQLite, if any of the values is NULL, the result is NULL.
+         In all other backends the NULL values are ignored.
+
        > Example
          Get the minimum value in two columns.
 
@@ -816,6 +840,10 @@ type Column
        Arguments:
        - values: list of columns or values to maximum with `self`, or a single
          column or value.
+
+       ? SQLite NULL handling
+         In SQLite, if any of the values is NULL, the result is NULL.
+         In all other backends the NULL values are ignored.
 
        > Example
          Get the maximum value in two columns.
@@ -1167,6 +1195,39 @@ type Column
          sensitively.
        - only_first: If True, only replace the first match.
 
+       ! Backend Support
+         Each database backend supports different combinations of options:
+
+         Text:
+         +----------------+------------+----------+--------+
+         | case_sensitive | only_first | postgres | sqlite |
+         +----------------+------------+----------+--------+
+         |       t        |      f     |     ✓    |    ✓   |
+         |       t        |      t     |     ✓    |    ✓   |
+         |       f        |      f     |     ✓    |    ✗   |
+         |       f        |      t     |     ✓    |    ✓   |
+         +----------------+------------+----------+--------+
+
+         Regex:
+         +----------------+------------+----------+--------+
+         | case_sensitive | only_first | postgres | sqlite |
+         +----------------+------------+----------+--------+
+         |       t        |      f     |     ✓    |    ✗   |
+         |       t        |      t     |     ✓    |    ✗   |
+         |       f        |      f     |     ✓    |    ✗   |
+         |       f        |      t     |     ✓    |    ✗   |
+         +----------------+------------+----------+--------+
+
+         Text Column:
+         +----------------+------------+----------+--------+
+         | case_sensitive | only_first | postgres | sqlite |
+         +----------------+------------+----------+--------+
+         |       t        |      f     |     ✓    |    ✓   |
+         |       t        |      t     |     ✗    |    ✓   |
+         |       f        |      f     |     ✗    |    ✗   |
+         |       f        |      t     |     ✗    |    ✓   |
+         +----------------+------------+----------+--------+
+
        > Example
          Replace dashes with underscores.
 
@@ -1405,6 +1466,9 @@ type Column
          - If some values in the column did not match the expected datatype
            format, an `Invalid_Format` problem is reported. The problematic
            cells are replaced with `Nothing`.
+         - If custom formatting settings were provided, but the database backend
+           does not support customization, an `Unsupported_Database_Operation`
+           error is reported.
 
        ? Number Formats
 
@@ -1849,6 +1913,7 @@ type Column
     get self index:Integer=0 ~default=Nothing -> Any | Nothing =
         self.implementation.get self index default
 
+    ## FIXME keep in DB_Column and make public
     ## PRIVATE
        ICON data_input
        Returns a column containing rows of this column.
