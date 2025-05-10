@@ -1,9 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-from Standard.Base.Internal.Table_Viz_Data import Table_Viz_Data, make_json_for_single_column_of_actions
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, make_json_for_single_column_of_actions
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table

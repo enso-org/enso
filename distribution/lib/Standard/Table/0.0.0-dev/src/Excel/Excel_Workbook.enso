@@ -13,10 +13,10 @@ import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.System.File.Advanced.Temporary_File.Temporary_File
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Data.Filter_Condition import sql_like_to_regex
-from Standard.Base.Internal.Table_Viz_Data import Table_Viz_Data, make_json_for_single_column_of_actions
 from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice
+from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, make_json_for_single_column_of_actions
 
 import project.Column.Column
 import project.Columns_To_Keep.Columns_To_Keep
