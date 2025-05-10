@@ -67,7 +67,7 @@ type Hyper_File
                 "*" -> HyperFormat.listTablesAllSchemas self.file.path
                 _ -> HyperFormat.listTables self.file.path schema
             array.map t-> Hyper_Table.Value self t.schema t.name
- 
+
     ## ALIAS get, import, load, open, sheet
        GROUP Standard.Base.Input
        ICON data_input
