@@ -8,7 +8,6 @@
     - schemas self -> Standard.Base.Any.Any
     - set_schema self schema:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - tables self schema:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
-    - to_viz_js self -> Standard.Base.Any.Any
-    - viz_data self -> Standard.Base.Any.Any
 - make_schema_selector hyper_file:Standard.Tableau.Hyper_File.Hyper_File include_any:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
 - make_table_selector hyper_file:Standard.Tableau.Hyper_File.Hyper_File cache:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- Standard.Base.Internal.Table_Viz_Data.Table_Viz_Data.from that:Standard.Tableau.Hyper_File.Hyper_File -> Standard.Base.Internal.Table_Viz_Data.Table_Viz_Data

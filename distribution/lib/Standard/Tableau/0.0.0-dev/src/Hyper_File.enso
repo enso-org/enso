@@ -1,9 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Internal.Table_Viz_Data import Table_Viz_Data, make_json_for_single_column_of_actions
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
-import Standard.Base.Internal.Table_Viz_Data.Table_Viz_Data
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
@@ -67,13 +67,6 @@ type Hyper_File
                 "*" -> HyperFormat.listTablesAllSchemas self.file.path
                 _ -> HyperFormat.listTables self.file.path schema
             array.map t-> Hyper_Table.Value self t.schema t.name
-
-    ## PRIVATE
-    viz_data self =
-        self.tables.map t->t.table.to_text
-
-    to_viz_js self =
-        _make_json_for_single_column_of_actions self.to_js_object self.viz_data "tables" "table" "read"
             
     ## ALIAS get, import, load, open, sheet
        GROUP Standard.Base.Input
@@ -114,7 +107,6 @@ make_table_selector hyper_file:Hyper_File cache=Nothing =
     Single_Choice values=tables
 
 ## PRIVATE
-Table_Viz_Data.from (that:Hyper_File) = Table_Viz_Data.new (_make_json_for_single_column_of_actions that.to_js_object that.viz_data "tables" "table" "read")
-
-private _make_json_for_single_column_of_actions js_value data:Vector title tooltip child_node_action =
-    JS_Object.from_pairs [["json", js_value], ["data", data], ["visualization_header", title], ["child_label", tooltip], ["get_child_node_action", child_node_action], ["type", "Single_Column_Of_Actions"]]
+Table_Viz_Data.from (that:Hyper_File) = 
+    viz_data = that.tables.map t->t.table.to_text
+    Table_Viz_Data.new (make_json_for_single_column_of_actions that.to_js_object viz_data "tables" "table" "read")
