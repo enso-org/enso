@@ -271,7 +271,7 @@ type In_Memory_Column_Implementation
                 if b > a then b else a
         _run_vectorized_many_op this_column "max" fallback values
 
-    is_nothing this_column -> Column =
+    is_nothing_implementation this_column -> Column =
         new_name = naming_helper.concat [naming_helper.to_expression_text this_column, "is Nothing"]
         apply_unary_operation this_column IsNothingOperation.INSTANCE new_name
 

@@ -48,3 +48,6 @@ make_inferred_builder initial_size java_problem_aggregator=(Missing_Argument.thr
 
 ## PRIVATE
 from_storage = In_Memory_Column_Constructors.from_storage
+
+## PRIVATE
+from_java_column = In_Memory_Column_Constructors.from_java_column

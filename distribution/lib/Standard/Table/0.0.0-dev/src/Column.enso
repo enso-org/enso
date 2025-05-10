@@ -836,7 +836,7 @@ type Column
 
              example_is_nothing = Examples.decimal_column.is_nothing
     is_nothing self -> Column =
-        self.implementation.is_nothing self
+        self.implementation.is_nothing_implementation self
 
     ## GROUP Standard.Base.Math
        ICON math

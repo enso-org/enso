@@ -24,8 +24,9 @@ type In_Memory_Column
     ## PRIVATE
     pretty : Text
     pretty self =
-        name = self.name.pretty
-        data = self.to_vector.pretty
+        as_column = self:Column
+        name = as_column.name.pretty
+        data = as_column.to_vector.pretty
         "Column.from_vector " + name + " " + data
 
 Column.from (that : In_Memory_Column) =

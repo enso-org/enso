@@ -51,6 +51,7 @@ import project.Internal.Delimited_Writer
 import project.Internal.Display_Helpers
 import project.Internal.Expand_Objects_Helpers
 import project.Internal.In_Memory_Column_Constructors
+import project.Internal.In_Memory_Column_Implementation.In_Memory_Column_Implementation
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
 import project.Internal.Lookup_Helpers
@@ -2534,7 +2535,7 @@ type Table
             _ : Column -> value
             _ -> self.make_constant_column value
         is_column value = value.is_a Column
-        new_column = Expression.evaluate expression get_column make_constant_column is_column "Standard.Table.Column" "Column" Column.var_args_functions
+        new_column = Expression.evaluate expression get_column make_constant_column is_column "Standard.Table.Column" "Column" In_Memory_Column_Implementation.var_args_functions
         problems = Warning.get_all new_column . map .value
         result = new_column.rename (self.column_naming_helper.sanitize_name expression.expression)
         on_problems.attach_problems_before problems <|

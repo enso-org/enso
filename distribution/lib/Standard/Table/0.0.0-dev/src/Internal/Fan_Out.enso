@@ -133,7 +133,7 @@ fan_out_to_rows_and_columns table input_column_id function column_names at_least
     new_columns_unflattened = table.columns.map column->
         # Replace the input column with the output columns.
         if column.name == input_column_id then output_columns else
-            [Column.Value ((column:In_Memory_Column).java_column.applyMask order_mask)]
+            [In_Memory_Column_Constructors.from_java_column ((column:In_Memory_Column).java_column.applyMask order_mask)]
     new_table = Table.new new_columns_unflattened.flatten
     problem_builder.attach_problems_after on_problems new_table
 
