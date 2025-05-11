@@ -2666,9 +2666,13 @@ def customFrgaalJavaCompilerSettings(targetJdk: String) = {
     // Ensure that our tooling uses the right Java version for checking the code.
     Compile / javacOptions ++= Seq(
       "-source",
-      frgaalSourceLevel,
-      "--enable-preview"
-    )
+      frgaalSourceLevel
+    ) ++
+    (if (Integer.parseInt(targetJdk) <= 21) {
+       Seq("--enable-preview")
+     } else {
+       Seq("-target", "21")
+     })
   )
 }
 
@@ -4274,7 +4278,7 @@ lazy val `os-environment` =
     .in(file("lib/java/os-environment"))
     .enablePlugins(JPMSPlugin)
     .settings(
-      // frgaalJavaCompilerSetting,
+      customFrgaalJavaCompilerSettings("24"),
       scalaModuleDependencySetting,
       libraryDependencies ++= slf4jApi ++ Seq(
         "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",

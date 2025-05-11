@@ -85,10 +85,13 @@ object FrgaalJavaCompiler {
       shouldNotLimitModules   = shouldNotLimitModules
     )
 
-    // do you know what to change here to invoke standard compiler?
-    // e.g. [LocalJavaCompiler](https://github.com/sbt/zinc/blob/57a2df7104b3ce27b46404bb09a0126bd4013427/internal/zinc-compile-core/src/main/scala/sbt/internal/inc/javac/LocalJava.scala#L280)
-    val javaTools = sbt.internal.inc.javac
-      .JavaTools(frgaalJavac, sbtCompilers.javaTools.javadoc())
+    var javac = if (Integer.parseInt(javaVersion) <= 21) {
+      frgaalJavac
+    } else {
+      sbtCompilers.javaTools.javac()
+    }
+    val javadoc   = sbtCompilers.javaTools.javadoc()
+    val javaTools = sbt.internal.inc.javac.JavaTools(javac, javadoc)
     xsbti.compile.Compilers.of(sbtCompilers.scalac, javaTools)
   }
 
