@@ -14,6 +14,7 @@ import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.function.CEntryPoint;
 import org.graalvm.nativeimage.c.function.CEntryPointLiteral;
 import org.graalvm.nativeimage.c.function.CFunctionPointer;
+import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.junit.Test;
 
@@ -115,25 +116,28 @@ public class LoadClassTest {
 
   @Test
   public void executeMainClass() throws Exception {
-    var callbackFn = CALLBACK_FN.getFunctionPointer().rawValue();
     var jvmIsolate = CurrentIsolate.getCurrentThread().rawValue();
+    var callbackFn = CALLBACK_FN.getFunctionPointer().rawValue();
     var gen = new Random();
+    var n = 0L;
     for (var i = 0; i < 5; i++) {
-      var n = gen.nextLong(1, 15);
-      jvm()
-          .executeMain(
-              "org/enso/os/environment/jni/TestMain", "" + jvmIsolate, "" + callbackFn, "" + n);
-      long content = COLLECTED_RESULTS.get(n);
-      assertEquals(
-          "Factorial of " + n + " is the same", TestMain.factorial(n).longValue(), content);
+      n += gen.nextLong(1000, 5000);
+      var mainClass = "org/enso/os/environment/jni/TestMain";
+      jvm().executeMain(mainClass, "" + jvmIsolate, "" + callbackFn, "" + n);
     }
+    assertEquals("Five results found: " + CORRECT_RESULTS, 5, CORRECT_RESULTS.size());
   }
 
-  private static final Map<Long, Long> COLLECTED_RESULTS = new HashMap<>();
+  private static final Map<Long, String> CORRECT_RESULTS = new HashMap<>();
 
   @CEntryPoint
-  private static void acceptResultFromHotSpotJvm(IsolateThread threadId, long key, long value) {
-    COLLECTED_RESULTS.put(key, value);
+  private static boolean acceptResultFromHotSpotJvm(
+      IsolateThread threadId, long n, CCharPointer resultStr) {
+    var result = CTypeConversion.toJavaString(resultStr);
+    var ownResult = TestMain.factorial(n).toString();
+    assertEquals("fac(" + n + ") is correct in both JVMs", ownResult, result);
+    CORRECT_RESULTS.put(n, result);
+    return ownResult.equals(result);
   }
 
   private static final CEntryPointLiteral<CFunctionPointer> CALLBACK_FN =
@@ -142,5 +146,5 @@ public class LoadClassTest {
           "acceptResultFromHotSpotJvm",
           IsolateThread.class,
           long.class,
-          long.class);
+          CCharPointer.class);
 }
