@@ -4274,7 +4274,7 @@ lazy val `os-environment` =
     .in(file("lib/java/os-environment"))
     .enablePlugins(JPMSPlugin)
     .settings(
-      frgaalJavaCompilerSetting,
+      // frgaalJavaCompilerSetting,
       scalaModuleDependencySetting,
       libraryDependencies ++= slf4jApi ++ Seq(
         "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
