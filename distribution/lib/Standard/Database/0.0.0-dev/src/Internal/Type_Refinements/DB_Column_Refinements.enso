@@ -2,8 +2,8 @@ private
 
 from Standard.Base import all
 
-from Standard.Table import Value_Type
 import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
+from Standard.Table import Value_Type
 
 import project.DB_Column.DB_Column
 from project.Internal.Type_Refinements.Typed_DB_Column_Conversions import all

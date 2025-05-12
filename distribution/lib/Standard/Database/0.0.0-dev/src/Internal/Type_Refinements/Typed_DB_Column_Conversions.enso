@@ -1,13 +1,14 @@
+private
+
 ## Conversions that are used for type refinements.
    They should never be exported or used elsewhere.
-private
 
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Value_Type
-import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
 import Standard.Table.Internal.Type_Refinements.Typed_Column_Helpers
+import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
+from Standard.Table import Value_Type
 
 import project.DB_Column.DB_Column
 
