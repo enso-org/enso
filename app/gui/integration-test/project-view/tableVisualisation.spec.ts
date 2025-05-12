@@ -166,3 +166,37 @@ async function expectTableInputContent(page: Page, node: Locator) {
     '',
   ])
 }
+
+test('Single_Column_Of_Actions Table Visualisation Test', async ({ page }) => {
+  await initGraph(page)
+
+  const aggregatedNode = graphNodeByBinding(page, 'aggregated')
+  await aggregatedNode.click()
+  await page.keyboard.press('Space')
+  await page.waitForTimeout(1000)
+  const tableVisualization = locate.tableVisualization(page)
+  await expect(tableVisualization).toExist()
+
+  await mockVisualizationDataUpdate(
+    page,
+    'Standard.Visualization.Table.Visualization.prepare_visualization',
+    /* eslint-disable camelcase */
+    {
+      type: 'Single_Column_Of_Actions',
+      visualization_header: 'table',
+      child_label: 'table',
+      data: ['Sheet1', 'Sheet2', 'Sheet3'],
+      get_child_node_action: 'read',
+    },
+    /* eslint-enable camelcase */
+  )
+  await expect(tableVisualization).toContainText('table')
+  await expect(tableVisualization).toContainText('Sheet1')
+  await expect(tableVisualization).toContainText('Sheet2')
+  await expect(tableVisualization).toContainText('Sheet3')
+  const sheet2 = tableVisualization.getByText('Sheet2')
+  await sheet2.dblclick()
+  const newNode = graphNodeByBinding(page, 'node1')
+  await expect(newNode).toContainText('read')
+  await expect(newNode).toContainText('Sheet2')
+})

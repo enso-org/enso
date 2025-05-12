@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage.numeric;
 
+import java.util.Iterator;
 import java.util.function.ToLongFunction;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnLongStorageIterator;
@@ -48,7 +49,25 @@ public class LongStorageFacade<T> implements ColumnLongStorage {
   }
 
   @Override
-  public ColumnLongStorageIterator iterator() {
+  public Iterator<Long> iterator() {
+    return new Iterator<>() {
+      private final Iterator<T> parentIterator = parent.iterator();
+
+      @Override
+      public boolean hasNext() {
+        return parentIterator.hasNext();
+      }
+
+      @Override
+      public Long next() {
+        T item = parentIterator.next();
+        return item == null ? null : converter.applyAsLong(item);
+      }
+    };
+  }
+
+  @Override
+  public ColumnLongStorageIterator iteratorWithIndex() {
     return new AbstractLongStorage.BaseLongStorageIterator(this);
   }
 }

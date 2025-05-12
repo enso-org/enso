@@ -1,5 +1,6 @@
 package org.enso.runner;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -27,10 +28,10 @@ final class JavaFinder {
    * @return null if cannot be found. Otherwise, returns the absolute path to the executable, or
    *     simply {@code java} if it is on the {@code PATH}.
    */
-  static String findJavaExecutable() {
+  static File findJavaExecutable() {
     var javaInRuntime = findJavaExecutableInDistributionRuntimes();
     if (javaInRuntime != null) {
-      return javaInRuntime.toAbsolutePath().toString();
+      return javaInRuntime.toAbsolutePath().toFile();
     }
     logger.warn("No appropriate JDK found in the distribution runtimes. Trying system-wide JDK.");
     var javaHome = System.getenv("JAVA_HOME");
@@ -44,7 +45,7 @@ final class JavaFinder {
       }
       if (javaExe.toFile().exists()) {
         logger.info("Found JDK in JAVA_HOME: {}", javaHome);
-        return javaExe.toAbsolutePath().toString();
+        return javaExe.toAbsolutePath().toFile();
       } else {
         logger.warn(
             "No JDK found in JAVA_HOME (missing Java executable at {}). Trying java on PATH.",
@@ -54,10 +55,9 @@ final class JavaFinder {
       logger.warn("JAVA_HOME is not set. Trying java on PATH.");
     }
 
-    if (isJavaOnPath()) {
-      var javaExe = isOnWindows() ? "java.exe" : "java";
-      logger.warn("Falling back to java on PATH: {}", javaExe);
-      return javaExe;
+    if (findJavaOnPath() instanceof File javaExecutable) {
+      logger.warn("Falling back to java on PATH: {}", javaExecutable);
+      return javaExecutable;
     }
     logger.warn("No JDK found on PATH. Cannot start the runtime.");
     return null;
@@ -107,7 +107,7 @@ final class JavaFinder {
     return null;
   }
 
-  private static boolean isJavaOnPath() {
+  private static File findJavaOnPath() {
     try {
       ProcessBuilder processBuilder;
       if (isOnWindows()) {
@@ -116,10 +116,11 @@ final class JavaFinder {
         processBuilder = new ProcessBuilder("java", "-h");
       }
       Process process = processBuilder.start();
+      var pathOpt = process.info().command();
       boolean exitSucc = process.waitFor(5L, TimeUnit.SECONDS);
-      return exitSucc;
+      return exitSucc && pathOpt.isPresent() ? new File(pathOpt.get()) : null;
     } catch (IOException | InterruptedException e) {
-      return false;
+      return null;
     }
   }
 }

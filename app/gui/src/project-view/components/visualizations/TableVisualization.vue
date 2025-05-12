@@ -56,7 +56,14 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = number | string | Error | Matrix | ObjectMatrix | EnsoTableOrColumn | Excel_Workbook
+type Data =
+  | number
+  | string
+  | Error
+  | Matrix
+  | ObjectMatrix
+  | EnsoTableOrColumn
+  | SingleColumnOfActions
 
 interface Error {
   type: undefined
@@ -80,11 +87,11 @@ interface Matrix {
   visualization_header: string
 }
 
-interface Excel_Workbook {
-  type: 'Excel_Workbook'
+interface SingleColumnOfActions {
+  type: 'Single_Column_Of_Actions'
   column_count: number
   all_rows_count: number
-  sheet_names: string[]
+  data: string[]
   json: unknown[][]
   get_child_node_action: string
   child_label: string
@@ -834,7 +841,7 @@ watchEffect(() => {
     }
     rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
-  } else if (data_.type === 'Excel_Workbook') {
+  } else if (data_.type === 'Single_Column_Of_Actions') {
     columnDefs.value = [
       toLinkField('Value', {
         tooltipValue: data_.child_label,
@@ -842,7 +849,7 @@ watchEffect(() => {
         getChildAction: data_.get_child_node_action,
       }),
     ]
-    rowData.value = data_.sheet_names.map((name) => ({ Value: name }))
+    rowData.value = data_.data.map((name) => ({ Value: name }))
   } else if (Array.isArray(data_.json)) {
     columnDefs.value = [
       toLinkField(INDEX_FIELD_NAME, {

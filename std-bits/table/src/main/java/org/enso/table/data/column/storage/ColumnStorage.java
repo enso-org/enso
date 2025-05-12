@@ -21,6 +21,6 @@ public interface ColumnStorage<T> extends Iterable<T> {
   /* Gets the value at a given index. */
   T getItemBoxed(long index);
 
-  @Override
-  ColumnStorageIterator<T> iterator();
+  /* Gets an iterator with index tracking. */
+  ColumnStorageIterator<T> iteratorWithIndex();
 }

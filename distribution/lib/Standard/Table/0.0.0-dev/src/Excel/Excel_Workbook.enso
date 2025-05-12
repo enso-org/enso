@@ -16,6 +16,7 @@ from Standard.Base.Data.Filter_Condition import sql_like_to_regex
 from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice
+from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, make_json_for_single_column_of_actions
 
 import project.Column.Column
 import project.Columns_To_Keep.Columns_To_Keep
@@ -471,3 +472,7 @@ Read_Many_As_Merged_Table_Strategy.from (that:Excel_Workbook) =
                 data = Table.from_union valid_tables columns_to_keep match_columns on_problems
                 Read_Many_As_Table_Result.Table metadata=metadata data=data
     Read_Many_As_Merged_Table_Strategy.Value callback
+
+## PRIVATE
+Table_Viz_Data.from (that:Excel_Workbook) = 
+    Table_Viz_Data.new (make_json_for_single_column_of_actions that.to_js_object that.sheet_names "worksheets" "worksheet" "read")

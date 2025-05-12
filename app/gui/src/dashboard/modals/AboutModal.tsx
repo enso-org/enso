@@ -3,13 +3,11 @@ import * as React from 'react'
 
 import type * as text from 'enso-common/src/text'
 
-import LogoIcon from '#/assets/enso_logo.svg'
-
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
-import SvgMask from '#/components/SvgMask'
+import { Icon } from '#/components/Icon'
 
 /** A modal for confirming the deletion of an asset. */
 export default function AboutModal() {
@@ -42,7 +40,7 @@ export default function AboutModal() {
       modalProps={{ defaultOpen: true }}
     >
       <div className="relative flex items-center gap-4">
-        <SvgMask src={LogoIcon} className="size-16 shrink-0 self-start" />
+        <Icon icon="enso_logo" className="size-16 shrink-0 self-start" />
 
         <div className="flex flex-col">
           <ariaComponents.Text variant="subtitle">

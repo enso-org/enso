@@ -1,12 +1,13 @@
 package org.enso.table.data.column.storage.type;
 
 import java.math.BigDecimal;
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record BigDecimalType() implements StorageType<BigDecimal> {
+public record BigDecimalType() implements StorageType<BigDecimal>, NumericType {
   public static final BigDecimalType INSTANCE = new BigDecimalType();
 
   @Override
@@ -31,7 +32,15 @@ public record BigDecimalType() implements StorageType<BigDecimal> {
 
   @Override
   public BigDecimal valueAsType(Object value) {
-    return (value instanceof BigDecimal bigDecimal) ? bigDecimal : null;
+    if (value instanceof BigDecimal bigDecimal) {
+      return bigDecimal;
+    }
+
+    if (NumericConverter.isCoercibleToBigInteger(value)) {
+      return new BigDecimal(NumericConverter.coerceToBigInteger(value));
+    }
+
+    return null;
   }
 
   @Override

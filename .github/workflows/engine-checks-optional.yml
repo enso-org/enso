@@ -122,8 +122,9 @@ jobs:
           name: Engine Distribution (GraalVM CE) (native,test) (macos, amd64)
       - name: Unpack Engine Distribution
         run: |
-          tar -xvf built-distribution.tar
+          tar -xvf built-distribution.tar || tar -xvf built-distribution.tar;
           rm built-distribution.tar
+        shell: bash
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -194,8 +195,9 @@ jobs:
           name: Engine Distribution (GraalVM CE) (native,test) (macos, amd64)
       - name: Unpack Engine Distribution
         run: |
-          tar -xvf built-distribution.tar
+          tar -xvf built-distribution.tar || tar -xvf built-distribution.tar;
           rm built-distribution.tar
+        shell: bash
       - run: ./run backend test standard-library
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
@@ -269,8 +271,9 @@ jobs:
           name: Engine Distribution (GraalVM CE) (native,test) (macos, amd64)
       - name: Unpack Engine Distribution
         run: |
-          tar -xvf built-distribution.tar
+          tar -xvf built-distribution.tar || tar -xvf built-distribution.tar;
           rm built-distribution.tar
+        shell: bash
       - run: ./run backend test standard-library-in-native
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}

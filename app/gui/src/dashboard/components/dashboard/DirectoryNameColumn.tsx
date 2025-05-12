@@ -1,5 +1,4 @@
 /** @file The icon and name of a {@link DirectoryAsset}. */
-import FolderIcon from '#/assets/folder.svg'
 import { Button } from '#/components/AriaComponents'
 import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
@@ -55,8 +54,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       }}
     >
       <Button
-        icon={FolderIcon}
-        size="medium"
+        icon="folder"
         variant="icon"
         loading={isLoading || isNavigating}
         aria-label={getText('open')}

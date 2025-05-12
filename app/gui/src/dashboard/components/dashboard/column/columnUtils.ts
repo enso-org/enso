@@ -1,11 +1,6 @@
 /** @file Types and constants related to `Column`s. */
 import type * as text from 'enso-common/src/text'
 
-import AccessedByProjectsIcon from '#/assets/accessed_by_projects.svg'
-import AccessedDataIcon from '#/assets/accessed_data.svg'
-import BlankIcon from '#/assets/blank.svg'
-import TagIcon from '#/assets/tag.svg'
-
 import type { SvgUseIcon } from '#/components/AriaComponents'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import * as backend from '#/services/Backend'
@@ -35,12 +30,12 @@ export const DEFAULT_ENABLED_COLUMNS: ReadonlySet<Column> = new Set([
 export const COLUMN_ICONS: Readonly<Record<Column, SvgUseIcon | (string & {})>> = {
   /* The file column does not have an icon, however this does not matter as it is not
    * collapsible. */
-  [Column.name]: BlankIcon,
+  [Column.name]: 'ghost',
   [Column.modified]: 'time',
   [Column.sharedWith]: 'people',
-  [Column.labels]: TagIcon,
-  [Column.accessedByProjects]: AccessedByProjectsIcon,
-  [Column.accessedData]: AccessedDataIcon,
+  [Column.labels]: 'tag',
+  [Column.accessedByProjects]: 'accessed_by_projects',
+  [Column.accessedData]: 'accessed_data',
   [Column.path]: 'folder',
 }
 

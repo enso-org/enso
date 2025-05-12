@@ -5,5 +5,5 @@ public interface ColumnBooleanStorage extends ColumnStorage<Boolean> {
   boolean getItemAsBoolean(long index) throws ValueIsNothingException;
 
   @Override
-  ColumnBooleanStorageIterator iterator();
+  ColumnBooleanStorageIterator iteratorWithIndex();
 }
