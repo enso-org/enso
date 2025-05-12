@@ -81,7 +81,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
       >
         {labelsList}
         {isOverflowing && (
-          <div className="from-dashboard-row pointer-events-none absolute bottom-0 right-10 top-0 w-10 bg-gradient-to-l opacity-100" />
+          <div className="pointer-events-none absolute bottom-0 right-10 top-0 w-10 bg-gradient-to-l from-dashboard-row opacity-100" />
         )}
       </div>
       {managesThisAsset && (
