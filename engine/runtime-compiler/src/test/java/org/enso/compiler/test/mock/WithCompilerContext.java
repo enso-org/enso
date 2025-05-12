@@ -127,16 +127,16 @@ public final class WithCompilerContext implements TestRule {
     }
 
     private void printCompilerOutput() {
-      System.err.println("=== Compiler Output ===");
+      System.err.println("======== Compiler Output =========");
       System.err.println(out);
-      System.err.println("=== End of Compiler Output ===");
+      System.err.println("===== End of Compiler Output =====");
     }
 
     private void printAllVfsFiles() {
       var allFiles = repo.listAllFilesInVfs();
-      System.err.println("=== All files in VFS === ");
+      System.err.println("===== All files in VFS ===== ");
       System.err.println(allFiles);
-      System.err.println("=== End of VFS === ");
+      System.err.println("======== End of VFS ======== ");
     }
 
     private void printLogsFromMemoryAppender() {
@@ -144,9 +144,9 @@ public final class WithCompilerContext implements TestRule {
       var logger = context.getLogger(Logger.ROOT_LOGGER_NAME);
       var appender = (MemoryAppender) logger.getAppender("memory");
       var msgs = appender.getEvents().stream().map(CustomStatement::logEventToString).toList();
-      System.err.println("=== Logs from the memory appender === ");
+      System.err.println("======== Logs from the memory appender ========= ");
       msgs.forEach(System.err::println);
-      System.err.println("=== End of logs from the memory appender === ");
+      System.err.println("===== End of logs from the memory appender ===== ");
     }
 
     /**
