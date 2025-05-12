@@ -1072,12 +1072,12 @@ type Table
             self.drop (..First 1) . rename_columns new_names_cleaned on_problems=on_problems
 
     ## ALIAS average, first, group by, last, longest, maximum, mean, median, minimum, mode, percentile, shortest, standard deviation, summarize, variance
-       MACRO sum columns=[..Sum]
-       MACRO count columns=[..Count]
-       MACRO count_distinct columns=[..Count_Distinct]
        GROUP Standard.Base.Calculations
        ICON transform4
        SUGGESTED 7
+       MACRO sum columns=[..Sum]
+       MACRO count columns=[..Count]
+       MACRO count_distinct columns=[..Count_Distinct]
 
        Aggregates the rows in a table using `group_by` columns.
        The columns argument specifies which additional aggregations to perform
@@ -2053,6 +2053,9 @@ type Table
             Expand_Objects_Helpers.expand_to_rows self column at_least_one_row sequences_only=False
 
     ## ALIAS filter rows, where
+       GROUP Standard.Base.Selections
+       ICON preparation
+       SUGGESTED 2
        MACRO equals filter=..Equal
        MACRO not_equals filter=..Not_Equal
        MACRO not_nothing filter=..Not_Nothing
@@ -2066,9 +2069,6 @@ type Table
        MACRO ends_with filter=..Ends_With
        MACRO like filter=..Like
        MACRO regex_match filter=..Regex_Match
-       GROUP Standard.Base.Selections
-       ICON preparation
-       SUGGESTED 2
 
        Filter is used to select data from a table using a condition. The rows
        that meet the condition will remain after the filter. Filters can compare

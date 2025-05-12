@@ -13,9 +13,9 @@ polyglot java import java.io.IOException
 polyglot java import java.io.Reader
 polyglot java import org.enso.table.parsing.IdentityParser
 polyglot java import org.enso.table.parsing.TypeInferringParser
-polyglot java import org.enso.table.read.InvalidFixedWidthRowsBehavior
 polyglot java import org.enso.table.read.FixedWidthReader
 polyglot java import org.enso.table.read.FixedWidthReader.FixedWidthLayoutEntry
+polyglot java import org.enso.table.read.InvalidFixedWidthRowsBehavior
 
 ## PRIVATE
    Reads a fixed-width column file according to the provided format.
