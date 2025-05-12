@@ -1,7 +1,9 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.stream.LongStream;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForBoolean;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
@@ -47,6 +49,11 @@ public class NullStorage extends Storage<Void> {
       throw new IndexOutOfBoundsException(idx);
     }
     return null;
+  }
+
+  @Override
+  public Iterator<Void> iterator() {
+    return LongStream.range(0, size).mapToObj(i -> (Void) null).iterator();
   }
 
   private static MapOperationStorage<Void, NullStorage> buildOps() {

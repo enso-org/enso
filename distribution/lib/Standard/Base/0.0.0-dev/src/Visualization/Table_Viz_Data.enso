@@ -1,0 +1,9 @@
+from project.Data.Json import JS_Object
+
+type Table_Viz_Data
+    Value json:JS_Object
+
+    new json:JS_Object -> Table_Viz_Data = Table_Viz_Data.Value json
+
+make_json_for_single_column_of_actions js_value data title tooltip child_node_action =
+    JS_Object.from_pairs [["json", js_value], ["data", data], ["visualization_header", title], ["child_label", tooltip], ["get_child_node_action", child_node_action], ["type", "Single_Column_Of_Actions"]]

@@ -248,6 +248,7 @@ impl JobArchetype for JvmTests {
                 vec![
                     cleanup_engine_distribution,
                     download_engine_distribution,
+                    step::check_engine_distribution(),
                     step::unpack_engine_distribution(),
                     step,
                     step::engine_test_reporter(target, graal_edition),
@@ -356,6 +357,7 @@ impl JobArchetype for StandardLibraryTests {
             vec![
                 cleanup_engine_distribution,
                 download_engine_distribution,
+                step::check_engine_distribution(),
                 step::unpack_engine_distribution(),
                 updated_main_step,
                 step::stdlib_test_reporter(target, graal_edition),
@@ -409,6 +411,12 @@ impl JobArchetype for EnsoCodeLintCheck {
         let engine_launcher = self.engine_launcher;
         let mut job = RunStepsBuilder::new("libraries lint")
             .customize(move |step| {
+                let check_syntax = Step {
+                    name: Some("Check syntax".into()),
+                    run: Some("./run libraries check-syntax".into()),
+                    ..Default::default()
+                };
+
                 let cleanup_engine_distribution =
                     step::cleanup_engine_distribution(engine_launcher);
 
@@ -416,8 +424,10 @@ impl JobArchetype for EnsoCodeLintCheck {
                     step::download_engine_distribution(target, engine_launcher, graal_edition);
 
                 vec![
+                    check_syntax,
                     cleanup_engine_distribution,
                     download_engine_distribution,
+                    step::check_engine_distribution(),
                     step::unpack_engine_distribution(),
                     step,
                 ]
@@ -454,6 +464,7 @@ impl JobArchetype for StandardLibraryApiCheck {
                 vec![
                     cleanup_engine_distribution,
                     download_engine_distribution,
+                    step::check_engine_distribution(),
                     step::unpack_engine_distribution(),
                     step,
                 ]
@@ -632,6 +643,7 @@ impl JobArchetype for SnowflakeTests {
                 vec![
                     cleanup_engine_distribution,
                     download_engine_distribution,
+                    step::check_engine_distribution(),
                     step::unpack_engine_distribution(),
                     updated_main_step,
                     step::extra_stdlib_test_reporter(target, GRAAL_EDITION_FOR_EXTRA_TESTS),
@@ -650,11 +662,11 @@ impl JobArchetype for SnowflakeTests {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Lint;
+pub struct WasmLint;
 
-impl JobArchetype for Lint {
+impl JobArchetype for WasmLint {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "Lint", "lint")
+        plain_job(target, "Lint", "wasm lint")
     }
 }
 
