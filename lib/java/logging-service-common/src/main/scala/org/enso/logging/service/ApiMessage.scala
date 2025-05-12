@@ -1,4 +1,4 @@
-package org.enso.logging.service.remote
+package org.enso.logging.service
 
 import com.github.plokhotnyuk.jsoniter_scala.core._
 import com.github.plokhotnyuk.jsoniter_scala.macros._

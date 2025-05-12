@@ -350,7 +350,7 @@ lazy val enso = (project in file("."))
     `logging-config`,
     `logging-service`,
     `logging-service-logback`,
-    `logging-service-remote-common`,
+    `logging-service-common`,
     `logging-service-opensearch`,
     `logging-service-telemetry`,
     `logging-truffle-connector`,
@@ -1159,14 +1159,14 @@ lazy val `logging-service-telemetry` = project
     Compile / internalModuleDependencies ++= Seq(
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`logging-service-logback` / Compile / exportedModule).value,
-      (`logging-service-remote-common` / Compile / exportedModule).value
+      (`logging-service-common` / Compile / exportedModule).value
     ),
     Test / internalModuleDependencies ++= Seq(
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`logging-service-logback` / Compile / exportedModule).value
     )
   )
-  .dependsOn(`logging-service-remote-common`)
+  .dependsOn(`logging-service-common`)
   .dependsOn(`http-test-helper` % "test->test")
   .dependsOn(testkit % "test->test")
 
@@ -1188,13 +1188,13 @@ lazy val `logging-service-opensearch` = project
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
     ),
     Compile / internalModuleDependencies ++= Seq(
-      (`logging-service-remote-common` / Compile / exportedModule).value
+      (`logging-service-common` / Compile / exportedModule).value
     )
   )
-  .dependsOn(`logging-service-remote-common`)
+  .dependsOn(`logging-service-common`)
 
-lazy val `logging-service-remote-common` = project
-  .in(file("lib/java/logging-service-remote-common"))
+lazy val `logging-service-common` = project
+  .in(file("lib/java/logging-service-common"))
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
