@@ -9,9 +9,11 @@ import Label from '#/components/dashboard/Label'
 
 import { Button, DialogTrigger, Popover } from '#/components/AriaComponents'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
+import { useMeasureCallback } from '#/hooks/measureHooks'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { FALLBACK_COLOR } from '#/services/Backend'
+import { mergeRefs } from '#/utilities/mergeRefs'
 import * as permissions from '#/utilities/permissions'
 import { useRef, useState } from 'react'
 
@@ -29,7 +31,17 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
       self?.permission === permissions.PermissionAction.admin)
 
   const rootRef = useRef<HTMLDivElement>(null)
+  const labelsListRef = useRef<HTMLDivElement>(null)
   const [isOverflowing, setIsOverflowing] = useState(false)
+  const [measureRef] = useMeasureCallback({
+    onResize: () => {
+      const el = labelsListRef.current
+      if (!el) {
+        return
+      }
+      setIsOverflowing(el.scrollWidth > el.clientWidth)
+    },
+  })
 
   const labelsList = (item.labels ?? [])
     .filter((label) => labelsByName.has(label))
@@ -72,10 +84,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     <div ref={rootRef} className="group relative flex items-center gap-1">
       <div
         ref={(el) => {
-          if (!el) {
-            return
-          }
-          setIsOverflowing(el.scrollWidth > el.clientWidth)
+          mergeRefs(measureRef, labelsListRef)(el)
         }}
         className="flex h-6 items-center gap-1 overflow-hidden"
       >
