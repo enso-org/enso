@@ -15,6 +15,8 @@ import scala.Option;
  * @param isStrictErrors if true, presence of any Error in IR will result in an exception
  * @param isLintingDisabled if true, compilation should not run any linting passes
  * @param outputRedirect redirection of the output of warnings and errors of compiler
+ * @param removeUnusedImports If true, unused imports will be removed from the module sources.
+ *     Beware this changes the files in place, use with caution.
  */
 public record CompilerConfig(
     boolean autoParallelismEnabled,
@@ -26,7 +28,8 @@ public record CompilerConfig(
     boolean isStrictErrors,
     boolean isLintingDisabled,
     Option<PrintStream> outputRedirect,
-    boolean parallelParsing) {
+    boolean parallelParsing,
+    boolean removeUnusedImports) {
   public static Builder builder() {
     return new Builder();
   }
@@ -46,6 +49,7 @@ public record CompilerConfig(
     private boolean isLintingDisabled = false;
     private Option<PrintStream> outputRedirect = Option.empty();
     private boolean parallelParsing = false;
+    private boolean removeUnusedImports = false;
 
     public Builder autoParallelismEnabled(boolean autoParallelismEnabled) {
       this.autoParallelismEnabled = autoParallelismEnabled;
@@ -97,6 +101,11 @@ public record CompilerConfig(
       return this;
     }
 
+    public Builder removeUnusedImports(boolean removeUnusedImports) {
+      this.removeUnusedImports = removeUnusedImports;
+      return this;
+    }
+
     public CompilerConfig build() {
       return new CompilerConfig(
           autoParallelismEnabled,
@@ -108,7 +117,8 @@ public record CompilerConfig(
           isStrictErrors,
           isLintingDisabled,
           outputRedirect,
-          parallelParsing);
+          parallelParsing,
+          removeUnusedImports);
     }
   }
 }

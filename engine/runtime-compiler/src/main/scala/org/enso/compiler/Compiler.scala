@@ -110,8 +110,7 @@ class Compiler(
     context.getPackageRepository
 
   private def shouldRemoveUnusedImports(): Boolean = {
-    val prop = System.getProperty("org.enso.compiler.RemoveUnusedImports")
-    prop != null
+    config.removeUnusedImports()
   }
 
   /** Processes the provided language sources, registering any bindings in the
