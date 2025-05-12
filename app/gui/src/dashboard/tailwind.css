@@ -123,8 +123,6 @@
   --asset-search-bar-wide-width: 33.333333vw;
   --permission-type-selector-width: 28.125rem;
   --payment-form-height: 38.75rem;
-  /* The horizontal gap between adjacent column items. */
-  --column-items-gap: 0.25rem;
   --version-padding: 0.5rem;
   --label-padding-x: 0.5625rem;
   /* The horizontal gap between adjacent color inputs. */

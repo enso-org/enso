@@ -850,6 +850,8 @@ export const COLORS = [
   { lightness: 22, chroma: 13, hue: 252 },
 ] as const satisfies LChColor[]
 
+export const FALLBACK_COLOR = COLORS[0]
+
 /** Converts a {@link LChColor} to a CSS color string. */
 export function lChColorToCssColor(color: LChColor): string {
   const alpha = 'alpha' in color ? ` / ${color.alpha}` : ''

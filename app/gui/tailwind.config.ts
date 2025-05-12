@@ -222,7 +222,6 @@ export default {
         'side-panel-section': 'var(--side-panel-section-gap)',
         'asset-search-bar': 'var(--asset-search-bar-gap)',
         'drive-bar': 'var(--drive-bar-gap)',
-        'column-items': 'var(--column-items-gap)',
         labels: 'var(--labels-gap)',
         'label-icons': 'var(--label-icons-gap)',
         'user-menu': 'var(--user-menu-gap)',
