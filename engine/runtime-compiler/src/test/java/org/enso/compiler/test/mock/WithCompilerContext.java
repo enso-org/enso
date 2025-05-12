@@ -1,5 +1,8 @@
 package org.enso.compiler.test.mock;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.List;
@@ -8,10 +11,12 @@ import org.enso.compiler.Compiler;
 import org.enso.compiler.CompilerResult;
 import org.enso.compiler.context.CompilerContext.Module;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.logging.service.logback.MemoryAppender;
 import org.enso.pkg.QualifiedName;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
+import org.slf4j.LoggerFactory;
 import scala.jdk.javaapi.CollectionConverters;
 
 /**
@@ -113,6 +118,7 @@ public final class WithCompilerContext implements TestRule {
         base.evaluate();
       } catch (Throwable e) {
         printCompilerOutput();
+        printLogsFromMemoryAppender();
         printAllVfsFiles();
         throw e;
       } finally {
@@ -131,6 +137,30 @@ public final class WithCompilerContext implements TestRule {
       System.err.println("=== All files in VFS === ");
       System.err.println(allFiles);
       System.err.println("=== End of VFS === ");
+    }
+
+    private void printLogsFromMemoryAppender() {
+      var context = (LoggerContext) LoggerFactory.getILoggerFactory();
+      var logger = context.getLogger(Logger.ROOT_LOGGER_NAME);
+      var appender = (MemoryAppender) logger.getAppender("memory");
+      var msgs = appender.getEvents().stream().map(CustomStatement::logEventToString).toList();
+      System.err.println("=== Logs from the memory appender === ");
+      msgs.forEach(System.err::println);
+      System.err.println("=== End of logs from the memory appender === ");
+    }
+
+    /**
+     * Memory appender does not do any kind of pattern encoding by default, so we need to do a bit
+     * of formatting manually.
+     */
+    private static String logEventToString(ILoggingEvent logEvent) {
+      return "["
+          + logEvent.getLevel()
+          + "] "
+          + "["
+          + logEvent.getLoggerName()
+          + "] "
+          + logEvent.getFormattedMessage();
     }
   }
 
