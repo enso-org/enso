@@ -28,7 +28,6 @@ type Type
        Returns a vector of `Meta.Constructor` instances for this type.
        Only publicly visible constructors are returned. A type with no
        public constructors returns `[]`.
-
     constructors self -> Vector Constructor =
         Meta_Helpers.get_type_constructors_builtin self.value Meta.Constructor.Value
 
@@ -107,7 +106,6 @@ type Atom
        Returns a vector of field values of the given atom.
        Only values of public fields are returned. Should an atom
        have no public fields, then `[]` is returned.
-
     fields self -> Vector Any = Meta_Helpers.get_atom_fields_builtin self.value
 
     ## ADVANCED
@@ -116,7 +114,6 @@ type Atom
        Returns a constructor value of the given atom. If the atom
        doesn't have a public constructor, then `Private_Access` error
        is returned.
-
     constructor self -> Constructor ! Private_Access =
         c = Meta_Helpers.get_atom_constructor_builtin self.impl ...
         Meta.Constructor.Value c...

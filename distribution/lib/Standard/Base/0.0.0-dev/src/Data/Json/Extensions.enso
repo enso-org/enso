@@ -17,8 +17,8 @@ import project.Errors.Deprecated.Deprecated
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Nothing.Nothing
-import project.Warning.Warning
 import project.Runtime.Source_Location.Source_Location
+import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
@@ -197,6 +197,9 @@ Text.parse_fast_json self =
     warning = Deprecated.Warning "Standard.Base.Data.Text.Text" "parse_fast_json" "Deprecated: The `parse_json` method uses a faster implementation now by default"
     Warning.attach warning self.parse_json
 
+## PRIVATE
+   ICON convert
+   Extension for Source_Location to allow use.
 Source_Location.to_js_object self =
     pairs = Vector.build initial_capacity=5 b->
         b.append ["type", "Source_Location"]

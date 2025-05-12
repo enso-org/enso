@@ -185,6 +185,8 @@ type Range
         Vector.new self.length (i -> function (self.start + i*self.step))
 
     ## ALIAS where
+       GROUP Selections
+       ICON preparation
        MACRO equals filter=..Equal
        MACRO not_equals filter=..Not_Equal
        MACRO not_nothing filter=..Not_Nothing
@@ -199,8 +201,6 @@ type Range
        MACRO like filter=..Like
        MACRO regex_match filter=..Regex_Match
        MACRO predicate filter=v->v==Nothing
-       GROUP Selections
-       ICON preparation
        Returns a vector of all elements of this range which satisfy a condition.
 
        Arguments:
