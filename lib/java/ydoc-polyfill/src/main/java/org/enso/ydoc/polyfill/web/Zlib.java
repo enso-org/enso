@@ -44,29 +44,20 @@ final class Zlib implements ProxyExecutable {
 
     return switch (command) {
       case BUFFER_FROM -> {
-        final var text = arguments[1].asString();
-        final var encoding = arguments[2].asString();
-
-        yield switch (encoding) {
-          case ENCODING_BASE64 -> {
-            final var buffer = StandardCharsets.UTF_8.encode(text);
-            yield Base64.getDecoder().decode(buffer);
-          }
-          case ENCODING_BASE64_URL -> {
-            final var buffer = StandardCharsets.UTF_8.encode(text);
-            yield Base64.getUrlDecoder().decode(buffer);
-          }
-          case null -> StandardCharsets.UTF_8.encode(text);
-          default -> {
-            Charset charset;
-            try {
-              charset = Charset.forName(encoding);
-            } catch (IllegalArgumentException e) {
-              throw new RuntimeException("Unknown encoding: " + encoding, e);
-            }
-            yield charset.encode(text);
-          }
-        };
+        if (arguments[1].isString() && arguments[2].isString()) {
+          final var text = arguments[1].asString();
+          final var encoding = arguments[2].asString();
+          final var arr = bufferFromString(text, encoding).array();
+          yield ByteSequence.create(arr);
+        } else {
+          // assume buffer
+          assert arguments[1].hasBufferElements();
+          var count = arguments[1].getBufferSize();
+          var buffer = new byte[(int) count];
+          assert count == buffer.length;
+          arguments[1].readBuffer(0, buffer, 0, buffer.length);
+          yield ByteSequence.create(buffer);
+        }
       }
 
       case BUFFER_TO_STRING -> {
@@ -126,6 +117,29 @@ final class Zlib implements ProxyExecutable {
       }
 
       default -> throw new IllegalStateException(command);
+    };
+  }
+
+  private ByteBuffer bufferFromString(String text, String encoding) {
+    return switch (encoding) {
+      case ENCODING_BASE64 -> {
+        final var buffer = StandardCharsets.UTF_8.encode(text);
+        yield Base64.getDecoder().decode(buffer);
+      }
+      case ENCODING_BASE64_URL -> {
+        final var buffer = StandardCharsets.UTF_8.encode(text);
+        yield Base64.getUrlDecoder().decode(buffer);
+      }
+      case null -> StandardCharsets.UTF_8.encode(text);
+      default -> {
+        Charset charset;
+        try {
+          charset = Charset.forName(encoding);
+        } catch (IllegalArgumentException e) {
+          throw new RuntimeException("Unknown encoding: " + encoding, e);
+        }
+        yield charset.encode(text);
+      }
     };
   }
 }

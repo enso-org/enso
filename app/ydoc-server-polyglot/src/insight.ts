@@ -11,6 +11,8 @@ interface SubdocsEvent {
   removed: Set<Y.Doc>
 }
 
+var insight = {
+};
 print("Initializing Insight: " + JSON.stringify(insight));
 
 const PROJECT_NAME = 'NewProject1'
@@ -62,7 +64,7 @@ function attachProvider(url: string, room: string, doc: Y.Doc) {
 
 const d = new Y.Doc()
 const project = new DistributedProject(d)
-//const provider = attachProvider('ws://[::1]:5976/project', 'index', d)
+const provider = attachProvider('ws://localhost:5976/project', 'index', d)
 
 function parseContents(contents: string, syncModule: Ast.MutableModule) {
   const { code, idMapJson, metadataJson } = splitFileContents(contents)

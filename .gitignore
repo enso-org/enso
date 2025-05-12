@@ -202,3 +202,4 @@ storybook-static
 #########
 
 /.mailmap
+/app/ydoc-server-polyglot/nbproject/private/
