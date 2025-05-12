@@ -9,12 +9,11 @@ import Label from '#/components/dashboard/Label'
 
 import { Button, DialogTrigger, Popover } from '#/components/AriaComponents'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
-import { useOnHover } from '#/hooks/hoverHooks'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { FALLBACK_COLOR } from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
-import { createRef } from 'react'
+import { useRef, useState } from 'react'
 
 /** A column listing the labels on this asset. */
 export default function LabelsColumn(props: column.AssetColumnProps) {
@@ -29,12 +28,8 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
 
-  const rootRef = createRef<HTMLDivElement>()
-  const targetRef = createRef<HTMLDivElement>()
-  const { shouldDisplay: shouldDisplayHoverContent, targetProps } = useOnHover({
-    targetRef,
-    display: 'whenOverflowing',
-  })
+  const rootRef = useRef<HTMLDivElement>(null)
+  const [isOverflowing, setIsOverflowing] = useState(false)
 
   const labelsList = (item.labels ?? [])
     .filter((label) => labelsByName.has(label))
@@ -74,9 +69,20 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     ))
 
   return (
-    <div ref={rootRef} className="group flex items-center gap-1" {...targetProps}>
-      <div ref={targetRef} className="flex h-6 flex-wrap items-center gap-1 overflow-hidden">
+    <div ref={rootRef} className="group relative flex items-center gap-1">
+      <div
+        ref={(el) => {
+          if (!el) {
+            return
+          }
+          setIsOverflowing(el.scrollWidth > el.clientWidth)
+        }}
+        className="flex h-6 items-center gap-1 overflow-hidden"
+      >
         {labelsList}
+        {isOverflowing && (
+          <div className="from-dashboard-row pointer-events-none absolute bottom-0 right-10 top-0 w-10 bg-gradient-to-l opacity-100" />
+        )}
       </div>
       {managesThisAsset && (
         <DialogTrigger>
@@ -90,7 +96,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           <ManageLabelsModal backend={backend} item={item} />
         </DialogTrigger>
       )}
-      {shouldDisplayHoverContent && (
+      {isOverflowing && (
         <Popover.Trigger>
           <Button
             variant="icon"
