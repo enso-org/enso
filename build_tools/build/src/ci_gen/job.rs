@@ -244,6 +244,7 @@ impl JobArchetype for JvmTests {
                 vec![
                     cleanup_engine_distribution,
                     download_engine_distribution,
+                    step::check_engine_distribution(),
                     step::unpack_engine_distribution(),
                     step,
                     step::engine_test_reporter(target, graal_edition),
@@ -352,6 +353,7 @@ impl JobArchetype for StandardLibraryTests {
             vec![
                 cleanup_engine_distribution,
                 download_engine_distribution,
+                step::check_engine_distribution(),
                 step::unpack_engine_distribution(),
                 updated_main_step,
                 step::stdlib_test_reporter(target, graal_edition),
@@ -421,6 +423,7 @@ impl JobArchetype for EnsoCodeLintCheck {
                     check_syntax,
                     cleanup_engine_distribution,
                     download_engine_distribution,
+                    step::check_engine_distribution(),
                     step::unpack_engine_distribution(),
                     step,
                 ]
@@ -457,6 +460,7 @@ impl JobArchetype for StandardLibraryApiCheck {
                 vec![
                     cleanup_engine_distribution,
                     download_engine_distribution,
+                    step::check_engine_distribution(),
                     step::unpack_engine_distribution(),
                     step,
                 ]
@@ -635,6 +639,7 @@ impl JobArchetype for SnowflakeTests {
                 vec![
                     cleanup_engine_distribution,
                     download_engine_distribution,
+                    step::check_engine_distribution(),
                     step::unpack_engine_distribution(),
                     updated_main_step,
                     step::extra_stdlib_test_reporter(target, GRAAL_EDITION_FOR_EXTRA_TESTS),

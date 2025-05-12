@@ -118,6 +118,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
+      - run: file built-distribution.tar
+        shell: bash
       - name: Unpack Engine Distribution
         run: |-
           tar -xvf built-distribution.tar -C .
@@ -201,6 +203,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
+      - run: file built-distribution.tar
+        shell: bash
       - name: Unpack Engine Distribution
         run: |-
           tar -xvf built-distribution.tar -C .

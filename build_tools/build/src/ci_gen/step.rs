@@ -82,6 +82,14 @@ pub fn download_engine_distribution(
     )
 }
 
+pub fn check_engine_distribution() -> Step {
+    Step {
+        run: Some("file built-distribution.tar".into()),
+        shell: Some(Shell::Bash),
+        ..Default::default()
+    }
+}
+
 pub fn unpack_engine_distribution() -> Step {
     Step {
         name: Some("Unpack Engine Distribution".into()),
