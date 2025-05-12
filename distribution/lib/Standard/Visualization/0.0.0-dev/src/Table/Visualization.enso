@@ -1,10 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
+import Standard.Base.Errors.Common.No_Such_Conversion
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 
 import Standard.Table.Row.Row
 from Standard.Table import Column, Sort_Column, Table, Value_Type
-import Standard.Base.Errors.Common.No_Such_Conversion
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
