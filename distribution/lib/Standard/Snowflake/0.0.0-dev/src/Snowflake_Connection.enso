@@ -1,10 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
+import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference, as_hideable_value
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
-import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table

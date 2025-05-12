@@ -8,6 +8,7 @@ type Table_Viz_Data
     ## For now provide the json directly. In the future this type will be responsible for the json creation
     Value json:JS_Object
 
+    ## Create a new Table_Viz_Data
     new json:JS_Object -> Table_Viz_Data = Table_Viz_Data.Value json
 
 ## helper method to generate json for the Single_Column_Of_Actions type
