@@ -214,7 +214,8 @@ public class UsedSymbolsCollectorTest {
             from project.Module import T
             type My_Type
                 method self =
-                    func x = (x + 1) : T
+                    func x =
+                        (x + 1) : T
             """);
     compilerCtx.getCompiler().run(mainMod);
     expectUsedSymbol(mainMod, "local.Proj.Module.T");
