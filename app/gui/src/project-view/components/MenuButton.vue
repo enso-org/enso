@@ -57,15 +57,15 @@ function onClick() {
 
 <style scoped>
 .MenuButton {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   min-width: max-content;
   padding: var(--button-padding, 4px);
   border-radius: var(--radius-full);
   border: none;
   transition: background-color 0.3s;
   position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 
   &.toggledOn {
     background-color: var(--color-menu-entry-selected-bg);

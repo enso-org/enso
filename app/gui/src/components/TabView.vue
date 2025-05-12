@@ -5,10 +5,10 @@ import { BackendType, ProjectId } from '#/services/Backend'
 import { Drive, Editor, Settings } from '$/components/TabView/reactTabs'
 import SelectableTab from '$/components/TabView/SelectableTab.vue'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
-import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { applyPureReactInVue } from 'veaury'
 import { reactive, watch } from 'vue'
+import CloseButton from './CloseButton.vue'
 
 const UserBar = applyPureReactInVue(UserBarReact)
 </script>
@@ -91,13 +91,8 @@ const onSignOut = () => {
         >
           <SvgIcon v-if="readyProjects.has(project.id)" name="graph_editor" />
           <GrowingSpinner v-else :phase="loadingProjectSpinnerPhase(project)" :size="16" />
-          <span>{{ projectNames.get(project.id) }}</span>
-          <SvgButton
-            class="closeButton"
-            name="tab_close"
-            :extendedHover="8"
-            @click="closeProject(project)"
-          />
+          <span class="projectName">{{ projectNames.get(project.id) }}</span>
+          <CloseButton @click="closeProject(project)" />
         </SelectableTab>
         <SelectableTab v-if="page === 'settings'" :selected="true">
           <SvgIcon name="settings" /><span>Settings</span>
@@ -152,6 +147,7 @@ const onSignOut = () => {
   flex-direction: row;
   /* Create a stacking context for tab highlight, so it's under all tabs' contents. */
   isolation: isolate;
+  font: var(--font-sans);
 }
 
 .filler {
@@ -164,29 +160,9 @@ const onSignOut = () => {
   display: flex;
 }
 
-.closeButton {
-  --button-padding: 0px;
-  --icon-width: 12px;
-  --icon-height: 12px;
-
-  &:hover {
-    background-color: rgba(239, 68, 68, 0.8);
-  }
-}
-
-.App.onMacOs .closeButton {
-  transition: color 0.1s;
-  color: rgba(0, 0, 0, 0);
-  &:not(:hover) {
-    background-color: rgba(0, 0, 0, 0.3);
-  }
-  &:hover {
-    color: rgba(0, 0, 0, 0.9);
-  }
-}
-
-.SelectableTab span {
-  /* Trim the text box, so the span will align with icons properly*/
-  text-box: trim-both cap alphabetic;
+.projectName {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>
