@@ -12,8 +12,8 @@ import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
 import java.util.logging.Level;
-import org.enso.ydoc.polyfill.ParserPolyfill;
 import org.enso.runtime.utils.ThreadUtils;
+import org.enso.ydoc.polyfill.ParserPolyfill;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Value;
 
