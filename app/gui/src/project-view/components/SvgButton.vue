@@ -23,6 +23,7 @@ const _props = defineProps<{
 .SvgButton {
   margin: -4px;
   gap: 4px;
+  transition: opacity 0.2s;
 
   &.disabled {
     opacity: 0.3;
