@@ -123,6 +123,7 @@ public final class WithCompilerContext implements TestRule {
         throw e;
       } finally {
         repo.getVfs().deleteAll();
+        resetMemoryAppender();
       }
     }
 
@@ -140,13 +141,24 @@ public final class WithCompilerContext implements TestRule {
     }
 
     private void printLogsFromMemoryAppender() {
-      var context = (LoggerContext) LoggerFactory.getILoggerFactory();
-      var logger = context.getLogger(Logger.ROOT_LOGGER_NAME);
-      var appender = (MemoryAppender) logger.getAppender("memory");
+      var appender = getMemoryAppender();
       var msgs = appender.getEvents().stream().map(CustomStatement::logEventToString).toList();
       System.err.println("======== Logs from the memory appender ========= ");
       msgs.forEach(System.err::println);
       System.err.println("===== End of logs from the memory appender ===== ");
+    }
+
+    private static void resetMemoryAppender() {
+      var appender = getMemoryAppender();
+      appender.reset();
+    }
+
+    private static MemoryAppender getMemoryAppender() {
+      var context = (LoggerContext) LoggerFactory.getILoggerFactory();
+      var logger = context.getLogger(Logger.ROOT_LOGGER_NAME);
+      var appender = (MemoryAppender) logger.getAppender("memory");
+      assert appender != null : "memory appender should be defined. Check application-test.conf";
+      return appender;
     }
 
     /**
