@@ -1,4 +1,4 @@
-package org.enso.logging.service.telemetry.test;
+package org.enso.logging.service.telemetry;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -21,7 +21,6 @@ import org.enso.logging.service.LogJob;
 import org.enso.logging.service.LogJobsProcessor;
 import org.enso.logging.service.LogMessage;
 import org.enso.logging.service.TokenRefresher;
-import org.enso.logging.service.telemetry.TelemetryLogJobsProcessor;
 import org.enso.shttp.HybridHTTPServer;
 import org.enso.testkit.RetryTestRule;
 import org.junit.After;

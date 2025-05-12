@@ -1,4 +1,4 @@
-package org.enso.logging.service.telemetry.test;
+package org.enso.logging.service.telemetry;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;

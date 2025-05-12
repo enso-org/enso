@@ -1,4 +1,4 @@
-package org.enso.logging.service.telemetry.test;
+package org.enso.logging.service.telemetry;
 
 import java.io.IOException;
 import java.net.URI;

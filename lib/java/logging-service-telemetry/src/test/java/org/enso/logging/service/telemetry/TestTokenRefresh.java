@@ -1,4 +1,4 @@
-package org.enso.logging.service.telemetry.test;
+package org.enso.logging.service.telemetry;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
