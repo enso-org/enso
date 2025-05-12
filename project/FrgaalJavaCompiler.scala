@@ -84,8 +84,14 @@ object FrgaalJavaCompiler {
       shouldCompileModuleInfo = shouldCompileModuleInfo,
       shouldNotLimitModules   = shouldNotLimitModules
     )
-    val javaTools = sbt.internal.inc.javac
-      .JavaTools(frgaalJavac, sbtCompilers.javaTools.javadoc())
+
+    var javac = if (Integer.parseInt(javaVersion) <= 21) {
+      frgaalJavac
+    } else {
+      sbtCompilers.javaTools.javac()
+    }
+    val javadoc   = sbtCompilers.javaTools.javadoc()
+    val javaTools = sbt.internal.inc.javac.JavaTools(javac, javadoc)
     xsbti.compile.Compilers.of(sbtCompilers.scalac, javaTools)
   }
 

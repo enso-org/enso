@@ -7,7 +7,7 @@ public interface ColumnLongStorage extends ColumnStorage<Long> {
   long getItemAsLong(long index) throws ValueIsNothingException;
 
   @Override
-  ColumnLongStorageIterator iterator();
+  ColumnLongStorageIterator iteratorWithIndex();
 
   @Override
   IntegerType getType();

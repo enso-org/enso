@@ -3,6 +3,7 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, make_json_for_single_column_of_actions
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
@@ -28,7 +29,7 @@ type Hyper_File
 
     ## PRIVATE
        A representation of a Tableau Hyper Extract file.
-    private Value file:File internal_schema:Text
+    Value file:File internal_schema:Text
 
     ## ICON metadata
        Returns the list of schemas for the connection within the current database (or catalog).
@@ -104,3 +105,8 @@ make_table_selector hyper_file:Hyper_File cache=Nothing =
     used_schema = if schema == "" || schema == Nothing then hyper_file.schema else schema
     tables = hyper_file.tables used_schema . map t-> Option t.table t.table.pretty
     Single_Choice values=tables
+
+## PRIVATE
+Table_Viz_Data.from (that:Hyper_File) = 
+    viz_data = that.tables.map t->t.table.to_text
+    Table_Viz_Data.new (make_json_for_single_column_of_actions that.to_js_object viz_data "tables" "table" "read")
