@@ -1,4 +1,4 @@
-package org.enso.logging.service.logback.telemetry.test;
+package org.enso.logging.service.telemetry.test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
@@ -12,8 +12,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
-import org.enso.logging.service.telemetry.ApiMessage;
-import org.enso.logging.service.telemetry.LogMessage;
+import org.enso.logging.service.remote.ApiMessage;
+import org.enso.logging.service.remote.LogMessage;
 import org.enso.logging.service.telemetry.TelemetryLogFormatter;
 import org.junit.Assert;
 import org.junit.Test;
