@@ -3690,10 +3690,10 @@ type Table
     ## GROUP Standard.Base.Text
        ICON column_add
        Applies the specified cleansing operations to text values in each column
-       specified in `from`.
+       specified in `columns`.
 
        Arguments:
-       - from: The column(s) to cleanse.
+       - columns: The column(s) to cleanse.
        - remove: The list of operations being performed - which elements to
          remove. These are performed in the order specified. The same operation
          can be performed multiple times.
@@ -3731,11 +3731,11 @@ type Table
                |-------|
                | Hello |
                | World |
-    @from (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @remove make_data_cleanse_vector_selector
-    text_cleanse self (from : Vector (Integer | Text | Regex | By_Type) = Missing_Argument.throw "from") (remove : Vector Named_Pattern = []) -> Table =
+    text_cleanse self (columns : Vector (Integer | Text | Regex | By_Type) = Missing_Argument.throw "columns") (remove : Vector Named_Pattern = []) -> Table =
         transformer col = col.text_cleanse remove
-        Table_Helpers.replace_columns_with_transformed_columns self from transformer
+        Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## ALIAS count, cumulative, maximum, mean, minimum, product, standard deviation, sum, sum, total, variance
        GROUP Standard.Base.Values
