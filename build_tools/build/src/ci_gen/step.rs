@@ -84,11 +84,7 @@ pub fn download_engine_distribution(
 
 pub fn check_engine_distribution() -> Step {
     Step {
-        run: Some(
-            "file built-distribution.tar
-sha256sum built-distribution.tar"
-                .into(),
-        ),
+        run: Some("sha256sum built-distribution.tar".into()),
         shell: Some(Shell::Bash),
         ..Default::default()
     }
