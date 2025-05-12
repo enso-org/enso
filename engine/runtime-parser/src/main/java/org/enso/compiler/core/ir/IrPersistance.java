@@ -70,8 +70,6 @@ import scala.collection.immutable.Seq;
 @Persistable(clazz = Warning.TypeMismatch.class, id = 792)
 @Persistable(clazz = Warning.NoSuchMethod.class, id = 793)
 @Persistable(clazz = Warning.NonUnitTypeUsedOnValueLevel.class, id = 794)
-@Persistable(clazz = Warning.UnusedImport.class, id = 795)
-@Persistable(clazz = Warning.UnusedSymbolsFromImport.class, id = 796)
 @Persistable(clazz = Operator.Binary.class, id = 790)
 public final class IrPersistance {
   private IrPersistance() {}
