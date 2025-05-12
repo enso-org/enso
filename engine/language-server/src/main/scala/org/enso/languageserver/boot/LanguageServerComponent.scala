@@ -164,7 +164,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
             2.seconds
           )
           .recover(logError)
-      _ <- Future { logger.debug("Terminated actor system") }
+      _ <- Future { logger.trace("Terminated actor system") }
     } yield ()
   }
 
