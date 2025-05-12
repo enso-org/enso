@@ -1,3 +1,3 @@
 ## Enso Signatures 1.0
 ## module Standard.Database.Internal.Common.Connections_Helpers
-- get_data_viz_pairs -> Standard.Base.Any.Any
+- get_table_viz_data tables:Standard.Base.Any.Any -> Standard.Base.Any.Any
