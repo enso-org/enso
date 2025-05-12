@@ -43,7 +43,7 @@ export const widgetDefinition = defineWidget(
           v-if="icon === '$evaluating'"
           class="nodeCategoryIcon grab-handle"
           :size="16"
-          state="loading-medium"
+          phase="loading-medium"
         />
         <SvgIcon v-else class="nodeCategoryIcon grab-handle" :name="icon" />
       </Transition>

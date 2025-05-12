@@ -7,7 +7,6 @@ import SelectableTab from '$/components/TabView/SelectableTab.vue'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { isOnMacOS } from 'enso-common/src/detect'
 import { applyPureReactInVue } from 'veaury'
 import { reactive, watch } from 'vue'
 
@@ -47,7 +46,7 @@ function setProjectReady(project: ProjectId, ready: boolean) {
   }
 }
 
-function loadingProjectSpinnerState(project: LaunchedProject) {
+function loadingProjectSpinnerPhase(project: LaunchedProject) {
   return project.hybrid != null || project.type === BackendType.local ?
       'loading-fast'
     : 'loading-slow'
@@ -91,11 +90,10 @@ const onSignOut = () => {
           @update:selected="$event && setPage(project.id)"
         >
           <SvgIcon v-if="readyProjects.has(project.id)" name="graph_editor" />
-          <GrowingSpinner v-else :state="loadingProjectSpinnerState(project)" :size="16" />
+          <GrowingSpinner v-else :phase="loadingProjectSpinnerPhase(project)" :size="16" />
           <span>{{ projectNames.get(project.id) }}</span>
           <SvgButton
             class="closeButton"
-            :class="{ onMacOs: isOnMacOS() }"
             name="tab_close"
             :extendedHover="8"
             @click="closeProject(project)"
@@ -153,7 +151,7 @@ const onSignOut = () => {
   display: flex;
   flex-direction: row;
   /* Create a stacking context for tab highlight, so it's under all tabs' contents. */
-  z-index: 0;
+  isolation: isolate;
 }
 
 .filler {

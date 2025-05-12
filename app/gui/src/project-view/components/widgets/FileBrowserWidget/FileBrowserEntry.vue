@@ -32,7 +32,7 @@ watch(input, (newInput) => {
 
 <template>
   <div :class="{ FileBrowserEntry: true, highlighted }" @click="emit('click')">
-    <GrowingSpinner v-if="editingState === 'pending'" :size="16" state="loading-medium" />
+    <GrowingSpinner v-if="editingState === 'pending'" :size="16" phase="loading-medium" />
     <SvgIcon v-else :name="icon" />
     <input
       v-if="editingState === 'editing'"

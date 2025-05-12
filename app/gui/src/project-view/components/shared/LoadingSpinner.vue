@@ -15,15 +15,15 @@ const SPINNER_CSS_CLASSES = {
   done: 'spinner-done spinner-fast dasharray-100 duration-spinner-fast ease-in',
 } as const
 
-export type SpinnerState = keyof typeof SPINNER_CSS_CLASSES
+export type SpinnerPhase = keyof typeof SPINNER_CSS_CLASSES
 
 export interface SpinnerProps {
   size?: number | undefined
-  state: SpinnerState
+  phase: SpinnerPhase
   thickness?: number | undefined
 }
 
-const { size = 30, state, thickness = 3 } = defineProps<SpinnerProps>()
+const { size = 30, phase, thickness = 3 } = defineProps<SpinnerProps>()
 </script>
 
 <template>
@@ -53,7 +53,7 @@ const { size = 30, state, thickness = 3 } = defineProps<SpinnerProps>()
       :class="
         twJoin(
           'pointer-events-none origin-center !animate-spin-ease transition-stroke-dasharray',
-          SPINNER_CSS_CLASSES[state],
+          SPINNER_CSS_CLASSES[phase],
         )
       "
     />

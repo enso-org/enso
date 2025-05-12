@@ -7,7 +7,7 @@ import { computed, onMounted, ref } from 'vue'
 
 const props = defineProps<SpinnerProps>()
 const synchronized = ref(false)
-const state = computed(() => (synchronized.value ? props.state : 'initial'))
+const phase = computed(() => (synchronized.value ? props.phase : 'initial'))
 onMounted(() => {
   requestAnimationFrame(() => {
     synchronized.value = true
@@ -16,5 +16,5 @@ onMounted(() => {
 </script>
 
 <template>
-  <LoadingSpinner v-bind="props" :state="state" />
+  <LoadingSpinner v-bind="props" :phase="phase" />
 </template>

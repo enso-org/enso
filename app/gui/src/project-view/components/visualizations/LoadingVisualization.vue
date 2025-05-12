@@ -6,7 +6,7 @@ import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 
 <template>
   <div class="LoadingVisualization">
-    <LoadingSpinner state="loading-medium" />
+    <LoadingSpinner phase="loading-medium" />
   </div>
 </template>
 

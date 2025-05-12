@@ -67,7 +67,7 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
   capture: true,
 })
 
-const platformClass = computed(() => {
+const platformClass = (() => {
   switch (platform()) {
     case Platform.windows:
       return 'onWindows'
@@ -84,7 +84,7 @@ const platformClass = computed(() => {
     default:
       return undefined
   }
-})
+})()
 
 onMounted(() => {
   if (appConfigValue.value.window.vibrancy) {
