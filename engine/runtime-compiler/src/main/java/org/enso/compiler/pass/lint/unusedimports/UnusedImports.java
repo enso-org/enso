@@ -174,7 +174,7 @@ public final class UnusedImports implements IRPass {
     return null;
   }
 
-  private static boolean haveSameLocations(Import imp1, Import imp2) {
+  static boolean haveSameLocations(Import imp1, Import imp2) {
     var loc1 = imp1.identifiedLocation();
     var loc2 = imp2.identifiedLocation();
     if (loc1 != null && loc2 != null) {
