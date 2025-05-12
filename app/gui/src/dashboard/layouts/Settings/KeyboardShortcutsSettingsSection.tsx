@@ -7,8 +7,9 @@ import Plus2Icon from '#/assets/plus2.svg'
 import ReloadIcon from '#/assets/reload.svg'
 import { Button, ButtonGroup, DialogTrigger } from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
+import { Icon } from '#/components/Icon'
+import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry'
 import { Scroller } from '#/components/Scroller'
-import SvgMask from '#/components/SvgMask'
 import type { DashboardBindingKey } from '#/configurations/inputBindings'
 import { useRefresh } from '#/hooks/refreshHooks'
 import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
@@ -72,13 +73,18 @@ export default function KeyboardShortcutsSettingsSection() {
           <tbody>
             {visibleBindings.map((kv) => {
               const [action, info] = kv
+              const name = getText(ACTION_TO_TEXT_ID[action])
+
               return (
                 <tr key={action} className="rounded-rows-child">
-                  <td className="flex h-row items-center rounded-l-full bg-clip-padding pl-cell-x pr-1.5">
-                    <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="size-4" />
+                  <td
+                    className="flex h-row items-center rounded-l-full bg-clip-padding pl-cell-x pr-1.5"
+                    style={{ color: info.color }}
+                  >
+                    <Icon icon={info.icon ?? BlankIcon} className="size-4" />
                   </td>
                   <td className="border-l-2 border-r-2 border-transparent bg-clip-padding px-cell-x">
-                    {info.name}
+                    {name}
                   </td>
                   <td className="group min-w-max border-l-2 border-r-2 border-transparent bg-clip-padding px-cell-x">
                     <div className="gap-buttons flex items-center pr-4">
@@ -89,7 +95,7 @@ export default function KeyboardShortcutsSettingsSection() {
                             className="rounded-lg border-0.5 border-primary/10 px-1"
                           />
                           <Button
-                            variant="ghost-icon"
+                            variant="icon"
                             size="medium"
                             aria-label={getText('removeShortcut')}
                             tooltipPlacement="top left"
@@ -106,7 +112,7 @@ export default function KeyboardShortcutsSettingsSection() {
                       <div className="flex shrink-0 items-center gap-1">
                         <DialogTrigger>
                           <Button
-                            variant="ghost-icon"
+                            variant="icon"
                             size="medium"
                             aria-label={getText('addShortcut')}
                             tooltipPlacement="top left"
@@ -114,7 +120,7 @@ export default function KeyboardShortcutsSettingsSection() {
                             showIconOnHover
                           />
                           <CaptureKeyboardShortcutModal
-                            description={`'${info.name}'`}
+                            description={`'${name}'`}
                             existingShortcuts={allShortcuts}
                             onSubmit={(shortcut) => {
                               inputBindings.add(action, shortcut)
@@ -123,7 +129,7 @@ export default function KeyboardShortcutsSettingsSection() {
                           />
                         </DialogTrigger>
                         <Button
-                          variant="ghost-icon"
+                          variant="icon"
                           size="medium"
                           aria-label={getText('resetShortcut')}
                           tooltipPlacement="top left"

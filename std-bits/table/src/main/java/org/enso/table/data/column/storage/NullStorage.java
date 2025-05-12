@@ -1,7 +1,9 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.stream.LongStream;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForBoolean;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
@@ -49,6 +51,11 @@ public class NullStorage extends Storage<Void> {
     return null;
   }
 
+  @Override
+  public Iterator<Void> iterator() {
+    return LongStream.range(0, size).mapToObj(i -> (Void) null).iterator();
+  }
+
   private static MapOperationStorage<Void, NullStorage> buildOps() {
     MapOperationStorage<Void, NullStorage> ops = new MapOperationStorage<>();
     ops.add(new NullOp(Maps.MUL));
@@ -60,9 +67,6 @@ public class NullStorage extends Storage<Void> {
 
     ops.add(new NullAndOp());
     ops.add(new NullOrOp());
-
-    ops.add(new CoalescingNullOp(Maps.MIN));
-    ops.add(new CoalescingNullOp(Maps.MAX));
 
     return ops;
   }
@@ -147,31 +151,6 @@ public class NullStorage extends Storage<Void> {
         NullStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
       // We return the same storage as-is, because all lhs arguments are guaranteed to be null.
       return storage;
-    }
-  }
-
-  /**
-   * A binary operation that always returns the other argument.
-   *
-   * <p>Useful for implementing operations that should return the other argument when the left-hand
-   * side is null, e.g. min.
-   */
-  private static class CoalescingNullOp extends BinaryMapOperation<Void, NullStorage> {
-    public CoalescingNullOp(String name) {
-      super(name);
-    }
-
-    @Override
-    public Storage<?> runBinaryMap(
-        NullStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
-      int checkedSize = Builder.checkSize(storage.getSize());
-      return Storage.fromRepeatedItem(Value.asValue(arg), checkedSize, problemAggregator);
-    }
-
-    @Override
-    public Storage<?> runZip(
-        NullStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
-      return arg;
     }
   }
 

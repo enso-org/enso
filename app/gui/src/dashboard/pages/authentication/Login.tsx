@@ -5,8 +5,6 @@ import { isOnElectron } from 'enso-common/src/detect'
 import { DASHBOARD_PATH, FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '#/appUtils'
 import AtIcon from '#/assets/at.svg'
 import CreateAccountIcon from '#/assets/create_account.svg'
-import GithubIcon from '#/assets/github_color.svg'
-import GoogleIcon from '#/assets/google_color.svg'
 import LockIcon from '#/assets/lock.svg'
 import type { CognitoUser } from '#/authentication/cognito'
 import { Button, Form, Input, OTPInput, Password, Text } from '#/components/AriaComponents'
@@ -20,11 +18,6 @@ import { useText } from '#/providers/TextProvider'
 import { useRouterInReact } from '$/providers/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-
-// eslint-disable-next-line no-restricted-syntax
-const GOOGLE_ICON = <img src={GoogleIcon} alt="" />
-// eslint-disable-next-line no-restricted-syntax
-const GITHUB_ICON = <img src={GithubIcon} alt="" />
 
 /** A form for users to log in. */
 export default function Login() {
@@ -107,10 +100,20 @@ export default function Login() {
         <Stepper.StepContent index={0}>
           {() => (
             <div className="flex flex-col gap-auth">
-              <Button size="large" variant="outline" icon={GOOGLE_ICON} onPress={handleGooglePress}>
+              <Button
+                size="large"
+                variant="outline"
+                icon="google_color"
+                onPress={handleGooglePress}
+              >
                 {getText('signUpOrLoginWithGoogle')}
               </Button>
-              <Button size="large" variant="outline" icon={GITHUB_ICON} onPress={handleGitHubPress}>
+              <Button
+                size="large"
+                variant="outline"
+                icon="github_color"
+                onPress={handleGitHubPress}
+              >
                 {getText('signUpOrLoginWithGitHub')}
               </Button>
 

@@ -1,8 +1,7 @@
 /** @file A toolbar containing chat and the user menu. */
 import ChatIcon from '#/assets/chat.svg'
-import LogoIcon from '#/assets/enso_logo.svg'
 import { Button, DialogTrigger } from '#/components/AriaComponents'
-import SvgMask from '#/components/SvgMask'
+import { Icon } from '#/components/Icon'
 import InfoMenu from '#/layouts/InfoMenu'
 import { useText } from '#/providers/TextProvider'
 import { memo } from 'react'
@@ -40,8 +39,8 @@ function InfoBar(props: InfoBarProps) {
           variant="icon"
           className="flex size-row-h select-none items-center overflow-clip rounded-full"
         >
-          <SvgMask
-            src={LogoIcon}
+          <Icon
+            icon="enso_logo"
             alt={getText('openInfoMenu')}
             className="pointer-events-none size-7"
           />
