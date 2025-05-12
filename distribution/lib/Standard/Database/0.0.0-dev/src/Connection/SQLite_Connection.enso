@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Display
+import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
@@ -288,5 +289,8 @@ type SQLite_Connection
        Converts this value to a JSON serializable object.
     to_js_object : JS_Object
     to_js_object self =
-        additional_visualization_fields = Connections_Helpers.get_data_viz_pairs
-        JS_Object.from_pairs <| [["type", "SQLite_Connection"], ["links", self.connection.tables.at "Name" . to_vector]] + additional_visualization_fields
+        JS_Object.from_pairs <| [["type", "SQLite_Connection"], ["links", self.connection.tables.at "Name" . to_vector]]
+
+## PRIVATE
+Table_Viz_Data.from (that:SQLite_Connection) = 
+    Connections_Helpers.get_table_viz_data (that.connection.tables.at "Name" . to_vector)
