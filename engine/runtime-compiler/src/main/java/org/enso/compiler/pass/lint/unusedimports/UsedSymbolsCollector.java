@@ -213,13 +213,41 @@ final class UsedSymbolsCollector {
   private void addUsedSymbol(QualifiedName modName, QualifiedName symName) {
     var imports = findImportIRs(modName, symName);
     for (var imp : imports) {
+      var symNameToRecord = symName;
+      // Add only prefix in some cases
+      if (imp.onlyNames().isDefined()) {
+        var onlyNames = imp.onlyNames().get();
+        var baseName = QualifiedName.fromString(imp.name().name());
+        for (var onlyName : asJava(onlyNames)) {
+          var importFqn = baseName.createChild(onlyName.name());
+          if (isPrefix(importFqn, symName)) {
+            symNameToRecord = importFqn;
+          }
+        }
+      }
       LOGGER.trace(
           "[{}] Adding used symbol '{}' for import '{}'",
           bindingsMap.currentModule().getName(),
-          symName,
+          symNameToRecord,
           imp.showCode());
-      usedSymbolsBldr.addUsedSymbol(imp, symName);
+      usedSymbolsBldr.addUsedSymbol(imp, symNameToRecord);
     }
+  }
+
+  private static boolean isPrefix(QualifiedName prefix, QualifiedName name) {
+    var namePath = name.fullPath();
+    var subNamePath = prefix.fullPath();
+    if (namePath.size() < subNamePath.size()) {
+      return false;
+    }
+    for (var i = 0; i < subNamePath.size(); i++) {
+      var subNameItem = subNamePath.apply(i);
+      var nameItem = namePath.apply(i);
+      if (!nameItem.equals(subNameItem)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private void addToUsedSymbols(List<ResolvedName> resolvedNames) {
