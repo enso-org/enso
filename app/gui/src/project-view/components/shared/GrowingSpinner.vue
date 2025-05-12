@@ -3,15 +3,16 @@
  * @file A LoadingSpinner, which starts from 'initial' state and then animates to the passed state.
  */
 import LoadingSpinner, { SpinnerProps } from '@/components/shared/LoadingSpinner.vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onScopeDispose, ref } from 'vue'
 
 const props = defineProps<SpinnerProps>()
 const synchronized = ref(false)
 const phase = computed(() => (synchronized.value ? props.phase : 'initial'))
 onMounted(() => {
-  requestAnimationFrame(() => {
+  const frame = requestAnimationFrame(() => {
     synchronized.value = true
   })
+  onScopeDispose(() => cancelAnimationFrame(frame))
 })
 </script>
 

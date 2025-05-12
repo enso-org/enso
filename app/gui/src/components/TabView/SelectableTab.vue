@@ -30,7 +30,7 @@ const selected = defineModel<boolean>('selected')
   flex-direction: row;
   height: 100%;
   padding: 8px;
-  text-wrap-mode: nowrap;
+  white-space: nowrap;
 }
 
 .underlying {

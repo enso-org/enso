@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import TooltipTrigger from '@/components/TooltipTrigger.vue'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 
 /**
@@ -21,6 +21,10 @@ const props = defineProps<{
 }>()
 const tooltipTrigger = ref<ComponentExposed<typeof TooltipTrigger>>()
 
+const style = computed(() =>
+  props.extendedHover != null ? { '--extendedHover': `${props.extendedHover}px` } : {},
+)
+
 function onClick() {
   if (!props.disabled && toggledOn.value != null) toggledOn.value = !toggledOn.value
   if (tooltipTrigger.value) {
@@ -36,16 +40,13 @@ function onClick() {
         class="MenuButton clickable"
         :aria-label="props.title ?? ''"
         :class="{ toggledOn, toggledOff: toggledOn === false, disabled }"
+        :style="style"
         :disabled="disabled ?? false"
         v-bind="triggerProps"
         @click.stop="onClick"
       >
         <slot />
-        <div
-          v-if="extendedHover"
-          class="hoverArea"
-          :style="{ '--extendedHover': `${extendedHover}px` }"
-        />
+        <div v-if="extendedHover" class="hoverArea" />
       </button>
     </template>
     <template v-if="$slots.tooltip || props.title" #tooltip>
