@@ -83,15 +83,13 @@ pub fn download_engine_distribution(
 }
 
 pub fn unpack_engine_distribution() -> Step {
-    let extract_archive = retry_shell_command("tar -xvf built-distribution.tar");
     Step {
         name: Some("Unpack Engine Distribution".into()),
-        run: Some(format!(
-            "{extract_archive};
-rm built-distribution.tar
-"
-        )),
-        shell: Some(Shell::Bash),
+        run: Some(
+            "tar -xvf built-distribution.tar -C .
+rm built-distribution.tar"
+                .into(),
+        ),
         ..Default::default()
     }
 }
@@ -122,11 +120,6 @@ fn built_distribution_directories(engine_launcher: engine::EngineLauncher) -> St
         engine::EngineLauncher::TestDebugNative => " test",
         _ => "",
     })
-}
-
-fn retry_shell_command(command: impl Into<String>) -> String {
-    let cmd = command.into();
-    format!("{cmd} || {cmd}")
 }
 
 pub fn upload_artifact(step_name: impl Into<String>) -> Step {
