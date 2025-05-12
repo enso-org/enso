@@ -11,6 +11,7 @@ import io.helidon.webserver.http.HttpRouting;
 import io.helidon.webserver.websocket.WsRouting;
 import io.helidon.websocket.WsListener;
 import io.helidon.websocket.WsSession;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayDeque;
@@ -103,8 +104,11 @@ final class WebSocket implements ProxyExecutable {
         }
 
         var wsClient = WsClient.builder().protocolConfig(protocolConfig.build()).build();
-        wsClient.connect(uri, connection);
-
+        try {
+          wsClient.connect(uri, connection);
+        } catch (UncheckedIOException ex) {
+          throw new UncheckedIOException("Cannot connect to " + urlString, ex.getCause());
+        }
         yield connection;
       }
 
