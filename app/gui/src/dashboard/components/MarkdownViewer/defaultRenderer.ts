@@ -4,4 +4,4 @@ import { vueComponent } from '#/utilities/vue'
 import MarkdownEditorVue from '@/components/MarkdownEditor.vue'
 
 // eslint-disable-next-line no-restricted-syntax
-export const MarkdownEditor = vueComponent(MarkdownEditorVue)
+export const MarkdownEditor = vueComponent(MarkdownEditorVue).default

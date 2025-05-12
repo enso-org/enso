@@ -11,7 +11,6 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import { AssetPanel } from '#/layouts/AssetPanel'
 import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
@@ -159,12 +158,13 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
 
   return (
     <div className="relative flex grow">
+      <div className="absolute left-0 right-0 top-0 h-12 bg-primary/10" />
       <div
         data-testid="drive-view"
-        className="mt-4 flex flex-1 flex-col gap-4 overflow-visible px-4"
+        className="mt-2 flex flex-1 flex-col gap-4 overflow-visible px-4 contain-strict"
       >
         <div className="grid flex-1 grid-cols-[180px_minmax(0,1fr)] gap-3 overflow-hidden">
-          <div className="grid-col-1 flex flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden pt-1">
+          <div className="grid-col-1 flex flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden pt-28">
             <CategorySwitcher category={category} setCategoryId={setCategory} />
 
             <AssetsTableAssetsUnselector />
@@ -189,8 +189,6 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
           </div>
         </div>
       </div>
-
-      <AssetPanel backendType={backend.type} category={deferredCategory} />
     </div>
   )
 }

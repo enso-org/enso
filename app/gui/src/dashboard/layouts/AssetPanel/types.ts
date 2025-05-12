@@ -11,6 +11,7 @@ export const ASSET_PANEL_TABS = [
   'executions',
   'executionsCalendar',
   'docs',
+  'componentHelp',
 ] as const
 
 /** Determines the content of the {@link import('./AssetPanel').AssetPanel}. */

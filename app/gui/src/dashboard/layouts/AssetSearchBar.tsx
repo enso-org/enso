@@ -23,7 +23,6 @@ import type Backend from '#/services/Backend'
 import type { Label as BackendLabel } from '#/services/Backend'
 import * as array from '#/utilities/array'
 import AssetQuery from '#/utilities/AssetQuery'
-import * as eventModule from '#/utilities/event'
 import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { createStore, useStore } from '#/utilities/zustand'
@@ -261,32 +260,12 @@ function AssetSearchBar(props: AssetSearchBarProps) {
         }
       }
     }
-    const onKeyDown = (event: KeyboardEvent) => {
-      // Allow `alt` key to be pressed in case it is being used to enter special characters.
-      if (
-        !eventModule.isElementTextInput(event.target) &&
-        (!(event.target instanceof Node) || rootRef.current?.contains(event.target) !== true) &&
-        eventModule.isTextInputEvent(event) &&
-        event.key !== ' ' &&
-        (!detect.isOnMacOS() || event.key !== 'Delete') &&
-        modalRef.current == null
-      ) {
-        searchRef.current?.focus()
-      }
-      if (
-        event.target instanceof Node &&
-        rootRef.current?.contains(event.target) === true &&
-        eventModule.isPotentiallyShortcut(event)
-      ) {
-        searchRef.current?.focus()
-      }
-    }
     const root = rootRef.current
     root?.addEventListener('keydown', onSearchKeyDown)
-    document.addEventListener('keydown', onKeyDown)
+    // document.addEventListener('keydown', onKeyDown)
     return () => {
       root?.removeEventListener('keydown', onSearchKeyDown)
-      document.removeEventListener('keydown', onKeyDown)
+      // document.removeEventListener('keydown', onKeyDown)
     }
   }, [setQuery, modalRef, setAreSuggestionsVisible, suggestionsRef])
 

@@ -351,6 +351,9 @@ export default {
         softer: `0 0.5px 2.2px 0px rgb(0 0 0 / 0.84%), 0 1.2px 5.65px 0px rgb(0 0 0 / 1.21%), \
 0 2.25px 10.64px 0 rgb(0 0 0 / 1.5%), 0 4px 19px 0 rgb(0 0 0 / 1.79%), 0 7.5px 35.5px 0 rgb(0 0 0 / 2.16%), \
 0 18px 85px 0 rgb(0 0 0 / 3%)`,
+        'softer-inset': `inset 0 0.5px 2.2px 0px rgb(0 0 0 / 0.84%), inset 0 1.2px 5.65px 0px rgb(0 0 0 / 1.21%), \
+inset 0 2.25px 10.64px 0 rgb(0 0 0 / 1.5%), inset 0 4px 19px 0 rgb(0 0 0 / 1.79%), inset 0 7.5px 35.5px 0 rgb(0 0 0 / 2.16%), \
+inset 0 18px 85px 0 rgb(0 0 0 / 3%)`,
         'inset-t-lg': `inset 0 1px 1.4px -1.4px #00000002, \
 inset 0 2.4px 3.4px -3.4px #00000003, inset 0 4.5px 6.4px -6.4px #00000004, \
 inset 0 8px 11.4px -11.4px #00000005, inset 0 15px 21.3px -21.3px #00000006, \
@@ -449,6 +452,9 @@ inset 0 -36px 51px -51px #00000014`,
           },
           '.clip-path-bottom-shadow': {
             clipPath: `polygon(0 0, 100% 0, 100% calc(100% + 100vh), 0 calc(100% + 100vh))`,
+          },
+          '.clip-path-top-shadow': {
+            clipPath: `polygon(0 0, 100% 0, 100% calc(100% - 100vh), 0 calc(100% - 100vh))`,
           },
           '.clip-path-left-shadow': {
             clipPath: `polygon(-100vw 0, 100% 0, 100% 100%, -100vw 100%)`,

@@ -66,7 +66,11 @@ onDeactivated(() => (visible.value = false))
 
 <template>
   <div class="ProjectView">
-    <GraphEditor />
+    <GraphEditor>
+      <template #rightDock>
+        <slot />
+      </template>
+    </GraphEditor>
   </div>
 </template>
 

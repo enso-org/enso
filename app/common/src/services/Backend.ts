@@ -69,6 +69,10 @@ export const ErrorAssetId = newtype.newtypeConstructor<ErrorAssetId>()
 /** Unique identifier for a user's project. */
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
 export const ProjectId = newtype.newtypeConstructor<ProjectId>()
+/** Whether a given {@link unknown} is a {@link ProjectId}. */
+export function isProjectId(id: unknown): id is ProjectId {
+  return typeof id === 'string' && id.startsWith('project-')
+}
 
 /** Unique identifier for an uploaded file. */
 export type FileId = newtype.Newtype<string, 'FileId'>

@@ -16,8 +16,8 @@ import {
   type TabsProps,
 } from '#/components/aria'
 import { useVisualTooltip } from '#/components/AriaComponents'
+import { Icon } from '#/components/Icon'
 import { Suspense } from '#/components/Suspense'
-import SvgMask from '#/components/SvgMask'
 
 /** Display a set of tabs. */
 export function AssetPanelTabs(props: TabsProps) {
@@ -87,14 +87,7 @@ export const AssetPanelTab = memo(function AssetPanelTab(props: AssetPanelTabPro
               className="h-full w-full rounded-2xl"
               underlayElement={UNDERLAY_ELEMENT}
             >
-              <motion.div
-                className="h-full w-full"
-                // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                initial={{ x: 100 }}
-                animate={{ x: 0 }}
-                // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                exit={{ x: 100 }}
-              >
+              <div className="h-full w-full">
                 <motion.div
                   variants={{ active: { opacity: 1 }, inactive: { opacity: 0 } }}
                   initial="inactive"
@@ -107,9 +100,9 @@ export const AssetPanelTab = memo(function AssetPanelTab(props: AssetPanelTabPro
                   className="flex h-full w-full items-center justify-center"
                   {...targetProps}
                 >
-                  <SvgMask src={icon} />
+                  <Icon icon={icon} />
                 </div>
-              </motion.div>
+              </div>
             </AnimatedBackground.Item>
 
             {tooltip}
@@ -135,7 +128,7 @@ export const AssetPanelTabPanel = memo(function AssetPanelTabPanel(props: AssetP
       const isSelected = renderProps.state.selectionManager.isSelected(id)
 
       return (
-        <AnimatePresence initial={!isSelected} mode="popLayout">
+        <AnimatePresence initial={isSelected} mode="popLayout">
           {isSelected && (
             <motion.div
               // eslint-disable-next-line @typescript-eslint/no-magic-numbers

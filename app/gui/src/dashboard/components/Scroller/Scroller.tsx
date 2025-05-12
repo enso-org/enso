@@ -23,6 +23,16 @@ import type { TestIdProps } from '../AriaComponents'
 export const SCROLLER_STYLES = tv({
   base: 'relative w-auto min-w-0',
   variants: {
+    variant: {
+      primary: {
+        shadowStart: 'from-primary/10',
+        shadowEnd: 'from-primary/10',
+      },
+      invert: {
+        shadowStart: 'from-dashboard',
+        shadowEnd: 'from-dashboard',
+      },
+    },
     scrollbar: {
       false: {
         content: 'no-scrollbar',
@@ -74,8 +84,8 @@ export const SCROLLER_STYLES = tv({
 
   slots: {
     content: '',
-    shadowStart: 'pointer-events-none absolute from-dashboard transition-opacity',
-    shadowEnd: 'pointer-events-none absolute from-dashboard transition-opacity',
+    shadowStart: 'pointer-events-none absolute transition-opacity',
+    shadowEnd: 'pointer-events-none absolute transition-opacity',
   },
 
   compoundVariants: [
@@ -123,6 +133,7 @@ export const SCROLLER_STYLES = tv({
     scrollbar: false,
     snap: false,
     orientation: 'horizontal',
+    variant: 'primary',
     showShadows: true,
     startHidden: true,
     endHidden: true,
@@ -152,6 +163,7 @@ export function Scroller(props: ScrollerProps) {
     variants = SCROLLER_STYLES,
     orientation = 'horizontal',
     showShadows = true,
+    variant = 'primary',
     testId = 'scroller',
     ...rest
   } = props
@@ -233,6 +245,7 @@ export function Scroller(props: ScrollerProps) {
     startHidden,
     endHidden,
     showShadows,
+    variant,
   })
 
   return (

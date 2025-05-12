@@ -23,7 +23,6 @@ import SvgMask from '#/components/SvgMask'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
 
 const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
@@ -99,6 +98,7 @@ export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MEN
   readonly title?: string | undefined
   readonly doAction: () => void
   readonly color?: TextProps['color'] | undefined
+  readonly bindingFocusScope?: React.RefObject<HTMLElement> | undefined
 }
 
 /** An item in a menu. */
@@ -113,8 +113,11 @@ export default function MenuEntry(props: MenuEntryProps) {
     icon,
     tooltip: tooltipValue,
     color,
+    bindingFocusScope,
     ...variantProps
   } = props
+
+  const defaultBindingFocusScope = React.useRef(document.body)
   const { getText } = textProvider.useText()
   const { unsetModal } = modalProvider.useSetModal()
   const dialogContext = useDialogContext()
@@ -142,13 +145,17 @@ export default function MenuEntry(props: MenuEntryProps) {
 
   React.useEffect(
     () =>
-      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-        [action]: () => {
-          if (isDisabledRef.current) return
-          doActionCallback()
+      inputBindings.attach(
+        bindingFocusScope?.current ?? defaultBindingFocusScope.current,
+        'keydown',
+        {
+          [action]: () => {
+            if (isDisabledRef.current) return
+            doActionCallback()
+          },
         },
-      }),
-    [inputBindings, action, doActionCallback, isDisabledRef],
+      ),
+    [inputBindings, action, doActionCallback, isDisabledRef, bindingFocusScope],
   )
 
   const { tooltip, targetProps } = useVisualTooltip({

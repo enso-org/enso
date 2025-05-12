@@ -177,7 +177,7 @@ export function DriveBarNavigation() {
             </Menu.Trigger>
           </ButtonGroup>
 
-          <Scroller orientation="horizontal">
+          <Scroller orientation="horizontal" variant="primary">
             <Breadcrumbs onDrop={onDrop}>
               {finalPath.map((pathItem, index) => (
                 <DriveBarBreadcrumbsItem

@@ -6,8 +6,6 @@ import * as React from 'react'
 
 import * as detect from 'enso-common/src/detect'
 
-import { DashboardTabBar } from './DashboardTabBar'
-
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { CategoriesProvider } from '#/layouts/Drive/Categories/categoriesHooks'
@@ -25,7 +23,6 @@ import ProjectsProvider, {
 
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
-import UserBar from '#/layouts/UserBar'
 
 import Page from '#/components/Page'
 
@@ -33,12 +30,16 @@ import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
-import { Tabs } from '#/components/aria'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { usePrefetchQuery } from '@tanstack/react-query'
+import { Tabs } from '../../components/aria'
+import { ErrorBoundary } from '../../components/ErrorBoundary'
+import { Suspense } from '../../components/Suspense'
+import UserBar from '../../layouts/UserBar'
+import { DashboardTabBar } from './DashboardTabBar'
 import { DashboardTabPanels } from './DashboardTabPanels'
 
 /** Props for {@link Dashboard}s that are common to all platforms. */
@@ -48,6 +49,8 @@ export interface DashboardProps {
   readonly initialProjectName: string | null
   readonly ydocUrl: string | null
 }
+
+const LazyDrive = React.lazy(() => import('#/layouts/Drive'))
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
@@ -205,23 +208,35 @@ function DashboardInner(props: DashboardProps) {
           modalProvider.unsetModal()
         }}
       >
-        <Tabs
-          className="relative flex min-h-full grow select-none flex-col container-size"
-          selectedKey={selectedTab}
-          onSelectionChange={onSelectionChange}
-        >
-          <div className="flex">
-            <DashboardTabBar onCloseProject={closeProject} onOpenEditor={openEditor} />
+        <div className="grid h-full grid-cols-[600px_minmax(0,1fr)_auto]">
+          <Suspense>
+            <ErrorBoundary>
+              <LazyDrive initialProjectName={initialProjectName} />
 
-            <UserBar
-              setIsHelpChatOpen={setIsHelpChatOpen}
-              goToSettingsPage={goToSettings}
-              onSignOut={onSignOut}
-            />
-          </div>
+              <div className="relative flex min-h-full grow select-none container-size">
+                <Tabs
+                  className="relative flex min-h-full grow select-none flex-col container-size"
+                  selectedKey={selectedTab}
+                  onSelectionChange={onSelectionChange}
+                >
+                  <div className="flex h-12 items-center bg-primary/10 pl-2.5">
+                    <DashboardTabBar onCloseProject={closeProject} onOpenEditor={openEditor} />
 
-          <DashboardTabPanels initialProjectName={initialProjectName} ydocUrl={ydocUrl} />
-        </Tabs>
+                    <div className="ml-auto">
+                      <UserBar
+                        setIsHelpChatOpen={setIsHelpChatOpen}
+                        goToSettingsPage={goToSettings}
+                        onSignOut={onSignOut}
+                      />
+                    </div>
+                  </div>
+
+                  <DashboardTabPanels initialProjectName={initialProjectName} ydocUrl={ydocUrl} />
+                </Tabs>
+              </div>
+            </ErrorBoundary>
+          </Suspense>
+        </div>
         {$config.CHAT_URL != null ?
           <Chat
             isOpen={isHelpChatOpen}

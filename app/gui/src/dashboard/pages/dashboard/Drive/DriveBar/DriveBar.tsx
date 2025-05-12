@@ -26,7 +26,7 @@ export function DriveBar(props: DriveBarProps) {
   const { backend, query, setQuery, category } = props
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="-ml-48 flex flex-col gap-7">
       <DriveBarNavigation />
 
       <DriveBarToolbar backend={backend} query={query} setQuery={setQuery} category={category} />

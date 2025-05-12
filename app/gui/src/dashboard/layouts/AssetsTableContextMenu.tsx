@@ -56,6 +56,7 @@ export interface AssetsTableContextMenuProps {
     newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId,
   ) => void
+  readonly rootRef?: React.RefObject<HTMLElement>
 }
 
 /**
@@ -74,6 +75,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     doCopy,
     doCut,
     doPaste,
+    rootRef,
   } = props
 
   const { setModal, unsetModal } = useSetModal()
@@ -166,6 +168,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       color="accent"
       label={getText('copyAllIdsShortcut')}
       doAction={() => copyMutation.mutateAsync(selectedAssets.map((asset) => asset.id).join('\n'))}
+      bindingFocusScope={rootRef}
     />
   )
 
@@ -205,11 +208,13 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                 parentId: null,
               })
             }}
+            bindingFocusScope={rootRef}
           />
           <ContextMenuEntry
             hidden={hidden}
             action="delete"
             label={getText('deleteAllForeverShortcut')}
+            bindingFocusScope={rootRef}
             doAction={() => {
               const asset = selectedAssets[0]
               const soleAssetName = asset?.title ?? '(unknown)'
@@ -262,6 +267,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             action="delete"
             label={isCloud ? getText('moveAllToTrashShortcut') : getText('deleteAllShortcut')}
             doAction={doDeleteAll}
+            bindingFocusScope={rootRef}
           />
         )}
         {selectedAssets.length !== 0 && canUploadAllProjectsToCloud && (
@@ -272,6 +278,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             feature="uploadToCloud"
             label={getText('uploadAllToCloudShortcut')}
             doAction={uploadFilesToCloudCallback}
+            bindingFocusScope={rootRef}
           />
         )}
         {selectedAssets.length !== 0 && isCloud && (
@@ -280,6 +287,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             action="copy"
             label={getText('copyAllShortcut')}
             doAction={doCopy}
+            bindingFocusScope={rootRef}
           />
         )}
         {selectedAssets.length !== 0 && (
@@ -288,6 +296,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             action="cut"
             label={getText('cutAllShortcut')}
             doAction={doCut}
+            bindingFocusScope={rootRef}
           />
         )}
         {pasteAllMenuEntry}
@@ -304,6 +313,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         directoryId={null}
         doPaste={doPaste}
         event={event}
+        bindingFocusScope={rootRef}
       />
     </ContextMenu>
   )

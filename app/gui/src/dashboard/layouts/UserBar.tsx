@@ -9,7 +9,6 @@ import SvgMask from '#/components/SvgMask'
 import TOPBAR_LINKS from '#/configurations/topbarLinks.json' with { type: 'json' }
 import { usePaywall } from '#/hooks/billing'
 import { useOffline } from '#/hooks/offlineHooks'
-import UserMenu from '#/layouts/UserMenu'
 import InviteUsersModal from '#/modals/InviteUsersModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
@@ -18,7 +17,8 @@ import { isAbsoluteUrl } from '#/utilities/url'
 import type { TextId } from 'enso-common/src/text'
 import { AnimatePresence, motion } from 'framer-motion'
 import { z } from 'zod'
-import { ProfilePicture } from '../components/ProfilePicture/ProfilePicture'
+import { ProfilePicture } from '../components/ProfilePicture'
+import UserMenu from './UserMenu'
 
 /** Whether the chat button should be visible. Temporarily disabled. */
 const SHOULD_SHOW_CHAT_BUTTON: boolean = false
@@ -90,7 +90,7 @@ export default function UserBar(props: UserBarProps) {
   const topbarLinks = TOPBAR_LINKS_SCHEMA.parse(TOPBAR_LINKS)
 
   return (
-    <div className="bg-primary/10 pt-0.5">
+    <div className="pt-0.5">
       <div className="flex h-full shrink-0 cursor-default items-center gap-user-bar pl-icons-x pr-2">
         <AnimatePresence initial={false}>
           {isOffline && (

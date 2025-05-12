@@ -11,11 +11,18 @@ import * as backendProvider from '#/providers/BackendProvider'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/Backend'
-import * as twMerge from '#/utilities/tailwindMerge'
 import { vueComponent } from '#/utilities/vue'
 import * as reactQuery from '@tanstack/react-query'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
+import { AssetPanel } from './AssetPanel'
+import { useCategoriesAPI } from './Drive/Categories'
+
+import { useRenameProjectMutation } from '#/hooks/projectHooks'
+import { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import { useLaunchedProjects } from '#/providers/ProjectsProvider'
+import { BackendType, type ProjectId } from '#/services/Backend'
+import { createHideableComponent } from '@react-aria/collections'
 
 const ProjectViewTab = React.lazy(() =>
   import('@/ProjectViewTab.vue').then(({ default: vue }) => vueComponent(vue)),
@@ -24,18 +31,93 @@ const ProjectViewTab = React.lazy(() =>
 /** Props for the GUI editor root component. */
 export type ProjectViewTabProps = React.ComponentProps<typeof ProjectViewTab>
 
+/**
+ * The editor section of the dashboard.
+ */
+export interface EditorSectionProps {
+  readonly ydocUrl: string | null
+}
+
+/**
+ * The editor section of the dashboard.
+ */
+export const EditorSection = createHideableComponent(function EditorSection(
+  props: EditorSectionProps,
+) {
+  const { ydocUrl } = props
+
+  const launchedProjects = useLaunchedProjects()
+  const renameProjectMutation = useRenameProjectMutation()
+  const remoteBackend = useRemoteBackend()
+  const localBackend = useLocalBackend()
+  const { getText } = textProvider.useText()
+
+  const onRenameProject = useEventCallback(async (newName: string, projectId: ProjectId) => {
+    const project = launchedProjects.find((proj) => proj.id === projectId)
+
+    if (project == null) {
+      return
+    }
+
+    const isHybrid = project.hybrid != null
+    const backendType = isHybrid ? BackendType.remote : project.type
+    const backend = backendType === BackendType.remote ? remoteBackend : localBackend
+    const id = isHybrid ? project.hybrid.cloudProjectId : project.id
+    invariant(backend != null, 'Backend is null')
+
+    await renameProjectMutation({
+      newName,
+      backend,
+      project: { ...project, id },
+    })
+  })
+
+  const { associatedBackend, category } = useCategoriesAPI()
+
+  const project = launchedProjects[0]
+
+  return (
+    <>
+      <div className="relative flex h-full w-full flex-col overflow-clip bg-dashboard contain-strict">
+        <div className="pointer-events-none absolute inset-0 -top-24 shadow-softer-inset" />
+
+        {project == null && (
+          <div className="flex h-full w-full">
+            <Result
+              status="info"
+              title={getText('noProjectOpened')}
+              subtitle={getText('noProjectOpenedDescription')}
+            />
+          </div>
+        )}
+
+        {project != null && (
+          <Editor
+            ydocUrl={ydocUrl}
+            project={project}
+            projectId={project.id}
+            renameProject={onRenameProject}
+          />
+        )}
+      </div>
+
+      {project == null && <AssetPanel backendType={associatedBackend.type} category={category} />}
+    </>
+  )
+})
+
 /** Props for an {@link Editor}. */
 export interface EditorProps {
   readonly project: LaunchedProject
-  readonly hidden: boolean
+  readonly hidden?: boolean
   readonly ydocUrl: string | null
   readonly renameProject: (newName: string, projectId: backendModule.ProjectId) => void
   readonly projectId: backendModule.ProjectId
 }
 
 /** The container that launches the IDE. */
-export default function Editor(props: EditorProps) {
-  const { project, hidden } = props
+export function Editor(props: EditorProps) {
+  const { project } = props
   const { preventAutoReopen = false } = project
   const { getText } = textProvider.useText()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
@@ -139,11 +221,7 @@ export default function Editor(props: EditorProps) {
   }
 
   return (
-    <div
-      className={twMerge.twJoin('contents', hidden && 'hidden')}
-      data-testvalue={project.id}
-      data-testid="editor"
-    >
+    <>
       {(() => {
         // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
         switch (true) {
@@ -174,7 +252,7 @@ export default function Editor(props: EditorProps) {
             return null
         }
       })()}
-    </div>
+    </>
   )
 }
 
@@ -192,14 +270,15 @@ function EditorInternal(props: EditorInternalProps) {
   const { getText } = textProvider.useText()
   const gtagEvent = gtagHooks.useGtagEvent()
 
+  const { associatedBackend, category } = useCategoriesAPI()
+
   const localBackend = backendProvider.useLocalBackend()
   const remoteBackend = backendProvider.useRemoteBackend()
 
-  React.useEffect(() => {
-    if (!hidden) {
-      return gtagHooks.gtagOpenCloseCallback(gtagEvent, 'open_workflow', 'close_workflow')
-    }
-  }, [hidden, gtagEvent])
+  React.useEffect(
+    () => gtagHooks.gtagOpenCloseCallback(gtagEvent, 'open_workflow', 'close_workflow'),
+    [gtagEvent],
+  )
 
   const onRenameProject = useEventCallback((newName: string) => {
     renameProject(newName, openedProject.projectId)
@@ -231,5 +310,9 @@ function EditorInternal(props: EditorInternalProps) {
 
   // Currently the GUI component needs to be fully rerendered whenever the project is changed. Once
   // this is no longer necessary, the `key` could be removed.
-  return <ProjectViewTab key={key} {...appProps} />
+  return (
+    <ProjectViewTab key={key} {...appProps}>
+      <AssetPanel backendType={associatedBackend.type} category={category} />
+    </ProjectViewTab>
+  )
 }

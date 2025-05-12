@@ -1,12 +1,16 @@
 <script setup lang="ts">
+import { DIALOG_BACKGROUND } from '#/components/AriaComponents'
 import VNodes from '@/components/VNodes.vue'
 
 const slots = defineSlots<{ default(): any }>()
+const controlStyles = DIALOG_BACKGROUND({
+  className: 'control',
+})
 </script>
 
 <template>
   <div class="ControlGroup">
-    <div v-for="(item, i) in slots.default()" :key="i" class="control">
+    <div v-for="(item, i) in slots.default()" :key="i" :class="controlStyles">
       <VNodes :vnodes="item" />
     </div>
   </div>

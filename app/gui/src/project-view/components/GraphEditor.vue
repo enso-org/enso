@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ASSET_ROWS } from '#/utilities/drag'
 import {
   codeEditorBindings,
   documentationEditorBindings,
@@ -63,6 +64,7 @@ import { Vec2 } from '@/util/data/vec2'
 import { isDef, VueInstance } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { set } from 'lib0'
+import invariant from 'tiny-invariant'
 import {
   computed,
   onMounted,
@@ -596,15 +598,46 @@ async function handleFileDrop(event: DragEvent) {
   // A vertical gap between created nodes when multiple files were dropped together.
   const MULTIPLE_FILES_GAP = 50
 
+  const payload = ASSET_ROWS.lookup(event)
+  const items = payload?.items ?? []
+
+  if (items.length > 0) {
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      invariant(item, 'Item has no asset')
+
+      const clientPos = new Vec2(event.clientX, event.clientY)
+      const offset = new Vec2(0, i * -MULTIPLE_FILES_GAP)
+      const pos = graphNavigator.clientToScenePos(clientPos).add(offset)
+
+      if (item.asset.ensoPath == null) {
+        console.warn('Dropped item has no asset path', item)
+        continue
+      }
+
+      scheduleCreateNode({
+        placement: { type: 'mouseEvent', position: pos },
+        expression: uploadedExpression({
+          source: item.asset.type === 'project' ? 'Project' : 'FileSystemRoot',
+          name: item.asset.ensoPath,
+        }),
+      })
+
+      return
+    }
+  }
+
   if (!event.dataTransfer?.items) return
   ;[...event.dataTransfer.items].forEach(async (item, index) => {
     if (item.kind === 'file') {
       if (!graphStore.currentMethod.ast.ok) return
       const file = item.getAsFile()
       if (!file) return
+
       const clientPos = new Vec2(event.clientX, event.clientY)
       const offset = new Vec2(0, index * -MULTIPLE_FILES_GAP)
       const pos = graphNavigator.clientToScenePos(clientPos).add(offset)
+
       const uploader = Uploader.Create(
         projectStore,
         file,
@@ -613,6 +646,7 @@ async function handleFileDrop(event: DragEvent) {
         event.shiftKey,
         graphStore.currentMethod.ast.value.externalId,
       )
+
       const uploadResult = await uploader.upload()
       if (uploadResult.ok) {
         scheduleCreateNode({
@@ -715,7 +749,9 @@ const contextMenuActions: ActionName[] = [
         <CodeEditor ref="codeEditor" />
       </BottomPanel>
     </div>
-    <RightDockPanel ref="docPanel" v-model:displayedDocs="displayedDocs" :aiMode="aiMode" />
+
+    <slot name="rightDock" />
+    <!-- <RightDockPanel ref="docPanel" v-model:displayedDocs="displayedDocs" :aiMode="aiMode" /> -->
   </div>
 </template>
 

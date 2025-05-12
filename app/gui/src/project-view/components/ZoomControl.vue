@@ -1,16 +1,24 @@
 <script setup lang="ts">
+import { DIALOG_BACKGROUND, TEXT_STYLE } from '#/components/AriaComponents'
 import ActionButton from './ActionButton.vue'
 import SvgIcon from './SvgIcon.vue'
 
 const props = defineProps<{ zoomLevel?: number }>()
+
+const controlStyles = DIALOG_BACKGROUND({
+  className: 'ZoomControl flex gap-1',
+})
+
+const textStyles = TEXT_STYLE()
 </script>
 
 <template>
-  <div class="ZoomControl flex gap-1">
-    <SvgIcon class="mr-1" name="zoom" /> Zoom
+  <div :class="controlStyles">
+    <SvgIcon class="mr-1" name="zoom" />
+    <span :class="textStyles">Zoom</span>
     <ActionButton action="graph.zoomOut" />
     <span
-      class="zoomScaleLabel"
+      :class="textStyles"
       v-text="props.zoomLevel ? props.zoomLevel.toFixed(0) + '%' : '?'"
     ></span>
     <ActionButton action="graph.zoomIn" />
@@ -24,8 +32,6 @@ const props = defineProps<{ zoomLevel?: number }>()
   padding: 0 8px;
   align-items: center;
   border-radius: var(--radius-full);
-  background: var(--color-frame-bg);
-  backdrop-filter: var(--blur-app-bg);
 }
 
 .label {
@@ -35,11 +41,6 @@ const props = defineProps<{ zoomLevel?: number }>()
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.zoomScaleLabel {
-  width: 4em;
-  text-align: center;
 }
 
 .divider {

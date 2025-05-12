@@ -36,12 +36,12 @@ export interface TabBarProps<T extends object> extends TabListProps<T> {
 export default function TabBar<T extends object>(props: TabBarProps<T>) {
   const { className, ...rest } = props
 
-  const classes = tailwindMerge.twJoin('flex grow', className)
+  const classes = tailwindMerge.twJoin('flex', className)
 
   return (
     <AnimatedBackground>
       <div className={classes}>
-        <TabList<T> className="flex h-12 shrink-0 grow px-2" {...rest} />
+        <TabList<T> className="flex h-12 px-2" {...rest} />
       </div>
     </AnimatedBackground>
   )

@@ -31,6 +31,7 @@ export interface GlobalContextMenuProps {
   readonly directoryId: DirectoryId | null
   readonly doPaste: (newParentKey: DirectoryId, newParentId: DirectoryId) => void
   readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
+  readonly bindingFocusScope?: React.RefObject<HTMLElement> | undefined
 }
 
 /** A context menu available everywhere in the directory. */
@@ -48,6 +49,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
     currentDirectoryId,
     event,
     doPaste,
+    bindingFocusScope,
   } = props
 
   const { getText } = useText()
@@ -87,6 +89,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
           const files = await readUserSelectedFile()
           await uploadFiles(Array.from(files))
         }}
+        bindingFocusScope={bindingFocusScope}
       />
       <ContextMenuEntry
         hidden={hidden}
@@ -95,6 +98,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
           unsetModal()
           void newProject(null, null)
         }}
+        bindingFocusScope={bindingFocusScope}
       />
       <ContextMenuEntry
         hidden={hidden}
@@ -103,11 +107,13 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
           unsetModal()
           void newFolder()
         }}
+        bindingFocusScope={bindingFocusScope}
       />
       {isCloud && (
         <ContextMenuEntry
           hidden={hidden}
           action="newSecret"
+          bindingFocusScope={bindingFocusScope}
           doAction={() => {
             setModal(
               <UpsertSecretModal
@@ -127,6 +133,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
         <ContextMenuEntry
           hidden={hidden}
           action="newCredential"
+          bindingFocusScope={bindingFocusScope}
           doAction={() => {
             setModal(
               <CreateCredentialModal
@@ -144,6 +151,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
         <ContextMenuEntry
           hidden={hidden}
           action="newDatalink"
+          bindingFocusScope={bindingFocusScope}
           doAction={() => {
             setModal(
               <UpsertDatalinkModal
@@ -166,6 +174,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
         <ContextMenuEntry
           hidden={hidden}
           action="paste"
+          bindingFocusScope={bindingFocusScope}
           doAction={() => {
             unsetModal()
             doPaste(currentDirectoryId, currentDirectoryId)

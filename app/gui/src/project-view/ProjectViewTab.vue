@@ -18,6 +18,8 @@ const _props = defineProps<{
 
 <template>
   <KeepAlive>
-    <ProjectView v-if="!hidden" v-bind="projectViewProps" />
+    <ProjectView v-if="!hidden" v-bind="projectViewProps">
+      <slot />
+    </ProjectView>
   </KeepAlive>
 </template>

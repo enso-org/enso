@@ -6,15 +6,10 @@ import { Activity } from '#/components/Activity'
 import { TabPanel, type TabPanelRenderProps } from '#/components/aria'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useRenameProjectMutation } from '#/hooks/projectHooks'
-import { useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
-import { useLaunchedProjects, usePage } from '#/providers/ProjectsProvider'
-import { BackendType, type ProjectId } from '#/services/Backend'
+import { useLaunchedProjects } from '#/providers/ProjectsProvider'
 import { omit } from 'enso-common/src/utilities/data/object'
 import { lazy, type ReactNode } from 'react'
 import { Collection } from 'react-aria-components'
-import invariant from 'tiny-invariant'
 
 /** The props for the {@link DashboardTabPanels} component. */
 export interface DashboardTabPanelsProps {
@@ -22,63 +17,31 @@ export interface DashboardTabPanelsProps {
   readonly ydocUrl: string | null
 }
 
-const LazyDrive = lazy(() => import('#/layouts/Drive'))
-const LazyEditor = lazy(() => import('#/layouts/Editor'))
+const LazyEditorPanel = lazy(() =>
+  import('#/layouts/Editor').then((mod) => ({ default: mod.EditorSection })),
+)
 const LazySettings = lazy(() => import('#/layouts/Settings'))
 
 /** The tab panels for the dashboard page. */
 export function DashboardTabPanels(props: DashboardTabPanelsProps) {
-  const { initialProjectName, ydocUrl } = props
-
-  const page = usePage()
+  const { ydocUrl } = props
 
   const launchedProjects = useLaunchedProjects()
-  const renameProjectMutation = useRenameProjectMutation()
-  const remoteBackend = useRemoteBackend()
-  const localBackend = useLocalBackend()
-
-  const onRenameProject = useEventCallback(async (newName: string, projectId: ProjectId) => {
-    const project = launchedProjects.find((proj) => proj.id === projectId)
-
-    if (project == null) {
-      return
-    }
-
-    const isHybrid = project.hybrid != null
-    const backendType = isHybrid ? BackendType.remote : project.type
-    const backend = backendType === BackendType.remote ? remoteBackend : localBackend
-    const id = isHybrid ? project.hybrid.cloudProjectId : project.id
-    invariant(backend != null, 'Backend is null')
-
-    await renameProjectMutation({
-      newName,
-      backend,
-      project: { ...project, id },
-    })
-  })
 
   const tabPanels = [
     {
       id: 'drive',
-      className: 'flex min-h-0 grow [&[data-inert]]:hidden',
       wrapInActivity: false,
       shouldForceMount: false,
-      children: <LazyDrive initialProjectName={initialProjectName} />,
+      className: 'flex min-h-0 grow',
+      children: <LazyEditorPanel ydocUrl={ydocUrl} />,
     },
     ...launchedProjects.map((project) => ({
       id: project.id,
-      shouldForceMount: true,
       wrapInActivity: false,
-      className: 'flex min-h-0 grow [&[data-inert]]:hidden',
-      children: (
-        <LazyEditor
-          hidden={page !== project.id}
-          ydocUrl={ydocUrl}
-          project={project}
-          projectId={project.id}
-          renameProject={onRenameProject}
-        />
-      ),
+      shouldForceMount: false,
+      className: 'flex min-h-0 grow',
+      children: <LazyEditorPanel ydocUrl={ydocUrl} />,
     })),
     {
       id: 'settings',

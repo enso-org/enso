@@ -880,6 +880,7 @@ function AssetsTable(props: AssetsTableProps) {
   const hiddenContextMenu =
     isSingleSelectedDirectoryItem ? null : (
       <AssetsTableContextMenu
+        rootRef={rootRef}
         hidden
         backend={backend}
         category={category}
@@ -1267,6 +1268,7 @@ function AssetsTable(props: AssetsTableProps) {
         isOpened={isOpenedByYou || isOpenedOnTheBackend}
         columns={columns}
         id={item.id}
+        tableRootRef={rootRef}
         type={item.type}
         parentId={item.parentId}
         state={state}

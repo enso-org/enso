@@ -46,9 +46,9 @@ export function DashboardTabBar(props: DashboardTabBarProps) {
         type: 'tab',
         id: 'drive',
         icon: 'drive',
-        'data-testid': 'drive-tab-button',
         labelId: 'drivePageName' satisfies TextId,
         isActive: page === 'drive',
+        isHidden: true,
         children: getText('drivePageName'),
       },
       ...launchedProjects.map<ProjectTabProps & { type: 'project' }>((project) => ({
@@ -76,7 +76,7 @@ export function DashboardTabBar(props: DashboardTabBarProps) {
     ]
 
   return (
-    <TabBar className="bg-primary/10" items={tabs}>
+    <TabBar items={tabs}>
       {(tabProps) => {
         switch (tabProps.type) {
           case 'tab': {
