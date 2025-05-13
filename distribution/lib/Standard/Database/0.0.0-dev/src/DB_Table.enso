@@ -729,7 +729,7 @@ type DB_Table
     filter self (column : DB_Column | Expression | Text | Integer = Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type =
         Feature.Filter.if_supported_else_throw self.connection.dialect "filter" <|
             case column of
-                _ : DB_Column ->
+                _ : Column ->
                     mask filter_column = case Helpers.check_integrity self filter_column of
                         False ->
                             Error.throw (Integrity_Error.Error "DB_Column "+filter_column.name)
@@ -1150,7 +1150,7 @@ type DB_Table
         resolved = case value of
             _ : Text -> self.make_constant_column value
             _ : Expression -> self.evaluate_expression value on_problems
-            _ : DB_Column ->
+            _ : Column ->
                 if Helpers.check_integrity self value then value else
                     Error.throw (Integrity_Error.Error "Column "+value.name)
             _ : Constant_Column -> self.make_constant_column value
@@ -1211,7 +1211,7 @@ type DB_Table
         if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
             get_column name = self.at name
             make_constant_column value = case value of
-                _ : DB_Column -> value
+                _ : Column -> value
                 _ -> self.make_constant_column value
             is_column value = value.is_a DB_Column
             new_column = Expression.evaluate expression get_column make_constant_column is_column "Standard.Database.DB_Column" "DB_Column" DB_Column_Implementation.var_args_functions

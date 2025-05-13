@@ -215,105 +215,22 @@ type DB_Column_Implementation
 
     round this_column decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) =
         Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric this_column <|
-            if this_column.should_use_builtin_round decimal_places rounding_mode then this_column.round_builtin decimal_places rounding_mode else
-                this_column.short_circuit_special_floating_point <|
+            if should_use_builtin_round this_column decimal_places rounding_mode then round_builtin this_column decimal_places rounding_mode else
+                short_circuit_special_floating_point this_column <|
                     case this_column.value_type of
-                        Value_Type.Integer _ -> this_column.round_integer decimal_places rounding_mode
-                        Value_Type.Float _ -> this_column.round_float decimal_places rounding_mode
-                        Value_Type.Decimal _ _ -> this_column.round_decimal decimal_places rounding_mode
+                        Value_Type.Integer _ -> round_integer this_column decimal_places rounding_mode
+                        Value_Type.Float _ -> round_float this_column decimal_places rounding_mode
+                        Value_Type.Decimal _ _ -> round_decimal this_column decimal_places rounding_mode
                         _ ->
                             expected = "Decimal, Float, or Integer"
                             Error.throw (Invalid_Value_Type.Column expected this_column.value_type this_column.name)
-
-    should_use_builtin_round : Integer -> Boolean -> Boolean
-    should_use_builtin_round this_column decimal_places rounding_mode =
-        # Don't use for banker's rounding (unless the dialect has a builtin for it)
-        bankers_ok = (this_column:DB_Column).connection.dialect.flagged ..Use_Builtin_Bankers || rounding_mode != Rounding_Mode.Bankers
-        # Don't use for negative decimal places, if the backend doesn't support it
-        negative_dp_ok = decimal_places >= 0 || (this_column:DB_Column).connection.dialect.flagged ..Supports_Negative_Decimal_Places
-        # Don't use for floating-point inputs if decimal_places != 0, for Postgres
-        dp_param_ok = decimal_places == 0 || this_column.value_type.is_floating_point.not || (this_column:DB_Column).connection.dialect.flagged ..Supports_Float_Decimal_Places
-        bankers_ok && negative_dp_ok && dp_param_ok
-
-    round_builtin : Integer -> Boolean -> Column
-    round_builtin this_column decimal_places rounding_mode =
-        new_name = (naming_helper this_column).function_name "round" [this_column]
-        case rounding_mode of
-            Rounding_Mode.Bankers ->
-                    make_binary_op this_column "ROUND_BANKERS" (SQL_IR_Expression.Literal decimal_places.to_text) new_name
-            Rounding_Mode.Half_Up ->
-                case decimal_places == 0 of
-                    True ->
-                        make_unary_op this_column "ROUND" new_name
-                    False ->
-                        make_binary_op this_column "ROUND" (SQL_IR_Expression.Literal decimal_places.to_text) new_name
-
-    round_float : Integer -> Boolean -> Column
-    round_float this_column decimal_places rounding_mode =
-        new_name = (naming_helper this_column).function_name "round" [this_column]
-        scale = 10 ^ decimal_places
-        scaled = this_column * scale
-
-        scaled.let "scaled" scaled->
-            round_base = scaled.floor
-            round_base.let "round_base" round_base->
-                round_midpoint = (round_base + 0.5) / scale
-                round_midpoint.let "round_midpoint" round_midpoint->
-                    ((scaled.truncate % 2) == 0).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
-                        even_is_up = (this_column >= 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
-                        half_goes_up = if rounding_mode == Rounding_Mode.Bankers then even_is_up else this_column >= 0
-                        do_round_up = half_goes_up.let "half_goes_up" x-> x.iif (this_column >= round_midpoint) (this_column > round_midpoint)
-                        result = do_round_up.let "do_round_up" x-> x.iif ((round_base + 1.0) / scale) (round_base / scale)
-                        result.rename new_name
-
-    round_decimal : Integer -> Boolean -> Column
-    round_decimal this_column decimal_places rounding_mode =
-        # Construct a constant Decimal column.
-        k x = this_column.const x . cast Value_Type.Decimal
-        new_name = (naming_helper this_column).function_name "round" [this_column]
-        scale = 10 ^ decimal_places
-        scaled = this_column * scale
-        scaled.let "scaled" scaled->
-            round_base = scaled.floor
-            round_base.let "round_base" round_base->
-                round_midpoint = (round_base + k 0.5).decimal_div scale
-                round_midpoint.let "round_midpoint" round_midpoint->
-                    ((scaled.truncate.decimal_mod (k 2)) != k 0).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
-                        even_is_up = (this_column >= k 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
-                        half_goes_up = if rounding_mode == Rounding_Mode.Bankers then even_is_up else this_column >= k 0
-                        do_round_up = half_goes_up.let "half_goes_up" x-> x.iif (this_column >= round_midpoint) (this_column > round_midpoint)
-                        result = do_round_up.let "do_round_up" x-> x.iif ((round_base + k 1).decimal_div scale) (round_base.decimal_div scale)
-                        result.rename new_name
-
-    round_integer : Integer -> Boolean -> Column
-    round_integer this_column decimal_places rounding_mode =
-        new_name = (naming_helper this_column).function_name "round" [this_column]
-        scale = 10 ^ -decimal_places
-        halfway = scale / 2
-        remainder = this_column % scale
-        remainder.let "remainer" remainder->
-            scaled_down = (this_column / scale).truncate . cast Value_Type.Integer
-            scaled_down.let "scaled_down" scaled_down->
-                result_unnudged = scaled_down * scale
-                result_unnudged.let "result_unnudged" result_unnudged->
-                    if_non_neg =
-                        half_goes_up = if rounding_mode == Rounding_Mode.Bankers then (scaled_down % 2) != 0 else this_column >= 0
-                        round_up = half_goes_up.let "half_goes_up" x-> x.iif (remainder >= halfway) (remainder > halfway)
-                        round_up.let "round_up" x-> x.iif (result_unnudged + scale) result_unnudged
-                    if_neg =
-                        half_goes_up = if rounding_mode == Rounding_Mode.Bankers then (scaled_down % 2) == 0 else this_column >= 0
-                        round_up = half_goes_up.let "half_goes_up" x-> x.iif (remainder < -halfway) (remainder <= -halfway)
-                        round_up.let "round_up" x-> x.iif (result_unnudged - scale) result_unnudged
-
-                    result = (this_column >= 0).let "self_gt_0" x-> x.iif if_non_neg if_neg
-                    result.cast Value_Type.Float . rename new_name
 
     truncate this_column =
         new_name = (naming_helper this_column).function_name "truncate" [this_column]
         precise_value_type = this_column.inferred_precise_value_type
         case precise_value_type.is_numeric of
             True ->
-                this_column.short_circuit_special_floating_point <|
+                short_circuit_special_floating_point this_column <|
                     make_unary_op this_column "TRUNCATE" new_name
             False -> case precise_value_type == Value_Type.Date_Time of
                 True ->
@@ -326,12 +243,12 @@ type DB_Column_Implementation
                 False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" this_column.value_type this_column.name
 
     ceil this_column =
-        Value_Type.expect_numeric this_column <| this_column.short_circuit_special_floating_point <|
+        Value_Type.expect_numeric this_column <| short_circuit_special_floating_point this_column <|
             new_name = (naming_helper this_column).function_name "ceil" [this_column]
             make_unary_op this_column "CEIL" new_name
 
     floor this_column =
-        Value_Type.expect_numeric this_column <| this_column.short_circuit_special_floating_point <|
+        Value_Type.expect_numeric this_column <| short_circuit_special_floating_point this_column <|
             new_name = (naming_helper this_column).function_name "floor" [this_column]
             make_unary_op this_column "FLOOR" new_name
 
@@ -368,7 +285,7 @@ type DB_Column_Implementation
             new_name = (naming_helper this_column).function_name "max" [this_column]+args
             make_op this_column "ROW_MAX" args new_name
 
-    is_nothing this_column =
+    is_nothing_implementation this_column =
         new_name = (naming_helper this_column).concat [(naming_helper this_column).to_expression_text this_column, "is Nothing"]
         make_unary_op this_column "IS_NULL" new_name
 
@@ -611,16 +528,10 @@ type DB_Column_Implementation
 
     as_internal this_column = Internal_Column.Value this_column.name (this_column:DB_Column).sql_type_reference (this_column:DB_Column).expression
 
-    to_text : Text
-    to_text this_column = "(Database Column "+this_column.name.to_text+")"
+    to_text_implementation this_column = "(Database Column "+this_column.name.to_text+")"
 
     var_args_functions : Array
     var_args_functions = ['is_in', 'coalesce', 'min', 'max']
-
-    short_circuit_special_floating_point : Column -> Column
-    short_circuit_special_floating_point this_column exp =
-        if this_column.value_type.is_floating_point.not then exp else
-            (this_column.is_finite.not.iif this_column exp).rename exp.name
 
 naming_helper this_column = (this_column:DB_Column).connection.base_connection.column_naming_helper
 
@@ -713,3 +624,91 @@ internal_do_cast this_column value_type on_problems:Problem_Behavior =
             SQL_Type_Reference.new (this_column:DB_Column).connection (this_column:DB_Column).context new_expression
         new_column = dialect.make_cast (Internal_Column.from this_column) target_sql_type infer_from_database
         DB_Column.new new_column.name (this_column:DB_Column).connection new_column.sql_type_reference new_column.expression (this_column:DB_Column).context
+
+should_use_builtin_round : Integer -> Boolean -> Boolean
+should_use_builtin_round this_column decimal_places rounding_mode =
+    # Don't use for banker's rounding (unless the dialect has a builtin for it)
+    bankers_ok = (this_column:DB_Column).connection.dialect.flagged ..Use_Builtin_Bankers || rounding_mode != Rounding_Mode.Bankers
+    # Don't use for negative decimal places, if the backend doesn't support it
+    negative_dp_ok = decimal_places >= 0 || (this_column:DB_Column).connection.dialect.flagged ..Supports_Negative_Decimal_Places
+    # Don't use for floating-point inputs if decimal_places != 0, for Postgres
+    dp_param_ok = decimal_places == 0 || this_column.value_type.is_floating_point.not || (this_column:DB_Column).connection.dialect.flagged ..Supports_Float_Decimal_Places
+    bankers_ok && negative_dp_ok && dp_param_ok
+
+round_builtin : Integer -> Boolean -> Column
+round_builtin this_column decimal_places rounding_mode =
+    new_name = (naming_helper this_column).function_name "round" [this_column]
+    case rounding_mode of
+        Rounding_Mode.Bankers ->
+                make_binary_op this_column "ROUND_BANKERS" (SQL_IR_Expression.Literal decimal_places.to_text) new_name
+        Rounding_Mode.Half_Up ->
+            case decimal_places == 0 of
+                True ->
+                    make_unary_op this_column "ROUND" new_name
+                False ->
+                    make_binary_op this_column "ROUND" (SQL_IR_Expression.Literal decimal_places.to_text) new_name
+
+round_float : Integer -> Boolean -> Column
+round_float this_column decimal_places rounding_mode =
+    new_name = (naming_helper this_column).function_name "round" [this_column]
+    scale = 10 ^ decimal_places
+    scaled = this_column * scale
+
+    scaled.let "scaled" scaled->
+        round_base = scaled.floor
+        round_base.let "round_base" round_base->
+            round_midpoint = (round_base + 0.5) / scale
+            round_midpoint.let "round_midpoint" round_midpoint->
+                ((scaled.truncate % 2) == 0).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
+                    even_is_up = (this_column >= 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
+                    half_goes_up = if rounding_mode == Rounding_Mode.Bankers then even_is_up else this_column >= 0
+                    do_round_up = half_goes_up.let "half_goes_up" x-> x.iif (this_column >= round_midpoint) (this_column > round_midpoint)
+                    result = do_round_up.let "do_round_up" x-> x.iif ((round_base + 1.0) / scale) (round_base / scale)
+                    result.rename new_name
+
+round_decimal : Integer -> Boolean -> Column
+round_decimal this_column decimal_places rounding_mode =
+    # Construct a constant Decimal column.
+    k x = this_column.const x . cast Value_Type.Decimal
+    new_name = (naming_helper this_column).function_name "round" [this_column]
+    scale = 10 ^ decimal_places
+    scaled = this_column * scale
+    scaled.let "scaled" scaled->
+        round_base = scaled.floor
+        round_base.let "round_base" round_base->
+            round_midpoint = (round_base + k 0.5).decimal_div scale
+            round_midpoint.let "round_midpoint" round_midpoint->
+                ((scaled.truncate.decimal_mod (k 2)) != k 0).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
+                    even_is_up = (this_column >= k 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
+                    half_goes_up = if rounding_mode == Rounding_Mode.Bankers then even_is_up else this_column >= k 0
+                    do_round_up = half_goes_up.let "half_goes_up" x-> x.iif (this_column >= round_midpoint) (this_column > round_midpoint)
+                    result = do_round_up.let "do_round_up" x-> x.iif ((round_base + k 1).decimal_div scale) (round_base.decimal_div scale)
+                    result.rename new_name
+
+round_integer : Integer -> Boolean -> Column
+round_integer this_column decimal_places rounding_mode =
+    new_name = (naming_helper this_column).function_name "round" [this_column]
+    scale = 10 ^ -decimal_places
+    halfway = scale / 2
+    remainder = this_column % scale
+    remainder.let "remainer" remainder->
+        scaled_down = (this_column / scale).truncate . cast Value_Type.Integer
+        scaled_down.let "scaled_down" scaled_down->
+            result_unnudged = scaled_down * scale
+            result_unnudged.let "result_unnudged" result_unnudged->
+                if_non_neg =
+                    half_goes_up = if rounding_mode == Rounding_Mode.Bankers then (scaled_down % 2) != 0 else this_column >= 0
+                    round_up = half_goes_up.let "half_goes_up" x-> x.iif (remainder >= halfway) (remainder > halfway)
+                    round_up.let "round_up" x-> x.iif (result_unnudged + scale) result_unnudged
+                if_neg =
+                    half_goes_up = if rounding_mode == Rounding_Mode.Bankers then (scaled_down % 2) == 0 else this_column >= 0
+                    round_up = half_goes_up.let "half_goes_up" x-> x.iif (remainder < -halfway) (remainder <= -halfway)
+                    round_up.let "round_up" x-> x.iif (result_unnudged - scale) result_unnudged
+
+                result = (this_column >= 0).let "self_gt_0" x-> x.iif if_non_neg if_neg
+                result.cast Value_Type.Float . rename new_name
+
+short_circuit_special_floating_point : Column -> Column
+short_circuit_special_floating_point this_column exp =
+    if this_column.value_type.is_floating_point.not then exp else
+        (this_column.is_finite.not.iif this_column exp).rename exp.name
