@@ -67,6 +67,9 @@ type DB_Column
     pretty self =
         "DB_Column " + (self:Column).name.pretty
 
+    ## PRIVATE
+    to_text self -> Text = "DB_Column " + (self:Column).name
+
 ## PRIVATE
 Column.from (that : DB_Column) =
     column_from_implementation that DB_Column_Implementation

@@ -43,6 +43,10 @@ type In_Memory_Column
         "Column.from_vector " + name + " " + data
 
     ## PRIVATE
+    to_text self -> Text =
+        "In_Memory_Column " + (self:Column).name
+
+    ## PRIVATE
        Creates a new column given a name and an internal Java storage.
     private from_storage name:Text storage =
         Invalid_Column_Names.handle_java_exception <|
