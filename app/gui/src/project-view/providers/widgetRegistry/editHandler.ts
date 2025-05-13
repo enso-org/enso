@@ -5,18 +5,7 @@ import { WidgetInput, WidgetTypeId } from '@/providers/widgetRegistry'
 import { injectWidgetTree, type CurrentEdit } from '@/providers/widgetTree'
 import type { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
-import { ToValue } from '@/util/reactivity'
-import {
-  computed,
-  markRaw,
-  shallowRef,
-  toValue,
-  useId,
-  watch,
-  watchEffect,
-  WatchSource,
-  type ShallowRef,
-} from 'vue'
+import { computed, markRaw, shallowRef, useId, watch, WatchSource, type ShallowRef } from 'vue'
 import { assertDefined } from 'ydoc-shared/util/assert'
 
 declare const widgetInstanceIdBrand: unique symbol
@@ -271,7 +260,7 @@ export class WidgetEditHandler extends WidgetEditHandlerParent {
 
   /** Create {@link WidgetEditHandler} by manually providing all needed inputs. Useful for testing. */
   static NewRaw(
-    widgetInstanceId: ToValue<WidgetInstanceId>,
+    widgetInstanceId: WatchSource<WidgetInstanceId>,
     portId: WatchSource<PortId>,
     parent: WatchSource<WidgetEditHandlerParent | undefined>,
     myInteraction: WidgetEditHooks,
@@ -294,13 +283,14 @@ export class WidgetEditHandler extends WidgetEditHandlerParent {
       { immediate: true },
     )
     assertDefined(currentHandler.value)
-    watchEffect((onCleanup) => {
-      const handler = currentHandler.value
-      const id = toValue(widgetInstanceId)
-      handler.tryResume(id, handler.portId)
-      onCleanup(() => handler.suspend(id))
-    })
-
+    watch(
+      [currentHandler, widgetInstanceId],
+      ([handler, id], _, onCleanup) => {
+        handler.tryResume(id, handler.portId)
+        onCleanup(() => handler.suspend(id))
+      },
+      { immediate: true },
+    )
     return currentHandler
   }
 

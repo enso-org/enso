@@ -25,8 +25,9 @@ function editHandlerTree(
     }
     const portId = id as PortId
     const interaction = createInteraction(portId)
+    const instanceId = newWidgetInstanceId()
     const handler = WidgetEditHandler.NewRaw(
-      newWidgetInstanceId(),
+      () => instanceId,
       () => portId,
       () => (parent ? handlers.get(parent)?.handler : undefined),
       interaction,
