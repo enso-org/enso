@@ -97,6 +97,7 @@ export const widgetDefinition = defineWidget(
     <NodeWidget v-if="operator" :input="WidgetInput.FromAst(operator)" />
     <CodeMirrorWidgetBase
       v-model="nameCode"
+      contentTestId="widget-function-name-content"
       :onAccepted="renameFunction"
       :widgetTypeId="widgetTypeId"
       :input="input"
