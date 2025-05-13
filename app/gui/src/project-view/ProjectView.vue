@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Backend from '#/services/Backend'
 import GraphEditor from '@/components/GraphEditor.vue'
-import { provideBackend } from '@/providers/backend'
+import { provideProjectBackend } from '@/providers/backend'
 import { provideEventLogger } from '@/providers/eventLogging'
 import { provideVisibility } from '@/providers/visibility'
 import { type LsUrls, provideProjectStore } from '@/stores/project'
@@ -28,7 +28,7 @@ const props = defineProps<{
   readonly remoteBackend?: Opt<Backend>
 }>()
 
-provideBackend({
+provideProjectBackend({
   project: () => (props.projectBackend && markRaw(toRaw(props.projectBackend))) ?? null,
   remote: () => (props.remoteBackend && markRaw(toRaw(props.remoteBackend))) ?? null,
 })

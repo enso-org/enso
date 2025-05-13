@@ -269,7 +269,7 @@ function AssetsTable(props: AssetsTableProps) {
       refetchInterval: listDirectoryRefetchInterval,
     }),
     retry: () => {
-      setCurrentDirectoryId({ current: null, parent: null })
+      setCurrentDirectoryId(null)
       return false
     },
   })
@@ -591,7 +591,7 @@ function AssetsTable(props: AssetsTableProps) {
     const projectToLoad = deps.items.filter(assetIsProject).find(isInitialProject)
     if (projectToLoad != null) {
       void deps.openProjectLocally(projectToLoad, BackendType.local)
-    } else if (initialProjectName != null) {
+    } else if (initialProjectName != null && initialProjectName !== '') {
       deps.toastAndLog('findProjectError', null, initialProjectName)
     }
   }, [initialProjectName, initialProjectNameDeps])
@@ -658,7 +658,7 @@ function AssetsTable(props: AssetsTableProps) {
               case AssetType.directory: {
                 event.preventDefault()
                 event.stopPropagation()
-                setCurrentDirectoryId({ current: item.id, parent: item.parentId })
+                setCurrentDirectoryId(item.id)
                 break
               }
               case AssetType.project: {

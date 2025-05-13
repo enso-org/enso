@@ -5328,4 +5328,343 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       new String(data2) shouldEqual "22"
   }
 
+  it should "update the value when self argument changes" in withContext() {
+    context =>
+      val contextId  = UUID.randomUUID()
+      val requestId  = UUID.randomUUID()
+      val moduleName = "Enso_Test.Test.Main"
+
+      val metadata      = new Metadata
+      val idVector1     = metadata.addItem(52, 12, "aa")
+      val idVector2     = metadata.addItem(79, 12, "ab")
+      val idVector3     = metadata.addItem(106, 25, "ac")
+      val idVector3Self = metadata.addItem(106, 7, "ad")
+
+      val code =
+        """from Standard.Base import all
+          |
+          |main =
+          |    vector1 = [4, 2, 1, 3]
+          |    vector2 = vector1.sort
+          |    vector3 = vector2.filter (..Less 2)
+          |""".stripMargin.linesIterator.mkString("\n")
+      val contents = metadata.appendToCode(code)
+      val mainFile = context.writeMain(contents)
+
+      // create context
+      context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+      context.receive shouldEqual Some(
+        Api.Response(requestId, Api.CreateContextResponse(contextId))
+      )
+
+      // open file
+      context.send(
+        Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+      )
+      context.receive shouldEqual Some(
+        Api.Response(Some(requestId), Api.OpenFileResponse)
+      )
+
+      // push main
+      context.send(
+        Api.Request(
+          requestId,
+          Api.PushContextRequest(
+            contextId,
+            Api.StackItem.ExplicitCall(
+              Api.MethodPointer(moduleName, moduleName, "main"),
+              None,
+              Vector()
+            )
+          )
+        )
+      )
+      context.receiveNIgnoreStdLib(7) should contain theSameElementsAs Seq(
+        Api.Response(requestId, Api.PushContextResponse(contextId)),
+        Api.Response(
+          Api.ExecutionUpdate(
+            contextId,
+            Seq(
+              Api.ExecutionResult.Diagnostic.warning(
+                "Unused variable vector3.",
+                Some(mainFile),
+                Some(model.Range(model.Position(5, 4), model.Position(5, 11)))
+              )
+            )
+          )
+        ),
+        TestMessages.update(
+          contextId,
+          idVector1,
+          ConstantsGen.VECTOR
+        ),
+        TestMessages.update(
+          contextId,
+          idVector2,
+          ConstantsGen.VECTOR,
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Vector",
+              ConstantsGen.VECTOR,
+              "sort"
+            ),
+            Vector(1, 2, 3, 4)
+          )
+        ),
+        TestMessages.update(
+          contextId,
+          idVector3Self,
+          ConstantsGen.VECTOR
+        ),
+        TestMessages.update(
+          contextId,
+          idVector3,
+          ConstantsGen.VECTOR,
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Data.Vector",
+              ConstantsGen.VECTOR,
+              "filter"
+            )
+          )
+        ),
+        context.executionComplete(contextId)
+      )
+      context.consumeOut shouldEqual List(
+        "Enso_Test.Test.Main:6:5: warning: Unused variable vector3.",
+        "    6 |     vector3 = vector2.filter (..Less 2)",
+        "      |     ^~~~~~~"
+      )
+
+      val visualizationId = UUID.randomUUID()
+
+      // attach visualization
+      context.send(
+        Api.Request(
+          requestId,
+          Api.AttachVisualization(
+            visualizationId,
+            idVector3,
+            Api.VisualizationConfiguration(
+              contextId,
+              Api.VisualizationExpression.Text(
+                moduleName,
+                "x -> x.to_text",
+                Vector()
+              ),
+              moduleName
+            )
+          )
+        )
+      )
+
+      val attachVisualizationResponses =
+        context.receiveNIgnoreExpressionUpdates(2)
+      attachVisualizationResponses should contain(
+        Api.Response(requestId, Api.VisualizationAttached())
+      )
+      val Some(data) = attachVisualizationResponses.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
+                  `contextId`,
+                  `idVector3`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+      new String(data, StandardCharsets.UTF_8) shouldEqual "[1]"
+
+      // attach visualization
+      context.send(
+        Api.Request(
+          requestId,
+          Api.AttachVisualization(
+            visualizationId,
+            idVector3Self,
+            Api.VisualizationConfiguration(
+              contextId,
+              Api.VisualizationExpression.Text(
+                moduleName,
+                "x -> x.to_text",
+                Vector()
+              ),
+              moduleName
+            )
+          )
+        )
+      )
+
+      val attachVisualizationResponses3 =
+        context.receiveNIgnoreExpressionUpdates(2)
+      attachVisualizationResponses3 should contain(
+        Api.Response(requestId, Api.VisualizationAttached())
+      )
+      val Some(data3) = attachVisualizationResponses3.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
+                  `contextId`,
+                  `idVector3Self`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+      new String(data3, StandardCharsets.UTF_8) shouldEqual "[1, 2, 3, 4]"
+
+      val idVector4     = UUID.randomUUID()
+      val idVector4Self = UUID.randomUUID()
+      // Modify the file
+      context.send(
+        Api.Request(
+          Api.EditFileNotification(
+            mainFile,
+            Seq(
+              model.TextEdit(
+                model.Range(model.Position(6, 0), model.Position(6, 0)),
+                "    vector4 = vector2.filter (..Greater 3)\n"
+              ),
+              model.TextEdit(
+                model.Range(model.Position(10, 1), model.Position(10, 1)),
+                s"""[{"index": {"value": 146}, "size": {"value": 28}}, "$idVector4"],"""
+              )
+            ),
+            execute = true,
+            idMap = Some(
+              model.IdMap(
+                Vector(
+                  (model.Span(106, 131), idVector3),
+                  (model.Span(106, 113), idVector3Self),
+                  (model.Span(146, 174), idVector4),
+                  (model.Span(146, 153), idVector4Self)
+                )
+              )
+            )
+          )
+        )
+      )
+
+      // Includes a warning about unused variable
+      val editFileResponse = context.receiveNIgnoreExpressionUpdates(2)
+      editFileResponse should contain(
+        context.executionComplete(contextId)
+      )
+
+      // Modify the file by providing the smallest possible edits.
+      // There are more efficient ways to do it but this mimics GUI requests and
+      // is the root of the problem for #12957
+      context.send(
+        Api.Request(
+          Api.EditFileNotification(
+            mainFile,
+            Seq(
+              model.TextEdit(
+                model.Range(model.Position(5, 10), model.Position(5, 11)),
+                "4"
+              ),
+              model.TextEdit(
+                model.Range(model.Position(5, 32), model.Position(5, 38)),
+                "Greater 3"
+              ),
+              model.TextEdit(
+                model.Range(model.Position(6, 10), model.Position(6, 11)),
+                "3"
+              ),
+              model.TextEdit(
+                model.Range(model.Position(6, 20), model.Position(6, 21)),
+                "4"
+              ),
+              model.TextEdit(
+                model.Range(model.Position(6, 32), model.Position(6, 41)),
+                "Less 2"
+              ),
+              model.TextEdit(
+                model.Range(model.Position(10, 22), model.Position(10, 25)),
+                "106"
+              ),
+              model.TextEdit(
+                model.Range(model.Position(10, 113), model.Position(10, 116)),
+                "149"
+              ),
+              model.TextEdit(
+                model.Range(model.Position(10, 203), model.Position(10, 206)),
+                "149"
+              )
+            ),
+            execute = true,
+            idMap = Some(
+              model.IdMap(
+                Vector(
+                  (model.Span(106, 134), idVector4),
+                  (model.Span(106, 113), idVector4Self),
+                  (model.Span(149, 174), idVector3),
+                  (model.Span(149, 156), idVector3Self)
+                )
+              )
+            )
+          )
+        )
+      )
+
+      // Includes a warning about unused variable
+      val editFileResponse2 = context.receiveNIgnoreExpressionUpdates(4)
+      editFileResponse2 should contain allOf (
+        Api.Response(
+          Api.ExecutionUpdate(
+            contextId,
+            Seq(
+              Api.ExecutionResult.Diagnostic.warning(
+                "Unused variable vector3.",
+                Some(mainFile),
+                Some(model.Range(model.Position(6, 4), model.Position(6, 11)))
+              )
+            )
+          )
+        ),
+        context.executionComplete(contextId)
+      )
+
+      // will fail in #12957
+      val Some(dataSelf) = editFileResponse2.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
+                  `contextId`,
+                  `idVector3Self`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+
+      val Some(dataUpdated) = editFileResponse2.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
+                  `contextId`,
+                  `idVector3`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+
+      new String(dataSelf, StandardCharsets.UTF_8) shouldEqual "[4]"
+      new String(dataUpdated, StandardCharsets.UTF_8) shouldEqual "[]"
+  }
+
 }

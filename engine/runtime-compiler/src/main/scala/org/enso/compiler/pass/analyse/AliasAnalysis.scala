@@ -740,8 +740,9 @@ case object AliasAnalysis extends IRPass {
       case caseExpr: Case.Expr =>
         caseExpr
           .copy(
-            scrutinee = analyseExpression(caseExpr.scrutinee, builder),
-            branches  = caseExpr.branches.map(analyseCaseBranch(_, builder))
+            analyseExpression(caseExpr.scrutinee, builder),
+            caseExpr.branches.map(analyseCaseBranch(_, builder)),
+            caseExpr.isNested
           )
       case _: Case.Branch =>
         throw new CompilerError("Case branch in `analyseCase`.")
@@ -762,11 +763,12 @@ case object AliasAnalysis extends IRPass {
 
     val bc = branch
       .copy(
-        pattern = analysePattern(branch.pattern, currentScope),
-        expression = analyseExpression(
+        analysePattern(branch.pattern, currentScope),
+        analyseExpression(
           branch.expression,
           currentScope
-        )
+        ),
+        branch.terminalBranch()
       )
     alias.AliasMetadata
       .updateMetadata(bc, alias.AliasMetadata.ChildScope.from(currentScope))

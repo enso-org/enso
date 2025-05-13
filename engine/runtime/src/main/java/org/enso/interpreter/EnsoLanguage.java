@@ -268,16 +268,10 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       var localScope = ensoRootNode.getLocalScope();
       var outputRedirect = new ByteArrayOutputStream();
       var redirectConfigWithStrictErrors =
-          new CompilerConfig(
-              false,
-              false,
-              true,
-              false,
-              false,
-              scala.Option.empty(),
-              true,
-              false,
-              scala.Option.apply(new PrintStream(outputRedirect)));
+          CompilerConfig.builder()
+              .isStrictErrors(true)
+              .outputRedirect(scala.Option.apply(new PrintStream(outputRedirect)))
+              .build();
       var moduleContext =
           new ModuleContext(
               module.asCompilerModule(),

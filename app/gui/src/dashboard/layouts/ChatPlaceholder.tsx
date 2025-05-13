@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as reactDom from 'react-dom'
-import * as router from 'react-router-dom'
 
 import CloseLargeIcon from '#/assets/close_large.svg'
 
@@ -14,6 +13,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as ariaComponents from '#/components/AriaComponents'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { useRouterInReact } from '$/providers/react'
 
 /** Props for a {@link ChatPlaceholder}. */
 export interface ChatPlaceholderProps {
@@ -29,7 +29,7 @@ function ChatPlaceholder(props: ChatPlaceholderProps) {
   const { hideLoginButtons = false, isOpen, doClose } = props
   const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()
-  const navigate = router.useNavigate()
+  const { router } = useRouterInReact()
 
   const container = document.getElementById('enso-chat')
 
@@ -66,7 +66,7 @@ function ChatPlaceholder(props: ChatPlaceholderProps) {
                 variant="custom"
                 className="button self-center bg-help text-white"
                 onPress={() => {
-                  navigate(appUtils.LOGIN_PATH)
+                  void router.push(appUtils.LOGIN_PATH)
                 }}
               >
                 {getText('login')}
@@ -78,7 +78,7 @@ function ChatPlaceholder(props: ChatPlaceholderProps) {
                 variant="custom"
                 className="button self-center bg-help text-white"
                 onPress={() => {
-                  navigate(appUtils.REGISTRATION_PATH)
+                  void router.push(appUtils.REGISTRATION_PATH)
                 }}
               >
                 {getText('register')}

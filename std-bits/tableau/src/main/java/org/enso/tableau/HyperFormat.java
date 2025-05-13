@@ -15,6 +15,7 @@ import java.nio.channels.Channels;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
@@ -28,6 +29,7 @@ import java.util.stream.IntStream;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -355,6 +357,11 @@ public class HyperFormat {
           case DateType _ -> tableDef.addColumn(columnName, SqlType.date());
           case TimeOfDayType _ -> tableDef.addColumn(columnName, SqlType.time());
           case DateTimeType _ -> tableDef.addColumn(columnName, SqlType.timestampTz());
+          // https://tableau.github.io/hyper-db/docs/sql/datatype/numeric
+          // Precisions over 18 require 128-bit for internal storage. Processing 128-bit numeric values is 
+          // often slower than processing 64-bit values, so it is advisable to use a sensible precision for 
+          // the use case at hand instead of always using the maximum precision by default.
+          case BigDecimalType _ -> tableDef.addColumn(columnName, SqlType.numeric(18, 9));
           default -> throw new HyperUnsupportedTypeError(storage.getType().toString());
         }
       }
@@ -385,6 +392,7 @@ public class HyperFormat {
               case LocalDate ld -> inserter.add(ld);
               case LocalTime lt -> inserter.add(lt);
               case ZonedDateTime zdt -> inserter.add(zdt);
+              case BigDecimal bd -> inserter.add(bd);
               default -> throw new HyperUnsupportedTypeError(value.toString());
             }
           }

@@ -998,25 +998,32 @@ final class TreeToIr {
             var comment = translateComment(cas, docLine.getDocs());
             var loc = getIdentifiedLocation(cas);
             var doc = new Pattern.Documentation(comment.doc(), loc, meta());
-            var br = new Case.Branch(
-                doc,
-                new Empty(null, meta()), true, loc, meta()
-            );
+            var br = Case.Branch.builder()
+                .pattern(doc)
+                .expression(new Empty(null, meta()))
+                .terminalBranch(true)
+                .location(loc)
+                .build();
             branches = join(br, branches);
           }
           // A branch with no expression is used to hold any orphaned documentation at the end of the case-of
           // expression, with no case to attach it to.
           if (branch.getExpression() != null) {
-            var br = new Case.Branch(
-                translatePattern(branch.getPattern()),
-                translateExpression(branch.getExpression(), false),
-                true,
-                getIdentifiedLocation(branch.getExpression()), meta()
-            );
+            var br = Case.Branch.builder()
+                .pattern(translatePattern(branch.getPattern()))
+                .expression(translateExpression(branch.getExpression(), false))
+                .terminalBranch(true)
+                .location(getIdentifiedLocation(branch.getExpression()))
+                .build();
             branches = join(br, branches);
           }
         }
-        yield new Case.Expr(expr, branches.reverse(), false, getIdentifiedLocation(tree), meta());
+        yield Case.Expr.builder()
+            .scrutinee(expr)
+            .branches(branches.reverse())
+            .isNested(false)
+            .location(getIdentifiedLocation(tree))
+            .build();
       }
       case Tree.Function fun -> translateFunction(fun);
       case Tree.OprSectionBoundary bound -> translateExpression(bound.getAst(), false);

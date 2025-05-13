@@ -7,16 +7,20 @@ import {
 } from '@/components/visualizations/TableVisualization/tableVizToolbar'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import { Icon } from '@/util/iconMetadata/iconName'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type {
   CellClassParams,
   CellDoubleClickedEvent,
   ColDef,
   ColumnVisibleEvent,
+  GetContextMenuItems,
+  GetContextMenuItemsParams,
   ICellRendererParams,
   IServerSideDatasource,
   IServerSideGetRowsRequest,
   ITooltipParams,
+  MenuItemDef,
   SetFilterValuesFuncParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
@@ -52,7 +56,14 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = number | string | Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
+type Data =
+  | number
+  | string
+  | Error
+  | Matrix
+  | ObjectMatrix
+  | EnsoTableOrColumn
+  | SingleColumnOfActions
 
 interface Error {
   type: undefined
@@ -76,11 +87,11 @@ interface Matrix {
   visualization_header: string
 }
 
-interface Excel_Workbook {
-  type: 'Excel_Workbook'
+interface SingleColumnOfActions {
+  type: 'Single_Column_Of_Actions'
   column_count: number
   all_rows_count: number
-  sheet_names: string[]
+  data: string[]
   json: unknown[][]
   get_child_node_action: string
   child_label: string
@@ -98,11 +109,8 @@ interface ObjectMatrix {
   visualization_header: string
 }
 
-interface UnknownTable {
-  // This is INCORRECT. It is actually a string, however we do not need to access this.
-  // Setting it to `string` breaks the discriminated union detection that is being used to
-  // distinguish `Matrix` and `ObjectMatrix`.
-  type: undefined
+interface EnsoTableOrColumn {
+  type: 'EnsoTableOrColumn'
   json: unknown
   all_rows_count?: number
   header: string[] | undefined
@@ -117,6 +125,8 @@ interface UnknownTable {
   visualization_header: string
   data_quality_metrics?: DataQualityMetric[]
   is_using_server_sort_and_filter: boolean
+  use_bottom_status_bar: boolean
+  enable_create_node: boolean
   requires_number_format: boolean[]
   table_version_hash?: string
 }
@@ -134,11 +144,6 @@ const props = defineProps<{ data: Data }>()
 const config = useVisualizationConfig()
 
 const INDEX_FIELD_NAME = '#'
-const TABLE_NODE_TYPE = 'Standard.Table.Table.Table'
-const DB_TABLE_NODE_TYPE = 'Standard.Database.DB_Table.DB_Table'
-const VECTOR_NODE_TYPE = 'Standard.Base.Data.Vector.Vector'
-const COLUMN_NODE_TYPE = 'Standard.Table.Column.Column'
-const ROW_NODE_TYPE = 'Standard.Table.Row.Row'
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -159,12 +164,6 @@ const defaultColDef: Ref<ColDef> = ref({
   cellRenderer: cellRenderer,
   cellClass: cellClass,
   cellStyle: { 'padding-left': 0, 'border-right': '1px solid #C0C0C0' },
-  contextMenuItems: [
-    commonContextMenuActions.copy,
-    commonContextMenuActions.copyWithHeaders,
-    'separator',
-    'export',
-  ],
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
@@ -172,6 +171,85 @@ const nodeType = ref<string | undefined>(undefined)
 const grid = ref<
   ComponentInstance<typeof AgGridTableView> & ComponentExposed<typeof AgGridTableView>
 >()
+
+const getSvgTemplate = (icon: Icon) =>
+  `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
+
+const getContextMenuItems = (
+  params: GetContextMenuItemsParams,
+): (MenuItemDef | string)[] | GetContextMenuItems => {
+  const colId = params.column ? params.column.getColId() : null
+  const { rowIndex } = params.node ?? {}
+
+  const actions = [
+    { name: 'Get Column', action: 'at', colId, icon: 'select_column' },
+    { name: 'Get Row', action: 'get_row', rowIndex, icon: 'select_row' },
+    { name: 'Get Value', action: 'get_value', colId, rowIndex, icon: 'local_scope4' },
+  ]
+
+  const createMenuItem = ({ name, action, colId, rowIndex, icon }: (typeof actions)[number]) => ({
+    name,
+    action: () => createValueNode(colId, rowIndex, action),
+    icon: getSvgTemplate(icon as Icon),
+  })
+
+  return [
+    commonContextMenuActions.copy,
+    commonContextMenuActions.copyWithHeaders,
+    'separator',
+    'export',
+    ...actions.map(createMenuItem),
+  ]
+}
+
+function getAstValuePattern(value?: string | number, action?: string) {
+  if (action && value != null) {
+    return Pattern.new<Ast.Expression>((ast) =>
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(action)!),
+        typeof value === 'number' ?
+          Ast.tryNumberToEnso(value, ast.module)!
+        : Ast.TextLiteral.new(value, ast.module),
+      ),
+    )
+  }
+}
+
+function getAstGetValuePattern(columnId?: string, rowIndex?: number, action?: string) {
+  if (action && columnId && rowIndex != undefined) {
+    const pattern = Pattern.parseExpression('__ __')
+    return Pattern.new<Ast.Expression>((ast) =>
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('get_value')!),
+        pattern.instantiateCopied([
+          Ast.TextLiteral.new(columnId as string, ast.module),
+          Ast.tryNumberToEnso(rowIndex as number, ast.module)!,
+        ]),
+      ),
+    )
+  }
+}
+
+function createValueNode(columnId?: string | null, rowIndex?: number | null, action?: string) {
+  let pattern
+  if (action === 'at' && columnId != null) {
+    pattern = getAstValuePattern(columnId, action)
+  }
+  if (action === 'get_row' && rowIndex != null) {
+    pattern = getAstValuePattern(rowIndex, action)
+  }
+  if (action === 'get_value' && columnId != null && rowIndex != null) {
+    pattern = getAstGetValuePattern(columnId, rowIndex, action)
+  }
+
+  if (pattern) {
+    config.createNodes({
+      content: pattern,
+      commit: true,
+    })
+  }
+}
+
 const allRowCount = computed(() =>
   typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
 )
@@ -189,6 +267,20 @@ const isSSRM = computed(
     props.data.is_using_server_sort_and_filter,
 )
 
+const useBottomStatusBar = computed(
+  () =>
+    typeof props.data === 'object' &&
+    'use_bottom_status_bar' in props.data &&
+    props.data.use_bottom_status_bar,
+)
+
+const isCreateNewNodeEnabled = computed(
+  () =>
+    typeof props.data === 'object' &&
+    'enable_create_node' in props.data &&
+    props.data.enable_create_node,
+)
+
 const ssrmServer = computed(() => {
   return isSSRM.value && createServer()
 })
@@ -199,24 +291,20 @@ const ssrmDatasource = computed(() => {
   return isSSRM.value && createServerSideDatasource()
 })
 
-const statusBar = computed(() =>
-  allRowCount.value ?
-    {
-      statusPanels:
-        config.nodeType === TABLE_NODE_TYPE || config.nodeType === COLUMN_NODE_TYPE ?
-          [
-            {
-              statusPanel: TableVizStatusBar,
-              statusPanelParams: {
-                total: allRowCount.value,
-                filtered: isSSRM.value ? filteredRowCount.value : null,
-              },
-            },
-          ]
-        : [],
-    }
-  : null,
-)
+const statusBar = computed(() => ({
+  statusPanels:
+    useBottomStatusBar.value ?
+      [
+        {
+          statusPanel: TableVizStatusBar,
+          statusPanelParams: {
+            total: allRowCount.value,
+            filtered: isSSRM.value ? filteredRowCount.value : null,
+          },
+        },
+      ]
+    : [],
+}))
 
 const isCreateNodeButtonEnabled = computed(
   () =>
@@ -241,7 +329,7 @@ watchEffect(() => {
 
 const textFormatterSelected = ref<TextFormatOptions>('partial')
 
-const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
+const isRowCountSelectorVisible = computed(() => rowCount.value > 1000)
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 
 const selectableRowLimits = computed(() => {
@@ -271,19 +359,15 @@ watchEffect(() =>
   ),
 )
 
-const isCreateNewNodeEnabled = computed(
-  () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
-)
-
 const numberFormatGroupped = new Intl.NumberFormat(undefined, {
   style: 'decimal',
-  maximumFractionDigits: 12,
+  maximumSignificantDigits: 16,
   useGrouping: true,
 })
 
 const numberFormat = new Intl.NumberFormat(undefined, {
   style: 'decimal',
-  maximumFractionDigits: 12,
+  maximumSignificantDigits: 16,
   useGrouping: false,
 })
 
@@ -579,8 +663,6 @@ function toField(
   const showDataQuality =
     dataQualityMetrics.filter((obj) => (Object.values(obj)[0] as number) > 0).length > 0
 
-  const getSvgTemplate = (icon: string) =>
-    `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
   const svgTemplateWarning = showDataQuality ? getSvgTemplate('warning') : ''
   const menu = `<span data-ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"> </span>`
   const filterButton = `<span data-ref="eFilterButton" class="ag-header-icon ag-header-cell-filter-button" aria-hidden="true"></span>`
@@ -624,13 +706,6 @@ function toField(
   }
 }
 
-function toRowField(name: string, index: number, valueType?: ValueType | null | undefined) {
-  return {
-    ...toField(name, { index, valueType }),
-    cellDataType: false,
-  }
-}
-
 function getAstPattern(selector?: string | number, action?: string) {
   if (action && selector != null) {
     return Pattern.new<Ast.Expression>((ast) =>
@@ -653,9 +728,7 @@ function createNode(
   const selectorKey = params.data[selector]
   const castSelector =
     castValueTypes === 'number' && !isNaN(Number(selectorKey)) ? Number(selectorKey) : selectorKey
-  const identifierAction =
-    config.nodeType === (COLUMN_NODE_TYPE || VECTOR_NODE_TYPE) ? 'at' : action
-  const pattern = getAstPattern(castSelector, identifierAction)
+  const pattern = getAstPattern(castSelector, action)
   if (pattern) {
     config.createNodes({
       content: pattern,
@@ -768,7 +841,7 @@ watchEffect(() => {
     }
     rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
-  } else if (data_.type === 'Excel_Workbook') {
+  } else if (data_.type === 'Single_Column_Of_Actions') {
     columnDefs.value = [
       toLinkField('Value', {
         tooltipValue: data_.child_label,
@@ -776,7 +849,7 @@ watchEffect(() => {
         getChildAction: data_.get_child_node_action,
       }),
     ]
-    rowData.value = data_.sheet_names.map((name) => ({ Value: name }))
+    rowData.value = data_.data.map((name) => ({ Value: name }))
   } else if (Array.isArray(data_.json)) {
     columnDefs.value = [
       toLinkField(INDEX_FIELD_NAME, {
@@ -789,22 +862,9 @@ watchEffect(() => {
     rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
     isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
-    columnDefs.value =
-      data_.links ?
-        [
-          toLinkField('Value', {
-            tooltipValue: data_.child_label,
-            headerName: data_.visualization_header,
-            getChildAction: data_.get_child_node_action,
-          }),
-        ]
-      : [toField('Value')]
-    rowData.value =
-      data_.links ?
-        data_.links.map((link) => ({
-          Value: link,
-        }))
-      : [{ Value: toRender(data_.json) }]
+    // single values like Integer or Text
+    columnDefs.value = [toField('Value')]
+    rowData.value = [{ Value: toRender(data_.json) }]
   } else {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
@@ -816,9 +876,6 @@ watchEffect(() => {
             getChildAction: data_.get_child_node_action,
             castValueTypes: data_.link_value_type,
           })
-        }
-        if (config.nodeType === ROW_NODE_TYPE) {
-          return toRowField(v, i, valueType)
         }
         return toField(v, { index: i, valueType })
       }) ?? []
@@ -836,15 +893,8 @@ watchEffect(() => {
       : dataHeader
 
     if (!data_.is_using_server_sort_and_filter) {
-      const hasIndexRow =
-        config.nodeType === TABLE_NODE_TYPE ||
-        config.nodeType === COLUMN_NODE_TYPE ||
-        config.nodeType === DB_TABLE_NODE_TYPE
-      const shift = hasIndexRow ? 1 : 0
-      rowData.value =
-        data_.data ?
-          createRowsForTable(data_.data, shift, data_.is_using_server_sort_and_filter)
-        : []
+      const shift = data_.type === 'EnsoTableOrColumn' ? 1 : 0
+      rowData.value = data_.data ? createRowsForTable(data_.data, shift, false) : []
     }
   }
   const headerGroupingMap = new Map()
@@ -886,7 +936,7 @@ watchEffect(() => {
 
   // Update paging
   const newRowCount = data_.all_rows_count == null ? 1 : data_.all_rows_count
-  showRowCount.value = !(data_.all_rows_count == null) && config.nodeType != TABLE_NODE_TYPE
+  showRowCount.value = !(data_.all_rows_count == null)
   rowCount.value = newRowCount
   const newPageLimit = Math.ceil(newRowCount / rowLimit.value)
   pageLimit.value = newPageLimit
@@ -1048,7 +1098,7 @@ config.setToolbar(
 
 <template>
   <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
-    <template v-if="!isSSRM">
+    <template v-if="!useBottomStatusBar">
       <div class="table-visualization-status-bar">
         <select
           v-if="isRowCountSelectorVisible"
@@ -1087,6 +1137,7 @@ config.setToolbar(
         :isServerSideModel="isSSRM"
         :statusBar="statusBar"
         :gridIdHash="tableVersionHash"
+        :getContextMenuItems="getContextMenuItems"
         @sortOrFilterUpdated="checkSortAndFilter"
         @columnStateChanged="onColumnStateChange"
       />

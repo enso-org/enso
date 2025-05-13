@@ -152,16 +152,16 @@ public final class EnsoContext {
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
     var dumpModuleIR = System.getProperty(RuntimeOptions.IR_DUMPER_SYSTEM_PROP);
     this.compilerConfig =
-        new CompilerConfig(
-            isParallelismEnabled,
-            true,
-            !isPrivateCheckDisabled,
-            isStaticTypeAnalysisEnabled,
-            getOption(RuntimeOptions.TREAT_WARNINGS_AS_ERRORS_KEY),
-            scala.Option.apply(dumpModuleIR),
-            getOption(RuntimeOptions.STRICT_ERRORS_KEY),
-            getOption(RuntimeOptions.DISABLE_LINTING_KEY),
-            scala.Option.empty());
+        CompilerConfig.builder()
+            .autoParallelismEnabled(isParallelismEnabled)
+            .warningsEnabled(true)
+            .privateCheckEnabled(!isPrivateCheckDisabled)
+            .staticTypeInferenceEnabled(isStaticTypeAnalysisEnabled)
+            .treatWarningsAsErrors(getOption(RuntimeOptions.TREAT_WARNINGS_AS_ERRORS_KEY))
+            .dumpModuleIR(scala.Option.apply(dumpModuleIR))
+            .isStrictErrors(getOption(RuntimeOptions.STRICT_ERRORS_KEY))
+            .isLintingDisabled(getOption(RuntimeOptions.DISABLE_LINTING_KEY))
+            .build();
     this.home = home;
     this.builtins = new Builtins(this);
     this.notificationHandler = notificationHandler;

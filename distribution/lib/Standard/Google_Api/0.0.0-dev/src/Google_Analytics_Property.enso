@@ -71,9 +71,13 @@ type Google_Analytics_Property
     ## PRIVATE
     default_widget self_arg cache display:Display=..Always -> Widget =
         _ = self_arg
-        Panic.catch Any handler=_->(Widget.Text_Input display=display) <|
-            credentials = cache.if_not_nothing <| cache "credentials"
-            options = Google_Analytics.list_properties credentials=(credentials.if_nothing Google_Credential.Default) account=..All_Accounts limit=(..First 10) . map p->(Option (p.name + " (" + p.id + ")") p.id.pretty)
+
+        credentials = cache.if_not_nothing <| cache "credentials"
+        used_credentials = if credentials != Nothing then credentials else Google_Credential.default
+
+        properties = Google_Analytics.list_properties credentials=used_credentials account=..All_Accounts limit=(..First 10)
+        if properties.is_error then Widget.Text_Input display=display else
+            options = properties . map p->(Option (p.name + " (" + p.id + ")") p.id.pretty)
             make_single_choice options display=display
 
 ## PRIVATE

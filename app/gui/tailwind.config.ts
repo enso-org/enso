@@ -9,7 +9,7 @@ const HERE_PATH = fileURLToPath(new URL('.', import.meta.url))
 
 // The names come from a third-party API and cannot be changed.
 export default {
-  content: [`${HERE_PATH}/src/**/*.tsx`, `${HERE_PATH}/src/**/*.ts`],
+  content: [`${HERE_PATH}/src/**/*.tsx`, `${HERE_PATH}/src/**/*.ts`, `${HERE_PATH}/src/**/*.vue`],
   theme: {
     extend: {
       cursor: {

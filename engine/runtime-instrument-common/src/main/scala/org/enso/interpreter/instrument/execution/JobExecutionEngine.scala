@@ -4,6 +4,7 @@ import org.enso.common.Asserts.assertInJvm
 import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.job.{BackgroundJob, Job, UniqueJob}
 import org.enso.text.Sha3_224VersionCalculator
+import org.enso.runtime.utils.ThreadUtils
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -113,25 +114,11 @@ final class JobExecutionEngine(
             )
           } catch {
             case _: TimeoutException =>
-              val sb = new StringBuilder(
-                "Threaddump when timeout is reached while waiting for the job " + runningJob.id + " running in thread " + runningJob.job
-                  .threadNameExecutingJob() + " to cancel:\n"
+              val msg = ThreadUtils.dumpAllStacktraces(
+                "Thread dump when timeout is reached while waiting for the job " + runningJob.id + " running in thread " + runningJob.job
+                  .threadNameExecutingJob() + " to cancel:"
               )
-              Thread.getAllStackTraces.entrySet.forEach { entry =>
-                sb.append(entry.getKey.getName).append("\n")
-                entry.getValue.foreach { e =>
-                  sb.append("    ")
-                    .append(e.getClassName)
-                    .append(".")
-                    .append(e.getMethodName)
-                    .append("(")
-                    .append(e.getFileName)
-                    .append(":")
-                    .append(e.getLineNumber)
-                    .append(")\n")
-                }
-              }
-              logger.warn(sb.toString())
+              logger.warn(msg)
               runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
             case _: CancellationException =>
               logger.debug(

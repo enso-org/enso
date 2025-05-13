@@ -42,7 +42,7 @@ public abstract class MiniPassTester {
   }
 
   protected ModuleContext buildModuleContext(QualifiedName moduleName) {
-    var compilerConf = defaultCompilerConfig();
+    var compilerConf = CompilerConfig.createDefault();
     Option<FreshNameSupply> freshNameSupply = Option.empty();
     Option<PassConfiguration> passConfig = Option.empty();
     Option<PackageRepository> pkgRepo = Option.empty();
@@ -55,10 +55,5 @@ public abstract class MiniPassTester {
         passConfig,
         isGeneratingDocs,
         pkgRepo);
-  }
-
-  private static CompilerConfig defaultCompilerConfig() {
-    return CompilerConfig.apply(
-        false, true, true, false, false, Option.empty(), false, false, Option.empty());
   }
 }

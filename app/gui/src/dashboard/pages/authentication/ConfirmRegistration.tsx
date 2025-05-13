@@ -2,9 +2,6 @@
  * @file Registration confirmation page for when a user clicks the confirmation link set to their
  * email address.
  */
-
-import * as router from 'react-router-dom'
-
 import * as appUtils from '#/appUtils'
 
 import { Result } from '#/components/Result'
@@ -16,6 +13,7 @@ import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
 import { noop } from '#/utilities/functions'
 import { unsafeWriteValue } from '#/utilities/write'
+import { useRouterInReact } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
 import AuthenticationPage from './AuthenticationPage'
 
@@ -25,8 +23,7 @@ const REDIRECT_TIMEOUT = 5_000
 export default function ConfirmRegistration() {
   const { confirmSignUp } = useSessionAPI()
   const { getText } = useText()
-
-  const [searchParams] = router.useSearchParams()
+  const { router, searchParams } = useRouterInReact()
 
   const email = searchParams.get('email')
   const verificationCode = searchParams.get('verification_code')
@@ -92,7 +89,8 @@ export default function ConfirmRegistration() {
   }
 
   if (email == null || verificationCode == null) {
-    return <router.Navigate to={appUtils.LOGIN_PATH} replace />
+    void router.replace(appUtils.LOGIN_PATH)
+    return
   }
 
   return (

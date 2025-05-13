@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.state;
 
 import com.oracle.truffle.api.object.DynamicObject;
 import com.oracle.truffle.api.object.Shape;
+import java.lang.invoke.MethodHandles;
 import org.enso.interpreter.runtime.EnsoContext;
 
 /**
@@ -22,9 +23,7 @@ public final class State {
   private static final EnsoContext.Extra<Shape> ROOT_STATE_SHAPE =
       new EnsoContext.Extra<>(
           Shape.class,
-          () -> {
-            return Shape.newBuilder().layout(State.Container.class).build();
-          });
+          () -> Shape.newBuilder().layout(State.Container.class, State.Container.lookup()).build());
 
   private final Container container;
 
@@ -53,6 +52,10 @@ public final class State {
 
     static Container create(EnsoContext context) {
       return new Container(ROOT_STATE_SHAPE.get(context));
+    }
+
+    static MethodHandles.Lookup lookup() {
+      return MethodHandles.lookup();
     }
   }
 }

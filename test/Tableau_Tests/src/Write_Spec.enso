@@ -6,7 +6,7 @@ import Standard.Base.Errors.Common.Dry_Run_Operation
 from Standard.Table import all
 from Standard.Tableau import Hyper_File
 import Standard.Tableau.Hyper_Errors.Hyper_Table_Not_Found
-import Standard.Tableau.Hyper_Errors.Unsupported_Type
+import Standard.Tableau.Hyper_Errors.Hyper_Unsupported_Type
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import all
@@ -58,6 +58,7 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         written_table = written_table_in_hyper.read
         written_table.should_equal t
         (r.read.read "MyTableName" "MySchemaName").should_equal t
+        Data.read r (..Hyper_Table "MySchemaName" "MyTableName") . should_equal t
         written_file.delete
 
     can_round_trip table:Table =
@@ -91,14 +92,16 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         ## hyper doesn't support time zone
         can_round_trip (Table.input [['times', [Date_Time.new 2025 1 1 12 1 2 3 4 zone=(Time_Zone.parse 'UTC'), Date_Time.new 1989 12 18 zone=(Time_Zone.parse 'UTC'), Nothing]]])
 
+    group_builder.specify "should be able to write a decimal column" <|
+        can_round_trip (Table.input [['decimals', [3.14, -10.66, Nothing, 123456789.123456789], Value_Type.Decimal Nothing Nothing]])
+
     group_builder.specify "trying to write a mixed column should error" <|
         written_file = get_temp_file
         t = Table.input [['Mixed', ['a', 1]]]
         r = t.write written_file
-        r.should_fail_with Unsupported_Type
-        ## TODO
-           written_file.exists.should_equal False
-        written_file.delete
+        r.should_fail_with Hyper_Unsupported_Type
+        r.to_display_text.should_equal "Error: Tableau Hyper files do not support columns of type Mixed"
+        written_file.exists.should_equal False
 
     group_builder.specify "should be able to write all the types at once" <|
         t1 = enso_project.data/'all_data_types.csv' . read

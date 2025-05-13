@@ -101,10 +101,23 @@ final class IRNodeClassGenerator {
     return className;
   }
 
+  private boolean isInSameCompilationUnit(Field field) {
+    var elem = processingEnv.getTypeUtils().asElement(field.getType());
+    var enclosingElem = elem.getEnclosingElement();
+    var thisEnclosingElem = processedClass.getClazz().getEnclosingElement();
+    if (enclosingElem instanceof TypeElement enclosingTypeElem
+        && thisEnclosingElem instanceof TypeElement thisEnclosingTypeElem) {
+      return enclosingTypeElem.getQualifiedName().equals(thisEnclosingTypeElem.getQualifiedName());
+    }
+    return false;
+  }
+
   /** Returns set of import statements that should be included in the generated class. */
   Set<String> imports() {
     var importsForFields =
         generatedClassContext.getUserFields().stream()
+            .filter(field -> !field.isPrimitive())
+            .filter(field -> !isInSameCompilationUnit(field))
             .flatMap(field -> field.getImportedTypes().stream())
             .collect(Collectors.toUnmodifiableSet());
     var allImports = new HashSet<String>();

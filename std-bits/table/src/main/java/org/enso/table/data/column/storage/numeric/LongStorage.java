@@ -8,8 +8,6 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
-import org.enso.table.data.column.storage.ColumnDoubleStorage;
-import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.Storage;
@@ -206,7 +204,7 @@ public final class LongStorage extends AbstractLongStorage
   }
 
   @Override
-  public ColumnLongStorageIterator iterator() {
+  public ColumnLongStorageIterator iteratorWithIndex() {
     return new LongStorageIterator(data, isNothing, (int) getSize());
   }
 
@@ -263,88 +261,6 @@ public final class LongStorage extends AbstractLongStorage
       }
       index++;
       return true;
-    }
-
-    @Override
-    public void zip(ColumnDoubleStorage otherStorage, LongDoubleZipper zipper) {
-      Context context = Context.getCurrent();
-      var otherSize = otherStorage.getSize();
-      var toCount = Math.max(size, otherSize);
-
-      if (otherStorage instanceof DoubleStorage doubleStorage) {
-        for (int i = 0; i < toCount; i++) {
-          boolean isNothing1 = i >= size || isNothing.get(i);
-          long value1 = isNothing1 ? 0 : data[i];
-          boolean isNothing2 = i >= otherSize || doubleStorage.isNothing.get(i);
-          double value2 = isNothing2 ? Double.NaN : doubleStorage.data[i];
-          zipper.accept(i, value1, isNothing1, value2, isNothing2);
-          context.safepoint();
-        }
-      } else {
-        int minSize = (int) Math.min(size, otherSize);
-        for (int i = 0; i < minSize; i++) {
-          boolean isNothing1 = i >= size || isNothing.get(i);
-          long value1 = isNothing1 ? 0 : data[i];
-          var isNothing2 = otherStorage.isNothing(i);
-          if (isNothing2) {
-            zipper.accept(i, value1, isNothing1, Double.NaN, true);
-          } else {
-            zipper.accept(i, value1, isNothing1, otherStorage.getItemAsDouble(i), false);
-          }
-          context.safepoint();
-        }
-
-        for (long i = minSize; i < toCount; i++) {
-          var isNothing2 = otherStorage.isNothing(i);
-          if (isNothing2) {
-            zipper.accept(i, 0, true, Double.NaN, true);
-          } else {
-            zipper.accept(i, 0, true, otherStorage.getItemAsDouble(i), false);
-          }
-          context.safepoint();
-        }
-      }
-    }
-
-    @Override
-    public void zip(ColumnLongStorage otherStorage, LongLongZipper zipper) {
-      Context context = Context.getCurrent();
-      var otherSize = otherStorage.getSize();
-      var toCount = Math.max(size, otherSize);
-
-      if (otherStorage instanceof LongStorage longStorage) {
-        for (int i = 0; i < toCount; i++) {
-          boolean isNothing1 = i >= size || isNothing.get(i);
-          long value1 = isNothing1 ? 0 : data[i];
-          boolean isNothing2 = i >= otherSize || longStorage.isNothing.get(i);
-          long value2 = isNothing2 ? 0 : longStorage.data[i];
-          zipper.accept(i, value1, isNothing1, value2, isNothing2);
-          context.safepoint();
-        }
-      } else {
-        int minSize = (int) Math.min(size, otherSize);
-        for (int i = 0; i < minSize; i++) {
-          boolean isNothing1 = i >= size || isNothing.get(i);
-          long value1 = isNothing1 ? 0 : data[i];
-          var isNothing2 = otherStorage.isNothing(i);
-          if (isNothing2) {
-            zipper.accept(i, value1, isNothing1, 0, true);
-          } else {
-            zipper.accept(i, value1, isNothing1, otherStorage.getItemAsLong(i), false);
-          }
-          context.safepoint();
-        }
-
-        for (long i = minSize; i < toCount; i++) {
-          var isNothing2 = otherStorage.isNothing(i);
-          if (isNothing2) {
-            zipper.accept(i, 0, true, 0, true);
-          } else {
-            zipper.accept(i, 0, true, otherStorage.getItemAsLong(i), false);
-          }
-          context.safepoint();
-        }
-      }
     }
   }
 

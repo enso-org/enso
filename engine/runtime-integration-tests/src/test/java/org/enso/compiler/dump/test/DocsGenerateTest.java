@@ -398,7 +398,7 @@ public class DocsGenerateTest {
     var sig = DocsVisit.toSignature(m);
     assertEquals("one", m.methodName().name());
     assertEquals(
-        "Generates vector with argument type as return type",
+        "Generates thrown dataflow errors in the signature",
         "one a:local.Error.Main.A -> (local.Error.Main.A&local.Error.Main.B)!local.Error.Main.C",
         sig);
   }
