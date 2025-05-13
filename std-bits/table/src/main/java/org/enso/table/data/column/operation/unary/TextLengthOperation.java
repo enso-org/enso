@@ -37,7 +37,7 @@ public class TextLengthOperation implements UnaryOperation {
     }
 
     return StorageIterators.buildOverStorage(
-        storage,
+        TextType.VARIABLE_LENGTH.asTypedStorage(storage),
         Builder.getForLong(IntegerType.INT_64, storage.getSize(), problemAggregator),
         (builder, index, value) -> builder.appendLong(applyObjectRow(index, value)));
   }
