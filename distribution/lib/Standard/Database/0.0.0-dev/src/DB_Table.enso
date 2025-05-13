@@ -1142,7 +1142,7 @@ type DB_Table
                  table.set double_inventory as="total_stock"
                  table.set (expr "2 * [total_stock]") as="total_stock_expr"
     @value Simple_Expression.default_widget
-    set self (value : DB_Column | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
+    set self (value : (Column & DB_Column) | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
         problem_builder = Problem_Builder.new
         unique = self.column_naming_helper.create_unique_name_strategy
         unique.mark_used self.column_names
@@ -2797,8 +2797,7 @@ type DB_Table
 
        Arguments:
        - internal: The internal column to use for creating a column.
-    make_column : Internal_Column -> Column & DB_Column
-    make_column self internal =
+    make_column self internal:Internal_Column -> Column & DB_Column =
         DB_Column.new internal.name self.connection internal.sql_type_reference internal.expression self.context
 
     ## PRIVATE

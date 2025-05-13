@@ -70,6 +70,22 @@ type DB_Column
     ## PRIVATE
     to_text self -> Text = "DB_Column " + (self:Column).name
 
+    ## PRIVATE
+    let : Text -> (Column -> Column) -> Column
+    let self (name : Text) (callback : (Column -> Column)) =
+        use_ctes = self.connection.dialect.flagged ..Supports_Nested_With_Clause
+
+        if use_ctes.not then callback self else
+            binder = self.connection.base_connection.table_naming_helper.generate_random_table_name
+
+            ref_expression = SQL_IR_Expression.Let_Ref name binder self.expression
+            ref_column = DB_Column.new binder self.connection self.sql_type_reference ref_expression self.context
+            inner_value = (callback ref_column : DB_Column)
+
+            let_expression = SQL_IR_Expression.Let name binder self.expression inner_value.expression
+            DB_Column.new inner_value.internal_name inner_value.connection inner_value.sql_type_reference let_expression inner_value.context
+
+
 ## PRIVATE
 Column.from (that : DB_Column) =
     column_from_implementation that DB_Column_Implementation

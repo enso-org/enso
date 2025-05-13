@@ -4,6 +4,7 @@ import Standard.Base.Runtime.Ref.Ref
 from Standard.Table import Join_Condition, Join_Kind, Table
 
 from Standard.Database import all
+import Standard.Database.DB_Column.DB_Column
 import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 
 from Standard.Test import all
@@ -74,12 +75,12 @@ add_specs (suite_builder : Suite_Builder) setup (prefix : Text) default_connecti
             count_nodes b . should_be_a Integer
             count_nodes c . should_be_a Integer
 
-        group_builder.specify "let bindings should not affect the end result" pending="TODO whitebox tests for let" <|
+        group_builder.specify "let bindings should not affect the end result" <|
             t = table_builder [["x", [1.3, 2.8]], ["y", [-3.4, 7.2]]]
             x = t.at "x"
             y = t.at "y"
             wm enabled expression callback =
-                if enabled then expression.let "x" callback else callback expression
+                if enabled then (expression:DB_Column).let "x" callback else callback expression
             bools = [True, False]
             results = bools.map b0-> bools.map b1-> bools.map b2-> bools.map b3->
                 ## Complex query that optionally enables let bindings at each step
@@ -92,7 +93,7 @@ add_specs (suite_builder : Suite_Builder) setup (prefix : Text) default_connecti
             results.flatten.flatten.flatten.distinct.length . should_equal 1
 
         if data.connection.dialect.flagged ..Supports_Nested_With_Clause then
-            group_builder.specify "should convert WITH binders to short names that do not conflict with existing table names" pending="TODO whitebox tests for let" <|
+            group_builder.specify "should convert WITH binders to short names that do not conflict with existing table names" <|
                 t = Table.new [["x", [1, 2]], ["y", ['a', 'b']]]
                 let0 = t.select_into_database_table data.connection "let_0" temporary=True
                 let2 = t.select_into_database_table data.connection "let_2" temporary=True

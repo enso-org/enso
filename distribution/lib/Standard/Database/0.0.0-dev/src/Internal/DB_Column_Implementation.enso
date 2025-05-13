@@ -89,20 +89,6 @@ type DB_Column_Implementation
 
     to_sql this_column -> SQL_Statement = this_column.to_table.to_sql
 
-    let : Text -> (Column -> Column) -> Column
-    let this_column (name : Text) (callback : (Column -> Column)) =
-        use_ctes = (this_column:DB_Column).connection.dialect.flagged ..Supports_Nested_With_Clause
-
-        if use_ctes.not then callback this_column else
-            binder = (this_column:DB_Column).connection.base_connection.table_naming_helper.generate_random_table_name
-
-            ref_expression = SQL_IR_Expression.Let_Ref name binder (this_column:DB_Column).expression
-            ref_column = DB_Column.new binder (this_column:DB_Column).connection (this_column:DB_Column).sql_type_reference ref_expression (this_column:DB_Column).context
-            inner_value = callback ref_column
-
-            let_expression = SQL_IR_Expression.Let name binder (this_column:DB_Column).expression inner_value.expression
-            DB_Column.new inner_value.internal_name inner_value.connection inner_value.sql_type_reference let_expression inner_value.context
-
     length this_column -> Integer = this_column.to_table.row_count
 
     count_nothing this_column -> Integer =
@@ -485,7 +471,7 @@ type DB_Column_Implementation
                 result.rename new_name
             _ : Array -> this_column.is_in (Vector.from_polyglot_array vector)
             column : Column -> if Helpers.check_connection this_column column . not then (Error.throw (Integrity_Error.Error "Column "+column.name)) else
-                in_subquery = SQL_IR_Statement.Select [Pair.new column.name column.expression] column.context
+                in_subquery = SQL_IR_Statement.Select [Pair.new column.name (column:DB_Column).expression] (column:DB_Column).context
                 new_expr = SQL_IR_Expression.Operation "IS_IN_COLUMN" [(this_column:DB_Column).expression, in_subquery]
                 # This mapping should never be imprecise, if there are errors we need to amend the implementation.
                 sql_type = (this_column:DB_Column).connection.dialect.get_type_mapping.value_type_to_sql Value_Type.Boolean Problem_Behavior.Report_Error
@@ -570,8 +556,7 @@ make_equality_check_with_floating_point_handling column other op =
             _ -> Nothing
         make_binary_op column op other
 
-adapt_unified_column : Column -> Value_Type -> Column
-adapt_unified_column column expected_type =
+adapt_unified_column (column : Column & DB_Column) expected_type =
     dialect = column.connection.dialect
     infer_return_type expression =
         SQL_Type_Reference.new column.connection column.context expression
@@ -654,16 +639,16 @@ round_float this_column decimal_places rounding_mode =
     scale = 10 ^ decimal_places
     scaled = this_column * scale
 
-    scaled.let "scaled" scaled->
+    (scaled:DB_Column).let "scaled" scaled->
         round_base = scaled.floor
-        round_base.let "round_base" round_base->
+        (round_base:DB_Column).let "round_base" round_base->
             round_midpoint = (round_base + 0.5) / scale
-            round_midpoint.let "round_midpoint" round_midpoint->
+            (round_midpoint:DB_Column).let "round_midpoint" round_midpoint->
                 ((scaled.truncate % 2) == 0).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
                     even_is_up = (this_column >= 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
                     half_goes_up = if rounding_mode == Rounding_Mode.Bankers then even_is_up else this_column >= 0
-                    do_round_up = half_goes_up.let "half_goes_up" x-> x.iif (this_column >= round_midpoint) (this_column > round_midpoint)
-                    result = do_round_up.let "do_round_up" x-> x.iif ((round_base + 1.0) / scale) (round_base / scale)
+                    do_round_up = (half_goes_up:DB_Column).let "half_goes_up" x-> x.iif (this_column >= round_midpoint) (this_column > round_midpoint)
+                    result = (do_round_up:DB_Column).let "do_round_up" x-> x.iif ((round_base + 1.0) / scale) (round_base / scale)
                     result.rename new_name
 
 round_decimal : Integer -> Boolean -> Column
@@ -673,16 +658,16 @@ round_decimal this_column decimal_places rounding_mode =
     new_name = (naming_helper this_column).function_name "round" [this_column]
     scale = 10 ^ decimal_places
     scaled = this_column * scale
-    scaled.let "scaled" scaled->
+    (scaled:DB_Column).let "scaled" scaled->
         round_base = scaled.floor
-        round_base.let "round_base" round_base->
+        (round_base:DB_Column).let "round_base" round_base->
             round_midpoint = (round_base + k 0.5).decimal_div scale
-            round_midpoint.let "round_midpoint" round_midpoint->
+            (round_midpoint:DB_Column).let "round_midpoint" round_midpoint->
                 ((scaled.truncate.decimal_mod (k 2)) != k 0).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
                     even_is_up = (this_column >= k 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
                     half_goes_up = if rounding_mode == Rounding_Mode.Bankers then even_is_up else this_column >= k 0
-                    do_round_up = half_goes_up.let "half_goes_up" x-> x.iif (this_column >= round_midpoint) (this_column > round_midpoint)
-                    result = do_round_up.let "do_round_up" x-> x.iif ((round_base + k 1).decimal_div scale) (round_base.decimal_div scale)
+                    do_round_up = (half_goes_up:DB_Column).let "half_goes_up" x-> x.iif (this_column >= round_midpoint) (this_column > round_midpoint)
+                    result = (do_round_up:DB_Column).let "do_round_up" x-> x.iif ((round_base + k 1).decimal_div scale) (round_base.decimal_div scale)
                     result.rename new_name
 
 round_integer : Integer -> Boolean -> Column
@@ -691,21 +676,21 @@ round_integer this_column decimal_places rounding_mode =
     scale = 10 ^ -decimal_places
     halfway = scale / 2
     remainder = this_column % scale
-    remainder.let "remainer" remainder->
+    (remainder:DB_Column).let "remainer" remainder->
         scaled_down = (this_column / scale).truncate . cast Value_Type.Integer
-        scaled_down.let "scaled_down" scaled_down->
+        (scaled_down:DB_Column).let "scaled_down" scaled_down->
             result_unnudged = scaled_down * scale
-            result_unnudged.let "result_unnudged" result_unnudged->
+            (result_unnudged:DB_Column).let "result_unnudged" result_unnudged->
                 if_non_neg =
                     half_goes_up = if rounding_mode == Rounding_Mode.Bankers then (scaled_down % 2) != 0 else this_column >= 0
-                    round_up = half_goes_up.let "half_goes_up" x-> x.iif (remainder >= halfway) (remainder > halfway)
-                    round_up.let "round_up" x-> x.iif (result_unnudged + scale) result_unnudged
+                    round_up = (half_goes_up:DB_Column).let "half_goes_up" x-> x.iif (remainder >= halfway) (remainder > halfway)
+                    (round_up:DB_Column).let "round_up" x-> x.iif (result_unnudged + scale) result_unnudged
                 if_neg =
                     half_goes_up = if rounding_mode == Rounding_Mode.Bankers then (scaled_down % 2) == 0 else this_column >= 0
-                    round_up = half_goes_up.let "half_goes_up" x-> x.iif (remainder < -halfway) (remainder <= -halfway)
-                    round_up.let "round_up" x-> x.iif (result_unnudged - scale) result_unnudged
+                    round_up = (half_goes_up:DB_Column).let "half_goes_up" x-> x.iif (remainder < -halfway) (remainder <= -halfway)
+                    (round_up:DB_Column).let "round_up" x-> x.iif (result_unnudged - scale) result_unnudged
 
-                result = (this_column >= 0).let "self_gt_0" x-> x.iif if_non_neg if_neg
+                result = ((this_column >= 0):DB_Column).let "self_gt_0" x-> x.iif if_non_neg if_neg
                 result.cast Value_Type.Float . rename new_name
 
 short_circuit_special_floating_point : Column -> Column
