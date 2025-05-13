@@ -37,6 +37,12 @@ import {
 import { ComponentExposed } from 'vue-component-type-helpers'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import {
+  Error,
+  SingleColumnOfActions,
+  isError,
+  isSingleColumnOfActions,
+} from './TableVisualization/TableVisualisationTypes'
+import {
   convertFilterModel,
   convertSortModel,
   createDistinctExpressionTemplate,
@@ -55,7 +61,6 @@ export const defaultPreprocessor = [
   'prepare_visualization',
   '1000',
 ] as const
-import { Error, SingleColumnOfActions, isError, isSingleColumnOfActions } from './TableVisualization/TableVisualisationTypes'
 
 type Data =
   | number
@@ -377,10 +382,7 @@ const createRowsForTable = (data: unknown[][], shift: number, isSSrm: boolean) =
   return Array.from({ length: rows }, (_, i) => {
     return Object.fromEntries(
       columnDefs.value.map((h, j) => {
-        return [
-          h.field,
-          h.field === INDEX_FIELD_NAME ? getIndexInfo(i) : (data?.[j - shift]?.[i]),
-        ]
+        return [h.field, h.field === INDEX_FIELD_NAME ? getIndexInfo(i) : data?.[j - shift]?.[i]]
       }),
     )
   })
