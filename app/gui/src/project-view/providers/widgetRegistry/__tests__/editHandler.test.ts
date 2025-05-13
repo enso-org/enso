@@ -6,6 +6,11 @@ import { proxyRefs } from 'vue'
 import { assert } from 'ydoc-shared/util/assert'
 import { newWidgetInstanceId, WidgetEditHandler, type WidgetEditHooks } from '../editHandler'
 
+type HandlerMap = Map<
+  string,
+  { handler: WidgetEditHandler; interaction: WidgetEditHooks & Record<string, Mock> }
+>
+
 // If widget's name is a prefix of another widget's name, then it is its ancestor.
 // The ancestor with longest name is a direct parent.
 function editHandlerTree(
@@ -13,11 +18,8 @@ function editHandlerTree(
   interactionHandler: InteractionHandler,
   createInteraction: (name: PortId) => WidgetEditHooks & Record<string, Mock>,
   widgetTree: CurrentEdit,
-): Map<
-  string,
-  { handler: WidgetEditHandler; interaction: WidgetEditHooks & Record<string, Mock> }
-> {
-  const handlers = new Map()
+): HandlerMap {
+  const handlers: HandlerMap = new Map()
   for (const id of widgets) {
     let parent: string | undefined
     for (const [otherId] of handlers) {
@@ -34,7 +36,7 @@ function editHandlerTree(
       widgetTree,
       interactionHandler,
     )
-    handlers.set(id, { handler, interaction })
+    handlers.set(id, { handler: handler.value, interaction })
   }
   return handlers
 }
