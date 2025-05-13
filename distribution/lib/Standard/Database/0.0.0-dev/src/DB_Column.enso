@@ -1,8 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Column, Table
-from Standard.Table.Column import column_from_implementation
+from Standard.Table.Internal.Column_Type_Helpers import column_from_implementation, underlying_from_column
 
 import project.Connection.Connection.Connection
 import project.Internal.DB_Column_Implementation.DB_Column_Implementation
@@ -36,7 +37,7 @@ type DB_Column
 
        It can perform some additional operations, like refining the type,
        so it should always be preferred over calling `DB_Column.Value` directly.
-    private new internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_IR_Expression context:SQL_IR_Source -> DB_Column =
+    private new internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_IR_Expression context:SQL_IR_Source -> Column & DB_Column =
         DB_Column_Refinements.refine_column <|
             DB_Column.Value internal_name connection sql_type_reference expression context
 
@@ -69,3 +70,6 @@ type DB_Column
 ## PRIVATE
 Column.from (that : DB_Column) =
     column_from_implementation that DB_Column_Implementation
+
+DB_Column.from (that : Column) =
+    underlying_from_column that DB_Column

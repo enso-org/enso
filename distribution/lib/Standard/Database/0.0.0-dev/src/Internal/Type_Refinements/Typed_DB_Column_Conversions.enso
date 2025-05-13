@@ -8,15 +8,21 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Internal.Type_Refinements.Typed_Column_Helpers
 import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
-from Standard.Table import Value_Type
+from Standard.Table import Column, Value_Type
+from Standard.Table.Internal.Column_Type_Helpers import underlying_from_column
 
 import project.DB_Column.DB_Column
 
 ## This conversion is internal and should never be exported.
 Numeric_Column.from (that : DB_Column) =
-    if that.value_type.is_numeric.not then
-        Error.throw (Illegal_Argument.Error "Cannot convert a "+that.value_type.to_display_text+" column to a numeric column.")
+    value_type = (that:Column).value_type
+    if value_type.is_numeric.not then
+        Error.throw (Illegal_Argument.Error "Cannot convert a "+value_type.to_display_text+" column to a numeric column.")
     Typed_Column_Helpers.make_numeric_column that DB_Numeric_Column_Implementation
+
+## This conversion is internal and should never be exported.
+Numeric_Column.from (that : Column) =
+    Numeric_Column.from (underlying_from_column that DB_Column)
 
 type DB_Numeric_Column_Implementation
     abs column =

@@ -2207,11 +2207,6 @@ type Column
         self.implementation.offset self n fill_with
 
 ## PRIVATE
-   Constructor to be used by implementations of the Column type to be able to provide a conversion.
-column_from_implementation value implementation =
-    Column.Value value implementation
-
-## PRIVATE
    Conversion method to a Column from a Vector.
 Column.from (that:Vector) (name:Text="Vector") = Column.from_vector name that
 

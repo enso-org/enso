@@ -7,20 +7,27 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Column.Column
+import project.In_Memory_Column.In_Memory_Column
 import project.Internal.In_Memory_Column_Implementation.apply_unary_operation
 import project.Internal.In_Memory_Column_Implementation.naming_helper
 import project.Internal.Type_Refinements.Typed_Column_Helpers
 import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Value_Type.Value_Type
+from project.Internal.Column_Type_Helpers import underlying_from_column
 
 polyglot java import org.enso.table.data.column.operation.unary.AbsOperation
 polyglot java import org.enso.table.data.column.operation.unary.SignumOperation
 
 ## This conversion is internal and should never be exported.
-Numeric_Column.from (that : Column) =
-    if that.value_type.is_numeric.not then
-        Error.throw (Illegal_Argument.Error "Cannot convert a "+that.value_type.to_display_text+" column to a numeric column.")
+Numeric_Column.from (that : In_Memory_Column) =
+    value_type = (that:Column).value_type
+    if value_type.is_numeric.not then
+        Error.throw (Illegal_Argument.Error "Cannot convert a "+value_type.to_display_text+" column to a numeric column.")
     Typed_Column_Helpers.make_numeric_column that In_Memory_Numeric_Column_Implementation
+
+## This conversion is internal and should never be exported.
+Numeric_Column.from (that : Column) =
+    Numeric_Column.from (underlying_from_column that In_Memory_Column)
 
 type In_Memory_Numeric_Column_Implementation
     abs column =

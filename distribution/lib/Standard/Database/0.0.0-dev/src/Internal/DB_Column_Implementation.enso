@@ -38,9 +38,9 @@ import project.SQL_Type.SQL_Type
 from project.Errors import Integrity_Error, Unsupported_Database_Operation
 
 type DB_Column_Implementation
-    name this_column -> Text = this_column.internal_name
+    name this_column -> Text = (this_column:DB_Column).internal_name
 
-    dialect_name this_column -> Text = this_column.connection.dialect.name
+    dialect_name this_column -> Text = (this_column:DB_Column).connection.dialect.name
 
     display : Integer -> Boolean -> Text
     display this_column show_rows=10 format_terminal=False =
@@ -55,7 +55,7 @@ type DB_Column_Implementation
     to_js_object this_column = this_column.to_sql.to_js_object
 
     to_table this_column -> DB_Table =
-        DB_Table.new this_column.name this_column.connection [this_column.as_internal] this_column.context
+        DB_Table.new this_column.name (this_column:DB_Column).connection [Internal_Column.from this_column] (this_column:DB_Column).context
 
     info this_column -> Table = this_column.to_table.column_info
 
@@ -74,39 +74,39 @@ type DB_Column_Implementation
     first this_column -> Any ! Index_Out_Of_Bounds = this_column.at 0
 
     value_type this_column -> Value_Type =
-        mapping = this_column.connection.dialect.get_type_mapping
-        mapping.sql_type_to_value_type this_column.sql_type
+        mapping = (this_column:DB_Column).connection.dialect.get_type_mapping
+        mapping.sql_type_to_value_type (this_column:DB_Column).sql_type_reference.get
 
     inferred_precise_value_type : Value_Type
     inferred_precise_value_type this_column =
         this_column.value_type
 
     should_be_selected_by_type this_column (value_type : Value_Type) -> Boolean =
-        type_mapping = this_column.connection.dialect.get_type_mapping
+        type_mapping = (this_column:DB_Column).connection.dialect.get_type_mapping
         type_mapping.is_same_type this_column.value_type value_type
 
     to_sql this_column -> SQL_Statement = this_column.to_table.to_sql
 
     let : Text -> (Column -> Column) -> Column
     let this_column (name : Text) (callback : (Column -> Column)) =
-        use_ctes = this_column.connection.dialect.flagged ..Supports_Nested_With_Clause
+        use_ctes = (this_column:DB_Column).connection.dialect.flagged ..Supports_Nested_With_Clause
 
         if use_ctes.not then callback this_column else
-            binder = this_column.connection.base_connection.table_naming_helper.generate_random_table_name
+            binder = (this_column:DB_Column).connection.base_connection.table_naming_helper.generate_random_table_name
 
-            ref_expression = SQL_IR_Expression.Let_Ref name binder this_column.expression
-            ref_column = DB_Column.new binder this_column.connection this_column.sql_type_reference ref_expression this_column.context
+            ref_expression = SQL_IR_Expression.Let_Ref name binder (this_column:DB_Column).expression
+            ref_column = DB_Column.new binder (this_column:DB_Column).connection (this_column:DB_Column).sql_type_reference ref_expression (this_column:DB_Column).context
             inner_value = callback ref_column
 
-            let_expression = SQL_IR_Expression.Let name binder this_column.expression inner_value.expression
+            let_expression = SQL_IR_Expression.Let name binder (this_column:DB_Column).expression inner_value.expression
             DB_Column.new inner_value.internal_name inner_value.connection inner_value.sql_type_reference let_expression inner_value.context
 
     make_op : Text -> Vector Text -> (Text | Nothing) -> (Any | Nothing) -> Column
     make_op this_column op_kind operands new_name metadata=Nothing =
-        checked_support = if this_column.connection.dialect.is_operation_supported op_kind then True else
+        checked_support = if (this_column:DB_Column).connection.dialect.is_operation_supported op_kind then True else
             Error.throw (Unsupported_Database_Operation.Error op_kind)
         checked_support.if_not_error <|
-            type_mapping = this_column.connection.dialect.get_type_mapping
+            type_mapping = (this_column:DB_Column).connection.dialect.get_type_mapping
             prepare_operand operand = case operand of
                 other_column : Column ->
                     if Helpers.check_integrity this_column other_column then other_column.expression else
@@ -117,12 +117,12 @@ type DB_Column_Implementation
                     SQL_IR_Expression.Constant constant
 
             expressions = operands.map prepare_operand
-            new_expr = SQL_IR_Expression.Operation op_kind ([this_column.expression] + expressions) metadata
+            new_expr = SQL_IR_Expression.Operation op_kind ([(this_column:DB_Column).expression] + expressions) metadata
 
             infer_from_database_callback expression =
-                SQL_Type_Reference.new this_column.connection this_column.context expression
+                SQL_Type_Reference.new (this_column:DB_Column).connection (this_column:DB_Column).context expression
             new_type_ref = type_mapping.infer_return_type infer_from_database_callback op_kind [this_column]+operands new_expr
-            DB_Column.new new_name this_column.connection new_type_ref new_expr this_column.context
+            DB_Column.new new_name (this_column:DB_Column).connection new_type_ref new_expr (this_column:DB_Column).context
 
     make_binary_op : Text -> Text -> (Text | Nothing) -> Column
     make_binary_op this_column op_kind operand new_name=Nothing =
@@ -261,11 +261,11 @@ type DB_Column_Implementation
     should_use_builtin_round : Integer -> Boolean -> Boolean
     should_use_builtin_round this_column decimal_places rounding_mode =
         # Don't use for banker's rounding (unless the dialect has a builtin for it)
-        bankers_ok = this_column.connection.dialect.flagged ..Use_Builtin_Bankers || rounding_mode != Rounding_Mode.Bankers
+        bankers_ok = (this_column:DB_Column).connection.dialect.flagged ..Use_Builtin_Bankers || rounding_mode != Rounding_Mode.Bankers
         # Don't use for negative decimal places, if the backend doesn't support it
-        negative_dp_ok = decimal_places >= 0 || this_column.connection.dialect.flagged ..Supports_Negative_Decimal_Places
+        negative_dp_ok = decimal_places >= 0 || (this_column:DB_Column).connection.dialect.flagged ..Supports_Negative_Decimal_Places
         # Don't use for floating-point inputs if decimal_places != 0, for Postgres
-        dp_param_ok = decimal_places == 0 || this_column.value_type.is_floating_point.not || this_column.connection.dialect.flagged ..Supports_Float_Decimal_Places
+        dp_param_ok = decimal_places == 0 || this_column.value_type.is_floating_point.not || (this_column:DB_Column).connection.dialect.flagged ..Supports_Float_Decimal_Places
         bankers_ok && negative_dp_ok && dp_param_ok
 
     round_builtin : Integer -> Boolean -> Column
@@ -351,7 +351,7 @@ type DB_Column_Implementation
             False -> case precise_value_type == Value_Type.Date_Time of
                 True ->
                     op = "date_trunc_to_day"
-                    case this_column.connection.dialect.is_operation_supported op of
+                    case (this_column:DB_Column).connection.dialect.is_operation_supported op of
                         True ->
                             this_column.make_unary_op op new_name
                         False ->
@@ -431,7 +431,7 @@ type DB_Column_Implementation
         is_blank = case self_type.is_text of
             True -> this_column.is_empty
             False -> this_column.is_nothing
-        result = case treat_nans_as_blank && self_type.is_floating_point && this_column.connection.dialect.flagged ..Supports_Separate_NaN of
+        result = case treat_nans_as_blank && self_type.is_floating_point && (this_column:DB_Column).connection.dialect.flagged ..Supports_Separate_NaN of
             True -> is_blank || this_column.is_nan
             False -> is_blank
         result.rename new_name
@@ -454,7 +454,7 @@ type DB_Column_Implementation
         Error.throw (Unsupported_Database_Operation.Error "offset")
 
     rename this_column name:Text = this_column.naming_helper.ensure_name_is_valid name <|
-        DB_Column.new name this_column.connection this_column.sql_type_reference this_column.expression this_column.context
+        DB_Column.new name (this_column:DB_Column).connection (this_column:DB_Column).sql_type_reference (this_column:DB_Column).expression (this_column:DB_Column).context
 
     sort this_column order:Sort_Direction=..Ascending =
         this_column.to_table.sort [..Index 0 order] . at 0
@@ -506,7 +506,7 @@ type DB_Column_Implementation
             ## regex_match is a match if it matches the entire string. So we wrap in ^ and $.
             pattern_with_start_end = "^" + string_pattern + "$"
             new_name = this_column.naming_helper.binary_operation_name "regex_match" this_column pattern
-            if this_column.connection.dialect.is_operation_supported "REGEX_MATCH" then this_column.make_binary_op "REGEX_MATCH" pattern_with_start_end new_name else
+            if (this_column:DB_Column).connection.dialect.is_operation_supported "REGEX_MATCH" then this_column.make_binary_op "REGEX_MATCH" pattern_with_start_end new_name else
                 Error.throw (Unsupported_Database_Operation.Error ("regex_match"))
 
 
@@ -517,7 +517,7 @@ type DB_Column_Implementation
                 Location.Both -> "TRIM"
                 Location.Left -> "LTRIM"
                 Location.Right -> "RTRIM"
-            if this_column.connection.dialect.is_operation_supported operator then this_column.make_binary_op operator what new_name else
+            if (this_column:DB_Column).connection.dialect.is_operation_supported operator then this_column.make_binary_op operator what new_name else
                 Error.throw (Unsupported_Database_Operation.Error ("`trim "+where.to_text+"`"))
 
     @new_text (Text_Input display=..Always)
@@ -525,7 +525,7 @@ type DB_Column_Implementation
         Value_Type.expect_text this_column <| case_sensitivity.disallow_non_default_locale <|
             input_type = if term.is_error then term else Meta.type_of term
             params = Replace_Params.Value input_type case_sensitivity only_first
-            this_column.connection.dialect.if_replace_params_supports params <|
+            (this_column:DB_Column).connection.dialect.if_replace_params_supports params <|
                 new_name = this_column.naming_helper.function_name "replace" [this_column, term, new_text]
                 raw_term = case term of
                     _ : Regex -> term.pattern
@@ -569,7 +569,7 @@ type DB_Column_Implementation
                 aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
                 aligned_period.if_not_error <|
                     new_name = this_column.naming_helper.function_name "date_diff" [this_column, end, period]
-                    metadata = this_column.connection.dialect.prepare_metadata_for_period aligned_period my_type
+                    metadata = (this_column:DB_Column).connection.dialect.prepare_metadata_for_period aligned_period my_type
                     this_column.make_op "date_diff" [end] new_name metadata
 
     date_add this_column (amount : Column | Integer) (period : Date_Period | Time_Period = default_date_period this_column) =
@@ -579,7 +579,7 @@ type DB_Column_Implementation
                 aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
                 aligned_period.if_not_error <|
                     new_name = this_column.naming_helper.function_name "date_add" [this_column, amount, period]
-                    metadata = this_column.connection.dialect.prepare_metadata_for_period aligned_period my_type
+                    metadata = (this_column:DB_Column).connection.dialect.prepare_metadata_for_period aligned_period my_type
                     this_column.make_op "date_add" [amount] new_name metadata
 
     is_in this_column (vector : Column | Vector | Array) =
@@ -602,12 +602,12 @@ type DB_Column_Implementation
             _ : Array -> this_column.is_in (Vector.from_polyglot_array vector)
             column : Column -> if Helpers.check_connection this_column column . not then (Error.throw (Integrity_Error.Error "Column "+column.name)) else
                 in_subquery = SQL_IR_Statement.Select [Pair.new column.name column.expression] column.context
-                new_expr = SQL_IR_Expression.Operation "IS_IN_COLUMN" [this_column.expression, in_subquery]
+                new_expr = SQL_IR_Expression.Operation "IS_IN_COLUMN" [(this_column:DB_Column).expression, in_subquery]
                 # This mapping should never be imprecise, if there are errors we need to amend the implementation.
-                sql_type = this_column.connection.dialect.get_type_mapping.value_type_to_sql Value_Type.Boolean Problem_Behavior.Report_Error
+                sql_type = (this_column:DB_Column).connection.dialect.get_type_mapping.value_type_to_sql Value_Type.Boolean Problem_Behavior.Report_Error
                 new_type_ref = SQL_Type_Reference.from_constant sql_type . catch Inexact_Type_Coercion _->
-                    Error.throw (Illegal_State.Error "The dialect "+this_column.connection.dialect.name+" does not support a boolean type. The implementation of `is_in` should be revised to account for this. This is an internal issue with the Database library.")
-                DB_Column.new new_name this_column.connection new_type_ref new_expr this_column.context
+                    Error.throw (Illegal_State.Error "The dialect "+(this_column:DB_Column).connection.dialect.name+" does not support a boolean type. The implementation of `is_in` should be revised to account for this. This is an internal issue with the Database library.")
+                DB_Column.new new_name (this_column:DB_Column).connection new_type_ref new_expr (this_column:DB_Column).context
 
     @format (make_format_chooser include_number=False)
     parse this_column (type : Value_Type | Auto) (format : Text | Data_Formatter = "") on_problems:Problem_Behavior=..Report_Warning =
@@ -636,14 +636,14 @@ type DB_Column_Implementation
 
     internal_do_cast : Value_Type -> Problem_Behavior -> Column
     internal_do_cast this_column value_type on_problems:Problem_Behavior =
-        dialect = this_column.connection.dialect
+        dialect = (this_column:DB_Column).connection.dialect
         type_mapping = dialect.get_type_mapping
         target_sql_type = type_mapping.value_type_to_sql value_type on_problems
         target_sql_type.if_not_error <|
             infer_from_database new_expression =
-                SQL_Type_Reference.new this_column.connection this_column.context new_expression
-            new_column = dialect.make_cast this_column.as_internal target_sql_type infer_from_database
-            DB_Column.new new_column.name this_column.connection new_column.sql_type_reference new_column.expression this_column.context
+                SQL_Type_Reference.new (this_column:DB_Column).connection (this_column:DB_Column).context new_expression
+            new_column = dialect.make_cast (Internal_Column.from this_column) target_sql_type infer_from_database
+            DB_Column.new new_column.name (this_column:DB_Column).connection new_column.sql_type_reference new_column.expression (this_column:DB_Column).context
 
     map this_column (function : Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) =
         _ = [this_column, function, skip_nothing, expected_value_type]
@@ -653,14 +653,14 @@ type DB_Column_Implementation
         _ = [this_column, right, keep_unmatched, right_prefix, on_problems]
         Error.throw <| Unsupported_Database_Operation.Error "zip"
 
-    as_internal this_column = Internal_Column.Value this_column.name this_column.sql_type_reference this_column.expression
+    as_internal this_column = Internal_Column.Value this_column.name (this_column:DB_Column).sql_type_reference (this_column:DB_Column).expression
 
     to_text : Text
     to_text this_column = "(Database Column "+this_column.name.to_text+")"
 
-    sql_type this_column = this_column.sql_type_reference.get
+    sql_type this_column = (this_column:DB_Column).sql_type_reference.get
 
-    naming_helper this_column = this_column.connection.base_connection.column_naming_helper
+    naming_helper this_column = (this_column:DB_Column).connection.base_connection.column_naming_helper
 
     var_args_functions : Array
     var_args_functions = ['is_in', 'coalesce', 'min', 'max']
@@ -711,5 +711,5 @@ adapt_unified_column column expected_type =
     dialect = column.connection.dialect
     infer_return_type expression =
         SQL_Type_Reference.new column.connection column.context expression
-    adapted = dialect.adapt_unified_column column.as_internal expected_type infer_return_type
+    adapted = dialect.adapt_unified_column (Internal_Column.from column) expected_type infer_return_type
     DB_Column.new column.name column.connection adapted.sql_type_reference adapted.expression column.context
