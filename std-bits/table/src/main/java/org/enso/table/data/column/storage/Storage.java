@@ -1,9 +1,6 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.function.BiFunction;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
@@ -433,7 +430,27 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   }
 
   @Override
-  public ColumnStorageIterator<T> iterator() {
+  public Iterator<T> iterator() {
+    return new Iterator<T>() {
+      private long index = -1;
+
+      @Override
+      public boolean hasNext() {
+        return index + 1 < getSize();
+      }
+
+      @Override
+      public T next() {
+        if (!hasNext()) {
+          throw new NoSuchElementException();
+        }
+        return getItemBoxed(++index);
+      }
+    };
+  }
+
+  @Override
+  public ColumnStorageIterator<T> iteratorWithIndex() {
     return new StorageIterator<>(this);
   }
 

@@ -174,15 +174,21 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check syntax
+        run: ./run libraries check-syntax
       - run: rm -rf built-distribution test
         shell: bash
       - name: Download Engine Distribution
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
+      - run: |-
+          ls -l built-distribution.tar
+          sha256sum built-distribution.tar
+        shell: bash
       - name: Unpack Engine Distribution
-        run: |
-          tar -xvf built-distribution.tar
+        run: |-
+          tar -xvf built-distribution.tar -C .
           rm built-distribution.tar
       - run: ./run libraries lint
         env:
@@ -241,9 +247,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
+      - run: |-
+          ls -l built-distribution.tar
+          sha256sum built-distribution.tar
+        shell: bash
       - name: Unpack Engine Distribution
-        run: |
-          tar -xvf built-distribution.tar
+        run: |-
+          tar -xvf built-distribution.tar -C .
           rm built-distribution.tar
       - run: ./run backend test jvm
         env:
@@ -313,9 +323,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (windows, amd64)
+      - run: |-
+          ls -l built-distribution.tar
+          sha256sum built-distribution.tar
+        shell: bash
       - name: Unpack Engine Distribution
-        run: |
-          tar -xvf built-distribution.tar
+        run: |-
+          tar -xvf built-distribution.tar -C .
           rm built-distribution.tar
       - run: ./run backend test jvm
         env:
@@ -385,9 +399,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
+      - run: |-
+          ls -l built-distribution.tar
+          sha256sum built-distribution.tar
+        shell: bash
       - name: Unpack Engine Distribution
-        run: |
-          tar -xvf built-distribution.tar
+        run: |-
+          tar -xvf built-distribution.tar -C .
           rm built-distribution.tar
       - run: ./run backend stdlib-api-check
         env:
@@ -444,9 +462,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
+      - run: |-
+          ls -l built-distribution.tar
+          sha256sum built-distribution.tar
+        shell: bash
       - name: Unpack Engine Distribution
-        run: |
-          tar -xvf built-distribution.tar
+        run: |-
+          tar -xvf built-distribution.tar -C .
           rm built-distribution.tar
       - run: ./run backend test standard-library
         env:
@@ -519,9 +541,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (windows, amd64)
+      - run: |-
+          ls -l built-distribution.tar
+          sha256sum built-distribution.tar
+        shell: bash
       - name: Unpack Engine Distribution
-        run: |
-          tar -xvf built-distribution.tar
+        run: |-
+          tar -xvf built-distribution.tar -C .
           rm built-distribution.tar
       - run: ./run backend test standard-library
         env:
@@ -594,9 +620,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
+      - run: |-
+          ls -l built-distribution.tar
+          sha256sum built-distribution.tar
+        shell: bash
       - name: Unpack Engine Distribution
-        run: |
-          tar -xvf built-distribution.tar
+        run: |-
+          tar -xvf built-distribution.tar -C .
           rm built-distribution.tar
       - run: ./run backend test standard-library-in-native
         env:
@@ -669,9 +699,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (windows, amd64)
+      - run: |-
+          ls -l built-distribution.tar
+          sha256sum built-distribution.tar
+        shell: bash
       - name: Unpack Engine Distribution
-        run: |
-          tar -xvf built-distribution.tar
+        run: |-
+          tar -xvf built-distribution.tar -C .
           rm built-distribution.tar
       - run: ./run backend test standard-library-in-native
         env:

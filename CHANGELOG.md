@@ -33,12 +33,14 @@
 #### Enso Language & Runtime
 
 - [Prevent `Meta` access to private constructors and private fields][12905]
+- [Encapsulating Private_Access constructor][#12976]
 - [Upgrading Truffle][12500] (including its
   [JavaScript](https://www.graalvm.org/javascript/) and
   [Python](https://www.graalvm.org/python/)) to version `24.2.0`.
 - [Upgrade GraalVM from JDK 21 to JDK 24][12855]
 
 [12500]: https://github.com/enso-org/enso/pull/12500
+[12976]: https://github.com/enso-org/enso/pull/12976
 [12855]: https://github.com/enso-org/enso/pull/12855
 [12905]: https://github.com/enso-org/enso/pull/12905
 

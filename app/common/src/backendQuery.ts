@@ -83,25 +83,25 @@ export const INVALIDATION_MAP: Partial<
   changeUserGroup: [INVALIDATE_ALL_QUERIES],
   createTag: ['listTags'],
   deleteTag: ['listTags'],
-  associateTag: ['listDirectory'],
+  associateTag: ['listDirectory', 'getAssetDetails'],
   acceptInvitation: [INVALIDATE_ALL_QUERIES],
   declineInvitation: ['usersMe'],
-  createProject: ['listDirectory'],
-  duplicateProject: ['listDirectory'],
-  createDirectory: ['listDirectory'],
-  createSecret: ['listDirectory'],
-  updateSecret: ['listDirectory'],
-  updateProject: ['listDirectory'],
-  updateFile: ['listDirectory'],
-  updateDirectory: ['listDirectory'],
-  createDatalink: ['listDirectory', 'getDatalink'],
-  uploadFileEnd: ['listDirectory', 'listAssetVersions'],
-  copyAsset: ['listDirectory', 'listAssetVersions'],
-  deleteAsset: ['listDirectory', 'listAssetVersions'],
-  undoDeleteAsset: ['listDirectory'],
-  updateAsset: ['listDirectory', 'listAssetVersions'],
-  openProject: ['listDirectory'],
-  closeProject: ['listDirectory', 'listAssetVersions'],
+  createProject: ['listDirectory', 'getAssetDetails'],
+  duplicateProject: ['listDirectory', 'getAssetDetails'],
+  createDirectory: ['listDirectory', 'getAssetDetails'],
+  createSecret: ['listDirectory', 'getAssetDetails'],
+  updateSecret: ['listDirectory', 'getAssetDetails'],
+  updateProject: ['listDirectory', 'getAssetDetails'],
+  updateFile: ['listDirectory', 'getAssetDetails'],
+  updateDirectory: ['listDirectory', 'getAssetDetails'],
+  createDatalink: ['listDirectory', 'getDatalink', 'getAssetDetails'],
+  uploadFileEnd: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
+  copyAsset: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
+  deleteAsset: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
+  undoDeleteAsset: ['listDirectory', 'getAssetDetails'],
+  updateAsset: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
+  openProject: ['listDirectory', 'getAssetDetails'],
+  closeProject: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
   createProjectExecution: ['listProjectExecutions'],
   updateProjectExecution: ['listProjectExecutions'],
   syncProjectExecution: ['listProjectExecutions'],
@@ -145,13 +145,21 @@ export function backendQueryOptions<Method extends BackendMethods>(
 }
 
 /** Returns the QueryKey to use for the given backend method invocation. */
-export function backendQueryKey<Method extends BackendMethods>(
+export function backendQueryKey<
+  Method extends BackendMethods,
+  TQueryKey extends queryCore.QueryKey = queryCore.QueryKey,
+>(
   backend: Backend | null,
   method: Method,
   args: Readonly<Parameters<Backend[Method]>>,
-  keyExtra?: queryCore.QueryKey | undefined,
-): queryCore.QueryKey {
-  return [backend?.type, method, ...normalizeMethodQuery(method, args), ...(keyExtra ?? [])]
+  keyExtra?: TQueryKey | undefined,
+): TQueryKey {
+  return [
+    backend?.type,
+    method,
+    ...normalizeMethodQuery(method, args),
+    ...(keyExtra ?? []),
+  ] as unknown as TQueryKey
 }
 
 /** Returns options applicable to any method of the given backend. */

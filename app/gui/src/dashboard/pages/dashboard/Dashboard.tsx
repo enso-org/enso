@@ -7,7 +7,7 @@ import * as React from 'react'
 import * as detect from 'enso-common/src/detect'
 
 import * as projectHooks from '#/hooks/projectHooks'
-import { CategoriesProvider } from '#/layouts/Drive/Categories/categoriesHooks'
+import { CategoriesProvider } from '#/layouts/Drive/Categories'
 import DriveProvider from '#/providers/DriveProvider'
 
 import * as backendProvider from '#/providers/BackendProvider'
