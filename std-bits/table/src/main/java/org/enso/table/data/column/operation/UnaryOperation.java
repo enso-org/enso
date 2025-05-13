@@ -80,7 +80,6 @@ public interface UnaryOperation {
     return new Column(newColumnName, (Storage<?>) storage);
   }
 
-
   /*
    * Gets the storage of the column resolving through inferred storages.
    * Replace with a simple call to `getStorage` if an operation should not
