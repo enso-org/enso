@@ -55,6 +55,7 @@ export const defaultPreprocessor = [
   'prepare_visualization',
   '1000',
 ] as const
+import { Error, SingleColumnOfActions, isError, isSingleColumnOfActions } from './TableVisualization/TableVisualisationTypes'
 
 type Data =
   | number
@@ -64,12 +65,6 @@ type Data =
   | ObjectMatrix
   | EnsoTableOrColumn
   | SingleColumnOfActions
-
-interface Error {
-  type: undefined
-  error: string
-  all_rows_count?: undefined
-}
 
 interface ValueType {
   constructor: string
@@ -82,17 +77,6 @@ interface Matrix {
   all_rows_count: number
   json: unknown[][]
   value_type: ValueType[]
-  get_child_node_action: string
-  child_label: string
-  visualization_header: string
-}
-
-interface SingleColumnOfActions {
-  type: 'Single_Column_Of_Actions'
-  column_count: number
-  all_rows_count: number
-  data: string[]
-  json: unknown[][]
   get_child_node_action: string
   child_label: string
   visualization_header: string
@@ -395,7 +379,7 @@ const createRowsForTable = (data: unknown[][], shift: number, isSSrm: boolean) =
       columnDefs.value.map((h, j) => {
         return [
           h.field,
-          h.field === INDEX_FIELD_NAME ? getIndexInfo(i) : toRender(data?.[j - shift]?.[i]),
+          h.field === INDEX_FIELD_NAME ? getIndexInfo(i) : (data?.[j - shift]?.[i]),
         ]
       }),
     )
@@ -762,11 +746,6 @@ function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef 
   }
 }
 
-/** Return a human-readable representation of an object. */
-function toRender(content: unknown) {
-  return content
-}
-
 watchEffect(() => {
   // If the user switches from one visualization type to another, we can receive the raw object.
   const data_ =
@@ -799,7 +778,7 @@ watchEffect(() => {
         // eslint-disable-next-line camelcase
         requires_number_format: undefined,
       }
-  if ('error' in data_) {
+  if (isError(data_)) {
     columnDefs.value = [
       {
         field: 'Error',
@@ -841,7 +820,7 @@ watchEffect(() => {
     }
     rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
-  } else if (data_.type === 'Single_Column_Of_Actions') {
+  } else if (isSingleColumnOfActions(data_)) {
     columnDefs.value = [
       toLinkField('Value', {
         tooltipValue: data_.child_label,
@@ -859,12 +838,12 @@ watchEffect(() => {
       }),
       toField('Value'),
     ]
-    rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
+    rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: row }))
     isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
     // single values like Integer or Text
     columnDefs.value = [toField('Value')]
-    rowData.value = [{ Value: toRender(data_.json) }]
+    rowData.value = [{ Value: data_.json }]
   } else {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {

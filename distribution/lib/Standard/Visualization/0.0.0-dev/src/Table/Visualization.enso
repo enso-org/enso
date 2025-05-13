@@ -56,7 +56,7 @@ max_columns = 250
    Render Error to JSON
 make_json_for_error : Any -> JS_Object
 make_json_for_error error =
-    pairs = [["error", error.to_display_text]]
+    pairs = [["type", "Error"], ["error", error.to_display_text]]
     JS_Object.from_pairs pairs
 
 ## PRIVATE
