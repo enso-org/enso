@@ -32,7 +32,7 @@ import {
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
 import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
-import { type AssetsDataTransferPayload, type Category } from '#/layouts/Drive/CategorySwitcher'
+import type { AssetsDataTransferPayload, Category } from '#/layouts/Drive/CategorySwitcher'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import {
   SUGGESTIONS_FOR_HAS,

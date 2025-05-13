@@ -10,9 +10,10 @@ import {
   deleteAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useUploadFileToCloudMutation, useUploadFileToLocal } from '#/hooks/backendUploadFilesHooks'
+import { useUploadFileToCloudMutation } from '#/hooks/backendUploadFilesHooks'
 import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useUploadFileToLocal } from '#/hooks/useUploadFileToLocal'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import {
   canTransferBetweenCategories,

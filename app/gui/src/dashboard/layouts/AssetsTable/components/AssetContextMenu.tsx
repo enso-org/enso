@@ -9,14 +9,11 @@ import {
   downloadAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import {
-  isUploadableAsset,
-  useUploadFileToCloudMutation,
-  useUploadFileToLocal,
-} from '#/hooks/backendUploadFilesHooks'
+import { isUploadableAsset, useUploadFileToCloudMutation } from '#/hooks/backendUploadFilesHooks'
 import { useCopy } from '#/hooks/copyHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { useNewProject } from '#/hooks/useNewProject'
+import { useUploadFileToLocal } from '#/hooks/useUploadFileToLocal'
 import type { AssetRowInnerProps } from '#/layouts/AssetsTable/types'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { isCloudCategory, useCategories } from '#/layouts/Drive/CategorySwitcher'
