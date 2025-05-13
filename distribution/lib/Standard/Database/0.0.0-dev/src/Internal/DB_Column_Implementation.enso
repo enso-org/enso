@@ -587,7 +587,7 @@ make_op this_column op_kind operands new_name metadata=Nothing =
         type_mapping = (this_column:DB_Column).connection.dialect.get_type_mapping
         prepare_operand operand = case operand of
             other_column : Column ->
-                if Helpers.check_integrity this_column other_column then other_column.expression else
+                if Helpers.check_integrity this_column other_column then (other_column:DB_Column).expression else
                     Error.throw (Integrity_Error.Error "Column "+other_column.name)
             sql_expression : SQL_IR_Expression ->
                 sql_expression

@@ -1983,7 +1983,8 @@ type Column
              import Standard.Examples
 
              example_to_table = Examples.integer_column.to_table
-    to_table self -> Table =
+    to_table self -> Table | Any =
+        # FIXME Table | Any is a workaround until Table becomes a base type like Column
         self.implementation.to_table self
 
     ## ALIAS column type, field info, metadata
