@@ -42,23 +42,28 @@ export async function createGatewayServer(
   const wss = new WebSocketServer({ noServer: true })
   wss.on('connection', (ws: WS, _request: IncomingMessage, data: ConnectionData) => {
     ws.on('error', onWebSocketError)
-    setupGatewayClient(ws, overrideLanguageServerUrl ?? data.lsUrl, data.doc)
+    try {
+      setupGatewayClient(ws, data.lsUrl, data.doc)
+    } catch (e) {
+      if (e instanceof Error) {
+        onWebSocketError(e)
+        ws.close(1003, e.message)
+      } else throw e
+    }
   })
 
   httpServer.on('upgrade', (request, socket, head) => {
     socket.on('error', onHttpSocketError)
     authenticate(request, function next(err, data) {
-      if (err != null) {
+      if (err != null || data == null) {
         socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n')
         socket.destroy()
         return
       }
       socket.removeListener('error', onHttpSocketError)
-      if (data != null) {
-        wss.handleUpgrade(request, socket, head, function done(ws: WS) {
-          wss.emit('connection', ws, request, data)
-        })
-      }
+      wss.handleUpgrade(request, socket, head, function done(ws: WS) {
+        wss.emit('connection', ws, request, data)
+      })
     })
   })
 
@@ -82,7 +87,7 @@ export async function createGatewayServer(
     const { pathname, query } = parse(request.url, true)
     if (pathname == null) return callback(null, null)
     const doc = docName(pathname)
-    const lsUrl = query.ls
+    const lsUrl = overrideLanguageServerUrl ?? query.ls
     const data = doc != null && typeof lsUrl === 'string' ? { lsUrl, doc, user } : null
     callback(null, data)
   }

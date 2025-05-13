@@ -3,7 +3,6 @@
  * A sidebar that can be expanded or collapsed.
  * It is used to view and interact with assets in the drive.
  */
-import RepeatIcon from '#/assets/arrows_repeat.svg'
 import CalendarIcon from '#/assets/calendar_repeat_outline.svg'
 import DocsIcon from '#/assets/file_text.svg'
 import SessionsIcon from '#/assets/group.svg'
@@ -25,7 +24,6 @@ import { AssetPanelTabs } from './components/AssetPanelTabs'
 import { AssetPanelToggle } from './components/AssetPanelToggle'
 import { AssetProperties } from './components/AssetProperties'
 import { AssetVersions } from './components/AssetVersions'
-import { ProjectExecutions } from './components/ProjectExecutions'
 import { ProjectExecutionsCalendar } from './components/ProjectExecutionsCalendar'
 import { ProjectSessions } from './components/ProjectSessions'
 import {
@@ -192,10 +190,6 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
                   <ProjectSessions backend={backend} category={category} />
                 </AssetPanelTabs.TabPanel>
 
-                <AssetPanelTabs.TabPanel id="executions">
-                  <ProjectExecutions backend={backend} category={category} />
-                </AssetPanelTabs.TabPanel>
-
                 <AssetPanelTabs.TabPanel id="executionsCalendar">
                   <ProjectExecutionsCalendar backend={backend} category={category} />
                 </AssetPanelTabs.TabPanel>
@@ -243,15 +237,6 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
             isExpanded={isExpanded}
             onPress={expandTab}
             isDisabled={isLocal}
-          />
-          <AssetPanelTabs.Tab
-            id="executions"
-            icon={RepeatIcon}
-            label={isLocal ? getText('assetProjectExecutions.cloudOnly') : getText('executions')}
-            isExpanded={isExpanded}
-            onPress={expandTab}
-            isDisabled={isLocal}
-            isHidden={true}
           />
           <AssetPanelTabs.Tab
             id="executionsCalendar"
