@@ -292,6 +292,9 @@ importers:
       magic-string:
         specifier: ^0.30.17
         version: 0.30.17
+      modern-isomorphic-ws:
+        specifier: ^1.0.5
+        version: 1.0.5(@types/ws@8.5.13)(ws@8.18.0)
       monaco-editor:
         specifier: 0.48.0
         version: 0.48.0
@@ -8264,6 +8267,9 @@ packages:
   vue-component-type-helpers@2.2.0:
     resolution: {integrity: sha512-cYrAnv2me7bPDcg9kIcGwjJiSB6Qyi08+jLDo9yuvoFQjzHiPTzML7RnkJB1+3P6KMsX/KbCD4QE3Tv/knEllw==}
 
+  vue-component-type-helpers@2.2.10:
+    resolution: {integrity: sha512-iDUO7uQK+Sab2tYuiP9D1oLujCWlhHELHMgV/cB13cuGbG4qwkLHvtfWb6FzvxrIOPDnU0oHsz2MlQjhYDeaHA==}
+
   vue-component-type-helpers@2.2.8:
     resolution: {integrity: sha512-4bjIsC284coDO9om4HPA62M7wfsTvcmZyzdfR0aUlFXqq4tXxM1APyXpNVxPC8QazKw9OhmZNHBVDA6ODaZsrA==}
 
@@ -11939,7 +11945,7 @@ snapshots:
       storybook: 8.5.0(prettier@3.4.2)(typescript@5.7.2)(vite@6.2.5(@types/node@22.10.4)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))
       ts-dedent: 2.2.0
       type-fest: 2.19.0
-      vue-component-type-helpers: 2.2.8
+      vue-component-type-helpers: 2.2.10
 
   '@storybook/vue3@8.5.0(storybook@8.5.0)(vue@3.5.13(typescript@5.7.2))':
     dependencies:
@@ -11953,7 +11959,7 @@ snapshots:
       ts-dedent: 2.2.0
       type-fest: 2.19.0
       vue: 3.5.13(typescript@5.7.2)
-      vue-component-type-helpers: 2.2.8
+      vue-component-type-helpers: 2.2.10
 
   '@stripe/react-stripe-js@2.9.0(@stripe/stripe-js@3.5.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
@@ -18066,6 +18072,8 @@ snapshots:
       typescript: 5.7.2
 
   vue-component-type-helpers@2.2.0: {}
+
+  vue-component-type-helpers@2.2.10: {}
 
   vue-component-type-helpers@2.2.8: {}
 
