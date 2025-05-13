@@ -1,6 +1,4 @@
 /** @file Plan selector component. */
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-
 import { DIALOG_BACKGROUND } from '#/components/AriaComponents'
 import { usePaywall } from '#/hooks/billing'
 import { useAuth } from '#/providers/AuthProvider'
@@ -9,6 +7,7 @@ import { useText } from '#/providers/TextProvider'
 import { Plan, PLANS } from '#/services/Backend'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card } from './components'
 import { getComponentPerPlan } from './getComponentForPlan'
 

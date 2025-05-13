@@ -2,13 +2,11 @@
  * @file The React provider for the project manager `Backend`, along with hooks to use the
  * provider via the shared React context.
  */
-import * as React from 'react'
-
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import type LocalBackend from '#/services/LocalBackend'
+import type { LocalBackend } from '#/services/LocalBackend'
 import { ProjectManagerEvents } from '#/services/ProjectManager'
-import type RemoteBackend from '#/services/RemoteBackend'
-
+import type { RemoteBackend } from '#/services/RemoteBackend'
+import * as React from 'react'
 import { BackendContext, ProjectManagerContext } from './hooks'
 
 /** Props for a {@link BackendProvider}. */

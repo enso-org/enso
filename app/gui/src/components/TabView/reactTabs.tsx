@@ -4,7 +4,9 @@ import { EditorProps } from '#/layouts/Editor'
 import * as react from 'react'
 import { applyPureReactInVue } from 'veaury'
 
-const ReactDrive = react.lazy(() => import('#/layouts/Drive'))
+const ReactDrive = react.lazy(() =>
+  import('#/layouts/Drive').then(({ Drive }) => ({ default: Drive })),
+)
 const ReactEditor = react.lazy(() => import('#/layouts/Editor'))
 const ReactSettings = react.lazy(() => import('#/layouts/Settings'))
 

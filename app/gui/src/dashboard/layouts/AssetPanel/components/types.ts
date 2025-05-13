@@ -1,8 +1,8 @@
 /**
- * @file shared types for the asset panel
+ * @file Shared types for the asset panel.
  */
+import type { Category } from '#/layouts/Drive/CategorySwitcher'
 import type Backend from '#/services/Backend'
-import type { Category } from '../../Drive/Categories'
 
 /**
  * Props for the asset panel.

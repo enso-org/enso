@@ -2,17 +2,13 @@
  * @file The React provider for the project manager `Backend`, along with hooks to use the
  * provider via the shared React context.
  */
-import * as React from 'react'
-
-import invariant from 'tiny-invariant'
-
-import * as common from 'enso-common'
-
-import { type Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
-
+import { isCloudCategory, type Category } from '#/layouts/Drive/CategorySwitcher'
 import { BackendType } from '#/services/Backend'
-import type LocalBackend from '#/services/LocalBackend'
-import type RemoteBackend from '#/services/RemoteBackend'
+import type { LocalBackend } from '#/services/LocalBackend'
+import type { RemoteBackend } from '#/services/RemoteBackend'
+import * as common from 'enso-common'
+import * as React from 'react'
+import invariant from 'tiny-invariant'
 
 /** State contained in a `BackendContext`. */
 export interface BackendContextType {

@@ -31,7 +31,6 @@ import {
 } from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
-import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
 import { type AssetsDataTransferPayload, type Category } from '#/layouts/Drive/CategorySwitcher'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
@@ -109,6 +108,7 @@ import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
 import * as z from 'zod'
 import { AssetRow, INITIAL_ROW_STATE } from './components/AssetRow'
+import { AssetsTableContextMenu } from './components/AssetsTableContextMenu'
 import {
   Column,
   COLUMN_CSS_CLASS,

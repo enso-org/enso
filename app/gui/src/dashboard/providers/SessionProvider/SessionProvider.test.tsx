@@ -8,7 +8,7 @@ import type {
   UserSession,
 } from '#/authentication/cognito'
 import { render, screen, waitFor } from '#/test'
-import HttpClient from '#/utilities/HttpClient'
+import { HttpClient } from '#/utilities/HttpClient'
 import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Suspense } from 'react'

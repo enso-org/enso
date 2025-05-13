@@ -1,5 +1,5 @@
 <script lang="ts">
-import UserBarReact from '#/layouts/UserBar'
+import { UserBar as UserBarReact } from '#/layouts/UserBar'
 import { LaunchedProject, LaunchedProjectId, TabType } from '#/providers/ProjectsProvider'
 import { ProjectId } from '#/services/Backend'
 import { Drive, Editor, Settings } from '$/components/TabView/reactTabs'
