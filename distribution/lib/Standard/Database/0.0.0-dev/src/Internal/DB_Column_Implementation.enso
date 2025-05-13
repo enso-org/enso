@@ -23,6 +23,7 @@ from Standard.Table.Errors import Conversion_Failure, Inexact_Type_Coercion, Inv
 from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 
 import project.Connection.Connection.Connection
+import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
 import project.Internal.Helpers
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -86,8 +87,8 @@ type DB_Column_Implementation
 
     to_sql this_column -> SQL_Statement = this_column.to_table.to_sql
 
-    let : Text -> (DB_Column -> DB_Column) -> DB_Column
-    let this_column (name : Text) (callback : (DB_Column -> DB_Column)) -> DB_Column =
+    let : Text -> (Column -> Column) -> Column
+    let this_column (name : Text) (callback : (Column -> Column)) =
         use_ctes = this_column.connection.dialect.flagged ..Supports_Nested_With_Clause
 
         if use_ctes.not then callback this_column else
@@ -100,16 +101,16 @@ type DB_Column_Implementation
             let_expression = SQL_IR_Expression.Let name binder this_column.expression inner_value.expression
             DB_Column.new inner_value.internal_name inner_value.connection inner_value.sql_type_reference let_expression inner_value.context
 
-    make_op : Text -> Vector Text -> (Text | Nothing) -> (Any | Nothing) -> DB_Column
+    make_op : Text -> Vector Text -> (Text | Nothing) -> (Any | Nothing) -> Column
     make_op this_column op_kind operands new_name metadata=Nothing =
         checked_support = if this_column.connection.dialect.is_operation_supported op_kind then True else
             Error.throw (Unsupported_Database_Operation.Error op_kind)
         checked_support.if_not_error <|
             type_mapping = this_column.connection.dialect.get_type_mapping
             prepare_operand operand = case operand of
-                other_column : DB_Column ->
+                other_column : Column ->
                     if Helpers.check_integrity this_column other_column then other_column.expression else
-                        Error.throw (Integrity_Error.Error "DB_Column "+other_column.name)
+                        Error.throw (Integrity_Error.Error "Column "+other_column.name)
                 sql_expression : SQL_IR_Expression ->
                     sql_expression
                 constant ->
@@ -123,13 +124,13 @@ type DB_Column_Implementation
             new_type_ref = type_mapping.infer_return_type infer_from_database_callback op_kind [this_column]+operands new_expr
             DB_Column.new new_name this_column.connection new_type_ref new_expr this_column.context
 
-    make_binary_op : Text -> Text -> (Text | Nothing) -> DB_Column
+    make_binary_op : Text -> Text -> (Text | Nothing) -> Column
     make_binary_op this_column op_kind operand new_name=Nothing =
         effective_new_name = new_name.if_nothing <|
             this_column.naming_helper.binary_operation_name op_kind this_column operand
         this_column.make_op op_kind [operand] effective_new_name
 
-    make_unary_op : Text -> Text|Nothing -> DB_Column
+    make_unary_op : Text -> Text|Nothing -> Column
     make_unary_op this_column op_kind new_name=Nothing =
         effective_new_name = new_name.if_nothing <|
             this_column.naming_helper.function_name op_kind [this_column]
@@ -143,39 +144,39 @@ type DB_Column_Implementation
     count this_column -> Integer =
         this_column.to_table.filter 0 Filter_Condition.Not_Nothing . row_count
 
-    == this_column (other : DB_Column | Any) -> DB_Column =
+    == this_column (other : Column | Any) =
         make_equality_check_with_floating_point_handling this_column other "=="
 
-    equals_ignore_case this_column (other : DB_Column | Any) locale:Locale=Locale.default -> DB_Column =
+    equals_ignore_case this_column (other : Column | Any) locale:Locale=Locale.default =
         Value_Type.expect_text this_column <|
             Value_Type.expect_text other <|
                 Helpers.assume_default_locale locale <|
                     new_name = this_column.naming_helper.function_name "equals_ignore_case" [this_column, other]
                     this_column.make_binary_op "EQUALS_IGNORE_CASE" other new_name
 
-    != this_column (other : DB_Column | Any) -> DB_Column =
+    != this_column (other : Column | Any) =
         make_equality_check_with_floating_point_handling this_column other "!="
 
-    >= this_column (other : DB_Column | Any) -> DB_Column = Value_Type.expect_comparable this_column other <|
+    >= this_column (other : Column | Any) = Value_Type.expect_comparable this_column other <|
         this_column.make_binary_op ">=" other
 
-    <= this_column (other : DB_Column | Any) -> DB_Column = Value_Type.expect_comparable this_column other <|
+    <= this_column (other : Column | Any) = Value_Type.expect_comparable this_column other <|
         this_column.make_binary_op "<=" other
 
-    > this_column (other : DB_Column | Any) -> DB_Column = Value_Type.expect_comparable this_column other <|
+    > this_column (other : Column | Any) = Value_Type.expect_comparable this_column other <|
         this_column.make_binary_op ">" other
 
-    < this_column (other : DB_Column | Any) -> DB_Column = Value_Type.expect_comparable this_column other <|
+    < this_column (other : Column | Any) = Value_Type.expect_comparable this_column other <|
         this_column.make_binary_op "<" other
 
-    between this_column (lower : DB_Column | Any) (upper : DB_Column | Any) -> DB_Column =
+    between this_column (lower : Column | Any) (upper : Column | Any) =
         Value_Type.expect_comparable this_column lower <|
             Value_Type.expect_comparable this_column upper <|
                 new_name = this_column.naming_helper.concat <|
                     [this_column.naming_helper.to_expression_text this_column, "between", this_column.naming_helper.to_expression_text lower, "and", this_column.naming_helper.to_expression_text upper]
                 this_column.make_op "BETWEEN" [lower, upper] new_name
 
-    + this_column (other : DB_Column | Any) -> DB_Column =
+    + this_column (other : Column | Any) =
         new_name = this_column.naming_helper.binary_operation_name "+" this_column other
         case Value_Type_Helpers.resolve_addition_kind this_column other of
             Value_Type_Helpers.Addition_Kind.Numeric_Add ->
@@ -184,7 +185,7 @@ type DB_Column_Implementation
                 this_column.make_binary_op "ADD_TEXT" other new_name
             Nothing -> this_column.const Nothing
 
-    - this_column (other : DB_Column | Any) -> DB_Column =
+    - this_column (other : Column | Any) =
         case Value_Type_Helpers.resolve_subtraction_kind this_column other of
             Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
                 this_column.make_binary_op "-" other
@@ -192,21 +193,21 @@ type DB_Column_Implementation
                 Error.throw (Unsupported_Database_Operation.Error "Subtracting date/time value")
             Nothing -> this_column.const Nothing
 
-    * this_column (other : DB_Column | Any) -> DB_Column =
+    * this_column (other : Column | Any) =
         Value_Type_Helpers.check_binary_numeric_op this_column other <|
             this_column.make_binary_op "*" other
 
-    / this_column (other : DB_Column | Any) -> DB_Column =
+    / this_column (other : Column | Any) =
         Value_Type_Helpers.check_binary_numeric_op this_column other <|
             other_is_decimal = case other of
-                _ : DB_Column -> other.value_type.is_decimal
+                _ : Column -> other.value_type.is_decimal
                 _ -> False
             either_is_decimal = this_column.value_type.is_decimal || other_is_decimal
             new_name = this_column.naming_helper.binary_operation_name "/" this_column other
             if either_is_decimal then this_column.make_binary_op "DECIMAL_DIV" other new_name else
                 this_column.make_binary_op "/" other new_name
 
-    % this_column (other : DB_Column | Any) -> DB_Column =
+    % this_column (other : Column | Any) =
         Value_Type_Helpers.check_binary_numeric_op this_column other <|
             other_type = Value_Type_Helpers.find_argument_type other
             # Different implementation may be used for integer types.
@@ -214,26 +215,26 @@ type DB_Column_Implementation
             new_name = this_column.naming_helper.binary_operation_name "%" this_column other
             this_column.make_binary_op op other new_name
 
-    ^ this_column (other : DB_Column | Any) -> DB_Column =
+    ^ this_column (other : Column | Any) =
         Value_Type_Helpers.check_binary_numeric_op this_column other <|
             this_column.make_binary_op '^' other
 
-    && this_column (other : DB_Column | Any) -> DB_Column =
+    && this_column (other : Column | Any) =
         Value_Type_Helpers.check_binary_boolean_op this_column other <|
             new_name = this_column.naming_helper.binary_operation_name "&&" this_column other
             this_column.make_binary_op "AND" other new_name
 
-    || this_column (other : DB_Column | Any) -> DB_Column =
+    || this_column (other : Column | Any) =
         Value_Type_Helpers.check_binary_boolean_op this_column other <|
             new_name = this_column.naming_helper.binary_operation_name "||" this_column other
             this_column.make_binary_op "OR" other new_name
 
-    not this_column -> DB_Column =
+    not this_column =
         Value_Type.expect_boolean this_column <|
             new_name = this_column.naming_helper.concat ["not", this_column.naming_helper.to_expression_text this_column]
             this_column.make_unary_op "NOT" new_name
 
-    iif this_column when_true:Any when_false:Any -> DB_Column =
+    iif this_column when_true:Any when_false:Any =
         Value_Type.expect_boolean this_column <|
             common_type = Value_Type_Helpers.find_common_type_for_arguments [when_true, when_false]
             common_type.if_not_error <|
@@ -242,10 +243,10 @@ type DB_Column_Implementation
                 op_result = this_column.make_op "IIF" [when_true, when_false] new_name
                 adapt_unified_column op_result common_type
 
-    const : Any -> DB_Column
+    const : Any -> Column
     const this_column value = this_column.to_table.make_constant_column value
 
-    round this_column decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) -> DB_Column ! Illegal_Argument | Invalid_Value_Type =
+    round this_column decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) =
         Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric this_column <|
             if this_column.should_use_builtin_round decimal_places rounding_mode then this_column.round_builtin decimal_places rounding_mode else
                 this_column.short_circuit_special_floating_point <|
@@ -267,7 +268,7 @@ type DB_Column_Implementation
         dp_param_ok = decimal_places == 0 || this_column.value_type.is_floating_point.not || this_column.connection.dialect.flagged ..Supports_Float_Decimal_Places
         bankers_ok && negative_dp_ok && dp_param_ok
 
-    round_builtin : Integer -> Boolean -> DB_Column
+    round_builtin : Integer -> Boolean -> Column
     round_builtin this_column decimal_places rounding_mode =
         new_name = this_column.naming_helper.function_name "round" [this_column]
         case rounding_mode of
@@ -280,7 +281,7 @@ type DB_Column_Implementation
                     False ->
                         this_column.make_binary_op "ROUND" (SQL_IR_Expression.Literal decimal_places.to_text) new_name
 
-    round_float : Integer -> Boolean -> DB_Column
+    round_float : Integer -> Boolean -> Column
     round_float this_column decimal_places rounding_mode =
         new_name = this_column.naming_helper.function_name "round" [this_column]
         scale = 10 ^ decimal_places
@@ -298,7 +299,7 @@ type DB_Column_Implementation
                         result = do_round_up.let "do_round_up" x-> x.iif ((round_base + 1.0) / scale) (round_base / scale)
                         result.rename new_name
 
-    round_decimal : Integer -> Boolean -> DB_Column
+    round_decimal : Integer -> Boolean -> Column
     round_decimal this_column decimal_places rounding_mode =
         # Construct a constant Decimal column.
         k x = this_column.const x . cast Value_Type.Decimal
@@ -317,7 +318,7 @@ type DB_Column_Implementation
                         result = do_round_up.let "do_round_up" x-> x.iif ((round_base + k 1).decimal_div scale) (round_base.decimal_div scale)
                         result.rename new_name
 
-    round_integer : Integer -> Boolean -> DB_Column
+    round_integer : Integer -> Boolean -> Column
     round_integer this_column decimal_places rounding_mode =
         new_name = this_column.naming_helper.function_name "round" [this_column]
         scale = 10 ^ -decimal_places
@@ -340,7 +341,7 @@ type DB_Column_Implementation
                     result = (this_column >= 0).let "self_gt_0" x-> x.iif if_non_neg if_neg
                     result.cast Value_Type.Float . rename new_name
 
-    truncate this_column -> DB_Column ! Invalid_Value_Type =
+    truncate this_column =
         new_name = this_column.naming_helper.function_name "truncate" [this_column]
         precise_value_type = this_column.inferred_precise_value_type
         case precise_value_type.is_numeric of
@@ -357,29 +358,29 @@ type DB_Column_Implementation
                             Error.throw (Unsupported_Database_Operation.Error ("`Column.truncate` for `Date_Time`"))
                 False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" this_column.value_type this_column.name
 
-    ceil this_column -> DB_Column ! Invalid_Value_Type =
+    ceil this_column =
         Value_Type.expect_numeric this_column <| this_column.short_circuit_special_floating_point <|
             new_name = this_column.naming_helper.function_name "ceil" [this_column]
             this_column.make_unary_op "CEIL" new_name
 
-    floor this_column -> DB_Column ! Invalid_Value_Type =
+    floor this_column =
         Value_Type.expect_numeric this_column <| this_column.short_circuit_special_floating_point <|
             new_name = this_column.naming_helper.function_name "floor" [this_column]
             this_column.make_unary_op "FLOOR" new_name
 
-    decimal_div : DB_Column -> DB_Column ! Invalid_Value_Type
+    decimal_div : Column -> Column ! Invalid_Value_Type
     decimal_div this_column other =
         Value_Type.expect_numeric this_column <| Value_Type.expect_numeric other <|
             new_name = this_column.naming_helper.function_name "decimal_div" [this_column, other]
             this_column.make_binary_op "DECIMAL_DIV" other new_name
 
-    decimal_mod : DB_Column -> DB_Column ! Invalid_Value_Type
+    decimal_mod : Column -> Column ! Invalid_Value_Type
     decimal_mod this_column other =
         Value_Type.expect_numeric this_column <| Value_Type.expect_numeric other <|
             new_name = this_column.naming_helper.function_name "decimal_mod" [this_column, other]
             this_column.make_binary_op "DECIMAL_MOD" other new_name
 
-    coalesce this_column (values : Any | Vector Any) -> DB_Column =
+    coalesce this_column (values : Any | Vector Any) =
         vec = Vector.unify_vector_or_element values
         args_with_self = [this_column]+vec
         common_type = Value_Type_Helpers.find_common_type_for_arguments args_with_self
@@ -388,44 +389,42 @@ type DB_Column_Implementation
             op_result = this_column.make_op "COALESCE" vec new_name
             adapt_unified_column op_result common_type
 
-    min this_column (values : Any | Vector Any) -> DB_Column =
+    min this_column (values : Any | Vector Any) =
         Value_Type_Helpers.check_multi_argument_comparable_op this_column values <|
             args = Vector.unify_vector_or_element values
             new_name = this_column.naming_helper.function_name "min" [this_column]+args
             this_column.make_op "ROW_MIN" args new_name
 
-    max this_column (values : Any | Vector Any) -> DB_Column =
+    max this_column (values : Any | Vector Any) =
         Value_Type_Helpers.check_multi_argument_comparable_op this_column values <|
             args = Vector.unify_vector_or_element values
             new_name = this_column.naming_helper.function_name "max" [this_column]+args
             this_column.make_op "ROW_MAX" args new_name
 
-    is_nothing this_column -> DB_Column =
+    is_nothing this_column =
         new_name = this_column.naming_helper.concat [this_column.naming_helper.to_expression_text this_column, "is Nothing"]
         this_column.make_unary_op "IS_NULL" new_name
 
-    is_nan this_column -> DB_Column = Value_Type.expect_numeric this_column <|
+    is_nan this_column = Value_Type.expect_numeric this_column <|
         new_name = this_column.naming_helper.function_name "is_nan" [this_column]
         this_column.make_unary_op "IS_NAN" new_name
 
-    is_infinite this_column -> DB_Column = Value_Type.expect_numeric this_column <|
+    is_infinite this_column = Value_Type.expect_numeric this_column <|
         new_name = this_column.naming_helper.function_name "is_infinite" [this_column]
         this_column.make_unary_op "IS_INF" new_name
 
-    is_finite this_column -> DB_Column = Value_Type.expect_numeric this_column <|
+    is_finite this_column = Value_Type.expect_numeric this_column <|
         new_name = this_column.naming_helper.function_name "is_finite" [this_column]
         this_column.make_unary_op "IS_FINITE" new_name
 
-    is_empty : DB_Column
     is_empty this_column = Value_Type.expect_text this_column <|
         new_name = this_column.naming_helper.concat [this_column.naming_helper.to_expression_text this_column, "is empty"]
         this_column.make_unary_op "IS_EMPTY" new_name
 
-    is_present this_column -> DB_Column =
+    is_present this_column =
         new_name = this_column.naming_helper.function_name "is_present" [this_column]
         this_column.is_nothing.not . rename new_name
 
-    is_blank : Boolean -> DB_Column
     is_blank this_column treat_nans_as_blank=False =
         new_name = this_column.naming_helper.function_name "is_blank" [this_column]
         self_type = this_column.value_type
@@ -437,69 +436,69 @@ type DB_Column_Implementation
             False -> is_blank
         result.rename new_name
 
-    fill_nothing this_column (default : DB_Column | Previous_Value | Any) -> DB_Column =
+    fill_nothing this_column (default : Column | Previous_Value | Any) =
         if Previous_Value == default then Error.throw (Unsupported_Database_Operation.Error "Previous_Value argument") else
             common_type = Value_Type_Helpers.find_common_type_for_arguments [this_column, default]
             common_type.if_not_error <|
                 op_result = this_column.make_binary_op "FILL_NULL" default this_column.name
                 adapt_unified_column op_result common_type
 
-    fill_empty this_column (default : DB_Column | Previous_Value | Any) -> DB_Column =
+    fill_empty this_column (default : Column | Previous_Value | Any) =
         if Previous_Value == default then Error.throw (Unsupported_Database_Operation.Error "The Previous_Value argument") else
             Value_Type.expect_text this_column <| Value_Type.expect_text default <|
                 result = this_column.is_empty.iif default this_column
                 result.rename this_column.name
 
-    offset this_column n=-1:Integer fill_with:Fill_With=..Nothing -> DB_Column =
-        _ = [n, fill_with]
+    offset this_column n=-1:Integer fill_with:Fill_With=..Nothing =
+        _ = [this_column, n, fill_with]
         Error.throw (Unsupported_Database_Operation.Error "offset")
 
-    rename this_column name:Text -> DB_Column ! Illegal_Argument = this_column.naming_helper.ensure_name_is_valid name <|
+    rename this_column name:Text = this_column.naming_helper.ensure_name_is_valid name <|
         DB_Column.new name this_column.connection this_column.sql_type_reference this_column.expression this_column.context
 
-    sort this_column order:Sort_Direction=..Ascending -> DB_Column =
+    sort this_column order:Sort_Direction=..Ascending =
         this_column.to_table.sort [..Index 0 order] . at 0
 
-    take this_column (range : Index_Sub_Range | Range | Integer = ..First) -> DB_Column = this_column.to_table.take range . at 0
+    take this_column (range : Index_Sub_Range | Range | Integer = ..First) = this_column.to_table.take range . at 0
 
-    drop this_column (range : Index_Sub_Range | Range | Integer = ..First) -> DB_Column = this_column.to_table.drop range . at 0
+    drop this_column (range : Index_Sub_Range | Range | Integer = ..First) = this_column.to_table.drop range . at 0
 
-    starts_with this_column (other : DB_Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> DB_Column =
+    starts_with this_column (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default =
         new_name = this_column.naming_helper.function_name "starts_with" [this_column, other]
         make_text_case_op this_column "STARTS_WITH" other case_sensitivity new_name
 
-    ends_with this_column (other : DB_Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> DB_Column =
+    ends_with this_column (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default =
         new_name = this_column.naming_helper.function_name "ends_with" [this_column, other]
         make_text_case_op this_column "ENDS_WITH" other case_sensitivity new_name
 
-    text_length this_column -> DB_Column =
+    text_length this_column =
         Value_Type.expect_text this_column <|
             new_name = this_column.naming_helper.function_name "text_length" [this_column]
             this_column.make_unary_op "LENGTH" new_name
 
-    text_left this_column n:DB_Column|Integer -> DB_Column =
+    text_left this_column n:Column|Integer =
         Value_Type.expect_text this_column <| Helpers.expect_dialect_specific_integer_type this_column n <|
             n2 = n.max 0
             new_name = this_column.naming_helper.function_name "text_left" [this_column, n]
             this_column.make_binary_op "LEFT" n2 new_name
 
-    text_right this_column n:DB_Column|Integer -> DB_Column =
+    text_right this_column n:Column|Integer =
         Value_Type.expect_text this_column <| Helpers.expect_dialect_specific_integer_type this_column n <|
             n2 = n.max 0
             new_name = this_column.naming_helper.function_name "text_right" [this_column, n]
             this_column.make_binary_op "RIGHT" n2 new_name
 
-    contains this_column (other : DB_Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> DB_Column =
+    contains this_column (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default =
         new_name = this_column.naming_helper.function_name "contains" [this_column, other]
         make_text_case_op this_column "CONTAINS" other case_sensitivity new_name
 
-    like this_column (pattern : DB_Column | Text | Any) -> DB_Column =
+    like this_column (pattern : Column | Text | Any) =
         Value_Type.expect_text this_column <|
             Value_Type.expect_text pattern <|
                 new_name = this_column.naming_helper.binary_operation_name "like" this_column pattern
                 this_column.make_binary_op "LIKE" pattern new_name
 
-    regex_match this_column (pattern : DB_Column | Text | Regex) -> DB_Column =
+    regex_match this_column (pattern : Column | Text | Regex) =
         string_pattern = case pattern of
             Regex.Value _ _ -> pattern.pattern
             _ -> pattern
@@ -511,7 +510,7 @@ type DB_Column_Implementation
                 Error.throw (Unsupported_Database_Operation.Error ("regex_match"))
 
 
-    trim this_column where:Location=..Both (what : DB_Column | Text = '') -> DB_Column =
+    trim this_column where:Location=..Both (what : Column | Text = '') =
         Value_Type.expect_text this_column <| Value_Type.expect_text what <|
             new_name = this_column.naming_helper.function_name "trim" [this_column]
             operator = case where of
@@ -522,7 +521,7 @@ type DB_Column_Implementation
                 Error.throw (Unsupported_Database_Operation.Error ("`trim "+where.to_text+"`"))
 
     @new_text (Text_Input display=..Always)
-    text_replace this_column (term : Text | Regex | DB_Column = "") (new_text : Text | DB_Column = "") case_sensitivity:Case_Sensitivity=..Default only_first:Boolean=False -> DB_Column ! Unsupported_Database_Operation =
+    text_replace this_column (term : Text | Regex | Column = "") (new_text : Text | Column = "") case_sensitivity:Case_Sensitivity=..Default only_first:Boolean=False =
         Value_Type.expect_text this_column <| case_sensitivity.disallow_non_default_locale <|
             input_type = if term.is_error then term else Meta.type_of term
             params = Replace_Params.Value input_type case_sensitivity only_first
@@ -533,37 +532,37 @@ type DB_Column_Implementation
                     _ -> term
                 this_column.make_op "REPLACE" [raw_term, new_text] new_name [term, params]
 
-    text_cleanse this_column (remove : Vector Named_Pattern) -> DB_Column ! Unsupported_Database_Operation =
+    text_cleanse this_column (remove : Vector Named_Pattern) =
       remove.map (Text_Cleanse.Value _) . fold this_column (current-> tc-> tc.apply current)
 
-    year this_column -> DB_Column ! Invalid_Value_Type = Value_Type.expect_has_date this_column <|
+    year this_column = Value_Type.expect_has_date this_column <|
         this_column.make_unary_op "year"
 
-    month this_column -> DB_Column ! Invalid_Value_Type = Value_Type.expect_has_date this_column <|
+    month this_column = Value_Type.expect_has_date this_column <|
         this_column.make_unary_op "month"
 
-    day this_column -> DB_Column ! Invalid_Value_Type = Value_Type.expect_has_date this_column <|
+    day this_column = Value_Type.expect_has_date this_column <|
         this_column.make_unary_op "day"
 
-    day_of_year this_column -> DB_Column ! Invalid_Value_Type = Value_Type.expect_has_date this_column <|
+    day_of_year this_column = Value_Type.expect_has_date this_column <|
         this_column.make_unary_op "day_of_year"
 
-    day_of_week this_column -> DB_Column ! Invalid_Value_Type = Value_Type.expect_has_date this_column <|
+    day_of_week this_column = Value_Type.expect_has_date this_column <|
         this_column.make_unary_op "day_of_week"
 
-    hour this_column -> DB_Column ! Invalid_Value_Type = Value_Type.expect_has_time this_column <|
+    hour this_column = Value_Type.expect_has_time this_column <|
         this_column.make_unary_op "hour"
 
-    minute this_column -> DB_Column ! Invalid_Value_Type = Value_Type.expect_has_time this_column <|
+    minute this_column = Value_Type.expect_has_time this_column <|
         this_column.make_unary_op "minute"
 
-    second this_column -> DB_Column ! Invalid_Value_Type = Value_Type.expect_has_time this_column <|
+    second this_column = Value_Type.expect_has_time this_column <|
         this_column.make_unary_op "second"
 
-    date_part this_column (period : Date_Period | Time_Period) -> DB_Column ! Invalid_Value_Type | Illegal_Argument =
+    date_part this_column (period : Date_Period | Time_Period) =
         Date_Time_Helpers.make_date_part_function this_column period (column->op_name-> column.make_unary_op op_name) this_column.naming_helper
 
-    date_diff this_column (end : DB_Column | Date | Date_Time | Time_Of_Day) (period : Date_Period | Time_Period = Date_Period.Day) -> DB_Column ! Invalid_Value_Type | Illegal_Argument =
+    date_diff this_column (end : Column | Date | Date_Time | Time_Of_Day) (period : Date_Period | Time_Period = Date_Period.Day) =
         Value_Type.expect_type this_column .is_date_or_time "date/time" <|
             my_type = this_column.inferred_precise_value_type
             Value_Type.expect_type end (== my_type) my_type.to_display_text <|
@@ -573,7 +572,7 @@ type DB_Column_Implementation
                     metadata = this_column.connection.dialect.prepare_metadata_for_period aligned_period my_type
                     this_column.make_op "date_diff" [end] new_name metadata
 
-    date_add this_column (amount : DB_Column | Integer) (period : Date_Period | Time_Period = default_date_period this_column) -> DB_Column ! Invalid_Value_Type | Illegal_Argument =
+    date_add this_column (amount : Column | Integer) (period : Date_Period | Time_Period = default_date_period this_column) =
         Value_Type.expect_type this_column .is_date_or_time "date/time" <|
             my_type = this_column.inferred_precise_value_type
             Helpers.expect_dialect_specific_integer_type this_column amount <|
@@ -583,7 +582,7 @@ type DB_Column_Implementation
                     metadata = this_column.connection.dialect.prepare_metadata_for_period aligned_period my_type
                     this_column.make_op "date_add" [amount] new_name metadata
 
-    is_in this_column (vector : DB_Column | Vector | Array) -> DB_Column =
+    is_in this_column (vector : Column | Vector | Array) =
         new_name = this_column.naming_helper.binary_operation_name "in" this_column vector
         case vector of
             _ : Vector ->
@@ -601,7 +600,7 @@ type DB_Column_Implementation
                 result = this_column.make_op "IS_IN" operands=vector new_name=new_name
                 result.rename new_name
             _ : Array -> this_column.is_in (Vector.from_polyglot_array vector)
-            column : DB_Column -> if Helpers.check_connection this_column column . not then (Error.throw (Integrity_Error.Error "DB_Column "+column.name)) else
+            column : Column -> if Helpers.check_connection this_column column . not then (Error.throw (Integrity_Error.Error "Column "+column.name)) else
                 in_subquery = SQL_IR_Statement.Select [Pair.new column.name column.expression] column.context
                 new_expr = SQL_IR_Expression.Operation "IS_IN_COLUMN" [this_column.expression, in_subquery]
                 # This mapping should never be imprecise, if there are errors we need to amend the implementation.
@@ -611,7 +610,7 @@ type DB_Column_Implementation
                 DB_Column.new new_name this_column.connection new_type_ref new_expr this_column.context
 
     @format (make_format_chooser include_number=False)
-    parse this_column (type : Value_Type | Auto) (format : Text | Data_Formatter = "") on_problems:Problem_Behavior=..Report_Warning -> DB_Column =
+    parse this_column (type : Value_Type | Auto) (format : Text | Data_Formatter = "") on_problems:Problem_Behavior=..Report_Warning =
         if type == Auto then Error.throw (Unsupported_Database_Operation.Error "`Auto` parse type") else
             if format != "" then Error.throw (Unsupported_Database_Operation.Error "Custom formatting") else
                 if this_column.value_type.is_same_type type then this_column else
@@ -623,19 +622,19 @@ type DB_Column_Implementation
 
 
     @format (this_column-> Widget_Helpers.make_format_chooser_for_type this_column.value_type)
-    format this_column (format : Text | Date_Time_Formatter | DB_Column = "") locale:Locale=Locale.default -> DB_Column ! Illegal_Argument =
-        _ = [format, locale]
+    format this_column (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default =
+        _ = [this_column, format, locale]
         Error.throw <| Unsupported_Database_Operation.Error "format"
 
-    cast this_column value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning -> DB_Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
+    cast this_column value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning =
         check_cast_compatibility this_column.value_type value_type <|
             this_column.internal_do_cast value_type on_problems
 
-    auto_cast this_column shrink_types:Boolean=False -> DB_Column =
-        _ = shrink_types
+    auto_cast this_column shrink_types:Boolean=False =
+        _ = [this_column, shrink_types]
         Error.throw <| Unsupported_Database_Operation.Error "auto_cast"
 
-    internal_do_cast : Value_Type -> Problem_Behavior -> DB_Column
+    internal_do_cast : Value_Type -> Problem_Behavior -> Column
     internal_do_cast this_column value_type on_problems:Problem_Behavior =
         dialect = this_column.connection.dialect
         type_mapping = dialect.get_type_mapping
@@ -646,12 +645,12 @@ type DB_Column_Implementation
             new_column = dialect.make_cast this_column.as_internal target_sql_type infer_from_database
             DB_Column.new new_column.name this_column.connection new_column.sql_type_reference new_column.expression this_column.context
 
-    map this_column (function : Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> DB_Column ! Invalid_Value_Type =
-        _ = [function, skip_nothing, expected_value_type]
+    map this_column (function : Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) =
+        _ = [this_column, function, skip_nothing, expected_value_type]
         Error.throw <| Unsupported_Database_Operation.Error "map"
 
     zip this_column (right : Column | Table = Missing_Argument.throw "right") (keep_unmatched : Boolean | Report_Unmatched = Report_Unmatched) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table =
-        _ = [right, keep_unmatched, right_prefix, on_problems]
+        _ = [this_column, right, keep_unmatched, right_prefix, on_problems]
         Error.throw <| Unsupported_Database_Operation.Error "zip"
 
     as_internal this_column = Internal_Column.Value this_column.name this_column.sql_type_reference this_column.expression
@@ -666,7 +665,7 @@ type DB_Column_Implementation
     var_args_functions : Array
     var_args_functions = ['is_in', 'coalesce', 'min', 'max']
 
-    short_circuit_special_floating_point : DB_Column -> DB_Column
+    short_circuit_special_floating_point : Column -> Column
     short_circuit_special_floating_point this_column exp =
         if this_column.value_type.is_floating_point.not then exp else
             (this_column.is_finite.not.iif this_column exp).rename exp.name
@@ -679,26 +678,26 @@ make_text_case_op left op other case_sensitivity new_name =
         Case_Sensitivity.Sensitive ->
             make_sensitive column =
                 column.make_unary_op "MAKE_CASE_SENSITIVE" "MAKE_CASE_SENSITIVE"
-            cs_other = if other.is_a DB_Column then make_sensitive other else other
+            cs_other = if other.is_a Column then make_sensitive other else other
             (make_sensitive left) . make_binary_op op cs_other
         Case_Sensitivity.Insensitive locale -> Helpers.assume_default_locale locale <|
             fold_case column =
                 column.make_unary_op "FOLD_CASE" "FOLD_CASE"
-            ci_other = if other.is_a DB_Column then fold_case other else other.to_case Case.Lower
+            ci_other = if other.is_a Column then fold_case other else other.to_case Case.Lower
             (fold_case left) . make_binary_op op ci_other
     result.rename new_name
 
 ## PRIVATE
 make_equality_check_with_floating_point_handling column other op =
     other_name = case other of
-        other_column : DB_Column -> "["+other_column.name+"]"
+        other_column : Column -> "["+other_column.name+"]"
         _ -> other.to_text
     location = "["+column.name+"] "+op+" "+other_name
     Java_Problems.with_map_operation_problem_aggregator location Problem_Behavior.Report_Warning problem_builder->
         if column.value_type.is_floating_point then
             problem_builder.reportFloatingPointEquality -1
         case other of
-            other_column : DB_Column ->
+            other_column : Column ->
                 if other_column.value_type.is_floating_point then
                     problem_builder.reportFloatingPointEquality -1
             _ : Float ->
@@ -707,7 +706,7 @@ make_equality_check_with_floating_point_handling column other op =
         column.make_binary_op op other
 
 ## PRIVATE
-adapt_unified_column : DB_Column -> Value_Type -> DB_Column
+adapt_unified_column : Column -> Value_Type -> Column
 adapt_unified_column column expected_type =
     dialect = column.connection.dialect
     infer_return_type expression =
