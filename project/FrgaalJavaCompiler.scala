@@ -84,8 +84,14 @@ object FrgaalJavaCompiler {
       shouldCompileModuleInfo = shouldCompileModuleInfo,
       shouldNotLimitModules   = shouldNotLimitModules
     )
-    val javaTools = sbt.internal.inc.javac
-      .JavaTools(frgaalJavac, sbtCompilers.javaTools.javadoc())
+
+    var javac = if (Integer.parseInt(javaVersion) <= 21) {
+      frgaalJavac
+    } else {
+      sbtCompilers.javaTools.javac()
+    }
+    val javadoc   = sbtCompilers.javaTools.javadoc()
+    val javaTools = sbt.internal.inc.javac.JavaTools(javac, javadoc)
     xsbti.compile.Compilers.of(sbtCompilers.scalac, javaTools)
   }
 
@@ -300,11 +306,12 @@ object FrgaalJavaCompiler {
       val limitModules = Seq(
         "java.base",
         "jdk.zipfs",
-        "jdk.internal.vm.compiler.management",
         "java.desktop",
         "java.net.http",
         "java.sql",
-        "jdk.jfr"
+        "jdk.jfr",
+        // sun.misc.Unsafe
+        "jdk.unsupported"
       )
       val limitModulesArgs =
         if (shouldNotLimitModules) Seq()

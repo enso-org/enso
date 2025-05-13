@@ -9,10 +9,10 @@ from Standard.Table import Join_Kind
 import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
 import project.Internal.Helpers
-import project.Internal.IR.Context.Context
-import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL_Type.SQL_Type
 
@@ -31,13 +31,13 @@ make_join_helpers left_table right_table left_column_mapping right_column_mappin
             problem_builder.report_other_warning (Floating_Point_Equality.Error left.name)
         if right.value_type.is_floating_point then
             problem_builder.report_other_warning (Floating_Point_Equality.Error right.name)
-        SQL_Expression.Operation "==" [resolve_left left, resolve_right right]
+        SQL_IR_Expression.Operation "==" [resolve_left left, resolve_right right]
     make_equals_ignore_case _ left right locale =
         Helpers.assume_default_locale locale <|
-            SQL_Expression.Operation "EQUALS_IGNORE_CASE" [resolve_left left, resolve_right right]
+            SQL_IR_Expression.Operation "EQUALS_IGNORE_CASE" [resolve_left left, resolve_right right]
     make_between _ left right_lower right_upper =
         args = [resolve_left left, resolve_right right_lower, resolve_right right_upper]
-        SQL_Expression.Operation "BETWEEN" args
+        SQL_IR_Expression.Operation "BETWEEN" args
     Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
 
 ## PRIVATE
@@ -65,7 +65,7 @@ select_columns_for_join column_naming_helper join_kind left_new_columns right_ne
 ## PRIVATE
 type Join_Subquery_Setup
     ## PRIVATE
-    Value (subquery : From_Spec) (new_columns : Vector Internal_Column) (old_columns : Vector Internal_Column) (indicator_column : Nothing | Internal_Column)
+    Value (subquery : SQL_IR_From_Part) (new_columns : Vector Internal_Column) (old_columns : Vector Internal_Column) (indicator_column : Nothing | Internal_Column)
 
     ## PRIVATE
        Creates a mapping from names of columns in the original table to
@@ -91,12 +91,12 @@ prepare_subqueries connection left right needs_left_indicator needs_right_indica
         renamer = column_naming_helper.create_unique_name_strategy
         renamer.mark_used (left.internal_columns.map .name)
         # This is an operation, not a constant to avoid adding unnecessary interpolations to the query.
-        [Internal_Column.Value (renamer.make_unique "left_indicator") SQL_Type_Reference.null (SQL_Expression.Literal "TRUE")]
+        [Internal_Column.Value (renamer.make_unique "left_indicator") SQL_Type_Reference.null (SQL_IR_Expression.Literal "TRUE")]
 
     right_indicators = if needs_right_indicator.not then [] else
         renamer = column_naming_helper.create_unique_name_strategy
         renamer.mark_used (right.internal_columns.map .name)
-        [Internal_Column.Value (renamer.make_unique "right_indicator") SQL_Type_Reference.null (SQL_Expression.Literal "TRUE")]
+        [Internal_Column.Value (renamer.make_unique "right_indicator") SQL_Type_Reference.null (SQL_IR_Expression.Literal "TRUE")]
 
     # Create subqueries that encapsulate the original queries and provide needed columns.
     # The generated new sets of columns refer to the encapsulated expressions within the subquery and are

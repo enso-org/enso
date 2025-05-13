@@ -1,12 +1,14 @@
 package org.enso.compiler.core.ir.module.scope;
 
 import java.util.function.Function;
+import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IRKind;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.Name.Literal;
+import org.enso.compiler.core.ir.Name.Qualified;
 import org.enso.compiler.core.ir.module.Scope;
 import org.enso.runtime.parser.dsl.GenerateFields;
 import org.enso.runtime.parser.dsl.GenerateIR;
@@ -34,15 +36,46 @@ public interface Import extends Scope {
   final class Module extends ImportModuleGen {
     @GenerateFields
     public Module(
-        @IRChild Name.Qualified name,
-        @IRChild Option<Name.Literal> rename,
+        @IRChild Qualified name,
+        @IRChild Option<Literal> rename,
         @IRField boolean isAll,
-        @IRChild Option<List<Name.Literal>> onlyNames,
-        @IRChild Option<List<Name.Literal>> hiddenNames,
+        @IRChild Option<List<Literal>> onlyNames,
+        @IRChild Option<List<Literal>> hiddenNames,
         @IRField boolean isSynthetic,
         IdentifiedLocation identifiedLocation,
+        MetadataStorage passData,
+        DiagnosticStorage diagnostics) {
+      super(
+          name,
+          rename,
+          isAll,
+          onlyNames,
+          hiddenNames,
+          isSynthetic,
+          identifiedLocation,
+          passData,
+          diagnostics);
+    }
+
+    public Module(
+        Qualified name,
+        Option<Literal> rename,
+        boolean isAll,
+        Option<List<Literal>> onlyNames,
+        Option<List<Literal>> hiddenNames,
+        boolean isSynthetic,
+        IdentifiedLocation identifiedLocation,
         MetadataStorage passData) {
-      super(name, rename, isAll, onlyNames, hiddenNames, isSynthetic, identifiedLocation, passData);
+      this(
+          name,
+          rename,
+          isAll,
+          onlyNames,
+          hiddenNames,
+          isSynthetic,
+          identifiedLocation,
+          passData,
+          null);
     }
 
     public static Module createSynthetic(Name.Qualified name) {
@@ -54,7 +87,8 @@ public interface Import extends Scope {
           Option.empty(),
           true,
           null,
-          new MetadataStorage());
+          new MetadataStorage(),
+          null);
     }
 
     public Module copyWithNameAndRename(Name.Qualified name, Option<Name.Literal> rename) {

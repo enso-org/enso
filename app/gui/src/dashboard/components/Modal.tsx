@@ -1,6 +1,5 @@
 /** @file Base modal component that provides the full-screen element that blocks mouse events. */
 import { ClearPressResponder } from '#/components/aria'
-import { FocusRoot } from '#/components/styled/FocusRoot'
 import { unsetModal } from '#/providers/ModalProvider'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import type { CSSProperties, MouseEventHandler, PropsWithChildren } from 'react'
@@ -37,34 +36,28 @@ export function Modal(props: ModalProps) {
     // Required so that `Button`s and `Checkbox`es contained inside do not trigger any
     // ancestor `DialogTrigger`s.
     <ClearPressResponder>
-      <FocusRoot active={!hidden}>
-        {(innerProps) => (
-          <div
-            {...(!hidden ? { 'data-testid': 'modal-background' } : {})}
-            style={style}
-            className={MODAL_VARIANTS(variantProps)}
-            onClick={
-              onClick ??
-              ((event) => {
-                if (event.currentTarget === event.target && getSelection()?.type !== 'Range') {
-                  event.stopPropagation()
-                  unsetModal()
-                }
-              })
+      <div
+        {...(!hidden ? { 'data-testid': 'modal-background' } : {})}
+        style={style}
+        className={MODAL_VARIANTS(variantProps)}
+        onClick={
+          onClick ??
+          ((event) => {
+            if (event.currentTarget === event.target && getSelection()?.type !== 'Range') {
+              event.stopPropagation()
+              unsetModal()
             }
-            onContextMenu={onContextMenu}
-            {...innerProps}
-            onKeyDown={(event) => {
-              innerProps.onKeyDown?.(event)
-              if (event.key !== 'Escape') {
-                event.stopPropagation()
-              }
-            }}
-          >
-            {children}
-          </div>
-        )}
-      </FocusRoot>
+          })
+        }
+        onContextMenu={onContextMenu}
+        onKeyDown={(event) => {
+          if (event.key !== 'Escape') {
+            event.stopPropagation()
+          }
+        }}
+      >
+        {children}
+      </div>
     </ClearPressResponder>
   )
 }

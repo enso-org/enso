@@ -48,7 +48,7 @@ export function HiddenFile<Schema extends TSchema, FieldName extends FieldPath<S
       render={({ field }) => (
         <Input
           type="file"
-          className="focus-child w-0"
+          className="w-0"
           accept={accept}
           onChange={(event) => {
             field.onChange(event.target.files?.[0])

@@ -1,6 +1,5 @@
 /** @file Utility functions applicable to all backends. */
-import FolderIcon from '#/assets/folder.svg'
-import type { AnyCategory } from '#/layouts/Drive/CategorySwitcher'
+import type { AnyCategory } from '#/layouts/Drive/CategorySwitcher/Category'
 import type { DirectoryId } from './Backend'
 import { Path } from './Backend'
 import { DIRECTORY_ID_PREFIX, newDirectoryId } from './LocalBackend'
@@ -74,7 +73,7 @@ export function parseDirectoriesPath(options: ParsedDirectoriesPathOptions) {
       result.push({
         id,
         label: name,
-        icon: FolderIcon,
+        icon: 'folder',
         categoryId: rootCategory.id,
       })
     }

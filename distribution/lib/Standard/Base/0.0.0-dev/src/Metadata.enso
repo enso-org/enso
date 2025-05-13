@@ -83,6 +83,9 @@ type Widget
     ## Describes a file chooser.
     File_Browse existing_only:Boolean=True label:(Nothing | Text)=Nothing display:Display=Display.When_Modified action:File_Action=File_Action.Open file_types:(Vector Pair)=[Pair.new "All Files" "*.*"]
 
+    ## Describes a secret chooser.
+    Secret_Browse display:Display=..When_Modified
+
     ## PRIVATE
        Override the to_js_object and don't include Nothing.
     to_js_object : JS_Object

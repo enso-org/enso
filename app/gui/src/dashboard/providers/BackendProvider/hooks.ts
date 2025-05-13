@@ -1,19 +1,47 @@
-/** @file Hooks for `BackendProvider`. */
-import { type Category, isCloudCategory } from '#/layouts/Drive/CategorySwitcher/Category'
-import { BackendType } from '#/services/Backend'
-import type { LocalBackend } from '#/services/LocalBackend'
-import type { RemoteBackend } from '#/services/RemoteBackend'
-import { PRODUCT_NAME } from 'enso-common'
-import { useContext } from 'react'
+/**
+ * @file The React provider for the project manager `Backend`, along with hooks to use the
+ * provider via the shared React context.
+ */
+import * as React from 'react'
+
 import invariant from 'tiny-invariant'
-import { BackendContext, ProjectManagerContext } from './constants'
+
+import * as common from 'enso-common'
+
+import { type Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
+
+import { BackendType } from '#/services/Backend'
+import type LocalBackend from '#/services/LocalBackend'
+import type RemoteBackend from '#/services/RemoteBackend'
+
+/** State contained in a `BackendContext`. */
+export interface BackendContextType {
+  readonly remoteBackend: RemoteBackend | null
+  readonly localBackend: LocalBackend | null
+}
+
+export const BackendContext = React.createContext<BackendContextType>({
+  remoteBackend: null,
+  localBackend: null,
+})
+
+/** State contained in a `ProjectManagerContext`. */
+export interface ProjectManagerContextType {
+  readonly didLoadingProjectManagerFail: boolean
+  readonly reconnectToProjectManager: () => void
+}
+
+export const ProjectManagerContext = React.createContext<ProjectManagerContextType>({
+  didLoadingProjectManagerFail: false,
+  reconnectToProjectManager: () => {},
+})
 
 /**
  * Get the Remote Backend.
  * @throws {Error} when no Remote Backend exists. This should never happen.
  */
 export function useRemoteBackend() {
-  const remoteBackend = useContext(BackendContext).remoteBackend
+  const remoteBackend = React.useContext(BackendContext).remoteBackend
 
   if (remoteBackend == null) {
     throw new Error('This component requires a Cloud Backend to function.')
@@ -24,7 +52,7 @@ export function useRemoteBackend() {
 
 /** Get the Local Backend. */
 export function useLocalBackend() {
-  return useContext(BackendContext).localBackend
+  return React.useContext(BackendContext).localBackend
 }
 
 /**
@@ -41,7 +69,7 @@ export function useBackend(category: Category) {
  * Pick the backend for the given category.
  * @throws {Error} when a Local Backend is requested for a non-local project.
  */
-function pickBackend(
+export function pickBackend(
   category: Category,
   remoteBackend: RemoteBackend,
   localBackend: LocalBackend | null,
@@ -52,7 +80,7 @@ function pickBackend(
 
   invariant(
     localBackend != null,
-    `This distribution of ${PRODUCT_NAME} does not support the Local Backend.`,
+    `This distribution of ${common.PRODUCT_NAME} does not support the Local Backend.`,
   )
 
   return localBackend
@@ -80,10 +108,10 @@ export function useBackendForProjectType(projectType: BackendType) {
 
 /** Whether connecting to the Project Manager failed. */
 export function useDidLoadingProjectManagerFail() {
-  return useContext(ProjectManagerContext).didLoadingProjectManagerFail
+  return React.useContext(ProjectManagerContext).didLoadingProjectManagerFail
 }
 
 /** Reconnect to the Project Manager. */
 export function useReconnectToProjectManager() {
-  return useContext(ProjectManagerContext).reconnectToProjectManager
+  return React.useContext(ProjectManagerContext).reconnectToProjectManager
 }

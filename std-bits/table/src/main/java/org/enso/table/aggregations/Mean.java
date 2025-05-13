@@ -6,6 +6,7 @@ import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
@@ -34,7 +35,7 @@ public class Mean extends KnownTypeAggregator {
   private static StorageType<?> resultTypeFromInput(Storage<?> inputStorage) {
     StorageType<?> inputType = inputStorage.getType();
     if (inputType instanceof AnyObjectType) {
-      inputType = inputStorage.inferPreciseType();
+      inputType = inputStorage.inferPreciseType(PreciseTypeOptions.DEFAULT);
     }
 
     return switch (inputType) {

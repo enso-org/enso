@@ -1,0 +1,7 @@
+import project.Refined_Types.Numeric_Column.Numeric_Column
+
+## PRIVATE
+   For internal use only, this function should be used by implementations to
+   provide a hidden conversion to `Numeric_Column` that allows the type refinement.
+make_numeric_column base_column numeric_operations_implementation =
+    Numeric_Column.Value base_column numeric_operations_implementation

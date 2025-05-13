@@ -8,6 +8,7 @@ import org.enso.table.data.column.builder.InferredIntegerBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -27,7 +28,7 @@ public class Sum extends Aggregator {
   public Sum(String name, Column column) {
     super(name);
     this.inputStorage = column.getStorage();
-    inputType = inputStorage.inferPreciseType();
+    inputType = inputStorage.inferPreciseType(PreciseTypeOptions.DEFAULT);
   }
 
   @Override

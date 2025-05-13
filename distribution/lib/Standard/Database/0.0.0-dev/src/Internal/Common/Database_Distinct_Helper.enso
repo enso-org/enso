@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Floating_Point_Equality
 
 import project.Internal.Helpers
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 
 ## PRIVATE
 make_distinct_expression text_case_sensitivity problem_builder key_column value_type =
@@ -13,6 +13,6 @@ make_distinct_expression text_case_sensitivity problem_builder key_column value_
     if value_type.is_text.not then expr else case text_case_sensitivity of
         Case_Sensitivity.Insensitive locale ->
             Helpers.assume_default_locale locale <|
-                SQL_Expression.Operation "FOLD_CASE" [expr]
-        Case_Sensitivity.Sensitive -> SQL_Expression.Operation "MAKE_CASE_SENSITIVE" [expr]
+                SQL_IR_Expression.Operation "FOLD_CASE" [expr]
+        Case_Sensitivity.Sensitive -> SQL_IR_Expression.Operation "MAKE_CASE_SENSITIVE" [expr]
         Case_Sensitivity.Default -> expr

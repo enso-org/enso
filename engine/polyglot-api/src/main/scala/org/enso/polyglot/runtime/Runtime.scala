@@ -10,6 +10,7 @@ import org.enso.text.editing.model
 import org.enso.text.editing.model.{IdMap, Range, TextEdit}
 
 import java.io.File
+import java.util.Arrays
 import java.util.UUID
 
 object Runtime {
@@ -767,7 +768,7 @@ object Runtime {
       override def toLogString(shouldMask: Boolean): String = {
         "VisualizationUpdate(" +
         s"visualizationContext=$visualizationContext,data=" +
-        (if (shouldMask) STUB else data.toString()) +
+        (if (shouldMask) STUB else Arrays.asList(data)) +
         ")"
       }
     }

@@ -1147,22 +1147,22 @@ class AliasAnalysisTest extends CompilerTest {
         .unsafeAs[AliasMetadata.ChildScope]
         .scope
       val nilBranchScope =
-        caseExpr
-          .branches(1)
+        caseExpr.branches
+          .apply(1)
           .getMetadata(AliasAnalysis)
           .get
           .unsafeAs[AliasMetadata.ChildScope]
           .scope
       val tpeBranchScope =
-        caseExpr
-          .branches(2)
+        caseExpr.branches
+          .apply(2)
           .getMetadata(AliasAnalysis)
           .get
           .unsafeAs[AliasMetadata.ChildScope]
           .scope
       val fallbackBranchScope =
-        caseExpr
-          .branches(3)
+        caseExpr.branches
+          .apply(3)
           .getMetadata(AliasAnalysis)
           .get
           .unsafeAs[AliasMetadata.ChildScope]
@@ -1239,7 +1239,7 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "correctly link to pattern variables in type patterns" in {
-      val tpeBranch = caseExpr.branches(2)
+      val tpeBranch = caseExpr.branches.apply(2)
       val pattern   = tpeBranch.pattern.asInstanceOf[Pattern.Type]
       val body      = tpeBranch.expression.asInstanceOf[Application.Prefix]
 

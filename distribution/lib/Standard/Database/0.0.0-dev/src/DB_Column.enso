@@ -25,12 +25,13 @@ from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
 import project.Internal.Helpers
-import project.Internal.IR.Context.Context
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.Query.Query
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Type_Refinements.DB_Column_Refinements
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
 from project.Errors import Integrity_Error, Unsupported_Database_Operation
@@ -53,7 +54,15 @@ type DB_Column
        which they come. Combined expressions must come from the same context -
        they must both have the same filtering, grouping etc. rules applied to be
        able to be combined.
-    private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
+    private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_IR_Expression context:SQL_IR_Source
+
+    ## The internal constructor used to construct a DB_Column instance.
+
+       It can perform some additional operations, like refining the type,
+       so it should always be preferred over calling `DB_Column.Value` directly.
+    private new internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_IR_Expression context:SQL_IR_Source -> DB_Column =
+        DB_Column_Refinements.refine_column <|
+            DB_Column.Value internal_name connection sql_type_reference expression context
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -303,12 +312,12 @@ type DB_Column
         if use_ctes.not then callback self else
             binder = self.connection.base_connection.table_naming_helper.generate_random_table_name
 
-            ref_expression = SQL_Expression.Let_Ref name binder self.expression
-            ref_column = DB_Column.Value binder self.connection self.sql_type_reference ref_expression self.context
+            ref_expression = SQL_IR_Expression.Let_Ref name binder self.expression
+            ref_column = DB_Column.new binder self.connection self.sql_type_reference ref_expression self.context
             inner_value = callback ref_column
 
-            let_expression = SQL_Expression.Let name binder self.expression inner_value.expression
-            DB_Column.Value inner_value.internal_name inner_value.connection inner_value.sql_type_reference let_expression inner_value.context
+            let_expression = SQL_IR_Expression.Let name binder self.expression inner_value.expression
+            DB_Column.new inner_value.internal_name inner_value.connection inner_value.sql_type_reference let_expression inner_value.context
 
     ## PRIVATE
        Sets up an operation of arbitrary arity.
@@ -318,7 +327,7 @@ type DB_Column
        - operands: A vector of additional operation arguments (the column itself
          is always passed as the first argument).
        - new_name: The name of the resulting column.
-       - metadata: Optional metadata for the `SQL_Expression.Operation`.
+       - metadata: Optional metadata for the `SQL_IR_Expression.Operation`.
     make_op : Text -> Vector Text -> (Text | Nothing) -> (Any | Nothing) -> DB_Column
     make_op self op_kind operands new_name metadata=Nothing =
         checked_support = if self.connection.dialect.is_operation_supported op_kind then True else
@@ -329,18 +338,18 @@ type DB_Column
                 other_column : DB_Column ->
                     if Helpers.check_integrity self other_column then other_column.expression else
                         Error.throw (Integrity_Error.Error "DB_Column "+other_column.name)
-                sql_expression : SQL_Expression ->
+                sql_expression : SQL_IR_Expression ->
                     sql_expression
                 constant ->
-                    SQL_Expression.Constant constant
+                    SQL_IR_Expression.Constant constant
 
             expressions = operands.map prepare_operand
-            new_expr = SQL_Expression.Operation op_kind ([self.expression] + expressions) metadata
+            new_expr = SQL_IR_Expression.Operation op_kind ([self.expression] + expressions) metadata
 
             infer_from_database_callback expression =
                 SQL_Type_Reference.new self.connection self.context expression
             new_type_ref = type_mapping.infer_return_type infer_from_database_callback op_kind [self]+operands new_expr
-            DB_Column.Value new_name self.connection new_type_ref new_expr self.context
+            DB_Column.new new_name self.connection new_type_ref new_expr self.context
 
     ## PRIVATE
 
@@ -920,13 +929,13 @@ type DB_Column
         new_name = self.naming_helper.function_name "round" [self]
         case rounding_mode of
             Rounding_Mode.Bankers ->
-                    self.make_binary_op "ROUND_BANKERS" (SQL_Expression.Literal decimal_places.to_text) new_name
+                    self.make_binary_op "ROUND_BANKERS" (SQL_IR_Expression.Literal decimal_places.to_text) new_name
             Rounding_Mode.Half_Up ->
                 case decimal_places == 0 of
                     True ->
                         self.make_unary_op "ROUND" new_name
                     False ->
-                        self.make_binary_op "ROUND" (SQL_Expression.Literal decimal_places.to_text) new_name
+                        self.make_binary_op "ROUND" (SQL_IR_Expression.Literal decimal_places.to_text) new_name
 
     ## PRIVATE
        Round a float-like column.
@@ -1119,6 +1128,10 @@ type DB_Column
              import Standard.Examples
 
              example_min = Examples.decimal_column.min Examples.integer_column
+
+       ? SQLite NULL handling
+         In SQLite, if any of the values is NULL, the result is NULL.
+         In all other backends the NULL values are ignored.
     min self (values : Any | Vector Any) -> DB_Column =
         Value_Type_Helpers.check_multi_argument_comparable_op self values <|
             args = Vector.unify_vector_or_element values
@@ -1139,6 +1152,10 @@ type DB_Column
              import Standard.Examples
 
              example_max = Examples.decimal_column.max Examples.integer_column
+
+       ? SQLite NULL handling
+         In SQLite, if any of the values is NULL, the result is NULL.
+         In all other backends the NULL values are ignored.
     max self (values : Any | Vector Any) -> DB_Column =
         Value_Type_Helpers.check_multi_argument_comparable_op self values <|
             args = Vector.unify_vector_or_element values
@@ -1313,7 +1330,7 @@ type DB_Column
 
              example_rename = Examples.integer_column.rename "My Numbers"
     rename self name:Text -> DB_Column ! Illegal_Argument = self.naming_helper.ensure_name_is_valid name <|
-        DB_Column.Value name self.connection self.sql_type_reference self.expression self.context
+        DB_Column.new name self.connection self.sql_type_reference self.expression self.context
 
     ## ALIAS order_by
        GROUP Standard.Base.Selections
@@ -1617,7 +1634,7 @@ type DB_Column
     @new_text (Text_Input display=..Always)
     text_replace self (term : Text | Regex | DB_Column = "") (new_text : Text | DB_Column = "") case_sensitivity:Case_Sensitivity=..Default only_first:Boolean=False -> DB_Column ! Unsupported_Database_Operation =
         Value_Type.expect_text self <| case_sensitivity.disallow_non_default_locale <|
-            input_type = Meta.type_of term
+            input_type = if term.is_error then term else Meta.type_of term
             params = Replace_Params.Value input_type case_sensitivity only_first
             self.connection.dialect.if_replace_params_supports params <|
                 new_name = self.naming_helper.function_name "replace" [self, term, new_text]
@@ -1841,13 +1858,13 @@ type DB_Column
                 result.rename new_name
             _ : Array -> self.is_in (Vector.from_polyglot_array vector)
             column : DB_Column -> if Helpers.check_connection self column . not then (Error.throw (Integrity_Error.Error "DB_Column "+column.name)) else
-                in_subquery = Query.Select [Pair.new column.name column.expression] column.context
-                new_expr = SQL_Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery]
+                in_subquery = SQL_IR_Statement.Select [Pair.new column.name column.expression] column.context
+                new_expr = SQL_IR_Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery]
                 # This mapping should never be imprecise, if there are errors we need to amend the implementation.
                 sql_type = self.connection.dialect.get_type_mapping.value_type_to_sql Value_Type.Boolean Problem_Behavior.Report_Error
                 new_type_ref = SQL_Type_Reference.from_constant sql_type . catch Inexact_Type_Coercion _->
                     Error.throw (Illegal_State.Error "The dialect "+self.connection.dialect.name+" does not support a boolean type. The implementation of `is_in` should be revised to account for this. This is an internal issue with the Database library.")
-                DB_Column.Value new_name self.connection new_type_ref new_expr self.context
+                DB_Column.new new_name self.connection new_type_ref new_expr self.context
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -1982,7 +1999,7 @@ type DB_Column
             infer_from_database new_expression =
                 SQL_Type_Reference.new self.connection self.context new_expression
             new_column = dialect.make_cast self.as_internal target_sql_type infer_from_database
-            DB_Column.Value new_column.name self.connection new_column.sql_type_reference new_column.expression self.context
+            DB_Column.new new_column.name self.connection new_column.sql_type_reference new_column.expression self.context
 
     ## ALIAS transform column
        ICON column_add
@@ -2140,7 +2157,7 @@ adapt_unified_column column expected_type =
     infer_return_type expression =
         SQL_Type_Reference.new column.connection column.context expression
     adapted = dialect.adapt_unified_column column.as_internal expected_type infer_return_type
-    DB_Column.Value column.name column.connection adapted.sql_type_reference adapted.expression column.context
+    DB_Column.new column.name column.connection adapted.sql_type_reference adapted.expression column.context
 
 ## PRIVATE
 Column.from (that:DB_Column) =

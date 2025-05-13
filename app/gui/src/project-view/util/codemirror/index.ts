@@ -12,7 +12,7 @@ import { useCompartment, useDispatch, useStateEffect } from '@/util/codemirror/r
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
 import { elementHierarchy } from '@/util/dom'
-import { ToValue } from '@/util/reactivity'
+import { type ToValue } from '@/util/reactivity'
 import { insertNewlineKeepIndent } from '@codemirror/commands'
 import {
   Compartment,

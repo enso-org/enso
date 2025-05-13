@@ -23,6 +23,7 @@ import org.enso.interpreter.runtime.warning.WarningsLibrary;
  * children nodes.
  */
 @NodeInfo(shortName = "Instantiate", description = "Instantiates a constant Atom constructor")
+@SuppressWarnings("truffle-splitting")
 abstract class InstantiateNode extends ExpressionNode {
   final AtomConstructor constructor;
   private @Children ExpressionNode[] arguments;

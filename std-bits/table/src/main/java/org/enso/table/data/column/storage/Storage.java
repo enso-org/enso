@@ -1,9 +1,6 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.function.BiFunction;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
@@ -29,8 +26,8 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   /**
    * Returns a more specialized storage, if available.
    *
-   * <p>This storage should have the same type as returned by {@code inferPreciseType}. See {@link
-   * MixedStorage} for more information.
+   * <p>This storage should have the same type as returned by {@code inferPreciseType(DEFAULT)}. See
+   * {@link MixedStorage} for more information.
    */
   public Storage<?> tryGettingMoreSpecializedStorage() {
     return this;
@@ -45,8 +42,10 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   /**
    * @return the type of the values in this column's storage. Most storages just return their type.
    *     Mixed storage will try to see if all elements fit some more precise type.
+   * @implNote The {@code PreciseTypeOptions.DEFAULT} should either be computable in constant time
+   *     or cache its result for subsequent calls, as it may be called often.
    */
-  public StorageType<?> inferPreciseType() {
+  public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
     return getType();
   }
 
@@ -59,6 +58,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    * used in typechecking of lots of operations. This one however, is only used in a specific
    * `auto_value_type` use-case and rarely will need to be computed more than once.
    */
+  @Deprecated
   public StorageType<?> inferPreciseTypeShrunk() {
     return getType();
   }
@@ -418,7 +418,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       return new LongConstantStorage(longValue, repeat);
     }
 
-    var storageType = StorageType.forBoxedItem(converted);
+    var storageType = StorageType.forBoxedItem(converted, PreciseTypeOptions.DEFAULT);
     Builder builder = Builder.getForType(storageType, repeat, problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < repeat; i++) {
@@ -430,7 +430,27 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   }
 
   @Override
-  public ColumnStorageIterator<T> iterator() {
+  public Iterator<T> iterator() {
+    return new Iterator<T>() {
+      private long index = -1;
+
+      @Override
+      public boolean hasNext() {
+        return index + 1 < getSize();
+      }
+
+      @Override
+      public T next() {
+        if (!hasNext()) {
+          throw new NoSuchElementException();
+        }
+        return getItemBoxed(++index);
+      }
+    };
+  }
+
+  @Override
+  public ColumnStorageIterator<T> iteratorWithIndex() {
     return new StorageIterator<>(this);
   }
 

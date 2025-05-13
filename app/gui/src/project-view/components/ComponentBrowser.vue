@@ -291,7 +291,7 @@ function applyComponent(component: Opt<Component> = null) {
     return Ok()
   }
   if (component.suggestionId != null) {
-    return input.applySuggestion(component.suggestionId)
+    return input.applySuggestion(component.suggestionId, component.macroSuffix)
   } else {
     // Component without suggestion database entry, for example "literal" component.
     input.content = { text: component.label, selection: Range.emptyAt(component.label.length) }

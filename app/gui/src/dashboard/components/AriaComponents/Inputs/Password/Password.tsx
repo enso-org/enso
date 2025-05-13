@@ -1,6 +1,4 @@
 /** @file A component wrapping {@link Input} with the ability to show and hide password. */
-import EyeIcon from '#/assets/eye.svg'
-import EyeCrossedIcon from '#/assets/eye_crossed.svg'
 import { Button } from '#/components/AriaComponents/Button'
 import { Form, type FieldPath, type TSchema } from '#/components/AriaComponents/Form'
 import { Input, type InputProps } from '#/components/AriaComponents/Inputs/Input'
@@ -44,7 +42,7 @@ export function Password<Schema extends TSchema, FieldName extends FieldPath<Sch
                       size="medium"
                       variant="icon"
                       extraClickZone
-                      icon={showPassword ? EyeIcon : EyeCrossedIcon}
+                      icon={showPassword ? 'eye' : 'eye_crossed'}
                       onPress={() => {
                         setShowPassword(!showPassword)
                       }}

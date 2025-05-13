@@ -20,6 +20,7 @@
     - create_widget table:Standard.Table.Internal.Table_Ref.Table_Ref display:Standard.Base.Metadata.Display= -> Standard.Base.Any.Any
     - evaluate self column:Standard.Base.Any.Any table:Standard.Table.Internal.Table_Ref.Table_Ref -> Standard.Base.Any.Any
 - type Math_Operation
+    - Absolute
     - Ceil
     - Divide rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number)=
     - Floor
@@ -28,6 +29,7 @@
     - Negate
     - Power rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number)=
     - Round precision:Standard.Base.Data.Numbers.Integer= rounding_mode:Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode=
+    - Signum
     - Subtract rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number)=
     - Truncate
     - create_widget table:Standard.Table.Internal.Table_Ref.Table_Ref display:Standard.Base.Metadata.Display= -> Standard.Base.Any.Any

@@ -1,6 +1,6 @@
 import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { nodeFromAst, primaryApplicationSubject } from '@/util/ast/node'
+import { nodeFromAst, primaryApplication } from '@/util/ast/node'
 import { expect, test } from 'vitest'
 import { nodeDocumentationText } from '../node'
 
@@ -30,35 +30,34 @@ test.each(['## Documentation only'])("'%s' should not be a node", (line) => {
   expect(node).toBeUndefined()
 })
 
-test.each([
-  { code: 'operator1', expected: undefined },
-  { code: 'operator1 foo bar', expected: undefined },
-  { code: 'operator1.parse_json', expected: { subject: 'operator1', accesses: ['parse_json'] } },
-  {
-    code: 'operator1.parse_json operator2.to_json',
-    expected: { subject: 'operator1', accesses: ['parse_json'] },
-  },
-  {
-    code: 'operator1.parse_json foo bar',
-    expected: { subject: 'operator1', accesses: ['parse_json'] },
-  },
-  {
-    code: 'operator1.parse_json.length',
-    expected: { subject: 'operator1', accesses: ['parse_json', 'length'] },
-  },
-  {
-    code: 'operator1.parse_json.length foo bar',
-    expected: { subject: 'operator1', accesses: ['parse_json', 'length'] },
-  },
-  { code: 'operator1 + operator2', expected: undefined },
-])('Primary application subject of $code', ({ code, expected }) => {
+test.each`
+  code                                        | selfArg        | func                                      | accessChain
+  ${'operator1'}                              | ${undefined}   | ${undefined}                              | ${undefined}
+  ${'operator1 foo bar'}                      | ${undefined}   | ${undefined}                              | ${undefined}
+  ${'operator1.parse_json'}                   | ${'operator1'} | ${'operator1.parse_json'}                 | ${['parse_json']}
+  ${'operator1 . parse_json'}                 | ${'operator1'} | ${'operator1 . parse_json'}               | ${['parse_json']}
+  ${'operator1.parse_json operator2.to_json'} | ${'operator1'} | ${'operator1.parse_json'}                 | ${['parse_json']}
+  ${'operator1.parse_json foo bar'}           | ${'operator1'} | ${'operator1.parse_json'}                 | ${['parse_json']}
+  ${'operator1.parse_json.length'}            | ${'operator1'} | ${'operator1.parse_json.length'}          | ${['parse_json', 'length']}
+  ${'operator1.parse_json.length foo bar'}    | ${'operator1'} | ${'operator1.parse_json.length'}          | ${['parse_json', 'length']}
+  ${'operator1 + operator2'}                  | ${undefined}   | ${undefined}                              | ${undefined}
+  ${'(operator1).parse_json'}                 | ${'operator1'} | ${'(operator1).parse_json'}               | ${['parse_json']}
+  ${'(operator1:Type).parse_json'}            | ${'operator1'} | ${'(operator1:Type).parse_json'}          | ${['parse_json']}
+  ${'((operator1:Type)).parse_json'}          | ${'operator1'} | ${'((operator1:Type)).parse_json'}        | ${['parse_json']}
+  ${'operator1:Type . parse_json'}            | ${'operator1'} | ${'operator1:Type . parse_json'}          | ${['parse_json']}
+  ${'(operator1):Type . parse_json'}          | ${'operator1'} | ${'(operator1):Type . parse_json'}        | ${['parse_json']}
+  ${'(operator1:Type):Type . parse_json'}     | ${'operator1'} | ${'(operator1:Type):Type . parse_json'}   | ${['parse_json']}
+  ${'((operator1):Type):Type . parse_json'}   | ${'operator1'} | ${'((operator1):Type):Type . parse_json'} | ${['parse_json']}
+`('Primary application of $code', ({ code, selfArg, func, accessChain }) => {
   const ast = Ast.parseExpression(code)
   assertDefined(ast)
   const module = ast.module
-  const primaryApplication = primaryApplicationSubject(ast)
-  const analyzed = primaryApplication && {
-    subject: module.get(primaryApplication.subject).code(),
-    accesses: primaryApplication.accessChain.map((id) => {
+  const primaryApp = primaryApplication(ast)
+  const expected = { selfArg, function: func, accessChain }
+  const analyzed = {
+    selfArg: primaryApp.selfArgument ? module.get(primaryApp.selfArgument).code() : undefined,
+    function: primaryApp.function ? module.get(primaryApp.function).code() : undefined,
+    accessChain: primaryApp.accessChain?.map((id) => {
       const ast = module.get(id)
       assert(ast instanceof Ast.MutablePropertyAccess)
       return ast.rhs.code()

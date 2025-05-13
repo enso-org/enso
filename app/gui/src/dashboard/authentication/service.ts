@@ -12,15 +12,17 @@ import {
   SETUP_PATH,
 } from '#/appUtils'
 import type { AmplifyConfig } from '#/authentication/AmplifyConfig'
+import * as cognitoModule from '#/authentication/cognito'
 import { Cognito } from '#/authentication/cognito'
-import { registerAuthEventListener, type ListenFunction } from '#/authentication/listen'
+import * as listen from '#/authentication/listen'
+import { type ListenFunction } from '#/authentication/listen'
 import { useLogger, type Logger } from '#/providers/LoggerProvider'
+import { useRouterInReact } from '$/providers/react'
 import { Auth } from '@aws-amplify/auth'
 import { DEEP_LINK_SCHEME } from 'enso-common'
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 import { isOnElectron } from 'enso-common/src/detect'
 import * as React from 'react'
-import { useNavigate } from 'react-router'
 
 /** Configuration for the authentication service. */
 export interface AuthConfig {
@@ -51,14 +53,18 @@ export function useInitAuthService(authConfig: AuthConfig): AuthService {
   const { supportsDeepLinks } = authConfig
 
   const logger = useLogger()
-  const navigate = useNavigate()
+  const { router } = useRouterInReact()
 
   return React.useMemo(() => {
-    const amplifyConfig = loadAmplifyConfig(logger, supportsDeepLinks, navigate)
-    const cognito = new Cognito(logger, supportsDeepLinks, amplifyConfig)
+    const amplifyConfig = loadAmplifyConfig(
+      logger,
+      supportsDeepLinks,
+      (url) => void router.push(url),
+    )
+    const cognito = new cognitoModule.Cognito(logger, supportsDeepLinks, amplifyConfig)
 
-    return { cognito, registerAuthEventListener: registerAuthEventListener }
-  }, [logger, navigate, supportsDeepLinks])
+    return { cognito, registerAuthEventListener: listen.registerAuthEventListener }
+  }, [logger, router, supportsDeepLinks])
 }
 
 /** Return the appropriate Amplify configuration for the current platform. */

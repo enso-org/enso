@@ -9,19 +9,16 @@ import {
 
 /** Options for resolving duplicates. */
 export interface ResolveDuplicationsOptions
-  extends Pick<ResolveDuplicationsProps, 'conflictingIds' | 'targetId'> {}
+  extends Omit<ResolveDuplicationsProps, 'onCancel' | 'onSubmit'> {}
 
 /** Function for resolving duplicates. */
 export async function resolveDuplications(props: ResolveDuplicationsOptions) {
-  const { targetId, conflictingIds } = props
-
   return new Promise<readonly ResolvedDuplication[]>((resolve, reject) => {
     setModal(
       createElement(ResolveDuplicationsModal, {
-        targetId,
-        conflictingIds,
         onSubmit: resolve,
         onCancel: reject,
+        ...props,
       }),
     )
   }).finally(unsetModal)

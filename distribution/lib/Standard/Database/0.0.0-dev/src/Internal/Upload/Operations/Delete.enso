@@ -9,7 +9,7 @@ from Standard.Table import Join_Kind, Table
 
 import project.DB_Table.DB_Table
 import project.Internal.DDL_Transaction
-import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 from project.Errors import SQL_Error
 from project.Internal.Upload.Helpers.Argument_Checks import check_delete_rows_arguments
 from project.Internal.Upload.Helpers.Check_Queries import check_duplicate_key_matches_for_delete, check_for_null_keys
@@ -43,7 +43,7 @@ common_delete_rows (target_table : DB_Table) (key_values_to_delete : Table | DB_
                             source_db_table = source_db_table_uploader.materialize
                             check_duplicate_key_matches_for_delete target_table source_db_table key_columns allow_duplicate_matches <|
                                 delete_statement = connection.dialect.generate_sql <|
-                                    Query.Delete_Matching_Rows target_table.name source_table_name key_columns
+                                    SQL_IR_Statement.Delete_Matching_Rows target_table.name source_table_name key_columns
                                 affected_row_count = connection.execute_update delete_statement
                                 affected_row_count
 

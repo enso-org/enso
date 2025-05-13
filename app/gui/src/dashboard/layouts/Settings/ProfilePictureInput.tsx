@@ -5,10 +5,10 @@ import { Form, HiddenFile } from '#/components/AriaComponents'
 import { ProfilePicture } from '#/components/ProfilePicture/ProfilePicture'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import FocusRing from '#/components/styled/FocusRing'
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 
 /** Props for a {@link ProfilePictureInput}. */
 export interface ProfilePictureInputProps {
@@ -18,7 +18,7 @@ export interface ProfilePictureInputProps {
 /** The input for viewing and changing the user's profile picture. */
 export default function ProfilePictureInput(props: ProfilePictureInputProps) {
   const { backend } = props
-  const { data: user } = useBackendQuery(backend, 'usersMe', [])
+  const { data: user } = useQuery(backendQueryOptions(backend, 'usersMe', []))
   const { getText } = useText()
 
   const uploadUserPicture = useMutation(backendMutationOptions(backend, 'uploadUserPicture'))

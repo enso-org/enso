@@ -1,4 +1,6 @@
 /** @file Storybook preview. */
+import { UIProviders } from '#/providers/UIProviders'
+import '#/tailwind.css'
 import type { Preview as ReactPreview } from '@storybook/react'
 import type { Preview as VuePreview } from '@storybook/vue3'
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -8,7 +10,6 @@ import { MotionGlobalConfig } from 'framer-motion'
 import { StrictMode, useLayoutEffect, useState } from 'react'
 import invariant from 'tiny-invariant'
 import z from 'zod'
-import { UIProviders } from '../src/dashboard/providers/UIProviders'
 import '../src/dashboard/tailwind.css'
 import './storybook.css'
 

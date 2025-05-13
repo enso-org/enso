@@ -81,10 +81,10 @@ type Arity_Error
 
     to_display_text self =
         expected = self.expected_min.to_text
-        expectedRange = if (self.expected_min == self.expected_max) then expected else
-            if (self.expected_max == -1) then expected+"-" else expected+self.expected_max.to_text
+        expected_range = if (self.expected_min == self.expected_max) then expected else
+            if (self.expected_max == -1) then expected+"+" else expected+"-"+self.expected_max.to_text
 
-        "Wrong number of arguments. Expected "+expectedRange+", but got "+self.actual.to_text+"."
+        "Wrong number of arguments. Expected "+expected_range+", but got "+self.actual.to_text+"."
 
 @Builtin_Type
 type Forbidden_Operation

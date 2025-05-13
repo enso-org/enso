@@ -328,13 +328,13 @@ case object DemandAnalysis extends IRPass {
     isInsideCallArgument: Boolean
   ): Case =
     cse match {
-      case expr @ Case.Expr(scrutinee, branches, _, _, _) =>
+      case expr: Case.Expr =>
         expr.copy(
-          scrutinee = analyseExpression(
-            scrutinee,
+          analyseExpression(
+            expr.scrutinee,
             isInsideCallArgument
           ),
-          branches = branches.map(b => analyseCaseBranch(b))
+          expr.branches.map(b => analyseCaseBranch(b))
         )
       case _ => throw new CompilerError("Unexpected case construct.")
     }
@@ -346,10 +346,11 @@ case object DemandAnalysis extends IRPass {
     */
   def analyseCaseBranch(branch: Case.Branch): Case.Branch = {
     branch.copy(
-      expression = analyseExpression(
+      analyseExpression(
         branch.expression,
         isInsideCallArgument = false
-      )
+      ),
+      branch.identifiedLocation()
     )
   }
 }

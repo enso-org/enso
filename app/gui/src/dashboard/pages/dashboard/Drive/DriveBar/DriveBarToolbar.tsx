@@ -4,19 +4,14 @@
  */
 import * as React from 'react'
 
-import AddCredentialIcon from '#/assets/add_credential.svg'
-import AddDatalinkIcon from '#/assets/add_datalink.svg'
-import AddFolderIcon from '#/assets/add_folder.svg'
-import AddKeyIcon from '#/assets/add_key.svg'
-import DataDownloadIcon from '#/assets/data_download.svg'
-import DataUploadIcon from '#/assets/data_upload.svg'
 import Plus2Icon from '#/assets/plus2.svg'
 import {
   Button,
   ButtonGroup,
   DialogTrigger,
-  Text,
+  IconDisplay,
   useVisualTooltip,
+  VisualTooltip,
 } from '#/components/AriaComponents'
 import { ErrorBoundary, InlineErrorDisplay } from '#/components/ErrorBoundary'
 import {
@@ -51,7 +46,7 @@ import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import type { CredentialConfig } from '#/services/Backend'
+import { type CredentialConfig } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
@@ -179,7 +174,10 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const downloadFilesCallback = useEventCallback(async () => {
     unsetModal()
     const { selectedAssets } = driveStore.getState()
-    await downloadAssetsMutation(selectedAssets)
+    await downloadAssetsMutation({
+      ids: selectedAssets,
+      targetDirectoryId: null,
+    })
   })
 
   const searchBar = (
@@ -196,11 +194,18 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
 
   const pasteDataStatus = effectivePasteData && (
     <div className="flex items-center">
-      <Text>
-        {effectivePasteData.type === 'copy' ?
-          getText('xItemsCopied', effectivePasteData.data.assets.length)
-        : getText('xItemsCut', effectivePasteData.data.assets.length)}
-      </Text>
+      <VisualTooltip
+        tooltip={
+          effectivePasteData.type === 'copy' ?
+            getText('xItemsCopied', effectivePasteData.data.assets.length)
+          : getText('xItemsCut', effectivePasteData.data.assets.length)
+        }
+        tooltipPlacement="top"
+      >
+        <IconDisplay icon={effectivePasteData.type === 'copy' ? 'copy' : 'scissors'}>
+          {String(effectivePasteData.data.assets.length)}
+        </IconDisplay>
+      </VisualTooltip>
     </div>
   )
 
@@ -250,7 +255,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
               <Button
                 variant="icon"
                 size="medium"
-                icon={AddFolderIcon}
+                icon="folder_add"
                 aria-label={getText('newFolder')}
                 onPress={newFolderCallback}
               />
@@ -259,7 +264,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   isDisabled={!isCloud}
                   variant="icon"
                   size="medium"
-                  icon={AddKeyIcon}
+                  icon="key_add"
                   aria-label={isCloud ? getText('newSecret') : getText('newSecretOnlyCloud')}
                 />
                 <UpsertSecretModal id={null} name={null} doCreate={newSecretCallback} />
@@ -269,7 +274,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   isDisabled={!isCloud}
                   variant="icon"
                   size="medium"
-                  icon={AddCredentialIcon}
+                  icon="credential_add"
                   aria-label={
                     isCloud ? getText('newCredential') : getText('newCredentialOnlyCloud')
                   }
@@ -281,7 +286,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   isDisabled={!isCloud}
                   variant="icon"
                   size="medium"
-                  icon={AddDatalinkIcon}
+                  icon="connector_add"
                   aria-label={isCloud ? getText('newDatalink') : getText('newDatalinkOnlyCloud')}
                 />
                 <UpsertDatalinkModal doCreate={newDatalinkCallback} />
@@ -292,7 +297,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
               <Button
                 variant="icon"
                 size="medium"
-                icon={DataUploadIcon}
+                icon="data_upload"
                 aria-label={getText('uploadFiles')}
                 onPress={uploadFilesCallback}
               />
@@ -300,7 +305,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 isDisabled={!canDownload}
                 variant="icon"
                 size="medium"
-                icon={DataDownloadIcon}
+                icon="data_download"
                 aria-label={getText('downloadFiles')}
                 onPress={downloadFilesCallback}
               />

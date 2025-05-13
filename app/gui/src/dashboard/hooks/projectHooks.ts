@@ -268,7 +268,10 @@ export function useOpenProjectMutation() {
       await client.invalidateQueries({ queryKey: ['project'] })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
-    meta: { invalidates: [['listDirectory', 'project']], awaitInvalidates: true },
+    meta: {
+      invalidates: [['listDirectory', 'project', 'getAssetDetails']],
+      awaitInvalidates: true,
+    },
   })
 }
 
@@ -360,7 +363,7 @@ export function useCloseProjectMutation() {
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
     meta: {
-      invalidates: [['listDirectory']],
+      invalidates: [['listDirectory'], ['getAssetDetails']],
       awaitInvalidates: true,
     },
   })
@@ -392,7 +395,10 @@ export function useRenameProjectMutation() {
         ),
       )
     },
-    meta: { invalidates: [['listDirectory'], ['project']], awaitInvalidates: true },
+    meta: {
+      invalidates: [['listDirectory'], ['project'], ['getAssetDetails']],
+      awaitInvalidates: true,
+    },
   })
 }
 
@@ -603,12 +609,7 @@ export function useCloseAllProjects() {
   const projectsStore = useProjectsStore()
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
-  const ensureQueryData = useEnsureQueryData<
-    backendModule.Project,
-    Error,
-    backendModule.Project,
-    readonly ['project', backendModule.ProjectId]
-  >()
+  const ensureQueryData = useEnsureQueryData()
 
   return eventCallbacks.useEventCallback(async () => {
     const launchedProjects = projectsStore.getState().launchedProjects

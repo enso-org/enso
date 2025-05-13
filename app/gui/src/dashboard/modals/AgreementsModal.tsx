@@ -1,17 +1,14 @@
 /** @file Modal for accepting the terms of service. */
 import { latestPrivacyPolicyQueryOptions, latestTermsOfServiceQueryOptions } from '#/appUtils'
 import { Button, Checkbox, Dialog, Form, Text } from '#/components/AriaComponents'
-import { useAuth } from '#/providers/AuthProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { memo } from 'react'
-import { Outlet } from 'react-router'
+import { memo, type PropsWithChildren } from 'react'
 
 /** Modal for accepting the terms of service. */
-export const AgreementsModal = memo(function AgreementsModal() {
+export const AgreementsModal = memo(function AgreementsModal({ children }: PropsWithChildren) {
   const { getText } = useText()
-  const { session } = useAuth()
 
   const [cachedTosHash, setCachedTosHash] = useLocalStorageState('termsOfService')
   const [cachedPrivacyPolicyHash, setCachedPrivacyPolicyHash] =
@@ -119,5 +116,5 @@ export const AgreementsModal = memo(function AgreementsModal() {
     )
   }
 
-  return <Outlet context={session} />
+  return <>{children}</>
 })

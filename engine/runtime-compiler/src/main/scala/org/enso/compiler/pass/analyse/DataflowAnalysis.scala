@@ -605,8 +605,8 @@ case object DataflowAnalysis extends IRPass {
 
         expr
           .copy(
-            scrutinee = analyseExpression(expr.scrutinee, info),
-            branches  = expr.branches.map(analyseCaseBranch(_, info))
+            analyseExpression(expr.scrutinee, info),
+            expr.branches.map(analyseCaseBranch(_, info))
           )
           .updateMetadata(new MetadataPair(this, info))
       case _: Case.Branch =>
@@ -639,8 +639,9 @@ case object DataflowAnalysis extends IRPass {
 
     branch
       .copy(
-        pattern    = analysePattern(pattern, info),
-        expression = analyseExpression(expression, info)
+        analysePattern(pattern, info),
+        analyseExpression(expression, info),
+        branch.terminalBranch()
       )
       .updateMetadata(new MetadataPair(this, info))
   }

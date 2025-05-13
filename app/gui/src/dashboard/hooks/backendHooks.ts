@@ -100,31 +100,6 @@ export function mutationOptions<
   return options
 }
 
-export function useBackendQuery<Method extends BackendQueryMethod>(
-  backend: Backend,
-  method: Method,
-  args: Readonly<Parameters<Backend[Method]>>,
-  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
-    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
-): UseQueryResult<Awaited<ReturnType<Backend[Method]>>>
-export function useBackendQuery<Method extends BackendQueryMethod>(
-  backend: Backend | null,
-  method: Method,
-  args: Readonly<Parameters<Backend[Method]>>,
-  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
-    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
-): UseQueryResult<Awaited<ReturnType<Backend[Method]>> | undefined>
-/** Wrap a backend method call in a React Query. */
-export function useBackendQuery<Method extends BackendQueryMethod>(
-  backend: Backend | null,
-  method: Method,
-  args: Readonly<Parameters<Backend[Method]>>,
-  options?: Omit<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryFn' | 'queryKey'> &
-    Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
-) {
-  return useQuery(backendQueryOptions(backend, method, args, options))
-}
-
 /** The type of the corresponding mutation for the given backend method. */
 export type BackendMutation<Method extends BackendMutationMethod> = Mutation<
   Awaited<ReturnType<Backend[Method]>>,
@@ -212,8 +187,8 @@ export type ListUserGroupsWithUsersQueryResult = Omit<
 
 /** A list of user groups, taking into account optimistic state. */
 export function useListUserGroupsWithUsers(backend: Backend): ListUserGroupsWithUsersQueryResult {
-  const listUserGroupsQuery = useBackendQuery(backend, 'listUserGroups', [])
-  const listUsersQuery = useBackendQuery(backend, 'listUsers', [])
+  const listUserGroupsQuery = useQuery(backendQueryOptions(backend, 'listUserGroups', []))
+  const listUsersQuery = useQuery(backendQueryOptions(backend, 'listUsers', []))
 
   const promise: Promise<readonly UserGroupInfoWithUsers[]> = useMemo(
     () =>
@@ -319,7 +294,7 @@ export interface ListDirectoryQueryOptions {
   readonly parentId: DirectoryId | null
   readonly category: Category
   /**
-   * When using React, use {@link useListDirectoryRefetchInterval} to 0.
+   * When using React, use {@link useListDirectoryRefetchInterval} to get the correct value.
    * `undefined` is intentionally excluded as this value should be explicitly given.
    */
   readonly refetchInterval: number | null
@@ -621,7 +596,10 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
   const createPermissionMutation = useMutationCallback(
     backendMutationOptions(backend, 'createPermission', {
       meta: {
-        invalidates: [[backend.type, 'listDirectory']],
+        invalidates: [
+          [backend.type, 'listDirectory'],
+          [backend.type, 'getAssetDetails'],
+        ],
         awaitInvalidates: true,
       },
     }),

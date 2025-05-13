@@ -712,9 +712,7 @@ const contextMenuActions: ActionName[] = [
         <GraphMouse />
       </ContextMenuTrigger>
       <BottomPanel v-model:show="showCodeEditor">
-        <Suspense>
-          <CodeEditor ref="codeEditor" />
-        </Suspense>
+        <CodeEditor ref="codeEditor" />
       </BottomPanel>
     </div>
     <RightDockPanel ref="docPanel" v-model:displayedDocs="displayedDocs" :aiMode="aiMode" />

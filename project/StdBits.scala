@@ -26,7 +26,7 @@ object StdBits {
     * @param unmanagedClasspath classpath of unmanaged jars, if any
     * @param logger SBT's logger
     * @param cacheStoreFactory SBT's cache sotre factory
-    * @param ignoreDependency A dependency that should be ignored - not copied to the destination
+    * @param ignoreDependencies Depedencies that should be ignored - not copied to the destination
     * @param ignoreDependencyIncludeTransitive An optional filter to indicate that a direct dependency should be ignored except for its (transitive) dependencies
     * @param ignoreUnmanagedDependency An optional filter that tests if an unmanaged dependency should be ignored
     *
@@ -40,7 +40,7 @@ object StdBits {
     unmanagedClasspath: Classpath,
     logger: ManagedLogger,
     cacheStoreFactory: sbt.util.CacheStoreFactory,
-    ignoreDependency: Option[ModuleID]                 = None,
+    ignoreDependencies: Option[Seq[ModuleID]]          = None,
     ignoreDependencyIncludeTransitive: Option[String]  = None,
     ignoreUnmanagedDependency: Option[File => Boolean] = None,
     previousRun: Option[AnalysisOfExtractedNativeLibs] = None
@@ -63,16 +63,16 @@ object StdBits {
     val graalModuleFilter = DependencyFilter.moduleFilter(
       organization = new SimpleFilter(!graalVmOrgs.contains(_))
     )
-    val moduleFilter = ignoreDependency match {
+    val moduleFilter = ignoreDependencies match {
       case None => graalModuleFilter
-      case Some(ignoreDepID) =>
+      case Some(ignoreDepIDs) =>
         DependencyFilter.moduleFilter(
           organization = new SimpleFilter(orgName =>
             !graalVmOrgs.contains(
               orgName
-            ) && orgName != ignoreDepID.organization
+            ) && !ignoreDepIDs.exists(_.organization == orgName)
           ),
-          name = new SimpleFilter(_ != ignoreDepID.name)
+          name = new SimpleFilter(name => !ignoreDepIDs.exists(_.name == name))
         )
     }
     val unmanagedFiles0 = unmanagedClasspath.map(_.data)
@@ -247,6 +247,7 @@ object StdBits {
     tableauNativeLibs: File,
     tableauVersion: String,
     jnaVersion: String,
+    jnaJar: File,
     logger: ManagedLogger,
     updateReport: UpdateReport,
     unmanagedClasspath: Classpath,
@@ -310,16 +311,6 @@ object StdBits {
     )
 
     // Extract native library from jna's jar
-    val jnaJar = JPMSUtils
-      .filterModulesFromUpdate(
-        updateReport,
-        Seq("net.java.dev.jna" % "jna" % jnaVersion),
-        logger,
-        moduleName,
-        scalaBinaryVersion,
-        shouldContainAll = true
-      )
-      .head
     val outputJnaJarPath =
       (tableauPolyglotRoot / s"jna-${validOsName}-$jnaVersion.jar").toPath
     val outputJnaJar  = outputJnaJarPath.toFile

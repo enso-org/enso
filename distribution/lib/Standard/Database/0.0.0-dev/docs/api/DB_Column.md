@@ -15,22 +15,22 @@
     - >= self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
     - ^ self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
     - as_internal self -> Standard.Base.Any.Any
-    - at self index:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - at self index:Standard.Base.Data.Numbers.Integer= -> (Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)!Standard.Base.Errors.Common.Index_Out_Of_Bounds
     - auto_cast self shrink_types:Standard.Base.Data.Boolean.Boolean= -> Standard.Database.DB_Column.DB_Column
     - between self lower:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) upper:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
-    - cast self value_type:Standard.Table.Value_Type.Value_Type on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
-    - ceil self -> Standard.Base.Any.Any
+    - cast self value_type:Standard.Table.Value_Type.Value_Type on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Database.DB_Column.DB_Column!(Standard.Base.Errors.Illegal_Argument.Illegal_Argument|Standard.Table.Errors.Inexact_Type_Coercion|Standard.Table.Errors.Conversion_Failure)
+    - ceil self -> Standard.Database.DB_Column.DB_Column!Standard.Table.Errors.Invalid_Value_Type
     - coalesce self values:(Standard.Base.Any.Any|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
     - const self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - contains self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Database.DB_Column.DB_Column
     - count self -> Standard.Base.Data.Numbers.Integer
     - count_nothing self -> Standard.Base.Data.Numbers.Integer
-    - date_add self amount:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Numbers.Integer) period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)= -> Standard.Base.Any.Any
-    - date_diff self end:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Time.Date.Date|Standard.Base.Data.Time.Date_Time.Date_Time|Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day) period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)= -> Standard.Base.Any.Any
-    - date_part self period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period) -> Standard.Base.Any.Any
-    - day self -> Standard.Base.Any.Any
-    - day_of_week self -> Standard.Base.Any.Any
-    - day_of_year self -> Standard.Base.Any.Any
+    - date_add self amount:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Numbers.Integer) period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)= -> Standard.Database.DB_Column.DB_Column!(Standard.Table.Errors.Invalid_Value_Type|Standard.Base.Errors.Illegal_Argument.Illegal_Argument)
+    - date_diff self end:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Time.Date.Date|Standard.Base.Data.Time.Date_Time.Date_Time|Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day) period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)= -> Standard.Database.DB_Column.DB_Column!(Standard.Table.Errors.Invalid_Value_Type|Standard.Base.Errors.Illegal_Argument.Illegal_Argument)
+    - date_part self period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period) -> Standard.Database.DB_Column.DB_Column!(Standard.Table.Errors.Invalid_Value_Type|Standard.Base.Errors.Illegal_Argument.Illegal_Argument)
+    - day self -> Standard.Database.DB_Column.DB_Column!Standard.Table.Errors.Invalid_Value_Type
+    - day_of_week self -> Standard.Database.DB_Column.DB_Column!Standard.Table.Errors.Invalid_Value_Type
+    - day_of_year self -> Standard.Database.DB_Column.DB_Column!Standard.Table.Errors.Invalid_Value_Type
     - decimal_div self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - decimal_mod self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - dialect_name self -> Standard.Base.Data.Text.Text
@@ -40,11 +40,11 @@
     - equals_ignore_case self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) locale:Standard.Base.Data.Locale.Locale= -> Standard.Database.DB_Column.DB_Column
     - fill_empty self default:(Standard.Database.DB_Column.DB_Column|Standard.Table.Constants.Previous_Value|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
     - fill_nothing self default:(Standard.Database.DB_Column.DB_Column|Standard.Table.Constants.Previous_Value|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
-    - first self -> Standard.Base.Any.Any
-    - floor self -> Standard.Base.Any.Any
-    - format self format:(Standard.Base.Data.Text.Text|Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter|Standard.Database.DB_Column.DB_Column)= locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Any.Any
+    - first self -> Standard.Base.Any.Any!Standard.Base.Errors.Common.Index_Out_Of_Bounds
+    - floor self -> Standard.Database.DB_Column.DB_Column!Standard.Table.Errors.Invalid_Value_Type
+    - format self format:(Standard.Base.Data.Text.Text|Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter|Standard.Database.DB_Column.DB_Column)= locale:Standard.Base.Data.Locale.Locale= -> Standard.Database.DB_Column.DB_Column!Standard.Base.Errors.Illegal_Argument.Illegal_Argument
     - get self index:Standard.Base.Data.Numbers.Integer= ~default:Standard.Base.Any.Any= -> (Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)
-    - hour self -> Standard.Base.Any.Any
+    - hour self -> Standard.Database.DB_Column.DB_Column!Standard.Table.Errors.Invalid_Value_Type
     - iif self when_true:Standard.Base.Any.Any when_false:Standard.Base.Any.Any -> Standard.Database.DB_Column.DB_Column
     - inferred_precise_value_type self -> Standard.Base.Any.Any
     - info self -> Standard.Table.Table.Table
@@ -63,11 +63,11 @@
     - make_binary_op self op_kind:Standard.Base.Any.Any operand:Standard.Base.Any.Any new_name:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - make_op self op_kind:Standard.Base.Any.Any operands:Standard.Base.Any.Any new_name:Standard.Base.Any.Any metadata:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - make_unary_op self op_kind:Standard.Base.Any.Any new_name:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-    - map self function:Standard.Base.Any.Any skip_nothing:Standard.Base.Data.Boolean.Boolean= expected_value_type:(Standard.Table.Value_Type.Value_Type|Standard.Table.Value_Type.Auto)= -> Standard.Base.Any.Any
+    - map self function:Standard.Base.Any.Any skip_nothing:Standard.Base.Data.Boolean.Boolean= expected_value_type:(Standard.Table.Value_Type.Value_Type|Standard.Table.Value_Type.Auto)= -> Standard.Database.DB_Column.DB_Column!Standard.Table.Errors.Invalid_Value_Type
     - max self values:(Standard.Base.Any.Any|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
     - min self values:(Standard.Base.Any.Any|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
-    - minute self -> Standard.Base.Any.Any
-    - month self -> Standard.Base.Any.Any
+    - minute self -> Standard.Database.DB_Column.DB_Column!Standard.Table.Errors.Invalid_Value_Type
+    - month self -> Standard.Database.DB_Column.DB_Column!Standard.Table.Errors.Invalid_Value_Type
     - name self -> Standard.Base.Data.Text.Text
     - naming_helper self -> Standard.Base.Any.Any
     - not self -> Standard.Database.DB_Column.DB_Column
@@ -76,13 +76,13 @@
     - print self show_rows:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - read self max_rows:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Table.Column.Column
     - regex_match self pattern:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex) -> Standard.Database.DB_Column.DB_Column
-    - rename self name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
-    - round self decimal_places:Standard.Base.Data.Numbers.Integer= rounding_mode:Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode= -> Standard.Base.Any.Any
+    - rename self name:Standard.Base.Data.Text.Text -> Standard.Database.DB_Column.DB_Column!Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+    - round self decimal_places:Standard.Base.Data.Numbers.Integer= rounding_mode:Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode= -> Standard.Database.DB_Column.DB_Column!(Standard.Base.Errors.Illegal_Argument.Illegal_Argument|Standard.Table.Errors.Invalid_Value_Type)
     - round_builtin self decimal_places:Standard.Base.Any.Any rounding_mode:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - round_decimal self decimal_places:Standard.Base.Any.Any rounding_mode:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - round_float self decimal_places:Standard.Base.Any.Any rounding_mode:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - round_integer self decimal_places:Standard.Base.Any.Any rounding_mode:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - second self -> Standard.Base.Any.Any
+    - second self -> Standard.Database.DB_Column.DB_Column!Standard.Table.Errors.Invalid_Value_Type
     - short_circuit_special_floating_point self exp:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - should_be_selected_by_type self value_type:Standard.Table.Value_Type.Value_Type -> Standard.Base.Data.Boolean.Boolean
     - should_use_builtin_round self decimal_places:Standard.Base.Any.Any rounding_mode:Standard.Base.Any.Any -> Standard.Base.Any.Any
@@ -90,10 +90,10 @@
     - sql_type self -> Standard.Base.Any.Any
     - starts_with self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Database.DB_Column.DB_Column
     - take self range:(Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer)= -> Standard.Database.DB_Column.DB_Column
-    - text_cleanse self remove:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Regex.Named_Pattern.Named_Pattern) -> Standard.Base.Any.Any
+    - text_cleanse self remove:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Regex.Named_Pattern.Named_Pattern) -> Standard.Database.DB_Column.DB_Column!Standard.Database.Errors.Unsupported_Database_Operation
     - text_left self n:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Numbers.Integer) -> Standard.Database.DB_Column.DB_Column
     - text_length self -> Standard.Database.DB_Column.DB_Column
-    - text_replace self term:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex|Standard.Database.DB_Column.DB_Column)= new_text:(Standard.Base.Data.Text.Text|Standard.Database.DB_Column.DB_Column)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= only_first:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - text_replace self term:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex|Standard.Database.DB_Column.DB_Column)= new_text:(Standard.Base.Data.Text.Text|Standard.Database.DB_Column.DB_Column)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= only_first:Standard.Base.Data.Boolean.Boolean= -> Standard.Database.DB_Column.DB_Column!Standard.Database.Errors.Unsupported_Database_Operation
     - text_right self n:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Numbers.Integer) -> Standard.Database.DB_Column.DB_Column
     - to_js_object self -> Standard.Base.Any.Any
     - to_sql self -> Standard.Database.SQL_Statement.SQL_Statement
@@ -101,10 +101,10 @@
     - to_text self -> Standard.Base.Any.Any
     - to_vector self -> (Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)
     - trim self where:Standard.Base.Data.Text.Location.Location= what:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Text.Text)= -> Standard.Database.DB_Column.DB_Column
-    - truncate self -> Standard.Base.Any.Any
+    - truncate self -> Standard.Database.DB_Column.DB_Column!Standard.Table.Errors.Invalid_Value_Type
     - value_type self -> Standard.Table.Value_Type.Value_Type
     - var_args_functions -> Standard.Base.Any.Any
-    - year self -> Standard.Base.Any.Any
+    - year self -> Standard.Database.DB_Column.DB_Column!Standard.Table.Errors.Invalid_Value_Type
     - zip self right:(Standard.Table.Column.Column|Standard.Table.Table.Table)= keep_unmatched:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Data.Vector.Report_Unmatched)= right_prefix:Standard.Base.Data.Text.Text= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
     - || self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
 - adapt_unified_column column:Standard.Base.Any.Any expected_type:Standard.Base.Any.Any -> Standard.Base.Any.Any

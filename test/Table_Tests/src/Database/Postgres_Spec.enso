@@ -700,7 +700,6 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
 
         ## column expressions
         group_builder.specify "round returns the correct type" <|
-            # TODO https://github.com/enso-org/enso/issues/10345
             do_round data 231 1 . should_be_a Decimal
             do_round data 231 0 . should_be_a Float
             do_round data 231 . should_be_a Float

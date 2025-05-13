@@ -11,6 +11,7 @@ import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Error.Error as Base_Error
 import project.Errors.Common.Not_Found
+import project.Errors.Common.Private_Access
 import project.Function.Function
 import project.Internal.Meta_Helpers
 import project.Nothing.Nothing
@@ -24,7 +25,9 @@ type Type
     ## ADVANCED
        ICON metadata
 
-       Returns a vector of `Meta.Constructor` for this type
+       Returns a vector of `Meta.Constructor` instances for this type.
+       Only publicly visible constructors are returned. A type with no
+       public constructors returns `[]`.
     constructors self -> Vector Constructor =
         Meta_Helpers.get_type_constructors_builtin self.value Meta.Constructor.Value
 
@@ -33,7 +36,8 @@ type Type
        ICON metadata
 
        Returns a vector of method names that can be invoked
-       on instances of this type.
+       on instances of this type. Only public methods are returned.
+
        ? Static Methods
 
          To obtain list of _static methods_ on a given type
@@ -100,13 +104,17 @@ type Atom
        ICON metadata
 
        Returns a vector of field values of the given atom.
+       Only values of public fields are returned. Should an atom
+       have no public fields, then `[]` is returned.
     fields self -> Vector Any = Meta_Helpers.get_atom_fields_builtin self.value
 
     ## ADVANCED
        ICON metadata
 
-       Returns a constructor value of the given atom.
-    constructor self -> Constructor =
+       Returns a constructor value of the given atom. If the atom
+       doesn't have a public constructor, then `Private_Access` error
+       is returned.
+    constructor self -> Constructor ! Private_Access =
         c = Meta_Helpers.get_atom_constructor_builtin self.impl ...
         Meta.Constructor.Value c...
 
@@ -152,7 +160,7 @@ type Constructor
        ICON metadata
        Returns the type that this constructor is a part of.
     declaring_type self -> Type =
-        Type.Value (Meta_Helpers.get_constructor_declaring_type_builtin (self.value...))
+        Meta.meta (Meta_Helpers.get_constructor_declaring_type_builtin (self.value...))
 
 type Primitive
     private Value impl
@@ -273,11 +281,13 @@ atom_with_hole factory = @Tail_Call Meta_Helpers.atom_with_hole_builtin factory
 ## PRIVATE
    ADVANCED
 
-   Returns a meta-representation of a given runtime entity.
+   Returns a meta-representation of a given runtime entity. If the entity
+   isn't public (like a private constructor), then an `Private_Access` error
+   is yielded.
 
    Arguments:
    - value: The runtime entity to get the meta representation of.
-meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error | Type =
+meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error | Type ! Private_Access =
     ac = Meta_Helpers.find_atom_constructor_builtin value...
     kind = if ac.is_nothing.not then 1 else
         Meta_Helpers.get_kind_builtin value
@@ -289,6 +299,8 @@ meta ~value -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | E
         4 -> Unresolved_Symbol.Value value
         5 -> Error.Value value.catch
         6 -> Type.Value value
+        7 -> Base_Error.throw <|
+            Private_Access.Error Nothing Nothing "meta" "No Meta.meta for private objects"
         _ -> Primitive.Value value
 
 ## PRIVATE
@@ -378,7 +390,8 @@ is_error value -> Boolean = 5 == Meta_Helpers.get_kind_builtin value
 
    Arguments:
    - value: The value to check.
-is_type value -> Boolean = 6 == Meta_Helpers.get_kind_builtin value
+is_type value -> Boolean = @Tail_Call Meta_Helpers.is_type value
+
 ## PRIVATE
 
    Checks if the provided value is a polyglot value.
@@ -393,5 +406,13 @@ is_polyglot value -> Boolean = 3 == Meta_Helpers.get_kind_builtin value
    Arguments:
    - value: the value to get the type of
 Type.from (that:Any) =
-   typ = if Meta.is_type that then that else Meta.type_of that
-   Type.Value typ
+   typ = Meta_Helpers.type_of_value_or_type that
+   meta = Meta.meta typ
+   case meta of
+       # found a type
+       t: Type -> t
+       # Java or co. type isn't an Enso type, use Any
+       _: Polyglot -> Type.Value Any
+       # everything else is an error
+       _ -> Base_Error.throw
+           Private_Access.Error Nothing Nothing "meta" "Doesn't represent a Type"

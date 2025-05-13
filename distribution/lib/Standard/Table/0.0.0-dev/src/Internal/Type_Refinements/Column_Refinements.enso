@@ -4,34 +4,47 @@ from Standard.Base import all
 
 import project.Column.Column
 import project.Internal.Value_Type_Helpers
+import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Value_Type.Value_Type
 from project.Internal.Type_Refinements.Single_Value_Column_Conversions import all
+from project.Internal.Type_Refinements.Typed_Column_Conversions import all
 
 refine_column (column : Column) =
     ## We treat a column as single value if it contains a single not-nothing value.
-    if is_single_value column . not then column else
-        inferred_value_type = column.inferred_precise_value_type
-        case inferred_value_type of
-            Value_Type.Integer _ ->
-                # `inferred_precise_value_type` will return Integer if the column was Float (or Mixed) but contained integral values - e.g. [2.0]
-                # We inspect the actual value to correctly deal with both Float and Mixed base type.
-                value = column.at 0
-                case value of
-                    # If the value was really a float, we preserve that.
-                    _ : Float -> (column : Column & Float)
-                    # Otherwise we treat it as an integer.
-                    _ -> (column : Column & Integer)
-            Value_Type.Float _ -> (column : Column & Float)
-            Value_Type.Char _ _ -> (column : Column & Text)
-            Value_Type.Boolean -> (column : Column & Boolean)
-            Value_Type.Date -> (column : Column & Date)
-            Value_Type.Time -> (column : Column & Time_Of_Day)
-            Value_Type.Date_Time True -> (column : Column & Date_Time)
-            Value_Type.Decimal _ _ ->
-                is_integer = Value_Type_Helpers.is_decimal_integer inferred_value_type
-                if is_integer then (column : Column & Integer) else (column : Column & Decimal)
-            # Other types (e.g. Mixed) are not supported.
-            _ -> column
+    if is_single_value column then _refine_single_value_column column else _refine_column column
+
+private _refine_column column =
+    inferred_value_type = column.inferred_precise_value_type
+    case inferred_value_type of
+        Value_Type.Integer _ -> (column : Column & Numeric_Column)
+        Value_Type.Byte -> (column : Column & Numeric_Column)
+        Value_Type.Float _ -> (column : Column & Numeric_Column)
+        Value_Type.Decimal _ _ -> (column : Column & Numeric_Column)
+        _ -> column
+
+private _refine_single_value_column column =
+    inferred_value_type = column.inferred_precise_value_type
+    case inferred_value_type of
+        Value_Type.Integer _ ->
+            # `inferred_precise_value_type` will return Integer if the column was Float (or Mixed) but contained integral values - e.g. [2.0]
+            # We inspect the actual value to correctly deal with both Float and Mixed base type.
+            value = column.at 0
+            case value of
+                # If the value was really a float, we preserve that.
+                _ : Float -> (column : Column & Numeric_Column & Float)
+                # Otherwise we treat it as an integer.
+                _ -> (column : Column & Numeric_Column & Integer)
+        Value_Type.Float _ -> (column : Column & Numeric_Column & Float)
+        Value_Type.Char _ _ -> (column : Column & Text)
+        Value_Type.Boolean -> (column : Column & Boolean)
+        Value_Type.Date -> (column : Column & Date)
+        Value_Type.Time -> (column : Column & Time_Of_Day)
+        Value_Type.Date_Time True -> (column : Column & Date_Time)
+        Value_Type.Decimal _ _ ->
+            is_integer = Value_Type_Helpers.is_decimal_integer inferred_value_type
+            if is_integer then (column : Column & Numeric_Column & Integer) else (column : Column & Numeric_Column & Decimal)
+        # Other types (e.g. Mixed) are not supported.
+        _ -> column
 
 is_single_value column:Column -> Boolean =
     (column.length == 1) && (column.at 0 . is_nothing . not)

@@ -1,5 +1,4 @@
 /** @file A heading for the "Modified" column. */
-import TimeIcon from '#/assets/time.svg'
 import { Button, Text } from '#/components/AriaComponents'
 import { Icon } from '#/components/Icon'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -50,7 +49,7 @@ export default function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
     >
       <Button
         variant="icon"
-        icon={TimeIcon}
+        icon="time"
         aria-label={getText('hideColumn')}
         tooltip={false}
         onPress={hideThisColumn}

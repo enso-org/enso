@@ -33,11 +33,12 @@ public class RequiresNumberFormatting {
 
   /** Internal method performing the calculation on a storage. */
   public static boolean compute(ColumnStorage storage, Context context) {
-    long size = storage.getSize();
-
-    long count = 0;
     for (long i = 0; i < storage.getSize(); i++) {
       var val = storage.getItemBoxed(i);
+      if (val == null) {
+        continue;
+      }
+
       switch (val) {
         case Long n -> {
           return (n > FORMAT_NUMBER_LIMIT || n < -FORMAT_NUMBER_LIMIT);

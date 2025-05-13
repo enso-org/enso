@@ -72,14 +72,8 @@ export const DriveContext = createContext<ProjectsContextType | null>(null)
 
 /** The current directory ID. */
 export interface CurrentDirectoryIdContextType {
-  readonly currentDirectoryId: {
-    readonly current: DirectoryId | null
-    readonly parent: DirectoryId | null
-  }
-  readonly setCurrentDirectoryId: (nextValue: {
-    readonly current: DirectoryId | null
-    readonly parent: DirectoryId | null
-  }) => void
+  readonly currentDirectoryId: DirectoryId | null
+  readonly setCurrentDirectoryId: (nextValue: DirectoryId | null) => void
 }
 
 export const CurrentDirectoryIdContext = createContext<CurrentDirectoryIdContextType | null>(null)

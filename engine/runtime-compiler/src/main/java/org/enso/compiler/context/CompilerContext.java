@@ -85,25 +85,15 @@ public interface CompilerContext extends CompilerStub {
   void initializeBuiltinsIr(
       Compiler compiler, boolean irCachingEnabled, FreshNameSupply freshNameSupply, Passes passes);
 
-  QualifiedName getModuleName(Module module);
-
-  CharSequence getCharacters(Module module) throws IOException;
-
   IdMap getIdMap(Module module);
 
   void updateModule(Module module, Consumer<Updater> callback);
-
-  boolean isSynthetic(Module module);
 
   boolean isInteractive(Module module);
 
   boolean isModuleInRootPackage(Module module);
 
   boolean wasLoadedFromCache(Module module);
-
-  org.enso.compiler.core.ir.Module getIr(Module module);
-
-  CompilationStage getCompilationStage(Module module);
 
   Future<Boolean> serializeLibrary(
       Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations);

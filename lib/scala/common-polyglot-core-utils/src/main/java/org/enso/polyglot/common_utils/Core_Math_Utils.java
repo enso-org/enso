@@ -1,6 +1,8 @@
 package org.enso.polyglot.common_utils;
 
-public class Core_Math_Utils {
+public final class Core_Math_Utils {
+  private Core_Math_Utils() {}
+
   /** Minimum value for the `decimal_places` parameter to `roundDouble`. */
   private static final double ROUND_MIN_DECIMAL_PLACES = -15;
 
@@ -132,5 +134,21 @@ public class Core_Math_Utils {
       boolean roundUp = halfGoesUp ? remainder < -halfway : remainder <= -halfway;
       return roundUp ? resultUnnudged - scale : resultUnnudged;
     }
+  }
+
+  /**
+   * Checks if the value fits in the safe range of the long type.
+   *
+   * <p>The selected range is chosen to be safe to perform rounding operations and fit the result
+   * within the range of the long type. It may not be the maximal possible range.
+   *
+   * @apiNote This method differs from the `InteropLibrary.fitsInLong` method - this method allows
+   *     numbers with a fractional part as it is intended for use with rounding operator, so it only
+   *     cares about the magnitude of the number.
+   */
+  public static boolean fitsInLongSafeRange(double value) {
+    final double USE_DOUBLE_LIMIT_POSITIVE = 9223372036854775000.0;
+    final double USE_DOUBLE_LIMIT_NEGATIVE = -9223372036854775000.0;
+    return value <= USE_DOUBLE_LIMIT_POSITIVE && value >= USE_DOUBLE_LIMIT_NEGATIVE;
   }
 }

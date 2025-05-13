@@ -1,7 +1,6 @@
 /** @file Modal for confirming delete of any type of asset. */
-import LogoIcon from '#/assets/enso_logo.svg'
 import { ButtonGroup, CopyButton, Dialog, Text } from '#/components/AriaComponents'
-import SvgMask from '#/components/SvgMask'
+import { Icon } from '#/components/Icon'
 import { useLocalBackend } from '#/providers/BackendProvider/hooks'
 import { useText } from '#/providers/TextProvider'
 import type { TextId } from 'enso-common/src/text'
@@ -35,7 +34,7 @@ export default function AboutModal() {
   return (
     <Dialog title={getText('aboutThisAppShortcut')} modalProps={{ defaultOpen: true }}>
       <div className="relative flex items-center gap-4">
-        <SvgMask src={LogoIcon} className="size-16 shrink-0 self-start" />
+        <Icon icon="enso_logo" className="size-16 shrink-0 self-start" />
 
         <div className="flex flex-col">
           <Text variant="subtitle">

@@ -5,10 +5,12 @@
 import { Separator } from '#/components/AriaComponents'
 import { ContextMenu } from '#/components/ContextMenu'
 import { ContextMenuEntry } from '#/components/ContextMenuEntry'
+import { ContextMenuEntry as PaywallContextMenuEntry } from '#/components/Paywall'
 import {
   deleteAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
+import { useUploadFileToCloudMutation, useUploadFileToLocal } from '#/hooks/backendUploadFilesHooks'
 import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
@@ -19,6 +21,8 @@ import {
 } from '#/layouts/Drive/CategorySwitcher'
 import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
+import { useUser } from '#/providers/AuthProvider'
+import { useLocalBackend } from '#/providers/BackendProvider'
 import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
@@ -29,6 +33,7 @@ import { twJoin } from '#/utilities/tailwindMerge'
 import { useStore } from '#/utilities/zustand'
 import { useMutation } from '@tanstack/react-query'
 import * as React from 'react'
+import invariant from 'tiny-invariant'
 
 /** Props for an {@link AssetsTableContextMenu}. */
 export interface AssetsTableContextMenuProps {
@@ -65,6 +70,8 @@ export function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
 
   const { getText } = useText()
 
+  const localBackend = useLocalBackend()
+  const user = useUser()
   const isCloud = isCloudCategory(category)
   const getAsset = useGetAsset()
   const selectedAssets = useSelectedAssets()
@@ -74,6 +81,51 @@ export function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
   const restoreAssetsMutation = useMutation(restoreAssetsMutationOptions(backend))
   const showDeveloperIds = useFeatureFlag('showDeveloperIds')
   const copyMutation = useCopy()
+  const uploadFileToCloudMutation = useUploadFileToCloudMutation()
+  const uploadFileToLocal = useUploadFileToLocal(category)
+
+  const canUploadToCloud = user.plan !== backendModule.Plan.free
+
+  const canUploadAllProjectsToCloud = useStore(
+    driveStore,
+    (state) =>
+      !isCloud &&
+      localBackend != null &&
+      [...state.selectedIds].every(
+        (id) => backendModule.getAssetTypeFromId(id) === backendModule.AssetType.project,
+      ),
+  )
+  const canDownloadAllProjectsToLocal = useStore(
+    driveStore,
+    (state) =>
+      isCloud &&
+      localBackend != null &&
+      [...state.selectedIds].every(
+        (id) => backendModule.getAssetTypeFromId(id) === backendModule.AssetType.project,
+      ),
+  )
+
+  const uploadFilesToCloudCallback = useEventCallback(async () => {
+    invariant(localBackend != null, 'Cannot upload to cloud when not on Local backend')
+    const selectedIds = [...driveStore.getState().selectedIds]
+    const files = selectedIds.flatMap((id) => {
+      const asset = getAsset(id)
+      return asset ? [asset] : []
+    })
+    await uploadFileToCloudMutation(localBackend, {
+      assets: [...files],
+      targetDirectoryId: user.rootDirectoryId,
+    })
+  })
+
+  const downloadFilesToLocalCallback = useEventCallback(async () => {
+    const selectedIds = [...driveStore.getState().selectedIds]
+    const files = selectedIds.flatMap((id) => {
+      const asset = getAsset(id)
+      return asset ? [asset] : []
+    })
+    await uploadFileToLocal(files)
+  })
 
   const hasPasteData = useStore(driveStore, ({ pasteData }) => {
     const effectivePasteData =
@@ -221,6 +273,24 @@ export function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
             action="delete"
             label={isCloud ? getText('moveAllToTrashShortcut') : getText('deleteAllShortcut')}
             doAction={doDeleteAll}
+          />
+        )}
+        {selectedAssets.length !== 0 && canUploadAllProjectsToCloud && (
+          <PaywallContextMenuEntry
+            hidden={hidden}
+            isUnderPaywall={!canUploadToCloud}
+            action="uploadToCloud"
+            feature="uploadToCloud"
+            label={getText('uploadAllToCloudShortcut')}
+            doAction={uploadFilesToCloudCallback}
+          />
+        )}
+        {selectedAssets.length !== 0 && canDownloadAllProjectsToLocal && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="downloadToLocal"
+            label={getText('downloadAllToLocalShortcut')}
+            doAction={downloadFilesToLocalCallback}
           />
         )}
         {selectedAssets.length !== 0 && isCloud && (

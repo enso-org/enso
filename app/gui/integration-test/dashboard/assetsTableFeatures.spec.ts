@@ -21,6 +21,7 @@ test('extra columns should stick to top of scroll container', ({ page }) =>
       }
     },
   })
+    .driveTable.toggleColumn.labels()
     .withAssetsTable(async (assetsTable) => {
       await assetsTable.evaluate((element) => {
         let scrollableParent: HTMLElement | SVGElement | null = element

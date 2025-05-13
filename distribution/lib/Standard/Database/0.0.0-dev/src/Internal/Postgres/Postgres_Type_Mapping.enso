@@ -7,7 +7,7 @@ from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.Column_Fetcher.Column_Fetcher
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL_Type.SQL_Type
@@ -105,7 +105,7 @@ type Postgres_Type_Mapping
     ## PRIVATE
        The Postgres type mapping always relies on the return type determined by
        the database backend.
-    infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference
+    infer_return_type : (SQL_IR_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_IR_Expression -> SQL_Type_Reference
     infer_return_type infer_from_database_callback op_name arguments expression =
         _ = [op_name, arguments]
         infer_from_database_callback expression

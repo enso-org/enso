@@ -1,5 +1,4 @@
 /** @file A heading for the "Shared with" column. */
-import PeopleIcon from '#/assets/people.svg'
 import { Button, Text } from '#/components/AriaComponents'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '#/providers/TextProvider'
@@ -20,7 +19,7 @@ export default function SharedWithColumnHeading(props: AssetColumnHeadingProps) 
     <div className="isolate flex h-table-row w-full items-center gap-2">
       <Button
         variant="icon"
-        icon={PeopleIcon}
+        icon="people"
         aria-label={getText('sharedWithColumnHide')}
         tooltip={false}
         onPress={hideThisColumn}

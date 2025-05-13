@@ -211,12 +211,12 @@ public final class PanicException extends AbstractTruffleException {
   }
 
   @ExportMessage
-  Type getType(@Bind("$node") Node node) {
+  Type getType(@Bind Node node) {
     return EnsoContext.get(node).getBuiltins().panic();
   }
 
   @ExportMessage
-  Type getMetaObject(@Bind("$node") Node node) {
+  Type getMetaObject(@Bind Node node) {
     return EnsoContext.get(node).getBuiltins().panic();
   }
 
@@ -247,7 +247,7 @@ public final class PanicException extends AbstractTruffleException {
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
-  final Object getExceptionStackTrace(@Bind("$node") Node queryNode) {
+  final Object getExceptionStackTrace(@Bind Node queryNode) {
     if (stackTrace == null) {
       if (ctx != null) {
         stackTrace = ctx.withinCtx(queryNode, () -> computeStackTrace(queryNode));

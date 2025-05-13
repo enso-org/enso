@@ -1,5 +1,4 @@
 /** @file A heading for the "Labels" column. */
-import TagIcon from '#/assets/tag.svg'
 import { Button, Text } from '#/components/AriaComponents'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '#/providers/TextProvider'
@@ -20,7 +19,7 @@ export default function LabelsColumnHeading(props: AssetColumnHeadingProps) {
     <div className="isolate flex h-table-row w-full items-center gap-2">
       <Button
         variant="icon"
-        icon={TagIcon}
+        icon="tag"
         aria-label={getText('labelsColumnHide')}
         tooltip={false}
         onPress={hideThisColumn}

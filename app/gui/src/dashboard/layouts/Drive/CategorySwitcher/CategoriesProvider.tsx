@@ -2,7 +2,7 @@
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
-import { useBackend, useLocalBackend } from '#/providers/BackendProvider'
+import { pickBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import type { ReactNode } from 'react'
 import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'
@@ -23,7 +23,9 @@ const categoryIdStore = createStore<CategoryIdStoreState>()(
   ),
 )
 
-/** Props for the {@link CategoriesProvider}. */
+/**
+ * Props for the {@link CategoriesProvider}.
+ */
 export interface CategoriesProviderProps {
   readonly children: ReactNode | ((contextValue: CategoriesContextValue) => ReactNode)
   readonly onCategoryChange?: (previousCategory: Category | null, newCategory: Category) => void
@@ -35,6 +37,7 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
 
   const { cloudCategories, localCategories, findCategoryById } = useCategories()
   const localBackend = useLocalBackend()
+  const remoteBackend = useRemoteBackend()
   const { isOffline } = useOffline()
 
   const [categoryId, privateSetCategoryId, privateResetCategoryId] =
@@ -60,6 +63,11 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
 
   const setCategoryId = useEventCallback((nextCategoryId: CategoryId) => {
     const previousCategory = findCategoryById(categoryId)
+
+    if (categoryId === nextCategoryId) {
+      return
+    }
+
     privateSetCategoryId(nextCategoryId)
     categoryIdStore.setState({
       categoryId: nextCategoryId,
@@ -79,16 +87,14 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
 
   const category = findCategoryById(categoryId)
 
-  // This is safe, because a category always specified
-  // eslint-disable-next-line no-restricted-syntax
-  const backend = useBackend(category as Category)
-
   // This usually doesn't happen but if so,
   // We reset the category to the default.
   if (category == null) {
     resetCategoryId(true)
     return <></>
   }
+
+  const backend = pickBackend(category, remoteBackend, localBackend)
 
   const contextValue = {
     cloudCategories,

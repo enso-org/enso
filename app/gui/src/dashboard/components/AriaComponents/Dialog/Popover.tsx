@@ -28,6 +28,7 @@ export interface PopoverProps
     | ((opts: aria.PopoverRenderProps & { readonly close: () => void }) => React.ReactNode)
   readonly isDismissable?: boolean
   readonly placement?: Placement | undefined
+  readonly onClose?: (() => void) | undefined
 }
 
 const SUSPENSE_LOADER_PROPS = { minHeight: 'h32' } as const
@@ -45,6 +46,7 @@ export function Popover(props: PopoverProps) {
     variant,
     placement,
     isDismissable = true,
+    onClose,
     ...ariaPopoverProps
   } = props
 
@@ -81,6 +83,7 @@ export function Popover(props: PopoverProps) {
           opts={opts}
           isDismissable={isDismissable}
           variant={variant}
+          onClose={onClose}
         >
           {children}
         </PopoverContent>
@@ -100,13 +103,14 @@ interface PopoverContentProps {
   readonly popoverRef: React.RefObject<HTMLDivElement>
   readonly isDismissable: boolean
   readonly variant: PopoverProps['variant']
+  readonly onClose?: (() => void) | undefined
 }
 
 /**
  * The content of a popover.
  */
 function PopoverContent(props: PopoverContentProps) {
-  const { children, size, rounded, opts, isDismissable, popoverRef, variant } = props
+  const { children, size, rounded, opts, isDismissable, popoverRef, variant, onClose } = props
 
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const dialogId = aria.useId()
@@ -121,6 +125,7 @@ function PopoverContent(props: PopoverContentProps) {
 
   const close = useEventCallback(() => {
     contextState?.close()
+    onClose?.()
   })
 
   utlities.useInteractOutside({

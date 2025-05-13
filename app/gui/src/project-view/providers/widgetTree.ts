@@ -1,8 +1,8 @@
 import { createContextStore } from '@/providers'
 import { type WidgetEditHandlerRoot } from '@/providers/widgetRegistry/editHandler'
+import { PrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import { computed, proxyRefs, shallowRef, type Ref, type ShallowUnwrapRef } from 'vue'
-import { AstId } from 'ydoc-shared/ast'
 import { ExternalId } from 'ydoc-shared/yjsModel'
 
 export const [provideWidgetTree, injectWidgetTree] = createContextStore(
@@ -13,7 +13,7 @@ export const [provideWidgetTree, injectWidgetTree] = createContextStore(
     conditionalPorts: Ref<Set<Ast.AstId> | undefined>,
     extended: Ref<boolean>,
     hasActiveAnimations: Ref<boolean>,
-    potentialSelfArgumentId: Ref<AstId | undefined>,
+    primaryApplication: Ref<PrimaryApplication>,
   ) => {
     const { setCurrentEditRoot, currentEdit } = useCurrentEdit()
     return proxyRefs({
@@ -22,7 +22,7 @@ export const [provideWidgetTree, injectWidgetTree] = createContextStore(
       conditionalPorts,
       extended,
       hasActiveAnimations,
-      potentialSelfArgumentId,
+      primaryApplication,
       setCurrentEditRoot,
       currentEdit,
     })

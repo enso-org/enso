@@ -20,12 +20,15 @@ export interface ScrollerProps
   extends HTMLAttributes<HTMLDivElement>,
     PropsWithChildren,
     TestIdProps,
-    Omit<VariantProps<typeof SCROLLER_STYLES>, 'endHidden' | 'startHidden'> {}
+    Omit<VariantProps<typeof SCROLLER_STYLES>, 'endHidden' | 'startHidden'> {
+  readonly shadowStartClassName?: string
+}
 
 /** A component that adds scroll shadows to a container. */
 export function Scroller(props: ScrollerProps) {
   const {
     className,
+    shadowStartClassName,
     scrollbar = false,
     snap = false,
     variants = SCROLLER_STYLES,
@@ -125,7 +128,7 @@ export function Scroller(props: ScrollerProps) {
         {props.children}
       </div>
 
-      <div aria-hidden className={styles.shadowStart()} />
+      <div aria-hidden className={styles.shadowStart({ className: shadowStartClassName })} />
       <div aria-hidden className={styles.shadowEnd()} />
     </div>
   )

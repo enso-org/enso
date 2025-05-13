@@ -148,7 +148,9 @@ export const Text = memo(
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Heading: typeof Heading
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  Group: FC<PropsWithChildren>
+  Body: typeof Body
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  Group: FC<React.PropsWithChildren>
 }
 
 /** Heading props */
@@ -165,10 +167,21 @@ const Heading = memo(
   }),
 )
 
+/** Body props */
+export interface BodyProps extends Omit<TextProps, 'elementType'> {}
+
+/** Body component */
+const Body = memo(
+  forwardRef(function Body(props: BodyProps, ref: React.Ref<HTMLParagraphElement>) {
+    return <Text ref={ref} variant="body" balance {...props} />
+  }),
+)
+
 /** Text group component. It's used to visually group text elements together */
 function TextGroup(props: PropsWithChildren) {
   return <TextProvider value={{ isInsideTextComponent: true }}>{props.children}</TextProvider>
 }
 
 Text.Heading = Heading
+Text.Body = Body
 Text.Group = TextGroup

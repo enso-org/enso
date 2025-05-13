@@ -168,6 +168,7 @@ export class Server {
                   hmr: server ? { server } : {},
                 },
                 configFile: process.env.GUI_CONFIG_PATH ?? false,
+                mode: process.env.MODE ?? 'staging',
               })
 
               const docServer = http.createServer()

@@ -35,6 +35,11 @@ public final class RuntimeOptions {
   private static final OptionDescriptor ENABLE_STATIC_ANALYSIS_DESCRIPTOR =
       OptionDescriptor.newBuilder(ENABLE_STATIC_ANALYSIS_KEY, ENABLE_STATIC_ANALYSIS).build();
 
+  public static final String TREAT_WARNINGS_AS_ERRORS = optionName("treatWarningsAsErrors");
+  public static final OptionKey<Boolean> TREAT_WARNINGS_AS_ERRORS_KEY = new OptionKey<>(false);
+  private static final OptionDescriptor TREAT_WARNINGS_AS_ERRORS_DESCRIPTOR =
+      OptionDescriptor.newBuilder(TREAT_WARNINGS_AS_ERRORS_KEY, TREAT_WARNINGS_AS_ERRORS).build();
+
   public static final String ENABLE_AUTO_PARALLELISM = optionName("withAutoParallelism");
   public static final OptionKey<Boolean> ENABLE_AUTO_PARALLELISM_KEY = new OptionKey<>(false);
   private static final OptionDescriptor ENABLE_AUTO_PARALLELISM_DESCRIPTOR =
@@ -166,6 +171,7 @@ public final class RuntimeOptions {
               DISABLE_INLINE_CACHES_DESCRIPTOR,
               DISABLE_PRIVATE_CHECK_DESCRIPTOR,
               ENABLE_STATIC_ANALYSIS_DESCRIPTOR,
+              TREAT_WARNINGS_AS_ERRORS_DESCRIPTOR,
               ENABLE_AUTO_PARALLELISM_DESCRIPTOR,
               ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR,
               ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR,

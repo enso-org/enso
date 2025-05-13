@@ -24,7 +24,7 @@
 - alias dialect:Standard.Base.Any.Any name:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - base_dialect_operations -> Standard.Base.Any.Any
 - case_when arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- collect_table_names query:Standard.Database.Internal.IR.Query.Query -> (Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)
+- collect_table_names query:Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement -> (Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)
 - default_fetch_types_query dialect:Standard.Base.Any.Any expression:Standard.Base.Any.Any context:Standard.Base.Any.Any where_filter_always_false_literal:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - default_generate_collate collation_name:Standard.Base.Data.Text.Text quote_char:Standard.Base.Data.Text.Text= -> Standard.Base.Data.Text.Text
 - default_get_part_order part:Standard.Database.Internal.SQL_Part.SQL_Part -> Standard.Base.Data.Numbers.Integer
@@ -55,7 +55,7 @@
 - make_row_number arguments:Standard.Base.Data.Vector.Vector metadata:Standard.Database.Internal.IR.Operation_Metadata.Row_Number_Metadata -> Standard.Base.Any.Any
 - make_row_number_in_group arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - make_unary_op name:Standard.Base.Any.Any arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- preprocess_query query:Standard.Database.Internal.IR.Query.Query -> Standard.Database.Internal.IR.Query.Query
+- preprocess_query query:Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement -> Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 - simple_cast -> Standard.Base.Any.Any
 - simple_equals_ignore_case -> Standard.Base.Any.Any
 - truncate_table_delete_from_style dialect:Standard.Base.Any.Any table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any

@@ -12,12 +12,10 @@ import { AssetPanel } from '#/layouts/AssetPanel'
 import { AssetsTable, AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
 import * as categoryModule from '#/layouts/Drive/CategorySwitcher'
 import { CategorySwitcher, type Category } from '#/layouts/Drive/CategorySwitcher'
-import Labels from '#/layouts/Labels'
 import { DriveBar } from '#/pages/dashboard/Drive/DriveBar'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
-
 import { DirectoryDoesNotExistError } from '#/services/Backend'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
@@ -75,7 +73,7 @@ export const Drive = memo(function Drive(props: DriveProps) {
                   if (downloadUrl == null) {
                     toastAndLog('noAppDownloadError')
                   } else {
-                    download.download(downloadUrl)
+                    void download.download({ url: downloadUrl })
                   }
                 }}
               >
@@ -160,15 +158,6 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
         <div className="grid flex-1 grid-cols-[180px_minmax(0,1fr)] gap-3 overflow-hidden">
           <div className="grid-col-1 flex flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden pt-1">
             <CategorySwitcher category={category} setCategoryId={setCategory} />
-
-            {isCloud && (
-              <Labels
-                backend={backend}
-                draggable={category.type !== 'trash'}
-                query={query}
-                setQuery={setQuery}
-              />
-            )}
 
             <AssetsTableAssetsUnselector />
           </div>

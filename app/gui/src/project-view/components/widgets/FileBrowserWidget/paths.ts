@@ -2,7 +2,7 @@ import { findDifferenceIndex } from '@/util/data/array'
 import { Opt } from '@/util/data/opt'
 import { Err, Ok, Result, unwrapOr, unwrapOrWithLog, withContext } from '@/util/data/result'
 import { arrayEquals } from '@/util/equals'
-import { ToValue } from '@/util/reactivity'
+import { type ToValue } from '@/util/reactivity'
 import type {
   AnyAsset,
   AssetType,

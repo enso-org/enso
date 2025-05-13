@@ -13,6 +13,7 @@
 private
 
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder as Vector_Builder
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.System.Process.Process_Builder.Process_Result
 
@@ -59,7 +60,7 @@ enso_bin -> File =
    Arguments:
    - nesting_level How many times should the vector be nested
 generate_code nesting_level:Integer -> Text =
-    bldr = Vector.Builder.new
+    bldr = Vector_Builder.new
     bldr.append "from Standard.Base import all"
     bldr.append "import Standard.Base.Internal.Extra_Imports.RuntimeException"
     bldr.append '\n'

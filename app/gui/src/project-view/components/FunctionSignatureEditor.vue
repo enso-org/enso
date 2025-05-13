@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { applyWidgetUpdates, WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
+import { emptyPrimaryApplication } from '@/stores/graph/graphDatabase'
 import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { documentationData } from '@/stores/suggestionDatabase/documentation'
@@ -77,6 +78,9 @@ const rootStyle = computed(() => {
       groupBasedColor.value ?? returnTypeBasedColor.value ?? 'var(--group-color-fallback)',
   }
 })
+
+// We surely don’t have primary application for the function definition.
+const primaryApplication = emptyPrimaryApplication()
 </script>
 
 <template>
@@ -84,6 +88,7 @@ const rootStyle = computed(() => {
     <WidgetTreeRoot
       :externalId="functionAst.externalId"
       :input="treeRootInput"
+      :primaryApplication="primaryApplication"
       :rootElement="rootElement"
       :extended="true"
       :onUpdate="handleWidgetUpdates"

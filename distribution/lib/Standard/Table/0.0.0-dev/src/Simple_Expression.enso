@@ -11,6 +11,8 @@ import project.Column_Ref.Column_Ref
 import project.Expression.Expression
 import project.Internal.Table_Ref.Table_Ref
 import project.Internal.Widget_Helpers
+import project.Refined_Types.Numeric_Column.Numeric_Column
+import project.Value_Type.Value_Type
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 
 ## Defines a simple expression based off an input column and an operation to perform.
@@ -177,6 +179,12 @@ type Math_Operation
     ## Truncates the fractional part of values in the column.
     Truncate
 
+    ## Returns the absolute value of each element in the column.
+    Absolute
+
+    ## Returns the sign of each element in the column.
+    Signum
+
     ## PRIVATE
     create_widget : Table_Ref -> Display -> Widget
     create_widget table:Table_Ref display:Display=Display.Always =
@@ -193,6 +201,8 @@ type Math_Operation
             builder.append (Option "ceil" "..Ceil")
             builder.append (Option "floor" "..Floor")
             builder.append (Option "truncate" "..Truncate")
+            builder.append (Option "absolute" "..Absolute")
+            builder.append (Option "signum" "..Signum")
         Single_Choice options display=display
 
     ## PRIVATE
@@ -210,6 +220,10 @@ type Math_Operation
             Math_Operation.Ceil -> column.ceil
             Math_Operation.Floor -> column.floor
             Math_Operation.Truncate -> column.truncate
+            Math_Operation.Absolute -> Value_Type.expect_numeric column <|
+                (column:Numeric_Column).abs
+            Math_Operation.Signum -> Value_Type.expect_numeric column <|
+                (column:Numeric_Column).signum
 
 ## Defines a set of Date based operations.
 type Date_Operation

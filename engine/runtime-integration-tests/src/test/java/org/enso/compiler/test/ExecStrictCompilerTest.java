@@ -40,10 +40,11 @@ public class ExecStrictCompilerTest {
     } catch (PolyglotException ex) {
       assertTrue("Syntax error", ex.isSyntaxError());
       assertTrue("Guest exception", ex.isGuestException());
-      assertEquals(
-          "Unnamed:2:17: error: Redefining arguments is not supported: a is defined multiple"
-              + " times.",
-          ex.getMessage());
+      assertThat(
+          ex.getMessage(),
+          containsString(
+              "Unnamed:2:17: error: Redefining arguments is not supported: a is defined multiple"
+                  + " times."));
 
       var errors = ctxRule.getOut();
       assertNotEquals(

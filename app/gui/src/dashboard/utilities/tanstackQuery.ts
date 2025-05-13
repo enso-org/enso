@@ -40,15 +40,17 @@ export function useMutationCallback<
  * Return a function that will execute the given query.
  * Unlike `useQuery`, this function returns a function instead of the state of the query.
  */
-export function useEnsureQueryData<
-  TQueryFnData,
-  TError = DefaultError,
-  TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
->(queryClient?: QueryClient) {
+export function useEnsureQueryData(queryClient?: QueryClient) {
   const ctxQueryClient = useQueryClient(queryClient)
 
-  return useEventCallback<
-    (options: EnsureQueryDataOptions<TQueryFnData, TError, TData, TQueryKey>) => Promise<TData>
-  >((options) => ctxQueryClient.ensureQueryData(options))
+  return useEventCallback(
+    <
+      TQueryFnData,
+      TError = DefaultError,
+      TData = TQueryFnData,
+      TQueryKey extends QueryKey = QueryKey,
+    >(
+      options: EnsureQueryDataOptions<TQueryFnData, TError, TData, TQueryKey>,
+    ) => ctxQueryClient.ensureQueryData(options),
+  )
 }

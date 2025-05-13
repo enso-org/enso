@@ -28,12 +28,12 @@
 - Standard.Base.Data.Text.Text.lines self keep_endings:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.locate self term:Standard.Base.Data.Text.Text= mode:Standard.Base.Any.Any= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.locate_all self term:Standard.Base.Data.Text.Text= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
-- Standard.Base.Data.Text.Text.match self pattern:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.match self pattern:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Data.Boolean.Boolean!(Standard.Base.Data.Text.Regex.Regex_Syntax_Error|Standard.Base.Errors.Illegal_Argument.Illegal_Argument)
 - Standard.Base.Data.Text.Text.pad self length:Standard.Base.Data.Numbers.Integer= with_pad:Standard.Base.Data.Text.Text= at:Standard.Base.Data.Text.Location.Location= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.parse_date self format:Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.parse_date_time self format:Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.parse_float self locale:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-- Standard.Base.Data.Text.Text.parse_integer self radix:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.parse_integer self radix:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Data.Numbers.Integer!Standard.Base.Data.Numbers.Number_Parse_Error
 - Standard.Base.Data.Text.Text.parse_json self -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.parse_time_of_day self format:Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.parse_time_zone self -> Standard.Base.Any.Any

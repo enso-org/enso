@@ -20,6 +20,8 @@ function mockGraphDb() {
     methodCall: undefined,
     payload: { type: 'Value' },
     profilingInfo: [],
+    hiddenTypes: [],
+    evaluationId: 1,
   })
   const db = GraphDb.Mock(computedValueRegistryMock)
   db.mockNode('operator1', operator1Id, 'Data.read')

@@ -41,7 +41,6 @@ type My_Comparator
 
 Comparable.from (that:My) = Comparable.new that My_Comparator
 
-
 type Data
     Value ~varied_type_table
 

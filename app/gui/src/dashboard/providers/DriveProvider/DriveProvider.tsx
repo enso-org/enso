@@ -16,16 +16,15 @@ import {
 } from './constants'
 
 /** State for {@link categoryIdStore}. */
-type CurrentDirectoryIdStoreState = CurrentDirectoryIdContextType['currentDirectoryId']
+interface CurrentDirectoryIdStoreState {
+  readonly current: CurrentDirectoryIdContextType['currentDirectoryId']
+}
 
 const currentDirectoryIdStore = createStore<CurrentDirectoryIdStoreState>()(
-  persist(
-    (): CurrentDirectoryIdStoreState => ({
-      current: null,
-      parent: null,
-    }),
-    { name: 'enso-current-directory-id', version: 1 },
-  ),
+  persist((): CurrentDirectoryIdStoreState => ({ current: null }), {
+    name: 'enso-current-directory-id',
+    version: 2,
+  }),
 )
 
 /** Props for a {@link DriveProvider}. */
@@ -44,7 +43,7 @@ export function DriveProvider(props: ProjectsProviderProps) {
 
   const [currentDirectoryId, privateSetCurrentDirectoryId] = useSearchParamsState<
     CurrentDirectoryIdContextType['currentDirectoryId']
-  >('currentDirectoryId', () => currentDirectoryIdStore.getState())
+  >('currentDirectoryId', () => currentDirectoryIdStore.getState().current)
 
   const [store] = useState(() =>
     createStore<DriveStore>((set, get) => ({
@@ -115,17 +114,15 @@ export function DriveProvider(props: ProjectsProviderProps) {
 
   const resetAssetTableState = useEventCallback(() => {
     store.getState().removeSelection()
-    privateSetCurrentDirectoryId({ current: null, parent: null })
-    currentDirectoryIdStore.setState({ current: null, parent: null })
+    privateSetCurrentDirectoryId(null)
+    currentDirectoryIdStore.setState({ current: null })
   })
 
-  const setCurrentDirectoryId = useEventCallback(
-    ({ current, parent }: { current: DirectoryId | null; parent: DirectoryId | null }) => {
-      privateSetCurrentDirectoryId({ current, parent })
-      currentDirectoryIdStore.setState({ current, parent })
-      store.getState().removeSelection()
-    },
-  )
+  const setCurrentDirectoryId = useEventCallback((current: DirectoryId | null) => {
+    privateSetCurrentDirectoryId(current)
+    currentDirectoryIdStore.setState({ current })
+    store.getState().removeSelection()
+  })
 
   return (
     <CurrentDirectoryIdContext.Provider value={{ currentDirectoryId, setCurrentDirectoryId }}>

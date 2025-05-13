@@ -1,15 +1,14 @@
 /** @file An entry in a menu. */
 import BlankIcon from '#/assets/blank.svg'
-import { Button, mergeProps, type ButtonProps } from '#/components/aria'
+import { Button } from '#/components/aria'
 import type { TextProps } from '#/components/AriaComponents'
 import { Text, useDialogContext, useVisualTooltip } from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
+import { Icon } from '#/components/Icon'
 import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry/constants'
 import FocusRing from '#/components/styled/FocusRing'
-import SvgMask from '#/components/SvgMask'
 import type { DashboardBindingKey } from '#/configurations/inputBindings'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useFocusChild } from '#/hooks/focusHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { unsetModal } from '#/providers/ModalProvider'
@@ -62,7 +61,6 @@ export function MenuEntry(props: MenuEntryProps) {
   const { getText } = useText()
   const dialogContext = useDialogContext()
   const inputBindings = useInputBindings()
-  const focusChildProps = useFocusChild()
   const info = inputBindings.metadata[action]
   const buttonRef = useRef<HTMLButtonElement>(null)
   const isDisabledRef = useSyncRef(isDisabled)
@@ -111,26 +109,27 @@ export function MenuEntry(props: MenuEntryProps) {
       <FocusRing>
         <Button
           ref={buttonRef}
-          {...mergeProps<ButtonProps>()(focusChildProps, {
-            isDisabled,
-            className: 'group flex w-full rounded-menu-entry',
-            onPress: () => {
-              if (dialogContext) {
-                // Closing a dialog takes precedence over unsetting the modal.
-                dialogContext.close()
-              } else {
-                unsetModal()
-              }
-              doAction()
-            },
-          })}
+          isDisabled={isDisabled}
+          className="group flex w-full rounded-menu-entry"
+          onPress={() => {
+            if (dialogContext) {
+              // Closing a dialog takes precedence over unsetting the modal.
+              dialogContext.close()
+            } else {
+              unsetModal()
+            }
+            doAction()
+          }}
         >
           <div className={MENU_ENTRY_VARIANTS(variantProps)} {...targetProps}>
-            <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
-              <SvgMask
-                src={icon ?? info.icon ?? BlankIcon}
-                color={info.color}
-                className="size-4 text-primary"
+            <div
+              title={title}
+              className="flex items-center gap-menu-entry whitespace-nowrap"
+              style={{ color: info.color }}
+            >
+              <Icon
+                icon={icon ?? info.icon ?? BlankIcon}
+                className={info.color != null ? undefined : 'text-primary'}
               />
               <Text color={color} slot="label">
                 {label ?? getText(labelTextId)}

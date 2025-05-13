@@ -13,12 +13,12 @@ import Standard.Database.Internal.Column_Fetcher as Column_Fetcher_Module
 import Standard.Database.Internal.Column_Fetcher.Column_Fetcher
 import Standard.Database.Internal.Common.Database_Join_Helper
 import Standard.Database.Internal.Error_Mapper.Error_Mapper
-import Standard.Database.Internal.IR.Context.Context
-import Standard.Database.Internal.IR.From_Spec.From_Spec
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
-import Standard.Database.Internal.IR.Query.Query
-import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
+import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import Standard.Database.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
+import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
+import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import Standard.Database.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import Standard.Database.Internal.Postgres.Postgres_Dialect
 import Standard.Database.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
@@ -62,7 +62,7 @@ type Redshift_Dialect
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
-    generate_sql : Query -> SQL_Statement
+    generate_sql : SQL_IR_Statement -> SQL_Statement
     generate_sql self query =
         Base_Generator.generate_query self query . build
 
@@ -82,7 +82,7 @@ type Redshift_Dialect
         
     ## PRIVATE
        Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
-       If you add extensions using Context_Extension you have to provide an order for them here
+       If you add extensions using SQL_IR_Source_Extension you have to provide an order for them here
     get_part_order self part:SQL_Part -> Integer =
         Base_Generator.default_get_part_order part
 
@@ -127,11 +127,11 @@ type Redshift_Dialect
     get_statement_setter self = Statement_Setter.default
 
     ## PRIVATE
-    make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
+    make_cast : Internal_Column -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     make_cast self column target_type infer_result_type_from_database_callback =
         mapping = self.get_type_mapping
         sql_type_text = mapping.sql_type_to_text target_type
-        new_expression = SQL_Expression.Operation "CAST" [column.expression, SQL_Expression.Literal sql_type_text]
+        new_expression = SQL_IR_Expression.Operation "CAST" [column.expression, SQL_IR_Expression.Literal sql_type_text]
         new_sql_type_reference = infer_result_type_from_database_callback new_expression
         Internal_Column.Value column.name new_sql_type_reference new_expression
 
@@ -147,7 +147,7 @@ type Redshift_Dialect
     temp_table_style self = Temp_Table_Style.Temporary_Table
 
     ## PRIVATE
-    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
+    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
         _ = [approximate_result_type, infer_result_type_from_database_callback]
         column
@@ -162,7 +162,7 @@ type Redshift_Dialect
        In most cases this method will just return the expression unchanged, it
        is used only to override the type in cases where the default one that the
        database uses is not what we want.
-    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_Expression) =
+    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_IR_Expression) =
         _ = [op_kind, args]
         expression
 
@@ -170,10 +170,10 @@ type Redshift_Dialect
        Add an extra cast to adjust the output type of aggregate operations.
        Some DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
     cast_aggregate_columns self op_kind:Text columns:(Vector Internal_Column) =
-        self.cast_op_type op_kind columns (SQL_Expression.Operation op_kind (columns.map c->c.expression))
+        self.cast_op_type op_kind columns (SQL_IR_Expression.Operation op_kind (columns.map c->c.expression))
 
     ## PRIVATE
-    prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
+    prepare_fetch_types_query : SQL_IR_Expression -> SQL_IR_Source -> SQL_Statement
     prepare_fetch_types_query self expression context =
         Base_Generator.default_fetch_types_query self expression context
 
@@ -270,7 +270,7 @@ type Redshift_Dialect
         False
 
     ## PRIVATE
-    generate_expression self base_gen expr:(SQL_Expression | Order_Descriptor | Query) for_select:Boolean -> SQL_Builder =
+    generate_expression self base_gen expr:(SQL_IR_Expression | Order_Descriptor | SQL_IR_Statement) for_select:Boolean -> SQL_Builder =
         _ = for_select
         base_gen.generate_expression self expr
 

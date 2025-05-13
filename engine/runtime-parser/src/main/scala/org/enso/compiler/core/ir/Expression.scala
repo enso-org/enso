@@ -199,16 +199,6 @@ object Expression {
       with LazyDiagnosticStorage
       with LazyId {
 
-    /** Create a [[Binding]] object from a [[Function.Binding]].
-      *
-      * @param ir the function binding
-      * @param lambda the body of the function
-      */
-    def this(ir: Function.Binding, lambda: Function.Lambda) = {
-      this(ir.name, lambda, ir.identifiedLocation, ir.passData)
-      this.diagnostics = ir.diagnostics
-    }
-
     /** Creates a copy of `this`.
       *
       * @param name        the name being bound to

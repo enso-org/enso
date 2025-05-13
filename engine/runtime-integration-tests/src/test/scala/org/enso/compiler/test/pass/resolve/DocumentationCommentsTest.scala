@@ -366,7 +366,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
             inside(block.returnValue) { case caseExpr: Case.Expr =>
               caseExpr.branches should have length 2
               getDoc(caseExpr.branches.head) shouldEqual " case 1"
-              getDoc(caseExpr.branches(1)) shouldEqual " catchall"
+              getDoc(caseExpr.branches.apply(1)) shouldEqual " catchall"
             }
           }
         }

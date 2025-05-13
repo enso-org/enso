@@ -2,6 +2,15 @@
  * @file Provider for the {@link SessionContextType}, which contains information about the
  * currently authenticated user's session.
  */
+import * as React from 'react'
+
+import * as sentry from '@sentry/vue'
+import * as reactQuery from '@tanstack/react-query'
+
+import * as httpClientProvider from '#/providers/HttpClientProvider'
+
+import * as errorModule from '#/utilities/error'
+
 import type * as cognito from '#/authentication/cognito'
 import { CognitoErrorType, type CognitoUser, type ISessionProvider } from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'
@@ -11,39 +20,13 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as gtag from '#/hooks/gtagHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import * as httpClientProvider from '#/providers/HttpClientProvider'
-import * as errorModule from '#/utilities/error'
+import { unsetModal } from '#/providers/ModalProvider'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
-import * as sentry from '@sentry/react'
-import * as reactQuery from '@tanstack/react-query'
-import * as React from 'react'
 import { toast } from 'react-toastify'
-import { useSetModal } from '../ModalProvider'
 import { useText } from '../TextProvider'
-import { SessionContext, type SessionContextType } from './constants'
-
-/** Props for a {@link SessionProvider}. */
-export interface SessionProviderProps {
-  /**
-   * The URL that the content of the app is served at, by Electron.
-   *
-   * This **must** be the actual page that the content is served at, otherwise the OAuth flow will
-   * not work and will redirect the user to a blank page. If this is the correct URL, no redirect
-   * will occur (which is the desired behaviour).
-   *
-   * The URL includes a scheme, hostname, and port (e.g., `http://localhost:8080`). The port is not
-   * known ahead of time, since the content may be served on any free port. Thus, the URL is
-   * obtained by reading the window location at the time that authentication is instantiated. This
-   * is guaranteed to be the correct location, since authentication is instantiated when the content
-   * is initially served.
-   */
-  readonly mainPageUrl: URL
-  readonly registerAuthEventListener: listen.ListenFunction | null
-  readonly authService: ISessionProvider
-  readonly onLogout?: () => Promise<void> | void
-
-  readonly children: React.ReactNode | ((props: SessionContextType) => React.ReactNode)
-}
+import { SessionContext } from './hooks'
+import type { SessionContextType, SessionProviderProps } from './types'
 
 /** Create a query for the user session. */
 function createSessionQuery(authService: ISessionProvider) {
@@ -57,8 +40,9 @@ function createSessionQuery(authService: ISessionProvider) {
 export function SessionProvider(props: SessionProviderProps) {
   const { mainPageUrl, children, registerAuthEventListener, authService, onLogout } = props
 
-  const { unsetModal } = useSetModal()
   const { getText } = useText()
+
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false)
 
   // stabilize the callback so that it doesn't change on every render
   const saveAccessTokenEventCallback = useEventCallback((accessToken: cognito.UserSession) => {
@@ -73,12 +57,12 @@ export function SessionProvider(props: SessionProviderProps) {
 
   const session = reactQuery.useSuspenseQuery(sessionQueryOptions)
 
-  const refreshUserSessionMutation = reactQuery.useMutation({
+  const refreshUserSessionMutation = useMutationCallback({
     mutationKey: ['refreshUserSession', { expireAt: session.data?.expireAt }],
     mutationFn: async () => authService.refreshUserSession(),
     onSuccess: (data) => {
       if (data) {
-        httpClient?.setSessionToken(data.accessToken)
+        httpClient.setSessionToken(data.accessToken)
       }
       return queryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
     },
@@ -86,13 +70,14 @@ export function SessionProvider(props: SessionProviderProps) {
       // Something went wrong with the refresh token, so we need to sign the user out.
       toastAndLog('sessionExpiredError', error)
       queryClient.setQueryData(sessionQueryOptions.queryKey, null)
-      return logoutMutation.mutateAsync()
+      return logoutMutation()
     },
   })
 
-  const logoutMutation = reactQuery.useMutation({
+  const logoutMutation = useMutationCallback({
     mutationKey: ['session', 'logout', session.data?.clientId] as const,
     mutationFn: async () => {
+      setIsLoggingOut(true)
       await authService.signOut()
 
       gtag.event('cloud_sign_out')
@@ -100,6 +85,7 @@ export function SessionProvider(props: SessionProviderProps) {
       unsafeWriteValue(document, 'cookie', `logged_in=no;max-age=0;domain=${parentDomain}`)
 
       authService.saveAccessToken(null)
+      setIsLoggingOut(false)
     },
     // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
     onMutate: unsetModal,
@@ -223,7 +209,7 @@ export function SessionProvider(props: SessionProviderProps) {
   })
 
   if (session.data) {
-    httpClient?.setSessionToken(session.data.accessToken)
+    httpClient.setSessionToken(session.data.accessToken)
   }
 
   // Register an effect that will listen for authentication events. When the event occurs, we
@@ -314,7 +300,7 @@ export function SessionProvider(props: SessionProviderProps) {
     forgotPassword,
     resetPassword,
     changePassword,
-    signOut: logoutMutation.mutateAsync,
+    signOut: logoutMutation,
     organizationId,
     getMFAPreference,
     updateMFAPreference,
@@ -327,10 +313,7 @@ export function SessionProvider(props: SessionProviderProps) {
       {typeof children === 'function' ? children(sessionContextValue) : children}
 
       {session.data && (
-        <SessionRefresher
-          session={session.data}
-          refreshUserSession={refreshUserSessionMutation.mutateAsync}
-        />
+        <SessionRefresher session={session.data} refreshUserSession={refreshUserSessionMutation} />
       )}
 
       <Dialog
@@ -338,7 +321,7 @@ export function SessionProvider(props: SessionProviderProps) {
         isDismissable={false}
         isKeyboardDismissDisabled
         hideCloseButton
-        modalProps={{ isOpen: logoutMutation.isPending }}
+        modalProps={{ isOpen: isLoggingOut }}
       >
         <Result status="loading" title={getText('loggingOut')} />
       </Dialog>

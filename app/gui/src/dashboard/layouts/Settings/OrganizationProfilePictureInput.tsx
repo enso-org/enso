@@ -1,7 +1,7 @@
 /** @file The input for viewing and changing the organization's profile picture. */
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 
 import * as textProvider from '#/providers/TextProvider'
 
@@ -24,7 +24,7 @@ export default function OrganizationProfilePictureInput(
 ) {
   const { backend } = props
   const { getText } = textProvider.useText()
-  const { data: organization } = useBackendQuery(backend, 'getOrganization', [])
+  const { data: organization } = useQuery(backendQueryOptions(backend, 'getOrganization', []))
 
   const uploadOrganizationPicture = useMutation(
     backendMutationOptions(backend, 'uploadOrganizationPicture'),

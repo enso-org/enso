@@ -23,10 +23,10 @@ import project.Internal.Data_Link_Setup.Data_Link_Setup
 import project.Internal.DDL_Transaction
 import project.Internal.Hidden_Table_Registry
 import project.Internal.In_Transaction.In_Transaction
-import project.Internal.IR.Context.Context
-import project.Internal.IR.From_Spec.From_Spec
-import project.Internal.IR.Query.Query
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
+import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQL_Warning_Helper
 import project.Internal.Statement_Setter.Statement_Setter
@@ -402,7 +402,7 @@ type Connection
          does not exist. Defaults to `False`.
     drop_table : Text -> Boolean -> Nothing
     drop_table self table_name if_exists=False =
-        self.execute_update (self.dialect.generate_sql (Query.Drop_Table table_name if_exists))
+        self.execute_update (self.dialect.generate_sql (SQL_IR_Statement.Drop_Table table_name if_exists))
 
     ## PRIVATE
        Removes all rows from a table.
@@ -413,7 +413,7 @@ type Connection
     truncate_table self table_name =
         ensure_exists = self.query (SQL_Query.Table_Name table_name)
         ensure_exists.if_not_error <|
-            self.execute_update (self.dialect.generate_sql (Query.Truncate_Table table_name))
+            self.execute_update (self.dialect.generate_sql (SQL_IR_Statement.Truncate_Table table_name))
 
     ## PRIVATE
        Returns the base `Connection` instance.
@@ -530,14 +530,14 @@ private make_table_from_query connection query:Text|SQL_Statement alias:Text -> 
     statement_setter = if expect_interpolations then connection.dialect.get_statement_setter else Statement_Setter.null
     columns = connection.base_connection.fetch_columns query statement_setter
     name = if alias == "" then (UUID.randomUUID.to_text) else alias
-    ctx = Context.for_query query name
+    ctx = SQL_IR_Source.for_query query name
     DB_Table_Module.make_table connection.base_connection name columns ctx on_problems=Problem_Behavior.Report_Error
 
 ## PRIVATE
 private _make_table_for_name connection name alias internal_temporary_keep_alive_reference=Nothing =
     result = handle_sql_errors <|
-        ctx = Context.for_table name (if alias == "" then name else alias) internal_temporary_keep_alive_reference
-        statement = connection.dialect.generate_sql (Query.Select Nothing ctx)
+        ctx = SQL_IR_Source.for_table name (if alias == "" then name else alias) internal_temporary_keep_alive_reference
+        statement = connection.dialect.generate_sql (SQL_IR_Statement.Select Nothing ctx)
         statement_setter = connection.dialect.get_statement_setter
         columns = connection.base_connection.fetch_columns statement statement_setter
         ## In case of accessing an existing table, we assume that column names

@@ -263,7 +263,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
 
     const editedNodeDisconnectedTarget = computed(() =>
       editedNodeInfo.value ?
-        db.nodeIdToNode.get(editedNodeInfo.value.id)?.primarySubject
+        db.nodeIdToNode.get(editedNodeInfo.value.id)?.primaryApplication.selfArgument
       : undefined,
     )
 
@@ -708,6 +708,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
         fromCache: update.fromCache ?? false,
         payload: update.payload ?? { type: 'Value' },
         type: update.type ?? [],
+        hiddenType: update.hiddenType ?? [],
         ...(update.methodCall ? { methodCall: update.methodCall } : {}),
       }
       proj.computedValueRegistry.processUpdates([update_])

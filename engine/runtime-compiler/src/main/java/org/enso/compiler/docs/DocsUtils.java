@@ -10,6 +10,7 @@ import org.enso.compiler.core.ir.DefinitionArgument;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function.Lambda;
 import org.enso.compiler.core.ir.Name;
+import org.enso.compiler.core.ir.Type;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
@@ -95,32 +96,12 @@ final class DocsUtils {
     var meta = ir.passData().get(TypeSignatures$.MODULE$);
     if (meta.isDefined()) {
       var sigMeta = (TypeSignatures.Signature) meta.get();
-      var sigFqn = extractFqnOrNull(sigMeta.signature());
+      var sign = sigMeta.signature();
+      var sigFqn = extractFqnOrNull(sign);
       if (sigFqn != null) {
         return sigFqn.toString();
       }
-      var type =
-          switch (sigMeta.signature()) {
-            case Application.Prefix app -> {
-              var typeConstructor = extractFqnOrNull(app.function());
-              if (typeConstructor == null) {
-                yield null;
-              }
-              var sb = new StringBuilder();
-              sb.append("(");
-              sb.append(typeConstructor);
-              for (var a : asJava(app.arguments())) {
-                var fqn = extractTypeOrAny(a.value());
-                sb.append(" ");
-                sb.append(fqn);
-              }
-              sb.append(")");
-              yield sb.toString();
-            }
-            case Set.Union union -> extractSet(asJava(union.operands()), "|");
-            case Set.Intersection inter -> extractSet(collectInter(inter, new ArrayList<>()), "&");
-            default -> ANY;
-          };
+      var type = extractFromSignature(sign);
       return type;
     } else {
       if (ir instanceof Application.Force force) {
@@ -129,6 +110,38 @@ final class DocsUtils {
       var fqn = extractFqnOrNull(ir);
       return fqn == null ? ANY : fqn.toString();
     }
+  }
+
+  private static String extractFromSignature(Expression sign) {
+    return switch (sign) {
+      case Application.Prefix app -> {
+        var typeConstructor = extractFqnOrNull(app.function());
+        if (typeConstructor == null) {
+          yield null;
+        }
+        var sb = new StringBuilder();
+        sb.append("(");
+        sb.append(typeConstructor);
+        for (var a : asJava(app.arguments())) {
+          var fqn = extractTypeOrAny(a.value());
+          sb.append(" ");
+          sb.append(fqn);
+        }
+        sb.append(")");
+        yield sb.toString();
+      }
+      case Set.Union union -> extractSet(asJava(union.operands()), "|");
+      case Set.Intersection inter -> extractSet(collectInter(inter, new ArrayList<>()), "&");
+      case Type.Error error -> {
+        var typ = extractFromSignature(error.typed());
+        var err = extractFromSignature(error.error());
+        yield typ + "!" + err;
+      }
+      default -> {
+        var fqn = extractFqnOrNull(sign);
+        yield fqn == null ? ANY : fqn.toString();
+      }
+    };
   }
 
   private static List<Expression> collectInter(Expression ir, List<Expression> append) {

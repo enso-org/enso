@@ -1,6 +1,6 @@
 import { NEW_COLUMN_ID } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import { WidgetEditHandler, WidgetEditHooks } from '@/providers/widgetRegistry/editHandler'
-import { ToValue } from '@/util/reactivity'
+import { type ToValue } from '@/util/reactivity'
 import { CellPosition, StartEditingCellParams } from 'ag-grid-enterprise'
 import { computed, ref, toValue, watch } from 'vue'
 

@@ -1,5 +1,4 @@
 /** @file The icon and name of a {@link DirectoryAsset}. */
-import FolderIcon from '#/assets/folder.svg'
 import { Button } from '#/components/AriaComponents'
 import EditableSpan from '#/components/EditableSpan'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
@@ -55,17 +54,16 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       }}
     >
       <Button
-        icon={FolderIcon}
-        size="medium"
+        icon="folder"
         variant="icon"
-        loading={isLoading || isNavigating}
+        isLoading={isLoading || isNavigating}
         aria-label={getText('open')}
         tooltipPlacement="left"
         testId="directory-row-navigate-button"
         className="mx-1 transition-transform duration-arrow"
         onPress={() => {
           startNavigation(() => {
-            setCurrentDirectoryId({ current: item.id, parent: item.parentId })
+            setCurrentDirectoryId(item.id)
           })
         }}
       />

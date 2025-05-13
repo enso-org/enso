@@ -89,7 +89,9 @@ export function AlertDialog(props: AlertDialogProps) {
 
           <Button.Group align="end">
             {typeof cancelButton === 'string' ?
-              <AlertDialog.Dismiss variant="ghost">{cancelButton}</AlertDialog.Dismiss>
+              <AlertDialog.Dismiss isLoading={false} variant="ghost">
+                {cancelButton}
+              </AlertDialog.Dismiss>
             : cancelButton}
 
             {typeof confirmButton === 'string' ?
@@ -139,7 +141,18 @@ export type AlertDialogDismissProps<IconType extends string> = SubmitProps<
 AlertDialog.Dismiss = function Dismiss<IconType extends string>(
   props: AlertDialogDismissProps<IconType>,
 ) {
-  return <Form.Submit name="response" value="cancel" variant="ghost" {...props} />
+  const form = Form.useFormContext(props.form)
+
+  return (
+    <Form.Submit
+      name="response"
+      value="cancel"
+      variant="ghost"
+      isLoading={false}
+      isDisabled={form.formState.isSubmitting}
+      {...props}
+    />
+  )
 }
 
 /**
@@ -163,7 +176,7 @@ AlertDialog.Confirm = function Confirm<IconType extends string>(
   const { isDestructive } = AlertDialogProvider.useContextStrict()
   const { variant = isDestructive ? 'delete' : 'primary', ...rest } = props
 
-  return <Form.Submit name="response" value="confirm" variant={variant} {...rest} />
+  return <Form.Submit autoFocus name="response" value="confirm" variant={variant} {...rest} />
 }
 
 AlertDialog.Trigger = Dialog.Trigger

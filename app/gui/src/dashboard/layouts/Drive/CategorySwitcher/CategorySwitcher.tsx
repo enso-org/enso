@@ -10,7 +10,17 @@ import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
-import { useTransferBetweenCategories } from '#/layouts/Drive/CategorySwitcher/useTransferBetweenCategories'
+import {
+  areCategoriesEqual,
+  canTransferBetweenCategories,
+  dropOperationBetweenCategories,
+  type Category,
+} from '#/layouts/Drive/CategorySwitcher/Category'
+import { useCategoriesAPI } from '#/layouts/Drive/CategorySwitcher/hooks'
+import {
+  ASSETS_DATA_TRANSFER_PAYLOAD,
+  useTransferBetweenCategories,
+} from '#/layouts/Drive/CategorySwitcher/useTransferBetweenCategories'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
@@ -18,17 +28,10 @@ import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { unsetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import { tv } from '#/utilities/tailwindVariants'
+import { useRouterInReact } from '$/providers/react'
 import { memo, useTransition, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { twJoin } from 'tailwind-merge'
-import {
-  areCategoriesEqual,
-  canTransferBetweenCategories,
-  dropOperationBetweenCategories,
-  type Category,
-} from './Category'
-import { useCloudCategoryList, useLocalCategoryList } from './hooks'
-import { ASSETS_DATA_TRANSFER_PAYLOAD } from './useTransferBetweenCategories'
 
 /** Metadata for a category. */
 interface CategoryMetadata {
@@ -116,10 +119,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       // and to not invoke the Suspense boundary.
       // This makes the transition feel more responsive and natural.
       startTransition(() => {
-        setCurrentDirectoryId({
-          current: null,
-          parent: null,
-        })
+        setCurrentDirectoryId(null)
         setCategoryId(category.id)
       })
     }
@@ -178,7 +178,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     >
       <AnimatedBackground.Item
         isSelected={isCurrent}
-        className="w-auto max-w-[calc(100%-24px)]"
+        className="w-auto max-w-full"
         animationClassName="bg-invert rounded-full"
       >
         <Button
@@ -234,11 +234,11 @@ export const CategorySwitcher = memo(function CategorySwitcher(props: CategorySw
 
   const { getText } = useText()
   const [, setSearchParams] = useSearchParams()
+  const { router } = useRouterInReact()
 
   const { isOffline } = useOffline()
 
-  const cloudCategories = useCloudCategoryList()
-  const localCategories = useLocalCategoryList()
+  const { cloudCategories, localCategories } = useCategoriesAPI()
 
   const itemProps = { currentCategory: category, setCategoryId }
 
@@ -327,9 +327,11 @@ export const CategorySwitcher = memo(function CategorySwitcher(props: CategorySw
                 aria-label={getText('changeLocalRootDirectoryInSettings')}
                 className="my-auto opacity-0 transition-opacity group-hover:opacity-100"
                 onPress={() => {
-                  setSearchParams({
-                    [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify('local'),
-                    [`${SEARCH_PARAMS_PREFIX}page`]: JSON.stringify('settings'),
+                  void router.push({
+                    query: {
+                      [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify('local'),
+                      [`${SEARCH_PARAMS_PREFIX}page`]: JSON.stringify('settings'),
+                    },
                   })
                 }}
               />
@@ -356,7 +358,7 @@ export const CategorySwitcher = memo(function CategorySwitcher(props: CategorySw
                     extraClickZone={false}
                     icon="minus"
                     aria-label={getText('removeDirectoryFromFavorites')}
-                    className="hidden group-hover:block"
+                    showIconOnHover
                   />
 
                   <ConfirmDeleteModal

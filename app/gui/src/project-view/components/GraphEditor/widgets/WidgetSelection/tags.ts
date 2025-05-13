@@ -13,7 +13,7 @@ import { Opt } from '@/util/data/opt'
 import { Icon, isIconName } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
-import { ToValue } from '@/util/reactivity'
+import { type ToValue } from '@/util/reactivity'
 import { VNode } from 'vue'
 
 /**
@@ -171,6 +171,7 @@ export class ActionTag {
    */
   constructor(
     readonly label: string,
+    readonly icon: Icon | undefined,
     readonly onClick: (dropdownActions: Actions) => void,
   ) {}
 
@@ -178,7 +179,7 @@ export class ActionTag {
    * Create a new {@link ActionTag} from a {@link CustomDropdownItem}.
    */
   static FromItem(item: CustomDropdownItem): ActionTag {
-    return new ActionTag(item.label, item.onClick)
+    return new ActionTag(item.label, item.icon, item.onClick)
   }
 }
 
@@ -186,6 +187,8 @@ export class ActionTag {
 export interface CustomDropdownItem {
   /** Displayed label. */
   label: string
+  /** Displayed icon. */
+  icon?: Icon
   /** Action to perform when clicked. */
   onClick: (dropdownActions: Actions) => void
 }

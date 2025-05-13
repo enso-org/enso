@@ -1,6 +1,5 @@
 /** @file A hook for creating a visual tooltip that appears when the target element is hovered over. */
 import {
-  mergeProps,
   useHover,
   useTooltipTriggerState,
   type AriaPositionProps,
@@ -10,12 +9,12 @@ import {
 import { VisualTooltipInner } from '#/components/AriaComponents/Text/VisualTooltipInner'
 import type { TooltipProps } from '#/components/AriaComponents/Tooltip'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { unsafeWriteValue } from '#/utilities/write'
 import {
   createElement,
   startTransition,
   useId,
   useState,
-  type HTMLAttributes,
   type ReactNode,
   type RefObject,
 } from 'react'
@@ -115,8 +114,13 @@ export function useVisualTooltip(props: VisualTooltipOptions): VisualTooltipRetu
     onHoverChange: handleHoverChange,
   })
 
+  unsafeWriteValue(targetHoverProps, 'id', id)
+
   return {
-    targetProps: mergeProps<HTMLAttributes<HTMLElement>>()(targetHoverProps, { id }),
+    // This is SAFE because we are writing the value to the targetHoverProps object
+    // above.
+    // eslint-disable-next-line no-restricted-syntax
+    targetProps: targetHoverProps as VisualTooltipReturn['targetProps'],
     tooltip:
       state.isOpen ?
         createElement(VisualTooltipInner, {

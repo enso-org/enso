@@ -11,8 +11,8 @@ import { useText } from '#/providers/TextProvider'
 import { Plan } from '#/services/Backend'
 import type { RemoteBackend } from '#/services/RemoteBackend'
 import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
+import * as React from 'react'
 import { useState } from 'react'
-import { Outlet } from 'react-router'
 
 const PLANS_TO_SPECIFY_ORG_NAME = [Plan.team, Plan.enterprise]
 
@@ -20,7 +20,7 @@ const PLANS_TO_SPECIFY_ORG_NAME = [Plan.team, Plan.enterprise]
  * Modal for setting the organization name.
  * Shows up when the user is on the team plan and the organization name is the default.
  */
-export function SetupOrganizationAfterSubscribe() {
+export function SetupOrganizationAfterSubscribe({ children }: React.PropsWithChildren) {
   const backend = useRemoteBackend()
 
   const session = useFullUserSession()
@@ -30,10 +30,14 @@ export function SetupOrganizationAfterSubscribe() {
   const shouldShowModal = PLANS_TO_SPECIFY_ORG_NAME.includes(plan) && isOrganizationAdmin
 
   if (shouldShowModal) {
-    return <SetupOrganizationAfterSubscribeInternal userId={userId} backend={backend} />
+    return (
+      <SetupOrganizationAfterSubscribeInternal userId={userId} backend={backend}>
+        {children}
+      </SetupOrganizationAfterSubscribeInternal>
+    )
   }
 
-  return <Outlet context={session} />
+  return <>{children}</>
 }
 
 /**
@@ -52,9 +56,9 @@ interface SetupOrganizationAfterSubscribeInternalProps {
  * @returns The component.
  */
 function SetupOrganizationAfterSubscribeInternal(
-  props: SetupOrganizationAfterSubscribeInternalProps,
+  props: React.PropsWithChildren<SetupOrganizationAfterSubscribeInternalProps>,
 ) {
-  const { backend } = props
+  const { backend, children } = props
 
   const { getText } = useText()
   const session = useFullUserSession()
@@ -157,7 +161,7 @@ function SetupOrganizationAfterSubscribeInternal(
         </Stepper>
       </Dialog>
 
-      <Outlet context={session} />
+      {children}
     </>
   )
 }

@@ -204,6 +204,38 @@ type Invalid_Row
         count_msg = if got_columns > self.expected_columns then "too many" else "too few"
         "The row " + loc + " had " + count_msg + " columns (expected " + self.expected_columns.to_text + ", got " + got_columns.to_text + ")."
 
+## Indicates that when loading a fixed-width file, a row was encountered which
+   was not long enough for the specified fixed-width column layout.
+
+   Only the first 10 rows are reported, any additional ones are aggregated into
+   a single instance of `Additional_Invalid_Rows`.
+type Invalid_Fixed_Width_Row
+    ## PRIVATE
+    Error (source_line_number : Integer) (table_row_number : Integer | Nothing) (line_length : Integer | Nothing) (minimum_line_length : Integer | Nothing)
+
+    ## PRIVATE
+
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        table_loc = case self.table_row_number of
+            Nothing -> ""
+            _ -> ", table row "+self.table_row_number.to_text
+        loc = "(line "+self.source_line_number.to_text+table_loc+")"
+        "The row " + loc + " had length " + self.line_length.to_text + ", but a length of at least " + self.minimum_line_length.to_text + " was expected"
+
+## Indicates that when loading a fixed-width file, the lines did not all have
+   the same length
+type Inconsistent_Fixed_Width_Lengths
+    ## PRIVATE
+    Error
+
+    ## PRIVATE
+
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "The fixed-width file had lines of differing lengths."
 
 ## Indicates how many additional `Invalid_Row` warnings have been suppressed.
 type Additional_Invalid_Rows

@@ -8,8 +8,6 @@ import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.MaxOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.MinOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
@@ -20,6 +18,7 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqu
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
 import org.enso.table.data.column.operation.map.numeric.isin.BigIntegerIsInOp;
+import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -49,8 +48,6 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger>
         .add(new DivideOp<>())
         .add(new ModOp<>())
         .add(new PowerOp<>())
-        .add(new MinOp<>())
-        .add(new MaxOp<>())
         .add(new LessComparison<>())
         .add(new LessOrEqualComparison<>())
         .add(new EqualsComparison<>())
@@ -99,10 +96,21 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger>
     return cachedMaxPrecisionStored;
   }
 
+  @Override
+  public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
+    StorageType<?> preciseType = inferAndCacheDefaultPreciseType();
+
+    // If shrinking was requested we may shrink INT_64 further
+    if (options.shrinkIntegers() && preciseType instanceof IntegerType) {
+      return findSmallestIntegerTypeThatFits(options);
+    }
+
+    return preciseType;
+  }
+
   private StorageType<?> inferredType = null;
 
-  @Override
-  public StorageType<?> inferPreciseType() {
+  private StorageType<?> inferAndCacheDefaultPreciseType() {
     if (inferredType == null) {
       boolean allFitInLong = true;
       int visitedCount = 0;
@@ -128,17 +136,7 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger>
     return inferredType;
   }
 
-  @Override
-  public StorageType<?> inferPreciseTypeShrunk() {
-    StorageType<?> preciseType = inferPreciseType();
-    if (preciseType instanceof IntegerType) {
-      return findSmallestIntegerTypeThatFits();
-    }
-
-    return preciseType;
-  }
-
-  private StorageType<?> findSmallestIntegerTypeThatFits() {
+  private StorageType<?> findSmallestIntegerTypeThatFits(PreciseTypeOptions options) {
     // This method assumes that all values _do_ fit in some integer type.
     assert inferredType instanceof IntegerType;
 
@@ -159,7 +157,7 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger>
         };
 
     // And rely on its shrinking logic.
-    return longAdapter.inferPreciseTypeShrunk();
+    return longAdapter.inferPreciseType(options);
   }
 
   /**

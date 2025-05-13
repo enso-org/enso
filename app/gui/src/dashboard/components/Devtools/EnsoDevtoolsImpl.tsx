@@ -89,7 +89,7 @@ export function EnsoDevtools() {
           />
         </ariaComponents.Underlay>
 
-        <Popover>
+        <Popover shouldCloseOnInteractOutside={() => true}>
           <div className="flex items-center justify-between">
             <Text.Heading disableLineHeightCompensation>
               {getText('ensoDevtoolsPopoverHeading')}
@@ -380,7 +380,7 @@ export function EnsoDevtools() {
               aria-label={getText('deleteAll')}
               size="small"
               variant="icon"
-              icon="trash2"
+              icon="trash"
               onPress={() => {
                 for (const key of LocalStorage.getAllKeys()) {
                   localStorage.delete(key)

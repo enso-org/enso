@@ -11,7 +11,7 @@ import {
   type Selection,
 } from '#/components/aria'
 import { USER_MIME_TYPE } from '#/data/mimeTypes'
-import { useBackendQuery } from '#/hooks/backendHooks'
+import { backendQueryOptions } from '#/hooks/backendHooks'
 import { useStickyTableHeaderOnScroll } from '#/hooks/scrollHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
@@ -19,6 +19,7 @@ import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { UserId, type User } from '#/services/Backend'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useQuery } from '@tanstack/react-query'
 import UserRow from './UserRow'
 
 /** Props for a {@link MembersTable}. */
@@ -42,7 +43,7 @@ export default function MembersTable(props: MembersTableProps) {
   const bodyRef = useRef<HTMLTableSectionElement>(null)
   const userWithPlaceholder = useMemo(() => ({ isPlaceholder: false, ...user }), [user])
 
-  const { data: allUsers } = useBackendQuery(backend, 'listUsers', [])
+  const { data: allUsers } = useQuery(backendQueryOptions(backend, 'listUsers', []))
 
   const users = useMemo(
     () => allUsers ?? (populateWithSelf ? [userWithPlaceholder] : null),

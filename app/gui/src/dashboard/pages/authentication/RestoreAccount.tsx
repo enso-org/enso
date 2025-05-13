@@ -10,14 +10,14 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { useNavigate } from 'react-router'
+import { useRouterInReact } from '$/providers/react'
 
 /** Restore an account that has been deleted. */
 export default function RestoreAccount() {
   const { getText } = textProvider.useText()
   const { restoreUser } = useAuth()
   const { signOut } = useSessionAPI()
-  const navigate = useNavigate()
+  const { router } = useRouterInReact()
 
   return (
     <div className="flex h-full w-full overflow-auto">
@@ -50,7 +50,7 @@ export default function RestoreAccount() {
             variant="icon"
             onPress={async () => {
               await signOut().then(() => {
-                navigate(LOGIN_PATH)
+                void router.push(LOGIN_PATH)
               })
             }}
           >

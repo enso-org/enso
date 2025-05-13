@@ -177,3 +177,8 @@ export function newOwnerFromPath(
     }
   }
 }
+
+/** Replace the first owner permission with the permission of a new user or team. */
+export function tryGetOwnerPermission(asset: backend.AnyAsset) {
+  return asset.permissions?.find((permission) => permission.permission === PermissionAction.own)
+}

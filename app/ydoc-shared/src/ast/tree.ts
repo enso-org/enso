@@ -145,6 +145,7 @@ export const astTypes = [
   'AutoscopedIdentifier',
   'Vector',
   'Wildcard',
+  'TypeAnnotated',
 ] as const
 export type AstType = (typeof astTypes)[number]
 
@@ -1380,6 +1381,78 @@ export interface MutablePropertyAccess extends PropertyAccess, MutableExpression
   get lhs(): MutableExpression | undefined
 }
 applyMixins(MutablePropertyAccess, [MutableAst])
+
+interface TypeAnnotatedFields<T extends TreeRefs = RawRefs> {
+  /** The expression whose type is being annotated. */
+  expression: T['ast']
+  /** The `:` token. */
+  colon: T['token']
+  /** The expression's type. */
+  typeNode: T['ast']
+}
+
+/** An expression with explicit type information attached. */
+export class TypeAnnotated extends BaseExpression {
+  declare fields: FixedMapView<AstFields & TypeAnnotatedFields>
+  /** Internal constructor. */
+  constructor(module: Module, fields: FixedMapView<AstFields & TypeAnnotatedFields>) {
+    super(module, fields)
+  }
+
+  /** Main constructor. */
+  static concrete(
+    module: MutableModule,
+    expression: NodeChild<Owned<MutableExpression>>,
+    colon: NodeChild<Token>,
+    typeNode: NodeChild<Owned<MutableExpression>>,
+  ) {
+    const base = module.baseObject('TypeAnnotated')
+    const id_ = base.get('id')
+    const fields = composeFieldData(base, {
+      expression: concreteChild(module, expression, id_),
+      colon,
+      typeNode: concreteChild(module, typeNode, id_),
+    })
+    return asOwned(new MutableTypeAnnotated(module, fields))
+  }
+
+  /** The expression whose type is being annotated. */
+  get expression(): Expression {
+    return this.module.get(this.fields.get('expression').node) as Expression
+  }
+  /** The expression's type. */
+  get typeNode(): Expression {
+    return this.module.get(this.fields.get('typeNode').node) as Expression
+  }
+
+  /** Children AST nodes. */
+  *concreteChildren({ verbatim }: PrintContext): IterableIterator<RawConcreteChild> {
+    const { expression, colon, typeNode } = getAll(this.fields)
+    yield firstChild(expression)
+    const spaced = (colon.whitespace ?? typeNode.whitespace ?? '') !== ''
+    yield ensureSpacedOnlyIf(colon, spaced, verbatim)
+    yield ensureSpacedOnlyIf(typeNode, spaced, verbatim)
+  }
+}
+
+/** Mutable version of {@link TypeAnnotated}. */
+export class MutableTypeAnnotated extends TypeAnnotated implements MutableExpression {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & TypeAnnotatedFields>
+
+  setExpression<T extends MutableExpression>(value: Owned<T>) {
+    setNode(this.fields, 'expression', this.claimChild(value))
+  }
+  setTypeNode<T extends MutableExpression>(value: Owned<T>) {
+    setNode(this.fields, 'typeNode', this.claimChild(value))
+  }
+}
+
+export interface MutableTypeAnnotated extends TypeAnnotated, MutableExpression {
+  get expression(): MutableExpression
+  get typeNode(): MutableExpression
+}
+applyMixins(MutableTypeAnnotated, [MutableAst])
 
 interface GenericFields {
   children: RawNodeChild[]
@@ -3346,6 +3419,8 @@ export function materializeMutable(module: MutableModule, fields: FixedMap<AstFi
       return new MutableVector(module, fieldsForType)
     case 'Wildcard':
       return new MutableWildcard(module, fieldsForType)
+    case 'TypeAnnotated':
+      return new MutableTypeAnnotated(module, fieldsForType)
   }
   bail(`Invalid type: ${type}`)
 }
@@ -3393,6 +3468,8 @@ export function materialize(module: Module, fields: FixedMapView<AstFields>): As
       return new Vector(module, fields_)
     case 'Wildcard':
       return new Wildcard(module, fields_)
+    case 'TypeAnnotated':
+      return new TypeAnnotated(module, fields_)
   }
   bail(`Invalid type: ${type}`)
 }

@@ -1,13 +1,14 @@
 package org.enso.table.data.column.storage.type;
 
+import java.math.BigDecimal;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.BuilderForType;
+import org.enso.table.data.column.builder.BuilderForDouble;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record FloatType(Bits bits) implements StorageType<Double> {
+public record FloatType(Bits bits) implements StorageType<Double>, NumericType {
   public static final FloatType FLOAT_64 = new FloatType(Bits.BITS_64);
 
   public FloatType {
@@ -38,15 +39,14 @@ public record FloatType(Bits bits) implements StorageType<Double> {
 
   @Override
   public Double valueAsType(Object value) {
-    if (NumericConverter.isCoercibleToDouble(value)) {
+    if (NumericConverter.isCoercibleToDouble(value) || value instanceof BigDecimal) {
       return NumericConverter.coerceToDouble(value);
     }
     return null;
   }
 
   @Override
-  public BuilderForType<Double> makeBuilder(
-      long initialCapacity, ProblemAggregator problemAggregator) {
+  public BuilderForDouble makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
     return Builder.getForDouble(this, initialCapacity, problemAggregator);
   }
 

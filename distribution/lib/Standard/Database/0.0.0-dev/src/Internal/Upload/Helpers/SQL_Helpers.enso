@@ -7,8 +7,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
 import project.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor
-import project.Internal.IR.Query.Query
-import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.SQL_Query.SQL_Query
 import project.SQL_Statement.SQL_Statement
 from project.Errors import Unsupported_Database_Type
@@ -17,8 +17,8 @@ from project.Errors import Unsupported_Database_Type
 make_batched_insert_template : Connection -> Text -> Vector (Vector Text) -> SQL_Query
 make_batched_insert_template connection table_name column_names =
     # We add Nothing as placeholders, they will be replaced with the actual values later.
-    pairs = column_names.map name->[name, SQL_Expression.Constant Nothing]
-    query = connection.dialect.generate_sql <| Query.Insert table_name pairs
+    pairs = column_names.map name->[name, SQL_IR_Expression.Constant Nothing]
+    query = connection.dialect.generate_sql <| SQL_IR_Statement.Insert table_name pairs
     template = query.prepare.first
     template
 
@@ -40,4 +40,4 @@ prepare_create_table_statement connection table_name columns primary_key tempora
         sql_type_text = type_mapping.sql_type_to_text sql_type
         Create_Column_Descriptor.Value def.name sql_type_text def.constraints
     connection.dialect.generate_sql <|
-        Query.Create_Table table_name column_descriptors primary_key temporary
+        SQL_IR_Statement.Create_Table table_name column_descriptors primary_key temporary

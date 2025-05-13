@@ -1,28 +1,24 @@
 /** @file A list of exeuctions of a project. */
 import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
 import { listProjectExecutionsQueryOptions } from '#/hooks/backendHooks'
-import { useStore } from '#/hooks/storeHooks'
+import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
 import { NewProjectExecutionModal } from '#/layouts/NewProjectExecutionModal'
 import { useText } from '#/providers/TextProvider'
-import type Backend from '#/services/Backend'
 import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { assetPanelStore } from '../constants'
-import { AssetPanelPlaceholder } from './AssetPanelPlaceholder'
+import { useAssetPanelCurrentItem } from '../constants'
 import { ProjectExecution } from './ProjectExecution'
+import type { AssetPanelProps } from './types'
 
 /** Props for a {@link ProjectExecutions}. */
-export interface ProjectExecutionsProps {
-  readonly backend: Backend
-}
+export interface ProjectExecutionsProps extends AssetPanelProps {}
 
 /** A list of exeuctions of a project. */
 export function ProjectExecutions(props: ProjectExecutionsProps) {
   const { backend } = props
   const { getText } = useText()
-  const { item } = useStore(assetPanelStore, (state) => ({ item: state.assetPanelProps.item }), {
-    unsafeEnableTransition: true,
-  })
+
+  const item = useAssetPanelCurrentItem()
 
   if (backend.type === BackendType.local) {
     return <AssetPanelPlaceholder title={getText('assetProjectExecutions.localBackend')} />

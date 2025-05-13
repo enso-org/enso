@@ -2,15 +2,17 @@
  * @file The React provider for the project manager `Backend`, along with hooks to use the
  * provider via the shared React context.
  */
+import * as React from 'react'
+
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { BackendContext, ProjectManagerContext } from '#/providers/BackendProvider/constants'
-import type { LocalBackend } from '#/services/LocalBackend'
+import type LocalBackend from '#/services/LocalBackend'
 import { ProjectManagerEvents } from '#/services/ProjectManager'
-import type { RemoteBackend } from '#/services/RemoteBackend'
-import { useEffect, useState, type PropsWithChildren } from 'react'
+import type RemoteBackend from '#/services/RemoteBackend'
+
+import { BackendContext, ProjectManagerContext } from './hooks'
 
 /** Props for a {@link BackendProvider}. */
-export interface BackendProviderProps extends Readonly<PropsWithChildren> {
+export interface BackendProviderProps extends Readonly<React.PropsWithChildren> {
   readonly remoteBackend: RemoteBackend | null
   readonly localBackend: LocalBackend | null
 }
@@ -18,9 +20,9 @@ export interface BackendProviderProps extends Readonly<PropsWithChildren> {
 /** A React Provider that lets components get and set the current backend. */
 export function BackendProvider(props: BackendProviderProps) {
   const { remoteBackend, localBackend, children } = props
-  const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = useState(false)
+  const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
 
-  useEffect(() => {
+  React.useEffect(() => {
     const onProjectManagerLoadingFailed = () => {
       setDidLoadingProjectManagerFail(true)
     }

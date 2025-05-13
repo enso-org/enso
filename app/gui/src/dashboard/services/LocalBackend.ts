@@ -8,7 +8,6 @@
 import Backend, * as backend from '#/services/Backend'
 import type ProjectManager from '#/services/ProjectManager'
 import * as projectManager from '#/services/ProjectManager'
-import { APP_BASE_URL } from '#/utilities/appBaseUrl'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
 import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/utilities/fileInfo'
@@ -44,6 +43,7 @@ export function newFileId(path: projectManager.Path) {
 interface DirectoryTypeAndId {
   readonly type: backend.AssetType.directory
   readonly id: projectManager.Path
+  readonly directory: projectManager.Path
 }
 
 /** The internal asset type and properly typed corresponding internal ID of a project. */
@@ -57,6 +57,7 @@ interface ProjectTypeAndId {
 interface FileTypeAndId {
   readonly type: backend.AssetType.file
   readonly id: projectManager.Path
+  readonly directory: projectManager.Path
 }
 
 /** The internal asset type and properly typed corresponding internal ID of an arbitrary asset. */
@@ -72,9 +73,15 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
  */
 export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeAndId {
   const [, typeRaw, idRaw = ''] = id.match(/(.+?)-(.+)/) ?? []
+  const { directoryPath } = getDirectoryAndName(projectManager.Path(idRaw))
+
   switch (typeRaw) {
     case backend.AssetType.directory: {
-      return { type: backend.AssetType.directory, id: projectManager.Path(idRaw) }
+      return {
+        type: backend.AssetType.directory,
+        id: projectManager.Path(idRaw),
+        directory: directoryPath,
+      }
     }
     case backend.AssetType.project: {
       const [, idRaw2 = '', directoryRaw = ''] = idRaw.match(/(\w+-\w+-\w+-\w+-\w+)-(.+)/) ?? []
@@ -85,7 +92,11 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
       }
     }
     case backend.AssetType.file: {
-      return { type: backend.AssetType.file, id: projectManager.Path(idRaw) }
+      return {
+        type: backend.AssetType.file,
+        id: projectManager.Path(idRaw),
+        directory: directoryPath,
+      }
     }
     case undefined:
     default: {
@@ -339,6 +350,49 @@ export class LocalBackend extends Backend {
         }.`,
       )
     }
+  }
+
+  /**
+   * Return asset details.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async getAssetDetails<
+    Id extends backend.RealAssetId,
+    Type extends backend.RealAssetTypeId<Id>,
+    ReturnType extends Id extends backend.DirectoryId ?
+      backend.Asset<backend.AssetType.directory> | null
+    : backend.Asset<Type>,
+  >(assetId: Id): Promise<ReturnType> {
+    const extracted = extractTypeAndId(assetId)
+
+    const parentPath = extracted.directory
+
+    // Consider the root directory as a virtual directory.
+    if (extracted.type === backend.AssetType.directory && extracted.id === this.rootPath()) {
+      // eslint-disable-next-line no-restricted-syntax
+      return null as never
+    }
+
+    const directoryContents = await this.listDirectory({
+      parentId: newDirectoryId(parentPath),
+      filterBy: null,
+      labels: null,
+      recentProjects: false,
+      rootPath: this.rootPath(),
+    })
+
+    const entry = directoryContents.find((content) => content.id === assetId)
+
+    if (entry == null) {
+      if (backend.isDirectoryId(assetId)) {
+        throw new backend.DirectoryDoesNotExistError()
+      }
+
+      throw new backend.AssetDoesNotExistError()
+    }
+
+    // eslint-disable-next-line no-restricted-syntax
+    return entry as never
   }
 
   /**
@@ -692,7 +746,7 @@ export class LocalBackend extends Backend {
         ['file_name', body.fileName],
         ...(body.parentDirectoryId == null ? [] : [['directory', parentPath]]),
       ]).toString()
-      const path = `${APP_BASE_URL}/api/upload-file?${searchParams}`
+      const path = `/api/upload-file?${searchParams}`
       await fetch(path, { method: 'POST', body: file })
       this.uploadedFiles.set(uploadId, { id: newFileId(filePath), project: null })
     } else {
@@ -702,7 +756,8 @@ export class LocalBackend extends Backend {
         'backendApi' in window &&
         // This non-standard property is defined in Electron.
         'path' in file &&
-        typeof file.path === 'string'
+        typeof file.path === 'string' &&
+        file.path !== ''
       ) {
         const projectInfo = await window.backendApi.importProjectFromPath(
           file.path,
@@ -715,7 +770,7 @@ export class LocalBackend extends Backend {
           directory: parentPath,
           name: title,
         }).toString()
-        const path = `${APP_BASE_URL}/api/upload-project?${searchParams}`
+        const path = `/api/upload-project?${searchParams}`
         const response = await fetch(path, { method: 'POST', body: file })
         id = await response.text()
       }
@@ -781,17 +836,26 @@ export class LocalBackend extends Backend {
   }
 
   /** Download an asset. */
-  override async download(id: backend.AssetId, title: string) {
+  override async download(
+    id: backend.AssetId,
+    title: string,
+    _targetDirectoryId: backend.DirectoryId | null,
+    shouldUnpackProject = true,
+  ) {
     const asset = backend.extractTypeFromId(id)
     if (asset.type === backend.AssetType.project) {
       const typeAndId = extractTypeAndId(asset.id)
       const queryString = new URLSearchParams({
         projectsDirectory: typeAndId.directory,
       }).toString()
-      download(
-        `./api/project-manager/projects/${typeAndId.id}/enso-project?${queryString}`,
-        `${title}.enso-project`,
-      )
+
+      await download({
+        url: `/api/project-manager/projects/${typeAndId.id}/enso-project?${queryString}`,
+        name: `${title}.enso-project`,
+        electronOptions: {
+          shouldUnpackProject,
+        },
+      })
     }
     await Promise.resolve()
   }

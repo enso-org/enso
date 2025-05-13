@@ -20,6 +20,7 @@ import type { HttpClient } from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import invariant from 'tiny-invariant'
 import { z } from 'zod'
+import { extractTypeAndId } from './LocalBackend'
 
 /** HTTP status indicating that the request was successful. */
 const STATUS_SUCCESS_FIRST = 200
@@ -618,8 +619,7 @@ export class RemoteBackend extends Backend {
       const ret = (await response.json()).assets
         .map((asset) =>
           object.merge(asset, {
-            // eslint-disable-next-line no-restricted-syntax
-            type: asset.id.match(/^(.+?)-/)?.[1] as backend.AssetType,
+            type: backend.getAssetTypeFromId(asset.id),
             // `Users` and `Teams` folders are virtual, so their children incorrectly have
             // the organization root id as their parent id.
             parentId: query.parentId ?? asset.parentId,
@@ -1025,6 +1025,38 @@ export class RemoteBackend extends Backend {
     }
   }
 
+  /**
+   * Return asset details.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   * @throws An {@link AssetDoesNotExistError} if the asset does not exist.
+   * @throws An {@link DirectoryDoesNotExistError} if the asset is a directory and does not exist.
+   * @returns The asset details. Returns `null` if the asset is a root directory.
+   */
+  override async getAssetDetails<
+    Id extends backend.RealAssetId,
+    Type extends backend.RealAssetTypeId<Id>,
+    ReturnType extends Id extends backend.DirectoryId ?
+      backend.Asset<backend.AssetType.directory> | null
+    : backend.Asset<Type>,
+  >(assetId: Id): Promise<ReturnType> {
+    const path = remoteBackendPaths.getAssetDetailsPath(assetId)
+    const response = await this.get<backend.Asset<Type> | null>(path)
+
+    if (!responseIsSuccessful(response)) {
+      if (response.status === STATUS_NOT_FOUND) {
+        if (backend.isDirectoryId(assetId)) {
+          throw new backend.DirectoryDoesNotExistError()
+        }
+
+        throw new backend.AssetDoesNotExistError()
+      }
+
+      return await this.throw(response, 'getAssetDetailsBackendError')
+    }
+
+    // eslint-disable-next-line no-restricted-syntax
+    return (await response.json()) as ReturnType
+  }
   /**
    * Return Language Server logs for a project session.
    * @throws An error if a non-successful status code (not 200-299) was received.
@@ -1469,13 +1501,24 @@ export class RemoteBackend extends Backend {
   }
 
   /** List events in the organization's audit log. */
-  override async getLogEvents(): Promise<backend.Event[]> {
+  override async getLogEvents(
+    params: backend.GetLogEventsRequestParams,
+  ): Promise<readonly backend.AuditLogEvent[]> {
     /** The type of the response body of this endpoint. */
     interface ResponseBody {
-      readonly events: backend.Event[]
+      readonly events: backend.AuditLogEvent[]
     }
 
-    const path = remoteBackendPaths.GET_LOG_EVENTS_PATH
+    const paramsString = new URLSearchParams({
+      /* eslint-disable @typescript-eslint/naming-convention, camelcase */
+      ...(params.userEmail != null ? { user_email: params.userEmail } : {}),
+      ...(params.startDate != null ? { start_date: params.startDate } : {}),
+      ...(params.endDate != null ? { end_date: params.endDate } : {}),
+      ...(params.from != null ? { from: String(params.from) } : {}),
+      ...(params.pageSize != null ? { page_size: String(params.pageSize) } : {}),
+      /* eslint-enable @typescript-eslint/naming-convention, camelcase */
+    }).toString()
+    const path = `${remoteBackendPaths.GET_LOG_EVENTS_PATH}?${paramsString}`
     const response = await this.get<ResponseBody>(path)
     if (!responseIsSuccessful(response)) {
       return this.throw(response, 'getLogEventsBackendError')
@@ -1514,32 +1557,56 @@ export class RemoteBackend extends Backend {
   }
 
   /** Download an asset. */
-  override async download(id: backend.AssetId, title: string) {
+  override async download(
+    id: backend.AssetId,
+    title: string,
+    targetDirectoryId: backend.DirectoryId | null,
+    shouldUnpackProject = true,
+  ) {
     const asset = backend.extractTypeFromId(id)
+    const { id: targetPath } =
+      targetDirectoryId ? extractTypeAndId(targetDirectoryId) : { id: null }
+
     switch (asset.type) {
       case backend.AssetType.project: {
         const details = await this.getProjectDetails(asset.id, true)
         invariant(details.url != null, 'The download URL of the project must be present.')
-        download.download(details.url, `${title}.enso-project`)
+        await download.download({
+          url: details.url,
+          name: `${title}.enso-project`,
+          electronOptions: {
+            shouldUnpackProject,
+            path: targetPath,
+          },
+        })
         break
       }
       case backend.AssetType.file: {
         const details = await this.getFileDetails(asset.id, title, true)
         invariant(details.url != null, 'The download URL of the file must be present.')
-        download.download(details.url, details.file.fileName ?? '')
+        await download.download({
+          url: details.url,
+          name: details.file.fileName ?? '',
+          electronOptions: {
+            path: targetPath,
+          },
+        })
         break
       }
       case backend.AssetType.datalink: {
         const value = await this.getDatalink(asset.id, title)
         const fileName = `${title}.datalink`
-        download.download(
-          URL.createObjectURL(
+        await download.download({
+          url: URL.createObjectURL(
             new File([JSON.stringify(value)], fileName, {
               type: 'application/json+x-enso-data-link',
             }),
           ),
-          fileName,
-        )
+          name: fileName,
+          electronOptions: {
+            path: targetPath,
+          },
+        })
         break
       }
       case backend.AssetType.secret:

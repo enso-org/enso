@@ -8,6 +8,7 @@ import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.graalvm.polyglot.Context;
 
@@ -19,7 +20,6 @@ import org.graalvm.polyglot.Context;
  * specific type.
  */
 public final class MixedStorage extends ObjectStorage implements ColumnStorageWithInferredStorage {
-  private StorageType<?> inferredType;
 
   /**
    * Holds a specialized storage for the inferred type, if available.
@@ -40,7 +40,6 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
    */
   public MixedStorage(Object[] data) {
     super(data);
-    inferredType = null;
   }
 
   @Override
@@ -48,7 +47,65 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
     return new MixedStorage(data);
   }
 
-  private StorageType<?> commonNumericType(StorageType<?> a, StorageType<?> b) {
+  @Override
+  public StorageType<?> inferPreciseType(PreciseTypeOptions options) {
+    if (options.equals(PreciseTypeOptions.DEFAULT)) {
+      if (cachedDefaultPreciseType == null) {
+        cachedDefaultPreciseType = computePreciseType(PreciseTypeOptions.DEFAULT);
+      }
+      return cachedDefaultPreciseType;
+    }
+
+    return computePreciseType(options);
+  }
+
+  private StorageType<?> cachedDefaultPreciseType = null;
+
+  private StorageType<?> computePreciseType(PreciseTypeOptions options) {
+    StorageType<?> currentType = null;
+
+    Context context = Context.getCurrent();
+    for (long i = 0; i < getSize(); i++) {
+      var item = getItemBoxed(i);
+      if (item == null) {
+        continue;
+      }
+
+      var itemType = StorageType.forBoxedItem(item, options);
+      if (currentType == null) {
+        currentType = itemType;
+      } else {
+        currentType = reconcileTypes(currentType, itemType);
+      }
+
+      if (currentType instanceof AnyObjectType) {
+        // The type won't get any wider so no point in continuing.
+        break;
+      }
+
+      context.safepoint();
+    }
+
+    return currentType == null ? AnyObjectType.INSTANCE : currentType;
+  }
+
+  private static StorageType<?> reconcileTypes(
+      StorageType<?> currentType, StorageType<?> itemType) {
+    if (currentType.equals(itemType)) {
+      return currentType;
+    } else {
+      if (currentType instanceof TextType currentTextType
+          && itemType instanceof TextType itemTextType) {
+        return TextType.maxType(currentTextType, itemTextType);
+      } else if (currentType.isNumeric() && itemType.isNumeric()) {
+        return commonNumericType(currentType, itemType);
+      } else {
+        return AnyObjectType.INSTANCE;
+      }
+    }
+  }
+
+  private static StorageType<?> commonNumericType(StorageType<?> a, StorageType<?> b) {
     assert a.isNumeric();
     assert b.isNumeric();
     if (a instanceof BigDecimalType || b instanceof BigDecimalType) {
@@ -58,71 +115,22 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
     } else if (a instanceof BigIntegerType || b instanceof BigIntegerType) {
       return BigIntegerType.INSTANCE;
     } else {
-      assert a instanceof IntegerType;
-      assert b instanceof IntegerType;
-      return IntegerType.INT_64;
-    }
-  }
-
-  @Override
-  public StorageType<?> inferPreciseType() {
-    if (inferredType == null) {
-      StorageType<?> currentType = null;
-
-      Context context = Context.getCurrent();
-      for (long i = 0; i < getSize(); i++) {
-        var item = getItemBoxed(i);
-        if (item == null) {
-          continue;
-        }
-
-        var itemType = StorageType.forBoxedItem(item);
-        if (currentType == null) {
-          currentType = itemType;
-        } else if (!currentType.equals(itemType)) {
-          if (currentType.isNumeric() && itemType.isNumeric()) {
-            currentType = commonNumericType(currentType, itemType);
-          } else {
-            currentType = AnyObjectType.INSTANCE;
-          }
-        }
-
-        if (currentType instanceof AnyObjectType) {
-          break;
-        }
-
-        context.safepoint();
+      if (a instanceof IntegerType aInt && b instanceof IntegerType bInt) {
+        return IntegerType.commonType(aInt, bInt);
+      } else {
+        throw new IllegalStateException("Unexpected numeric types: " + a + " and " + b);
       }
-
-      inferredType = currentType == null ? AnyObjectType.INSTANCE : currentType;
     }
-
-    return inferredType;
-  }
-
-  @Override
-  public StorageType<?> inferPreciseTypeShrunk() {
-    Storage<?> specialized = getInferredStorage();
-    if (specialized == null) {
-      // If no specialized type is available, it means that:
-      assert inferredType instanceof AnyObjectType;
-      return AnyObjectType.INSTANCE;
-    }
-
-    // If we are able to get a more specialized storage for more specific type - we delegate to its
-    // own shrinking logic.
-    return specialized.inferPreciseTypeShrunk();
   }
 
   public Storage<?> getInferredStorage() {
     if (!hasSpecializedStorageBeenInferred) {
-      StorageType<?> inferredType = inferPreciseType();
+      StorageType<?> inferredType = inferPreciseType(PreciseTypeOptions.DEFAULT);
       if (inferredType instanceof AnyObjectType) {
         cachedInferredStorage = null;
       } else {
         // Any problems will be discarded - this is not a real conversion but just an approximation
-        // for purposes of a
-        // computation.
+        // for purposes of a computation.
         Builder builder =
             Builder.getForType(inferredType, getSize(), BlackholeProblemAggregator.INSTANCE);
         for (long i = 0; i < getSize(); i++) {

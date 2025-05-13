@@ -14,32 +14,37 @@ import Label from '#/components/dashboard/Label'
 import { Result } from '#/components/Result'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { validateDatalink } from '#/data/datalinkValidator'
-import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
 import { assetPanelStore, useSetAssetPanelProps } from '#/layouts/AssetPanel/constants'
 import SharedWithColumn from '#/layouts/AssetsTable/components/columns/SharedWithColumn'
-import type { Category } from '#/layouts/Drive/CategorySwitcher'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
-import type Backend from '#/services/Backend'
 import {
   AssetType,
   BackendType,
+  getAssetPermissionId,
+  getAssetPermissionName,
   isAssetCredential,
   Plan,
   type AnyAsset,
   type DatalinkId,
 } from '#/services/Backend'
-import * as permissions from '#/utilities/permissions'
+import {
+  PermissionAction,
+  tryFindSelfPermission,
+  tryGetOwnerPermission,
+} from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import * as React from 'react'
-import type { AssetPropertiesSpotlight } from '../types'
+import { useAssetPanelCurrentItem } from '../constants'
+import type { AssetPanelProps } from './types'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
   base: '',
@@ -49,9 +54,7 @@ const ASSET_PROPERTIES_VARIANTS = tv({
 })
 
 /** Props for an {@link AssetPropertiesProps}. */
-export interface AssetPropertiesProps {
-  readonly backend: Backend
-  readonly category: Category
+export interface AssetPropertiesProps extends AssetPanelProps {
   readonly isReadonly?: boolean
 }
 
@@ -59,13 +62,7 @@ export interface AssetPropertiesProps {
 export function AssetProperties(props: AssetPropertiesProps) {
   const { isReadonly = false, backend, category } = props
 
-  const { item, spotlightOn, defaultItem } = useStore(
-    assetPanelStore,
-    (state) => state.assetPanelProps,
-    { unsafeEnableTransition: true },
-  )
-
-  const currentItem = item ?? defaultItem
+  const item = useAssetPanelCurrentItem()
 
   const { getText } = useText()
 
@@ -73,18 +70,17 @@ export function AssetProperties(props: AssetPropertiesProps) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
   }
 
-  if (currentItem == null) {
+  if (item == null) {
     return <Result status="info" title={getText('assetProperties.notSelected')} centered />
   }
 
   return (
     <AssetPropertiesInternal
-      key={currentItem.id}
+      key={item.id}
       backend={backend}
-      item={currentItem}
+      item={item}
       isReadonly={isReadonly}
       category={category}
-      spotlightOn={spotlightOn}
     />
   )
 }
@@ -92,13 +88,16 @@ export function AssetProperties(props: AssetPropertiesProps) {
 /** Props for an {@link AssetPropertiesInternal}. */
 export interface AssetPropertiesInternalProps extends AssetPropertiesProps {
   readonly item: AnyAsset
-  readonly spotlightOn: AssetPropertiesSpotlight | null
 }
 
 /** Display and modify the properties of an asset. */
 function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
-  const { backend, item, category, spotlightOn, isReadonly = false } = props
+  const { backend, item, category, isReadonly = false } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
+
+  const spotlightOn = useStore(assetPanelStore, (state) => state.assetPanelProps.spotlightOn, {
+    unsafeEnableTransition: true,
+  })
 
   const setAssetPanelProps = useSetAssetPanelProps()
 
@@ -125,17 +124,19 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     },
   )
   const featureFlags = useFeatureFlags()
-  const datalinkQuery = useBackendQuery(
-    backend,
-    'getDatalink',
-    // eslint-disable-next-line no-restricted-syntax
-    [item.id as DatalinkId, item.title],
-    {
-      enabled: item.type === AssetType.datalink,
-      ...(featureFlags.enableAssetsTableBackgroundRefresh ?
-        { refetchInterval: featureFlags.assetsTableBackgroundRefreshInterval }
-      : {}),
-    },
+  const datalinkQuery = useQuery(
+    backendQueryOptions(
+      backend,
+      'getDatalink',
+      // eslint-disable-next-line no-restricted-syntax
+      [item.id as DatalinkId, item.title],
+      {
+        enabled: item.type === AssetType.datalink,
+        ...(featureFlags.enableAssetsTableBackgroundRefresh ?
+          { refetchInterval: featureFlags.assetsTableBackgroundRefreshInterval }
+        : {}),
+      },
+    ),
   )
   const descriptionSpotlight = useSpotlight({
     enabled: spotlightOn === 'description',
@@ -150,13 +151,13 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     close: closeSpotlight,
   })
 
-  const { data: labels = [] } = useBackendQuery(backend, 'listTags', [])
-  const self = permissions.tryFindSelfPermission(user, item.permissions)
-  const ownsThisAsset = self?.permission === permissions.PermissionAction.own
+  const { data: labels = [] } = useQuery(backendQueryOptions(backend, 'listTags', []))
+  const self = tryFindSelfPermission(user, item.permissions)
+  const ownsThisAsset = self?.permission === PermissionAction.own
   const canEditThisAsset =
     ownsThisAsset ||
-    self?.permission === permissions.PermissionAction.admin ||
-    self?.permission === permissions.PermissionAction.edit
+    self?.permission === PermissionAction.admin ||
+    self?.permission === PermissionAction.edit
   const isSecret = item.type === AssetType.secret
   const isCredential = isAssetCredential(item)
   const isDatalink = item.type === AssetType.datalink
@@ -171,6 +172,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     editDescriptionMutation.variables?.[0] === item.id ?
       (editDescriptionMutation.variables[1].description ?? item.description)
     : item.description
+  const ownerPermission = tryGetOwnerPermission(item)
 
   const editDescriptionForm = Form.useForm({
     schema: (z) => z.object({ description: z.string() }),
@@ -291,6 +293,35 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                         {item.parentId}
                       </Text>
                       <CopyButton copyText={item.parentId} />
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {ownerPermission && (
+                <tr data-testid="asset-panel-owner" className="h-row">
+                  <td className="min-w-side-panel-label p-0">
+                    <Text className="inline-block">{getText('owner')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <div className="flex items-center gap-2">
+                      <Text className="w-0 grow" truncate="1">
+                        {getAssetPermissionName(ownerPermission)}
+                      </Text>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {featureFlags.showDeveloperIds && ownerPermission && (
+                <tr className="h-row">
+                  <td className="my-auto min-w-side-panel-label p-0">
+                    <Text color="accent">{getText('ownerId')}</Text>
+                  </td>
+                  <td className="w-full p-0">
+                    <div className="flex items-center gap-2">
+                      <Text color="accent" className="w-0 grow" truncate="1">
+                        {getAssetPermissionId(ownerPermission)}
+                      </Text>
+                      <CopyButton copyText={getAssetPermissionId(ownerPermission)} />
                     </div>
                   </td>
                 </tr>
@@ -437,7 +468,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                   {
                     datalinkId: item.id,
                     name: item.title,
-                    parentDirectoryId: null,
+                    parentDirectoryId: item.parentId,
                     value: datalink,
                   },
                 ])

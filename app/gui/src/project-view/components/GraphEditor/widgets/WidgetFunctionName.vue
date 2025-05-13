@@ -125,6 +125,7 @@ export const widgetDefinition = defineWidget(
 .WidgetFunctionName {
   display: inline-flex;
   background: var(--color-widget);
+  transition: background-color 0.2s ease;
   border-radius: var(--radius-full);
   justify-content: center;
   align-items: center;

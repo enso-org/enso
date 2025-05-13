@@ -1,7 +1,7 @@
 /** @file Settings tab for viewing and editing roles for all users in the organization. */
 import { useRef } from 'react'
 
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { Cell, Column, Row, Table, TableBody, TableHeader, useDragAndDrop } from '#/components/aria'
 import { Button, ButtonGroup } from '#/components/AriaComponents'
@@ -10,7 +10,7 @@ import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { USER_MIME_TYPE } from '#/data/mimeTypes'
 import {
   backendMutationOptions,
-  useBackendQuery,
+  backendQueryOptions,
   useListUserGroupsWithUsers,
 } from '#/hooks/backendHooks'
 import { usePaywall } from '#/hooks/billing'
@@ -43,7 +43,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   const { getText } = useText()
   const { user } = useFullUserSession()
   const toastAndLog = useToastAndLog()
-  const { data: users } = useBackendQuery(backend, 'listUsers', [])
+  const { data: users } = useQuery(backendQueryOptions(backend, 'listUsers', []))
   const { data: userGroups } = useListUserGroupsWithUsers(backend)
   const rootRef = useRef<HTMLDivElement>(null)
   const bodyRef = useRef<HTMLTableSectionElement>(null)

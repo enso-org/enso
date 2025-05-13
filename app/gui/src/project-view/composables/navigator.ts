@@ -11,8 +11,9 @@ import {
 import type { KeyboardComposable } from '@/composables/keyboard'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { useEventListener, VueInstance } from '@vueuse/core'
+import { useEventListener, type VueInstance } from '@vueuse/core'
 import { useGesture, type Handler } from '@vueuse/gesture'
+import { clamp } from 'enso-common/src/utilities/data/math'
 import {
   computed,
   onScopeDispose,
@@ -270,13 +271,13 @@ export function useNavigator(
   ) {
     resetTargetFollowing()
     if (!viewportElem.value) return
-    targetScale.value = Math.max(
-      minScale,
+    targetScale.value = clamp(
       Math.min(
-        maxScale,
         viewportElem.value.clientHeight / rect.height,
         viewportElem.value.clientWidth / rect.width,
       ),
+      minScale,
+      maxScale,
     )
     targetCenter.value = rect.center().finiteOrZero()
     if (skipAnimation) {
@@ -387,12 +388,12 @@ export function useNavigator(
   )
 
   /**
-   * Clamp the value to the given bounds, except if it is already outside the bounds allow the new value to be less
-   *  outside the bounds.
+   * Clamp the value to the given bounds, except if it is already outside the bounds allow the new
+   * value to be less outside the bounds.
    */
   function directedClamp(oldValue: number, newValue: number, [min, max]: ScaleRange): number {
     if (!Number.isFinite(newValue)) return oldValue
-    else if (!Number.isFinite(oldValue)) return Math.max(min, Math.min(newValue, max))
+    else if (!Number.isFinite(oldValue)) return clamp(newValue, min, max)
     else if (newValue > oldValue) return Math.min(max, newValue)
     else return Math.max(min, newValue)
   }
