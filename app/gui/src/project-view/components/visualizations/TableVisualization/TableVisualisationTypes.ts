@@ -1,18 +1,21 @@
 // IMPORTANT - The types here must be kept in sync with those in Table_Viz_Data.enso
 // AND the mocks in tableVisualisation.spec.ts
 
+/** Table Viz for errors. */
 export interface Error {
   type: 'Error'
   error: string
   all_rows_count?: undefined
 }
 
+/** Is this a Table Viz for errors? */
 export function isError(data: unknown): data is Error {
   return (
     typeof data === 'object' && data !== null && 'type' in data && (data as any).type === 'Error'
   )
 }
 
+/** Table Viz for a single column of clickable items. */
 export interface SingleColumnOfActions {
   type: 'Single_Column_Of_Actions'
   column_count: number
@@ -24,6 +27,7 @@ export interface SingleColumnOfActions {
   visualization_header: string
 }
 
+/** Is this a Table Viz for a single column of clickable items? */
 export function isSingleColumnOfActions(data: unknown): data is SingleColumnOfActions {
   return (
     typeof data === 'object' &&

@@ -214,12 +214,10 @@ test('Error Visualisation Test', async ({ page }) => {
   await mockVisualizationDataUpdate(
     page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
-    /* eslint-disable camelcase */
     {
       type: 'Error',
       error: 'This is an error message.',
     },
-    /* eslint-enable camelcase */
   )
   await expect(tableVisualization).toContainText('This is an error message.')
 })
