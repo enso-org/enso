@@ -25,3 +25,4 @@
     - truncate_table self table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - warehouse self -> Standard.Base.Any.Any
     - warehouses self -> Standard.Base.Any.Any
+- Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data.from that:Standard.Snowflake.Snowflake_Connection.Snowflake_Connection -> Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data

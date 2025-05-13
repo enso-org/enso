@@ -36,6 +36,7 @@ import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.editions.DefaultEdition;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
+import org.enso.os.environment.jni.JVM;
 import org.enso.pkg.Contact;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.PackageManager$;
@@ -1437,17 +1438,20 @@ public class Main {
   }
 
   private void launchJvm(
-      CommandLine line, Map<String, String> props, File component, String javaPath)
+      CommandLine line, Map<String, String> props, File component, File javaExecutable)
       throws IOException, InterruptedException {
+    var useJNI = true;
     var commandAndArgs = new ArrayList<String>();
-    commandAndArgs.add(javaPath);
-    var jvmOptions = System.getenv("JAVA_OPTS");
-    if (jvmOptions != null) {
-      for (var op : jvmOptions.split(" ")) {
-        if (op.isEmpty()) {
-          continue;
+    if (!useJNI) {
+      commandAndArgs.add(javaExecutable.getPath());
+      var jvmOptions = System.getenv("JAVA_OPTS");
+      if (jvmOptions != null) {
+        for (var op : jvmOptions.split(" ")) {
+          if (op.isEmpty()) {
+            continue;
+          }
+          commandAndArgs.add(op);
         }
-        commandAndArgs.add(op);
       }
     }
     var assertsOn = false;
@@ -1463,13 +1467,23 @@ public class Main {
     commandAndArgs.add("--sun-misc-unsafe-memory-access=allow");
     commandAndArgs.add("--enable-native-access=org.graalvm.truffle");
     commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
-    commandAndArgs.add("--module-path");
     if (!component.isDirectory()) {
       throw new IOException("Cannot find " + component + " directory");
     }
-    commandAndArgs.add(component.getPath());
-    commandAndArgs.add("-m");
-    commandAndArgs.add("org.enso.runner/org.enso.runner.Main");
+    JVM jvm;
+    if (useJNI) {
+      commandAndArgs.add("--module-path=" + component.getPath());
+      commandAndArgs.add("-Djdk.module.main=org.enso.runner");
+      var javaHome = javaExecutable.getParentFile().getParentFile();
+      jvm = JVM.create(javaHome, commandAndArgs.toArray(new String[0]));
+      commandAndArgs.clear();
+    } else {
+      commandAndArgs.add("--module-path");
+      commandAndArgs.add(component.getPath());
+      commandAndArgs.add("-m");
+      commandAndArgs.add("org.enso.runner/org.enso.runner.Main");
+      jvm = null;
+    }
     var it = line.iterator();
     while (it.hasNext()) {
       var op = it.next();
@@ -1491,11 +1505,18 @@ public class Main {
       }
     }
     commandAndArgs.addAll(line.getArgList());
-    var pb = new ProcessBuilder();
-    pb.inheritIO();
-    pb.command(commandAndArgs);
-    var p = pb.start();
-    var exitCode = p.waitFor();
+    int exitCode;
+    if (jvm != null) {
+      jvm.executeMain("org/enso/runner/Main", commandAndArgs.toArray(new String[0]));
+      // the above call should never return
+      exitCode = 1;
+    } else {
+      var pb = new ProcessBuilder();
+      pb.inheritIO();
+      pb.command(commandAndArgs);
+      var p = pb.start();
+      exitCode = p.waitFor();
+    }
     if (exitCode == 0) {
       throw exitSuccess();
     } else {
@@ -1541,16 +1562,15 @@ public class Main {
           var javaExe = JavaFinder.findJavaExecutable();
           if (javaExe == null) {
             // Try your best if `jvm` mode enabled in a project
-            if (!jvmInProjectEnforced) throw exitFail("Cannot find java executable");
+            if (!jvmInProjectEnforced) {
+              throw exitFail("Cannot find java executable");
+            }
           } else {
             launchJvm(line, props, component, javaExe);
           }
         } else {
-          launchJvm(
-              line,
-              props,
-              component,
-              new File(new File(new File(jvm), "bin"), "java").getAbsolutePath());
+          var javaExecutable = new File(new File(new File(jvm), "bin"), "java").getAbsoluteFile();
+          launchJvm(line, props, component, javaExecutable);
         }
       }
     }
