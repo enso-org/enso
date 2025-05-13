@@ -1,4 +1,5 @@
-// tableVizTypes.ts
+// IMPORTANT - The types here must be kept in sync with those in Table_Viz_Data.enso
+// AND the mocks in tableVisualisation.spec.ts
 
 export interface Error {
     type: 'Error'

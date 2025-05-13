@@ -56,8 +56,7 @@ max_columns = 250
    Render Error to JSON
 make_json_for_error : Any -> JS_Object
 make_json_for_error error =
-    pairs = [["type", "Error"], ["error", error.to_display_text]]
-    JS_Object.from_pairs pairs
+    (Table_Viz_Data.Error error.to_display_text).get_json
 
 ## PRIVATE
    Render Vector to JSON
