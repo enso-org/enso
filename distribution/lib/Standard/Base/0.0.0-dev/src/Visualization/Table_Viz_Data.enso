@@ -1,9 +1,17 @@
 from project.Data.Json import JS_Object
 
+## Type for generating the visulaisation data for the "Table" visualisation
+   if you want your type to support this visualisation type you should provide a conversion to this type
+   e.g. ## PRIVATE
+              Table_Viz_Data.from (that:MyType) =
 type Table_Viz_Data
+    ## For now provide the json directly. In the future this type will be responsible for the json creation
     Value json:JS_Object
 
+    ## Create a new Table_Viz_Data
     new json:JS_Object -> Table_Viz_Data = Table_Viz_Data.Value json
 
+## helper method to generate json for the Single_Column_Of_Actions type
+   in the future Single_Column_Of_Actions will be a constructor for Table_Viz_Data above
 make_json_for_single_column_of_actions js_value data title tooltip child_node_action =
     JS_Object.from_pairs [["json", js_value], ["data", data], ["visualization_header", title], ["child_label", tooltip], ["get_child_node_action", child_node_action], ["type", "Single_Column_Of_Actions"]]
