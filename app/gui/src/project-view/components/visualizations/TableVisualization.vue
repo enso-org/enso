@@ -861,6 +861,10 @@ watchEffect(() => {
     ]
     rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
     isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
+  } else if (data_.json !== undefined) {
+    // single values like Integer or Text
+    columnDefs.value = [toField('Value')]
+    rowData.value = [{ Value: toRender(data_.json) }]
   } else {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
