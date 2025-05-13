@@ -423,7 +423,11 @@ export interface CloudBrowserDisabledLayoutProps {
 export function CloudBrowserDisabledLayout(
   props: React.PropsWithChildren<CloudBrowserDisabledLayoutProps>,
 ) {
-  const { children, redirectDelayMs = DEFAULT_REDIRECT_DELAY_MS, redirectPath = '' } = props
+  const {
+    children,
+    redirectDelayMs = DEFAULT_REDIRECT_DELAY_MS,
+    redirectPath = appUtils.SETUP_PATH,
+  } = props
   const { getText } = textProvider.useText()
   const isCloudExecutionEnabled = useFeatureFlag('enableCloudExecution')
   const [isRedirecting, setIsRedirecting] = React.useState(true)

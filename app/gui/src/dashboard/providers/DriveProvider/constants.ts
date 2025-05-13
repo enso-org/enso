@@ -1,6 +1,6 @@
 /** @file Constants for `DriveProvider`. */
-import type { TransferrableAsset } from '#/layouts/Drive/CategorySwitcher'
 import type { Category } from '#/layouts/Drive/CategorySwitcher/Category'
+import type { TransferrableAsset } from '#/layouts/Drive/CategorySwitcher/useTransferBetweenCategories'
 import type { PasteData } from '#/utilities/pasteData'
 import type { StoreApi } from '#/utilities/zustand'
 import type {

@@ -12,10 +12,10 @@ import {
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import { CategoriesProvider, useCategoriesAPI } from '#/layouts/Drive/CategorySwitcher'
-import * as backendProvider from '#/providers/BackendProvider'
+import { useLocalBackend } from '#/providers/BackendProvider'
 import { DriveProvider } from '#/providers/DriveProvider'
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
-import * as modalProvider from '#/providers/ModalProvider'
+import { useInputBindings } from '#/providers/InputBindingsProvider'
+import { unsetModal } from '#/providers/ModalProvider'
 import {
   ProjectsProvider,
   useClearLaunchedProjects,
@@ -80,8 +80,8 @@ function fileURLToPath(url: string): string | null {
 
 /** The component that contains the entire UI. */
 function DashboardInner() {
-  const localBackend = backendProvider.useLocalBackend()
-  const inputBindings = inputBindingsProvider.useInputBindings()
+  const localBackend = useLocalBackend()
+  const inputBindings = useInputBindings()
   const config = useConfigInReact()
 
   const initialProjectNameRaw = config.params.startup.project
@@ -157,10 +157,7 @@ function DashboardInner() {
   }, [inputBindings])
 
   React.useEffect(
-    () =>
-      inputBindings.attach(document.body, 'keydown', {
-        closeModal: () => modalProvider.unsetModal(),
-      }),
+    () => inputBindings.attach(document.body, 'keydown', { closeModal: unsetModal }),
     [inputBindings],
   )
 
@@ -177,7 +174,7 @@ function DashboardInner() {
         className="flex min-h-full flex-col text-xs text-primary"
         onContextMenu={(event) => {
           event.preventDefault()
-          modalProvider.unsetModal()
+          unsetModal()
         }}
       >
         <TabView

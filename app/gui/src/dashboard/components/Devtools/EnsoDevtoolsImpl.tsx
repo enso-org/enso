@@ -1,31 +1,7 @@
 /** @file A component that provides a UI for toggling paywall features. */
-import * as React from 'react'
-
-import * as reactQuery from '@tanstack/react-query'
-
-import { IS_DEV_MODE } from 'enso-common/src/detect'
-
-import CrossIcon from '#/assets/cross.svg'
-
 import { SETUP_PATH } from '#/appUtils'
-
-import * as billing from '#/hooks/billing'
-
-import { UserSessionType } from '#/providers/AuthProvider/constants'
-import { useAuth } from '#/providers/AuthProvider/hooks'
-import * as textProvider from '#/providers/TextProvider'
-import {
-  useAnimationsDisabled,
-  useEnableVersionChecker,
-  usePaywallDevtools,
-  useSetAnimationsDisabled,
-  useSetEnableVersionChecker,
-  useToggleEnsoDevtools,
-} from './EnsoDevtoolsProvider'
-
+import CrossIcon from '#/assets/cross.svg'
 import * as ariaComponents from '#/components/AriaComponents'
-import Portal from '#/components/Portal'
-
 import {
   Button,
   Dialog,
@@ -37,18 +13,34 @@ import {
   Text,
   VisualTooltip,
 } from '#/components/AriaComponents'
+import Portal from '#/components/Portal'
+import * as billing from '#/hooks/billing'
+import { UserSessionType } from '#/providers/AuthProvider/constants'
+import { useAuth } from '#/providers/AuthProvider/hooks'
 import {
   FEATURE_FLAGS_SCHEMA,
   useFeatureFlags,
   useSetFeatureFlag,
 } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
+import * as textProvider from '#/providers/TextProvider'
 import * as backend from '#/services/Backend'
 import { LocalStorage, type LocalStorageData } from '#/utilities/LocalStorage'
 import { unsafeKeys } from '#/utilities/object'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
+import * as reactQuery from '@tanstack/react-query'
+import { IS_DEV_MODE } from 'enso-common/src/detect'
+import * as React from 'react'
 import { toast } from 'react-toastify'
 import { Icon } from '../Icon'
+import {
+  useAnimationsDisabled,
+  useEnableVersionChecker,
+  usePaywallDevtools,
+  useSetAnimationsDisabled,
+  useSetEnableVersionChecker,
+  useToggleEnsoDevtools,
+} from './EnsoDevtoolsProvider'
 
 /** A component that provides a UI for toggling paywall features. */
 export function EnsoDevtools() {

@@ -1,6 +1,5 @@
 /** @file A function to transfer a list of assets between categories. */
-import type { Resolution } from '#/components/AriaComponents'
-import { Alert, AlertDialog, ask, Text } from '#/components/AriaComponents'
+import { Alert, AlertDialog, ask, Text, type Resolution } from '#/components/AriaComponents'
 import {
   copyAssetsMutationOptions,
   deleteAssetsMutationOptions,

@@ -22,10 +22,7 @@ const PLANS_TO_SPECIFY_ORG_NAME = [Plan.team, Plan.enterprise]
  */
 export function SetupOrganizationAfterSubscribe({ children }: React.PropsWithChildren) {
   const backend = useRemoteBackend()
-
-  const session = useFullUserSession()
-  const { user } = session
-  const { isOrganizationAdmin, userId, plan = Plan.free } = user
+  const { isOrganizationAdmin, userId, plan = Plan.free } = useFullUserSession().user
 
   const shouldShowModal = PLANS_TO_SPECIFY_ORG_NAME.includes(plan) && isOrganizationAdmin
 
@@ -61,7 +58,6 @@ function SetupOrganizationAfterSubscribeInternal(
   const { backend, children } = props
 
   const { getText } = useText()
-  const session = useFullUserSession()
 
   const { organizationName, userGroupsCount } = useSuspenseQueries({
     queries: [

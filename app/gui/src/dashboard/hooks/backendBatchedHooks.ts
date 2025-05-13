@@ -1,6 +1,6 @@
 /** @file Hooks to do batched backend operations. */
 import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
-import type { TrashCategory } from '#/layouts/Drive/CategorySwitcher'
+import type { TrashCategory } from '#/layouts/Drive/CategorySwitcher/Category'
 import { resolveDuplications } from '#/modals/DuplicateAssetsModal/utilities'
 import { LocalBackend } from '#/services/LocalBackend'
 import { RemoteBackend } from '#/services/RemoteBackend'

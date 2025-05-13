@@ -12,8 +12,8 @@ import {
   SETUP_PATH,
 } from '#/appUtils'
 import type { AmplifyConfig } from '#/authentication/AmplifyConfig'
+import type { Cognito } from '#/authentication/cognito'
 import * as cognitoModule from '#/authentication/cognito'
-import { Cognito } from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'
 import { type ListenFunction } from '#/authentication/listen'
 import { useLogger, type Logger } from '#/providers/LoggerProvider'

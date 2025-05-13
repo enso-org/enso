@@ -27,7 +27,7 @@ import { Subscribe } from '#/pages/subscribe/Subscribe'
 import { SubscribeSuccess } from '#/pages/subscribe/SubscribeSuccess'
 import {
   AnyLoggedInUserLayout,
-  CloudBrowserDisabledLayout as CloudBrowserDisabledLayoutImpl,
+  CloudBrowserDisabledLayout,
   GuestLayout,
   NotDeletedUserLayout,
   ProtectedLayout,
@@ -79,14 +79,6 @@ function applyLayouts(
   }
 }
 
-function CloudBrowserDisabledLayout(props: PropsWithChildren) {
-  return (
-    <CloudBrowserDisabledLayoutImpl redirectPath={SETUP_PATH}>
-      {props.children}
-    </CloudBrowserDisabledLayoutImpl>
-  )
-}
-
 // TODO[ao]: Now the React Layouts are wrapped and used here, but they should be gradually replaced
 // with vue-router guards
 // (https://router.vuejs.org/guide/advanced/navigation-guards.html#Per-Route-Guard or similar).
@@ -103,7 +95,7 @@ const routes = [
     [
       applyLayouts(
         [
-          ({ children }) => <AgreementsModal>{children}</AgreementsModal>,
+          AgreementsModal,
           CloudBrowserDisabledLayout,
           SetupOrganizationAfterSubscribe,
           InvitedToOrganizationModal,
@@ -169,7 +161,7 @@ const routes = [
   },
 ]
 
-export default createRouter({
+export const router = createRouter({
   history: createWebHistory(),
   routes,
 })

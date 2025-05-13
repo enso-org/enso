@@ -30,7 +30,6 @@ import { useText } from '#/providers/TextProvider'
 import { tv } from '#/utilities/tailwindVariants'
 import { useRouterInReact } from '$/providers/react'
 import { memo, useTransition, type ReactNode } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import { twJoin } from 'tailwind-merge'
 
 /** Metadata for a category. */
@@ -233,7 +232,6 @@ export const CategorySwitcher = memo(function CategorySwitcher(props: CategorySw
   const { category, setCategoryId } = props
 
   const { getText } = useText()
-  const [, setSearchParams] = useSearchParams()
   const { router } = useRouterInReact()
 
   const { isOffline } = useOffline()

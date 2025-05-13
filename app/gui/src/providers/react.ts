@@ -36,11 +36,13 @@ export const ContextsForReactProvider = applyPureReactInVue(
     router,
     config,
   }: react.PropsWithChildren<{ router: RouterForReact; config: GuiConfig }>) => {
-    return (
-      <RouterContext.Provider value={router}>
-        <ConfigContext.Provider value={config}>{children}</ConfigContext.Provider>
-      </RouterContext.Provider>
-    )
+    return react.createElement(RouterContext.Provider, {
+      value: router,
+      children: react.createElement(ConfigContext.Provider, {
+        value: config,
+        children,
+      }),
+    })
   },
   {
     useInjectPropsFromWrapper: () => {

@@ -2,7 +2,7 @@
  * @file The React provider for the project manager `Backend`, along with hooks to use the
  * provider via the shared React context.
  */
-import { isCloudCategory, type Category } from '#/layouts/Drive/CategorySwitcher'
+import { isCloudCategory, type Category } from '#/layouts/Drive/CategorySwitcher/Category'
 import { BackendType } from '#/services/Backend'
 import type { LocalBackend } from '#/services/LocalBackend'
 import type { RemoteBackend } from '#/services/RemoteBackend'

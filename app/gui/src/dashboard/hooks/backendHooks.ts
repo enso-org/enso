@@ -2,15 +2,15 @@
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/Drive/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
+import { useSetNewestFolderId, useSetSelectedIds } from '#/providers/DriveProvider/hooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import {
-  AssetType,
   BackendType,
   type AnyAsset,
   type AssetId,
+  type AssetType,
   type DirectoryId,
   type FilterBy,
   type User,
@@ -488,7 +488,7 @@ export function useDeleteAsset(backend: Backend, category: Category) {
 export function useNewFolder(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
   const setNewestFolderId = useSetNewestFolderId()
-  const setSelectedAssets = useSetSelectedAssets()
+  const setSelectedIds = useSetSelectedIds()
 
   const createDirectoryMutation = useMutationCallback(
     backendMutationOptions(backend, 'createDirectory'),
@@ -510,7 +510,7 @@ export function useNewFolder(backend: Backend, category: Category) {
       { parentId: placeholderItem.parentId, title: placeholderItem.title },
     ]).then((result) => {
       setNewestFolderId(result.id)
-      setSelectedAssets([{ type: AssetType.directory, ...result }])
+      setSelectedIds(new Set([result.id]))
       return result
     })
   })

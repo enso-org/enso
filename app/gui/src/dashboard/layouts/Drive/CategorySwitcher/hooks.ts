@@ -8,7 +8,7 @@
 import ComputerIcon from '#/assets/computer.svg'
 import RecentIcon from '#/assets/recent.svg'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useUser } from '#/providers/AuthProvider'
+import { useUser } from '#/providers/AuthProvider/hooks'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
