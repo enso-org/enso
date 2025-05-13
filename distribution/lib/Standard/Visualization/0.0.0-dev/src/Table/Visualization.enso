@@ -299,7 +299,7 @@ get_rows_for_table table_or_column start_number sort_col_index_list=Nothing sort
     result.to_text
 
 ## PRIVATE
-Table_Viz_Data.from (that:Any) = Table_Viz_Data.new (_make_json_for_other that)
+Table_Viz_Data.from (that:Any) = Table_Viz_Data.Value (_make_json_for_other that)
 
 ## PRIVATE
    Create JSON serialization of values.
