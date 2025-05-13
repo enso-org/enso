@@ -1,9 +1,10 @@
 /** @file A context menu available everywhere in the directory. */
 import { ContextMenu } from '#/components/ContextMenu'
 import { ContextMenuEntry } from '#/components/ContextMenuEntry'
-import { backendMutationOptions, useNewFolder, useNewProject } from '#/hooks/backendHooks'
+import { backendMutationOptions, useNewFolder } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useNewProject } from '#/hooks/useNewProject'
 import type { Category } from '#/layouts/Drive/CategorySwitcher'
 import { CreateCredentialModal } from '#/modals/CreateCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'

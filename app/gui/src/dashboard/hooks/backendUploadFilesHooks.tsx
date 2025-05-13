@@ -13,7 +13,7 @@ import {
 } from '#/layouts/Drive/CategorySwitcher'
 import { DuplicateAssetsModal, resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { useRemoteBackend } from '#/providers/BackendProvider'
-import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
+import { useSetSelectedIds } from '#/providers/DriveProvider'
 import { useHttpClient } from '#/providers/HttpClientProvider'
 import { setModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
@@ -37,8 +37,6 @@ import {
   type AssetId,
   type default as Backend,
   type DirectoryId,
-  type FileId,
-  type ProjectId,
   type S3MultipartPart,
   type UploadedLargeAsset,
   type UploadFileRequestParams,
@@ -59,7 +57,7 @@ export function useUploadFiles(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
   const toastAndLog = useToastAndLog()
   const uploadFileMutation = useUploadFileWithToastMutation(backend)
-  const setSelectedAssets = useSetSelectedAssets()
+  const setSelectedIds = useSetSelectedIds()
 
   return useEventCallback(async (filesToUpload: readonly File[], parentId: DirectoryId) => {
     const reversedFiles = Array.from(filesToUpload).reverse()
@@ -85,10 +83,10 @@ export function useUploadFiles(backend: Backend, category: Category) {
       ...files.map(({ asset, file }) => [asset.id, file] as const),
       ...projects.map(({ asset, file }) => [asset.id, file] as const),
     ])
-    const uploadedFileInfos: SelectedAssetInfo[] = []
-    const addToSelection = (info: SelectedAssetInfo) => {
-      uploadedFileInfos.push(info)
-      setSelectedAssets(uploadedFileInfos)
+    const uploadedFileIds: AssetId[] = []
+    const addToSelection = (id: AssetId) => {
+      uploadedFileIds.push(id)
+      setSelectedIds(new Set(uploadedFileIds))
     }
 
     const doUploadFile = async (asset: AnyAsset, method: 'new' | 'update') => {
@@ -113,14 +111,7 @@ export function useUploadFiles(backend: Backend, category: Category) {
                 file,
               ])
               .then(({ id }) => {
-                addToSelection({
-                  type: AssetType.project,
-                  // This is SAFE, because it is guarded behind `assetIsProject`.
-                  // eslint-disable-next-line no-restricted-syntax
-                  id: id as ProjectId,
-                  parentId: asset.parentId,
-                  title,
-                })
+                addToSelection(id)
               })
               .catch((error) => {
                 toastAndLog('uploadProjectError', error)
@@ -133,14 +124,7 @@ export function useUploadFiles(backend: Backend, category: Category) {
             await uploadFileMutation
               .mutateAsync([{ fileId, fileName: title, parentDirectoryId: asset.parentId }, file])
               .then(({ id }) => {
-                addToSelection({
-                  type: AssetType.file,
-                  // This is SAFE, because it is guarded behind `assetIsFile`.
-                  // eslint-disable-next-line no-restricted-syntax
-                  id: id as FileId,
-                  parentId: asset.parentId,
-                  title,
-                })
+                addToSelection(id)
               })
 
             break

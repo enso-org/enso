@@ -1,30 +1,5 @@
 /** @file Hooks for interacting with the backend. */
-import {
-  queryOptions,
-  useMutationState,
-  useQuery,
-  useQueryClient,
-  type DefaultError,
-  type Mutation,
-  type MutationKey,
-  type QueryClient,
-  type QueryKey,
-  type UnusedSkipTokenOptions,
-  type UseMutationOptions,
-  type UseQueryOptions,
-  type UseQueryResult,
-} from '@tanstack/react-query'
-
-import {
-  backendQueryOptions as backendQueryOptionsBase,
-  INVALIDATE_ALL_QUERIES,
-  INVALIDATION_MAP,
-  type BackendMutationMethod,
-  type BackendQueryMethod,
-} from 'enso-common/src/backendQuery'
-
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/Drive/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
@@ -42,6 +17,28 @@ import {
   type UserGroupInfo,
 } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
+import {
+  queryOptions,
+  useMutationState,
+  useQuery,
+  useQueryClient,
+  type DefaultError,
+  type Mutation,
+  type MutationKey,
+  type QueryClient,
+  type QueryKey,
+  type UnusedSkipTokenOptions,
+  type UseMutationOptions,
+  type UseQueryOptions,
+  type UseQueryResult,
+} from '@tanstack/react-query'
+import {
+  backendQueryOptions as backendQueryOptionsBase,
+  INVALIDATE_ALL_QUERIES,
+  INVALIDATION_MAP,
+  type BackendMutationMethod,
+  type BackendQueryMethod,
+} from 'enso-common/src/backendQuery'
 import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
 import { useMemo } from 'react'
 import { z } from 'zod'
@@ -457,7 +454,7 @@ export function useEnsureListDirectory(backend: Backend, category: Category) {
  * Remove an asset from the React Query cache. Should only be called on
  * optimistically inserted assets.
  */
-function useDeleteAsset(backend: Backend, category: Category) {
+export function useDeleteAsset(backend: Backend, category: Category) {
   const queryClient = useQueryClient()
   const ensureListDirectory = useEnsureListDirectory(backend, category)
 
@@ -517,76 +514,6 @@ export function useNewFolder(backend: Backend, category: Category) {
       return result
     })
   })
-}
-
-/** A function to create a new project. */
-export function useNewProject(backend: Backend, category: Category) {
-  const ensureListDirectory = useEnsureListDirectory(backend, category)
-  const openProjectLocally = useOpenProjectLocally()
-  const openProjectNatively = useOpenProjectNatively()
-  const deleteAsset = useDeleteAsset(backend, category)
-
-  const createProjectMutation = useMutationCallback(
-    backendMutationOptions(backend, 'createProject'),
-  )
-
-  return useEventCallback(
-    async (
-      {
-        templateName,
-        templateId,
-        ensoPath,
-      }: {
-        templateName: string | null | undefined
-        templateId?: string | null | undefined
-        ensoPath?: string | null | undefined
-      },
-      parentId: DirectoryId,
-      runLocally = true,
-    ) => {
-      const siblings = await ensureListDirectory(parentId)
-      const projectName = (() => {
-        const prefix = `${templateName ?? 'New Project'} `
-        const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
-        const projectIndices = siblings
-          .filter(backendModule.assetIsProject)
-          .map((item) => projectNameTemplate.exec(item.title)?.groups?.projectIndex)
-          .map((maybeIndex) => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
-        return `${prefix}${Math.max(0, ...projectIndices) + 1}`
-      })()
-
-      const placeholderItem = backendModule.createPlaceholderProjectAsset(projectName, parentId)
-
-      return await createProjectMutation([
-        {
-          parentDirectoryId: placeholderItem.parentId,
-          projectName: placeholderItem.title,
-          ...(templateId == null ? {} : { projectTemplateName: templateId }),
-          ...(ensoPath == null ? {} : { ensoPath }),
-        },
-      ])
-        .catch((error) => {
-          void deleteAsset(placeholderItem.id, parentId)
-          throw error
-        })
-        .then((createdProject) => {
-          const openProjectParams = {
-            id: createdProject.projectId,
-            parentId: placeholderItem.parentId,
-            title: createdProject.name,
-            ...(createdProject.ensoPath != null ? { ensoPath: createdProject.ensoPath } : {}),
-          } satisfies Partial<backendModule.ProjectAsset>
-          if (runLocally) {
-            // Open in background.
-            void openProjectLocally(openProjectParams, backend.type)
-          } else {
-            void openProjectNatively(openProjectParams, backend.type)
-          }
-
-          return createdProject
-        })
-    },
-  )
 }
 
 /** Remove the user's own permission from an asset. */
