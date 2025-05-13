@@ -1,6 +1,6 @@
 /** @file Types for `CategorySwitcher`. */
 import { CATEGORY_SCHEMA } from '#/layouts/Drive/CategorySwitcher/Category'
-import { AssetId, AssetType, DirectoryId } from '#/services/Backend'
+import { AssetType, type AssetId, type DirectoryId } from '#/services/Backend'
 import { z } from 'zod'
 
 /** A transferrable asset. */

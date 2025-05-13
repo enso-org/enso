@@ -1,3 +1,4 @@
+/** @file A hook to download a file to local. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import {
   type Category,
@@ -13,7 +14,6 @@ import { toast } from '../../../node_modules/react-toastify/dist/core/toast'
  * Download a file to local.
  * Does not work in environments that do not have a local backend.
  */
-
 export function useUploadFileToLocal(category: Category) {
   const { getText } = useText()
   const transferBetweenCategories = useTransferBetweenCategories(category)

@@ -7,10 +7,10 @@ import {
   moveAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useUploadFileToCloudMutation } from '#/hooks/backendUploadFilesHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useCategories } from '#/layouts/Drive/CategorySwitcher/hooks'
-import { TransferrableAsset } from '#/layouts/Drive/CategorySwitcher/types'
+import type { TransferrableAsset } from '#/layouts/Drive/CategorySwitcher/types'
 import { useUser } from '#/providers/AuthProvider'
 import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
 import { useText, type GetText } from '#/providers/TextProvider'
