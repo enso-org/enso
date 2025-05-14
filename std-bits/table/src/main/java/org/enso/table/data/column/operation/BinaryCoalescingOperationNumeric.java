@@ -2,7 +2,6 @@ package org.enso.table.data.column.operation;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
@@ -149,7 +148,8 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
   }
 
   @Override
-  public ColumnStorage<T> applyMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<T> applyMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     if (rightValue == null) {
       return asTypedStorage(left);
     }
@@ -164,7 +164,10 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
   }
 
   @Override
-  public ColumnStorage<T> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<T> applyZip(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
     if (NullType.INSTANCE.isOfType(right.getType())) {
       return validType.asTypedStorage(left);
     }
@@ -174,9 +177,13 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
 
   protected abstract ColumnStorage<T> asTypedStorage(ColumnStorage<?> storage);
 
-  protected abstract ColumnStorage<T> innerApplyMap(ColumnStorage<T> left, T right, MapOperationProblemAggregator problemAggregator);
+  protected abstract ColumnStorage<T> innerApplyMap(
+      ColumnStorage<T> left, T right, MapOperationProblemAggregator problemAggregator);
 
-  protected abstract ColumnStorage<T> innerApplyZip(ColumnStorage<T> left, ColumnStorage<T> right, MapOperationProblemAggregator problemAggregator);
+  protected abstract ColumnStorage<T> innerApplyZip(
+      ColumnStorage<T> left,
+      ColumnStorage<T> right,
+      MapOperationProblemAggregator problemAggregator);
 
   private static class BinaryCoalescingOperationDouble
       extends BinaryCoalescingOperationNumeric<Double> {
@@ -205,7 +212,8 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
     }
 
     @Override
-    protected ColumnStorage<Double> innerApplyMap(ColumnStorage<Double> left, Double right, MapOperationProblemAggregator problemAggregator) {
+    protected ColumnStorage<Double> innerApplyMap(
+        ColumnStorage<Double> left, Double right, MapOperationProblemAggregator problemAggregator) {
       double rightAsDouble = right;
       return StorageIterators.buildOverDoubleStorage(
           (ColumnDoubleStorage) left,
@@ -217,7 +225,9 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
 
     @Override
     protected ColumnStorage<Double> innerApplyZip(
-        ColumnStorage<Double> left, ColumnStorage<Double> right, MapOperationProblemAggregator problemAggregator) {
+        ColumnStorage<Double> left,
+        ColumnStorage<Double> right,
+        MapOperationProblemAggregator problemAggregator) {
       return StorageIterators.zipOverDoubleStorages(
           (ColumnDoubleStorage) left,
           (ColumnDoubleStorage) right,
@@ -245,7 +255,8 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
     }
 
     @Override
-    protected ColumnStorage<T> innerApplyMap(ColumnStorage<T> left, T right, MapOperationProblemAggregator problemAggregator) {
+    protected ColumnStorage<T> innerApplyMap(
+        ColumnStorage<T> left, T right, MapOperationProblemAggregator problemAggregator) {
       return StorageIterators.mapOverStorage(
           left,
           false,
@@ -254,7 +265,10 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
     }
 
     @Override
-    protected ColumnStorage<T> innerApplyZip(ColumnStorage<T> left, ColumnStorage<T> right, MapOperationProblemAggregator problemAggregator) {
+    protected ColumnStorage<T> innerApplyZip(
+        ColumnStorage<T> left,
+        ColumnStorage<T> right,
+        MapOperationProblemAggregator problemAggregator) {
       return StorageIterators.zipOverStorages(
           left,
           right,
@@ -335,7 +349,8 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
     }
 
     @Override
-    protected ColumnStorage<Long> innerApplyMap(ColumnStorage<Long> left, Long right, MapOperationProblemAggregator problemAggregator) {
+    protected ColumnStorage<Long> innerApplyMap(
+        ColumnStorage<Long> left, Long right, MapOperationProblemAggregator problemAggregator) {
       long rightAsLong = right;
       return StorageIterators.buildOverLongStorage(
           (ColumnLongStorage) left,
@@ -347,7 +362,9 @@ public abstract class BinaryCoalescingOperationNumeric<T> implements BinaryOpera
 
     @Override
     protected ColumnStorage<Long> innerApplyZip(
-        ColumnStorage<Long> left, ColumnStorage<Long> right, MapOperationProblemAggregator problemAggregator) {
+        ColumnStorage<Long> left,
+        ColumnStorage<Long> right,
+        MapOperationProblemAggregator problemAggregator) {
       return StorageIterators.zipOverLongStorages(
           (ColumnLongStorage) left,
           (ColumnLongStorage) right,

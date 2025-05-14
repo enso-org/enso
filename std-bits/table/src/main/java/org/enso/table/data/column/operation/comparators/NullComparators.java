@@ -17,7 +17,8 @@ public final class NullComparators implements BinaryOperation<Boolean> {
   }
 
   @Override
-  public ColumnStorage<Boolean> applyMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<Boolean> applyMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     assert canApplyMap(left, rightValue);
     return BoolStorage.makeEmpty(left.getSize());
   }
@@ -28,7 +29,10 @@ public final class NullComparators implements BinaryOperation<Boolean> {
   }
 
   @Override
-  public ColumnStorage<Boolean> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<Boolean> applyZip(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
     assert canApplyZip(left, right);
     return BoolStorage.makeEmpty(left.getSize());
   }

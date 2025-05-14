@@ -11,11 +11,10 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.problems.ProblemAggregator;
 
 /**
- * Binary operation for (Boolean, Boolean) => Boolean.
- * Override the `applySingle` method to perform a single computation.
- * For a specialized approach on top of BoolStorage, override either
- * the `applySpecializedMapOverBoolStorage` or the
- * `applySpecializedZipOverBoolStorage`. */
+ * Binary operation for (Boolean, Boolean) => Boolean. Override the `applySingle` method to perform
+ * a single computation. For a specialized approach on top of BoolStorage, override either the
+ * `applySpecializedMapOverBoolStorage` or the `applySpecializedZipOverBoolStorage`.
+ */
 public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean> {
   private final boolean preserveNulls;
 
@@ -29,7 +28,8 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
   }
 
   @Override
-  public final ColumnStorage<Boolean> applyMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+  public final ColumnStorage<Boolean> applyMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     assert canApplyMap(left, rightValue);
 
     if (preserveNulls && rightValue == null) {
@@ -46,7 +46,9 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
     boolean rightBoolean = !rightIsNothing && (boolean) rightValue;
 
     if (left instanceof BoolStorage leftBoolStorage) {
-      var result = applySpecializedMapOverBoolStorage(leftBoolStorage, rightBoolean, rightIsNothing);
+      var result =
+          applySpecializedMapOverBoolStorage(
+              leftBoolStorage, rightBoolean, rightIsNothing, problemAggregator);
       if (result != null) {
         return result;
       }
@@ -67,7 +69,10 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
   }
 
   @Override
-  public final ColumnStorage<Boolean> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
+  public final ColumnStorage<Boolean> applyZip(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
     assert canApplyZip(left, right);
 
     if (right.getType() instanceof NullType) {
@@ -76,7 +81,8 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
 
     if ((left instanceof BoolStorage leftBoolStorage)
         && (right instanceof BoolStorage rightBoolStorage)) {
-      var result = applySpecializedZipOverBoolStorage(leftBoolStorage, rightBoolStorage);
+      var result =
+          applySpecializedZipOverBoolStorage(leftBoolStorage, rightBoolStorage, problemAggregator);
       if (result != null) {
         return result;
       }
@@ -93,24 +99,33 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
 
   @Override
   protected BuilderForBoolean makeStorageBuilder(
-      long size, StorageType<?> leftType, StorageType<?> rightType, ProblemAggregator problemAggregator) {
+      long size,
+      StorageType<?> leftType,
+      StorageType<?> rightType,
+      ProblemAggregator problemAggregator) {
     return BooleanType.INSTANCE.makeBuilder(size, problemAggregator);
   }
 
   /**
    * Provides a specialized implementation for the map operation over BoolStorage.
+   *
    * @return Computed result or null to fallback to the standard implementation.
    */
   protected ColumnBooleanStorage applySpecializedMapOverBoolStorage(
-      BoolStorage left, boolean rightBoolean, boolean rightIsNothing) {
+      BoolStorage left,
+      boolean rightBoolean,
+      boolean rightIsNothing,
+      MapOperationProblemAggregator problemAggregator) {
     return null;
   }
 
   /**
    * Provides a specialized implementation for the zip operation over two BoolStorage objects.
+   *
    * @return Computed result or null to fallback to the standard implementation.
    */
-  protected ColumnBooleanStorage applySpecializedZipOverBoolStorage(BoolStorage left, BoolStorage right) {
+  protected ColumnBooleanStorage applySpecializedZipOverBoolStorage(
+      BoolStorage left, BoolStorage right, MapOperationProblemAggregator problemAggregator) {
     return null;
   }
 

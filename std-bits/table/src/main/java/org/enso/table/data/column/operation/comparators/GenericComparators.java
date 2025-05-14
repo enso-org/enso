@@ -32,7 +32,8 @@ public abstract class GenericComparators<T> implements BinaryOperation<Boolean> 
   public abstract boolean canApplyMap(ColumnStorage<?> left, Object rightValue);
 
   @Override
-  public ColumnStorage<Boolean> applyMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<Boolean> applyMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     if (left.getType() instanceof NullType || rightValue == null) {
       return BoolStorage.makeEmpty(left.getSize());
     }
@@ -66,7 +67,10 @@ public abstract class GenericComparators<T> implements BinaryOperation<Boolean> 
   public abstract boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right);
 
   @Override
-  public ColumnStorage<Boolean> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<Boolean> applyZip(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
     if (left.getType() instanceof NullType || right.getType() instanceof NullType) {
       var size = Math.max(left.getSize(), right.getSize());
       return BoolStorage.makeEmpty(size);

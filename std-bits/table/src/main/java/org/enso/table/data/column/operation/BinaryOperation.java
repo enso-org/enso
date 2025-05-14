@@ -48,7 +48,8 @@ public interface BinaryOperation<T> {
    * @param newName the name of the new column.
    * @return the result of the operation.
    */
-  default Column apply(Column left, Object right, String newName, MapOperationProblemAggregator problemAggregator) {
+  default Column apply(
+      Column left, Object right, String newName, MapOperationProblemAggregator problemAggregator) {
     ColumnStorage<?> leftStorage = getStorage(left);
 
     ColumnStorage<?> output;
@@ -75,8 +76,12 @@ public interface BinaryOperation<T> {
   boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right);
 
   /** Apply the map to the pair of ColumnStorage and constant. */
-  ColumnStorage<T> applyMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator);
+  ColumnStorage<T> applyMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator);
 
   /** Apply the map to the pair of ColumnStorage. */
-  ColumnStorage<T> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator);
+  ColumnStorage<T> applyZip(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator);
 }

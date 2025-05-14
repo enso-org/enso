@@ -41,7 +41,8 @@ public final class TextPartOperation implements BinaryOperation<String> {
   }
 
   @Override
-  public ColumnStorage<String> applyMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<String> applyMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     if (left.getType() instanceof NullType) {
       return StringStorage.makeEmpty(TextType.VARIABLE_LENGTH, left.getSize());
     }
@@ -66,7 +67,10 @@ public final class TextPartOperation implements BinaryOperation<String> {
   }
 
   @Override
-  public ColumnStorage<String> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<String> applyZip(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
     if (left.getSize() != right.getSize()) {
       throw new IllegalArgumentException("Columns must be of the same size.");
     }

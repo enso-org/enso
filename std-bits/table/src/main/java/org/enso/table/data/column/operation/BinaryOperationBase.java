@@ -25,7 +25,10 @@ public abstract class BinaryOperationBase<T> implements BinaryOperation<T> {
   }
 
   protected BuilderForType<T> makeStorageBuilder(
-      long size, StorageType<?> leftType, StorageType<?> rightType, ProblemAggregator problemAggregator) {
+      long size,
+      StorageType<?> leftType,
+      StorageType<?> rightType,
+      ProblemAggregator problemAggregator) {
     return validType.makeBuilder(size, problemAggregator);
   }
 }

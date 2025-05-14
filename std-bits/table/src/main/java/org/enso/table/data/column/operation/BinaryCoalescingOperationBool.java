@@ -44,7 +44,8 @@ public abstract class BinaryCoalescingOperationBool extends BinaryOperationBase<
   }
 
   @Override
-  public ColumnStorage<Boolean> applyMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<Boolean> applyMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     var typedStorage = BooleanType.INSTANCE.asTypedStorage(left);
 
     if (rightValue == null) {
@@ -68,7 +69,10 @@ public abstract class BinaryCoalescingOperationBool extends BinaryOperationBase<
   }
 
   @Override
-  public ColumnStorage<Boolean> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<Boolean> applyZip(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
     var typedStorage = BooleanType.INSTANCE.asTypedStorage(left);
 
     if (NullType.INSTANCE.isOfType(right.getType())) {

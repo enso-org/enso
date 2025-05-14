@@ -84,9 +84,11 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
           TextType.VARIABLE_LENGTH, (a, b) -> Text_Utils.compare_normalized(a, b) < 0 ? a : b) {
         @Override
         protected BuilderForType<String> makeStorageBuilder(
-            long size, StorageType<?> leftType, StorageType<?> rightType, ProblemAggregator problemAggregator) {
-          return TextType.maxType(leftType, rightType)
-              .makeBuilder(size, problemAggregator);
+            long size,
+            StorageType<?> leftType,
+            StorageType<?> rightType,
+            ProblemAggregator problemAggregator) {
+          return TextType.maxType(leftType, rightType).makeBuilder(size, problemAggregator);
         }
       };
 
@@ -124,9 +126,11 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
           TextType.VARIABLE_LENGTH, (a, b) -> Text_Utils.compare_normalized(a, b) > 0 ? a : b) {
         @Override
         protected BuilderForType<String> makeStorageBuilder(
-            long size, StorageType<?> leftType, StorageType<?> rightType, ProblemAggregator problemAggregator) {
-          return TextType.maxType(leftType, rightType)
-              .makeBuilder(size, problemAggregator);
+            long size,
+            StorageType<?> leftType,
+            StorageType<?> rightType,
+            ProblemAggregator problemAggregator) {
+          return TextType.maxType(leftType, rightType).makeBuilder(size, problemAggregator);
         }
       };
 
@@ -161,7 +165,8 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
   }
 
   @Override
-  public ColumnStorage<T> applyMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<T> applyMap(
+      ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     if (rightValue == null) {
       return validType.asTypedStorage(left);
     }
@@ -180,7 +185,10 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
   }
 
   @Override
-  public ColumnStorage<T> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<T> applyZip(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
     if (NullType.INSTANCE.isOfType(right.getType())) {
       return validType.asTypedStorage(left);
     }
