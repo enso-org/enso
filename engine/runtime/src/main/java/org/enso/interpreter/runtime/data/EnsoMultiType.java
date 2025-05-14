@@ -97,9 +97,10 @@ final class EnsoMultiType {
   @CompilerDirectives.TruffleBoundary
   final boolean hasIntersectionWith(EnsoMultiType other) {
     var my = new HashSet<>(Arrays.asList(types));
+    int sizeBefore = my.size();
     var their = Arrays.asList(other.types);
     my.removeAll(their);
-    return my.size() < types.length;
+    return my.size() < sizeBefore;
   }
 
   @GenerateUncached
