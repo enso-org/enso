@@ -15,6 +15,7 @@ import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { type ToValue } from '@/util/reactivity'
 import { VNode } from 'vue'
+import { SubmenuEntry } from './submenuEntry'
 
 /**
  * The most basic dropdown item. When you click on it, the expression is inserted.
@@ -221,15 +222,4 @@ export function isEntry(entry: DropdownEntry): entry is Entry {
       entry.tag instanceof NestedChoiceTag ||
       entry.tag instanceof ActionTag)
   )
-}
-
-// TODO: move to other module
-export interface SubmenuEntry<T> extends DropdownEntry {
-  isNested: boolean
-  get nestedValues(): T[]
-}
-
-/** Check if a {@link DropdownEntry} is a {@link SubmenuEntry}. */
-export function isSubmenuEntry(entry: DropdownEntry): entry is SubmenuEntry<unknown> {
-  return 'isNested' in entry && 'nestedValues' in entry
 }

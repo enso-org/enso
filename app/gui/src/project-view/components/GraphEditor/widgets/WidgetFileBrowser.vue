@@ -98,19 +98,16 @@ const fileTypes = computed(() => {
   }
 })
 
-function flattenFileTypes(fileTypes: FileType[]): FileFilter[] {
+function fileTypesToFileFilters(fileTypes: FileType[]): FileFilter[] {
   return fileTypes.flatMap((fileType) => {
     const name = fileType.label
     if (fileType.extensions.length > 0) {
       if (typeof fileType.extensions[0] === 'string') {
-        return [
-          {
-            name,
-            extensions: fileType.extensions as string[],
-          },
-        ]
+        const extensions = fileType.extensions as string[]
+        return [{ name, extensions }]
       } else {
-        return flattenFileTypes(fileType.extensions as FileType[])
+        const nestedFileTypes = fileType.extensions as FileType[]
+        return fileTypesToFileFilters(nestedFileTypes)
       }
     }
     return []
@@ -121,7 +118,7 @@ const onClick = async () => {
   if (!window.fileBrowserApi) {
     console.error('File browser not supported!')
   } else {
-    const filters = flattenFileTypes(fileTypes.value)
+    const filters = fileTypesToFileFilters(fileTypes.value)
     const selected = await window.fileBrowserApi.openFileBrowser(
       dialogKind.value,
       currentPath.value,

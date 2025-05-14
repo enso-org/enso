@@ -5,6 +5,7 @@
  */
 /// <reference types="vite/client" />
 import type * as saveAccessToken from 'enso-common/src/accessToken'
+import type { FileFilter } from 'enso-common/src/fileFilter'
 import type { $Config } from './src/config'
 
 /** Nested configuration options with `string` values. */

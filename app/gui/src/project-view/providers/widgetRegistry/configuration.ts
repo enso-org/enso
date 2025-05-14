@@ -74,6 +74,21 @@ export type FileType = {
   icon?: string | null | undefined
 }
 
+/** Whether FileType[] contains nested FileType objects. */
+export function isFileTypes(array: (FileType | string)[]): array is FileType[] {
+  return array.length == 0 || typeof array[0]! === 'object'
+}
+
+/** Whether FileType[] contains only string values. */
+export function isExtensions(array: (FileType | string)[]): array is string[] {
+  return array.length == 0 || typeof array[0]! === 'string'
+}
+
+/** Whether FileType[] contains a single '*' value, indicating that all files are allowed. */
+export function isGlobAll(array: (FileType | string)[]): boolean {
+  return array.length === 1 && array[0]! === '*'
+}
+
 /**
  * An external configuration for a widget retreived from the language server.
  *

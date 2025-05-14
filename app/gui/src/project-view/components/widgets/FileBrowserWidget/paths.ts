@@ -12,6 +12,7 @@ import type {
 } from 'enso-common/src/services/Backend'
 import { assetIsDirectory } from 'enso-common/src/services/Backend'
 import { computed, ref, toValue } from 'vue'
+import { useFileExtensionFilter } from './fileExtensionFilter'
 
 function pathToSegments(path: string) {
   const withProtocol = path.split('/')
@@ -65,6 +66,10 @@ export function useFileBrowserStack(
 ) {
   const filenameInputContents = ref<string>('')
   const fileExtensionInputContents = ref<string>('')
+  const fileExtensionFilter = useFileExtensionFilter(
+    filenameInputContents,
+    fileExtensionInputContents,
+  )
   const directoryStack = ref<Directory[]>([])
   const isDirectoryStackInitializing = computed(() => directoryStack.value.length === 0)
   const currentDirectory = computed(() => directoryStack.value[directoryStack.value.length - 1])
@@ -106,7 +111,7 @@ export function useFileBrowserStack(
     () =>
       filenameInputContents.value &&
       currentPath.value &&
-      `${currentPath.value}${filenameInputContents.value}${fileExtensionInputContents.value ? `.${fileExtensionInputContents.value}` : ''}`,
+      `${currentPath.value}${filenameInputContents.value}${fileExtensionFilter.filenameSuffix.value}`,
   )
 
   type AssetExists = { exists: true; type: AssetType } | { exists: false }
@@ -203,6 +208,7 @@ export function useFileBrowserStack(
   }
 
   return {
+    fileExtensionFilter,
     filenameInputContents,
     fileExtensionInputContents,
     directoryStack,

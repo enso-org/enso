@@ -1,5 +1,7 @@
 <script setup lang="ts">
-const props = defineProps<{ target: HTMLElement | undefined }>()
+import { Opt } from '@/util/data/opt'
+
+const props = defineProps<{ target: Opt<HTMLElement> }>()
 </script>
 
 <template>

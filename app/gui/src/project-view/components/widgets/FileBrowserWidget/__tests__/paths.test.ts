@@ -5,6 +5,7 @@ import {
   EmailAddress,
   OrganizationId,
   OrganizationInfo,
+  Plan,
   User,
   UserId,
 } from '#/services/Backend'
@@ -21,6 +22,7 @@ const MOCK_USER: User = {
   userId: 'user' as UserId,
   name: 'user',
   email: 'doofenshmirtz@evil.com' as EmailAddress,
+  plan: Plan.free,
 }
 const MOCK_ORGANIZATION_INFO: OrganizationInfo = {
   id: 'org1' as OrganizationId,
@@ -158,25 +160,22 @@ test.each`
 )
 
 test.each`
-  initialPath                                       | expectedInputContents
-  ${''}                                             | ${''}
-  ${''}                                             | ${''}
-  ${'enso://Users/user/input.csv'}                  | ${'input.csv'}
-  ${'enso://Users/user/input 2.csv'}                | ${'input 2.csv'}
-  ${'enso://Users/user/New Folder 1/input.csv'}     | ${'input.csv'}
-  ${'enso://Users/user/New Folder 1/dir/input.csv'} | ${''}
+  initialPath                                       | expectedInputContents | expectedExtensionContents
+  ${''}                                             | ${''}                 | ${'*'}
+  ${''}                                             | ${''}                 | ${'*'}
+  ${'enso://Users/user/input.csv'}                  | ${'input'}            | ${'csv'}
+  ${'enso://Users/user/input 2.csv'}                | ${'input 2'}          | ${'csv'}
+  ${'enso://Users/user/New Folder 1/input.csv'}     | ${'input'}            | ${'csv'}
+  ${'enso://Users/user/New Folder 1/dir/input.csv'} | ${''}                 | ${'*'}
 `(
   'Initial input content in write mode $initialPath',
-  async ({ initialPath, expectedInputContents }) => {
-    const { initializeStack, filenameInputContents, highlightedName } = fixture(
-      'enso://',
-      '0',
-      initialPath,
-      true,
-    )
+  async ({ initialPath, expectedInputContents, expectedExtensionContents }) => {
+    const { initializeStack, filenameInputContents, highlightedName, fileExtensionFilter } =
+      fixture('enso://', '0', initialPath, true)
     await initializeStack(MOCK_USER, MOCK_ORGANIZATION_INFO)
     expect(filenameInputContents.value).toBe(expectedInputContents)
     expect(highlightedName.value).toBe(expectedInputContents)
+    expect(fileExtensionFilter.displayedExtension.value).toBe(expectedExtensionContents)
   },
 )
 

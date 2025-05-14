@@ -11,15 +11,21 @@ import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/S
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
 import FileBrowserEntry from '@/components/widgets/FileBrowserWidget/FileBrowserEntry.vue'
 import { Directory, useFileBrowserStack } from '@/components/widgets/FileBrowserWidget/paths'
 import { useBackend } from '@/composables/backend'
 import { Action } from '@/providers/action'
 import { injectProjectBackend } from '@/providers/backend'
 import { injectInteractionHandler, Interaction } from '@/providers/interactionHandler'
-import { FileType } from '@/providers/widgetRegistry/configuration'
+import {
+  FileType,
+  isExtensions,
+  isFileTypes,
+  isGlobAll,
+} from '@/providers/widgetRegistry/configuration'
 import { assert } from '@/util/assert'
-import { endOnClickOutside } from '@/util/autoBlur'
+import { endOnClick, targetIsOutside } from '@/util/autoBlur'
 import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import type { AnyAsset, DirectoryAsset, DirectoryId } from 'enso-common/src/services/Backend'
@@ -31,7 +37,7 @@ import Backend, {
   AssetType,
 } from 'enso-common/src/services/Backend'
 import { computed, onMounted, reactive, ref, toRef, toValue, useTemplateRef, watch } from 'vue'
-import { SubmenuEntry } from '../GraphEditor/widgets/WidgetSelection/tags'
+import { SubmenuEntry } from '../GraphEditor/widgets/WidgetSelection/submenuEntry'
 
 const props = withDefaults(
   defineProps<{
@@ -72,6 +78,7 @@ const currentUser = query('usersMe', [])
 const currentOrganization = query('getOrganization', [])
 
 const {
+  fileExtensionFilter,
   filenameInputContents,
   fileExtensionInputContents,
   directoryStack,
@@ -127,18 +134,13 @@ function assetIsTargetType(asset: AnyAsset): asset is TargetType {
   }
 }
 const files = computed<TargetType[]>(
-  () => data.value?.filter(assetIsTargetType).filter(extensionMatches).sort(compareTitle) ?? [],
+  () =>
+    data.value?.filter(assetIsTargetType).filter(fileExtensionFilter.matches).sort(compareTitle) ??
+    [],
 )
 const isEmpty = computed(
   () => directories.value?.length === 0 && files.value?.length === 0 && editedAsset.value == null,
 )
-
-function extensionMatches(file: TargetType): boolean {
-  return (
-    fileExtensionInputContents.value === '*' ||
-    file.title.endsWith(fileExtensionInputContents.value)
-  )
-}
 
 // === Prefetching ===
 
@@ -319,26 +321,22 @@ onMounted(() => {
   )
 })
 
-const root = useTemplateRef('root')
-const fileExtensionInput = useTemplateRef('fileExtensionInputRoot')
+// === File Extension Filter ===
 
-const rootElement = computed(() => (root.value == null ? undefined : root.value))
-const fileExtensionInputElement = computed(() =>
-  fileExtensionInput.value == null ? undefined : fileExtensionInput.value,
-)
+const interaction = injectInteractionHandler()
+const fileExtensionDropdownOpened = ref(false)
+const root = useTemplateRef('root')
+const fileExtensionInputRoot = useTemplateRef('fileExtensionInputRoot')
+const submenuRef = useTemplateRef('submenuRef')
+const fileExtensionInput = useTemplateRef('fileExtensionInput')
 
 const fileExtensionEntries = computed(() => props.fileTypes.map(fileTypeToFileExtensionEntry))
 
-function isFileTypes(array: (FileType | string)[]): array is FileType[] {
-  return array.length == 0 || typeof array[0]! === 'object'
-}
-
-function isExtensions(array: (FileType | string)[]): array is string[] {
-  return array.length == 0 || typeof array[0]! === 'string'
-}
-
-function isGlobAll(array: (FileType | string)[]): boolean {
-  return array.length === 1 && array[0]! === '*'
+function isSelected(value: string): boolean {
+  if (fileExtensionFilter.filter.value.type === 'glob') return false
+  if (fileExtensionFilter.filter.value.type === 'userInput')
+    return fileExtensionFilter.filter.value.input === value
+  return fileExtensionFilter.filter.value.label === value
 }
 
 function fileTypeToFileExtensionEntry(fileType: FileType): FileExtensionEntry {
@@ -351,80 +349,41 @@ function fileTypeToFileExtensionEntry(fileType: FileType): FileExtensionEntry {
   return {
     value: fileType.label,
     extensions,
-    selected: false,
+    selected: isSelected(fileType.label),
     isNested: nestedValues.length > 0,
     nestedValues: nestedValues,
   }
 }
 
-const mockFileExtensionEntries = computed(() => {
-  return [
-    {
-      value: 'All',
-      extensions: 'all',
-      selected: false,
-      isNested: false,
-      nestedValues: [],
-    },
-    {
-      value: 'Tables',
-      extensions: [],
-      selected: false,
-      isNested: true,
-      nestedValues: [
-        {
-          value: 'Excel',
-          extensions: ['xlsx', 'xls'],
-          selected: false,
-          isNested: false,
-          nestedValues: [],
-        },
-        {
-          value: 'CSV',
-          extensions: ['csv'],
-          selected: false,
-          isNested: false,
-          nestedValues: [],
-        },
-      ],
-    },
-    {
-      value: 'xml',
-      extensions: ['xml'],
-      selected: false,
-      isNested: false,
-      nestedValues: [],
-    },
-    {
-      value: 'csv',
-      extensions: ['csv'],
-      selected: false,
-      isNested: false,
-      nestedValues: [],
-    },
-    {
-      value: 'txt',
-      extensions: ['txt'],
-      selected: false,
-      isNested: false,
-      nestedValues: [],
-    },
-  ] satisfies FileExtensionEntry[]
-})
+function isOutsideDropdown(event: Event) {
+  return submenuRef.value?.isTargetOutside(event) ?? false
+}
 
-const interaction = injectInteractionHandler()
-const fileExtensionDropdownOpened = ref(false)
+function isOutsideWidget(event: Event) {
+  return targetIsOutside(event, root.value)
+}
 
-const fileExtensionDropdownInteraction: Interaction = endOnClickOutside(rootElement, {
-  cancel: () => {
-    console.log('cancel')
-    fileExtensionDropdownOpened.value = false
+// Close the dropdown when clicking outside of it, but also end parent interaction (file browser widget) when clicking outside of both.
+const fileExtensionDropdownInteraction: Interaction = endOnClick(
+  (event) => isOutsideDropdown(event) && !isOutsideWidget(event),
+  {
+    cancel: () => {
+      fileExtensionDropdownOpened.value = false
+    },
+    end: () => {
+      fileExtensionDropdownOpened.value = false
+    },
+    pointerdown: (event) => {
+      if (
+        isOutsideDropdown(event) &&
+        isOutsideWidget(event) &&
+        fileExtensionDropdownInteraction.parentInteraction
+      ) {
+        interaction.end(fileExtensionDropdownInteraction.parentInteraction)
+      }
+    },
   },
-  end: () => {
-    console.log('end')
-    fileExtensionDropdownOpened.value = false
-  },
-})
+)
 
 interaction.setWhenWithParent(
   () => fileExtensionDropdownOpened.value,
@@ -434,22 +393,33 @@ interaction.setWhenWithParent(
   },
 )
 
-const fileExtensionInputRef = useTemplateRef('fileExtensionInput')
-
 function openDropdown() {
   if (!fileExtensionDropdownOpened.value) {
     fileExtensionDropdownOpened.value = true
   }
-  fileExtensionInputRef.value?.select()
+  fileExtensionInput.value?.select()
 }
 
 function extensionSelected(entry: FileExtensionEntry) {
-  console.log('extension selected', entry)
   interaction.end(fileExtensionDropdownInteraction)
   if (fileExtensionInputContents.value !== entry.value) {
     filenameInputContents.value = ''
   }
-  fileExtensionInputContents.value = entry.extensions === 'all' ? '*' : entry.extensions.join(',')
+  if (entry.extensions === 'all' || entry.extensions.length === 0) {
+    fileExtensionFilter.filter.value = {
+      type: 'glob',
+    }
+  } else {
+    fileExtensionFilter.filter.value = {
+      type: 'predefined',
+      label: entry.value,
+      extensions: entry.extensions,
+    }
+  }
+}
+
+function fileExtensionInputChanged(value: string | undefined) {
+  fileExtensionInputContents.value = value ?? ''
 }
 
 interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
@@ -462,7 +432,7 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
     <SelectionSubmenu
       ref="submenuRef"
       :rootElement="undefined"
-      :floatReference="fileExtensionInputElement"
+      :floatReference="fileExtensionInputRoot"
       :show="fileExtensionDropdownOpened"
       :entries="fileExtensionEntries"
       :isSelected="() => false"
@@ -559,24 +529,22 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
           @keydown.arrow-right.stop
           @keydown.enter.stop="tryAcceptCurrentFile"
         />
-        <div class="fileExtensionSeparator"></div>
+        <div
+          v-if="fileExtensionFilter.filter.value.type !== 'predefined'"
+          class="fileExtensionSeparator"
+        ></div>
         <div ref="fileExtensionInputRoot" class="fileExtensionInputContainer">
           <SvgIcon
             name="arrow_right_head_only"
             class="arrow widgetOutOfLayout"
             :class="{ hovered: false }"
           />
-          <input
+          <AutoSizedInput
             ref="fileExtensionInput"
-            v-model="fileExtensionInputContents"
-            class="inputField fileExtensionInput"
-            @pointerdown.stop
-            @contextmenu.stop
-            @keydown.backspace.stop
-            @keydown.delete.stop
-            @keydown.arrow-left.stop
-            @keydown.arrow-right.stop
-            @click.stop="openDropdown()"
+            v-model="fileExtensionFilter.displayedExtension.value"
+            class="inputField"
+            @click="openDropdown()"
+            @input="fileExtensionInputChanged"
           />
         </div>
         <SvgButton
@@ -722,10 +690,6 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
 
 .fileNameInput {
   flex-grow: 1;
-}
-
-.fileExtensionInput {
-  width: 40px;
 }
 
 .fileExtensionSeparator {

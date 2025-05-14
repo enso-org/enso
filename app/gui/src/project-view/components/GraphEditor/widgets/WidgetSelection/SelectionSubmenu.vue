@@ -6,11 +6,11 @@ import { unrefElement } from '@/composables/events'
 import { targetIsOutside } from '@/util/autoBlur'
 import { computed, ComputedRef, ref, useTemplateRef, watch } from 'vue'
 import { submenuDropdownStyles } from './styles'
-import { isSubmenuEntry, type SubmenuEntry } from './tags'
+import { isSubmenuEntry, type SubmenuEntry } from './submenuEntry'
 
 const props = defineProps<{
-  rootElement: HTMLElement | undefined
-  floatReference: HTMLElement | undefined
+  rootElement: HTMLElement | undefined | null
+  floatReference: HTMLElement | undefined | null
   show: boolean
   entries: T[]
   isSelected: (value: T) => boolean
@@ -124,6 +124,8 @@ defineExpose({
     :floatReference="submenu?.relativeTo"
     :show="props.show && submenu != null"
     :entries="submenuEntries as T[]"
+    :color="props.color ?? 'var(--color-node-text)'"
+    :backgroundColor="props.backgroundColor ?? 'var(--color-node-background)'"
     :isSelected="props.isSelected"
     @clickedEntry="(entry, keepOpen) => emit('clickedEntry', entry, keepOpen)"
   />

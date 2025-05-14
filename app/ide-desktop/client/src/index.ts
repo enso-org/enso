@@ -579,12 +579,13 @@ class App {
         defaultPath?: string,
         filters?: FileFilter[],
       ) => {
-        logger.log('Request for opening browser for ', kind, defaultPath)
+        logger.log('Request for opening browser for ', kind, defaultPath, JSON.stringify(filters))
         let retval = null
         if (kind === 'filePath') {
           // "Accept", as the file won't be created immediately.
           const { canceled, filePath } = await electron.dialog.showSaveDialog({
             buttonLabel: 'Accept',
+            filters: filters?.map(toElectronFileFilter) ?? [],
             ...(defaultPath != null ? { defaultPath } : {}),
           })
           if (!canceled) {
