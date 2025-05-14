@@ -20,8 +20,11 @@ import { validateDatalink } from '#/data/datalinkValidator'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
-import { assetPanelStore, useSetAssetPanelProps } from '#/layouts/AssetPanel/'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
+import {
+  assetPanelStore,
+  useAssetPanelCurrentItem,
+  useSetAssetPanelProps,
+} from '#/layouts/AssetPanel/'
 import { UpsertSecretForm } from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
@@ -41,11 +44,6 @@ import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
-import {
-  assetPanelStore,
-  useAssetPanelCurrentItem,
-  useSetAssetPanelProps,
-} from '../AssetPanelState'
 import type { AssetPanelProps } from './types'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
