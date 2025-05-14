@@ -11,8 +11,8 @@ from project.Internal.Type_Refinements.Typed_DB_Column_Conversions import all
 refine_column (column : DB_Column) =
     inferred_value_type = (column:Column).inferred_precise_value_type
     case inferred_value_type of
-        Value_Type.Integer _ -> (column : Column & DB_Column & Numeric_Column)
-        Value_Type.Byte -> (column : Column & DB_Column & Numeric_Column)
-        Value_Type.Float _ -> (column : Column & DB_Column & Numeric_Column)
-        Value_Type.Decimal _ _ -> (column : Column & DB_Column & Numeric_Column)
-        _ -> (column : Column & DB_Column)
+        Value_Type.Integer _ -> (column : Column & Numeric_Column)
+        Value_Type.Byte -> (column : Column & Numeric_Column)
+        Value_Type.Float _ -> (column : Column & Numeric_Column)
+        Value_Type.Decimal _ _ -> (column : Column & Numeric_Column)
+        _ -> (column : Column)

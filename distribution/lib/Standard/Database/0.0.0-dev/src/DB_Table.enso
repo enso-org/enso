@@ -155,7 +155,7 @@ type DB_Table
        Arguments:
        - selector: The name or index of the column to get.
     @selector Widget_Helpers.make_column_name_selector
-    at self (selector : Integer | Text = 0) -> Column & DB_Column ! No_Such_Column | Index_Out_Of_Bounds =
+    at self (selector : Integer | Text = 0) -> Column ! No_Such_Column | Index_Out_Of_Bounds =
         case selector of
             _ : Integer -> self.make_column (self.internal_columns.at selector)
             _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
@@ -167,7 +167,7 @@ type DB_Table
        - selector: The name or index of the column being looked up.
        - if_missing: The value to use if the selector isn't present.
     @selector Widget_Helpers.make_column_name_selector
-    get self (selector : Integer | Text = 0) ~if_missing:Any=Nothing -> (Column & DB_Column) | Any =
+    get self (selector : Integer | Text = 0) ~if_missing:Any=Nothing -> (Column) | Any =
         internal_column = case selector of
             _ : Integer -> self.internal_columns.get selector if_missing=Nothing
             _ : Text -> self.internal_columns.find (p -> p.name == selector) if_missing=Nothing
@@ -226,7 +226,7 @@ type DB_Table
        GROUP Standard.Base.Selections
        ICON select_column
        Gets the first column.
-    first_column self -> Column & DB_Column ! Index_Out_Of_Bounds =
+    first_column self -> Column ! Index_Out_Of_Bounds =
         Feature.Column_Operations.if_supported_else_throw self.connection.dialect "first_column" <|
             self.at 0
 
@@ -234,7 +234,7 @@ type DB_Table
        GROUP Standard.Base.Selections
        ICON select_column
        Gets the last column
-    last_column self -> Column & DB_Column ! Index_Out_Of_Bounds =
+    last_column self -> Column ! Index_Out_Of_Bounds =
         Feature.Column_Operations.if_supported_else_throw self.connection.dialect "last_column" <|
             self.at -1
 
@@ -653,7 +653,7 @@ type DB_Table
 
        If instead of a name, a column is provided, it is returned as-is as long
        as it comes from the same context.
-    resolve : Text | DB_Column -> Column & DB_Column
+    resolve : Text | DB_Column -> Column
     resolve self column =
         Feature.Select_Columns.if_supported_else_throw self.connection.dialect "resolve" <|
             case column of
@@ -726,7 +726,7 @@ type DB_Table
              people.filter "age" (age -> (age%10 == 0))
     @column (Widget_Helpers.make_column_name_selector add_expression=True)
     @filter Widget_Helpers.make_filter_condition_selector
-    filter self (column : (Column & DB_Column) | Expression | Text | Integer = Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type =
+    filter self (column : (Column) | Expression | Text | Integer = Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type =
         Feature.Filter.if_supported_else_throw self.connection.dialect "filter" <|
             case column of
                 _ : DB_Column ->
@@ -1142,7 +1142,7 @@ type DB_Table
                  table.set double_inventory as="total_stock"
                  table.set (expr "2 * [total_stock]") as="total_stock_expr"
     @value Simple_Expression.default_widget
-    set self (value : (Column & DB_Column) | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
+    set self (value : (Column) | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
         problem_builder = Problem_Builder.new
         unique = self.column_naming_helper.create_unique_name_strategy
         unique.mark_used self.column_names
@@ -1206,7 +1206,7 @@ type DB_Table
              an `Arithmetic_Error`.
            - If more than 10 rows encounter computation issues,
              an `Additional_Warnings`.
-    evaluate_expression : Text | Expression -> Problem_Behavior -> Column & DB_Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
+    evaluate_expression : Text | Expression -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
     evaluate_expression self expression:(Text | Expression) on_problems:Problem_Behavior=..Report_Warning =
         if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
             get_column name = self.at name
@@ -1263,7 +1263,7 @@ type DB_Table
     ## PRIVATE
 
        Create a constant column from a value.
-    make_constant_column : Any -> Column & DB_Column ! Illegal_Argument
+    make_constant_column : Any -> Column ! Illegal_Argument
     make_constant_column self value =
         if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a DB_Column") else
             type_mapping = self.connection.dialect.get_type_mapping
@@ -2797,7 +2797,7 @@ type DB_Table
 
        Arguments:
        - internal: The internal column to use for creating a column.
-    make_column self internal:Internal_Column -> Column & DB_Column =
+    make_column self internal:Internal_Column -> Column =
         DB_Column.new internal.name self.connection internal.sql_type_reference internal.expression self.context
 
     ## PRIVATE
@@ -3073,7 +3073,7 @@ type DB_Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True add_named_pattern=True)
     @new_text (Widget_Helpers.make_column_ref_by_name_selector add_text=True)
-    text_replace self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (term : Text | DB_Column | Column_Ref | Expression | Regex = "") (new_text : Text | DB_Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column & DB_Column =
+    text_replace self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (term : Text | DB_Column | Column_Ref | Expression | Regex = "") (new_text : Text | DB_Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column =
         table_ref = Table_Ref.from self
         resolved_term = table_ref.resolve term
         resolved_new_text = table_ref.resolve new_text

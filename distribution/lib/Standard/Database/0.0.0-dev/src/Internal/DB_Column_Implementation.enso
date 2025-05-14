@@ -550,7 +550,7 @@ make_equality_check_with_floating_point_handling column other op =
             _ -> Nothing
         make_binary_op column op other
 
-adapt_unified_column (column : Column & DB_Column) expected_type =
+adapt_unified_column (column : Column) expected_type =
     dialect = column.connection.dialect
     infer_return_type expression =
         SQL_Type_Reference.new column.connection column.context expression
