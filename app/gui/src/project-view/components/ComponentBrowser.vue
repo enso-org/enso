@@ -428,11 +428,7 @@ const listsHandler = listBindings.handler({
       v-if="input.mode.mode === 'codeEditing' && !isVisualizationVisible"
       class="show-visualization"
     >
-      <SvgButton
-        name="eye"
-        title="Show visualization"
-        @click.stop="isVisualizationVisible = true"
-      />
+      <SvgButton name="eye" title="Show visualization" @activate="isVisualizationVisible = true" />
     </div>
     <ComponentList
       v-if="input.mode.mode === 'componentBrowsing'"

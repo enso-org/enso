@@ -1,5 +1,6 @@
 import { createContextStore } from '@/providers'
-import type { WidgetComponent, WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
+import type { WidgetComponent, WidgetInput } from '@/providers/widgetRegistry'
+import { UpdateHandler } from '@/providers/widgetRegistry'
 import { identity } from '@vueuse/core'
 
 export const [provideWidgetUsageInfo, injectWidgetUsageInfo] = createContextStore(
@@ -21,8 +22,8 @@ interface WidgetUsageInfo {
    */
   usageKey: unknown
   /** All widget types that were rendered so far using the same AST node. */
-  previouslyUsed: Set<WidgetComponent<any>>
-  updateHandler: (update: WidgetUpdate) => void
+  previouslyUsed: Set<WidgetComponent<any>> | undefined
+  updateHandler: UpdateHandler
   nesting: number
 }
 

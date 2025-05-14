@@ -2,11 +2,12 @@ diff --git a/dist/index.mjs b/dist/index.mjs
 index e72408c0a9c68ae686273c8b480fd26ac06d2276..c24c6a8ef5239639703b20ba2af25ccb3bc5f6f3 100644
 --- a/dist/index.mjs
 +++ b/dist/index.mjs
-@@ -30,3 +30,12 @@ var da=Object.defineProperty;var s=(t,a)=>da(t,"name",{value:a,configurable:!0})
+@@ -30,3 +30,14 @@ var da=Object.defineProperty;var s=(t,a)=>da(t,"name",{value:a,configurable:!0})
  export { H as takeSnapshot, hi as test };
  //# sourceMappingURL=out.js.map
  //# sourceMappingURL=index.mjs.map
 +
++(function() {
 +let __mapNodeAttributes = Ta.prototype.mapNodeAttributes
 +Ta.prototype.mapNodeAttributes = function (node, assetMap) {
 +  if (node.tagName === 'use' && node.attributes.href) {
@@ -15,3 +16,4 @@ index e72408c0a9c68ae686273c8b480fd26ac06d2276..c24c6a8ef5239639703b20ba2af25ccb
 +  }
 +  return __mapNodeAttributes.call(this, node, assetMap)
 +}
++})()
