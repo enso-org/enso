@@ -9,7 +9,6 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
-import { Spinner } from '#/components/Spinner'
 import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinner'
 
 import type Backend from '#/services/Backend'
@@ -17,8 +16,11 @@ import * as backendModule from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
+import { Spinner } from '#/components/Spinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import type { LaunchedProject } from '../../providers/ProjectsProvider'
+import { useStore } from '#/hooks/storeHooks'
+import type { LaunchedProject } from '#/providers/ProjectsProvider'
+import { projectsStore } from '#/providers/ProjectsProvider/hooks'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const CLOSED_PROJECT_STATE = { type: backendModule.ProjectState.closed } as const
@@ -79,8 +81,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
   const isUnconditionallyDisabled = !projectHooks.useCanOpenProjects()
 
-  const isDisabled = isDisabledRaw || isUnconditionallyDisabled
-
   const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
 
@@ -93,11 +93,17 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const isOtherUserUsingProject =
     projectState.openedBy != null && projectState.openedBy !== user.email
 
-  const userOpeningProjectTooltip =
-    isOtherUserUsingProject ? getText('xIsUsingTheProject', projectState.openedBy) : null
-  const disabledTooltip = isUnconditionallyDisabled ? getText('downloadToOpenWorkflow') : null
+  const isProjectOpening = useStore(
+    projectsStore,
+    ({ openingProjects }) => openingProjects.has(item.id),
+    { unsafeEnableTransition: true },
+  )
 
   const state = (() => {
+    if (isProjectOpening) {
+      return backendModule.ProjectState.openInProgress
+    }
+
     if (!isOpened && !isPlaceholder) {
       return backendModule.ProjectState.closed
     }
@@ -113,6 +119,21 @@ export default function ProjectIcon(props: ProjectIconProps) {
     return status
   })()
 
+  const areOtherProjectsOpening = useStore(
+    projectsStore,
+    ({ openingProjects }) => openingProjects.size !== 0 && !openingProjects.has(item.id),
+    { unsafeEnableTransition: true },
+  )
+  const isAnotherProjectOpening =
+    areOtherProjectsOpening && !backendModule.IS_OPENING_OR_OPENED[state]
+  const isDisabled = isDisabledRaw || isUnconditionallyDisabled || isAnotherProjectOpening
+
+  const userOpeningProjectTooltip =
+    isOtherUserUsingProject ? getText('xIsUsingTheProject', projectState.openedBy) : null
+  const disabledTooltip = isUnconditionallyDisabled ? getText('downloadToOpenWorkflow') : null
+  const anotherProjectOpeningTooltip =
+    isAnotherProjectOpening ? getText('anotherProjectIsBeingOpenedError') : null
+
   const spinnerState = ((): SpinnerState => {
     if (!isOpened) {
       return 'loading-slow'
@@ -123,8 +144,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
       : LOCAL_SPINNER_STATE[status]
   })()
 
-  const doOpenProject = useEventCallback(async () => {
-    await openProject(item.id)
+  const doOpenProject = useEventCallback(() => {
+    // The "open project" icon should never be in the loading state.
+    void openProject(item.id)
   })
 
   const doCloseProject = useEventCallback(async () => {
@@ -132,31 +154,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
   })
 
   const getTooltip = (defaultTooltip: string) =>
-    disabledTooltip ?? userOpeningProjectTooltip ?? defaultTooltip
+    disabledTooltip ?? userOpeningProjectTooltip ?? anotherProjectOpeningTooltip ?? defaultTooltip
 
-  switch (state) {
-    case backendModule.ProjectState.new:
-    case backendModule.ProjectState.closing:
-    case backendModule.ProjectState.closed:
-    case backendModule.ProjectState.created:
-      return (
-        <ariaComponents.Button
-          size="large"
-          variant="icon"
-          icon={PlayIcon}
-          aria-label={getTooltip(getText('openInEditor'))}
-          tooltipPlacement="left"
-          extraClickZone="xsmall"
-          isDisabled={isDisabled || projectState.type === backendModule.ProjectState.closing}
-          className="shrink-0"
-          onPress={doOpenProject}
-          testId="open-project"
-        />
-      )
-    case backendModule.ProjectState.openInProgress:
-    case backendModule.ProjectState.scheduled:
-    case backendModule.ProjectState.provisioned:
-    case backendModule.ProjectState.placeholder:
+  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+  switch (true) {
+    case backendModule.IS_OPENING[state]:
       return (
         <div className="relative flex">
           <ariaComponents.Button
@@ -168,7 +170,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
             aria-label={getTooltip(getText('stopExecution'))}
             tooltipPlacement="left"
             className={tailwindMerge.twJoin(isRunningInBackground && 'text-green')}
-            {...(isOtherUserUsingProject ? { title: getText('otherUserIsUsingProjectError') } : {})}
             onPress={doCloseProject}
             testId="stop-project"
           />
@@ -181,7 +182,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           />
         </div>
       )
-    case backendModule.ProjectState.opened:
+    case backendModule.IS_OPENING_OR_OPENED[state]:
       return (
         <div className="flex flex-row gap-0.5">
           <div className="relative flex">
@@ -206,6 +207,21 @@ export default function ProjectIcon(props: ProjectIconProps) {
             />
           </div>
         </div>
+      )
+    default:
+      return (
+        <ariaComponents.Button
+          size="large"
+          variant="icon"
+          icon={PlayIcon}
+          aria-label={getTooltip(getText('openInEditor'))}
+          tooltipPlacement="left"
+          extraClickZone="xsmall"
+          isDisabled={isDisabled || projectState.type === backendModule.ProjectState.closing}
+          className="shrink-0"
+          onPress={doOpenProject}
+          testId="open-project"
+        />
       )
   }
 }

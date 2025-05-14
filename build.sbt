@@ -3483,7 +3483,13 @@ lazy val `runtime-compiler` =
         testPkgsExports ++ irDumperExports
       },
       Test / addReads := {
-        Map(javaModuleName.value -> Seq("ALL-UNNAMED"))
+        Map(
+          javaModuleName.value -> Seq(
+            "ALL-UNNAMED",
+            "ch.qos.logback.classic",
+            (`logging-service-logback` / Compile / javaModuleName).value
+          )
+        )
       }
     )
     .dependsOn(`runtime-parser`)

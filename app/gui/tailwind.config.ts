@@ -28,6 +28,7 @@ export default {
 
         dashboard:
           'rgb(var(--color-dashboard-background-rgb) / var(--color-dashboard-background-opacity))',
+        'dashboard-row': 'var(--dashboard-row-background)',
         accent: 'rgb(var(--color-accent-rgb) / 100%)',
         danger: 'rgb(var(--color-danger-rgb) / 100%)',
         'accent-dark': 'rgba(62, 145, 82, 1)',
@@ -222,7 +223,6 @@ export default {
         'side-panel-section': 'var(--side-panel-section-gap)',
         'asset-search-bar': 'var(--asset-search-bar-gap)',
         'drive-bar': 'var(--drive-bar-gap)',
-        'column-items': 'var(--column-items-gap)',
         labels: 'var(--labels-gap)',
         'label-icons': 'var(--label-icons-gap)',
         'user-menu': 'var(--user-menu-gap)',
@@ -544,43 +544,42 @@ inset 0 -36px 51px -51px #00000014`,
           // === Rounded rows ===
 
           '.rounded-rows': {
+            '--dashboard-row-background': 'rgb(239 234 228)',
             [`:where(
               & :nth-child(odd of .rounded-rows-child) > .rounded-rows-have-level
             )`]: {
               backgroundColor: `rgb(0 0 0 / 3%)`,
+              '--dashboard-row-background': 'rgb(232 227 221)',
             },
             [`:where(
               & :nth-child(odd of .rounded-rows-child) > .rounded-rows-skip-level > .rounded-rows-child
             )`]: {
               backgroundColor: `rgb(0 0 0 / 3%)`,
+              '--dashboard-row-background': 'rgb(232 227 221)',
             },
             [`:where(
               & .selected > .rounded-rows-have-level
             )`]: {
               backgroundColor: 'rgb(255 255 255 / 90%)',
+              '--dashboard-row-background': 'rgb(253 253 252)',
             },
             [`:where(
               & .selected > .rounded-rows-skip-level > .rounded-rows-child
             )`]: {
               backgroundColor: 'rgb(255 255 255 / 90%)',
+              '--dashboard-row-background': 'rgb(253 253 252)',
             },
             [`:where(
               & [data-drop-target]:nth-child(odd of .rounded-rows-child) > .rounded-rows-have-level
             )`]: {
               backgroundColor: 'rgb(0 0 0 / 8%)',
+              '--dashboard-row-background': 'rgb(220 216 210)',
             },
             [`:where(
               & [data-drop-target]:nth-child(odd of .rounded-rows-child) > .rounded-rows-skip-level > .rounded-rows-child
             )`]: {
               backgroundColor: 'rgb(0 0 0 / 8%)',
-            },
-          },
-
-          // === Custom column spans ===
-
-          '.col-span-2-news-item.col-span-2-news-item': {
-            '@media screen and (max-width: 40.5625rem)': {
-              gridColumn: 'span 1 / span 1',
+              '--dashboard-row-background': 'rgb(220 216 210)',
             },
           },
         },

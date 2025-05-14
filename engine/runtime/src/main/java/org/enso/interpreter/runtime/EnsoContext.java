@@ -151,6 +151,8 @@ public final class EnsoContext {
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
     var dumpModuleIR = System.getProperty(RuntimeOptions.IR_DUMPER_SYSTEM_PROP);
+    var shouldRemoveUnusedImports =
+        System.getProperty(RuntimeOptions.REMOVE_UNUSED_IMPORTS_SYSTEM_PROP) != null;
     this.compilerConfig =
         CompilerConfig.builder()
             .autoParallelismEnabled(isParallelismEnabled)
@@ -161,6 +163,7 @@ public final class EnsoContext {
             .dumpModuleIR(scala.Option.apply(dumpModuleIR))
             .isStrictErrors(getOption(RuntimeOptions.STRICT_ERRORS_KEY))
             .isLintingDisabled(getOption(RuntimeOptions.DISABLE_LINTING_KEY))
+            .removeUnusedImports(shouldRemoveUnusedImports)
             .build();
     this.home = home;
     this.builtins = new Builtins(this);

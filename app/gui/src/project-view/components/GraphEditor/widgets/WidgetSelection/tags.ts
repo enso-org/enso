@@ -188,7 +188,7 @@ export interface CustomDropdownItem {
   /** Displayed label. */
   label: string
   /** Displayed icon. */
-  icon?: Icon
+  icon?: Icon | undefined
   /** Action to perform when clicked. */
   onClick: (dropdownActions: Actions) => void
 }
