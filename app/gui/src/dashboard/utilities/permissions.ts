@@ -6,7 +6,6 @@ import {
   compareAssetPermissions,
   type User,
 } from 'enso-common/src/services/Backend'
-import { merge } from 'enso-common/src/utilities/data/object'
 import { Permission, PermissionAction } from 'enso-common/src/utilities/permissions'
 import invariant from 'tiny-invariant'
 export * from 'enso-common/src/utilities/permissions'
@@ -63,36 +62,6 @@ export function canPermissionModifyDirectoryContents(permission: PermissionActio
 /** Replace the first owner permission with the permission of a new user or team. */
 export function tryGetOwnerPermission(asset: backend.AnyAsset) {
   return asset.permissions?.find((permission) => permission.permission === PermissionAction.own)
-}
-
-/** Replace the first owner permission with the permission of a new user or team. */
-export function replaceOwnerPermission(
-  asset: backend.AnyAsset,
-  newOwner: backend.User | backend.UserGroup,
-) {
-  let found = false
-  const newPermissions =
-    asset.permissions?.map((permission) => {
-      if (found || permission.permission !== PermissionAction.own) {
-        return permission
-      } else {
-        found = true
-        if ('userId' in newOwner) {
-          const newPermission: backend.UserPermission = {
-            user: newOwner,
-            permission: PermissionAction.own,
-          }
-          return newPermission
-        } else {
-          const newPermission: backend.UserGroupPermission = {
-            userGroup: newOwner,
-            permission: PermissionAction.own,
-          }
-          return newPermission
-        }
-      }
-    }) ?? null
-  return merge(asset, { permissions: newPermissions })
 }
 
 const USER_PATH_REGEX = /^enso:[/][/][/]Users[/]([^/]+)/

@@ -54,7 +54,7 @@ type Replacer
         self.replacement.each replacement->
             s = case replacement of
                 Replacement.Literal text -> text
-                Replacement.Substitution group_number -> match.text group_number
+                Replacement.Substitution group_number -> (match.text group_number).if_nothing ""
             string_builder.append s
         string_builder.toString
 

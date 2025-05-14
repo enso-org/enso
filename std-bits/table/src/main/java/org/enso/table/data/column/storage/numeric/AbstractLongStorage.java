@@ -290,7 +290,7 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
   }
 
   @Override
-  public ColumnLongStorageIterator iterator() {
+  public ColumnLongStorageIterator iteratorWithIndex() {
     return new BaseLongStorageIterator(this);
   }
 

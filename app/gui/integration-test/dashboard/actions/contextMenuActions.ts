@@ -10,9 +10,8 @@ export interface ContextMenuActions<T extends BaseActions<Context>, Context> {
   readonly uploadToCloud: () => T
   readonly rename: () => T
   readonly snapshot: () => T
-  readonly moveNonFolderToTrash: () => T
-  readonly moveFolderToTrash: () => T
-  readonly moveAllToTrash: (confirm?: boolean) => T
+  readonly moveToTrash: () => T
+  readonly moveAllToTrash: () => T
   readonly restoreFromTrash: () => T
   readonly restoreAllFromTrash: () => T
   readonly share: () => T
@@ -60,14 +59,7 @@ export function contextMenuActions<T extends BaseActions<Context>, Context>(
           .getByText(TEXT.snapshotShortcut)
           .click(),
       ),
-    moveNonFolderToTrash: () =>
-      step('Move to trash (context menu)', async (page) => {
-        await page
-          .getByRole('button', { name: TEXT.moveToTrashShortcut })
-          .getByText(TEXT.moveToTrashShortcut)
-          .click()
-      }),
-    moveFolderToTrash: () =>
+    moveToTrash: () =>
       step('Move folder to trash (context menu)', async (page) => {
         await page
           .getByRole('button', { name: TEXT.moveToTrashShortcut })
@@ -77,15 +69,15 @@ export function contextMenuActions<T extends BaseActions<Context>, Context>(
         // Confirm the deletion in the dialog
         await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
       }),
-    moveAllToTrash: (hasFolder = false) =>
+    moveAllToTrash: () =>
       step('Move all to trash (context menu)', async (page) => {
         await page
           .getByRole('button', { name: TEXT.moveAllToTrashShortcut })
           .getByText(TEXT.moveAllToTrashShortcut)
           .click()
-        if (hasFolder) {
-          await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
-        }
+
+        // Confirm the deletion in the dialog
+        await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
       }),
     restoreFromTrash: () =>
       step('Restore from trash (context menu)', (page) =>

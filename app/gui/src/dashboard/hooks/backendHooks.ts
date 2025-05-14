@@ -596,7 +596,10 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
   const createPermissionMutation = useMutationCallback(
     backendMutationOptions(backend, 'createPermission', {
       meta: {
-        invalidates: [[backend.type, 'listDirectory']],
+        invalidates: [
+          [backend.type, 'listDirectory'],
+          [backend.type, 'getAssetDetails'],
+        ],
         awaitInvalidates: true,
       },
     }),

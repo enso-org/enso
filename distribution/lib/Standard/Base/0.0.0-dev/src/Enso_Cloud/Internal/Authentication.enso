@@ -63,9 +63,12 @@ credentials_file = case Environment.get "ENSO_CLOUD_CREDENTIALS_FILE" of
 
 ## PRIVATE
 type Authentication_Service
+    private Instance (_auth_data : Ref Authentication_Data)
+
     ## PRIVATE
-       TODO: We cannot mark this constructor as `private` until we change token tests in `Enso_Cloud_Spec` to run with `--disable-private-check`.
-    Instance (auth_data : Ref Authentication_Data)
+       The authentication data, which is a mutable reference to the current
+       authentication data.
+    auth_data self -> Ref Authentication_Data = self._auth_data
 
     ## PRIVATE
     get_access_token self -> Text =
@@ -101,7 +104,9 @@ instantiate_authentication_service =
 ## PRIVATE
 type Authentication_Data
     ## PRIVATE
-    Value access_token:Text expire_at:Date_Time
+    private Value _access_token:Text expire_at:Date_Time
+
+    access_token self -> Text = self._access_token
 
     ## PRIVATE
     read_from_credentials -> Authentication_Data =
@@ -116,7 +121,7 @@ type Authentication_Data
         expiration_date_string = get_field "expire_at"
         expiration_date = Date_Time.parse expiration_date_string format=Date_Time_Formatter.iso_zoned_date_time . catch Time_Error error->
             Panic.throw (Illegal_State.Error invalid_format_prefix+"invalid date format in `expire_at` field: "+error.to_display_text cause=error)
-        Authentication_Data.Value access_token=token expire_at=expiration_date
+        Authentication_Data.Value token expiration_date
 
 ## PRIVATE
 type Refresh_Token_Data
@@ -169,7 +174,7 @@ type Refresh_Token_Data
 
         if token_type != "Bearer" then
             Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Invalid `TokenType` field in response: expected `Bearer`, got `"+token_type+"`.")
-        Authentication_Data.Value access_token=access_token expire_at=expire_at
+        Authentication_Data.Value access_token expire_at
 
 ## PRIVATE
    The amount of time before the token expiration that we pro-actively refresh
