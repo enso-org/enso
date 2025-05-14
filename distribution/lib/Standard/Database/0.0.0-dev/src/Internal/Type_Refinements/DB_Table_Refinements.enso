@@ -21,8 +21,8 @@ private _refine_single_column_table table =
     column = table.at 0
     inferred_value_type = (column:Column).inferred_precise_value_type
     case inferred_value_type of
-        Value_Type.Integer _ -> (table : DB_Table & DB_Column & Numeric_Column)
-        Value_Type.Byte -> (table : DB_Table & DB_Column & Numeric_Column)
-        Value_Type.Float _ -> (table : DB_Table & DB_Column & Numeric_Column)
-        Value_Type.Decimal _ _ -> (table : DB_Table & DB_Column & Numeric_Column)
-        _ -> (table : DB_Table & DB_Column)
+        Value_Type.Integer _ -> (table : DB_Table & Column & DB_Column & Numeric_Column)
+        Value_Type.Byte -> (table : DB_Table & Column & DB_Column & Numeric_Column)
+        Value_Type.Float _ -> (table : DB_Table & Column & DB_Column & Numeric_Column)
+        Value_Type.Decimal _ _ -> (table : DB_Table & Column & DB_Column & Numeric_Column)
+        _ -> (table : DB_Table & Column & DB_Column)

@@ -27,6 +27,7 @@ final class EnsoMultiType {
 
   private EnsoMultiType(Type[] types) {
     assert checkNonNull(types);
+    assert isUnique(types);
     this.types = types;
   }
 
@@ -92,6 +93,11 @@ final class EnsoMultiType {
   @CompilerDirectives.TruffleBoundary
   public String toString() {
     return "MultiType{" + "types=" + Arrays.toString(types) + '}';
+  }
+
+  private static boolean isUnique(Type[] types) {
+    var set = new HashSet<>(Arrays.asList(types));
+    return set.size() == types.length;
   }
 
   @CompilerDirectives.TruffleBoundary
