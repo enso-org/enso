@@ -17,7 +17,8 @@ public interface Comparators extends BinaryOperation<Boolean> {
         || storageType instanceof TimeOfDayType
         || storageType instanceof DateTimeType
         || storageType instanceof TextType
-        || storageType instanceof NullType;
+        || storageType instanceof NullType
+        || storageType instanceof BooleanType;
   }
 
   static BinaryOperation<Boolean> eq(Column left) {
