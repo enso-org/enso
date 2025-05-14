@@ -1,123 +1,40 @@
 /** @file Settings tab for viewing and editing roles for all users in the organization. */
-import { useRef } from 'react'
 
-import { useQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 
-import { Cell, Column, Row, Table, TableBody, TableHeader, useDragAndDrop } from '#/components/aria'
-import { Button, ButtonGroup, Popover } from '#/components/AriaComponents'
+import Cross2 from '#/assets/cross2.svg'
+import { Cell, Column, Row, Table, TableBody, TableHeader } from '#/components/aria'
+import { Button, ButtonGroup, Dialog, Popover, Text } from '#/components/AriaComponents'
+import ContextMenuEntry from '#/components/ContextMenuEntry'
 import { PaywallDialogButton } from '#/components/Paywall'
-import { StatelessSpinner } from '#/components/StatelessSpinner'
-import { USER_MIME_TYPE } from '#/data/mimeTypes'
-import {
-  backendMutationOptions,
-  backendQueryOptions,
-  useListUserGroupsWithUsers,
-} from '#/hooks/backendHooks'
+import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { usePaywall } from '#/hooks/billing'
-import { useStickyTableHeaderOnScroll } from '#/hooks/scrollHooks'
-import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { useContextMenuRef } from '#/hooks/contextMenuHooks'
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { NewUserGroupForm } from '#/modals/NewUserGroupModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useRemoteBackend } from '#/providers/BackendProvider'
+import { setModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
-import {
-  isPlaceholderUserGroupId,
-  isUserGroupId,
-  type User,
-  type UserGroupInfo,
-} from '#/services/Backend'
-import { twMerge } from '#/utilities/tailwindMerge'
+import { type User, type UserGroupInfo } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import UserGroupRow from './UserGroupRow'
-import UserGroupUserRow from './UserGroupUserRow'
+
+/** The maximum number of user icons per row. */
+const MAXIMUM_USER_ICONS = 6
 
 /** Settings tab for viewing and editing organization members. */
 export default function UserGroupsSettingsSection() {
   const backend = useRemoteBackend()
   const { getText } = useText()
   const { user } = useFullUserSession()
-  const toastAndLog = useToastAndLog()
-  const { data: users } = useQuery(backendQueryOptions(backend, 'listUsers', []))
-  const { data: userGroups } = useListUserGroupsWithUsers(backend)
-  const rootRef = useRef<HTMLDivElement>(null)
-  const bodyRef = useRef<HTMLTableSectionElement>(null)
-  const changeUserGroup = useMutationCallback(backendMutationOptions(backend, 'changeUserGroup'))
-  const deleteUserGroup = useMutationCallback(backendMutationOptions(backend, 'deleteUserGroup'))
-  const usersMap = new Map((users ?? []).map((otherUser) => [otherUser.userId, otherUser]))
-  const isLoading = userGroups == null || users == null
+  const { data: userGroups } = useSuspenseQuery(backendQueryOptions(backend, 'listUserGroups', []))
   const isAdmin = user.isOrganizationAdmin
 
   const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
 
   const isUnderPaywall = isFeatureUnderPaywall('userGroupsFull')
-  const userGroupsLeft = isUnderPaywall ? 1 - (userGroups?.length ?? 0) : Infinity
+  const userGroupsLeft = isUnderPaywall ? 1 - userGroups.length : Infinity
   const shouldDisplayPaywall = isUnderPaywall ? userGroupsLeft <= 0 : false
-
-  const { onScroll: onUserGroupsTableScroll, shadowClassName } = useStickyTableHeaderOnScroll(
-    rootRef,
-    bodyRef,
-    { trackShadowClass: true },
-  )
-
-  const { dragAndDropHooks } = useDragAndDrop({
-    isDisabled: !isAdmin,
-    getDropOperation: (target, types, allowedOperations) =>
-      (
-        allowedOperations.includes('copy') &&
-        types.has(USER_MIME_TYPE) &&
-        target.type === 'item' &&
-        typeof target.key === 'string' &&
-        isUserGroupId(target.key) &&
-        !isPlaceholderUserGroupId(target.key)
-      ) ?
-        'copy'
-      : 'cancel',
-    onItemDrop: (event) => {
-      if (typeof event.target.key === 'string' && isUserGroupId(event.target.key)) {
-        const userGroupId = event.target.key
-        for (const item of event.items) {
-          if (item.kind === 'text' && item.types.has(USER_MIME_TYPE)) {
-            void item.getText(USER_MIME_TYPE).then(async (text) => {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              const newUser: User = JSON.parse(text)
-              const groups = usersMap.get(newUser.userId)?.userGroups ?? []
-              if (!groups.includes(userGroupId)) {
-                try {
-                  const newUserGroups = [...groups, userGroupId]
-                  await changeUserGroup([
-                    newUser.userId,
-                    { userGroups: newUserGroups },
-                    newUser.name,
-                  ])
-                } catch (error) {
-                  toastAndLog('changeUserGroupsError', error)
-                }
-              }
-            })
-          }
-        }
-      }
-    },
-  })
-
-  const doDeleteUserGroup = async (userGroup: UserGroupInfo) => {
-    try {
-      await deleteUserGroup([userGroup.id, userGroup.groupName])
-    } catch (error) {
-      toastAndLog('deleteUserGroupError', error, userGroup.groupName)
-    }
-  }
-
-  const doRemoveUserFromUserGroup = async (otherUser: User, userGroup: UserGroupInfo) => {
-    try {
-      const intermediateUserGroups =
-        otherUser.userGroups?.filter((userGroupId) => userGroupId !== userGroup.id) ?? null
-      const newUserGroups = intermediateUserGroups?.length === 0 ? null : intermediateUserGroups
-      await changeUserGroup([otherUser.userId, { userGroups: newUserGroups ?? [] }, otherUser.name])
-    } catch (error) {
-      toastAndLog('removeUserFromUserGroupError', error, otherUser.name, userGroup.groupName)
-    }
-  }
 
   return (
     <>
@@ -153,18 +70,10 @@ export default function UserGroupsSettingsSection() {
           )}
         </ButtonGroup>
       )}
-      <div
-        ref={rootRef}
-        className={twMerge(
-          'min-h-0 flex-initial overflow-y-auto overflow-x-hidden transition-all lg:mb-2',
-          shadowClassName,
-        )}
-        onScroll={onUserGroupsTableScroll}
-      >
+      <div className="min-h-0 flex-initial overflow-y-auto overflow-x-hidden transition-all lg:mb-2">
         <Table
           aria-label={getText('userGroups')}
           className="w-full max-w-3xl table-fixed self-start rounded-rows"
-          dragAndDropHooks={dragAndDropHooks}
         >
           <TableHeader className="sticky top-0 z-1 h-row bg-dashboard">
             <Column
@@ -173,30 +82,17 @@ export default function UserGroupsSettingsSection() {
             >
               {getText('userGroup')}
             </Column>
+            <Column
+              isRowHeader
+              className="w-full border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
+            >
+              {getText('users')}
+            </Column>
             {/* Delete button. */}
             <Column className="relative border-0" />
           </TableHeader>
-          <TableBody
-            ref={bodyRef}
-            items={userGroups ?? []}
-            dependencies={[isLoading, userGroups]}
-            className="select-text"
-          >
-            {isLoading ?
-              <Row className="h-row">
-                <Cell
-                  ref={(element) => {
-                    if (element instanceof HTMLTableCellElement) {
-                      element.colSpan = 2
-                    }
-                  }}
-                >
-                  <div className="flex justify-center">
-                    <StatelessSpinner size={32} state="loading-medium" />
-                  </div>
-                </Cell>
-              </Row>
-            : userGroups.length === 0 ?
+          <TableBody items={userGroups} dependencies={[userGroups]} className="select-text">
+            {userGroups.length === 0 ?
               <Row className="h-row">
                 <Cell className="col-span-2 px-2.5 placeholder">
                   {isAdmin ?
@@ -204,23 +100,108 @@ export default function UserGroupsSettingsSection() {
                   : getText('youHaveNoUserGroupsNonAdmin')}
                 </Cell>
               </Row>
-            : (userGroup) => (
-                <>
-                  <UserGroupRow userGroup={userGroup} doDeleteUserGroup={doDeleteUserGroup} />
-                  {userGroup.users.map((otherUser) => (
-                    <UserGroupUserRow
-                      key={otherUser.userId}
-                      user={otherUser}
-                      userGroup={userGroup}
-                      doRemoveUserFromUserGroup={doRemoveUserFromUserGroup}
-                    />
-                  ))}
-                </>
-              )
-            }
+            : (userGroup) => <UserGroupRow userGroup={userGroup} />}
           </TableBody>
         </Table>
       </div>
     </>
+  )
+}
+
+/** Props for a {@link UserGroupRow}. */
+interface UserGroupRowProps {
+  readonly userGroup: UserGroupInfo
+}
+
+/** A row representing a user group. */
+function UserGroupRow(props: UserGroupRowProps) {
+  const { userGroup } = props
+
+  const backend = useRemoteBackend()
+  const { user } = useFullUserSession()
+  const { getText } = useText()
+  const isAdmin = user.isOrganizationAdmin
+
+  const deleteUserGroupRaw = useMutationCallback(backendMutationOptions(backend, 'deleteUserGroup'))
+  const changeUserGroup = useMutationCallback(backendMutationOptions(backend, 'changeUserGroup'))
+  const deleteUserGroup = () => deleteUserGroupRaw([userGroup.id, userGroup.groupName])
+
+  const { data: allUsers } = useSuspenseQuery(backendQueryOptions(backend, 'listUsers', []))
+  const users = allUsers.filter((otherUser) =>
+    (otherUser.groups ?? []).some((otherGroup) => otherGroup.id === userGroup.id),
+  )
+
+  const contextMenuRef = useContextMenuRef(
+    getText('userGroupContextMenuLabel'),
+    () => (
+      <ContextMenuEntry
+        action="delete"
+        doAction={() => {
+          setModal(
+            <ConfirmDeleteModal
+              defaultOpen
+              actionText={getText('deleteUserGroupActionText', userGroup.groupName)}
+              onConfirm={deleteUserGroup}
+            />,
+          )
+        }}
+      />
+    ),
+    { enabled: isAdmin },
+  )
+
+  const removeUser = async (otherUser: User) => {
+    const newUserGroups = (otherUser.groups ?? [])
+      .filter((group) => group.id !== userGroup.id)
+      .map((group) => group.id)
+    await changeUserGroup([otherUser.userId, { userGroups: newUserGroups }, otherUser.name])
+  }
+
+  const addUser = async (otherUser: User) => {
+    const newUserGroups = [...(otherUser.groups?.map((group) => group.id) ?? []), userGroup.id]
+    await changeUserGroup([otherUser.userId, { userGroups: newUserGroups }, otherUser.name])
+  }
+
+  return (
+    <Row
+      id={userGroup.id}
+      className="group h-row select-none rounded-rows-child"
+      ref={contextMenuRef}
+    >
+      <Cell className="rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0">
+        <Text nowrap truncate="1" weight="semibold">
+          {userGroup.groupName}
+        </Text>
+      </Cell>
+      <Cell className="rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0">
+        {users.slice(0, MAXIMUM_USER_ICONS).map((otherUser) => (
+          <Text nowrap truncate="1" weight="semibold">
+            {otherUser.name}
+          </Text>
+        ))}
+        {users.length > MAXIMUM_USER_ICONS && (
+          <Text nowrap truncate="1">
+            {getText('plusXUsers', users.length - MAXIMUM_USER_ICONS)}
+          </Text>
+        )}
+      </Cell>
+      <Cell className="relative bg-transparent p-0 opacity-0 group-hover-2:opacity-100">
+        {isAdmin && (
+          <Dialog.Trigger>
+            <Button
+              size="custom"
+              variant="custom"
+              className="absolute right-full mr-4 size-4 -translate-y-1/2"
+            >
+              <img src={Cross2} className="size-4" />
+            </Button>
+            <ConfirmDeleteModal
+              actionText={getText('deleteUserGroupActionText', userGroup.groupName)}
+              onConfirm={deleteUserGroup}
+            />
+          </Dialog.Trigger>
+        )}
+      </Cell>
+    </Row>
   )
 }

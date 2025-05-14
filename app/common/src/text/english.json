@@ -306,6 +306,7 @@
   "forward": "Forward",
   "more": "More",
   "close": "Close",
+  "plusXUsers": "+ $0 user(s)",
   "snowflakeCredentialType": "Snowflake",
   "snowflakeCredentialAccount": "Account",
   "snowflakeCredentialClientId": "Client ID",

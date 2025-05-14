@@ -176,6 +176,8 @@ interface PlaceholderOverrides {
     categoryName: string,
     destinationCategoryName: string,
   ]
+
+  readonly plusXUsers: [count: number]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */

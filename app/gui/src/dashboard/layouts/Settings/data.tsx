@@ -32,7 +32,6 @@ import ActivityLogSettingsSection from './ActivityLogSettingsSection'
 import DeleteUserAccountSettingsSection from './DeleteUserAccountSettingsSection'
 import KeyboardShortcutsSettingsSection from './KeyboardShortcutsSettingsSection'
 import MembersSettingsSection from './MembersSettingsSection'
-import MembersTable from './MembersTable'
 import OrganizationProfilePictureInput from './OrganizationProfilePictureInput'
 import ProfilePictureInput from './ProfilePictureInput'
 import { SetupTwoFaForm } from './SetupTwoFaForm'
@@ -382,29 +381,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       {
         nameId: 'userGroupsSettingsSection',
         columnClassName: 'lg:h-[unset] overflow-auto h-auto',
-        entries: [
-          {
-            type: 'custom',
-            render: (context) => <UserGroupsSettingsSection backend={context.backend} />,
-          },
-        ],
-      },
-      {
-        nameId: 'userGroupsUsersSettingsSection',
-        column: 2,
-        columnClassName: 'lg:h-[unset] overflow-auto h-auto',
-        entries: [
-          {
-            type: 'custom',
-            render: (context) => (
-              <MembersTable
-                backend={context.backend}
-                draggable={context.user.isOrganizationAdmin}
-                populateWithSelf
-              />
-            ),
-          },
-        ],
+        entries: [{ type: 'custom', render: UserGroupsSettingsSection }],
       },
     ],
   },
