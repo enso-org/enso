@@ -40,6 +40,7 @@ export function deleteAssetsMutationOptions(backend: Backend) {
     meta: {
       invalidates: [
         [backend.type, 'listDirectory'],
+        [backend.type, 'getAssetDetails'],
         [backend.type, 'listAssetVersions'],
       ],
       awaitInvalidates: true,
@@ -104,7 +105,10 @@ export function restoreAssetsMutationOptions(backend: Backend) {
       return null
     },
     meta: {
-      invalidates: [[backend.type, 'listDirectory']],
+      invalidates: [
+        [backend.type, 'listDirectory'],
+        [backend.type, 'getAssetDetails'],
+      ],
       awaitInvalidates: true,
       refetchType: 'all',
     },
@@ -170,7 +174,10 @@ export function copyAssetsMutationOptions(backend: Backend) {
       return results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
     },
     meta: {
-      invalidates: [[backend.type, 'listDirectory']],
+      invalidates: [
+        [backend.type, 'listDirectory'],
+        [backend.type, 'getAssetDetails'],
+      ],
       awaitInvalidates: true,
       refetchType: 'all',
     },
