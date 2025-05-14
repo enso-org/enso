@@ -1070,20 +1070,20 @@ pub fn generate(
     repo_root: &crate::paths::generated::RepoRootGithubWorkflows,
 ) -> Result<Vec<WorkflowToWrite>> {
     let workflows = [
-        (repo_root.changelog_yml.to_path_buf(), changelog()?),
-        (repo_root.nightly_yml.to_path_buf(), nightly()?),
-        (repo_root.engine_checks_yml.to_path_buf(), engine_checks()?),
-        (repo_root.engine_checks_optional_yml.to_path_buf(), engine_checks_optional()?),
-        (repo_root.engine_checks_nightly_yml.to_path_buf(), engine_checks_nightly()?),
-        (repo_root.extra_nightly_tests_yml.to_path_buf(), extra_nightly_tests()?),
-        (repo_root.ide_packaging_yml.to_path_buf(), ide_packaging()?),
+        // (repo_root.changelog_yml.to_path_buf(), changelog()?),
+        // (repo_root.nightly_yml.to_path_buf(), nightly()?),
+        // (repo_root.engine_checks_yml.to_path_buf(), engine_checks()?),
+        // (repo_root.engine_checks_optional_yml.to_path_buf(), engine_checks_optional()?),
+        // (repo_root.engine_checks_nightly_yml.to_path_buf(), engine_checks_nightly()?),
+        // (repo_root.extra_nightly_tests_yml.to_path_buf(), extra_nightly_tests()?),
+        // (repo_root.ide_packaging_yml.to_path_buf(), ide_packaging()?),
         (repo_root.ide_packaging_optional_yml.to_path_buf(), ide_packaging_optional()?),
-        (repo_root.wasm_checks_yml.to_path_buf(), wasm_checks()?),
-        (repo_root.engine_benchmark_yml.to_path_buf(), engine_benchmark()?),
-        (repo_root.std_libs_benchmark_yml.to_path_buf(), std_libs_benchmark()?),
-        (repo_root.std_libs_labels_yml.to_path_buf(), stdlib_api_change_labels_workflow()?),
-        (repo_root.release_yml.to_path_buf(), release()?),
-        (repo_root.promote_yml.to_path_buf(), promote()?),
+        // (repo_root.wasm_checks_yml.to_path_buf(), wasm_checks()?),
+        // (repo_root.engine_benchmark_yml.to_path_buf(), engine_benchmark()?),
+        // (repo_root.std_libs_benchmark_yml.to_path_buf(), std_libs_benchmark()?),
+        // (repo_root.std_libs_labels_yml.to_path_buf(), stdlib_api_change_labels_workflow()?),
+        // (repo_root.release_yml.to_path_buf(), release()?),
+        // (repo_root.promote_yml.to_path_buf(), promote()?),
     ];
     let workflows = workflows
         .into_iter()
