@@ -4,8 +4,6 @@ import type { DragEvent, MouseEvent, PropsWithChildren } from 'react'
 import type { PressEvent } from '#/components/aria'
 import { Text } from '#/components/AriaComponents'
 import FocusRing from '#/components/styled/FocusRing'
-import { useHandleFocusMove } from '#/hooks/focusHooks'
-import { useFocusDirection } from '#/providers/FocusDirectionProvider'
 import type { Label as BackendLabel } from '#/services/Backend'
 import { lChColorToCssColor, type LChColor } from '#/services/Backend'
 import { twMerge } from '#/utilities/tailwindMerge'
@@ -39,8 +37,6 @@ export default function Label(props: InternalLabelProps) {
   const { active = false, isDisabled = false, color, negated = false, draggable, title } = props
   const { onPress, onDragStart, onContextMenu, label } = props
   const { children: childrenRaw } = props
-  const focusDirection = useFocusDirection()
-  const handleFocusMove = useHandleFocusMove(focusDirection)
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   const isLight = color.lightness > 50
 
@@ -61,7 +57,7 @@ export default function Label(props: InternalLabelProps) {
           title={title}
           disabled={isDisabled}
           className={twMerge(
-            'focus-child relative flex h-6 items-center whitespace-nowrap rounded-inherit px-[7px] opacity-50 transition-all after:pointer-events-none after:absolute after:inset after:rounded-full hover:opacity-100 focus:opacity-100',
+            'relative flex h-6 items-center whitespace-nowrap rounded-inherit px-[7px] opacity-50 transition-all after:pointer-events-none after:absolute after:inset after:rounded-full hover:opacity-100 focus:opacity-100',
             active && 'active',
             negated && 'after:border-2 after:border-delete',
           )}
@@ -74,7 +70,6 @@ export default function Label(props: InternalLabelProps) {
             onDragStart?.(e)
           }}
           onContextMenu={onContextMenu}
-          onKeyDown={handleFocusMove}
         >
           {typeof childrenRaw !== 'string' ?
             childrenRaw

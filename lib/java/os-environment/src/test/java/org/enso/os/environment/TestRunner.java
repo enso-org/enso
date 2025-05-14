@@ -25,7 +25,7 @@ public class TestRunner {
     System.out.println("Number of test classes: " + results.size());
     System.out.println("Number of tests failed: " + failedTests.size());
     System.out.println("Number of tests ignored: " + ignoredTests);
-    System.out.println("Number of successfull tests: " + runTests);
+    System.out.println("Number of successful tests: " + runTests);
     var success = failedTests.isEmpty();
     System.out.println("Test run successful: " + success);
     if (!success) {

@@ -110,7 +110,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
         EnsoContext.get(this)
             .getBuiltins()
             .error()
-            .makePrivateAccessError(thisProjName, targetProjName, funcName);
+            .makePrivateAccessError(thisProjName, targetProjName, funcName, null);
     return new PanicException(err, this);
   }
 

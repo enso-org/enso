@@ -5,7 +5,6 @@
 import { useState } from 'react'
 
 import { LOGIN_PATH } from '#/appUtils'
-import ArrowRightIcon from '#/assets/arrow_right.svg'
 import AtIcon from '#/assets/at.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import { Form, Input } from '#/components/AriaComponents'
@@ -65,7 +64,7 @@ export default function ForgotPassword() {
         }}
       />
 
-      <Form.Submit size="large" icon={ArrowRightIcon} iconPosition="end" fullWidth>
+      <Form.Submit size="large" icon="arrow_right" iconPosition="end" fullWidth>
         {getText('sendLink')}
       </Form.Submit>
 

@@ -5,6 +5,7 @@ import { useText } from '#/providers/TextProvider'
 import { Button, type ButtonProps } from '../../Button'
 import * as formContext from './FormProvider'
 import type * as types from './types'
+import { useFormState } from './useFormState'
 
 /** Props for the Reset component. */
 export interface ResetProps<IconType extends string>
@@ -34,13 +35,13 @@ export function Reset<IconType extends string>(props: ResetProps<IconType>): Rea
   } = props
 
   const formInstance = formContext.useFormContext(form)
-  const { formState } = formInstance
+  const { isSubmitting, isDirty } = useFormState({ form })
 
   return (
     <Button
       variant={variant}
       size={size}
-      isDisabled={formState.isSubmitting || !formState.isDirty}
+      isDisabled={isSubmitting || !isDirty}
       testId={testId}
       children={children}
       onPress={(event) => {

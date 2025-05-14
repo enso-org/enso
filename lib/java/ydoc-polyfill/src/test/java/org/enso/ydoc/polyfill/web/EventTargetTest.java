@@ -43,7 +43,15 @@ public class EventTargetTest extends ExecutorSetup {
         """
         var count = 0;
         var et = new EventTarget();
-        et.addEventListener('inc', () => count += 1);
+        var l = () => count += 1;
+        et.addEventListener('inc', l);
+        var arr = et.getEventListeners('inc');
+        if (arr.length != 1) {
+            throw 'Expecting one listener';
+        }
+        if (arr[0] != l) {
+            throw 'Expecting the one listener!';
+        }
         et.dispatchEvent({type: 'inc'});
         count;
         """;
