@@ -46,7 +46,6 @@ export function Settings() {
   const toastAndLog = useToastAndLog()
   const [query, setQuery] = React.useState('')
   const root = useStrictPortalContext()
-  const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
   const { data: organization = null } = useQuery(
     backendQueryOptions(backend, 'getOrganization', []),
   )
@@ -184,10 +183,6 @@ export function Settings() {
     }
   }, [isQueryBlank, doesEntryMatchQuery, getText, isMatch, effectiveTab])
 
-  const hideSidebarPopover = useEventCallback(() => {
-    setIsSidebarPopoverOpen(false)
-  })
-
   const changeTab = useEventCallback(() => {
     if (tab !== effectiveTab) {
       setTab(tab)
@@ -197,21 +192,19 @@ export function Settings() {
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-hidden pl-page-x pt-4">
       <Heading level={1} className="flex items-center px-heading-x">
-        <MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
+        <MenuTrigger>
           <Button variant="icon" icon="3_dot_menu" className="mr-3 sm:hidden" />
           <Popover size="auto" UNSTABLE_portalContainer={root}>
             <SettingsSidebar
-              isMenu
               context={context}
               tabsToShow={tabsToShow}
               tab={effectiveTab}
               setTab={setTab}
-              onClickCapture={hideSidebarPopover}
             />
           </Popover>
         </MenuTrigger>
 
-        <Text variant="h1" className="cursor-default whitespace-nowrap font-bold">
+        <Text nowrap variant="h1" className="cursor-default font-bold">
           {getText('settingsFor')}
         </Text>
 
