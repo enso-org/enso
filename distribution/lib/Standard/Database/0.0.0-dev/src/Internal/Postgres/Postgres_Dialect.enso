@@ -592,7 +592,7 @@ right = Base_Generator.lift_binary_op "RIGHT" str-> n->
     SQL_Builder.code "right(" ++ str ++ ", CAST(" ++ n ++ " AS INT))"
 
 ## PRIVATE
-make_order_descriptor internal_column sort_direction text_ordering =
+make_order_descriptor internal_column:Internal_Column sort_direction text_ordering =
     nulls = case sort_direction of
         Sort_Direction.Ascending -> Nulls_Order.First
         Sort_Direction.Descending -> Nulls_Order.Last

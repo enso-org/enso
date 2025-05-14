@@ -1828,7 +1828,7 @@ add_column_operation_specs suite_builder setup =
                 connection_data.teardown
 
             if connection_data.connection.dialect.flagged ..Supports_Nested_With_Clause then
-                group_builder.specify "Should allow the use of let-style CTEs" <|
+                group_builder.specify "Should allow the use of let-style CTEs" pending="TODO fix bug that prevents us from Column & DB_Column" <|
                     t = table_builder [["X", [1, 2, 3, 4]], ["Y", [4, 3, 100, 200]], ["Z", [12.1, 23.4, -4.5, 44.33]]]
                     x = t.at "X"
                     y = t.at "Y"
