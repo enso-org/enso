@@ -40,7 +40,7 @@ export function AssetDiffView(props: AssetDiffViewProps) {
 
   const loader = (
     <div className="flex h-full w-full items-center justify-center">
-      <StatelessSpinner size={32} state="loading-medium" />
+      <StatelessSpinner size={32} phase="loading-medium" />
     </div>
   )
 
