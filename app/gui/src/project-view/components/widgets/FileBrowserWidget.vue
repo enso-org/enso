@@ -419,9 +419,17 @@ function extensionSelected(entry: FileExtensionEntry) {
   }
 }
 
-function fileExtensionInputChanged(value: string | undefined) {
-  fileExtensionInputContents.value = value ?? ''
-}
+const fileExtensionInputModel = computed({
+  get: () => {
+    if (fileExtensionFilter.filter.value.type === 'userInput') {
+      return fileExtensionFilter.filter.value.input
+    }
+    return fileExtensionFilter.displayedExtension.value
+  },
+  set: (value) => {
+    fileExtensionInputContents.value = value
+  },
+})
 
 interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
   extensions: 'all' | string[]
@@ -542,10 +550,9 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
           />
           <AutoSizedInput
             ref="fileExtensionInput"
-            v-model="fileExtensionFilter.displayedExtension.value"
+            v-model="fileExtensionInputModel"
             class="inputField"
             @click="openDropdown()"
-            @input="fileExtensionInputChanged"
           />
         </div>
         <SvgButton

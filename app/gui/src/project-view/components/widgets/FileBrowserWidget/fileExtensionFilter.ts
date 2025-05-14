@@ -38,7 +38,6 @@ export function useFileExtensionFilter(
   })
 
   watch(fileExtensionInputContents, (value) => {
-    console.log('inputContents', value)
     if (value === '*' || value === '') {
       filter.value = {
         type: 'glob',
@@ -46,7 +45,8 @@ export function useFileExtensionFilter(
     } else {
       filter.value = {
         type: 'userInput',
-        input: value,
+        // The only supported glob pattern is *, so if it is not the only character, we remove it.
+        input: value.replaceAll('*', ''),
       }
     }
   })
