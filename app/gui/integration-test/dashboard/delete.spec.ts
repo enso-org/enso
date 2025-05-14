@@ -127,7 +127,7 @@ test('clear trash', ({ page }) =>
       }
     })
     .driveTable.rightClickRow(0)
-    .contextMenu.moveAllToTrash(true)
+    .contextMenu.moveAllToTrash()
     .driveTable.expectPlaceholderRow()
     .goToCategory.trash()
     .driveTable.withRows(async (rows) => {
@@ -163,7 +163,7 @@ test('clear trash (without directories)', ({ page }) =>
       }
     })
     .driveTable.rightClickRow(0)
-    .contextMenu.moveAllToTrash(true)
+    .contextMenu.moveAllToTrash()
     .driveTable.expectPlaceholderRow()
     .goToCategory.trash()
     .driveTable.withRows(async (rows) => {

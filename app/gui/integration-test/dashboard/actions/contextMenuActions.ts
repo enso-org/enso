@@ -11,7 +11,7 @@ export interface ContextMenuActions<T extends BaseActions<Context>, Context> {
   readonly rename: () => T
   readonly snapshot: () => T
   readonly moveToTrash: () => T
-  readonly moveAllToTrash: (confirm?: boolean) => T
+  readonly moveAllToTrash: () => T
   readonly restoreFromTrash: () => T
   readonly restoreAllFromTrash: () => T
   readonly share: () => T
@@ -69,15 +69,15 @@ export function contextMenuActions<T extends BaseActions<Context>, Context>(
         // Confirm the deletion in the dialog
         await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
       }),
-    moveAllToTrash: (hasFolder = false) =>
+    moveAllToTrash: () =>
       step('Move all to trash (context menu)', async (page) => {
         await page
           .getByRole('button', { name: TEXT.moveAllToTrashShortcut })
           .getByText(TEXT.moveAllToTrashShortcut)
           .click()
-        if (hasFolder) {
-          await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
-        }
+
+        // Confirm the deletion in the dialog
+        await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
       }),
     restoreFromTrash: () =>
       step('Restore from trash (context menu)', (page) =>
