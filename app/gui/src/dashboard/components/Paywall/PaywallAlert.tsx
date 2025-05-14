@@ -13,7 +13,7 @@ import type * as billingHooks from '#/hooks/billing'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as paywall from '#/components/Paywall'
 import SvgMask from '#/components/SvgMask'
-import { twMerge } from '#/utilities/tailwindMerge'
+import { twJoin } from '#/utilities/tailwindMerge'
 
 /** Props for {@link PaywallAlert}. */
 export interface PaywallAlertProps<IconType extends string>
@@ -42,7 +42,7 @@ export function PaywallAlert<IconType extends string>(
       variant="outline"
       size="small"
       rounded="xlarge"
-      className={twMerge('border border-primary/20', className)}
+      className={twJoin('border border-primary/20', className)}
       {...alertProps}
     >
       <div className="flex items-center gap-2">
