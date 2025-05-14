@@ -1,7 +1,6 @@
 /** @file A page in which the currently active payment plan can be changed. */
 
 import { DASHBOARD_PATH, SUBSCRIBE_SUCCESS_PATH } from '#/appUtils'
-import Back from '#/assets/arrow_left.svg'
 import { Button, Text } from '#/components/AriaComponents'
 import { PlanSelector } from '#/modules/payments'
 import { useFullUserSession } from '#/providers/AuthProvider'
@@ -36,7 +35,13 @@ export function Subscribe() {
     <div className="flex h-full w-full flex-col overflow-y-auto bg-hover-bg">
       <div className="mx-auto mt-16 flex w-full min-w-96 max-w-[1400px] flex-col items-start justify-center p-12">
         <div className="flex flex-col items-start">
-          <Button variant="icon" size="medium" icon={Back} href={DASHBOARD_PATH} className="-ml-2">
+          <Button
+            variant="icon"
+            size="medium"
+            icon="arrow_circle_left"
+            href={DASHBOARD_PATH}
+            className="-ml-2"
+          >
             {getText('returnToDashboard')}
           </Button>
 

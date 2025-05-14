@@ -11,10 +11,10 @@ import org.enso.polyglot.runtime.Runtime.Api.{
   MethodCall,
   MethodPointer
 }
+import org.enso.runtime.utils.ThreadUtils
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.enso.text.editing.model
-import org.enso.testkit.FlakySpec
-import org.enso.text.editing.model.TextEdit
+import org.enso.testkit.{DebugSpec, FlakySpec}
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
@@ -30,6 +30,7 @@ class RuntimeAsyncCommandsTest
     extends AnyFlatSpec
     with Matchers
     with BeforeAndAfterEach
+    with DebugSpec
     with FlakySpec {
 
   // === Test Utilities =======================================================
@@ -75,7 +76,7 @@ class RuntimeAsyncCommandsTest
       var out: List[String] = Nil
       val expectedList      = expected.toList
       monitor.synchronized {
-        while (!receivedExpected && iteration < 20) {
+        while (!receivedExpected && iteration < 50) {
           out = readOutAsList()
           receivedExpected =
             if (exact) out == expectedList
@@ -160,7 +161,16 @@ class RuntimeAsyncCommandsTest
   }
   override protected def afterEach(): Unit = {
     if (context != null) {
-      context.close()
+      try {
+        context.close()
+      } catch {
+        case e: IllegalStateException =>
+          val msg = ThreadUtils.dumpAllStacktraces(
+            "Thread dump on failure to close test Instrument Context:"
+          )
+          println(msg)
+          throw e
+      }
       context.out.reset()
       context = null
     }
@@ -615,11 +625,11 @@ class RuntimeAsyncCommandsTest
         Api.EditFileNotification(
           mainFile,
           Seq(
-            TextEdit(
+            model.TextEdit(
               model.Range(model.Position(9, 23), model.Position(9, 23)),
               "?"
             ),
-            TextEdit(
+            model.TextEdit(
               model.Range(model.Position(11, 24), model.Position(11, 24)),
               "?"
             )

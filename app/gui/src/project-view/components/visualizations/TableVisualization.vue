@@ -37,6 +37,12 @@ import {
 import { ComponentExposed } from 'vue-component-type-helpers'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import {
+  Error,
+  SingleColumnOfActions,
+  isError,
+  isSingleColumnOfActions,
+} from './TableVisualization/TableVisualisationTypes'
+import {
   convertFilterModel,
   convertSortModel,
   createDistinctExpressionTemplate,
@@ -56,13 +62,14 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = number | string | Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
-
-interface Error {
-  type: undefined
-  error: string
-  all_rows_count?: undefined
-}
+type Data =
+  | number
+  | string
+  | Error
+  | Matrix
+  | ObjectMatrix
+  | EnsoTableOrColumn
+  | SingleColumnOfActions
 
 interface ValueType {
   constructor: string
@@ -80,17 +87,6 @@ interface Matrix {
   visualization_header: string
 }
 
-interface Excel_Workbook {
-  type: 'Excel_Workbook'
-  column_count: number
-  all_rows_count: number
-  sheet_names: string[]
-  json: unknown[][]
-  get_child_node_action: string
-  child_label: string
-  visualization_header: string
-}
-
 interface ObjectMatrix {
   type: 'Object_Matrix'
   column_count: number
@@ -102,11 +98,8 @@ interface ObjectMatrix {
   visualization_header: string
 }
 
-interface UnknownTable {
-  // This is INCORRECT. It is actually a string, however we do not need to access this.
-  // Setting it to `string` breaks the discriminated union detection that is being used to
-  // distinguish `Matrix` and `ObjectMatrix`.
-  type: undefined
+interface EnsoTableOrColumn {
+  type: 'EnsoTableOrColumn'
   json: unknown
   all_rows_count?: number
   header: string[] | undefined
@@ -121,6 +114,8 @@ interface UnknownTable {
   visualization_header: string
   data_quality_metrics?: DataQualityMetric[]
   is_using_server_sort_and_filter: boolean
+  use_bottom_status_bar: boolean
+  enable_create_node: boolean
   requires_number_format: boolean[]
   table_version_hash?: string
 }
@@ -138,11 +133,6 @@ const props = defineProps<{ data: Data }>()
 const config = useVisualizationConfig()
 
 const INDEX_FIELD_NAME = '#'
-const TABLE_NODE_TYPE = 'Standard.Table.Table.Table'
-const DB_TABLE_NODE_TYPE = 'Standard.Database.DB_Table.DB_Table'
-const VECTOR_NODE_TYPE = 'Standard.Base.Data.Vector.Vector'
-const COLUMN_NODE_TYPE = 'Standard.Table.Column.Column'
-const ROW_NODE_TYPE = 'Standard.Table.Row.Row'
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -266,6 +256,20 @@ const isSSRM = computed(
     props.data.is_using_server_sort_and_filter,
 )
 
+const useBottomStatusBar = computed(
+  () =>
+    typeof props.data === 'object' &&
+    'use_bottom_status_bar' in props.data &&
+    props.data.use_bottom_status_bar,
+)
+
+const isCreateNewNodeEnabled = computed(
+  () =>
+    typeof props.data === 'object' &&
+    'enable_create_node' in props.data &&
+    props.data.enable_create_node,
+)
+
 const ssrmServer = computed(() => {
   return isSSRM.value && createServer()
 })
@@ -276,24 +280,20 @@ const ssrmDatasource = computed(() => {
   return isSSRM.value && createServerSideDatasource()
 })
 
-const statusBar = computed(() =>
-  allRowCount.value ?
-    {
-      statusPanels:
-        config.nodeType === TABLE_NODE_TYPE || config.nodeType === COLUMN_NODE_TYPE ?
-          [
-            {
-              statusPanel: TableVizStatusBar,
-              statusPanelParams: {
-                total: allRowCount.value,
-                filtered: isSSRM.value ? filteredRowCount.value : null,
-              },
-            },
-          ]
-        : [],
-    }
-  : null,
-)
+const statusBar = computed(() => ({
+  statusPanels:
+    useBottomStatusBar.value ?
+      [
+        {
+          statusPanel: TableVizStatusBar,
+          statusPanelParams: {
+            total: allRowCount.value,
+            filtered: isSSRM.value ? filteredRowCount.value : null,
+          },
+        },
+      ]
+    : [],
+}))
 
 const isCreateNodeButtonEnabled = computed(
   () =>
@@ -318,7 +318,7 @@ watchEffect(() => {
 
 const textFormatterSelected = ref<TextFormatOptions>('partial')
 
-const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
+const isRowCountSelectorVisible = computed(() => rowCount.value > 1000)
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 
 const selectableRowLimits = computed(() => {
@@ -346,10 +346,6 @@ watchEffect(() =>
     'prepare_visualization',
     rowLimit.value.toString(),
   ),
-)
-
-const isCreateNewNodeEnabled = computed(
-  () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
 )
 
 const numberFormatGroupped = new Intl.NumberFormat(undefined, {
@@ -386,10 +382,7 @@ const createRowsForTable = (data: unknown[][], shift: number, isSSrm: boolean) =
   return Array.from({ length: rows }, (_, i) => {
     return Object.fromEntries(
       columnDefs.value.map((h, j) => {
-        return [
-          h.field,
-          h.field === INDEX_FIELD_NAME ? getIndexInfo(i) : toRender(data?.[j - shift]?.[i]),
-        ]
+        return [h.field, h.field === INDEX_FIELD_NAME ? getIndexInfo(i) : data?.[j - shift]?.[i]]
       }),
     )
   })
@@ -699,13 +692,6 @@ function toField(
   }
 }
 
-function toRowField(name: string, index: number, valueType?: ValueType | null | undefined) {
-  return {
-    ...toField(name, { index, valueType }),
-    cellDataType: false,
-  }
-}
-
 function getAstPattern(selector?: string | number, action?: string) {
   if (action && selector != null) {
     return Pattern.new<Ast.Expression>((ast) =>
@@ -728,9 +714,7 @@ function createNode(
   const selectorKey = params.data[selector]
   const castSelector =
     castValueTypes === 'number' && !isNaN(Number(selectorKey)) ? Number(selectorKey) : selectorKey
-  const identifierAction =
-    config.nodeType === (COLUMN_NODE_TYPE || VECTOR_NODE_TYPE) ? 'at' : action
-  const pattern = getAstPattern(castSelector, identifierAction)
+  const pattern = getAstPattern(castSelector, action)
   if (pattern) {
     config.createNodes({
       content: pattern,
@@ -762,11 +746,6 @@ function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef 
       : null,
     filter: fieldName != INDEX_FIELD_NAME,
   }
-}
-
-/** Return a human-readable representation of an object. */
-function toRender(content: unknown) {
-  return content
 }
 
 watchEffect(() => {
@@ -801,7 +780,7 @@ watchEffect(() => {
         // eslint-disable-next-line camelcase
         requires_number_format: undefined,
       }
-  if ('error' in data_) {
+  if (isError(data_)) {
     columnDefs.value = [
       {
         field: 'Error',
@@ -843,7 +822,7 @@ watchEffect(() => {
     }
     rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
-  } else if (data_.type === 'Excel_Workbook') {
+  } else if (isSingleColumnOfActions(data_)) {
     columnDefs.value = [
       toLinkField('Value', {
         tooltipValue: data_.child_label,
@@ -851,7 +830,7 @@ watchEffect(() => {
         getChildAction: data_.get_child_node_action,
       }),
     ]
-    rowData.value = data_.sheet_names.map((name) => ({ Value: name }))
+    rowData.value = data_.data.map((name) => ({ Value: name }))
   } else if (Array.isArray(data_.json)) {
     columnDefs.value = [
       toLinkField(INDEX_FIELD_NAME, {
@@ -861,25 +840,12 @@ watchEffect(() => {
       }),
       toField('Value'),
     ]
-    rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
+    rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: row }))
     isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
-    columnDefs.value =
-      data_.links ?
-        [
-          toLinkField('Value', {
-            tooltipValue: data_.child_label,
-            headerName: data_.visualization_header,
-            getChildAction: data_.get_child_node_action,
-          }),
-        ]
-      : [toField('Value')]
-    rowData.value =
-      data_.links ?
-        data_.links.map((link) => ({
-          Value: link,
-        }))
-      : [{ Value: toRender(data_.json) }]
+    // single values like Integer or Text
+    columnDefs.value = [toField('Value')]
+    rowData.value = [{ Value: data_.json }]
   } else {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
@@ -891,9 +857,6 @@ watchEffect(() => {
             getChildAction: data_.get_child_node_action,
             castValueTypes: data_.link_value_type,
           })
-        }
-        if (config.nodeType === ROW_NODE_TYPE) {
-          return toRowField(v, i, valueType)
         }
         return toField(v, { index: i, valueType })
       }) ?? []
@@ -911,15 +874,8 @@ watchEffect(() => {
       : dataHeader
 
     if (!data_.is_using_server_sort_and_filter) {
-      const hasIndexRow =
-        config.nodeType === TABLE_NODE_TYPE ||
-        config.nodeType === COLUMN_NODE_TYPE ||
-        config.nodeType === DB_TABLE_NODE_TYPE
-      const shift = hasIndexRow ? 1 : 0
-      rowData.value =
-        data_.data ?
-          createRowsForTable(data_.data, shift, data_.is_using_server_sort_and_filter)
-        : []
+      const shift = data_.type === 'EnsoTableOrColumn' ? 1 : 0
+      rowData.value = data_.data ? createRowsForTable(data_.data, shift, false) : []
     }
   }
   const headerGroupingMap = new Map()
@@ -961,7 +917,7 @@ watchEffect(() => {
 
   // Update paging
   const newRowCount = data_.all_rows_count == null ? 1 : data_.all_rows_count
-  showRowCount.value = !(data_.all_rows_count == null) && config.nodeType != TABLE_NODE_TYPE
+  showRowCount.value = !(data_.all_rows_count == null)
   rowCount.value = newRowCount
   const newPageLimit = Math.ceil(newRowCount / rowLimit.value)
   pageLimit.value = newPageLimit
@@ -1123,7 +1079,7 @@ config.setToolbar(
 
 <template>
   <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
-    <template v-if="!isSSRM">
+    <template v-if="!useBottomStatusBar">
       <div class="table-visualization-status-bar">
         <select
           v-if="isRowCountSelectorVisible"

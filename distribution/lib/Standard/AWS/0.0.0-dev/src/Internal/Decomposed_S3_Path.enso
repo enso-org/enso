@@ -22,21 +22,21 @@ type Decomposed_S3_Path
     key self -> Text =
         add_directory_suffix = self.parts.not_empty && self.parts.last.is_directory
         suffix = if add_directory_suffix then S3_Path.delimiter else ""
-        self.parts.map .name . join separator=S3_Path.delimiter suffix=suffix
+        self.parts.map (\x -> x.name) . join separator=S3_Path.delimiter suffix=suffix
 
     parse (key : Text) -> Decomposed_S3_Path =
         has_directory_suffix = key.ends_with S3_Path.delimiter
         parts = key.split S3_Path.delimiter . filter (p-> p.is_empty.not)
         entries = case has_directory_suffix of
-            True -> parts.map Path_Entry.Directory
+            True -> parts.map \x -> Path_Entry.Directory x
             False ->
                 if parts.is_empty then [] else
-                    (parts.drop (..Last 1) . map Path_Entry.Directory) + [Path_Entry.File parts.last]
+                    (parts.drop (..Last 1) . map \x -> Path_Entry.Directory x) + [Path_Entry.File parts.last]
         Decomposed_S3_Path.Value entries
 
     join (paths : Vector Decomposed_S3_Path) -> Decomposed_S3_Path =
         if paths.is_empty then Error.throw (Illegal_Argument.Error "Cannot join an empty list of paths.") else
-            flattened = paths.flat_map .parts
+            flattened = paths.flat_map \x -> x.parts
             # Any `File` parts from the middle are now transformed to `Directory`:
             aligned = flattened.map_with_index ix-> part-> case part of
                 Path_Entry.Directory _ -> part
@@ -46,7 +46,7 @@ type Decomposed_S3_Path
             Decomposed_S3_Path.Value aligned
 
     normalize self -> Decomposed_S3_Path =
-        new_parts = Path_Helpers.normalize_segments self.parts .name
+        new_parts = Path_Helpers.normalize_segments self.parts \x -> x.name
         Decomposed_S3_Path.Value new_parts
 
     parent self -> Decomposed_S3_Path | Nothing =

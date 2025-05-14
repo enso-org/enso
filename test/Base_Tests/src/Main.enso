@@ -94,6 +94,7 @@ import project.System.Runner_Spec
 import project.System.System_Spec
 import project.System.Temporary_File_Spec
 
+import project.Logging_Spec
 import project.Random_Spec
 
 
@@ -179,6 +180,7 @@ main filter=Nothing =
         Warnings_Spec.add_specs suite_builder
         Private_Spec.add_specs suite_builder
         System_Spec.add_specs suite_builder
+        Logging_Spec.add_specs suite_builder
         Random_Spec.add_specs suite_builder
         XML_Spec.add_specs suite_builder
         Decimal_Spec.add_specs suite_builder

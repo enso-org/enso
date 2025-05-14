@@ -99,8 +99,7 @@ class EnsoLint(
         "--new",
         path.getPath()
       ),
-      log,
-      workingDirectory = Some(parentPath)
+      log
     )
 
     if (!result) {

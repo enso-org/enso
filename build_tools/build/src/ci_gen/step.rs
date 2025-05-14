@@ -82,26 +82,38 @@ pub fn download_engine_distribution(
     )
 }
 
+pub fn check_engine_distribution() -> Step {
+    Step {
+        run: Some(
+            "ls -l built-distribution.tar
+sha256sum built-distribution.tar"
+                .into(),
+        ),
+        shell: Some(Shell::Bash),
+        ..Default::default()
+    }
+}
+
 pub fn unpack_engine_distribution() -> Step {
     Step {
         name: Some("Unpack Engine Distribution".into()),
         run: Some(
-            "tar -xvf built-distribution.tar
-rm built-distribution.tar
-"
-            .into(),
+            "tar -xvf built-distribution.tar -C .
+rm built-distribution.tar"
+                .into(),
         ),
         ..Default::default()
     }
 }
 
 pub fn archive_engine_distribution(engine_launcher: engine::EngineLauncher) -> Step {
+    let command = format!(
+        "tar -cvf built-distribution.tar {}",
+        built_distribution_directories(engine_launcher)
+    );
     Step {
         name: Some("Archive Engine Distribution".into()),
-        run: Some(format!(
-            "tar -cvf built-distribution.tar {}",
-            built_distribution_directories(engine_launcher)
-        )),
+        run: Some(command),
         ..Default::default()
     }
 }

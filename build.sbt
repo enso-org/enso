@@ -184,7 +184,10 @@ GatherLicenses.distributions := Seq(
     "Microsoft",
     Distribution.sbtProjects(`std-microsoft`)
   ),
-  makeStdLibDistribution("Tableau", Distribution.sbtProjects(`std-tableau`))
+  makeStdLibDistribution(
+    "Tableau",
+    Distribution.sbtProjects(`std-tableau`, `jna-wrapper`)
+  )
 )
 
 GatherLicenses.licenseConfigurations := Set("compile")
@@ -305,6 +308,8 @@ lazy val Benchmark = config("bench") extend sbt.Test
 lazy val rebuildNativeImage = taskKey[Unit]("Force to rebuild native image")
 lazy val buildNativeImage =
   taskKey[Unit]("Ensure that the Native Image is built.")
+lazy val checkNativeImageSize =
+  taskKey[Unit]("Ensures the generated Native Image has reasonable size")
 
 // ============================================================================
 // === Global Project =========================================================
@@ -358,6 +363,7 @@ lazy val enso = (project in file("."))
     `persistance`,
     `persistance-dsl`,
     pkg,
+    `poi-wrapper`,
     `polyglot-api`,
     `polyglot-api-macros`,
     `process-utils`,
@@ -613,7 +619,7 @@ val bouncyCastle = Seq(
 val jlineVersion = "3.26.3"
 val jline = Seq(
   "org.jline" % "jline-terminal"     % jlineVersion,
-  "org.jline" % "jline-terminal-jna" % jlineVersion,
+  "org.jline" % "jline-terminal-jni" % jlineVersion, // The terminal provider jna has been deprecated, check your configuration.
   "org.jline" % "jline-reader"       % jlineVersion,
   "org.jline" % "jline-native"       % jlineVersion
 )
@@ -1203,9 +1209,8 @@ lazy val filewatcher = project
     compileOrder := CompileOrder.ScalaThenJava,
     version := "0.1",
     libraryDependencies ++= slf4jApi ++ Seq(
-      "io.methvin"     % "directory-watcher" % directoryWatcherVersion,
-      "commons-io"     % "commons-io"        % commonsIoVersion,
-      "org.scalatest" %% "scalatest"         % scalatestVersion % Test
+      "commons-io"     % "commons-io" % commonsIoVersion,
+      "org.scalatest" %% "scalatest"  % scalatestVersion % Test
     ),
     Compile / moduleDependencies ++= slf4jApi,
     Compile / internalModuleDependencies := Seq(
@@ -1217,6 +1222,7 @@ lazy val filewatcher = project
   .dependsOn(testkit % Test)
   .dependsOn(`logging-service-logback` % "test->test")
   .dependsOn(`directory-watcher-wrapper`)
+  .dependsOn(`jna-wrapper` % Test)
 
 lazy val `logging-truffle-connector` = project
   .in(file("lib/scala/logging-truffle-connector"))
@@ -1251,8 +1257,7 @@ lazy val `scala-libs-wrapper` = project
     libraryDependencies ++= circe ++ scalaReflect ++ slf4jApi ++ Seq(
       "com.typesafe.scala-logging"            %% "scala-logging"         % scalaLoggingVersion,
       "org.typelevel"                         %% "cats-core"             % catsVersion,
-      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
-      "net.java.dev.jna"                       % "jna"                   % jnaVersion
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion
     ),
     Compile / moduleDependencies ++= scalaLibrary ++ scalaReflect ++ Seq(
       "org.slf4j" % "slf4j-api" % slf4jVersion
@@ -1262,10 +1267,7 @@ lazy val `scala-libs-wrapper` = project
         (Compile / fullClasspath).value,
         scalaLibrary ++
         scalaReflect ++
-        slf4jApi ++
-        Seq(
-          "net.java.dev.jna" % "jna" % jnaVersion
-        ),
+        slf4jApi,
         streams.value.log,
         moduleName.value,
         scalaBinaryVersion.value,
@@ -1377,6 +1379,23 @@ lazy val `jna-wrapper` = project
       Map(
         javaModuleName.value -> jna
       )
+    },
+    assemblyMergeStrategy := { case _ =>
+      MergeStrategy.preferProject
+    }
+  )
+
+lazy val `poi-wrapper` = project
+  .in(file("lib/java/poi-wrapper"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := "0.1",
+    autoScalaLibrary := false,
+    libraryDependencies ++= Seq(
+      "org.apache.poi" % "poi-ooxml" % poiOoxmlVersion
+    ),
+    assemblyMergeStrategy := { case _ =>
+      MergeStrategy.preferProject
     }
   )
 
@@ -1396,18 +1415,14 @@ lazy val `directory-watcher-wrapper` = project
     modularFatJarWrapperSettings,
     scalaModuleDependencySetting,
     libraryDependencies ++= slf4jApi ++ Seq(
-      "io.methvin"       % "directory-watcher" % directoryWatcherVersion,
-      "net.java.dev.jna" % "jna"               % jnaVersion
+      "io.methvin" % "directory-watcher" % directoryWatcherVersion exclude ("net.java.dev.jna", "jna")
     ),
     javaModuleName := "org.enso.directory.watcher.wrapper",
     assembly / assemblyExcludedJars := {
       JPMSUtils.filterModulesFromClasspath(
         (Compile / dependencyClasspath).value,
         scalaLibrary ++
-        slf4jApi ++
-        Seq(
-          "net.java.dev.jna" % "jna" % jnaVersion
-        ),
+        slf4jApi,
         streams.value.log,
         moduleName.value,
         scalaBinaryVersion.value,
@@ -1435,6 +1450,7 @@ lazy val `directory-watcher-wrapper` = project
       )
     }
   )
+  .dependsOn(`jna-wrapper` % "provided")
 
 lazy val `fansi-wrapper` = project
   .in(file("lib/java/fansi-wrapper"))
@@ -1495,13 +1511,15 @@ lazy val `akka-wrapper` = project
       "com.google.protobuf"       % "protobuf-java"            % googleProtobufVersion,
       "io.github.java-diff-utils" % "java-diff-utils"          % javaDiffVersion,
       "org.reactivestreams"       % "reactive-streams"         % reactiveStreamsVersion,
-      "net.java.dev.jna"          % "jna"                      % jnaVersion,
       "io.spray"                 %% "spray-json"               % sprayJsonVersion
     ),
     javaModuleName := "org.enso.akka.wrapper",
     Compile / moduleDependencies ++= slf4jApi ++ Seq(
       "com.google.protobuf" % "protobuf-java"    % googleProtobufVersion,
       "org.reactivestreams" % "reactive-streams" % reactiveStreamsVersion
+    ),
+    Compile / internalModuleDependencies := Seq(
+      (`jna-wrapper` / Compile / exportedModule).value
     ),
     assembly / assemblyExcludedJars := {
       val excludedJars = JPMSUtils.filterModulesFromUpdate(
@@ -1511,8 +1529,7 @@ lazy val `akka-wrapper` = project
           "com.typesafe"              % "config"             % typesafeConfigVersion,
           "io.github.java-diff-utils" % "java-diff-utils"    % javaDiffVersion,
           "com.google.protobuf"       % "protobuf-java"      % googleProtobufVersion,
-          "org.reactivestreams"       % "reactive-streams"   % reactiveStreamsVersion,
-          "net.java.dev.jna"          % "jna"                % jnaVersion
+          "org.reactivestreams"       % "reactive-streams"   % reactiveStreamsVersion
         ),
         streams.value.log,
         moduleName.value,
@@ -1549,6 +1566,7 @@ lazy val `akka-wrapper` = project
       )
     }
   )
+  .dependsOn(`jna-wrapper` % "provided")
 
 lazy val `zio-wrapper` = project
   .in(file("lib/java/zio-wrapper"))
@@ -1889,6 +1907,7 @@ lazy val testkit = project
     Compile / exportedModuleBin := (Compile / packageBin).value
   )
   .dependsOn(`logging-service-logback`)
+  .dependsOn(`runtime-utils`)
 
 lazy val searcher = project
   .in(file("lib/scala/searcher"))
@@ -2647,9 +2666,13 @@ def customFrgaalJavaCompilerSettings(targetJdk: String) = {
     // Ensure that our tooling uses the right Java version for checking the code.
     Compile / javacOptions ++= Seq(
       "-source",
-      frgaalSourceLevel,
-      "--enable-preview"
-    )
+      frgaalSourceLevel
+    ) ++
+    (if (Integer.parseInt(targetJdk) <= 21) {
+       Seq("--enable-preview")
+     } else {
+       Seq("-target", "21")
+     })
   )
 }
 
@@ -3901,7 +3924,7 @@ lazy val `engine-runner` = project
       val NI_MODULES =
         "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise"
       val JDK_MODULES =
-        "java.desktop,java.naming,java.net.http,jdk.charsets,jdk.crypto.ec,jdk.localedata,jdk.httpserver,java.rmi"
+        "java.naming,java.net.http,jdk.charsets,jdk.crypto.ec,jdk.localedata,jdk.httpserver,java.rmi"
       val DEBUG_MODULES  = "jdk.jdwp.agent"
       val PYTHON_MODULES = "jdk.security.auth,java.naming"
 
@@ -3981,6 +4004,7 @@ lazy val `engine-runner` = project
               "-H:+AddAllCharsets",
               "-H:+IncludeAllLocales",
               "-H:+RunReachabilityHandlersConcurrently",
+              "-R:-InstallSegfaultHandler",
               // Workaround a problem with build-/runtime-initialization conflict
               // by disabling this service provider
               "-H:ServiceLoaderFeatureExcludeServiceProviders=net.snowflake.client.core.FileTypeDetector",
@@ -4058,7 +4082,16 @@ lazy val `engine-runner` = project
           "enso",
           targetDir = engineDistributionRoot.value / "bin"
         )
-    }.value
+    }.value,
+    checkNativeImageSize := Def
+      .taskDyn {
+        NativeImage.checkNativeImageSize(
+          name      = "enso",
+          targetDir = engineDistributionRoot.value / "bin"
+        )
+      }
+      .dependsOn(buildNativeImage)
+      .value
   )
   .dependsOn(`version-output`)
   .dependsOn(pkg)
@@ -4245,7 +4278,7 @@ lazy val `os-environment` =
     .in(file("lib/java/os-environment"))
     .enablePlugins(JPMSPlugin)
     .settings(
-      frgaalJavaCompilerSetting,
+      customFrgaalJavaCompilerSettings("24"),
       scalaModuleDependencySetting,
       libraryDependencies ++= slf4jApi ++ Seq(
         "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
@@ -4275,12 +4308,13 @@ lazy val `os-environment` =
         val targetDir = (Test / target).value
         NativeImage.buildNativeImage(
           "test-os-env",
-          staticOnLinux = true,
+          staticOnLinux = false,
           targetDir     = targetDir,
           mainClass     = Some("org.enso.os.environment.TestRunner"),
           additionalOptions = Seq(
             "-ea",
-            "--features=org.enso.os.environment.TestCollectorFeature"
+            "--features=org.enso.os.environment.TestCollectorFeature",
+            "-R:-InstallSegfaultHandler"
           )
         )
       }.value,
@@ -4291,7 +4325,7 @@ lazy val `os-environment` =
           val exeFile =
             (Test / target).value / ("test-os-env" + exeSuffix)
           val binPath = exeFile.getAbsolutePath
-          val res     = binPath ! logger
+          val res     = Process(Seq(binPath), None, "JAVA_OPTS" -> "") ! logger
           if (res != 0) {
             logger.error("Some test in os-environment failed")
             throw new TestsFailedException()
@@ -5017,6 +5051,11 @@ lazy val `std-table` = project
       "org.mockito"              % "mockito-core"            % mockitoJavaVersion        % Test,
       "org.mockito"              % "mockito-junit-jupiter"   % mockitoJavaVersion        % Test
     ),
+    Compile / unmanagedJars := {
+      Seq(
+        Attributed.blank((`poi-wrapper` / assembly).value)
+      )
+    },
     Compile / packageBin := {
       val result            = (Compile / packageBin).value
       val cacheStoreFactory = streams.value.cacheStoreFactory
@@ -5027,13 +5066,21 @@ lazy val `std-table` = project
           ignoreScalaLibrary = true,
           libraryUpdates     = (Compile / update).value,
           unmanagedClasspath = (Compile / unmanagedJars).value,
-          logger             = streams.value.log,
-          cacheStoreFactory  = cacheStoreFactory,
-          previousRun        = None
+          ignoreDependencies = Some(
+            Seq(
+              "org.apache.poi" % "poi"            % poiOoxmlVersion,
+              "org.apache.poi" % "poi-ooxml"      % poiOoxmlVersion,
+              "org.apache.poi" % "poi-ooxml-lite" % poiOoxmlVersion
+            )
+          ),
+          logger            = streams.value.log,
+          cacheStoreFactory = cacheStoreFactory,
+          previousRun       = None
         )
       result
     }
   )
+  .dependsOn(`poi-wrapper`)
   .dependsOn(`std-base` % "provided")
 
 lazy val extractNativeLibs = taskKey[AnalysisOfExtractedNativeLibs](
@@ -5072,7 +5119,8 @@ lazy val `std-image` = project
           `image-polyglot-root`,
           Seq("std-image.jar", "opencv.jar"),
           ignoreScalaLibrary = true,
-          ignoreDependency   = Some("org.openpnp" % "opencv" % opencvVersion),
+          ignoreDependencies =
+            Some(Seq("org.openpnp" % "opencv" % opencvVersion)),
           libraryUpdates     = (Compile / update).value,
           logger             = logger,
           cacheStoreFactory  = cacheStoreFactory,
@@ -5476,8 +5524,7 @@ lazy val `std-tableau` = project
     Compile / packageBin / artifactPath :=
       `std-tableau-polyglot-root` / "std-tableau.jar",
     libraryDependencies ++= Seq(
-      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "net.java.dev.jna" % "jna-platform"            % jnaVersion
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     // Extract native libraries from tableau's jar, and put them under
     // Standard/Tableau/polyglot/lib directory.
@@ -5506,13 +5553,13 @@ lazy val `std-tableau` = project
           unmanagedClasspath = unmanagedClasspath,
           previousRun        = prev
         )
-
       StdBits
         .extractNativeLibsFromTableau(
           `std-tableau-polyglot-root`,
           `std-tableau-native-libs`,
           tableauVersion,
           jnaVersion,
+          (`jna-wrapper` / Compile / exportedModule).value,
           updateReport       = libraryUpdates,
           unmanagedClasspath = unmanagedClasspath,
           logger             = logger,
@@ -5659,6 +5706,7 @@ buildEngineDistributionNoIndex := Def.taskIf {
   createEnginePackageNoIndex.value
   if (shouldBuildNativeImage.value) {
     (`engine-runner` / buildNativeImage).value
+    (`engine-runner` / checkNativeImageSize).value
   }
 }.value
 

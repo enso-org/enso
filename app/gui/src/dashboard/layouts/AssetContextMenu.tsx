@@ -37,9 +37,13 @@ import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackend
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { isUploadableAsset, useUploadFileToCloudMutation } from '../hooks/backendUploadFilesHooks'
+import {
+  isUploadableAsset,
+  useUploadFileToCloudMutation,
+  useUploadFileToLocal,
+} from '../hooks/backendUploadFilesHooks'
 import { useSetAssetPanelProps, useSetIsAssetPanelTemporarilyVisible } from './AssetPanel'
-import { useCategoriesAPI } from './Drive/Categories'
+import { useCategories } from './Drive/Categories'
 
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps {
@@ -66,7 +70,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
 
   const isCloud = categoryModule.isCloudCategory(category)
 
-  const { localCategories } = useCategoriesAPI()
+  const { localCategories } = useCategories()
 
   const getAsset = useGetAsset()
   const canOpenProjects = projectHooks.useCanOpenProjects()
@@ -86,6 +90,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const path = asset.ensoPathValue
   const copyMutation = useCopy()
   const uploadFileToCloudMutation = useUploadFileToCloudMutation()
+  const uploadFileToLocal = useUploadFileToLocal(category)
   const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined
   const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
 
@@ -276,12 +281,19 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             isUnderPaywall={!canUploadToCloud}
             feature="uploadToCloud"
             action="uploadToCloud"
-            doAction={async () => {
-              await uploadFileToCloudMutation(localBackend, {
+            doAction={() =>
+              uploadFileToCloudMutation(localBackend, {
                 assets: [asset],
                 targetDirectoryId: user.rootDirectoryId,
               })
-            }}
+            }
+          />
+        )}
+        {isUploadableAsset(asset) && isCloud && localBackend != null && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="downloadToLocal"
+            doAction={() => uploadFileToLocal([asset])}
           />
         )}
         {canExecute && !isRunningProject && !isOtherUserUsingProject && (

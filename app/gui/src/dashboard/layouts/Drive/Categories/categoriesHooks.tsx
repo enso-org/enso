@@ -11,9 +11,7 @@ import RecentIcon from '#/assets/recent.svg'
 import { useUser } from '#/providers/AuthProvider'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useOffline } from '#/hooks/offlineHooks'
-import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
-import { pickBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
@@ -22,7 +20,6 @@ import { newDirectoryId } from '#/services/LocalBackend'
 import { organizationIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
-import type { ReactNode } from 'react'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
 import { z } from 'zod'
@@ -60,7 +57,7 @@ interface CategoryIdStoreState {
   readonly categoryId: CategoryId | null
 }
 
-const categoryIdStore = createStore<CategoryIdStoreState>()(
+export const categoryIdStore = createStore<CategoryIdStoreState>()(
   persist(
     (): CategoryIdStoreState => ({
       categoryId: null,
@@ -276,7 +273,6 @@ export type CategoriesResult = ReturnType<typeof useCategories>
 /**
  * List of all categories.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useCategories() {
   const cloudCategories = useCloudCategoryList()
   const localCategories = useLocalCategoryList()
@@ -297,7 +293,7 @@ export function useCategories() {
 /**
  * Context value for the categories.
  */
-interface CategoriesContextValue {
+export interface CategoriesContextValue {
   readonly cloudCategories: CloudCategoryResult
   readonly localCategories: LocalCategoryResult
   readonly category: Category
@@ -306,98 +302,11 @@ interface CategoriesContextValue {
   readonly associatedBackend: Backend
 }
 
-const CategoriesContext = createContext<CategoriesContextValue | null>(null)
-
-/**
- * Props for the {@link CategoriesProvider}.
- */
-export interface CategoriesProviderProps {
-  readonly children: ReactNode | ((contextValue: CategoriesContextValue) => ReactNode)
-  readonly onCategoryChange?: (previousCategory: Category | null, newCategory: Category) => void
-}
-
-/**
- * Provider for the categories.
- */
-export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.Element {
-  const { children, onCategoryChange = () => {} } = props
-
-  const { cloudCategories, localCategories, findCategoryById } = useCategories()
-  const localBackend = useLocalBackend()
-  const remoteBackend = useRemoteBackend()
-  const { isOffline } = useOffline()
-
-  const [categoryId, privateSetCategoryId, privateResetCategoryId] =
-    useSearchParamsState<CategoryId>(
-      'driveCategory',
-      () => {
-        const savedId = categoryIdStore.getState().categoryId
-
-        if (savedId != null && findCategoryById(savedId) != null) {
-          return savedId
-        }
-
-        if (isOffline && localBackend != null) {
-          return 'local'
-        }
-
-        return localBackend != null ? 'local' : 'cloud'
-      },
-      // This is safe, because we enshure the type inside the function
-      // eslint-disable-next-line no-restricted-syntax
-      (value): value is CategoryId => findCategoryById(value as CategoryId) != null,
-    )
-
-  const setCategoryId = useEventCallback((nextCategoryId: CategoryId) => {
-    const previousCategory = findCategoryById(categoryId)
-    privateSetCategoryId(nextCategoryId)
-    categoryIdStore.setState({
-      categoryId: nextCategoryId,
-    })
-
-    // This is safe, because we know that the result will have the correct type.
-    // eslint-disable-next-line no-restricted-syntax
-    onCategoryChange(previousCategory, findCategoryById(nextCategoryId) as Category)
-  })
-
-  const resetCategoryId = useEventCallback((replace?: boolean) => {
-    privateResetCategoryId(replace)
-    categoryIdStore.setState({
-      categoryId: null,
-    })
-  })
-
-  const category = findCategoryById(categoryId)
-
-  // This usually doesn't happen but if so,
-  // We reset the category to the default.
-  if (category == null) {
-    resetCategoryId(true)
-    return <></>
-  }
-
-  const backend = pickBackend(category, remoteBackend, localBackend)
-
-  const contextValue = {
-    cloudCategories,
-    localCategories,
-    category,
-    setCategory: setCategoryId,
-    resetCategory: resetCategoryId,
-    associatedBackend: backend,
-  } satisfies CategoriesContextValue
-
-  return (
-    <CategoriesContext.Provider value={contextValue}>
-      {typeof children === 'function' ? children(contextValue) : children}
-    </CategoriesContext.Provider>
-  )
-}
+export const CategoriesContext = createContext<CategoriesContextValue | null>(null)
 
 /**
  * Returns the current category and the associated backend.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useCategory() {
   const { category, associatedBackend } = useCategoriesAPI()
 
@@ -407,7 +316,6 @@ export function useCategory() {
 /**
  * Gets the api to interact with the categories.
  */
-// eslint-disable-next-line react-refresh/only-export-components
 export function useCategoriesAPI() {
   const context = useContext(CategoriesContext)
 

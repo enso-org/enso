@@ -33,7 +33,7 @@ import {
 import { makeRoundedStyles } from '../../utilities'
 
 const DROPDOWN_STYLES = tv({
-  base: 'focus-child group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-input leading-cozy',
+  base: 'group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-input leading-cozy',
   variants: {
     isFocused: {
       true: {

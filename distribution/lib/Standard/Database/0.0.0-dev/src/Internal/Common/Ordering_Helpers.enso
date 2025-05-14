@@ -1,9 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.DB_Table.DB_Table
-
 import Standard.Table.Internal.Table_Helpers
+
+import project.DB_Table.DB_Table
 
 ## PRIVATE
    Throws an error if the table does not have an explicit or implicit ordering.

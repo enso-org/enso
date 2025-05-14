@@ -1,8 +1,6 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 import org.enso.table.data.column.operation.CountNothing;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
@@ -192,7 +190,12 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public ColumnStorageIterator<T> iterator() {
+  public Iterator<T> iterator() {
+    return Arrays.stream(data).iterator();
+  }
+
+  @Override
+  public ColumnStorageIterator<T> iteratorWithIndex() {
     return new SpecializedStorageIterator<>(data);
   }
 

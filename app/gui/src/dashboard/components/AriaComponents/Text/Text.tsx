@@ -54,7 +54,7 @@ export const TEXT_STYLE = twv.tv({
     // leading should always be after the text size to make sure it is not stripped by twMerge
     variant: {
       custom: '',
-      body: 'text-xs leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px',
+      body: 'text-xs leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px]',
       // eslint-disable-next-line @typescript-eslint/naming-convention
       'body-sm':
         'text-[10.5px] leading-[16px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px]',
@@ -256,6 +256,8 @@ export const Text = memo(
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Heading: typeof Heading
   // eslint-disable-next-line @typescript-eslint/naming-convention
+  Body: typeof Body
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   Group: React.FC<React.PropsWithChildren>
 }
 
@@ -273,6 +275,16 @@ const Heading = memo(
   }),
 )
 
+/** Body props */
+export interface BodyProps extends Omit<TextProps, 'elementType'> {}
+
+/** Body component */
+const Body = memo(
+  forwardRef(function Body(props: BodyProps, ref: React.Ref<HTMLParagraphElement>) {
+    return <Text ref={ref} variant="body" balance {...props} />
+  }),
+)
+
 /** Text group component. It's used to visually group text elements together */
 function TextGroup(props: React.PropsWithChildren) {
   return (
@@ -283,4 +295,5 @@ function TextGroup(props: React.PropsWithChildren) {
 }
 
 Text.Heading = Heading
+Text.Body = Body
 Text.Group = TextGroup

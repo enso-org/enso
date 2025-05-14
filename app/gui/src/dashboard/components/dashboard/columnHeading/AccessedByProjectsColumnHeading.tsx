@@ -1,5 +1,4 @@
 /** @file A heading for the "Accessed by projects" column. */
-import AccessedByProjectsIcon from '#/assets/accessed_by_projects.svg'
 import { Button, Text } from '#/components/AriaComponents'
 import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
 import { Column } from '#/components/dashboard/column/columnUtils'
@@ -19,7 +18,7 @@ export default function AccessedByProjectsColumnHeading(props: AssetColumnHeadin
     <div className="flex h-table-row w-full items-center gap-2">
       <Button
         variant="icon"
-        icon={AccessedByProjectsIcon}
+        icon="accessed_by_projects"
         aria-label={getText('accessedByProjectsColumnHide')}
         tooltip={false}
         onPress={hideThisColumn}

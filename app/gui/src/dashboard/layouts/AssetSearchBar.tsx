@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as detect from 'enso-common/src/detect'
 
-import FindIcon from '#/assets/find.svg'
 import { unsafeWriteValue } from '#/utilities/write'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -12,10 +11,9 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import Label from '#/components/dashboard/Label'
-import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
-import SvgMask from '#/components/SvgMask'
 
+import { Icon } from '#/components/Icon'
 import { backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
@@ -328,63 +326,53 @@ function AssetSearchBar(props: AssetSearchBarProps) {
   const deferredSuggestions = React.useDeferredValue(suggestions)
 
   return (
-    <FocusArea direction="horizontal">
-      {(innerProps) => (
-        <div className="relative w-full max-w-[60em]">
-          <aria.Label
-            data-testid="asset-search-bar"
-            {...aria.mergeProps<aria.LabelProps & React.RefAttributes<HTMLLabelElement>>()(
-              innerProps,
-              {
-                className:
-                  'z-1 group flex grow items-center gap-asset-search-bar rounded-full px-1.5 py-[3.5px] text-primary border-0.5 border-primary/20',
-                ref: rootRef,
-                onFocus: () => {
-                  setAreSuggestionsVisible(true)
-                },
-                onBlur: (event) => {
-                  if (!event.currentTarget.contains(event.relatedTarget)) {
-                    if (querySource.current === QuerySource.tabbing) {
-                      querySource.current = QuerySource.external
-                    }
-                    setAreSuggestionsVisible(false)
-                  }
-                },
-              },
-            )}
-          >
-            <div className="relative size-4 placeholder" />
+    <div className="relative w-full max-w-[60em]">
+      <aria.Label
+        data-testid="asset-search-bar"
+        ref={rootRef}
+        className="group z-1 flex grow items-center gap-asset-search-bar rounded-full border-0.5 border-primary/20 py-[3.5px] pl-2 pr-1.5 text-primary"
+        onFocus={() => {
+          setAreSuggestionsVisible(true)
+        }}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) {
+            if (querySource.current === QuerySource.tabbing) {
+              querySource.current = QuerySource.external
+            }
+            setAreSuggestionsVisible(false)
+          }
+        }}
+      >
+        <div className="relative size-4 placeholder" />
 
-            <AssetSearchBarPopover
-              areSuggestionsVisible={areSuggestionsVisible}
-              isCloud={isCloud}
-              querySource={querySource}
-              query={query}
-              setQuery={setQuery}
-              suggestions={deferredSuggestions}
-              selectedIndex={selectedIndex}
-              setAreSuggestionsVisible={setAreSuggestionsVisible}
-              baseQuery={baseQuery}
-              backend={backend}
-            />
+        <AssetSearchBarPopover
+          areSuggestionsVisible={areSuggestionsVisible}
+          isCloud={isCloud}
+          querySource={querySource}
+          query={query}
+          setQuery={setQuery}
+          suggestions={deferredSuggestions}
+          selectedIndex={selectedIndex}
+          setAreSuggestionsVisible={setAreSuggestionsVisible}
+          baseQuery={baseQuery}
+          backend={backend}
+        />
 
-            <SvgMask
-              src={FindIcon}
-              className="absolute left-2 top-[50%] z-1 mt-[1px] -translate-y-1/2 text-primary/40"
-            />
+        <Icon
+          icon="find"
+          className="absolute left-2.5 top-[50%] z-1 -mt-[1px] -translate-y-1/2 text-primary/40"
+        />
 
-            <AssetSearchBarInput
-              query={query}
-              isCloud={isCloud}
-              onSearchFieldKeyDown={onSearchFieldKeyDown}
-              searchRef={searchRef}
-              searchFieldOnChange={searchFieldOnChange}
-              searchInputOnKeyDown={searchInputOnKeyDown}
-            />
-          </aria.Label>
-        </div>
-      )}
-    </FocusArea>
+        <AssetSearchBarInput
+          query={query}
+          isCloud={isCloud}
+          onSearchFieldKeyDown={onSearchFieldKeyDown}
+          searchRef={searchRef}
+          searchFieldOnChange={searchFieldOnChange}
+          searchInputOnKeyDown={searchInputOnKeyDown}
+        />
+      </aria.Label>
+    </div>
   )
 }
 
@@ -434,7 +422,7 @@ const AssetSearchBarInput = React.memo(function AssetSearchBarInput(
                 : getText('remoteBackendSearchPlaceholder')
               : getText('localBackendSearchPlaceholder')
             }
-            className="focus-child peer text relative z-1 w-full bg-transparent placeholder-primary/40"
+            className="peer text relative z-1 w-full bg-transparent placeholder-primary/40"
             onChange={searchFieldOnChange}
             onKeyDown={searchInputOnKeyDown}
           />

@@ -340,6 +340,37 @@ object NativeImage {
       }
     }
 
+  def checkNativeImageSize(
+    name: String,
+    targetDir: File
+  ): Def.Initialize[Task[Unit]] = Def.task {
+    val generatedBin = artifactFile(targetDir, name)
+    val logger       = streams.value.log
+    if (!generatedBin.exists) {
+      logger.error(s"Generated binary $generatedBin does not exist.")
+      logger.error(
+        "Ensure that the dependency on `buildNativeImage` is properly set."
+      )
+    }
+    val bytes        = generatedBin.attributes.size()
+    val mb           = bytes / (1024 * 1024)
+    val expectedSize = GraalVM.NativeImageSize.expectedSizeForCurrentPlatform()
+    val isInBounds =
+      expectedSize.minMb <= mb && mb <= expectedSize.maxMb
+    if (!isInBounds) {
+      logger.error(
+        s"Generated binary $generatedBin has unexpected size: $mb MB. " +
+        s"Expected size is between ${expectedSize.minMb} and ${expectedSize.maxMb} MB."
+      )
+      throw new RuntimeException(s"Generated binary $generatedBin is too large")
+    } else {
+      logger.info(
+        s"Generated binary $generatedBin size ($mb MB) " +
+        s"is within the expected size: [${expectedSize.minMb}, ${expectedSize.maxMb}] MB."
+      )
+    }
+  }
+
   /** [[File]] representing the artifact called `name` built with the Native
     * Image.
     */
