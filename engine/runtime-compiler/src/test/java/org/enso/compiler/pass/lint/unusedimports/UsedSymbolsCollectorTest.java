@@ -315,7 +315,58 @@ public class UsedSymbolsCollectorTest {
                     T.Cons -> 42
             """);
     compilerCtx.getCompiler().run(mainMod);
-    expectUsedSymbol(mainMod, "local.Proj.Module.T");
+    expectUsedSymbol(mainMod, "local.Proj.Module.T.Cons");
+  }
+
+  @Test
+  public void constructors() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Boolean"),
+        """
+            export project.Boolean.Boolean.False
+            export project.Boolean.Boolean.True
+
+            type Boolean
+                False
+                True
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Boolean import Boolean, False, True
+            main = [Boolean, False, True]
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectUsedSymbols(
+        mainMod,
+        Set.of(
+            "local.Proj.Boolean.Boolean",
+            "local.Proj.Boolean.Boolean.False",
+            "local.Proj.Boolean.Boolean.True"));
+  }
+
+  @Test
+  public void reexport() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Other_Module"),
+        """
+            type My_Type
+            """);
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            export project.Other_Module.My_Type
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import My_Type
+            main = My_Type
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectUsedSymbol(mainMod, "local.Proj.Other_Module.My_Type");
   }
 
   @Test

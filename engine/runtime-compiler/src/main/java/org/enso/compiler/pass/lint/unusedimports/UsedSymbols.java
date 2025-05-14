@@ -1,7 +1,5 @@
 package org.enso.compiler.pass.lint.unusedimports;
 
-import static org.enso.scala.wrapper.ScalaConversions.asJava;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -20,6 +18,13 @@ final class UsedSymbols {
     this.symbols = symbols;
   }
 
+  /**
+   * Returns them <i>physical paths</i> of used symbols in the {@code importIr}, i.e., the real
+   * location of the symbols.
+   *
+   * @param importIr
+   * @return Physical path to the used symbols
+   */
   Set<QualifiedName> getUsedSymbolsForImport(Import importIr) {
     if (!symbols.containsKey(importIr)) {
       // Try to find the import based on location.
@@ -53,34 +58,9 @@ final class UsedSymbols {
     /**
      * Records the {@code symbol} as used by the {@code importIr}.
      *
-     * <p>The symbol must be directly cotained in the import, for example symbol {@code
-     * local.Proj.Module.T.Cons} is not contained in {@code from local.Proj.Module import T}, but it
-     * is contained in {@code from local.Proj.Module.T import Cons}. If this is not true, {@link
-     * AssertionError} is thrown.
+     * @param symbol Physical path to the symbol.
      */
     void addUsedSymbol(Import.Module importIr, QualifiedName symbol) {
-      if (importIr.onlyNames().isDefined()) {
-        var onlyNames = importIr.onlyNames().get();
-        var baseName = QualifiedName.fromString(importIr.name().name());
-        var someNameMatches = false;
-        for (var onlyName : asJava(onlyNames)) {
-          var fqn = baseName.createChild(onlyName.name());
-          if (fqn.equals(symbol)) {
-            someNameMatches = true;
-          }
-        }
-        if (!someNameMatches) {
-          throw new AssertionError(
-              "Attempting to add symbol '"
-                  + symbol
-                  + "' to import '"
-                  + importIr.showCode()
-                  + "'. But the symbol is not in the list of only names.");
-        }
-      } else {
-        var fqn = QualifiedName.fromString(importIr.name().name());
-        assert fqn.equals(symbol);
-      }
       var usedSymbols = symbols.computeIfAbsent(importIr, k -> new HashSet<>());
       usedSymbols.add(symbol);
     }

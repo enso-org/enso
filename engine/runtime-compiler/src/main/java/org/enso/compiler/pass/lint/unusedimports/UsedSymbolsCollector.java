@@ -1,11 +1,11 @@
 package org.enso.compiler.pass.lint.unusedimports;
 
 import static scala.jdk.javaapi.CollectionConverters.asJava;
+import static scala.jdk.javaapi.CollectionConverters.asScala;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.core.IR;
@@ -213,41 +213,13 @@ final class UsedSymbolsCollector {
   private void addUsedSymbol(QualifiedName modName, QualifiedName symName) {
     var imports = findImportIRs(modName, symName);
     for (var imp : imports) {
-      var symNameToRecord = symName;
-      // Add only prefix in some cases
-      if (imp.onlyNames().isDefined()) {
-        var onlyNames = imp.onlyNames().get();
-        var baseName = QualifiedName.fromString(imp.name().name());
-        for (var onlyName : asJava(onlyNames)) {
-          var importFqn = baseName.createChild(onlyName.name());
-          if (isPrefix(importFqn, symName)) {
-            symNameToRecord = importFqn;
-          }
-        }
-      }
       LOGGER.trace(
           "[{}] Adding used symbol '{}' for import '{}'",
           bindingsMap.currentModule().getName(),
-          symNameToRecord,
+          symName,
           imp.showCode());
-      usedSymbolsBldr.addUsedSymbol(imp, symNameToRecord);
+      usedSymbolsBldr.addUsedSymbol(imp, symName);
     }
-  }
-
-  private static boolean isPrefix(QualifiedName prefix, QualifiedName name) {
-    var namePath = name.fullPath();
-    var subNamePath = prefix.fullPath();
-    if (namePath.size() < subNamePath.size()) {
-      return false;
-    }
-    for (var i = 0; i < subNamePath.size(); i++) {
-      var subNameItem = subNamePath.apply(i);
-      var nameItem = namePath.apply(i);
-      if (!nameItem.equals(subNameItem)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   private void addToUsedSymbols(List<ResolvedName> resolvedNames) {
@@ -325,13 +297,5 @@ final class UsedSymbolsCollector {
     var str =
         imps.stream().map(imp -> "'" + imp.showCode() + "'").collect(Collectors.joining(", "));
     return "[" + str + "]";
-  }
-
-  private static String irToStr(IR ir) {
-    return ir.getClass().getName() + "@" + identityHex(ir);
-  }
-
-  private static String identityHex(Object obj) {
-    return Integer.toHexString(Objects.hashCode(obj));
   }
 }
