@@ -1,7 +1,12 @@
 package org.enso.table.data.column.operation.comparators;
 
 import org.enso.table.data.column.operation.BinaryOperation;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
 
 /**

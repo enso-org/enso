@@ -4,14 +4,12 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.IntFunction;
-import org.enso.base.CompareException;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.bool.BooleanIsInOp;
-import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
@@ -245,9 +243,7 @@ public final class BoolStorage extends Storage<Boolean>
 
   private static MapOperationStorage<Boolean, BoolStorage> buildOps() {
     MapOperationStorage<Boolean, BoolStorage> ops = new MapOperationStorage<>();
-    ops.add(new BoolAnd())
-        .add(new BoolOr())
-        .add(new BooleanIsInOp());
+    ops.add(new BoolAnd()).add(new BoolOr()).add(new BooleanIsInOp());
     return ops;
   }
 

@@ -35,8 +35,7 @@ public record BooleanType() implements StorageType<Boolean> {
   }
 
   @Override
-  public BuilderForBoolean makeBuilder(
-      long initialCapacity, ProblemAggregator problemAggregator) {
+  public BuilderForBoolean makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
     return Builder.getForBoolean(initialCapacity);
   }
 

@@ -32,7 +32,8 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
     }
 
     if (rightValue != null && !(rightValue instanceof Boolean)) {
-      throw new IllegalArgumentException("Unsupported right value type " + rightValue.getClass() + ".");
+      throw new IllegalArgumentException(
+          "Unsupported right value type " + rightValue.getClass() + ".");
     }
 
     boolean rightIsNothing = rightValue == null;
@@ -67,7 +68,8 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
       return applyMap(left, null);
     }
 
-    if ((left instanceof BoolStorage leftBoolStorage) && (right instanceof BoolStorage rightBoolStorage)) {
+    if ((left instanceof BoolStorage leftBoolStorage)
+        && (right instanceof BoolStorage rightBoolStorage)) {
       var result = applyZipOverBoolStorage(leftBoolStorage, rightBoolStorage);
       if (result != null) {
         return result;
@@ -80,15 +82,17 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
         s -> makeStorageBuilder(s, left.getType(), right.getType()),
         preserveNulls,
         (index, value, isNothing, rightValue, rightIsNothing) ->
-          applySingle(value, isNothing, rightValue, rightIsNothing));
+            applySingle(value, isNothing, rightValue, rightIsNothing));
   }
 
   @Override
-  protected BuilderForBoolean makeStorageBuilder(long size, StorageType<?> leftType, StorageType<?> rightType) {
+  protected BuilderForBoolean makeStorageBuilder(
+      long size, StorageType<?> leftType, StorageType<?> rightType) {
     return BooleanType.INSTANCE.makeBuilder(size, BlackholeProblemAggregator.INSTANCE);
   }
 
-  protected ColumnBooleanStorage applyMapOverBoolStorage(BoolStorage left, boolean rightBoolean, boolean rightIsNothing) {
+  protected ColumnBooleanStorage applyMapOverBoolStorage(
+      BoolStorage left, boolean rightBoolean, boolean rightIsNothing) {
     return null;
   }
 
@@ -96,5 +100,6 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
     return null;
   }
 
-  protected abstract Boolean applySingle(boolean left, boolean isNothing, boolean right, boolean isNothingRight);
+  protected abstract Boolean applySingle(
+      boolean left, boolean isNothing, boolean right, boolean isNothingRight);
 }
