@@ -20,9 +20,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import scala.jdk.javaapi.CollectionConverters;
 
-/**
- * TODO[pm] : Remove ignores
- */
+/** TODO[pm] : Remove ignores */
 public class UnusedImportsTest {
   @Rule public final WithCompilerContext compilerCtx = WithCompilerContext.createDefault();
 
