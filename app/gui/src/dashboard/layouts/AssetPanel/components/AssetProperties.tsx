@@ -26,7 +26,6 @@ import { UpsertSecretForm } from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
-import type Backend from '#/services/Backend'
 import {
   AssetType,
   BackendType,
@@ -42,6 +41,12 @@ import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
+import {
+  assetPanelStore,
+  useAssetPanelCurrentItem,
+  useSetAssetPanelProps,
+} from '../AssetPanelState'
+import type { AssetPanelProps } from './types'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
   base: '',
@@ -54,9 +59,7 @@ const ASSET_PROPERTIES_VARIANTS = tv({
 export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'
 
 /** Props for an {@link AssetPropertiesProps}. */
-export interface AssetPropertiesProps {
-  readonly backend: Backend
-  readonly category: Category
+export interface AssetPropertiesProps extends AssetPanelProps {
   readonly isReadonly?: boolean
 }
 
@@ -64,13 +67,7 @@ export interface AssetPropertiesProps {
 export function AssetProperties(props: AssetPropertiesProps) {
   const { isReadonly = false, backend, category } = props
 
-  const { item, spotlightOn, defaultItem } = useStore(
-    assetPanelStore,
-    (state) => state.assetPanelProps,
-    { unsafeEnableTransition: true },
-  )
-
-  const currentItem = item ?? defaultItem
+  const item = useAssetPanelCurrentItem()
 
   const { getText } = useText()
 
@@ -78,18 +75,17 @@ export function AssetProperties(props: AssetPropertiesProps) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
   }
 
-  if (currentItem == null) {
+  if (item == null) {
     return <Result status="info" title={getText('assetProperties.notSelected')} centered />
   }
 
   return (
     <AssetPropertiesInternal
-      key={currentItem.id}
+      key={item.id}
       backend={backend}
-      item={currentItem}
+      item={item}
       isReadonly={isReadonly}
       category={category}
-      spotlightOn={spotlightOn}
     />
   )
 }
@@ -97,13 +93,16 @@ export function AssetProperties(props: AssetPropertiesProps) {
 /** Props for an {@link AssetPropertiesInternal}. */
 export interface AssetPropertiesInternalProps extends AssetPropertiesProps {
   readonly item: AnyAsset
-  readonly spotlightOn: AssetPropertiesSpotlight | null
 }
 
 /** Display and modify the properties of an asset. */
 function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
-  const { backend, item, category, spotlightOn, isReadonly = false } = props
+  const { backend, item, category, isReadonly = false } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
+
+  const spotlightOn = useStore(assetPanelStore, (state) => state.assetPanelProps.spotlightOn, {
+    unsafeEnableTransition: true,
+  })
 
   const setAssetPanelProps = useSetAssetPanelProps()
 

@@ -120,11 +120,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (macos, amd64)
-      - name: Unpack Engine Distribution
-        run: |
-          tar -xvf built-distribution.tar || tar -xvf built-distribution.tar;
-          rm built-distribution.tar
+      - run: |-
+          ls -l built-distribution.tar
+          sha256sum built-distribution.tar
         shell: bash
+      - name: Unpack Engine Distribution
+        run: |-
+          tar -xvf built-distribution.tar -C .
+          rm built-distribution.tar
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -193,11 +196,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (macos, amd64)
-      - name: Unpack Engine Distribution
-        run: |
-          tar -xvf built-distribution.tar || tar -xvf built-distribution.tar;
-          rm built-distribution.tar
+      - run: |-
+          ls -l built-distribution.tar
+          sha256sum built-distribution.tar
         shell: bash
+      - name: Unpack Engine Distribution
+        run: |-
+          tar -xvf built-distribution.tar -C .
+          rm built-distribution.tar
       - run: ./run backend test standard-library
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
@@ -269,11 +275,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (macos, amd64)
-      - name: Unpack Engine Distribution
-        run: |
-          tar -xvf built-distribution.tar || tar -xvf built-distribution.tar;
-          rm built-distribution.tar
+      - run: |-
+          ls -l built-distribution.tar
+          sha256sum built-distribution.tar
         shell: bash
+      - name: Unpack Engine Distribution
+        run: |-
+          tar -xvf built-distribution.tar -C .
+          rm built-distribution.tar
       - run: ./run backend test standard-library-in-native
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}

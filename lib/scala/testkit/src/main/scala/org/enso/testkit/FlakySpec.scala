@@ -1,6 +1,5 @@
 package org.enso.testkit
 
-import org.enso.runtime.utils.ThreadUtils
 import org.scalatest._
 
 /** Trait is used to mark the tests in the suite as _flaky_ and make them
@@ -21,16 +20,7 @@ trait FlakySpec extends TestSuite {
   object SkipOnFailure extends Tag("org.enso.test.skiponfailure")
 
   override def withFixture(test: NoArgTest): Outcome = {
-    val result = super.withFixture(test)
-
-    if (result.isFailed || result.isCanceled) {
-      val msg = ThreadUtils.dumpAllStacktraces(
-        s"Thread dump of the failed flaky test `${test.name}`"
-      )
-      println(msg)
-    }
-
-    result match {
+    super.withFixture(test) match {
       case Failed(_) | Canceled(_)
           if Flaky.isEnabled && test.tags.contains(Flaky.name) =>
         Pending

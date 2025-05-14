@@ -6,20 +6,18 @@ import org.slf4j.LoggerFactory;
 
 public final class ProgressHandler implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger("Standard.Base.Logging.Progress");
-  private static final int PROGRESS_STEP = 5000;
+  private static final long PROGRESS_STEP = 50000;
 
   private final String name;
   private final long count;
+  private final Context context;
   private long step;
-  private boolean done;
-  private Context context;
 
   private ProgressHandler(String name, long count) {
     this.name = name;
     this.count = count;
-    this.step = 0;
-    this.done = false;
     this.context = Context.getCurrent();
+    this.step = PROGRESS_STEP;
   }
 
   @Override
@@ -28,23 +26,17 @@ public final class ProgressHandler implements AutoCloseable {
   }
 
   public void advance() {
-    context.safepoint();
-
-    if (done) {
-      return;
-    }
-
-    step++;
-    if (step == PROGRESS_STEP) {
+    step--;
+    if (step == 0) {
+      context.safepoint();
       log.trace("ADVANCE {}+{}", this, PROGRESS_STEP);
-      step = 0;
+      step = PROGRESS_STEP;
     }
   }
 
   @Override
   public void close() {
     log.trace("ADVANCE {}+{}", this, count);
-    this.done = true;
   }
 
   public static ProgressHandler init(String name, long count) {

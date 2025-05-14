@@ -7,7 +7,7 @@ public interface ColumnDoubleStorage extends ColumnStorage<Double> {
   double getItemAsDouble(long index) throws ValueIsNothingException;
 
   @Override
-  ColumnDoubleStorageIterator iterator();
+  ColumnDoubleStorageIterator iteratorWithIndex();
 
   @Override
   FloatType getType();

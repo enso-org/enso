@@ -323,7 +323,7 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public ColumnBooleanStorageIterator iterator() {
+  public ColumnBooleanStorageIterator iteratorWithIndex() {
     return new BoolStorageIterator(this);
   }
 

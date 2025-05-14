@@ -1,6 +1,7 @@
+private
+
 ## Conversions that are used for type refinements.
    They should never be exported or used elsewhere.
-private
 
 from Standard.Base import all
 

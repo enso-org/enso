@@ -118,11 +118,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
-      - name: Unpack Engine Distribution
-        run: |
-          tar -xvf built-distribution.tar || tar -xvf built-distribution.tar;
-          rm built-distribution.tar
+      - run: |-
+          ls -l built-distribution.tar
+          sha256sum built-distribution.tar
         shell: bash
+      - name: Unpack Engine Distribution
+        run: |-
+          tar -xvf built-distribution.tar -C .
+          rm built-distribution.tar
       - run: ./run backend test std-snowflake
         env:
           ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
@@ -202,11 +205,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Engine Distribution (GraalVM CE) (native,test) (linux, amd64)
-      - name: Unpack Engine Distribution
-        run: |
-          tar -xvf built-distribution.tar || tar -xvf built-distribution.tar;
-          rm built-distribution.tar
+      - run: |-
+          ls -l built-distribution.tar
+          sha256sum built-distribution.tar
         shell: bash
+      - name: Unpack Engine Distribution
+        run: |-
+          tar -xvf built-distribution.tar -C .
+          rm built-distribution.tar
       - run: ./run backend test std-cloud-related
         env:
           ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
