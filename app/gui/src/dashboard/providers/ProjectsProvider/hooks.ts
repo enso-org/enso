@@ -1,7 +1,10 @@
 /** @file Hooks for `ProjectsProvider`. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useStore } from '#/hooks/storeHooks'
+import type { ProjectId } from '#/services/Backend'
 import { useContext } from 'react'
 import invariant from 'tiny-invariant'
+import { createStore } from 'zustand'
 import {
   LaunchedProjectsContext,
   PageContext,
@@ -73,4 +76,32 @@ export function useClearLaunchedProjects() {
   return useEventCallback(() => {
     setLaunchedProjects([])
   })
+}
+
+export const projectsStore = createStore<{
+  readonly openingProjects: ReadonlySet<ProjectId>
+  readonly addOpeningProject: (id: ProjectId) => void
+  readonly removeOpeningProject: (id: ProjectId) => void
+}>()((set) => ({
+  openingProjects: new Set(),
+  addOpeningProject: (id) => {
+    set(({ openingProjects }) => ({
+      openingProjects: new Set([...openingProjects, id]),
+    }))
+  },
+  removeOpeningProject: (id) => {
+    set(({ openingProjects }) => ({
+      openingProjects: new Set([...openingProjects].filter((otherId) => otherId !== id)),
+    }))
+  },
+}))
+
+/** Return a function to add a project to the 'opening' list. */
+export function useAddOpeningProject() {
+  return useStore(projectsStore, ({ addOpeningProject }) => addOpeningProject)
+}
+
+/** Return a function to remove a project from the 'opening' list. */
+export function useRemoveOpeningProject() {
+  return useStore(projectsStore, ({ removeOpeningProject }) => removeOpeningProject)
 }

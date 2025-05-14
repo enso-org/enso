@@ -3,12 +3,7 @@
  * interactive components.
  */
 import Page from '#/components/Page'
-import {
-  useCloseAllProjects,
-  useCloseProject,
-  useOpenEditor,
-  useOpenProjectLocally,
-} from '#/hooks/projectHooks'
+import { useCloseAllProjects, useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import { CategoriesProvider, useCategoriesAPI } from '#/layouts/Drive/CategorySwitcher'
@@ -92,7 +87,6 @@ function DashboardInner() {
 
   const categoriesAPI = useCategoriesAPI()
 
-  const openEditor = useOpenEditor()
   const openProjectLocally = useOpenProjectLocally()
 
   usePrefetchQuery({
@@ -140,7 +134,7 @@ function DashboardInner() {
     return () => {
       window.projectManagementApi?.setOpenProjectHandler(() => {})
     }
-  }, [openEditor, openProjectLocally, categoriesAPI])
+  }, [openProjectLocally, categoriesAPI])
 
   React.useEffect(() => {
     if (isOnElectron()) {

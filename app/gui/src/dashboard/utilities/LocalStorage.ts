@@ -35,7 +35,12 @@ export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
  * The data that can be stored in a {@link LocalStorage}.
  * Declaration merge into this interface to add a new key.
  */
-export interface LocalStorageData {}
+export interface LocalStorageData {
+  // Add a dummy key to avoid type errors for configurations that don't import
+  // any files that merge declarations into `LocalStorageData`.
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  readonly _dummyLocalStorageKey: true
+}
 
 /** All possible keys of a {@link LocalStorage}. */
 export type LocalStorageKey = keyof LocalStorageData

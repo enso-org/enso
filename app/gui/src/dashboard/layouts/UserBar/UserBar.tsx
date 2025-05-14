@@ -12,6 +12,7 @@ import { usePaywall } from '#/hooks/billing'
 import { useOffline } from '#/hooks/offlineHooks'
 import UserMenu from '#/layouts/UserMenu'
 import InviteUsersModal from '#/modals/InviteUsersModal'
+import { NotificationTray } from '#/pages/dashboard/components/NotificationTray'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
 import { Plan } from '#/services/Backend'
@@ -24,11 +25,6 @@ const SHOULD_SHOW_CHAT_BUTTON: boolean = false
 
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
-  /**
-   * When `true`, the element occupies space in the layout but is not visible.
-   * Defaults to `false`.
-   */
-  readonly invisible?: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly goToSettingsPage: () => void
   readonly onSignOut: () => void
@@ -111,6 +107,8 @@ export function UserBar(props: UserBarProps) {
             {getText('upgrade')}
           </Button>
         )}
+
+        <NotificationTray />
 
         <Popover.Trigger>
           <Button

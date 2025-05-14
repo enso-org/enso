@@ -57,7 +57,7 @@ const STYLES = tv({
 })
 
 /** Props for a {@link ButtonGroup}. */
-interface ButtonGroupProps
+export interface ButtonGroupProps
   extends React.PropsWithChildren,
     VariantProps<typeof STYLES>,
     TestIdProps {

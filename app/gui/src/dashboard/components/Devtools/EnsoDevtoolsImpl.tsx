@@ -1,4 +1,4 @@
-/** @file A component that provides a UI for toggling paywall features. */
+/** @file A list of toggles for paywall features. */
 import { SETUP_PATH } from '#/appUtils'
 import CrossIcon from '#/assets/cross.svg'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -96,6 +96,18 @@ export function EnsoDevtools() {
               {getText('hideDevtools')}
             </Button>
           </div>
+
+          <Separator orientation="horizontal" className="my-3" />
+
+          <Button
+            variant="outline"
+            onPress={async () => {
+              await queryClient.clearWithPersister()
+              location.reload()
+            }}
+          >
+            {getText('clearCacheAndReload')}
+          </Button>
 
           <Separator orientation="horizontal" className="my-3" />
 

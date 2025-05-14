@@ -23,7 +23,7 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
-import { unsetModal } from '#/providers/ModalProvider'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import { tv } from '#/utilities/tailwindVariants'
 import { useRouterInReact } from '$/providers/react'
@@ -122,14 +122,14 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     }
   })
 
-  const onDrop = useEventCallback((event: DropEvent) => {
+  const onDrop = useEventCallback(async (event: DropEvent) => {
     unsetModal()
 
     if (event.dropOperation === 'cancel') {
       return
     }
 
-    void Promise.all(
+    const payloads = await Promise.all(
       event.items
         .filter((item) => item.kind === 'text')
         .map(async (item) => {
@@ -138,8 +138,11 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 
           return parsedPayload.success ? parsedPayload.data : null
         }),
-    ).then((payloads) =>
-      Promise.all(
+    )
+    const firstItem = payloads[0]?.items[0]
+
+    const transfer = async () => {
+      await Promise.all(
         payloads
           .filter((payload) => payload != null)
           .map((payload) =>
@@ -151,8 +154,27 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
               event.dropOperation,
             ),
           ),
-      ),
-    )
+      )
+    }
+
+    if (category.type === 'trash') {
+      setModal(
+        <ConfirmDeleteModal
+          defaultOpen
+          actionText={
+            payloads[0]?.items.length === 1 && firstItem != null ?
+              getText('deleteSelectedAssetActionText', firstItem.title)
+            : getText(
+                'deleteSelectedAssetsActionText',
+                payloads.flatMap((payload) => payload?.items ?? []).length,
+              )
+          }
+          onConfirm={transfer}
+        />,
+      )
+    } else {
+      await transfer()
+    }
   })
 
   const dragDelayProps = useAriaDragDelayAction(onPress)

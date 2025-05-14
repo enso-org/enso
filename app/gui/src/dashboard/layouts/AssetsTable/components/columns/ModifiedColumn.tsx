@@ -7,5 +7,5 @@ import type { AssetColumnProps } from './columnProps'
 export default function ModifiedColumn(props: AssetColumnProps) {
   const { item } = props
 
-  return <Text>{toReadableIsoString(new Date(item.modifiedAt))}</Text>
+  return <Text nowrap>{toReadableIsoString(new Date(item.modifiedAt))}</Text>
 }

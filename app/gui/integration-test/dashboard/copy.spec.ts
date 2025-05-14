@@ -1,7 +1,7 @@
 /** @file Test copying, moving, cutting and pasting. */
 import { expect, test, type Page } from '@playwright/test'
 
-import { mockAllAndLogin } from './actions'
+import { mockAllAndLogin, TEXT } from './actions'
 
 /** Find a button for the "Trash" category. */
 function locateTrashCategory(page: Page) {
@@ -99,6 +99,10 @@ test('move to trash', ({ page }) =>
       modActions.driveTable.clickRow('New Folder 1').driveTable.clickRow('New Folder 2'),
     )
     .driveTable.dragRow('New Folder 1', locateTrashCategory(page))
+    .do(async (page) => {
+      // Confirm the deletion in the dialog
+      await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
+    })
     .driveTable.expectPlaceholderRow()
     .goToCategory.trash()
     .driveTable.withRows(async (rows) => {

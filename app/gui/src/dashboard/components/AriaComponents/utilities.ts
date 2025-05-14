@@ -1,11 +1,11 @@
 /** @file Constants for aria components. */
 
 import { identity } from '#/utilities/functions'
-import { unsafeKeyValuePair } from 'enso-common/src/utilities/data/object'
+import { unsafeKeyValuePair, unsafeKeys } from 'enso-common/src/utilities/data/object'
 
 /** Possible values for the `rounded` variant. */
 export function roundedVariants() {
-  return Object.keys(makeRoundedStyles(''))
+  return unsafeKeys(makeRoundedStyles(''))
 }
 
 /** Make a set of rounded styles. UNSAFE when `Key` is not a string literal type. */
