@@ -11,6 +11,7 @@
 - [Add option to browse cloud for secret values][12953]
 - [Add ability to inspect column, row and value from right click on table
   viz][12986]
+- [File Browser Widget: Add ability to filter files by extension][13048]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -19,6 +20,7 @@
 [12751]: https://github.com/enso-org/enso/pull/12751
 [12953]: https://github.com/enso-org/enso/pull/12953
 [12986]: https://github.com/enso-org/enso/pull/12986
+[13048]: https://github.com/enso-org/enso/pull/13048
 
 #### Enso Standard Library
 
