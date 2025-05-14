@@ -48,6 +48,7 @@
   "asyncHookError": "Error while fetching data",
   "fetchLatestVersionError": "Could not get the latest version of the asset",
   "uploadProjectToCloudSuccess": "Successfully exported local project to the cloud!",
+  "downloadingProjectToLocal": "Exporting cloud project to your computer...",
   "downloadProjectToLocalSuccess": "Successfully exported cloud project to your computer!",
   "changeUserGroupsError": "Could not set user groups",
   "deleteUserGroupError": "Could not delete user group '$0'",
