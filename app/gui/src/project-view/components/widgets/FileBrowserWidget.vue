@@ -401,6 +401,61 @@ function openDropdown() {
   fileExtensionInput.value?.select()
 }
 
+const mockFileExtensionEntries = computed(() => {
+  return [
+    {
+      value: 'All',
+      extensions: 'all',
+      selected: isSelected('All'),
+      isNested: false,
+      nestedValues: [],
+    },
+    {
+      value: 'Tables',
+      extensions: [],
+      selected: isSelected('Tables'),
+      isNested: true,
+      nestedValues: [
+        {
+          value: 'Excel',
+          extensions: ['xlsx', 'xls'],
+          selected: isSelected('Excel'),
+          isNested: false,
+          nestedValues: [],
+        },
+        {
+          value: 'CSV',
+          extensions: ['csv'],
+          selected: isSelected('CSV'),
+          isNested: false,
+          nestedValues: [],
+        },
+      ],
+    },
+    {
+      value: 'xml',
+      extensions: ['xml'],
+      selected: isSelected('xml'),
+      isNested: false,
+      nestedValues: [],
+    },
+    {
+      value: 'csv',
+      extensions: ['csv'],
+      selected: isSelected('csv'),
+      isNested: false,
+      nestedValues: [],
+    },
+    {
+      value: 'txt',
+      extensions: ['txt'],
+      selected: isSelected('txt'),
+      isNested: false,
+      nestedValues: [],
+    },
+  ] satisfies FileExtensionEntry[]
+})
+
 function extensionSelected(entry: FileExtensionEntry) {
   interaction.end(fileExtensionDropdownInteraction)
   if (fileExtensionInputContents.value !== entry.value) {
@@ -419,9 +474,17 @@ function extensionSelected(entry: FileExtensionEntry) {
   }
 }
 
-function fileExtensionInputChanged(value: string | undefined) {
-  fileExtensionInputContents.value = value ?? ''
-}
+const fileExtensionDisplayedContents = computed({
+  get: () => {
+    if (fileExtensionFilter.filter.value.type === 'userInput') {
+      return fileExtensionFilter.filter.value.input
+    }
+    return fileExtensionFilter.displayedExtension.value
+  },
+  set: (value) => {
+    fileExtensionInputContents.value = value
+  },
+})
 
 interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
   extensions: 'all' | string[]
@@ -435,7 +498,7 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
       :rootElement="undefined"
       :floatReference="fileExtensionInputRoot"
       :show="fileExtensionDropdownOpened"
-      :entries="fileExtensionEntries"
+      :entries="mockFileExtensionEntries"
       :isSelected="() => false"
       :topLevel="true"
       :color="'white'"
@@ -542,10 +605,9 @@ interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
           />
           <AutoSizedInput
             ref="fileExtensionInput"
-            v-model="fileExtensionFilter.displayedExtension.value"
+            v-model="fileExtensionDisplayedContents"
             class="inputField"
             @click="openDropdown()"
-            @input="fileExtensionInputChanged"
           />
         </div>
         <SvgButton
