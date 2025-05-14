@@ -1,5 +1,4 @@
 /** @file Hooks for uploading files. */
-
 import {
   backendMutationOptions,
   listDirectoryQueryOptions,
@@ -733,7 +732,6 @@ export function useUploadFileMutation(
  * Does not work in environments that do not have a local backend.
  */
 export function useUploadFileToLocal(category: Category) {
-  const { getText } = useText()
   const transferBetweenCategories = useTransferBetweenCategories(category)
 
   const { localCategories } = useCategories()
@@ -743,6 +741,5 @@ export function useUploadFileToLocal(category: Category) {
   return useEventCallback(async (assets: readonly AnyAsset[]) => {
     invariant(localHomeCategory, 'Local home category must exist to download to local')
     await transferBetweenCategories(category, localHomeCategory, assets)
-    toast.success(getText('downloadProjectToLocalSuccess'))
   })
 }

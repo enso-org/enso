@@ -231,7 +231,7 @@ export interface User extends UserInfo {
   readonly isEnsoTeamMember: boolean
 }
 
-/** A user related to the current user. */
+/** A user group related to the current user. */
 export interface UserGroup {
   readonly id: UserGroupId
   readonly name: string
@@ -651,7 +651,7 @@ export interface UserPermission {
 
 /** User permission for a specific user group. */
 export interface UserGroupPermission {
-  readonly userGroup: UserGroup
+  readonly userGroup: UserGroupInfo
   readonly permission: permissions.PermissionAction
 }
 
@@ -707,7 +707,7 @@ export function isUserGroupPermissionAnd(predicate: (permission: UserGroupPermis
 
 /** Get the property representing the name on an arbitrary variant of {@link UserPermission}. */
 export function getAssetPermissionName(permission: AssetPermission) {
-  return isUserPermission(permission) ? permission.user.name : permission.userGroup.name
+  return isUserPermission(permission) ? permission.user.name : permission.userGroup.groupName
 }
 
 /** Get the property representing the id on an arbitrary variant of {@link UserPermission}. */
@@ -850,6 +850,8 @@ export const COLORS = [
   { lightness: 22, chroma: 13, hue: 252 },
 ] as const satisfies LChColor[]
 
+export const FALLBACK_COLOR = COLORS[0]
+
 /** Converts a {@link LChColor} to a CSS color string. */
 export function lChColorToCssColor(color: LChColor): string {
   const alpha = 'alpha' in color ? ` / ${color.alpha}` : ''
@@ -899,6 +901,18 @@ export enum AssetType {
   /** A special {@link AssetType} representing a button that navigates to the parent directory. */
   specialUp = 'specialUp',
 }
+
+export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<AssetType, TextId>> = {
+  [AssetType.directory]: 'directoryAssetType',
+  [AssetType.project]: 'projectAssetType',
+  [AssetType.file]: 'fileAssetType',
+  [AssetType.secret]: 'secretAssetType',
+  [AssetType.specialEmpty]: 'specialEmptyAssetType',
+  [AssetType.specialError]: 'specialErrorAssetType',
+  [AssetType.specialLoading]: 'specialLoadingAssetType',
+  [AssetType.specialUp]: 'specialUpAssetType',
+  [AssetType.datalink]: 'datalinkAssetType',
+} satisfies { [Type in AssetType]: `${Type}AssetType` }
 
 export enum ReplaceableAssetType {
   project = 'project',

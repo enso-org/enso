@@ -32,7 +32,7 @@ const props = withDefaults(
   defineProps<{
     writeMode?: boolean
     choosenPath?: string
-    type?: 'file' | 'secret'
+    type?: 'file' | 'secret' | 'directory'
   }>(),
   { writeMode: false, choosenPath: '', type: 'file' },
 )
@@ -111,10 +111,14 @@ function assetIsTargetType(asset: AnyAsset): asset is TargetType {
       return assetIsFile(asset) || assetIsDatalink(asset)
     case 'secret':
       return assetIsSecret(asset)
+    default:
+      return false
   }
 }
-const files = computed<TargetType[]>(
-  () => data.value?.filter(assetIsTargetType).sort(compareTitle) ?? [],
+const files = computed<TargetType[]>(() =>
+  props.type === 'directory' ?
+    []
+  : (data.value?.filter(assetIsTargetType).sort(compareTitle) ?? []),
 )
 const isEmpty = computed(
   () => directories.value?.length === 0 && files.value?.length === 0 && editedAsset.value == null,
@@ -270,6 +274,10 @@ async function acceptName(name: string) {
   )
 }
 
+const creatingSecret = ref(false)
+
+const enableTopBarButtons = computed(() => !creatingSecret.value)
+
 watch(
   directories,
   (dirs) => {
@@ -315,9 +323,14 @@ onMounted(() => {
       <div class="confirmationText">{{ 'Warning: ' + warningText }}</div>
       <SvgButton class="confirmationButton" label="Dismiss" @click.stop="warningDismissed" />
     </div>
-    <div class="topBar">
+    <div class="topBar" :class="{ nonInteractive: !enableTopBarButtons }">
       <div class="directoryStack">
-        <SvgButton name="navigate_up" title="Up" :disabled="!canPop" @click.stop="popDirectory" />
+        <SvgButton
+          name="navigate_up"
+          title="Up"
+          :disabled="!enableTopBarButtons || !canPop"
+          @click.stop="popDirectory"
+        />
         <div class="breadcrumbs">
           <TransitionGroup>
             <template v-for="(directory, index) in directoryStack" :key="directory.id ?? 'root'">
@@ -334,16 +347,16 @@ onMounted(() => {
       </div>
       <SvgButton
         name="folder_add"
-        title="Add New Folder"
-        :disabled="editedAsset != null"
+        title="New Folder"
+        :disabled="!enableTopBarButtons || editedAsset != null"
         @click.stop="addNewDirectory"
       />
     </div>
 
-    <div v-if="anyError" class="centerContent contents">Error: {{ anyError }}</div>
-    <div v-else-if="isBusy" class="centerContent contents"><LoadingSpinner /></div>
-    <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
-    <div v-else :key="currentDirectory?.id ?? 'root'" class="listing contents">
+    <div v-if="anyError" class="centerContent browserContents">Error: {{ anyError }}</div>
+    <div v-else-if="isBusy" class="centerContent browserContents"><LoadingSpinner /></div>
+    <div v-else-if="isEmpty" class="centerContent browserContents">Directory is empty</div>
+    <div v-else :key="currentDirectory?.id ?? 'root'" class="listing browserContents">
       <ContextMenuTrigger :actions="[renameAction]" @hidden="focusedDirectory = undefined">
         <TransitionGroup>
           <FileBrowserEntry
@@ -412,6 +425,7 @@ onMounted(() => {
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
+  contain: layout;
 }
 
 .confirmationModal {
@@ -451,6 +465,7 @@ onMounted(() => {
   display: flex;
   flex-direction: row;
   padding: 2px 8px;
+  gap: 4px;
 }
 
 .directoryStack {
@@ -468,7 +483,7 @@ onMounted(() => {
   gap: 2px; /* breadcrumb spacing */
 }
 
-.contents {
+.browserContents {
   flex: 1;
   width: 100%;
   background-color: var(--color-frame-selected-bg);

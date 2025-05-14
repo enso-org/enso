@@ -161,6 +161,8 @@ public final class RuntimeOptions {
       OptionDescriptor.newBuilder(WARNINGS_LIMIT_KEY, WARNINGS_LIMIT).build();
 
   public static final String IR_DUMPER_SYSTEM_PROP = "enso.compiler.dumpIr";
+  public static final String REMOVE_UNUSED_IMPORTS_SYSTEM_PROP =
+      "enso.compiler.removeUnusedImports";
 
   public static final OptionDescriptors OPTION_DESCRIPTORS =
       OptionDescriptors.create(

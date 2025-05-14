@@ -1,154 +1,110 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import {
+  SUPPORTED_DYNAMIC_CONFIG_KINDS,
+  SUPPORTED_TYPES,
+  useBrowserTypeInfo,
+  useCurrentPath,
+  useSetPath,
+  useTextSecrets,
+} from '@/components/GraphEditor/widgets/WidgetFileBrowser/browsableTypes'
+import { useCloudBrowser } from '@/components/GraphEditor/widgets/WidgetFileBrowser/cloudBrowser'
+import { useLocalBrowser } from '@/components/GraphEditor/widgets/WidgetFileBrowser/localBrowser'
 import { CustomDropdownItemsKey } from '@/components/GraphEditor/widgets/WidgetSelection.vue'
+import {
+  type CustomDropdownItem,
+  ExpressionTag,
+} from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
-import type { RequiredImport } from '@/stores/graph/imports'
-import { Ast } from '@/util/ast'
-import { Pattern } from '@/util/ast/match'
+import { requiredImportsByProjectPath } from '@/stores/graph/imports'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { ArgumentInfoKey } from '@/util/callTree'
-import { ProjectPath, printAbsoluteProjectPath } from '@/util/projectPath'
 import { computed } from 'vue'
-import { TextLiteral, type QualifiedName } from 'ydoc-shared/ast'
-import { CustomDropdownItem } from './WidgetSelection/tags'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
+const suggestionDb = useSuggestionDbStore()
 
-const insertAsFileConstructor = computed(() => {
-  const reprType = props.input[ArgumentInfoKey]?.info?.reprType
-  if (reprType == null) return false
-  const textTypePos = reprType.indexOf(TEXT_TYPE)
-  const fileTypePos = reprType.indexOf(FILE_TYPE)
-  // If both types are present, check if TEXT_TYPE comes after FILE_TYPE.
-  if (fileTypePos !== -1 && (textTypePos === -1 || textTypePos > fileTypePos)) {
-    return true
-  } else {
-    return false
-  }
+const reprType = computed(() => props.input[ArgumentInfoKey]?.info?.reprType)
+
+const typeInfo = useBrowserTypeInfo({
+  reprType,
+  dynamicConfig: () => props.input.dynamicConfig,
 })
+
+const currentPathAst = useCurrentPath({
+  typeInfo,
+  input: () => props.input.value,
+  getMethodPointer: (id) => graph.db.getMethodCallInfo(id)?.methodCall.methodPointer,
+})
+
 const dialogKind = computed(() => {
-  switch (props.input.dynamicConfig?.kind) {
-    case 'File_Browse':
-      return props.input.dynamicConfig.existing_only ? 'file' : 'filePath'
-    case 'Folder_Browse':
-      return 'directory'
-    default:
-      if (props.input[ArgumentInfoKey]?.info?.reprType.includes(WRITABLE_FILE_TYPE)) {
-        return 'filePath'
-      } else {
-        return 'default'
-      }
-  }
-})
-const label = computed(() => {
-  switch (dialogKind.value) {
-    case 'directory':
-      return 'Choose directory…'
-    case 'filePath':
-      return 'Choose path…'
-    default:
-      return 'Choose file…'
-  }
+  const types = typeInfo.value.types
+  return (
+    types.file ? 'file'
+    : types.directory ? 'directory'
+    : types.secret ? 'secret'
+    : 'file'
+  )
 })
 
-const fileConPattern = Pattern.parseExpression(`${FILE_TYPE}.new __`)
-const fileShortConPattern = Pattern.parseExpression(`File.new __`)
 const currentPath = computed(() => {
-  if (typeof props.input.value === 'string') {
-    return props.input.value
-  } else if (props.input.value) {
-    const expression = props.input.value
-    const match = fileShortConPattern.match(expression) ?? fileConPattern.match(expression)
-    const pathAst = match && match[0] ? expression.module.get(match[0]) : expression
-    if (pathAst instanceof TextLiteral) {
-      return pathAst.rawTextContent
-    }
-  }
-  return undefined
+  if (!currentPathAst.value) return
+  if (dialogKind.value === 'secret' && currentPathAst.value.type !== 'secret') return
+  if (dialogKind.value !== 'secret' && currentPathAst.value.type === 'secret') return
+  return currentPathAst.value.path.rawTextContent
 })
 
-function makeValue(
-  edit: Ast.MutableModule,
-  useFileConstructor: boolean,
-  path: string,
-): Ast.Owned<Ast.MutableExpression> {
-  if (useFileConstructor) {
-    const arg = Ast.TextLiteral.new(path, edit)
-    const requiredImport = {
-      kind: 'Unqualified',
-      from: FILE_MODULE,
-      import: 'File',
-    } as RequiredImport
-    const conflicts = graph.addMissingImports(edit, [requiredImport])
-    const pattern = conflicts ? fileConPattern : fileShortConPattern
-    return pattern.instantiate(edit, [arg])
-  } else {
-    return Ast.TextLiteral.new(path, edit)
-  }
+const makeSetPathUpdate = useSetPath({
+  currentPath: currentPathAst,
+  preferRawPath: () => !!typeInfo.value.rawPath?.prefer,
+  portId: () => props.input.portId,
+  edit: () => graph.startEdit(),
+  addMissingConstructorImports: (edit, type) =>
+    graph.addMissingImports(edit, requiredImportsByProjectPath(suggestionDb.entries, type, true)) ==
+    null,
+})
+
+function setPath(type: 'file' | 'secret', path: string) {
+  props.onUpdate(makeSetPathUpdate(type, path))
 }
 
-const onClick = async () => {
-  if (!window.fileBrowserApi) {
-    console.error('File browser not supported!')
-  } else {
-    const selected = await window.fileBrowserApi.openFileBrowser(
-      dialogKind.value,
-      currentPath.value,
-    )
-    if (selected != null && selected[0] != null) {
-      const edit = graph.startEdit()
-      const value = makeValue(edit, insertAsFileConstructor.value, selected[0])
-      props.onUpdate({
-        edit,
-        portUpdate: {
-          value,
-          origin: props.input.portId,
-        },
-        directInteraction: true,
-      })
-    }
-  }
-}
+const write = computed(() => typeInfo.value.write)
 
-const item = computed<CustomDropdownItem>(() => ({
-  label: label.value,
-  onClick,
-}))
+const localBrowserItems = useLocalBrowser({ dialogKind, write, currentPath, setPath })
+const cloudBrowserItems = useCloudBrowser({ dialogKind, write, currentPath, setPath })
+const textSecretsItems = useTextSecrets({ dialogKind, reprType })
+
+const items = computed((): (CustomDropdownItem | ExpressionTag)[] => [
+  ...localBrowserItems.value,
+  ...cloudBrowserItems.value,
+  ...textSecretsItems.value,
+])
 
 const innerWidgetInput = computed(() => {
   const existingItems = props.input[CustomDropdownItemsKey] ?? []
   return {
     ...props.input,
-    [CustomDropdownItemsKey]: [...existingItems, item.value],
+    [CustomDropdownItemsKey]: [...existingItems, ...items.value],
   }
 })
 </script>
 
 <script lang="ts">
-const TEXT_TYPE = 'Standard.Base.Data.Text.Text'
-const FILE_MODULE = ProjectPath.create(
-  'Standard.Base' as QualifiedName,
-  'System.File' as QualifiedName,
-)
-const FILE_TYPE = printAbsoluteProjectPath(FILE_MODULE) + '.File'
-const WRITABLE_FILE_MODULE = 'Standard.Base.System.File.Generic.Writable_File'
-const WRITABLE_FILE_TYPE = WRITABLE_FILE_MODULE + '.Writable_File'
-
 export const widgetDefinition = defineWidget(
   WidgetInput.isAstOrPlaceholder,
   {
     priority: 49,
     score: (props) => {
-      if (
-        props.input.dynamicConfig?.kind === 'File_Browse' ||
-        props.input.dynamicConfig?.kind === 'Folder_Browse'
-      )
-        return Score.Perfect
       const reprType = props.input[ArgumentInfoKey]?.info?.reprType
-      if (reprType?.includes(FILE_TYPE) || reprType?.includes(WRITABLE_FILE_TYPE))
-        return Score.Perfect
-      return Score.Mismatch
+      return (
+          (props.input.dynamicConfig &&
+            SUPPORTED_DYNAMIC_CONFIG_KINDS.includes(props.input.dynamicConfig.kind)) ||
+            (reprType && SUPPORTED_TYPES.some((type) => reprType.includes(type)))
+        ) ?
+          Score.Perfect
+        : Score.Mismatch
     },
   },
   import.meta.hot,
@@ -156,14 +112,5 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetFileBrowser">
-    <NodeWidget :input="innerWidgetInput" />
-  </div>
+  <NodeWidget :input="innerWidgetInput" />
 </template>
-
-<style scoped>
-.WidgetFileBrowser {
-  display: flex;
-  flex-direction: row;
-}
-</style>

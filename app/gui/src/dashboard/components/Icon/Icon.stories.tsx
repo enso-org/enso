@@ -110,7 +110,7 @@ export const AvailableIcons: Story = {
 
       <div className="grid grid-cols-9 items-center gap-4">
         {iconNames.map((icon) => (
-          <div key={icon} className="flex flex-col items-center gap-2">
+          <div key={icon} className="flex flex-col items-center gap-2 text-primary">
             <Icon key={icon} icon={icon} />
             <Text variant="caption">{icon}</Text>
           </div>

@@ -91,7 +91,6 @@ function DashboardInner() {
 
   const categoriesAPI = useCategoriesAPI()
 
-  const openEditor = projectHooks.useOpenEditor()
   const openProjectLocally = projectHooks.useOpenProjectLocally()
 
   usePrefetchQuery({
@@ -142,7 +141,7 @@ function DashboardInner() {
     return () => {
       window.projectManagementApi?.setOpenProjectHandler(() => {})
     }
-  }, [openEditor, openProjectLocally, categoriesAPI])
+  }, [openProjectLocally, categoriesAPI])
 
   React.useEffect(() => {
     if (detect.isOnElectron()) {

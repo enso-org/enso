@@ -147,7 +147,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   })
 
   // This is not a React component even though it contains JSX.
-  const doDeleteAll = useEventCallback(async () => {
+  const doDeleteAll = useEventCallback(() => {
     const selectedIds = selectedAssets.map((asset) => asset.id)
     const deleteAll = async () => {
       unsetModal()
@@ -155,27 +155,20 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
 
       await deleteAssetsMutation.mutateAsync([selectedIds, false])
     }
-    if (
-      isCloud &&
-      selectedIds.every((key) => getAsset(key)?.type !== backendModule.AssetType.directory)
-    ) {
-      await deleteAll()
-    } else {
-      const firstKey = selectedIds[0]
-      const soleAssetName =
-        firstKey != null ? (getAsset(firstKey)?.title ?? '(unknown)') : '(unknown)'
-      setModal(
-        <ConfirmDeleteModal
-          defaultOpen
-          actionText={
-            selectedIds.length === 1 ?
-              getText('deleteSelectedAssetActionText', soleAssetName)
-            : getText('deleteSelectedAssetsActionText', selectedIds.length)
-          }
-          onConfirm={deleteAll}
-        />,
-      )
-    }
+    const firstKey = selectedIds[0]
+    const soleAssetName =
+      firstKey != null ? (getAsset(firstKey)?.title ?? '(unknown)') : '(unknown)'
+    setModal(
+      <ConfirmDeleteModal
+        defaultOpen
+        actionText={
+          selectedIds.length === 1 ?
+            getText('deleteSelectedAssetActionText', soleAssetName)
+          : getText('deleteSelectedAssetsActionText', selectedIds.length)
+        }
+        onConfirm={deleteAll}
+      />,
+    )
   })
 
   const copyIdsMenuEntry = showDeveloperIds && (
