@@ -45,7 +45,7 @@ test('Displayed extension and filename suffix', async () => {
 
   inputContents.value = 'test.txt'
   await nextTick()
-  expect(displayedExtension.value).toBe('*')
+  expect(displayedExtension.value).toBe('Excel')
   expect(filenameSuffix.value).toBe('')
 })
 

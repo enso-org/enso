@@ -7,6 +7,7 @@ declare const brandTargetType: unique symbol
 
 <script setup lang="ts">
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
+import type { SubmenuComponent } from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
 import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
@@ -325,10 +326,10 @@ onMounted(() => {
 
 const interaction = injectInteractionHandler()
 const fileExtensionDropdownOpened = ref(false)
-const root = useTemplateRef('root')
-const fileExtensionInputRoot = useTemplateRef('fileExtensionInputRoot')
-const submenuRef = useTemplateRef('submenuRef')
-const fileExtensionInput = useTemplateRef('fileExtensionInput')
+const root = useTemplateRef<HTMLDivElement>('root')
+const fileExtensionInputRoot = useTemplateRef<HTMLDivElement>('fileExtensionInputRoot')
+const submenuRef = useTemplateRef<SubmenuComponent>('submenuRef')
+const fileExtensionInput = useTemplateRef<InstanceType<typeof AutoSizedInput>>('fileExtensionInput')
 
 const fileExtensionEntries = computed(() => props.fileTypes.map(fileTypeToFileExtensionEntry))
 

@@ -28,10 +28,6 @@ interface Submenu {
   relativeTo: HTMLElement
 }
 
-/** Referring to the type of the component in the current file is hard, so we define a helper type. */
-interface SubmenuComponent {
-  isTargetOutside: (event: Event) => boolean
-}
 function isSubmenuComponent(component: unknown): component is SubmenuComponent {
   return (
     component != null &&
@@ -94,6 +90,13 @@ function isTargetOutside(event: Event) {
 defineExpose({
   isTargetOutside,
 })
+</script>
+
+<script lang="ts">
+/** Referring to the type of the component in the current file is hard, so we define a helper type. */
+export interface SubmenuComponent {
+  isTargetOutside: (event: Event) => boolean
+}
 </script>
 
 <template>
