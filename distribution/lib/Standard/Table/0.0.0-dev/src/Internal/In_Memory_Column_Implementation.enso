@@ -639,7 +639,6 @@ type In_Memory_Column_Implementation
     drop (this_column : Column & In_Memory_Column) (range : Index_Sub_Range | Range | Integer = ..First) -> Column =
         drop_helper this_column.length (this_column.at _) this_column.slice (slice_ranges this_column) range
 
-    slice : Integer -> Integer -> Column
     slice (this_column : Column & In_Memory_Column) start end =
         length = this_column.length
         offset = (start.min length).max 0
@@ -664,12 +663,10 @@ type In_Memory_Column_Implementation
 
     ## PRIVATE
        Helper for the expression to tell it which functions needs a Vector.
-    var_args_functions : Vector
     var_args_functions = ['is_in', 'coalesce', 'min', 'max']
 
     ## PRIVATE
        This is a shortcut for API compatibility.
-    naming_helper : Column_Naming_Helper
     naming_helper _ = naming_helper
 
     compute (this_column : Column & In_Memory_Column) statistic:Statistic=..Count -> Any =
