@@ -15,17 +15,14 @@ import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.test.mock.WithCompilerContext;
 import org.enso.pkg.QualifiedName;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import scala.jdk.javaapi.CollectionConverters;
 
-/** TODO[pm] : Remove ignores */
 public class UnusedImportsTest {
   @Rule public final WithCompilerContext compilerCtx = WithCompilerContext.createDefault();
 
   @Test
-  @Ignore
   public void canResolveSimpleImport() {
     compilerCtx.createModule(QualifiedName.fromString("local.Proj.Module"), "type My_Type");
     var mainMod =
@@ -42,7 +39,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void usageOfImport_CanBeRecognized_InNestedExpression() {
     compilerCtx.createModule(QualifiedName.fromString("local.Proj.Module"), "type My_Type");
     var mainMod =
@@ -63,7 +59,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void unusedImport() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
@@ -86,7 +81,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void unusedSymbols_1() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
@@ -107,7 +101,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void unusedSymbols_2() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
@@ -128,7 +121,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void unusedSymbols_InlineSignature_Parameter() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
@@ -149,7 +141,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void unusedSymbols_InlineSignature_ReturnType() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"), """
@@ -167,7 +158,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void unusedSymbols_InTypeAscription_ReturnType() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"), """
@@ -186,7 +176,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void unusedSymbols_InTypeAscription_ThrownError() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
@@ -207,7 +196,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void unusedSymbols_InTypeAscription_MultipleThrownErrors() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
@@ -229,7 +217,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void unusedSymbols_InTypeAscription_Complicated() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
@@ -252,7 +239,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void unusedSymbols_ExtensionMethod() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"), """
@@ -270,7 +256,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void unusedSymbols_ExtensionMethod_OnModule() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"), """
@@ -288,7 +273,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void unusedSymbols_ConversionMethod() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
@@ -308,7 +292,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void noWarning_WhenImportingSymbolFromReexport() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Other_Module"),
@@ -332,7 +315,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void noWarningWhenSymbolIsUsedInExport_SimpleExport() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
@@ -351,7 +333,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void noWarningWhenSymbolIsUsedInExport_RenameExport() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
@@ -370,7 +351,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void noWarningWhenSymbolIsUsedInExport_OnlyNamesExport() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
@@ -389,7 +369,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void ignoresDuplicatedImports() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
@@ -411,7 +390,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void importConstructors() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Boolean"),
@@ -435,7 +413,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void canDetectUnusedMethods() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
@@ -454,7 +431,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void typeOnMethodIsUsed() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
@@ -474,7 +450,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void polyglotImports_AreIgnored() {
     var mainMod =
         compilerCtx.createModule(
@@ -489,7 +464,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void importAll_IsIgnored() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
@@ -510,7 +484,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void usedSymbol_InCaseBranch_TypePattern() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"), """
@@ -530,7 +503,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void usedSymbol_InCaseBranch_Constructor() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
@@ -552,7 +524,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void usedSymbol_InAnnotation_MethodCall() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"), """
@@ -571,7 +542,6 @@ public class UnusedImportsTest {
   }
 
   @Test
-  @Ignore
   public void usedSymbol_InAnnotation_Expression() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"),
