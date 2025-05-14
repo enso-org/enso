@@ -525,9 +525,7 @@ filter_blank_rows table when treat_nans_as_blank =
    Currently, it relies on a hack - it checks if the object has a method
    `is_table` and if it returns `True`.
 is_column obj -> Boolean =
-    Panic.catch Type_Error handler=(_->False) <|
-        _ = obj:Column
-        True
+    obj.is_a Column
 
 ## PRIVATE
    A helper method that resolves what should be the result type of a particular

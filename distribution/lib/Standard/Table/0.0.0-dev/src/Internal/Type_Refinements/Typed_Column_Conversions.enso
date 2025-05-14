@@ -30,12 +30,12 @@ Numeric_Column.from (that : Column) =
     Numeric_Column.from (underlying_from_column that In_Memory_Column)
 
 type In_Memory_Numeric_Column_Implementation
-    abs column =
+    abs (column : Column & In_Memory_Column) =
         Value_Type.expect_numeric column <|
             new_name = naming_helper.function_name "abs" [column]
             apply_unary_operation column AbsOperation.INSTANCE new_name
 
-    signum column =
+    signum (column : Column & In_Memory_Column) =
         Value_Type.expect_numeric column <|
             new_name = naming_helper.function_name "signum" [column]
             apply_unary_operation column SignumOperation.INSTANCE new_name
