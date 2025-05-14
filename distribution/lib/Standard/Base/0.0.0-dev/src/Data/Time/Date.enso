@@ -1,16 +1,12 @@
-import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Comparable
-import project.Data.Ordering.Ordering
 import project.Data.Text.Text
 import project.Data.Time.Date_Period.Date_Period
 import project.Data.Time.Date_Range.Date_Range
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Time.Day_Of_Week.Day_Of_Week
-import project.Data.Time.Duration.Duration
 import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
@@ -19,14 +15,13 @@ import project.Error.Error
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
-import project.Math
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Data.Time.Date_Time import ensure_in_epoch
-from project.Metadata import Display, make_single_choice, Widget
+from project.Metadata import Display, Widget
 from project.Metadata.Choice import Option
 from project.Widget_Helpers import make_date_format_selector
 
