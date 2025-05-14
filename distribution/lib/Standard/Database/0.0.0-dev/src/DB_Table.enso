@@ -1213,7 +1213,7 @@ type DB_Table
             make_constant_column value = case value of
                 _ : Column -> value
                 _ -> self.make_constant_column value
-            is_column value = value.is_a DB_Column
+            is_column value = value.is_a Column
             new_column = Expression.evaluate expression get_column make_constant_column is_column "Standard.Database.DB_Column" "DB_Column" DB_Column_Implementation.var_args_functions
             problems = Warning.get_all new_column . map .value
             result = new_column.rename (self.connection.base_connection.column_naming_helper.sanitize_name expression.expression)

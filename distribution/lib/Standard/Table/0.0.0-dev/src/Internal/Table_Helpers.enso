@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
@@ -523,9 +524,10 @@ filter_blank_rows table when treat_nans_as_blank =
 
    Currently, it relies on a hack - it checks if the object has a method
    `is_table` and if it returns `True`.
-is_column obj =
-    known_types = ["Standard.Table.Column.Column", "Standard.Database.DB_Column.DB_Column"]
-    known_types.contains (obj.to Meta.Type . qualified_name)
+is_column obj -> Boolean =
+    Panic.catch Type_Error handler=(_->False) <|
+        _ = obj:Column
+        True
 
 ## PRIVATE
    A helper method that resolves what should be the result type of a particular
