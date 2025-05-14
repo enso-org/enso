@@ -4,7 +4,7 @@ import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.problems.BlackholeProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 
 public abstract class BinaryOperationBase<T> implements BinaryOperation<T> {
   protected final StorageType<T> validType;
@@ -25,7 +25,7 @@ public abstract class BinaryOperationBase<T> implements BinaryOperation<T> {
   }
 
   protected BuilderForType<T> makeStorageBuilder(
-      long size, StorageType<?> leftType, StorageType<?> rightType) {
-    return validType.makeBuilder(size, BlackholeProblemAggregator.INSTANCE);
+      long size, StorageType<?> leftType, StorageType<?> rightType, ProblemAggregator problemAggregator) {
+    return validType.makeBuilder(size, problemAggregator);
   }
 }

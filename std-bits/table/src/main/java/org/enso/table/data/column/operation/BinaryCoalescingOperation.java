@@ -20,7 +20,7 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
 import org.enso.table.error.UnexpectedTypeException;
-import org.enso.table.problems.BlackholeProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Value;
 
 public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
@@ -40,7 +40,7 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
           throw new UnexpectedTypeException(
               "Unsupported right column type: " + rightStorage.getType());
         }
-        return operation.apply(left, rightColumn, name);
+        return operation.apply(left, rightColumn, name, problemBuilder);
       } else {
         // Null on left-hand side so just return the right-hand Column
         if (leftStorage.getType() instanceof NullType) {
@@ -58,7 +58,7 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
       if (!operation.canApplyMap(leftStorage, right)) {
         throw new UnexpectedTypeException("Unsupported right value type: " + right.getClass());
       }
-      return operation.apply(left, right, name);
+      return operation.apply(left, right, name, problemBuilder);
     } else {
       // Null on left-hand side so just return the right-hand Column
       if (leftStorage.getType() instanceof NullType) {
@@ -84,9 +84,9 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
           TextType.VARIABLE_LENGTH, (a, b) -> Text_Utils.compare_normalized(a, b) < 0 ? a : b) {
         @Override
         protected BuilderForType<String> makeStorageBuilder(
-            long size, StorageType<?> leftType, StorageType<?> rightType) {
+            long size, StorageType<?> leftType, StorageType<?> rightType, ProblemAggregator problemAggregator) {
           return TextType.maxType(leftType, rightType)
-              .makeBuilder(size, BlackholeProblemAggregator.INSTANCE);
+              .makeBuilder(size, problemAggregator);
         }
       };
 
@@ -124,9 +124,9 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
           TextType.VARIABLE_LENGTH, (a, b) -> Text_Utils.compare_normalized(a, b) > 0 ? a : b) {
         @Override
         protected BuilderForType<String> makeStorageBuilder(
-            long size, StorageType<?> leftType, StorageType<?> rightType) {
+            long size, StorageType<?> leftType, StorageType<?> rightType, ProblemAggregator problemAggregator) {
           return TextType.maxType(leftType, rightType)
-              .makeBuilder(size, BlackholeProblemAggregator.INSTANCE);
+              .makeBuilder(size, problemAggregator);
         }
       };
 
@@ -161,7 +161,7 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
   }
 
   @Override
-  public ColumnStorage<T> applyMap(ColumnStorage<?> left, Object rightValue) {
+  public ColumnStorage<T> applyMap(ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
     if (rightValue == null) {
       return validType.asTypedStorage(left);
     }
@@ -175,12 +175,12 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
     return StorageIterators.mapOverStorage(
         validType.asTypedStorage(left),
         false,
-        makeStorageBuilder(left.getSize(), left.getType(), null),
+        makeStorageBuilder(left.getSize(), left.getType(), null, problemAggregator),
         (idx, value) -> zipOperation.apply(value, rightValueTyped));
   }
 
   @Override
-  public ColumnStorage<T> applyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
+  public ColumnStorage<T> applyZip(ColumnStorage<?> left, ColumnStorage<?> right, MapOperationProblemAggregator problemAggregator) {
     if (NullType.INSTANCE.isOfType(right.getType())) {
       return validType.asTypedStorage(left);
     }
@@ -188,7 +188,7 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T> {
     return StorageIterators.zipOverStorages(
         validType.asTypedStorage(left),
         validType.asTypedStorage(right),
-        size -> makeStorageBuilder(size, left.getType(), right.getType()),
+        size -> makeStorageBuilder(size, left.getType(), right.getType(), problemAggregator),
         false,
         (index, l, r) -> l == null ? r : (r == null ? l : zipOperation.apply(l, r)));
   }

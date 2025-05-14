@@ -17,7 +17,7 @@ public final class BooleanComparators {
         }
 
         @Override
-        protected ColumnBooleanStorage applyMapOverBoolStorage(
+        protected ColumnBooleanStorage applySpecializedMapOverBoolStorage(
             BoolStorage left, boolean rightBoolean, boolean rightIsNothing) {
           return rightBoolean ? left : left.makeNegated();
         }
@@ -32,7 +32,7 @@ public final class BooleanComparators {
         }
 
         @Override
-        protected ColumnBooleanStorage applyMapOverBoolStorage(
+        protected ColumnBooleanStorage applySpecializedMapOverBoolStorage(
             BoolStorage left, boolean rightBoolean, boolean rightIsNothing) {
           return rightBoolean ? left.makeNegated() : left;
         }
@@ -47,7 +47,7 @@ public final class BooleanComparators {
         }
 
         @Override
-        protected ColumnBooleanStorage applyMapOverBoolStorage(
+        protected ColumnBooleanStorage applySpecializedMapOverBoolStorage(
             BoolStorage left, boolean rightBoolean, boolean rightIsNothing) {
           return rightBoolean
               ? left.makeNegated()
@@ -65,7 +65,7 @@ public final class BooleanComparators {
         }
 
         @Override
-        protected ColumnBooleanStorage applyMapOverBoolStorage(
+        protected ColumnBooleanStorage applySpecializedMapOverBoolStorage(
             BoolStorage left, boolean rightBoolean, boolean rightIsNothing) {
           return rightBoolean
               ? new BoolStorage(
@@ -83,7 +83,7 @@ public final class BooleanComparators {
         }
 
         @Override
-        protected ColumnBooleanStorage applyMapOverBoolStorage(
+        protected ColumnBooleanStorage applySpecializedMapOverBoolStorage(
             BoolStorage left, boolean rightBoolean, boolean rightIsNothing) {
           return rightBoolean
               ? new BoolStorage(
@@ -101,7 +101,7 @@ public final class BooleanComparators {
         }
 
         @Override
-        protected ColumnBooleanStorage applyMapOverBoolStorage(
+        protected ColumnBooleanStorage applySpecializedMapOverBoolStorage(
             BoolStorage left, boolean rightBoolean, boolean rightIsNothing) {
           return rightBoolean
               ? left
