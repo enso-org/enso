@@ -3,7 +3,6 @@
  *
  * A paywall alert.
  */
-
 import LockIcon from '#/assets/lock.svg'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as paywall from '#/components/Paywall'

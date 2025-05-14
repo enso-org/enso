@@ -7,7 +7,7 @@ import * as React from 'react'
 import * as detect from 'enso-common/src/detect'
 
 import * as projectHooks from '#/hooks/projectHooks'
-import { CategoriesProvider } from '#/layouts/Drive/Categories/categoriesHooks'
+import { CategoriesProvider } from '#/layouts/Drive/Categories'
 import DriveProvider from '#/providers/DriveProvider'
 
 import * as backendProvider from '#/providers/BackendProvider'
@@ -91,7 +91,6 @@ function DashboardInner() {
 
   const categoriesAPI = useCategoriesAPI()
 
-  const openEditor = projectHooks.useOpenEditor()
   const openProjectLocally = projectHooks.useOpenProjectLocally()
 
   usePrefetchQuery({
@@ -142,7 +141,7 @@ function DashboardInner() {
     return () => {
       window.projectManagementApi?.setOpenProjectHandler(() => {})
     }
-  }, [openEditor, openProjectLocally, categoriesAPI])
+  }, [openProjectLocally, categoriesAPI])
 
   React.useEffect(() => {
     if (detect.isOnElectron()) {

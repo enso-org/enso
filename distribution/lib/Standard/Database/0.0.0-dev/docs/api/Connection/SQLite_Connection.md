@@ -23,3 +23,4 @@
     - tables self name_like:Standard.Base.Any.Any= database:Standard.Base.Any.Any= schema:Standard.Base.Any.Any= types:Standard.Base.Any.Any= all_fields:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - to_js_object self -> Standard.Base.Any.Any
     - truncate_table self table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data.from that:Standard.Database.Connection.SQLite_Connection.SQLite_Connection -> Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data

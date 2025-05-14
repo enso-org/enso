@@ -8,7 +8,6 @@ export const ASSET_PANEL_TABS = [
   'settings',
   'versions',
   'sessions',
-  'executions',
   'executionsCalendar',
   'docs',
 ] as const
