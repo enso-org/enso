@@ -1,10 +1,10 @@
 /** @file Settings tab for viewing and editing roles for all users in the organization. */
 import { useRef } from 'react'
 
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 
 import { Cell, Column, Row, Table, TableBody, TableHeader, useDragAndDrop } from '#/components/aria'
-import { Button, ButtonGroup } from '#/components/AriaComponents'
+import { Button, ButtonGroup, Popover } from '#/components/AriaComponents'
 import { PaywallDialogButton } from '#/components/Paywall'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { USER_MIME_TYPE } from '#/data/mimeTypes'
@@ -16,11 +16,10 @@ import {
 import { usePaywall } from '#/hooks/billing'
 import { useStickyTableHeaderOnScroll } from '#/hooks/scrollHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import NewUserGroupModal from '#/modals/NewUserGroupModal'
+import { NewUserGroupForm } from '#/modals/NewUserGroupModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useSetModal } from '#/providers/ModalProvider'
+import { useRemoteBackend } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
-import type Backend from '#/services/Backend'
 import {
   isPlaceholderUserGroupId,
   isUserGroupId,
@@ -28,18 +27,13 @@ import {
   type UserGroupInfo,
 } from '#/services/Backend'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import UserGroupRow from './UserGroupRow'
 import UserGroupUserRow from './UserGroupUserRow'
 
-/** Props for a {@link UserGroupsSettingsSection}. */
-export interface UserGroupsSettingsSectionProps {
-  readonly backend: Backend
-}
-
 /** Settings tab for viewing and editing organization members. */
-export default function UserGroupsSettingsSection(props: UserGroupsSettingsSectionProps) {
-  const { backend } = props
-  const { setModal } = useSetModal()
+export default function UserGroupsSettingsSection() {
+  const backend = useRemoteBackend()
   const { getText } = useText()
   const { user } = useFullUserSession()
   const toastAndLog = useToastAndLog()
@@ -47,12 +41,8 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   const { data: userGroups } = useListUserGroupsWithUsers(backend)
   const rootRef = useRef<HTMLDivElement>(null)
   const bodyRef = useRef<HTMLTableSectionElement>(null)
-  const changeUserGroup = useMutation(
-    backendMutationOptions(backend, 'changeUserGroup'),
-  ).mutateAsync
-  const deleteUserGroup = useMutation(
-    backendMutationOptions(backend, 'deleteUserGroup'),
-  ).mutateAsync
+  const changeUserGroup = useMutationCallback(backendMutationOptions(backend, 'changeUserGroup'))
+  const deleteUserGroup = useMutationCallback(backendMutationOptions(backend, 'deleteUserGroup'))
   const usersMap = new Map((users ?? []).map((otherUser) => [otherUser.userId, otherUser]))
   const isLoading = userGroups == null || users == null
   const isAdmin = user.isOrganizationAdmin
@@ -146,17 +136,12 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
             </PaywallDialogButton>
           )}
           {!shouldDisplayPaywall && (
-            <Button
-              size="medium"
-              variant="outline"
-              onPress={(event) => {
-                const rect = event.target.getBoundingClientRect()
-                const position = { pageX: rect.left, pageY: rect.top }
-                setModal(<NewUserGroupModal backend={backend} event={position} />)
-              }}
-            >
-              {getText('newUserGroup')}
-            </Button>
+            <Popover.Trigger>
+              <Button variant="outline">{getText('newUserGroup')}</Button>
+              <Popover size="small" placement="bottom left">
+                <NewUserGroupForm />
+              </Popover>
+            </Popover.Trigger>
           )}
 
           {isUnderPaywall && (
