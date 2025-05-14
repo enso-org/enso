@@ -181,7 +181,27 @@ final class UsedSymbolsCollector {
                     var resolvedNames = target.findExportedSymbolsFor(targetSymbolName.item());
                     var targetNameMatches = target.qualifiedName().equals(targetSymbolName);
                     var exportsSymbol = !resolvedNames.isEmpty();
-                    return targetNameMatches || exportsSymbol;
+                    if (targetNameMatches || exportsSymbol) {
+                      return true;
+                    }
+                    var suffix = dropPrefix(targetModName, targetSymbolName);
+                    if (suffix.size() > 1) {
+                      // We are trying to resolve a qualified name within a module of size greater
+                      // than
+                      // 1, an example is:
+                      // targetModName = "local.Proj.Module"
+                      // targetSymbolName = "local.Proj.Module.T.Cons"
+                      // The only reliable way to determine if this can be resolve inside the
+                      // module,
+                      // is via `resolveQualifiedNameIn` method.
+                      var suffixWithoutLast = suffix.subList(0, suffix.size() - 1);
+                      var last = suffix.get(suffix.size() - 1);
+                      var res =
+                          bindingsMap.resolveQualifiedNameIn(
+                              target, asScala(suffixWithoutLast).toList(), last);
+                      return res.toOption().isDefined();
+                    }
+                    return false;
                   });
       if (validTarget.isDefined()) {
         importDefs.add(impIR);
@@ -194,6 +214,22 @@ final class UsedSymbolsCollector {
         targetSymbolName,
         importDefsToString(importDefs));
     return importDefs;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static List<String> dropPrefix(QualifiedName prefix, QualifiedName name) {
+    var namePath = name.fullPath();
+    var subNamePath = prefix.fullPath();
+    assert namePath.size() >= subNamePath.size();
+    for (var i = 0; i < subNamePath.size(); i++) {
+      var nameItem = namePath.apply(i);
+      var subNameItem = subNamePath.apply(i);
+      if (!nameItem.equals(subNameItem)) {
+        throw new AssertionError(
+            "prefix '" + prefix + "' should be a prefix of name '" + name + "'");
+      }
+    }
+    return asJava(namePath.drop(subNamePath.size()));
   }
 
   private List<Import.Module> findImportIRs(ResolvedName resolvedName) {
