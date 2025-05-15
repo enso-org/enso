@@ -6,9 +6,7 @@ import project.Column.Column
 import project.In_Memory_Column.In_Memory_Column
 import project.Value_Type.Value_Type
 
-polyglot java import org.enso.table.data.column.operation.SampleOperation
 polyglot java import org.enso.table.data.column.operation.CountNonTrivialWhitespace
-polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.CountUntrimmed
 polyglot java import org.enso.table.data.column.operation.RequiresNumberFormatting
 
@@ -16,30 +14,22 @@ type In_Memory_Visualization_Helpers
     ## PRIVATE
        Counts the number of text values with leading or trailing whitespace.
        Used for data quality indicator in Table Viz.
-    count_untrimmed : Integer -> Integer | Nothing
-    count_untrimmed this_column sample_size:Integer =
-        if (_can_contain_text this_column.value_type).not then Nothing else
+    count_untrimmed this_column sample_size:Integer -> Integer | Nothing =
+        if (_can_contain_text (this_column:Column).value_type).not then Nothing else
             CountUntrimmed.apply (this_column:In_Memory_Column).java_column sample_size
 
     ## PRIVATE
        Indicates if a numeric column requires formatting in table viz
-    requires_numeric_formatter_check : Boolean
-    requires_numeric_formatter_check this_column =
-        if (this_column.value_type.is_numeric).not then False else
+    requires_numeric_formatter_check this_column -> Boolean =
+        if ((this_column:Column).value_type.is_numeric).not then False else
             RequiresNumberFormatting.apply (this_column:In_Memory_Column).java_column
 
     ## PRIVATE
        Counts the number of text values with non trivial whitespace.
        Used for data quality indicator in Table Viz.
-    count_non_trivial_whitespace : Integer -> Integer | Nothing
-    count_non_trivial_whitespace this_column sample_size:Integer =
-        if (_can_contain_text this_column.value_type).not then Nothing else
+    count_non_trivial_whitespace this_column sample_size:Integer -> Integer | Nothing =
+        if (_can_contain_text (this_column:Column).value_type).not then Nothing else
             CountNonTrivialWhitespace.apply (this_column:In_Memory_Column).java_column sample_size
-
-    ## PRIVATE
-       Default size for sampling data quality indicators.
-    default_sample_size -> Integer =
-        SampleOperation.DEFAULT_SAMPLE_SIZE
 
 ## PRIVATE
    Determines if a value type is eligable for a text data quality count

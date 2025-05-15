@@ -22,6 +22,7 @@ import project.Internal.Date_Time_Helpers
 import project.Internal.Read_Many_Helpers
 import project.Internal.Type_Refinements.Column_Refinements
 import project.Internal.In_Memory_Column_Constructors
+import project.Internal.Visualization_Helpers.Visualization_Helpers
 import project.Internal.Widget_Helpers
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
@@ -2244,6 +2245,9 @@ Many_Files_List.from (that : Column) =
     _ = that:In_Memory_Column
     Read_Many_Helpers.ensure_column_type_valid_to_be_files_list that <|
         Many_Files_List.Value that that.to_vector
+
+Visualization_Helpers.from (that : Column) =
+    Visualization_Helpers.from that.underlying
 
 ## PRIVATE
    Resolves the default date period for `date_add` depending on the source column value type.

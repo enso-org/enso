@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+polyglot java import org.enso.table.data.column.operation.SampleOperation
+
 ## PRIVATE
 type Visualization_Helpers
     ## PRIVATE
@@ -9,7 +11,7 @@ type Visualization_Helpers
        Counts the number of text values with leading or trailing whitespace.
        Used for data quality indicator in Table Viz.
     count_untrimmed : Integer -> Integer | Nothing
-    count_untrimmed self sample_size:Integer=self.default_sample_size =
+    count_untrimmed self sample_size:Integer=Visualization_Helpers.default_sample_size =
         self.implementation.count_untrimmed self.column sample_size
 
     ## PRIVATE
@@ -22,10 +24,10 @@ type Visualization_Helpers
        Counts the number of text values with non trivial whitespace.
        Used for data quality indicator in Table Viz.
     count_non_trivial_whitespace : Integer -> Integer | Nothing
-    count_non_trivial_whitespace self sample_size:Integer=self.default_sample_size =
+    count_non_trivial_whitespace self sample_size:Integer=Visualization_Helpers.default_sample_size =
         self.implementation.count_non_trivial_whitespace self.column sample_size
 
     ## PRIVATE
        Default size for sampling data quality indicators.
-    default_sample_size self -> Integer =
-        self.implementation.default_sample_size
+    default_sample_size -> Integer =
+        SampleOperation.DEFAULT_SAMPLE_SIZE
