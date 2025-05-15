@@ -104,7 +104,7 @@ public interface Function extends Expression {
 
     public Lambda copyWithBody(Expression newBody) {
       return copy(
-          diagnostics,
+          diagnosticsCopy(),
           passData,
           location,
           id,
@@ -115,8 +115,8 @@ public interface Function extends Expression {
 
     public Lambda copyWithArgumentsAndBody(List<DefinitionArgument> arguments, Expression body) {
       return copy(
-          diagnostics,
-          passData,
+          diagnosticsCopy(),
+          passData.duplicate(),
           location,
           id,
           arguments,
@@ -125,7 +125,14 @@ public interface Function extends Expression {
     }
 
     public Lambda copyWithArguments(List<DefinitionArgument> newArgs) {
-      return copy(diagnostics, passData, location, id, newArgs, bodyReference(), canBeTCO());
+      return copy(
+          diagnosticsCopy(),
+          passData.duplicate(),
+          location,
+          id,
+          newArgs,
+          bodyReference(),
+          canBeTCO());
     }
 
     @Override
@@ -175,7 +182,15 @@ public interface Function extends Expression {
 
     public Function.Binding copyWithBody(Expression body) {
       return copy(
-          diagnostics, passData, location, id, name(), arguments(), body, isPrivate(), canBeTCO());
+          diagnosticsCopy(),
+          passData.duplicate(),
+          location,
+          id,
+          name(),
+          arguments(),
+          body,
+          isPrivate(),
+          canBeTCO());
     }
   }
 }
