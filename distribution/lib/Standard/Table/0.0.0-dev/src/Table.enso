@@ -50,7 +50,6 @@ import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Writer
 import project.Internal.Display_Helpers
 import project.Internal.Expand_Objects_Helpers
-import project.Internal.In_Memory_Column_Constructors
 import project.Internal.In_Memory_Column_Implementation.In_Memory_Column_Implementation
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
@@ -351,7 +350,7 @@ type Table
     @selector Widget_Helpers.make_column_name_selector
     at self (selector : Integer | Text = 0) -> Column ! No_Such_Column | Index_Out_Of_Bounds = case selector of
         _ : Integer ->
-            In_Memory_Column_Constructors.from_java_column (self.java_table.getColumns.at selector)
+            In_Memory_Column.from_java_column (self.java_table.getColumns.at selector)
         _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
 
     ## ICON select_column
@@ -393,7 +392,7 @@ type Table
         java_column = case selector of
             _ : Integer -> Vector.from_polyglot_array self.java_table.getColumns . get selector
             _ : Text -> self.java_table.getColumnByName selector
-        if java_column.is_nothing then if_missing else In_Memory_Column_Constructors.from_java_column java_column
+        if java_column.is_nothing then if_missing else In_Memory_Column.from_java_column java_column
 
     ## ALIAS cell value, get cell
        GROUP Standard.Base.Selections
@@ -1564,7 +1563,7 @@ type Table
                         new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                             parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator column.name type
                             parser.parseColumn storage parse_problem_aggregator
-                        In_Memory_Column_Constructors.from_storage column.name new_storage
+                        In_Memory_Column.from_storage column.name new_storage
             Table.new new_columns
 
     ## GROUP Standard.Base.Conversions
@@ -2601,7 +2600,7 @@ type Table
              example_columns = Examples.inventory_table.columns
     columns self -> Vector = Vector.from_polyglot_array <|
         Array_Proxy.new self.java_table.getColumns.length i->
-            In_Memory_Column_Constructors.from_java_column (self.java_table.getColumns.at i)
+            In_Memory_Column.from_java_column (self.java_table.getColumns.at i)
 
     ## GROUP Standard.Base.Metadata
        ICON metadata

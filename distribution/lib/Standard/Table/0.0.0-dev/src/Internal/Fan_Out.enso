@@ -4,7 +4,6 @@ import Standard.Base.Runtime.Ref.Ref
 
 import project.Column.Column
 import project.In_Memory_Column.In_Memory_Column
-import project.Internal.In_Memory_Column_Constructors
 import project.Columns_To_Add.Columns_To_Add
 import project.Conversions.Convertible_To_Rows.Key_Value
 import project.Internal.Problem_Builder.Problem_Builder
@@ -133,7 +132,7 @@ fan_out_to_rows_and_columns table input_column_id function column_names at_least
     new_columns_unflattened = table.columns.map column->
         # Replace the input column with the output columns.
         if column.name == input_column_id then output_columns else
-            [In_Memory_Column_Constructors.from_java_column ((column:In_Memory_Column).java_column.applyMask order_mask)]
+            [In_Memory_Column.from_java_column ((column:In_Memory_Column).java_column.applyMask order_mask)]
     new_table = Table.new new_columns_unflattened.flatten
     problem_builder.attach_problems_after on_problems new_table
 
@@ -165,7 +164,7 @@ fan_out_to_rows_and_columns_fixed input_storage function at_least_one_row:Boolea
         repeat_each output_values.length <| order_mask_positions.append i
 
     output_columns = column_names.map_with_index i->n->
-        In_Memory_Column_Constructors.from_storage n (output_column_builders.at i . seal)
+        In_Memory_Column.from_storage n (output_column_builders.at i . seal)
 
     [output_columns, order_mask_positions]
 
@@ -223,7 +222,7 @@ fan_out_to_rows_and_columns_dynamic input_storage function at_least_one_row colu
 
     # Build the output column
     output_columns = column_dict.get.to_vector.sort on=_.second . map pair->
-        In_Memory_Column_Constructors.from_storage pair.first (output_column_builders.at pair.second . seal)
+        In_Memory_Column.from_storage pair.first (output_column_builders.at pair.second . seal)
 
     [output_columns, order_mask_positions]
 
@@ -303,7 +302,7 @@ map_columns_to_multiple input_column function column_count column_builder=make_s
 
     # Build Columns.
     storages = builders.map .seal
-    new_column_names.zip storages In_Memory_Column_Constructors.from_storage
+    new_column_names.zip storages In_Memory_Column.from_storage
 
 ## PRIVATE
    Rename a vector of columns to be unique when added to a table.
