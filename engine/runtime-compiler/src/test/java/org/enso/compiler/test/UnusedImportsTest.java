@@ -524,6 +524,53 @@ public class UnusedImportsTest {
   }
 
   @Test
+  public void usedSymbol_InCaseBranch_TypeConstructor() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            type T
+                Cons
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import T
+            foo x =
+                case x of
+                    T.Cons -> 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectNoWarnings(mainMod.getIr());
+  }
+
+  @Test
+  public void usedSymbol_InCaseBranch_TypeConstructor_Reexport() {
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Other_Module"),
+        """
+            type X
+                Cons
+            """);
+    compilerCtx.createModule(
+        QualifiedName.fromString("local.Proj.Module"),
+        """
+            export project.Other_Module.X as T
+            """);
+    var mainMod =
+        compilerCtx.createModule(
+            QualifiedName.fromString("local.Proj.Main"),
+            """
+            from project.Module import T
+            foo x =
+                case x of
+                    T.Cons -> 42
+            """);
+    compilerCtx.getCompiler().run(mainMod);
+    expectNoWarnings(mainMod.getIr());
+  }
+
+  @Test
   public void usedSymbol_InAnnotation_MethodCall() {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Proj.Module"), """
