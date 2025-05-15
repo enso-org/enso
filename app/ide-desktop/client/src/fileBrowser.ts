@@ -1,4 +1,4 @@
-import type { FileFilter } from 'enso-common/src/fileFilter'
+import type { FileFilter } from 'enso-gui/src/project-view/util/fileFilter'
 
 export type { FileFilter }
 

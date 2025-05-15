@@ -5,8 +5,8 @@
  */
 /// <reference types="vite/client" />
 import type * as saveAccessToken from 'enso-common/src/accessToken'
-import type { FileFilter } from 'enso-common/src/fileFilter'
 import type { $Config } from './src/config'
+import type { FileFilter } from './src/project-view/util/fileFilter'
 
 /** Nested configuration options with `string` values. */
 interface StringConfig {
