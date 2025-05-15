@@ -1,5 +1,5 @@
 import { createContextStore } from '@/providers'
-import { ref, shallowRef, toRaw, watch, type WatchSource } from 'vue'
+import { shallowRef, toRaw, watch, type WatchSource } from 'vue'
 
 export const [provideInteractionHandler, injectInteractionHandler] = createContextStore(
   'Interaction handler',
@@ -38,14 +38,13 @@ export class InteractionHandler {
     active: WatchSource<boolean>,
     interactionBuilder: (parent: Interaction | undefined) => Interaction,
   ) {
-    const activeInteraction = ref<Interaction>()
-    watch(active, (active) => {
+    watch(active, (active, _old, onCleanup) => {
       if (active) {
         const interaction = interactionBuilder(this.getCurrent())
         this.setCurrent(interaction)
-        activeInteraction.value = interaction
-      } else if (activeInteraction.value) {
-        this.end(toRaw(activeInteraction.value))
+        onCleanup(() => {
+          this.end(toRaw(interaction))
+        })
       }
     })
   }
