@@ -1,7 +1,15 @@
 <script setup lang="ts">
+import TooltipTrigger from '@/components/TooltipTrigger.vue'
+import { Icon } from '@/util/iconMetadata/iconName'
 import { motion } from 'motion-v'
+import CloseButton from '../CloseButton.vue'
 
 const selected = defineModel<boolean>('selected')
+defineProps<{
+  icon?: Icon | undefined
+  label?: string | undefined
+  onClose?: (() => void) | undefined
+}>()
 </script>
 
 <template>
@@ -17,8 +25,13 @@ const selected = defineModel<boolean>('selected')
         class="absolute -right-5 bottom-0 aspect-square w-5 -rotate-90 [background:radial-gradient(circle_at_100%_100%,_transparent_70%,_var(--color-dashboard-background)_70%)]"
       />
     </motion.div>
-    <button role="tab" class="label">
+    <button role="tab" class="content">
+      <SvgIcon v-if="icon" :name="icon" />
       <slot />
+      <TooltipTrigger when="when-overflow">
+        <span v-if="label" class="label">{{ label }}</span>
+      </TooltipTrigger>
+      <CloseButton v-if="onClose" @click="onClose" />
     </button>
   </div>
 </template>
@@ -42,7 +55,7 @@ const selected = defineModel<boolean>('selected')
   z-index: -1;
 }
 
-.label {
+.content {
   height: 100%;
   padding: 8px;
   display: flex;
@@ -57,5 +70,11 @@ const selected = defineModel<boolean>('selected')
   &:active {
     background-color: var(--color-dashboard-background);
   }
+}
+
+.label {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>
