@@ -95,15 +95,18 @@ function useSortFilterNodesButton({
     return Ast.App.positional(Ast.PropertyAccess.new(ast.module, ast, Ast.identifier(name)!), arg)
   }
 
-  function createFilterCall(ast: Ast.Owned<Ast.MutableExpression>, expr: Owned<MutableExpression>) {
+  function createFilterCall(
+    ast: Ast.Owned<Ast.MutableExpression>,
+    expr: Owned<MutableExpression>,
+    parentPattern: any,
+  ) {
+    const style = {
+      spaced: parentPattern !== undefined,
+    }
     return Ast.App.positional(
-      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
+      Ast.PropertyAccess.new(ast.module, parentPattern, Ast.identifier('filter')!, style),
       expr,
     )
-  }
-
-  function createSortCall(ast: Ast.Owned<Ast.MutableExpression>, expr: Owned<MutableExpression>) {
-    return Ast.App.positional(Ast.Ident.new(ast.module, Ast.identifier('sort')!), expr)
   }
 
   function buildFilterExpression(
@@ -184,15 +187,15 @@ function useSortFilterNodesButton({
   }
 
   function buildPattern(
+    ast: Ast.Owned<Ast.MutableExpression>,
+    parentPattern: any,
     columnName: string,
     filterType: FilterType,
     filterAction: FilterAction,
     value?: string[] | string | FilterValueRange,
   ) {
-    return (ast: Ast.Owned<Ast.MutableExpression>) => {
-      const filterExpr = buildFilterExpression(ast, columnName, filterType, filterAction, value)
-      return createFilterCall(ast, filterExpr)
-    }
+    const filterExpr = buildFilterExpression(ast, columnName, filterType, filterAction, value)
+    return createFilterCall(ast, filterExpr, parentPattern)
   }
 
   function getAstPatternSort(): Pattern {
@@ -209,10 +212,9 @@ function useSortFilterNodesButton({
     const filters = toValue(filterModel)
     const sorts = toValue(sortModel)
 
-    if(sorts.length > 0) {
+    if (sorts.length > 0) {
       patterns.push(getAstPatternSort())
     }
-    
 
     const columnsToRemove = toValue(hiddenColumns)
     if (columnsToRemove.length) {
@@ -240,18 +242,30 @@ function useSortFilterNodesButton({
       )
     }
 
-    const filterPatterns = new Array<ConstructivePattern>()
+    function projector(parentPattern: ConstructivePattern | undefined) {
+      return (columnName: any, filterAction: any, filterType: any, value: any) =>
+        (ast: Ast.Owned<Ast.MutableExpression>) => {
+          const parentPat = parentPattern ? parentPattern(ast) : ast
+          return buildPattern(ast, parentPat, columnName, filterAction, filterType, value)
+        }
+    }
+
+    let filterPatterns = new Array<ConstructivePattern>()
     for (const filter of filters) {
       const { columnName, filterAction, filterType } = filter
       const value = getFilterValue(filter)
 
-      filterPatterns.push(
-        buildPattern(columnName, filterType, filterAction as FilterAction, value),
-      )
+      filterPatterns = (filterPatterns.length ? filterPatterns : [undefined]).flatMap((parent) => {
+        const projectionFunction = projector(parent)
+        const pattern = projectionFunction(columnName, filterType, filterAction, value)
+        return [pattern]
+      })
     }
+
     createNodes(
       ...filterPatterns.map(
-        (pattern) => ({ content: Pattern.new(pattern), commit: true }) satisfies NodeCreationOptions,
+        (pattern) =>
+          ({ content: Pattern.new(pattern), commit: true }) satisfies NodeCreationOptions,
       ),
     )
 
