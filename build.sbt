@@ -1812,6 +1812,9 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         MergeStrategy.discard
       case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
         MergeStrategy.discard
+      case PathList("META-INF", "services", file)
+          if file.startsWith("org.enso") =>
+        MergeStrategy.concat
       // This fat Jar must not be an explicit module, so discard all the module-info classes
       case PathList(xs @ _*) if xs.last.contains("module-info") =>
         MergeStrategy.discard
@@ -3063,7 +3066,6 @@ lazy val `runtime-integration-tests` =
         val testClassesDir = (Test / productDirectories).value.head
         // Patching with sources is useful for compilation, patching with compiled classes for runtime.
         val javaSrcDir = (Test / javaSource).value
-        //(`logging-service-logback`)
         Map(
           (`runtime` / javaModuleName).value -> Seq(javaSrcDir, testClassesDir)
         )

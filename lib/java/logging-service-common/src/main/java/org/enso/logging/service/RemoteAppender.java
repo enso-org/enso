@@ -11,13 +11,15 @@ import org.slf4j.Logger;
 /**
  * Background job processing inspired by {@code org.enso.base.enso_cloud.logging.LogApiAccess}.
  *
- * <p>This appender is supposed to be started by the project manager, within {@link
- * org.enso.logging.service.logback.LoggingServer}. The logging events that are received in this
- * {@link RemoteAppender#append(ILoggingEvent)} method are received from a socket and deserialized
- * by the logback framework. Thus, the {@link ILoggingEvent#getArgumentArray() log event arguments}
- * are most likely strings.
+ * <p>This base class appender encapsulates the core logic needed to send logs a remote endpoint
+ * provided by Enso infrastructure. It is supposed to be started by the project manager, within
+ * {@link org.enso.logging.service.logback.LoggingServer}. The logging events that are received in
+ * this {@link RemoteAppender#append(ILoggingEvent)} method are received from a socket and
+ * deserialized by the logback framework. Thus, the {@link ILoggingEvent#getArgumentArray() log
+ * event arguments} are most likely strings.
  */
-public abstract class RemoteAppender extends org.enso.logging.service.logback.RemoteAppender {
+public abstract class RemoteAppender
+    extends org.enso.logging.service.logback.AbstractRemoteAppender {
   private static final String CREDENTIALS_FILE_ENV = "ENSO_CLOUD_CREDENTIALS_FILE";
   private final Logger logger;
   private Credentials credentials;

@@ -66,7 +66,7 @@ public abstract class LoggerSetup {
    */
   public abstract boolean setupMemoryAppender(Level logLevel);
 
-  public abstract boolean setupTelemetryAppender(boolean logConnectionFailures);
+  public abstract boolean setupTelemetryAppender(URI logsEndpoint, boolean logConnectionFailures);
 
   /**
    * Setup forwarding logger's log events to an opensearch endpoint.

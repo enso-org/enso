@@ -265,11 +265,14 @@ public final class LogbackSetup extends LoggerSetup {
   }
 
   @Override
-  public boolean setupTelemetryAppender(boolean logConnectionFailures) {
+  public boolean setupTelemetryAppender(URI logsEndpoint, boolean logConnectionFailures) {
     LoggerAndContext env = contextInit(Level.DEBUG, config, false);
-    RemoteAppender telemetryAppender;
+    AbstractRemoteAppender telemetryAppender;
     try {
-      telemetryAppender = TelemetryAppender.load();
+      telemetryAppender = AbstractRemoteAppender.loadTelemetryAppender();
+      if (telemetryAppender == null) {
+        return false;
+      }
     } catch (Exception e) {
       return false;
     }
@@ -280,15 +283,13 @@ public final class LogbackSetup extends LoggerSetup {
     }
 
     telemetryAppender.setName("telemetry");
-
-    var cloudUri = URI.create(getCloudLogsAPIEndpoint());
-    telemetryAppender.setEndpoint(cloudUri);
+    telemetryAppender.setEndpoint(logsEndpoint);
+    telemetryAppender.setLogConnectionFailures(logConnectionFailures);
 
     // We set-up a thread 'pool' that will contain at most one thread.
     // If the thread is idle for 60 seconds, it will be shut down.
     var executor = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
     telemetryAppender.setExecutor(executor);
-    telemetryAppender.setLogConnectionFailures(logConnectionFailures);
 
     var telemetryLogger = env.ctx.getLogger("org.enso.telemetry");
     telemetryLogger.addAppender(telemetryAppender);
@@ -303,9 +304,12 @@ public final class LogbackSetup extends LoggerSetup {
   public boolean setupOpenSearchAppender(
       Level logLevel, URI logsEndpoint, boolean logConnectionFailures) {
     LoggerAndContext env = contextInit(logLevel, config, false);
-    RemoteAppender openSearchAppender;
+    AbstractRemoteAppender openSearchAppender;
     try {
-      openSearchAppender = OpenSearchAppender.load();
+      openSearchAppender = AbstractRemoteAppender.loadGenericRemoteAppender();
+      if (openSearchAppender == null) {
+        return false;
+      }
     } catch (Exception e) {
       return false;
     }

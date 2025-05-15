@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
  * appender.
  */
 @org.openide.util.lookup.ServiceProvider(
-    service = org.enso.logging.service.logback.RemoteAppender.class)
+    service = org.enso.logging.service.logback.AbstractRemoteAppender.class)
 public final class TelemetryAppenderImpl extends org.enso.logging.service.RemoteAppender {
 
   public TelemetryAppenderImpl() {
@@ -34,5 +34,15 @@ public final class TelemetryAppenderImpl extends org.enso.logging.service.Remote
       boolean logConnectionFailures) {
     return new TelemetryLogJobsProcessor(
         executor, endpoint, authenticationData, tokenRefresher, logConnectionFailures);
+  }
+
+  @Override
+  public boolean canLogTelemetry() {
+    return true;
+  }
+
+  @Override
+  public boolean canLogGenericMessages() {
+    return false;
   }
 }

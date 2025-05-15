@@ -1,6 +1,7 @@
 package org.enso.logging.config;
 
 import com.typesafe.config.Config;
+import java.net.URI;
 import org.slf4j.event.Level;
 
 /** A (so far) empty config for Telemetry appender. */
@@ -28,6 +29,6 @@ public final class TelemetryAppender extends Appender {
 
   @Override
   public boolean setup(Level logLevel, LoggerSetup loggerSetup) {
-    return loggerSetup.setupTelemetryAppender(logConnectionFailures);
+    return loggerSetup.setupTelemetryAppender(URI.create(logsUri), logConnectionFailures);
   }
 }

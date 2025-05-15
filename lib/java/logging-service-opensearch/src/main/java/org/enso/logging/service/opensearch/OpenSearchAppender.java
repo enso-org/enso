@@ -8,7 +8,7 @@ import org.enso.logging.service.TokenRefresher;
 import org.slf4j.LoggerFactory;
 
 @org.openide.util.lookup.ServiceProvider(
-    service = org.enso.logging.service.logback.RemoteAppender.class)
+    service = org.enso.logging.service.logback.AbstractRemoteAppender.class)
 public final class OpenSearchAppender extends org.enso.logging.service.RemoteAppender {
 
   public OpenSearchAppender() {
@@ -29,5 +29,15 @@ public final class OpenSearchAppender extends org.enso.logging.service.RemoteApp
       boolean logConnectionFailures) {
     return new OpenSearchLogJobsProcessor(
         executor, endpoint, authenticationData, tokenRefresher, logConnectionFailures);
+  }
+
+  @Override
+  public boolean canLogTelemetry() {
+    return false;
+  }
+
+  @Override
+  public boolean canLogGenericMessages() {
+    return true;
   }
 }

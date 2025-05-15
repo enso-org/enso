@@ -13,8 +13,6 @@ module org.enso.logging.service.logback {
 
   exports org.enso.logging.service.logback;
 
-  uses org.enso.logging.service.logback.TelemetryAppender;
-
   provides LoggerSetup with
       org.enso.logging.service.logback.LogbackSetup;
   provides Service with
