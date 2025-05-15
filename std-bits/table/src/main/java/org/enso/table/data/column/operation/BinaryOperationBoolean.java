@@ -45,6 +45,11 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
     boolean rightIsNothing = rightValue == null;
     boolean rightBoolean = !rightIsNothing && (boolean) rightValue;
 
+    if (left.getType() instanceof NullType) {
+      return applySpecializedMapOverNullStorage(
+          left, rightBoolean, rightIsNothing, problemAggregator);
+    }
+
     if (left instanceof BoolStorage leftBoolStorage) {
       var result =
           applySpecializedMapOverBoolStorage(
@@ -79,6 +84,10 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
       return applyMap(left, null, problemAggregator);
     }
 
+    if (left.getType() instanceof NullType) {
+      return applySpecializedZipOverNullStorage(left, right, problemAggregator);
+    }
+
     if ((left instanceof BoolStorage leftBoolStorage)
         && (right instanceof BoolStorage rightBoolStorage)) {
       var result =
@@ -107,6 +116,24 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
   }
 
   /**
+   * Provides a specialized implementation for the map operation over null storage.
+   *
+   * @return Computed result.
+   */
+  protected ColumnStorage<Boolean> applySpecializedMapOverNullStorage(
+      ColumnStorage<?> left,
+      boolean rightBoolean,
+      boolean rightIsNothing,
+      MapOperationProblemAggregator problemAggregator) {
+    if (preserveNulls) {
+      return BoolStorage.makeEmpty(left.getSize());
+    } else {
+      throw new IllegalStateException(
+          "Cannot apply map operation over null storage with preserveNulls set to false.");
+    }
+  }
+
+  /**
    * Provides a specialized implementation for the map operation over BoolStorage.
    *
    * @return Computed result or null to fallback to the standard implementation.
@@ -117,6 +144,23 @@ public abstract class BinaryOperationBoolean extends BinaryOperationBase<Boolean
       boolean rightIsNothing,
       MapOperationProblemAggregator problemAggregator) {
     return null;
+  }
+
+  /**
+   * Provides a specialized implementation for the map operation over null storage.
+   *
+   * @return Computed result.
+   */
+  protected ColumnStorage<Boolean> applySpecializedZipOverNullStorage(
+      ColumnStorage<?> left,
+      ColumnStorage<?> right,
+      MapOperationProblemAggregator problemAggregator) {
+    if (preserveNulls) {
+      return BoolStorage.makeEmpty(left.getSize());
+    } else {
+      throw new IllegalStateException(
+          "Cannot apply zip operation over null storage with preserveNulls set to false.");
+    }
   }
 
   /**
