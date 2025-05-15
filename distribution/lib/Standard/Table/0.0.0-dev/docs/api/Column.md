@@ -108,3 +108,4 @@
 - Standard.Table.Column.Column.from that:Standard.Base.Data.Time.Date_Range.Date_Range name:Standard.Base.Data.Text.Text= -> Standard.Table.Column.Column
 - Standard.Base.Data.Text.Text_Cleanse.Cleansable_Text.from that:Standard.Table.Column.Column -> Standard.Base.Data.Text.Text_Cleanse.Cleansable_Text
 - Standard.Base.Data.Read.Many_Files_List.Many_Files_List.from that:Standard.Table.Column.Column -> Standard.Base.Data.Read.Many_Files_List.Many_Files_List
+- Standard.Table.Internal.Visualization_Helpers.Visualization_Helpers.from that:Standard.Table.Column.Column -> Standard.Table.Internal.Visualization_Helpers.Visualization_Helpers
