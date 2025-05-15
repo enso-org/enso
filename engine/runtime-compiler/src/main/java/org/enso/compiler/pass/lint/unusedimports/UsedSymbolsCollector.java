@@ -16,7 +16,9 @@ import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.data.BindingsMap;
+import org.enso.compiler.data.BindingsMap.ImportTarget;
 import org.enso.compiler.data.BindingsMap.Resolution;
+import org.enso.compiler.data.BindingsMap.ResolvedModule;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
 import org.enso.compiler.pass.lint.unusedimports.UsedSymbols.Builder;
 import org.enso.compiler.pass.resolve.GenericAnnotations$;
@@ -178,12 +180,21 @@ final class UsedSymbolsCollector {
               .targets()
               .find(
                   target -> {
-                    var resolvedNames = target.findExportedSymbolsFor(targetSymbolName.item());
-                    var targetNameMatches = target.qualifiedName().equals(targetSymbolName);
-                    var exportsSymbol = !resolvedNames.isEmpty();
-                    if (targetNameMatches || exportsSymbol) {
+                    if (target.qualifiedName().equals(targetSymbolName)) {
                       return true;
                     }
+                    if (exportsSymbol(target, targetSymbolName.item())) {
+                      return true;
+                    }
+
+                    if (target instanceof ResolvedModule) {
+                      var qualifiedRes =
+                          bindingsMap.resolveQualifiedName(targetSymbolName.fullPath());
+                      if (qualifiedRes.toOption().isDefined()) {
+                        return true;
+                      }
+                    }
+
                     var suffix = dropPrefix(targetModName, targetSymbolName);
                     if (suffix.size() > 1) {
                       // We are trying to resolve a qualified name within a module of size greater
@@ -214,6 +225,11 @@ final class UsedSymbolsCollector {
         targetSymbolName,
         importDefsToString(importDefs));
     return importDefs;
+  }
+
+  private static boolean exportsSymbol(ImportTarget target, String symbol) {
+    var resolvedNames = target.findExportedSymbolsFor(symbol);
+    return !resolvedNames.isEmpty();
   }
 
   @SuppressWarnings("unchecked")
