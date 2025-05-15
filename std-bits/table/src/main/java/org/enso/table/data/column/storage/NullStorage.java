@@ -64,8 +64,6 @@ public class NullStorage extends Storage<Void> {
     ops.add(new NullOp(Maps.DIV));
     ops.add(new NullOp(Maps.MOD));
     ops.add(new NullOp(Maps.POWER));
-    ops.add(new NullOrOp());
-
     return ops;
   }
 
@@ -186,21 +184,6 @@ public class NullStorage extends Storage<Void> {
         }
       }
       return builder.seal();
-    }
-  }
-
-  private static class NullOrOp extends BoolAndNullOp {
-    public NullOrOp() {
-      super(Maps.OR);
-    }
-
-    @Override
-    protected Boolean doBool(boolean a) {
-      if (a) {
-        return true;
-      } else {
-        return null;
-      }
     }
   }
 }

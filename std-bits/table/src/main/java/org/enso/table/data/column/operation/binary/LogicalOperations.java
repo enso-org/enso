@@ -8,7 +8,6 @@ import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.util.BitSets;
 
 /**
@@ -18,12 +17,22 @@ import org.enso.table.util.BitSets;
  * boolean columns.
  */
 public final class LogicalOperations {
+  /** The logical AND operation instance. */
   public static final BinaryOperation<Boolean> AND = new BooleanAndOperation();
 
+  /** The logical OR operation instance. */
+  public static final BinaryOperation<Boolean> OR = new BooleanOrOperation();
+
   /**
-   * Logical AND with support for Nulls: True && True = True True && False = False False && True =
-   * False False && False = False True && Null = Null Null && True = Null False && Null = False Null
-   * && False = False
+   * Logical AND with support for Nulls:
+   * - True && True = True
+   * - True && False = False
+   * - False && True = False
+   * - False && False = False
+   * - True && Null = Null
+   * - Null && True = Null
+   * - False && Null = False
+   * - Null && False = False
    */
   private static class BooleanAndOperation extends BinaryOperationBoolean {
     private BooleanAndOperation() {
@@ -82,7 +91,7 @@ public final class LogicalOperations {
         ColumnStorage<?> left,
         ColumnStorage<?> right,
         MapOperationProblemAggregator problemAggregator) {
-      return super.applyZip(right, left, problemAggregator);
+      return super.applyMap(right, null, problemAggregator);
     }
 
     @Override
@@ -124,6 +133,125 @@ public final class LogicalOperations {
         if (a == Boolean.FALSE || b == Boolean.FALSE) {
           isNothing.clear(current);
           out.set(current, negated);
+        }
+        current = isNothing.nextSetBit(current + 1);
+      }
+
+      return new BoolStorage(out, isNothing, size, negated);
+    }
+  }
+
+  /**
+   * Logical OR with support for Nulls:
+   * - True || True = True
+   * - True || False = True
+   * - False || True = True
+   * - False || False = False
+   * - True || Null = True
+   * - Null || True = True
+   * - False || Null = Null
+   * - Null || False = Null
+   */
+  private static class BooleanOrOperation extends BinaryOperationBoolean {
+    private BooleanOrOperation() {
+      super(false, true);
+    }
+
+    @Override
+    protected Boolean applySingle(
+        boolean left, boolean isNothing, boolean right, boolean isNothingRight) {
+      if (isNothing) {
+        return isNothingRight || !right ? null : true;
+      } else if (isNothingRight) {
+        return left ? true : null;
+      } else {
+        return left || right;
+      }
+    }
+
+    @Override
+    protected ColumnStorage<Boolean> applySpecializedMapOverNullStorage(
+        ColumnStorage<?> left,
+        boolean rightBoolean,
+        boolean rightIsNothing,
+        MapOperationProblemAggregator problemAggregator) {
+      return rightIsNothing || !rightBoolean
+          ? BoolStorage.makeEmpty(left.getSize())
+          : BoolStorage.makeConstant(Builder.checkSize(left.getSize()), true);
+    }
+
+    @Override
+    protected ColumnBooleanStorage applySpecializedMapOverBoolStorage(
+        BoolStorage left,
+        boolean rightBoolean,
+        boolean rightIsNothing,
+        MapOperationProblemAggregator problemAggregator) {
+      int size = (int) left.getSize();
+      if (!rightIsNothing) {
+        return rightBoolean ? BoolStorage.makeConstant(size, true) : left;
+      }
+
+      BitSet values = left.getValues();
+      if (left.isNegated()) {
+        var newMissing = left.getIsNothingMap().get(0, size);
+        newMissing.or(values);
+        return new BoolStorage(new BitSet(), newMissing, size, false);
+      } else {
+        var newMissing = new BitSet(size);
+        newMissing.flip(0, size);
+        newMissing.xor(values);
+        return new BoolStorage(values, newMissing, size, true);
+      }
+    }
+
+    @Override
+    protected ColumnStorage<Boolean> applySpecializedZipOverNullStorage(
+        ColumnStorage<?> left,
+        ColumnStorage<?> right,
+        MapOperationProblemAggregator problemAggregator) {
+      return super.applyMap(right, null, problemAggregator);
+    }
+
+    @Override
+    protected ColumnBooleanStorage applySpecializedZipOverBoolStorage(
+        BoolStorage left, BoolStorage right, MapOperationProblemAggregator problemAggregator) {
+      int size = (int) left.getSize();
+      int rightSize = (int) right.getSize();
+      BitSet values = left.getValues();
+
+      // Compute the output set
+      BitSet out = right.getValues().get(0, size);
+      boolean negated;
+      if (left.isNegated()) {
+        if (right.isNegated()) {
+          out.and(values);
+          negated = true;
+        } else {
+          out.flip(0, size);
+          out.and(values);
+          negated = true;
+        }
+      } else if (right.isNegated()) {
+        out.flip(0, size);
+        out.or(values);
+        negated = false;
+      } else {
+        out.or(values);
+        negated = false;
+      }
+
+      BitSet isNothing = BitSets.makeDuplicate(left.getIsNothingMap());
+      isNothing.or(right.getIsNothingMap());
+      if (size > rightSize) {
+        isNothing.set(rightSize, size);
+      }
+      int current = isNothing.nextSetBit(0);
+      while (current != -1) {
+        Boolean a = left.getItemBoxed(current);
+        Boolean b = (current < rightSize) ? right.getItemBoxed(current) : null;
+        if (a == Boolean.TRUE || b == Boolean.TRUE) {
+          isNothing.clear(current);
+          out.set(current, !negated);
         }
         current = isNothing.nextSetBit(current + 1);
       }

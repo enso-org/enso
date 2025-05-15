@@ -77,7 +77,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     public static final String MOD = "%";
     public static final String POWER = "^";
     public static final String ROUND = "round";
-    public static final String OR = "||";
     public static final String IS_IN = "is_in";
   }
 
