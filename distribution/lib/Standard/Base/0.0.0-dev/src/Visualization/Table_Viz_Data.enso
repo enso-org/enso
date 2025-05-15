@@ -25,7 +25,8 @@ type Table_Viz_Data
             Table_Viz_Data.SingleColumnOfActions _ _ _ _ _ -> _make_json_for_single_column_of_actions self.js_value self.data self.title self.tooltip self.child_node_action
 
 private _make_json_for_single_column_of_actions js_value data title tooltip child_node_action =
-    JS_Object.from_pairs [["json", js_value], ["data", data], ["visualization_header", title], ["child_label", tooltip], ["get_child_node_action", child_node_action], ["type", "Single_Column_Of_Actions"]]
+    headers = ["headers", [JS_Object.from_pairs [["visualization_header", "sc"]], JS_Object.from_pairs [["visualization_header", title], ["child_label", tooltip], ["get_child_node_action", child_node_action]]]]
+    JS_Object.from_pairs [["json", js_value], ["data", [["a"], data]], headers, ["type", "Generic_Grid"]]
 
 private _make_json_for_error error_display_text =
     pairs = [["type", "Error"], ["error", error_display_text]]

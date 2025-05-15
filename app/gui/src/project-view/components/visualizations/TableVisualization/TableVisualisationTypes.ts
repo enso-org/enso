@@ -33,8 +33,29 @@ export function isSingleColumnOfActions(data: unknown): data is SingleColumnOfAc
     typeof data === 'object' &&
     data !== null &&
     'type' in data &&
-    (data as any).type === 'Single_Column_Of_Actions' &&
-    'data' in data &&
-    Array.isArray((data as any).data)
+    (data as any).type === 'Single_Column_Of_Actions' 
   )
 }
+export interface GenericGrid {
+  type: 'Generic_Grid'
+  all_rows_count: number
+  headers: Header[]
+  data: unknown[][]
+  }
+export interface Header {
+  visualization_header: string
+  get_child_node_action?: string
+  child_label?: string
+  args?: string[]
+}
+
+/** Is this a Table Viz for a single column of clickable items? */
+export function isGenericGrid(data: unknown): data is GenericGrid {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'type' in data &&
+    (data as any).type === 'Generic_Grid' 
+  )
+}
+
