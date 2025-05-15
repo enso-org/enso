@@ -1718,8 +1718,7 @@ type Column
              elements are no longer than 255 characters, the column will get a
              max length of 255. Otherwise, the column size limit will stay
              unchanged.
-    auto_value_type : Boolean -> Column
-    auto_value_type self shrink_types=False =
+    auto_value_type self shrink_types:Boolean=False -> Column =
         Warning.attach (Deprecated.Warning "Standard.Table.Column.Column" "auto_value_type" "Deprecated: `auto_value_type` has been replaced by `auto_cast`.") <|
             self.auto_cast shrink_types
 
@@ -1954,8 +1953,7 @@ type Column
        Most columns will return their type without changes. A mixed column may
        return a more precise type if a common type can be found for all of its
        values.
-    inferred_precise_value_type : Value_Type
-    inferred_precise_value_type self =
+    inferred_precise_value_type self -> Value_Type =
         self.implementation.inferred_precise_value_type self
 
     ## PRIVATE
@@ -1973,8 +1971,7 @@ type Column
              import Standard.Examples
 
              example_to_json = Examples.integer_column.to_js_object
-    to_js_object : JS_Object
-    to_js_object self =
+    to_js_object self -> JS_Object =
         self.implementation.to_js_object self
 
     ## ICON data_input

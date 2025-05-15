@@ -211,7 +211,6 @@ type In_Memory_Column_Implementation
                         s.iif true_val false_val storage_type java_problem_aggregator
                 In_Memory_Column.from_storage new_name rs
 
-    const : Any -> Column
     const this_column value = this_column.to_table.make_constant_column value
 
     round this_column decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) -> Column ! Illegal_Argument | Invalid_Value_Type = Value_Type.expect_numeric this_column <|
@@ -487,7 +486,6 @@ type In_Memory_Column_Implementation
                             start-> end-> Time_Utils.unit_time_difference java_unit start end
                     run_binary_op this_column fn end new_name
 
-
     date_add this_column (amount : Column | Integer) (period : Date_Period | Time_Period) -> Column ! Invalid_Value_Type | Illegal_Argument =
         Value_Type.expect_type this_column .is_date_or_time "date/time" <|
             my_type = this_column.inferred_precise_value_type
@@ -556,11 +554,6 @@ type In_Memory_Column_Implementation
         # We run with Report_Error because we do not expect any problems.
         this_column.cast new_value_type on_problems=Problem_Behavior.Report_Error
 
-    auto_value_type : Boolean -> Column
-    auto_value_type this_column shrink_types=False =
-        Warning.attach (Deprecated.Warning "Standard.Table.Column.Column" "auto_value_type" "Deprecated: `auto_value_type` has been replaced by `auto_cast`.") <|
-            this_column.auto_cast shrink_types
-
     map this_column (function : Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> Column ! Invalid_Value_Type =
         new_fn = if skip_nothing then (x-> if x.is_nothing then Nothing else function x) else function
         new_st = this_column.to_vector.map on_problems=No_Wrap.Value new_fn
@@ -607,16 +600,14 @@ type In_Memory_Column_Implementation
         storage_type = (this_column:In_Memory_Column).java_column.getStorage.getType
         Storage.to_value_type storage_type
 
-    inferred_precise_value_type : Value_Type
-    inferred_precise_value_type this_column =
+    inferred_precise_value_type this_column -> Value_Type =
         storage_type = (this_column:In_Memory_Column).java_column.getStorage.inferPreciseType PreciseTypeOptions.DEFAULT
         Storage.to_value_type storage_type
 
     should_be_selected_by_type this_column (value_type : Value_Type) -> Boolean =
         this_column.value_type.is_same_type value_type
 
-    to_js_object : JS_Object
-    to_js_object this_column =
+    to_js_object this_column -> JS_Object =
         name = (this_column:In_Memory_Column).java_column.getName
         storage = (this_column:In_Memory_Column).java_column.getStorage
         storage_proxy = Array_Proxy.new storage.getSize i-> storage.getItemBoxed i
@@ -698,8 +689,6 @@ type In_Memory_Column_Implementation
 
     offset this_column n=-1:Integer fill_with:Fill_With=..Nothing -> Column =
         Offset_Helper.column_offset_impl this_column n fill_with
-
-
 
 
 ## PRIVATE
