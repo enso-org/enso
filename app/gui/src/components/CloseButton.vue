@@ -7,7 +7,7 @@ import SvgButton from '@/components/SvgButton.vue'
 </template>
 
 <style scoped>
-.closeButton {
+.CloseButton {
   --button-padding: 0px;
   --icon-width: 12px;
   --icon-height: 12px;

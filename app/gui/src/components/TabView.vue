@@ -154,7 +154,7 @@ const onSignOut = () => {
   flex-direction: row;
   /* Create a stacking context for tab highlight, so it's under all tabs' contents. */
   isolation: isolate;
-  font: var(--font-sans);
+  font-family: var(--font-sans);
 }
 
 .filler {
