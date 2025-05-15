@@ -46,6 +46,7 @@ import * as backend from '#/services/Backend'
 import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
 import { unsafeKeys } from '#/utilities/object'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
 import { Icon } from '../Icon'
@@ -166,6 +167,7 @@ export function EnsoDevStatus() {
 export function EnsoDevtools() {
   const { getText } = textProvider.useText()
 
+  const queryClient = useQueryClient()
   const { session } = authProvider.useAuth()
   const { getFeature } = billing.usePaywallFeatures()
   const toggleEnsoDevtools = useToggleEnsoDevtools()
