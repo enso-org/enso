@@ -109,14 +109,21 @@ const onSignOut = () => {
       <KeepAlive>
         <Drive v-if="page === 'drive'" :initialProjectName="initialProjectName" />
       </KeepAlive>
-      <Editor
+      <!-- instead of v-if we set element hidden, because Editor.tsx is responsible for loading 
+       process -->
+      <div
         v-for="project in launchedProjects"
         :key="project.id"
-        :hidden="page !== project.id"
-        :project="project"
-        @readyUpdate="setProjectReady(project.id, $event)"
-        @nameUpdate="projectNames.set(project.id, $event)"
-      />
+        class="editor"
+        :class="{ hidden: page !== project.id }"
+      >
+        <Editor
+          :hidden="page !== project.id"
+          :project="project"
+          @readyUpdate="setProjectReady(project.id, $event)"
+          @nameUpdate="projectNames.set(project.id, $event)"
+        />
+      </div>
       <KeepAlive>
         <Settings v-if="page === 'settings'" />
       </KeepAlive>
@@ -164,5 +171,13 @@ const onSignOut = () => {
   max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.editor {
+  display: contents;
+
+  &.hidden {
+    display: none;
+  }
 }
 </style>

@@ -353,19 +353,12 @@ onMounted(() => {
       />
     </div>
 
-<<<<<<< HEAD
-    <div v-if="anyError" class="centerContent contents">Error: {{ anyError }}</div>
-    <div v-else-if="isBusy" class="centerContent contents">
+    <div v-if="anyError" class="centerContent browserContents">Error: {{ anyError }}</div>
+    <div v-else-if="isBusy" class="centerContent browserContents">
       <LoadingSpinner phase="loading-medium" />
     </div>
-    <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
-    <div v-else :key="currentDirectory?.id ?? 'root'" class="listing contents">
-=======
-    <div v-if="anyError" class="centerContent browserContents">Error: {{ anyError }}</div>
-    <div v-else-if="isBusy" class="centerContent browserContents"><LoadingSpinner /></div>
     <div v-else-if="isEmpty" class="centerContent browserContents">Directory is empty</div>
     <div v-else :key="currentDirectory?.id ?? 'root'" class="listing browserContents">
->>>>>>> e3c493cc80d2c2d5d3c3c9945cf151b76cb130ec
       <ContextMenuTrigger :actions="[renameAction]" @hidden="focusedDirectory = undefined">
         <TransitionGroup>
           <FileBrowserEntry
